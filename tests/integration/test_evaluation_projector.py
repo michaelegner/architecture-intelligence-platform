@@ -12,7 +12,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-from testcontainers.community.neo4j import Neo4jContainer
 
 from app.canonical import ids
 from app.graph.importer import import_all_sources
@@ -27,19 +26,6 @@ from evaluation.runner import reset_graph, run_scenario
 SCENARIOS_DIR = Path(__file__).resolve().parent.parent.parent / "evaluation" / "scenarios"
 DATABASE = "neo4j"
 SINCE = datetime(2026, 8, 1, 0, 0, tzinfo=UTC)
-
-
-@pytest.fixture(scope="module")
-def neo4j_container():
-    with Neo4jContainer("neo4j:5") as container:
-        yield container
-
-
-@pytest.fixture(scope="module")
-def driver(neo4j_container):
-    drv = neo4j_container.get_driver()
-    yield drv
-    drv.close()
 
 
 @pytest.fixture

@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-from testcontainers.community.neo4j import Neo4jContainer
 
 from app.analysis.blast_radius import blast_radius
 from app.analysis.dependencies import async_flow_to, sync_depends_on
@@ -16,19 +15,6 @@ from app.graph.importer import import_all_sources
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
-
-
-@pytest.fixture(scope="module")
-def neo4j_container():
-    with Neo4jContainer("neo4j:5") as container:
-        yield container
-
-
-@pytest.fixture(scope="module")
-def driver(neo4j_container):
-    drv = neo4j_container.get_driver()
-    yield drv
-    drv.close()
 
 
 @pytest.fixture(scope="module", autouse=True)

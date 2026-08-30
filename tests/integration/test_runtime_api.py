@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from testcontainers.community.neo4j import Neo4jContainer
 
 from app.canonical import ids
 from app.graph.importer import import_all_sources
@@ -26,19 +25,6 @@ ENVIRONMENT = "production"
 # suite runs); BUCKET_DAY is derived from it so bucket_start <= TIMESTAMP <= bucket_end always holds.
 TIMESTAMP = datetime.now(UTC) - timedelta(minutes=5)
 BUCKET_DAY = TIMESTAMP.replace(hour=0, minute=0, second=0, microsecond=0)
-
-
-@pytest.fixture(scope="module")
-def neo4j_container():
-    with Neo4jContainer("neo4j:5") as container:
-        yield container
-
-
-@pytest.fixture(scope="module")
-def driver(neo4j_container):
-    drv = neo4j_container.get_driver()
-    yield drv
-    drv.close()
 
 
 def _fact(

@@ -9,7 +9,6 @@ the same way tests/integration/test_telemetry_api.py does, rather than against e
 from pathlib import Path
 
 import pytest
-from testcontainers.community.neo4j import Neo4jContainer
 
 from app.canonical import ids
 from evaluation.loader import load_scenario
@@ -22,19 +21,6 @@ from evaluation.runner import (
 
 SCENARIOS_DIR = Path(__file__).resolve().parent.parent.parent / "evaluation" / "scenarios"
 DATABASE = "neo4j"
-
-
-@pytest.fixture(scope="module")
-def neo4j_container():
-    with Neo4jContainer("neo4j:5") as container:
-        yield container
-
-
-@pytest.fixture(scope="module")
-def driver(neo4j_container):
-    drv = neo4j_container.get_driver()
-    yield drv
-    drv.close()
 
 
 @pytest.fixture
