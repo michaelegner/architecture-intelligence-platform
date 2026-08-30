@@ -1,4 +1,4 @@
-from evaluation.__main__ import EXIT_FAILURES, EXIT_OK, _exit_code
+from evaluation.__main__ import EXIT_FAILURES, EXIT_INVALID, EXIT_OK, _exit_code, _load_scenarios
 from evaluation.comparator import ScenarioResult
 
 
@@ -14,7 +14,10 @@ def test_exit_code_is_failures_when_any_scenario_failed():
     assert _exit_code([_result(True), _result(False)]) == EXIT_FAILURES
 
 
-def test_exit_code_of_empty_results_is_ok():
-    # Vacuously true - discovery/loading already validated there's at least one real scenario
-    # before this is ever called with an empty list in practice.
-    assert _exit_code([]) == EXIT_OK
+def test_load_scenarios_rejects_an_empty_discovered_suite(tmp_path):
+    # I1 post-merge review F4: an accidentally empty suite must not silently report a vacuous
+    # PASS. _exit_code([]) alone is vacuously EXIT_OK - this guard at the loading boundary is what
+    # actually prevents that from ever being reached by `run`.
+    result = _load_scenarios(None, scenarios_dir=tmp_path)
+
+    assert result == EXIT_INVALID
