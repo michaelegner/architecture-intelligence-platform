@@ -230,3 +230,72 @@ def test_declaration_only_scenario_does_not_require_environment(tmp_path):
     scenario = load_scenario(scenario_dir)
 
     assert scenario.observation.environment is None
+
+
+# --- nested type validation (I1 post-merge review F2) ------------------------------------------
+# Every mapping/list boundary the loader assumes must be validated, not just presence, so a
+# malformed value raises ScenarioValidationError with field context instead of a raw
+# AttributeError/TypeError escaping the loader's error contract.
+
+
+def test_rejects_a_non_mapping_document_root(tmp_path):
+    scenario_dir = tmp_path / "scenario"
+    scenario_dir.mkdir()
+    (scenario_dir / "expected.yaml").write_text("- just\n- a\n- list\n")
+
+    with pytest.raises(ScenarioValidationError):
+        load_scenario(scenario_dir)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"scope": "not-a-mapping"},
+        {"scope.entities": "not-a-list"},
+        {"scope.relation_types": "CALLS"},
+        {"observation": "not-a-mapping"},
+        {"observation.window": "not-a-mapping"},
+        {"expected": "not-a-mapping"},
+        {"expected.relations": "not-a-list"},
+        {"forbidden": "not-a-mapping"},
+        {"forbidden.relations": "not-a-list"},
+    ],
+)
+def test_rejects_non_mapping_or_non_list_nested_values(tmp_path, overrides):
+    data = _mutated(**overrides)
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError):
+        load_scenario(scenario_dir)
+
+
+def test_rejects_a_non_mapping_relation_evidence(tmp_path):
+    data = _mutated(
+        **{"expected.relations": [{**_VALID["expected"]["relations"][0], "evidence": "invalid"}]}
+    )
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "evidence" in excinfo.value.field
+
+
+# --- timestamp validation (I1 post-merge review F3) ---------------------------------------------
+
+
+def test_rejects_an_invalid_window_start_timestamp(tmp_path):
+    data = _mutated(**{"observation.window.start": "not-a-timestamp"})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert excinfo.value.field == "observation.window.start"
+
+
+def test_rejects_an_invalid_window_end_timestamp(tmp_path):
+    data = _mutated(**{"observation.window.end": "not-a-timestamp"})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert excinfo.value.field == "observation.window.end"

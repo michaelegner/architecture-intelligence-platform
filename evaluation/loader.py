@@ -42,6 +42,26 @@ def _require(data: dict, key: str, *, scenario_id: str, file: Path, prefix: str 
     return data[key]
 
 
+def _require_mapping(value: Any, *, scenario_id: str, file: Path, field: str) -> dict:
+    if not isinstance(value, dict):
+        raise _error(scenario_id, file, field, f"expected a mapping, got {value!r}")
+    return value
+
+
+def _require_list(value: Any, *, scenario_id: str, file: Path, field: str) -> list:
+    if not isinstance(value, list):
+        raise _error(scenario_id, file, field, f"expected a list, got {value!r}")
+    return value
+
+
+def _optional_mapping(value: Any, *, scenario_id: str, file: Path, field: str) -> dict:
+    """Like _require_mapping, but None/absent is allowed and normalized to {} - for optional
+    nested blocks (observation, observation.window, a relation's evidence)."""
+    if value is None:
+        return {}
+    return _require_mapping(value, scenario_id=scenario_id, file=file, field=field)
+
+
 def _validate_entity_id(value: Any, *, scenario_id: str, file: Path, field: str) -> str:
     if not is_canonical_id(value):
         raise _error(scenario_id, file, field, f"malformed canonical identifier: {value!r}")
@@ -75,7 +95,9 @@ def _parse_relation_fact(raw: Any, *, scenario_id: str, file: Path, field: str) 
         file=file,
         field=f"{field}.target",
     )
-    evidence = raw.get("evidence") or {}
+    evidence = _optional_mapping(
+        raw.get("evidence"), scenario_id=scenario_id, file=file, field=f"{field}.evidence"
+    )
     return RelationFact(
         type=relation_type,
         source=source,
@@ -86,10 +108,15 @@ def _parse_relation_fact(raw: Any, *, scenario_id: str, file: Path, field: str) 
     )
 
 
-def _parse_timestamp(value: str | None) -> datetime | None:
+def _parse_timestamp(value: Any, *, scenario_id: str, file: Path, field: str) -> datetime | None:
     if value is None:
         return None
-    return datetime.fromisoformat(value)
+    if not isinstance(value, str):
+        raise _error(scenario_id, file, field, f"invalid timestamp: {value!r}")
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise _error(scenario_id, file, field, f"invalid timestamp: {value!r} ({exc})") from exc
 
 
 def _has_telemetry_input(path: Path) -> bool:
@@ -100,7 +127,11 @@ def _has_telemetry_input(path: Path) -> bool:
 def load_scenario(path: Path) -> Scenario:
     """Loads and validates one scenario directory's expected.yaml into a Scenario."""
     file = path / EXPECTED_FILENAME
-    raw = yaml.safe_load(file.read_text()) or {}
+    raw = yaml.safe_load(file.read_text())
+    if raw is None:
+        raw = {}
+    if not isinstance(raw, dict):
+        raise _error(path.name, file, "<root>", f"expected a mapping, got {raw!r}")
 
     scenario_id = raw.get("scenario")
     if not scenario_id or not isinstance(scenario_id, str):
@@ -108,15 +139,27 @@ def load_scenario(path: Path) -> Scenario:
 
     description = _require(raw, "description", scenario_id=scenario_id, file=file)
 
-    scope_raw = _require(raw, "scope", scenario_id=scenario_id, file=file)
-    entities_raw = _require(
-        scope_raw, "entities", scenario_id=scenario_id, file=file, prefix="scope."
+    scope_raw = _require_mapping(
+        _require(raw, "scope", scenario_id=scenario_id, file=file),
+        scenario_id=scenario_id,
+        file=file,
+        field="scope",
+    )
+    entities_raw = _require_list(
+        _require(scope_raw, "entities", scenario_id=scenario_id, file=file, prefix="scope."),
+        scenario_id=scenario_id,
+        file=file,
+        field="scope.entities",
     )
     entities = tuple(
         _validate_entity_id(e, scenario_id=scenario_id, file=file, field="scope.entities")
         for e in entities_raw
     )
     relation_types_raw = scope_raw.get("relation_types")
+    if relation_types_raw is not None:
+        relation_types_raw = _require_list(
+            relation_types_raw, scenario_id=scenario_id, file=file, field="scope.relation_types"
+        )
     relation_types = (
         tuple(
             _validate_relation_type(
@@ -129,21 +172,46 @@ def load_scenario(path: Path) -> Scenario:
     )
     scope = ScenarioScope(entities=entities, relation_types=relation_types)
 
-    observation_raw = raw.get("observation") or {}
-    window_raw = observation_raw.get("window") or {}
+    observation_raw = _optional_mapping(
+        raw.get("observation"), scenario_id=scenario_id, file=file, field="observation"
+    )
+    window_raw = _optional_mapping(
+        observation_raw.get("window"),
+        scenario_id=scenario_id,
+        file=file,
+        field="observation.window",
+    )
     observation = Observation(
         environment=observation_raw.get("environment"),
-        window_start=_parse_timestamp(window_raw.get("start")),
-        window_end=_parse_timestamp(window_raw.get("end")),
+        window_start=_parse_timestamp(
+            window_raw.get("start"),
+            scenario_id=scenario_id,
+            file=file,
+            field="observation.window.start",
+        ),
+        window_end=_parse_timestamp(
+            window_raw.get("end"),
+            scenario_id=scenario_id,
+            file=file,
+            field="observation.window.end",
+        ),
     )
     if _has_telemetry_input(path) and not observation.environment:
         raise _error(
             scenario_id, file, "observation.environment", "required for a runtime scenario"
         )
 
-    expected_raw = _require(raw, "expected", scenario_id=scenario_id, file=file)
-    relations_raw = _require(
-        expected_raw, "relations", scenario_id=scenario_id, file=file, prefix="expected."
+    expected_raw = _require_mapping(
+        _require(raw, "expected", scenario_id=scenario_id, file=file),
+        scenario_id=scenario_id,
+        file=file,
+        field="expected",
+    )
+    relations_raw = _require_list(
+        _require(expected_raw, "relations", scenario_id=scenario_id, file=file, prefix="expected."),
+        scenario_id=scenario_id,
+        file=file,
+        field="expected.relations",
     )
     expected_relations = tuple(
         _parse_relation_fact(r, scenario_id=scenario_id, file=file, field="expected.relations")
@@ -156,9 +224,19 @@ def load_scenario(path: Path) -> Scenario:
             raise _error(scenario_id, file, "expected.relations", f"duplicate expected fact: {key}")
         seen.add(key)
 
-    forbidden_raw = _require(raw, "forbidden", scenario_id=scenario_id, file=file)
-    forbidden_relations = _require(
-        forbidden_raw, "relations", scenario_id=scenario_id, file=file, prefix="forbidden."
+    forbidden_raw = _require_mapping(
+        _require(raw, "forbidden", scenario_id=scenario_id, file=file),
+        scenario_id=scenario_id,
+        file=file,
+        field="forbidden",
+    )
+    forbidden_relations = _require_list(
+        _require(
+            forbidden_raw, "relations", scenario_id=scenario_id, file=file, prefix="forbidden."
+        ),
+        scenario_id=scenario_id,
+        file=file,
+        field="forbidden.relations",
     )
     if forbidden_relations:
         # I1 §7.2: the final scenario-file shape is used, but evaluating non-empty forbidden

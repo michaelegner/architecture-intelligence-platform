@@ -32,14 +32,22 @@ EXIT_FAILURES = 1
 EXIT_INVALID = 2
 
 
-def _load_scenarios(scenario_id: str | None) -> list[Scenario] | int:
+def _load_scenarios(
+    scenario_id: str | None, *, scenarios_dir: Path = SCENARIOS_DIR
+) -> list[Scenario] | int:
     """Returns the loaded scenarios, or an EXIT_INVALID code on discovery/validation failure."""
-    paths = discover_scenarios(SCENARIOS_DIR)
+    paths = discover_scenarios(scenarios_dir)
     if scenario_id is not None:
         paths = [p for p in paths if p.name == scenario_id]
         if not paths:
             print(f"unknown scenario: {scenario_id}", file=sys.stderr)
             return EXIT_INVALID
+
+    if not paths:
+        # An accidentally empty suite must not silently report a vacuous PASS (I1 post-merge
+        # review F4) - the evaluation command exists specifically to prove required scenarios ran.
+        print(f"no scenarios discovered under {scenarios_dir}", file=sys.stderr)
+        return EXIT_INVALID
 
     try:
         return [load_scenario(p) for p in paths]
