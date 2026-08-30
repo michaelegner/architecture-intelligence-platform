@@ -3,7 +3,7 @@ from evaluation.comparator import ScenarioResult
 
 
 def _result(passed: bool) -> ScenarioResult:
-    return ScenarioResult(scenario_id="x", passed=passed, mismatches=(), unexpected_count=0)
+    return ScenarioResult(scenario_id="x", passed=passed, mismatches=())
 
 
 def test_exit_code_is_ok_only_when_every_scenario_passed():

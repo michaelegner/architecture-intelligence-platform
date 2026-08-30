@@ -1,13 +1,17 @@
-"""Human-readable, deterministic PASS/FAIL report for the I1 evaluation suite (spec §17).
-
-In I1, unexpected-in-scope facts are counted for diagnostics only - the report says so explicitly
-rather than implying the final v0.2.0 unexpected-fact semantics (full enforcement in I2) are
-already complete.
+"""Human-readable, deterministic PASS/FAIL report for the AIP evaluation suite (I1 §17, extended
+by I2 §8 to render FORBIDDEN_PRESENT and UNEXPECTED mismatches, which have no `expected` side).
 """
 
 from __future__ import annotations
 
-from evaluation.comparator import MISSING, SEMANTIC_MISMATCH, Mismatch, ScenarioResult
+from evaluation.comparator import (
+    FORBIDDEN_PRESENT,
+    MISSING,
+    SEMANTIC_MISMATCH,
+    UNEXPECTED,
+    Mismatch,
+    ScenarioResult,
+)
 from evaluation.model import RelationFact
 
 
@@ -39,6 +43,10 @@ def _wrong_evidence(mismatch: Mismatch) -> bool:
 def _reasons(mismatch: Mismatch) -> list[str]:
     if mismatch.kind == MISSING:
         return ["missing expected fact"]
+    if mismatch.kind == FORBIDDEN_PRESENT:
+        return ["forbidden fact present"]
+    if mismatch.kind == UNEXPECTED:
+        return ["unexpected in-scope fact"]
     reasons = []
     if _wrong_status(mismatch):
         reasons.append("wrong status")
@@ -64,32 +72,51 @@ def _reasons(mismatch: Mismatch) -> list[str]:
     return reasons
 
 
-def _fact_sort_key(fact: RelationFact) -> tuple[str, str, str]:
+def _identity_lines(label: str, fact: RelationFact) -> list[str]:
+    return [f"{label}:", f"  {fact.type}", f"  {fact.source}", f"    -> {fact.target}"]
+
+
+def _status_lines(fact: RelationFact) -> list[str]:
+    return [
+        f"  status: {fact.status}",
+        f"  evidence: declared={_bool(fact.declared_evidence)} observed={_bool(fact.observed_evidence)}",
+    ]
+
+
+def _sort_key(mismatch: Mismatch) -> tuple[str, str, str]:
+    # An UNEXPECTED mismatch has no expected side (I2 §5.3) - fall back to the actual fact so it
+    # still sorts deterministically alongside the others.
+    fact = mismatch.expected or mismatch.actual
     return (fact.type, fact.source, fact.target)
 
 
 def _format_mismatch(mismatch: Mismatch) -> list[str]:
-    expected = mismatch.expected
-    lines = [
-        "",
-        "Expected:",
-        f"  {expected.type}",
-        f"  {expected.source}",
-        f"    -> {expected.target}",
-        f"  status: {expected.status}",
-        f"  evidence: declared={_bool(expected.declared_evidence)} observed={_bool(expected.observed_evidence)}",
-        "",
-        "Actual:",
-    ]
-    if mismatch.kind == MISSING:
-        lines.append("  (no matching fact found)")
+    if mismatch.kind == UNEXPECTED:
+        lines = [
+            "",
+            *_identity_lines("Unexpected", mismatch.actual),
+            *_status_lines(mismatch.actual),
+        ]
+    elif mismatch.kind == FORBIDDEN_PRESENT:
+        lines = [
+            "",
+            *_identity_lines("Forbidden", mismatch.expected),
+            "",
+            "Actual:",
+            *_status_lines(mismatch.actual),
+        ]
     else:
-        actual = mismatch.actual
-        lines.append(f"  status: {actual.status}")
-        lines.append(
-            f"  evidence: declared={_bool(actual.declared_evidence)} "
-            f"observed={_bool(actual.observed_evidence)}"
-        )
+        lines = [
+            "",
+            *_identity_lines("Expected", mismatch.expected),
+            *_status_lines(mismatch.expected),
+            "",
+            "Actual:",
+        ]
+        if mismatch.kind == MISSING:
+            lines.append("  (no matching fact found)")
+        else:
+            lines.extend(_status_lines(mismatch.actual))
     lines += ["", "Reason:"] + [f"  {reason}" for reason in _reasons(mismatch)]
     return lines
 
@@ -97,10 +124,10 @@ def _format_mismatch(mismatch: Mismatch) -> list[str]:
 def render(results: list[ScenarioResult]) -> str:
     sorted_results = sorted(results, key=lambda r: r.scenario_id)
 
-    lines = ["AIP Evaluation — I1", ""]
+    lines = ["AIP Evaluation — I2", ""]
     for result in sorted_results:
         lines.append(f"[{'PASS' if result.passed else 'FAIL'}] {result.scenario_id}")
-        for mismatch in sorted(result.mismatches, key=lambda m: _fact_sort_key(m.expected)):
+        for mismatch in sorted(result.mismatches, key=_sort_key):
             lines.extend(_format_mismatch(mismatch))
         if not result.passed:
             lines.append("")
@@ -109,6 +136,8 @@ def render(results: list[ScenarioResult]) -> str:
     passed = sum(1 for r in sorted_results if r.passed)
     all_mismatches = [m for r in sorted_results for m in r.mismatches]
     missing = sum(1 for m in all_mismatches if m.kind == MISSING)
+    unexpected = sum(1 for m in all_mismatches if m.kind == UNEXPECTED)
+    forbidden_present = sum(1 for m in all_mismatches if m.kind == FORBIDDEN_PRESENT)
     wrong_statuses = sum(1 for m in all_mismatches if _wrong_status(m))
     evidence_errors = sum(1 for m in all_mismatches if _wrong_evidence(m))
 
@@ -118,7 +147,8 @@ def render(results: list[ScenarioResult]) -> str:
         f"Failed:             {total - passed}",
         "",
         f"Missing facts:      {missing}",
-        "Unexpected facts:   not enforced in I1",
+        f"Unexpected facts:   {unexpected}",
+        f"Forbidden facts present: {forbidden_present}",
         f"Wrong statuses:     {wrong_statuses}",
         f"Evidence errors:    {evidence_errors}",
         "",
