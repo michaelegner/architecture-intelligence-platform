@@ -1,0 +1,49 @@
+scenario: orphan-messaging
+
+description: >
+  OrderService sends to unused-q, which no service consumes (a sender without a known consumer).
+  InventoryService receives from unknown-producer-q, which no service sends to (a consumer without
+  a known producer). Both are individually CONFIRMED - orphan topology is not the same as being
+  unobserved. AIP must not invent a phantom counterpart relation for either queue.
+
+scope:
+  entities:
+    - service:order-service
+    - service:inventory-service
+    - queue:unused-q
+    - queue:unknown-producer-q
+  relation_types:
+    - SENDS
+    - RECEIVES_FROM
+
+observation:
+  environment: test
+  window:
+    start: "2026-08-01T10:00:00Z"
+    end: "2026-08-01T11:00:00Z"
+
+expected:
+  relations:
+    - type: SENDS
+      source: service:order-service
+      target: queue:unused-q
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+    - type: RECEIVES_FROM
+      source: service:inventory-service
+      target: queue:unknown-producer-q
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+
+forbidden:
+  relations:
+    - type: RECEIVES_FROM
+      source: service:inventory-service
+      target: queue:unused-q
+    - type: SENDS
+      source: service:order-service
+      target: queue:unknown-producer-q

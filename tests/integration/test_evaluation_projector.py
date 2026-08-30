@@ -103,6 +103,64 @@ def test_wrong_expectation_is_reported_as_a_semantic_mismatch_not_a_pass(driver,
     assert result.mismatches[0].actual.status == "CONFIRMED"
 
 
+# --- I2 scenarios: orphan messaging, mixed REST+async, request/response queue pair --------------
+
+
+def test_orphan_messaging_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "04-orphan-messaging")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_mixed_rest_async_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "05-mixed-rest-async")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_request_response_queue_pair_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "06-request-response-queue-pair")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_forbidding_a_fact_that_is_actually_present_fails_the_scenario(driver, tmp_path):
+    """Sanity-break control for the forbidden-fact path: re-declaring one of the request/response
+    scenario's real, present facts (SENDS order-service->request-q) as forbidden instead of
+    expected must turn it into a reported FORBIDDEN_PRESENT FAIL, proving forbidden-fact
+    enforcement actually discriminates rather than being vacuously true."""
+    broken_dir = tmp_path / "06-request-response-queue-pair-broken"
+    shutil.copytree(SCENARIOS_DIR / "06-request-response-queue-pair", broken_dir)
+    expected_file = broken_dir / "expected.yaml"
+    data = yaml.safe_load(expected_file.read_text())
+    data["expected"]["relations"] = [
+        r
+        for r in data["expected"]["relations"]
+        if not (r["type"] == "SENDS" and r["target"] == "queue:request-q")
+    ]
+    data["forbidden"]["relations"] = [
+        {"type": "SENDS", "source": "service:order-service", "target": "queue:request-q"}
+    ]
+    expected_file.write_text(yaml.safe_dump(data))
+
+    scenario = load_scenario(broken_dir)
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert not result.passed
+    assert len(result.mismatches) == 1
+    assert result.mismatches[0].kind == "forbidden_present"
+    assert result.mismatches[0].actual.target == "queue:request-q"
+
+
 # --- F1 regression: status must be classified per (type, source, target), not per (source, type) ---
 
 

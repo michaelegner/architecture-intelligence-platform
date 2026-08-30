@@ -1,0 +1,16 @@
+asyncapi: '2.6.0'
+info:
+  title: ProductService
+  version: "1.0.0"
+channels:
+  order-status-q:
+    subscribe:
+      operationId: receiveOrderStatus
+      message:
+        $ref: '#/components/messages/OrderStatus'
+components:
+  messages:
+    OrderStatus:
+      name: OrderStatus
+      payload:
+        type: object
