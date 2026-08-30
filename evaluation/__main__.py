@@ -4,9 +4,9 @@
     uv run python -m evaluation run 01-rest-confirmed
     uv run python -m evaluation run --scenario 01-rest-confirmed
 
-I1.1 implements scenario discovery and validation only. End-to-end execution against AIP (ingest,
-inject runtime fixtures, project canonical facts, compare, report) lands in I1.2-I1.4 - see
-docs/specifications/0.2.0/i1-evaluation-kernel.md.
+Spins up its own ephemeral Neo4j via Testcontainers - the same mechanism this project's existing
+tests/integration/ suite already uses - so the suite is reproducible on a clean checkout (Docker
+required) without a separately running Neo4j instance (spec I1 §24).
 """
 
 from __future__ import annotations
@@ -15,17 +15,25 @@ import argparse
 import sys
 from pathlib import Path
 
+import neo4j
+from testcontainers.community.neo4j import Neo4jContainer
+
+from evaluation.comparator import ScenarioResult
 from evaluation.loader import discover_scenarios, load_scenario
-from evaluation.model import ScenarioValidationError
+from evaluation.model import Scenario, ScenarioValidationError
+from evaluation.reporter import render
+from evaluation.runner import run_scenario
 
 SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios"
+DATABASE = "neo4j"
 
 EXIT_OK = 0
 EXIT_FAILURES = 1
 EXIT_INVALID = 2
 
 
-def _run(scenario_id: str | None) -> int:
+def _load_scenarios(scenario_id: str | None) -> list[Scenario] | int:
+    """Returns the loaded scenarios, or an EXIT_INVALID code on discovery/validation failure."""
     paths = discover_scenarios(SCENARIOS_DIR)
     if scenario_id is not None:
         paths = [p for p in paths if p.name == scenario_id]
@@ -34,19 +42,35 @@ def _run(scenario_id: str | None) -> int:
             return EXIT_INVALID
 
     try:
-        scenarios = [load_scenario(p) for p in paths]
+        return [load_scenario(p) for p in paths]
     except ScenarioValidationError as exc:
         print(f"invalid scenario configuration: {exc}", file=sys.stderr)
         return EXIT_INVALID
 
-    print("AIP Evaluation — I1\n")
-    for scenario in scenarios:
-        print(f"  {scenario.id}: {scenario.description.strip()}")
-    print(
-        f"\n{len(scenarios)} scenario(s) discovered and validated. "
-        "Execution against AIP is not yet implemented (I1.2+)."
-    )
-    return EXIT_OK
+
+def _run_all(scenarios: list[Scenario], driver: neo4j.Driver) -> list[ScenarioResult]:
+    return [run_scenario(driver, database=DATABASE, scenario=scenario) for scenario in scenarios]
+
+
+def _exit_code(results: list[ScenarioResult]) -> int:
+    """Spec §18: failures must never return 0, regardless of how many scenarios ran."""
+    return EXIT_OK if all(result.passed for result in results) else EXIT_FAILURES
+
+
+def _run(scenario_id: str | None) -> int:
+    scenarios = _load_scenarios(scenario_id)
+    if isinstance(scenarios, int):
+        return scenarios
+
+    with Neo4jContainer("neo4j:5") as container:
+        driver = container.get_driver()
+        try:
+            results = _run_all(scenarios, driver)
+        finally:
+            driver.close()
+
+    print(render(results))
+    return _exit_code(results)
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -67,7 +67,10 @@ def compare(scenario: Scenario, actual: set[RelationFact]) -> ScenarioResult:
     unexpected_count = sum(1 for fact in actual if _identity(fact) not in expected_identities)
 
     return ScenarioResult(
-        scenario_id=scenario.id,
+        # The scenario's directory name, not scenario.id (the YAML `scenario:` field) - this is
+        # what the CLI's own --scenario argument and discover_scenarios() address scenarios by
+        # (spec I1 §19), and what the spec's own report examples (§17) sort/display by.
+        scenario_id=scenario.path.name,
         passed=not mismatches,
         mismatches=tuple(mismatches),
         unexpected_count=unexpected_count,
