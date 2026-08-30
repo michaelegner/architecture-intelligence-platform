@@ -1,7 +1,11 @@
 # AIP Evaluation Suite
 
-Deterministic evaluation kernel for AIP, implementing Iteration 1 (`v0.2.0-alpha.1`) of
-[`docs/specifications/0.2.0/i1-evaluation-kernel.md`](../docs/specifications/0.2.0/i1-evaluation-kernel.md).
+Deterministic evaluation kernel for AIP. Implements Iteration 1
+([`i1-evaluation-kernel.md`](../docs/specifications/0.2.0/i1-evaluation-kernel.md), shipped as
+`v0.2.0-alpha.1`) and Iteration 2
+([`i2-topology-directionality.md`](../docs/specifications/0.2.0/i2-topology-directionality.md),
+`v0.2.0-alpha.2`) of the `v0.2.0` release
+([`specification.md`](../docs/specifications/0.2.0/specification.md)).
 
 > **v0.2.0's goal is not to add a new architecture-intelligence dimension.** AIP `v0.1` already
 > produces declared/observed architecture facts, statuses (`CONFIRMED`/`OBSERVED_ONLY`/
@@ -19,32 +23,39 @@ against a hand-written `expected.yaml`:
 scenario fixture -> AIP -> canonical architecture facts -> compare -> PASS/FAIL
 ```
 
-Iteration 1 exercises exactly three scenarios, covering:
+Six scenarios currently exercise:
 
 - declared architecture input (OpenAPI, AsyncAPI, Architecture Manifest),
 - runtime observation input (real OTLP ingestion via `/v1/traces`),
 - REST dependencies (`CALLS`/`PROVIDES`) and queue-based dependencies (`SENDS`/`RECEIVES_FROM`),
 - the `CONFIRMED` and `OBSERVED_ONLY` status classifications,
 - declared vs. observed evidence presence,
-- canonical identifiers and deterministic comparison.
+- canonical identifiers and deterministic comparison,
+- **(I2)** a forbidden canonical identity that must not exist (`forbidden.relations`) - failing the
+  scenario if it's present,
+- **(I2)** exhaustive unexpected-fact detection - any in-scope actual fact that is neither expected
+  nor forbidden fails the scenario,
+- **(I2)** topology that specifically exercises directionality: orphan messaging (a sender with no
+  consumer, and vice versa), mixed REST+async between the same service pair (proving the two
+  interaction modes aren't collapsed into one generic dependency), and a bidirectional
+  request/response queue pair (proving sender/receiver roles aren't swapped).
 
 ## What this suite does not (yet) test
 
-I1 is deliberately narrow. It does **not** implement:
+The suite remains deliberately narrow. It does **not** implement:
 
 - the complete 8-10 scenario `v0.2.0` suite (`docs/specifications/0.2.0/specification.md`),
-- `NOT_OBSERVED_IN_WINDOW`,
-- evidence reconciliation or partial-observation semantics,
-- request/response queue pairs, orphan queues, or DLQ scenarios,
-- **non-empty `forbidden` assertions** - every I1 scenario's `forbidden.relations` must be
-  present and empty; a non-empty list is rejected as unsupported configuration, not evaluated,
-- **exhaustive unexpected-fact detection** - an in-scope canonical fact that isn't in
-  `expected.relations` is counted for diagnostics (reported as "not enforced in I1") but never
-  fails a scenario on its own,
+- `NOT_OBSERVED_IN_WINDOW`, evidence reconciliation, or partial-observation semantics (I3),
+- DLQ directionality or cross-batch HTTP correlation scenarios (I4, optional there too),
+- a declared-only scenario with no runtime evidence at all (cheap to add later; not required by
+  I1's or I2's focus),
+- a dedicated "wrong direction" report category distinct from missing/unexpected/forbidden -
+  directionality is checked through the combination of those three, not a separate classifier,
 - an LLM-based evaluator, a generic policy/rules engine, or precision/recall scoring.
 
-Full `forbidden`/unexpected-fact semantics, strict relation-direction checks, orphan messaging, and
-mixed REST+async scenarios are the focus of Iteration 2.
+I2 closed the two things I1 left unenforced: `forbidden.relations` is no longer rejected when
+non-empty, and an unexpected in-scope fact is no longer just a diagnostic - both now fail a
+scenario. See §3 of the I2 specification for the full rationale.
 
 ## Running
 
@@ -60,22 +71,91 @@ uv run python -m evaluation run --scenario 01-rest-confirmed  # equivalent
 Expected result on a clean checkout:
 
 ```text
-AIP Evaluation — I1
+AIP Evaluation — I2
 
 [PASS] 01-rest-confirmed
 [PASS] 02-rest-observed-only
 [PASS] 03-async-confirmed
+[PASS] 04-orphan-messaging
+[PASS] 05-mixed-rest-async
+[PASS] 06-request-response-queue-pair
 
-Scenarios:          3
-Passed:             3
+Scenarios:          6
+Passed:             6
 Failed:             0
-...
+
+Missing facts:      0
+Unexpected facts:   0
+Forbidden facts present: 0
+Wrong statuses:     0
+Evidence errors:    0
+
 RESULT: PASS
 ```
 
 Exit code `0` means every scenario passed; `1` means at least one semantic evaluation failure;
 `2` means invalid scenario configuration or an infrastructure error (the suite never exits `0` on
 failure).
+
+### Failure examples
+
+A missing expected fact or a wrong status/evidence value looks like this (see the I1
+specification's own report format for the full rationale):
+
+```text
+[FAIL] 02-rest-observed-only
+
+Expected:
+  CALLS
+  service:order-service
+    -> operation:service:product-service:GET:/prices
+  status: OBSERVED_ONLY
+  evidence: declared=false observed=true
+
+Actual:
+  status: CONFIRMED
+  evidence: declared=true observed=true
+
+Reason:
+  wrong status
+  unexpected declared evidence
+```
+
+A **forbidden fact present** (I2) - a canonical identity `forbidden.relations` says must not
+exist, but does:
+
+```text
+[FAIL] 06-request-response-queue-pair
+
+Forbidden:
+  RECEIVES_FROM
+  service:order-service
+    -> queue:request-q
+
+Actual:
+  status: CONFIRMED
+  evidence: declared=true observed=true
+
+Reason:
+  forbidden fact present
+```
+
+An **unexpected fact** (I2) - an in-scope actual fact that is neither expected nor forbidden (it
+has no expected counterpart to display, unlike the two cases above):
+
+```text
+[FAIL] 05-mixed-rest-async
+
+Unexpected:
+  SENDS
+  service:order-service
+    -> queue:some-other-queue
+  status: CONFIRMED
+  evidence: declared=true observed=true
+
+Reason:
+  unexpected in-scope fact
+```
 
 ## Scenario structure
 
@@ -96,13 +176,16 @@ evaluation/scenarios/01-rest-confirmed/
                                             # persist) - no shortcut around OTLP ingestion
 ```
 
-The three I1 scenarios:
+The six scenarios:
 
 | Directory | Purpose |
 | --- | --- |
 | `01-rest-confirmed` | OrderService calls ProductService's `GET /products/{id}`; both declared and observed -> `CONFIRMED`. |
 | `02-rest-observed-only` | OrderService calls ProductService's `GET /prices` at runtime with no declared caller evidence anywhere -> `OBSERVED_ONLY`. |
 | `03-async-confirmed` | OrderService sends to, and InventoryService receives from, `order-events-q`; both directions declared and observed -> `CONFIRMED`. |
+| `04-orphan-messaging` | OrderService sends `unused-q` (no consumer); InventoryService receives from `unknown-producer-q` (no producer) - both `CONFIRMED`, with each queue's plausible wrong-guess inverse explicitly forbidden. |
+| `05-mixed-rest-async` | OrderService/ProductService use both `CALLS` and `SENDS`/`RECEIVES_FROM` - proving the two interaction modes stay distinct canonical relation types. |
+| `06-request-response-queue-pair` | OrderService/ProductService exchange a bidirectional queue pair; each participant's swapped role on the queue it already has a role on is explicitly forbidden. |
 
 Each scenario runs from a fully reset graph (`MATCH (n) DETACH DELETE n`) before its own
 declarations and telemetry are ingested, so scenarios never interfere with each other.
@@ -119,7 +202,8 @@ scope:
     - service:order-service
     - service:product-service
     - operation:service:product-service:GET:/products/{id}
-  relation_types: [CALLS]         # optional - restricts comparison to these relation types
+  relation_types: [CALLS]         # restricts comparison to these relation types - keep this tight
+                                   # (see "unexpected facts" below for why it matters since I2)
 
 observation:
   environment: test               # required whenever the scenario has input/telemetry/
@@ -138,7 +222,10 @@ expected:
         observed: true
 
 forbidden:
-  relations: []                   # MUST be present and empty in I1 (see above)
+  relations:                      # canonical identities that MUST NOT exist (I2) - type/source/
+    - type: RECEIVES_FROM         # target only; status/evidence (or any other key) are rejected,
+      source: service:x           # since a forbidden assertion is unconditional, not a rule
+      target: queue:y
 ```
 
 A canonical relation is "in scope" when its source or target is listed under `scope.entities`
@@ -146,25 +233,33 @@ A canonical relation is "in scope" when its source or target is listed under `sc
 lets scenarios share infrastructure (e.g. multiple scenarios both mentioning ProductService)
 without becoming brittle against unrelated facts.
 
+**Keep `scope.relation_types` tight.** Since I2 enforces unexpected-fact detection, a scope that's
+wider than the relation types actually under test will start failing on legitimate facts the
+scenario never intended to assert anything about - e.g. a scoped operation's `PROVIDES` edge, if
+`relation_types` only lists `CALLS`, would otherwise show up as an `UNEXPECTED` failure. Every
+scenario in this suite restricts `relation_types` explicitly for exactly this reason.
+
 ## Ground truth is independent of AIP
 
-`expected.yaml` is hand-authored, not generated from AIP's own derivation code. In particular, the
-evaluator never computes a scenario's expected `CONFIRMED`/`OBSERVED_ONLY` status from evidence
-booleans itself (that would just duplicate the behavior under test) - it reads the status AIP
-already produced (via `app.analysis.runtime`, the same code backing the real
-`/api/analysis/runtime/*` endpoints) and compares it against the independently declared expectation.
+`expected.yaml` and `forbidden.relations` are hand-authored, not generated from AIP's own
+derivation code. In particular, the evaluator never computes a scenario's expected
+`CONFIRMED`/`OBSERVED_ONLY` status from evidence booleans itself (that would just duplicate the
+behavior under test) - it reads the status AIP already produced (via `app.analysis.runtime`, the
+same code backing the real `/api/analysis/runtime/*` endpoints) and compares it against the
+independently declared expectation.
 
 ## Suite internals (for contributors)
 
 ```text
-loader.py      discovers scenarios and validates expected.yaml (spec §7)
+loader.py      discovers scenarios and validates expected.yaml, including forbidden.relations
 runner.py      resets state, ingests declarations, injects OTLP fixtures, orchestrates a run
 projector.py   reads raw canonical relation edges from Neo4j, labels them by AIP's own
                CONFIRMED/OBSERVED_ONLY classification (never re-derives it)
-comparator.py  expectation-driven exact comparison against expected.yaml
-reporter.py    renders the human-readable PASS/FAIL report
+comparator.py  expectation-driven exact comparison: MISSING, SEMANTIC_MISMATCH,
+               FORBIDDEN_PRESENT, and UNEXPECTED mismatches
+reporter.py    renders the human-readable PASS/FAIL report for all four mismatch kinds
 ```
 
-See the I1 specification for the full design rationale, including why status must be read from AIP
-rather than recomputed, and why canonical identity (not Cypher row shape) is the comparison
-contract.
+See the I1 and I2 specifications for the full design rationale, including why status must be read
+from AIP rather than recomputed, why canonical identity (not Cypher row shape) is the comparison
+contract, and why forbidden assertions are identity-only rather than a conditional rules language.
