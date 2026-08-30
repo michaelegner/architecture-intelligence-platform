@@ -27,14 +27,27 @@ Not yet guaranteed stable pre-1.0 — expect breaking changes on a minor version
   evidence-reconciliation invariant and cross-batch HTTP correlation)
 
 ## v0.2 — planned
+Focus: make the architecture intelligence introduced in v0.1 reproducibly testable against known
+ground truth.
 
+- Synthetic multi-service reference fixture covering REST, asynchronous messaging, and mixed
+  sync/async dependencies
+- A small deterministic scenario suite with explicit expected architecture facts
+- A lightweight evaluation runner comparing AIP output with those expectations
+- Simple pass/fail reporting for missing facts, unexpected facts, incorrect statuses, and evidence
+  violations
+
+The goal of v0.2 is not to add another architecture-intelligence dimension, but to provide a
+reproducible way to demonstrate that the existing one behaves correctly.
+
+## v0.3+
 - Kubernetes discovery (declared-architecture source: Deployments/Services as an additional
   `ArchitectureSourceAdapter`)
 - Additional adapters (candidates: gRPC/protobuf service definitions, Kafka Connect configs — see
   the "New adapter proposal" issue template for the extension-point contract)
 - Improved runtime analysis (deeper mixed-architecture blast radius over observed edges, richer
   telemetry-coverage classification)
-
+ 
 ## Future
 
 - Architecture trajectories (how the declared/observed graph changes over time, not just a single
