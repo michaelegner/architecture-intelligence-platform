@@ -315,7 +315,8 @@ def test_rejects_a_forbidden_entry_with_status(tmp_path):
 
     with pytest.raises(ScenarioValidationError) as excinfo:
         load_scenario(scenario_dir)
-    assert "status or evidence" in excinfo.value.reason
+    assert "unknown field" in excinfo.value.reason
+    assert "status" in excinfo.value.reason
 
 
 def test_rejects_a_forbidden_entry_with_evidence(tmp_path):
@@ -324,7 +325,18 @@ def test_rejects_a_forbidden_entry_with_evidence(tmp_path):
 
     with pytest.raises(ScenarioValidationError) as excinfo:
         load_scenario(scenario_dir)
-    assert "status or evidence" in excinfo.value.reason
+    assert "unknown field" in excinfo.value.reason
+    assert "evidence" in excinfo.value.reason
+
+
+def test_rejects_a_forbidden_entry_with_an_unknown_typo_field(tmp_path):
+    data = _mutated(forbidden={"relations": [{**_FORBIDDEN_FACT, "evidnece": {"observed": True}}]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+    assert "evidnece" in excinfo.value.reason
 
 
 def test_rejects_duplicate_forbidden_fact(tmp_path):

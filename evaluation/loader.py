@@ -108,16 +108,20 @@ def _parse_relation_fact(raw: Any, *, scenario_id: str, file: Path, field: str) 
     )
 
 
+_FORBIDDEN_ALLOWED_KEYS = {"type", "source", "target"}
+
+
 def _parse_forbidden_fact(raw: Any, *, scenario_id: str, file: Path, field: str) -> RelationFact:
     """A forbidden entry asserts only that a canonical identity must not exist (I2 spec §4.2) -
-    status/evidence are not part of its schema, so their presence is rejected rather than
-    silently ignored (no conditional forbidding, no rules-DSL creep)."""
+    status/evidence (or any other field, including a typo of one) are not part of its schema, so
+    their presence is rejected rather than silently ignored (no conditional forbidding, no
+    rules-DSL creep, and no typo silently producing an unconditional identity assertion the
+    scenario author didn't intend)."""
     if not isinstance(raw, dict):
         raise _error(scenario_id, file, field, f"expected a mapping, got {raw!r}")
-    if "status" in raw or "evidence" in raw:
-        raise _error(
-            scenario_id, file, field, "forbidden entries must not specify status or evidence"
-        )
+    unknown = set(raw) - _FORBIDDEN_ALLOWED_KEYS
+    if unknown:
+        raise _error(scenario_id, file, field, f"unknown field(s): {', '.join(sorted(unknown))}")
     relation_type = _validate_relation_type(
         _require(raw, "type", scenario_id=scenario_id, file=file, prefix=f"{field}."),
         scenario_id=scenario_id,
