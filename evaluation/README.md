@@ -121,8 +121,8 @@ Reason:
   unexpected declared evidence
 ```
 
-A **forbidden fact present** (I2) - a canonical identity `forbidden.relations` says must not
-exist, but does:
+A **forbidden fact present** (I2) - a canonical identity listed in `forbidden.relations` is
+present in the actual results:
 
 ```text
 [FAIL] 06-request-response-queue-pair
