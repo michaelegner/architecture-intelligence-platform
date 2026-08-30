@@ -1,0 +1,25 @@
+openapi: 3.1.0
+info:
+  title: ProductService
+  version: "1.0.0"
+paths:
+  /prices:
+    get:
+      operationId: getPrices
+      summary: Get the current price list
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceList"
+components:
+  schemas:
+    PriceList:
+      type: object
+      properties:
+        prices:
+          type: array
+          items:
+            type: number
+      required: [prices]

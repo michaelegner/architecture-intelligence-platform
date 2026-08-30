@@ -1,0 +1,24 @@
+asyncapi: '2.6.0'
+info:
+  title: OrderService
+  version: "1.0.0"
+channels:
+  order-events-q:
+    publish:
+      operationId: sendOrderEvent
+      message:
+        $ref: '#/components/messages/OrderEvent'
+components:
+  messages:
+    OrderEvent:
+      name: OrderEvent
+      x-version: v1
+      payload:
+        $ref: '#/components/schemas/OrderEventPayload'
+  schemas:
+    OrderEventPayload:
+      type: object
+      properties:
+        orderId:
+          type: string
+      required: [orderId]
