@@ -1,0 +1,32 @@
+scenario: rest-confirmed
+
+description: >
+  OrderService calls ProductService's GET /products/{id} and the dependency is both declared
+  (Architecture Manifest + OpenAPI) and observed (OTLP CLIENT/SERVER spans).
+
+scope:
+  entities:
+    - service:order-service
+    - service:product-service
+    - operation:service:product-service:GET:/products/{id}
+  relation_types:
+    - CALLS
+
+observation:
+  environment: test
+  window:
+    start: "2026-08-01T10:00:00Z"
+    end: "2026-08-01T11:00:00Z"
+
+expected:
+  relations:
+    - type: CALLS
+      source: service:order-service
+      target: operation:service:product-service:GET:/products/{id}
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+
+forbidden:
+  relations: []
