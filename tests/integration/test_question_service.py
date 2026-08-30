@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-from testcontainers.community.neo4j import Neo4jContainer
 
 from app.ai.question_service import ArchitectureQuestionService
 from app.canonical import ids
@@ -24,19 +23,6 @@ class FakeProvider:
     def compose_answer(self, *, question: str, cypher: str, rows: list[dict]) -> str:
         self.compose_calls.append({"question": question, "cypher": cypher, "rows": rows})
         return f"Found {len(rows)} row(s)."
-
-
-@pytest.fixture(scope="module")
-def neo4j_container():
-    with Neo4jContainer("neo4j:5") as container:
-        yield container
-
-
-@pytest.fixture(scope="module")
-def driver(neo4j_container):
-    drv = neo4j_container.get_driver()
-    yield drv
-    drv.close()
 
 
 @pytest.fixture(scope="module", autouse=True)
