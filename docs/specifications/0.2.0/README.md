@@ -29,24 +29,24 @@ the iteration specification.
 | Document | Purpose |
 |---|---|
 | [specification.md](specification.md) | Normative release contract for the final `v0.2.0` release. Defines goals, non-goals, canonical evaluation semantics, scenario model, ground-truth format, runner behavior, reporting, acceptance criteria, and delivery iterations. |
-| [i1-evaluation-kernel.md](i1-evaluation-kernel.md) | Self-contained implementation contract for I1 / `v0.2.0-alpha.1`. Establishes the evaluation kernel with REST `CONFIRMED`, REST `OBSERVED_ONLY`, and async `CONFIRMED` scenarios. |
+| [i1-evaluation-kernel.md](i1-evaluation-kernel.md) | Self-contained implementation contract for I1 / `v0.2.0-alpha.1` (shipped). Establishes the evaluation kernel with REST `CONFIRMED`, REST `OBSERVED_ONLY`, and async `CONFIRMED` scenarios. |
+| [i2-topology-directionality.md](i2-topology-directionality.md) | Self-contained implementation contract for I2 / `v0.2.0-alpha.2`. Enforces `forbidden.relations` and exhaustive unexpected-fact detection, and adds orphan-messaging, mixed REST+async, and request/response queue-pair scenarios. |
 | [git-workflow.md](git-workflow.md) | Branching, commit, push, pull-request, merge, and tagging strategy for the `v0.2.0` implementation. |
 
-Planned iteration specifications:
+Iteration status:
 
-| Iteration | Focus | Target |
-|---|---|---|
-| I1 | Evaluation Kernel | `v0.2.0-alpha.1` |
-| I2 | Topology and Directionality | `v0.2.0-alpha.2` |
-| I3 | Evidence and Runtime Semantics | `v0.2.0-alpha.3` |
-| I4 | Coverage and Hardening | `v0.2.0-rc.1` |
-| I5 | Release Qualification | `v0.2.0` |
+| Iteration | Focus | Target | Status |
+|---|---|---|---|
+| I1 | Evaluation Kernel | `v0.2.0-alpha.1` | Shipped |
+| I2 | Topology and Directionality | `v0.2.0-alpha.2` | Spec drafted |
+| I3 | Evidence and Runtime Semantics | `v0.2.0-alpha.3` | Not started |
+| I4 | Coverage and Hardening | `v0.2.0-rc.1` | Not started |
+| I5 | Release Qualification | `v0.2.0` | Not started |
 
 As later iteration specifications are created, they should be added here using concise filenames such
 as:
 
 ```text
-i2-topology-directionality.md
 i3-evidence-runtime-semantics.md
 i4-coverage-hardening.md
 i5-release-qualification.md
