@@ -21,6 +21,11 @@ _SERVER_SPAN_ID = bytes.fromhex("00f067aa0ba902b7")
 _METHOD = "GET"
 _ROUTE = "/products/{id}"
 
+# Within this scenario's expected.yaml observation.window (2026-08-01T10:00:00Z..11:00:00Z) -
+# confirmed_relations()/observed_only_relations() filter evidence by last_seen against that window,
+# so an out-of-window timestamp would silently produce no observed evidence at all.
+_BASE_UNIX_NANO = 1_785_580_200_000_000_000  # 2026-08-01T10:30:00Z
+
 
 def _kv(key: str, value: str) -> KeyValue:
     return KeyValue(key=key, value=AnyValue(string_value=value))
@@ -32,8 +37,8 @@ def build_export_request() -> bytes:
         span_id=_CLIENT_SPAN_ID,
         name=f"{_METHOD} {_ROUTE}",
         kind=Span.SPAN_KIND_CLIENT,
-        start_time_unix_nano=1_700_000_000_000_000_000,
-        end_time_unix_nano=1_700_000_000_050_000_000,
+        start_time_unix_nano=_BASE_UNIX_NANO,
+        end_time_unix_nano=_BASE_UNIX_NANO + 50_000_000,
     )
     server_span = Span(
         trace_id=_TRACE_ID,
@@ -41,8 +46,8 @@ def build_export_request() -> bytes:
         parent_span_id=_CLIENT_SPAN_ID,
         name=f"{_METHOD} {_ROUTE}",
         kind=Span.SPAN_KIND_SERVER,
-        start_time_unix_nano=1_700_000_000_010_000_000,
-        end_time_unix_nano=1_700_000_000_040_000_000,
+        start_time_unix_nano=_BASE_UNIX_NANO + 10_000_000,
+        end_time_unix_nano=_BASE_UNIX_NANO + 40_000_000,
         attributes=[
             _kv("http.request.method", _METHOD),
             _kv("http.route", _ROUTE),

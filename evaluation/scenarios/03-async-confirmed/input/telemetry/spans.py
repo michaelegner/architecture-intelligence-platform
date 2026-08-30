@@ -18,6 +18,10 @@ _CONSUMER_SPAN_ID = bytes.fromhex("10f067aa0ba902b7")
 
 _QUEUE = "order-events-q"
 
+# Within this scenario's expected.yaml observation.window (2026-08-01T10:00:00Z..11:00:00Z) - see
+# 01-rest-confirmed/input/telemetry/spans.py for why this matters.
+_BASE_UNIX_NANO = 1_785_580_200_000_000_000  # 2026-08-01T10:30:00Z
+
 
 def _kv(key: str, value: str) -> KeyValue:
     return KeyValue(key=key, value=AnyValue(string_value=value))
@@ -38,8 +42,8 @@ def build_export_request() -> bytes:
         span_id=_PRODUCER_SPAN_ID,
         name=f"{_QUEUE} send",
         kind=Span.SPAN_KIND_PRODUCER,
-        start_time_unix_nano=1_700_000_000_000_000_000,
-        end_time_unix_nano=1_700_000_000_010_000_000,
+        start_time_unix_nano=_BASE_UNIX_NANO,
+        end_time_unix_nano=_BASE_UNIX_NANO + 10_000_000,
         attributes=[
             _kv("messaging.operation.type", "send"),
             _kv("messaging.destination.name", _QUEUE),
@@ -50,8 +54,8 @@ def build_export_request() -> bytes:
         span_id=_CONSUMER_SPAN_ID,
         name=f"{_QUEUE} receive",
         kind=Span.SPAN_KIND_CONSUMER,
-        start_time_unix_nano=1_700_000_000_020_000_000,
-        end_time_unix_nano=1_700_000_000_030_000_000,
+        start_time_unix_nano=_BASE_UNIX_NANO + 20_000_000,
+        end_time_unix_nano=_BASE_UNIX_NANO + 30_000_000,
         attributes=[
             _kv("messaging.operation.type", "receive"),
             _kv("messaging.destination.name", _QUEUE),

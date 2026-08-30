@@ -1,9 +1,7 @@
 """Orchestrates one evaluation scenario run against a live AIP instance.
 
-I1.2 implements isolation (deterministic clean-state reset) and input execution (declared-fixture
-ingestion through the real scan/parse/validate/import pipeline, plus static OTLP injection through
-the real `/v1/traces` path) - see docs/specifications/0.2.0/i1-evaluation-kernel.md §12-13.
-Canonical projection and comparison land in I1.3 (projector.py/comparator.py).
+Orchestrates, per scenario: reset -> ingest declared architecture -> inject runtime fixture ->
+project canonical facts -> compare against ground truth (spec §12-16).
 """
 
 from __future__ import annotations
@@ -14,10 +12,13 @@ from pathlib import Path
 import neo4j
 from fastapi.testclient import TestClient
 
+from app.analysis.runtime import default_since
 from app.graph.importer import import_all_sources
 from app.main import create_app
 from app.settings import AppConfig, Secrets, Settings
+from evaluation.comparator import ScenarioResult, compare
 from evaluation.model import Scenario
+from evaluation.projector import load_relation_facts
 
 _OTLP_CONTENT_TYPE = "application/x-protobuf"
 _SPANS_FILENAME = "spans.py"
@@ -94,3 +95,20 @@ def prepare_scenario(driver: neo4j.Driver, *, database: str, scenario: Scenario)
     reset_graph(driver, database=database)
     ingest_declarations(driver, database=database, scenario=scenario)
     inject_runtime_fixture(driver, database=database, scenario=scenario)
+
+
+def run_scenario(driver: neo4j.Driver, *, database: str, scenario: Scenario) -> ScenarioResult:
+    """Runs one scenario end-to-end: setup, canonical projection, and comparison against the
+    scenario's own ground truth (spec §11's runner steps)."""
+    prepare_scenario(driver, database=database, scenario=scenario)
+
+    since = scenario.observation.window_start or default_since()
+    with driver.session(database=database) as session:
+        actual = load_relation_facts(
+            session,
+            scope=scenario.scope,
+            environment=scenario.observation.environment,
+            since=since,
+            until=scenario.observation.window_end,
+        )
+    return compare(scenario, actual)
