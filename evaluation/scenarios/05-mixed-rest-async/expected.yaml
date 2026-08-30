@@ -1,0 +1,51 @@
+scenario: mixed-rest-async
+
+description: >
+  OrderService and ProductService use both a synchronous REST call (CALLS GET /products/{id}) and
+  an asynchronous message exchange (SENDS/RECEIVES_FROM order-status-q). AIP must preserve both
+  interaction modes as distinct canonical relation types rather than collapsing them into one
+  generic service-to-service dependency.
+
+scope:
+  entities:
+    - service:order-service
+    - service:product-service
+    - operation:service:product-service:GET:/products/{id}
+    - queue:order-status-q
+  relation_types:
+    - CALLS
+    - SENDS
+    - RECEIVES_FROM
+
+observation:
+  environment: test
+  window:
+    start: "2026-08-01T10:00:00Z"
+    end: "2026-08-01T11:00:00Z"
+
+expected:
+  relations:
+    - type: CALLS
+      source: service:order-service
+      target: operation:service:product-service:GET:/products/{id}
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+    - type: SENDS
+      source: service:order-service
+      target: queue:order-status-q
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+    - type: RECEIVES_FROM
+      source: service:product-service
+      target: queue:order-status-q
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+
+forbidden:
+  relations: []

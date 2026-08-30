@@ -1,0 +1,25 @@
+asyncapi: '2.6.0'
+info:
+  title: ProductService
+  version: "1.0.0"
+channels:
+  request-q:
+    subscribe:
+      operationId: receiveRequest
+      message:
+        $ref: '#/components/messages/RequestMessage'
+  response-q:
+    publish:
+      operationId: sendResponse
+      message:
+        $ref: '#/components/messages/ResponseMessage'
+components:
+  messages:
+    RequestMessage:
+      name: RequestMessage
+      payload:
+        type: object
+    ResponseMessage:
+      name: ResponseMessage
+      payload:
+        type: object

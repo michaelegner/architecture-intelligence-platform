@@ -1,0 +1,16 @@
+asyncapi: '2.6.0'
+info:
+  title: InventoryService
+  version: "1.0.0"
+channels:
+  unknown-producer-q:
+    subscribe:
+      operationId: receiveUnknownProducer
+      message:
+        $ref: '#/components/messages/UnknownProducerMessage'
+components:
+  messages:
+    UnknownProducerMessage:
+      name: UnknownProducerMessage
+      payload:
+        type: object

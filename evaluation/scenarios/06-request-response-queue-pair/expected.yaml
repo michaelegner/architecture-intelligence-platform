@@ -1,0 +1,70 @@
+scenario: request-response-queue-pair
+
+description: >
+  OrderService and ProductService exchange a request/response queue pair: OrderService sends
+  request-q (ProductService receives it), and ProductService sends response-q (OrderService
+  receives it). Each participant plays the opposite role on the other queue - the topology most
+  likely to have its direction accidentally swapped, so each participant's swapped role on the
+  queue it already has a role on is explicitly forbidden.
+
+scope:
+  entities:
+    - service:order-service
+    - service:product-service
+    - queue:request-q
+    - queue:response-q
+  relation_types:
+    - SENDS
+    - RECEIVES_FROM
+
+observation:
+  environment: test
+  window:
+    start: "2026-08-01T10:00:00Z"
+    end: "2026-08-01T11:00:00Z"
+
+expected:
+  relations:
+    - type: SENDS
+      source: service:order-service
+      target: queue:request-q
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+    - type: RECEIVES_FROM
+      source: service:product-service
+      target: queue:request-q
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+    - type: SENDS
+      source: service:product-service
+      target: queue:response-q
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+    - type: RECEIVES_FROM
+      source: service:order-service
+      target: queue:response-q
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+
+forbidden:
+  relations:
+    - type: RECEIVES_FROM
+      source: service:order-service
+      target: queue:request-q
+    - type: SENDS
+      source: service:product-service
+      target: queue:request-q
+    - type: SENDS
+      source: service:order-service
+      target: queue:response-q
+    - type: RECEIVES_FROM
+      source: service:product-service
+      target: queue:response-q
