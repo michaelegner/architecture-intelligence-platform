@@ -108,6 +108,37 @@ def _parse_relation_fact(raw: Any, *, scenario_id: str, file: Path, field: str) 
     )
 
 
+def _parse_forbidden_fact(raw: Any, *, scenario_id: str, file: Path, field: str) -> RelationFact:
+    """A forbidden entry asserts only that a canonical identity must not exist (I2 spec §4.2) -
+    status/evidence are not part of its schema, so their presence is rejected rather than
+    silently ignored (no conditional forbidding, no rules-DSL creep)."""
+    if not isinstance(raw, dict):
+        raise _error(scenario_id, file, field, f"expected a mapping, got {raw!r}")
+    if "status" in raw or "evidence" in raw:
+        raise _error(
+            scenario_id, file, field, "forbidden entries must not specify status or evidence"
+        )
+    relation_type = _validate_relation_type(
+        _require(raw, "type", scenario_id=scenario_id, file=file, prefix=f"{field}."),
+        scenario_id=scenario_id,
+        file=file,
+        field=f"{field}.type",
+    )
+    source = _validate_entity_id(
+        _require(raw, "source", scenario_id=scenario_id, file=file, prefix=f"{field}."),
+        scenario_id=scenario_id,
+        file=file,
+        field=f"{field}.source",
+    )
+    target = _validate_entity_id(
+        _require(raw, "target", scenario_id=scenario_id, file=file, prefix=f"{field}."),
+        scenario_id=scenario_id,
+        file=file,
+        field=f"{field}.target",
+    )
+    return RelationFact(type=relation_type, source=source, target=target)
+
+
 def _parse_timestamp(value: Any, *, scenario_id: str, file: Path, field: str) -> datetime | None:
     if value is None:
         return None
@@ -230,7 +261,7 @@ def load_scenario(path: Path) -> Scenario:
         file=file,
         field="forbidden",
     )
-    forbidden_relations = _require_list(
+    forbidden_relations_raw = _require_list(
         _require(
             forbidden_raw, "relations", scenario_id=scenario_id, file=file, prefix="forbidden."
         ),
@@ -238,15 +269,25 @@ def load_scenario(path: Path) -> Scenario:
         file=file,
         field="forbidden.relations",
     )
-    if forbidden_relations:
-        # I1 §7.2: the final scenario-file shape is used, but evaluating non-empty forbidden
-        # assertions is deferred to I2 - reject rather than silently ignore.
-        raise _error(
-            scenario_id,
-            file,
-            "forbidden.relations",
-            "non-empty forbidden.relations is not supported in I1 (deferred to I2)",
-        )
+    forbidden_relations = tuple(
+        _parse_forbidden_fact(r, scenario_id=scenario_id, file=file, field="forbidden.relations")
+        for r in forbidden_relations_raw
+    )
+    seen_forbidden: set[tuple[str, str, str]] = set()
+    for fact in forbidden_relations:
+        key = (fact.type, fact.source, fact.target)
+        if key in seen_forbidden:
+            raise _error(
+                scenario_id, file, "forbidden.relations", f"duplicate forbidden fact: {key}"
+            )
+        seen_forbidden.add(key)
+        if key in seen:
+            raise _error(
+                scenario_id,
+                file,
+                "forbidden.relations",
+                f"identity also asserted as expected: {key}",
+            )
 
     return Scenario(
         id=scenario_id,
@@ -254,6 +295,7 @@ def load_scenario(path: Path) -> Scenario:
         scope=scope,
         observation=observation,
         expected_relations=expected_relations,
+        forbidden_relations=forbidden_relations,
         path=path,
     )
 

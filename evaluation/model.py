@@ -81,3 +81,4 @@ class Scenario:
     observation: Observation
     expected_relations: tuple[RelationFact, ...]
     path: Path
+    forbidden_relations: tuple[RelationFact, ...] = ()

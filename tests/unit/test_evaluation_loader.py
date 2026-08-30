@@ -181,18 +181,6 @@ def test_rejects_malformed_canonical_identifier(tmp_path):
     assert "malformed canonical identifier" in excinfo.value.reason
 
 
-def test_rejects_non_empty_forbidden_relations(tmp_path):
-    data = _mutated(
-        forbidden={"relations": [{"type": "CALLS", "source": "service:a", "target": "operation:b"}]}
-    )
-    scenario_dir = _write_scenario(tmp_path, data)
-
-    with pytest.raises(ScenarioValidationError) as excinfo:
-        load_scenario(scenario_dir)
-    assert excinfo.value.field == "forbidden.relations"
-    assert "I2" in excinfo.value.reason
-
-
 def test_rejects_missing_forbidden_relations(tmp_path):
     data = _mutated(forbidden=_DELETE)
     scenario_dir = _write_scenario(tmp_path, data)
@@ -299,3 +287,64 @@ def test_rejects_an_invalid_window_end_timestamp(tmp_path):
     with pytest.raises(ScenarioValidationError) as excinfo:
         load_scenario(scenario_dir)
     assert excinfo.value.field == "observation.window.end"
+
+
+# --- forbidden-fact evaluation (I2 §6.1/§9) ------------------------------------------------------
+
+_FORBIDDEN_FACT = {
+    "type": "RECEIVES_FROM",
+    "source": "service:some-service",
+    "target": "queue:some-q",
+}
+
+
+def test_non_empty_forbidden_relations_now_loads_successfully(tmp_path):
+    data = _mutated(forbidden={"relations": [_FORBIDDEN_FACT]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    scenario = load_scenario(scenario_dir)
+
+    assert scenario.forbidden_relations == (
+        RelationFact(type="RECEIVES_FROM", source="service:some-service", target="queue:some-q"),
+    )
+
+
+def test_rejects_a_forbidden_entry_with_status(tmp_path):
+    data = _mutated(forbidden={"relations": [{**_FORBIDDEN_FACT, "status": "CONFIRMED"}]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "status or evidence" in excinfo.value.reason
+
+
+def test_rejects_a_forbidden_entry_with_evidence(tmp_path):
+    data = _mutated(forbidden={"relations": [{**_FORBIDDEN_FACT, "evidence": {"declared": True}}]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "status or evidence" in excinfo.value.reason
+
+
+def test_rejects_duplicate_forbidden_fact(tmp_path):
+    data = _mutated(forbidden={"relations": [_FORBIDDEN_FACT, dict(_FORBIDDEN_FACT)]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "duplicate forbidden fact" in excinfo.value.reason
+
+
+def test_rejects_a_forbidden_identity_duplicated_in_expected(tmp_path):
+    contradiction = {
+        "type": _VALID["expected"]["relations"][0]["type"],
+        "source": _VALID["expected"]["relations"][0]["source"],
+        "target": _VALID["expected"]["relations"][0]["target"],
+    }
+    data = _mutated(forbidden={"relations": [contradiction]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "also asserted as expected" in excinfo.value.reason

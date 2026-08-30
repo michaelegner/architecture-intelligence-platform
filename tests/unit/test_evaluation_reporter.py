@@ -13,7 +13,7 @@ _EXPECTED = RelationFact(
 
 
 def _passing(scenario_id: str) -> ScenarioResult:
-    return ScenarioResult(scenario_id=scenario_id, passed=True, mismatches=(), unexpected_count=0)
+    return ScenarioResult(scenario_id=scenario_id, passed=True, mismatches=())
 
 
 def test_all_passing_renders_pass_summary_sorted_by_scenario_id():
@@ -38,7 +38,6 @@ def test_missing_fact_is_reported_and_fails_the_result():
         scenario_id="02-rest-observed-only",
         passed=False,
         mismatches=(Mismatch(kind=MISSING, expected=_EXPECTED, actual=None),),
-        unexpected_count=0,
     )
 
     output = render([result])
@@ -62,7 +61,6 @@ def test_wrong_status_is_reported_with_both_expected_and_actual():
         scenario_id="02-rest-observed-only",
         passed=False,
         mismatches=(Mismatch(kind=SEMANTIC_MISMATCH, expected=_EXPECTED, actual=actual),),
-        unexpected_count=0,
     )
 
     output = render([result])
@@ -73,15 +71,3 @@ def test_wrong_status_is_reported_with_both_expected_and_actual():
     assert "unexpected declared evidence" in output
     assert "Wrong statuses:     1" in output
     assert "Evidence errors:    1" in output
-
-
-def test_unexpected_count_never_contributes_to_missing_or_wrong_status():
-    result = ScenarioResult(
-        scenario_id="01-rest-confirmed", passed=True, mismatches=(), unexpected_count=5
-    )
-
-    output = render([result])
-
-    assert "Missing facts:      0" in output
-    assert "Unexpected facts:   not enforced in I1" in output
-    assert output.rstrip().endswith("RESULT: PASS")
