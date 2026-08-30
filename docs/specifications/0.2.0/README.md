@@ -38,7 +38,7 @@ Iteration status:
 | Iteration | Focus | Target | Status |
 |---|---|---|---|
 | I1 | Evaluation Kernel | `v0.2.0-alpha.1` | Shipped |
-| I2 | Topology and Directionality | `v0.2.0-alpha.2` | Spec drafted |
+| I2 | Topology and Directionality | `v0.2.0-alpha.2` | Implementation complete — tag pending |
 | I3 | Evidence and Runtime Semantics | `v0.2.0-alpha.3` | Not started |
 | I4 | Coverage and Hardening | `v0.2.0-rc.1` | Not started |
 | I5 | Release Qualification | `v0.2.0` | Not started |
