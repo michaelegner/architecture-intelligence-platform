@@ -1,0 +1,40 @@
+scenario: async-confirmed
+
+description: >
+  OrderService sends to order-events-q and InventoryService receives from it. Both directions are
+  declared (AsyncAPI) and observed (OTLP messaging spans).
+
+scope:
+  entities:
+    - service:order-service
+    - service:inventory-service
+    - queue:order-events-q
+  relation_types:
+    - SENDS
+    - RECEIVES_FROM
+
+observation:
+  environment: test
+  window:
+    start: "2026-08-01T10:00:00Z"
+    end: "2026-08-01T11:00:00Z"
+
+expected:
+  relations:
+    - type: SENDS
+      source: service:order-service
+      target: queue:order-events-q
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+    - type: RECEIVES_FROM
+      source: service:inventory-service
+      target: queue:order-events-q
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+
+forbidden:
+  relations: []
