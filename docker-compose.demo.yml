@@ -60,7 +60,8 @@ services:
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
     depends_on:
-      - architecture-intelligence
+      architecture-intelligence:
+        condition: service_healthy
 
   # Plays the role of "Demo Services" (spec §9.3) - see traffic_generator.py's docstring for why
   # this repo generates realistic synthetic spans directly rather than running real HTTP services.
@@ -72,8 +73,10 @@ services:
       DEMO_ENVIRONMENT: demo
       TRAFFIC_INTERVAL_SECONDS: "5"
     depends_on:
-      - otel-collector
-      - architecture-intelligence
+      otel-collector:
+        condition: service_started
+      architecture-intelligence:
+        condition: service_healthy
 
 volumes:
   neo4j-demo-data:
