@@ -323,3 +323,38 @@ def test_a_caller_with_multiple_calls_targets_gets_independent_status_per_target
     assert fact_a.status == "CONFIRMED"
     assert fact_a.target == operation_a  # raw Operation id, not the provider id
     assert fact_b.status != "CONFIRMED"
+
+
+# --- I3: NOT_OBSERVED_IN_WINDOW -----------------------------------------------------------------
+
+
+def test_not_observed_in_window_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "07-not-observed-in-window")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_window_including_the_observation_reclassifies_it_as_confirmed(driver, tmp_path):
+    """I3 spec §8.5 window sanity-break: scenario 07's runtime fixture is deliberately outside its
+    selected window. Widening the window to include it must flip the classification to CONFIRMED,
+    proving NOT_OBSERVED_IN_WINDOW isn't produced by simply ignoring OBSERVED evidence."""
+    widened_dir = tmp_path / "07-not-observed-in-window-widened"
+    shutil.copytree(SCENARIOS_DIR / "07-not-observed-in-window", widened_dir)
+    expected_file = widened_dir / "expected.yaml"
+    data = yaml.safe_load(expected_file.read_text())
+    data["observation"]["window"] = {
+        "start": "2026-08-01T09:00:00Z",
+        "end": "2026-08-01T10:00:00Z",
+    }
+    data["expected"]["relations"][0]["status"] = "CONFIRMED"
+    data["expected"]["relations"][0]["evidence"] = {"declared": True, "observed": True}
+    expected_file.write_text(yaml.safe_dump(data))
+
+    scenario = load_scenario(widened_dir)
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
