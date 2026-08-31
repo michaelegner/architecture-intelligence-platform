@@ -271,6 +271,34 @@ def load_expected(path: Path) -> ExpectedDocument:
         for r in relations_raw
     )
 
+    # I1 §34: "duplicate expected identity" is invalid configuration - two expected.relations
+    # entries with different finding ids but the same (type, source, target) would let one actual
+    # fact satisfy two expectations, which the global finding-id-uniqueness check above does not
+    # catch on its own.
+    relation_identities: set[tuple[str, str, str]] = set()
+    for relation in expected_relations:
+        identity = (relation.fact.type, relation.fact.source, relation.fact.target)
+        if identity in relation_identities:
+            raise _error(
+                system,
+                path,
+                "expected.relations",
+                f"duplicate expected relation identity: {identity!r}",
+            )
+        relation_identities.add(identity)
+
+    # I1 §34: "scope-excluded expectation" is invalid configuration - the declared scope is
+    # normative, not advisory, so an expected relation the dossier itself placed outside its own
+    # scope can never be a qualifying expectation.
+    for relation in expected_relations:
+        if not scope.contains(relation.fact):
+            raise _error(
+                system,
+                path,
+                "expected.relations",
+                f"expected relation {relation.id!r} is outside the declared scope",
+            )
+
     unsupported_raw = raw.get("unsupported")
     unsupported = ()
     if unsupported_raw is not None:

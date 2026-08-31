@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from app.graph_schema.registry import RELATIONS
+
 # I1 §13: the six finding classifications are frozen - no 7th "unexpected" bucket exists here,
 # unlike evaluation.comparator.UNEXPECTED. An unexpected in-scope actual fact is reported as
 # INCORRECT_SUPPORTED instead (see comparator.py).
@@ -55,8 +57,11 @@ DEFAULT_SEVERITY: dict[str, str] = {
     "INSUFFICIENT_EVIDENCE": "MINOR",
 }
 
-# The four relation types AIP's Canonical Model currently supports (CLAUDE.md's graph model table).
-KNOWN_RELATION_TYPES = frozenset({"PROVIDES", "CALLS", "SENDS", "RECEIVES_FROM"})
+# The complete current canonical relation vocabulary, sourced from app.graph_schema.registry (the
+# same domain/range registry production ingestion/validation uses) rather than duplicated here -
+# a partial hand-copied list would silently reject valid canonical facts of relation types this
+# list forgot (PR #38 review F3).
+KNOWN_RELATION_TYPES = frozenset(RELATIONS)
 
 _CANONICAL_ID_PREFIXES = tuple(
     f"{kind}:" for kind in ("service", "operation", "queue", "message", "schema")

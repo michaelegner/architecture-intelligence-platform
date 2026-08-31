@@ -120,6 +120,69 @@ def test_load_expected_rejects_duplicate_finding_id_across_sections(tmp_path):
         load_expected(_write(tmp_path, data))
 
 
+def test_load_expected_rejects_duplicate_expected_relation_identity(tmp_path):
+    # PR #38 review F1: distinct finding ids don't excuse two expected.relations entries that
+    # assert the same (type, source, target) - one actual fact could otherwise satisfy both.
+    data = _mutated()
+    duplicate = copy.deepcopy(data["expected"]["relations"][0])
+    duplicate["id"] = "qsh-rest-fights-calls-heroes-again"
+    data["expected"]["relations"].append(duplicate)
+
+    with pytest.raises(ExpectedValidationError):
+        load_expected(_write(tmp_path, data))
+
+
+def test_load_expected_rejects_scope_excluded_relation(tmp_path):
+    # PR #38 review F2: the declared scope is normative - an expected relation whose source and
+    # target the dossier itself placed outside scope.entities can never be a qualifying
+    # expectation, even though its type is in scope.relation_types.
+    data = _mutated(
+        **{
+            "expected.relations.0.source": "service:rest-villains",
+            "expected.relations.0.target": "operation:service:rest-heroes:GET:/api/villains",
+        }
+    )
+
+    with pytest.raises(ExpectedValidationError):
+        load_expected(_write(tmp_path, data))
+
+
+@pytest.mark.parametrize(
+    ("relation_type", "source", "target"),
+    [
+        ("PROVIDES", "service:x", "operation:service:x:GET:/y"),
+        ("CALLS", "service:x", "operation:service:x:GET:/y"),
+        ("REQUEST_SCHEMA", "operation:service:x:GET:/y", "schema:Foo:v1"),
+        ("RESPONSE_SCHEMA", "operation:service:x:GET:/y", "schema:Foo:v1"),
+        ("SENDS", "service:x", "queue:y"),
+        ("RECEIVES_FROM", "service:x", "queue:y"),
+        ("CARRIES", "queue:y", "message:Foo:v1"),
+        ("CONFORMS_TO", "message:Foo:v1", "schema:Foo:v1"),
+        ("DEAD_LETTERS_TO", "queue:y", "queue:z"),
+    ],
+)
+def test_load_expected_accepts_every_canonical_relation_type(
+    tmp_path, relation_type, source, target
+):
+    # PR #38 review F3: KNOWN_RELATION_TYPES must cover AIP's complete current canonical relation
+    # vocabulary (CLAUDE.md's graph model table), not only the four dependency-analysis edges.
+    data = _mutated(
+        **{
+            "scope.entities": [source, target],
+            "scope.relation_types": _DELETE,
+            "expected.relations.0.type": relation_type,
+            "expected.relations.0.source": source,
+            "expected.relations.0.target": target,
+            "expected.relations.0.status": _DELETE,
+            "expected.relations.0.evidence": _DELETE,
+        }
+    )
+
+    doc = load_expected(_write(tmp_path, data))
+
+    assert doc.expected_relations[0].fact.type == relation_type
+
+
 def test_load_expected_rejects_unknown_relation_type(tmp_path):
     data = _mutated(**{"expected.relations.0.type": "SUBSCRIBES"})
 

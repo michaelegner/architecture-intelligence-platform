@@ -1,13 +1,33 @@
+from app.graph_schema.registry import RELATIONS
 from real_world_validation.model import (
     CLASSIFICATION_RANK,
     CLASSIFICATIONS,
     DEFAULT_SEVERITY,
+    KNOWN_RELATION_TYPES,
     SEVERITIES,
     SEVERITY_RANK,
     RelationFact,
     ScopeDeclaration,
     is_canonical_id,
 )
+
+
+def test_known_relation_types_mirrors_the_canonical_relation_registry():
+    # PR #38 review F3: this must be the *complete* current canonical relation vocabulary, sourced
+    # from the same registry production ingestion/validation uses - not a hand-copied subset that
+    # would silently reject valid canonical facts of a relation type this list forgot.
+    assert KNOWN_RELATION_TYPES == frozenset(RELATIONS)
+    assert KNOWN_RELATION_TYPES == {
+        "PROVIDES",
+        "CALLS",
+        "REQUEST_SCHEMA",
+        "RESPONSE_SCHEMA",
+        "SENDS",
+        "RECEIVES_FROM",
+        "CARRIES",
+        "CONFORMS_TO",
+        "DEAD_LETTERS_TO",
+    }
 
 
 def test_is_canonical_id_accepts_known_prefixes():
