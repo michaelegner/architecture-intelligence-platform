@@ -1,0 +1,53 @@
+scenario: partial-observation
+
+description: >
+  OrderService declares two REST calls and one messaging send. Only the ProductService REST call is
+  observed in the selected environment/window. The other declared relations remain canonical facts
+  with NOT_OBSERVED_IN_WINDOW rather than being interpreted as absent.
+
+scope:
+  entities:
+    - service:order-service
+    - service:product-service
+    - service:inventory-service
+    - operation:service:product-service:GET:/products/{id}
+    - operation:service:inventory-service:GET:/inventory/{id}
+    - queue:audit-q
+  relation_types:
+    - CALLS
+    - SENDS
+
+observation:
+  environment: test
+  window:
+    start: "2026-08-01T10:00:00Z"
+    end: "2026-08-01T11:00:00Z"
+
+expected:
+  relations:
+    - type: CALLS
+      source: service:order-service
+      target: operation:service:product-service:GET:/products/{id}
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+
+    - type: CALLS
+      source: service:order-service
+      target: operation:service:inventory-service:GET:/inventory/{id}
+      status: NOT_OBSERVED_IN_WINDOW
+      evidence:
+        declared: true
+        observed: false
+
+    - type: SENDS
+      source: service:order-service
+      target: queue:audit-q
+      status: NOT_OBSERVED_IN_WINDOW
+      evidence:
+        declared: true
+        observed: false
+
+forbidden:
+  relations: []
