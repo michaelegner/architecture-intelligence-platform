@@ -97,7 +97,12 @@ def test_declared_only_call_is_not_observed_in_window(driver, tmp_path):
     assert calls_fact.observed_evidence is False
 
 
-def test_provides_facts_stay_unclassified(driver, tmp_path):
+def test_provides_facts_get_declared_evidence_but_no_status(driver, tmp_path):
+    """PR #41 review F1: every relation app/ingestion/openapi_adapter.py produces carries a real
+    DECLARED Provenance/evidence_ids entry, PROVIDES included - capture.py must report that, not
+    treat PROVIDES as evidence-less. PROVIDES still gets no `status` (AIP's own
+    app.analysis.runtime module defines runtime-observation status only for
+    CALLS/SENDS/RECEIVES_FROM)."""
     _reset_graph(driver)
     fights_id, heroes_id, operation_id = _import_fights_heroes(driver, tmp_path)
     scope = ScopeDeclaration(entities=(fights_id, heroes_id))
@@ -111,8 +116,8 @@ def test_provides_facts_stay_unclassified(driver, tmp_path):
     assert provides_fact.source == heroes_id
     assert provides_fact.target == operation_id
     assert provides_fact.status is None
-    assert provides_fact.declared_evidence is None
-    assert provides_fact.observed_evidence is None
+    assert provides_fact.declared_evidence is True
+    assert provides_fact.observed_evidence is False
 
 
 def test_observed_call_is_confirmed(driver, tmp_path):
@@ -152,6 +157,49 @@ def test_observed_call_is_confirmed(driver, tmp_path):
     assert calls_fact.status == "CONFIRMED"
     assert calls_fact.declared_evidence is True
     assert calls_fact.observed_evidence is True
+
+
+def test_request_schema_relation_is_captured_with_declared_evidence(driver, tmp_path):
+    """PR #41 review F2: capture.py must cover AIP's complete canonical relation vocabulary, not
+    silently omit types outside CALLS/PROVIDES/SENDS/RECEIVES_FROM. REQUEST_SCHEMA (Operation ->
+    Schema) is produced by app/ingestion/openapi_adapter.py whenever an operation declares a
+    requestBody schema."""
+    _reset_graph(driver)
+    root = tmp_path / "declarations" / "rest-heroes"
+    root.mkdir(parents=True)
+    (root / "openapi.yaml").write_text(
+        'openapi: 3.1.0\ninfo:\n  title: Hero API\n  version: "1.0"\n'
+        "paths:\n"
+        "  /api/heroes:\n"
+        "    post:\n"
+        "      operationId: createHero\n"
+        "      requestBody:\n"
+        "        content:\n"
+        "          application/json:\n"
+        "            schema:\n"
+        "              $ref: '#/components/schemas/Hero'\n"
+        "      responses:\n"
+        '        "200":\n          description: ok\n'
+        "components:\n"
+        "  schemas:\n"
+        "    Hero:\n      type: object\n"
+    )
+    import_all_sources(driver, database=DATABASE, root=tmp_path / "declarations")
+
+    heroes_id = ids.service_id("rest-heroes")
+    operation_id = ids.operation_id(heroes_id, "POST", "/api/heroes")
+    scope = ScopeDeclaration(entities=(heroes_id, operation_id))
+
+    with driver.session(database=DATABASE) as session:
+        facts = capture_actual_facts(
+            session, scope=scope, environment="capture-test-env", since=SINCE
+        )
+
+    schema_fact = next(f for f in facts if f.type == "REQUEST_SCHEMA")
+    assert schema_fact.source == operation_id
+    assert schema_fact.status is None
+    assert schema_fact.declared_evidence is True
+    assert schema_fact.observed_evidence is False
 
 
 def test_scope_excludes_facts_outside_declared_entities(driver, tmp_path):

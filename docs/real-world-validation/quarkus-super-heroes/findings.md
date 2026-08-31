@@ -1,6 +1,6 @@
 # Findings — Quarkus Super Heroes
 
-Findings from the first qualifying comparison (I2.3, `results.md`), classified per the I1 finding
+Findings from the qualifying comparison (I2.3, `results.md`), classified per the I1 finding
 vocabulary. No `INCORRECT_SUPPORTED`, `MISSING_SUPPORTED`, `UNRESOLVED_IDENTITY`, or
 `INSUFFICIENT_EVIDENCE` findings resulted from this run.
 
@@ -18,7 +18,24 @@ INSUFFICIENT_EVIDENCE   0
 `CORRECT` findings are not individually re-listed here beyond the summary above — enumerating all
 38 would only restate `results.md`'s transcript with no additional disposition content, since a
 `CORRECT` finding by definition needs no disposition. `results.md` is the source of truth for their
-exact identities.
+exact identities, and now (after the capture-tool correction below) for their evidence flags too:
+all 35 `PROVIDES` facts are `CORRECT` against `evidence: {declared: true}`, not merely against bare
+identity.
+
+## Methodology note — a capture-tool defect was found and fixed mid-PR, not the ground truth
+
+An earlier draft of this comparison used a version of `real_world_validation/capture.py` that did
+not query declared/observed evidence for `PROVIDES` facts, and (incorrectly) removed the frozen
+`declared: true` expectation from `expected.yaml` to match that gap. Review (PR #41 F1) confirmed
+AIP's own canonical/provenance model already attaches real `DECLARED` evidence to every `PROVIDES`
+relation (`app/ingestion/openapi_adapter.py`) and even has a genuine observed-`PROVIDES` concept for
+runtime-discovered operations (`docs/graph-model.md`) — the ground truth was correct all along. The
+fix was to correct `capture.py` (now covers AIP's complete canonical relation vocabulary generically,
+`app.graph_schema.registry.RELATIONS`, not only the types that also have runtime status) and
+re-execute the full live profile from clean state, never to hand-patch the captured result. See
+`ground-truth.md`'s "Change log" and `results.md`'s intro for the full account. This is recorded
+here because it is itself the kind of methodological event I1 exists to catch: the temptation to
+weaken an oracle to match a tool's current limitation, caught and reversed before merge.
 
 ## `qsh-grpc-locations`
 
@@ -68,7 +85,9 @@ a model stress test... document the mismatch"), even though it does not rise to 
 
 ```text
 exact upstream SHA pinned:                          yes (8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce)
-profile reproducible:                               yes (runbook.md, containerized build, pinned images)
+profile reproducible:                               yes - two independent clean-state runs in this
+                                                     PR produced identical classifications/counts
+                                                     (results.md "Repeatability evidence")
 ground truth frozen before AIP result:              yes (I2.1/I2.2, merged before this run)
 >= 4 REST provider contracts in scope:               yes (4: rest-fights/rest-heroes/rest-villains/rest-narration)
 >= 3 REST caller dependencies investigated:          yes (3: heroes/villains/narration)

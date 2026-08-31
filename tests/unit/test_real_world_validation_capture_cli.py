@@ -131,3 +131,158 @@ def test_capture_parses_optional_scope_relation_types(
 
     assert main(argv) == EXIT_OK
     assert captured_scope["scope"].relation_types == expected
+
+
+def test_capture_rejects_unknown_scope_relation_type(tmp_path, monkeypatch):
+    """PR #41 review F2: a typo'd/unsupported relation type must fail loudly, never silently
+    produce an empty capture."""
+    monkeypatch.setattr("real_world_validation.__main__.build_driver", lambda *a, **k: MagicMock())
+    monkeypatch.setattr("real_world_validation.__main__.open_session", _fake_session)
+
+    code = main(
+        [
+            "capture",
+            "--neo4j-uri",
+            "bolt://localhost:7687",
+            "--neo4j-user",
+            "neo4j",
+            "--neo4j-password",
+            "secret",
+            "--environment",
+            "quarkus-i2",
+            "--since",
+            "2026-08-01T00:00:00+00:00",
+            "--scope-entities",
+            "service:a",
+            "--scope-relation-types",
+            "CALL",  # typo for CALLS
+            "--out",
+            str(tmp_path / "actual.yaml"),
+        ]
+    )
+
+    assert code == EXIT_INVALID
+
+
+def test_capture_trims_whitespace_in_comma_separated_arguments(tmp_path, monkeypatch):
+    captured_scope = {}
+
+    def _record_scope(_session, *, scope, **_kwargs):
+        captured_scope["scope"] = scope
+        return []
+
+    monkeypatch.setattr("real_world_validation.__main__.build_driver", lambda *a, **k: MagicMock())
+    monkeypatch.setattr("real_world_validation.__main__.open_session", _fake_session)
+    monkeypatch.setattr("real_world_validation.__main__.capture_actual_facts", _record_scope)
+
+    code = main(
+        [
+            "capture",
+            "--neo4j-uri",
+            "bolt://localhost:7687",
+            "--neo4j-user",
+            "neo4j",
+            "--neo4j-password",
+            "secret",
+            "--environment",
+            "quarkus-i2",
+            "--since",
+            "2026-08-01T00:00:00+00:00",
+            "--scope-entities",
+            "service:a, service:b,",
+            "--scope-relation-types",
+            "CALLS, PROVIDES,",
+            "--out",
+            str(tmp_path / "actual.yaml"),
+        ]
+    )
+
+    assert code == EXIT_OK
+    assert captured_scope["scope"].entities == ("service:a", "service:b")
+    assert captured_scope["scope"].relation_types == ("CALLS", "PROVIDES")
+
+
+def test_capture_rejects_naive_since_timestamp(tmp_path, monkeypatch):
+    monkeypatch.setattr("real_world_validation.__main__.build_driver", lambda *a, **k: MagicMock())
+    monkeypatch.setattr("real_world_validation.__main__.open_session", _fake_session)
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(
+            [
+                "capture",
+                "--neo4j-uri",
+                "bolt://localhost:7687",
+                "--neo4j-user",
+                "neo4j",
+                "--neo4j-password",
+                "secret",
+                "--environment",
+                "quarkus-i2",
+                "--since",
+                "2026-08-01T00:00:00",  # no timezone
+                "--scope-entities",
+                "service:a",
+                "--out",
+                str(tmp_path / "actual.yaml"),
+            ]
+        )
+
+    assert exc_info.value.code == EXIT_INVALID
+
+
+def test_capture_password_falls_back_to_env_var(tmp_path, monkeypatch):
+    monkeypatch.setenv("NEO4J_PASSWORD", "from-env")
+    seen_password = {}
+
+    def _record_password(uri, user, password):
+        seen_password["value"] = password
+        return MagicMock()
+
+    monkeypatch.setattr("real_world_validation.__main__.build_driver", _record_password)
+    monkeypatch.setattr("real_world_validation.__main__.open_session", _fake_session)
+    monkeypatch.setattr("real_world_validation.__main__.capture_actual_facts", lambda *a, **k: [])
+
+    code = main(
+        [
+            "capture",
+            "--neo4j-uri",
+            "bolt://localhost:7687",
+            "--neo4j-user",
+            "neo4j",
+            "--environment",
+            "quarkus-i2",
+            "--since",
+            "2026-08-01T00:00:00+00:00",
+            "--scope-entities",
+            "service:a",
+            "--out",
+            str(tmp_path / "actual.yaml"),
+        ]
+    )
+
+    assert code == EXIT_OK
+    assert seen_password["value"] == "from-env"
+
+
+def test_capture_exits_invalid_without_password(tmp_path, monkeypatch):
+    monkeypatch.delenv("NEO4J_PASSWORD", raising=False)
+
+    code = main(
+        [
+            "capture",
+            "--neo4j-uri",
+            "bolt://localhost:7687",
+            "--neo4j-user",
+            "neo4j",
+            "--environment",
+            "quarkus-i2",
+            "--since",
+            "2026-08-01T00:00:00+00:00",
+            "--scope-entities",
+            "service:a",
+            "--out",
+            str(tmp_path / "actual.yaml"),
+        ]
+    )
+
+    assert code == EXIT_INVALID

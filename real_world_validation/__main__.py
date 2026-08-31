@@ -11,6 +11,7 @@ concern, passed in as plain arguments.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -21,7 +22,11 @@ from app.graph.repository import build_driver, open_session
 from real_world_validation.capture import capture_actual_facts, write_actual_facts
 from real_world_validation.comparator import compare
 from real_world_validation.loader import load_actual, load_expected
-from real_world_validation.model import ExpectedValidationError, ScopeDeclaration
+from real_world_validation.model import (
+    KNOWN_RELATION_TYPES,
+    ExpectedValidationError,
+    ScopeDeclaration,
+)
 from real_world_validation.reporter import has_release_blocking_finding, render
 
 EXIT_OK = 0
@@ -42,15 +47,33 @@ def _compare(expected_path: Path, actual_path: Path) -> int:
     return EXIT_FAILURES if has_release_blocking_finding(findings) else EXIT_OK
 
 
-def _capture(args: argparse.Namespace) -> int:
-    scope = ScopeDeclaration(
-        entities=tuple(args.scope_entities.split(",")),
-        relation_types=tuple(args.scope_relation_types.split(","))
-        if args.scope_relation_types
-        else None,
-    )
+def _comma_list(value: str) -> tuple[str, ...]:
+    return tuple(item.strip() for item in value.split(",") if item.strip())
 
-    driver = build_driver(args.neo4j_uri, args.neo4j_user, args.neo4j_password)
+
+def _capture(args: argparse.Namespace) -> int:
+    entities = _comma_list(args.scope_entities)
+    relation_types = _comma_list(args.scope_relation_types) if args.scope_relation_types else None
+    if relation_types is not None:
+        unknown = set(relation_types) - KNOWN_RELATION_TYPES
+        if unknown:
+            print(
+                f"invalid validation configuration: unknown --scope-relation-types: "
+                f"{', '.join(sorted(unknown))}",
+                file=sys.stderr,
+            )
+            return EXIT_INVALID
+    scope = ScopeDeclaration(entities=entities, relation_types=relation_types)
+
+    password = args.neo4j_password or os.environ.get("NEO4J_PASSWORD")
+    if not password:
+        print(
+            "invalid validation configuration: --neo4j-password or $NEO4J_PASSWORD is required",
+            file=sys.stderr,
+        )
+        return EXIT_INVALID
+
+    driver = build_driver(args.neo4j_uri, args.neo4j_user, password)
     try:
         with open_session(driver, database=args.database, read_only=True) as session:
             facts = capture_actual_facts(
@@ -72,7 +95,13 @@ def _capture(args: argparse.Namespace) -> int:
 
 
 def _iso_datetime(value: str) -> datetime:
-    return datetime.fromisoformat(value)
+    """A naive timestamp would silently mean "no timezone" to Neo4j's driver, which is exactly
+    the wrong ambiguity for an environment/window-qualified evidence query - require an explicit
+    offset (a trailing Z or +HH:MM), matching every other timestamp this project accepts."""
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        raise argparse.ArgumentTypeError(f"timestamp must be timezone-aware: {value!r}")
+    return parsed
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -92,7 +121,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     capture_parser.add_argument("--neo4j-uri", required=True)
     capture_parser.add_argument("--neo4j-user", required=True)
-    capture_parser.add_argument("--neo4j-password", required=True)
+    capture_parser.add_argument(
+        "--neo4j-password",
+        default=None,
+        help="falls back to $NEO4J_PASSWORD - prefer the env var over the command line where practical",
+    )
     capture_parser.add_argument("--database", default="neo4j")
     capture_parser.add_argument("--environment", required=True)
     capture_parser.add_argument("--since", required=True, type=_iso_datetime)
