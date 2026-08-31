@@ -230,6 +230,9 @@ optional — the platform works completely without any LLM provider configured. 
 - [`docs/opentelemetry.md`](docs/opentelemetry.md) — runtime observation, attribute allowlist, coverage
 - [`evaluation/README.md`](evaluation/README.md) — the deterministic evaluation suite: scenarios,
   ground-truth format, running it, and reading a failure report
+- [`real_world_validation/README.md`](real_world_validation/README.md) and
+  [`docs/real-world-validation/README.md`](docs/real-world-validation/README.md) — the v0.3
+  real-world validation contract: finding vocabulary, `expected.yaml` shape, dossier structure
 - [`docs/configuration.md`](docs/configuration.md) — every setting and its default
 - [`docs/security-model.md`](docs/security-model.md) — trust boundaries
 - [`docs/development.md`](docs/development.md) — local dev, tests, linting
