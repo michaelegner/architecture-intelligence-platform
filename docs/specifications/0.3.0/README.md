@@ -87,7 +87,7 @@ Current documents:
 |---|---|
 | [`specification.md`](specification.md) | Final |
 | [`i1-real-world-validation-contract.md`](i1-real-world-validation-contract.md) | Final implementation specification |
-| `i2-quarkus-validation.md` | Not started |
+| [`i2-quarkus-validation.md`](i2-quarkus-validation.md) | Final implementation specification |
 | `i3-airflow-validation.md` | Not started |
 | `i4-model-hardening.md` | Not started |
 | `i5-release-qualification.md` | Not started |
