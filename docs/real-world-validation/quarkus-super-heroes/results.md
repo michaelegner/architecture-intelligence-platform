@@ -75,6 +75,15 @@ in scope — see "Kafka boundary" in `findings.md`.
 
 ## Summary
 
+Two different counts appear in this dossier, and they measure different things — reported
+separately here so neither headline is ambiguous (PR #41 final re-review F1).
+
+**Comparator result** — `expected.yaml` vs. `artifacts/actual.yaml`, via `real_world_validation
+compare` (below). `expected.yaml` declares no `insufficient_evidence:` entries, so the comparator
+itself reports `0` for that field; this is not a claim that I2.3's overall investigation found
+nothing insufficiently evidenced, only that nothing in the *frozen, pre-run* expected set was
+pre-declared as such:
+
 ```text
 Expected supported facts:      38
 Correct:                       38
@@ -84,6 +93,20 @@ Unsupported constructs:         2
 Unresolved identities:          0
 Insufficient evidence:          0
 Critical semantic errors:       0
+```
+
+**Overall I2.3 findings** — the comparator result above, plus one additional finding
+(`qsh-kafka-operation-type-gap`) discovered by a separate diagnostic raw-telemetry inspection
+*after* the comparator run, not by the comparator itself (`findings.md` has the full account):
+
+```text
+CORRECT:                 38
+UNSUPPORTED:              2
+INSUFFICIENT_EVIDENCE:    1
+MISSING_SUPPORTED:        0
+INCORRECT_SUPPORTED:      0
+UNRESOLVED_IDENTITY:      0
+Critical semantic errors: 0
 ```
 
 ## Comparator output

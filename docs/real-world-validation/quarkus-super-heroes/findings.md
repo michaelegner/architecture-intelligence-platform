@@ -114,9 +114,15 @@ a model stress test... document the mismatch"), even though it does not rise to 
 
 ```text
 exact upstream SHA pinned:                          yes (8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce)
-profile reproducible:                               yes - two independent clean-state runs in this
-                                                     PR produced identical classifications/counts
-                                                     (results.md "Repeatability evidence")
+profile execution stability:                        yes - three independent clean-state starts in
+                                                     this PR produced identical service/operation
+                                                     identities, relation counts, and traffic
+                                                     behavior (results.md "Repeatability evidence")
+final I2 §43 qualifying-comparison repeatability:   NOT YET COMPLETE - only one comparator run
+                                                     (the second) used the final, corrected capture
+                                                     contract; a second same-contract comparator run
+                                                     is required before this gate is satisfied
+                                                     (I2.4/I5), not before I2.3 itself
 ground truth frozen before AIP result:              yes (I2.1/I2.2, merged before this run)
 >= 4 REST provider contracts in scope:               yes (4: rest-fights/rest-heroes/rest-villains/rest-narration)
 >= 3 REST caller dependencies investigated:          yes (3: heroes/villains/narration)
