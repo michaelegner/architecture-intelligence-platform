@@ -26,19 +26,27 @@ Not yet guaranteed stable pre-1.0 — expect breaking changes on a minor version
 - ✓ Declared vs observed (`CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW`, with the 11H
   evidence-reconciliation invariant and cross-batch HTTP correlation)
 
-## v0.2 — planned
+## v0.2 — release candidate
 Focus: make the architecture intelligence introduced in v0.1 reproducibly testable against known
-ground truth.
+ground truth. Implementation is complete and tagged as `v0.2.0-rc.1`; final qualification and
+publication are in progress (see
+[`docs/specifications/0.2.0/i5-release-qualification.md`](docs/specifications/0.2.0/i5-release-qualification.md)).
+This section will read "shipped" once `v0.2.0` is actually published.
 
-- Synthetic multi-service reference fixture covering REST, asynchronous messaging, and mixed
-  sync/async dependencies
-- A small deterministic scenario suite with explicit expected architecture facts
-- A lightweight evaluation runner comparing AIP output with those expectations
-- Simple pass/fail reporting for missing facts, unexpected facts, incorrect statuses, and evidence
-  violations
+- ✓ Ten deterministic core scenarios (REST/queue dependencies, topology/directionality, partial
+  observation with qualitative coverage, evidence reconciliation, a pure declared-only case)
+- ✓ Independent, hand-authored `expected.yaml` ground truth per scenario, never generated from
+  AIP's own derivation code
+- ✓ A deterministic evaluation runner and canonical-fact projector reading real AIP ingestion and
+  runtime resolution
+- ✓ Exhaustive missing/unexpected/forbidden-fact detection, strict scenario-schema validation, and
+  deterministic comparison/report ordering
+- ✓ Local reproducibility with no separately running Neo4j and no LLM API key required
 
 The goal of v0.2 is not to add another architecture-intelligence dimension, but to provide a
-reproducible way to demonstrate that the existing one behaves correctly.
+reproducible way to demonstrate that the existing one behaves correctly. See
+[`evaluation/README.md`](evaluation/README.md) and
+[`docs/specifications/0.2.0/`](docs/specifications/0.2.0/) for the full design history.
 
 ## v0.3+
 - Kubernetes discovery (declared-architecture source: Deployments/Services as an additional

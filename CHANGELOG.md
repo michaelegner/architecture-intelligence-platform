@@ -9,6 +9,48 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+Prepared content for the `0.2.0` release, currently at `v0.2.0-rc.1` and undergoing final
+qualification (see
+[`docs/specifications/0.2.0/i5-release-qualification.md`](docs/specifications/0.2.0/i5-release-qualification.md)).
+This section becomes a dated `## [0.2.0] - YYYY-MM-DD` entry, with the real publication date, once
+`v0.2.0` is actually tagged and released.
+
+Adds a deterministic evaluation suite that verifies the architecture intelligence introduced in
+`v0.1` against independently authored ground truth — real AIP ingestion and runtime resolution,
+compared against a hand-written `expected.yaml`, with deterministic PASS/FAIL. This release does
+not add another architecture-intelligence dimension; it proves the existing one behaves correctly.
+See [`evaluation/README.md`](evaluation/README.md) and
+[`docs/specifications/0.2.0/`](docs/specifications/0.2.0/) for the full design history.
+
+### Added
+
+- A deterministic evaluation kernel (`evaluation/`): scenario fixtures run through real AIP
+  ingestion and runtime resolution, projected to canonical facts, and compared against independent,
+  hand-authored `expected.yaml` ground truth - never generated from AIP's own derivation code.
+- Ten core scenarios covering REST (`CALLS`/`PROVIDES`) and queue-based (`SENDS`/`RECEIVES_FROM`)
+  dependencies, the `CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW` status classifications,
+  topology/directionality (orphan messaging, mixed sync/async, request/response queue pairs),
+  partial observation with qualitative coverage, evidence reconciliation, and a pure declared-only
+  REST relation.
+- Exhaustive missing/unexpected/forbidden-fact detection - any in-scope actual fact that's neither
+  expected nor explicitly forbidden fails the scenario, not just a silently-ignored diagnostic.
+- `NOT_OBSERVED_IN_WINDOW` evaluation, context-qualified: a declared relation with no matching
+  observed evidence in the selected environment/window remains a real canonical fact, never treated
+  as absence.
+- Evidence-reconciliation evaluation: proves that removing a service's stale `DECLARED` evidence for
+  a relation never removes independently surviving `OBSERVED` evidence, and that the resulting
+  status transition (`CONFIRMED -> OBSERVED_ONLY`) is read from AIP itself, never re-derived.
+- Partial-observation coverage qualification: an unobserved relation's qualitative coverage
+  (`SUFFICIENT`/`PARTIAL`/`NONE`/`UNKNOWN`) is asserted through AIP's own production
+  runtime-analysis boundary, never reimplemented in the evaluator.
+- Strict `expected.yaml` schema validation: unknown fields, invalid status/evidence values, naive
+  (non-timezone-aware) timestamps, and scope-excluded assertions all fail at load time as
+  deterministic configuration errors rather than silently weakening an assertion.
+- Deterministic comparison and report ordering, independent of Python's internal set iteration
+  order.
+- Local reproducibility: the full suite runs from a clean checkout without a separately running
+  Neo4j and without an LLM API key (`uv run python -m evaluation run`).
+
 ## [0.1.0-alpha.2] - 2026-08-27
 
 Second public pre-release, cut specifically to give the fixed release pipeline (single Docker

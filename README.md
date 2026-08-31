@@ -9,7 +9,8 @@ and discover where declared and observed architecture diverge.
 ![Pipeline: declared sources (OpenAPI, AsyncAPI, architecture.yaml) and observed OpenTelemetry traces both feed the Canonical Architecture Model, which imports into Neo4j, which serves deterministic Cypher analyses and read-only natural-language query.](images/pipeline-light.svg#gh-light-mode-only)
 ![Pipeline: declared sources (OpenAPI, AsyncAPI, architecture.yaml) and observed OpenTelemetry traces both feed the Canonical Architecture Model, which imports into Neo4j, which serves deterministic Cypher analyses and read-only natural-language query.](images/pipeline-dark.svg#gh-dark-mode-only)
 
-**[Quick Start](#quick-start) · [Runtime Demo](#runtime-demo) · [Documentation](#documentation)**
+**[Quick Start](#quick-start) · [Runtime Demo](#runtime-demo) ·
+[Evaluation](#deterministic-evaluation) · [Documentation](#documentation)**
 
 ## Why?
 
@@ -147,6 +148,20 @@ orphan queues, mixed-architecture blast radius) plus five over declared-vs-obser
 per-service telemetry coverage). None of these involve the LLM — see
 [`docs/analyses.md`](docs/analyses.md) for the full list and what each one answers.
 
+## Deterministic Evaluation
+
+A ten-scenario evaluation suite proves the declared/observed architecture intelligence above
+against independently authored ground truth — real AIP ingestion and runtime resolution, compared
+against a hand-written `expected.yaml`, with deterministic PASS/FAIL:
+
+```bash
+uv run python -m evaluation run
+```
+
+No LLM provider key is required — this suite never touches the natural-language query layer. See
+[`evaluation/README.md`](evaluation/README.md) for the full scenario list, ground-truth format, and
+failure-report examples.
+
 ## OpenTelemetry
 
 `POST /v1/traces` is AIP's OTLP/HTTP ingestion boundary. It resolves incoming spans against whatever
@@ -213,6 +228,8 @@ optional — the platform works completely without any LLM provider configured. 
 - [`docs/analyses.md`](docs/analyses.md) — A1-A5 and O1-O5
 - [`docs/semantic-validation.md`](docs/semantic-validation.md) — the NL query pipeline
 - [`docs/opentelemetry.md`](docs/opentelemetry.md) — runtime observation, attribute allowlist, coverage
+- [`evaluation/README.md`](evaluation/README.md) — the deterministic evaluation suite: scenarios,
+  ground-truth format, running it, and reading a failure report
 - [`docs/configuration.md`](docs/configuration.md) — every setting and its default
 - [`docs/security-model.md`](docs/security-model.md) — trust boundaries
 - [`docs/development.md`](docs/development.md) — local dev, tests, linting
