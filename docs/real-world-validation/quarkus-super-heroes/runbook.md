@@ -12,13 +12,15 @@ unless otherwise noted. Artifacts referenced below live under
 
 ```text
 Docker (with Compose v2)
-~10 GB free disk (5 Quarkus JVM images + Mongo/2×Postgres/MariaDB/Kafka/Apicurio/Neo4j)
+curl, jq (readiness/drain-barrier checks in phases 5 and 9)
+~10 GB free disk (6 Quarkus JVM images - the 4 REST services + event-statistics + grpc-locations -
+plus Mongo/2×Postgres/MariaDB/Kafka/Apicurio/Neo4j/Collector)
 Internet access (clone GitHub, pull base images, pull Maven dependencies)
 Ports free on the host: 7474, 7687, 8000, 8082-8087, 8089, 4317, 4318, 9092
 ```
 
-No JDK/Maven needs to be installed on the host — phase 3 builds each service's jar inside a
-`maven:*-eclipse-temurin-25` container.
+No JDK/Maven needs to be installed on the host — phase 3 builds each service's jar inside a pinned
+`maven:3.9.16-eclipse-temurin-25` container.
 
 ## 2. Fetch the pinned upstream version
 
@@ -31,32 +33,25 @@ git -C "$QUARKUS_SUPERHEROES_CHECKOUT" checkout 8ea03377bfe7a89c49e1ccc0e501bf5f
 This checkout is **never committed into this repository** (I1 §36/§39) — `docker-compose.yml`
 below reads it only through `$QUARKUS_SUPERHEROES_CHECKOUT`.
 
-## 3. Build the five validated services' images at the pinned commit
+## 3. Build the six required services' images at the pinned commit
 
-Each service needs a jar built (containerized, so no host JDK 25 is required) and then packaged
-into its own runtime image via its own `src/main/docker/Dockerfile.jvm` — **not** pulled from
-`quay.io/quarkus-super-heroes/*:java25-latest` (`runtime/README.md` explains why that tag doesn't
-represent this exact commit).
+Each service needs a jar built (containerized, using the exact pinned `maven:3.9.16-eclipse-temurin-25`
+image so no host JDK 25 is required) and then packaged into its own runtime image via its own
+`src/main/docker/Dockerfile.jvm` — **not** pulled from `quay.io/quarkus-super-heroes/*:java25-latest`
+(`runtime/README.md` explains why that tag doesn't represent this exact commit). `grpc-locations`
+is included because `rest-fights` depends on it to start, even though it is not part of AIP's
+supported/compared scope (`profile.md`).
 
 ```bash
-for svc in rest-fights rest-heroes rest-villains rest-narration event-statistics; do
+set -euo pipefail   # a failed build must stop the loop, not silently leave stale local images
+
+for svc in rest-fights rest-heroes rest-villains rest-narration event-statistics grpc-locations; do
   docker run --rm -v "$QUARKUS_SUPERHEROES_CHECKOUT:/workspace" -w "/workspace/$svc" \
-    maven:3.9-eclipse-temurin-25 ./mvnw -q package -DskipTests
+    maven:3.9.16-eclipse-temurin-25 ./mvnw -q package -DskipTests
 
   docker build -f "$QUARKUS_SUPERHEROES_CHECKOUT/$svc/src/main/docker/Dockerfile.jvm" \
     -t "quarkus-super-heroes/$svc:8ea0337" "$QUARKUS_SUPERHEROES_CHECKOUT/$svc"
 done
-```
-
-`grpc-locations` also needs an image, since `rest-fights` depends on it to start (it is not part of
-AIP's supported/compared scope, `profile.md`):
-
-```bash
-docker run --rm -v "$QUARKUS_SUPERHEROES_CHECKOUT:/workspace" -w /workspace/grpc-locations \
-  maven:3.9-eclipse-temurin-25 ./mvnw -q package -DskipTests
-
-docker build -f "$QUARKUS_SUPERHEROES_CHECKOUT/grpc-locations/src/main/docker/Dockerfile.jvm" \
-  -t quarkus-super-heroes/grpc-locations:8ea0337 "$QUARKUS_SUPERHEROES_CHECKOUT/grpc-locations"
 ```
 
 ## 4. Configure the profile
@@ -78,17 +73,54 @@ cd docs/real-world-validation/quarkus-super-heroes/runtime
 docker compose up -d
 ```
 
-`architecture-intelligence` waits on `neo4j`'s healthcheck; the five validated services plus
-`grpc-locations`/`event-statistics` wait on their own datastores. Verify readiness:
+`architecture-intelligence` waits on `neo4j`'s healthcheck; the six Quarkus services wait on their
+own datastores/Kafka/Apicurio — but Compose's `depends_on` only orders container *starts*, not
+application readiness, so a clean multi-service boot (Mongo/2×Postgres/MariaDB/Kafka/Apicurio/Neo4j
+plus seven application containers) has no fixed duration. A one-shot `curl` right after `up -d` is
+therefore a race, not a readiness gate (PR #40 review F3) — wait with a bounded, retried loop
+instead:
 
 ```bash
-curl -sf http://localhost:8000/health          # AIP
-curl -sf http://localhost:8082/q/health/ready   # rest-fights
-curl -sf http://localhost:8083/q/health/ready   # rest-heroes
-curl -sf http://localhost:8084/q/health/ready   # rest-villains
-curl -sf http://localhost:8087/q/health/ready   # rest-narration
-curl -sf http://localhost:8085/q/health/ready   # event-statistics
+wait_for_http() {
+  local name="$1" url="$2" timeout="${3:-180}" waited=0
+  until curl -sf "$url" >/dev/null 2>&1; do
+    waited=$((waited + 2))
+    if [ "$waited" -ge "$timeout" ]; then
+      echo "$name did not become ready within ${timeout}s ($url) - see: docker compose logs $name" >&2
+      return 1
+    fi
+    sleep 2
+  done
+  echo "$name ready after ${waited}s"
+}
+
+wait_for_tcp() {
+  local name="$1" host="$2" port="$3" timeout="${4:-60}" waited=0
+  until (exec 3<>"/dev/tcp/$host/$port") 2>/dev/null; do
+    waited=$((waited + 2))
+    if [ "$waited" -ge "$timeout" ]; then
+      echo "$name did not open $host:$port within ${timeout}s - see: docker compose logs $name" >&2
+      return 1
+    fi
+    sleep 2
+  done
+  exec 3<&- 2>/dev/null || true
+  echo "$name ready after ${waited}s"
+}
+
+wait_for_http architecture-intelligence http://localhost:8000/health
+wait_for_http rest-fights               http://localhost:8082/q/health/ready
+wait_for_http rest-heroes               http://localhost:8083/q/health/ready
+wait_for_http rest-villains              http://localhost:8084/q/health/ready
+wait_for_http rest-narration             http://localhost:8087/q/health/ready
+wait_for_http event-statistics           http://localhost:8085/q/health/ready
+wait_for_http grpc-locations             http://localhost:8089/q/health/ready
+wait_for_tcp  otel-collector              localhost 4318
 ```
+
+Proceed to phase 6 only once every check above succeeds; a timeout means investigate
+(`docker compose logs <service>`) rather than retrying the import/traffic phases against a
+half-started stack.
 
 ## 6. Import declared architecture sources into AIP
 
@@ -133,11 +165,33 @@ to Kafka topic `fights`, which `event-statistics` consumes), and narration (`POS
 /api/fights/narrate`, a separate call from `performFight`). Record `window_start`/`window_end` —
 I2.3 needs this exact pair to query AIP's runtime facts for `environment=quarkus-i2`.
 
-## 9. Send/capture runtime observations
+## 9. Wait for the Collector to drain, then confirm OTLP ingestion
 
-By the end of phase 8, AIP has already received and persisted every OTLP batch the traffic in phase
-8 produced (the Collector forwards synchronously; there is no separate "capture" step to run). No
-further action is needed here — I2.3 begins by *reading back* what AIP now holds.
+`otel-collector-config.yaml`'s batch processor can legally hold the tail of phase 8's spans for up
+to its configured `timeout: 5s` before forwarding a partial batch — recording `WINDOW_END`
+immediately after `traffic.sh` bounds when the traffic *finished*, not when AIP has actually
+received the last batch. Querying AIP right away risks a race where the final spans are still
+sitting in the Collector's buffer, silently turning a real `CONFIRMED`/`OBSERVED_ONLY` fact into a
+missing one depending on timing alone (PR #40 review F2). Insert an explicit drain barrier before
+treating the window as closed:
+
+```bash
+sleep 15   # comfortably longer than otel-collector-config.yaml's 5s batch timeout
+
+for i in $(seq 1 15); do
+  COUNT="$(curl -sf "http://localhost:8000/api/runtime/relations?environment=quarkus-i2" | jq 'length')"
+  [ "${COUNT:-0}" -gt 0 ] && break
+  sleep 2
+done
+
+if [ "${COUNT:-0}" -eq 0 ]; then
+  echo "no runtime relations observed for environment=quarkus-i2 after waiting - check: docker compose logs otel-collector" >&2
+  exit 1
+fi
+```
+
+Only once this succeeds has AIP actually received and persisted the OTLP batches phase 8's traffic
+produced — I2.3 begins by *reading back* what AIP now holds for `[window_start, window_end]`.
 
 ---
 

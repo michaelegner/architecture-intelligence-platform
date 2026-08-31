@@ -49,8 +49,21 @@ The official upstream `deploy/docker-compose/java25.yml` (CI-generated) pulls
 our exact commit — at research time it predated our pinned commit by six days (which itself bumps
 the Quarkus platform version), so it does not reliably represent
 `8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce`. I2 spec §4 requires the qualifying run to apply to the
-exact pinned commit, not a moving tag, so `docker-compose.yml` here builds each of the five
-validated services' images from source at the pinned SHA instead of pulling the floating tag (see
-`../runbook.md` phase 3). Everything else in the compose file — infra images, environment wiring
-for datasource URLs/Stork discovery/Kafka bootstrap/Apicurio registry — is carried over unchanged
-from the official upstream compose, since none of that is affected by which exact commit is built.
+exact pinned commit, not a moving tag, so `docker-compose.yml` here builds each of the six required
+services' images from source at the pinned SHA instead of pulling the floating tag (see
+`../runbook.md` phase 3). Environment wiring for datasource URLs/Stork discovery/Kafka
+bootstrap/Apicurio registry is carried over unchanged from the official upstream compose, since
+none of that is affected by which exact commit is built.
+
+## Why every infra image is pinned to an exact version (PR #40 review F1)
+
+A "reproducible runtime profile" means every image the profile controls resolves to the same bytes
+on every run, not only the Quarkus application images. The official upstream compose's
+`neo4j:5`/`mongo:8`/`postgres:18`/`mariadb:11.5` and a plain `otel/opentelemetry-collector:latest`
+are all moving major-only or `latest` tags that can silently resolve to a different image between
+two runs of this same frozen profile. `docker-compose.yml` therefore pins each to an exact version
+that existed at research time (`neo4j:5.26.0`, `mongo:8.3.8`, `postgres:18.6`, `mariadb:11.5.2`),
+and additionally pins the OTel Collector — directly on the OTLP evidence path (Quarkus spans →
+Collector → AIP `/v1/traces`) — by digest (`otel/opentelemetry-collector:0.159.0@sha256:...`), the
+strongest guarantee available. The containerized Maven build image (`runbook.md` phase 3) is
+likewise pinned to `maven:3.9.16-eclipse-temurin-25`, not a `3.9`/`latest` floating tag.

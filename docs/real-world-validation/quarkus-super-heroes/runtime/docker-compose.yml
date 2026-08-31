@@ -19,6 +19,12 @@
 # ${QUARKUS_SUPERHEROES_CHECKOUT} = a local clone of quarkusio/quarkus-super-heroes checked out at
 # 8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce (runbook.md phase 2) - never vendored into this repo
 # (I1 spec §36/§39).
+#
+# PR #40 review F1: a "reproducible runtime profile" also means every infra image the profile
+# controls resolves to the same bytes on every run, not only the pinned Quarkus commit - so every
+# image below is pinned to an exact version (the official upstream compose's major-only
+# neo4j:5/mongo:8/postgres:18/mariadb:11.5 are tightened to a specific patch), and the Collector -
+# directly on the OTLP evidence path - is additionally pinned by digest.
 
 services:
 
@@ -42,7 +48,7 @@ services:
         condition: service_healthy
 
   neo4j:
-    image: neo4j:5
+    image: neo4j:5.26.0
     ports:
       - "7474:7474"
       - "7687:7687"
@@ -58,7 +64,7 @@ services:
       retries: 20
 
   otel-collector:
-    image: otel/opentelemetry-collector:latest
+    image: otel/opentelemetry-collector:0.159.0@sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
@@ -72,7 +78,7 @@ services:
   # --- Quarkus Super Heroes infra (unchanged from the pinned repo's own compose) ---
 
   fights-db:
-    image: mongo:8
+    image: mongo:8.3.8
     container_name: fights-db
     ports:
       - "27017"
@@ -113,7 +119,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
 
   villains-db:
-    image: postgres:18
+    image: postgres:18.6
     container_name: villains-db
     ports:
       - "5432"
@@ -125,7 +131,7 @@ services:
       - ${QUARKUS_SUPERHEROES_CHECKOUT:?set QUARKUS_SUPERHEROES_CHECKOUT to your pinned-commit checkout}/rest-villains/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql
 
   heroes-db:
-    image: postgres:18
+    image: postgres:18.6
     container_name: heroes-db
     ports:
       - "5432"
@@ -137,7 +143,7 @@ services:
       - ${QUARKUS_SUPERHEROES_CHECKOUT:?set QUARKUS_SUPERHEROES_CHECKOUT to your pinned-commit checkout}/rest-heroes/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql
 
   locations-db:
-    image: mariadb:11.5
+    image: mariadb:11.5.2
     container_name: locations-db
     ports:
       - "3306"
