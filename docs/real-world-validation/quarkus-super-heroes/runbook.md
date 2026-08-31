@@ -108,15 +108,19 @@ wait_for_tcp() {
   echo "$name ready after ${waited}s"
 }
 
-wait_for_http architecture-intelligence http://localhost:8000/health
-wait_for_http rest-fights               http://localhost:8082/q/health/ready
-wait_for_http rest-heroes               http://localhost:8083/q/health/ready
-wait_for_http rest-villains              http://localhost:8084/q/health/ready
-wait_for_http rest-narration             http://localhost:8087/q/health/ready
-wait_for_http event-statistics           http://localhost:8085/q/health/ready
-wait_for_http grpc-locations             http://localhost:8089/q/health/ready
-wait_for_tcp  otel-collector              localhost 4318
+wait_for_http architecture-intelligence  http://localhost:8000/health
+wait_for_http rest-fights-java25         http://localhost:8082/q/health/ready
+wait_for_http rest-heroes-java25         http://localhost:8083/q/health/ready
+wait_for_http rest-villains-java25       http://localhost:8084/q/health/ready
+wait_for_http rest-narration-java25      http://localhost:8087/q/health/ready
+wait_for_http event-statistics-java25    http://localhost:8085/q/health/ready
+wait_for_http grpc-locations-java25      http://localhost:8089/q/health/ready
+wait_for_tcp  otel-collector             localhost 4318
 ```
+
+(`name` above is each service's actual `docker-compose.yml` service key, e.g. `rest-fights-java25`
+— not the bare `rest-fights` — so a timeout's suggested `docker compose logs $name` command
+actually resolves.)
 
 Proceed to phase 6 only once every check above succeeds; a timeout means investigate
 (`docker compose logs <service>`) rather than retrying the import/traffic phases against a
@@ -179,16 +183,29 @@ treating the window as closed:
 sleep 15   # comfortably longer than otel-collector-config.yaml's 5s batch timeout
 
 for i in $(seq 1 15); do
-  COUNT="$(curl -sf "http://localhost:8000/api/runtime/relations?environment=quarkus-i2" | jq 'length')"
+  COUNT="$(
+    curl -sfG "http://localhost:8000/api/runtime/relations" \
+      --data-urlencode "environment=quarkus-i2" \
+      --data-urlencode "since=$WINDOW_START" \
+      --data-urlencode "until=$WINDOW_END" \
+    | jq '.relations | length'
+  )"
   [ "${COUNT:-0}" -gt 0 ] && break
   sleep 2
 done
 
 if [ "${COUNT:-0}" -eq 0 ]; then
-  echo "no runtime relations observed for environment=quarkus-i2 after waiting - check: docker compose logs otel-collector" >&2
+  echo "no runtime relations observed for environment=quarkus-i2 in [$WINDOW_START, $WINDOW_END] after waiting - check: docker compose logs otel-collector" >&2
   exit 1
 fi
 ```
+
+`GET /api/runtime/relations` (`app/api/runtime.py`) returns `{environment, window, relations: [...]}`
+— counting the response itself (e.g. `jq 'length'`) counts that object's three top-level fields and
+would report success even with zero observed relations. Scoping the query to `since`/`until`
+(not the `from`/`to` query params, which filter by canonical entity id, not by time) also matters:
+without it, unrelated startup/health-check traffic from the clean stack could satisfy the count
+even if phase 8's qualifying traffic itself produced nothing.
 
 Only once this succeeds has AIP actually received and persisted the OTLP batches phase 8's traffic
 produced — I2.3 begins by *reading back* what AIP now holds for `[window_start, window_end]`.

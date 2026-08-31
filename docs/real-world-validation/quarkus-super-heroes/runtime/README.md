@@ -57,13 +57,16 @@ none of that is affected by which exact commit is built.
 
 ## Why every infra image is pinned to an exact version (PR #40 review F1)
 
-A "reproducible runtime profile" means every image the profile controls resolves to the same bytes
-on every run, not only the Quarkus application images. The official upstream compose's
+A "reproducible runtime profile" means every image the profile controls resolves to the same
+version on every run, not only the Quarkus application images. The official upstream compose's
 `neo4j:5`/`mongo:8`/`postgres:18`/`mariadb:11.5` and a plain `otel/opentelemetry-collector:latest`
 are all moving major-only or `latest` tags that can silently resolve to a different image between
-two runs of this same frozen profile. `docker-compose.yml` therefore pins each to an exact version
-that existed at research time (`neo4j:5.26.0`, `mongo:8.3.8`, `postgres:18.6`, `mariadb:11.5.2`),
-and additionally pins the OTel Collector — directly on the OTLP evidence path (Quarkus spans →
-Collector → AIP `/v1/traces`) — by digest (`otel/opentelemetry-collector:0.159.0@sha256:...`), the
-strongest guarantee available. The containerized Maven build image (`runbook.md` phase 3) is
-likewise pinned to `maven:3.9.16-eclipse-temurin-25`, not a `3.9`/`latest` floating tag.
+two runs of this same frozen profile. `docker-compose.yml` therefore pins each ordinary
+infrastructure image to an exact version that existed at research time (`neo4j:5.26.0`,
+`mongo:8.3.8`, `postgres:18.6`, `mariadb:11.5.2`) — registry tags are not technically immutable,
+but this closes off the moving-tag failure mode the official compose had. The OTel Collector gets
+the stronger byte-level guarantee: because it sits directly on the OTLP evidence path (Quarkus
+spans → Collector → AIP `/v1/traces`), it is additionally pinned by digest
+(`otel/opentelemetry-collector:0.159.0@sha256:...`). The containerized Maven build image
+(`runbook.md` phase 3) is likewise pinned to `maven:3.9.16-eclipse-temurin-25`, not a
+`3.9`/`latest` floating tag.
