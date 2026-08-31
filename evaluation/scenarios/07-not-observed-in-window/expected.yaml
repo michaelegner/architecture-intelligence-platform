@@ -1,0 +1,33 @@
+scenario: not-observed-in-window
+
+description: >
+  OrderService declares a call to ProductService GET /products/{id}. A matching runtime observation
+  exists outside the selected evaluation window, so the dependency remains a declared canonical
+  fact but is NOT_OBSERVED_IN_WINDOW for this observation context.
+
+scope:
+  entities:
+    - service:order-service
+    - service:product-service
+    - operation:service:product-service:GET:/products/{id}
+  relation_types:
+    - CALLS
+
+observation:
+  environment: test
+  window:
+    start: "2026-08-01T10:00:00Z"
+    end: "2026-08-01T11:00:00Z"
+
+expected:
+  relations:
+    - type: CALLS
+      source: service:order-service
+      target: operation:service:product-service:GET:/products/{id}
+      status: NOT_OBSERVED_IN_WINDOW
+      evidence:
+        declared: true
+        observed: false
+
+forbidden:
+  relations: []

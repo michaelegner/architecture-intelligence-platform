@@ -67,7 +67,7 @@ _DELETE = object()
 # --- discovery ------------------------------------------------------------------------------
 
 
-def test_discover_scenarios_finds_the_six_real_scenarios():
+def test_discover_scenarios_finds_the_seven_real_scenarios():
     discovered = discover_scenarios(SCENARIOS_DIR)
     assert [p.name for p in discovered] == [
         "01-rest-confirmed",
@@ -76,10 +76,11 @@ def test_discover_scenarios_finds_the_six_real_scenarios():
         "04-orphan-messaging",
         "05-mixed-rest-async",
         "06-request-response-queue-pair",
+        "07-not-observed-in-window",
     ]
 
 
-def test_the_six_real_scenarios_all_load_and_validate():
+def test_the_seven_real_scenarios_all_load_and_validate():
     scenarios = load_scenarios(SCENARIOS_DIR)
     assert [s.id for s in scenarios] == [
         "rest-confirmed",
@@ -88,6 +89,7 @@ def test_the_six_real_scenarios_all_load_and_validate():
         "orphan-messaging",
         "mixed-rest-async",
         "request-response-queue-pair",
+        "not-observed-in-window",
     ]
     assert all(s.expected_relations for s in scenarios)
     for s in scenarios:
