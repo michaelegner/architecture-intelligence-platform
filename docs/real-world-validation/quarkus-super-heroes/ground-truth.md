@@ -47,6 +47,11 @@ for a scoped service becomes part of the qualifying comparison, whether or not `
 asserts it. A partial expected set would make every legitimate, unlisted provider operation surface
 as a false `INCORRECT_SUPPORTED` finding once AIP actually ingests the real documents.
 
+Each `PROVIDES` fact also asserts `evidence: {declared: true}` — every relation
+`app/ingestion/openapi_adapter.py` produces, `PROVIDES` included, carries a real `DECLARED`
+Provenance/`evidence_ids` entry (see "Change log" below for a correction to this section's earlier,
+incorrect claim otherwise).
+
 ## Qualifying REST dependencies
 
 Independently established from `rest-fights`' own client source code (not from OpenAPI, and not
@@ -152,3 +157,19 @@ under the default profile is itself only answered once I2.3 actually runs the fr
 
 No `INSUFFICIENT_EVIDENCE` or `UNRESOLVED_IDENTITY` items are needed — every fact used above is
 corroborated by at least two independent evidence sources.
+
+## Change log (I1 §37: ground truth may change only for a documented, non-AIP-output reason)
+
+**I2.3, superseded same-PR correction (PR #41 review F1)**: an intermediate draft of this PR briefly
+removed `evidence: {declared: true}` from all 35 `PROVIDES` facts, reasoning that
+`real_world_validation/capture.py` only populated `declared`/`observed` evidence for
+`CALLS`/`SENDS`/`RECEIVES_FROM` and that "AIP has no observed PROVIDES concept." Both premises were
+wrong: `app/ingestion/openapi_adapter.py` attaches a real `DECLARED` Provenance/`evidence_ids` entry
+to every relation it produces, `PROVIDES` included, and AIP does implement an observed-`PROVIDES`
+concept for runtime-discovered operations (`docs/graph-model.md`, `app/telemetry/adapter.py`). That
+draft change was reverted — the frozen `declared: true` assertion was correct all along — and
+`capture.py` was fixed instead to query real declared/observed evidence generically for AIP's
+complete canonical relation vocabulary (`app.graph_schema.registry.RELATIONS`), not just the three
+relation types that also happen to have a runtime *status* concept. This is recorded here as the
+methodological lesson it is: ground truth must never be weakened to match a tool's current
+limitation, even transiently within the same PR — the tool is what gets fixed.

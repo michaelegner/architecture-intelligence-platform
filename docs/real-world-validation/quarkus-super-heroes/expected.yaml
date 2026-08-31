@@ -16,6 +16,17 @@
 # RECEIVES_FROM facts) so that an incorrect future Queue mapping of the Kafka "fights" topic
 # becomes an observable "unexpected in-scope" INCORRECT_SUPPORTED finding, rather than silently
 # falling outside the qualifying comparison scope (PR #39 review F2).
+#
+# Every PROVIDES fact asserts `evidence: {declared: true}`: app/ingestion/openapi_adapter.py
+# attaches a real DECLARED Provenance/evidence_ids to every relation it produces, PROVIDES
+# included - a PROVIDES edge's existence is not itself sufficient evidence of "declared" in AIP's
+# own canonical/provenance model, the graph's actual Evidence node is (docs/graph-model.md's
+# "a fact exists iff at least one Evidence exists" invariant). AIP also has a genuine "observed
+# PROVIDES" concept for runtime-discovered operations (docs/graph-model.md, app/telemetry/adapter.py)
+# - an earlier draft of this file incorrectly claimed otherwise and removed this assertion to work
+# around real_world_validation/capture.py not yet querying PROVIDES evidence; that was backwards
+# (PR #41 review F1) and has been corrected by fixing capture.py instead, never by weakening ground
+# truth to match a tool limitation.
 
 system: quarkus-super-heroes
 upstream_revision: "8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce"
