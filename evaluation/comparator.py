@@ -39,6 +39,17 @@ def _identity(fact: RelationFact) -> tuple[str, str, str]:
     return (fact.type, fact.source, fact.target)
 
 
+def _mismatch_sort_key(mismatch: Mismatch) -> tuple[str, str, str, str]:
+    """I4 spec §10: ScenarioResult.mismatches must itself be deterministic, not just the reporter's
+    rendering (which already re-sorts, since I2) - the UNEXPECTED branch below iterates a
+    set[RelationFact], whose order depends on Python's string-hash randomization and is not
+    guaranteed stable across process runs. `kind` is an extra tiebreaker per spec §10.2; by
+    construction at most one mismatch kind exists per canonical identity today, so it never
+    actually breaks a tie, but keeps this key meaningful if that ever changes."""
+    fact = mismatch.expected or mismatch.actual
+    return (*_identity(fact), mismatch.kind)
+
+
 def _matches(expected: RelationFact, actual: RelationFact) -> bool:
     """A field left unset (None) in expected.yaml is not part of the assertion; every field the
     scenario does specify must match exactly (I1 §16.3 - no fuzzy matching)."""
@@ -85,5 +96,5 @@ def compare(scenario: Scenario, actual: set[RelationFact]) -> ScenarioResult:
         # (I1 §19), and what the spec's own report examples (I1 §17) sort/display by.
         scenario_id=scenario.path.name,
         passed=not mismatches,
-        mismatches=tuple(mismatches),
+        mismatches=tuple(sorted(mismatches, key=_mismatch_sort_key)),
     )

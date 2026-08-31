@@ -131,10 +131,10 @@ def load_relation_facts(
     since: datetime,
     until: datetime | None = None,
 ) -> set[RelationFact]:
-    """Projects the scenario-owned subgraph into RelationFacts, labeled CONFIRMED/OBSERVED_ONLY by
-    AIP's own classification at exact (type, source, target) identity, or left unclassified (None)
-    for anything else - outside what I1's three scenarios assert; see spec I1 §16.2 for what's
-    deferred to I2."""
+    """Projects the scenario-owned subgraph into RelationFacts, labeled CONFIRMED/OBSERVED_ONLY/
+    NOT_OBSERVED_IN_WINDOW by AIP's own classification at exact (type, source, target) identity, or
+    left unclassified (None) for anything else (e.g. PROVIDES, or any relation type outside the
+    scenario's own observation context)."""
     classified = (
         _classified_facts(session, environment=environment, since=since, until=until)
         if environment is not None
