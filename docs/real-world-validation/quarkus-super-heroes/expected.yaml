@@ -16,6 +16,17 @@
 # RECEIVES_FROM facts) so that an incorrect future Queue mapping of the Kafka "fights" topic
 # becomes an observable "unexpected in-scope" INCORRECT_SUPPORTED finding, rather than silently
 # falling outside the qualifying comparison scope (PR #39 review F2).
+#
+# I2.3 ground-truth correction (pre-run, per I1 §37's "documented evidence interpretation was
+# corrected" clause): PROVIDES facts below assert identity only, no `evidence: {declared: true}`.
+# AIP has no "observed PROVIDES" concept (OpenAPI import is the only source of PROVIDES edges), so
+# a PROVIDES edge's mere existence already fully proves it is declared - real_world_validation's
+# capture tool (capture.py, mirroring evaluation/projector.py's established v0.2 convention) only
+# populates declared/observed evidence for the three runtime-classified relation types
+# (CALLS/SENDS/RECEIVES_FROM); asserting `declared: true` on a PROVIDES fact therefore compared
+# against a field the capture tool never populates and would have produced a spurious
+# INCORRECT_SUPPORTED finding with no diagnostic value. Found and corrected while building the I2.3
+# capture tool, before any qualifying AIP run against this system.
 
 system: quarkus-super-heroes
 upstream_revision: "8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce"
@@ -40,249 +51,179 @@ expected:
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:DELETE:/api/heroes
-      evidence:
-        declared: true
 
     - id: qsh-heroes-provides-getAllHeroes
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:GET:/api/heroes
-      evidence:
-        declared: true
 
     - id: qsh-heroes-provides-createHero
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:POST:/api/heroes
-      evidence:
-        declared: true
 
     - id: qsh-heroes-provides-replaceAllHeroes
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:PUT:/api/heroes
-      evidence:
-        declared: true
 
     - id: qsh-heroes-provides-hello
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:GET:/api/heroes/hello
-      evidence:
-        declared: true
 
     - id: qsh-heroes-provides-getRandomHero
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:GET:/api/heroes/random
-      evidence:
-        declared: true
 
     - id: qsh-heroes-provides-deleteHero
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:DELETE:/api/heroes/{id}
-      evidence:
-        declared: true
 
     - id: qsh-heroes-provides-getHero
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:GET:/api/heroes/{id}
-      evidence:
-        declared: true
 
     - id: qsh-heroes-provides-partiallyUpdateHero
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:PATCH:/api/heroes/{id}
-      evidence:
-        declared: true
 
     - id: qsh-heroes-provides-fullyUpdateHero
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:PUT:/api/heroes/{id}
-      evidence:
-        declared: true
 
     # rest-villains (10 operations) - complete provider inventory (evidence/rest-and-grpc.md, I2 spec §10)
     - id: qsh-villains-provides-deleteAllVillains
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:DELETE:/api/villains
-      evidence:
-        declared: true
 
     - id: qsh-villains-provides-getAllVillains
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:GET:/api/villains
-      evidence:
-        declared: true
 
     - id: qsh-villains-provides-createVillain
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:POST:/api/villains
-      evidence:
-        declared: true
 
     - id: qsh-villains-provides-replaceAllVillains
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:PUT:/api/villains
-      evidence:
-        declared: true
 
     - id: qsh-villains-provides-hello
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:GET:/api/villains/hello
-      evidence:
-        declared: true
 
     - id: qsh-villains-provides-getRandomVillain
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:GET:/api/villains/random
-      evidence:
-        declared: true
 
     - id: qsh-villains-provides-deleteVillain
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:DELETE:/api/villains/{id}
-      evidence:
-        declared: true
 
     - id: qsh-villains-provides-getVillain
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:GET:/api/villains/{id}
-      evidence:
-        declared: true
 
     - id: qsh-villains-provides-partiallyUpdateVillain
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:PATCH:/api/villains/{id}
-      evidence:
-        declared: true
 
     - id: qsh-villains-provides-fullyUpdateVillain
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:PUT:/api/villains/{id}
-      evidence:
-        declared: true
 
     # rest-narration (3 operations) - complete provider inventory (evidence/rest-and-grpc.md, I2 spec §10)
     - id: qsh-narration-provides-narrate
       type: PROVIDES
       source: service:rest-narration
       target: operation:service:rest-narration:POST:/api/narration
-      evidence:
-        declared: true
 
     - id: qsh-narration-provides-hello
       type: PROVIDES
       source: service:rest-narration
       target: operation:service:rest-narration:GET:/api/narration/hello
-      evidence:
-        declared: true
 
     - id: qsh-narration-provides-generateImageFromNarration
       type: PROVIDES
       source: service:rest-narration
       target: operation:service:rest-narration:POST:/api/narration/image
-      evidence:
-        declared: true
 
     # rest-fights (12 operations) - complete provider inventory (evidence/rest-and-grpc.md, I2 spec §10)
     - id: qsh-fights-provides-getAllFights
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:GET:/api/fights
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-performFight
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:POST:/api/fights
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-hello
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:GET:/api/fights/hello
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-helloHeroes
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:GET:/api/fights/hello/heroes
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-helloLocations
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:GET:/api/fights/hello/locations
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-helloNarration
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:GET:/api/fights/hello/narration
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-helloVillains
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:GET:/api/fights/hello/villains
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-narrateFight
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:POST:/api/fights/narrate
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-generateImageFromNarration
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:POST:/api/fights/narrate/image
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-getRandomFighters
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:GET:/api/fights/randomfighters
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-getRandomLocation
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:GET:/api/fights/randomlocation
-      evidence:
-        declared: true
 
     - id: qsh-fights-provides-getFight
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:GET:/api/fights/{id}
-      evidence:
-        declared: true
 
     # --- REST caller ground truth (rest-fights client source code, evidence/rest-and-grpc.md) ---
     # `declared: true` is now reproducible: runtime/declarations/rest-fights/architecture.yaml

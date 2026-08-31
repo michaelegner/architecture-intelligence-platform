@@ -47,6 +47,9 @@ for a scoped service becomes part of the qualifying comparison, whether or not `
 asserts it. A partial expected set would make every legitimate, unlisted provider operation surface
 as a false `INCORRECT_SUPPORTED` finding once AIP actually ingests the real documents.
 
+Each `PROVIDES` fact asserts identity only (`type`/`source`/`target`), no `evidence` field — see
+"Change log" below.
+
 ## Qualifying REST dependencies
 
 Independently established from `rest-fights`' own client source code (not from OpenAPI, and not
@@ -152,3 +155,16 @@ under the default profile is itself only answered once I2.3 actually runs the fr
 
 No `INSUFFICIENT_EVIDENCE` or `UNRESOLVED_IDENTITY` items are needed — every fact used above is
 corroborated by at least two independent evidence sources.
+
+## Change log (I1 §37: ground truth may change only for a documented, non-AIP-output reason)
+
+**I2.3, pre-run**: removed `evidence: {declared: true}` from all 35 `PROVIDES` facts. Building
+`real_world_validation/capture.py` (the tool that reads AIP's actual facts back into this schema)
+surfaced that it only populates `declared`/`observed` evidence for the three runtime-classified
+relation types (`CALLS`/`SENDS`/`RECEIVES_FROM`, mirroring `evaluation/projector.py`'s established
+v0.2 convention) — `PROVIDES` facts are always identity-only, since AIP has no "observed PROVIDES"
+concept and a `PROVIDES` edge's mere existence already fully proves it is declared (OpenAPI import
+is its only source). The original assertion therefore compared against a field the capture tool
+never populates and would have produced 35 spurious `INCORRECT_SUPPORTED` findings with no
+diagnostic value, not a real AIP defect. Corrected before the first qualifying AIP run against this
+system — this was not a reaction to an unfavorable comparison result.
