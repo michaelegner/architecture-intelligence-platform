@@ -99,6 +99,15 @@ def test_the_ten_real_scenarios_all_load_and_validate():
     ]
     assert all(s.expected_relations for s in scenarios)
 
+    # 01-09 are runtime scenarios (require a real observation environment/window); 10 is
+    # declaration-only by design (I4 spec §7.3) and must not carry one.
+    runtime_scenarios, declared_only = scenarios[:-1], scenarios[-1]
+    assert all(s.observation.environment == "test" for s in runtime_scenarios)
+    assert declared_only.id == "declared-rest-relation"
+    assert declared_only.observation.environment is None
+    assert declared_only.observation.window_start is None
+    assert declared_only.observation.window_end is None
+
 
 def test_discover_scenarios_ignores_directories_without_expected_yaml(tmp_path):
     (tmp_path / "not-a-scenario").mkdir()
