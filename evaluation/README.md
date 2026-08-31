@@ -123,8 +123,10 @@ RESULT: PASS
 ```
 
 Exit code `0` means every scenario passed; `1` means at least one semantic evaluation failure;
-`2` means invalid scenario configuration or an infrastructure error (the suite never exits `0` on
-failure).
+`2` means invalid scenario configuration (the suite never exits `0` on failure). An unexpected
+programmer or infrastructure error (e.g. Docker/Testcontainers unavailable) is not normalized to
+one of these codes - it terminates with a Python traceback instead (I4 spec §11 deliberately does
+not require suppressing those).
 
 ### Local reproducibility and determinism (I4)
 
