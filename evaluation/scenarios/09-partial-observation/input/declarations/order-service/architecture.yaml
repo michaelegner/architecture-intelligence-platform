@@ -1,0 +1,6 @@
+service: order-service
+calls:
+  - service: product-service
+    operationId: getProduct
+  - service: inventory-service
+    operationId: getInventory

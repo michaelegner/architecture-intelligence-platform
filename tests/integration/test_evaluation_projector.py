@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from app.analysis.runtime import COVERAGE_PARTIAL, COVERAGE_SUFFICIENT, declared_only_relations
 from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.provenance.model import ObservedEvidence
@@ -435,3 +436,41 @@ def test_evidence_reconciliation_sanity_break_without_reimport_stays_confirmed(d
     )
     fact = next(f for f in facts if f.type == "CALLS")
     assert fact.status == "CONFIRMED"
+
+
+# --- I4: partial observation and coverage ------------------------------------------------------
+
+
+def test_partial_observation_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "09-partial-observation")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_partial_observation_coverage_qualification(driver, session):
+    """I4 spec §6.6: a dedicated integration test against AIP's existing production
+    runtime-analysis boundary (declared_only_relations, O4) - never a reimplementation of
+    _classify_coverage in the evaluator. OrderService has observed HTTP traffic (the CONFIRMED
+    ProductService call) but no observed messaging traffic in this window, so its unobserved CALLS
+    to InventoryService shares the observed interaction kind (SUFFICIENT) while its unobserved
+    SENDS to audit-q does not (PARTIAL)."""
+    scenario = load_scenario(SCENARIOS_DIR / "09-partial-observation")
+
+    reset_graph(driver, database=DATABASE)
+    ingest_declarations(driver, database=DATABASE, scenario=scenario)
+    inject_runtime_fixture(driver, database=DATABASE, scenario=scenario)
+
+    rows = declared_only_relations(
+        session,
+        environment=scenario.observation.environment,
+        since=scenario.observation.window_start,
+        until=scenario.observation.window_end,
+    )
+
+    calls_row = next(r for r in rows if r.relation_type == "CALLS")
+    sends_row = next(r for r in rows if r.relation_type == "SENDS")
+    assert calls_row.coverage == COVERAGE_SUFFICIENT
+    assert sends_row.coverage == COVERAGE_PARTIAL
