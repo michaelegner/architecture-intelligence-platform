@@ -49,3 +49,29 @@ publish/subscribe destination, not AIP's queue-with-competing-consumers model, a
 one-producer/one-consumer topic must not be assumed to collapse onto Queue semantics merely because
 the multiplicities happen to match a Queue's shape. This is recorded as `unsupported` ground truth
 (mechanism `kafka-topic`), not as a `SENDS`/`RECEIVES_FROM` expectation.
+
+## Runtime telemetry evidence (I2.3, PR #41 re-review)
+
+A dedicated diagnostic re-run of the qualifying profile (same pinned commit/images, Collector
+temporarily set to `verbosity: detailed` for this inspection only — no committed runtime file
+changed) captured the actual raw OTLP span `rest-fights` exports for its Kafka publish:
+
+```text
+Attributes:
+  messaging.kafka.offset: 0
+  messaging.destination.name: fights
+  messaging.operation: publish
+  messaging.client_id: kafka-producer-fights
+  messaging.system: kafka
+```
+
+This confirms the interaction is real (a genuine Kafka producer span, correct destination name,
+correct system) but also reveals that Quarkus's SmallRye Reactive Messaging Kafka connector emits
+the attribute key `messaging.operation` (legacy OTel messaging semantic convention, value
+`publish`), not `messaging.operation.type` (`app/telemetry/semconv/messaging.py`'s
+`MESSAGING_OPERATION_TYPE`, the only attribute name AIP's `correlate_queue_observations()` checks).
+No consumer-side (`event-statistics`) messaging span was observed in the Collector's export stream
+in this window at all. See
+[`decisions/qsh-kafka-operation-type-gap.md`](../decisions/qsh-kafka-operation-type-gap.md) for the
+resulting finding and disposition, and `results.md`/`findings.md` for how this reclassifies what the
+qualifying run's "0 SENDS/RECEIVES_FROM" result actually demonstrates.

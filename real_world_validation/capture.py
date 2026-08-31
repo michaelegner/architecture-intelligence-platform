@@ -3,18 +3,19 @@ Result Capture").
 
 PR #41 review F1/F2: every relation AIP writes carries real evidence (every declared-source adapter
 attaches a DECLARED Provenance/evidence_ids to every relation it produces -
-app/ingestion/openapi_adapter.py, app/ingestion/asyncapi_adapter.py - and AIP also has a genuine
-"observed PROVIDES" concept for runtime-discovered operations, docs/graph-model.md). So this module
-queries declared/observed evidence generically for AIP's complete current canonical relation
-vocabulary (app.graph_schema.registry.RELATIONS - the same registry
-real_world_validation.model.KNOWN_RELATION_TYPES already derives from), never omitting a type the
-loader/comparator would otherwise accept. Only the three relation types AIP's own
+app/ingestion/openapi_adapter.py, app/ingestion/asyncapi_adapter.py - and PROVIDES specifically can
+also carry OBSERVED evidence for runtime-discovered operations, docs/graph-model.md/
+app/telemetry/adapter.py). So this module queries declared/observed evidence generically for AIP's
+complete current canonical relation vocabulary (app.graph_schema.registry.RELATIONS - the same
+registry real_world_validation.model.KNOWN_RELATION_TYPES already derives from), never omitting a
+type the loader/comparator would otherwise accept. Only the three relation types AIP's own
 app.analysis.runtime module defines genuine runtime-observation *status* semantics for
 (CALLS/SENDS/RECEIVES_FROM, its O1-O4 CONFIRMED/OBSERVED_ONLY/NOT_OBSERVED_IN_WINDOW) get a
-`status` value - the rest (PROVIDES, REQUEST_SCHEMA, RESPONSE_SCHEMA, CARRIES, CONFORMS_TO,
-DEAD_LETTERS_TO) are always written by a declared-source adapter and never independently
-reconfirmed by telemetry, so they report declared/observed evidence flags with no separate status
-concept, matching how AIP's own analysis boundary treats them.
+`status` value - the other six (PROVIDES included) have no separate status concept, matching how
+AIP's own analysis boundary treats them, but still get real declared/observed evidence flags -
+REQUEST_SCHEMA/RESPONSE_SCHEMA/CARRIES/CONFORMS_TO/DEAD_LETTERS_TO are always written by a
+declared-source adapter and never independently reconfirmed by telemetry at all (so they always
+report observed=false in practice), while PROVIDES can genuinely be either.
 
 This module is the one place in real_world_validation/ that touches Neo4j - the loader/comparator/
 reporter remain pure data-in/data-out, per I1 §19's "SHALL NOT consume upstream source directly
@@ -41,8 +42,9 @@ from real_world_validation.model import RelationFact, ScopeDeclaration
 
 # The only relation types AIP's own app.analysis.runtime module defines runtime-observation status
 # semantics for (its O1-O4 CONFIRMED/OBSERVED_ONLY/NOT_OBSERVED_IN_WINDOW). Every other current
-# canonical relation type is always written by a declared-source adapter and never independently
-# reconfirmed by telemetry - see this module's docstring.
+# canonical relation type still gets real declared/observed evidence flags, just no status - see
+# this module's docstring for why PROVIDES (unlike the other five) can genuinely have observed
+# evidence too.
 _RUNTIME_STATUS_RELATION_TYPES = frozenset({"CALLS", "SENDS", "RECEIVES_FROM"})
 _EVIDENCE_ONLY_RELATION_TYPES = frozenset(RELATIONS) - _RUNTIME_STATUS_RELATION_TYPES
 

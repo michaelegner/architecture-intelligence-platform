@@ -202,6 +202,44 @@ def test_capture_trims_whitespace_in_comma_separated_arguments(tmp_path, monkeyp
     assert captured_scope["scope"].relation_types == ("CALLS", "PROVIDES")
 
 
+def test_capture_accepts_z_suffixed_timestamp(tmp_path, monkeypatch):
+    """The documented --since/--until examples throughout runbook.md/results.md use a trailing
+    `Z` (e.g. 2026-08-31T14:45:03Z) - this project's supported Python (>=3.13) accepts that as
+    UTC, but nothing previously proved it, so a regression here would go undetected."""
+    captured = {}
+
+    def _record_since(_session, *, since, **_kwargs):
+        captured["since"] = since
+        return []
+
+    monkeypatch.setattr("real_world_validation.__main__.build_driver", lambda *a, **k: MagicMock())
+    monkeypatch.setattr("real_world_validation.__main__.open_session", _fake_session)
+    monkeypatch.setattr("real_world_validation.__main__.capture_actual_facts", _record_since)
+
+    code = main(
+        [
+            "capture",
+            "--neo4j-uri",
+            "bolt://localhost:7687",
+            "--neo4j-user",
+            "neo4j",
+            "--neo4j-password",
+            "secret",
+            "--environment",
+            "quarkus-i2",
+            "--since",
+            "2026-08-31T14:45:03Z",
+            "--scope-entities",
+            "service:a",
+            "--out",
+            str(tmp_path / "actual.yaml"),
+        ]
+    )
+
+    assert code == EXIT_OK
+    assert captured["since"].tzinfo is not None
+
+
 def test_capture_rejects_naive_since_timestamp(tmp_path, monkeypatch):
     monkeypatch.setattr("real_world_validation.__main__.build_driver", lambda *a, **k: MagicMock())
     monkeypatch.setattr("real_world_validation.__main__.open_session", _fake_session)

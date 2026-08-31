@@ -39,14 +39,20 @@ relations before capture began. The stack was torn down (`docker compose down -v
 
 ## Repeatability evidence
 
-Both live runs in this PR (same pinned commit, same images, same frozen `expected.yaml`) produced
-**identical classifications, identities, and counts** — the only difference between the two
-comparator transcripts is the `PROVIDES` evidence line itself (`declared=?` → `declared=true
-observed=false`), which is exactly the `capture.py` fix taking effect, not a run-to-run
-discrepancy. This is not yet the full I2 spec §43 repeatability requirement (which calls for
-independently re-verifying the same result across the release-qualification lifecycle, e.g. I2.4 or
-I5), but it is two independent clean-state executions agreeing, which is meaningfully more evidence
-than a single run.
+This PR includes three live executions of this profile, but only the second and third used the
+final, corrected comparison contract (`capture.py` after the PR #41 review F1/F2 fix) — the first
+run predates that fix and also ran while a since-reverted draft had temporarily weakened
+`expected.yaml`, so it does not count as a qualifying run under the same contract as the other two
+(PR #41 re-review N1). What the three runs *do* show: the same pinned commit and images, started
+from clean state independently three times, produced the same service/operation identities, the
+same relation counts, and the same traffic behavior (including the identical narration-fallback
+observation below) every time — architecturally stable across restarts. The second run is this
+document's reported qualifying comparison; the third was a diagnostic-only re-run (Collector
+temporarily set to detailed verbosity, no comparator invoked) to investigate the Kafka finding in
+`findings.md`'s `qsh-kafka-operation-type-gap`. This is not yet the full I2 spec §43 repeatability
+requirement (independently re-verifying the *same* frozen result across the release-qualification
+lifecycle, e.g. I2.4 or I5) — that still requires a second run using this exact contract, with no
+further tool changes in between.
 
 ## AIP result capture
 
@@ -572,6 +578,23 @@ window immediately before the call, consistent with its narration `@Timeout`/`@F
 HTTP call was made and observed) is independent of whether `rest-narration`'s own business logic
 produced a real vs. fallback narration. See `findings.md` for why this stays a non-material
 observation rather than a finding.
+
+## Kafka telemetry-recognition gap (material — see `findings.md`'s `qsh-kafka-operation-type-gap`)
+
+`0 SENDS`/`0 RECEIVES_FROM` in the capture above is real, but PR #41's re-review correctly identified
+that it does not by itself prove AIP safely refuses to map the Kafka `fights` topic onto Queue
+semantics — the current production messaging resolver (`app/telemetry/adapter.py`) has no
+Kafka-topic-specific safety logic at all; it converts *any* span with a recognized
+`messaging.operation.type` into a `SENDS`/`RECEIVES_FROM` fact. A dedicated diagnostic re-run (same
+pinned commit/images, the Collector temporarily set to `verbosity: detailed` for this inspection
+only, no committed file changed, no comparator invoked) captured the real span `rest-fights` exports
+for its Kafka publish and found it uses the legacy `messaging.operation: publish` attribute, not
+`messaging.operation.type` — the only attribute name AIP's allowlist recognizes — so the span is
+silently skipped before ever reaching the resolver, and no consumer-side (`event-statistics`) span
+was observed at all in this window. The "0" result therefore reflects a telemetry-recognition gap
+between AIP's allowlist and this specific OTel instrumentation, not a validated safe rejection. Full
+evidence: `evidence/messaging.md`; disposition: `decisions/qsh-kafka-operation-type-gap.md`
+(`DEFER`, per `findings.md`).
 
 ## Exit code
 

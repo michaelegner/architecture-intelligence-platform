@@ -1,18 +1,19 @@
 # Findings — Quarkus Super Heroes
 
 Findings from the qualifying comparison (I2.3, `results.md`), classified per the I1 finding
-vocabulary. No `INCORRECT_SUPPORTED`, `MISSING_SUPPORTED`, `UNRESOLVED_IDENTITY`, or
-`INSUFFICIENT_EVIDENCE` findings resulted from this run.
+vocabulary. No `INCORRECT_SUPPORTED`, `MISSING_SUPPORTED`, or `UNRESOLVED_IDENTITY` findings
+resulted from this run; one `INSUFFICIENT_EVIDENCE` finding did (a diagnostic re-run's own raw
+telemetry inspection, not the frozen comparator result — see `qsh-kafka-operation-type-gap` below).
 
 ## Summary of material findings
 
 ```text
 CORRECT                38   (35 PROVIDES + 3 CALLS) — see results.md for the full per-fact transcript
 UNSUPPORTED             2   (qsh-grpc-locations, qsh-kafka-fights-topic)
+INSUFFICIENT_EVIDENCE   1   (qsh-kafka-operation-type-gap)
 MISSING_SUPPORTED       0
 INCORRECT_SUPPORTED     0
 UNRESOLVED_IDENTITY     0
-INSUFFICIENT_EVIDENCE   0
 ```
 
 `CORRECT` findings are not individually re-listed here beyond the summary above — enumerating all
@@ -59,15 +60,43 @@ severity:         INFO
 disposition:      NO_CHANGE
 ```
 
-Confirmed as ground-truth anticipated: the qualifying traffic included a real `POST /api/fights`
-call, which persists a fight and publishes to Kafka topic `fights` (confirmed via `rest-fights`'
-own producer logs — a benign, expected `UNKNOWN_TOPIC_OR_PARTITION` warning on the topic's
-first-ever use, followed by normal operation). `expected.yaml`'s scope deliberately includes
-`service:event-statistics` and `SENDS`/`RECEIVES_FROM` specifically so a false Queue mapping would
-have been observable as an unexpected in-scope `INCORRECT_SUPPORTED` finding (PR #39 review F2) —
-none appeared. AIP correctly emitted zero `SENDS`/`RECEIVES_FROM` facts for this topic. This is
-exactly the outcome I2 spec §13-15 requires: the Kafka boundary was genuinely exercised by real
-message traffic, and AIP did not stretch Queue semantics to cover it. No decision record needed.
+The dossier's `UNSUPPORTED` classification for the Kafka `fights` topic mechanism itself is
+unchanged and correct: nothing in this run makes Kafka topics a supported AIP mechanism, and
+`expected.yaml` never asserted otherwise. The qualifying traffic did include a real `POST
+/api/fights` call that persists a fight and publishes to Kafka topic `fights` (confirmed via
+`rest-fights`' own producer logs — a benign, expected `UNKNOWN_TOPIC_OR_PARTITION` warning on the
+topic's first-ever use, followed by normal operation), and AIP emitted zero `SENDS`/`RECEIVES_FROM`
+facts in scope. **What that "zero" result does and does not prove is qualified by the separate
+finding below** — read them together, not this one in isolation.
+
+## `qsh-kafka-operation-type-gap` (PR #41 re-review)
+
+```text
+classification:  INSUFFICIENT_EVIDENCE
+severity:         MINOR
+disposition:      DEFER
+```
+
+A dedicated diagnostic re-run (raw OTLP inspection, `evidence/messaging.md`) found that
+`rest-fights`' real Kafka producer span uses the attribute `messaging.operation: publish` (the
+legacy OTel messaging convention), not `messaging.operation.type` — the only attribute name
+`app/telemetry/adapter.py::correlate_queue_observations()` checks
+(`app/telemetry/semconv/messaging.py`'s `MESSAGING_OPERATION_TYPE`). A span with no recognized
+`operation.type` is silently skipped by that function's own design (not even recorded as
+unresolved), and no consumer-side (`event-statistics`) messaging span was observed in this window
+at all. **This means the "0 SENDS/RECEIVES_FROM" result above does not demonstrate that AIP safely
+refuses to map a *recognized* Kafka messaging span onto Queue semantics** — no span with AIP's
+expected attribute shape was ever produced by this profile to test that path in the first place.
+The producer/consumer *architecture* relationship (`rest-fights` → topic `fights` → `event-statistics`)
+remains independently established from source/config evidence (`evidence/messaging.md`) regardless;
+only the runtime-safety claim is affected.
+
+See [`decisions/qsh-kafka-operation-type-gap.md`](decisions/qsh-kafka-operation-type-gap.md) for
+the full decision record: deferred to I3/I4, because (a) one system's evidence is not enough to
+generalize an attribute-recognition widening, and (b) widening it here would immediately activate
+the exact Topic-vs-Queue safety question this finding shows was never actually tested — that
+deserves its own explicit decision informed by real evidence, not a side effect of a narrow
+attribute fix.
 
 ## Non-material observation — narration fallback text (not a finding)
 
@@ -93,7 +122,10 @@ ground truth frozen before AIP result:              yes (I2.1/I2.2, merged befor
 >= 3 REST caller dependencies investigated:          yes (3: heroes/villains/narration)
 >= 1 runtime-confirmed REST flow:                    yes (3: all three CALLS relations CONFIRMED)
 gRPC boundary evaluated:                             yes (UNSUPPORTED, confirmed not misrepresented)
-Kafka topic boundary evaluated:                      yes (UNSUPPORTED, confirmed not misrepresented)
+Kafka topic boundary evaluated:                      yes, mechanism confirmed UNSUPPORTED - but see
+                                                     qsh-kafka-operation-type-gap: the Queue-mapping
+                                                     *safety* sub-claim was not actually testable by
+                                                     this profile (INSUFFICIENT_EVIDENCE, deferred)
 all findings classified:                             yes
 all CRITICAL findings dispositioned:                 yes (none exist)
 critical false supported facts:                      0
@@ -101,8 +133,7 @@ critical false supported facts:                      0
 
 ## Decision records
 
-None required. Every material finding in this run received `NO_CHANGE` — the pre-existing I2.1/I2.2
-ground-truth classifications were confirmed exactly as frozen, with no AIP behavior contradicting
-them. No `docs/real-world-validation/quarkus-super-heroes/decisions/` directory is created for this
-run; the `_template/decision-record.md` template remains available for I2.4 or I3 should a future
-run surface something requiring one.
+One: [`decisions/qsh-kafka-operation-type-gap.md`](decisions/qsh-kafka-operation-type-gap.md)
+(`DEFER`) — see above. Every other material finding in this run received `NO_CHANGE` — the
+pre-existing I2.1/I2.2 ground-truth classifications were confirmed exactly as frozen, with no AIP
+behavior contradicting them.
