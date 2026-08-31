@@ -118,11 +118,14 @@ profile execution stability:                        yes - three independent clea
                                                      this PR produced identical service/operation
                                                      identities, relation counts, and traffic
                                                      behavior (results.md "Repeatability evidence")
-final I2 §43 qualifying-comparison repeatability:   NOT YET COMPLETE - only one comparator run
-                                                     (the second) used the final, corrected capture
-                                                     contract; a second same-contract comparator run
-                                                     is required before this gate is satisfied
-                                                     (I2.4/I5), not before I2.3 itself
+final I2 §43 qualifying-comparison repeatability:   yes - I2.4 re-ran the exact same, unmodified
+                                                     capture/comparator contract against the same
+                                                     pinned commit/images/expected.yaml and
+                                                     reproduced the identical 38 correct / 2
+                                                     unsupported / 0 missing / 0 incorrect / 0
+                                                     insufficient / 0 critical result and every
+                                                     individual finding classification
+                                                     (results.md "Revalidation (I2.4)")
 ground truth frozen before AIP result:              yes (I2.1/I2.2, merged before this run)
 >= 4 REST provider contracts in scope:               yes (4: rest-fights/rest-heroes/rest-villains/rest-narration)
 >= 3 REST caller dependencies investigated:          yes (3: heroes/villains/narration)

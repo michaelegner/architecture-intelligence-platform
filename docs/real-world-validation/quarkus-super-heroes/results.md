@@ -49,10 +49,57 @@ same relation counts, and the same traffic behavior (including the identical nar
 observation below) every time — architecturally stable across restarts. The second run is this
 document's reported qualifying comparison; the third was a diagnostic-only re-run (Collector
 temporarily set to detailed verbosity, no comparator invoked) to investigate the Kafka finding in
-`findings.md`'s `qsh-kafka-operation-type-gap`. This is not yet the full I2 spec §43 repeatability
-requirement (independently re-verifying the *same* frozen result across the release-qualification
-lifecycle, e.g. I2.4 or I5) — that still requires a second run using this exact contract, with no
-further tool changes in between.
+`findings.md`'s `qsh-kafka-operation-type-gap`. I2.4 (below) supplies the second same-contract
+comparator run, closing the I2 spec §43 requirement in full.
+
+## Revalidation (I2.4)
+
+A fourth live execution of this profile, run independently after I2.3 merged, using the exact same
+frozen inputs and the exact same, unmodified `capture.py`/comparator contract — no production code,
+`expected.yaml`, `docker-compose.yml`, `runbook.md`, or `traffic.sh` changes in between.
+
+```text
+upstream commit:    8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce
+image tags:         quarkus-super-heroes/<service>:8ea0337 (unmodified, reused — no rebuild)
+environment:        quarkus-i2
+window_start:       2026-08-31T16:35:00Z
+window_end:         2026-08-31T16:35:10Z
+```
+
+Same procedure as the qualifying run above: clean-state compose stack, bounded readiness gate
+passed for every service on the first pass, `POST /api/import` returned identical
+`nodes_written`/`relations_written` counts (22/23, 14/16, 8/6, 14/16 for
+fights/heroes/narration/villains), `traffic.sh` ran once, and the phase-9 drain barrier confirmed
+persisted runtime relations before capture. One operational note: `window_end` here is recorded
+with a wider margin than the raw `traffic.sh` completion timestamp (`16:35:02Z`) — the narration
+call's OTel span landed at `16:35:02.826Z`, a few hundred milliseconds after that raw timestamp
+(consistent with the narration-fallback startup delay already documented above), so the capture's
+`--until` was widened to `16:35:10Z` to avoid an artificial `NOT_OBSERVED_IN_WINDOW` from a
+too-tightly-drawn window boundary rather than a real difference in AIP's behavior. This is an
+operator choice about how generously to draw the window (the runbook does not mandate an exact
+width), not a change to the comparison contract itself.
+
+Capture: 38 facts (identical composition to `artifacts/actual.yaml` — 35 `PROVIDES`
+declared=true/observed=false, 3 `CALLS` all `CONFIRMED`/declared=true/observed=true), written to
+[`artifacts/actual-revalidation.yaml`](artifacts/actual-revalidation.yaml).
+
+Comparator result against the unmodified `expected.yaml`:
+
+```text
+Expected supported facts:      38
+Correct:                       38
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        2
+Unresolved identities:         0
+Insufficient evidence:         0
+Critical semantic errors:      0
+```
+
+Identical to the qualifying run's summary and every individual finding classification, including
+`qsh-fights-calls-narration` again resolving `CORRECT`/`CONFIRMED`. This satisfies I2 spec §43's
+repeatability requirement in full: two independent runs, same upstream SHA, same profile, same
+frozen `expected.yaml`, same AIP candidate, same finding classifications, same summary counts.
 
 ## AIP result capture
 
