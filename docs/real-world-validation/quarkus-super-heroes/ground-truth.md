@@ -121,34 +121,34 @@ operation:service:rest-fights:GET:/api/fights/randomfighters
 
 ## Known ambiguities
 
-**Runtime status/evidence is deferred for all three `CALLS` relations, not assumed.** I2.1 freezes
-no Architecture Manifest and runs no traffic — its frozen inputs are only OpenAPI contracts and
-source code. In current AIP, a declared `CALLS` fact requires an Architecture Manifest (the
-`manifest_adapter`, which attaches `MANIFEST` provenance) and an `observed` fact requires captured
-OTLP traffic; neither exists yet in this iteration's frozen profile. Asserting `status: CONFIRMED`
-or `evidence: {declared: true, observed: true}` now would therefore describe an outcome this
-iteration's own frozen inputs cannot reproduce (PR #39 review F3) — pre-authoring a runtime result
-is only valid when the causal input that produces it is *also* frozen, and the manifest/traffic
-inputs are deliberately I2.2's job, not I2.1's.
+**Runtime status is deferred for all three `CALLS` relations; declared evidence is now frozen.**
+I2.1 originally asserted all three `rest-fights -> {rest-heroes,rest-villains,rest-narration}`
+`CALLS` relations by identity only, with no `status`/`evidence` fields: in current AIP, a declared
+`CALLS` fact requires an Architecture Manifest (the `manifest_adapter`, which attaches `MANIFEST`
+provenance) and an `observed` fact requires captured OTLP traffic, and I2.1's frozen inputs were
+only OpenAPI contracts and source code — asserting either now would have described an outcome
+those inputs couldn't reproduce (pre-authoring a runtime result is only valid when the causal input
+that produces it is *also* frozen).
 
-`expected.yaml` therefore asserts all three `rest-fights -> {rest-heroes,rest-villains,
-rest-narration}` `CALLS` relations by identity only (`type`/`source`/`target`), with no
-`status`/`evidence` fields — the relations' *existence* is independently certain from
-`rest-fights`' own client source code regardless of what each callee does internally, and the I1
-comparator treats an unset expected field as not part of the assertion, so this is a `CORRECT`
-match against any of `CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW` once a real run exists.
-I2.2 is expected to freeze a second, explicit pre-run commit — an Architecture Manifest derived
-directly from this dossier's already-independent caller evidence, plus the minimum qualifying
-traffic intent — and I2.3 then asserts the resulting runtime status from those frozen inputs. What
-must not happen is choosing I2.2's manifest/traffic inputs *after* seeing what makes a particular
-status pass.
+I2.2 froze that causal input for the declared side:
+[`runtime/declarations/rest-fights/architecture.yaml`](runtime/declarations/rest-fights/architecture.yaml)
+is a pre-run Architecture Manifest transcribing this exact `CALLS` ground truth (I2 spec §28) — not
+derived from any AIP output. `expected.yaml`'s three `CALLS` relations now assert
+`evidence: {declared: true}` accordingly (`test_quarkus_runtime_manifest.py` guards the manifest
+against drifting from this ground truth). `status` and `observed` remain unasserted: I2.2 runs no
+traffic, so `observed` evidence is not yet a fact any frozen input can reproduce. The I1 comparator
+treats an unset expected field as not part of the assertion, so this is a `CORRECT` match against
+any of `CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW` until I2.3 asserts the resulting
+runtime status from `runtime/traffic.sh`'s frozen traffic intent (`runbook.md` phase 8). What must
+not happen is choosing that traffic intent *after* seeing what makes a particular status pass — it
+is already frozen, before any qualifying run.
 
-For `rest-narration` specifically, there is an additional reason this is the right call:
-`rest-narration/src/main/resources/application.properties` sets
+For `rest-narration` specifically, there is an additional reason `status`/`observed` stay
+unasserted: `rest-narration/src/main/resources/application.properties` sets
 `quarkus.langchain4j.openai.enable-integration=false` by default (real OpenAI calls only happen
-under the `%dev,test,openai` profile), so whether `POST /api/narration` returns a clean,
-deterministic HTTP response end-to-end under the default profile is itself an open question for
-I2.2's traffic-script design — another reason not to pre-assert its runtime status now.
+under the `%dev,test,openai` profile, which `runtime/docker-compose.yml` deliberately does not
+enable), so whether `POST /api/narration` returns a clean, deterministic HTTP response end-to-end
+under the default profile is itself only answered once I2.3 actually runs the frozen traffic.
 
-No `INSUFFICIENT_EVIDENCE` or `UNRESOLVED_IDENTITY` items are needed for I2.1 — every fact used
-above is corroborated by at least two independent evidence sources.
+No `INSUFFICIENT_EVIDENCE` or `UNRESOLVED_IDENTITY` items are needed — every fact used above is
+corroborated by at least two independent evidence sources.

@@ -1,4 +1,4 @@
-# Frozen expected supported facts for quarkus-super-heroes (I2.1 - I1 §17 schema).
+# Frozen expected supported facts for quarkus-super-heroes (I2.1/I2.2 - I1 §17 schema).
 #
 # Ground truth established independently in ground-truth.md / evidence/ BEFORE any AIP run against
 # this system (I1 §5/§36). Do not edit after the first qualifying I2.3 comparison run except per
@@ -285,26 +285,31 @@ expected:
         declared: true
 
     # --- REST caller ground truth (rest-fights client source code, evidence/rest-and-grpc.md) ---
-    # status/evidence intentionally unasserted on all three - I2.1 freezes no Architecture
-    # Manifest and runs no traffic, so neither "declared" (which needs a manifest) nor "observed"
-    # (which needs a traffic run) is a fact this iteration's frozen inputs can reproduce (PR #39
-    # review F3). Only the relations' existence, independently established from rest-fights' own
-    # client source code, is asserted here. I2.2 freezes the manifest/traffic inputs and I2.3
-    # asserts the resulting runtime status from those frozen inputs.
+    # `declared: true` is now reproducible: runtime/declarations/rest-fights/architecture.yaml
+    # (I2.2) is a frozen, pre-run Architecture Manifest transcribing this exact CALLS ground truth
+    # (I2 spec §28) - test_quarkus_runtime_manifest.py guards the two from drifting apart.
+    # status/observed remain unasserted - I2.2 runs no traffic; I2.3 asserts the resulting runtime
+    # status once the traffic capture exists (see ground-truth.md "Known ambiguities").
     - id: qsh-fights-calls-heroes
       type: CALLS
       source: service:rest-fights
       target: operation:service:rest-heroes:GET:/api/heroes/random
+      evidence:
+        declared: true
 
     - id: qsh-fights-calls-villains
       type: CALLS
       source: service:rest-fights
       target: operation:service:rest-villains:GET:/api/villains/random
+      evidence:
+        declared: true
 
     - id: qsh-fights-calls-narration
       type: CALLS
       source: service:rest-fights
       target: operation:service:rest-narration:POST:/api/narration
+      evidence:
+        declared: true
 
 unsupported:
   - id: qsh-grpc-locations
