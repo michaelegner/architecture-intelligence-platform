@@ -2,7 +2,20 @@
 #
 # Ground truth established independently in ground-truth.md / evidence/ BEFORE any AIP run against
 # this system (I1 §5/§36). Do not edit after the first qualifying I2.3 comparison run except per
-# the ground-truth change policy (I1 §37 / ground-truth.md's future "Change log").
+# the ground-truth change policy (I1 §37 / ground-truth.md's "Change log").
+#
+# Scope note (PR #39 review F1/F2): the qualifying profile imports each service's complete pinned
+# OpenAPI document, not a curated subset - under the I1 scope contract (ScopeDeclaration.contains:
+# in scope iff relation type allowed AND source-or-target is a scoped entity), every PROVIDES fact
+# for a scoped service becomes comparable, whether or not it is asserted here. So the PROVIDES set
+# below is the *complete* provider inventory for all four pinned OpenAPI documents, not just the
+# operations rest-fights happens to call - anything less would make legitimate, unlisted provider
+# operations surface as false INCORRECT_SUPPORTED findings once I2.3 runs.
+#
+# service:event-statistics and SENDS/RECEIVES_FROM are in scope (with no expected SENDS/
+# RECEIVES_FROM facts) so that an incorrect future Queue mapping of the Kafka "fights" topic
+# becomes an observable "unexpected in-scope" INCORRECT_SUPPORTED finding, rather than silently
+# falling outside the qualifying comparison scope (PR #39 review F2).
 
 system: quarkus-super-heroes
 upstream_revision: "8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce"
@@ -13,27 +26,158 @@ scope:
     - service:rest-heroes
     - service:rest-villains
     - service:rest-narration
+    - service:event-statistics
   relation_types:
     - PROVIDES
     - CALLS
+    - SENDS
+    - RECEIVES_FROM
 
 expected:
   relations:
-    # --- REST provider ground truth (OpenAPI contracts, evidence/rest-and-grpc.md) ---
-    - id: qsh-heroes-provides-random
+    # rest-heroes (10 operations) - complete provider inventory (evidence/rest-and-grpc.md, I2 spec §10)
+    - id: qsh-heroes-provides-deleteAllHeroes
+      type: PROVIDES
+      source: service:rest-heroes
+      target: operation:service:rest-heroes:DELETE:/api/heroes
+      evidence:
+        declared: true
+
+    - id: qsh-heroes-provides-getAllHeroes
+      type: PROVIDES
+      source: service:rest-heroes
+      target: operation:service:rest-heroes:GET:/api/heroes
+      evidence:
+        declared: true
+
+    - id: qsh-heroes-provides-createHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: operation:service:rest-heroes:POST:/api/heroes
+      evidence:
+        declared: true
+
+    - id: qsh-heroes-provides-replaceAllHeroes
+      type: PROVIDES
+      source: service:rest-heroes
+      target: operation:service:rest-heroes:PUT:/api/heroes
+      evidence:
+        declared: true
+
+    - id: qsh-heroes-provides-hello
+      type: PROVIDES
+      source: service:rest-heroes
+      target: operation:service:rest-heroes:GET:/api/heroes/hello
+      evidence:
+        declared: true
+
+    - id: qsh-heroes-provides-getRandomHero
       type: PROVIDES
       source: service:rest-heroes
       target: operation:service:rest-heroes:GET:/api/heroes/random
       evidence:
         declared: true
 
-    - id: qsh-villains-provides-random
+    - id: qsh-heroes-provides-deleteHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: operation:service:rest-heroes:DELETE:/api/heroes/{id}
+      evidence:
+        declared: true
+
+    - id: qsh-heroes-provides-getHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: operation:service:rest-heroes:GET:/api/heroes/{id}
+      evidence:
+        declared: true
+
+    - id: qsh-heroes-provides-partiallyUpdateHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: operation:service:rest-heroes:PATCH:/api/heroes/{id}
+      evidence:
+        declared: true
+
+    - id: qsh-heroes-provides-fullyUpdateHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: operation:service:rest-heroes:PUT:/api/heroes/{id}
+      evidence:
+        declared: true
+
+    # rest-villains (10 operations) - complete provider inventory (evidence/rest-and-grpc.md, I2 spec §10)
+    - id: qsh-villains-provides-deleteAllVillains
+      type: PROVIDES
+      source: service:rest-villains
+      target: operation:service:rest-villains:DELETE:/api/villains
+      evidence:
+        declared: true
+
+    - id: qsh-villains-provides-getAllVillains
+      type: PROVIDES
+      source: service:rest-villains
+      target: operation:service:rest-villains:GET:/api/villains
+      evidence:
+        declared: true
+
+    - id: qsh-villains-provides-createVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: operation:service:rest-villains:POST:/api/villains
+      evidence:
+        declared: true
+
+    - id: qsh-villains-provides-replaceAllVillains
+      type: PROVIDES
+      source: service:rest-villains
+      target: operation:service:rest-villains:PUT:/api/villains
+      evidence:
+        declared: true
+
+    - id: qsh-villains-provides-hello
+      type: PROVIDES
+      source: service:rest-villains
+      target: operation:service:rest-villains:GET:/api/villains/hello
+      evidence:
+        declared: true
+
+    - id: qsh-villains-provides-getRandomVillain
       type: PROVIDES
       source: service:rest-villains
       target: operation:service:rest-villains:GET:/api/villains/random
       evidence:
         declared: true
 
+    - id: qsh-villains-provides-deleteVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: operation:service:rest-villains:DELETE:/api/villains/{id}
+      evidence:
+        declared: true
+
+    - id: qsh-villains-provides-getVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: operation:service:rest-villains:GET:/api/villains/{id}
+      evidence:
+        declared: true
+
+    - id: qsh-villains-provides-partiallyUpdateVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: operation:service:rest-villains:PATCH:/api/villains/{id}
+      evidence:
+        declared: true
+
+    - id: qsh-villains-provides-fullyUpdateVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: operation:service:rest-villains:PUT:/api/villains/{id}
+      evidence:
+        declared: true
+
+    # rest-narration (3 operations) - complete provider inventory (evidence/rest-and-grpc.md, I2 spec §10)
     - id: qsh-narration-provides-narrate
       type: PROVIDES
       source: service:rest-narration
@@ -41,41 +185,126 @@ expected:
       evidence:
         declared: true
 
-    - id: qsh-fights-provides-randomfighters
+    - id: qsh-narration-provides-hello
+      type: PROVIDES
+      source: service:rest-narration
+      target: operation:service:rest-narration:GET:/api/narration/hello
+      evidence:
+        declared: true
+
+    - id: qsh-narration-provides-generateImageFromNarration
+      type: PROVIDES
+      source: service:rest-narration
+      target: operation:service:rest-narration:POST:/api/narration/image
+      evidence:
+        declared: true
+
+    # rest-fights (12 operations) - complete provider inventory (evidence/rest-and-grpc.md, I2 spec §10)
+    - id: qsh-fights-provides-getAllFights
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:GET:/api/fights
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-performFight
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:POST:/api/fights
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-hello
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:GET:/api/fights/hello
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-helloHeroes
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:GET:/api/fights/hello/heroes
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-helloLocations
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:GET:/api/fights/hello/locations
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-helloNarration
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:GET:/api/fights/hello/narration
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-helloVillains
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:GET:/api/fights/hello/villains
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-narrateFight
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:POST:/api/fights/narrate
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-generateImageFromNarration
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:POST:/api/fights/narrate/image
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-getRandomFighters
       type: PROVIDES
       source: service:rest-fights
       target: operation:service:rest-fights:GET:/api/fights/randomfighters
       evidence:
         declared: true
 
+    - id: qsh-fights-provides-getRandomLocation
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:GET:/api/fights/randomlocation
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-getFight
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:GET:/api/fights/{id}
+      evidence:
+        declared: true
+
     # --- REST caller ground truth (rest-fights client source code, evidence/rest-and-grpc.md) ---
+    # status/evidence intentionally unasserted on all three - I2.1 freezes no Architecture
+    # Manifest and runs no traffic, so neither "declared" (which needs a manifest) nor "observed"
+    # (which needs a traffic run) is a fact this iteration's frozen inputs can reproduce (PR #39
+    # review F3). Only the relations' existence, independently established from rest-fights' own
+    # client source code, is asserted here. I2.2 freezes the manifest/traffic inputs and I2.3
+    # asserts the resulting runtime status from those frozen inputs.
     - id: qsh-fights-calls-heroes
       type: CALLS
       source: service:rest-fights
       target: operation:service:rest-heroes:GET:/api/heroes/random
-      status: CONFIRMED
-      evidence:
-        declared: true
-        observed: true
 
     - id: qsh-fights-calls-villains
       type: CALLS
       source: service:rest-fights
       target: operation:service:rest-villains:GET:/api/villains/random
-      status: CONFIRMED
-      evidence:
-        declared: true
-        observed: true
 
-    # status/observed intentionally unasserted - see ground-truth.md "Known ambiguities"
-    # (rest-narration's OpenAI integration is disabled by default; I2.2/I2.3 will assert runtime
-    # status once the traffic script and actual capture exist).
     - id: qsh-fights-calls-narration
       type: CALLS
       source: service:rest-fights
       target: operation:service:rest-narration:POST:/api/narration
-      evidence:
-        declared: true
 
 unsupported:
   - id: qsh-grpc-locations
@@ -91,6 +320,8 @@ unsupported:
     description: >
       rest-fights publishes fight events to Kafka topic "fights"; event-statistics consumes
       from the same topic. A one-producer/one-consumer topic is not assumed to map onto AIP's
-      Queue semantics merely because the multiplicities match - this stays UNSUPPORTED for the
-      qualifying I2.3 comparison unless a separately approved model-hardening decision changes
-      that (I2 spec §13-14).
+      Queue semantics merely because the multiplicities match - service:event-statistics and
+      SENDS/RECEIVES_FROM are in the qualifying comparison scope above (with no expected
+      SENDS/RECEIVES_FROM facts) precisely so that a false Queue mapping of this topic would
+      surface as an observable INCORRECT_SUPPORTED finding rather than silently falling outside
+      scope (I2 spec §13-14, PR #39 review F2).

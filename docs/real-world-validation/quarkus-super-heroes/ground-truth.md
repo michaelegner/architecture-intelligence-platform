@@ -11,9 +11,9 @@ Authored from primary upstream evidence at commit `8ea03377bfe7a89c49e1ccc0e501b
 3. Official deployment/runtime configuration — each service's `application.properties`/`.yml`
    (`quarkus.application.name`, `quarkus.http.port`, `mp.messaging.*`, `quarkus.grpc.clients.*`,
    `quarkus.stork.*`).
-4. Upstream source code — the four `rest-fights` client classes
-   (`HeroRestClient`/`VillainClient`/`NarrationClient`, plus the gRPC `locations` client config and
-   `locationservice-v1.proto`).
+4. Upstream source code — `rest-fights`' three REST client classes
+   (`HeroRestClient`/`VillainClient`/`NarrationClient`), plus its gRPC `locations` client config and
+   `locationservice-v1.proto`.
 
 No runtime/OTLP evidence is used in I2.1 — I2.1 is declaration-only ground truth. Runtime-observed
 evidence is established in I2.2/I2.3 once traffic is exercised.
@@ -35,7 +35,17 @@ ui-super-heroes     React UI                                  OUT OF SCOPE (not 
 Four OpenAPI contracts are captured (I2 spec §46's "at least four REST provider contracts" gate):
 `rest-heroes`, `rest-villains`, `rest-narration`, `rest-fights` — see
 [`evidence/rest-and-grpc.md`](evidence/rest-and-grpc.md) for the exact path/method/operationId of
-each contract used below.
+every operation in each contract.
+
+`expected.yaml`'s `PROVIDES` set is the **complete** provider inventory of all four contracts (35
+operations total: 10 rest-heroes + 10 rest-villains + 3 rest-narration + 12 rest-fights), not only
+the four operations `rest-fights` happens to call. This is a scope-safety requirement, not
+over-collection: the qualifying I2.3 profile imports each service's complete pinned OpenAPI
+document, and under the I1 comparator's scope contract (`ScopeDeclaration.contains`: in scope iff
+the relation type is allowed and the source or target is a scoped entity), *every* `PROVIDES` fact
+for a scoped service becomes part of the qualifying comparison, whether or not `expected.yaml`
+asserts it. A partial expected set would make every legitimate, unlisted provider operation surface
+as a false `INCORRECT_SUPPORTED` finding once AIP actually ingests the real documents.
 
 ## Qualifying REST dependencies
 
@@ -71,6 +81,17 @@ Per I2 spec §13-14, this is classified `UNSUPPORTED` (mechanism `kafka-topic`) 
 AIP's Queue semantics for the qualifying comparison — see
 [`evidence/messaging.md`](evidence/messaging.md) for the full rationale and citations.
 
+**Making the boundary observable.** Classifying the topic `UNSUPPORTED` in the dossier is not by
+itself enough to *test* the boundary: the I1 comparator only surfaces an unexpected actual fact
+when `expected.scope.contains(fact)` is true, so a scope that omits `service:event-statistics` and
+`SENDS`/`RECEIVES_FROM` would let AIP silently emit `service:rest-fights -[:SENDS]->
+queue:fights` / `service:event-statistics -[:RECEIVES_FROM]-> queue:fights` without the qualifying
+comparison ever seeing it — exactly the false mapping I2 exists to catch. `expected.yaml`'s scope
+therefore includes `service:event-statistics` and `SENDS`/`RECEIVES_FROM`, deliberately with **no**
+expected `SENDS`/`RECEIVES_FROM` facts: if AIP ever emits one, it becomes an unexpected in-scope
+fact and is reported as `INCORRECT_SUPPORTED`, which is the correct outcome for a Kafka topic
+incorrectly coerced into Queue semantics.
+
 ## Identity normalization rationale
 
 AIP's OpenAPI adapter derives a service's canonical id from the declaration directory name
@@ -100,18 +121,34 @@ operation:service:rest-fights:GET:/api/fights/randomfighters
 
 ## Known ambiguities
 
-**Narration runtime-status uncertainty.** `rest-narration/src/main/resources/application.properties`
-sets `quarkus.langchain4j.openai.enable-integration=false` by default — real OpenAI calls only
-happen under the `%dev,test,openai` profile. Whether `POST /api/narration` still returns a clean,
-deterministic HTTP response end-to-end with the OpenAI integration disabled is a question for
-I2.2's traffic-script design, not a ground-truth question: the `rest-fights -> rest-narration`
-`CALLS` relation's *existence* is independently established from source code regardless of what
-`rest-narration` does internally. `expected.yaml` therefore asserts this relation without a
-`status`/`evidence` assertion, deferring that decision to I2.2/I2.3 once the actual traffic
-behavior under the frozen profile is known. This is not an `INSUFFICIENT_EVIDENCE` item — the
-relation itself is certain; only its eventual runtime *status* is left for a later iteration to
-assert, which the I1 comparator semantics support natively (an unset expected field is not part of
-the assertion).
+**Runtime status/evidence is deferred for all three `CALLS` relations, not assumed.** I2.1 freezes
+no Architecture Manifest and runs no traffic — its frozen inputs are only OpenAPI contracts and
+source code. In current AIP, a declared `CALLS` fact requires an Architecture Manifest (the
+`manifest_adapter`, which attaches `MANIFEST` provenance) and an `observed` fact requires captured
+OTLP traffic; neither exists yet in this iteration's frozen profile. Asserting `status: CONFIRMED`
+or `evidence: {declared: true, observed: true}` now would therefore describe an outcome this
+iteration's own frozen inputs cannot reproduce (PR #39 review F3) — pre-authoring a runtime result
+is only valid when the causal input that produces it is *also* frozen, and the manifest/traffic
+inputs are deliberately I2.2's job, not I2.1's.
+
+`expected.yaml` therefore asserts all three `rest-fights -> {rest-heroes,rest-villains,
+rest-narration}` `CALLS` relations by identity only (`type`/`source`/`target`), with no
+`status`/`evidence` fields — the relations' *existence* is independently certain from
+`rest-fights`' own client source code regardless of what each callee does internally, and the I1
+comparator treats an unset expected field as not part of the assertion, so this is a `CORRECT`
+match against any of `CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW` once a real run exists.
+I2.2 is expected to freeze a second, explicit pre-run commit — an Architecture Manifest derived
+directly from this dossier's already-independent caller evidence, plus the minimum qualifying
+traffic intent — and I2.3 then asserts the resulting runtime status from those frozen inputs. What
+must not happen is choosing I2.2's manifest/traffic inputs *after* seeing what makes a particular
+status pass.
+
+For `rest-narration` specifically, there is an additional reason this is the right call:
+`rest-narration/src/main/resources/application.properties` sets
+`quarkus.langchain4j.openai.enable-integration=false` by default (real OpenAI calls only happen
+under the `%dev,test,openai` profile), so whether `POST /api/narration` returns a clean,
+deterministic HTTP response end-to-end under the default profile is itself an open question for
+I2.2's traffic-script design — another reason not to pre-assert its runtime status now.
 
 No `INSUFFICIENT_EVIDENCE` or `UNRESOLVED_IDENTITY` items are needed for I2.1 — every fact used
 above is corroborated by at least two independent evidence sources.
