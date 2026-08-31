@@ -28,6 +28,10 @@ def test_all_passing_renders_pass_summary_sorted_by_scenario_id():
 
     output = render(results)
 
+    # I4 spec §14: locks the current iteration banner against an accidental regression (e.g. a
+    # future iteration's bump landing in reporter.py without updating this test alongside it).
+    assert output.startswith("AIP Evaluation — I4\n")
+
     lines = output.splitlines()
     assert lines.index("[PASS] 01-rest-confirmed") < lines.index("[PASS] 03-async-confirmed")
     assert "Scenarios:          2" in output

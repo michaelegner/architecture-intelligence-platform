@@ -42,7 +42,7 @@ Iteration status:
 | I1 | Evaluation Kernel | `v0.2.0-alpha.1` | Shipped |
 | I2 | Topology and Directionality | `v0.2.0-alpha.2` | Shipped |
 | I3 | Evidence and Runtime Semantics | `v0.2.0-alpha.3` | Shipped |
-| I4 | Coverage and Hardening | `v0.2.0-rc.1` | Implementation in progress |
+| I4 | Coverage and Hardening | `v0.2.0-rc.1` | Implementation complete — tag pending |
 | I5 | Release Qualification | `v0.2.0` | Not started |
 
 As later iteration specifications are created, they should be added here using concise filenames such
