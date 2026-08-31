@@ -67,7 +67,7 @@ _DELETE = object()
 # --- discovery ------------------------------------------------------------------------------
 
 
-def test_discover_scenarios_finds_the_seven_real_scenarios():
+def test_discover_scenarios_finds_the_eight_real_scenarios():
     discovered = discover_scenarios(SCENARIOS_DIR)
     assert [p.name for p in discovered] == [
         "01-rest-confirmed",
@@ -77,10 +77,11 @@ def test_discover_scenarios_finds_the_seven_real_scenarios():
         "05-mixed-rest-async",
         "06-request-response-queue-pair",
         "07-not-observed-in-window",
+        "08-evidence-reconciliation",
     ]
 
 
-def test_the_seven_real_scenarios_all_load_and_validate():
+def test_the_eight_real_scenarios_all_load_and_validate():
     scenarios = load_scenarios(SCENARIOS_DIR)
     assert [s.id for s in scenarios] == [
         "rest-confirmed",
@@ -90,6 +91,7 @@ def test_the_seven_real_scenarios_all_load_and_validate():
         "mixed-rest-async",
         "request-response-queue-pair",
         "not-observed-in-window",
+        "evidence-reconciliation",
     ]
     assert all(s.expected_relations for s in scenarios)
     for s in scenarios:
@@ -372,3 +374,33 @@ def test_rejects_a_forbidden_identity_duplicated_in_expected(tmp_path):
     with pytest.raises(ScenarioValidationError) as excinfo:
         load_scenario(scenario_dir)
     assert "also asserted as expected" in excinfo.value.reason
+
+
+# --- I3: reconciliation input convention ------------------------------------------------------
+
+
+def test_rejects_an_empty_reconciliation_declarations_directory(tmp_path):
+    """I3 spec §10.3: an existing-but-empty reconciliation directory must be rejected as an
+    invalid fixture, not silently treated as no reconciliation phase at all."""
+    scenario_dir = _write_scenario(tmp_path, _VALID)
+    (scenario_dir / "input" / "reconciliation" / "declarations").mkdir(parents=True)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "input.reconciliation.declarations" in excinfo.value.field
+    assert "empty" in excinfo.value.reason
+
+
+def test_a_scenario_with_a_populated_reconciliation_directory_loads_normally(tmp_path):
+    """The Scenario model itself is unchanged by I3 (spec §6.2) - a reconciliation phase is a
+    runner-level input-directory convention, not a new loaded field."""
+    scenario_dir = _write_scenario(tmp_path, _VALID)
+    reconciliation_dir = (
+        scenario_dir / "input" / "reconciliation" / "declarations" / "order-service"
+    )
+    reconciliation_dir.mkdir(parents=True)
+    (reconciliation_dir / "architecture.yaml").write_text("service: order-service\ncalls: []\n")
+
+    scenario = load_scenario(scenario_dir)
+
+    assert scenario.id == "rest-confirmed"

@@ -13,6 +13,7 @@ import pytest
 from app.canonical import ids
 from evaluation.loader import load_scenario
 from evaluation.runner import (
+    apply_reconciliation,
     ingest_declarations,
     inject_runtime_fixture,
     prepare_scenario,
@@ -137,3 +138,45 @@ def test_ingest_declarations_alone_does_not_write_observed_evidence(driver, sess
         session, source_id=source_id, relation_type="CALLS", target_id=target_id
     )
     assert evidence_types == {"DECLARED", "OBSERVED"}
+
+
+def test_apply_reconciliation_strips_declared_evidence_but_preserves_observed_evidence(
+    driver, session
+):
+    """I3 spec §12.2 - implementation-level protection through the graph/evidence boundary
+    (not part of expected.yaml's own semantic contract, which only asserts declared/observed
+    booleans and status): the relation survives, no DECLARED evidence id remains for the
+    re-imported source, and at least one OBSERVED evidence id still supports it."""
+    scenario = load_scenario(SCENARIOS_DIR / "08-evidence-reconciliation")
+    prepare_scenario(driver, database=DATABASE, scenario=scenario)
+
+    source_id = ids.service_id("order-service")
+    target_id = ids.operation_id(ids.service_id("product-service"), "GET", "/products/{id}")
+
+    assert _relation_exists(
+        session, source_id=source_id, relation_type="CALLS", target_id=target_id
+    )
+    evidence_types = _evidence_types(
+        session, source_id=source_id, relation_type="CALLS", target_id=target_id
+    )
+    assert evidence_types == {"OBSERVED"}
+
+
+def test_apply_reconciliation_is_a_noop_for_a_scenario_without_a_reconciliation_directory(
+    driver, session
+):
+    scenario = load_scenario(SCENARIOS_DIR / "01-rest-confirmed")
+    prepare_scenario(driver, database=DATABASE, scenario=scenario)
+
+    source_id = ids.service_id("order-service")
+    target_id = ids.operation_id(ids.service_id("product-service"), "GET", "/products/{id}")
+    before = _evidence_types(
+        session, source_id=source_id, relation_type="CALLS", target_id=target_id
+    )
+
+    apply_reconciliation(driver, database=DATABASE, scenario=scenario)
+
+    after = _evidence_types(
+        session, source_id=source_id, relation_type="CALLS", target_id=target_id
+    )
+    assert before == after == {"DECLARED", "OBSERVED"}

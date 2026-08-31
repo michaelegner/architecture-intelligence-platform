@@ -159,6 +159,10 @@ def _has_telemetry_input(path: Path) -> bool:
     return telemetry_dir.is_dir() and any(telemetry_dir.iterdir())
 
 
+def _reconciliation_declarations_dir(path: Path) -> Path:
+    return path / "input" / "reconciliation" / "declarations"
+
+
 def load_scenario(path: Path) -> Scenario:
     """Loads and validates one scenario directory's expected.yaml into a Scenario."""
     file = path / EXPECTED_FILENAME
@@ -234,6 +238,15 @@ def load_scenario(path: Path) -> Scenario:
     if _has_telemetry_input(path) and not observation.environment:
         raise _error(
             scenario_id, file, "observation.environment", "required for a runtime scenario"
+        )
+
+    reconciliation_dir = _reconciliation_declarations_dir(path)
+    if reconciliation_dir.is_dir() and not any(reconciliation_dir.iterdir()):
+        raise _error(
+            scenario_id,
+            file,
+            "input.reconciliation.declarations",
+            "reconciliation directory exists but is empty",
         )
 
     expected_raw = _require_mapping(

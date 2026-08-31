@@ -1,0 +1,34 @@
+scenario: evidence-reconciliation
+
+description: >
+  OrderService initially declares and observes a call to ProductService GET /products/{id}. The
+  OrderService declaration is then re-imported without that CALLS relation. The stale declared
+  evidence must disappear, the observed evidence must survive, the canonical fact must remain, and
+  its final status must be OBSERVED_ONLY.
+
+scope:
+  entities:
+    - service:order-service
+    - service:product-service
+    - operation:service:product-service:GET:/products/{id}
+  relation_types:
+    - CALLS
+
+observation:
+  environment: test
+  window:
+    start: "2026-08-01T10:00:00Z"
+    end: "2026-08-01T11:00:00Z"
+
+expected:
+  relations:
+    - type: CALLS
+      source: service:order-service
+      target: operation:service:product-service:GET:/products/{id}
+      status: OBSERVED_ONLY
+      evidence:
+        declared: false
+        observed: true
+
+forbidden:
+  relations: []
