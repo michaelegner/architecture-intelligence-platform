@@ -123,6 +123,35 @@ def test_forbidden_fact_present_fails():
     assert forbidden_mismatches[0].actual == actual
 
 
+def test_mismatch_order_is_deterministic_regardless_of_actual_set_construction_order():
+    """I4 spec §10.1/§10.3: ScenarioResult.mismatches must not depend on Python's
+    set[RelationFact] iteration order (string-hash randomization) - compare() must sort its own
+    output, not rely on the reporter to do it. _EXPECTED_FACT is absent from `actual` (a MISSING
+    mismatch) alongside three UNEXPECTED facts, exercising more than one mismatch category.
+
+    Asserts the exact canonical (type, source, target, kind) order directly, rather than only
+    comparing two differently-constructed sets for equality - two Python sets with identical
+    contents often iterate identically in the same process regardless of construction order, so
+    an equality-only check wouldn't strongly demonstrate the sorting contract on its own."""
+    fact_a = RelationFact(type="CALLS", source="service:a", target="operation:service:a:GET:/a")
+    fact_b = RelationFact(type="CALLS", source="service:b", target="operation:service:b:GET:/b")
+    fact_c = RelationFact(type="CALLS", source="service:c", target="operation:service:c:GET:/c")
+    scenario = _scenario(_EXPECTED_FACT)
+
+    result = compare(scenario, {fact_c, fact_a, fact_b})
+
+    assert [(m.kind, (m.expected or m.actual).source) for m in result.mismatches] == [
+        (UNEXPECTED, "service:a"),
+        (UNEXPECTED, "service:b"),
+        (UNEXPECTED, "service:c"),
+        (MISSING, "service:order-service"),
+    ]
+
+    # Belt-and-braces: still confirm equality across a differently-constructed but equal set.
+    result_reversed = compare(scenario, {fact_c, fact_b, fact_a})
+    assert result.mismatches == result_reversed.mismatches
+
+
 def test_forbidden_fact_absent_passes():
     forbidden = RelationFact(
         type="RECEIVES_FROM", source="service:order-service", target="queue:some-q"

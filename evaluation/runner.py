@@ -1,7 +1,8 @@
 """Orchestrates one evaluation scenario run against a live AIP instance.
 
 Orchestrates, per scenario: reset -> ingest declared architecture -> inject runtime fixture ->
-project canonical facts -> compare against ground truth (spec §12-16).
+optionally re-import reconciliation declarations -> project canonical facts -> compare against
+ground truth (spec §12-16, I3 spec §10.2).
 """
 
 from __future__ import annotations
