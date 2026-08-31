@@ -33,7 +33,7 @@ the iteration specification.
 | [i2-topology-directionality.md](i2-topology-directionality.md) | Self-contained implementation contract for I2 / `v0.2.0-alpha.2`. Enforces `forbidden.relations` and exhaustive unexpected-fact detection, and adds orphan-messaging, mixed REST+async, and request/response queue-pair scenarios. |
 | [i3-evidence-runtime-semantics.md](i3-evidence-runtime-semantics.md) | Self-contained implementation contract for I3 / `v0.2.0-alpha.3` (shipped). Adds `NOT_OBSERVED_IN_WINDOW` classification and an evidence-reconciliation scenario proving the `CONFIRMED -> OBSERVED_ONLY` transition when stale declared evidence is removed but observed evidence survives. |
 | [i4-coverage-hardening.md](i4-coverage-hardening.md) | Self-contained implementation contract for I4 / `v0.2.0-rc.1` (shipped). Adds partial-observation and declared-only-REST scenarios to reach the ten-scenario core suite, hardens scenario-schema and reconciliation-fixture validation, and makes comparison/report ordering deterministic. |
-| [i5-release-qualification.md](i5-release-qualification.md) | Self-contained implementation contract for I5 / `v0.2.0`. Qualifies the exact `v0.2.0-rc.1` candidate (no new architecture or evaluation semantics), brings public documentation and release metadata to the final `v0.2.0` state, and defines the GO/NO-GO, tag, and published-artifact verification procedure. |
+| [i5-release-qualification.md](i5-release-qualification.md) | Self-contained implementation contract for I5 / `v0.2.0` (shipped). Qualifies the exact `v0.2.0-rc.1` candidate (no new architecture or evaluation semantics), brings public documentation and release metadata to the final `v0.2.0` state, and defines the GO/NO-GO, tag, and published-artifact verification procedure. |
 | [git-workflow.md](git-workflow.md) | Branching, commit, push, pull-request, merge, and tagging strategy for the `v0.2.0` implementation. |
 
 Iteration status:
@@ -44,7 +44,7 @@ Iteration status:
 | I2 | Topology and Directionality | `v0.2.0-alpha.2` | Shipped |
 | I3 | Evidence and Runtime Semantics | `v0.2.0-alpha.3` | Shipped |
 | I4 | Coverage and Hardening | `v0.2.0-rc.1` | Shipped |
-| I5 | Release Qualification | `v0.2.0` | Implementation in progress |
+| I5 | Release Qualification | `v0.2.0` | Shipped |
 
 I5 is the final `v0.2.0` iteration - it closes the release rather than defining the next
 architecture dimension (see [i5-release-qualification.md](i5-release-qualification.md) §33).

@@ -26,12 +26,9 @@ Not yet guaranteed stable pre-1.0 — expect breaking changes on a minor version
 - ✓ Declared vs observed (`CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW`, with the 11H
   evidence-reconciliation invariant and cross-batch HTTP correlation)
 
-## v0.2 — release candidate
+## v0.2 — shipped
 Focus: make the architecture intelligence introduced in v0.1 reproducibly testable against known
-ground truth. Implementation is complete and tagged as `v0.2.0-rc.1`; final qualification and
-publication are in progress (see
-[`docs/specifications/0.2.0/i5-release-qualification.md`](docs/specifications/0.2.0/i5-release-qualification.md)).
-This section will read "shipped" once `v0.2.0` is actually published.
+ground truth.
 
 - ✓ Ten deterministic core scenarios (REST/queue dependencies, topology/directionality, partial
   observation with qualitative coverage, evidence reconciliation, a pure declared-only case)
