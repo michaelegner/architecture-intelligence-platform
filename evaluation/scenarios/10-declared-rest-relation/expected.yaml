@@ -1,0 +1,27 @@
+scenario: declared-rest-relation
+
+description: >
+  ProductService declares GET /products/{id} and OrderService explicitly declares a CALLS
+  dependency on that operation. No runtime observation is involved.
+
+scope:
+  entities:
+    - service:order-service
+    - service:product-service
+    - operation:service:product-service:GET:/products/{id}
+  relation_types:
+    - PROVIDES
+    - CALLS
+
+expected:
+  relations:
+    - type: PROVIDES
+      source: service:product-service
+      target: operation:service:product-service:GET:/products/{id}
+
+    - type: CALLS
+      source: service:order-service
+      target: operation:service:product-service:GET:/products/{id}
+
+forbidden:
+  relations: []

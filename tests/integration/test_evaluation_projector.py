@@ -474,3 +474,15 @@ def test_partial_observation_coverage_qualification(driver, session):
     sends_row = next(r for r in rows if r.relation_type == "SENDS")
     assert calls_row.coverage == COVERAGE_SUFFICIENT
     assert sends_row.coverage == COVERAGE_PARTIAL
+
+
+# --- I4: complete core scenario set --------------------------------------------------------------
+
+
+def test_declared_rest_relation_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "10-declared-rest-relation")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()

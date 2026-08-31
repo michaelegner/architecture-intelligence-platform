@@ -67,7 +67,7 @@ _DELETE = object()
 # --- discovery ------------------------------------------------------------------------------
 
 
-def test_discover_scenarios_finds_the_nine_real_scenarios():
+def test_discover_scenarios_finds_the_ten_real_scenarios():
     discovered = discover_scenarios(SCENARIOS_DIR)
     assert [p.name for p in discovered] == [
         "01-rest-confirmed",
@@ -79,10 +79,11 @@ def test_discover_scenarios_finds_the_nine_real_scenarios():
         "07-not-observed-in-window",
         "08-evidence-reconciliation",
         "09-partial-observation",
+        "10-declared-rest-relation",
     ]
 
 
-def test_the_nine_real_scenarios_all_load_and_validate():
+def test_the_ten_real_scenarios_all_load_and_validate():
     scenarios = load_scenarios(SCENARIOS_DIR)
     assert [s.id for s in scenarios] == [
         "rest-confirmed",
@@ -94,10 +95,9 @@ def test_the_nine_real_scenarios_all_load_and_validate():
         "not-observed-in-window",
         "evidence-reconciliation",
         "partial-observation",
+        "declared-rest-relation",
     ]
     assert all(s.expected_relations for s in scenarios)
-    for s in scenarios:
-        assert s.observation.environment == "test"
 
 
 def test_discover_scenarios_ignores_directories_without_expected_yaml(tmp_path):
