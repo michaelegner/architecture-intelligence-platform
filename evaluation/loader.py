@@ -35,6 +35,7 @@ _TOP_LEVEL_ALLOWED_KEYS = {
 }
 _SCOPE_ALLOWED_KEYS = {"entities", "relation_types"}
 _OBSERVATION_ALLOWED_KEYS = {"environment", "window"}
+_RELATIONS_CONTAINER_ALLOWED_KEYS = {"relations"}
 _WINDOW_ALLOWED_KEYS = {"start", "end"}
 _EXPECTED_RELATION_ALLOWED_KEYS = {"type", "source", "target", "status", "evidence"}
 _EVIDENCE_ALLOWED_KEYS = {"declared", "observed"}
@@ -95,13 +96,16 @@ def _validate_entity_id(value: Any, *, scenario_id: str, file: Path, field: str)
 
 
 def _validate_relation_type(value: Any, *, scenario_id: str, file: Path, field: str) -> str:
-    if value not in KNOWN_RELATION_TYPES:
+    # isinstance guard first: `value not in KNOWN_RELATION_TYPES` would raise a raw TypeError
+    # (not a ScenarioValidationError) for an unhashable value, e.g. a hand-authored `- [SENDS]`
+    # list where a plain string was expected - `or` short-circuits before that membership test.
+    if not isinstance(value, str) or value not in KNOWN_RELATION_TYPES:
         raise _error(scenario_id, file, field, f"unknown relation type: {value!r}")
     return value
 
 
 def _validate_status(value: Any, *, scenario_id: str, file: Path, field: str) -> str | None:
-    if value is not None and value not in _KNOWN_STATUSES:
+    if value is not None and (not isinstance(value, str) or value not in _KNOWN_STATUSES):
         raise _error(scenario_id, file, field, f"unknown status: {value!r}")
     return value
 
@@ -255,12 +259,15 @@ def load_scenario(path: Path) -> Scenario:
     )
     if not entities_raw:
         raise _error(scenario_id, file, "scope.entities", "must not be empty")
-    if len(set(entities_raw)) != len(entities_raw):
-        raise _error(scenario_id, file, "scope.entities", "duplicate entities")
+    # Validate each element's type/format before hashing for duplicate detection - set() on the
+    # raw, unvalidated YAML values would raise a bare TypeError instead of a
+    # ScenarioValidationError if an author accidentally wrote a mapping/list in the entities list.
     entities = tuple(
         _validate_entity_id(e, scenario_id=scenario_id, file=file, field="scope.entities")
         for e in entities_raw
     )
+    if len(set(entities)) != len(entities):
+        raise _error(scenario_id, file, "scope.entities", "duplicate entities")
     relation_types_raw = scope_raw.get("relation_types")
     if relation_types_raw is not None:
         relation_types_raw = _require_list(
@@ -270,18 +277,16 @@ def load_scenario(path: Path) -> Scenario:
             raise _error(
                 scenario_id, file, "scope.relation_types", "must not be empty when present"
             )
-        if len(set(relation_types_raw)) != len(relation_types_raw):
-            raise _error(scenario_id, file, "scope.relation_types", "duplicate relation types")
-    relation_types = (
-        tuple(
+        relation_types = tuple(
             _validate_relation_type(
                 rt, scenario_id=scenario_id, file=file, field="scope.relation_types"
             )
             for rt in relation_types_raw
         )
-        if relation_types_raw is not None
-        else None
-    )
+        if len(set(relation_types)) != len(relation_types):
+            raise _error(scenario_id, file, "scope.relation_types", "duplicate relation types")
+    else:
+        relation_types = None
     scope = ScenarioScope(entities=entities, relation_types=relation_types)
 
     observation_raw = _optional_mapping(
@@ -357,6 +362,13 @@ def load_scenario(path: Path) -> Scenario:
         file=file,
         field="expected",
     )
+    _reject_unknown_keys(
+        expected_raw,
+        _RELATIONS_CONTAINER_ALLOWED_KEYS,
+        scenario_id=scenario_id,
+        file=file,
+        field="expected",
+    )
     relations_raw = _require_list(
         _require(expected_raw, "relations", scenario_id=scenario_id, file=file, prefix="expected."),
         scenario_id=scenario_id,
@@ -383,6 +395,13 @@ def load_scenario(path: Path) -> Scenario:
 
     forbidden_raw = _require_mapping(
         _require(raw, "forbidden", scenario_id=scenario_id, file=file),
+        scenario_id=scenario_id,
+        file=file,
+        field="forbidden",
+    )
+    _reject_unknown_keys(
+        forbidden_raw,
+        _RELATIONS_CONTAINER_ALLOWED_KEYS,
         scenario_id=scenario_id,
         file=file,
         field="forbidden",

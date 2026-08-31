@@ -654,3 +654,82 @@ def test_rejects_a_forbidden_relation_excluded_by_its_own_scope(tmp_path):
     with pytest.raises(ScenarioValidationError) as excinfo:
         load_scenario(scenario_dir)
     assert "excluded by scenario scope" in excinfo.value.reason
+
+
+# --- I4 PR30 review F1/F2: malformed values must fail as ScenarioValidationError, never TypeError
+
+
+def test_rejects_a_mapping_in_scope_entities(tmp_path):
+    data = _mutated(**{"scope.entities": ["service:order-service", {"bad": "value"}]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "malformed canonical identifier" in excinfo.value.reason
+
+
+def test_rejects_a_list_in_scope_entities(tmp_path):
+    data = _mutated(**{"scope.entities": ["service:order-service", ["nested"]]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "malformed canonical identifier" in excinfo.value.reason
+
+
+def test_rejects_a_mapping_in_scope_relation_types(tmp_path):
+    data = _mutated(**{"scope.relation_types": ["CALLS", {"bad": "value"}]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown relation type" in excinfo.value.reason
+
+
+def test_rejects_a_list_in_scope_relation_types(tmp_path):
+    data = _mutated(**{"scope.relation_types": ["CALLS", ["SENDS"]]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown relation type" in excinfo.value.reason
+
+
+def test_rejects_a_mapping_as_an_expected_relation_type(tmp_path):
+    fact = {**_VALID["expected"]["relations"][0], "type": {"bad": "value"}}
+    data = _mutated(**{"expected.relations": [fact]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown relation type" in excinfo.value.reason
+
+
+def test_rejects_a_list_as_an_expected_status(tmp_path):
+    fact = {**_VALID["expected"]["relations"][0], "status": ["CONFIRMED"]}
+    data = _mutated(**{"expected.relations": [fact]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown status" in excinfo.value.reason
+
+
+def test_rejects_an_unknown_expected_container_field_alongside_a_valid_relations_key(tmp_path):
+    data = _mutated(expected={**_VALID["expected"], "reltions": []})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+    assert "reltions" in excinfo.value.reason
+
+
+def test_rejects_an_unknown_forbidden_container_field_alongside_a_valid_relations_key(tmp_path):
+    data = _mutated(forbidden={"relations": [], "rules": []})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+    assert "rules" in excinfo.value.reason
