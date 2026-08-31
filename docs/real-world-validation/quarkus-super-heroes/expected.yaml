@@ -1,0 +1,96 @@
+# Frozen expected supported facts for quarkus-super-heroes (I2.1 - I1 §17 schema).
+#
+# Ground truth established independently in ground-truth.md / evidence/ BEFORE any AIP run against
+# this system (I1 §5/§36). Do not edit after the first qualifying I2.3 comparison run except per
+# the ground-truth change policy (I1 §37 / ground-truth.md's future "Change log").
+
+system: quarkus-super-heroes
+upstream_revision: "8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce"
+
+scope:
+  entities:
+    - service:rest-fights
+    - service:rest-heroes
+    - service:rest-villains
+    - service:rest-narration
+  relation_types:
+    - PROVIDES
+    - CALLS
+
+expected:
+  relations:
+    # --- REST provider ground truth (OpenAPI contracts, evidence/rest-and-grpc.md) ---
+    - id: qsh-heroes-provides-random
+      type: PROVIDES
+      source: service:rest-heroes
+      target: operation:service:rest-heroes:GET:/api/heroes/random
+      evidence:
+        declared: true
+
+    - id: qsh-villains-provides-random
+      type: PROVIDES
+      source: service:rest-villains
+      target: operation:service:rest-villains:GET:/api/villains/random
+      evidence:
+        declared: true
+
+    - id: qsh-narration-provides-narrate
+      type: PROVIDES
+      source: service:rest-narration
+      target: operation:service:rest-narration:POST:/api/narration
+      evidence:
+        declared: true
+
+    - id: qsh-fights-provides-randomfighters
+      type: PROVIDES
+      source: service:rest-fights
+      target: operation:service:rest-fights:GET:/api/fights/randomfighters
+      evidence:
+        declared: true
+
+    # --- REST caller ground truth (rest-fights client source code, evidence/rest-and-grpc.md) ---
+    - id: qsh-fights-calls-heroes
+      type: CALLS
+      source: service:rest-fights
+      target: operation:service:rest-heroes:GET:/api/heroes/random
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+
+    - id: qsh-fights-calls-villains
+      type: CALLS
+      source: service:rest-fights
+      target: operation:service:rest-villains:GET:/api/villains/random
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+
+    # status/observed intentionally unasserted - see ground-truth.md "Known ambiguities"
+    # (rest-narration's OpenAI integration is disabled by default; I2.2/I2.3 will assert runtime
+    # status once the traffic script and actual capture exist).
+    - id: qsh-fights-calls-narration
+      type: CALLS
+      source: service:rest-fights
+      target: operation:service:rest-narration:POST:/api/narration
+      evidence:
+        declared: true
+
+unsupported:
+  - id: qsh-grpc-locations
+    mechanism: grpc
+    description: >
+      rest-fights calls the Location service (grpc-locations) via gRPC
+      (locationservice-v1.proto). AIP v0.3 has no gRPC/protobuf ingestion adapter - this
+      dependency must remain UNSUPPORTED, never translated into an HTTP CALLS relation
+      (I2 spec §12).
+
+  - id: qsh-kafka-fights-topic
+    mechanism: kafka-topic
+    description: >
+      rest-fights publishes fight events to Kafka topic "fights"; event-statistics consumes
+      from the same topic. A one-producer/one-consumer topic is not assumed to map onto AIP's
+      Queue semantics merely because the multiplicities match - this stays UNSUPPORTED for the
+      qualifying I2.3 comparison unless a separately approved model-hardening decision changes
+      that (I2 spec §13-14).
