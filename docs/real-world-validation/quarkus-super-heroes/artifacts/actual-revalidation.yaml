@@ -1,0 +1,232 @@
+relations:
+- type: CALLS
+  source: service:rest-fights
+  target: operation:service:rest-heroes:GET:/api/heroes/random
+  status: CONFIRMED
+  evidence:
+    declared: true
+    observed: true
+- type: CALLS
+  source: service:rest-fights
+  target: operation:service:rest-narration:POST:/api/narration
+  status: CONFIRMED
+  evidence:
+    declared: true
+    observed: true
+- type: CALLS
+  source: service:rest-fights
+  target: operation:service:rest-villains:GET:/api/villains/random
+  status: CONFIRMED
+  evidence:
+    declared: true
+    observed: true
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:GET:/api/fights
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:GET:/api/fights/hello
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:GET:/api/fights/hello/heroes
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:GET:/api/fights/hello/locations
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:GET:/api/fights/hello/narration
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:GET:/api/fights/hello/villains
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:GET:/api/fights/randomfighters
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:GET:/api/fights/randomlocation
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:GET:/api/fights/{id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:POST:/api/fights
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:POST:/api/fights/narrate
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-fights
+  target: operation:service:rest-fights:POST:/api/fights/narrate/image
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-heroes
+  target: operation:service:rest-heroes:DELETE:/api/heroes
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-heroes
+  target: operation:service:rest-heroes:DELETE:/api/heroes/{id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-heroes
+  target: operation:service:rest-heroes:GET:/api/heroes
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-heroes
+  target: operation:service:rest-heroes:GET:/api/heroes/hello
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-heroes
+  target: operation:service:rest-heroes:GET:/api/heroes/random
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-heroes
+  target: operation:service:rest-heroes:GET:/api/heroes/{id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-heroes
+  target: operation:service:rest-heroes:PATCH:/api/heroes/{id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-heroes
+  target: operation:service:rest-heroes:POST:/api/heroes
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-heroes
+  target: operation:service:rest-heroes:PUT:/api/heroes
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-heroes
+  target: operation:service:rest-heroes:PUT:/api/heroes/{id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-narration
+  target: operation:service:rest-narration:GET:/api/narration/hello
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-narration
+  target: operation:service:rest-narration:POST:/api/narration
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-narration
+  target: operation:service:rest-narration:POST:/api/narration/image
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-villains
+  target: operation:service:rest-villains:DELETE:/api/villains
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-villains
+  target: operation:service:rest-villains:DELETE:/api/villains/{id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-villains
+  target: operation:service:rest-villains:GET:/api/villains
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-villains
+  target: operation:service:rest-villains:GET:/api/villains/hello
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-villains
+  target: operation:service:rest-villains:GET:/api/villains/random
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-villains
+  target: operation:service:rest-villains:GET:/api/villains/{id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-villains
+  target: operation:service:rest-villains:PATCH:/api/villains/{id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-villains
+  target: operation:service:rest-villains:POST:/api/villains
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-villains
+  target: operation:service:rest-villains:PUT:/api/villains
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:rest-villains
+  target: operation:service:rest-villains:PUT:/api/villains/{id}
+  evidence:
+    declared: true
+    observed: false
