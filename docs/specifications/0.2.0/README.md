@@ -31,7 +31,8 @@ the iteration specification.
 | [specification.md](specification.md) | Normative release contract for the final `v0.2.0` release. Defines goals, non-goals, canonical evaluation semantics, scenario model, ground-truth format, runner behavior, reporting, acceptance criteria, and delivery iterations. |
 | [i1-evaluation-kernel.md](i1-evaluation-kernel.md) | Self-contained implementation contract for I1 / `v0.2.0-alpha.1` (shipped). Establishes the evaluation kernel with REST `CONFIRMED`, REST `OBSERVED_ONLY`, and async `CONFIRMED` scenarios. |
 | [i2-topology-directionality.md](i2-topology-directionality.md) | Self-contained implementation contract for I2 / `v0.2.0-alpha.2`. Enforces `forbidden.relations` and exhaustive unexpected-fact detection, and adds orphan-messaging, mixed REST+async, and request/response queue-pair scenarios. |
-| [i3-evidence-runtime-semantics.md](i3-evidence-runtime-semantics.md) | Self-contained implementation contract for I3 / `v0.2.0-alpha.3`. Adds `NOT_OBSERVED_IN_WINDOW` classification and an evidence-reconciliation scenario proving the `CONFIRMED -> OBSERVED_ONLY` transition when stale declared evidence is removed but observed evidence survives. |
+| [i3-evidence-runtime-semantics.md](i3-evidence-runtime-semantics.md) | Self-contained implementation contract for I3 / `v0.2.0-alpha.3` (shipped). Adds `NOT_OBSERVED_IN_WINDOW` classification and an evidence-reconciliation scenario proving the `CONFIRMED -> OBSERVED_ONLY` transition when stale declared evidence is removed but observed evidence survives. |
+| [i4-coverage-hardening.md](i4-coverage-hardening.md) | Self-contained implementation contract for I4 / `v0.2.0-rc.1`. Adds partial-observation and declared-only-REST scenarios to reach the ten-scenario core suite, hardens scenario-schema and reconciliation-fixture validation, and makes comparison/report ordering deterministic. |
 | [git-workflow.md](git-workflow.md) | Branching, commit, push, pull-request, merge, and tagging strategy for the `v0.2.0` implementation. |
 
 Iteration status:
@@ -40,15 +41,14 @@ Iteration status:
 |---|---|---|---|
 | I1 | Evaluation Kernel | `v0.2.0-alpha.1` | Shipped |
 | I2 | Topology and Directionality | `v0.2.0-alpha.2` | Shipped |
-| I3 | Evidence and Runtime Semantics | `v0.2.0-alpha.3` | Implementation complete — tag pending |
-| I4 | Coverage and Hardening | `v0.2.0-rc.1` | Not started |
+| I3 | Evidence and Runtime Semantics | `v0.2.0-alpha.3` | Shipped |
+| I4 | Coverage and Hardening | `v0.2.0-rc.1` | Implementation in progress |
 | I5 | Release Qualification | `v0.2.0` | Not started |
 
 As later iteration specifications are created, they should be added here using concise filenames such
 as:
 
 ```text
-i4-coverage-hardening.md
 i5-release-qualification.md
 ```
 
