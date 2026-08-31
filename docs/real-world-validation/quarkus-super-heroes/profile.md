@@ -1,7 +1,9 @@
 # Validation Profile — Quarkus Super Heroes
 
-Bounded profile for I2 (I2 spec §7/§24). This document defines *what will be run and why*; the
-ordered runbook and traffic script that execute it are I2.2 deliverables, not this one.
+Bounded profile for I2 (I2 spec §7/§24). This document defines *what is run and why*; the ordered
+steps and exact commands live in [`runbook.md`](runbook.md), and the supporting mechanics
+(compose file, OTel Collector config, traffic script, declarations tree) live under
+[`runtime/`](runtime/) (I2.2).
 
 ## Components/processes started
 
@@ -22,8 +24,10 @@ validation script" option.
 
 ```text
 MongoDB              rest-fights' fight persistence (quarkus.mongodb.database=fights)
+Postgres x2          rest-heroes' and rest-villains' own datastores
+MariaDB              grpc-locations' own datastore
 Kafka + Apicurio     fights topic transport + Avro schema registry
-OTel Collector/LGTM  telemetry export path shared by all services
+OTel Collector       telemetry export path shared by all services, forwarding to AIP (runtime/)
 ```
 
 ## Services included in AIP-supported scope
@@ -62,15 +66,22 @@ No AIP-generated or reconstructed OpenAPI is used.
 ## OTel export path
 
 Each service already sets `quarkus.otel.exporter.otlp.protocol=http/protobuf` and a distinguishing
-`quarkus.otel.resource.attributes` (`app=<quarkus.application.name>`). I2.2 SHALL route this
-existing OTLP export to AIP's `/v1/traces` (directly or via a Collector fan-out) — no source-code
-instrumentation changes are required, per I2 spec §16.
+`quarkus.otel.resource.attributes` (`app=<quarkus.application.name>`). No source-code
+instrumentation change was needed (I2 spec §16) — `runtime/docker-compose.yml` points every
+service's `QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT` at `runtime/otel-collector-config.yaml`'s
+Collector, which forwards to AIP's `/v1/traces` (adapted from this repo's own
+`examples/runtime-demo/otel-collector-config.yaml`). Each service's `QUARKUS_OTEL_RESOURCE_ATTRIBUTES`
+also appends `deployment.environment.name=quarkus-i2` to its existing `app=/application=/system=`
+attributes, so every span lands tagged with this profile's environment name below.
 
 ## Traffic generation
 
-Deferred to I2.2: a deterministic script exercising hero retrieval, villain retrieval, a full fight
-execution (which triggers the narration call), and Kafka fight-event publication/consumption (I2
-spec §19).
+[`runtime/traffic.sh`](runtime/traffic.sh) (I2 spec §19): a deterministic curl script exercising,
+in the exact order `FightService.java` triggers them, hero+villain retrieval (one call), the
+`grpc-locations` dependency, a fight (persist + Kafka `fights` publish, consumed by
+`event-statistics`), and narration — using the pinned upstream OpenAPI's own documented example
+request bodies, not invented payloads. Run between `runbook.md` phase 8's `window_start`/
+`window_end`.
 
 ## Environment name
 
@@ -78,12 +89,15 @@ spec §19).
 quarkus-i2
 ```
 
-per I2 spec §18's recommendation.
+per I2 spec §18's recommendation; wired into every service via `QUARKUS_OTEL_RESOURCE_ATTRIBUTES`
+above and into AIP via `runtime/config.quarkus-i2.yaml`'s `runtime_analysis.default_environment`.
 
 ## Observation-window method
 
-Deferred to I2.2/I2.3: the runbook will record an explicit `window_start`/`window_end` bracketing
-only the qualifying traffic run, excluding unrelated startup traces (I2 spec §18).
+[`runbook.md`](runbook.md) phase 8 records `window_start`/`window_end` as UTC timestamps taken
+immediately before and after `traffic.sh` runs, bracketing only the qualifying traffic and
+excluding unrelated startup/health-check traces (I2 spec §18). I2.3 uses this exact pair to query
+AIP's runtime facts for `environment=quarkus-i2`.
 
 ## External dependencies disabled/mocked/fallback
 
@@ -95,8 +109,10 @@ ambiguities" for how this affects the narration `CALLS` relation's expected runt
 
 ## Cleanup/reset procedure
 
-Deferred to I2.2's runbook: reset AIP graph/evidence state, reset MongoDB, reset Kafka topic/consumer
-offsets, clear temporary OTel capture state (I2 spec §42).
+[`runbook.md`](runbook.md)'s "Clean-state requirement": `docker compose down -v` in `runtime/`
+drops the Neo4j (`neo4j-quarkus-i2-*`), MongoDB, Postgres×2, MariaDB, and Kafka/Apicurio volumes
+together, so a subsequent `docker compose up -d` starts from a genuinely empty graph and empty
+datastores (I2 spec §42).
 
 ## Mandatory unsupported-mechanism declarations (I2 spec §24)
 

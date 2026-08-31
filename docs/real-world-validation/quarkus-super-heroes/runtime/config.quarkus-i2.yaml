@@ -1,0 +1,32 @@
+# AIP configuration for the Quarkus Super Heroes I2 validation profile (docker-compose.yml).
+# Identical in shape to this repo's own config.yaml/config.demo.yaml; only sources.directories and
+# runtime_analysis.default_environment differ, matching this profile's declarations tree and
+# environment name (I2 spec §18, profile.md).
+architecture_intelligence:
+  sources:
+    directories:
+      - declarations
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+    max_traversal_depth: 5
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  intent_router:
+    deterministic_threshold: 0.9
+  telemetry:
+    service_aliases: {}
+    queue_aliases: {}
+    http-correlation:
+      enabled: true
+      ttl-seconds: 60
+      max-pending-spans: 10000
+    coverage:
+      qualification-enabled: true
+  runtime_analysis:
+    default_window_hours: 24
+    default_environment: quarkus-i2

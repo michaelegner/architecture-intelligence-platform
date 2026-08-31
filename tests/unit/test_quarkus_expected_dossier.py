@@ -36,11 +36,12 @@ def test_quarkus_expected_dossier_loads():
     assert len(provides) == 35
     assert len(calls) == 3
 
-    # I2.1 asserts CALLS relation existence only - no manifest/traffic inputs are frozen yet
-    # (PR #39 review F3) - so status/evidence must stay unset until I2.2/I2.3 freeze them.
+    # I2.2 froze runtime/declarations/rest-fights/architecture.yaml, a pre-run Architecture
+    # Manifest transcribing this exact CALLS ground truth - declared evidence is now reproducible.
+    # status/observed remain unset until I2.3 runs the frozen traffic (runbook.md phase 8-9).
     for relation in calls:
         assert relation.fact.status is None
-        assert relation.fact.declared_evidence is None
+        assert relation.fact.declared_evidence is True
         assert relation.fact.observed_evidence is None
 
     assert {u.id for u in doc.unsupported} == {"qsh-grpc-locations", "qsh-kafka-fights-topic"}

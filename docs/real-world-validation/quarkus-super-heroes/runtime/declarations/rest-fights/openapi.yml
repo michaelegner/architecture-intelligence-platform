@@ -1,0 +1,570 @@
+---
+openapi: 3.1.2
+info:
+  title: Fights API
+  description: This API performs fights between a Hero and a Villain
+  contact:
+    name: Quarkus
+    url: https://github.com/quarkusio
+  version: "1.0"
+tags:
+- name: fights
+- name: hello
+paths:
+  /api/fights:
+    get:
+      tags:
+      - fights
+      summary: Returns fights (all rows, or a paginated page)
+      operationId: getAllFights
+      description: >
+        When neither `page` nor `size` is supplied, the API returns every fight.
+
+        When either `page` or `size` is supplied, results are paginated and ordered by fight date descending (newest first).
+        Defaults are page 0 and size 20; `page` is clamped to at least 0, `size` to between 1 and 100.
+
+        A page beyond available data returns HTTP 200 with an empty array.
+
+        Non-integer `page` or `size` values return HTTP 400.
+      x-microcks-operation:
+        dispatcher: FALLBACK
+        dispatcherRules: |
+          {
+            "dispatcher": "URI_PARAMS",
+            "dispatcherRules": "page && size",
+            "fallback": "fights"
+          }
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: Zero-based page index (pagination mode only). Negative values are clamped to 0. Non-integer values return 400.
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        description: Page size (pagination mode only). Values are clamped to the range 1-100. Non-integer values return 400.
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: List of fights for the selected mode (all fights, or one page); empty array if none or page past end
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Fight'
+              examples:
+                fights:
+                  value:
+                  - id: 653bea9d188984908cd12429
+                    fightDate: 2075-10-27T16:51:41.787Z
+                    winnerName: Luke Skywalker
+                    winnerLevel: 10
+                    winnerPowers: "Uses light sabre, The force"
+                    winnerPicture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
+                    winnerTeam: Heroes
+                    loserName: Darth Vader
+                    loserLevel: 3
+                    loserPowers: "Uses light sabre, dark side of the force"
+                    loserPicture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                    loserTeam: Villains
+                    location:
+                      name: Gotham City
+                      description: "An American city rife with corruption and crime, the home of its iconic protector Batman."
+                      picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/locations/gotham_city.jpg
+        "400":
+          description: Invalid `page` or `size` query parameter (not a valid integer)
+    post:
+      tags:
+      - fights
+      summary: Initiates a fight
+      operationId: performFight
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FightRequest'
+            examples:
+              fightRequest:
+                value:
+                  hero:
+                    name: Luke Skywalker
+                    level: 10
+                    powers: "Uses light sabre, The force"
+                    picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
+                  villain:
+                    name: Darth Vader
+                    level: 3
+                    powers: "Uses light sabre, dark side of the force"
+                    picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                  location:
+                    name: Gotham City
+                    description: "An American city rife with corruption and crime, the home of its iconic protector Batman."
+                    picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/locations/gotham_city.jpg
+        required: true
+      responses:
+        "200":
+          description: The fight
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fight'
+              examples:
+                fight:
+                  value:
+                    id: 653bea9d188984908cd12429
+                    fightDate: 2075-10-27T16:51:41.787Z
+                    winnerName: Luke Skywalker
+                    winnerLevel: 10
+                    winnerPowers: "Uses light sabre, The force"
+                    winnerPicture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
+                    winnerTeam: Heroes
+                    loserName: Darth Vader
+                    loserLevel: 3
+                    loserPowers: "Uses light sabre, dark side of the force"
+                    loserPicture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                    loserTeam: Villains
+                    location:
+                      name: Gotham City
+                      description: "An American city rife with corruption and crime, the home of its iconic protector Batman."
+                      picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/locations/gotham_city.jpg
+        "400":
+          description: Invalid fighters passed in (or no request body found)
+  /api/fights/hello:
+    get:
+      tags:
+      - hello
+      summary: Ping hello
+      operationId: hello
+      responses:
+        "200":
+          description: Ping hello
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                hello_success:
+                  value: Hello Fight Resource
+  /api/fights/hello/heroes:
+    get:
+      tags:
+      - hello
+      summary: Ping Heroes hello
+      operationId: helloHeroes
+      responses:
+        "200":
+          description: Ping Heroes hello
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                hello_heroes_success:
+                  value: Hello Heroes
+  /api/fights/hello/locations:
+    get:
+      tags:
+      - hello
+      summary: Ping Locations hello
+      operationId: helloLocations
+      responses:
+        "200":
+          description: Ping Locations hello
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                hello_locations_success:
+                  value: Hello Locations
+  /api/fights/hello/narration:
+    get:
+      tags:
+      - hello
+      summary: Ping Narration hello
+      operationId: helloNarration
+      responses:
+        "200":
+          description: Ping Narration hello
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                hello_narration_success:
+                  value: Hello Narration
+  /api/fights/hello/villains:
+    get:
+      tags:
+      - hello
+      summary: Ping Villains hello
+      operationId: helloVillains
+      responses:
+        "200":
+          description: Ping Villains hello
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                hello_villains_success:
+                  value: Hello Villains
+  /api/fights/narrate:
+    post:
+      tags:
+      - fights
+      summary: Narrates a fight
+      operationId: narrateFight
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FightToNarrate'
+            examples:
+              valid_fight:
+                value:
+                  id: 653bea9d188984908cd12429
+                  fightDate: 2075-10-27T16:51:41.787Z
+                  winnerName: Luke Skywalker
+                  winnerLevel: 10
+                  winnerPowers: "Uses light sabre, The force"
+                  winnerPicture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
+                  winnerTeam: Heroes
+                  loserName: Darth Vader
+                  loserLevel: 3
+                  loserPowers: "Uses light sabre, dark side of the force"
+                  loserPicture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                  loserTeam: Villains
+                  location:
+                    name: Gotham City
+                    description: "An American city rife with corruption and crime, the home of its iconic protector Batman."
+                    picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/locations/gotham_city.jpg
+        required: true
+      responses:
+        "200":
+          description: The fight narration
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                narration:
+                  value: This is the narration for the fight
+        "400":
+          description: Invalid fight passed in (or no request body found)
+  /api/fights/narrate/image:
+    post:
+      tags:
+      - fights
+      summary: Generate an image from a narration
+      operationId: generateImageFromNarration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageGenerationRequest'
+            examples:
+              request:
+                value:
+                  narration: In the dark, shadowy alleys of Gotham City, a fierce battle
+                    unfolded between two formidable opponents.
+                  winnerPictureUrl: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
+                  loserPictureUrl: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+        required: true
+      responses:
+        "200":
+          description: An image from a narration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FightImage'
+              examples:
+                image:
+                  value:
+                    imageUrl: https://dummyimage.com/240x320/1e8fff/ffffff&text=Fallback+Image
+        "400":
+          description: Invalid (or missing) request
+  /api/fights/randomfighters:
+    get:
+      tags:
+      - fights
+      summary: Returns random fighters
+      operationId: getRandomFighters
+      responses:
+        "200":
+          description: Gets a random Hero and Villain fighter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fighters'
+              examples:
+                fighters:
+                  value:
+                    hero:
+                      name: Luke Skywalker
+                      level: 10
+                      powers: "Uses light sabre, The force"
+                      picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
+                    villain:
+                      name: Darth Vader
+                      level: 3
+                      powers: "Uses light sabre, dark side of the force"
+                      picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+  /api/fights/randomlocation:
+    get:
+      tags:
+      - fights
+      summary: Returns a random location
+      operationId: getRandomLocation
+      responses:
+        "200":
+          description: A random location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FightLocation'
+              examples:
+                random_location:
+                  value:
+                    name: Gotham City
+                    description: "An American city rife with corruption and crime, the home of its iconic protector Batman."
+                    picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/locations/gotham_city.jpg
+  /api/fights/{id}:
+    get:
+      tags:
+      - fights
+      summary: Returns a fight for a given identifier
+      operationId: getFight
+      x-return-type: jakarta.ws.rs.core.Response
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Gets a fight for a given id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fight'
+              examples:
+                fight:
+                  value:
+                    id: 653bea9d188984908cd12429
+                    fightDate: 2075-10-27T16:51:41.787Z
+                    winnerName: Luke Skywalker
+                    winnerLevel: 10
+                    winnerPowers: "Uses light sabre, The force"
+                    winnerPicture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
+                    winnerTeam: Heroes
+                    loserName: Darth Vader
+                    loserLevel: 3
+                    loserPowers: "Uses light sabre, dark side of the force"
+                    loserPicture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                    loserTeam: Villains
+                    location:
+                      name: Gotham City
+                      description: "An American city rife with corruption and crime, the home of its iconic protector Batman."
+                      picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/locations/gotham_city.jpg
+        "404":
+          description: The fight is not found for a given identifier
+components:
+  schemas:
+    Fight:
+      description: "Each fight has a winner, a loser, and a location"
+      required:
+      - fightDate
+      - winnerName
+      - winnerLevel
+      - winnerPowers
+      - winnerPicture
+      - loserName
+      - loserLevel
+      - loserPowers
+      - loserPicture
+      - winnerTeam
+      - loserTeam
+      type: object
+      properties:
+        id:
+          type: string
+        fightDate:
+          format: date-time
+          type: string
+        winnerName:
+          minLength: 1
+          type: string
+        winnerLevel:
+          format: int32
+          type: integer
+        winnerPowers:
+          minLength: 1
+          type: string
+        winnerPicture:
+          minLength: 1
+          type: string
+        loserName:
+          minLength: 1
+          type: string
+        loserLevel:
+          format: int32
+          type: integer
+        loserPowers:
+          minLength: 1
+          type: string
+        loserPicture:
+          minLength: 1
+          type: string
+        winnerTeam:
+          minLength: 1
+          type: string
+        loserTeam:
+          minLength: 1
+          type: string
+        location:
+          $ref: '#/components/schemas/FightLocation'
+    FightImage:
+      description: The generated image from the narration
+      type: object
+      properties:
+        imageUrl:
+          type: string
+    ImageGenerationRequest:
+      description: Request for image generation from a narration
+      required:
+      - narration
+      type: object
+      properties:
+        narration:
+          type: string
+        winnerPictureUrl:
+          type: string
+        loserPictureUrl:
+          type: string
+    FightLocation:
+      description: Location of a fight
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        picture:
+          type: string
+    FightRequest:
+      description: A request to perform a fight between one hero and one villain in
+        a location
+      required:
+      - hero
+      - villain
+      type: object
+      properties:
+        hero:
+          $ref: '#/components/schemas/Hero'
+        villain:
+          $ref: '#/components/schemas/Villain'
+        location:
+          $ref: '#/components/schemas/FightLocation'
+    FightToNarrate:
+      description: Each fight has a winner and a loser
+      required:
+      - winnerTeam
+      - winnerName
+      - winnerPowers
+      - loserTeam
+      - loserName
+      - loserPowers
+      type: object
+      properties:
+        winnerTeam:
+          minLength: 1
+          type: string
+        winnerName:
+          minLength: 1
+          type: string
+        winnerPowers:
+          minLength: 1
+          type: string
+        winnerLevel:
+          format: int32
+          type: integer
+        loserTeam:
+          minLength: 1
+          type: string
+        loserName:
+          minLength: 1
+          type: string
+        loserPowers:
+          minLength: 1
+          type: string
+        loserLevel:
+          format: int32
+          type: integer
+        location:
+          $ref: '#/components/schemas/FightToNarrateLocation'
+    FightToNarrateLocation:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+    Fighters:
+      description: A fight between one hero and one villain
+      required:
+      - hero
+      - villain
+      type: object
+      properties:
+        hero:
+          $ref: '#/components/schemas/Hero'
+        villain:
+          $ref: '#/components/schemas/Villain'
+    Hero:
+      description: The hero fighting against the villain
+      required:
+      - name
+      - level
+      - picture
+      type: object
+      properties:
+        name:
+          minLength: 1
+          type: string
+        level:
+          format: int32
+          type: integer
+        picture:
+          minLength: 1
+          type: string
+        powers:
+          type: string
+    Villain:
+      description: The villain fighting against the hero
+      required:
+      - name
+      - level
+      - picture
+      type: object
+      properties:
+        name:
+          minLength: 1
+          type: string
+        level:
+          format: int32
+          type: integer
+        picture:
+          minLength: 1
+          type: string
+        powers:
+          type: string
