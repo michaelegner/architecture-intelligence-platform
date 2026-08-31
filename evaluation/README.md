@@ -2,9 +2,11 @@
 
 Deterministic evaluation kernel for AIP. Implements Iteration 1
 ([`i1-evaluation-kernel.md`](../docs/specifications/0.2.0/i1-evaluation-kernel.md), shipped as
-`v0.2.0-alpha.1`) and Iteration 2
+`v0.2.0-alpha.1`), Iteration 2
 ([`i2-topology-directionality.md`](../docs/specifications/0.2.0/i2-topology-directionality.md),
-`v0.2.0-alpha.2`) of the `v0.2.0` release
+`v0.2.0-alpha.2`), and Iteration 3
+([`i3-evidence-runtime-semantics.md`](../docs/specifications/0.2.0/i3-evidence-runtime-semantics.md),
+`v0.2.0-alpha.3`) of the `v0.2.0` release
 ([`specification.md`](../docs/specifications/0.2.0/specification.md)).
 
 > **v0.2.0's goal is not to add a new architecture-intelligence dimension.** AIP `v0.1` already
@@ -23,12 +25,12 @@ against a hand-written `expected.yaml`:
 scenario fixture -> AIP -> canonical architecture facts -> compare -> PASS/FAIL
 ```
 
-Six scenarios currently exercise:
+Eight scenarios currently exercise:
 
 - declared architecture input (OpenAPI, AsyncAPI, Architecture Manifest),
 - runtime observation input (real OTLP ingestion via `/v1/traces`),
 - REST dependencies (`CALLS`/`PROVIDES`) and queue-based dependencies (`SENDS`/`RECEIVES_FROM`),
-- the `CONFIRMED` and `OBSERVED_ONLY` status classifications,
+- the `CONFIRMED`, `OBSERVED_ONLY`, and `NOT_OBSERVED_IN_WINDOW` status classifications,
 - declared vs. observed evidence presence,
 - canonical identifiers and deterministic comparison,
 - **(I2)** a forbidden canonical identity that must not exist (`forbidden.relations`) - failing the
@@ -38,17 +40,23 @@ Six scenarios currently exercise:
 - **(I2)** topology that specifically exercises directionality: orphan messaging (a sender with no
   consumer, and vice versa), mixed REST+async between the same service pair (proving the two
   interaction modes aren't collapsed into one generic dependency), and a bidirectional
-  request/response queue pair (proving sender/receiver roles aren't swapped).
+  request/response queue pair (proving sender/receiver roles aren't swapped),
+- **(I3)** `NOT_OBSERVED_IN_WINDOW` - a declared relation with no matching OBSERVED evidence in the
+  selected environment/window remains a real canonical fact, not an absence, and a
+  window-sensitivity control proves the classification actually depends on the selected window,
+- **(I3)** evidence reconciliation - removing a service's stale `DECLARED` evidence for a relation
+  must not remove independently surviving `OBSERVED` evidence: the fact survives and its status
+  transitions `CONFIRMED -> OBSERVED_ONLY`.
 
 ## What this suite does not (yet) test
 
 The suite remains deliberately narrow. It does **not** implement:
 
 - the complete 8-10 scenario `v0.2.0` suite (`docs/specifications/0.2.0/specification.md`),
-- `NOT_OBSERVED_IN_WINDOW`, evidence reconciliation, or partial-observation semantics (I3),
-- DLQ directionality or cross-batch HTTP correlation scenarios (I4, optional there too),
+- the partial-observation scenario, quantitative coverage qualification, DLQ directionality, or
+  cross-batch HTTP correlation scenarios (all deferred to I4),
 - a declared-only scenario with no runtime evidence at all (cheap to add later; not required by
-  I1's or I2's focus),
+  I1's, I2's, or I3's focus),
 - a dedicated "wrong direction" report category distinct from missing/unexpected/forbidden -
   directionality is checked through the combination of those three, not a separate classifier,
 - an LLM-based evaluator, a generic policy/rules engine, or precision/recall scoring.
@@ -56,6 +64,10 @@ The suite remains deliberately narrow. It does **not** implement:
 I2 closed the two things I1 left unenforced: `forbidden.relations` is no longer rejected when
 non-empty, and an unexpected in-scope fact is no longer just a diagnostic - both now fail a
 scenario. See §3 of the I2 specification for the full rationale.
+
+I3 closed the remaining status gap (`NOT_OBSERVED_IN_WINDOW`) and proved the evidence-preservation
+invariant (`Delete(Fact) iff Evidence(Fact) is empty`) through a real declaration re-import, without
+adding any new architecture-intelligence concept - see §4 of the I3 specification.
 
 ## Running
 
@@ -71,7 +83,7 @@ uv run python -m evaluation run --scenario 01-rest-confirmed  # equivalent
 Expected result on a clean checkout:
 
 ```text
-AIP Evaluation — I2
+AIP Evaluation — I3
 
 [PASS] 01-rest-confirmed
 [PASS] 02-rest-observed-only
@@ -79,9 +91,11 @@ AIP Evaluation — I2
 [PASS] 04-orphan-messaging
 [PASS] 05-mixed-rest-async
 [PASS] 06-request-response-queue-pair
+[PASS] 07-not-observed-in-window
+[PASS] 08-evidence-reconciliation
 
-Scenarios:          6
-Passed:             6
+Scenarios:          8
+Passed:             8
 Failed:             0
 
 Missing facts:      0
@@ -176,7 +190,7 @@ evaluation/scenarios/01-rest-confirmed/
                                             # persist) - no shortcut around OTLP ingestion
 ```
 
-The six scenarios:
+The eight scenarios:
 
 | Directory | Purpose |
 | --- | --- |
@@ -186,9 +200,56 @@ The six scenarios:
 | `04-orphan-messaging` | OrderService sends `unused-q` (no consumer); InventoryService receives from `unknown-producer-q` (no producer) - both `CONFIRMED`, with each queue's plausible wrong-guess inverse explicitly forbidden. |
 | `05-mixed-rest-async` | OrderService/ProductService use both `CALLS` and `SENDS`/`RECEIVES_FROM` - proving the two interaction modes stay distinct canonical relation types. |
 | `06-request-response-queue-pair` | OrderService/ProductService exchange a bidirectional queue pair; each participant's swapped role on the queue it already has a role on is explicitly forbidden. |
+| `07-not-observed-in-window` | OrderService declares a call to ProductService's `GET /products/{id}`; a matching runtime observation exists, but outside the scenario's selected window -> `NOT_OBSERVED_IN_WINDOW`, not absence. |
+| `08-evidence-reconciliation` | OrderService's call to ProductService is initially declared and observed (`CONFIRMED`); OrderService's declaration is then re-imported without that `CALLS` relation - the stale `DECLARED` evidence disappears, the `OBSERVED` evidence survives, the fact remains, and its status becomes `OBSERVED_ONLY`. |
 
 Each scenario runs from a fully reset graph (`MATCH (n) DETACH DELETE n`) before its own
 declarations and telemetry are ingested, so scenarios never interfere with each other.
+
+### The optional reconciliation input phase (I3)
+
+A scenario that needs to prove evidence survives a declaration change - like
+`08-evidence-reconciliation` - may add one more input directory:
+
+```text
+evaluation/scenarios/08-evidence-reconciliation/
+└── input/
+    ├── declarations/                      # initial declared architecture
+    ├── telemetry/                         # runtime observations after that declaration
+    └── reconciliation/
+        └── declarations/                  # declaration state re-imported after telemetry -
+            └── order-service/...          # a full current-state re-declaration for each service
+                                            # it contains, not a diff (AIP's own import is a
+                                            # per-service full reimport, spec §9)
+```
+
+When `input/reconciliation/declarations/` is present, the runner ingests it - through the same real
+`app.graph.importer.import_all_sources` path used for the initial declarations, never an
+evaluation-only Cypher mutation - after the telemetry fixture and before projection:
+
+```text
+reset -> ingest declarations -> inject telemetry -> re-import reconciliation declarations -> project -> compare
+```
+
+This is what lets AIP's own per-service reconciliation (`app.graph.importer.import_service`) expire
+a service's stale `DECLARED` evidence for a relation it no longer declares, while any surviving
+`OBSERVED` evidence - and any other service's declarations - are left untouched. An
+existing-but-empty `input/reconciliation/declarations/` directory is rejected at load time as an
+invalid fixture, not silently treated as "no reconciliation phase."
+
+There is no reset between the initial and reconciliation phases - resetting would destroy the very
+evidence whose survival is under test. A scenario with no `input/reconciliation/` directory is
+completely unaffected (all seven other scenarios).
+
+### `NOT_OBSERVED_IN_WINDOW` is context-qualified (I3)
+
+`NOT_OBSERVED_IN_WINDOW` means exactly: *the relation has declared support, but AIP found no
+matching observed evidence in the selected environment and observation window.* It does **not**
+mean unused, obsolete, dead, unreachable, or forbidden - the relation remains an expected canonical
+fact. `07-not-observed-in-window`'s fixture deliberately contains a real, matched OTLP observation
+outside the scenario's selected window, specifically to distinguish "no observation exists in this
+context" from "no observation exists anywhere" - and a paired sanity-break test proves that widening
+the window to include that observation flips the classification to `CONFIRMED`.
 
 ## How `expected.yaml` is interpreted
 
@@ -251,15 +312,19 @@ independently declared expectation.
 ## Suite internals (for contributors)
 
 ```text
-loader.py      discovers scenarios and validates expected.yaml, including forbidden.relations
-runner.py      resets state, ingests declarations, injects OTLP fixtures, orchestrates a run
+loader.py      discovers scenarios and validates expected.yaml, including forbidden.relations and
+               the optional input/reconciliation/declarations/ convention (I3)
+runner.py      resets state, ingests declarations, injects OTLP fixtures, optionally re-imports
+               reconciliation declarations (I3), orchestrates a run
 projector.py   reads raw canonical relation edges from Neo4j, labels them by AIP's own
-               CONFIRMED/OBSERVED_ONLY classification (never re-derives it)
+               CONFIRMED/OBSERVED_ONLY/NOT_OBSERVED_IN_WINDOW classification (never re-derives it)
 comparator.py  expectation-driven exact comparison: MISSING, SEMANTIC_MISMATCH,
                FORBIDDEN_PRESENT, and UNEXPECTED mismatches
 reporter.py    renders the human-readable PASS/FAIL report for all four mismatch kinds
 ```
 
-See the I1 and I2 specifications for the full design rationale, including why status must be read
-from AIP rather than recomputed, why canonical identity (not Cypher row shape) is the comparison
-contract, and why forbidden assertions are identity-only rather than a conditional rules language.
+See the I1, I2, and I3 specifications for the full design rationale, including why status must be
+read from AIP rather than recomputed, why canonical identity (not Cypher row shape) is the
+comparison contract, why forbidden assertions are identity-only rather than a conditional rules
+language, and why evidence reconciliation is exercised through a real re-import rather than
+simulated.

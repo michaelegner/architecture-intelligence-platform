@@ -124,7 +124,7 @@ def _format_mismatch(mismatch: Mismatch) -> list[str]:
 def render(results: list[ScenarioResult]) -> str:
     sorted_results = sorted(results, key=lambda r: r.scenario_id)
 
-    lines = ["AIP Evaluation — I2", ""]
+    lines = ["AIP Evaluation — I3", ""]
     for result in sorted_results:
         lines.append(f"[{'PASS' if result.passed else 'FAIL'}] {result.scenario_id}")
         for mismatch in sorted(result.mismatches, key=_sort_key):
