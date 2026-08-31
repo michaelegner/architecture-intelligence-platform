@@ -21,7 +21,13 @@ from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 from evaluation.loader import load_scenario
 from evaluation.model import ScenarioScope
 from evaluation.projector import load_relation_facts
-from evaluation.runner import reset_graph, run_scenario
+from evaluation.runner import (
+    apply_reconciliation,
+    ingest_declarations,
+    inject_runtime_fixture,
+    reset_graph,
+    run_scenario,
+)
 
 SCENARIOS_DIR = Path(__file__).resolve().parent.parent.parent / "evaluation" / "scenarios"
 DATABASE = "neo4j"
@@ -358,3 +364,74 @@ def test_window_including_the_observation_reclassifies_it_as_confirmed(driver, t
 
     assert result.passed, result.mismatches
     assert result.mismatches == ()
+
+
+# --- I3: evidence reconciliation ---------------------------------------------------------------
+
+
+def test_evidence_reconciliation_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "08-evidence-reconciliation")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_evidence_reconciliation_transitions_from_confirmed_to_observed_only(driver, session):
+    """I3 spec §11.6: proves the transition itself using the same projector the evaluator uses -
+    before reconciliation the relation is CONFIRMED (declared+observed), after reconciliation it's
+    OBSERVED_ONLY (declared evidence expired, observed evidence survives)."""
+    scenario = load_scenario(SCENARIOS_DIR / "08-evidence-reconciliation")
+
+    reset_graph(driver, database=DATABASE)
+    ingest_declarations(driver, database=DATABASE, scenario=scenario)
+    inject_runtime_fixture(driver, database=DATABASE, scenario=scenario)
+
+    before = load_relation_facts(
+        session,
+        scope=scenario.scope,
+        environment=scenario.observation.environment,
+        since=scenario.observation.window_start,
+        until=scenario.observation.window_end,
+    )
+    before_fact = next(f for f in before if f.type == "CALLS")
+    assert before_fact.status == "CONFIRMED"
+    assert before_fact.declared_evidence is True
+    assert before_fact.observed_evidence is True
+
+    apply_reconciliation(driver, database=DATABASE, scenario=scenario)
+
+    after = load_relation_facts(
+        session,
+        scope=scenario.scope,
+        environment=scenario.observation.environment,
+        since=scenario.observation.window_start,
+        until=scenario.observation.window_end,
+    )
+    after_fact = next(f for f in after if f.type == "CALLS")
+    assert after_fact.status == "OBSERVED_ONLY"
+    assert after_fact.declared_evidence is False
+    assert after_fact.observed_evidence is True
+
+
+def test_evidence_reconciliation_sanity_break_without_reimport_stays_confirmed(driver, session):
+    """I3 spec §11.7: omitting the reconciliation re-import must leave the relation CONFIRMED,
+    proving the reconciliation phase is causally required for scenario 08's final expectation
+    rather than the scenario passing regardless."""
+    scenario = load_scenario(SCENARIOS_DIR / "08-evidence-reconciliation")
+
+    reset_graph(driver, database=DATABASE)
+    ingest_declarations(driver, database=DATABASE, scenario=scenario)
+    inject_runtime_fixture(driver, database=DATABASE, scenario=scenario)
+    # Deliberately no apply_reconciliation call.
+
+    facts = load_relation_facts(
+        session,
+        scope=scenario.scope,
+        environment=scenario.observation.environment,
+        since=scenario.observation.window_start,
+        until=scenario.observation.window_end,
+    )
+    fact = next(f for f in facts if f.type == "CALLS")
+    assert fact.status == "CONFIRMED"
