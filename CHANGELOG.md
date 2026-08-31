@@ -9,7 +9,11 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-08-31
+Prepared content for the `0.2.0` release, currently at `v0.2.0-rc.1` and undergoing final
+qualification (see
+[`docs/specifications/0.2.0/i5-release-qualification.md`](docs/specifications/0.2.0/i5-release-qualification.md)).
+This section becomes a dated `## [0.2.0] - YYYY-MM-DD` entry, with the real publication date, once
+`v0.2.0` is actually tagged and released.
 
 Adds a deterministic evaluation suite that verifies the architecture intelligence introduced in
 `v0.1` against independently authored ground truth — real AIP ingestion and runtime resolution,
