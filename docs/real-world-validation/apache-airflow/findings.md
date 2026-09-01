@@ -312,9 +312,11 @@ repeatability proof in I3.4, not two runs bundled into one task.
 - [x] I1 validation-contract tests green — `uv run pytest tests/unit -k "real_world_validation or
       quarkus_expected_dossier or airflow_expected_dossier" -q`: 59 passed.
 - [x] Ruff green — `uv run ruff check .` / `uv run ruff format --check .`: both clean.
-- [x] CI green — this PR's `lint + test` and `CI` workflow runs (GitHub Actions, this PR's checks).
-- [x] CodeQL green — this PR's `CodeQL` workflow run (GitHub Actions, this PR's checks).
-- [x] Dependency audit green — this PR's `dependency security scan (pip-audit, spec §29)` run.
+- [x] CI green — GitHub Actions run `33527683492` (`lint + test`, `dependency security scan`),
+      at commit `5023579`.
+- [x] CodeQL green — GitHub Actions run `33527683427` (Python + Actions analysis), at commit
+      `5023579`.
+- [x] Dependency audit green — `pip-audit` job within CI run `33527683492` above.
 - [x] I3 release blockers = `0` (F1/F2/F3 from PR #47's review are resolved by this commit — see
       each item above and `results.md`'s "Revalidation (I3.4)"/`upstream.md`'s Celery provider
       version).
