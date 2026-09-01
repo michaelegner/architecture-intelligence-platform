@@ -34,12 +34,15 @@ current classification:        UNSUPPORTED / severity INFO
 claimed AIP semantic scope:    none - Kafka topic/fan-out semantics are explicitly out of Queue scope
 cross-system relevance:        directly implicated by the messaging-operation-compatibility question
                                 below - see decisions/queue-topic-boundary.md
-candidate disposition:         NO_CHANGE (unsupported mechanism stays unsupported)
+candidate disposition:         DOCUMENT_UNSUPPORTED (mechanism stays explicitly, deliberately
+                                outside current AIP semantics - see decisions/queue-topic-
+                                boundary.md for why NO_CHANGE would understate the resolver's lack
+                                of a structural guard)
 decision record:               decisions/queue-topic-boundary.md
 production impact:             none
 test impact:                   none
 validation impact:             none
-final disposition:             NO_CHANGE
+final disposition:             DOCUMENT_UNSUPPORTED
 ```
 
 Re-verified directly against `app/telemetry/queue_resolver.py::resolve_queue()`: any undeclared
@@ -113,7 +116,7 @@ source system(s):              Apache Airflow (evidence), Quarkus Super Heroes (
 independent evidence:          docs/real-world-validation/apache-airflow/findings.md,
                                 docs/real-world-validation/apache-airflow/profile.md
 current classification:        UNRESOLVED_IDENTITY / severity MINOR
-claimed AIP semantic scope:    Service identity (canonical Service = {id, name})
+claimed AIP semantic scope:    Service identity (canonical Service = {id, name, version?})
 cross-system relevance:        high - I4 mandatory question 2 asks whether a role/instance
                                 distinction is needed generally, not just for Airflow
 candidate disposition:         DEFER (a named, real, but not-yet-cross-system-justified gap)
@@ -124,7 +127,7 @@ validation impact:             none
 final disposition:             DEFER
 ```
 
-Re-verified directly against `app/canonical/model.py`: `Service` remains a flat `{id, name}` entity
+Re-verified directly against `app/canonical/model.py`: `Service` remains `{id, name, version?}`
 with no role/instance hierarchy - see `decisions/runtime-role-identity.md`.
 
 ## `airflow-celery-messaging-runtime-status`
@@ -136,14 +139,26 @@ independent evidence:          docs/real-world-validation/apache-airflow/finding
 current classification:        INSUFFICIENT_EVIDENCE / severity MINOR
 claimed AIP semantic scope:    SENDS/RECEIVES_FROM (messaging identity prerequisite, spec §10.3)
 cross-system relevance:        high - shares the messaging-operation-compatibility question with
-                                the Quarkus Kafka finding, but resolves differently (see below)
-candidate disposition:         NO_CHANGE (identity remains unresolved; no coercion attempted)
+                                the Quarkus Kafka finding, and additionally exposes a second,
+                                independent identity-safety gap (see below)
+candidate disposition:         DEFER (semantic-convention gap and identity-safety prerequisite
+                                both remain open; not yet a demonstrated defect requiring FIX)
 decision record:               decisions/messaging-operation-compatibility.md
 production impact:             none
 test impact:                   none
 validation impact:             none
-final disposition:             NO_CHANGE
+final disposition:             DEFER
 ```
+
+Re-verified directly against `app/telemetry/service_resolver.py::resolve_service()`: its Tier 4
+mints a deterministic `OBSERVED_ONLY` Service id for *any* unmatched `service_name` unconditionally
+- there is no refusal path for a generic/ambiguous name such as Airflow's `unknown_service`. Today
+this never executes for Airflow's messaging path because `correlate_queue_observations()` filters
+the span earlier on its unrecognized operation attribute (see
+`decisions/messaging-operation-compatibility.md`) - so the zero `SENDS`/`RECEIVES_FROM` result is
+evidence that attribute recognition is narrow, not evidence that a resolved-identity prerequisite
+is already enforced. See `decisions/messaging-operation-compatibility.md` and
+`decisions/canonical-redesign-gate.md` (mandatory question 5) for the corrected reasoning.
 
 ## `i4-celery-instrumentation-semconv-mismatch` (new finding, discovered during I4.1)
 
@@ -152,8 +167,11 @@ source system(s):              Apache Airflow
 independent evidence:          docs/real-world-validation/apache-airflow/profile.md's "Standard
                                 Celery instrumentation decision" section (I3.2's diagnostic-only,
                                 non-frozen opentelemetry-instrumentation-celery==0.65b0 capture)
-current classification:        not previously ledgered as its own finding - folded into
-                                airflow-celery-messaging-runtime-status
+current classification:        INSUFFICIENT_EVIDENCE / severity MINOR (newly ledgered as its own
+                                finding; the same evidentiary gap was previously recorded only as
+                                part of airflow-celery-messaging-runtime-status's narrative, not
+                                as its own inventory row with an independent attribute-shape
+                                citation)
 claimed AIP semantic scope:    messaging.operation.type / messaging.destination.name recognition
 cross-system relevance:        decisive - this is a third, independently-shaped piece of real
                                 evidence for I4 mandatory question 3, distinct from both AIP's
@@ -176,13 +194,13 @@ would remain unrecognized even under a Quarkus-shaped attribute widening.
 | Finding | Current | Disposition |
 |---|---|---|
 | `qsh-grpc-locations` | UNSUPPORTED | NO_CHANGE |
-| `qsh-kafka-fights-topic` | UNSUPPORTED | NO_CHANGE |
+| `qsh-kafka-fights-topic` | UNSUPPORTED | DOCUMENT_UNSUPPORTED |
 | `qsh-kafka-operation-type-gap` | INSUFFICIENT_EVIDENCE | DEFER |
 | Airflow PostgreSQL dependencies (x3) | UNSUPPORTED | NO_CHANGE |
 | `airflow-execution-api-boundary` | UNRESOLVED_IDENTITY | NO_CHANGE |
 | `airflow-runtime-role-identity` | UNRESOLVED_IDENTITY | DEFER |
-| `airflow-celery-messaging-runtime-status` | INSUFFICIENT_EVIDENCE | NO_CHANGE |
-| `i4-celery-instrumentation-semconv-mismatch` (new) | n/a | DEFER |
+| `airflow-celery-messaging-runtime-status` | INSUFFICIENT_EVIDENCE | DEFER |
+| `i4-celery-instrumentation-semconv-mismatch` (new) | INSUFFICIENT_EVIDENCE | DEFER |
 
 No `FIX` disposition results from this ledger. The approved production-change list for I4.2 is
 empty (see `../README.md`).

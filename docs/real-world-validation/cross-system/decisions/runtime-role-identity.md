@@ -17,8 +17,10 @@ correct.
 ## Independent evidence
 
 ```text
-app/canonical/model.py (re-read for this decision): Service is {id: str, name: str} only -
-    no role, instance, deployment, or process hierarchy exists in the Canonical Model today.
+app/canonical/model.py (re-read for this decision): Service is {id: str, name: str,
+    version: str | None = None} - no role, instance, deployment, or process hierarchy exists in
+    the Canonical Model today. The optional version field does not resolve Airflow's role/instance
+    ambiguity (it distinguishes releases of one logical service, not concurrently deployed roles).
 
 Airflow (I3.1/I3.2): four architecturally distinct roles, one indistinguishable service.name
     at the OTel layer for all of them.
@@ -54,7 +56,8 @@ systems. `airflow-runtime-role-identity` remains `UNRESOLVED_IDENTITY`, unchange
 
 ## General semantic rule
 
-None adopted. The Canonical Model's `Service` stays `{id, name}` with no role/instance hierarchy.
+None adopted. The Canonical Model's `Service` stays `{id, name, version?}` with no role/instance
+hierarchy.
 `UNRESOLVED_IDENTITY` remains the correct, safe representation for a case where independent
 evidence suggests a distinction that cannot be safely resolved without guessing (I1's finding
 vocabulary definition, applied here exactly as intended).

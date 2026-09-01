@@ -32,9 +32,9 @@ Airflow:  CORRECT 9, UNSUPPORTED 3, UNRESOLVED_IDENTITY 2, INSUFFICIENT_EVIDENCE
 ## Mandatory Cross-System Questions (spec §9) — answered with explicit evidence
 
 **1. Does canonical `Service` remain adequate for the supported v0.3 scope?**
-Yes. Every `CORRECT` `PROVIDES`/`CALLS` fact in both dossiers resolves against the flat
-`{id, name}` `Service` model without ambiguity. The one case where it is not fully adequate
-(Airflow's role/instance distinction) is explicitly captured as `UNRESOLVED_IDENTITY`, not
+Yes. Every `CORRECT` `PROVIDES`/`CALLS` fact in both dossiers resolves against the
+`{id, name, version?}` `Service` model without ambiguity. The one case where it is not fully
+adequate (Airflow's role/instance distinction) is explicitly captured as `UNRESOLVED_IDENTITY`, not
 silently absorbed - see `runtime-role-identity.md`.
 
 **2. Is a runtime role/instance distinction needed to prevent a false supported claim, or is
@@ -44,24 +44,35 @@ today, and no cross-system evidence yet justifies the model change.
 
 **3. Can legacy and current OpenTelemetry messaging-operation attributes be normalized without
 widening unsupported mechanisms into Queue semantics?**
-Not yet demonstrated safely. See `messaging-operation-compatibility.md` and
-`queue-topic-boundary.md`: two real systems produced two non-overlapping legacy attribute shapes,
-and normalizing either without an accompanying topic-safety guard would risk exactly the false
-claim question 4 asks about. Deferred, not abandoned.
+Not yet demonstrated safely. See `messaging-operation-compatibility.md`,
+`queue-topic-boundary.md`, and question 5 below: normalizing either Quarkus's or Airflow's legacy
+shape without an accompanying Queue/topic guard (question 4) and Service-identity guard
+(question 5) would risk exactly the false claim this question asks about. Deferred, not abandoned;
+each guard's absence is the named prerequisite, not the difference between the two systems' shapes.
 
 **4. Is `Queue` safe for competing-consumer queues while excluding topic/subscription semantics?**
-Yes, as currently implemented - because the narrow operation-attribute allowlist accidentally also
-prevents Kafka's `fights` topic from ever reaching `resolve_queue()`. This safety is not yet
-structural (see `queue-topic-boundary.md`'s finding that `resolve_queue()` itself has no
-topic-vs-queue guard) - it is a consequence of question 3 staying `DEFER`. This coupling is now
-explicit and is the named prerequisite for ever answering question 3 differently.
+Only incidentally, not structurally. The frozen qualifying result is safe - zero facts exist for
+Kafka's `fights` topic - but that is a side effect of the narrow operation-attribute allowlist
+filtering the span before it ever reaches `resolve_queue()`, not a property of the resolver itself.
+Re-reading `resolve_queue()` directly (`queue-topic-boundary.md`) shows it has no topic-vs-queue
+refusal path at all: any unmatched destination name is unconditionally minted as an `OBSERVED_ONLY`
+Queue. A structural guard does not yet exist, and is the named prerequisite for ever safely
+widening question 3's attribute recognition.
 
 **5. Are resolved logical sender and consumer identities prerequisites for `SENDS` and
 `RECEIVES_FROM`?**
-Yes. Airflow's Celery messaging evidence cannot establish a resolved sender/consumer identity
-(`airflow-celery-messaging-runtime-status`, `INSUFFICIENT_EVIDENCE`), and consistent with that,
-zero `SENDS`/`RECEIVES_FROM` facts exist in Airflow's graph - no relation was asserted without a
-resolved identity behind it. This is the correct behavior, not a gap to close.
+Not yet enforced by production code, which is itself the finding. Airflow's zero
+`SENDS`/`RECEIVES_FROM` facts are evidence that its messaging span is filtered out by the
+operation-attribute check *before* `resolve_runtime_span()`/`resolve_service()` is ever reached
+(`correlate_queue_observations()`'s check order, re-verified for this decision) - not evidence that
+a resolved-identity prerequisite is already safely enforced downstream. Re-reading
+`resolve_service()` shows its Tier 4 mints an `OBSERVED_ONLY` Service for any unmatched
+`service_name` unconditionally, with no refusal for a generic/ambiguous name such as Airflow's
+`unknown_service` (`messaging-operation-compatibility.md`). So the answer to this question is:
+**it should be**, but is not yet a demonstrated, enforced property of the current implementation -
+it is named as an explicit, additional prerequisite (alongside the Queue/topic guard) for any
+future widening of messaging-operation-attribute recognition, not something today's zero-fact
+result already proves.
 
 **6. Does runtime evidence/status handling lose, fabricate, or overstate evidence?**
 No. Zero `INCORRECT_SUPPORTED` findings exist in either dossier across all qualifying runs (I2.1-
@@ -104,9 +115,11 @@ validated by I2 and I3. No redesign is undertaken.
 - The approved production-change list for I4.2 is empty (see `../finding-ledger.md`,
   `../README.md`); I4.2 SHALL record an evidence-backed `NO_CHANGE` per spec §27's explicit
   allowance for this outcome.
-- Every `DEFER` above (`qsh-kafka-operation-type-gap`, `airflow-celery-messaging-runtime-status`/
+- Every `DEFER` above (`qsh-kafka-operation-type-gap`, `airflow-celery-messaging-runtime-status`,
   `i4-celery-instrumentation-semconv-mismatch`, `airflow-runtime-role-identity`) remains open for a
-  future iteration, each with its prerequisite explicitly named in its own decision record.
+  future iteration, each with its prerequisite(s) explicitly named in its own decision record -
+  including the newly identified Service-identity guard (question 5) alongside the Queue/topic
+  guard (question 4), both now required before any messaging-operation-attribute widening.
 
 ## Production changes
 
@@ -122,9 +135,13 @@ None. All Quarkus findings and dispositions stand exactly as I2 left them.
 
 ## Airflow impact
 
-None. All Airflow findings and dispositions stand exactly as I3 left them.
+No classification or graph-state change. `airflow-celery-messaging-runtime-status`'s I4 disposition
+is corrected from an I3.2-era `NO_CHANGE`-leaning framing to `DEFER` (see
+`messaging-operation-compatibility.md`); every other Airflow finding stands exactly as I3 left it.
 
 ## Deferred work
 
 None beyond what each individual decision record (`messaging-operation-compatibility.md`,
-`queue-topic-boundary.md`, `runtime-role-identity.md`) already names as its own prerequisite.
+`queue-topic-boundary.md`, `runtime-role-identity.md`) already names as its own prerequisite -
+notably, any future messaging-operation-attribute widening now requires **both** a Queue/topic
+safety guard and a Service-identity safety guard, not just the former.

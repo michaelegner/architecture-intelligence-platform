@@ -102,4 +102,7 @@ same guard, not a Quarkus-only concern.
 
 Design and evidence a general topic-vs-queue safety guard before any future iteration approves
 widening `messaging.operation`/`messaging.operation.type` recognition. This guard is a hard
-precondition for that `FIX`, not an independent nice-to-have.
+precondition for that `FIX`, not an independent nice-to-have. A parallel, equally necessary
+precondition exists on the Service-identity side of the same widening -
+`decisions/messaging-operation-compatibility.md` documents that `resolve_service()` has the
+identical unconditional-minting shape as `resolve_queue()`.

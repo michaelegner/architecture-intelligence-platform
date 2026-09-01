@@ -45,7 +45,7 @@ decisions/canonical-redesign-gate.md             spec §13
 | `DEFER` | A plausible future capability or model change lacks sufficient evidence or safe scope. |
 | `NO_CHANGE` | Current behavior is already correct for the claimed scope. |
 
-I4.1's outcome: every finding remains `NO_CHANGE` or `DEFER`; no `FIX` is approved. The approved
-production-change list for I4.2 is therefore empty — I4.2 is expected to record an evidence-backed
-`NO_CHANGE` rather than manufacture hardening work (spec §27's own explicit allowance for this
-outcome).
+I4.1's outcome: every finding remains `NO_CHANGE`, `DEFER`, or `DOCUMENT_UNSUPPORTED`; no `FIX` is
+approved. The approved production-change list for I4.2 is therefore empty — I4.2 is expected to
+record an evidence-backed `NO_CHANGE` rather than manufacture hardening work (spec §27's own
+explicit allowance for this outcome).
