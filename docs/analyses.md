@@ -32,16 +32,16 @@ curl -s http://localhost:8000/api/analysis/services/service:order-service/blast-
 ```json
 [
   {
-    "service_id": "service:payment-service",
-    "service_name": "PaymentService",
-    "depth": 1,
-    "via": "ASYNC"
-  },
-  {
     "service_id": "service:product-service",
     "service_name": "ProductService",
     "depth": 1,
     "via": "SYNC"
+  },
+  {
+    "service_id": "service:payment-service",
+    "service_name": "PaymentService",
+    "depth": 1,
+    "via": "ASYNC"
   },
   {
     "service_id": "service:invoice-service",
@@ -64,6 +64,23 @@ how any other hop in the chain was reached.
 
 ```bash
 curl -s "http://localhost:8000/api/analysis/services/service:order-service/blast-radius?depth=1" | jq .
+```
+
+```json
+[
+  {
+    "service_id": "service:product-service",
+    "service_name": "ProductService",
+    "depth": 1,
+    "via": "SYNC"
+  },
+  {
+    "service_id": "service:payment-service",
+    "service_name": "PaymentService",
+    "depth": 1,
+    "via": "ASYNC"
+  }
+]
 ```
 
 returns just the two `depth: 1` entries above. The default is `DEFAULT_MAX_DEPTH` (5, set in
