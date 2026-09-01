@@ -4,7 +4,7 @@ Authored from primary upstream evidence at commit `3adbbe1c58e4532df1964cb779480
 **before** any AIP run against this system (I1 §5/§36, I3 spec §13/§39). No fact below is derived
 from AIP output.
 
-## Provisional scope of this freeze (I3 spec §48-49)
+## Provisional scope of this freeze (I3 spec §48-49) — RESOLVED by I3.2, see Change log
 
 The I3 spec's own normative phase order runs Phase A (upstream/identity research, this document)
 -> Phase B (observability qualification: start the profile, capture raw OTel independently) ->
@@ -410,4 +410,30 @@ independent caller-side evidence this dossier does not yet have, and none is man
 
 ## Change log (I1 §37: ground truth may change only for a documented, non-AIP-output reason)
 
-None yet — this is the initial freeze.
+**I3.2 — Phase B closes the freeze gate for the Celery messaging item (2026-09-01).** Per the
+"Provisional scope of this freeze" section above, I3.2 started the profile, captured raw OTel
+independently (never through AIP), and closed the §49 freeze gate for the one item I3.1 left open.
+Reason recorded here, not derived from any AIP output (no AIP comparison has run):
+
+- Native Airflow tracing (`[traces] otel_on = True`) exposes task/dagrun/execution-API spans only —
+  zero Celery/broker/queue attributes, confirmed directly from the Collector's raw `debug` exporter
+  output across multiple runs.
+- Per I3 spec §29, standard, pinned `opentelemetry-instrumentation-celery==0.65b0` was added as a
+  diagnostic-only experiment (not kept in the frozen profile). It surfaced a real `Producer`-kind
+  span (`messaging.destination_kind: queue`, `messaging.destination: default`) confirming the
+  destination is a queue with the pinned `default` name — but no consumer-side span, and, decisively,
+  **every span's resource `service.name` was `unknown_service` regardless of which Airflow component
+  produced it.**
+- This directly and independently confirms (now from captured runtime evidence, not just source
+  reading) the `airflow-runtime-role-identity` `unresolved_identity` item below: sender/consumer
+  logical identity is not resolvable from this profile's OTel configuration. I3 spec §23's
+  qualification rule requires resolved identity as a precondition for any qualified `SENDS`/
+  `RECEIVES_FROM` fact, independent of how good the messaging-attribute evidence is.
+
+**Outcome:** no qualified `SENDS`/`RECEIVES_FROM` relation is added to `expected.yaml`. The
+`airflow-celery-messaging-runtime-status` item is reclassified from `insufficient_evidence` (open,
+pending Phase B) to a final, closed `insufficient_evidence` result — this is itself a legitimate I3
+spec §23 outcome, not an open question. `queue:default`'s scope entry remains in `expected.yaml`
+unchanged (still correctly excludes any unqualified `SENDS`/`RECEIVES_FROM` fact from silently
+passing). Full experiment detail: `profile.md`'s "Standard Celery instrumentation decision" section.
+Full run procedure: `runtime/README.md`, `runbook.md`.

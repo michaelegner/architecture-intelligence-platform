@@ -1,0 +1,47 @@
+# OpenTelemetry Collector configuration for the Apache Airflow I3 validation profile.
+#
+# Same shape as examples/runtime-demo/otel-collector-config.yaml and
+# docs/real-world-validation/quarkus-super-heroes/runtime/otel-collector-config.yaml (this repo's
+# own Collector fanout pattern): OTLP in, batch, fan out to AIP + a raw/diagnostic exporter. Every
+# Airflow component exports OTLP/HTTP natively once `docker-compose.yml`'s standard OTEL_* env vars
+# are set (I3 spec §28) - no source-code instrumentation change is required. This Collector only
+# routes that existing export, and gives I3.2's Phase B (raw telemetry qualification, `runbook.md`)
+# an inspection point independent of AIP output (I3 spec §27).
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 100
+
+exporters:
+  # The only required leg: forwards every trace batch to AIP's OTLP ingestion boundary.
+  # `endpoint` is the base URL - the exporter appends /v1/traces itself.
+  otlphttp/aip:
+    endpoint: http://architecture-intelligence:8000
+    tls:
+      insecure: true
+    # AIP's `/v1/traces` reads the raw request body as an uncompressed protobuf message - it
+    # doesn't negotiate Content-Encoding, so compression must be disabled on this leg. The
+    # exporter's default (gzip) would otherwise make every export a 400.
+    compression: none
+
+  # The independent raw-evidence path Phase B qualification reads from (`runbook.md`): prints
+  # received spans (resource attributes + span attributes) to the Collector's own stdout, inspected
+  # without ever going through AIP's API or comparator.
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/aip, debug]
