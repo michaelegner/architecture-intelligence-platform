@@ -22,7 +22,6 @@ upstream_revision: "3adbbe1c58e4532df1964cb7794805e763816ee8"
 
 scope:
   entities:
-    - service:airflow-apiserver
     - operation:service:airflow-apiserver:GET:/api/v2/monitor/health
     - operation:service:airflow-apiserver:GET:/api/v2/dags
     - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
