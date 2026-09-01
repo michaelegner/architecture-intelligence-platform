@@ -1,9 +1,9 @@
 # Runbook — Apache Airflow
 
-Ordered, reproducible process (I1 §28). I3.2 established phases 1-7 (setup through Phase B's raw
-telemetry qualification and reset); I3.3 filled in phases 8-10 (the first qualifying AIP comparison
-itself, executed twice for repeatability — `results.md`), matching `quarkus-super-heroes/runbook.md`'s
-own phase-ownership split.
+Ordered, reproducible process (I1 §28). I3.2 established phases 1-6 (setup through Phase B's raw
+telemetry qualification); I3.3 filled in phases 7-10 (the first qualifying AIP comparison itself,
+plus an explicit revalidation phase, executed twice in full for repeatability — `results.md`),
+matching `quarkus-super-heroes/runbook.md`'s own phase-ownership split.
 
 All commands assume a shell at the root of *this* repository (`architecture-intelligence-platform`)
 unless otherwise noted. Artifacts referenced below live under
@@ -13,7 +13,9 @@ unless otherwise noted. Artifacts referenced below live under
 
 ```text
 Docker (with Compose v2)
-curl, jq, python3 (stdlib only - readiness/token/poll helpers below, no extra pip packages)
+curl, jq, python3 (stdlib only - readiness/token/poll helpers below, no extra pip packages),
+    uv (phase 7's --scope-entities helper reads expected.yaml via PyYAML, a project dependency -
+    use `uv run python`, never plain `python3`, for that one command - PR #46 review F1)
 CPU: 2 cores minimum, 4 recommended (I3 spec §57 - matches the official Compose file's own
     documented minimum for this exact component set: Postgres, Redis, 4 Airflow role containers,
     2 worker replicas, AIP, Neo4j, Collector)
@@ -293,32 +295,27 @@ and exact pinned version recorded in `../profile.md` before repeating this phase
 Either outcome is a valid, spec-compliant Phase B close — spec §23 explicitly allows
 `INSUFFICIENT_EVIDENCE`/`UNSUPPORTED` as legitimate results, not just a qualified relation.
 
-## 7. Clean-state / reset procedure (I3 spec §58)
-
-```bash
-docker compose down -v
-```
-
-Resets the Airflow Postgres volume, Redis broker state, AIP Neo4j state, and the named
-`airflow-i3-logs`/`airflow-i3-config`/`airflow-i3-plugins` volumes (Airflow logs, the generated
-`airflow.cfg`, and any diagnostic plugin) — spec §58's full list (also: no queued Celery messages and
-no Dag Run state survive into the next run). These three are named Docker volumes, not host bind
-mounts (PR #45 review F2 — a host bind mount is never removed by `down -v`), so this actually empties
-them rather than only claiming to. `dags/` is a host bind mount and is untouched by `down -v`, but it
-holds only this repo's own committed `i3_validation.py`, never generated state. Rerun phases 3-6 once
-from this clean state to confirm the profile is actually repeatable before treating Phase B's
-qualification as trustworthy.
-
 ---
 
-## 8. Capture AIP's actual result and compare (I3 spec §48's Phase D, executed by I3.3)
+**PR #46 review F2:** an earlier version of phases 7-10 put the `docker compose down -v` teardown
+*before* the capture step in reading order — a reader following the numbered phases top to bottom
+would have torn down the very Neo4j instance phase 8 (as it was then numbered) needed to query. The
+phases below are renumbered so the linear reading order matches the actual required execution
+order: capture and compare happen while the stack is still up, teardown comes after, and
+revalidation (a second complete run, for repeatability) is its own explicit phase rather than a
+one-line aside.
+
+## 7. Capture AIP's actual result and compare (I3 spec §48's Phase D, executed by I3.3)
+
+Still inside the same shell as phases 3-6 (stack up, `WINDOW_START`/`WINDOW_END` set) — capture
+before any teardown:
 
 ```bash
 uv run python -m real_world_validation capture \
   --neo4j-uri bolt://localhost:7687 --neo4j-user neo4j --neo4j-password "$NEO4J_PASSWORD" \
   --database neo4j --environment airflow-i3 \
   --since "$WINDOW_START" --until "$WINDOW_END" \
-  --scope-entities "$(python3 -c "
+  --scope-entities "$(uv run python -c "
 import yaml
 doc = yaml.safe_load(open('../expected.yaml'))
 print(','.join(doc['scope']['entities']))
@@ -331,23 +328,55 @@ uv run python -m real_world_validation compare \
 ```
 
 `--scope-entities` is derived from `expected.yaml`'s own `scope.entities` rather than hand-typed a
-second time, so the capture and the comparator's frozen scope can never silently drift apart.
+second time, so the capture and the comparator's frozen scope can never silently drift apart. Use
+`uv run python`, never plain `python3`, for the helper above — `PyYAML` is a project dependency, not
+guaranteed on system Python even though the readiness/token/poll helpers in phases 3/6 only ever
+need the standard library (PR #46 review F1).
 
-## 9. Store deterministic report
+## 8. Store deterministic report
 
 Copy the comparator's full output into `../results.md`, and classify every non-`CORRECT` finding in
-`../findings.md` (I3.3 did this once for the qualifying run and once more for a same-contract
-repeatability run — see both files' full account).
+`../findings.md`.
 
-## 10. Tear down environment
+## 9. Tear down environment (I3 spec §58)
 
 ```bash
 docker compose down -v
 ```
 
+Resets the Airflow Postgres volume, Redis broker state, AIP Neo4j state, and the named
+`airflow-i3-logs`/`airflow-i3-config`/`airflow-i3-plugins` volumes (Airflow logs, the generated
+`airflow.cfg`, and any diagnostic plugin) — spec §58's full list (also: no queued Celery messages and
+no Dag Run state survive into the next run). These three are named Docker volumes, not host bind
+mounts (PR #45 review F2 — a host bind mount is never removed by `down -v`), so this actually empties
+them rather than only claiming to. `dags/` is a host bind mount and is untouched by `down -v`, but it
+holds only this repo's own committed `i3_validation.py`, never generated state.
+
+## 10. Revalidation — repeat from clean state (I1 §28's repeatability requirement)
+
+A single run proves nothing about repeatability by itself. Start from a fresh shell at the
+repository root — same starting point phase 3 itself assumes (this file's own opening line) — not
+whatever directory a previous phase 9 teardown left the shell in (PR #46 review F2):
+
+```bash
+cd docs/real-world-validation/apache-airflow/runtime   # same as phase 3's own first line
+```
+
+Repeat phases 2 through 8 exactly, unmodified, with two changes only: generate a **new**
+`NEO4J_PASSWORD`/`FERNET_KEY` in phase 2 (never reuse a prior run's secrets), and write the phase 7
+capture to `../artifacts/actual-revalidation.yaml` instead of `actual.yaml`. Then:
+
+```bash
+diff ../artifacts/actual.yaml ../artifacts/actual-revalidation.yaml && echo "IDENTICAL"
+```
+
+A repeatable profile produces byte-identical captures and an identical comparator result both times
+— append that confirmation to `../results.md`. Finally, tear down again (phase 9, `docker compose
+down -v`) so no state from either run survives.
+
 ## Clean-state requirement (I1 §29 / I3 spec §58)
 
-Every qualifying run begins from clean state. Before phase 3 (and again before any rerun):
+Every qualifying run begins from clean state. Before phase 3 (and again before phase 10's rerun):
 
 ```bash
 cd docs/real-world-validation/apache-airflow/runtime
