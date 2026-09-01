@@ -18,9 +18,9 @@ docs/real-world-validation/cross-system/           this directory — I4's joint
 ## Delivery split (spec §27)
 
 ```text
-I4.1  Finding Consolidation and Decision Freeze   <- complete (PR #49)
-I4.2  General Model and Runtime Hardening         <- complete, NO_CHANGE (see hardening.md)
-I4.3  Distilled Regression and Synthetic Revalidation
+I4.1  Finding Consolidation and Decision Freeze         <- complete (PR #49)
+I4.2  General Model and Runtime Hardening               <- complete, NO_CHANGE (see hardening.md)
+I4.3  Distilled Regression and Synthetic Revalidation   <- complete (see regression-map.md)
 I4.4  Final-Candidate Real-System Revalidation
 I4.5  RC Qualification
 ```
@@ -44,6 +44,14 @@ decisions/canonical-redesign-gate.md             spec §13
 
 ```text
 hardening.md                                     evidence-backed NO_CHANGE record (spec §27/§28)
+```
+
+## I4.3 contents
+
+```text
+regression-map.md                                finding-to-test map, distilled tests, bound
+                                                  candidate results, determinism verification
+                                                  (spec §17/§27)
 ```
 
 ## Decision vocabulary (spec §7)

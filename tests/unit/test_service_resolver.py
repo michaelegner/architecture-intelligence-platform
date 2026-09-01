@@ -139,6 +139,25 @@ def test_tier4_observed_only_includes_namespace_when_present():
     assert result.discovery_status == DiscoveryStatus.OBSERVED_ONLY
 
 
+def test_generic_service_name_is_still_minted_as_qualified_observed_only():
+    # Documents docs/real-world-validation/cross-system/decisions/
+    # messaging-operation-compatibility.md (I4.1): Tier 4 has no refusal path for a generic,
+    # ambiguous name - it mints an OBSERVED_ONLY Service exactly as readily as for a distinctive
+    # one, regardless of upstream system. "unknown_service" is used here as a real motivating
+    # instance (every Airflow role - scheduler, DAG processor, worker, triggerer - reports this
+    # identical service.name, so nothing here would distinguish them), not as an Airflow-specific
+    # rule. This test pins the current, deliberately-unguarded behavior; it does not assert
+    # safety.
+    result = resolve_service(
+        [ORDER_SERVICE, PAYMENT_SERVICE],
+        service_name="unknown_service",
+        service_namespace=None,
+        aliases={},
+    )
+    assert result.service_id == "service:unknown-service"
+    assert result.discovery_status == DiscoveryStatus.OBSERVED_ONLY
+
+
 # --- resolve_runtime_span: environment + instance-id-ignored (spec §61 "instance ignored") --------
 
 
