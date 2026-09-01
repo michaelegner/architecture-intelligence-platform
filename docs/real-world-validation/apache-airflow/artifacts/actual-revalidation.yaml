@@ -1,0 +1,55 @@
+relations:
+- type: PROVIDES
+  source: service:airflow-apiserver
+  target: operation:service:airflow-apiserver:GET:/api/v2/dags
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:airflow-apiserver
+  target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:airflow-apiserver
+  target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:airflow-apiserver
+  target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:airflow-apiserver
+  target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:airflow-apiserver
+  target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:airflow-apiserver
+  target: operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:airflow-apiserver
+  target: operation:service:airflow-apiserver:GET:/api/v2/variables
+  evidence:
+    declared: true
+    observed: false
+- type: PROVIDES
+  source: service:airflow-apiserver
+  target: operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+  evidence:
+    declared: true
+    observed: false

@@ -1,10 +1,9 @@
 # Runbook — Apache Airflow
 
-Ordered, reproducible process (I1 §28). **I3.2 owns and fully specifies phases 1-7** (setup through
-Phase B's raw telemetry qualification and reset); **phases 8-10 belong to I3.3** (the first
-qualifying AIP comparison itself) and are only stubbed here so the file stays a complete pipeline
-reference — see the note at the end of each, matching `quarkus-super-heroes/runbook.md`'s own
-phase-ownership split.
+Ordered, reproducible process (I1 §28). I3.2 established phases 1-7 (setup through Phase B's raw
+telemetry qualification and reset); I3.3 filled in phases 8-10 (the first qualifying AIP comparison
+itself, executed twice for repeatability — `results.md`), matching `quarkus-super-heroes/runbook.md`'s
+own phase-ownership split.
 
 All commands assume a shell at the root of *this* repository (`architecture-intelligence-platform`)
 unless otherwise noted. Artifacts referenced below live under
@@ -312,18 +311,38 @@ qualification as trustworthy.
 
 ---
 
-**Phases 8-10 (execute comparison, store report, tear down) belong to I3.3.** Reference for what
-they will do, per the I1 runbook contract (§28) and I3 spec §48's Phase D:
+## 8. Capture AIP's actual result and compare (I3 spec §48's Phase D, executed by I3.3)
 
-```text
-8. Query/capture AIP result   - export AIP's actual canonical facts for environment=airflow-i3 /
-                                  [window_start, window_end] into a real_world_validation actual-
-                                  facts capture (real_world_validation/README.md's schema)
-   Execute comparison         - uv run python -m real_world_validation compare
-                                  --expected docs/real-world-validation/apache-airflow/expected.yaml
-                                  --actual   <the capture above>
-9. Store deterministic report  - results.md / findings.md
-10. Tear down environment      - docker compose down -v (this profile)
+```bash
+uv run python -m real_world_validation capture \
+  --neo4j-uri bolt://localhost:7687 --neo4j-user neo4j --neo4j-password "$NEO4J_PASSWORD" \
+  --database neo4j --environment airflow-i3 \
+  --since "$WINDOW_START" --until "$WINDOW_END" \
+  --scope-entities "$(python3 -c "
+import yaml
+doc = yaml.safe_load(open('../expected.yaml'))
+print(','.join(doc['scope']['entities']))
+")" \
+  --scope-relation-types PROVIDES,SENDS,RECEIVES_FROM \
+  --out ../artifacts/actual.yaml
+
+uv run python -m real_world_validation compare \
+  --expected ../expected.yaml --actual ../artifacts/actual.yaml
+```
+
+`--scope-entities` is derived from `expected.yaml`'s own `scope.entities` rather than hand-typed a
+second time, so the capture and the comparator's frozen scope can never silently drift apart.
+
+## 9. Store deterministic report
+
+Copy the comparator's full output into `../results.md`, and classify every non-`CORRECT` finding in
+`../findings.md` (I3.3 did this once for the qualifying run and once more for a same-contract
+repeatability run — see both files' full account).
+
+## 10. Tear down environment
+
+```bash
+docker compose down -v
 ```
 
 ## Clean-state requirement (I1 §29 / I3 spec §58)

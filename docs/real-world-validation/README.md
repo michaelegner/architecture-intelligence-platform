@@ -15,9 +15,10 @@ I5  Release Qualification
 
 I1 only establishes the method; I2 added `quarkus-super-heroes/` once its ground truth was frozen
 and its qualifying comparison completed. I3 adds `apache-airflow/`: I3.1 froze its declaration-only
-ground truth, and I3.2 closed the one item I3.1 left provisional (the Celery messaging boundary) via
-independent observability qualification (`ground-truth.md`'s Change log, `profile.md`) — the full
-ground truth is now final, ahead of I3.3's qualifying comparison.
+ground truth, I3.2 closed the one item I3.1 left provisional (the Celery messaging boundary) via
+independent observability qualification, and I3.3 ran the first qualifying comparison — 9/9
+`PROVIDES` facts `CORRECT`, 0 missing/incorrect, confirmed repeatable across two independent
+clean-state runs (`results.md`, `findings.md`).
 
 ## Purpose
 
