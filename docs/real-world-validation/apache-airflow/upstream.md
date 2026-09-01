@@ -24,9 +24,9 @@ revision requires a documented reason, a new exact SHA, a new release/tag identi
 review against the new SHA, and a profile re-freeze (I3 spec §4).
 
 This is the **Airflow upstream release identity** — distinct from the **AIP candidate identity**
-(the AIP commit/build under test), which is not yet recorded: I3.1 performs no AIP comparison run
-(I3 spec §70's I3.1 scope). The AIP candidate SHA is first recorded in `results.md` at Phase D
-(I3.3).
+(the AIP commit/build under test), which is not recorded here: I3.1 performs no AIP comparison run
+(I3 spec §70's I3.1 scope). The AIP candidate SHA and profile revision are recorded in `results.md`
+at Phase D (I3.3/I3.4), per I3 spec §31/§59 (PR #47 re-review F4).
 
 ## Relevant provider dependencies
 
@@ -51,7 +51,7 @@ Airflow 3 architecture changes
 Public REST API reference
     https://airflow.apache.org/docs/apache-airflow/3.3.1/stable-rest-api-ref.html
 CeleryExecutor
-    https://airflow.apache.org/docs/apache-airflow-providers-celery/stable/celery_executor.html
+    https://airflow.apache.org/docs/apache-airflow-providers-celery/3.23.1/celery_executor.html
 OpenTelemetry traces
     https://airflow.apache.org/docs/apache-airflow/3.3.1/administration-and-deployment/logging-monitoring/traces.html
 ```
@@ -60,13 +60,24 @@ All fetched at specification/ground-truth time; the dossier records the Airflow 
 alongside each reference per I3 spec §7 (moving `stable` docs may be used for research, but the
 version is recorded here rather than relied upon implicitly).
 
-The CeleryExecutor reference above is a moving `stable` provider-documentation URL — the
-`apache-airflow-providers-celery` package versions independently of Airflow core, and its exact
-version isn't fixed yet (the runtime image/provider set is an I3.2 decision). The Celery/Redis
-ground truth this dossier actually relies on (broker URL, result backend, default queue name) comes
-from the pinned Compose file and `config_templates/config.yml` instead — immutable source at the
-pinned commit, not this doc link. I3.2 SHALL record the exact installed Celery provider version
-before the runtime-dependent freeze, replacing this `stable` reference with a version-pinned one.
+The CeleryExecutor reference above is now version-pinned (PR #47 review F3 — a previous version of
+this file left it as the moving `stable` URL, with the exact provider version recorded as not yet
+fixed). The `apache-airflow-providers-celery` package versions independently of Airflow core; its
+exact version, as actually installed in the digest-pinned `apache/airflow:3.3.1` image
+(`sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339`), was queried directly
+from a running container during I3.4's revalidation run (`docker compose exec airflow-scheduler
+airflow providers list`):
+
+```text
+apache-airflow-providers-celery   3.23.1
+celery                            5.6.3
+```
+
+The Celery/Redis ground truth this dossier actually relies on (broker URL, result backend, default
+queue name) still comes from the pinned Compose file and `config_templates/config.yml`, not this
+doc link — this version pin exists so the documentation reference itself stays exact, and so any
+future re-run of this exact image can confirm identical provider/instrumentation versions per I3
+spec §72's Upstream category.
 
 ## Relevant OpenAPI source
 
