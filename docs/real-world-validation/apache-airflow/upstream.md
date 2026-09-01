@@ -60,6 +60,14 @@ All fetched at specification/ground-truth time; the dossier records the Airflow 
 alongside each reference per I3 spec §7 (moving `stable` docs may be used for research, but the
 version is recorded here rather than relied upon implicitly).
 
+The CeleryExecutor reference above is a moving `stable` provider-documentation URL — the
+`apache-airflow-providers-celery` package versions independently of Airflow core, and its exact
+version isn't fixed yet (the runtime image/provider set is an I3.2 decision). The Celery/Redis
+ground truth this dossier actually relies on (broker URL, result backend, default queue name) comes
+from the pinned Compose file and `config_templates/config.yml` instead — immutable source at the
+pinned commit, not this doc link. I3.2 SHALL record the exact installed Celery provider version
+before the runtime-dependent freeze, replacing this `stable` reference with a version-pinned one.
+
 ## Relevant OpenAPI source
 
 ```text
@@ -69,11 +77,15 @@ airflow-core/src/airflow/api_fastapi/core_api/openapi/v2-rest-api-generated.yaml
 
 Fetched directly: `info.title` = "Airflow API 2", 88 total paths under `/api/v2` (excluding
 UI-only routes, which the OpenAPI document itself distinguishes from the stable contract per I3
-spec §15). No standalone OpenAPI/contract document exists in the pinned repository for the
-internal execution API (`/execution/*`) — the only related file is
-`task-sdk/src/airflow/sdk/execution_time/schema/schema.json`, a JSON payload schema, not a REST
-operation contract. This absence is load-bearing for `ground-truth.md`'s execution-API boundary
-classification (I3 spec §19).
+spec §15). No standalone *generated OpenAPI file* exists in the pinned repository for the internal
+execution API (`/execution/*`) the way one does for `/api/v2` — but the pinned source
+(`airflow-core/src/airflow/api_fastapi/execution_api/app.py`, `routes/__init__.py`,
+`routes/task_instances.py`) independently defines a full FastAPI application with concrete route
+declarations, which is valid I1 tier-4 (upstream source code) evidence. That source evidence is
+what `ground-truth.md`'s execution-API boundary classification (I3 spec §19) is actually based on —
+the absence of a *generated contract file* is not itself load-bearing; see `ground-truth.md` for
+why the classification remains `UNRESOLVED_IDENTITY` (caller identity + deliberate scope, not
+absence of evidence).
 
 ## Relevant Compose source
 

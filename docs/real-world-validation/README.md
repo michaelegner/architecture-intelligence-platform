@@ -14,8 +14,10 @@ I5  Release Qualification
 ```
 
 I1 only establishes the method; I2 added `quarkus-super-heroes/` once its ground truth was frozen
-and its qualifying comparison completed. I3 adds `apache-airflow/`; its ground truth is frozen
-(I3.1) but its qualifying comparison has not yet run (I3.2/I3.3).
+and its qualifying comparison completed. I3 adds `apache-airflow/`: I3.1 freezes its
+declaration-only ground truth (final for every non-runtime fact), but the Celery messaging
+boundary remains provisional until I3.2's independent observability qualification completes that
+freeze, ahead of I3.3's qualifying comparison.
 
 ## Purpose
 

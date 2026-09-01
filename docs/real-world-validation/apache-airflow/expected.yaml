@@ -130,9 +130,13 @@ unsupported:
 unresolved_identity:
   - id: airflow-execution-api-boundary
     description: >
-      Workers/tasks call the internal execution API (http://airflow-apiserver:8080/execution/),
-      but no pinned OpenAPI or other machine-readable contract document describes this surface at
-      the pinned commit, so its operation identity cannot be independently established.
+      The pinned Airflow source independently defines the private Execution API and concrete
+      target routes (airflow-core/src/airflow/api_fastapi/execution_api/), but a supported CALLS
+      fact is not frozen in I3.1 because the worker/task-runner caller identity is unresolved
+      (see airflow-runtime-role-identity below) and the qualifying scope has not yet been
+      deliberately extended to this second contract surface (see ground-truth.md's "Execution API
+      boundary" §19). I3.2 SHALL revisit the boundary using the validation workload and
+      independent runtime evidence before I3.3.
   - id: airflow-runtime-role-identity
     description: >
       airflow-scheduler, airflow-dag-processor, airflow-worker, and airflow-triggerer are

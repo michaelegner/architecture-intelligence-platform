@@ -440,7 +440,7 @@ and:
 ```text
 Interpretation B
 
-airflow-api-server
+airflow-apiserver
 airflow-scheduler
 airflow-worker
 ...
@@ -1402,8 +1402,8 @@ upstream_revision: "3adbbe1c58e4532df1964cb7794805e763816ee8"
 
 scope:
   entities:
-    - operation:service:airflow-api-server:GET:/api/v2/dags
-    - operation:service:airflow-api-server:POST:/api/v2/dags/{dag_id}/dagRuns
+    - operation:service:airflow-apiserver:GET:/api/v2/dags
+    - operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
   relation_types:
     - PROVIDES
     - CALLS
@@ -1414,8 +1414,8 @@ expected:
   relations:
     - id: airflow-api-provides-dags
       type: PROVIDES
-      source: service:airflow-api-server
-      target: operation:service:airflow-api-server:GET:/api/v2/dags
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags
       evidence:
         declared: true
         observed: null
