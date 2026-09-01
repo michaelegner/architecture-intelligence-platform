@@ -20,7 +20,7 @@ messaging boundary) via independent observability qualification, I3.3 ran the fi
 comparison (9/9 `PROVIDES` facts `CORRECT`, 0 missing/incorrect), and I3.4 closed I3 out with its
 own separately-phased revalidation run (per I3 spec §76's phase separation) — three independent
 clean-state runs total, all identical, no production fix required, no Quarkus impact, every I3
-spec §72 Definition of Done item satisfied (`findings.md`'s final section).
+spec §72 Definition of Done item satisfied (`apache-airflow/findings.md`'s final section).
 
 ## Purpose
 

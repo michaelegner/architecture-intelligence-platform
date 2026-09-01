@@ -5,9 +5,16 @@ against `expected.yaml` as fully and finally frozen by I3.1 (declaration-only fa
 (Phase B closure of the one item I3.1 left provisional). Executed by following `runbook.md` phases
 1-9 for real against a freshly built, freshly started stack for the qualifying run, then phase 10
 for the same-PR clean-state repeatability check below ("Repeatability evidence"). I3.4 later
-performed a **third**, separately-phased live execution ("Revalidation (I3.4)" at the end of this
-file) to satisfy I3 spec §76's phase separation — see that section for why the two runs below don't
-substitute for it.
+performed a **third**, separately-phased live execution ("Revalidation (I3.4)") to satisfy I3 spec
+§76's phase separation.
+
+**The three runs above recorded genuinely different AIP candidate/profile-revision commit SHAs
+(PR #47 re-review F4)** — I3 spec §59 requires the *same* candidate and *same* profile revision
+across repeated runs, not merely content-equivalent ones, so those three runs' identity fields are
+kept below as historical record (they still prove long-term content stability across the full I3
+series) but are **superseded** for §59 purposes by "Same-candidate revalidation (I3 spec §59)" at
+the end of this file — two fresh runs performed at one single pinned commit, which is the record
+that actually satisfies §59.
 
 ## Run identity
 
@@ -276,27 +283,16 @@ profile revision:   ef7ad0d (runtime/,expected.yaml,profile.md,ground-truth.md -
                     I3.2); 4160af7 (runbook.md - unchanged since I3.3's own phases 7-10 fill-in)
 ```
 
-**Same AIP candidate, same profile revision (I3 spec §59) — the actual auditability check, not an
-assumption:**
-
-```bash
-git diff --stat 0fbf8b4..317cb73 -- app/ real_world_validation/
-# (empty - app/'s tree has not changed since before I3 began, commit 0fbf8b4 being the Quarkus
-# I2.3 comparison point; ef7ad0d and 1a2bda3 above are both within this unchanged range, so their
-# built AIP images are behaviorally identical regardless of which exact commit each `docker
-# compose build` picked up)
-
-git diff --stat ef7ad0d..317cb73 -- docs/real-world-validation/apache-airflow/runtime/ \
-  docs/real-world-validation/apache-airflow/expected.yaml \
-  docs/real-world-validation/apache-airflow/profile.md \
-  docs/real-world-validation/apache-airflow/ground-truth.md
-# (empty - the executable profile itself has not changed since I3.2 froze it, across all three runs)
-```
-
-Both commands were run against this repository's actual history (not asserted from memory) and both
-returned empty — the strongest form of the §59 invariant: not just two matching SHAs, but proof that
-*every* commit in the range between the two builds left `app/` and the profile untouched, so no
-intermediate state could have silently differed either.
+**Correction (PR #47 re-review F4):** the paragraph that previously appeared here argued that a
+`git diff` between two endpoints proves the AIP candidate and profile revision were "the same" in
+the sense I3 spec §59 requires. That doesn't hold: §59 asks for the *same* candidate SHA and *same*
+profile revision, not two different SHAs shown to be content-equivalent — and even the
+content-equivalence argument was incomplete, since a two-endpoint `git diff` alone (unlike `git
+log --oneline <range> -- <path>`, which would show zero commits) doesn't by itself rule out
+intermediate commits touching a path and reverting it. This run's `ef7ad0d`/`1a2bda3` split identity
+above is kept as historical record only — it is **not** the evidence that satisfies §59. See "Same
+AIP candidate, same profile revision (I3 spec §59)" at the end of this file for the run pair that
+actually does.
 
 Same procedure as the qualifying run above: clean-state compose stack, bounded readiness gate
 passed for every service on the first pass, `POST /api/import` returned identical
@@ -327,3 +323,62 @@ satisfies I3 spec §72's Comparison category item "Two clean qualifying runs pro
 semantic result" under the phase separation the specification actually intends: the second
 same-contract qualifying comparison is I3.4's own, executed after (not bundled inside) the
 hardening/no-fix decision.
+
+## Same AIP candidate, same profile revision (I3 spec §59)
+
+PR #47 re-review F4: §59 requires the repeated clean-state comparisons to use the same AIP
+candidate and the same profile revision — a literal identity, not a content-equivalence argument
+across different commits. The runs above (I3.3's two, I3.4's one) recorded three different commit
+SHAs and don't satisfy that literally. This section is the run pair that does: two fresh clean-state
+executions, performed back-to-back, **both checked out at the exact same commit** — no diffing
+across a range required, because there is no range; both builds used the identical commit.
+
+```text
+AIP candidate SHA:  310f5a3 (identical for both runs — confirmed via `git rev-parse HEAD` before
+                    each, not inferred)
+profile revision:   310f5a3 (identical for both runs, same commit — covers runtime/, expected.yaml,
+                    profile.md, ground-truth.md, and runbook.md as one unsplit value, unlike the
+                    historical runs above)
+environment:        airflow-i3
+```
+
+**Run A:**
+
+```text
+window_start:       2026-09-01T16:18:03Z
+window_end:         2026-09-01T16:18:37Z
+```
+
+**Run B** (fresh `docker compose down -v` between A and B; no commit made in between):
+
+```text
+window_start:       2026-09-01T16:21:38Z
+window_end:         2026-09-01T16:22:14Z
+```
+
+Both runs: clean-state stack, bounded readiness gate passed on the first pass, `POST /api/import`
+returned identical `nodes_written`/`relations_written` counts (`223`/`512`), `traffic.sh` ran once
+(both tasks `success` on `queue=default`), and the drain barrier confirmed persisted ingestion
+before capture, for both runs independently.
+
+Captures: Run A's and Run B's captured actual-facts files are **byte-identical to each other**
+(confirmed with `diff`) and **byte-identical to `artifacts/actual.yaml`** (the same file committed
+for I3.3's original qualifying run — confirmed with `diff`, not merely asserted). Comparator result,
+identical for both runs:
+
+```text
+Expected supported facts:      9
+Correct:                       9
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         2
+Insufficient evidence:         1
+Critical semantic errors:      0
+```
+
+This is the literal §59 evidence: one fixed AIP candidate SHA, one fixed profile revision, two
+independent clean-state runs, identical result both times. The three earlier runs above remain
+useful as a broader (and, per the corrected paragraph above, honestly-qualified) demonstration that
+the profile has been stable across the *entire* I3 series, not just this one commit — but this
+section, not those, is what closes PR #47 re-review F4.

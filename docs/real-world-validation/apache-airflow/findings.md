@@ -154,12 +154,15 @@ spec §72's Comparison category item "Two clean qualifying runs produce the same
 under the phase separation §76 actually intends — the qualifying run in I3.3, the repeatability
 proof in I3.4, not two runs bundled into one task.
 
-**Same AIP candidate, same profile revision (I3 spec §59, PR #47 re-review F4):** not merely
-asserted — `results.md`'s "Revalidation (I3.4)" section records both runs' AIP candidate SHA and
-profile revision, plus the two `git diff` commands (run against this repository's real history) that
-prove `app/`/`real_world_validation/` and the profile itself (`runtime/`, `expected.yaml`,
-`profile.md`, `ground-truth.md`, `runbook.md`) were byte-identical across every commit spanning both
-builds, not just at the two endpoints checked.
+**Same AIP candidate, same profile revision (I3 spec §59, PR #47 re-review F4):** a first attempt at
+this recorded three different commit SHAs across the runs above and argued they were
+content-equivalent via `git diff` — re-review correctly rejected that as not satisfying §59's literal
+"same candidate"/"same profile revision" wording (and noted a `git diff` between two endpoints
+doesn't even fully prove no intermediate commit touched a path, unlike `git log --oneline <range> --
+<path>`). The actual §59 evidence is `results.md`'s final section, "Same AIP candidate, same profile
+revision (I3 spec §59)": two fresh clean-state runs performed back-to-back, both built and executed
+at the literal same commit (`310f5a3`, confirmed via `git rev-parse HEAD` before each run, not
+inferred from a diff) — no equivalence argument needed, because there was no range to bridge.
 
 ## I3 Final Definition of Done (I3 spec §72)
 
@@ -175,8 +178,10 @@ builds, not just at the two endpoints checked.
       `apache-airflow-providers-celery==3.23.1`/`celery==5.6.3`, queried directly from the
       digest-pinned image during I3.4's revalidation run, closing this item's previous gap per
       PR #47 review F3).
-- [x] Selected runtime profile is reproducible (`results.md`'s "Repeatability evidence" and
-      "Revalidation (I3.4)" — three independent clean-state runs total, identical behavior).
+- [x] Selected runtime profile is reproducible (`results.md`'s "Same AIP candidate, same profile
+      revision (I3 spec §59)" — two runs at one pinned commit, identical behavior; plus three more
+      independent clean-state runs across the wider I3 series in "Repeatability evidence"/
+      "Revalidation (I3.4)").
 
 ### Ground Truth
 
@@ -215,10 +220,10 @@ builds, not just at the two endpoints checked.
 - [x] Native OTLP reaches Collector (`profile.md`'s OTel configuration finding; `runbook.md`
       phase 5).
 - [x] OTLP reaches AIP (`runbook.md` phase 6's drain barrier — `POST /v1/traces ... 200`).
-- [x] Validation environment/window explicit (`results.md`'s "Run identity" — `environment`,
-      `window_start`, `window_end`, AIP candidate SHA, and profile revision recorded for all three
-      runs; PR #47 re-review F4 — the candidate SHA/profile revision fields were added after an
-      earlier version omitted them).
+- [x] Validation environment/window explicit (`results.md` — `environment`, `window_start`,
+      `window_end` recorded for every run; AIP candidate SHA and profile revision recorded for all
+      of them, with the "Same AIP candidate, same profile revision" section's two runs sharing one
+      literal pinned commit — the pair that actually satisfies §59, PR #47 re-review F4).
 - [x] Deterministic traffic executes successfully (`traffic.sh`'s own task-instance assertions,
       both runs).
 - [x] Dag completes successfully (same — both tasks `success` on `queue=default`).
@@ -291,9 +296,12 @@ builds, not just at the two endpoints checked.
 - [x] All material findings use I1 vocabulary (`findings.md` throughout).
 - [x] Summary counters deterministic (`real_world_validation/comparator.py::_sort_key`, I1 §21's
       canonical sort order).
-- [x] Two clean qualifying runs produce the same semantic result (`results.md`'s "Repeatability
-      evidence" plus "Revalidation (I3.4)" — three runs total, the third performed under I3.4's own
-      phase per §76, all producing identical comparator output).
+- [x] Two clean qualifying runs produce the same semantic result, **at the same AIP candidate and
+      same profile revision** (`results.md`'s "Same AIP candidate, same profile revision (I3 spec
+      §59)" — two runs, one literal pinned commit `310f5a3`, identical comparator output; PR #47
+      re-review F4). The earlier three-run record (`"Repeatability evidence"`/`"Revalidation
+      (I3.4)"`) stays as broader evidence of stability across the full I3 series but is not itself
+      the §59-satisfying pair.
 - [x] Deterministic ordering verified (same `_sort_key` — classification, severity, relation type,
       source, target, finding id).
 
@@ -327,17 +335,18 @@ builds, not just at the two endpoints checked.
 - [x] CodeQL green — GitHub Actions run `33527683427` (Python + Actions analysis), at commit
       `5023579`.
 - [x] Dependency audit green — `pip-audit` job within CI run `33527683492` above.
-- [x] I3 release blockers = `0` (F1/F2/F3 from PR #47's review are resolved by this commit — see
-      each item above and `results.md`'s "Revalidation (I3.4)"/`upstream.md`'s Celery provider
-      version).
+- [x] I3 release blockers = `0` (F1-F4 from PR #47's review rounds are resolved — see each item
+      above, `results.md`'s "Revalidation (I3.4)"/"Same AIP candidate, same profile revision (I3
+      spec §59)", and `upstream.md`'s Celery provider version).
 
 ## I3 is complete
 
 Every I3 spec §72 Definition of Done item above is satisfied. No production fix was required, no
-decision record was warranted, and repeatability was proven across three independent clean-state
-runs total: two performed inside I3.3 (before the hardening decision), and one performed under
-I3.4's own phase (after it) — the actual proof §76 requires, per PR #47's review. I4 (Cross-System
-Model Hardening) can proceed using this dossier and Quarkus's I2 dossier as its two independent
-inputs — in particular, the `airflow-runtime-role-identity` and
-`airflow-celery-messaging-runtime-status` findings above are exactly the kind of
-cross-system-informed model-hardening candidates I4 exists to evaluate.
+decision record was warranted, and repeatability was proven twice over: three independent clean-state
+runs across the wider I3.3/I3.4 series (`results.md`'s "Repeatability evidence"/"Revalidation
+(I3.4)"), and — the record that actually satisfies I3 spec §59's literal "same candidate/same
+profile revision" invariant — two further runs at one single pinned commit (`results.md`'s "Same
+AIP candidate, same profile revision (I3 spec §59)"). I4 (Cross-System Model Hardening) can proceed
+using this dossier and Quarkus's I2 dossier as its two independent inputs — in particular, the
+`airflow-runtime-role-identity` and `airflow-celery-messaging-runtime-status` findings above are
+exactly the kind of cross-system-informed model-hardening candidates I4 exists to evaluate.
