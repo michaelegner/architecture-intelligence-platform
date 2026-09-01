@@ -17,6 +17,10 @@ image:              apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d2
 environment:        airflow-i3
 window_start:       2026-09-01T13:47:23Z
 window_end:         2026-09-01T13:47:58Z
+AIP candidate SHA:  ef7ad0d (this repository's HEAD at build time - see "Run/profile identity
+                    auditability" below for why the exact commit doesn't matter here)
+profile revision:   ef7ad0d (docs/real-world-validation/apache-airflow/{runtime/,expected.yaml,
+                    profile.md,ground-truth.md,runbook.md})
 ```
 
 The full compose stack (`runtime/docker-compose.yml`) was started from clean state
@@ -39,6 +43,8 @@ after the first:
 ```text
 window_start:       2026-09-01T13:51:12Z
 window_end:         2026-09-01T13:51:46Z
+AIP candidate SHA:  ef7ad0d (no commit happened between the two runs above)
+profile revision:   ef7ad0d (same as the run above)
 ```
 
 `POST /api/import` returned identical counts (`223`/`512`), `traffic.sh` behaved identically (same
@@ -73,6 +79,14 @@ the OpenAPI import; no runtime *status* concept applies to `PROVIDES`, matching 
 `PROVIDES` facts in I2.3). **0** `SENDS`/`RECEIVES_FROM` facts were captured — expected, since no
 AsyncAPI source exists for this system and I3.2's Phase B closure explicitly concluded no qualified
 messaging relation belongs in `expected.yaml` (see `ground-truth.md`'s Change log).
+
+Content identity of the committed file (PR #47 re-review non-blocking note — makes the
+"byte-identical" equality claims below durable without needing to inspect the file itself):
+
+```text
+SHA-256:        1d8a0db7741b0f108f4a23c78113e6cfb3466c01a975eac660b5ab2d7c026419
+Git blob SHA:   8891289baa9facaf70a0cc0c6b9b2e0fdd9c838a
+```
 
 ## Summary
 
@@ -257,7 +271,32 @@ celery:                          5.6.3
 environment:        airflow-i3
 window_start:       2026-09-01T15:36:14Z
 window_end:         2026-09-01T15:36:48Z
+AIP candidate SHA:  1a2bda3 (this repository's HEAD at build time)
+profile revision:   ef7ad0d (runtime/,expected.yaml,profile.md,ground-truth.md - unchanged since
+                    I3.2); 4160af7 (runbook.md - unchanged since I3.3's own phases 7-10 fill-in)
 ```
+
+**Same AIP candidate, same profile revision (I3 spec §59) — the actual auditability check, not an
+assumption:**
+
+```bash
+git diff --stat 0fbf8b4..317cb73 -- app/ real_world_validation/
+# (empty - app/'s tree has not changed since before I3 began, commit 0fbf8b4 being the Quarkus
+# I2.3 comparison point; ef7ad0d and 1a2bda3 above are both within this unchanged range, so their
+# built AIP images are behaviorally identical regardless of which exact commit each `docker
+# compose build` picked up)
+
+git diff --stat ef7ad0d..317cb73 -- docs/real-world-validation/apache-airflow/runtime/ \
+  docs/real-world-validation/apache-airflow/expected.yaml \
+  docs/real-world-validation/apache-airflow/profile.md \
+  docs/real-world-validation/apache-airflow/ground-truth.md
+# (empty - the executable profile itself has not changed since I3.2 froze it, across all three runs)
+```
+
+Both commands were run against this repository's actual history (not asserted from memory) and both
+returned empty — the strongest form of the §59 invariant: not just two matching SHAs, but proof that
+*every* commit in the range between the two builds left `app/` and the profile untouched, so no
+intermediate state could have silently differed either.
 
 Same procedure as the qualifying run above: clean-state compose stack, bounded readiness gate
 passed for every service on the first pass, `POST /api/import` returned identical

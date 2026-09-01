@@ -24,9 +24,9 @@ revision requires a documented reason, a new exact SHA, a new release/tag identi
 review against the new SHA, and a profile re-freeze (I3 spec §4).
 
 This is the **Airflow upstream release identity** — distinct from the **AIP candidate identity**
-(the AIP commit/build under test), which is not yet recorded: I3.1 performs no AIP comparison run
-(I3 spec §70's I3.1 scope). The AIP candidate SHA is first recorded in `results.md` at Phase D
-(I3.3).
+(the AIP commit/build under test), which is not recorded here: I3.1 performs no AIP comparison run
+(I3 spec §70's I3.1 scope). The AIP candidate SHA and profile revision are recorded in `results.md`
+at Phase D (I3.3/I3.4), per I3 spec §31/§59 (PR #47 re-review F4).
 
 ## Relevant provider dependencies
 

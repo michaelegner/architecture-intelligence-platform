@@ -148,10 +148,18 @@ as I2.4 left them.
 
 I3.4's own fresh clean-state run (`results.md`'s "Revalidation (I3.4)") reproduced the exact same
 result as I3.3's qualifying run: identical import counts, identical traffic behavior, a
-byte-identical captured actual-facts file, and identical comparator output (9/9 `CORRECT`). This
-satisfies I3 spec §72's Comparison category item "Two clean qualifying runs produce the same
-semantic result" under the phase separation §76 actually intends — the qualifying run in I3.3, the
-repeatability proof in I3.4, not two runs bundled into one task.
+byte-identical captured actual-facts file (SHA-256/Git blob SHA recorded in `results.md`, PR #47
+re-review's non-blocking note), and identical comparator output (9/9 `CORRECT`). This satisfies I3
+spec §72's Comparison category item "Two clean qualifying runs produce the same semantic result"
+under the phase separation §76 actually intends — the qualifying run in I3.3, the repeatability
+proof in I3.4, not two runs bundled into one task.
+
+**Same AIP candidate, same profile revision (I3 spec §59, PR #47 re-review F4):** not merely
+asserted — `results.md`'s "Revalidation (I3.4)" section records both runs' AIP candidate SHA and
+profile revision, plus the two `git diff` commands (run against this repository's real history) that
+prove `app/`/`real_world_validation/` and the profile itself (`runtime/`, `expected.yaml`,
+`profile.md`, `ground-truth.md`, `runbook.md`) were byte-identical across every commit spanning both
+builds, not just at the two endpoints checked.
 
 ## I3 Final Definition of Done (I3 spec §72)
 
@@ -208,7 +216,9 @@ repeatability proof in I3.4, not two runs bundled into one task.
       phase 5).
 - [x] OTLP reaches AIP (`runbook.md` phase 6's drain barrier — `POST /v1/traces ... 200`).
 - [x] Validation environment/window explicit (`results.md`'s "Run identity" — `environment`,
-      `window_start`, `window_end` recorded for both runs).
+      `window_start`, `window_end`, AIP candidate SHA, and profile revision recorded for all three
+      runs; PR #47 re-review F4 — the candidate SHA/profile revision fields were added after an
+      earlier version omitted them).
 - [x] Deterministic traffic executes successfully (`traffic.sh`'s own task-instance assertions,
       both runs).
 - [x] Dag completes successfully (same — both tasks `success` on `queue=default`).
