@@ -502,6 +502,47 @@ def test_missing_operation_type_is_silently_skipped():
     assert batch.unresolved == []
 
 
+def test_legacy_messaging_operation_attribute_shape_is_not_recognized():
+    # Characterizes the current behavior underlying ledger finding qsh-kafka-operation-type-gap
+    # (docs/real-world-validation/cross-system/decisions/messaging-operation-compatibility.md,
+    # I4.1). This is the complete legacy attribute shape independently captured from a real
+    # SmallRye Reactive Messaging Kafka producer span (messaging.operation, not
+    # messaging.operation.type) - not just a missing/unrecognized value on the current key.
+    # Neutral destination/system values per spec §17. This test pins current, unchanged behavior;
+    # it does not assert that recognizing this shape would be safe (see
+    # decisions/queue-topic-boundary.md for why it is not, on its own).
+    span = _span(
+        attributes={
+            "messaging.operation": "publish",
+            "messaging.destination.name": "orders-topic",
+            "messaging.system": "kafka",
+        }
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.unresolved == []
+
+
+def test_celery_instrumentation_semconv_shape_is_not_recognized():
+    # Characterizes the current behavior underlying ledger findings
+    # airflow-celery-messaging-runtime-status and i4-celery-instrumentation-semconv-mismatch
+    # (docs/real-world-validation/cross-system/decisions/messaging-operation-compatibility.md,
+    # I4.1). This is the complete attribute shape independently captured from
+    # opentelemetry-instrumentation-celery==0.65b0 (destination_kind/destination, no operation
+    # attribute of any name, no messaging.system) - a third, independently-shaped real span, not
+    # representable by the current-key or legacy-key tests above. Neutral destination value per
+    # spec §17. This test pins current, unchanged behavior.
+    span = _span(
+        attributes={
+            "messaging.destination_kind": "queue",
+            "messaging.destination": "task-queue",
+        }
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.unresolved == []
+
+
 def test_missing_destination_name_is_unresolved():
     span = _span(attributes={"messaging.operation.type": "send"})
     batch = _queue_correlate([span])

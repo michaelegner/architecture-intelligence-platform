@@ -143,9 +143,11 @@ def test_generic_service_name_is_still_minted_as_qualified_observed_only():
     # Documents docs/real-world-validation/cross-system/decisions/
     # messaging-operation-compatibility.md (I4.1): Tier 4 has no refusal path for a generic,
     # ambiguous name - it mints an OBSERVED_ONLY Service exactly as readily as for a distinctive
-    # one. "unknown_service" is the literal service.name every Airflow role (scheduler, DAG
-    # processor, worker, triggerer) reports identically; nothing here distinguishes them. This
-    # test pins the current, deliberately-unguarded behavior; it does not assert safety.
+    # one, regardless of upstream system. "unknown_service" is used here as a real motivating
+    # instance (every Airflow role - scheduler, DAG processor, worker, triggerer - reports this
+    # identical service.name, so nothing here would distinguish them), not as an Airflow-specific
+    # rule. This test pins the current, deliberately-unguarded behavior; it does not assert
+    # safety.
     result = resolve_service(
         [ORDER_SERVICE, PAYMENT_SERVICE],
         service_name="unknown_service",
