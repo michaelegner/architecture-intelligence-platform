@@ -13,8 +13,9 @@ I4  Cross-System Model Hardening
 I5  Release Qualification
 ```
 
-**This directory currently contains no system dossier.** I1 only establishes the method; I2/I3 add
-`quarkus-super-heroes/` and `apache-airflow/` once their ground truth is frozen.
+I1 only establishes the method; I2 added `quarkus-super-heroes/` once its ground truth was frozen
+and its qualifying comparison completed. I3 adds `apache-airflow/`; its ground truth is frozen
+(I3.1) but its qualifying comparison has not yet run (I3.2/I3.3).
 
 ## Purpose
 
