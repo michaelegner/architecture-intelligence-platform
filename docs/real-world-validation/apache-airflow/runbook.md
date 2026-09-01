@@ -356,13 +356,10 @@ holds only this repo's own committed `i3_validation.py`, never generated state.
 
 A single run proves nothing about repeatability by itself. Start from a fresh shell at the
 repository root — same starting point phase 3 itself assumes (this file's own opening line) — not
-whatever directory a previous phase 9 teardown left the shell in (PR #46 review F2):
-
-```bash
-cd docs/real-world-validation/apache-airflow/runtime   # same as phase 3's own first line
-```
-
-Repeat phases 2 through 8 exactly, unmodified, with two changes only: generate a **new**
+whatever directory a previous phase 9 teardown left the shell in. Repeat phases 2 through 8 exactly,
+unmodified, from there (phase 3's own `cd docs/real-world-validation/apache-airflow/runtime` is
+part of that repeated range — do not `cd` again before it, or the second `cd` resolves relative to
+the first and fails; PR #46 re-review F1), with two changes only: generate a **new**
 `NEO4J_PASSWORD`/`FERNET_KEY` in phase 2 (never reuse a prior run's secrets), and write the phase 7
 capture to `../artifacts/actual-revalidation.yaml` instead of `actual.yaml`. Then:
 

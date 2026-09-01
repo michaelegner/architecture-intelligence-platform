@@ -3,8 +3,8 @@
 Qualifying comparison for the pinned commit `3adbbe1c58e4532df1964cb7794805e763816ee8` (I3.3),
 against `expected.yaml` as fully and finally frozen by I3.1 (declaration-only facts) and I3.2
 (Phase B closure of the one item I3.1 left provisional). Executed by following `runbook.md` phases
-1-9 for real against a freshly built, freshly started stack, then capturing and comparing per
-phases 9-10.
+1-9 for real against a freshly built, freshly started stack for the qualifying run, then phase 10
+for the independent clean-state revalidation below.
 
 ## Run identity
 
