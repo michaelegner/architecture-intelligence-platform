@@ -117,14 +117,18 @@ evidence requiring a model-hardening decision.
 
 I3.4's spec deliverable list is `general production fix, distilled regression tests, Quarkus impact
 check, fresh Airflow clean-state rerun, second same-contract qualifying comparison, repeatability
-proof, final I3 result`, with its own explicit fallback: *"If no production fix is required, I3.4
-becomes a documentation/revalidation PR rather than being omitted, because I3 repeatability still
-requires the second clean qualifying run."* Two of those items are already satisfied above, not
-owed again: I3.3 found zero `MISSING_SUPPORTED`/`INCORRECT_SUPPORTED` findings and zero decision
-records (every finding `NO_CHANGE`), and I3.3 already ran the profile twice from independent clean
-states, producing byte-identical captures and identical comparator output (`results.md`'s
-"Repeatability evidence"). I3.4 is therefore a documentation-only closeout, not a third live run
-that would produce zero new evidence over what I3.3 already proved twice.
+proof, final I3 result`.
+
+**Correction (PR #47 review F1):** an earlier version of this section treated the two runs already
+performed inside I3.3/PR #46 as satisfying I3.4's rerun/repeatability requirement, reasoning that a
+third run would add no new evidence. That was wrong: I3 spec §76's Implementation Notes explicitly
+assign phase separation — *"I3.3: run AIP once and classify what happens. I3.4: apply only approved
+general fixes and prove same-contract repeatability"* — mirroring Quarkus's own I2.3 (single run) +
+I2.4 (separate revalidation) precedent exactly. The point of I3.4's own run is not statistical
+novelty; it is proof that the *finally accepted candidate, frozen contract, and post-classification
+state* still reproduces, which two runs performed before the hardening/no-fix decision existed
+cannot establish. I3.4 therefore executed its own fresh clean-state run — see `results.md`'s
+"Revalidation (I3.4)" section for the full record.
 
 ### Hardening
 
@@ -142,12 +146,12 @@ as I2.4 left them.
 
 ### Repeatability proof
 
-Already established in `results.md`'s "Repeatability evidence" section: two independent clean-state
-runs (same upstream commit, same image digest, same unmodified `expected.yaml`/`runtime/`/
-`runbook.md`) produced identical import counts, identical traffic behavior, byte-identical captured
-actual-facts files, and identical comparator output. This satisfies I3 spec §72's Comparison
-category item "Two clean qualifying runs produce the same semantic result" — no further run is
-performed under I3.4.
+I3.4's own fresh clean-state run (`results.md`'s "Revalidation (I3.4)") reproduced the exact same
+result as I3.3's qualifying run: identical import counts, identical traffic behavior, a
+byte-identical captured actual-facts file, and identical comparator output (9/9 `CORRECT`). This
+satisfies I3 spec §72's Comparison category item "Two clean qualifying runs produce the same
+semantic result" under the phase separation §76 actually intends — the qualifying run in I3.3, the
+repeatability proof in I3.4, not two runs bundled into one task.
 
 ## I3 Final Definition of Done (I3 spec §72)
 
@@ -159,9 +163,12 @@ performed under I3.4.
 - [x] Official Compose and OpenAPI references are pinned (`upstream.md` — both @ the pinned commit).
 - [x] Exact runtime image/provider/instrumentation versions are recorded (`profile.md` — exact
       digest for `apache/airflow`, `postgres:16.15`, `redis:7.2-bookworm` digest-pinned,
-      `otel/opentelemetry-collector:0.159.0` digest-pinned).
-- [x] Selected runtime profile is reproducible (`results.md`'s "Repeatability evidence" — two
-      independent clean-state runs, identical behavior).
+      `otel/opentelemetry-collector:0.159.0` digest-pinned; `upstream.md` —
+      `apache-airflow-providers-celery==3.23.1`/`celery==5.6.3`, queried directly from the
+      digest-pinned image during I3.4's revalidation run, closing this item's previous gap per
+      PR #47 review F3).
+- [x] Selected runtime profile is reproducible (`results.md`'s "Repeatability evidence" and
+      "Revalidation (I3.4)" — three independent clean-state runs total, identical behavior).
 
 ### Ground Truth
 
@@ -241,8 +248,10 @@ performed under I3.4.
       `messaging.destination_kind: queue`, `messaging.destination: default`, independently
       distinguishing the queue from the bare Redis broker endpoint).
 - [x] Producer direction independently established (same — `Kind: Producer` span captured).
-- [x] Consumer direction independently established (same section — explicitly **not** established;
-      recorded as such, not guessed).
+- [x] Consumer direction independently assessed (same section — explicitly classified as
+      unavailable from raw telemetry, per spec §23's own allowance for `INSUFFICIENT_EVIDENCE`;
+      PR #47 review's wording note: this is a classified absence, not a positive establishment,
+      and no consumer span was manufactured to make this box checkable).
 - [x] Native/raw messaging telemetry inspected (`profile.md`'s sanitized representative span
       excerpt).
 - [x] `SENDS`/`RECEIVES_FROM` expected only where safely qualified (`expected.yaml` — neither is
@@ -273,7 +282,8 @@ performed under I3.4.
 - [x] Summary counters deterministic (`real_world_validation/comparator.py::_sort_key`, I1 §21's
       canonical sort order).
 - [x] Two clean qualifying runs produce the same semantic result (`results.md`'s "Repeatability
-      evidence").
+      evidence" plus "Revalidation (I3.4)" — three runs total, the third performed under I3.4's own
+      phase per §76, all producing identical comparator output).
 - [x] Deterministic ordering verified (same `_sort_key` — classification, severity, relation type,
       source, target, finding id).
 
@@ -288,11 +298,34 @@ performed under I3.4.
       `airflow-runtime-role-identity`/`airflow-celery-messaging-runtime-status` findings are
       candidate inputs for I4's cross-system model hardening, not urgent fixes).
 
+### Regression / Quality
+
+(PR #47 review F2 — this entire category was omitted from an earlier version of this checklist.)
+
+- [x] v0.2 evaluation remains `10/10 PASS` — re-run at this PR's head (`uv run python -m evaluation
+      run`): `Scenarios: 10, Passed: 10, Failed: 0, Missing/Unexpected/Forbidden facts: 0, Wrong
+      statuses: 0, Evidence errors: 0, RESULT: PASS`.
+- [x] Quarkus impact assessed for I3 production changes (this section's own "Quarkus impact check"
+      above — no production change occurred, so no impact).
+- [x] Unit tests green — `uv run pytest tests/unit -q`: 504 passed.
+- [x] Integration tests green — `uv run pytest tests/integration -q`: 160 passed.
+- [x] I1 validation-contract tests green — `uv run pytest tests/unit -k "real_world_validation or
+      quarkus_expected_dossier or airflow_expected_dossier" -q`: 59 passed.
+- [x] Ruff green — `uv run ruff check .` / `uv run ruff format --check .`: both clean.
+- [x] CI green — this PR's `lint + test` and `CI` workflow runs (GitHub Actions, this PR's checks).
+- [x] CodeQL green — this PR's `CodeQL` workflow run (GitHub Actions, this PR's checks).
+- [x] Dependency audit green — this PR's `dependency security scan (pip-audit, spec §29)` run.
+- [x] I3 release blockers = `0` (F1/F2/F3 from PR #47's review are resolved by this commit — see
+      each item above and `results.md`'s "Revalidation (I3.4)"/`upstream.md`'s Celery provider
+      version).
+
 ## I3 is complete
 
 Every I3 spec §72 Definition of Done item above is satisfied. No production fix was required, no
-decision record was warranted, and repeatability was proven twice over (I3.3) rather than a third
-time redundantly (I3.4). I4 (Cross-System Model Hardening) can proceed using this dossier and
-Quarkus's I2 dossier as its two independent inputs — in particular, the `airflow-runtime-role-identity`
-and `airflow-celery-messaging-runtime-status` findings above are exactly the kind of
+decision record was warranted, and repeatability was proven across three independent clean-state
+runs total: two performed inside I3.3 (before the hardening decision), and one performed under
+I3.4's own phase (after it) — the actual proof §76 requires, per PR #47's review. I4 (Cross-System
+Model Hardening) can proceed using this dossier and Quarkus's I2 dossier as its two independent
+inputs — in particular, the `airflow-runtime-role-identity` and
+`airflow-celery-messaging-runtime-status` findings above are exactly the kind of
 cross-system-informed model-hardening candidates I4 exists to evaluate.

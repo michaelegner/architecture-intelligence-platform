@@ -4,7 +4,10 @@ Qualifying comparison for the pinned commit `3adbbe1c58e4532df1964cb7794805e7638
 against `expected.yaml` as fully and finally frozen by I3.1 (declaration-only facts) and I3.2
 (Phase B closure of the one item I3.1 left provisional). Executed by following `runbook.md` phases
 1-9 for real against a freshly built, freshly started stack for the qualifying run, then phase 10
-for the independent clean-state revalidation below.
+for the same-PR clean-state repeatability check below ("Repeatability evidence"). I3.4 later
+performed a **third**, separately-phased live execution ("Revalidation (I3.4)" at the end of this
+file) to satisfy I3 spec §76's phase separation — see that section for why the two runs below don't
+substitute for it.
 
 ## Run identity
 
@@ -235,3 +238,53 @@ Critical semantic errors:      0
 ```text
 0  (no release-blocking / CRITICAL-severity finding)
 ```
+
+## Revalidation (I3.4)
+
+PR #47 review F1 correctly identified that the two runs above (both performed inside I3.3/PR #46)
+do not by themselves satisfy I3 spec §76's phase separation — Implementation Notes explicitly
+assigns "run AIP once and classify what happens" to I3.3 and "prove same-contract repeatability" to
+I3.4, mirroring Quarkus's own I2.3 (single run) + I2.4 (separate revalidation) precedent. A third,
+independent live execution was run under I3.4, at the same frozen contract, to supply that missing
+proof — this is not a duplicate of the two runs above; it is the first run performed *after* the
+hardening/no-fix decision, proving the finally accepted candidate still reproduces.
+
+```text
+upstream commit:    3adbbe1c58e4532df1964cb7794805e763816ee8
+image:              apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+apache-airflow-providers-celery: 3.23.1
+celery:                          5.6.3
+environment:        airflow-i3
+window_start:       2026-09-01T15:36:14Z
+window_end:         2026-09-01T15:36:48Z
+```
+
+Same procedure as the qualifying run above: clean-state compose stack, bounded readiness gate
+passed for every service on the first pass, `POST /api/import` returned identical
+`nodes_written`/`relations_written` counts (`223`/`512`), `traffic.sh` ran once (both tasks
+`success` on `queue=default`, its own assertions passing), and the drain barrier confirmed persisted
+ingestion before capture. The Celery provider/instrumentation versions above were queried directly
+from the running scheduler container (`docker compose exec airflow-scheduler airflow providers
+list`) during this run — the first time this dossier records them, closing `upstream.md`'s
+previously open item (PR #47 review F3).
+
+Capture: 9 facts, **byte-identical** to `artifacts/actual.yaml` (confirmed with `diff`).
+
+Comparator result against the unmodified `expected.yaml`:
+
+```text
+Expected supported facts:      9
+Correct:                       9
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         2
+Insufficient evidence:         1
+Critical semantic errors:      0
+```
+
+Identical to the qualifying run's summary and every individual finding classification. This
+satisfies I3 spec §72's Comparison category item "Two clean qualifying runs produce the same
+semantic result" under the phase separation the specification actually intends: the second
+same-contract qualifying comparison is I3.4's own, executed after (not bundled inside) the
+hardening/no-fix decision.
