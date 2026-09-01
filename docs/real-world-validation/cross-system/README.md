@@ -2,10 +2,12 @@
 
 This directory holds the I4 evidence and decision trail (see
 [`docs/specifications/0.3.0/i4-cross-system-model-hardening.md`](../../specifications/0.3.0/i4-cross-system-model-hardening.md)).
-I4 does not run a new validation profile against either upstream system; it converts the two
-independent qualifying results already frozen by I2 (Quarkus Super Heroes) and I3 (Apache Airflow)
-into one evidence-based model-hardening decision, using the same six-classification vocabulary
-frozen by I1 (see [`../README.md`](../README.md)).
+I4.1 and I4.2 derive decisions from the two independent qualifying results already frozen by I2
+(Quarkus Super Heroes) and I3 (Apache Airflow) and introduce no new validation profile, using the
+same six-classification vocabulary frozen by I1 (see [`../README.md`](../README.md)). I4 as a whole
+does still require fresh evidence: per spec §19/§27 (I4.4), I4 executes both existing profiles
+again against the same final candidate before qualification - frozen I2/I3 results, and a source
+diff or content-equivalence argument, SHALL NOT substitute for that real-system execution.
 
 ```text
 docs/real-world-validation/quarkus-super-heroes/   I2's independent dossier and qualifying result

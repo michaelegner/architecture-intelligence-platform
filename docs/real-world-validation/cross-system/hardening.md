@@ -40,8 +40,9 @@ No new material finding was discovered during I4.2 itself that would reopen any 
 - [x] **Every accepted rule is general and system-independent.** Vacuously satisfied — zero rules
       were accepted.
 - [x] **No unsupported mechanism is represented as supported.** Re-confirmed: `qsh-kafka-fights-
-      topic` and the three Airflow PostgreSQL-dependency findings remain `UNSUPPORTED`/
-      `DOCUMENT_UNSUPPORTED`; no graph fact represents any of them.
+      topic` (classification `UNSUPPORTED`, disposition `DOCUMENT_UNSUPPORTED`) and the three
+      Airflow PostgreSQL-dependency findings (classification `UNSUPPORTED`, disposition
+      `NO_CHANGE`) all remain unsupported; no graph fact represents any of them as supported.
 - [x] **No ambiguous identity is guessed.** Re-confirmed: `airflow-runtime-role-identity` and
       `airflow-execution-api-boundary` remain `UNRESOLVED_IDENTITY`; no per-role `Service` or
       Execution-API `CALLS` fact was invented.
@@ -52,10 +53,13 @@ No new material finding was discovered during I4.2 itself that would reopen any 
 - [x] **Any no-change conclusion is evidence-backed.** This record, and the four I4.1 decision
       records it cites.
 
-## Entry-gate re-verification (spec §22 Quality Gates)
+## Entry-gate re-verification (spec §4 Entry Criteria)
 
 Re-run against `main` at `e54e201` (I4.1's merge commit) before starting I4.2, to confirm no drift
-occurred between I4.1's merge and I4.2's start:
+occurred between I4.1's merge and I4.2's start. This is the §4 entry gate, not the broader §22
+final-candidate quality gate — §22 additionally requires the Quarkus/Airflow supported-scope
+comparisons and I1 contract tests, which apply only at final-candidate qualification (I4.4/I4.5),
+not at I4.2's documentation-only entry point:
 
 ```text
 uv run ruff check .                          -> All checks passed
@@ -69,6 +73,11 @@ gh run list --branch main                    -> CI + CodeQL green at e54e201
 
 Since no production or test code changed, I4.3's "finding-to-test map" and "distilled tests"
 deliverables (spec §27) reduce to confirming the *existing* regression suite still covers every
-ledger finding's current, unchanged behavior — I4.3 is not blocked or altered by this record. The
-entry-gate results above (unit/integration/v0.2 evaluation) may be cited directly by I4.3 rather
-than re-run from scratch, since nothing in I4.2 could have invalidated them.
+ledger finding's current, unchanged behavior — I4.3 is not blocked or altered by this record.
+
+The entry-gate results above are evidence of I4.2's own entry state at `e54e201` only. They are
+**not** a substitute for I4.3's own required deterministic capture: spec §18 requires the v0.2
+suite to pass "at the final candidate," and I4.3 (spec §27) must itself deliver the v0.2,
+unit/integration/I1-contract, and determinism results, bound to I4.3's own exact candidate
+identity. If I4.3's candidate is identical to `e54e201`, that identity SHALL be stated explicitly
+rather than assumed; if it differs, the full suite SHALL be run again against it.
