@@ -194,10 +194,13 @@ and its result, per §29's own documentation requirement.
 
 ### Exact reproduction recipe
 
-`/opt/airflow/plugins` is the named volume `airflow-i3-plugins`, not a host bind mount (PR #45
-review F2 changed this) — a file only placed under a local `runtime/plugins/` directory never
-reaches the containers. `docker cp` into the shared volume through any already-running container
-that mounts it instead (PR #45 re-review F2):
+All commands below run from `runtime/` (`docker compose` is invoked without `-f`, so it resolves the
+profile from the current directory). `/opt/airflow/plugins` is the named volume `airflow-i3-plugins`,
+not a host bind mount (PR #45 review F2 changed this) — a file only placed under a local
+`runtime/plugins/` directory never reaches the containers. `docker cp` into the shared volume through
+the running scheduler container instead, resolved dynamically rather than by its generated name
+(PR #45 re-review N3 — `runtime-airflow-scheduler-1` assumes the default Compose project name, which
+the runbook's own readiness fix deliberately stopped depending on):
 
 1. Save the plugin locally (content unchanged from the original experiment — Airflow's own
    plugin-loading extension point, no Airflow architecture logic changed):
@@ -208,12 +211,16 @@ that mounts it instead (PR #45 re-review F2):
    CeleryInstrumentor().instrument()
    ```
 2. Copy it into the shared `airflow-i3-plugins` volume via the running scheduler container (any
-   container using `airflow-common`'s volumes works identically — it's the same named volume):
+   container using `airflow-common`'s volumes works identically — it's the same named volume), and
+   explicitly set a world-readable mode — `docker cp` preserves the source file's own mode rather
+   than guaranteeing one, so a restrictive local umask would otherwise copy in a file the container's
+   `airflow` user (uid 50000) can't read (verified: a `600`-mode source file copied in as `600`,
+   unreadable by uid 50000, until explicitly `chmod`ed):
    ```bash
-   docker cp otel_celery_instrumentation.py runtime-airflow-scheduler-1:/opt/airflow/plugins/otel_celery_instrumentation.py
+   SCHEDULER_ID="$(docker compose ps -q airflow-scheduler)"
+   docker cp otel_celery_instrumentation.py "$SCHEDULER_ID:/opt/airflow/plugins/otel_celery_instrumentation.py"
+   docker exec -u root "$SCHEDULER_ID" chmod 644 /opt/airflow/plugins/otel_celery_instrumentation.py
    ```
-   Verified: the copied file is world-readable by default (`docker cp`'s default mode), so no
-   explicit `chown` to the container's `airflow` (uid 50000) user is needed.
 3. Add one line to `runtime/docker-compose.yml`'s `airflow-common-env`:
    ```yaml
    _PIP_ADDITIONAL_REQUIREMENTS: opentelemetry-instrumentation-celery==0.65b0
@@ -266,12 +273,6 @@ Attributes:
      -> messaging.destination_kind: Str(queue)
      -> messaging.destination: Str(default)
 ```
-
-`CeleryInstrumentor().is_instrumented_by_opentelemetry` returned `False` when checked on the worker
-process (`docker exec <worker-container> python3 -c "from opentelemetry.instrumentation.celery
-import CeleryInstrumentor; print(CeleryInstrumentor().is_instrumented_by_opentelemetry)"`) —
-confirming no consumer-side span was ever possible with this activation method, independent of the
-identity finding above.
 
 ## Resource / port assumptions
 

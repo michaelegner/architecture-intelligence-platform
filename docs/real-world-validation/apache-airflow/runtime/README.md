@@ -44,8 +44,9 @@ to transcribe.
 vendored — I1 §36/§39) and is then modified as documented in the file's own header comment (exact
 image pins, standard OTel env vars, added AIP/Neo4j/Collector services).
 
-## Why every image the profile controls is pinned, at least to an exact version (PR #40 review F1
-## precedent; PR #45 re-review N2 corrected this section's own claims below)
+## Why every image the profile controls is pinned, at least to an exact version
+
+PR #40 review F1 precedent; PR #45 re-review N2 corrected this section's own claims below.
 
 A "reproducible runtime profile" means every image the profile controls resolves to a known, fixed
 version on every run, not only the system under test. The official Compose file's own

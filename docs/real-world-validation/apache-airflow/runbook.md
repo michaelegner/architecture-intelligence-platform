@@ -49,15 +49,17 @@ I3.2 configuration.
 
 ```bash
 cd docs/real-world-validation/apache-airflow/runtime
-docker compose up -d --scale airflow-worker=2
+AIRFLOW_WORKERS="${AIRFLOW_WORKERS:-2}"
+docker compose up -d --scale airflow-worker="$AIRFLOW_WORKERS"
 ```
 
 Per I3 spec §9's preference for two Celery worker instances (a direct test of runtime-instance vs.
 logical-architecture identity, `../ground-truth.md`'s "Multiple runtime instances") — the official
 Compose file sets no `container_name` on `airflow-worker`, so this scales without a rewrite. If this
-proves operationally impractical, fall back to `--scale airflow-worker=1` with the reason recorded
-in `../profile.md` and this file (I3 spec §9 requires the multiple-instance question stay explicit
-either way).
+proves operationally impractical, fall back to `AIRFLOW_WORKERS=1` with the reason recorded in
+`../profile.md` and this file (I3 spec §9 requires the multiple-instance question stay explicit
+either way) — `$AIRFLOW_WORKERS` is the one place this is decided; readiness below asserts exactly
+that many worker containers, never an inferred count (PR #45 re-review F1).
 
 Compose's `depends_on` only orders container *starts*, not application readiness (same PR #40 review
 F3 lesson Quarkus's runbook already encodes) — wait with a bounded, retried loop instead of racing a
@@ -110,20 +112,32 @@ wait_for_container_healthy() {
   echo "$label healthy after ${waited}s"
 }
 
-# Waits for every currently-running container of a (possibly scaled) service - covers whichever
-# worker count phase 3's `--scale` actually used (2 preferred, 1 as the documented fallback; PR #45
-# re-review N3: a hardcoded wait for two workers made the documented one-worker fallback impossible
-# to pass).
+# Waits for a service's containers, but first asserts exactly $expected_count exist - covers
+# whichever worker count phase 3's `--scale` actually used (2 preferred, 1 as the documented
+# `AIRFLOW_WORKERS=1` fallback) without silently accepting fewer replicas than requested. `docker
+# compose ps` alone only lists running containers (PR #45 re-review F1 - a crashed or never-started
+# replica would simply be missing from that list, so a broken 2-worker start could pass as if it
+# were the deliberate 1-worker fallback); `--all` includes exited/dead ones too, so both a wrong
+# count AND a present-but-crashed container are caught explicitly, not inferred.
 wait_for_service_healthy() {
-  local service="$1" timeout="${2:-180}"
+  local service="$1" expected_count="$2" timeout="${3:-180}"
   local ids
-  ids="$(docker compose ps -q "$service")"
-  if [ -z "$ids" ]; then
-    echo "no running containers found for service $service" >&2
+  ids="$(docker compose ps --all --quiet "$service")"
+  local actual_count
+  actual_count="$(printf '%s\n' "$ids" | grep -c . || true)"
+  if [ "$actual_count" -ne "$expected_count" ]; then
+    echo "$service: expected exactly $expected_count container(s), found $actual_count - see: docker compose ps --all $service" >&2
     return 1
   fi
-  local id
+  local id state
   for id in $ids; do
+    state="$(docker inspect -f '{{.State.Status}}' "$id" 2>/dev/null)"
+    case "$state" in
+      exited|dead)
+        echo "$service ($id) is $state, not starting - see: docker compose logs $id" >&2
+        return 1
+        ;;
+    esac
     wait_for_container_healthy "$id" "$service ($id)" "$timeout"
   done
 }
@@ -147,10 +161,10 @@ wait_for_dag_registered() {
 wait_for_http architecture-intelligence http://localhost:8000/health
 wait_for_http airflow-apiserver         http://localhost:8080/api/v2/monitor/health
 wait_for_tcp  otel-collector            localhost 4318
-wait_for_service_healthy airflow-scheduler
-wait_for_service_healthy airflow-dag-processor
-wait_for_service_healthy airflow-triggerer
-wait_for_service_healthy airflow-worker
+wait_for_service_healthy airflow-scheduler     1
+wait_for_service_healthy airflow-dag-processor 1
+wait_for_service_healthy airflow-triggerer     1
+wait_for_service_healthy airflow-worker        "$AIRFLOW_WORKERS"
 wait_for_dag_registered i3_validation
 ```
 
