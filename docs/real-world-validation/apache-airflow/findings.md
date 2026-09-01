@@ -175,10 +175,14 @@ inferred from a diff) — no equivalence argument needed, because there was no r
 - [x] Exact runtime image/provider/instrumentation versions are recorded (`profile.md` — exact
       digest for `apache/airflow`, `postgres:16.15`, `redis:7.2-bookworm` digest-pinned,
       `otel/opentelemetry-collector:0.159.0` digest-pinned; `upstream.md` —
-      `apache-airflow-providers-celery==3.23.1`/`celery==5.6.3`; `results.md`'s "Same AIP candidate,
-      same profile revision (I3 spec §59)" shared identity block — these values re-confirmed
-      directly from the pinned image digest and explicitly bound to Run A/Run B, not left implicit,
-      per PR #47 post-merge re-review F5).
+      `apache-airflow-providers-celery==3.23.1`/`celery==5.6.3` (the provider and Celery runtime,
+      not the OTel instrumentation identity); `results.md`'s "Same AIP candidate, same profile
+      revision (I3 spec §59)" shared identity block — provider/runtime versions re-confirmed
+      directly from the pinned image digest and bound to Run A/Run B, **plus the OpenTelemetry
+      Celery instrumentation's own state explicitly recorded as absent/inactive in both qualifying
+      runs** — `opentelemetry-instrumentation-celery==0.65b0` was never installed/activated outside
+      the separate diagnostic experiment (PR #48 review F1, correcting PR #47 post-merge re-review
+      F5's incomplete first pass at this item).
 - [x] Selected runtime profile is reproducible (`results.md`'s "Same AIP candidate, same profile
       revision (I3 spec §59)" — two runs at one pinned commit, identical behavior, identical
       Airflow upstream SHA/image/provider identities bound explicitly to both; plus three more
@@ -301,9 +305,10 @@ inferred from a diff) — no equivalence argument needed, because there was no r
 - [x] Two clean qualifying runs produce the same semantic result, **at the same AIP candidate and
       same profile revision** (`results.md`'s "Same AIP candidate, same profile revision (I3 spec
       §59)" — two runs, one literal pinned commit `310f5a3`, identical comparator output; PR #47
-      re-review F4), **and the same Airflow upstream SHA/image/provider identities, explicitly
-      bound to both runs** (same section's shared identity block, PR #47 post-merge re-review F5 —
-      an earlier version left these implicit rather than recorded against Run A/Run B specifically).
+      re-review F4), **and the same Airflow upstream SHA/image/provider/instrumentation
+      identities, explicitly bound to both runs** — including the OpenTelemetry Celery
+      instrumentation's own state (absent/inactive in both), not just the Celery runtime package
+      (same section's shared identity block, PR #47 post-merge re-review F5 / PR #48 review F1).
       The earlier three-run record (`"Repeatability evidence"`/`"Revalidation (I3.4)"`) stays as
       broader evidence of stability across the full I3 series but is not itself the §59-satisfying
       pair.

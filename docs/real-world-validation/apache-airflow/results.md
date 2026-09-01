@@ -347,28 +347,47 @@ F5 — I3 spec §31/§59 require the Airflow upstream SHA and the same image/pro
 identities, not only the AIP candidate/profile revision above):**
 
 ```text
-Airflow upstream SHA:              3adbbe1c58e4532df1964cb7794805e763816ee8
-Airflow image:                     apache/airflow:3.3.1
-                                    @sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
-apache-airflow-providers-celery:   3.23.1
-celery:                            5.6.3
-OTel Collector image:              otel/opentelemetry-collector:0.159.0
-                                    @sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2
-validation Dag revision:           dags/i3_validation.py @ Git blob 85afb5544dcfe4a0de0eaa43445c9f29d408648c
-traffic procedure revision:        traffic.sh @ Git blob b49cf655a94f6b023a058f2e196a0bde063edb7f
-frozen expected.yaml revision:     expected.yaml @ Git blob 86f84c9abae26c92da0ee8395c846b3abeafe5e8
-identity-decision/profile revision: docker-compose.yml @ Git blob 88bc0280140823035d008c7cee07f974fe691752
+Airflow upstream SHA:                  3adbbe1c58e4532df1964cb7794805e763816ee8
+Airflow image:                         apache/airflow:3.3.1
+                                        @sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+apache-airflow-providers-celery:       3.23.1
+celery (runtime, not instrumentation): 5.6.3
+OpenTelemetry Celery instrumentation:  absent from the qualifying native profile for both runs —
+                                        opentelemetry-instrumentation-celery==0.65b0 is the
+                                        diagnostic-only package documented in profile.md's "Standard
+                                        Celery instrumentation decision" section; it and its
+                                        activating plugin were not installed/activated in Run A or
+                                        Run B, only in that separate, earlier, non-qualifying
+                                        experiment
+Airflow's own native OTel packages:    not separately version-pinned here — their complete package
+                                        set is bound by the content-addressed Airflow image digest
+                                        above, which fixes every installed package byte-for-byte
+OTel Collector image:                  otel/opentelemetry-collector:0.159.0
+                                        @sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2
+validation Dag revision:               dags/i3_validation.py @ Git blob 85afb5544dcfe4a0de0eaa43445c9f29d408648c
+traffic procedure revision:            traffic.sh @ Git blob b49cf655a94f6b023a058f2e196a0bde063edb7f
+frozen expected.yaml revision:         expected.yaml @ Git blob 86f84c9abae26c92da0ee8395c846b3abeafe5e8
+runtime Compose revision:              docker-compose.yml @ Git blob 88bc0280140823035d008c7cee07f974fe691752
+identity-decision revision:            ground-truth.md @ Git blob 50f8d3e5d0affb6a1f2f7305d6f10dad6547bafa
 ```
 
-Every value above is either pinned directly inside `runtime/docker-compose.yml` (the image/Collector
-digests) or is a `git ls-tree 310f5a3 <path>` blob hash — since Run A and Run B both built from the
-single commit `310f5a3` above (not two different commits shown to be equivalent), these values are
-identical for both runs *by construction*, not by separate re-verification per run. The Celery
-provider/instrumentation versions were re-confirmed directly from the pinned image digest itself
-(`docker run --rm --entrypoint python3
+(PR #48 review F1/F2 — an earlier version of this block used `celery==5.6.3` as if it stood in for
+the OpenTelemetry Celery instrumentation identity, and its provenance paragraph below overstated how
+uniformly these values were established. Both corrected above and below.)
+
+These values come from three distinct evidence sources, not one uniform method: the Airflow upstream
+SHA is the pinned upstream release/source identity (`upstream.md`), not a local Compose value or a
+blob hash; the two image digests are pinned directly inside `runtime/docker-compose.yml`; the
+`apache-airflow-providers-celery`/`celery` package versions were queried live from the digest-pinned
+image itself (`docker run --rm --entrypoint python3
 apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339 -m pip
 show apache-airflow-providers-celery celery`) — since the digest is content-addressed, this is
-cryptographically the same image Run A and Run B actually used, not merely presumed unchanged.
+cryptographically the exact image Run A and Run B actually used, not merely presumed unchanged; and
+the Dag/traffic/`expected.yaml`/Compose/ground-truth revisions are `git ls-tree 310f5a3 <path>` blob
+hashes, offered as granular supporting evidence. The single pinned commit `310f5a3` recorded above
+("AIP candidate SHA"/"profile revision") remains the normative, unsplit profile-revision value —
+since Run A and Run B both built from that one commit, not two commits shown equivalent, every value
+in this block is identical for both runs *by construction*, not by separate re-verification per run.
 
 **Run A:**
 
