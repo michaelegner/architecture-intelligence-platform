@@ -16,15 +16,17 @@ docs/real-world-validation/cross-system/           this directory — I4's joint
 ## Delivery split (spec §27)
 
 ```text
-I4.1  Finding Consolidation and Decision Freeze   <- this directory's first contents
-I4.2  General Model and Runtime Hardening
+I4.1  Finding Consolidation and Decision Freeze   <- complete (PR #49)
+I4.2  General Model and Runtime Hardening         <- complete, NO_CHANGE (see hardening.md)
 I4.3  Distilled Regression and Synthetic Revalidation
 I4.4  Final-Candidate Real-System Revalidation
 I4.5  RC Qualification
 ```
 
 I4.1's gate (spec §27): *no production semantic change begins before its decision record is
-approved.* I4.1 makes no production code change.
+approved.* I4.1 made no production code change and approved zero `FIX` dispositions, so I4.2 (per
+spec §27's own explicit allowance) records an evidence-backed `NO_CHANGE` rather than manufacture
+hardening work — it also makes no production code change.
 
 ## I4.1 contents
 
@@ -34,6 +36,12 @@ decisions/messaging-operation-compatibility.md   spec §10.1
 decisions/queue-topic-boundary.md                spec §10.2
 decisions/runtime-role-identity.md               spec §11
 decisions/canonical-redesign-gate.md             spec §13
+```
+
+## I4.2 contents
+
+```text
+hardening.md                                     evidence-backed NO_CHANGE record (spec §27/§28)
 ```
 
 ## Decision vocabulary (spec §7)
@@ -46,6 +54,6 @@ decisions/canonical-redesign-gate.md             spec §13
 | `NO_CHANGE` | Current behavior is already correct for the claimed scope. |
 
 I4.1's outcome: every finding remains `NO_CHANGE`, `DEFER`, or `DOCUMENT_UNSUPPORTED`; no `FIX` is
-approved. The approved production-change list for I4.2 is therefore empty — I4.2 is expected to
-record an evidence-backed `NO_CHANGE` rather than manufacture hardening work (spec §27's own
-explicit allowance for this outcome).
+approved. The approved production-change list for I4.2 was therefore empty — I4.2 records that
+evidence-backed `NO_CHANGE` in `hardening.md` (spec §27's own explicit allowance for this outcome),
+with no production code change.
