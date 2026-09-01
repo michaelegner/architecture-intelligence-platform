@@ -342,6 +342,34 @@ profile revision:   310f5a3 (identical for both runs, same commit — covers run
 environment:        airflow-i3
 ```
 
+**Shared identity block, explicitly bound to both Run A and Run B (PR #47 post-merge re-review
+F5 — I3 spec §31/§59 require the Airflow upstream SHA and the same image/provider/instrumentation
+identities, not only the AIP candidate/profile revision above):**
+
+```text
+Airflow upstream SHA:              3adbbe1c58e4532df1964cb7794805e763816ee8
+Airflow image:                     apache/airflow:3.3.1
+                                    @sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+apache-airflow-providers-celery:   3.23.1
+celery:                            5.6.3
+OTel Collector image:              otel/opentelemetry-collector:0.159.0
+                                    @sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2
+validation Dag revision:           dags/i3_validation.py @ Git blob 85afb5544dcfe4a0de0eaa43445c9f29d408648c
+traffic procedure revision:        traffic.sh @ Git blob b49cf655a94f6b023a058f2e196a0bde063edb7f
+frozen expected.yaml revision:     expected.yaml @ Git blob 86f84c9abae26c92da0ee8395c846b3abeafe5e8
+identity-decision/profile revision: docker-compose.yml @ Git blob 88bc0280140823035d008c7cee07f974fe691752
+```
+
+Every value above is either pinned directly inside `runtime/docker-compose.yml` (the image/Collector
+digests) or is a `git ls-tree 310f5a3 <path>` blob hash — since Run A and Run B both built from the
+single commit `310f5a3` above (not two different commits shown to be equivalent), these values are
+identical for both runs *by construction*, not by separate re-verification per run. The Celery
+provider/instrumentation versions were re-confirmed directly from the pinned image digest itself
+(`docker run --rm --entrypoint python3
+apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339 -m pip
+show apache-airflow-providers-celery celery`) — since the digest is content-addressed, this is
+cryptographically the same image Run A and Run B actually used, not merely presumed unchanged.
+
 **Run A:**
 
 ```text

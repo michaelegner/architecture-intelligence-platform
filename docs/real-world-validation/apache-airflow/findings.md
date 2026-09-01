@@ -175,11 +175,13 @@ inferred from a diff) — no equivalence argument needed, because there was no r
 - [x] Exact runtime image/provider/instrumentation versions are recorded (`profile.md` — exact
       digest for `apache/airflow`, `postgres:16.15`, `redis:7.2-bookworm` digest-pinned,
       `otel/opentelemetry-collector:0.159.0` digest-pinned; `upstream.md` —
-      `apache-airflow-providers-celery==3.23.1`/`celery==5.6.3`, queried directly from the
-      digest-pinned image during I3.4's revalidation run, closing this item's previous gap per
-      PR #47 review F3).
+      `apache-airflow-providers-celery==3.23.1`/`celery==5.6.3`; `results.md`'s "Same AIP candidate,
+      same profile revision (I3 spec §59)" shared identity block — these values re-confirmed
+      directly from the pinned image digest and explicitly bound to Run A/Run B, not left implicit,
+      per PR #47 post-merge re-review F5).
 - [x] Selected runtime profile is reproducible (`results.md`'s "Same AIP candidate, same profile
-      revision (I3 spec §59)" — two runs at one pinned commit, identical behavior; plus three more
+      revision (I3 spec §59)" — two runs at one pinned commit, identical behavior, identical
+      Airflow upstream SHA/image/provider identities bound explicitly to both; plus three more
       independent clean-state runs across the wider I3 series in "Repeatability evidence"/
       "Revalidation (I3.4)").
 
@@ -299,9 +301,12 @@ inferred from a diff) — no equivalence argument needed, because there was no r
 - [x] Two clean qualifying runs produce the same semantic result, **at the same AIP candidate and
       same profile revision** (`results.md`'s "Same AIP candidate, same profile revision (I3 spec
       §59)" — two runs, one literal pinned commit `310f5a3`, identical comparator output; PR #47
-      re-review F4). The earlier three-run record (`"Repeatability evidence"`/`"Revalidation
-      (I3.4)"`) stays as broader evidence of stability across the full I3 series but is not itself
-      the §59-satisfying pair.
+      re-review F4), **and the same Airflow upstream SHA/image/provider identities, explicitly
+      bound to both runs** (same section's shared identity block, PR #47 post-merge re-review F5 —
+      an earlier version left these implicit rather than recorded against Run A/Run B specifically).
+      The earlier three-run record (`"Repeatability evidence"`/`"Revalidation (I3.4)"`) stays as
+      broader evidence of stability across the full I3 series but is not itself the §59-satisfying
+      pair.
 - [x] Deterministic ordering verified (same `_sort_key` — classification, severity, relation type,
       source, target, finding id).
 
