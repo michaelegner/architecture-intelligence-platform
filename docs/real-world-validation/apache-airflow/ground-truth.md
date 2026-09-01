@@ -4,6 +4,26 @@ Authored from primary upstream evidence at commit `3adbbe1c58e4532df1964cb779480
 **before** any AIP run against this system (I1 §5/§36, I3 spec §13/§39). No fact below is derived
 from AIP output.
 
+## Provisional scope of this freeze (I3 spec §48-49)
+
+The I3 spec's own normative phase order runs Phase A (upstream/identity research, this document)
+-> Phase B (observability qualification: start the profile, capture raw OTel independently) ->
+Phase C (ground-truth freeze) -> Phase D (first AIP comparison), and §49's freeze gate requires
+"raw OTel evidence captured enough to qualify runtime expectations" before Phase D. I3.1 performs
+only Phase A — no Airflow instance has been started and no OTLP has been captured yet — so this
+freeze is **complete and final for every declaration-only fact** (the 9 `PROVIDES` facts, the
+PostgreSQL/execution-API/runtime-role boundaries, all of which need no runtime evidence to
+establish), but **provisional for the Celery messaging boundary specifically**: whether a real,
+independently qualified `SENDS`/`RECEIVES_FROM` relation belongs in `expected.yaml` cannot be
+decided until Phase B's raw telemetry exists. `queue:default`'s scope entry and the
+`airflow-celery-messaging-runtime-status` `insufficient_evidence` item below are the visible marker
+of that: I3.2 SHALL complete Phase B/the §49 freeze gate for this item specifically — adding a
+qualified expected relation if the evidence supports one — **before** I3.3 runs the first AIP
+comparison (I3 spec §39's own ordering: "before the first qualifying AIP comparison"). This is an
+allowed, documented ground-truth amendment under this file's own Change log policy below (new
+independent evidence completing an item this freeze explicitly left open), not a retroactive
+rewrite to match AIP output.
+
 ## Evidence sources used, strongest first (I1 §6-7, I3 spec §35)
 
 1. Official machine-readable contract — the pinned public OpenAPI document
@@ -54,7 +74,7 @@ Compose-level rewrite (I3 spec §9's preference for two workers).
 **Interpretation A** — Airflow is one logical Service; the five process roles above are
 runtime/deployment structure outside the current canonical `Service` abstraction.
 
-**Interpretation B** — `airflow-api-server`, `airflow-scheduler`, `airflow-worker`,
+**Interpretation B** — `airflow-apiserver`, `airflow-scheduler`, `airflow-worker`,
 `airflow-dag-processor`, `airflow-triggerer` are each distinct logical Services, because their
 architecture boundaries are independently meaningful.
 
@@ -94,34 +114,80 @@ architecture boundaries are independently meaningful.
 
 ### Decision
 
-For the profile as pinned (no additional per-role OTel configuration), this dossier freezes:
+Answering this correctly requires keeping four separate questions apart, rather than letting an
+answer to the last one quietly stand in for the first (a mistake this dossier's own first draft
+made by writing the runtime-telemetry limitation as *the reason* no split is asserted, which reads
+as if the roles weren't architecturally distinct — they are; see the finding recorded below):
 
 ```text
-service:airflow-api-server
+1. Independent architecture conclusion
+   What boundaries exist upstream, on the evidence alone?
+   -> Interpretation B's evidence (above) stands undisputed: scheduler, dag-processor, worker,
+      triggerer, and api-server are independently deployable, independently scaled/lifecycled,
+      security-boundary-separated roles. This is a fact about Airflow, not about AIP.
+
+2. Canonical-model interpretation
+   Which of those boundaries fit AIP's current `Service` semantics?
+   -> AIP's `Service` is (per app/canonical/ids.py and the OpenAPI/AsyncAPI adapters) an entity
+      that owns a network-addressable contract a source adapter can attach PROVIDES/SENDS/
+      RECEIVES_FROM facts to. Only `airflow-apiserver` unambiguously fits that shape today — it
+      owns the one independently documented contract (/api/v2). The other four roles are real
+      architecture roles that AIP's current Service abstraction has no independent contract-based
+      way to address (no OpenAPI/AsyncAPI/manifest source names them the way it names
+      airflow-apiserver). That is a gap in what AIP's model can currently express, not evidence
+      that the roles aren't distinct.
+
+3. Runtime resolvability
+   Which canonical identities can the unmodified OTel profile distinguish?
+   -> None of the five, beyond what's already settled by (2): the pinned profile's default OTel
+      configuration gives every role in the shared x-airflow-common environment block the same
+      (or all-unknown_service) resource identity (evidence above). This bears only on whether a
+      *runtime-observed* fact citing one of the four unresolved roles could be safely attributed —
+      it says nothing about whether those roles exist.
+
+4. AIP result
+   Can AIP resolve them without guessing, given (2) and (3)?
+   -> For airflow-apiserver: yes — it is asserted as a canonical Service below. For the other
+      four: no safe canonical identity exists without either a contract-based source AIP doesn't
+      have for them, or runtime telemetry the default profile doesn't emit. Per I3 spec §13,
+      "unresolved > guessed" applies, and they are recorded as UNRESOLVED_IDENTITY.
+```
+
+This dossier freezes:
+
+```text
+service:airflow-apiserver
     the one logical Service this dossier asserts with full confidence — it independently owns
     a public, versioned REST contract (/api/v2) that no other component provides, and is the
     sole Compose service running `command: api-server`.
 
 airflow-scheduler / airflow-dag-processor / airflow-worker / airflow-triggerer
-    NOT asserted as distinct canonical Services in this qualifying profile. Real architectural
-    separation exists (Interpretation B's evidence above is not disputed), but the pinned
-    official profile's own native telemetry configuration does not expose it, and I3 spec §13
-    requires "unresolved > guessed." Their runtime-role identity is recorded as
-    UNRESOLVED_IDENTITY below, not folded into `service:airflow-api-server` and not split
-    into four guessed Service ids.
+    NOT asserted as distinct canonical Services in this qualifying profile — not because they
+    lack independent architectural identity (layer 1 above says they don't lack it), but because
+    neither AIP's current contract-based Service semantics (layer 2) nor the pinned profile's
+    default runtime telemetry (layer 3) gives a safe, non-guessed way to name them individually
+    (layer 4). Their runtime-role identity is recorded as UNRESOLVED_IDENTITY below, not folded
+    into `service:airflow-apiserver` and not split into four guessed Service ids.
 ```
 
-This is a statement about what the *default, pinned, unmodified* profile can safely establish —
-not a claim that Interpretation B is wrong. A separate, pre-declared diagnostic profile that sets
-explicit per-role `OTEL_SERVICE_NAME` values (standard OTel configuration, decided now from this
-architectural reasoning rather than reactively after observing AIP's behavior) may test
-Interpretation B directly. Per I3 spec §14, any such experiment SHALL be documented separately and
-SHALL NOT retroactively redefine this frozen ground truth.
+**Flag for I4 (per I3 spec §54/§75):** layer 2 above is itself a candidate model-hardening
+question, not just a runtime-evidence gap — AIP's current `Service` abstraction has no way to
+represent "an architecturally distinct, independently deployed role with no independently owned
+network contract of its own." Whether that deserves a canonical model change (e.g. a role/process
+concept distinct from `Service`) is exactly the kind of cross-system question I4 exists to decide
+once Quarkus's and Airflow's findings can be compared; I3.1 deliberately does not propose one
+(I3 spec §54 lists new role/process entities among the changes normally deferred to I4).
+
+A separate, pre-declared diagnostic profile that sets explicit per-role `OTEL_SERVICE_NAME` values
+(standard OTel configuration, decided now from this architectural reasoning rather than reactively
+after observing AIP's behavior) may test whether runtime resolvability (layer 3) can be improved
+without changing layers 1-2. Per I3 spec §14, any such experiment SHALL be documented separately
+and SHALL NOT retroactively redefine this frozen ground truth.
 
 ### Runtime role vs. runtime instance vs. deployment artifact (I3 spec §12)
 
 ```text
-logical identity     service:airflow-api-server (frozen); the other four roles: unresolved
+logical identity     service:airflow-apiserver (frozen); the other four roles: unresolved
 runtime role          scheduler / dag-processor / worker / triggerer / api-server, as named by
                       the pinned Compose file's own service names and `command:` values
 runtime instance      one container per role, except the worker (deliberately scaled to 2 —
@@ -154,23 +220,23 @@ three-level template), bounded enough for review. `/api/v2/auth/login` and `/api
 exist in the same document but are UI session-redirect endpoints, not the API authentication
 mechanism, and are excluded from the bounded set.
 
-Sole provider: `airflow-api-server` — the only Compose service running `command: api-server`, and
+Sole provider: `airflow-apiserver` — the only Compose service running `command: api-server`, and
 the only component the pinned OpenAPI document itself attributes these routes to.
 
 Canonical identities (per `app/canonical/ids.py`'s `service_id()`/`operation_id()` format):
 
 ```text
-service:airflow-api-server
+service:airflow-apiserver
 
-operation:service:airflow-api-server:GET:/api/v2/monitor/health
-operation:service:airflow-api-server:GET:/api/v2/dags
-operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}
-operation:service:airflow-api-server:POST:/api/v2/dags/{dag_id}/dagRuns
-operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns
-operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
-operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
-operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
-operation:service:airflow-api-server:GET:/api/v2/variables
+operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+operation:service:airflow-apiserver:GET:/api/v2/dags
+operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+operation:service:airflow-apiserver:GET:/api/v2/variables
 ```
 
 ## REST caller ground truth (I3 spec §18)
@@ -182,16 +248,53 @@ Airflow HTTP interactions (e.g. worker/task -> execution API) are addressed sepa
 
 ## Execution API boundary (I3 spec §19)
 
-The pinned official profile points workers/tasks at
-`http://airflow-apiserver:8080/execution/`. No pinned OpenAPI or other machine-readable contract
-document describes this surface in the repository at this commit (the only related file,
-`task-sdk/src/airflow/sdk/execution_time/schema/schema.json`, is a payload JSON Schema, not a REST
-operation contract) — confirmed by inspecting the full pinned repository tree. Because the
-operation identity cannot be independently established from a pinned contract:
+The pinned official profile points workers/tasks at `http://airflow-apiserver:8080/execution/`.
+
+**Correction from an earlier draft of this section.** An earlier version of this dossier justified
+`UNRESOLVED_IDENTITY` solely by the absence of a committed OpenAPI document for this surface. That
+was too strong: I1's evidence hierarchy explicitly permits pinned upstream *source code* (tier 4),
+and the pinned commit contains a complete, independently readable FastAPI application for this
+surface at `airflow-core/src/airflow/api_fastapi/execution_api/`:
 
 ```text
-UNRESOLVED_IDENTITY: execution API boundary
+app.py               create_task_execution_api_app() — title "Airflow Task Execution API",
+                     description "The private Airflow Task Execution API." Cadwyn-versioned via
+                     an `Airflow-API-Version` header (version affects request/response schema, not
+                     the route path).
+routes/__init__.py    execution_api_router composes, with concrete path prefixes:
+                         /health, /health/ping                (unauthenticated)
+                         /assets, /asset-events, /connection-tests, /connections, /dag-runs,
+                         /dags, /task-instances, /task-reschedules, /variables, /xcoms,
+                         /hitlDetails, /store/ti, /store/asset   (all behind require_auth)
+routes/task_instances.py  concrete route declarations exist, e.g.
+                         PATCH /task-instances/{task_instance_id}/run
+                         (ti_id_router, mounted with no extra prefix under the /task-instances
+                         router — full path /execution/task-instances/{task_instance_id}/run)
 ```
+
+So route *target* identity is independently derivable from pinned source, the same tier-4 evidence
+this dossier already relies on for the OTel resource-identity finding above — the earlier "no
+evidence exists" framing was wrong. This dossier still does not add these routes to the qualifying
+bounded REST set or to `expected.yaml`, for two narrower, evidence-based reasons rather than the
+withdrawn one:
+
+```text
+1. Caller identity: the interaction is worker/task-runner -> airflow-apiserver. "Worker" is
+   exactly the runtime role left UNRESOLVED_IDENTITY above (Logical Service boundary analysis,
+   layer 4) — a concrete CALLS fact needs both ends resolved, and one end isn't, independent of
+   whether the target route is known.
+2. Scope discipline: I3.1's bounded REST provider set (I3 spec §16's ~8-15 target) was selected
+   from the one contract this profile treats as the qualifying public surface (/api/v2). Extending
+   comparator scope to the execution API pulls in a second, differently-versioned contract surface
+   this profile did not select against — appropriate to decide deliberately in I3.2 (where the
+   validation Dag's actual worker/task-runner call pattern can be confirmed against these routes),
+   not to fold in silently here.
+```
+
+Net classification is unchanged — `UNRESOLVED_IDENTITY: execution API boundary` — but for the
+caller-identity and scope-discipline reasons above, not for absence of evidence. I3.2/I3.3 SHOULD
+revisit this once the worker's runtime-role identity question and the validation Dag's concrete
+call pattern are both available.
 
 This is not automatically equivalent to the stable `/api/v2` contract and is not treated as such
 anywhere in this dossier or in `expected.yaml`.
@@ -227,9 +330,9 @@ Mandatory architecture observations, all classified `UNSUPPORTED` (mechanism
 `database-dependency`) with respect to the current canonical relation vocabulary:
 
 ```text
-airflow-scheduler       -> PostgreSQL   (metadata database)
-airflow-api-server      -> PostgreSQL   (metadata database)
-Celery result backend   -> PostgreSQL   (result backend)
+airflow-scheduler      -> PostgreSQL   (metadata database)
+airflow-apiserver      -> PostgreSQL   (metadata database)
+Celery result backend  -> PostgreSQL   (result backend)
 ```
 
 None of these will be represented as `Queue`, an HTTP `Operation`, or any other supported relation
@@ -250,7 +353,7 @@ synthetic `expected.yaml` entry.
 AIP's OpenAPI adapter derives a service's canonical id from the declaration directory/service name
 supplied to the importer (`app/ingestion/openapi_adapter.py`'s `service_id` parameter), not from
 the OpenAPI `info.title` (which is the generic "Airflow API 2" and does not name the owning
-component). This dossier chooses `airflow-api-server`, matching the pinned Compose file's own
+component). This dossier chooses `airflow-apiserver`, matching the pinned Compose file's own
 service name for the one component running `command: api-server` — the same identity Airflow's own
 deployment tooling uses for this role. `queue:default` is taken directly from Celery's own
 `default_queue` configuration name, independent of any AIP output.
@@ -269,7 +372,7 @@ across repeatable runs). This dossier freezes the rule I3.3 must be checked agai
 
 ```text
 AIP SHOULD NOT create two logical Services merely because two worker instances exist.
-AIP SHALL NOT collapse the worker role into service:airflow-api-server merely because native
+AIP SHALL NOT collapse the worker role into service:airflow-apiserver merely because native
 telemetry may not distinguish them, if doing so creates a false PROVIDES/CALLS claim.
 ```
 
@@ -287,14 +390,19 @@ template form above — no comparator-side route reconstruction is used or will 
 ## Known ambiguities / unresolved / insufficient-evidence items
 
 ```text
-UNRESOLVED_IDENTITY   execution API boundary (§19 above) — no pinned contract exists to
-                      independently establish operation identity.
+UNRESOLVED_IDENTITY   execution API boundary (§19 above) — route targets ARE independently
+                      derivable from pinned source, but the caller ("worker") is itself an
+                      unresolved runtime role, and I3.1 deliberately did not extend comparator
+                      scope to this second contract surface (see §19's corrected rationale).
 UNRESOLVED_IDENTITY   airflow-scheduler / airflow-dag-processor / airflow-worker /
                       airflow-triggerer logical Service identity under the pinned profile's
-                      default (undifferentiated) native telemetry configuration.
+                      default (undifferentiated) native telemetry configuration — an
+                      architecture-vs-model-vs-runtime distinction, not an architecture-absence
+                      finding (see Logical Service boundary analysis's four-layer decision above).
 INSUFFICIENT_EVIDENCE Celery SENDS/RECEIVES_FROM runtime status — no traffic has been run and no
-                      OTLP has been captured yet (I3.1 authors declaration-only ground truth);
-                      established in I3.2/I3.3 once real messaging telemetry exists.
+                      OTLP has been captured yet (I3.1 authors PROVISIONAL, pre-runtime ground
+                      truth for this item — see "Provisional scope" note below; the final freeze
+                      for this item happens in I3.2 per I3 spec §48-49's phase order).
 ```
 
 No `CALLS` ground truth is asserted or attempted in I3.1 for the reason above (§18): it requires

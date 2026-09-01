@@ -2375,7 +2375,13 @@ unsupported database boundary
 ground-truth freeze
 ```
 
-No qualifying AIP comparison result in this task.
+No qualifying AIP comparison result in this task. This task performs Phase A (§48) only: the
+"ground-truth freeze" it delivers is final for every fact establishable without runtime evidence
+(declared REST facts, unsupported/unresolved boundary classifications), but per §48-49's phase
+order — Phase B (observability qualification) precedes Phase C (ground-truth freeze) — any item
+whose safe qualification genuinely requires independent raw telemetry (the Celery messaging
+boundary, per §22-23) remains provisional until I3.2 completes Phase B and the §49 freeze gate for
+that item specifically, before I3.3's Phase D comparison runs.
 
 Suggested branch:
 
@@ -2407,7 +2413,11 @@ Suggested branch:
 feat/v0.3-i3-airflow-runtime-profile
 ```
 
-No production semantic fix unless required for general setup correctness.
+No production semantic fix unless required for general setup correctness. This task carries the
+Phase B (§48) responsibility for whichever I3.1 items were left provisional pending independent
+raw telemetry: it SHALL complete that qualification and finalize the §49 freeze gate for those
+items (amending `expected.yaml` if the evidence supports a qualified relation) before I3.3 runs the
+first AIP comparison.
 
 ---
 

@@ -5,6 +5,11 @@ runtime override, validation Dag, traffic script, or Collector config exists yet
 I3.2's deliverables (`runtime/`); this file records the intended profile so it can be reviewed and
 frozen before that runtime work begins.
 
+I3.2 also carries the spec's Phase B responsibility (§48-49): starting this profile and capturing
+raw OTel independently, *before* `ground-truth.md`/`expected.yaml`'s Celery messaging item can move
+from provisional to finally frozen (see `ground-truth.md`'s "Provisional scope of this freeze").
+Everything else in this profile description is otherwise final as of I3.1.
+
 ## Airflow image/version
 
 ```text

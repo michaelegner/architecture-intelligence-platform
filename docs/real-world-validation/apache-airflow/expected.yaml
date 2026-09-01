@@ -8,22 +8,30 @@
 # I3.1 scope: declaration-only. No traffic has been run and no OTLP has been captured, so no
 # `status`/`observed` evidence is asserted anywhere in this file (I3 spec §45-46) — that is I3.3's
 # job once real runtime evidence exists.
+#
+# PROVISIONAL for the Celery messaging boundary specifically (see ground-truth.md's "Provisional
+# scope of this freeze"): I3 spec §48-49 requires Phase B's independent raw OTel qualification
+# before the final freeze gate for any runtime-dependent item, and I3.1 performs no Phase B. Every
+# other fact in this file (PROVIDES, unsupported, execution-API/runtime-role unresolved items)
+# needs no runtime evidence and is final now. Only the queue:default scope entry / the
+# airflow-celery-messaging-runtime-status item below remain open pending I3.2's Phase B, to be
+# amended here (adding a qualified relation if evidence supports one) before I3.3's comparison.
 
 system: apache-airflow
 upstream_revision: "3adbbe1c58e4532df1964cb7794805e763816ee8"
 
 scope:
   entities:
-    - service:airflow-api-server
-    - operation:service:airflow-api-server:GET:/api/v2/monitor/health
-    - operation:service:airflow-api-server:GET:/api/v2/dags
-    - operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}
-    - operation:service:airflow-api-server:POST:/api/v2/dags/{dag_id}/dagRuns
-    - operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns
-    - operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
-    - operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
-    - operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
-    - operation:service:airflow-api-server:GET:/api/v2/variables
+    - service:airflow-apiserver
+    - operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+    - operation:service:airflow-apiserver:GET:/api/v2/dags
+    - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+    - operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+    - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+    - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+    - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+    - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+    - operation:service:airflow-apiserver:GET:/api/v2/variables
     - queue:default
   relation_types:
     - PROVIDES
@@ -36,56 +44,56 @@ expected:
   relations:
     - id: airflow-provides-health
       type: PROVIDES
-      source: service:airflow-api-server
-      target: operation:service:airflow-api-server:GET:/api/v2/monitor/health
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/monitor/health
       evidence:
         declared: true
     - id: airflow-provides-get-dags
       type: PROVIDES
-      source: service:airflow-api-server
-      target: operation:service:airflow-api-server:GET:/api/v2/dags
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags
       evidence:
         declared: true
     - id: airflow-provides-get-dag
       type: PROVIDES
-      source: service:airflow-api-server
-      target: operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
       evidence:
         declared: true
     - id: airflow-provides-trigger-dag-run
       type: PROVIDES
-      source: service:airflow-api-server
-      target: operation:service:airflow-api-server:POST:/api/v2/dags/{dag_id}/dagRuns
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
       evidence:
         declared: true
     - id: airflow-provides-get-dag-runs
       type: PROVIDES
-      source: service:airflow-api-server
-      target: operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
       evidence:
         declared: true
     - id: airflow-provides-get-dag-run
       type: PROVIDES
-      source: service:airflow-api-server
-      target: operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
       evidence:
         declared: true
     - id: airflow-provides-get-task-instances
       type: PROVIDES
-      source: service:airflow-api-server
-      target: operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
       evidence:
         declared: true
     - id: airflow-provides-get-task-instance
       type: PROVIDES
-      source: service:airflow-api-server
-      target: operation:service:airflow-api-server:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
       evidence:
         declared: true
     - id: airflow-provides-get-variables
       type: PROVIDES
-      source: service:airflow-api-server
-      target: operation:service:airflow-api-server:GET:/api/v2/variables
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/variables
       evidence:
         declared: true
 
@@ -109,7 +117,7 @@ unsupported:
   - id: airflow-apiserver-postgres-dependency
     mechanism: database-dependency
     description: >
-      airflow-api-server depends on PostgreSQL as its metadata database, which is outside the
+      airflow-apiserver depends on PostgreSQL as its metadata database, which is outside the
       current AIP canonical relation vocabulary.
   - id: airflow-celery-result-backend-postgres-dependency
     mechanism: database-dependency
