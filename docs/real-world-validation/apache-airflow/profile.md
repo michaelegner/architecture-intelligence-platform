@@ -146,11 +146,16 @@ Per I3 spec §31's recommendation.
 
 ## Observation-window method
 
-Defined in `runbook.md` phase 6, following the same pattern as Quarkus's `runbook.md` phase 8: UTC
-`window_start`/`window_end` recorded by `traffic.sh` itself, bracketing only the qualifying traffic,
-plus an explicit sleep-based drain barrier before treating the window as closed (I3 spec §31 — task
-execution is asynchronous and OTLP may flush after client traffic completes; observed drain latency
-during I3.2 was under 10s from `traffic.sh` completion to the batch appearing at the Collector).
+Defined in `runbook.md` phase 6, and owned entirely by the runbook, not `traffic.sh` (PR #45
+re-review N1 — an earlier version of this section described `traffic.sh` as recording the window,
+which stopped being true once PR #45 review F1's fix moved window ownership out of the script to
+resolve a race between two independently-stamped, undrained timestamps). The runbook captures UTC
+`window_start` immediately before invoking `traffic.sh`, then — only after `traffic.sh` returns —
+runs an explicit drain barrier (a bounded sleep plus a retried check that AIP's own access log shows
+a successful `POST /v1/traces` since `window_start`) before stamping `window_end` and treating the
+window as closed (I3 spec §31 — task execution is asynchronous and OTLP may flush after client
+traffic completes; observed drain latency during I3.2 was under 10s from `traffic.sh` completion to
+the batch appearing at the Collector).
 
 ## Standard Celery instrumentation decision (I3 spec §29)
 
@@ -165,10 +170,16 @@ whether the existing Celery interaction *could* be made observable, not to force
 Finding: instrumenting did surface a real `Producer`-kind span (`apply_async/execute_workload`) with
 `messaging.destination_kind: queue` and `messaging.destination: default` — independently confirming
 the destination is a queue (not a bare broker endpoint) and the queue name matches the pinned
-`[operators] default_queue` — but no consumer-side span appeared (`CeleryInstrumentor
-.is_instrumented_by_opentelemetry` was `False` on the worker process; Airflow's plugin-loading
-evidently doesn't activate for the `celery worker` command's execution context the way it does for
-the scheduler). More importantly, **every span's resource `service.name` was `unknown_service`
+`[operators] default_queue` — but no consumer-side span ever appeared across multiple runs, despite
+the same plugin file sitting in the same shared volume every Airflow component (including both
+workers) mounts. (An earlier version of this section attributed this to `CeleryInstrumentor
+().is_instrumented_by_opentelemetry` returning `False` when checked via a separate `docker exec ...
+python3 -c` process on the worker — PR #45 re-review's F2 verification process surfaced that this
+check is unreliable: it reads a *new* process's own fresh state, not the actual running daemon's, and
+printed `False` on the scheduler too even in a run where the scheduler's own producer span
+unambiguously proves it was instrumented. The only evidence that survives is the direct,
+functional one: no consumer-side span was ever observed.) More importantly, **every span's resource
+`service.name` was `unknown_service`
 regardless of which component produced it** — scheduler, worker, and api-server spans are
 indistinguishable by resource identity. This independently confirms, via real captured telemetry
 rather than reading documentation alone, the `airflow-runtime-role-identity` finding already frozen
@@ -183,22 +194,53 @@ and its result, per §29's own documentation requirement.
 
 ### Exact reproduction recipe
 
-1. Add one line to `runtime/docker-compose.yml`'s `airflow-common-env`:
-   ```yaml
-   _PIP_ADDITIONAL_REQUIREMENTS: opentelemetry-instrumentation-celery==0.65b0
-   ```
-2. Add `runtime/plugins/otel_celery_instrumentation.py` (Airflow's own plugin-loading extension
-   point — no Airflow architecture logic changed):
+`/opt/airflow/plugins` is the named volume `airflow-i3-plugins`, not a host bind mount (PR #45
+review F2 changed this) — a file only placed under a local `runtime/plugins/` directory never
+reaches the containers. `docker cp` into the shared volume through any already-running container
+that mounts it instead (PR #45 re-review F2):
+
+1. Save the plugin locally (content unchanged from the original experiment — Airflow's own
+   plugin-loading extension point, no Airflow architecture logic changed):
    ```python
+   # otel_celery_instrumentation.py
    from opentelemetry.instrumentation.celery import CeleryInstrumentor
 
    CeleryInstrumentor().instrument()
    ```
-3. `docker compose up -d --scale airflow-worker=2 --force-recreate airflow-scheduler airflow-worker`
+2. Copy it into the shared `airflow-i3-plugins` volume via the running scheduler container (any
+   container using `airflow-common`'s volumes works identically — it's the same named volume):
+   ```bash
+   docker cp otel_celery_instrumentation.py runtime-airflow-scheduler-1:/opt/airflow/plugins/otel_celery_instrumentation.py
+   ```
+   Verified: the copied file is world-readable by default (`docker cp`'s default mode), so no
+   explicit `chown` to the container's `airflow` (uid 50000) user is needed.
+3. Add one line to `runtime/docker-compose.yml`'s `airflow-common-env`:
+   ```yaml
+   _PIP_ADDITIONAL_REQUIREMENTS: opentelemetry-instrumentation-celery==0.65b0
+   ```
+4. `docker compose up -d --scale airflow-worker=2 --force-recreate airflow-scheduler airflow-worker`
    (only these two need the package; `_PIP_ADDITIONAL_REQUIREMENTS` reinstalls at every container
    start, so this is intentionally not left in the frozen profile — it adds real startup latency for
-   no qualifying benefit once the experiment's conclusion is recorded here).
-4. Run `traffic.sh`, then inspect `docker compose logs otel-collector` (`verbosity: detailed`).
+   no qualifying benefit once the experiment's conclusion is recorded here). The named volume
+   persists across `--force-recreate` (only `down -v` empties it — verified), so the plugin file
+   copied in step 2 is still there for the freshly-started scheduler process to load.
+5. Run `traffic.sh`.
+
+**Positive activation check — must be functional, not process-introspection:** checking
+`CeleryInstrumentor().is_instrumented_by_opentelemetry` via a *separate* `docker exec ... python3 -c`
+process reads that new process's own fresh state, not the actual running scheduler daemon's — tried
+this while re-verifying the recipe and it printed `False` even though the daemon plainly was
+instrumented (the producer span below appeared in the same run). The only reliable positive check is
+functional: inspect the Collector's own `debug` exporter output (`verbosity: detailed`) for the
+instrumentation's scope:
+
+```bash
+docker compose logs otel-collector | grep -A5 "InstrumentationScope opentelemetry.instrumentation.celery"
+```
+
+Presence of that scope (and the `Producer`-kind span below) is the positive check; its absence means
+the plugin didn't load and the experiment should be re-attempted from step 2 before concluding
+anything.
 
 Representative sanitized excerpt actually captured (IDs/timestamps redacted, message content
 unchanged):

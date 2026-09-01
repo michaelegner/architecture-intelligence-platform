@@ -44,20 +44,26 @@ to transcribe.
 vendored — I1 §36/§39) and is then modified as documented in the file's own header comment (exact
 image pins, standard OTel env vars, added AIP/Neo4j/Collector services).
 
-## Why every image the profile controls is pinned to exact bytes (PR #40 review F1 precedent)
+## Why every image the profile controls is pinned, at least to an exact version (PR #40 review F1
+## precedent; PR #45 re-review N2 corrected this section's own claims below)
 
-A "reproducible runtime profile" means every image the profile controls resolves to the same bytes
-on every run, not only the system under test. The official Compose file's own
+A "reproducible runtime profile" means every image the profile controls resolves to a known, fixed
+version on every run, not only the system under test. The official Compose file's own
 `postgres:16`/`otel/opentelemetry-collector:latest`-style tags are moving major-only/rolling tags
 that can silently resolve to a different image between two runs of this same frozen profile.
-`docker-compose.yml` therefore pins:
+`docker-compose.yml` pins every controlled image to at least an exact version tag, and the two
+images that sit directly on an evidence path (execution or OTLP) additionally to an exact digest:
 
 ```text
-apache/airflow    3.3.1 tag AND exact digest (both the executor's evidence path and the OTel
-                  trace-source path)
-postgres          16 (official file) tightened to 16.15, the exact patch resolved at research time
-redis             7.2-bookworm left as-is - already exact enough (Celery's own upstream licensing
-                  pin, not a moving major tag)
+apache/airflow    exact version tag (3.3.1) AND exact digest - both the executor's evidence path
+                  and the OTel trace-source path
+postgres          16 (official file, major-only) tightened to the exact patch resolved at research
+                  time, 16.15 - version tag only, not digest-pinned
+redis             7.2-bookworm (official file, already an exact minor+distro tag, not major-only)
+                  additionally pinned by the exact digest resolved at research time (PR #45 review
+                  F5 - a Debian codename tag can still be rebuilt at the same tag)
+neo4j             5.26.0 (this repo's own choice, exact patch tag) - version tag only, not
+                  digest-pinned
 otel-collector    0.159.0 tag AND exact digest, same image already pinned in
                   quarkus-super-heroes/runtime/docker-compose.yml, since it sits directly on the
                   OTLP evidence path (Airflow spans -> Collector -> AIP /v1/traces)

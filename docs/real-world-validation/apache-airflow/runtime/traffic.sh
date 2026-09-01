@@ -11,12 +11,18 @@
 # observation window and its drain barrier are the runbook's responsibility (`../runbook.md` phase
 # 6), not this script's (PR #45 review F1: a script-local timestamp and the runbook's own timestamp
 # raced each other and neither waited for the OTLP drain).
+#
+# DAG_RUN_ID defaults to a fixed, stable identifier (I3 spec §33: fixed identifiers where the API
+# permits them) rather than a timestamp (PR #45 re-review F1) - safe because the qualifying
+# procedure always starts from clean state (`../runbook.md`'s clean-state requirement), so no
+# earlier run's ID can still exist to collide with. Override DAG_RUN_ID for a non-qualifying
+# diagnostic rerun against an already-populated stack.
 
 set -euo pipefail
 
 API_URL="${API_URL:-http://localhost:8080}"
 DAG_ID="i3_validation"
-DAG_RUN_ID="aip-i3-validation-$(date -u +%Y%m%dT%H%M%SZ)"
+DAG_RUN_ID="${DAG_RUN_ID:-aip-i3-validation}"
 
 echo "==> GET /api/v2/monitor/health (readiness)" >&2
 curl -sS -f "${API_URL}/api/v2/monitor/health" >&2

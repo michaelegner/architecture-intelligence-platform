@@ -93,20 +93,39 @@ wait_for_tcp() {
 
 # The apiserver can report healthy before the scheduler/dag-processor/triggerer/workers have
 # finished their own startup (PR #45 review F3) - none of those four expose an HTTP health endpoint
-# on the host, so poll each container's own Docker healthcheck status instead (assumes the default
-# Compose project name, i.e. this directory's basename "runtime", giving container names
-# runtime-<service>-N per `docker compose ps`).
+# on the host, so poll each container's own Docker healthcheck status instead. Resolved via
+# `docker compose ps -q <service>` rather than a hardcoded container name (PR #45 re-review N3),
+# so this doesn't depend on the default Compose project name and naturally covers however many
+# containers a scaled service actually has (see the worker loop below).
 wait_for_container_healthy() {
-  local name="$1" timeout="${2:-180}" waited=0
-  until [ "$(docker inspect -f '{{.State.Health.Status}}' "$name" 2>/dev/null)" = "healthy" ]; do
+  local container_id="$1" label="$2" timeout="${3:-180}" waited=0
+  until [ "$(docker inspect -f '{{.State.Health.Status}}' "$container_id" 2>/dev/null)" = "healthy" ]; do
     waited=$((waited + 2))
     if [ "$waited" -ge "$timeout" ]; then
-      echo "$name did not become healthy within ${timeout}s - see: docker compose logs $name" >&2
+      echo "$label did not become healthy within ${timeout}s - see: docker compose logs $label" >&2
       return 1
     fi
     sleep 2
   done
-  echo "$name healthy after ${waited}s"
+  echo "$label healthy after ${waited}s"
+}
+
+# Waits for every currently-running container of a (possibly scaled) service - covers whichever
+# worker count phase 3's `--scale` actually used (2 preferred, 1 as the documented fallback; PR #45
+# re-review N3: a hardcoded wait for two workers made the documented one-worker fallback impossible
+# to pass).
+wait_for_service_healthy() {
+  local service="$1" timeout="${2:-180}"
+  local ids
+  ids="$(docker compose ps -q "$service")"
+  if [ -z "$ids" ]; then
+    echo "no running containers found for service $service" >&2
+    return 1
+  fi
+  local id
+  for id in $ids; do
+    wait_for_container_healthy "$id" "$service ($id)" "$timeout"
+  done
 }
 
 # The DAG must actually be parsed and registered before phase 6 triggers it - `airflow dags details`
@@ -128,11 +147,10 @@ wait_for_dag_registered() {
 wait_for_http architecture-intelligence http://localhost:8000/health
 wait_for_http airflow-apiserver         http://localhost:8080/api/v2/monitor/health
 wait_for_tcp  otel-collector            localhost 4318
-wait_for_container_healthy runtime-airflow-scheduler-1
-wait_for_container_healthy runtime-airflow-dag-processor-1
-wait_for_container_healthy runtime-airflow-triggerer-1
-wait_for_container_healthy runtime-airflow-worker-1
-wait_for_container_healthy runtime-airflow-worker-2
+wait_for_service_healthy airflow-scheduler
+wait_for_service_healthy airflow-dag-processor
+wait_for_service_healthy airflow-triggerer
+wait_for_service_healthy airflow-worker
 wait_for_dag_registered i3_validation
 ```
 
