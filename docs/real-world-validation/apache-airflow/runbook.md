@@ -373,12 +373,18 @@ down -v`) so no state from either run survives.
 
 ## Clean-state requirement (I1 §29 / I3 spec §58)
 
-Every qualifying run begins from clean state. Before phase 3 (and again before phase 10's rerun):
+Every qualifying run begins from clean state. Before the very first phase 3 (a stack may already be
+running from unrelated prior work):
 
 ```bash
 cd docs/real-world-validation/apache-airflow/runtime
 docker compose down -v
 ```
+
+Phase 10's rerun needs no separate instance of this command — phase 9 already tore the first run's
+stack down with `docker compose down -v`, and phase 10 starts fresh at the repository root from
+there (PR #46 final re-review F1: an earlier version repeated this block "again before phase 10's
+rerun," which left the shell inside `runtime/` and made phase 10's own repeated phase 3 `cd` fail).
 
 `docker compose down -v` removes every named volume declared in `docker-compose.yml`: the Neo4j
 volumes (`neo4j-airflow-i3-data`/`-logs`), the Postgres volume (`postgres-db-volume`), Redis's
