@@ -66,6 +66,12 @@ F3 lesson Quarkus's runbook already encodes) — wait with a bounded, retried lo
 one-shot `curl`:
 
 ```bash
+# `set -e` makes an earlier failed check abort the whole block immediately if this is extracted and
+# run as a script rather than typed interactively - without it, a later successful check (e.g. the
+# final DAG-registration poll) could leave the block's own exit status 0 even though an earlier
+# readiness check already failed (PR #45 final re-review non-blocking follow-up 2).
+set -e
+
 wait_for_http() {
   local name="$1" url="$2" timeout="${3:-180}" waited=0
   until curl -sf "$url" >/dev/null 2>&1; do
@@ -104,7 +110,10 @@ wait_for_container_healthy() {
   until [ "$(docker inspect -f '{{.State.Health.Status}}' "$container_id" 2>/dev/null)" = "healthy" ]; do
     waited=$((waited + 2))
     if [ "$waited" -ge "$timeout" ]; then
-      echo "$label did not become healthy within ${timeout}s - see: docker compose logs $label" >&2
+      # `$label` (e.g. "airflow-worker (<id>)") is a diagnostic string, not a `docker compose logs`
+      # target - use the plain `docker logs` form against the actual container ID instead (PR #45
+      # final re-review non-blocking follow-up 1).
+      echo "$label did not become healthy within ${timeout}s - see: docker logs $container_id" >&2
       return 1
     fi
     sleep 2
@@ -134,7 +143,7 @@ wait_for_service_healthy() {
     state="$(docker inspect -f '{{.State.Status}}' "$id" 2>/dev/null)"
     case "$state" in
       exited|dead)
-        echo "$service ($id) is $state, not starting - see: docker compose logs $id" >&2
+        echo "$service ($id) is $state, not starting - see: docker logs $id" >&2
         return 1
         ;;
     esac
