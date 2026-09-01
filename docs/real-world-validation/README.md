@@ -22,6 +22,10 @@ own separately-phased revalidation run (per I3 spec §76's phase separation) —
 clean-state runs total, all identical, no production fix required, no Quarkus impact, every I3
 spec §72 Definition of Done item satisfied (`apache-airflow/findings.md`'s final section).
 
+I4 adds `cross-system/`: it converts the I2 and I3 dossiers' independent results into one joint
+model-hardening decision rather than running a new system profile. I4.1 (finding consolidation and
+decision freeze) is complete — see [`cross-system/README.md`](cross-system/README.md).
+
 ## Purpose
 
 AIP `v0.1`/`v0.2` proved architecture intelligence exists and is reproducibly correct against
@@ -111,7 +115,8 @@ docs/real-world-validation/
 ├── README.md                (this file)
 ├── _template/                dossier + decision-record skeleton, copy per system
 ├── quarkus-super-heroes/     (added by I2)
-└── apache-airflow/           (added by I3)
+├── apache-airflow/           (added by I3)
+└── cross-system/             (added by I4 - joint decision trail, not a system dossier)
 ```
 
 Each system dossier keeps these five concerns separate:
