@@ -57,9 +57,10 @@ No new material finding was discovered during I4.2 itself that would reopen any 
 
 Re-run against `main` at `e54e201` (I4.1's merge commit) before starting I4.2, to confirm no drift
 occurred between I4.1's merge and I4.2's start. This is the §4 entry gate, not the broader §22
-final-candidate quality gate — §22 additionally requires the Quarkus/Airflow supported-scope
-comparisons and I1 contract tests, which apply only at final-candidate qualification (I4.4/I4.5),
-not at I4.2's documentation-only entry point:
+final-candidate quality gate. §22 additionally requires I1 validation-contract tests and the
+Quarkus/Airflow supported-scope comparisons: I4.3 delivers the I1-contract results; I4.4 performs
+the real-system comparisons; the complete §22 gate is confirmed against the final candidate during
+I4.5. None of that applies at I4.2's documentation-only entry point:
 
 ```text
 uv run ruff check .                          -> All checks passed
