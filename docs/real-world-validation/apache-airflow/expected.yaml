@@ -5,17 +5,18 @@
 #
 # Schema reference: real_world_validation/README.md and real_world_validation/loader.py.
 #
-# I3.1 scope: declaration-only. No traffic has been run and no OTLP has been captured, so no
-# `status`/`observed` evidence is asserted anywhere in this file (I3 spec §45-46) — that is I3.3's
-# job once real runtime evidence exists.
+# I3.1/I3.2 scope: declaration-only + Phase B raw-telemetry qualification. No `status`/`observed`
+# evidence is asserted anywhere in this file (I3 spec §45-46) — that is I3.3's job (the first AIP
+# comparison) once a qualifying comparison run exists; I3.2 only closed the freeze gate itself.
 #
-# PROVISIONAL for the Celery messaging boundary specifically (see ground-truth.md's "Provisional
-# scope of this freeze"): I3 spec §48-49 requires Phase B's independent raw OTel qualification
-# before the final freeze gate for any runtime-dependent item, and I3.1 performs no Phase B. Every
-# other fact in this file (PROVIDES, unsupported, execution-API/runtime-role unresolved items)
-# needs no runtime evidence and is final now. Only the queue:default scope entry / the
-# airflow-celery-messaging-runtime-status item below remain open pending I3.2's Phase B, to be
-# amended here (adding a qualified relation if evidence supports one) before I3.3's comparison.
+# FINAL as of I3.2 (see ground-truth.md's Change log): I3.2 ran the profile, captured raw OTel
+# independently (never through AIP), and closed the one item I3.1 left provisional (the Celery
+# messaging boundary). Every fact in this file — the 9 PROVIDES facts, unsupported/unresolved
+# boundary items, and now the messaging item below — is a closed, final result. No qualified
+# SENDS/RECEIVES_FROM relation was added: raw evidence showed messaging attributes are observable
+# (with diagnostic instrumentation) but sender/consumer identity is not, which I3 spec §23 requires
+# regardless of messaging-evidence quality. `queue:default`'s scope entry stays as-is, so any future
+# SENDS/RECEIVES_FROM AIP emits there still correctly surfaces as INCORRECT_SUPPORTED.
 
 system: apache-airflow
 upstream_revision: "3adbbe1c58e4532df1964cb7794805e763816ee8"
@@ -149,6 +150,11 @@ unresolved_identity:
 insufficient_evidence:
   - id: airflow-celery-messaging-runtime-status
     description: >
-      No traffic has been run and no OTLP has been captured yet (I3.1 is declaration-only ground
-      truth), so the Celery scheduler->queue->worker flow's runtime status cannot be established
-      until I3.2/I3.3 exercise real traffic and capture real messaging telemetry.
+      I3.2 exercised real traffic and captured real telemetry (ground-truth.md's Change log):
+      native Airflow tracing exposes zero Celery/broker/queue attributes. A diagnostic-only,
+      spec-§29-permitted addition of standard opentelemetry-instrumentation-celery did surface a
+      producer-side span confirming the destination is a queue named "default", but every span's
+      resource service.name was "unknown_service" regardless of component - sender/consumer
+      identity is not resolvable from this profile's OTel configuration, which I3 spec §23 requires
+      as a precondition independent of messaging-attribute quality. This is now a final result, not
+      an open question pending more evidence.
