@@ -177,8 +177,59 @@ this profile's default OTel configuration, which is §23's first (and here, bloc
 condition — regardless of how good the messaging-attribute evidence is.
 
 The diagnostic package/plugin were **not** kept in the frozen `runtime/` profile (they didn't change
-the qualification outcome, and I3.3 doesn't need them) — this section is the durable record of the
-experiment and its result, per §29's own documentation requirement.
+the qualification outcome, and I3.3 doesn't need them) — this section, plus the exact reproduction
+recipe below (PR #45 review's "Recommended strengthening"), is the durable record of the experiment
+and its result, per §29's own documentation requirement.
+
+### Exact reproduction recipe
+
+1. Add one line to `runtime/docker-compose.yml`'s `airflow-common-env`:
+   ```yaml
+   _PIP_ADDITIONAL_REQUIREMENTS: opentelemetry-instrumentation-celery==0.65b0
+   ```
+2. Add `runtime/plugins/otel_celery_instrumentation.py` (Airflow's own plugin-loading extension
+   point — no Airflow architecture logic changed):
+   ```python
+   from opentelemetry.instrumentation.celery import CeleryInstrumentor
+
+   CeleryInstrumentor().instrument()
+   ```
+3. `docker compose up -d --scale airflow-worker=2 --force-recreate airflow-scheduler airflow-worker`
+   (only these two need the package; `_PIP_ADDITIONAL_REQUIREMENTS` reinstalls at every container
+   start, so this is intentionally not left in the frozen profile — it adds real startup latency for
+   no qualifying benefit once the experiment's conclusion is recorded here).
+4. Run `traffic.sh`, then inspect `docker compose logs otel-collector` (`verbosity: detailed`).
+
+Representative sanitized excerpt actually captured (IDs/timestamps redacted, message content
+unchanged):
+
+```text
+ResourceSpans
+Resource attributes:
+     -> telemetry.sdk.language: Str(python)
+     -> telemetry.sdk.name: Str(opentelemetry)
+     -> telemetry.sdk.version: Str(1.44.0)
+     -> service.instance.id: Str(<redacted>)
+     -> deployment.environment.name: Str(airflow-i3)
+     -> service.name: Str(unknown_service)
+ScopeSpans
+InstrumentationScope opentelemetry.instrumentation.celery 0.65b0
+Span
+    Kind           : Producer
+    Name           : apply_async/execute_workload
+Attributes:
+     -> celery.action: Str(apply_async)
+     -> messaging.message.id: Str(<redacted>)
+     -> celery.task_name: Str(execute_workload)
+     -> messaging.destination_kind: Str(queue)
+     -> messaging.destination: Str(default)
+```
+
+`CeleryInstrumentor().is_instrumented_by_opentelemetry` returned `False` when checked on the worker
+process (`docker exec <worker-container> python3 -c "from opentelemetry.instrumentation.celery
+import CeleryInstrumentor; print(CeleryInstrumentor().is_instrumented_by_opentelemetry)"`) —
+confirming no consumer-side span was ever possible with this activation method, independent of the
+identity finding above.
 
 ## Resource / port assumptions
 

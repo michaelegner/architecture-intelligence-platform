@@ -69,7 +69,3 @@ tmp/
 
 # PDF Windows zone-identifier stream
 *:Zone.Identifier
-
-# Apache Airflow I3 validation profile - generated at container startup, not a deliverable
-# (docs/real-world-validation/apache-airflow/runtime/docker-compose.yml bind-mounts these)
-docs/real-world-validation/apache-airflow/runtime/config/

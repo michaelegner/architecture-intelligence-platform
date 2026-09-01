@@ -14,11 +14,17 @@ unless otherwise noted. Artifacts referenced below live under
 
 ```text
 Docker (with Compose v2)
-curl, jq, python3 (readiness/token/poll helpers below)
+curl, jq, python3 (stdlib only - readiness/token/poll helpers below, no extra pip packages)
+CPU: 2 cores minimum, 4 recommended (I3 spec §57 - matches the official Compose file's own
+    documented minimum for this exact component set: Postgres, Redis, 4 Airflow role containers,
+    2 worker replicas, AIP, Neo4j, Collector)
+RAM: 8 GB minimum, 12 GB recommended
 ~6 GB free disk (apache/airflow image + Postgres/Redis/Neo4j/Collector + AIP)
 Internet access (pull apache/airflow:3.3.1, postgres:16.15, redis:7.2-bookworm, the pinned Collector
 digest, and this repo's own image build)
 Ports free on the host: 7474, 7687, 8000, 8080, 4317, 4318
+Expected startup time: under 2 minutes to every service healthy from a clean `docker compose up -d`
+    (observed during I3.2's own runs); investigate rather than wait past ~5 minutes.
 ```
 
 Unlike Quarkus (I2.2), no external checkout/build step is needed — Airflow ships prebuilt release
@@ -28,12 +34,16 @@ images, so `docker-compose.yml`'s `AIRFLOW_IMAGE_NAME` pin is used directly.
 
 ```bash
 export NEO4J_PASSWORD=<a local password>
-export FERNET_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+export FERNET_KEY=$(python3 -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())")
 ```
 
-`docker-compose.yml`'s `NEO4J_PASSWORD`/`FERNET_KEY` guards fail fast if either is missing. Nothing
-else needs editing — `runtime/docker-compose.yml`, `runtime/config.airflow-i3.yaml`, and
-`runtime/otel-collector-config.yaml` are already the frozen I3.2 configuration.
+Both are Fernet-compatible secrets generated locally per run (Airflow's own metadata-encryption key)
+— neither is committed, logged, or reused across runs; the Python one-liner above uses only the
+standard library (no `cryptography` package required — a Fernet key is exactly 32 random bytes,
+URL-safe base64 encoded). `docker-compose.yml`'s `NEO4J_PASSWORD`/`FERNET_KEY` guards fail fast if
+either is missing. Nothing else needs editing — `runtime/docker-compose.yml`,
+`runtime/config.airflow-i3.yaml`, and `runtime/otel-collector-config.yaml` are already the frozen
+I3.2 configuration.
 
 ## 3. Start the system
 
@@ -81,9 +91,49 @@ wait_for_tcp() {
   echo "$name ready after ${waited}s"
 }
 
+# The apiserver can report healthy before the scheduler/dag-processor/triggerer/workers have
+# finished their own startup (PR #45 review F3) - none of those four expose an HTTP health endpoint
+# on the host, so poll each container's own Docker healthcheck status instead (assumes the default
+# Compose project name, i.e. this directory's basename "runtime", giving container names
+# runtime-<service>-N per `docker compose ps`).
+wait_for_container_healthy() {
+  local name="$1" timeout="${2:-180}" waited=0
+  until [ "$(docker inspect -f '{{.State.Health.Status}}' "$name" 2>/dev/null)" = "healthy" ]; do
+    waited=$((waited + 2))
+    if [ "$waited" -ge "$timeout" ]; then
+      echo "$name did not become healthy within ${timeout}s - see: docker compose logs $name" >&2
+      return 1
+    fi
+    sleep 2
+  done
+  echo "$name healthy after ${waited}s"
+}
+
+# The DAG must actually be parsed and registered before phase 6 triggers it - `airflow dags details`
+# succeeds only once the dag-processor has written it to the metadata DB (bounded, retried; no HTTP
+# auth token exists yet at this point in the runbook).
+wait_for_dag_registered() {
+  local dag_id="$1" timeout="${2:-120}" waited=0
+  until docker compose exec -T airflow-scheduler airflow dags details "$dag_id" >/dev/null 2>&1; do
+    waited=$((waited + 2))
+    if [ "$waited" -ge "$timeout" ]; then
+      echo "$dag_id was not registered within ${timeout}s - see: docker compose logs airflow-dag-processor" >&2
+      return 1
+    fi
+    sleep 2
+  done
+  echo "$dag_id registered after ${waited}s"
+}
+
 wait_for_http architecture-intelligence http://localhost:8000/health
 wait_for_http airflow-apiserver         http://localhost:8080/api/v2/monitor/health
 wait_for_tcp  otel-collector            localhost 4318
+wait_for_container_healthy runtime-airflow-scheduler-1
+wait_for_container_healthy runtime-airflow-dag-processor-1
+wait_for_container_healthy runtime-airflow-triggerer-1
+wait_for_container_healthy runtime-airflow-worker-1
+wait_for_container_healthy runtime-airflow-worker-2
+wait_for_dag_registered i3_validation
 ```
 
 Proceed to phase 4 only once every check above succeeds; a timeout means investigate
@@ -124,14 +174,51 @@ that freeze gate before I3.3's comparison runs.
 WINDOW_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 API_URL=http://localhost:8080 ./traffic.sh
+```
+
+`traffic.sh` (I3 spec §33) authenticates via `POST /auth/token`, confirms readiness, exercises the
+remaining 8 of the 9 selected `/api/v2` operations, triggers the `i3_validation` Dag with a
+caller-chosen `dag_run_id` (`POST .../dagRuns`), polls it to a terminal state (`GET
+.../dagRuns/{dag_run_id}`), and asserts both tasks completed on the expected queue (`GET
+.../taskInstances`). It does not itself decide when the observation window ends — task execution is
+asynchronous and OTLP may flush after client traffic completes (I3 spec §31: `traffic completion !=
+observation window end`), so `traffic.sh` finishing is not sufficient grounds to close the window
+(PR #45 review F1 — an earlier version had the script and this runbook independently stamp two
+different, undrained `window_end` values).
+
+**Drain barrier — the window closes only once this succeeds.** Quarkus's own runbook phase 9 polls
+`GET /api/runtime/relations` and waits for a non-empty result, because Quarkus's REST/Kafka spans are
+HTTP-correlated and AIP derives a canonical relation from them. Airflow's native tracing produces
+task/dagrun/execution-API spans only (`profile.md`'s "OTel configuration") — these do not correlate
+to any declared `Operation`/`Queue`, so `/api/runtime/relations` legitimately stays empty even once
+telemetry has landed (confirmed while writing this fix: it returned `{"relations": []}` with actual
+spans already ingested). The valid, system-shape-independent drain signal here is AIP's own access
+log entry for the ingestion request itself:
+
+```bash
+sleep 15   # comfortably longer than otel-collector-config.yaml's 5s batch timeout
+
+for i in $(seq 1 15); do
+  RECEIVED="$(
+    docker compose logs --since "$WINDOW_START" architecture-intelligence 2>/dev/null \
+      | grep -c 'POST /v1/traces HTTP/1.1" 200'
+  )"
+  [ "${RECEIVED:-0}" -gt 0 ] && break
+  sleep 2
+done
+
+if [ "${RECEIVED:-0}" -eq 0 ]; then
+  echo "AIP logged no successful /v1/traces ingestion since $WINDOW_START after waiting - check: docker compose logs otel-collector architecture-intelligence" >&2
+  exit 1
+fi
 
 WINDOW_END="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "environment=airflow-i3 window_start=$WINDOW_START window_end=$WINDOW_END"
 ```
 
-`traffic.sh` (I3 spec §33) authenticates via `POST /auth/token`, confirms readiness, triggers the
-`i3_validation` Dag (`POST .../dagRuns`), polls it to a terminal state (`GET
-.../dagRuns/{dag_run_id}`), and verifies both tasks completed (`GET .../taskInstances`).
+Only once this succeeds has AIP actually received the OTLP batches phase 6's traffic produced.
+`WINDOW_END` recorded here — after the drain, not immediately after `traffic.sh` exits — is the one
+authoritative value I3.3 uses.
 
 Inspect the raw evidence **independently of AIP** — this is a raw-telemetry read, not an AIP query:
 
@@ -172,10 +259,15 @@ Either outcome is a valid, spec-compliant Phase B close — spec §23 explicitly
 docker compose down -v
 ```
 
-Resets the Airflow Postgres volume, Redis broker state, AIP Neo4j state, and every container's
-temporary OTLP/log state — spec §58's full list (also: no queued Celery messages and no Dag Run
-state survive into the next run). Rerun phases 3-6 once from this clean state to confirm the profile
-is actually repeatable before treating Phase B's qualification as trustworthy.
+Resets the Airflow Postgres volume, Redis broker state, AIP Neo4j state, and the named
+`airflow-i3-logs`/`airflow-i3-config`/`airflow-i3-plugins` volumes (Airflow logs, the generated
+`airflow.cfg`, and any diagnostic plugin) — spec §58's full list (also: no queued Celery messages and
+no Dag Run state survive into the next run). These three are named Docker volumes, not host bind
+mounts (PR #45 review F2 — a host bind mount is never removed by `down -v`), so this actually empties
+them rather than only claiming to. `dags/` is a host bind mount and is untouched by `down -v`, but it
+holds only this repo's own committed `i3_validation.py`, never generated state. Rerun phases 3-6 once
+from this clean state to confirm the profile is actually repeatable before treating Phase B's
+qualification as trustworthy.
 
 ---
 
@@ -202,8 +294,9 @@ cd docs/real-world-validation/apache-airflow/runtime
 docker compose down -v
 ```
 
-`docker compose down -v` removes the named Neo4j volumes declared in `docker-compose.yml`
-(`neo4j-airflow-i3-data`/`-logs`) and the Postgres volume (`postgres-db-volume`) along with Redis's
-anonymous volume, so a subsequent `docker compose up -d` starts from a genuinely empty graph, empty
-metadata database, and empty broker — no run depends on unexplained state an earlier run left
+`docker compose down -v` removes every named volume declared in `docker-compose.yml`: the Neo4j
+volumes (`neo4j-airflow-i3-data`/`-logs`), the Postgres volume (`postgres-db-volume`), Redis's
+anonymous volume, and the Airflow `airflow-i3-logs`/`-config`/`-plugins` volumes — so a subsequent
+`docker compose up -d` starts from a genuinely empty graph, empty metadata database, empty broker,
+and empty Airflow logs/config/plugins state — no run depends on unexplained state an earlier run left
 behind.
