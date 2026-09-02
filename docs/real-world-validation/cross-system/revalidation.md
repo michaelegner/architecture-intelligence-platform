@@ -14,7 +14,13 @@ rather than one committed, bounded rule (§"Method note"). Fixing the third find
 bug in the runbook's own drain-check endpoint (see "Window-closing procedure" under Quarkus below) —
 both Quarkus runs were repeated end to end under the corrected, now-committed procedure; Airflow's
 runs did not need repeating, since its own drain barrier was already one deterministic bounded rule
-in both original runs.
+in both original runs. A second re-review round found one further gap: the Quarkus "profile
+revision" still cited only the AIP candidate SHA, which does not contain the `runbook.md` fix (that
+landed in a later, profile-only commit) — corrected in the Quarkus section's "profile revision"
+block below with an explicit per-file component manifest, plus a table-label fix distinguishing
+locally built service images' **Image ID** from pulled infrastructure images' **RepoDigest** (both
+content-addressed, but not the same field). Neither correction required another real-system run: the
+runbook content the two reported runs actually executed is byte-identical to what is now committed.
 
 Both profiles were executed twice each, back-to-back, from clean state, against the identical pinned
 AIP candidate image — never rebuilt between runs — per spec §20's repeatability requirement.
@@ -64,26 +70,57 @@ that service — confirmed by `grep` against each committed file, not merely des
 
 ```text
 Upstream commit:            8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce
-Profile revision:           docs/real-world-validation/quarkus-super-heroes/runtime/ @ 9f95d48
-                             (runbook.md's window-closing procedure was corrected during this PR —
-                             see "Window-closing procedure" below; the qualifying runs reported here
-                             used the corrected procedure)
+AIP candidate SHA:          9f95d48046ab1942bb1a77c9a3a887a542120b98  (unchanged — see
+                             "Candidate identity" above; the profile-only fix below does not move
+                             this)
 Ground-truth revision:      docs/real-world-validation/quarkus-super-heroes/expected.yaml @ 9f95d48
 Comparison-tool revision:   real_world_validation/ @ 9f95d48
 ```
 
-Image digests (all content-addressed `RepoDigests`, confirmed via `docker inspect --format='{{json
-.RepoDigests}}'` against the exact images pulled/built for these runs — not the mutable tag alone):
+**Quarkus profile revision (PR #52 re-review — a single commit SHA is insufficient here, since
+`runbook.md`'s window-closing fix landed in a later commit than the unchanged `runtime/`,
+`expected.yaml`, `ground-truth.md`, and `profile.md`, and the AIP candidate SHA above must not be
+conflated with the profile's own revision):**
 
 ```text
-Base image (all 6 services): registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+runbook.md (window-closing procedure, corrected — see below):
+                             a81a01f778e143e69b00cd5be068e34679adb68a
+                             Git blob f259061353d7d0722d36ebb2452d49e46a75c3ba
+runtime/docker-compose.yml: Git blob 4b4d4c76febb8caa0c96f06e36c90bfdbe2ac1aa (unchanged since 9f95d48)
+runtime/traffic.sh:         Git blob 0ae949aeddfab9f692c6383a51909f38fea2b982 (unchanged since 9f95d48)
+expected.yaml:               Git blob 82dc7182d1643be72a48d12d5f7515047b3e5dd3 (unchanged since 9f95d48)
+ground-truth.md:              Git blob f763a269a2b04a0d3192233e3a82899feba41d2a (unchanged since 9f95d48)
+profile.md:                  Git blob 7deb2e5ce04d9d28f6c1b48308519cc34054c5c4 (unchanged since 9f95d48)
+```
+
+`git diff 9f95d48..a81a01f -- docs/real-world-validation/quarkus-super-heroes/` touches only
+`runbook.md` — every other profile file is byte-identical to the AIP candidate commit, so this
+component manifest is the complete, exact profile the two qualifying runs below executed. Both runs
+were captured using this exact corrected `runbook.md` content (typed and run interactively, not
+executed as a script, but character-for-character the same procedure now committed at `a81a01f`) —
+so, per spec §20's own allowance, this identity correction did not require repeating the runs a
+second time; it only needed the record to name the revision actually used.
+
+Image identity — service images are locally built and never pushed to a registry, so their content
+address is a local **Image ID** (`docker inspect --format='{{.Id}}'`), not a **RepoDigest**; the
+infrastructure images below are pulled from a registry and so carry a real `RepoDigest`
+(`docker inspect --format='{{json .RepoDigests}}'`) — both are content-addressed, but they are not
+the same Docker identity field, and PR #52 re-review correctly flagged the table as conflating them:
+
+```text
+Base image (all 6 services), RepoDigest:
+                              registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
                              @sha256:68525bc239f93a62070625354e3b863be0963f61f1338794011665d5b8a946f5
+
+Locally built service images, Image ID (never pushed, so no RepoDigest exists):
 rest-fights:8ea0337          sha256:e2d3a3bfb61878342c1922dbe223bb18b521b0d6c21dd655a61d979b15b0823c
 rest-heroes:8ea0337          sha256:2d1aca9454dec5b4cd508b6b61d72c5411efbe79458826fd92ec04753e215c67
 rest-villains:8ea0337        sha256:ac7ca03053fd09aebb4a8d8bf851f6eddce181175023ec6f42c3073f9bb37e99
 rest-narration:8ea0337       sha256:da43f7def254c5fa536c884d1949f1b0a878bffb06266d34d2e1a14f5ca38fbd
 event-statistics:8ea0337     sha256:64b35d4a668c4dca7e8dcf196273cff5b9fdf3503f52c17549c774fd5f3a9cdc
 grpc-locations:8ea0337       sha256:d11439741f5ae923565e974db79a66a2492d86790fdc93ccdfe3be11882f3da2
+
+Pulled infrastructure images, RepoDigest:
 neo4j:5.26.0                 sha256:5a015e53de1895e7eee1574ae0325cf8c4b89587222778108c594bdd45a474b5
 mongo:8.3.8 (fights-db)      sha256:5211c51171f57ae60842b11664bb244628971b3d35325762a97888337b9bb0db
 apicurio-registry:3.1.7      sha256:3ff121c9f744d535ef770b80ff95693bc95063295316a5864b56312b6edfb4e2
