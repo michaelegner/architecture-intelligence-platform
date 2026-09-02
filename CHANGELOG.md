@@ -11,14 +11,53 @@ aren't yet guaranteed stable pre-1.0.
 
 ### v0.3 — Real-World Validation and Cross-System Hardening (in progress)
 
-I1-I4 of the v0.3 real-world validation effort (Quarkus Super Heroes, Apache Airflow, and
-cross-system model hardening) are complete, tagged `v0.3.0-rc.1` at the qualified candidate. No
-production code changed — every real-system finding from either dossier was dispositioned
-`NO_CHANGE`, `DOCUMENT_UNSUPPORTED`, or `DEFER`; none required a fix, and the canonical-redesign
-gate answered `NO`. See
+AIP was validated against two independently authored real systems it was not built against:
+**Quarkus Super Heroes** (a controlled, externally authored microservice reference architecture)
+and **Apache Airflow** (a mature real-world system — API server, scheduler, workers, asynchronous
+task execution). This does not add another architecture-intelligence dimension; it tests whether
+the model validated reproducibly in `v0.2` survives contact with systems AIP's own authors did not
+build.
+
+- Independent real-world validation methodology frozen (I1): finding vocabulary, ground-truth
+  independence rules, supported-scope rules, comparator semantics, dossier/runbook contract.
+- Quarkus Super Heroes qualified (I2): **38 correct, 2 unsupported, 0 incorrect/missing
+  supported** (comparator-only score, reproduced byte-identical across two independent runs);
+  **1 insufficient evidence overall** (0 in the comparator-only score — `qsh-kafka-operation-
+  type-gap`, discovered once by a separate diagnostic inspection, not emitted by either
+  comparator run, carried forward as an accepted dossier disposition).
+- Apache Airflow qualified (I3): **9 correct, 3 unsupported, 2 unresolved identity, 1 insufficient
+  evidence, 0 incorrect/missing supported.** Two independent runs, byte-identical.
+- Cross-system finding dispositions (I4): all 10 findings from both dossiers dispositioned
+  `NO_CHANGE`, `DOCUMENT_UNSUPPORTED`, or `DEFER` — **zero required a production fix**. The
+  canonical-redesign gate answered **NO**: no fundamental Canonical Model redesign is required
+  before v0.4.
+- **Zero material `INCORRECT_SUPPORTED` findings** across either system, across every qualifying
+  run.
+- **No production semantic changes** were justified by either system's independent evidence — the
+  Canonical Model, relation semantics, identity resolution, and runtime-status classification are
+  unchanged from `v0.2.0`.
+- Explicit, bounded boundaries rather than silently-absorbed gaps: gRPC/protobuf calls, Kafka
+  topic/subscription semantics, and PostgreSQL/database dependencies remain unsupported; Airflow
+  Execution API caller identity and runtime-role identity remain unresolved rather than guessed;
+  a legacy OpenTelemetry messaging-attribute shape and Celery messaging identity remain
+  insufficient-evidence, deferred pending future evidence.
+- I4/`v0.3.0-rc.1` candidate repeatability baseline: both systems' qualifying comparisons were
+  re-executed twice each, from clean state, against that candidate (`9f95d48`), producing
+  byte-identical captures and comparator reports both times. **This is not yet final-candidate
+  repeatability** — `v0.3.0-rc.2` (the current candidate, after the version fix below) still
+  requires its own fresh revalidation (I5.2) before this claim can be made against it.
+
+See
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
-for the full cross-system report, finding ledger, and GO/NO-GO record. `v0.3.0` itself has not
-shipped; I5 (release qualification) is pending.
+for the full cross-system report, finding ledger, and GO/NO-GO record.
+
+I1-I4 are complete. An initial release candidate, `v0.3.0-rc.1`, was tagged at that qualified
+candidate — but I5's own entry qualification then found `pyproject.toml`/`uv.lock` still declared
+project version `0.2.0`, which is release-blocking. That fix produced a new candidate,
+`v0.3.0-rc.2`, which now requires its own fresh real-system revalidation (I5.2) before a final `GO`
+— `v0.3.0-rc.1`'s Quarkus/Airflow evidence is bound to its own commit and does not transfer by
+content-equivalence argument. `v0.3.0` itself has not shipped; I5 (release qualification) is in
+progress.
 
 ## [0.2.0] - 2026-08-31
 

@@ -261,12 +261,15 @@ instrumentation, observed provider relations, coverage qualification, the Collec
 (open-source readiness), and v0.2 (the deterministic evaluation suite) are all shipped.
 
 `v0.3` (real-world validation against Quarkus Super Heroes and Apache Airflow, plus cross-system
-model hardening) has completed its I1-I4 iterations and has been tagged as
-[`v0.3.0-rc.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0-rc.1)
-— see
+model hardening) has completed its I1-I4 iterations — see
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
-for the full cross-system report. `v0.3.0` itself has not shipped yet; I5 (release qualification) is
-pending. See [`ROADMAP.md`](ROADMAP.md) for the full release track and what's planned next.
+for the full cross-system report. I5 (release qualification) is in progress:
+[`v0.3.0-rc.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0-rc.1)
+was tagged at the I4-qualified candidate, then superseded by
+[`v0.3.0-rc.2`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0-rc.2)
+after a required `pyproject.toml`/`uv.lock` version-consistency fix — `rc.2` still needs its own
+fresh real-system revalidation before a final `GO`. `v0.3.0` itself has not shipped yet. See
+[`ROADMAP.md`](ROADMAP.md) for the full release track and what's planned next.
 
 ## License
 
