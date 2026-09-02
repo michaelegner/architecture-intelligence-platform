@@ -12,11 +12,10 @@ aren't yet guaranteed stable pre-1.0.
 ### v0.3 — Real-World Validation and Cross-System Hardening (in progress)
 
 I1-I4 of the v0.3 real-world validation effort (Quarkus Super Heroes, Apache Airflow, and
-cross-system model hardening) are complete internally, with the candidate qualified **for**
-`v0.3.0-rc.1` (**GO** recorded; the tag itself is pending — I4 is not yet complete). No production
-code changed — every real-system finding from either dossier was dispositioned `NO_CHANGE`,
-`DOCUMENT_UNSUPPORTED`, or `DEFER`; none required a fix, and the canonical-redesign gate answered
-`NO`. See
+cross-system model hardening) are complete, tagged `v0.3.0-rc.1` at the qualified candidate. No
+production code changed — every real-system finding from either dossier was dispositioned
+`NO_CHANGE`, `DOCUMENT_UNSUPPORTED`, or `DEFER`; none required a fix, and the canonical-redesign
+gate answered `NO`. See
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
 for the full cross-system report, finding ledger, and GO/NO-GO record. `v0.3.0` itself has not
 shipped; I5 (release qualification) is pending.

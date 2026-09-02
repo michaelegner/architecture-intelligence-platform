@@ -76,9 +76,10 @@ Every checkbox below, verified against the actual evidence at the exact candidat
 - [x] Release blockers = `0` — `report.md` §9.
 - [x] GO/NO-GO names the exact candidate — `report.md` §11: **GO**,
       `9f95d48046ab1942bb1a77c9a3a887a542120b98`.
-- [ ] `v0.3.0-rc.1` points to the approved candidate. **Pending** — the tag is cut as a separate,
-      explicit step after this record merges (see this PR's description); it must point at the
-      literal SHA above, not at any later documentation-only commit, per spec §3.
+- [x] `v0.3.0-rc.1` points to the approved candidate. The annotated tag was cut at and pushed to
+      the literal candidate SHA above (`git rev-list -n1 v0.3.0-rc.1` resolves to
+      `9f95d48046ab1942bb1a77c9a3a887a542120b98`, not the branch tip) and published as a GitHub
+      prerelease: https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0-rc.1
 - [x] I5 receives candidate identity, dossiers, reports, limitations, and commands —
       [`report.md`](report.md) §12.
 
@@ -99,12 +100,12 @@ Every checkbox below, verified against the actual evidence at the exact candidat
 - [x] `docs/specifications/0.3.0/README.md` links this specification and reflects current status.
 - [x] The four public planning surfaces (`ROADMAP.md`, `README.md`, `CHANGELOG.md`,
       `docs/specifications/0.3.0/README.md`) contain no contradictory release claims — all four
-      state: I1-I4 qualification complete, candidate qualified **for** `v0.3.0-rc.1` (tag pending),
-      `v0.3.0` not yet shipped, I5 pending.
+      now state: I1-I4 complete, `v0.3.0-rc.1` tag cut at the approved candidate, `v0.3.0` itself
+      not yet shipped, I5 pending.
 
-## Outstanding before I4.5 closes
+## I4.5 closed
 
-Exactly one item: cutting and pushing the `v0.3.0-rc.1` tag at the literal candidate SHA, held as a
-separate, explicitly confirmed action per this PR's own description (tagging a commit that is not
-the branch tip is unusual enough to warrant its own sign-off, not a bundled side effect of merging
+All items above are satisfied. `v0.3.0-rc.1` was cut and pushed at the literal candidate SHA,
+held as a separate, explicitly confirmed action (tagging a commit that is not the branch tip is
+unusual enough to warrant its own sign-off, not a bundled side effect of merging
 documentation).
