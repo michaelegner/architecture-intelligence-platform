@@ -23,8 +23,19 @@ I4.1  Finding Consolidation and Decision Freeze         <- complete (PR #49)
 I4.2  General Model and Runtime Hardening               <- complete, NO_CHANGE (see hardening.md)
 I4.3  Distilled Regression and Synthetic Revalidation   <- complete (see regression-map.md)
 I4.4  Final-Candidate Real-System Revalidation          <- complete (see revalidation.md)
-I4.5  RC Qualification
+I4.5  RC Qualification                                  <- qualification complete, GO recorded
+                                                            (see report.md); v0.3.0-rc.1 tag
+                                                            pending — I4.5 does not close, and I4
+                                                            is not complete, until it exists
+                                                            (spec §29)
 ```
+
+I4 as a whole is qualified for `v0.3.0-rc.1`, not yet complete: [`report.md`](report.md) is the
+single deterministic cross-system report drawing I4.1-I4.4 together, plus the Definition of Done
+([`definition-of-done.md`](definition-of-done.md)), the release-blocker assessment, and a **GO**
+recommendation — but per spec §29, I4 is complete only once the `v0.3.0-rc.1` tag identifies this
+candidate, and that tag does not exist yet (see `definition-of-done.md`'s "Outstanding before I4.5
+closes").
 
 I4.1's gate (spec §27): *no production semantic change begins before its decision record is
 approved.* I4.1 made no production code change and approved zero `FIX` dispositions, so I4.2 (per
@@ -65,6 +76,18 @@ revalidation.md                                  clean Quarkus + Airflow runs (2
 artifacts/                                       captured actual-facts YAML and comparator reports
                                                   for both systems, both runs, plus each profile's
                                                   fully resolved (and hashed) Compose configuration
+```
+
+## I4.5 contents
+
+```text
+report.md                                        the single deterministic cross-system report
+                                                  (spec §21/§27): candidate identity, result
+                                                  counts, finding ledger, regression map, known
+                                                  limitations, redesign-gate answer, release-
+                                                  blocker assessment, GO/NO-GO, I5 handoff
+definition-of-done.md                            every spec §28 checkbox verified against the
+                                                  actual evidence, not assumed
 ```
 
 ## Decision vocabulary (spec §7)

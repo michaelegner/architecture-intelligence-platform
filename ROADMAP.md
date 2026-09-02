@@ -45,15 +45,106 @@ reproducible way to demonstrate that the existing one behaves correctly. See
 [`evaluation/README.md`](evaluation/README.md) and
 [`docs/specifications/0.2.0/`](docs/specifications/0.2.0/) for the full design history.
 
-## v0.3+
+## v0.3 — Real-World Validation and Cross-System Hardening
+
+Focus: prove the architecture intelligence validated reproducibly in v0.2 survives real,
+independently authored systems, and harden only where real evidence justifies it — not to add
+another architecture-intelligence dimension. See
+[`docs/specifications/0.3.0/`](docs/specifications/0.3.0/) for the full design history.
+
+| Iteration | Purpose | Status |
+|---|---|---|
+| I1 — Real-World Validation Contract | Freeze methodology, finding vocabulary, dossier structure, comparison semantics, runbook contract | ✓ complete (internal iteration work; no separate tag cut) |
+| I2 — Quarkus Super Heroes Validation | Validate against an external reference architecture | ✓ complete — `v0.3.0-alpha.2` |
+| I3 — Apache Airflow Validation | Validate against real-world OSS software | ✓ complete (internal iteration work; no separate tag cut) |
+| I4 — Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence; revalidate both systems | qualified for `v0.3.0-rc.1` — tag pending |
+| I5 — Release Qualification | Qualify the exact candidate and publish `v0.3.0` | pending |
+
+I4's outcome: zero production changes were justified by either system's independent evidence — see
+[`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
+for the full cross-system report, finding ledger, and the canonical-redesign-gate answer (`NO`, no
+fundamental Canonical Model redesign is required before v0.4), and a recorded **GO**. I4 is not yet
+complete — the `v0.3.0-rc.1` tag has not been cut — and `v0.3.0` itself has not shipped; I5 has not
+started.
+
+## v0.4 — Architecture Intelligence Tools (planned)
+
+Focus: expose the validated semantic core through stable, evidence-backed tool contracts.
+
+- `ArchitectureIntelligenceService`
+- Structured, evidence-backed query contracts
+- Read-only MCP tools
+- Deterministic tool evaluation (contract shape, semantic correctness, evidence linkage, read-only
+  enforcement, stable ordering)
+
+The tool layer stays downstream of AIP's deterministic architecture model — it must not let an LLM
+or MCP client create canonical facts, bypass semantic validation, or reach a graph write path.
+
+## v0.5 — Broader Architecture Discovery (planned)
+
+Focus: broaden what AIP can discover, now that the semantic core is validated and exposed through
+controlled tools rather than before.
+
 - Kubernetes discovery (declared-architecture source: Deployments/Services as an additional
   `ArchitectureSourceAdapter`)
-- Additional adapters (candidates: gRPC/protobuf service definitions, Kafka Connect configs — see
-  the "New adapter proposal" issue template for the extension-point contract)
-- Improved runtime analysis (deeper mixed-architecture blast radius over observed edges, richer
-  telemetry-coverage classification)
- 
-## Future
+- Additional source adapters (candidates: gRPC/protobuf service definitions, Kafka Connect configs
+  — see the "New adapter proposal" issue template for the extension-point contract; no specific
+  adapter is promised before its semantics and validation profile are approved)
+- Deeper runtime discovery, reconciled with existing declared/observed evidence
+
+Every new discovery source maps through the shared Canonical Model, retains provenance, avoids
+environment-specific identity leakage, and must prove it doesn't create supported relations from
+mere co-location or naming coincidence. Deeper runtime discovery preserves the same safety rules
+already governing v0.1–v0.3: non-observation != absence; unresolved identity beats guessed identity;
+explicitly unsupported beats incorrectly represented as supported.
+
+Versions between v0.5 and v0.9 are intentionally unspecified — their scope will be derived from
+validated user/tool experience and discovery findings, not invented ahead of that evidence.
+
+## v0.9 — Contract Freeze / Production Qualification (planned)
+
+Focus: stabilize public contracts and qualify the platform for production-grade use.
+
+- Canonical Model compatibility review
+- REST and MCP contract stabilization
+- Graph Schema stabilization
+- Adapter SPI stabilization
+- Configuration-format stabilization
+- Migration and deprecation rules
+- Security and production-operability qualification
+- Performance and resilience qualification
+- Release/support policy
+
+Any known breaking redesign required for the stable contract must be completed before the v1.0
+candidate is frozen.
+
+## v1.0 — Stable Architecture Intelligence Platform (planned)
+
+Focus: publish the first stable AIP release with mature architecture-intelligence semantics and
+public contracts. Requires: a stable architecture-intelligence model; stable public REST and MCP
+contracts; stable Graph Schema and Adapter SPI; a documented compatibility/migration policy;
+production qualification completed; critical semantic errors = 0; release blockers = 0.
+
+## Sequencing principle
+
+```text
+v0.3 validation and hardening
+  -> v0.4 architecture-intelligence tools
+  -> v0.5 broader discovery
+  -> v0.9 contract freeze and production qualification
+  -> v1.0 stable platform
+```
+
+Validate the semantic core first, expose it as evidence-backed tools second, broaden discovery
+third, then freeze and qualify the public contracts last. `v0.3` carries a hard gate: had either
+real-system dossier shown the Canonical Architecture Model needed a fundamental breaking redesign,
+AIP would not proceed to v0.4 until that redesign was specified, implemented, and revalidated — I4's
+[`canonical-redesign-gate.md`](docs/real-world-validation/cross-system/decisions/canonical-redesign-gate.md)
+answered `NO`, so that gate does not block here.
+
+None of the above are committed dates — this is a planning sequence, not a schedule.
+
+## Future (beyond v1.0, unscheduled)
 
 - Architecture trajectories (how the declared/observed graph changes over time, not just a single
   snapshot)
@@ -63,6 +154,5 @@ reproducible way to demonstrate that the existing one behaves correctly. See
 - Architecture Wiki (auto-generated narrative documentation from the graph)
 - Backstage integration (surfacing the Architecture Knowledge Graph as a Backstage catalog/plugin)
 
-None of the above are committed dates — this is a direction, not a schedule. See
-[`CONTRIBUTING.md`](CONTRIBUTING.md) if you want to help with any of it, and open an issue before
-starting significant work on a v0.2/Future item so it doesn't go to waste.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) if you want to help with any of it, and open an issue
+before starting significant work on a roadmap item so it doesn't go to waste.
