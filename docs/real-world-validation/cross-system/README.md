@@ -63,7 +63,8 @@ revalidation.md                                  clean Quarkus + Airflow runs (2
                                                   artifact/report hashes, final dispositions
                                                   (spec §19/§20/§27)
 artifacts/                                       captured actual-facts YAML and comparator reports
-                                                  for both systems, both runs
+                                                  for both systems, both runs, plus each profile's
+                                                  fully resolved (and hashed) Compose configuration
 ```
 
 ## Decision vocabulary (spec §7)
