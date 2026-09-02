@@ -112,7 +112,7 @@ At entry, all of the following SHALL be true:
 ```text
 I4.1-I4.5 complete
 v0.3.0-rc.1 exists
-v0.3.0-rc.1 resolves to the I4-approvedapproved candidate
+v0.3.0-rc.1 resolves to the I4-approved candidate
 I4 cross-system report committed
 I4 Definition of Done satisfied
 Quarkus and Airflow final-candidate revalidation evidence committed
