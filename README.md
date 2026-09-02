@@ -3,14 +3,13 @@
 [![CI](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Build an evidence-backed architecture knowledge graph from OpenAPI, AsyncAPI and OpenTelemetry —
-and discover where declared and observed architecture diverge.
+Build an evidence-backed model of your software architecture from declared and observed signals —
+with the evidence behind every architectural claim.
 
-![Pipeline: declared sources (OpenAPI, AsyncAPI, architecture.yaml) and observed OpenTelemetry traces both feed the Canonical Architecture Model, which imports into Neo4j, which serves deterministic Cypher analyses and read-only natural-language query.](images/pipeline-light.svg#gh-light-mode-only)
-![Pipeline: declared sources (OpenAPI, AsyncAPI, architecture.yaml) and observed OpenTelemetry traces both feed the Canonical Architecture Model, which imports into Neo4j, which serves deterministic Cypher analyses and read-only natural-language query.](images/pipeline-dark.svg#gh-dark-mode-only)
+![Evidence-backed Architecture Intelligence: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture model, which exposes facts, evidence, qualification and provenance.](images/architecture-intelligence-overview.svg)
 
 **[Quick Start](#quick-start) · [Runtime Demo](#runtime-demo) ·
-[Evaluation](#deterministic-evaluation) · [Documentation](#documentation)**
+[Evaluation](#deterministic-evaluation) · [Documentation](#documentation) · [Research Landscape](landscape.md)**
 
 ## Why?
 
@@ -241,6 +240,8 @@ optional — the platform works completely without any LLM provider configured. 
   the LLM is read-only and never a source of truth, and more
 - [`docs/specifications/`](docs/specifications/) — the original design specifications, as a
   traceable history of how the platform got here
+- [`landscape.md`](landscape.md) — research landscape: formal foundations, adjacent platforms,
+  agent context, architectural intent, governance, and verification
 - [`ROADMAP.md`](ROADMAP.md) / [`CHANGELOG.md`](CHANGELOG.md) — where this is headed, and what's
   shipped so far
 
