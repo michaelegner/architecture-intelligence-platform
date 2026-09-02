@@ -1,9 +1,11 @@
 # AIP v0.3.0 — Real-World Validation & Model Hardening
 
 **Release:** `v0.3.0`  
-**Status:** I1-I4 complete; `v0.3.0-rc.1` tagged at the qualified candidate; I5 (release
-qualification) pending — see
-[`docs/real-world-validation/cross-system/report.md`](../../real-world-validation/cross-system/report.md)  
+**Status:** I1-I4 complete; I5 (release qualification) in progress — I5.1 (candidate identity,
+version/lock fix) done, `v0.3.0-rc.2` tagged superseding `v0.3.0-rc.1`; I5.2 (real-system
+revalidation) next — see
+[`docs/real-world-validation/cross-system/report.md`](../../real-world-validation/cross-system/report.md)
+and [`docs/release-validation/v0.3.0-rc.2-candidate-preparation.md`](../../release-validation/v0.3.0-rc.2-candidate-preparation.md)  
 **Project:** Architecture Intelligence Platform (AIP)
 
 ---
@@ -65,7 +67,7 @@ The implementation is divided into five iterations:
 | I2 | Quarkus Super Heroes Validation | Validate the current model against an external reference architecture | `v0.3.0-alpha.2` | ✓ complete — tag cut |
 | I3 | Apache Airflow Validation | Validate the current model against real-world OSS software | `v0.3.0-alpha.3` | ✓ complete (no separate tag cut) |
 | I4 | Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence and revalidate both systems | `v0.3.0-rc.1` | ✓ complete — tag cut |
-| I5 | Release Qualification | Qualify the exact candidate and publish `v0.3.0` | `v0.3.0` | specification drafted; implementation pending |
+| I5 | Release Qualification | Qualify the exact candidate and publish `v0.3.0` | `v0.3.0` | in progress — I5.1 done (`v0.3.0-rc.2` tagged); I5.2 (real-system revalidation) next |
 
 ---
 
