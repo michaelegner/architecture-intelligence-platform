@@ -1,7 +1,8 @@
 # AIP v0.3.0 — Real-World Validation & Model Hardening
 
 **Release:** `v0.3.0`  
-**Status:** Specification phase  
+**Status:** I1-I4 complete; qualified as `v0.3.0-rc.1`; I5 (release qualification) pending — see
+[`docs/real-world-validation/cross-system/report.md`](../../real-world-validation/cross-system/report.md)  
 **Project:** Architecture Intelligence Platform (AIP)
 
 ---
@@ -57,13 +58,13 @@ task execution.
 
 The implementation is divided into five iterations:
 
-| Iteration | Title | Purpose | Planned tag |
-|---|---|---|---|
-| I1 | Real-World Validation Contract | Freeze methodology, finding vocabulary, dossier structure, comparison semantics, and runbook contract | `v0.3.0-alpha.1` |
-| I2 | Quarkus Super Heroes Validation | Validate the current model against an external reference architecture | `v0.3.0-alpha.2` |
-| I3 | Apache Airflow Validation | Validate the current model against real-world OSS software | `v0.3.0-alpha.3` |
-| I4 | Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence and revalidate both systems | `v0.3.0-rc.1` |
-| I5 | Release Qualification | Qualify the exact candidate and publish `v0.3.0` | `v0.3.0` |
+| Iteration | Title | Purpose | Planned tag | Status |
+|---|---|---|---|---|
+| I1 | Real-World Validation Contract | Freeze methodology, finding vocabulary, dossier structure, comparison semantics, and runbook contract | `v0.3.0-alpha.1` | ✓ complete (no separate tag cut) |
+| I2 | Quarkus Super Heroes Validation | Validate the current model against an external reference architecture | `v0.3.0-alpha.2` | ✓ complete — tag cut |
+| I3 | Apache Airflow Validation | Validate the current model against real-world OSS software | `v0.3.0-alpha.3` | ✓ complete (no separate tag cut) |
+| I4 | Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence and revalidate both systems | `v0.3.0-rc.1` | ✓ complete — qualified as `v0.3.0-rc.1` |
+| I5 | Release Qualification | Qualify the exact candidate and publish `v0.3.0` | `v0.3.0` | pending |
 
 ---
 
@@ -76,9 +77,9 @@ docs/specifications/0.3.0/
 ├── i1-real-world-validation-contract.md
 ├── i2-quarkus-validation.md
 ├── i3-airflow-validation.md
-├── i4-model-hardening.md
-├── i5-release-qualification.md
-└── git-workflow.md
+├── i4-cross-system-model-hardening.md
+├── i5-release-qualification.md   (not yet created — I5 has not started)
+└── git-workflow.md               (not yet created — see status below)
 ```
 
 Current documents:
@@ -88,8 +89,8 @@ Current documents:
 | [`specification.md`](specification.md) | Final |
 | [`i1-real-world-validation-contract.md`](i1-real-world-validation-contract.md) | Final implementation specification |
 | [`i2-quarkus-validation.md`](i2-quarkus-validation.md) | Final implementation specification |
-| `i3-airflow-validation.md` | Not started |
-| `i4-model-hardening.md` | Not started |
+| [`i3-airflow-validation.md`](i3-airflow-validation.md) | Final implementation specification |
+| [`i4-cross-system-model-hardening.md`](i4-cross-system-model-hardening.md) | Final implementation specification |
 | `i5-release-qualification.md` | Not started |
 | `git-workflow.md` | To be added if release-specific workflow details are required |
 

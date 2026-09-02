@@ -23,8 +23,15 @@ I4.1  Finding Consolidation and Decision Freeze         <- complete (PR #49)
 I4.2  General Model and Runtime Hardening               <- complete, NO_CHANGE (see hardening.md)
 I4.3  Distilled Regression and Synthetic Revalidation   <- complete (see regression-map.md)
 I4.4  Final-Candidate Real-System Revalidation          <- complete (see revalidation.md)
-I4.5  RC Qualification
+I4.5  RC Qualification                                  <- complete (see report.md); GO — tagging
+                                                            v0.3.0-rc.1 is the one remaining,
+                                                            separately confirmed step
 ```
+
+I4 as a whole is now complete: [`report.md`](report.md) is the single deterministic cross-system
+report drawing I4.1-I4.4 together, plus the Definition of Done
+([`definition-of-done.md`](definition-of-done.md)), the release-blocker assessment, and the
+GO/NO-GO record (**GO**).
 
 I4.1's gate (spec §27): *no production semantic change begins before its decision record is
 approved.* I4.1 made no production code change and approved zero `FIX` dispositions, so I4.2 (per
@@ -65,6 +72,18 @@ revalidation.md                                  clean Quarkus + Airflow runs (2
 artifacts/                                       captured actual-facts YAML and comparator reports
                                                   for both systems, both runs, plus each profile's
                                                   fully resolved (and hashed) Compose configuration
+```
+
+## I4.5 contents
+
+```text
+report.md                                        the single deterministic cross-system report
+                                                  (spec §21/§27): candidate identity, result
+                                                  counts, finding ledger, regression map, known
+                                                  limitations, redesign-gate answer, release-
+                                                  blocker assessment, GO/NO-GO, I5 handoff
+definition-of-done.md                            every spec §28 checkbox verified against the
+                                                  actual evidence, not assumed
 ```
 
 ## Decision vocabulary (spec §7)

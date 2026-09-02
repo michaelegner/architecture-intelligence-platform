@@ -257,9 +257,15 @@ public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 The original PoC (Canonical Model, OpenAPI/AsyncAPI/manifest ingestion, Neo4j graph, five
 deterministic analyses, LLM query layer), the H1-H4 hardening/OpenTelemetry iterations, the full 11H
 runtime-correctness roadmap (evidence reconciliation, cross-batch correlation, partial
-instrumentation, observed provider relations, coverage qualification, the Collector-based demo), and
-H5 (open-source readiness — this document, `docs/`, licensing, CI, community files) are all complete.
-See [`ROADMAP.md`](ROADMAP.md) for what's shipped and what's planned next.
+instrumentation, observed provider relations, coverage qualification, the Collector-based demo), H5
+(open-source readiness), and v0.2 (the deterministic evaluation suite) are all shipped.
+
+`v0.3` (real-world validation against Quarkus Super Heroes and Apache Airflow, plus cross-system
+model hardening) has completed its I1-I4 iterations internally — see
+[`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
+for the full cross-system report — and is qualified as `v0.3.0-rc.1`. `v0.3.0` itself has not
+shipped yet; I5 (release qualification) is pending. See [`ROADMAP.md`](ROADMAP.md) for the full
+release track and what's planned next.
 
 ## License
 
