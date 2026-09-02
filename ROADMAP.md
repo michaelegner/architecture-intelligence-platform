@@ -68,16 +68,31 @@ that exact candidate. `v0.3.0` itself has not shipped yet; I5 has not started.
 
 ## v0.4 — Architecture Intelligence Tools (planned)
 
-Focus: expose the validated semantic core through stable, evidence-backed tool contracts.
+**Goal: Trusted Architecture Context for Agents**
+
+Purpose: expose AIP's validated architecture model as stable, snapshot-bound, evidence-backed, and
+machine-consumable context for AI agents and architecture tools.
+
+An agent consuming AIP must be able to determine not only what AIP claims about the architecture,
+but why that claim exists and under which evidence and observation context it was derived.
+
+Planned scope:
 
 - `ArchitectureIntelligenceService`
-- Structured, evidence-backed query contracts
+- Structured evidence-backed result contracts
+- Snapshot and observation-context binding
+- Evidence and provenance linkage
+- Qualification of architectural claims
 - Read-only MCP tools
-- Deterministic tool evaluation (contract shape, semantic correctness, evidence linkage, read-only
-  enforcement, stable ordering)
+- Deterministic tool evaluation
 
-The tool layer stays downstream of AIP's deterministic architecture model — it must not let an LLM
-or MCP client create canonical facts, bypass semantic validation, or reach a graph write path.
+Principle:
+
+> **AIP may help agents reason about architecture, but an agent must never become the source of
+> architectural truth.**
+
+The tool layer stays downstream of AIP's deterministic architecture model. It must not let an LLM,
+agent, or MCP client create canonical facts, bypass semantic validation, or reach a graph write path.
 
 ## v0.5 — Broader Architecture Discovery (planned)
 
