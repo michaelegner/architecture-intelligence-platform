@@ -105,7 +105,6 @@ Every checkbox below, verified against the actual evidence at the exact candidat
 
 ## I4.5 closed
 
-All items above are satisfied. `v0.3.0-rc.1` was cut and pushed at the literal candidate SHA,
-held as a separate, explicitly confirmed action (tagging a commit that is not the branch tip is
-unusual enough to warrant its own sign-off, not a bundled side effect of merging
-documentation).
+All items above are satisfied. `v0.3.0-rc.1` was cut and pushed at the literal candidate SHA as a
+separate, explicitly confirmed action — tagging a commit that is not the branch tip is unusual
+enough to warrant its own sign-off, not a bundled side effect of merging documentation.

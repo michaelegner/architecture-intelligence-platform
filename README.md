@@ -261,7 +261,7 @@ instrumentation, observed provider relations, coverage qualification, the Collec
 (open-source readiness), and v0.2 (the deterministic evaluation suite) are all shipped.
 
 `v0.3` (real-world validation against Quarkus Super Heroes and Apache Airflow, plus cross-system
-model hardening) has completed its I1-I4 iterations and is tagged
+model hardening) has completed its I1-I4 iterations and has been tagged as
 [`v0.3.0-rc.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0-rc.1)
 — see
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)

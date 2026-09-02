@@ -63,8 +63,8 @@ another architecture-intelligence dimension. See
 I4's outcome: zero production changes were justified by either system's independent evidence — see
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
 for the full cross-system report, finding ledger, and the canonical-redesign-gate answer (`NO`, no
-fundamental Canonical Model redesign is required before v0.4). The `v0.3.0-rc.1` tag is cut at that
-exact candidate. `v0.3.0` itself has not shipped yet; I5 has not started.
+fundamental Canonical Model redesign is required before v0.4). The `v0.3.0-rc.1` tag was cut at
+that exact candidate. `v0.3.0` itself has not shipped yet; I5 has not started.
 
 ## v0.4 — Architecture Intelligence Tools (planned)
 
