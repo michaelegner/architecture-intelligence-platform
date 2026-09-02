@@ -65,7 +65,7 @@ The implementation is divided into five iterations:
 | I2 | Quarkus Super Heroes Validation | Validate the current model against an external reference architecture | `v0.3.0-alpha.2` | ✓ complete — tag cut |
 | I3 | Apache Airflow Validation | Validate the current model against real-world OSS software | `v0.3.0-alpha.3` | ✓ complete (no separate tag cut) |
 | I4 | Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence and revalidate both systems | `v0.3.0-rc.1` | ✓ complete — tag cut |
-| I5 | Release Qualification | Qualify the exact candidate and publish `v0.3.0` | `v0.3.0` | pending |
+| I5 | Release Qualification | Qualify the exact candidate and publish `v0.3.0` | `v0.3.0` | specification drafted; implementation pending |
 
 ---
 
@@ -79,7 +79,7 @@ docs/specifications/0.3.0/
 ├── i2-quarkus-validation.md
 ├── i3-airflow-validation.md
 ├── i4-cross-system-model-hardening.md
-├── i5-release-qualification.md   (not yet created — I5 has not started)
+├── i5-release-qualification.md
 └── git-workflow.md               (not yet created — see status below)
 ```
 
@@ -92,7 +92,7 @@ Current documents:
 | [`i2-quarkus-validation.md`](i2-quarkus-validation.md) | Final implementation specification |
 | [`i3-airflow-validation.md`](i3-airflow-validation.md) | Final implementation specification |
 | [`i4-cross-system-model-hardening.md`](i4-cross-system-model-hardening.md) | Final implementation specification |
-| `i5-release-qualification.md` | Not started |
+| [`i5-release-qualification.md`](i5-release-qualification.md) | Draft implementation specification |
 | `git-workflow.md` | To be added if release-specific workflow details are required |
 
 ---
@@ -230,8 +230,12 @@ Those belong to later releases.
 ```text
 v0.4
 Architecture Intelligence Tools
+    Goal: Trusted Architecture Context for Agents
     ArchitectureIntelligenceService
-    structured evidence-backed contracts
+    structured evidence-backed result contracts
+    snapshot and observation-context binding
+    evidence and provenance linkage
+    qualification of architectural claims
     read-only MCP tools
     deterministic tool evaluation
 
