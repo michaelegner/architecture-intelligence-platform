@@ -59,10 +59,10 @@ I1-I4 are complete. An initial release candidate, `v0.3.0-rc.1`, was tagged at t
 candidate — but I5's own entry qualification then found `pyproject.toml`/`uv.lock` still declared
 project version `0.2.0`, which is release-blocking. That fix produced a new candidate,
 `v0.3.0-rc.2`; its fresh real-system revalidation, Quick Start, GHCR artifact, and
-CI/CodeQL/Trivy qualification (I5.2) are all complete and green, and `v0.3.0-go-no-go.md`
-recommends `GO`. That recommendation is not itself a decision — the repository owner's explicit
-authorization is the one remaining step. `v0.3.0` itself has not shipped; I5 (release
-qualification) is in progress.
+CI/CodeQL/Trivy qualification are all technically complete and green, and `v0.3.0-go-no-go.md`
+recommends `GO`. That recommendation is not itself a decision, and **I5.2 does not close until the
+repository owner records one** — their explicit authorization is the one remaining step. `v0.3.0`
+itself has not shipped; I5 (release qualification) is in progress.
 
 ## [0.2.0] - 2026-08-31
 

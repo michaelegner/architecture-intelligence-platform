@@ -58,7 +58,7 @@ another architecture-intelligence dimension. See
 | I2 — Quarkus Super Heroes Validation | Validate against an external reference architecture | ✓ complete — `v0.3.0-alpha.2` |
 | I3 — Apache Airflow Validation | Validate against real-world OSS software | ✓ complete (internal iteration work; no separate tag cut) |
 | I4 — Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence; revalidate both systems | ✓ complete — `v0.3.0-rc.1` |
-| I5 — Release Qualification | Qualify the exact candidate and publish `v0.3.0` | in progress — I5.1/I5.2 done, GO recommended for `v0.3.0-rc.2`; owner authorization + I5.3 next |
+| I5 — Release Qualification | Qualify the exact candidate and publish `v0.3.0` | in progress — I5.1 done; I5.2 technical qualification complete for `v0.3.0-rc.2`, GO decision pending (I5.2 not yet closed); owner authorization + I5.3 next |
 
 I4's outcome: zero production changes were justified by either system's independent evidence — see
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
