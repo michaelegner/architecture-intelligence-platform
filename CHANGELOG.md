@@ -9,7 +9,9 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
-### v0.3 — Real-World Validation and Cross-System Hardening (in progress)
+## [0.3.0] - 2026-09-02
+
+### v0.3 — Real-World Validation and Cross-System Hardening
 
 AIP was validated against two independently authored real systems it was not built against:
 **Quarkus Super Heroes** (a controlled, externally authored microservice reference architecture)
@@ -55,13 +57,14 @@ for the full cross-system report and finding ledger, and
 [`docs/release-validation/v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md) for the
 final qualification record.
 
-I1-I4 are complete. An initial release candidate, `v0.3.0-rc.1`, was tagged at that qualified
-candidate — but I5's own entry qualification then found `pyproject.toml`/`uv.lock` still declared
-project version `0.2.0`, which is release-blocking. That fix produced a new candidate,
-`v0.3.0-rc.2`; its fresh real-system revalidation, Quick Start, GHCR artifact, and
-CI/CodeQL/Trivy qualification are all complete and green, and the repository owner has decided
-**`GO`** — see [`v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md). I5.3 (cut and
-publish `v0.3.0`) is next; `v0.3.0` itself has not shipped yet.
+An initial release candidate, `v0.3.0-rc.1`, was tagged at the I4-qualified candidate — but I5's own
+entry qualification found `pyproject.toml`/`uv.lock` still declared project version `0.2.0`, which
+is release-blocking. That fix produced a new candidate, `v0.3.0-rc.2`; its fresh real-system
+revalidation, Quick Start, GHCR artifact, and CI/CodeQL/Trivy qualification are all complete and
+green, and the repository owner decided **`GO`** — see
+[`v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md). `v0.3.0` was tagged at that
+exact candidate and published; its GHCR artifact and tagged source were independently re-verified —
+see [`v0.3.0-post-release-verification.md`](docs/release-validation/v0.3.0-post-release-verification.md).
 
 ## [0.2.0] - 2026-08-31
 
