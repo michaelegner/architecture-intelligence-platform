@@ -23,19 +23,16 @@ I4.1  Finding Consolidation and Decision Freeze         <- complete (PR #49)
 I4.2  General Model and Runtime Hardening               <- complete, NO_CHANGE (see hardening.md)
 I4.3  Distilled Regression and Synthetic Revalidation   <- complete (see regression-map.md)
 I4.4  Final-Candidate Real-System Revalidation          <- complete (see revalidation.md)
-I4.5  RC Qualification                                  <- qualification complete, GO recorded
-                                                            (see report.md); v0.3.0-rc.1 tag
-                                                            pending — I4.5 does not close, and I4
-                                                            is not complete, until it exists
-                                                            (spec §29)
+I4.5  RC Qualification                                  <- complete (see report.md); GO recorded,
+                                                            v0.3.0-rc.1 tagged at the candidate
 ```
 
-I4 as a whole is qualified for `v0.3.0-rc.1`, not yet complete: [`report.md`](report.md) is the
-single deterministic cross-system report drawing I4.1-I4.4 together, plus the Definition of Done
+I4 as a whole is now complete: [`report.md`](report.md) is the single deterministic cross-system
+report drawing I4.1-I4.4 together, plus the Definition of Done
 ([`definition-of-done.md`](definition-of-done.md)), the release-blocker assessment, and a **GO**
-recommendation — but per spec §29, I4 is complete only once the `v0.3.0-rc.1` tag identifies this
-candidate, and that tag does not exist yet (see `definition-of-done.md`'s "Outstanding before I4.5
-closes").
+record. The `v0.3.0-rc.1` tag was cut and pushed at the literal candidate SHA
+`9f95d48046ab1942bb1a77c9a3a887a542120b98` and published as a GitHub prerelease:
+https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0-rc.1.
 
 I4.1's gate (spec §27): *no production semantic change begins before its decision record is
 approved.* I4.1 made no production code change and approved zero `FIX` dispositions, so I4.2 (per
