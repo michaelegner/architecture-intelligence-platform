@@ -21,3 +21,4 @@ environment, and recording what happened. That's what these files are.
 | [`security-settings.md`](security-settings.md) | Repository security feature configuration, verified via the GitHub API rather than assumed. |
 | [`public-repository-content-gate.md`](public-repository-content-gate.md) | Sign-off record for the pre-push secret/customer-data/history review performed before the repository went public. |
 | [`external-smoke-test.md`](external-smoke-test.md) | Result of the clean-environment smoke test performed independently of the environment that built the repository. |
+| [`v0.3.0-rc.2-candidate-preparation.md`](v0.3.0-rc.2-candidate-preparation.md) | I5.1's independent I4-entry re-audit and the `pyproject.toml`/`uv.lock` version-consistency fix (`0.2.0` → `0.3.0`) that creates the `v0.3.0-rc.2` candidate, reopening I4.4's real-system revalidation gate. |
