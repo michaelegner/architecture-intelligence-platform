@@ -58,13 +58,13 @@ another architecture-intelligence dimension. See
 | I2 — Quarkus Super Heroes Validation | Validate against an external reference architecture | ✓ complete — `v0.3.0-alpha.2` |
 | I3 — Apache Airflow Validation | Validate against real-world OSS software | ✓ complete (internal iteration work; no separate tag cut) |
 | I4 — Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence; revalidate both systems | ✓ complete — `v0.3.0-rc.1` |
-| I5 — Release Qualification | Qualify the exact candidate and publish `v0.3.0` | pending |
+| I5 — Release Qualification | Qualify the exact candidate and publish `v0.3.0` | specification drafted; implementation pending |
 
 I4's outcome: zero production changes were justified by either system's independent evidence — see
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
 for the full cross-system report, finding ledger, and the canonical-redesign-gate answer (`NO`, no
 fundamental Canonical Model redesign is required before v0.4). The `v0.3.0-rc.1` tag was cut at
-that exact candidate. `v0.3.0` itself has not shipped yet; I5 has not started.
+that exact candidate. `v0.3.0` itself has not shipped yet; the I5 implementation is pending.
 
 ## v0.4 — Architecture Intelligence Tools (planned)
 
