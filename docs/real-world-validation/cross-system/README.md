@@ -23,15 +23,19 @@ I4.1  Finding Consolidation and Decision Freeze         <- complete (PR #49)
 I4.2  General Model and Runtime Hardening               <- complete, NO_CHANGE (see hardening.md)
 I4.3  Distilled Regression and Synthetic Revalidation   <- complete (see regression-map.md)
 I4.4  Final-Candidate Real-System Revalidation          <- complete (see revalidation.md)
-I4.5  RC Qualification                                  <- complete (see report.md); GO — tagging
-                                                            v0.3.0-rc.1 is the one remaining,
-                                                            separately confirmed step
+I4.5  RC Qualification                                  <- qualification complete, GO recorded
+                                                            (see report.md); v0.3.0-rc.1 tag
+                                                            pending — I4.5 does not close, and I4
+                                                            is not complete, until it exists
+                                                            (spec §29)
 ```
 
-I4 as a whole is now complete: [`report.md`](report.md) is the single deterministic cross-system
-report drawing I4.1-I4.4 together, plus the Definition of Done
-([`definition-of-done.md`](definition-of-done.md)), the release-blocker assessment, and the
-GO/NO-GO record (**GO**).
+I4 as a whole is qualified for `v0.3.0-rc.1`, not yet complete: [`report.md`](report.md) is the
+single deterministic cross-system report drawing I4.1-I4.4 together, plus the Definition of Done
+([`definition-of-done.md`](definition-of-done.md)), the release-blocker assessment, and a **GO**
+recommendation — but per spec §29, I4 is complete only once the `v0.3.0-rc.1` tag identifies this
+candidate, and that tag does not exist yet (see `definition-of-done.md`'s "Outstanding before I4.5
+closes").
 
 I4.1's gate (spec §27): *no production semantic change begins before its decision record is
 approved.* I4.1 made no production code change and approved zero `FIX` dispositions, so I4.2 (per

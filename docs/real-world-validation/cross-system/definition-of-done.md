@@ -99,7 +99,8 @@ Every checkbox below, verified against the actual evidence at the exact candidat
 - [x] `docs/specifications/0.3.0/README.md` links this specification and reflects current status.
 - [x] The four public planning surfaces (`ROADMAP.md`, `README.md`, `CHANGELOG.md`,
       `docs/specifications/0.3.0/README.md`) contain no contradictory release claims — all four
-      state: I1-I4 complete, qualified as `v0.3.0-rc.1`, `v0.3.0` not yet shipped, I5 pending.
+      state: I1-I4 qualification complete, candidate qualified **for** `v0.3.0-rc.1` (tag pending),
+      `v0.3.0` not yet shipped, I5 pending.
 
 ## Outstanding before I4.5 closes
 

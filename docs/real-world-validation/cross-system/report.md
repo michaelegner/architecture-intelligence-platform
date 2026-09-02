@@ -202,23 +202,26 @@ analyze (actions)                         -> success
 
 ## 11. GO/NO-GO (spec §29)
 
-**GO** — proceed to I5 release qualification.
+**GO** — the candidate is qualified for `v0.3.0-rc.1`. All material cross-system findings are
+dispositioned (§3), all accepted general corrections are implemented (none were accepted, §4), all
+accepted fixes have deterministic regression coverage (vacuous, §4), Quarkus is revalidated (§2,
+`revalidation.md`), Airflow is revalidated (§2, `revalidation.md`), the v0.2 evaluation is green
+(§10), and critical semantic errors = 0 and release blockers = 0 (§9).
 
 ```text
 Candidate: 9f95d48046ab1942bb1a77c9a3a887a542120b98
 ```
 
-All material cross-system findings are dispositioned (§3), all accepted general corrections are
-implemented (none were accepted, §4), all accepted fixes have deterministic regression coverage
-(vacuous, §4), Quarkus is revalidated (§2, `revalidation.md`), Airflow is revalidated (§2,
-`revalidation.md`), the v0.2 evaluation is green (§10), and critical semantic errors = 0 and release
-blockers = 0 (§9). `v0.3.0-rc.1` names this exact candidate (§1) — the tag itself is cut as a
-separate, explicitly confirmed step after this report merges (see
-[`definition-of-done.md`](definition-of-done.md)'s "Outstanding before I4.5 closes").
+**This is a qualification GO, not yet a closed handoff.** Per spec §29, I4 is complete only once the
+`v0.3.0-rc.1` tag identifies this exact candidate, and per spec §3 that tag must point at the
+literal SHA above, not at this report's own documentation-only commit. The tag is cut as a separate,
+explicitly confirmed step after this report merges (see
+[`definition-of-done.md`](definition-of-done.md)'s "Outstanding before I4.5 closes") — I4.5 does not
+close, and I5 does not formally begin, until it exists.
 
 ## 12. I5 handoff (spec §30)
 
-I5 introduces no new model semantics. It receives from I4:
+I5 introduces no new model semantics. Once the `v0.3.0-rc.1` tag above is cut, I5 receives from I4:
 
 ```text
 exact candidate SHA and dependency lock         -> §1 above

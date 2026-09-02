@@ -57,14 +57,15 @@ another architecture-intelligence dimension. See
 | I1 — Real-World Validation Contract | Freeze methodology, finding vocabulary, dossier structure, comparison semantics, runbook contract | ✓ complete (internal iteration work; no separate tag cut) |
 | I2 — Quarkus Super Heroes Validation | Validate against an external reference architecture | ✓ complete — `v0.3.0-alpha.2` |
 | I3 — Apache Airflow Validation | Validate against real-world OSS software | ✓ complete (internal iteration work; no separate tag cut) |
-| I4 — Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence; revalidate both systems | ✓ complete — `v0.3.0-rc.1` |
+| I4 — Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence; revalidate both systems | qualified for `v0.3.0-rc.1` — tag pending |
 | I5 — Release Qualification | Qualify the exact candidate and publish `v0.3.0` | pending |
 
 I4's outcome: zero production changes were justified by either system's independent evidence — see
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
 for the full cross-system report, finding ledger, and the canonical-redesign-gate answer (`NO`, no
-fundamental Canonical Model redesign is required before v0.4). `v0.3.0` itself has not shipped yet;
-I5 has not started.
+fundamental Canonical Model redesign is required before v0.4), and a recorded **GO**. I4 is not yet
+complete — the `v0.3.0-rc.1` tag has not been cut — and `v0.3.0` itself has not shipped; I5 has not
+started.
 
 ## v0.4 — Architecture Intelligence Tools (planned)
 
