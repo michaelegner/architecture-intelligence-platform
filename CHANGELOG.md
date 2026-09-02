@@ -21,9 +21,10 @@ build.
 - Independent real-world validation methodology frozen (I1): finding vocabulary, ground-truth
   independence rules, supported-scope rules, comparator semantics, dossier/runbook contract.
 - Quarkus Super Heroes qualified (I2): **38 correct, 2 unsupported, 0 incorrect/missing
-  supported** (comparator-only score); **1 insufficient evidence overall** (0 in the
-  comparator-only score — `qsh-kafka-operation-type-gap`, found by a separate diagnostic
-  inspection, not by the comparator itself). Two independent runs, byte-identical.
+  supported** (comparator-only score, reproduced byte-identical across two independent runs);
+  **1 insufficient evidence overall** (0 in the comparator-only score — `qsh-kafka-operation-
+  type-gap`, discovered once by a separate diagnostic inspection, not emitted by either
+  comparator run, carried forward as an accepted dossier disposition).
 - Apache Airflow qualified (I3): **9 correct, 3 unsupported, 2 unresolved identity, 1 insufficient
   evidence, 0 incorrect/missing supported.** Two independent runs, byte-identical.
 - Cross-system finding dispositions (I4): all 10 findings from both dossiers dispositioned
