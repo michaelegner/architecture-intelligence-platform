@@ -1,10 +1,10 @@
 # AIP v0.3.0 — Real-World Validation & Model Hardening
 
 **Release:** `v0.3.0`  
-**Status:** I1-I4 complete; I5 (release qualification) in progress — I5.1 (candidate identity,
-version/lock fix) done; I5.2's technical qualification (fresh real-system revalidation, Quick
-Start, GHCR artifact, CI/CodeQL/Trivy) is complete against `v0.3.0-rc.2` and recommends GO, but
-**I5.2 itself does not close until the repository owner records that decision** — see
+**Status:** I1-I4 complete; I5 (release qualification) in progress — I5.1 and I5.2 are both
+complete: the repository owner decided **`GO`** for `v0.3.0-rc.2` (`eeff933da3a8f1e5fc6749cb9a77bbf2e5123fd1`)
+in [`v0.3.0-go-no-go.md`](../../release-validation/v0.3.0-go-no-go.md). I5.3 (cut and publish
+`v0.3.0`) is next — see
 [`docs/real-world-validation/cross-system/report.md`](../../real-world-validation/cross-system/report.md)
 and [`docs/release-validation/v0.3.0-rc.2-candidate-preparation.md`](../../release-validation/v0.3.0-rc.2-candidate-preparation.md)  
 **Project:** Architecture Intelligence Platform (AIP)
@@ -68,7 +68,7 @@ The implementation is divided into five iterations:
 | I2 | Quarkus Super Heroes Validation | Validate the current model against an external reference architecture | `v0.3.0-alpha.2` | ✓ complete — tag cut |
 | I3 | Apache Airflow Validation | Validate the current model against real-world OSS software | `v0.3.0-alpha.3` | ✓ complete (no separate tag cut) |
 | I4 | Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence and revalidate both systems | `v0.3.0-rc.1` | ✓ complete — tag cut |
-| I5 | Release Qualification | Qualify the exact candidate and publish `v0.3.0` | `v0.3.0` | in progress — I5.1 done; I5.2 technical qualification complete, GO decision pending (I5.2 not yet closed); owner authorization + I5.3 next |
+| I5 | Release Qualification | Qualify the exact candidate and publish `v0.3.0` | `v0.3.0` | in progress — I5.1/I5.2 complete, **GO** decided for `v0.3.0-rc.2` (`eeff933`); I5.3 (publish `v0.3.0`) next |
 
 ---
 

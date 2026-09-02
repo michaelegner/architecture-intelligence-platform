@@ -268,12 +268,10 @@ for the full cross-system report. I5 (release qualification) is in progress:
 was tagged at the I4-qualified candidate, then superseded by
 [`v0.3.0-rc.2`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0-rc.2)
 after a required `pyproject.toml`/`uv.lock` version-consistency fix. `rc.2`'s fresh real-system
-revalidation, Quick Start, GHCR artifact, and CI/CodeQL/Trivy qualification are technically
-complete — see
-[`docs/release-validation/v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md), which
-recommends `GO`. That recommendation is not a decision, and **I5.2 does not close until the
-repository owner records one**: their explicit authorization is the one remaining step before
-publication. `v0.3.0` itself has not shipped yet. See
+revalidation, Quick Start, GHCR artifact, and CI/CodeQL/Trivy qualification are complete, and the
+repository owner has decided **`GO`** — see
+[`docs/release-validation/v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md). I5.3
+(cut and publish `v0.3.0`) is next; `v0.3.0` itself has not shipped yet. See
 [`ROADMAP.md`](ROADMAP.md) for the full release track and what's planned next.
 
 ## License
