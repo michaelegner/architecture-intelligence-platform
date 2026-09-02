@@ -43,21 +43,26 @@ build.
   insufficient-evidence, deferred pending future evidence.
 - I4/`v0.3.0-rc.1` candidate repeatability baseline: both systems' qualifying comparisons were
   re-executed twice each, from clean state, against that candidate (`9f95d48`), producing
-  byte-identical captures and comparator reports both times. **This is not yet final-candidate
-  repeatability** — `v0.3.0-rc.2` (the current candidate, after the version fix below) still
-  requires its own fresh revalidation (I5.2) before this claim can be made against it.
+  byte-identical captures and comparator reports both times.
+- Final-candidate repeatability: after the version/lock fix below produced a new candidate
+  (`v0.3.0-rc.2`), both systems were revalidated fresh against it — two runs each, from clean
+  state — producing captures and comparator reports byte-identical to each other **and** to the
+  `rc.1` baseline above, proving the fix changed no application-facing fact.
 
 See
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
-for the full cross-system report, finding ledger, and GO/NO-GO record.
+for the full cross-system report and finding ledger, and
+[`docs/release-validation/v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md) for the
+final qualification record.
 
 I1-I4 are complete. An initial release candidate, `v0.3.0-rc.1`, was tagged at that qualified
 candidate — but I5's own entry qualification then found `pyproject.toml`/`uv.lock` still declared
 project version `0.2.0`, which is release-blocking. That fix produced a new candidate,
-`v0.3.0-rc.2`, which now requires its own fresh real-system revalidation (I5.2) before a final `GO`
-— `v0.3.0-rc.1`'s Quarkus/Airflow evidence is bound to its own commit and does not transfer by
-content-equivalence argument. `v0.3.0` itself has not shipped; I5 (release qualification) is in
-progress.
+`v0.3.0-rc.2`; its fresh real-system revalidation, Quick Start, GHCR artifact, and
+CI/CodeQL/Trivy qualification (I5.2) are all complete and green, and `v0.3.0-go-no-go.md`
+recommends `GO`. That recommendation is not itself a decision — the repository owner's explicit
+authorization is the one remaining step. `v0.3.0` itself has not shipped; I5 (release
+qualification) is in progress.
 
 ## [0.2.0] - 2026-08-31
 

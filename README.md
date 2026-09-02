@@ -267,8 +267,11 @@ for the full cross-system report. I5 (release qualification) is in progress:
 [`v0.3.0-rc.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0-rc.1)
 was tagged at the I4-qualified candidate, then superseded by
 [`v0.3.0-rc.2`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0-rc.2)
-after a required `pyproject.toml`/`uv.lock` version-consistency fix — `rc.2` still needs its own
-fresh real-system revalidation before a final `GO`. `v0.3.0` itself has not shipped yet. See
+after a required `pyproject.toml`/`uv.lock` version-consistency fix. `rc.2`'s fresh real-system
+revalidation, Quick Start, GHCR artifact, and CI/CodeQL/Trivy qualification are complete — see
+[`docs/release-validation/v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md), which
+recommends `GO`. That recommendation is not a decision: the repository owner's explicit
+authorization is the one remaining step before publication. `v0.3.0` itself has not shipped yet. See
 [`ROADMAP.md`](ROADMAP.md) for the full release track and what's planned next.
 
 ## License
