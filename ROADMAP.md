@@ -45,12 +45,14 @@ reproducible way to demonstrate that the existing one behaves correctly. See
 [`evaluation/README.md`](evaluation/README.md) and
 [`docs/specifications/0.2.0/`](docs/specifications/0.2.0/) for the full design history.
 
-## v0.3 — Real-World Validation and Cross-System Hardening
+## v0.3 — shipped
 
 Focus: prove the architecture intelligence validated reproducibly in v0.2 survives real,
 independently authored systems, and harden only where real evidence justifies it — not to add
 another architecture-intelligence dimension. See
-[`docs/specifications/0.3.0/`](docs/specifications/0.3.0/) for the full design history.
+[`docs/specifications/0.3.0/`](docs/specifications/0.3.0/) for the full design history and
+[`v0.3.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0)
+for the published release.
 
 | Iteration | Purpose | Status |
 |---|---|---|
@@ -58,21 +60,23 @@ another architecture-intelligence dimension. See
 | I2 — Quarkus Super Heroes Validation | Validate against an external reference architecture | ✓ complete — `v0.3.0-alpha.2` |
 | I3 — Apache Airflow Validation | Validate against real-world OSS software | ✓ complete (internal iteration work; no separate tag cut) |
 | I4 — Cross-System Model Hardening | Apply only general fixes justified by independent real-system evidence; revalidate both systems | ✓ complete — `v0.3.0-rc.1` |
-| I5 — Release Qualification | Qualify the exact candidate and publish `v0.3.0` | in progress — I5.1/I5.2 complete, **GO** decided for `v0.3.0-rc.2` (`eeff933`); I5.3 (publish `v0.3.0`) next |
+| I5 — Release Qualification | Qualify the exact candidate and publish `v0.3.0` | ✓ complete — **shipped as `v0.3.0`** |
 
-I4's outcome: zero production changes were justified by either system's independent evidence — see
-[`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
-for the full cross-system report, finding ledger, and the canonical-redesign-gate answer (`NO`, no
-fundamental Canonical Model redesign is required before v0.4). The `v0.3.0-rc.1` tag was cut at
-that exact candidate, then superseded by `v0.3.0-rc.2` after I5's entry qualification found
-`pyproject.toml`/`uv.lock` still declared project version `0.2.0` — a release-blocking
-inconsistency; `v0.3.0-rc.1` remains immutable as historical record. `v0.3.0-rc.2`'s own fresh
-Quarkus/Airflow revalidation, Quick Start, GHCR artifact, and CI/CodeQL/Trivy qualification are all
-complete and green — see
-[`docs/release-validation/v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md), which
-recommends `GO`. That recommendation is not itself a decision: the repository owner's explicit
-authorization is the one remaining step before I5.3 cuts and publishes `v0.3.0`. `v0.3.0` itself has
-not shipped yet.
+- ✓ Zero production changes were justified by either system's independent evidence — see
+  [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
+  for the full cross-system report, finding ledger, and the canonical-redesign-gate answer (`NO`, no
+  fundamental Canonical Model redesign is required before v0.4).
+- ✓ `v0.3.0-rc.1` was tagged at the I4-qualified candidate, then superseded by `v0.3.0-rc.2` after
+  I5's entry qualification found `pyproject.toml`/`uv.lock` still declared project version
+  `0.2.0` — a release-blocking inconsistency, fixed under this project's no-substitution policy
+  (both RC tags remain immutable historical record).
+- ✓ `v0.3.0-rc.2`'s fresh Quarkus/Airflow revalidation, Quick Start, GHCR artifact, and
+  CI/CodeQL/Trivy qualification are all recorded in
+  [`docs/release-validation/v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md)
+  (**GO**, decided by the repository owner 2026-09-02).
+- ✓ `v0.3.0` was tagged at the exact GO candidate, published, and its GHCR artifact and tagged
+  source independently re-verified — see
+  [`docs/release-validation/v0.3.0-post-release-verification.md`](docs/release-validation/v0.3.0-post-release-verification.md).
 
 ## v0.4 — Architecture Intelligence Tools (planned)
 
