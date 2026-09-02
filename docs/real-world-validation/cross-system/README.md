@@ -5,9 +5,10 @@ This directory holds the I4 evidence and decision trail (see
 I4.1 and I4.2 derive decisions from the two independent qualifying results already frozen by I2
 (Quarkus Super Heroes) and I3 (Apache Airflow) and introduce no new validation profile, using the
 same six-classification vocabulary frozen by I1 (see [`../README.md`](../README.md)). I4 as a whole
-does still require fresh evidence: per spec §19/§27 (I4.4), I4 executes both existing profiles
-again against the same final candidate before qualification - frozen I2/I3 results, and a source
-diff or content-equivalence argument, SHALL NOT substitute for that real-system execution.
+still required fresh evidence: per spec §19/§27, I4.4 executed both existing profiles again,
+twice each, against the same final candidate (`9f95d48`) before qualification — frozen I2/I3
+results, and a source diff or content-equivalence argument, could not substitute for that
+real-system execution (see [`revalidation.md`](revalidation.md)).
 
 ```text
 docs/real-world-validation/quarkus-super-heroes/   I2's independent dossier and qualifying result
@@ -21,7 +22,7 @@ docs/real-world-validation/cross-system/           this directory — I4's joint
 I4.1  Finding Consolidation and Decision Freeze         <- complete (PR #49)
 I4.2  General Model and Runtime Hardening               <- complete, NO_CHANGE (see hardening.md)
 I4.3  Distilled Regression and Synthetic Revalidation   <- complete (see regression-map.md)
-I4.4  Final-Candidate Real-System Revalidation
+I4.4  Final-Candidate Real-System Revalidation          <- complete (see revalidation.md)
 I4.5  RC Qualification
 ```
 
@@ -52,6 +53,17 @@ hardening.md                                     evidence-backed NO_CHANGE recor
 regression-map.md                                finding-to-test map, distilled tests, bound
                                                   candidate results, determinism verification
                                                   (spec §17/§27)
+```
+
+## I4.4 contents
+
+```text
+revalidation.md                                  clean Quarkus + Airflow runs (2x each) against the
+                                                  literal 9f95d48 candidate, full identity blocks,
+                                                  artifact/report hashes, final dispositions
+                                                  (spec §19/§20/§27)
+artifacts/                                       captured actual-facts YAML and comparator reports
+                                                  for both systems, both runs
 ```
 
 ## Decision vocabulary (spec §7)
