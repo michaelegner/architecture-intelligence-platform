@@ -20,8 +20,10 @@ build.
 
 - Independent real-world validation methodology frozen (I1): finding vocabulary, ground-truth
   independence rules, supported-scope rules, comparator semantics, dossier/runbook contract.
-- Quarkus Super Heroes qualified (I2): **38 correct, 2 unsupported, 1 insufficient evidence, 0
-  incorrect/missing supported.** Two independent runs, byte-identical.
+- Quarkus Super Heroes qualified (I2): **38 correct, 2 unsupported, 0 incorrect/missing
+  supported** (comparator-only score); **1 insufficient evidence overall** (0 in the
+  comparator-only score — `qsh-kafka-operation-type-gap`, found by a separate diagnostic
+  inspection, not by the comparator itself). Two independent runs, byte-identical.
 - Apache Airflow qualified (I3): **9 correct, 3 unsupported, 2 unresolved identity, 1 insufficient
   evidence, 0 incorrect/missing supported.** Two independent runs, byte-identical.
 - Cross-system finding dispositions (I4): all 10 findings from both dossiers dispositioned
@@ -38,9 +40,11 @@ build.
   Execution API caller identity and runtime-role identity remain unresolved rather than guessed;
   a legacy OpenTelemetry messaging-attribute shape and Celery messaging identity remain
   insufficient-evidence, deferred pending future evidence.
-- Final-candidate repeatability: both systems' qualifying comparisons were re-executed twice each,
-  from clean state, against the exact release candidate, producing byte-identical captures and
-  comparator reports both times.
+- I4/`v0.3.0-rc.1` candidate repeatability baseline: both systems' qualifying comparisons were
+  re-executed twice each, from clean state, against that candidate (`9f95d48`), producing
+  byte-identical captures and comparator reports both times. **This is not yet final-candidate
+  repeatability** — `v0.3.0-rc.2` (the current candidate, after the version fix below) still
+  requires its own fresh revalidation (I5.2) before this claim can be made against it.
 
 See
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
