@@ -692,7 +692,7 @@ Expected unchanged semantic baselines, unless a separately approved semantic cor
 
 | System | Correct | Unsupported | Unresolved | Insufficient | Incorrect supported |
 |---|---:|---:|---:|---:|---:|
-| Quarkus Super Heroes | 38 | 2 | 0 | 1 overall | 0 |
+| Quarkus Super Heroes | 38 | 2 | 0 | 0 | 0 |
 | Apache Airflow | 9 | 3 | 2 | 1 | 0 |
 
 Each repeated run SHALL preserve the full I4 identity block and artifact/report hashes.
