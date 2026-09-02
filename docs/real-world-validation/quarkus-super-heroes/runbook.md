@@ -157,55 +157,87 @@ docker compose logs -f otel-collector
 WINDOW_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 FIGHTS_URL=http://localhost:8082 ./traffic.sh
-
-WINDOW_END="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-echo "environment=quarkus-i2 window_start=$WINDOW_START window_end=$WINDOW_END"
 ```
 
 `traffic.sh` (I2 spec §19) exercises, in the order `FightService.java` actually calls them: hero +
 villain retrieval (one `GET /api/fights/randomfighters` call triggers both), the `grpc-locations`
 dependency (`GET /api/fights/randomlocation`), a fight (`POST /api/fights` — persists and publishes
 to Kafka topic `fights`, which `event-statistics` consumes), and narration (`POST
-/api/fights/narrate`, a separate call from `performFight`). Record `window_start`/`window_end` —
-I2.3 needs this exact pair to query AIP's runtime facts for `environment=quarkus-i2`.
+/api/fights/narrate`, a separate call from `performFight`). `WINDOW_END` is not stamped here —
+phase 9 determines it, because the raw completion timestamp of `traffic.sh` is not itself a safe
+window boundary (see below).
 
-## 9. Wait for the Collector to drain, then confirm OTLP ingestion
+## 9. Close the observation window deterministically, then confirm OTLP ingestion
 
 `otel-collector-config.yaml`'s batch processor can legally hold the tail of phase 8's spans for up
-to its configured `timeout: 5s` before forwarding a partial batch — recording `WINDOW_END`
-immediately after `traffic.sh` bounds when the traffic *finished*, not when AIP has actually
-received the last batch. Querying AIP right away risks a race where the final spans are still
-sitting in the Collector's buffer, silently turning a real `CONFIRMED`/`OBSERVED_ONLY` fact into a
-missing one depending on timing alone (PR #40 review F2). Insert an explicit drain barrier before
-treating the window as closed:
+to its configured `timeout: 5s` before forwarding a partial batch, and the narration call's span in
+particular has been observed to land several seconds after `traffic.sh` itself returns (I2.4's
+"Revalidation" section; I4.4's `revalidation.md` run 1 recorded a ~5s gap) — a `WINDOW_END` stamped
+immediately after `traffic.sh` completes is therefore not a safe boundary: querying AIP against it
+risks a race where a real `CONFIRMED` fact is still sitting in the Collector's buffer, silently
+reading back as `NOT_OBSERVED_IN_WINDOW` depending on timing alone (PR #40 review F2; I4.4 review
+F3 — an earlier version of this phase left closing that gap to per-run operator judgment, which
+produced two different, undocumented `WINDOW_END` values across I4.4's two runs).
+
+Close the window only once every relation phase 8's traffic is declared to confirm has actually
+landed, bounded by a maximum wait — never by stamping `WINDOW_END` up front and hoping, and never by
+an ad hoc post hoc widening:
 
 ```bash
-sleep 15   # comfortably longer than otel-collector-config.yaml's 5s batch timeout
+EXPECTED_CALLS="$(
+  uv run python -c "
+import yaml
+doc = yaml.safe_load(open('../expected.yaml'))
+print(sum(1 for f in doc['expected']['relations'] if f['type'] == 'CALLS'))
+"
+)"   # derived from expected.yaml, not hand-typed — stays correct if the frozen scope ever changes
 
-for i in $(seq 1 15); do
-  COUNT="$(
-    curl -sfG "http://localhost:8000/api/runtime/relations" \
+MAX_WAIT=60   # comfortably longer than the 5s batch timeout plus the observed narration lag
+WAITED=0
+CONFIRMED=0
+WINDOW_END=""
+
+while [ "$WAITED" -lt "$MAX_WAIT" ]; do
+  NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  CONFIRMED="$(
+    curl -sfG "http://localhost:8000/api/analysis/runtime/confirmed" \
       --data-urlencode "environment=quarkus-i2" \
       --data-urlencode "since=$WINDOW_START" \
-      --data-urlencode "until=$WINDOW_END" \
+      --data-urlencode "until=$NOW" \
     | jq '.relations | length'
   )"
-  [ "${COUNT:-0}" -gt 0 ] && break
+  if [ "${CONFIRMED:-0}" -ge "$EXPECTED_CALLS" ]; then
+    WINDOW_END="$NOW"
+    break
+  fi
   sleep 2
+  WAITED=$((WAITED + 2))
 done
 
-if [ "${COUNT:-0}" -eq 0 ]; then
-  echo "no runtime relations observed for environment=quarkus-i2 in [$WINDOW_START, $WINDOW_END] after waiting - check: docker compose logs otel-collector" >&2
+if [ -z "$WINDOW_END" ]; then
+  echo "only ${CONFIRMED:-0}/$EXPECTED_CALLS expected CALLS relations observed within ${MAX_WAIT}s - check: docker compose logs otel-collector architecture-intelligence" >&2
   exit 1
 fi
+
+echo "environment=quarkus-i2 window_start=$WINDOW_START window_end=$WINDOW_END (closed after ${WAITED}s, $CONFIRMED/$EXPECTED_CALLS CALLS confirmed)"
 ```
 
-`GET /api/runtime/relations` (`app/api/runtime.py`) returns `{environment, window, relations: [...]}`
-— counting the response itself (e.g. `jq 'length'`) counts that object's three top-level fields and
-would report success even with zero observed relations. Scoping the query to `since`/`until`
-(not the `from`/`to` query params, which filter by canonical entity id, not by time) also matters:
-without it, unrelated startup/health-check traffic from the clean stack could satisfy the count
-even if phase 8's qualifying traffic itself produced nothing.
+`GET /api/analysis/runtime/confirmed` (`app/api/runtime.py`'s `get_confirmed`, spec §43/§47's O2 —
+declared ∩ observed) is the endpoint that actually means "CONFIRMED": counting it (not `GET
+/api/runtime/relations`, the raw O1 "observed" listing, whose `status` field is always the literal
+string `"OBSERVED"` and never `"CONFIRMED"` — an earlier version of this phase queried that endpoint
+and filtered for a status value it can never return, which silently never terminated the loop before
+its bound) is what makes this a real completion check rather than a "something arrived" check.
+Scoping the query to `since`/`until` (not the `from`/`to` query params, which filter by canonical
+entity id, not by time) also matters: without it, unrelated startup/health-check traffic from the
+clean stack could satisfy the count even if phase 8's qualifying traffic itself produced nothing.
+
+`WINDOW_END` is the wall-clock timestamp at which every expected `CALLS` relation was first
+observed `CONFIRMED` — a value the procedure derives itself, bounded by `MAX_WAIT`, not a value an
+operator chooses per run. Two runs of this exact procedure may legitimately take a different number
+of iterations (real network/scheduling timing varies), which is why `WINDOW_END`'s literal value is
+expected to differ run to run — the captured canonical facts and comparator result are what must
+match, and do (`revalidation.md`).
 
 Only once this succeeds has AIP actually received and persisted the OTLP batches phase 8's traffic
 produced — I2.3 begins by *reading back* what AIP now holds for `[window_start, window_end]`.

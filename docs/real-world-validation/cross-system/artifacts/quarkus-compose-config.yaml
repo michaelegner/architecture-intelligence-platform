@@ -1,0 +1,365 @@
+name: runtime
+services:
+  apicurio:
+    container_name: apicurio
+    environment:
+      QUARKUS_HTTP_PORT: "8086"
+      REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED: "true"
+    image: quay.io/apicurio/apicurio-registry:3.1.7
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8086
+        published: "8086"
+        protocol: tcp
+  architecture-intelligence:
+    build:
+      context: /home/michael/code/ArchitectureIntelligencePlatform
+      dockerfile: Dockerfile
+    depends_on:
+      neo4j:
+        condition: service_healthy
+        required: true
+    environment:
+      CONFIG_PATH: config.quarkus-i2.yaml
+      NEO4J_PASSWORD: REDACTED
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      OPENAI_API_KEY: ""
+    image: aip-candidate-9f95d48
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8000
+        published: "8000"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/quarkus-super-heroes/runtime/declarations
+        target: /app/declarations
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/quarkus-super-heroes/runtime/config.quarkus-i2.yaml
+        target: /app/config.quarkus-i2.yaml
+        read_only: true
+        bind: {}
+  event-statistics-java25:
+    container_name: event-statistics-java25
+    depends_on:
+      apicurio:
+        condition: service_started
+        required: true
+      fights-kafka:
+        condition: service_started
+        required: true
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: PLAINTEXT://fights-kafka:9092
+      MP_MESSAGING_CONNECTOR_SMALLRYE_KAFKA_APICURIO_REGISTRY_URL: http://apicurio:8086/apis/registry/v2
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      QUARKUS_OTEL_RESOURCE_ATTRIBUTES: app=event-statistics,application=event-stats,system=quarkus-super-heroes,deployment.environment.name=quarkus-i2
+    image: quarkus-super-heroes/event-statistics:8ea0337
+    networks:
+      default:
+        aliases:
+          - event-statistics
+    ports:
+      - mode: ingress
+        target: 8085
+        published: "8085"
+        protocol: tcp
+    restart: on-failure
+  fights-db:
+    container_name: fights-db
+    environment:
+      MONGO_INITDB_DATABASE: fights
+      MONGO_INITDB_ROOT_PASSWORD: super
+      MONGO_INITDB_ROOT_USERNAME: super
+    image: mongo:8.3.8
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 27017
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /home/michael/quarkus-super-heroes-i4/rest-fights/deploy/db-init/initialize-database.js
+        target: /docker-entrypoint-initdb.d/1-init-db.js
+        bind: {}
+  fights-kafka:
+    container_name: fights-kafka
+    depends_on:
+      apicurio:
+        condition: service_started
+        required: true
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://fights-kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_NODE_ID: "1"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      LOG_DIR: /tmp/logs
+    image: apache/kafka-native:4.2.0
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 9092
+        published: "9092"
+        protocol: tcp
+  grpc-locations-java25:
+    container_name: grpc-locations-java25
+    depends_on:
+      locations-db:
+        condition: service_started
+        required: true
+    environment:
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:mariadb://locations-db:3306/locations_database
+      QUARKUS_DATASOURCE_PASSWORD: locations
+      QUARKUS_DATASOURCE_USERNAME: locations
+      QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY: validate
+      QUARKUS_HIBERNATE_ORM_SQL_LOAD_SCRIPT: no-file
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      QUARKUS_OTEL_RESOURCE_ATTRIBUTES: app=grpc-locations,application=grpc-locations,system=quarkus-super-heroes,deployment.environment.name=quarkus-i2
+    image: quarkus-super-heroes/grpc-locations:8ea0337
+    networks:
+      default:
+        aliases:
+          - grpc-locations
+    ports:
+      - mode: ingress
+        target: 8089
+        published: "8089"
+        protocol: tcp
+    restart: on-failure
+  heroes-db:
+    container_name: heroes-db
+    environment:
+      POSTGRES_DB: heroes_database
+      POSTGRES_PASSWORD: superman
+      POSTGRES_USER: superman
+    image: postgres:18.6
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5432
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /home/michael/quarkus-super-heroes-i4/rest-heroes/deploy/db-init/initialize-tables.sql
+        target: /docker-entrypoint-initdb.d/1-init-tables.sql
+        bind: {}
+  locations-db:
+    container_name: locations-db
+    environment:
+      MARIADB_DATABASE: locations_database
+      MARIADB_PASSWORD: locations
+      MARIADB_ROOT_PASSWORD: locations
+      MARIADB_SKIP_TEST_DB: 'yes'
+      MARIADB_USER: locations
+    image: mariadb:11.5.2
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 3306
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /home/michael/quarkus-super-heroes-i4/grpc-locations/deploy/db-init/initialize-tables.sql
+        target: /docker-entrypoint-initdb.d/1-init-tables.sql
+        bind: {}
+  neo4j:
+    environment:
+      NEO4J_AUTH: neo4j/REDACTED
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q --spider http://localhost:7474 || exit 1
+      timeout: 5s
+      interval: 5s
+      retries: 20
+    image: neo4j:5.26.0
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 7474
+        published: "7474"
+        protocol: tcp
+      - mode: ingress
+        target: 7687
+        published: "7687"
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: neo4j-quarkus-i2-data
+        target: /data
+        volume: {}
+      - type: volume
+        source: neo4j-quarkus-i2-logs
+        target: /logs
+        volume: {}
+  otel-collector:
+    command:
+      - --config=/etc/otel-collector-config.yaml
+    depends_on:
+      architecture-intelligence:
+        condition: service_healthy
+        required: true
+    image: otel/opentelemetry-collector:0.159.0@sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 4317
+        published: "4317"
+        protocol: tcp
+      - mode: ingress
+        target: 4318
+        published: "4318"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/quarkus-super-heroes/runtime/otel-collector-config.yaml
+        target: /etc/otel-collector-config.yaml
+        read_only: true
+        bind: {}
+  rest-fights-java25:
+    container_name: rest-fights-java25
+    depends_on:
+      apicurio:
+        condition: service_started
+        required: true
+      fights-db:
+        condition: service_started
+        required: true
+      fights-kafka:
+        condition: service_started
+        required: true
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: PLAINTEXT://fights-kafka:9092
+      MP_MESSAGING_CONNECTOR_SMALLRYE_KAFKA_APICURIO_REGISTRY_URL: http://apicurio:8086/apis/registry/v2
+      QUARKUS_GRPC_CLIENTS_LOCATIONS_HOST: grpc-locations
+      QUARKUS_GRPC_CLIENTS_LOCATIONS_PORT: "8089"
+      QUARKUS_LIQUIBASE_MONGODB_MIGRATE_AT_START: "false"
+      QUARKUS_MONGODB_CREDENTIALS_PASSWORD: superfight
+      QUARKUS_MONGODB_CREDENTIALS_USERNAME: superfight
+      QUARKUS_MONGODB_HOSTS: fights-db:27017
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      QUARKUS_OTEL_RESOURCE_ATTRIBUTES: app=rest-fights,application=fights-service,system=quarkus-super-heroes,deployment.environment.name=quarkus-i2
+      QUARKUS_STORK_HERO_SERVICE_SERVICE_DISCOVERY_ADDRESS_LIST: rest-heroes:8083
+      QUARKUS_STORK_NARRATION_SERVICE_SERVICE_DISCOVERY_ADDRESS_LIST: rest-narration:8087
+      QUARKUS_STORK_VILLAIN_SERVICE_SERVICE_DISCOVERY_ADDRESS_LIST: rest-villains:8084
+    image: quarkus-super-heroes/rest-fights:8ea0337
+    networks:
+      default:
+        aliases:
+          - rest-fights
+    ports:
+      - mode: ingress
+        target: 8082
+        published: "8082"
+        protocol: tcp
+    restart: on-failure
+  rest-heroes-java25:
+    container_name: rest-heroes-java25
+    depends_on:
+      heroes-db:
+        condition: service_started
+        required: true
+    environment:
+      QUARKUS_DATASOURCE_PASSWORD: superman
+      QUARKUS_DATASOURCE_REACTIVE_URL: postgresql://heroes-db:5432/heroes_database
+      QUARKUS_DATASOURCE_USERNAME: superman
+      QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY: validate
+      QUARKUS_HIBERNATE_ORM_SQL_LOAD_SCRIPT: no-file
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      QUARKUS_OTEL_RESOURCE_ATTRIBUTES: app=rest-heroes,application=heroes-service,system=quarkus-super-heroes,deployment.environment.name=quarkus-i2
+    image: quarkus-super-heroes/rest-heroes:8ea0337
+    networks:
+      default:
+        aliases:
+          - rest-heroes
+    ports:
+      - mode: ingress
+        target: 8083
+        published: "8083"
+        protocol: tcp
+    restart: on-failure
+  rest-narration-java25:
+    container_name: rest-narration-java25
+    environment:
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      QUARKUS_OTEL_RESOURCE_ATTRIBUTES: app=rest-narration,application=narration-service,system=quarkus-super-heroes,deployment.environment.name=quarkus-i2
+    image: quarkus-super-heroes/rest-narration:8ea0337
+    networks:
+      default:
+        aliases:
+          - rest-narration
+    ports:
+      - mode: ingress
+        target: 8087
+        published: "8087"
+        protocol: tcp
+    restart: on-failure
+  rest-villains-java25:
+    container_name: rest-villains-java25
+    depends_on:
+      villains-db:
+        condition: service_started
+        required: true
+    environment:
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://villains-db:5432/villains_database
+      QUARKUS_DATASOURCE_PASSWORD: superbad
+      QUARKUS_DATASOURCE_USERNAME: superbad
+      QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY: validate
+      QUARKUS_HIBERNATE_ORM_SQL_LOAD_SCRIPT: no-file
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      QUARKUS_OTEL_RESOURCE_ATTRIBUTES: app=rest-villains,application=villains-service,system=quarkus-super-heroes,deployment.environment.name=quarkus-i2
+    image: quarkus-super-heroes/rest-villains:8ea0337
+    networks:
+      default:
+        aliases:
+          - rest-villains
+    ports:
+      - mode: ingress
+        target: 8084
+        published: "8084"
+        protocol: tcp
+    restart: on-failure
+  villains-db:
+    container_name: villains-db
+    environment:
+      POSTGRES_DB: villains_database
+      POSTGRES_PASSWORD: superbad
+      POSTGRES_USER: superbad
+    image: postgres:18.6
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5432
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /home/michael/quarkus-super-heroes-i4/rest-villains/deploy/db-init/initialize-tables.sql
+        target: /docker-entrypoint-initdb.d/1-init-tables.sql
+        bind: {}
+networks:
+  default:
+    name: runtime_default
+volumes:
+  neo4j-quarkus-i2-data:
+    name: runtime_neo4j-quarkus-i2-data
+  neo4j-quarkus-i2-logs:
+    name: runtime_neo4j-quarkus-i2-logs
