@@ -2,6 +2,7 @@ import neo4j
 
 from app.graph.reconciliation import KNOWN_RELATION_TYPES
 from app.graph.repository import open_session
+from app.graph.revision_fence import bump_revision
 from app.graph.schema import ensure_schema
 from app.provenance.model import ObservedEvidence
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
@@ -118,6 +119,8 @@ def _persist_batch_tx(tx: neo4j.ManagedTransaction, batch: ObservationBatch) -> 
     # within-batch accumulation, since UNWIND rows don't get Python-level merge_evidence semantics.
     for fact in batch.facts:
         _persist_fact(tx, fact)
+
+    bump_revision(tx)
 
 
 def persist_observation_batch(driver: neo4j.Driver, database: str, batch: ObservationBatch) -> None:
