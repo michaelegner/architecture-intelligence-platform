@@ -11,7 +11,7 @@ from app.architecture_intelligence.repository import (
 from app.canonical import ids
 from app.canonical.model import ArchitectureModel, Relation, Service
 from app.graph.importer import import_all_sources, import_service
-from app.graph.revision_fence import read_revision
+from app.graph.revision_fence import RevisionSingletonMissing, bump_revision, read_revision
 from app.graph.schema import ensure_schema
 from app.provenance.model import ObservedEvidence
 from app.telemetry.aggregator import persist_observation_batch
@@ -32,8 +32,42 @@ def test_ensure_schema_creates_revision_singleton_at_zero_idempotently(driver):
     with driver.session(database=DATABASE) as session:
         ensure_schema(session)
         assert read_revision(session) == 0
-        ensure_schema(session)  # idempotent: must not reset an already-created singleton
+        ensure_schema(session)  # idempotent: must not reset an already-created revision
         assert read_revision(session) == 0
+
+
+def test_ensure_schema_creates_aip_internal_state_uniqueness_constraint(driver):
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        names = {
+            record["name"] for record in session.run("SHOW CONSTRAINTS YIELD name RETURN name")
+        }
+    assert "aip_internal_state_id" in names
+
+
+@pytest.mark.parametrize("bad_revision", [None, "not-a-number", -1, True])
+def test_read_revision_rejects_a_corrupted_revision_value(driver, bad_revision):
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        if bad_revision is None:
+            session.run("MATCH (s:AipInternalState {id: 'architecture'}) REMOVE s.revision")
+        else:
+            session.run(
+                "MATCH (s:AipInternalState {id: 'architecture'}) SET s.revision = $value",
+                value=bad_revision,
+            )
+        with pytest.raises(RevisionSingletonMissing):
+            read_revision(session)
+
+
+def test_bump_revision_heals_a_null_revision_instead_of_propagating_it(driver):
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        session.run("MATCH (s:AipInternalState {id: 'architecture'}) REMOVE s.revision")
+
+        session.execute_write(bump_revision)
+
+        assert read_revision(session) == 1
 
 
 def test_import_all_sources_bumps_revision_once_per_write_transaction(driver):

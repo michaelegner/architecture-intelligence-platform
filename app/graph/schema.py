@@ -9,6 +9,10 @@ CONSTRAINTS = [
     "CREATE CONSTRAINT message_id IF NOT EXISTS FOR (m:Message) REQUIRE m.id IS UNIQUE",
     "CREATE CONSTRAINT schema_id IF NOT EXISTS FOR (s:Schema) REQUIRE s.id IS UNIQUE",
     "CREATE CONSTRAINT evidence_id IF NOT EXISTS FOR (e:Evidence) REQUIRE e.id IS UNIQUE",
+    # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
+    # a true singleton (read_revision() uses .single()) - without this, a concurrent
+    # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.
+    "CREATE CONSTRAINT aip_internal_state_id IF NOT EXISTS FOR (s:AipInternalState) REQUIRE s.id IS UNIQUE",
 ]
 
 

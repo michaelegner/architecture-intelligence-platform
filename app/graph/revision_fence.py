@@ -19,7 +19,12 @@ _SINGLETON_ID = "architecture"
 
 _ENSURE_SINGLETON_QUERY = "MERGE (s:AipInternalState {id: $id}) ON CREATE SET s.revision = 0"
 _READ_REVISION_QUERY = "MATCH (s:AipInternalState {id: $id}) RETURN s.revision AS revision"
-_BUMP_REVISION_QUERY = "MATCH (s:AipInternalState {id: $id}) SET s.revision = s.revision + 1"
+# coalesce(..., 0) heals a null/missing revision (e.g. hand-edited state) on the next bump instead
+# of propagating null forever - Cypher's `null + 1` is `null`, so without this a single corrupted
+# write would permanently break the fence for every subsequent write.
+_BUMP_REVISION_QUERY = (
+    "MATCH (s:AipInternalState {id: $id}) SET s.revision = coalesce(s.revision, 0) + 1"
+)
 
 
 class RevisionSingletonMissing(RuntimeError):
@@ -46,4 +51,12 @@ def read_revision(session: neo4j.Session) -> int:
         raise RevisionSingletonMissing(
             "no (:AipInternalState) singleton found - schema initialization did not run"
         )
-    return record["revision"]
+    revision = record["revision"]
+    # bool is an int subclass in Python but was never a valid revision value; reject it alongside
+    # null/non-integer/negative so a corrupted singleton fails safely (spec §19) instead of two
+    # equally-corrupted reads spuriously comparing equal and being accepted as "stable".
+    if isinstance(revision, bool) or not isinstance(revision, int) or revision < 0:
+        raise RevisionSingletonMissing(
+            f"(:AipInternalState) singleton has an invalid revision value: {revision!r}"
+        )
+    return revision

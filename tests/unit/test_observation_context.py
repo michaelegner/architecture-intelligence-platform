@@ -45,6 +45,25 @@ def test_build_observation_context_ref_matches_independent_computation():
     assert ref.window_end == _WINDOW_END
 
 
+def test_build_observation_context_ref_normalizes_offset_windows_to_utc():
+    # spec §16.1/§16.2: the *returned* context, not just the context_id hash input, must be UTC.
+    offset_start = datetime(2026, 8, 26, 2, 0, 0, tzinfo=timezone(timedelta(hours=2)))
+    offset_end = datetime(2026, 8, 27, 2, 0, 0, tzinfo=timezone(timedelta(hours=2)))
+    ref = build_observation_context_ref("demo", offset_start, offset_end)
+
+    utc_start = datetime(2026, 8, 26, 0, 0, 0, tzinfo=UTC)
+    utc_end = datetime(2026, 8, 27, 0, 0, 0, tzinfo=UTC)
+    assert (ref.window_start, ref.window_end) == (utc_start, utc_end)
+    assert ref.window_start.utcoffset() == timedelta(0)
+    assert ref.window_end.utcoffset() == timedelta(0)
+
+    # equivalent-offset inputs must now produce identical materialized fields, not just the same id
+    utc_ref = build_observation_context_ref("demo", utc_start, utc_end)
+    assert ref.window_start == utc_ref.window_start
+    assert ref.window_end == utc_ref.window_end
+    assert ref.context_id == utc_ref.context_id
+
+
 def test_build_observation_context_ref_rejects_naive_window_start():
     with pytest.raises(ValidationError):
         build_observation_context_ref("demo", datetime(2026, 8, 26), _WINDOW_END)  # noqa: DTZ001

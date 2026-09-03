@@ -8,12 +8,20 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes, format_utc_timestamp
 from app.architecture_intelligence.contracts import ObservationContextRef
 
 _CONTEXT_ID_VERSION = 1
+
+
+def _normalize_to_utc(value: datetime) -> datetime:
+    """Converts an aware datetime to UTC. Leaves a naive datetime untouched so
+    `ObservationContextRef`'s own explicit-offset validator - not this function - is what rejects
+    it; `.astimezone()` on a naive value would otherwise silently assume the system's local
+    timezone instead of raising."""
+    return value.astimezone(UTC) if value.tzinfo is not None else value
 
 
 def compute_context_id(environment: str, window_start: datetime, window_end: datetime) -> str:
@@ -33,7 +41,10 @@ def compute_context_id(environment: str, window_start: datetime, window_end: dat
 def build_observation_context_ref(
     environment: str, window_start: datetime, window_end: datetime
 ) -> ObservationContextRef:
-    """Computes `context_id` and constructs the validated `ObservationContextRef`.
+    """Computes `context_id` and constructs the validated `ObservationContextRef`, with
+    `window_start`/`window_end` normalized to UTC (spec §16.1/§16.2 require the *returned* context
+    itself to be UTC, not just the hash input) - so equivalent-offset inputs produce not only the
+    same `context_id` but the same materialized field values too.
 
     `ObservationContextRef`'s own validators (environment shape, explicit UTC offset, window
     bounds) are the single source of truth for rejecting bad input - this function does not
@@ -46,6 +57,6 @@ def build_observation_context_ref(
     return ObservationContextRef(
         context_id=context_id,
         environment=environment,
-        window_start=window_start,
-        window_end=window_end,
+        window_start=_normalize_to_utc(window_start),
+        window_end=_normalize_to_utc(window_end),
     )
