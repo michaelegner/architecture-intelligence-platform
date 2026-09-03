@@ -62,8 +62,7 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "delivery": {
           "$ref": "#/$defs/DeliveryRef"
@@ -105,7 +104,10 @@
         "object",
         "destination_resolution",
         "delivery",
-        "qualification"
+        "qualification",
+        "coverage",
+        "evidence_refs",
+        "resolution_evidence_refs"
       ],
       "title": "DependencyClaim",
       "type": "object"
@@ -291,7 +293,6 @@
         },
         "name": {
           "const": "architecture-intelligence-platform",
-          "default": "architecture-intelligence-platform",
           "title": "Name",
           "type": "string"
         },
@@ -301,6 +302,7 @@
         }
       },
       "required": [
+        "name",
         "version",
         "build_revision"
       ],
@@ -331,7 +333,8 @@
         }
       },
       "required": [
-        "service"
+        "service",
+        "dependency_claim_ids"
       ],
       "title": "ServiceDependenciesData",
       "type": "object"
@@ -373,8 +376,7 @@
         {
           "type": "null"
         }
-      ],
-      "default": null
+      ]
     },
     "evidence_refs": {
       "items": {
@@ -398,8 +400,7 @@
         {
           "type": "null"
         }
-      ],
-      "default": null
+      ]
     },
     "outcome": {
       "$ref": "#/$defs/Outcome"
@@ -409,7 +410,6 @@
     },
     "schema_version": {
       "const": "0.4",
-      "default": "0.4",
       "title": "Schema Version",
       "type": "string"
     },
@@ -421,8 +421,7 @@
         {
           "type": "null"
         }
-      ],
-      "default": null
+      ]
     },
     "tool": {
       "title": "Tool",
@@ -430,9 +429,16 @@
     }
   },
   "required": [
+    "schema_version",
     "producer",
     "tool",
-    "outcome"
+    "outcome",
+    "snapshot",
+    "observation_context",
+    "data",
+    "claims",
+    "evidence_refs",
+    "limitations"
   ],
   "title": "ArchitectureAnswer[ServiceDependenciesData]",
   "type": "object"

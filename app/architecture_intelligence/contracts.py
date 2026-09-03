@@ -11,16 +11,20 @@ import, so this public contract doesn't couple to internal analysis-module churn
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-_SNAPSHOT_ID_RE = re.compile(r"^aip:snapshot:v\d+:.+$")
-_MODEL_REVISION_RE = re.compile(r"^sha256:.+$")
-_CONTEXT_ID_RE = re.compile(r"^aip:observation-context:v\d+:.+$")
-_CLAIM_ID_RE = re.compile(r"^aip:claim:v\d+:.+$")
+_SHA256_HEX = r"[0-9a-f]{64}"
+_SNAPSHOT_ID_RE = re.compile(rf"^aip:snapshot:v1:{_SHA256_HEX}$")
+_MODEL_REVISION_RE = re.compile(rf"^sha256:{_SHA256_HEX}$")
+_CONTEXT_ID_RE = re.compile(rf"^aip:observation-context:v1:{_SHA256_HEX}$")
+_CLAIM_ID_RE = re.compile(rf"^aip:claim:v1:{_SHA256_HEX}$")
+
+_MAX_OBSERVATION_WINDOW = timedelta(days=31)
+_CONTROL_CHAR_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
 class Outcome(StrEnum):
@@ -86,7 +90,7 @@ _ALLOWED_DELIVERY_PAIRS = {
 class Producer(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    name: Literal["architecture-intelligence-platform"] = "architecture-intelligence-platform"
+    name: Literal["architecture-intelligence-platform"]
     version: str
     build_revision: str
 
@@ -126,6 +130,32 @@ class ObservationContextRef(BaseModel):
         if not _CONTEXT_ID_RE.match(value):
             raise ValueError(f"context_id must match {_CONTEXT_ID_RE.pattern!r}: {value!r}")
         return value
+
+    @field_validator("environment")
+    @classmethod
+    def _check_environment(cls, value: str) -> str:
+        if not 1 <= len(value) <= 128:
+            raise ValueError("environment must be 1..128 Unicode code points")
+        if _CONTROL_CHAR_RE.search(value):
+            raise ValueError("environment must not contain control characters")
+        if value != value.strip():
+            raise ValueError("environment must not have leading or trailing whitespace")
+        return value
+
+    @field_validator("window_start", "window_end")
+    @classmethod
+    def _check_explicit_offset(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("window_start/window_end require an explicit RFC 3339 UTC offset")
+        return value
+
+    @model_validator(mode="after")
+    def _check_window_bounds(self) -> ObservationContextRef:
+        if self.window_start > self.window_end:
+            raise ValueError("window_start must be less than or equal to window_end")
+        if self.window_end - self.window_start > _MAX_OBSERVATION_WINDOW:
+            raise ValueError("the inclusive observation window must not exceed 31 days")
+        return self
 
 
 class EntityRef(BaseModel):
@@ -177,9 +207,9 @@ class DependencyClaim(BaseModel):
     destination_resolution: DestinationResolution
     delivery: DeliveryRef
     qualification: Qualification
-    coverage: Coverage | None = None
-    evidence_refs: list[str] = Field(default_factory=list)
-    resolution_evidence_refs: list[str] = Field(default_factory=list)
+    coverage: Coverage | None
+    evidence_refs: list[str]
+    resolution_evidence_refs: list[str]
 
     @field_validator("claim_id")
     @classmethod
@@ -188,12 +218,38 @@ class DependencyClaim(BaseModel):
             raise ValueError(f"claim_id must match {_CLAIM_ID_RE.pattern!r}: {value!r}")
         return value
 
+    @field_validator("evidence_refs", "resolution_evidence_refs")
+    @classmethod
+    def _check_sorted_and_deduplicated(cls, value: list[str]) -> list[str]:
+        if value != sorted(set(value)):
+            raise ValueError(
+                "evidence references must be sorted lexicographically and deduplicated"
+            )
+        return value
+
     @model_validator(mode="after")
     def _check_coverage_and_evidence(self) -> DependencyClaim:
-        if self.coverage is not None and self.qualification != Qualification.NOT_OBSERVED_IN_WINDOW:
+        if self.qualification == Qualification.NOT_OBSERVED_IN_WINDOW:
+            if self.coverage is None:
+                raise ValueError("coverage is required for NOT_OBSERVED_IN_WINDOW claims")
+        elif self.coverage is not None:
             raise ValueError("coverage is only meaningful for NOT_OBSERVED_IN_WINDOW claims")
+
         if not self.evidence_refs:
             raise ValueError("evidence_refs must not be empty")
+
+        if self.destination_resolution == DestinationResolution.RESOLVED_SERVICE:
+            if not self.resolution_evidence_refs:
+                raise ValueError(
+                    "resolution_evidence_refs must not be empty when "
+                    "destination_resolution == RESOLVED_SERVICE"
+                )
+        elif self.resolution_evidence_refs:
+            raise ValueError(
+                "resolution_evidence_refs must be empty when "
+                "destination_resolution == DIRECT_TARGET_FALLBACK"
+            )
+
         return self
 
 
@@ -209,22 +265,26 @@ class ServiceDependenciesData(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     service: EntityRef
-    dependency_claim_ids: list[str] = Field(default_factory=list)
+    dependency_claim_ids: list[str]
+
+
+def _claim_sort_key(claim: DependencyClaim) -> tuple[str, str, str, str]:
+    return (claim.object.id, claim.delivery.kind.value, claim.delivery.via.id, claim.claim_id)
 
 
 class ArchitectureAnswer[T: BaseModel](BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    schema_version: Literal["0.4"] = "0.4"
+    schema_version: Literal["0.4"]
     producer: Producer
     tool: str
     outcome: Outcome
-    snapshot: SnapshotRef | None = None
-    observation_context: ObservationContextRef | None = None
-    data: T | None = None
-    claims: list[DependencyClaim] = Field(default_factory=list)
-    evidence_refs: list[str] = Field(default_factory=list)
-    limitations: list[Limitation] = Field(default_factory=list)
+    snapshot: SnapshotRef | None
+    observation_context: ObservationContextRef | None
+    data: T | None
+    claims: list[DependencyClaim]
+    evidence_refs: list[str]
+    limitations: list[Limitation]
 
     @model_validator(mode="after")
     def _check_envelope_invariants(self) -> ArchitectureAnswer[T]:
@@ -260,5 +320,11 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
                 raise ValueError(
                     "data.dependency_claim_ids must equal claims[*].claim_id in the same order"
                 )
+
+        claim_sort_keys = [_claim_sort_key(claim) for claim in self.claims]
+        if claim_sort_keys != sorted(claim_sort_keys):
+            raise ValueError(
+                "claims must be sorted by (object.id, delivery.kind, delivery.via.id, claim_id)"
+            )
 
         return self
