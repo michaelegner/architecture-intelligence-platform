@@ -6,7 +6,7 @@
 Build an evidence-backed model of your software architecture from declared and observed signals —
 with the evidence behind every architectural claim.
 
-![Evidence-backed Architecture Intelligence: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture model, which exposes facts, evidence, qualification and provenance.](images/architecture-intelligence-overview.svg)
+![Evidence-backed Architecture Intelligence: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture model, which exposes facts, evidence, qualification and provenance.](images/architecture-intelligence-overview.png)
 
 **[Quick Start](#quick-start) · [Runtime Demo](#runtime-demo) ·
 [Evaluation](#deterministic-evaluation) · [Documentation](#documentation) · [Research Landscape](landscape.md)**
