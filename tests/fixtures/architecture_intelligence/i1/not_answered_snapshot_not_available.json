@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.4",
+  "producer": {
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0",
+    "build_revision": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567"
+  },
+  "tool": "get_service_dependencies",
+  "outcome": "NOT_ANSWERED",
+  "snapshot": {
+    "snapshot_id": "aip:snapshot:v1:372f4f46f2fb9c75a29c253902052eb2b8a30866c1ae837e399bb1fd26f7625e",
+    "model_revision": "sha256:372f4f46f2fb9c75a29c253902052eb2b8a30866c1ae837e399bb1fd26f7625e"
+  },
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:0aeb1ed9c606c3f8ab951c3614cdc44d5c25784f814f0bc9ed1ddbe6e15545b2",
+    "environment": "demo",
+    "window_start": "2026-08-26T00:00:00.000000Z",
+    "window_end": "2026-08-27T00:00:00.000000Z"
+  },
+  "data": null,
+  "claims": [],
+  "evidence_refs": [],
+  "limitations": [
+    {
+      "code": "SNAPSHOT_NOT_AVAILABLE",
+      "message": "The requested snapshot no longer matches the current committed model-and-evidence state; the current stable snapshot is reported here instead of silently substituting its data.",
+      "claim_ids": []
+    }
+  ]
+}

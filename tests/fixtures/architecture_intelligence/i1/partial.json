@@ -1,0 +1,117 @@
+{
+  "schema_version": "0.4",
+  "producer": {
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0",
+    "build_revision": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567"
+  },
+  "tool": "get_service_dependencies",
+  "outcome": "PARTIAL",
+  "snapshot": {
+    "snapshot_id": "aip:snapshot:v1:372f4f46f2fb9c75a29c253902052eb2b8a30866c1ae837e399bb1fd26f7625e",
+    "model_revision": "sha256:372f4f46f2fb9c75a29c253902052eb2b8a30866c1ae837e399bb1fd26f7625e"
+  },
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:0aeb1ed9c606c3f8ab951c3614cdc44d5c25784f814f0bc9ed1ddbe6e15545b2",
+    "environment": "demo",
+    "window_start": "2026-08-26T00:00:00.000000Z",
+    "window_end": "2026-08-27T00:00:00.000000Z"
+  },
+  "data": {
+    "service": {
+      "id": "service:order-service",
+      "type": "SERVICE",
+      "name": "OrderService"
+    },
+    "dependency_claim_ids": [
+      "aip:claim:v1:494b7a4af689ce697b22041590a2b905446101f1efc7aaad56889d24a8f5105c",
+      "aip:claim:v1:bb245d8e6e6b977c3256de7afac36a7da24ea24b891152186897766dab705b60"
+    ]
+  },
+  "claims": [
+    {
+      "claim_id": "aip:claim:v1:494b7a4af689ce697b22041590a2b905446101f1efc7aaad56889d24a8f5105c",
+      "subject": {
+        "id": "service:order-service",
+        "type": "SERVICE",
+        "name": "OrderService"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "object": {
+        "id": "operation:internal:GET:/internal/reconcile",
+        "type": "OPERATION",
+        "name": "GET /internal/reconcile",
+        "method": "GET",
+        "path": "/internal/reconcile"
+      },
+      "destination_resolution": "DIRECT_TARGET_FALLBACK",
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "via": {
+          "id": "operation:internal:GET:/internal/reconcile",
+          "type": "OPERATION",
+          "name": "GET /internal/reconcile",
+          "method": "GET",
+          "path": "/internal/reconcile"
+        }
+      },
+      "qualification": "OBSERVED_ONLY",
+      "coverage": null,
+      "evidence_refs": [
+        "evidence:observed:97a45c4b54976a2c2025fc77af39bd0b934b257ad1f70ea3e755af4f60b2e142"
+      ],
+      "resolution_evidence_refs": []
+    },
+    {
+      "claim_id": "aip:claim:v1:bb245d8e6e6b977c3256de7afac36a7da24ea24b891152186897766dab705b60",
+      "subject": {
+        "id": "service:order-service",
+        "type": "SERVICE",
+        "name": "OrderService"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "object": {
+        "id": "service:product-service",
+        "type": "SERVICE",
+        "name": "ProductService"
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "via": {
+          "id": "operation:service:product-service:GET:/products/{id}",
+          "type": "OPERATION",
+          "name": "GET /products/{id}",
+          "method": "GET",
+          "path": "/products/{id}"
+        }
+      },
+      "qualification": "CONFIRMED",
+      "coverage": null,
+      "evidence_refs": [
+        "evidence:declared:a37d4f6cfee02864dcfb3a9ad5b29935d832a6889389289ff5ae3ad9cfebba96",
+        "evidence:observed:1064f5432ed81be267a960a9a89630a772c1ba99f000e03a87b5d2407e93ddb2"
+      ],
+      "resolution_evidence_refs": [
+        "evidence:declared:8eb33eb6b5fc6b745f6e423b47764d39630d17f63fc7efbf45b41a5ebfdfcb80"
+      ]
+    }
+  ],
+  "evidence_refs": [
+    "evidence:declared:8eb33eb6b5fc6b745f6e423b47764d39630d17f63fc7efbf45b41a5ebfdfcb80",
+    "evidence:declared:a37d4f6cfee02864dcfb3a9ad5b29935d832a6889389289ff5ae3ad9cfebba96",
+    "evidence:observed:1064f5432ed81be267a960a9a89630a772c1ba99f000e03a87b5d2407e93ddb2",
+    "evidence:observed:97a45c4b54976a2c2025fc77af39bd0b934b257ad1f70ea3e755af4f60b2e142"
+  ],
+  "limitations": [
+    {
+      "code": "UNRESOLVED_IDENTITY",
+      "message": "operation:internal:GET:/internal/reconcile has no evidenced provider service; retained as the direct operation target rather than guessed.",
+      "claim_ids": [
+        "aip:claim:v1:494b7a4af689ce697b22041590a2b905446101f1efc7aaad56889d24a8f5105c"
+      ]
+    }
+  ]
+}
