@@ -143,8 +143,27 @@ class ObservationContextRef(BaseModel):
         return self
 
 
+def _entity_ref_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
+    """Encode the type-specific field rules (spec §11.1) as JSON Schema if/else so external
+    (non-Pydantic) validators reject the same invalid shapes. The Python model_validator below
+    is still authoritative at runtime - this only mirrors it for the committed schema."""
+    schema["allOf"] = [
+        *schema.get("allOf", []),
+        {
+            "if": {"properties": {"type": {"const": "OPERATION"}}, "required": ["type"]},
+            "else": {"properties": {"method": {"type": "null"}, "path": {"type": "null"}}},
+        },
+        {
+            "if": {"properties": {"type": {"const": "QUEUE"}}, "required": ["type"]},
+            "else": {"properties": {"protocol": {"type": "null"}, "namespace": {"type": "null"}}},
+        },
+    ]
+
+
 class EntityRef(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", json_schema_extra=_entity_ref_schema_extra
+    )
 
     id: str
     type: EntityType
@@ -253,7 +272,7 @@ class DependencyClaim(BaseModel):
     delivery: DeliveryRef
     qualification: Qualification
     coverage: Coverage | None
-    evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
+    evidence_refs: list[str] = Field(min_length=1, json_schema_extra={"uniqueItems": True})
     resolution_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
 
     @field_validator("evidence_refs", "resolution_evidence_refs")
@@ -317,8 +336,44 @@ def _claim_sort_key(claim: DependencyClaim) -> tuple[str, str, str, str]:
     return (claim.object.id, claim.delivery.kind.value, claim.delivery.via.id, claim.claim_id)
 
 
+def _architecture_answer_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
+    """Encode two more envelope invariants (spec §8.3/§9) as JSON Schema if/then/contains so
+    external (non-Pydantic) validators reject the same invalid shapes. The Python
+    model_validator below is still authoritative at runtime - this only mirrors it for the
+    committed schema."""
+    schema["allOf"] = [
+        *schema.get("allOf", []),
+        {
+            "if": {
+                "properties": {"outcome": {"enum": ["ANSWERED", "PARTIAL"]}},
+                "required": ["outcome"],
+            },
+            "then": {"properties": {"data": {"not": {"type": "null"}}}},
+        },
+        {
+            "if": {
+                "properties": {"observation_context": {"type": "null"}},
+                "required": ["observation_context"],
+            },
+            "then": {
+                "properties": {
+                    "limitations": {
+                        "contains": {
+                            "properties": {"code": {"const": "OBSERVATION_CONTEXT_REQUIRED"}},
+                            "required": ["code"],
+                        }
+                    }
+                },
+                "required": ["limitations"],
+            },
+        },
+    ]
+
+
 class ArchitectureAnswer[T: BaseModel](BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", json_schema_extra=_architecture_answer_schema_extra
+    )
 
     schema_version: Literal["0.4"]
     producer: Producer

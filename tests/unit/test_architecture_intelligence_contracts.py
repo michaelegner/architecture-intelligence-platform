@@ -677,3 +677,77 @@ def test_limitation_with_duplicate_claim_ids_fails_schema_too():
     )
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(instance=payload, schema=load_schema())
+
+
+# --- Third review round: minItems on evidence_refs, EntityRef type-specific fields, and the ---
+# --- outcome/data and observation_context/limitation envelope conditionals, all now encoded ---
+# --- in the schema itself (spec §8.3/§9/§11.1/§15).                                          ---
+
+
+def test_claim_with_empty_evidence_refs_fails_both_pydantic_and_schema():
+    claim = _valid_claim().model_dump()
+    claim["evidence_refs"] = []
+    payload = _answer_dict_with_claim_dict(
+        claim, evidence_refs=list(claim["resolution_evidence_refs"])
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_service_entity_with_method_fails_both_pydantic_and_schema():
+    payload = _valid_answer_dict(
+        data={
+            "service": {
+                "id": "service:order-service",
+                "type": "SERVICE",
+                "name": "OrderService",
+                "method": "GET",
+            },
+            "dependency_claim_ids": [],
+        }
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_service_entity_with_namespace_fails_both_pydantic_and_schema():
+    payload = _valid_answer_dict(
+        data={
+            "service": {
+                "id": "service:order-service",
+                "type": "SERVICE",
+                "name": "OrderService",
+                "namespace": "commerce",
+            },
+            "dependency_claim_ids": [],
+        }
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_answered_with_null_data_fails_both_pydantic_and_schema():
+    payload = _valid_answer_dict(data=None)
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_null_observation_context_without_required_limitation_fails_both_pydantic_and_schema():
+    payload = _valid_answer_dict(
+        outcome="NOT_ANSWERED",
+        observation_context=None,
+        data=None,
+        limitations=[{"code": "UNKNOWN_ENTITY", "message": "x", "claim_ids": []}],
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
