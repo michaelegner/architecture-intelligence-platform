@@ -584,3 +584,96 @@ def test_claim_omitting_coverage_fails_both_pydantic_and_schema():
         ANSWER_TYPE.model_validate(payload)
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(instance=payload, schema=load_schema())
+
+
+# --- Second review round: SnapshotRef digest consistency, JSON-Schema-encoded if/then       ---
+# --- conditionals for delivery pairs / coverage / resolution evidence, and array uniqueness ---
+# --- (spec §11.2/§13/§14/§15/§17/§20).                                                       ---
+
+
+def test_snapshot_ref_rejects_mismatched_digests():
+    with pytest.raises(ValidationError):
+        SnapshotRef(snapshot_id="aip:snapshot:v1:" + "a" * 64, model_revision="sha256:" + "b" * 64)
+
+
+def _answer_dict_with_claim_dict(claim: dict, **overrides) -> dict:
+    base = {
+        "data": {
+            "service": _valid_service_entity().model_dump(),
+            "dependency_claim_ids": [claim["claim_id"]],
+        },
+        "claims": [claim],
+        "evidence_refs": sorted({*claim["evidence_refs"], *claim["resolution_evidence_refs"]}),
+    }
+    base.update(overrides)
+    return _valid_answer_dict(**base)
+
+
+def test_claim_with_invalid_delivery_pair_fails_both_pydantic_and_schema():
+    claim = _valid_claim().model_dump()
+    claim["delivery"] = {**claim["delivery"], "relation_type": "SENDS"}
+    payload = _answer_dict_with_claim_dict(claim)
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_claim_missing_coverage_for_not_observed_in_window_fails_both_pydantic_and_schema():
+    claim = _valid_claim(
+        qualification=Qualification.NOT_OBSERVED_IN_WINDOW, coverage=Coverage.PARTIAL
+    ).model_dump()
+    claim["coverage"] = None
+    payload = _answer_dict_with_claim_dict(claim)
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_claim_with_empty_resolution_evidence_for_resolved_service_fails_both_pydantic_and_schema():
+    claim = _valid_claim().model_dump()
+    claim["resolution_evidence_refs"] = []
+    payload = _answer_dict_with_claim_dict(claim)
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_claim_with_duplicate_evidence_refs_fails_both_pydantic_and_schema():
+    claim = _valid_claim().model_dump()
+    duplicate = claim["evidence_refs"][0]
+    claim["evidence_refs"] = [duplicate, duplicate]
+    payload = _answer_dict_with_claim_dict(claim)
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_limitation_rejects_unsorted_claim_ids():
+    with pytest.raises(ValidationError):
+        Limitation(code=LimitationCode.UNRESOLVED_IDENTITY, message="x", claim_ids=["b", "a"])
+
+
+def test_limitation_rejects_duplicate_claim_ids():
+    with pytest.raises(ValidationError):
+        Limitation(code=LimitationCode.UNRESOLVED_IDENTITY, message="x", claim_ids=["a", "a"])
+
+
+def test_limitation_with_duplicate_claim_ids_fails_schema_too():
+    payload = _valid_answer_dict(
+        outcome="NOT_ANSWERED",
+        observation_context=None,
+        data=None,
+        limitations=[
+            {
+                "code": "OBSERVATION_CONTEXT_REQUIRED",
+                "message": "x",
+                "claim_ids": ["a", "a"],
+            }
+        ],
+    )
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())

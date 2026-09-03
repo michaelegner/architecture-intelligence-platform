@@ -20,6 +20,74 @@
     },
     "DeliveryRef": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SYNC_HTTP"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "relation_type": {
+                "const": "CALLS"
+              },
+              "via": {
+                "properties": {
+                  "type": {
+                    "const": "OPERATION"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            "required": [
+              "relation_type",
+              "via"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "ASYNC_MESSAGE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "relation_type": {
+                "const": "SENDS"
+              },
+              "via": {
+                "properties": {
+                  "type": {
+                    "const": "QUEUE"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            "required": [
+              "relation_type",
+              "via"
+            ]
+          }
+        }
+      ],
       "properties": {
         "kind": {
           "$ref": "#/$defs/DeliveryKind"
@@ -49,8 +117,65 @@
     },
     "DependencyClaim": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "coverage": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "qualification": {
+                "const": "NOT_OBSERVED_IN_WINDOW"
+              }
+            },
+            "required": [
+              "qualification"
+            ]
+          },
+          "then": {
+            "properties": {
+              "coverage": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "resolution_evidence_refs": {
+                "maxItems": 0
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "destination_resolution": {
+                "const": "RESOLVED_SERVICE"
+              }
+            },
+            "required": [
+              "destination_resolution"
+            ]
+          },
+          "then": {
+            "properties": {
+              "resolution_evidence_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "claim_id": {
+          "pattern": "^aip:claim:v1:[0-9a-f]{64}$",
           "title": "Claim Id",
           "type": "string"
         },
@@ -75,7 +200,8 @@
             "type": "string"
           },
           "title": "Evidence Refs",
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "object": {
           "$ref": "#/$defs/EntityRef"
@@ -91,7 +217,8 @@
             "type": "string"
           },
           "title": "Resolution Evidence Refs",
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "subject": {
           "$ref": "#/$defs/EntityRef"
@@ -215,7 +342,8 @@
             "type": "string"
           },
           "title": "Claim Ids",
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "code": {
           "$ref": "#/$defs/LimitationCode"
@@ -248,10 +376,14 @@
       "additionalProperties": false,
       "properties": {
         "context_id": {
+          "pattern": "^aip:observation-context:v1:[0-9a-f]{64}$",
           "title": "Context Id",
           "type": "string"
         },
         "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
           "title": "Environment",
           "type": "string"
         },
@@ -343,10 +475,12 @@
       "additionalProperties": false,
       "properties": {
         "model_revision": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
           "title": "Model Revision",
           "type": "string"
         },
         "snapshot_id": {
+          "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
           "title": "Snapshot Id",
           "type": "string"
         }
@@ -383,7 +517,8 @@
         "type": "string"
       },
       "title": "Evidence Refs",
-      "type": "array"
+      "type": "array",
+      "uniqueItems": true
     },
     "limitations": {
       "items": {

@@ -10,7 +10,6 @@ import, so this public contract doesn't couple to internal analysis-module churn
 
 from __future__ import annotations
 
-import re
 from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Literal
@@ -18,13 +17,17 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 _SHA256_HEX = r"[0-9a-f]{64}"
-_SNAPSHOT_ID_RE = re.compile(rf"^aip:snapshot:v1:{_SHA256_HEX}$")
-_MODEL_REVISION_RE = re.compile(rf"^sha256:{_SHA256_HEX}$")
-_CONTEXT_ID_RE = re.compile(rf"^aip:observation-context:v1:{_SHA256_HEX}$")
-_CLAIM_ID_RE = re.compile(rf"^aip:claim:v1:{_SHA256_HEX}$")
+_SNAPSHOT_ID_PATTERN = rf"^aip:snapshot:v1:{_SHA256_HEX}$"
+_MODEL_REVISION_PATTERN = rf"^sha256:{_SHA256_HEX}$"
+_CONTEXT_ID_PATTERN = rf"^aip:observation-context:v1:{_SHA256_HEX}$"
+_CLAIM_ID_PATTERN = rf"^aip:claim:v1:{_SHA256_HEX}$"
+
+# No leading/trailing whitespace and no control characters anywhere (spec §16.1). Expressed as a
+# single character-class-only pattern (no lookaround) so it also compiles under pydantic-core's
+# Rust regex engine and therefore shows up as a real `pattern` in the generated JSON Schema.
+_ENVIRONMENT_PATTERN = r"^[^\s\x00-\x1f\x7f](?:[^\x00-\x1f\x7f]*[^\s\x00-\x1f\x7f])?$"
 
 _MAX_OBSERVATION_WINDOW = timedelta(days=31)
-_CONTROL_CHAR_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
 class Outcome(StrEnum):
@@ -98,50 +101,32 @@ class Producer(BaseModel):
 class SnapshotRef(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    snapshot_id: str
-    model_revision: str
+    snapshot_id: str = Field(pattern=_SNAPSHOT_ID_PATTERN)
+    model_revision: str = Field(pattern=_MODEL_REVISION_PATTERN)
 
-    @field_validator("snapshot_id")
-    @classmethod
-    def _check_snapshot_id(cls, value: str) -> str:
-        if not _SNAPSHOT_ID_RE.match(value):
-            raise ValueError(f"snapshot_id must match {_SNAPSHOT_ID_RE.pattern!r}: {value!r}")
-        return value
-
-    @field_validator("model_revision")
-    @classmethod
-    def _check_model_revision(cls, value: str) -> str:
-        if not _MODEL_REVISION_RE.match(value):
-            raise ValueError(f"model_revision must match {_MODEL_REVISION_RE.pattern!r}: {value!r}")
-        return value
+    @model_validator(mode="after")
+    def _check_matching_digest(self) -> SnapshotRef:
+        # spec §17: snapshot_id and model_revision intentionally carry the same digest under
+        # different public type prefixes.
+        snapshot_digest = self.snapshot_id.rsplit(":", 1)[-1]
+        model_digest = self.model_revision.split(":", 1)[-1]
+        if snapshot_digest != model_digest:
+            raise ValueError("snapshot_id and model_revision must carry the same digest")
+        return self
 
 
 class ObservationContextRef(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    context_id: str
-    environment: str
+    context_id: str = Field(pattern=_CONTEXT_ID_PATTERN)
+    environment: str = Field(min_length=1, max_length=128, pattern=_ENVIRONMENT_PATTERN)
     window_start: datetime
     window_end: datetime
 
-    @field_validator("context_id")
-    @classmethod
-    def _check_context_id(cls, value: str) -> str:
-        if not _CONTEXT_ID_RE.match(value):
-            raise ValueError(f"context_id must match {_CONTEXT_ID_RE.pattern!r}: {value!r}")
-        return value
-
-    @field_validator("environment")
-    @classmethod
-    def _check_environment(cls, value: str) -> str:
-        if not 1 <= len(value) <= 128:
-            raise ValueError("environment must be 1..128 Unicode code points")
-        if _CONTROL_CHAR_RE.search(value):
-            raise ValueError("environment must not contain control characters")
-        if value != value.strip():
-            raise ValueError("environment must not have leading or trailing whitespace")
-        return value
-
+    # window_start/window_end having an *explicit* RFC 3339 offset (spec §16.1) is not encodable
+    # as a JSON Schema keyword without pulling in an RFC 3339 format-checker dependency this repo
+    # doesn't otherwise need - it stays a Pydantic-only check, same as the cross-field window
+    # bounds below.
     @field_validator("window_start", "window_end")
     @classmethod
     def _check_explicit_offset(cls, value: datetime) -> datetime:
@@ -180,8 +165,40 @@ class EntityRef(BaseModel):
         return self
 
 
+def _delivery_ref_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
+    """Encode the fixed (kind, relation_type, via.type) pairs table (spec §11.2/§13) as JSON
+    Schema if/then so external (non-Pydantic) validators reject the same invalid combinations.
+    The Python model_validator below is still authoritative at runtime - this only mirrors it
+    for the committed schema."""
+    schema["allOf"] = [
+        *schema.get("allOf", []),
+        {
+            "if": {"properties": {"kind": {"const": "SYNC_HTTP"}}, "required": ["kind"]},
+            "then": {
+                "properties": {
+                    "relation_type": {"const": "CALLS"},
+                    "via": {"properties": {"type": {"const": "OPERATION"}}, "required": ["type"]},
+                },
+                "required": ["relation_type", "via"],
+            },
+        },
+        {
+            "if": {"properties": {"kind": {"const": "ASYNC_MESSAGE"}}, "required": ["kind"]},
+            "then": {
+                "properties": {
+                    "relation_type": {"const": "SENDS"},
+                    "via": {"properties": {"type": {"const": "QUEUE"}}, "required": ["type"]},
+                },
+                "required": ["relation_type", "via"],
+            },
+        },
+    ]
+
+
 class DeliveryRef(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", json_schema_extra=_delivery_ref_schema_extra
+    )
 
     kind: DeliveryKind
     relation_type: DeliveryRelationType
@@ -197,10 +214,38 @@ class DeliveryRef(BaseModel):
         return self
 
 
-class DependencyClaim(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
+def _dependency_claim_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
+    """Encode the coverage/resolution-evidence conditionals (spec §14/§15) as JSON Schema
+    if/then so external (non-Pydantic) validators reject the same invalid shapes. The Python
+    model_validator below is still authoritative at runtime - this only mirrors it for the
+    committed schema."""
+    schema["allOf"] = [
+        *schema.get("allOf", []),
+        {
+            "if": {
+                "properties": {"qualification": {"const": "NOT_OBSERVED_IN_WINDOW"}},
+                "required": ["qualification"],
+            },
+            "then": {"properties": {"coverage": {"not": {"type": "null"}}}},
+            "else": {"properties": {"coverage": {"type": "null"}}},
+        },
+        {
+            "if": {
+                "properties": {"destination_resolution": {"const": "RESOLVED_SERVICE"}},
+                "required": ["destination_resolution"],
+            },
+            "then": {"properties": {"resolution_evidence_refs": {"minItems": 1}}},
+            "else": {"properties": {"resolution_evidence_refs": {"maxItems": 0}}},
+        },
+    ]
 
-    claim_id: str
+
+class DependencyClaim(BaseModel):
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", json_schema_extra=_dependency_claim_schema_extra
+    )
+
+    claim_id: str = Field(pattern=_CLAIM_ID_PATTERN)
     subject: EntityRef
     predicate: DependencyPredicate
     object: EntityRef
@@ -208,15 +253,8 @@ class DependencyClaim(BaseModel):
     delivery: DeliveryRef
     qualification: Qualification
     coverage: Coverage | None
-    evidence_refs: list[str]
-    resolution_evidence_refs: list[str]
-
-    @field_validator("claim_id")
-    @classmethod
-    def _check_claim_id(cls, value: str) -> str:
-        if not _CLAIM_ID_RE.match(value):
-            raise ValueError(f"claim_id must match {_CLAIM_ID_RE.pattern!r}: {value!r}")
-        return value
+    evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
+    resolution_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
 
     @field_validator("evidence_refs", "resolution_evidence_refs")
     @classmethod
@@ -258,7 +296,14 @@ class Limitation(BaseModel):
 
     code: LimitationCode
     message: str
-    claim_ids: list[str] = Field(default_factory=list)
+    claim_ids: list[str] = Field(default_factory=list, json_schema_extra={"uniqueItems": True})
+
+    @field_validator("claim_ids")
+    @classmethod
+    def _check_sorted_and_deduplicated(cls, value: list[str]) -> list[str]:
+        if value != sorted(set(value)):
+            raise ValueError("claim_ids must be sorted lexicographically and deduplicated")
+        return value
 
 
 class ServiceDependenciesData(BaseModel):
@@ -283,7 +328,7 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
     observation_context: ObservationContextRef | None
     data: T | None
     claims: list[DependencyClaim]
-    evidence_refs: list[str]
+    evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
     limitations: list[Limitation]
 
     @model_validator(mode="after")
