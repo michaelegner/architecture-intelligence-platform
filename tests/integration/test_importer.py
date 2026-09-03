@@ -251,7 +251,9 @@ def test_import_service_is_idempotent(driver):
         import_service(session, "x", model)
         import_service(session, "x", model)
 
-    assert _count(driver, "MATCH (n) RETURN count(n) AS c") == 2
+    # excludes the v0.4.0 I1.2 internal revision-fence singleton (spec §19) - not part of the
+    # Canonical Model, but a real node `ensure_schema` creates alongside the constraints.
+    assert _count(driver, "MATCH (n) WHERE NOT n:AipInternalState RETURN count(n) AS c") == 2
     assert _count(driver, "MATCH ()-[r]->() RETURN count(r) AS c") == 1
 
 
@@ -493,7 +495,9 @@ def test_import_service_rejects_unknown_relation_type_without_writing_anything(d
         with pytest.raises(ValueError, match="Unknown relation type"):
             import_service(session, "x", model)
 
-    assert _count(driver, "MATCH (n) RETURN count(n) AS c") == 0
+    # excludes the v0.4.0 I1.2 internal revision-fence singleton (spec §19) - `ensure_schema`
+    # creates it unconditionally, before the (failed) import ever runs.
+    assert _count(driver, "MATCH (n) WHERE NOT n:AipInternalState RETURN count(n) AS c") == 0
 
 
 def test_import_all_sources_real_examples_end_to_end(driver):

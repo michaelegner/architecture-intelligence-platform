@@ -22,7 +22,7 @@ def _normalize(value: Any) -> Any:
     if isinstance(value, BaseModel):
         return _normalize(value.model_dump(mode="python"))
     if isinstance(value, datetime):
-        return _format_timestamp(value)
+        return format_utc_timestamp(value)
     if isinstance(value, dict):
         return {key: _normalize(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
@@ -30,6 +30,9 @@ def _normalize(value: Any) -> Any:
     return value
 
 
-def _format_timestamp(value: datetime) -> str:
+def format_utc_timestamp(value: datetime) -> str:
+    """Normalizes a datetime to UTC with a `Z` suffix and exactly six fractional-second digits
+    (spec §16.2). Shared by canonical serialization and observation-context id hashing
+    (`app.architecture_intelligence.observation_context.compute_context_id`)."""
     utc_value = value.astimezone(UTC) if value.tzinfo is not None else value.replace(tzinfo=UTC)
     return utc_value.strftime("%Y-%m-%dT%H:%M:%S.") + f"{utc_value.microsecond:06d}Z"
