@@ -157,23 +157,37 @@ def _accepted_evidence_ids(evidence_ids: list[str], evidence_by_id: dict[str, di
     return sorted(eid for eid in evidence_ids if eid in evidence_by_id)
 
 
+def _group_evidenced_rows(
+    rows: list[dict], id_field: str, name_field: str, evidence_by_id: dict[str, dict]
+) -> dict[str, tuple[str, set[str]]]:
+    """Groups rows by `id_field`, unioning each group's accepted evidence ids rather than letting a
+    later row silently overwrite an earlier one for the same id. Neo4j doesn't guarantee row order,
+    and MERGE-based writes make more than one row per id unlikely today but not contractually
+    impossible - this must not depend on either (spec §13.3/§20: deterministic regardless of
+    read/insertion order)."""
+    grouped: dict[str, tuple[str, set[str]]] = {}
+    for row in rows:
+        accepted = _accepted_evidence_ids(row["evidence_ids"], evidence_by_id)
+        if not accepted:
+            continue
+        row_id = row[id_field]
+        _name, evidence_ids = grouped.setdefault(row_id, (row[name_field], set()))
+        evidence_ids.update(accepted)
+    return grouped
+
+
 def _resolve_sync_destination(
     call: dict, providers: list[dict], evidence_by_id: dict[str, dict]
 ) -> tuple[DestinationResolution, EntityRef, list[str]]:
     """Spec §13.1: exactly one evidenced provider resolves to that `Service`; zero or more than one
     is not guessed - retain the `Operation` itself with `DIRECT_TARGET_FALLBACK`."""
-    evidenced = {
-        p["provider_id"]: accepted
-        for p in providers
-        if (accepted := _accepted_evidence_ids(p["evidence_ids"], evidence_by_id))
-    }
+    evidenced = _group_evidenced_rows(providers, "provider_id", "provider_name", evidence_by_id)
     if len(evidenced) == 1:
-        [(provider_id, accepted_evidence_ids)] = evidenced.items()
-        provider = next(p for p in providers if p["provider_id"] == provider_id)
+        [(provider_id, (provider_name, accepted_ids))] = evidenced.items()
         return (
             DestinationResolution.RESOLVED_SERVICE,
-            EntityRef(id=provider_id, type=EntityType.SERVICE, name=provider["provider_name"]),
-            accepted_evidence_ids,
+            EntityRef(id=provider_id, type=EntityType.SERVICE, name=provider_name),
+            sorted(accepted_ids),
         )
     return DestinationResolution.DIRECT_TARGET_FALLBACK, _operation_ref(call), []
 
@@ -183,20 +197,16 @@ def _resolve_async_destinations(
 ) -> list[tuple[DestinationResolution, EntityRef, list[str]]]:
     """Spec §13.2: every distinct evidenced consumer is valid fan-out, not ambiguity; zero evidenced
     consumers is not guessed - retain the `Queue` itself with `DIRECT_TARGET_FALLBACK`."""
-    evidenced: dict[str, tuple[dict, list[str]]] = {}
-    for consumer in consumers:
-        accepted = _accepted_evidence_ids(consumer["evidence_ids"], evidence_by_id)
-        if accepted:
-            evidenced[consumer["consumer_id"]] = (consumer, accepted)
+    evidenced = _group_evidenced_rows(consumers, "consumer_id", "consumer_name", evidence_by_id)
     if not evidenced:
         return [(DestinationResolution.DIRECT_TARGET_FALLBACK, _queue_ref(send), [])]
     return [
         (
             DestinationResolution.RESOLVED_SERVICE,
-            EntityRef(id=consumer_id, type=EntityType.SERVICE, name=consumer["consumer_name"]),
-            accepted_evidence_ids,
+            EntityRef(id=consumer_id, type=EntityType.SERVICE, name=name),
+            sorted(accepted_ids),
         )
-        for consumer_id, (consumer, accepted_evidence_ids) in sorted(evidenced.items())
+        for consumer_id, (name, accepted_ids) in sorted(evidenced.items())
     ]
 
 

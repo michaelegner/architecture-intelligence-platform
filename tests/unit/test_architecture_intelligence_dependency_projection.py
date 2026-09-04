@@ -317,6 +317,87 @@ def test_a_receives_from_relation_with_mixed_valid_and_dangling_evidence_resolve
     assert result.limitations == []
 
 
+def test_two_provides_rows_for_the_same_provider_union_their_evidence_regardless_of_row_order():
+    """Spec §13.3/§20: resolution must not depend on Neo4j row order. Two PROVIDES rows for the
+    same provider (unlikely under today's MERGE-unique writes, but not something this function may
+    assume) must union their evidence, not have the later row silently overwrite the earlier one."""
+    calls = [
+        {
+            "operation_id": "operation:product-service:GET:/products/{id}",
+            "operation_name": None,
+            "method": "GET",
+            "path": "/products/{id}",
+            "evidence_ids": ["e1"],
+        }
+    ]
+    provides_forward = [
+        {
+            "operation_id": "operation:product-service:GET:/products/{id}",
+            "provider_id": "service:product-service",
+            "provider_name": "ProductService",
+            "evidence_ids": ["e2"],
+        },
+        {
+            "operation_id": "operation:product-service:GET:/products/{id}",
+            "provider_id": "service:product-service",
+            "provider_name": "ProductService",
+            "evidence_ids": ["e3"],
+        },
+    ]
+    evidence = {**_declared("e1"), **_declared("e2"), **_declared("e3")}
+
+    forward = _project({"calls": calls, "provides": provides_forward, "evidence": evidence})
+    reversed_result = _project(
+        {"calls": calls, "provides": list(reversed(provides_forward)), "evidence": evidence}
+    )
+
+    for result in (forward, reversed_result):
+        [claim] = result.claims
+        assert claim.destination_resolution == DestinationResolution.RESOLVED_SERVICE
+        assert claim.object.id == "service:product-service"
+        assert claim.resolution_evidence_refs == ["e2", "e3"]
+    assert forward.claims[0].claim_id == reversed_result.claims[0].claim_id
+
+
+def test_two_receives_from_rows_for_the_same_consumer_union_their_evidence_regardless_of_row_order():
+    sends = [
+        {
+            "queue_id": "queue:asb:commerce:payment-q",
+            "queue_name": "payment-q",
+            "protocol": "amqp",
+            "namespace": "commerce",
+            "evidence_ids": ["e1"],
+        }
+    ]
+    receives_forward = [
+        {
+            "queue_id": "queue:asb:commerce:payment-q",
+            "consumer_id": "service:payment-service",
+            "consumer_name": "PaymentService",
+            "evidence_ids": ["e2"],
+        },
+        {
+            "queue_id": "queue:asb:commerce:payment-q",
+            "consumer_id": "service:payment-service",
+            "consumer_name": "PaymentService",
+            "evidence_ids": ["e3"],
+        },
+    ]
+    evidence = {**_declared("e1"), **_declared("e2"), **_declared("e3")}
+
+    forward = _project({"sends": sends, "receives": receives_forward, "evidence": evidence})
+    reversed_result = _project(
+        {"sends": sends, "receives": list(reversed(receives_forward)), "evidence": evidence}
+    )
+
+    for result in (forward, reversed_result):
+        [claim] = result.claims
+        assert claim.destination_resolution == DestinationResolution.RESOLVED_SERVICE
+        assert claim.object.id == "service:payment-service"
+        assert claim.resolution_evidence_refs == ["e2", "e3"]
+    assert forward.claims[0].claim_id == reversed_result.claims[0].claim_id
+
+
 def test_two_operations_to_one_service_remain_two_delivery_claims():
     result = _project(
         {
