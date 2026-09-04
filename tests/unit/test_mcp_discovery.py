@@ -85,13 +85,60 @@ async def _check_valid_protocol_metadata_is_accepted(client: httpx.AsyncClient) 
 
 
 async def _check_missing_protocol_version_header_is_rejected(client: httpx.AsyncClient) -> None:
+    """A *missing* required header is HEADER_MISMATCH (-32020), not UNSUPPORTED_PROTOCOL_VERSION
+    (-32022, reserved for a *present* but unsupported value) - per `mcp.shared.inbound.
+    classify_inbound_request`'s own rung 2, which the guard delegates to directly rather than
+    reimplementing."""
     headers = _headers(method="tools/list", protocol_version=None)
     response = await client.post("/mcp", headers=headers, json=_tools_list_body())
     assert response.status_code == 400
-    error = response.json()["error"]
-    assert error["code"] == -32022
-    assert error["data"]["supported"] == ["2026-07-28"]
-    assert error["data"]["requested"] is None
+    assert response.json()["error"]["code"] == -32020
+
+
+async def _check_mcp_method_header_mismatch_is_rejected(client: httpx.AsyncClient) -> None:
+    headers = dict(_headers(method="tools/list"), **{"mcp-method": "tools/call"})
+    response = await client.post("/mcp", headers=headers, json=_tools_list_body())
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == -32020
+
+
+async def _check_mcp_name_header_mismatch_is_rejected(client: httpx.AsyncClient) -> None:
+    headers = _headers(method="tools/call", name="get_evidence")
+    body = _tools_call_body(
+        "get_evidence",
+        {"request": {"evidence_refs": ["x"], "snapshot_id": "aip:snapshot:v1:" + "a" * 64}},
+    )
+    response = await client.post(
+        "/mcp", headers=dict(headers, **{"mcp-name": "get_service_dependencies"}), json=body
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == -32020
+
+
+async def _check_header_mismatch_takes_priority_over_unknown_tool(
+    client: httpx.AsyncClient,
+) -> None:
+    """A request that is simultaneously an Mcp-Name/body mismatch AND names an unknown tool must
+    report the header mismatch (-32020), not the guard's own unknown-tool check (-32602) - the
+    guard only runs its tool-name/argument checks after `classify_inbound_request` has already
+    accepted the request, matching the SDK's own rung ordering."""
+    headers = _headers(method="tools/call", name="does_not_exist")
+    body = _tools_call_body("does_not_exist", {})
+    response = await client.post(
+        "/mcp", headers=dict(headers, **{"mcp-name": "something_else"}), json=body
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == -32020
+
+
+async def _check_unrelated_path_is_a_normal_404(client: httpx.AsyncClient) -> None:
+    """A stray POST to a path the guard doesn't recognize must fall straight through to the inner
+    app's own 404, never a synthesized MCP protocol error - the guard only inspects `MCP_PATH`."""
+    response = await client.post(
+        "/not-mcp", headers=_headers(method="tools/list"), json=_tools_list_body()
+    )
+    assert response.status_code == 404
+    assert "jsonrpc" not in response.text
 
 
 async def _check_legacy_handshake_version_is_rejected_not_silently_served(
@@ -152,6 +199,9 @@ async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> Non
     for tool in response.json()["result"]["tools"]:
         input_schema = tool["inputSchema"]
         assert input_schema["type"] == "object"
+        # The outer wrapper (the SDK's synthesized argument model) is explicitly closed by
+        # app.mcp.tools._close_input_schema - the SDK doesn't do this itself (confirmed live).
+        assert input_schema["additionalProperties"] is False
         # The request type is nested one level in ($ref'd, per app.mcp.server's verified findings)
         # and keeps its own extra=forbid closure - checked on both request models below.
         for definition in input_schema.get("$defs", {}).values():
@@ -241,10 +291,14 @@ async def test_mcp_protocol_and_discovery() -> None:
         async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
             await _check_valid_protocol_metadata_is_accepted(client)
             await _check_missing_protocol_version_header_is_rejected(client)
+            await _check_mcp_method_header_mismatch_is_rejected(client)
+            await _check_mcp_name_header_mismatch_is_rejected(client)
+            await _check_header_mismatch_takes_priority_over_unknown_tool(client)
             await _check_legacy_handshake_version_is_rejected_not_silently_served(client)
             await _check_missing_required_meta_field_is_rejected(client)
             await _check_unsupported_protocol_version_is_rejected(client)
             await _check_no_initialize_handshake_or_session_id_required(client)
+            await _check_unrelated_path_is_a_normal_404(client)
             await _check_tools_list_returns_exactly_two_tools_in_lexicographic_order(client)
             await _check_tools_list_schemas_are_closed(client)
             await _check_unknown_tool_name_fails_as_protocol_error_without_reaching_a_handler(

@@ -23,7 +23,7 @@ from app.api import (
 from app.deps import get_driver, get_settings
 from app.graph.repository import build_driver, open_session
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
-from app.settings import MCPConfig, Settings, load_settings
+from app.settings import Settings, load_config, load_settings
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer
 
 CONFIG_PATH = Path(os.environ.get("CONFIG_PATH", "config.yaml"))
@@ -109,11 +109,12 @@ def create_app() -> FastAPI:
     # v0.4.0 I2.1 - mounted at "/" (not "/mcp") and registered last, so it only ever receives
     # requests no route above already claimed - in practice exactly `POST /mcp`, which is the
     # mounted sub-app's own route path (see app.mcp.app.build_mcp_app's docstring for why mounting
-    # at an outer "/mcp" prefix instead 307-redirects a bare `POST /mcp`, confirmed live). Built
-    # ahead of settings/driver being available (create_app() itself must stay env/Neo4j-free), so
-    # origin/host allow-listing uses MCPConfig's own defaults rather than the loaded config.yaml -
-    # revisit if a deployment needs non-default origins (spec §15: local/trusted-network only).
-    mcp_config = MCPConfig()
+    # at an outer "/mcp" prefix instead 307-redirects a bare `POST /mcp`, confirmed live).
+    # `load_config` (not `load_settings`) reads config.yaml's `mcp.allowed-origins`/`allowed-hosts`
+    # override, if any - it never calls `load_secrets()`/requires NEO4J_PASSWORD, so create_app()
+    # still stays free of any hard env-var dependency (spec §15: local/trusted-network only by
+    # default; a deployment overrides via config.yaml, not by patching this function).
+    mcp_config = load_config(CONFIG_PATH).mcp
     app.mount(
         "/",
         build_mcp_app(

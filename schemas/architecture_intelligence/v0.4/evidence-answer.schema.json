@@ -419,6 +419,36 @@
     },
     "EvidenceRecord": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "observation": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "evidence_type": {
+                "const": "OBSERVED"
+              }
+            },
+            "required": [
+              "evidence_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "observation": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        }
+      ],
       "description": "v0.4.0 I2.1 - spec \u00a711.2. `evidence_type`/`source_type` reuse the existing\n`app.provenance.model` enums rather than redefining them - no new adapter classification.",
       "properties": {
         "evidence_type": {
@@ -804,6 +834,35 @@
         "required": [
           "limitations"
         ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tool": {
+            "const": "get_evidence"
+          }
+        },
+        "required": [
+          "tool"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claims": {
+            "maxItems": 0
+          },
+          "evidence_refs": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "get_evidence"
+        }
       }
     }
   ],

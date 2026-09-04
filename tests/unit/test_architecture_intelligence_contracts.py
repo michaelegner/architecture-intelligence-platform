@@ -17,6 +17,8 @@ from app.architecture_intelligence.contracts import (
     DestinationResolution,
     EntityRef,
     EntityType,
+    EvidenceData,
+    EvidenceRecord,
     Limitation,
     LimitationCode,
     ObservationContextRef,
@@ -38,9 +40,18 @@ SCHEMA_PATH = (
     / "architecture-answer.schema.json"
 )
 
+EVIDENCE_SCHEMA_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "schemas"
+    / "architecture_intelligence"
+    / "v0.4"
+    / "evidence-answer.schema.json"
+)
+
 FIXTURE_NAMES = sorted(path.name for path in FIXTURES_DIR.glob("*.json"))
 
 ANSWER_TYPE = ArchitectureAnswer[ServiceDependenciesData]
+EVIDENCE_ANSWER_TYPE = ArchitectureAnswer[EvidenceData]
 
 
 def load_fixture(name: str) -> dict:
@@ -49,6 +60,10 @@ def load_fixture(name: str) -> dict:
 
 def load_schema() -> dict:
     return json.loads(SCHEMA_PATH.read_text())
+
+
+def load_evidence_schema() -> dict:
+    return json.loads(EVIDENCE_SCHEMA_PATH.read_text())
 
 
 def test_fixture_directory_is_not_empty():
@@ -751,3 +766,145 @@ def test_null_observation_context_without_required_limitation_fails_both_pydanti
         ANSWER_TYPE.model_validate(payload)
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(instance=payload, schema=load_schema())
+
+
+# --- Review round: `tool` must not just be a member of the Literal, but the one value valid for  ---
+# --- the generic specialization actually in use (spec §14) - and each frozen schema file, being  ---
+# --- generated from one concrete ArchitectureAnswer[T] class, encodes that as a `const` too.      ---
+
+
+def _valid_evidence_answer_dict(**overrides) -> dict:
+    base = {
+        "schema_version": "0.4",
+        "producer": _valid_producer().model_dump(),
+        "tool": "get_evidence",
+        "outcome": "ANSWERED",
+        "snapshot": _valid_snapshot().model_dump(),
+        "observation_context": None,
+        "data": _valid_evidence_data(),
+        "claims": [],
+        "evidence_refs": [],
+        "limitations": [],
+    }
+    base.update(overrides)
+    return base
+
+
+def _valid_observed_metadata(**overrides) -> dict:
+    fields = {
+        "environment": "production",
+        "bucket_start": "2026-08-26T00:00:00.000000Z",
+        "bucket_end": "2026-08-26T01:00:00.000000Z",
+        "first_seen": "2026-08-26T00:05:00.000000Z",
+        "last_seen": "2026-08-26T00:55:00.000000Z",
+        "observation_count": 3,
+        "service_version": None,
+        "correlation_mode": None,
+    }
+    fields.update(overrides)
+    return fields
+
+
+def _valid_evidence_record(**overrides) -> dict:
+    fields = {
+        "id": "evidence:manifest:order-service",
+        "evidence_type": "DECLARED",
+        "source_type": "MANIFEST",
+        "source_locator": "architecture.yaml",
+        "source_revision": None,
+        "observation": None,
+        "supports": [],
+    }
+    fields.update(overrides)
+    return fields
+
+
+def _valid_evidence_data(**overrides) -> dict:
+    fields = {
+        "requested_evidence_refs": ["evidence:manifest:order-service"],
+        "records": [_valid_evidence_record()],
+        "missing_evidence_refs": [],
+    }
+    fields.update(overrides)
+    return fields
+
+
+def test_dependency_answer_rejects_get_evidence_as_tool_fails_both_pydantic_and_schema():
+    payload = _valid_answer_dict(tool="get_evidence")
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_evidence_answer_rejects_get_service_dependencies_as_tool_fails_both_pydantic_and_schema():
+    payload = _valid_evidence_answer_dict(tool="get_service_dependencies")
+    with pytest.raises(ValidationError):
+        EVIDENCE_ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_evidence_schema())
+
+
+def test_evidence_answer_rejects_nonempty_claims_fails_both_pydantic_and_schema():
+    claim = _valid_claim().model_dump()
+    payload = _valid_evidence_answer_dict(claims=[claim])
+    with pytest.raises(ValidationError):
+        EVIDENCE_ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_evidence_schema())
+
+
+def test_evidence_answer_rejects_nonempty_top_level_evidence_refs_fails_both_pydantic_and_schema():
+    payload = _valid_evidence_answer_dict(evidence_refs=["evidence:manifest:order-service"])
+    with pytest.raises(ValidationError):
+        EVIDENCE_ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_evidence_schema())
+
+
+def test_evidence_answer_fixture_conforms_to_frozen_evidence_schema():
+    """Sanity check that a genuinely valid EvidenceData answer validates against both - the four
+    tests above only prove invalid ones are rejected."""
+    payload = _valid_evidence_answer_dict()
+    EVIDENCE_ANSWER_TYPE.model_validate(payload)
+    jsonschema.validate(instance=payload, schema=load_evidence_schema())
+
+
+def test_evidence_data_rejects_id_in_both_records_and_missing():
+    with pytest.raises(ValidationError):
+        EvidenceData.model_validate(
+            _valid_evidence_data(missing_evidence_refs=["evidence:manifest:order-service"])
+        )
+
+
+def test_evidence_data_rejects_incomplete_partition_of_requested_refs():
+    with pytest.raises(ValidationError):
+        EvidenceData.model_validate(
+            _valid_evidence_data(
+                requested_evidence_refs=[
+                    "evidence:manifest:order-service",
+                    "evidence:openapi:product-service",
+                ]
+            )
+        )
+
+
+def test_evidence_record_requires_observation_for_observed_evidence_fails_both_pydantic_and_schema():
+    record = _valid_evidence_record(evidence_type="OBSERVED", source_type="OPENTELEMETRY")
+    with pytest.raises(ValidationError):
+        EvidenceRecord.model_validate(record)
+    # $ref-based sub-schemas share one top-level $defs, so a record is validated in place inside a
+    # full evidence answer (matching the rest of this file's "fails both" pattern) rather than as
+    # an extracted $defs fragment, which would leave its own $ref targets unresolved.
+    payload = _valid_evidence_answer_dict(data=_valid_evidence_data(records=[record]))
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_evidence_schema())
+
+
+def test_evidence_record_rejects_observation_for_declared_evidence_fails_both_pydantic_and_schema():
+    record = _valid_evidence_record(observation=_valid_observed_metadata())
+    with pytest.raises(ValidationError):
+        EvidenceRecord.model_validate(record)
+    payload = _valid_evidence_answer_dict(data=_valid_evidence_data(records=[record]))
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_evidence_schema())

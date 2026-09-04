@@ -600,6 +600,35 @@
           "limitations"
         ]
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "tool": {
+            "const": "get_evidence"
+          }
+        },
+        "required": [
+          "tool"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claims": {
+            "maxItems": 0
+          },
+          "evidence_refs": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "get_service_dependencies"
+        }
+      }
     }
   ],
   "properties": {
