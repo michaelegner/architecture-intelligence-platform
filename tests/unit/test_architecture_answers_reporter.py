@@ -5,6 +5,7 @@ from evaluation.architecture_answers.runner import SuiteResult
 
 def _result(reports, *, semantic_outputs_identical=True) -> SuiteResult:
     return SuiteResult(
+        candidate_sha="f" * 40,
         reports=tuple(reports),
         run_count=2,
         run_output_sha256=(
@@ -34,6 +35,7 @@ def test_build_report_result_is_pass_when_every_scenario_passes_and_runs_are_ide
     assert report["summary"] == {"scenarios": 2, "passed": 2, "failed": 0}
     assert report["semantic_outputs_identical"] is True
     assert report["run_count"] == 2
+    assert report["candidate_sha"] == "f" * 40
 
 
 def test_build_report_result_is_fail_when_a_scenario_fails():

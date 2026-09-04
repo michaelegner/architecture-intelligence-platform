@@ -67,6 +67,18 @@ def _optional_mapping(value: Any, *, scenario_id: str, file: Path, field: str) -
     return _require_mapping(value, scenario_id=scenario_id, file=file, field=field)
 
 
+def _require_string(value: Any, *, scenario_id: str, file: Path, field: str) -> str:
+    if not isinstance(value, str):
+        raise _error(scenario_id, file, field, f"expected a string, got {value!r}")
+    return value
+
+
+def _optional_string(value: Any, *, scenario_id: str, file: Path, field: str) -> str | None:
+    if value is None:
+        return None
+    return _require_string(value, scenario_id=scenario_id, file=file, field=field)
+
+
 def _parse_timestamp(value: Any, *, scenario_id: str, file: Path, field: str) -> datetime | None:
     if value is None:
         return None
@@ -126,9 +138,22 @@ def _load_request(raw: dict, *, scenario_id: str, file: Path) -> Request:
         field="request.observation.window",
     )
 
+    environment = _optional_string(
+        observation_raw.get("environment"),
+        scenario_id=scenario_id,
+        file=file,
+        field="request.observation.environment",
+    )
+    snapshot_id = _optional_string(
+        request_raw.get("snapshot_id"),
+        scenario_id=scenario_id,
+        file=file,
+        field="request.snapshot_id",
+    )
+
     return Request(
         service_id=service_id,
-        environment=observation_raw.get("environment"),
+        environment=environment,
         window_start=_parse_timestamp(
             window_raw.get("start"),
             scenario_id=scenario_id,
@@ -141,7 +166,7 @@ def _load_request(raw: dict, *, scenario_id: str, file: Path) -> Request:
             file=file,
             field="request.observation.window.end",
         ),
-        snapshot_id=request_raw.get("snapshot_id"),
+        snapshot_id=snapshot_id,
     )
 
 
@@ -175,7 +200,12 @@ def load_scenario(path: Path) -> Scenario:
     _reject_unknown_keys(
         raw, _TOP_LEVEL_ALLOWED_KEYS, scenario_id=scenario_id, file=file, field="<root>"
     )
-    description = _require(raw, "description", scenario_id=scenario_id, file=file)
+    description = _require_string(
+        _require(raw, "description", scenario_id=scenario_id, file=file),
+        scenario_id=scenario_id,
+        file=file,
+        field="description",
+    )
     request = _load_request(raw, scenario_id=scenario_id, file=file)
 
     expected_answer_path = path / EXPECTED_ANSWER_FILENAME

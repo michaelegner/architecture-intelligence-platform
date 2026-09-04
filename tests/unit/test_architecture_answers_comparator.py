@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pytest
-
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
     DeliveryKind,
@@ -24,17 +22,19 @@ from app.architecture_intelligence.contracts import (
 from evaluation.architecture_answers import comparator
 from evaluation.architecture_answers.model import Request, Scenario
 
+_CANDIDATE_SHA = "f" * 40
 _PRODUCER = Producer(
-    name="architecture-intelligence-platform", version="0.4.0", build_revision="f" * 40
+    name="architecture-intelligence-platform", version="0.4.0", build_revision=_CANDIDATE_SHA
 )
 
 
-@pytest.fixture(autouse=True)
-def _fixed_candidate_sha(monkeypatch):
-    """The comparator independently re-derives the real git SHA to check
-    `producer.build_revision` against (I1.4 review finding #1) - pin it to _PRODUCER's own value so
-    these tests exercise comparator logic, not this checkout's actual git state."""
-    monkeypatch.setattr(comparator, "current_git_sha", lambda: _PRODUCER.build_revision)
+def _compare(scenario: Scenario, actual, **kwargs) -> comparator.ScenarioReport:
+    """`compare()` requires an explicit `candidate_sha` (I1.4 review finding #1: one immutable run
+    identity, resolved once by `run_suite` and threaded through - never independently re-derived by
+    the comparator). Defaults to `_CANDIDATE_SHA`, matching `_PRODUCER`'s own build_revision, so
+    call sites that aren't specifically testing candidate-SHA behavior don't need to repeat it."""
+    kwargs.setdefault("candidate_sha", _CANDIDATE_SHA)
+    return comparator.compare(scenario, actual, **kwargs)
 
 
 _SNAPSHOT = SnapshotRef(
@@ -116,7 +116,7 @@ def _scenario(expected: ArchitectureAnswer[ServiceDependenciesData]) -> Scenario
 def test_identical_answers_pass_with_no_mismatches():
     claim = _claim(claim_id_suffix="1")
     answer = _answer(claims=[claim])
-    result = comparator.compare(_scenario(answer), answer)
+    result = _compare(_scenario(answer), answer)
 
     assert result.passed
     assert result.missing_claim_ids == ()
@@ -124,20 +124,21 @@ def test_identical_answers_pass_with_no_mismatches():
     assert result.field_mismatches == ()
 
 
-def test_a_placeholder_build_revision_is_caught_even_though_it_is_not_the_frozen_literal(
-    monkeypatch,
-):
+def test_build_revision_is_checked_against_the_passed_candidate_sha_not_the_frozen_literal():
     """producer.build_revision is deliberately NOT compared against the frozen expected literal
-    (I1.4 review finding #1) - it's compared against the independently re-derived real candidate
-    SHA. So an actual answer whose build_revision doesn't match the *real* SHA is caught even when
-    it happens to equal whatever the frozen fixture's own (unused) build_revision literal is."""
-    monkeypatch.setattr(comparator, "current_git_sha", lambda: "1" * 40)
+    (I1.4 review finding #1) - it's compared against whatever `candidate_sha` this specific
+    `compare()` call was given (the one immutable run identity `run_suite` resolves once and
+    threads through - never independently re-derived here). So an actual answer whose
+    build_revision doesn't match that candidate_sha is caught even when it happens to equal
+    whatever the frozen fixture's own (unused) build_revision literal is."""
     claim = _claim(claim_id_suffix="1")
     # Both expected and actual carry the same _PRODUCER (build_revision "f" * 40) - if the
-    # comparator naively compared literal-vs-literal here, this would wrongly pass.
+    # comparator naively compared literal-vs-literal here, this would wrongly pass. Passing a
+    # different candidate_sha than what's baked into _PRODUCER is what actually exercises the
+    # independent check.
     expected = _answer(claims=[claim])
     actual = _answer(claims=[claim])
-    result = comparator.compare(_scenario(expected), actual)
+    result = _compare(_scenario(expected), actual, candidate_sha="1" * 40)
 
     assert not result.passed
     build_revision_mismatches = [
@@ -147,11 +148,19 @@ def test_a_placeholder_build_revision_is_caught_even_though_it_is_not_the_frozen
     assert build_revision_mismatches[0].expected == repr("1" * 40)
 
 
+def test_build_revision_matches_when_the_candidate_sha_agrees_with_the_actual_answer():
+    claim = _claim(claim_id_suffix="1")
+    answer = _answer(claims=[claim])
+    result = _compare(_scenario(answer), answer, candidate_sha=_CANDIDATE_SHA)
+
+    assert result.passed
+
+
 def test_missing_claim_is_reported():
     claim = _claim(claim_id_suffix="1")
     expected = _answer(claims=[claim])
     actual = _answer(claims=[])
-    result = comparator.compare(_scenario(expected), actual)
+    result = _compare(_scenario(expected), actual)
 
     assert not result.passed
     assert result.missing_claim_ids == (claim.claim_id,)
@@ -162,7 +171,7 @@ def test_unexpected_claim_is_reported():
     claim = _claim(claim_id_suffix="1")
     expected = _answer(claims=[])
     actual = _answer(claims=[claim])
-    result = comparator.compare(_scenario(expected), actual)
+    result = _compare(_scenario(expected), actual)
 
     assert not result.passed
     assert result.unexpected_claim_ids == (claim.claim_id,)
@@ -174,7 +183,7 @@ def test_a_field_level_mismatch_on_a_matched_claim_is_reported():
     actual_claim = _claim(claim_id_suffix="1", qualification=Qualification.OBSERVED_ONLY)
     expected = _answer(claims=[expected_claim])
     actual = _answer(claims=[actual_claim])
-    result = comparator.compare(_scenario(expected), actual)
+    result = _compare(_scenario(expected), actual)
 
     assert not result.passed
     mismatch_fields = {
@@ -189,7 +198,7 @@ def test_a_wrong_but_existing_evidence_reference_is_a_real_mismatch():
     actual_claim = _claim(claim_id_suffix="1", evidence_refs=("e2",))
     expected = _answer(claims=[expected_claim])
     actual = _answer(claims=[actual_claim])
-    result = comparator.compare(_scenario(expected), actual)
+    result = _compare(_scenario(expected), actual)
 
     assert not result.passed
     assert any(m.field == "evidence_refs" for m in result.field_mismatches)
@@ -201,7 +210,7 @@ def test_outcome_mismatch_is_reported_as_answer_level():
         claims=[],
         outcome=Outcome.NOT_ANSWERED,
     )
-    result = comparator.compare(_scenario(expected), actual)
+    result = _compare(_scenario(expected), actual)
 
     assert not result.passed
     outcome_mismatches = [m for m in result.field_mismatches if m.field == "outcome"]
@@ -215,7 +224,7 @@ def test_limitations_mismatch_is_reported():
     )
     expected = _answer(claims=[], outcome=Outcome.NOT_ANSWERED, limitations=[limitation])
     actual = _answer(claims=[], outcome=Outcome.NOT_ANSWERED, limitations=[])
-    result = comparator.compare(_scenario(expected), actual)
+    result = _compare(_scenario(expected), actual)
 
     assert not result.passed
     assert any(m.field == "limitations" for m in result.field_mismatches)
@@ -224,7 +233,7 @@ def test_limitations_mismatch_is_reported():
 def test_broken_evidence_refs_fail_the_scenario_even_with_a_perfect_semantic_match():
     claim = _claim(claim_id_suffix="1")
     answer = _answer(claims=[claim])
-    result = comparator.compare(_scenario(answer), answer, broken_evidence_refs=("evidence:ghost",))
+    result = _compare(_scenario(answer), answer, broken_evidence_refs=("evidence:ghost",))
 
     assert not result.passed
     assert result.broken_evidence_refs == ("evidence:ghost",)

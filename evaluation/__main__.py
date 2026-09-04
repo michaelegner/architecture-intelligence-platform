@@ -25,6 +25,7 @@ from pathlib import Path
 import neo4j
 from testcontainers.community.neo4j import Neo4jContainer
 
+from evaluation.architecture_answers.candidate import InvalidCandidateSha
 from evaluation.architecture_answers.loader import discover_scenarios as discover_answer_scenarios
 from evaluation.architecture_answers.loader import load_scenario as load_answer_scenario
 from evaluation.architecture_answers.model import Scenario as AnswerScenario
@@ -129,17 +130,21 @@ def _load_answer_scenarios(
         return EXIT_INVALID
 
 
-def _run_answers(scenario_id: str | None) -> int:
+def _run_answers(scenario_id: str | None, candidate_sha: str | None) -> int:
     scenarios = _load_answer_scenarios(scenario_id)
     if isinstance(scenarios, int):
         return scenarios
 
-    with Neo4jContainer("neo4j:5") as container:
-        driver = container.get_driver()
-        try:
-            result: SuiteResult = run_suite(driver, scenarios)
-        finally:
-            driver.close()
+    try:
+        with Neo4jContainer("neo4j:5") as container:
+            driver = container.get_driver()
+            try:
+                result: SuiteResult = run_suite(driver, scenarios, candidate_sha=candidate_sha)
+            finally:
+                driver.close()
+    except InvalidCandidateSha as exc:
+        print(f"invalid --candidate-sha: {exc}", file=sys.stderr)
+        return EXIT_INVALID
 
     # Only an unfiltered (full-suite) run writes the canonical qualification artifact - a
     # scenario-filtered run prints its result but must never silently overwrite the committed
@@ -170,11 +175,20 @@ def main(argv: list[str] | None = None) -> int:
     answers_parser.add_argument(
         "--scenario", dest="scenario_flag", default=None, help="run only this scenario id"
     )
+    answers_parser.add_argument(
+        "--candidate-sha",
+        dest="candidate_sha",
+        default=None,
+        help=(
+            "explicit 40-hex candidate git SHA this run qualifies (the real release-"
+            "qualification path); defaults to the current git HEAD for ad-hoc/local runs"
+        ),
+    )
 
     args = parser.parse_args(argv)
     scenario_id = args.scenario_flag or args.scenario
     if args.command == "answers":
-        return _run_answers(scenario_id)
+        return _run_answers(scenario_id, args.candidate_sha)
     return _run(scenario_id)
 
 

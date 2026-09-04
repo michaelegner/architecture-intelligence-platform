@@ -41,6 +41,7 @@ def build_report(result: SuiteResult) -> dict:
     return {
         "schema_version": SCHEMA_VERSION,
         "suite": SUITE_NAME,
+        "candidate_sha": result.candidate_sha,
         "result": "PASS" if overall_pass else "FAIL",
         "run_count": result.run_count,
         "semantic_outputs_identical": result.semantic_outputs_identical,

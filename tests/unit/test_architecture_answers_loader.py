@@ -93,6 +93,27 @@ def test_load_scenario_rejects_a_timestamp_without_explicit_offset(tmp_path):
         loader.load_scenario(scenario_dir)
 
 
+def test_load_scenario_rejects_a_non_string_description(tmp_path):
+    bad_yaml = _VALID_REQUEST_YAML.replace("description: minimal scenario", "description: [1, 2]")
+    scenario_dir = _write_scenario(tmp_path, request_yaml=bad_yaml)
+    with pytest.raises(ScenarioValidationError):
+        loader.load_scenario(scenario_dir)
+
+
+def test_load_scenario_rejects_a_non_string_environment(tmp_path):
+    bad_yaml = _VALID_REQUEST_YAML.replace("environment: test", "environment: 42")
+    scenario_dir = _write_scenario(tmp_path, request_yaml=bad_yaml)
+    with pytest.raises(ScenarioValidationError):
+        loader.load_scenario(scenario_dir)
+
+
+def test_load_scenario_rejects_a_non_string_snapshot_id(tmp_path):
+    bad_yaml = _VALID_REQUEST_YAML + "  snapshot_id: 42\n"
+    scenario_dir = _write_scenario(tmp_path, request_yaml=bad_yaml)
+    with pytest.raises(ScenarioValidationError):
+        loader.load_scenario(scenario_dir)
+
+
 def test_load_scenario_requires_expected_answer_file(tmp_path):
     scenario_dir = _write_scenario(tmp_path, expected_answer=None)
     with pytest.raises(ScenarioValidationError):

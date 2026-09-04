@@ -21,20 +21,23 @@ from app.architecture_intelligence.request import ServiceDependenciesRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.graph.schema import ensure_schema
 from evaluation import fixture_setup
-from evaluation.architecture_answers.candidate import current_git_sha
+from evaluation.architecture_answers.candidate import resolve_candidate_sha
 from evaluation.architecture_answers.comparator import ScenarioReport, compare
 from evaluation.architecture_answers.model import Scenario
 
-# Real production build-provenance wiring is finalized in I4 (spec §10); until then this evaluator
-# injects the actual candidate git SHA rather than a placeholder literal (spec §27/§28 - a missing
-# or placeholder build revision must never qualify a release artifact). producer.name/version are
-# still frozen literals - the application identity/version target, not the per-commit revision.
-PRODUCER = Producer(
-    name="architecture-intelligence-platform", version="0.4.0", build_revision=current_git_sha()
-)
-
 _DATABASE = "neo4j"
 _BROKEN_EVIDENCE_QUERY = "MATCH (e:Evidence {id: $id}) RETURN count(e) AS c"
+
+
+def _build_producer(candidate_sha: str) -> Producer:
+    # Real production build-provenance wiring is finalized in I4 (spec §10); until then this
+    # evaluator injects the resolved candidate SHA rather than a placeholder literal (spec §27/§28
+    # - a missing or placeholder build revision must never qualify a release artifact).
+    # name/version are still frozen literals - the application identity/version target, not the
+    # per-run revision.
+    return Producer(
+        name="architecture-intelligence-platform", version="0.4.0", build_revision=candidate_sha
+    )
 
 
 def _build_request(scenario: Scenario) -> ServiceDependenciesRequest:
@@ -61,7 +64,7 @@ def _build_request(scenario: Scenario) -> ServiceDependenciesRequest:
 
 
 def _run_pass(
-    driver: neo4j.Driver, *, scenario: Scenario
+    driver: neo4j.Driver, *, scenario: Scenario, producer: Producer
 ) -> ArchitectureAnswer[ServiceDependenciesData]:
     fixture_setup.prepare_scenario(driver, database=_DATABASE, scenario_path=scenario.path)
     # `import_all_sources` (inside prepare_scenario) also calls this, idempotently, whenever a
@@ -72,7 +75,7 @@ def _run_pass(
     # existing relation-facts suite's own tests assert on.
     with driver.session(database=_DATABASE) as session:
         ensure_schema(session)
-    service = ArchitectureIntelligenceService(driver, database=_DATABASE, producer=PRODUCER)
+    service = ArchitectureIntelligenceService(driver, database=_DATABASE, producer=producer)
     return service.get_service_dependencies(_build_request(scenario))
 
 
@@ -98,30 +101,46 @@ def _suite_hash(answers: list[ArchitectureAnswer[ServiceDependenciesData]]) -> s
 
 @dataclass(frozen=True)
 class SuiteResult:
+    candidate_sha: str
     reports: tuple[ScenarioReport, ...]
     run_count: int
     run_output_sha256: tuple[str, str]
     semantic_outputs_identical: bool
 
 
-def run_suite(driver: neo4j.Driver, scenarios: list[Scenario]) -> SuiteResult:
+def run_suite(
+    driver: neo4j.Driver, scenarios: list[Scenario], *, candidate_sha: str | None = None
+) -> SuiteResult:
+    """`candidate_sha` is the one immutable run identity shared by the producer injected into every
+    live service call, the comparator's independent `producer.build_revision` check, and the
+    recorded result artifact (I1.4 review) - resolved exactly once here, not re-derived separately
+    by each component. Pass it explicitly (`python -m evaluation answers --candidate-sha <40hex>`)
+    for a real release-qualification run; omit it only for ad-hoc/local runs against the current
+    checkout."""
+    resolved_sha = resolve_candidate_sha(candidate_sha)
+    producer = _build_producer(resolved_sha)
     sorted_scenarios = sorted(scenarios, key=lambda s: s.id)
 
-    first_pass = [_run_pass(driver, scenario=scenario) for scenario in sorted_scenarios]
+    first_pass = [
+        _run_pass(driver, scenario=scenario, producer=producer) for scenario in sorted_scenarios
+    ]
 
     second_pass: list[ArchitectureAnswer[ServiceDependenciesData]] = []
     reports: list[ScenarioReport] = []
     for scenario in sorted_scenarios:
-        answer = _run_pass(driver, scenario=scenario)
+        answer = _run_pass(driver, scenario=scenario, producer=producer)
         second_pass.append(answer)
         # Must happen immediately, before the next scenario's reset_graph wipes this state.
         broken_refs = _broken_evidence_refs(driver, evidence_refs=tuple(answer.evidence_refs))
-        reports.append(compare(scenario, answer, broken_evidence_refs=broken_refs))
+        reports.append(
+            compare(scenario, answer, candidate_sha=resolved_sha, broken_evidence_refs=broken_refs)
+        )
 
     first_hash = _suite_hash(first_pass)
     second_hash = _suite_hash(second_pass)
 
     return SuiteResult(
+        candidate_sha=resolved_sha,
         reports=tuple(reports),
         run_count=2,
         run_output_sha256=(first_hash, second_hash),

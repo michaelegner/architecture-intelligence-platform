@@ -16,7 +16,6 @@ from enum import StrEnum
 from pydantic import BaseModel
 
 from app.architecture_intelligence.contracts import ArchitectureAnswer, ServiceDependenciesData
-from evaluation.architecture_answers.candidate import current_git_sha
 from evaluation.architecture_answers.model import Scenario
 
 _CLAIM_FIELDS = (
@@ -78,6 +77,8 @@ def _check(
 def _answer_level_mismatches(
     expected: ArchitectureAnswer[ServiceDependenciesData],
     actual: ArchitectureAnswer[ServiceDependenciesData],
+    *,
+    candidate_sha: str,
 ) -> list[FieldMismatch]:
     mismatches: list[FieldMismatch] = []
     _check(
@@ -102,19 +103,17 @@ def _answer_level_mismatches(
         expected=expected.producer.version,
         actual=actual.producer.version,
     )
-    # Not a frozen-literal comparison, deliberately: build_revision is the *current commit's* SHA,
+    # Not a frozen-literal comparison, deliberately: build_revision is the run's own candidate SHA,
     # which changes every commit - freezing it in expected_answer.json would reproduce the exact
-    # portability defect the snapshot/context identities already had to be fixed for. Instead this
-    # independently re-derives the real candidate SHA (spec §10/§27/§28: a missing or placeholder
-    # build revision must never qualify a release artifact) and checks the actual answer against
-    # it directly - this still catches a real regression (e.g. the runner reverting to a
-    # placeholder literal), since the comparator computes its own expectation rather than trusting
-    # whatever the runner injected.
+    # portability defect the snapshot/context identities already had to be fixed for. `candidate_sha`
+    # is the one immutable run identity `run_suite` resolved once and threaded through both the
+    # producer injected into the live service call and this check (I1.4 review) - not
+    # independently re-derived here, so there's no room for the two to silently diverge.
     _check(
         mismatches,
         claim_id=None,
         field="producer.build_revision",
-        expected=current_git_sha(),
+        expected=candidate_sha,
         actual=actual.producer.build_revision,
     )
     _check(
@@ -163,10 +162,11 @@ def compare(
     scenario: Scenario,
     actual: ArchitectureAnswer[ServiceDependenciesData],
     *,
+    candidate_sha: str,
     broken_evidence_refs: tuple[str, ...] = (),
 ) -> ScenarioReport:
     expected = scenario.expected
-    field_mismatches = _answer_level_mismatches(expected, actual)
+    field_mismatches = _answer_level_mismatches(expected, actual, candidate_sha=candidate_sha)
 
     expected_by_id = {claim.claim_id: claim for claim in expected.claims}
     actual_by_id = {claim.claim_id: claim for claim in actual.claims}

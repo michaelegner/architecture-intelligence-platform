@@ -9,8 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from app.architecture_intelligence.contracts import Producer
-from evaluation.architecture_answers import runner as runner_module
+from evaluation.architecture_answers.candidate import InvalidCandidateSha, current_git_sha
 from evaluation.architecture_answers.loader import (
     EXPECTED_ANSWER_FILENAME,
     discover_scenarios,
@@ -100,23 +99,32 @@ def test_a_wrong_expected_tool_is_caught_as_a_field_mismatch(tmp_path, driver):
     assert exit_code(result) == 1
 
 
-def test_a_placeholder_producer_build_revision_is_caught_as_a_field_mismatch(driver, monkeypatch):
-    """The exact regression spec §27/§28 name as a release blocker - the runner reverting to a
-    placeholder build revision - simulated by monkeypatching the injected Producer for this one
-    run. The comparator must catch it via its own independently-derived expectation (the real
-    current git SHA), not by trusting whatever the runner happened to inject."""
-    placeholder = Producer(
-        name="architecture-intelligence-platform", version="0.4.0", build_revision="0" * 40
-    )
-    monkeypatch.setattr(runner_module, "PRODUCER", placeholder)
+def test_an_explicit_candidate_sha_is_injected_into_the_real_answer_and_recorded(driver):
+    """The real release-qualification path (I1.4 review finding #1): an explicit --candidate-sha
+    is what a release process pins before the run starts, rather than trusting whatever `git
+    rev-parse HEAD` happens to resolve to at some ambient moment. It must be the one immutable
+    value the producer injected into the live service call, the comparator's check, and the
+    recorded result all agree on - not independently re-derived by each."""
+    explicit_sha = "1234567890abcdef1234567890abcdef12345678"
+    scenario = load_scenario(SCENARIOS_DIR / "empty-service")
 
+    result = run_suite(driver, [scenario], candidate_sha=explicit_sha)
+
+    assert result.candidate_sha == explicit_sha
+    [report] = result.reports
+    assert report.passed  # the actual answer's producer.build_revision matches what was injected
+
+
+def test_default_candidate_sha_falls_back_to_the_current_git_head(driver):
     scenario = load_scenario(SCENARIOS_DIR / "empty-service")
     result = run_suite(driver, [scenario])
+    assert result.candidate_sha == current_git_sha()
 
-    [report] = result.reports
-    assert not report.passed
-    assert any(m.field == "producer.build_revision" for m in report.field_mismatches)
-    assert exit_code(result) == 1
+
+def test_a_malformed_candidate_sha_is_rejected(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "empty-service")
+    with pytest.raises(InvalidCandidateSha):
+        run_suite(driver, [scenario], candidate_sha="not-a-real-sha")
 
 
 @pytest.fixture(autouse=True)
