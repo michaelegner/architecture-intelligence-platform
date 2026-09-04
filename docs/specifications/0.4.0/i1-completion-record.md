@@ -121,19 +121,16 @@ covered by unit tests (`PARTIAL`-via-mixed-resolution, `OBSERVATION_CONTEXT_REQU
       suite's own two-full-pass proof).
 - [x] Existing tests and deterministic architecture evaluation remain green — full regression above;
       the v0.2.0 relation-facts suite is untouched in behavior and still 10/10.
-- [ ] CI, lint, CodeQL and dependency checks pass on the exact I1 candidate — lint/format confirmed
-      locally above; CI/CodeQL/dependency-audit confirmation is pending this PR's own checks (to be
-      confirmed before merge, not re-described here once green).
+- [x] CI, lint, CodeQL and dependency checks pass on the exact I1 candidate — confirmed on PR #74 at
+      candidate commit `4297e0b457b86f9e982ed5852058f28ca8ea6a34` (`lint + test`, `CodeQL`,
+      `analyze (actions)`, `analyze (python)`, `dependency security scan (pip-audit, spec §29)` —
+      all pass; verified at PR head `a70cd5d808fa610eefc532217cbda12806487492`, a documentation-only
+      descendant of the candidate that changes no code CI needed to re-validate).
 
 ## Exit Statement (spec §29)
 
-Pending the final DoD item (CI/CodeQL/dependency-audit on the exact candidate commit). Once those
-checks are confirmed green on `4297e0b457b86f9e982ed5852058f28ca8ea6a34` (or its final PR head, if
-review produces further follow-up commits — this record is updated to cite whichever commit
-actually qualifies):
-
 ```text
-GO — At <candidate SHA>, a direct ArchitectureIntelligenceService call returns a deterministic,
-evidence-qualified, snapshot-bound answer for one service's bounded direct dependencies, with
-destination separated from delivery and zero graph writes.
+GO — At 4297e0b457b86f9e982ed5852058f28ca8ea6a34, a direct ArchitectureIntelligenceService call
+returns a deterministic, evidence-qualified, snapshot-bound answer for one service's bounded direct
+dependencies, with destination separated from delivery and zero graph writes.
 ```
