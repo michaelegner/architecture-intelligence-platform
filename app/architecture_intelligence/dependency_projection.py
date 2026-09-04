@@ -148,39 +148,55 @@ def _queue_ref(send: dict) -> EntityRef:
     )
 
 
+def _accepted_evidence_ids(evidence_ids: list[str], evidence_by_id: dict[str, dict]) -> list[str]:
+    """Spec §15: every emitted evidence reference must point to an Evidence node included in the
+    accepted snapshot. A relation's raw `evidence_ids` can be non-empty yet dangling (the id no
+    longer resolves to any Evidence row `read_service_dependency_rows` fetched) - that must not
+    count as "evidenced" for destination resolution, any more than it counts for qualification
+    (`_matches_declared`/`_matches_observed` apply the same `eid in evidence_by_id` filter)."""
+    return sorted(eid for eid in evidence_ids if eid in evidence_by_id)
+
+
 def _resolve_sync_destination(
-    call: dict, providers: list[dict]
+    call: dict, providers: list[dict], evidence_by_id: dict[str, dict]
 ) -> tuple[DestinationResolution, EntityRef, list[str]]:
     """Spec §13.1: exactly one evidenced provider resolves to that `Service`; zero or more than one
     is not guessed - retain the `Operation` itself with `DIRECT_TARGET_FALLBACK`."""
-    evidenced = {p["provider_id"]: p for p in providers if p["evidence_ids"]}
+    evidenced = {
+        p["provider_id"]: accepted
+        for p in providers
+        if (accepted := _accepted_evidence_ids(p["evidence_ids"], evidence_by_id))
+    }
     if len(evidenced) == 1:
-        provider = next(iter(evidenced.values()))
+        [(provider_id, accepted_evidence_ids)] = evidenced.items()
+        provider = next(p for p in providers if p["provider_id"] == provider_id)
         return (
             DestinationResolution.RESOLVED_SERVICE,
-            EntityRef(
-                id=provider["provider_id"], type=EntityType.SERVICE, name=provider["provider_name"]
-            ),
-            sorted(set(provider["evidence_ids"])),
+            EntityRef(id=provider_id, type=EntityType.SERVICE, name=provider["provider_name"]),
+            accepted_evidence_ids,
         )
     return DestinationResolution.DIRECT_TARGET_FALLBACK, _operation_ref(call), []
 
 
 def _resolve_async_destinations(
-    send: dict, consumers: list[dict]
+    send: dict, consumers: list[dict], evidence_by_id: dict[str, dict]
 ) -> list[tuple[DestinationResolution, EntityRef, list[str]]]:
     """Spec §13.2: every distinct evidenced consumer is valid fan-out, not ambiguity; zero evidenced
     consumers is not guessed - retain the `Queue` itself with `DIRECT_TARGET_FALLBACK`."""
-    evidenced = {c["consumer_id"]: c for c in consumers if c["evidence_ids"]}
+    evidenced: dict[str, tuple[dict, list[str]]] = {}
+    for consumer in consumers:
+        accepted = _accepted_evidence_ids(consumer["evidence_ids"], evidence_by_id)
+        if accepted:
+            evidenced[consumer["consumer_id"]] = (consumer, accepted)
     if not evidenced:
         return [(DestinationResolution.DIRECT_TARGET_FALLBACK, _queue_ref(send), [])]
     return [
         (
             DestinationResolution.RESOLVED_SERVICE,
             EntityRef(id=consumer_id, type=EntityType.SERVICE, name=consumer["consumer_name"]),
-            sorted(set(consumer["evidence_ids"])),
+            accepted_evidence_ids,
         )
-        for consumer_id, consumer in sorted(evidenced.items())
+        for consumer_id, (consumer, accepted_evidence_ids) in sorted(evidenced.items())
     ]
 
 
@@ -316,7 +332,7 @@ def project_service_dependencies(
             continue
         qualification, coverage_class, evidence_refs = qualified
         destination_resolution, object_ref, resolution_evidence_refs = _resolve_sync_destination(
-            call, providers_by_operation.get(call["operation_id"], [])
+            call, providers_by_operation.get(call["operation_id"], []), evidence_by_id
         )
         claim = _build_claim(
             subject=subject,
@@ -358,7 +374,7 @@ def project_service_dependencies(
             continue
         qualification, coverage_class, evidence_refs = qualified
         destinations = _resolve_async_destinations(
-            send, receivers_by_queue.get(send["queue_id"], [])
+            send, receivers_by_queue.get(send["queue_id"], []), evidence_by_id
         )
         for destination_resolution, object_ref, resolution_evidence_refs in destinations:
             claim = _build_claim(

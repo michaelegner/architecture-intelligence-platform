@@ -191,6 +191,132 @@ def test_an_evidenceless_provides_relation_does_not_count_as_a_supported_provide
     assert claim.destination_resolution == DestinationResolution.DIRECT_TARGET_FALLBACK
 
 
+def test_a_provides_relation_with_only_a_dangling_evidence_id_falls_back_to_the_operation():
+    """The PROVIDES relation's evidence_ids is non-empty, but "ghost" resolves to no Evidence row
+    in the accepted snapshot - that must not count as an evidenced provider (spec §15)."""
+    result = _project(
+        {
+            "calls": [
+                {
+                    "operation_id": "operation:product-service:GET:/products/{id}",
+                    "operation_name": None,
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "evidence_ids": ["e1"],
+                }
+            ],
+            "provides": [
+                {
+                    "operation_id": "operation:product-service:GET:/products/{id}",
+                    "provider_id": "service:product-service",
+                    "provider_name": "ProductService",
+                    "evidence_ids": ["ghost"],
+                }
+            ],
+            "evidence": _declared("e1"),  # "ghost" deliberately absent
+        }
+    )
+    [claim] = result.claims
+    assert claim.destination_resolution == DestinationResolution.DIRECT_TARGET_FALLBACK
+    assert claim.object.type == EntityType.OPERATION
+    assert claim.resolution_evidence_refs == []
+    [limitation] = result.limitations
+    assert limitation.code == LimitationCode.UNRESOLVED_IDENTITY
+    assert limitation.claim_ids == [claim.claim_id]
+
+
+def test_a_provides_relation_with_mixed_valid_and_dangling_evidence_resolves_with_only_valid_refs():
+    result = _project(
+        {
+            "calls": [
+                {
+                    "operation_id": "operation:product-service:GET:/products/{id}",
+                    "operation_name": None,
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "evidence_ids": ["e1"],
+                }
+            ],
+            "provides": [
+                {
+                    "operation_id": "operation:product-service:GET:/products/{id}",
+                    "provider_id": "service:product-service",
+                    "provider_name": "ProductService",
+                    "evidence_ids": ["e2", "ghost"],
+                }
+            ],
+            "evidence": {**_declared("e1"), **_declared("e2")},  # "ghost" deliberately absent
+        }
+    )
+    [claim] = result.claims
+    assert claim.destination_resolution == DestinationResolution.RESOLVED_SERVICE
+    assert claim.object.id == "service:product-service"
+    assert claim.resolution_evidence_refs == ["e2"]
+    assert result.limitations == []
+
+
+def test_a_receives_from_relation_with_only_a_dangling_evidence_id_falls_back_to_the_queue():
+    result = _project(
+        {
+            "sends": [
+                {
+                    "queue_id": "queue:asb:commerce:payment-q",
+                    "queue_name": "payment-q",
+                    "protocol": "amqp",
+                    "namespace": "commerce",
+                    "evidence_ids": ["e1"],
+                }
+            ],
+            "receives": [
+                {
+                    "queue_id": "queue:asb:commerce:payment-q",
+                    "consumer_id": "service:payment-service",
+                    "consumer_name": "PaymentService",
+                    "evidence_ids": ["ghost"],
+                }
+            ],
+            "evidence": _declared("e1"),  # "ghost" deliberately absent
+        }
+    )
+    [claim] = result.claims
+    assert claim.destination_resolution == DestinationResolution.DIRECT_TARGET_FALLBACK
+    assert claim.object.type == EntityType.QUEUE
+    assert claim.resolution_evidence_refs == []
+    [limitation] = result.limitations
+    assert limitation.code == LimitationCode.UNRESOLVED_IDENTITY
+    assert limitation.claim_ids == [claim.claim_id]
+
+
+def test_a_receives_from_relation_with_mixed_valid_and_dangling_evidence_resolves_with_only_valid_refs():
+    result = _project(
+        {
+            "sends": [
+                {
+                    "queue_id": "queue:asb:commerce:payment-q",
+                    "queue_name": "payment-q",
+                    "protocol": "amqp",
+                    "namespace": "commerce",
+                    "evidence_ids": ["e1"],
+                }
+            ],
+            "receives": [
+                {
+                    "queue_id": "queue:asb:commerce:payment-q",
+                    "consumer_id": "service:payment-service",
+                    "consumer_name": "PaymentService",
+                    "evidence_ids": ["e2", "ghost"],
+                }
+            ],
+            "evidence": {**_declared("e1"), **_declared("e2")},  # "ghost" deliberately absent
+        }
+    )
+    [claim] = result.claims
+    assert claim.destination_resolution == DestinationResolution.RESOLVED_SERVICE
+    assert claim.object.id == "service:payment-service"
+    assert claim.resolution_evidence_refs == ["e2"]
+    assert result.limitations == []
+
+
 def test_two_operations_to_one_service_remain_two_delivery_claims():
     result = _project(
         {
