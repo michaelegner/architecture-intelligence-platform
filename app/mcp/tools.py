@@ -1,14 +1,17 @@
-"""v0.4.0 I2.1 - registers the two I2 tools for discovery (spec §9, §19's "deterministic two-tool
-discovery").
+"""v0.4.0 I2.1/I2.2 - registers the two I2 tools for discovery (spec §9, §19's "deterministic
+two-tool discovery") and gives `get_service_dependencies` its real dispatch body (spec §10).
 
-Both bodies raise `ToolError` here: discoverable via `tools/list`, not yet callable. Mapping to
-`ArchitectureIntelligenceService` is out of scope for the "Protocol and Contract Skeleton"
-sub-increment - `get_service_dependencies`'s real dispatch lands in I2.2, `get_evidence`'s in I2.3.
-Do not add real dispatch logic here.
+`get_evidence` still raises `ToolError` here: discoverable via `tools/list`, not yet callable -
+its service logic lands in I2.3. Do not add real dispatch logic for it here.
 
 `register_tools` takes an explicit `MCPServer` rather than registering directly against the
 module-level singleton, so tests can build an isolated server (and session manager) per test instead
-of sharing `app.mcp.server.mcp_server`'s across an entire event loop/test run.
+of sharing `app.mcp.server.mcp_server`'s across an entire event loop/test run. It also takes an
+explicit `get_service` callable (defaulting to `app.mcp.wiring.get_service`, the real lazy production
+lookup - see that module's docstring for why the lookup must be lazy) for the same reason: a test
+closes over its own real-or-stub `ArchitectureIntelligenceService` instead of mutating the shared
+production wiring singleton. `get_service` is called once per `get_service_dependencies` dispatch,
+never at registration time.
 
 Each tool takes one `request` parameter typed as the real I1/I2 request model, so the SDK derives
 `inputSchema` from that model's own (already frozen/tested) schema, nested under a `request` key
@@ -27,6 +30,9 @@ contract say so too.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
+import pydantic
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
@@ -37,6 +43,8 @@ from app.architecture_intelligence.contracts import (
     ServiceDependenciesData,
 )
 from app.architecture_intelligence.request import EvidenceRequest, ServiceDependenciesRequest
+from app.architecture_intelligence.service import ArchitectureIntelligenceService
+from app.mcp import wiring
 
 _READ_ONLY_ANNOTATIONS = ToolAnnotations(
     read_only_hint=True,
@@ -46,7 +54,11 @@ _READ_ONLY_ANNOTATIONS = ToolAnnotations(
 )
 
 
-def register_tools(server: MCPServer) -> None:
+def register_tools(
+    server: MCPServer,
+    *,
+    get_service: Callable[[], ArchitectureIntelligenceService] = wiring.get_service,
+) -> None:
     """Registration order IS `tools/list` order - confirmed live that the SDK reports tools in
     registration order, not sorted. Spec §9 requires exactly `get_evidence`,
     `get_service_dependencies` (lexicographic) - `get_evidence` is registered first for that
@@ -75,7 +87,40 @@ def register_tools(server: MCPServer) -> None:
     def get_service_dependencies(
         request: ServiceDependenciesRequest,
     ) -> ArchitectureAnswer[ServiceDependenciesData]:
-        raise ToolError("get_service_dependencies is not yet implemented (lands in I2.2)")
+        """Spec §10: constructs no new semantics - calls
+        `ArchitectureIntelligenceService.get_service_dependencies` exactly once and returns its
+        answer unchanged as `structuredContent` (confirmed live in I2.1: a `BaseModel`-typed return
+        value is used directly, not wrapped).
+
+        Only one exception is caught here. `pydantic.ValidationError` is
+        `ArchitectureIntelligenceService.get_service_dependencies`'s own documented, deliberate
+        signal for a malformed *value* inside a supplied `observation_context` (bad offset,
+        reversed/excessive window, invalid environment) - spec §16's "Invalid tool arguments" row,
+        just raised by the service instead of the SDK's own argument-schema check. Its message only
+        describes the caller's own submitted field/value, never server internals, so it is
+        deliberately re-raised as a `ToolError` (not left to fall into the generic crash path below)
+        so the caller gets that actionable detail instead of a generic internal-error message.
+
+        Nothing else needs to be caught. Confirmed live (`mcp.server.mcpserver.tools.base.Tool.run`)
+        that the SDK itself already sanitizes any *other* uncaught tool-body exception into
+        `UnexpectedToolError("Error executing tool get_service_dependencies")` - by design, never
+        interpolating `str(exc)` - and separately logs the real exception and traceback server-side
+        (`mcp.server.mcpserver.server._handle_call_tool`'s `logger.exception(...)`). That already
+        satisfies spec §16's "Unexpected internal/driver failure -> Sanitized tool execution error"
+        row and the §15/§20 "connection strings, server paths ... never returned" release blocker
+        (e.g. a Neo4j connectivity failure's message, which can embed the bolt URI/host) with no
+        adapter code - duplicating it here would be redundant, not additionally safe.
+
+        Every other outcome (`ANSWERED`/`PARTIAL`/`NOT_ANSWERED`, including a
+        `SNAPSHOT_NOT_AVAILABLE`/`UNKNOWN_ENTITY`/etc. refusal) is a normal *returned*
+        `ArchitectureAnswer`, never an exception - the SDK's default "no exception raised" path
+        already gives `isError: false` for those, satisfying spec §10 rule 5 with no code needed
+        here.
+        """
+        try:
+            return get_service().get_service_dependencies(request)
+        except pydantic.ValidationError as exc:
+            raise ToolError(str(exc)) from exc
 
     for tool_name in ("get_evidence", "get_service_dependencies"):
         _close_input_schema(server, tool_name)
