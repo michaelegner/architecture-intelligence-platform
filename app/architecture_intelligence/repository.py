@@ -1,11 +1,10 @@
-"""v0.4.0 I1.2 - canonical snapshot projection, fingerprinting, and the bounded stable-read retry
-(spec §17/§18/§19.1).
+"""v0.4.0 I1.2/I1.3 - canonical snapshot projection, fingerprinting, the bounded stable-read retry
+(spec §17/§18/§19.1), and the request-scoped dependency-projection read (spec §13).
 
-This is the beginning of the `ArchitectureReadRepository` the I1 spec's architecture diagram places
-between `ArchitectureIntelligenceService` and Neo4j - it owns only read mechanics and raw graph
-projection (spec §7). I1.3 will add the request-specific dependency-projection queries here
-alongside what I1.2 delivers; neither this module nor I1.3's additions may decide public outcome
-semantics or return an `ArchitectureAnswer`.
+This is the `ArchitectureReadRepository` the I1 spec's architecture diagram places between
+`ArchitectureIntelligenceService` and Neo4j - it owns only read mechanics and raw graph projection
+(spec §7). Neither this module nor its callers may decide public outcome semantics or return an
+`ArchitectureAnswer`; `app.architecture_intelligence.dependency_projection` and `.service` own that.
 """
 
 from __future__ import annotations
@@ -13,9 +12,11 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 
 import neo4j
 
+from app.analysis.runtime import telemetry_coverage
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from app.graph.revision_fence import read_revision
 
@@ -181,3 +182,111 @@ def read_stable_snapshot_from_session[T](
         read_extra=lambda: read_extra(session),
         max_attempts=max_attempts,
     )
+
+
+# --- I1.3: request-scoped dependency-projection read (spec §13) --------------------------------
+#
+# Deliberately small, targeted queries in the style of app.analysis.runtime rather than reusing
+# the full-graph canonical_snapshot_state above: that state exists to fingerprint the *entire*
+# queryable graph for the snapshot, not to double as the data source for a single service's
+# question. Every query here is passed as this call's `read_extra` (see service.py), so it runs
+# inside the same stable-read attempt - and therefore observes the same committed state - as the
+# fingerprinted state used to compute snapshot_id/model_revision (spec §19: "snapshot and answer
+# can observe different committed states" is a release blocker).
+
+_SERVICE_NAME_QUERY = "MATCH (s:Service {id: $service_id}) RETURN s.name AS name"
+
+_CALLS_QUERY = (
+    "MATCH (a:Service {id: $service_id})-[r:CALLS]->(o:Operation) "
+    "RETURN o.id AS operation_id, o.name AS operation_name, o.method AS method, o.path AS path, "
+    "coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+_PROVIDES_FOR_OPERATIONS_QUERY = (
+    "MATCH (p:Service)-[r:PROVIDES]->(o:Operation) WHERE o.id IN $operation_ids "
+    "RETURN o.id AS operation_id, p.id AS provider_id, p.name AS provider_name, "
+    "coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+_SENDS_QUERY = (
+    "MATCH (a:Service {id: $service_id})-[r:SENDS]->(q:Queue) "
+    "RETURN q.id AS queue_id, q.name AS queue_name, q.protocol AS protocol, "
+    "q.namespace AS namespace, coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+_RECEIVES_FOR_QUEUES_QUERY = (
+    "MATCH (c:Service)-[r:RECEIVES_FROM]->(q:Queue) WHERE q.id IN $queue_ids "
+    "RETURN q.id AS queue_id, c.id AS consumer_id, c.name AS consumer_name, "
+    "coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+_EVIDENCE_FOR_IDS_QUERY = (
+    "MATCH (e:Evidence) WHERE e.id IN $evidence_ids "
+    "RETURN e.id AS id, e.evidence_type AS evidence_type, e.environment AS environment, "
+    "e.last_seen AS last_seen"
+)
+
+
+def _referenced_evidence_ids(*row_groups: list[dict]) -> list[str]:
+    return sorted({eid for rows in row_groups for row in rows for eid in row["evidence_ids"]})
+
+
+def read_service_dependency_rows(
+    session: neo4j.Session,
+    *,
+    service_id: str,
+    environment: str,
+    window_start: datetime,
+    window_end: datetime,
+) -> dict:
+    """The raw rows `dependency_projection.project_service_dependencies` needs for one service:
+    its own outgoing `CALLS`/`SENDS` relations, the evidenced `PROVIDES`/`RECEIVES_FROM` relations
+    that could resolve each destination, the referenced `Evidence` rows' qualification-relevant
+    fields, and the existing O5 telemetry-coverage signal (spec §14 reuses the existing runtime
+    evidence rules unchanged - `app.analysis.runtime.telemetry_coverage` *is* that rule, not a
+    reimplementation of it). `service_name` is `None` when the service doesn't exist at all - the
+    caller decides the `UNKNOWN_ENTITY` outcome, this function only reports raw absence."""
+    name_row = session.run(_SERVICE_NAME_QUERY, service_id=service_id).single()
+    service_name = name_row["name"] if name_row else None
+
+    calls = [dict(record) for record in session.run(_CALLS_QUERY, service_id=service_id)]
+    operation_ids = sorted({call["operation_id"] for call in calls})
+    provides = (
+        [
+            dict(record)
+            for record in session.run(_PROVIDES_FOR_OPERATIONS_QUERY, operation_ids=operation_ids)
+        ]
+        if operation_ids
+        else []
+    )
+
+    sends = [dict(record) for record in session.run(_SENDS_QUERY, service_id=service_id)]
+    queue_ids = sorted({send["queue_id"] for send in sends})
+    receives = (
+        [dict(record) for record in session.run(_RECEIVES_FOR_QUEUES_QUERY, queue_ids=queue_ids)]
+        if queue_ids
+        else []
+    )
+
+    evidence_ids = _referenced_evidence_ids(calls, provides, sends, receives)
+    evidence = {}
+    if evidence_ids:
+        for record in session.run(_EVIDENCE_FOR_IDS_QUERY, evidence_ids=evidence_ids):
+            row = dict(record)
+            if row["last_seen"] is not None:
+                row["last_seen"] = row["last_seen"].to_native()
+            evidence[row["id"]] = row
+
+    coverage = telemetry_coverage(
+        session,
+        environment=environment,
+        since=window_start,
+        until=window_end,
+        service_ids=[service_id],
+    )[0]
+
+    return {
+        "service_name": service_name,
+        "calls": calls,
+        "provides": provides,
+        "sends": sends,
+        "receives": receives,
+        "evidence": evidence,
+        "coverage": coverage,
+    }
