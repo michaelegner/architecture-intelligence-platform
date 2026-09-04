@@ -32,6 +32,7 @@ from evaluation.architecture_answers.model import (
     ScenarioValidationError as AnswerScenarioValidationError,
 )
 from evaluation.architecture_answers.reporter import exit_code as answer_exit_code
+from evaluation.architecture_answers.reporter import render_json as render_answer_json
 from evaluation.architecture_answers.reporter import write_report as write_answer_report
 from evaluation.architecture_answers.runner import SuiteResult, run_suite
 from evaluation.comparator import ScenarioResult
@@ -140,7 +141,13 @@ def _run_answers(scenario_id: str | None) -> int:
         finally:
             driver.close()
 
-    print(write_answer_report(result))
+    # Only an unfiltered (full-suite) run writes the canonical qualification artifact - a
+    # scenario-filtered run prints its result but must never silently overwrite the committed
+    # 8-scenario i1-evaluation-result.json with a partial one (I1.4 review finding #4).
+    if scenario_id is None:
+        print(write_answer_report(result))
+    else:
+        print(render_answer_json(result))
     return answer_exit_code(result)
 
 

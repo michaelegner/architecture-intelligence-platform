@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from app.architecture_intelligence.contracts import Producer
+from evaluation.architecture_answers import runner as runner_module
 from evaluation.architecture_answers.loader import (
     EXPECTED_ANSWER_FILENAME,
     discover_scenarios,
@@ -79,6 +81,42 @@ def test_a_forged_expected_claim_id_is_caught_as_missing_and_unexpected(tmp_path
     assert not report.passed
     assert report.missing_claim_ids == (forged_id,)
     assert len(report.unexpected_claim_ids) == 1
+
+
+def test_a_wrong_expected_tool_is_caught_as_a_field_mismatch(tmp_path, driver):
+    broken_dir = tmp_path / "sync-confirmed"
+    shutil.copytree(SCENARIOS_DIR / "sync-confirmed", broken_dir)
+    expected_path = broken_dir / EXPECTED_ANSWER_FILENAME
+    answer = json.loads(expected_path.read_text())
+    answer["tool"] = "get_something_else"
+    expected_path.write_text(json.dumps(answer))
+
+    scenario = load_scenario(broken_dir)
+    result = run_suite(driver, [scenario])
+
+    [report] = result.reports
+    assert not report.passed
+    assert any(m.field == "tool" for m in report.field_mismatches)
+    assert exit_code(result) == 1
+
+
+def test_a_placeholder_producer_build_revision_is_caught_as_a_field_mismatch(driver, monkeypatch):
+    """The exact regression spec §27/§28 name as a release blocker - the runner reverting to a
+    placeholder build revision - simulated by monkeypatching the injected Producer for this one
+    run. The comparator must catch it via its own independently-derived expectation (the real
+    current git SHA), not by trusting whatever the runner happened to inject."""
+    placeholder = Producer(
+        name="architecture-intelligence-platform", version="0.4.0", build_revision="0" * 40
+    )
+    monkeypatch.setattr(runner_module, "PRODUCER", placeholder)
+
+    scenario = load_scenario(SCENARIOS_DIR / "empty-service")
+    result = run_suite(driver, [scenario])
+
+    [report] = result.reports
+    assert not report.passed
+    assert any(m.field == "producer.build_revision" for m in report.field_mismatches)
+    assert exit_code(result) == 1
 
 
 @pytest.fixture(autouse=True)

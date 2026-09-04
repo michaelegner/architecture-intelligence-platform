@@ -517,6 +517,18 @@ reference tool - it re-implements §18's full canonicalization procedure) whenev
 own `input/` fixture files change** - this is inherent to frozen-literal expectations, not
 optional.
 
+**`producer.build_revision` is the one field deliberately *not* frozen.** Every other identity is a
+property of a scenario's fixture content, stable across commits - `producer.build_revision` is the
+current commit's own SHA, which by definition changes every commit. Freezing it would reproduce
+exactly the portability defect the snapshot/context identities already had to be fixed for (an
+earlier version of this suite did freeze `Evidence.source_file`-derived hashes via an absolute,
+checkout-location-specific path, and it broke on the first CI run on a different machine). Instead,
+`runner.py` injects the real candidate git SHA (`evaluation/architecture_answers/candidate.py`,
+`git rev-parse HEAD`) into the live service call, and `comparator.py` independently re-derives that
+same SHA to check the actual answer against - never trusting whatever the runner happened to
+inject, and never a placeholder literal (spec §27/§28 name a missing or placeholder build revision
+as a release blocker).
+
 ### Suite internals (for contributors)
 
 ```text
@@ -525,12 +537,15 @@ model.py       Request/Scenario - the expected side is the real ArchitectureAnsw
 loader.py      validates request.yaml's small schema; loads+validates expected_answer.json via the
                real Pydantic contract
 comparator.py  full-envelope diff: claim identity by real claim_id (never re-derived), every claim
-               field including both evidence-reference lists, answer-level fields (outcome,
-               snapshot, context, top-level evidence_refs, limitations), plus an independent
-               real-Neo4j evidence-existence check (broken_evidence_refs)
+               field including both evidence-reference lists, answer-level fields (schema_version,
+               tool, producer, outcome, snapshot, context, top-level evidence_refs, limitations),
+               plus an independent real-Neo4j evidence-existence check (broken_evidence_refs)
 runner.py      two full clean-state passes per suite run, using evaluation.fixture_setup's shared
                reset/ingest/telemetry/reconcile helpers and the real ArchitectureIntelligenceService
-reporter.py    deterministic JSON report, written to evaluation/architecture_answers/results/
-reference/     offline-only identity reimplementation (see above) - never imported by the four
-               modules above
+reporter.py    deterministic JSON report, written to evaluation/architecture_answers/results/ only
+               for an unfiltered full-suite run - a scenario-filtered run prints, never overwrites
+candidate.py   the real candidate git SHA (`git rev-parse HEAD`), asked independently by both
+               runner.py (what it injects) and comparator.py (what it checks against)
+reference/     offline-only identity reimplementation (see above) - never imported by the modules
+               above
 ```

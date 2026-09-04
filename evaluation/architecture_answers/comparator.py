@@ -16,6 +16,7 @@ from enum import StrEnum
 from pydantic import BaseModel
 
 from app.architecture_intelligence.contracts import ArchitectureAnswer, ServiceDependenciesData
+from evaluation.architecture_answers.candidate import current_git_sha
 from evaluation.architecture_answers.model import Scenario
 
 _CLAIM_FIELDS = (
@@ -79,6 +80,43 @@ def _answer_level_mismatches(
     actual: ArchitectureAnswer[ServiceDependenciesData],
 ) -> list[FieldMismatch]:
     mismatches: list[FieldMismatch] = []
+    _check(
+        mismatches,
+        claim_id=None,
+        field="schema_version",
+        expected=expected.schema_version,
+        actual=actual.schema_version,
+    )
+    _check(mismatches, claim_id=None, field="tool", expected=expected.tool, actual=actual.tool)
+    _check(
+        mismatches,
+        claim_id=None,
+        field="producer.name",
+        expected=expected.producer.name,
+        actual=actual.producer.name,
+    )
+    _check(
+        mismatches,
+        claim_id=None,
+        field="producer.version",
+        expected=expected.producer.version,
+        actual=actual.producer.version,
+    )
+    # Not a frozen-literal comparison, deliberately: build_revision is the *current commit's* SHA,
+    # which changes every commit - freezing it in expected_answer.json would reproduce the exact
+    # portability defect the snapshot/context identities already had to be fixed for. Instead this
+    # independently re-derives the real candidate SHA (spec §10/§27/§28: a missing or placeholder
+    # build revision must never qualify a release artifact) and checks the actual answer against
+    # it directly - this still catches a real regression (e.g. the runner reverting to a
+    # placeholder literal), since the comparator computes its own expectation rather than trusting
+    # whatever the runner injected.
+    _check(
+        mismatches,
+        claim_id=None,
+        field="producer.build_revision",
+        expected=current_git_sha(),
+        actual=actual.producer.build_revision,
+    )
     _check(
         mismatches, claim_id=None, field="outcome", expected=expected.outcome, actual=actual.outcome
     )

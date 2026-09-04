@@ -227,17 +227,32 @@ def test_a_concurrent_write_during_the_stable_read_forces_a_retry_through_the_re
     just app.architecture_intelligence.repository.read_stable_snapshot_from_session directly (I1.4
     review) - a real write is injected from inside the service's own read_extra callback (not a
     thread race, so this is deterministic, not flaky) and the final answer must reflect only the
-    post-write state, never a mix."""
+    post-write state, never a mix.
+
+    The injected write mutates a real canonical field (product-service's declared version) in the
+    same transaction as the revision bump, not just the revision alone (I1.4 review, non-blocking
+    strengthening) - a revision-only bump can't actually produce a semantically mixed read to
+    discard, since revision isn't part of the canonical fingerprint itself. Mutating a real
+    allowlisted field is what makes the final fingerprint assertion below meaningfully prove no
+    stale-field/bumped-revision mix was ever accepted."""
     import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
 
     real_read_rows = service_module.read_service_dependency_rows
     calls = {"count": 0}
 
+    def _mutate_and_bump(tx):
+        tx.run(
+            "MATCH (s:Service {id: $id}) SET s.version = $version",
+            id=ids.service_id("product-service"),
+            version="mutated-mid-read",
+        )
+        bump_revision(tx)
+
     def flaky_read_rows(session, **kwargs):
         calls["count"] += 1
         if calls["count"] == 1:
             with driver.session(database=DATABASE) as write_session:
-                write_session.execute_write(bump_revision)
+                write_session.execute_write(_mutate_and_bump)
         return real_read_rows(session, **kwargs)
 
     monkeypatch.setattr(service_module, "read_service_dependency_rows", flaky_read_rows)

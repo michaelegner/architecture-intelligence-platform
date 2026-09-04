@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
     DeliveryKind,
@@ -25,6 +27,16 @@ from evaluation.architecture_answers.model import Request, Scenario
 _PRODUCER = Producer(
     name="architecture-intelligence-platform", version="0.4.0", build_revision="f" * 40
 )
+
+
+@pytest.fixture(autouse=True)
+def _fixed_candidate_sha(monkeypatch):
+    """The comparator independently re-derives the real git SHA to check
+    `producer.build_revision` against (I1.4 review finding #1) - pin it to _PRODUCER's own value so
+    these tests exercise comparator logic, not this checkout's actual git state."""
+    monkeypatch.setattr(comparator, "current_git_sha", lambda: _PRODUCER.build_revision)
+
+
 _SNAPSHOT = SnapshotRef(
     snapshot_id="aip:snapshot:v1:" + "a" * 64, model_revision="sha256:" + "a" * 64
 )
@@ -110,6 +122,29 @@ def test_identical_answers_pass_with_no_mismatches():
     assert result.missing_claim_ids == ()
     assert result.unexpected_claim_ids == ()
     assert result.field_mismatches == ()
+
+
+def test_a_placeholder_build_revision_is_caught_even_though_it_is_not_the_frozen_literal(
+    monkeypatch,
+):
+    """producer.build_revision is deliberately NOT compared against the frozen expected literal
+    (I1.4 review finding #1) - it's compared against the independently re-derived real candidate
+    SHA. So an actual answer whose build_revision doesn't match the *real* SHA is caught even when
+    it happens to equal whatever the frozen fixture's own (unused) build_revision literal is."""
+    monkeypatch.setattr(comparator, "current_git_sha", lambda: "1" * 40)
+    claim = _claim(claim_id_suffix="1")
+    # Both expected and actual carry the same _PRODUCER (build_revision "f" * 40) - if the
+    # comparator naively compared literal-vs-literal here, this would wrongly pass.
+    expected = _answer(claims=[claim])
+    actual = _answer(claims=[claim])
+    result = comparator.compare(_scenario(expected), actual)
+
+    assert not result.passed
+    build_revision_mismatches = [
+        m for m in result.field_mismatches if m.field == "producer.build_revision"
+    ]
+    assert len(build_revision_mismatches) == 1
+    assert build_revision_mismatches[0].expected == repr("1" * 40)
 
 
 def test_missing_claim_is_reported():

@@ -21,14 +21,16 @@ from app.architecture_intelligence.request import ServiceDependenciesRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.graph.schema import ensure_schema
 from evaluation import fixture_setup
+from evaluation.architecture_answers.candidate import current_git_sha
 from evaluation.architecture_answers.comparator import ScenarioReport, compare
 from evaluation.architecture_answers.model import Scenario
 
-# Real production identity wiring is deferred to I4 (spec §10) - a fixed, frozen literal here,
-# matching the same literal every scenario's expected_answer.json freezes into its own producer
-# block.
+# Real production build-provenance wiring is finalized in I4 (spec §10); until then this evaluator
+# injects the actual candidate git SHA rather than a placeholder literal (spec §27/§28 - a missing
+# or placeholder build revision must never qualify a release artifact). producer.name/version are
+# still frozen literals - the application identity/version target, not the per-commit revision.
 PRODUCER = Producer(
-    name="architecture-intelligence-platform", version="0.4.0", build_revision="0" * 40
+    name="architecture-intelligence-platform", version="0.4.0", build_revision=current_git_sha()
 )
 
 _DATABASE = "neo4j"
