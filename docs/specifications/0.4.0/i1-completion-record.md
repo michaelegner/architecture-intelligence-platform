@@ -7,12 +7,18 @@ for the full spec this record qualifies against.
 
 ## Run identity
 
-- **Candidate commit:** `817800e6522c0806ba3b7f373c16bd33b5d6aa00` (branch
-  `v0.4.0/i1.4-qualification`)
+- **Candidate commit:** `4297e0b457b86f9e982ed5852058f28ca8ea6a34` (branch
+  `v0.4.0/i1.4-qualification`) — supersedes `817800e6522c0806ba3b7f373c16bd33b5d6aa00`, this PR's
+  first pushed commit, which failed CI's own `lint + test` job: the frozen snapshot literals had
+  been derived from an absolute, checkout-location-specific path
+  (`Path(__file__).resolve()`-built scenario-path constants leaking into `Evidence.source_file`,
+  spec §18's allowlist) and were not reproducible on the GitHub Actions runner's own checkout path.
+  `4297e0b` fixes the path construction to be relative to the repo root everywhere and regenerates
+  the affected literals — see that commit's message for the full root-cause account.
 - **Environment / window used throughout local qualification:** `test`,
   `2026-08-26T00:00:00Z`–`2026-08-27T00:00:00Z`
 - **Result artifact:** `evaluation/architecture_answers/results/i1-evaluation-result.json`
-  (sha256 `b97e0fde4e75f2380a73cf4354033fd762446ecc89a8730bf462c224133307e6`), produced by and
+  (sha256 `2dbe271321bfbb2f15a800ea439c32012447269096a2a34c21d1d6fa07654965`), produced by and
   committed alongside the candidate commit above
 
 ## Regression suite
@@ -122,9 +128,9 @@ covered by unit tests (`PARTIAL`-via-mixed-resolution, `OBSERVATION_CONTEXT_REQU
 ## Exit Statement (spec §29)
 
 Pending the final DoD item (CI/CodeQL/dependency-audit on the exact candidate commit). Once those
-checks are confirmed green on `817800e6522c0806ba3b7f373c16bd33b5d6aa00` (or its final PR head, if
-review produces follow-up commits — this record is updated to cite whichever commit actually
-qualifies):
+checks are confirmed green on `4297e0b457b86f9e982ed5852058f28ca8ea6a34` (or its final PR head, if
+review produces further follow-up commits — this record is updated to cite whichever commit
+actually qualifies):
 
 ```text
 GO — At <candidate SHA>, a direct ArchitectureIntelligenceService call returns a deterministic,
