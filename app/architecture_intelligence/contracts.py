@@ -541,6 +541,7 @@ def _architecture_answer_schema_extra(schema: dict, model: type[BaseModel]) -> N
                 "properties": {
                     "claims": {"maxItems": 0},
                     "evidence_refs": {"maxItems": 0},
+                    "observation_context": {"type": "null"},
                 }
             },
         },
@@ -592,6 +593,11 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
                 raise ValueError("get_evidence answers must have empty claims")
             if self.evidence_refs:
                 raise ValueError("get_evidence answers must have empty top-level evidence_refs")
+            if self.observation_context is not None:
+                raise ValueError(
+                    "get_evidence answers must have observation_context = null (spec §12: "
+                    "get_evidence is not runtime-context-sensitive)"
+                )
 
         has_context_required_limitation = any(
             limitation.code == LimitationCode.OBSERVATION_CONTEXT_REQUIRED

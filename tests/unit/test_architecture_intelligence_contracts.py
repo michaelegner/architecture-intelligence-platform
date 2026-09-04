@@ -862,6 +862,16 @@ def test_evidence_answer_rejects_nonempty_top_level_evidence_refs_fails_both_pyd
         jsonschema.validate(instance=payload, schema=load_evidence_schema())
 
 
+def test_evidence_answer_rejects_nonnull_observation_context_fails_both_pydantic_and_schema():
+    """Spec §12/§14: get_evidence is not runtime-context-sensitive - observation_context must be
+    null for every get_evidence answer, not just for the OBSERVATION_CONTEXT_REQUIRED case."""
+    payload = _valid_evidence_answer_dict(observation_context=_valid_context())
+    with pytest.raises(ValidationError):
+        EVIDENCE_ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_evidence_schema())
+
+
 def test_evidence_answer_fixture_conforms_to_frozen_evidence_schema():
     """Sanity check that a genuinely valid EvidenceData answer validates against both - the four
     tests above only prove invalid ones are rejected."""

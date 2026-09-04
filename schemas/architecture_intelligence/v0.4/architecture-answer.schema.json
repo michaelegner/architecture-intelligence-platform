@@ -619,6 +619,9 @@
           },
           "evidence_refs": {
             "maxItems": 0
+          },
+          "observation_context": {
+            "type": "null"
           }
         }
       }
