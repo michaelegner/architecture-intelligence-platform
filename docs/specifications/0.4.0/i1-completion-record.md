@@ -7,35 +7,56 @@ for the full spec this record qualifies against.
 
 ## Run identity
 
-- **Candidate commit:** `4297e0b457b86f9e982ed5852058f28ca8ea6a34` (branch
-  `v0.4.0/i1.4-qualification`) — supersedes `817800e6522c0806ba3b7f373c16bd33b5d6aa00`, this PR's
-  first pushed commit, which failed CI's own `lint + test` job: the frozen snapshot literals had
-  been derived from an absolute, checkout-location-specific path
-  (`Path(__file__).resolve()`-built scenario-path constants leaking into `Evidence.source_file`,
-  spec §18's allowlist) and were not reproducible on the GitHub Actions runner's own checkout path.
-  `4297e0b` fixes the path construction to be relative to the repo root everywhere and regenerates
-  the affected literals — see that commit's message for the full root-cause account.
+- **Candidate commit:** `8031f640daac3067ba9e709b19464d8246959fe2` (branch
+  `v0.4.0/i1.4-qualification`, PR #74).
+- **Verified CI, on this exact SHA** (via `gh api repos/.../commits/8031f640.../check-runs`, not
+  just the PR's current-head view, per PR review round 2's finding that an earlier candidate had no
+  check-runs of its own attached): `lint + test` ×2, `CodeQL`, `analyze (actions)`,
+  `analyze (python)`, `dependency security scan (pip-audit, spec §29)` ×2 — all `completed`/`success`.
+- **Candidate identity is explicitly pinned, not ambient.** PR review round 2 found that deriving
+  `producer.build_revision` from `git rev-parse HEAD` independently in the runner and the comparator
+  left the "qualified" SHA undocumented and free to drift. `evaluation/architecture_answers/
+  candidate.py`'s `resolve_candidate_sha()` is now called exactly once per run
+  (`evaluation/architecture_answers/runner.py::run_suite`) and threaded through the `Producer`
+  injected into every live service call, the comparator's `producer.build_revision` check, and the
+  recorded result artifact - never re-derived independently. This record's evidence was produced by
+  running `uv run python -m evaluation answers --candidate-sha
+  8031f640daac3067ba9e709b19464d8246959fe2` explicitly (not the ambient-HEAD default), so the
+  artifact is self-describing: its own `"candidate_sha"` field is the same value cited here, not a
+  claim that only exists in this record's prose.
 - **Environment / window used throughout local qualification:** `test`,
   `2026-08-26T00:00:00Z`–`2026-08-27T00:00:00Z`
-- **Result artifact:** `evaluation/architecture_answers/results/i1-evaluation-result.json`
-  (sha256 `2dbe271321bfbb2f15a800ea439c32012447269096a2a34c21d1d6fa07654965`), produced by and
-  committed alongside the candidate commit above
+- **Result artifact:** `evaluation/architecture_answers/results/i1-evaluation-result.json` (sha256
+  `06a3e6d0b38069cd0975b974fc52721aac2426e7d47c96d6aadb6e8cc945be80`), recording
+  `"candidate_sha": "8031f640daac3067ba9e709b19464d8246959fe2"` internally — cross-check this file
+  directly rather than trusting this record's transcription of it. Produced from, and committed
+  after, the candidate commit above (the evidence commit necessarily follows the code it evaluates;
+  it changes no code the candidate's own CI needed to re-validate).
+
+## Review history on this candidate
+
+Two review rounds on PR #74 preceded this record, both addressed on the candidate commit above:
+
+- **Round 1** (4 blocking): full-envelope comparison was missing `schema_version`/`producer`/`tool`;
+  a targeted single-scenario run could overwrite the committed 8-scenario artifact; the concurrent-
+  write integration test only bumped the revision singleton without mutating a real canonical field;
+  producer identity used a placeholder (`"0" * 40`) build revision.
+- **Round 2** (2 blocking, 1 non-blocking): the placeholder fix still derived `build_revision` from
+  an unpinned, independently-called `git rev-parse HEAD` rather than one explicit, threaded run
+  identity (fixed as described above); the completion record itself was stale/unbound to a verified
+  candidate (this rewrite); the loader accepted non-string `description`/`environment`/`snapshot_id`
+  values, relying on later Pydantic errors instead of a precise `ScenarioValidationError`.
 
 ## Regression suite
 
 | Suite | Result |
 |---|---|
-| `uv run pytest tests/unit` | 683 passed |
-| `uv run pytest tests/integration` | 187 passed |
+| `uv run pytest tests/unit` | 688 passed |
+| `uv run pytest tests/integration` | 191 passed |
 | `uv run ruff check .` | clean |
 | `uv run ruff format --check .` | clean |
 | `uv run python -m evaluation run` (relation-facts, unchanged) | 10/10 PASS |
-| `uv run python -m evaluation answers` (architecture-answers, I1.4) | 8/8 PASS, `semantic_outputs_identical: true` |
-
-The architecture-answers suite's own `run_output_sha256` pair (two complete
-reset→ingest→telemetry→reconcile→call-service passes over all 8 scenarios) was identical across
-every local invocation during this iteration, including separate container instances — the
-committed result artifact reflects one such run.
+| `uv run python -m evaluation answers --candidate-sha 8031f640...` (architecture-answers, I1.4) | 8/8 PASS, `semantic_outputs_identical: true` |
 
 ## Deterministic-evaluation scenarios (spec §23 required semantic anchors)
 
@@ -53,8 +74,10 @@ committed result artifact reflects one such run.
 Ground truth is frozen literal data (`expected_answer.json`, a full `ArchitectureAnswer` instance),
 independently derived via `evaluation/architecture_answers/reference/` (a separate reimplementation
 of the claim/context/snapshot/evidence-id formulas, transcribed from spec text, never imported by
-the live comparator) — not generated from a run of AIP itself. Outcome branches already exhaustively
-covered by unit tests (`PARTIAL`-via-mixed-resolution, `OBSERVATION_CONTEXT_REQUIRED`,
+the live comparator) — not generated from a run of AIP itself. `producer.build_revision` is the one
+field deliberately *not* frozen per-scenario (see "Candidate identity" above) — it's checked against
+the run's own explicit `candidate_sha` instead. Outcome branches already exhaustively covered by
+unit tests (`PARTIAL`-via-mixed-resolution, `OBSERVATION_CONTEXT_REQUIRED`,
 `SNAPSHOT_NOT_AVAILABLE`, `RESULT_LIMIT_EXCEEDED`) are not duplicated as separate scenarios here.
 
 ## Definition of Done (spec §28)
@@ -64,8 +87,11 @@ covered by unit tests (`PARTIAL`-via-mixed-resolution, `OBSERVATION_CONTEXT_REQU
 - [x] Only `get_service_dependencies` is implemented.
 - [x] The versioned schema freezes every required envelope and dependency field (I1.1,
       `schemas/architecture_intelligence/v0.4/architecture-answer.schema.json`).
-- [x] Every answer identifies the AIP version and immutable build revision (`Producer`, frozen literal
-      pending I4's real build-provenance wiring per spec §10).
+- [x] Every answer identifies the AIP version and immutable build revision — `producer.name`/
+      `.version` are frozen literals; `.build_revision` is the run's explicitly pinned candidate SHA
+      (`evaluation/architecture_answers/candidate.py`), never a placeholder, per this iteration's
+      review findings. Production build-provenance wiring for the real deployed service (as opposed
+      to the evaluator) remains I4's job (spec §10).
 - [x] No graph-specific internal type crosses the service boundary — `read_service_dependency_rows`
       returns plain dicts; the service never exposes a session, transaction, or Cypher expression.
 
@@ -77,7 +103,8 @@ covered by unit tests (`PARTIAL`-via-mixed-resolution, `OBSERVATION_CONTEXT_REQU
 - [x] The internal revision fence is updated by every current graph writer (I1.2 `revision_fence.py`,
       exercised by `test_revision_fence.py`).
 - [x] Concurrent writes cannot produce an accepted mixed-state answer — proven through the real
-      service path this iteration
+      service path, mutating a real canonical field (not just the excluded revision singleton) in
+      the same injected transaction as the bump
       (`test_a_concurrent_write_during_the_stable_read_forces_a_retry_through_the_real_service_path`).
 - [x] Matching explicit snapshots repeat; stale snapshots fail without fallback
       (`test_matching_explicit_snapshot_repeats_the_answer`,
@@ -118,19 +145,17 @@ covered by unit tests (`PARTIAL`-via-mixed-resolution, `OBSERVATION_CONTEXT_REQU
       not re-proven there).
 - [x] Two consecutive canonical answers for fixed inputs are byte-identical
       (`test_two_consecutive_calls_are_canonically_byte_identical`, plus the architecture-answers
-      suite's own two-full-pass proof).
+      suite's own two-full-pass proof — `semantic_outputs_identical: true` in the committed artifact).
 - [x] Existing tests and deterministic architecture evaluation remain green — full regression above;
       the v0.2.0 relation-facts suite is untouched in behavior and still 10/10.
-- [x] CI, lint, CodeQL and dependency checks pass on the exact I1 candidate — confirmed on PR #74 at
-      candidate commit `4297e0b457b86f9e982ed5852058f28ca8ea6a34` (`lint + test`, `CodeQL`,
-      `analyze (actions)`, `analyze (python)`, `dependency security scan (pip-audit, spec §29)` —
-      all pass; verified at PR head `a70cd5d808fa610eefc532217cbda12806487492`, a documentation-only
-      descendant of the candidate that changes no code CI needed to re-validate).
+- [x] CI, lint, CodeQL and dependency checks pass on the exact I1 candidate — verified via the
+      GitHub API directly against candidate commit `8031f640daac3067ba9e709b19464d8246959fe2` (see
+      "Run identity" above), not inferred from the PR's current-head view.
 
 ## Exit Statement (spec §29)
 
 ```text
-GO — At 4297e0b457b86f9e982ed5852058f28ca8ea6a34, a direct ArchitectureIntelligenceService call
+GO — At 8031f640daac3067ba9e709b19464d8246959fe2, a direct ArchitectureIntelligenceService call
 returns a deterministic, evidence-qualified, snapshot-bound answer for one service's bounded direct
 dependencies, with destination separated from delivery and zero graph writes.
 ```
