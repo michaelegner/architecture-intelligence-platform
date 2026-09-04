@@ -16,6 +16,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.provenance.model import EvidenceType, SourceType
+
 _SHA256_HEX = r"[0-9a-f]{64}"
 _SNAPSHOT_ID_PATTERN = rf"^aip:snapshot:v1:{_SHA256_HEX}$"
 _MODEL_REVISION_PATTERN = rf"^sha256:{_SHA256_HEX}$"
@@ -81,6 +83,20 @@ class LimitationCode(StrEnum):
 
 class DependencyPredicate(StrEnum):
     DIRECT_DEPENDENCY = "DIRECT_DEPENDENCY"
+
+
+class EvidenceRelationType(StrEnum):
+    """v0.4.0 I2.1 - the 7 canonical graph relation kinds (spec §11.2's `supports`). Deliberately its
+    own closed enum rather than reusing `DeliveryRelationType` (only CALLS/SENDS) or a graph-layer
+    string - `get_evidence` describes existing facts, never a new architecture claim."""
+
+    PROVIDES = "PROVIDES"
+    CALLS = "CALLS"
+    SENDS = "SENDS"
+    RECEIVES_FROM = "RECEIVES_FROM"
+    CARRIES = "CARRIES"
+    CONFORMS_TO = "CONFORMS_TO"
+    DEAD_LETTERS_TO = "DEAD_LETTERS_TO"
 
 
 # Fixed (kind, relation_type, via.type) pairs - spec §11.2/§13. No other combination is valid.
@@ -332,6 +348,90 @@ class ServiceDependenciesData(BaseModel):
     dependency_claim_ids: list[str]
 
 
+class SupportedFact(BaseModel):
+    """v0.4.0 I2.1 - spec §11.2: one existing canonical relation fact an evidence record supports.
+    Not a generic graph record and not a new architecture claim - only the 3 bounded fields."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    relation_type: EvidenceRelationType
+    source_id: str
+    target_id: str
+
+
+def _supported_fact_sort_key(fact: SupportedFact) -> tuple[str, str, str]:
+    return (fact.relation_type.value, fact.source_id, fact.target_id)
+
+
+class ObservedEvidenceMetadata(BaseModel):
+    """v0.4.0 I2.1 - spec §11.2: bounded observed-evidence metadata only. No raw payloads,
+    authorization values, full spans, baggage, resource attributes, or sample trace ids."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    environment: str
+    bucket_start: datetime
+    bucket_end: datetime
+    first_seen: datetime
+    last_seen: datetime
+    observation_count: int
+    service_version: str | None
+    correlation_mode: str | None
+
+
+class EvidenceRecord(BaseModel):
+    """v0.4.0 I2.1 - spec §11.2. `evidence_type`/`source_type` reuse the existing
+    `app.provenance.model` enums rather than redefining them - no new adapter classification."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    evidence_type: EvidenceType
+    source_type: SourceType
+    source_locator: str | None
+    source_revision: str | None
+    observation: ObservedEvidenceMetadata | None
+    supports: list[SupportedFact]
+
+    @field_validator("supports")
+    @classmethod
+    def _check_supports_sorted_and_deduplicated(
+        cls, value: list[SupportedFact]
+    ) -> list[SupportedFact]:
+        keys = [_supported_fact_sort_key(fact) for fact in value]
+        if keys != sorted(keys) or len(keys) != len(set(keys)):
+            raise ValueError(
+                "supports must be sorted by (relation_type, source_id, target_id) and deduplicated"
+            )
+        return value
+
+
+class EvidenceData(BaseModel):
+    """v0.4.0 I2.1 - spec §11.2/§12. `claims`/top-level `evidence_refs` on the enclosing
+    `ArchitectureAnswer` stay empty for this tool - lookup creates no claim; resolved ids live here."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    requested_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
+    records: list[EvidenceRecord]
+    missing_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
+
+    @field_validator("requested_evidence_refs", "missing_evidence_refs")
+    @classmethod
+    def _check_refs_sorted_and_deduplicated(cls, value: list[str]) -> list[str]:
+        if value != sorted(set(value)):
+            raise ValueError("must be sorted lexicographically and deduplicated")
+        return value
+
+    @field_validator("records")
+    @classmethod
+    def _check_records_sorted_by_id(cls, value: list[EvidenceRecord]) -> list[EvidenceRecord]:
+        ids = [record.id for record in value]
+        if ids != sorted(ids) or len(ids) != len(set(ids)):
+            raise ValueError("records must be sorted by id and deduplicated")
+        return value
+
+
 def _claim_sort_key(claim: DependencyClaim) -> tuple[str, str, str, str]:
     return (claim.object.id, claim.delivery.kind.value, claim.delivery.via.id, claim.claim_id)
 
@@ -352,8 +452,11 @@ def _architecture_answer_schema_extra(schema: dict, _model: type[BaseModel]) -> 
         },
         {
             "if": {
-                "properties": {"observation_context": {"type": "null"}},
-                "required": ["observation_context"],
+                "properties": {
+                    "observation_context": {"type": "null"},
+                    "tool": {"const": "get_service_dependencies"},
+                },
+                "required": ["observation_context", "tool"],
             },
             "then": {
                 "properties": {
@@ -370,6 +473,14 @@ def _architecture_answer_schema_extra(schema: dict, _model: type[BaseModel]) -> 
     ]
 
 
+# v0.4.0 I2.1 - spec §3/§14's first sanctioned extension point: only `get_service_dependencies`
+# requires a non-null `observation_context` (or an explicit OBSERVATION_CONTEXT_REQUIRED
+# limitation); `get_evidence`'s `observation_context` is always null (spec §12) regardless of
+# outcome, including outcomes where `data` is also null - `tool`, not `data`'s type, is the only
+# discriminator that's always present to key off.
+_TOOLS_REQUIRING_OBSERVATION_CONTEXT = frozenset({"get_service_dependencies"})
+
+
 class ArchitectureAnswer[T: BaseModel](BaseModel):
     model_config = ConfigDict(
         frozen=True, extra="forbid", json_schema_extra=_architecture_answer_schema_extra
@@ -377,7 +488,7 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
 
     schema_version: Literal["0.4"]
     producer: Producer
-    tool: str
+    tool: Literal["get_service_dependencies", "get_evidence"]
     outcome: Outcome
     snapshot: SnapshotRef | None
     observation_context: ObservationContextRef | None
@@ -395,7 +506,11 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
             limitation.code == LimitationCode.OBSERVATION_CONTEXT_REQUIRED
             for limitation in self.limitations
         )
-        if self.observation_context is None and not has_context_required_limitation:
+        if (
+            self.tool in _TOOLS_REQUIRING_OBSERVATION_CONTEXT
+            and self.observation_context is None
+            and not has_context_required_limitation
+        ):
             raise ValueError(
                 "observation_context may only be null when a limitation with code "
                 "OBSERVATION_CONTEXT_REQUIRED is present"

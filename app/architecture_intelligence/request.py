@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.architecture_intelligence.contracts import _SNAPSHOT_ID_PATTERN
 
@@ -46,3 +46,23 @@ class ServiceDependenciesRequest(BaseModel):
     )
     observation_context: ObservationContextInput | None = None
     snapshot_id: str | None = Field(default=None, pattern=_SNAPSHOT_ID_PATTERN)
+
+
+class EvidenceRequest(BaseModel):
+    """v0.4.0 I2.1 - the `get_evidence` request shape (spec §11.1). Unlike
+    `ServiceDependenciesRequest`, `snapshot_id` is required here - `get_evidence` never defaults to
+    the current snapshot, and there is no observation-context input at all."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    evidence_refs: list[str] = Field(
+        min_length=1, max_length=20, json_schema_extra={"uniqueItems": True}
+    )
+    snapshot_id: str = Field(pattern=_SNAPSHOT_ID_PATTERN)
+
+    @field_validator("evidence_refs")
+    @classmethod
+    def _check_deduplicated(cls, value: list[str]) -> list[str]:
+        if len(value) != len(set(value)):
+            raise ValueError("evidence_refs must not contain duplicates")
+        return value
