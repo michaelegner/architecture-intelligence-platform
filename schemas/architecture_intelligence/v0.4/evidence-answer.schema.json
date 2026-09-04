@@ -381,6 +381,160 @@
       "title": "EntityType",
       "type": "string"
     },
+    "EvidenceData": {
+      "additionalProperties": false,
+      "description": "v0.4.0 I2.1 - spec \u00a711.2/\u00a712. `claims`/top-level `evidence_refs` on the enclosing\n`ArchitectureAnswer` stay empty for this tool - lookup creates no claim; resolved ids live here.",
+      "properties": {
+        "missing_evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRecord"
+          },
+          "title": "Records",
+          "type": "array"
+        },
+        "requested_evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Requested Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "requested_evidence_refs",
+        "records",
+        "missing_evidence_refs"
+      ],
+      "title": "EvidenceData",
+      "type": "object"
+    },
+    "EvidenceRecord": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "observation": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "evidence_type": {
+                "const": "OBSERVED"
+              }
+            },
+            "required": [
+              "evidence_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "observation": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "v0.4.0 I2.1 - spec \u00a711.2. `evidence_type`/`source_type` reuse the existing\n`app.provenance.model` enums rather than redefining them - no new adapter classification.",
+      "properties": {
+        "evidence_type": {
+          "$ref": "#/$defs/EvidenceType"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "observation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObservedEvidenceMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_locator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Locator"
+        },
+        "source_revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Revision"
+        },
+        "source_type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "supports": {
+          "items": {
+            "$ref": "#/$defs/SupportedFact"
+          },
+          "title": "Supports",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "evidence_type",
+        "source_type",
+        "source_locator",
+        "source_revision",
+        "observation",
+        "supports"
+      ],
+      "title": "EvidenceRecord",
+      "type": "object"
+    },
+    "EvidenceRelationType": {
+      "description": "v0.4.0 I2.1 - the 7 canonical graph relation kinds (spec \u00a711.2's `supports`). Deliberately its\nown closed enum rather than reusing `DeliveryRelationType` (only CALLS/SENDS) or a graph-layer\nstring - `get_evidence` describes existing facts, never a new architecture claim.",
+      "enum": [
+        "PROVIDES",
+        "CALLS",
+        "SENDS",
+        "RECEIVES_FROM",
+        "CARRIES",
+        "CONFORMS_TO",
+        "DEAD_LETTERS_TO"
+      ],
+      "title": "EvidenceRelationType",
+      "type": "string"
+    },
+    "EvidenceType": {
+      "enum": [
+        "DECLARED",
+        "OBSERVED"
+      ],
+      "title": "EvidenceType",
+      "type": "string"
+    },
     "Limitation": {
       "additionalProperties": false,
       "properties": {
@@ -454,6 +608,74 @@
       "title": "ObservationContextRef",
       "type": "object"
     },
+    "ObservedEvidenceMetadata": {
+      "additionalProperties": false,
+      "description": "v0.4.0 I2.1 - spec \u00a711.2: bounded observed-evidence metadata only. No raw payloads,\nauthorization values, full spans, baggage, resource attributes, or sample trace ids.",
+      "properties": {
+        "bucket_end": {
+          "format": "date-time",
+          "title": "Bucket End",
+          "type": "string"
+        },
+        "bucket_start": {
+          "format": "date-time",
+          "title": "Bucket Start",
+          "type": "string"
+        },
+        "correlation_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correlation Mode"
+        },
+        "environment": {
+          "title": "Environment",
+          "type": "string"
+        },
+        "first_seen": {
+          "format": "date-time",
+          "title": "First Seen",
+          "type": "string"
+        },
+        "last_seen": {
+          "format": "date-time",
+          "title": "Last Seen",
+          "type": "string"
+        },
+        "observation_count": {
+          "title": "Observation Count",
+          "type": "integer"
+        },
+        "service_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Service Version"
+        }
+      },
+      "required": [
+        "environment",
+        "bucket_start",
+        "bucket_end",
+        "first_seen",
+        "last_seen",
+        "observation_count",
+        "service_version",
+        "correlation_mode"
+      ],
+      "title": "ObservedEvidenceMetadata",
+      "type": "object"
+    },
     "Outcome": {
       "enum": [
         "ANSWERED",
@@ -497,27 +719,6 @@
       "title": "Qualification",
       "type": "string"
     },
-    "ServiceDependenciesData": {
-      "additionalProperties": false,
-      "properties": {
-        "dependency_claim_ids": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Dependency Claim Ids",
-          "type": "array"
-        },
-        "service": {
-          "$ref": "#/$defs/EntityRef"
-        }
-      },
-      "required": [
-        "service",
-        "dependency_claim_ids"
-      ],
-      "title": "ServiceDependenciesData",
-      "type": "object"
-    },
     "SnapshotRef": {
       "additionalProperties": false,
       "properties": {
@@ -537,6 +738,40 @@
         "model_revision"
       ],
       "title": "SnapshotRef",
+      "type": "object"
+    },
+    "SourceType": {
+      "enum": [
+        "OPENAPI",
+        "ASYNCAPI",
+        "MANIFEST",
+        "OPENTELEMETRY"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    },
+    "SupportedFact": {
+      "additionalProperties": false,
+      "description": "v0.4.0 I2.1 - spec \u00a711.2: one existing canonical relation fact an evidence record supports.\nNot a generic graph record and not a new architecture claim - only the 3 bounded fields.",
+      "properties": {
+        "relation_type": {
+          "$ref": "#/$defs/EvidenceRelationType"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relation_type",
+        "source_id",
+        "target_id"
+      ],
+      "title": "SupportedFact",
       "type": "object"
     }
   },
@@ -629,7 +864,7 @@
     {
       "properties": {
         "tool": {
-          "const": "get_service_dependencies"
+          "const": "get_evidence"
         }
       }
     }
@@ -645,7 +880,7 @@
     "data": {
       "anyOf": [
         {
-          "$ref": "#/$defs/ServiceDependenciesData"
+          "$ref": "#/$defs/EvidenceData"
         },
         {
           "type": "null"
@@ -719,6 +954,6 @@
     "evidence_refs",
     "limitations"
   ],
-  "title": "ArchitectureAnswer[ServiceDependenciesData]",
+  "title": "ArchitectureAnswer[EvidenceData]",
   "type": "object"
 }

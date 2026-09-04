@@ -15,6 +15,7 @@ from evaluation.architecture_answers.loader import (
     discover_scenarios,
     load_scenario,
 )
+from evaluation.architecture_answers.model import ScenarioValidationError
 from evaluation.architecture_answers.reporter import exit_code
 from evaluation.architecture_answers.runner import run_suite
 
@@ -82,7 +83,10 @@ def test_a_forged_expected_claim_id_is_caught_as_missing_and_unexpected(tmp_path
     assert len(report.unexpected_claim_ids) == 1
 
 
-def test_a_wrong_expected_tool_is_caught_as_a_field_mismatch(tmp_path, driver):
+def test_a_wrong_expected_tool_is_caught_at_load_time(tmp_path):
+    """v0.4.0 I2.1 tightened `tool` to a closed `Literal["get_service_dependencies",
+    "get_evidence"]` - an invalid value now fails Pydantic validation at load time, before ever
+    reaching the comparator. Stronger than the field-mismatch catch this test used to rely on."""
     broken_dir = tmp_path / "sync-confirmed"
     shutil.copytree(SCENARIOS_DIR / "sync-confirmed", broken_dir)
     expected_path = broken_dir / EXPECTED_ANSWER_FILENAME
@@ -90,13 +94,8 @@ def test_a_wrong_expected_tool_is_caught_as_a_field_mismatch(tmp_path, driver):
     answer["tool"] = "get_something_else"
     expected_path.write_text(json.dumps(answer))
 
-    scenario = load_scenario(broken_dir)
-    result = run_suite(driver, [scenario])
-
-    [report] = result.reports
-    assert not report.passed
-    assert any(m.field == "tool" for m in report.field_mismatches)
-    assert exit_code(result) == 1
+    with pytest.raises(ScenarioValidationError):
+        load_scenario(broken_dir)
 
 
 def test_an_explicit_candidate_sha_is_injected_into_the_real_answer_and_recorded(driver):

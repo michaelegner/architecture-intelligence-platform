@@ -71,6 +71,23 @@ class RuntimeAnalysisConfig(BaseModel):
     default_environment: str = "production"
 
 
+class MCPConfig(BaseModel):
+    """v0.4.0 I2.1 - spec §15: MCP is local/trusted-network evaluation only, never production-safe
+    public exposure. A request whose Origin header isn't in this list is rejected
+    (`mcp.server.transport_security`) before it reaches any tool. Defaults cover local dev only -
+    a trusted-network deployment MUST override this."""
+
+    allowed_origins: list[str] = Field(
+        default_factory=lambda: ["http://127.0.0.1:8000", "http://localhost:8000"],
+        alias="allowed-origins",
+    )
+    allowed_hosts: list[str] = Field(
+        default_factory=lambda: ["127.0.0.1:8000", "localhost:8000"], alias="allowed-hosts"
+    )
+
+    model_config = {"populate_by_name": True}
+
+
 class AppConfig(BaseModel):
     sources: SourcesConfig = Field(default_factory=SourcesConfig)
     graph: GraphConfig = Field(default_factory=GraphConfig)
@@ -79,6 +96,7 @@ class AppConfig(BaseModel):
     intent_router: IntentRouterConfig = Field(default_factory=IntentRouterConfig)
     telemetry: TelemetryConfig = Field(default_factory=TelemetryConfig)
     runtime_analysis: RuntimeAnalysisConfig = Field(default_factory=RuntimeAnalysisConfig)
+    mcp: MCPConfig = Field(default_factory=MCPConfig)
 
     model_config = {"populate_by_name": True}
 
