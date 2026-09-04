@@ -42,6 +42,7 @@ from app.architecture_intelligence.contracts import (
     EvidenceData,
     ServiceDependenciesData,
 )
+from app.architecture_intelligence.observation_context import build_observation_context_ref
 from app.architecture_intelligence.request import EvidenceRequest, ServiceDependenciesRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.mcp import wiring
@@ -92,24 +93,33 @@ def register_tools(
         answer unchanged as `structuredContent` (confirmed live in I2.1: a `BaseModel`-typed return
         value is used directly, not wrapped).
 
-        Only one exception is caught here. `pydantic.ValidationError` is
-        `ArchitectureIntelligenceService.get_service_dependencies`'s own documented, deliberate
-        signal for a malformed *value* inside a supplied `observation_context` (bad offset,
-        reversed/excessive window, invalid environment) - spec §16's "Invalid tool arguments" row,
-        just raised by the service instead of the SDK's own argument-schema check. Its message only
-        describes the caller's own submitted field/value, never server internals, so it is
-        deliberately re-raised as a `ToolError` (not left to fall into the generic crash path below)
-        so the caller gets that actionable detail instead of a generic internal-error message.
+        A supplied `observation_context`'s *values* (bad offset, reversed/excessive window, invalid
+        environment) are pre-validated here, before dispatch, by calling the exact same
+        `build_observation_context_ref` helper the service itself calls internally - not a
+        reimplementation, the same pure function, called once more for its side-effect-free
+        `pydantic.ValidationError`. This is deliberate, not redundant: a first review round of this
+        file caught that catching `pydantic.ValidationError` broadly *around the service call*
+        conflates two very different things. `ArchitectureIntelligenceService.get_service_dependencies`
+        documents that a malformed *caller-supplied* context value raises `ValidationError` - safe to
+        echo back, it only describes the caller's own field/value. But `SnapshotRef`,
+        `DependencyClaim`/`EntityRef`, `ServiceDependenciesData`, and the final `ArchitectureAnswer`
+        are *also* Pydantic models, constructed from real graph data *after* that point - a
+        (hypothetical, bug-indicating) `ValidationError` from any of those would carry a Pydantic
+        `input_value` built from internal graph/output data, and passing that error's `str()` through
+        to the client the same way would defeat the SDK's own sanitization for exactly the class of
+        failure it exists to catch (spec §15/§20's "raw ... values outside the public contract are
+        never returned"). Pre-validating here means the service call below is never wrapped in a
+        `pydantic.ValidationError` handler at all: if a `ValidationError` somehow still escapes the
+        service (it shouldn't, once the context is already known-valid), it is *supposed* to fall
+        through uncaught into the SDK's own generic sanitization - see the next paragraph.
 
-        Nothing else needs to be caught. Confirmed live (`mcp.server.mcpserver.tools.base.Tool.run`)
-        that the SDK itself already sanitizes any *other* uncaught tool-body exception into
+        Confirmed live (`mcp.server.mcpserver.tools.base.Tool.run`) that the SDK itself already
+        sanitizes any uncaught tool-body exception (this one included) into
         `UnexpectedToolError("Error executing tool get_service_dependencies")` - by design, never
         interpolating `str(exc)` - and separately logs the real exception and traceback server-side
         (`mcp.server.mcpserver.server._handle_call_tool`'s `logger.exception(...)`). That already
         satisfies spec §16's "Unexpected internal/driver failure -> Sanitized tool execution error"
-        row and the §15/§20 "connection strings, server paths ... never returned" release blocker
-        (e.g. a Neo4j connectivity failure's message, which can embed the bolt URI/host) with no
-        adapter code - duplicating it here would be redundant, not additionally safe.
+        row and the same release blocker with no adapter code needed for that class of failure.
 
         Every other outcome (`ANSWERED`/`PARTIAL`/`NOT_ANSWERED`, including a
         `SNAPSHOT_NOT_AVAILABLE`/`UNKNOWN_ENTITY`/etc. refusal) is a normal *returned*
@@ -117,10 +127,16 @@ def register_tools(
         already gives `isError: false` for those, satisfying spec §10 rule 5 with no code needed
         here.
         """
-        try:
-            return get_service().get_service_dependencies(request)
-        except pydantic.ValidationError as exc:
-            raise ToolError(str(exc)) from exc
+        context = request.observation_context
+        if context is not None and context.is_complete:
+            try:
+                build_observation_context_ref(
+                    context.environment, context.window_start, context.window_end
+                )
+            except pydantic.ValidationError as exc:
+                raise ToolError(str(exc)) from exc
+
+        return get_service().get_service_dependencies(request)
 
     for tool_name in ("get_evidence", "get_service_dependencies"):
         _close_input_schema(server, tool_name)

@@ -151,21 +151,13 @@ async def test_two_identical_calls_produce_identical_structured_content() -> Non
 
 
 @pytest.mark.asyncio
-async def test_service_validation_error_surfaces_as_actionable_tool_error() -> None:
-    """A malformed observation-context *value* (spec §16's "Invalid tool arguments" raised by the
-    service, not the SDK's own schema check - see app.architecture_intelligence.request's docstring)
-    must map to isError: true with the validation detail visible, not a generic internal error."""
-
-    class _Probe(pydantic.BaseModel):
-        window_end: int
-
-    try:
-        _Probe.model_validate({"window_end": "not-an-int"})
-        validation_error = None
-    except ValidationError as exc:
-        validation_error = exc
-    assert validation_error is not None
-    service = _FakeService(raises=validation_error)
+async def test_reversed_observation_window_is_caught_before_dispatch() -> None:
+    """A malformed observation-context *value* (spec §16's "Invalid tool arguments") is pre-validated
+    by the adapter itself, before calling the service at all - see
+    app.mcp.tools.get_service_dependencies's docstring for why this moved out of a broad
+    `except pydantic.ValidationError` around the service call (review finding: that would have also
+    caught - and echoed back - a ValidationError from constructing internal graph-derived models)."""
+    service = _FakeService()
     server = MCPServer(name="test", version="0.4.0")
     register_tools(server, get_service=lambda: service)
     app = build_mcp_app(
@@ -174,9 +166,22 @@ async def test_service_validation_error_surfaces_as_actionable_tool_error() -> N
     async with mcp_session_manager_lifespan(server):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
-            result = await _call(client, {"request": {"service_id": "service:order-service"}})
+            result = await _call(
+                client,
+                {
+                    "request": {
+                        "service_id": "service:order-service",
+                        "observation_context": {
+                            "environment": "demo",
+                            "window_start": "2026-08-27T00:00:00.000000Z",
+                            "window_end": "2026-08-26T00:00:00.000000Z",
+                        },
+                    }
+                },
+            )
             assert result["isError"] is True
-            assert "window_end" in result["content"][0]["text"]
+            assert "window_start" in result["content"][0]["text"]
+            assert service.call_count == 0
 
 
 @pytest.mark.asyncio
@@ -200,6 +205,41 @@ async def test_unexpected_service_failure_is_sanitized_not_leaked() -> None:
             text = result["content"][0]["text"]
             assert "internal-neo4j.example" not in text
             assert "7687" not in text
+            assert text == "Error executing tool get_service_dependencies"
+
+
+@pytest.mark.asyncio
+async def test_unexpected_validation_error_from_service_is_sanitized_not_leaked() -> None:
+    """Regression test for the review finding this fixes: a `pydantic.ValidationError` raised from
+    *inside* the service (simulating a corrupted internal model - e.g. a claim/entity built from bad
+    graph data, not the caller's own observation-context input) must be sanitized like any other
+    unexpected failure, not echoed back verbatim - its Pydantic `input_value` detail could otherwise
+    leak internal graph/output values that happen to look like this fake secret."""
+
+    class _InternalModel(pydantic.BaseModel):
+        internal_field: int
+
+    try:
+        _InternalModel.model_validate({"internal_field": "sk-internal-secret-do-not-leak"})
+        validation_error = None
+    except ValidationError as exc:
+        validation_error = exc
+    assert validation_error is not None
+    assert "sk-internal-secret-do-not-leak" in str(validation_error)
+
+    service = _FakeService(raises=validation_error)
+    server = MCPServer(name="test", version="0.4.0")
+    register_tools(server, get_service=lambda: service)
+    app = build_mcp_app(
+        allowed_origins=[_ALLOWED_ORIGIN], allowed_hosts=[_ALLOWED_HOST], server=server
+    )
+    async with mcp_session_manager_lifespan(server):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
+            result = await _call(client, {"request": {"service_id": "service:order-service"}})
+            assert result["isError"] is True
+            text = result["content"][0]["text"]
+            assert "sk-internal-secret-do-not-leak" not in text
             assert text == "Error executing tool get_service_dependencies"
 
 

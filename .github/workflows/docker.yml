@@ -44,6 +44,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            AIP_BUILD_REVISION=${{ github.sha }}
           tags: |
             ${{ steps.image.outputs.name }}:${{ github.ref_name }}
             ${{ steps.image.outputs.name }}:latest

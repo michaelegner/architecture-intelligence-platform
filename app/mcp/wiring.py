@@ -21,17 +21,28 @@ caller ... is ever handed a session", `app.architecture_intelligence.service`'s 
 Passing a driver reference through to that constructor is not the same as the adapter accessing
 Neo4j directly.
 
-`build_production_service`'s `Producer.build_revision` uses the same "current git HEAD" fallback
-`evaluation.architecture_answers.candidate.resolve_candidate_sha` uses for non-qualification runs,
-duplicated here as a ~5-line helper rather than imported from `evaluation/` - that package is a
-consumer of `app/`, not the reverse, and I2.2 does not qualify a release candidate (I2 does not
-reopen release-candidate qualification at all; see spec §7). Real production build-provenance wiring
-is a named I4 concern (spec §10) - this is a placeholder until then, exactly like the evaluator's own
-fallback is for ad-hoc/local runs.
+`build_production_service`'s `Producer.build_revision` resolution (`_resolve_build_revision`) was
+corrected during review: the first version unconditionally ran `git rev-parse HEAD` at lifespan
+startup. This repo's production `Dockerfile` is `python:3.13-slim` - no `git` binary, no `.git`
+directory copied in - so every real container crashed on startup before serving any endpoint, MCP or
+otherwise. `_resolve_build_revision` now prefers an explicit `AIP_BUILD_REVISION` env var (a real
+deployment's build/CI step sets this to the exact SHA it built - see `.github/workflows/docker.yml`
+and `Dockerfile`'s `ARG`/`ENV`), validated as a real 40-hex SHA if present (a malformed *explicit*
+value is a deploy misconfiguration and fails loudly, same as
+`evaluation.architecture_answers.candidate.resolve_candidate_sha`'s own `InvalidCandidateSha`).
+Only when the env var is absent does it fall back to `git rev-parse HEAD` for local/dev ergonomics
+(where `.git` and `git` are normally both present) - and that fallback itself never raises: a missing
+git binary or `.git` directory (any container without the env var set) logs a warning and returns the
+literal `"unknown"` rather than crashing startup. Real production build-provenance wiring (spec §10)
+remains a named I4 concern; this only has to not crash and not silently fabricate a plausible-looking
+fake SHA - `"unknown"` is honestly what it is.
 """
 
 from __future__ import annotations
 
+import logging
+import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -40,7 +51,12 @@ import neo4j
 from app.architecture_intelligence.contracts import Producer
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 
+logger = logging.getLogger("architecture_intelligence.mcp")
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+_BUILD_REVISION_ENV_VAR = "AIP_BUILD_REVISION"
+_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+_UNKNOWN_BUILD_REVISION = "unknown"
 
 _service: ArchitectureIntelligenceService | None = None
 
@@ -66,12 +82,34 @@ def _current_git_sha() -> str:
     return result.stdout.strip()
 
 
+def _resolve_build_revision() -> str:
+    explicit = os.environ.get(_BUILD_REVISION_ENV_VAR)
+    if explicit:
+        if not _SHA_PATTERN.match(explicit):
+            raise RuntimeError(
+                f"{_BUILD_REVISION_ENV_VAR} must be a 40-hex git SHA, got {explicit!r}"
+            )
+        return explicit
+    try:
+        return _current_git_sha()
+    except (OSError, subprocess.CalledProcessError):
+        # No AIP_BUILD_REVISION and no git available (e.g. this repo's production container, which
+        # has neither the git binary nor a .git directory) - never crash startup over this.
+        logger.warning(
+            "%s is not set and `git rev-parse HEAD` is unavailable; falling back to a placeholder "
+            "build_revision. Set %s in any real deployment.",
+            _BUILD_REVISION_ENV_VAR,
+            _BUILD_REVISION_ENV_VAR,
+        )
+        return _UNKNOWN_BUILD_REVISION
+
+
 def build_production_service(
     driver: neo4j.Driver, *, database: str
 ) -> ArchitectureIntelligenceService:
     producer = Producer(
         name="architecture-intelligence-platform",
         version="0.4.0",
-        build_revision=_current_git_sha(),
+        build_revision=_resolve_build_revision(),
     )
     return ArchitectureIntelligenceService(driver, database=database, producer=producer)
