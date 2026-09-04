@@ -1,0 +1,12 @@
+scenario: unknown-service
+description: >
+  A well-formed but absent service_id, against an otherwise-empty graph -> NOT_ANSWERED /
+  UNKNOWN_ENTITY, distinguished from a valid empty service.
+
+request:
+  service_id: service:does-not-exist
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

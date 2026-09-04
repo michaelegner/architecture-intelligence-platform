@@ -1,0 +1,13 @@
+scenario: multiple-delivery-paths
+description: >
+  order-service depends on product-service through two independent delivery paths - a declared
+  CALLS/PROVIDES HTTP path and a declared SENDS/RECEIVES_FROM messaging path - both must survive as
+  distinct claims, never collapsed into one (spec §13.3, required semantic anchor spec §23).
+
+request:
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

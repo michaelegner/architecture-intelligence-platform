@@ -1,0 +1,90 @@
+{
+  "claims": [
+    {
+      "claim_id": "aip:claim:v1:ca0dd73ba391552edd6d2cc06cddd919a8af97f362cdb47392e78325219fd612",
+      "coverage": "NONE",
+      "delivery": {
+        "kind": "ASYNC_MESSAGE",
+        "relation_type": "SENDS",
+        "via": {
+          "id": "queue:unused-q",
+          "method": null,
+          "name": "unused-q",
+          "namespace": null,
+          "path": null,
+          "protocol": null,
+          "type": "QUEUE"
+        }
+      },
+      "destination_resolution": "DIRECT_TARGET_FALLBACK",
+      "evidence_refs": [
+        "evidence:asyncapi:order-service"
+      ],
+      "object": {
+        "id": "queue:unused-q",
+        "method": null,
+        "name": "unused-q",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "QUEUE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "NOT_OBSERVED_IN_WINDOW",
+      "resolution_evidence_refs": [],
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    }
+  ],
+  "data": {
+    "dependency_claim_ids": [
+      "aip:claim:v1:ca0dd73ba391552edd6d2cc06cddd919a8af97f362cdb47392e78325219fd612"
+    ],
+    "service": {
+      "id": "service:order-service",
+      "method": null,
+      "name": "OrderService",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [
+    "evidence:asyncapi:order-service"
+  ],
+  "limitations": [
+    {
+      "claim_ids": [
+        "aip:claim:v1:ca0dd73ba391552edd6d2cc06cddd919a8af97f362cdb47392e78325219fd612"
+      ],
+      "code": "UNRESOLVED_IDENTITY",
+      "message": "queue:unused-q has no single evidenced consumer service; retained as the direct queue target rather than guessed."
+    }
+  ],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:f167a92590d91af550e6b587c2f2151ad0924331d44f18776b11507ef7d2601f",
+    "environment": "test",
+    "window_end": "2026-08-27T00:00:00.000000Z",
+    "window_start": "2026-08-26T00:00:00.000000Z"
+  },
+  "outcome": "PARTIAL",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:a46c4ca5f0e9776fa9dfcabb427dfa4c8ef54de6998c83b609aa7a1eae5e5c64",
+    "snapshot_id": "aip:snapshot:v1:a46c4ca5f0e9776fa9dfcabb427dfa4c8ef54de6998c83b609aa7a1eae5e5c64"
+  },
+  "tool": "get_service_dependencies"
+}

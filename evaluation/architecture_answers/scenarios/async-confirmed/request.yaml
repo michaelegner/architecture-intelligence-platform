@@ -1,0 +1,13 @@
+scenario: async-confirmed
+description: >
+  order-service sends to payment-q and payment-service receives from it; declared (AsyncAPI) and
+  matching observed (OTLP messaging spans) evidence in the selected window -> CONFIRMED, resolved
+  to the consumer service.
+
+request:
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

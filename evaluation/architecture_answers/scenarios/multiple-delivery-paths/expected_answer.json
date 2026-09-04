@@ -1,0 +1,132 @@
+{
+  "claims": [
+    {
+      "claim_id": "aip:claim:v1:4bb537e88eb9c7aa65bdd6f68b942aebe5137cacbc26f6e30e38defc9a7d70c7",
+      "coverage": "NONE",
+      "delivery": {
+        "kind": "ASYNC_MESSAGE",
+        "relation_type": "SENDS",
+        "via": {
+          "id": "queue:product-events-q",
+          "method": null,
+          "name": "product-events-q",
+          "namespace": null,
+          "path": null,
+          "protocol": null,
+          "type": "QUEUE"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:asyncapi:order-service"
+      ],
+      "object": {
+        "id": "service:product-service",
+        "method": null,
+        "name": "ProductService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "NOT_OBSERVED_IN_WINDOW",
+      "resolution_evidence_refs": [
+        "evidence:asyncapi:product-service"
+      ],
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:c41d3611d0e93513439ec4859dbd96e741750b689c6a77267e68b5705b977bc9",
+      "coverage": "NONE",
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "via": {
+          "id": "operation:service:product-service:GET:/products/{id}",
+          "method": "GET",
+          "name": "GET /products/{id}",
+          "namespace": null,
+          "path": "/products/{id}",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:order-service"
+      ],
+      "object": {
+        "id": "service:product-service",
+        "method": null,
+        "name": "ProductService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "NOT_OBSERVED_IN_WINDOW",
+      "resolution_evidence_refs": [
+        "evidence:openapi:product-service"
+      ],
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    }
+  ],
+  "data": {
+    "dependency_claim_ids": [
+      "aip:claim:v1:4bb537e88eb9c7aa65bdd6f68b942aebe5137cacbc26f6e30e38defc9a7d70c7",
+      "aip:claim:v1:c41d3611d0e93513439ec4859dbd96e741750b689c6a77267e68b5705b977bc9"
+    ],
+    "service": {
+      "id": "service:order-service",
+      "method": null,
+      "name": "OrderService",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [
+    "evidence:asyncapi:order-service",
+    "evidence:asyncapi:product-service",
+    "evidence:manifest:order-service",
+    "evidence:openapi:product-service"
+  ],
+  "limitations": [],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:f167a92590d91af550e6b587c2f2151ad0924331d44f18776b11507ef7d2601f",
+    "environment": "test",
+    "window_end": "2026-08-27T00:00:00.000000Z",
+    "window_start": "2026-08-26T00:00:00.000000Z"
+  },
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:b10919ededb7e783362d0d6376f84f863e0c5d0230150f84b2216dd14fef6a73",
+    "snapshot_id": "aip:snapshot:v1:b10919ededb7e783362d0d6376f84f863e0c5d0230150f84b2216dd14fef6a73"
+  },
+  "tool": "get_service_dependencies"
+}

@@ -1,0 +1,13 @@
+scenario: sync-confirmed
+description: >
+  order-service calls product-service's GET /products/{id}; declared (Architecture Manifest +
+  OpenAPI) and matching observed (OTLP CLIENT/SERVER spans) evidence in the selected window ->
+  CONFIRMED, resolved to the provider service.
+
+request:
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"
