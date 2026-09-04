@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-02_
+_Last reviewed: 2026-09-04_
 
 ## AIP anchor
 
@@ -280,6 +280,48 @@ A useful AIP distinction is:
 
 > Context is useful. Evidence makes architecture context trustworthy.
 
+### Google Cloud — Gemini Enterprise for Financial Services
+
+**Sources**
+
+- [Gemini Enterprise for Financial Services](https://cloud.google.com/ai/financial-services)
+- [Introducing Gemini Enterprise for Financial Services](https://cloud.google.com/blog/products/ai-machine-learning/introducing-gemini-enterprise-for-financial-services)
+
+**Relevant concepts**
+
+- purpose-built reusable skills;
+- secure MCP connectors to licensed and enterprise data;
+- a Google-managed Financial Research agent exposed through UI and A2A APIs;
+- confidence scores, explicit methodologies, auditable data snapshots, and precise source citations;
+- verifiable data lineage;
+- centralized governance and policy enforcement.
+
+**Why this matters to AIP**
+
+Gemini Enterprise for Financial Services is a concrete example of an enterprise agent platform treating **trusted context, lineage, snapshotting, source citation, and governance** as architectural capabilities rather than prompt-level concerns.
+
+The domain differs, but the trust pattern is close:
+
+```text
+Google financial services
+trusted financial data
+      ↓
+lineage + snapshots + citations
+      ↓
+agent workflows
+
+AIP
+architecture evidence
+      ↓
+provenance + qualification + snapshot context
+      ↓
+trusted architecture context for agents
+```
+
+The important distinction is semantic scope: Google is grounding financial workflows in governed domain data; AIP is concerned with what architectural claims can be supported from declared and observed software-system evidence.
+
+Confidence scores or standardized skills should also not be confused with deterministic verification. AIP should preserve a hard boundary between probabilistic agent reasoning and evidence-backed architectural claims.
+
 ---
 
 ## 4. Architectural Intent and Governance
@@ -367,7 +409,91 @@ A concise AIP connection is:
 
 ---
 
-## 5. Verification and observability
+## 5. Verification, reliability, and observability
+
+### Rush Shahani — Building Reliable AI Systems
+
+**Source**
+
+- [Building Reliable AI Systems: Applications and Agents You Can Trust](https://www.manning.com/books/building-reliable-ai-systems)
+
+**Core idea**
+
+Shahani organizes AI reliability into three layers:
+
+```text
+Reliable Outputs
+      ↓
+Reliable Agents
+      ↓
+Reliable Operations
+```
+
+The book covers grounding and hallucination reduction, agent architectures, tool integration and MCP, multi-agent coordination, evaluation, performance, deployment, monitoring, and responsible AI.
+
+**Why this matters to AIP**
+
+The book is a useful reference for the reliability requirements surrounding systems that consume AIP context. In particular, chapters 7–10 connect tool interfaces, agent workflows, evaluation, failure handling, deployment, and observability.
+
+AIP occupies a narrower layer:
+
+```text
+Reliable agent
+      +
+reliable architecture context
+      ↓
+more trustworthy agent reasoning
+```
+
+The book's emphasis on grounding, graceful failure, source-backed answers, continuous evaluation, and monitoring aligns strongly with AIP's conservative semantics. A system should be able to say that it cannot establish an answer instead of filling gaps with plausible output.
+
+**AIP distinction**
+
+AIP should preserve a sharper distinction between:
+
+```text
+probabilistic evaluation
+        ≠
+deterministic verification
+```
+
+An LLM judge may help assess usefulness, relevance, or faithfulness. A supported architecture claim should still be reconstructable from deterministic model state, evidence, provenance, and qualification.
+
+The book is therefore complementary rather than an architectural blueprint for AIP: it addresses AI-system reliability broadly, while AIP focuses specifically on the trustworthiness of architecture knowledge supplied to humans and agents.
+
+### Google — Agent Evaluation and trajectory metrics
+
+**Source**
+
+- [agents-cli Evaluation Guide](https://google.github.io/agents-cli/guide/evaluation/)
+
+**Core idea**
+
+Agent evaluation should inspect the full multi-turn execution trajectory rather than only the final answer. Google's evaluation tooling exposes dedicated metrics for:
+
+- `multi_turn_task_success` — whether the user's goal was fulfilled across the conversation;
+- `multi_turn_trajectory_quality` — whether the execution path was logical, efficient, and resilient;
+- `multi_turn_tool_use_quality` — technical and semantic correctness of tool calls across turns;
+- hallucination and grounding checks against tool-returned or supplied context.
+
+This separates several failure modes that can be invisible in a superficially correct final response: wrong tool selection, malformed parameters, incomplete execution, incorrect handling of tool output, or an inefficient trajectory.
+
+**Why this matters to AIP**
+
+Agent evaluation and AIP qualification answer complementary questions:
+
+```text
+Agent evaluation
+Did the agent behave correctly?
+
+AIP
+Was the architecture context it consumed
+supported by evidence and correctly qualified?
+```
+
+For v0.4, this is useful input for deterministic tool evaluation. An AIP tool result should make it possible to reconstruct which snapshot was queried, which claims were returned, what evidence supports them, and where the model returned unsupported or insufficiently evidenced results.
+
+AIP should still distinguish trajectory evaluation from architectural verification. An LLM-as-judge metric may assess whether an agent used context well; it must not become the authority that decides whether an architecture claim is true.
 
 ### Deterministic verification
 
@@ -410,9 +536,12 @@ and what evidence supports that conclusion?
 | Software catalogs | Backstage | How does evidence-backed architecture intelligence differ from maintained catalog metadata? |
 | Agent context | MCP | How should architecture facts be exposed safely to agents? |
 | Agentic development platforms | Thoughtworks AI/works | How are as-is state, enterprise context, transformation, and reverse propagation connected? |
+| Governed domain context for agents | Google Gemini Enterprise for Financial Services | How should agents consume secure, auditable context with lineage, snapshots, citations, and governance? |
 | Pre-generation governance | Mneme HQ | How should machine-readable intent constrain coding agents? |
 | Architecture guardrails | O'Reilly | How can decisions become enforceable without making an LLM the authority? |
 | AI-era engineering workflow | Rachel Laycock / Martin Fowler | Which assurance work should move before or beyond human code review? |
+| AI-system reliability | Shahani / Building Reliable AI Systems | Which reliability concerns belong to agents and operations, and which require independently verifiable context? |
+| Agent trajectory evaluation | Google agent evaluation metrics | How should agent behavior be evaluated independently from the truth and provenance of the architecture context it consumes? |
 
 ---
 
