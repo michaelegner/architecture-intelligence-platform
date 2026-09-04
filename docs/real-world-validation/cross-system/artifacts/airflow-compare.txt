@@ -1,0 +1,131 @@
+AIP Real-World Validation — I1 contract
+
+
+[UNRESOLVED_IDENTITY/MINOR] airflow-execution-api-boundary
+
+[UNRESOLVED_IDENTITY/MINOR] airflow-runtime-role-identity
+
+[INSUFFICIENT_EVIDENCE/MINOR] airflow-celery-messaging-runtime-status
+
+[UNSUPPORTED/INFO] airflow-apiserver-postgres-dependency
+
+[UNSUPPORTED/INFO] airflow-celery-result-backend-postgres-dependency
+
+[UNSUPPORTED/INFO] airflow-scheduler-postgres-dependency
+
+[CORRECT/INFO] airflow-provides-get-dags
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-dag
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-dag-runs
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-dag-run
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-task-instances
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-task-instance
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-health
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-variables
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/variables
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/variables
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-trigger-dag-run
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=false
+
+Expected supported facts:      9
+Correct:                       9
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         2
+Insufficient evidence:         1
+Critical semantic errors:      0

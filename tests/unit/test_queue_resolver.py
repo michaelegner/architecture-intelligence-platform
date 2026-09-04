@@ -67,3 +67,19 @@ def test_missing_messaging_system_skips_tier_one_gracefully():
     )
     assert result.queue_id == "queue:payment-q"
     assert result.discovery_status == DiscoveryStatus.DECLARED
+
+
+def test_topic_shaped_destination_is_still_minted_as_observed_only_queue():
+    # Documents docs/real-world-validation/cross-system/decisions/queue-topic-boundary.md
+    # (I4.1, motivated by Quarkus's Kafka `fights` topic finding): resolve_queue() has no
+    # topic-vs-queue refusal path - a topic/fan-out messaging_system like Kafka does not change
+    # resolution at all once the bare-name tier is reached (spec §10.2's Topic-vs-Queue safety
+    # boundary is enforced today only by correlate_queue_observations() never reaching this call
+    # for that span - not by any guard in this function). Uses a neutral destination name per
+    # spec §17 ("assert canonical facts and evidence semantics, not upstream-specific names");
+    # this test pins the current, deliberately-unguarded behavior, it does not assert safety.
+    result = resolve_queue(
+        [PAYMENT_Q], messaging_system="kafka", destination_name="events-topic", aliases={}
+    )
+    assert result.queue_id == "queue:kafka:events-topic"
+    assert result.discovery_status == DiscoveryStatus.OBSERVED_ONLY

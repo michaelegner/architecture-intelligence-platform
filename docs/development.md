@@ -133,8 +133,9 @@ reachable, `POST /api/import` should work immediately against the bundled refere
 ## Test layout
 
 - `tests/unit/` — no external dependencies; runs in a couple of seconds.
-- `tests/integration/` — Testcontainers-backed against a real Neo4j; each test module owns its own
-  module-scoped container.
+- `tests/integration/` — Testcontainers-backed against a real Neo4j; the integration suite shares
+  one session-scoped Neo4j container, while individual modules/tests reset and populate graph state
+  as required for isolation.
 - `tests/fixtures/` — shared synthetic fixture data used across both.
 - `examples/` — the reference test-fixture landscape used across unit/integration tests and the
   local Quick Start (`order-service` calls `product-service` and sends to `payment-q`;

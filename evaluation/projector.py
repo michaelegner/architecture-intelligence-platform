@@ -2,11 +2,16 @@
 
 Design note (see the plan this iteration followed, and the I1 post-merge review's F1 finding):
 status is determined purely by evaluating AIP's own declared/observed evidence predicates
-(`_DECLARED_EXISTS`/`_NOT_DECLARED_EXISTS`/`_OBSERVED_EXISTS`, imported verbatim from
-app.analysis.runtime - the exact Cypher fragments its own tested `confirmed_relations()`/
-`observed_only_relations()` use) - never by inspecting evidence booleans in Python. That keeps this
-module free of any `if declared and observed: status = ...`-shaped logic, which spec §4.6 explicitly
+(`_DECLARED_EXISTS`/`_NOT_DECLARED_EXISTS`/`_OBSERVED_EXISTS`/`_NOT_OBSERVED_EXISTS`, imported
+verbatim from app.analysis.runtime - the exact Cypher fragments its own tested
+`confirmed_relations()`/`observed_only_relations()`/`declared_only_relations()` use) - never by
+inspecting evidence booleans in Python. That keeps this module free of any
+`if declared and observed: status = ...`-shaped logic, which spec §4.6/I3 spec §4.3 explicitly
 forbids the evaluator from containing.
+
+I3 adds a third classification branch, `NOT_OBSERVED_IN_WINDOW` (declared, but no OBSERVED
+evidence in the selected environment/window) - same guard-predicate reuse, same canonical identity
+keying, no independent status derivation.
 
 Unlike an earlier version of this module, classification is now keyed at true canonical relation
 identity - (type, source, target) - not just (source, type). Reusing app.analysis.runtime's own
@@ -25,7 +30,13 @@ from datetime import datetime
 
 import neo4j
 
-from app.analysis.runtime import _DECLARED_EXISTS, _NOT_DECLARED_EXISTS, _OBSERVED_EXISTS
+from app.analysis.runtime import (
+    _DECLARED_EXISTS,
+    _NOT_DECLARED_EXISTS,
+    _NOT_OBSERVED_EXISTS,
+    _OBSERVED_EXISTS,
+    NOT_OBSERVED_IN_WINDOW,
+)
 from evaluation.model import RelationFact, ScenarioScope
 
 _RAW_EDGES_QUERY = (
@@ -42,27 +53,51 @@ _RAW_EDGES_QUERY = (
 
 
 def _classified_branch(
-    relation_type: str, target_label: str, declared_guard: str, status: str
+    relation_type: str,
+    target_label: str,
+    declared_guard: str,
+    observed_guard: str,
+    status: str,
+    *,
+    declared: bool,
+    observed: bool,
 ) -> str:
-    declared = "true" if status == "CONFIRMED" else "false"
+    declared_lit = "true" if declared else "false"
+    observed_lit = "true" if observed else "false"
     return (
         f"MATCH (a:Service)-[r:{relation_type}]->(t:{target_label}) "
-        f"WHERE {declared_guard} AND {_OBSERVED_EXISTS} "
+        f"WHERE {declared_guard} AND {observed_guard} "
         f"RETURN '{relation_type}' AS type, a.id AS source, t.id AS target, "
-        f"'{status}' AS status, {declared} AS declared, true AS observed"
+        f"'{status}' AS status, {declared_lit} AS declared, {observed_lit} AS observed"
     )
 
 
 # Every branch shares the same $environment/$since/$until parameters (referenced inside
-# _OBSERVED_EXISTS) - no relation type needs its own parameter shape.
+# _OBSERVED_EXISTS/_NOT_OBSERVED_EXISTS) - no relation type needs its own parameter shape.
+#
+# Three branches per relation type (I3 spec §7.2-7.4): CONFIRMED (declared+observed),
+# OBSERVED_ONLY (not declared+observed), and NOT_OBSERVED_IN_WINDOW (declared+not observed) -
+# added for CALLS/SENDS/RECEIVES_FROM, the same relation types this projector already
+# runtime-classifies. PROVIDES stays outside the runtime-status branch (I3 spec §7.4).
 _CLASSIFIED_QUERY = " UNION ".join(
-    [
-        _classified_branch("CALLS", "Operation", _DECLARED_EXISTS, "CONFIRMED"),
-        _classified_branch("CALLS", "Operation", _NOT_DECLARED_EXISTS, "OBSERVED_ONLY"),
-        _classified_branch("SENDS", "Queue", _DECLARED_EXISTS, "CONFIRMED"),
-        _classified_branch("SENDS", "Queue", _NOT_DECLARED_EXISTS, "OBSERVED_ONLY"),
-        _classified_branch("RECEIVES_FROM", "Queue", _DECLARED_EXISTS, "CONFIRMED"),
-        _classified_branch("RECEIVES_FROM", "Queue", _NOT_DECLARED_EXISTS, "OBSERVED_ONLY"),
+    _classified_branch(
+        relation_type,
+        target_label,
+        declared_guard,
+        observed_guard,
+        status,
+        declared=is_declared,
+        observed=is_observed,
+    )
+    for relation_type, target_label in [
+        ("CALLS", "Operation"),
+        ("SENDS", "Queue"),
+        ("RECEIVES_FROM", "Queue"),
+    ]
+    for declared_guard, observed_guard, status, is_declared, is_observed in [
+        (_DECLARED_EXISTS, _OBSERVED_EXISTS, "CONFIRMED", True, True),
+        (_NOT_DECLARED_EXISTS, _OBSERVED_EXISTS, "OBSERVED_ONLY", False, True),
+        (_DECLARED_EXISTS, _NOT_OBSERVED_EXISTS, NOT_OBSERVED_IN_WINDOW, True, False),
     ]
 )
 
@@ -96,10 +131,10 @@ def load_relation_facts(
     since: datetime,
     until: datetime | None = None,
 ) -> set[RelationFact]:
-    """Projects the scenario-owned subgraph into RelationFacts, labeled CONFIRMED/OBSERVED_ONLY by
-    AIP's own classification at exact (type, source, target) identity, or left unclassified (None)
-    for anything else - outside what I1's three scenarios assert; see spec I1 §16.2 for what's
-    deferred to I2."""
+    """Projects the scenario-owned subgraph into RelationFacts, labeled CONFIRMED/OBSERVED_ONLY/
+    NOT_OBSERVED_IN_WINDOW by AIP's own classification at exact (type, source, target) identity, or
+    left unclassified (None) for anything else (e.g. PROVIDES, or any relation type outside the
+    scenario's own observation context)."""
     classified = (
         _classified_facts(session, environment=environment, since=since, until=until)
         if environment is not None

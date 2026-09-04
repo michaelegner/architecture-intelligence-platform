@@ -1,0 +1,51 @@
+# Frozen expected supported facts for <system-id> (I1 §17).
+#
+# Freeze this file from ground-truth.md ALONE, before ever running AIP against this system. Do not
+# edit it after the qualifying comparison run except per the ground-truth change policy in
+# ground-truth.md's "Change log" section.
+#
+# Schema reference: real_world_validation/README.md and real_world_validation/loader.py.
+
+system: <system-id>
+upstream_revision: "<full-commit-sha>"
+
+scope:
+  entities:
+    - service:<example-service>
+  relation_types:
+    - CALLS
+    # - PROVIDES
+    # - SENDS
+    # - RECEIVES_FROM
+
+expected:
+  relations:
+    - id: <system-id>-<stable-slug>
+      type: CALLS
+      source: service:<caller>
+      target: operation:service:<callee>:GET:/<path>
+      status: CONFIRMED # optional: CONFIRMED | OBSERVED_ONLY | NOT_OBSERVED_IN_WINDOW
+      evidence:
+        declared: true
+        observed: true
+
+# Mechanisms present upstream but outside AIP's current supported semantic scope (I1 §12.4).
+# unsupported:
+#   - id: <system-id>-<mechanism-slug>
+#     mechanism: <name, e.g. grpc>
+#     description: >
+#       Present upstream but outside the current AIP supported scope.
+
+# Relationships independent evidence suggests exist, but whose canonical identity AIP cannot
+# safely resolve without guessing (I1 §12.5).
+# unresolved_identity:
+#   - id: <system-id>-<identity-slug>
+#     description: >
+#       Why this identity cannot be resolved safely.
+
+# Facts this dossier's own evidence cannot establish strongly enough to use as ground truth
+# (I1 §12.6).
+# insufficient_evidence:
+#   - id: <system-id>-<evidence-slug>
+#     description: >
+#       Why the available evidence is insufficient.

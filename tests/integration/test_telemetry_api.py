@@ -7,7 +7,6 @@ from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTrace
 from opentelemetry.proto.common.v1.common_pb2 import AnyValue, KeyValue
 from opentelemetry.proto.resource.v1.resource_pb2 import Resource
 from opentelemetry.proto.trace.v1.trace_pb2 import ResourceSpans, ScopeSpans, Span
-from testcontainers.community.neo4j import Neo4jContainer
 
 from app.canonical import ids
 from app.graph.importer import import_all_sources, import_service
@@ -19,19 +18,6 @@ from app.telemetry.correlation_buffer import HttpCorrelationBuffer
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
 _CONTENT_TYPE = "application/x-protobuf"
-
-
-@pytest.fixture(scope="module")
-def neo4j_container():
-    with Neo4jContainer("neo4j:5") as container:
-        yield container
-
-
-@pytest.fixture(scope="module")
-def driver(neo4j_container):
-    drv = neo4j_container.get_driver()
-    yield drv
-    drv.close()
 
 
 @pytest.fixture(scope="module", autouse=True)

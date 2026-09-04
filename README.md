@@ -3,13 +3,13 @@
 [![CI](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Build an evidence-backed architecture knowledge graph from OpenAPI, AsyncAPI and OpenTelemetry —
-and discover where declared and observed architecture diverge.
+Build an evidence-backed model of your software architecture from declared and observed signals —
+with the evidence behind every architectural claim.
 
-![Pipeline: declared sources (OpenAPI, AsyncAPI, architecture.yaml) and observed OpenTelemetry traces both feed the Canonical Architecture Model, which imports into Neo4j, which serves deterministic Cypher analyses and read-only natural-language query.](images/pipeline-light.svg#gh-light-mode-only)
-![Pipeline: declared sources (OpenAPI, AsyncAPI, architecture.yaml) and observed OpenTelemetry traces both feed the Canonical Architecture Model, which imports into Neo4j, which serves deterministic Cypher analyses and read-only natural-language query.](images/pipeline-dark.svg#gh-dark-mode-only)
+![Evidence-backed Architecture Intelligence: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture model, which exposes facts, evidence, qualification and provenance.](images/architecture-intelligence-overview.png)
 
-**[Quick Start](#quick-start) · [Runtime Demo](#runtime-demo) · [Documentation](#documentation)**
+**[Quick Start](#quick-start) · [Runtime Demo](#runtime-demo) ·
+[Evaluation](#deterministic-evaluation) · [Documentation](#documentation) · [Research Landscape](landscape.md)**
 
 ## Why?
 
@@ -147,6 +147,20 @@ orphan queues, mixed-architecture blast radius) plus five over declared-vs-obser
 per-service telemetry coverage). None of these involve the LLM — see
 [`docs/analyses.md`](docs/analyses.md) for the full list and what each one answers.
 
+## Deterministic Evaluation
+
+A ten-scenario evaluation suite proves the declared/observed architecture intelligence above
+against independently authored ground truth — real AIP ingestion and runtime resolution, compared
+against a hand-written `expected.yaml`, with deterministic PASS/FAIL:
+
+```bash
+uv run python -m evaluation run
+```
+
+No LLM provider key is required — this suite never touches the natural-language query layer. See
+[`evaluation/README.md`](evaluation/README.md) for the full scenario list, ground-truth format, and
+failure-report examples.
+
 ## OpenTelemetry
 
 `POST /v1/traces` is AIP's OTLP/HTTP ingestion boundary. It resolves incoming spans against whatever
@@ -213,6 +227,11 @@ optional — the platform works completely without any LLM provider configured. 
 - [`docs/analyses.md`](docs/analyses.md) — A1-A5 and O1-O5
 - [`docs/semantic-validation.md`](docs/semantic-validation.md) — the NL query pipeline
 - [`docs/opentelemetry.md`](docs/opentelemetry.md) — runtime observation, attribute allowlist, coverage
+- [`evaluation/README.md`](evaluation/README.md) — the deterministic evaluation suite: scenarios,
+  ground-truth format, running it, and reading a failure report
+- [`real_world_validation/README.md`](real_world_validation/README.md) and
+  [`docs/real-world-validation/README.md`](docs/real-world-validation/README.md) — the v0.3
+  real-world validation contract: finding vocabulary, `expected.yaml` shape, dossier structure
 - [`docs/configuration.md`](docs/configuration.md) — every setting and its default
 - [`docs/security-model.md`](docs/security-model.md) — trust boundaries
 - [`docs/development.md`](docs/development.md) — local dev, tests, linting
@@ -221,6 +240,8 @@ optional — the platform works completely without any LLM provider configured. 
   the LLM is read-only and never a source of truth, and more
 - [`docs/specifications/`](docs/specifications/) — the original design specifications, as a
   traceable history of how the platform got here
+- [`landscape.md`](landscape.md) — research landscape: formal foundations, adjacent platforms,
+  agent context, architectural intent, governance, and verification
 - [`ROADMAP.md`](ROADMAP.md) / [`CHANGELOG.md`](CHANGELOG.md) — where this is headed, and what's
   shipped so far
 
@@ -237,9 +258,19 @@ public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 The original PoC (Canonical Model, OpenAPI/AsyncAPI/manifest ingestion, Neo4j graph, five
 deterministic analyses, LLM query layer), the H1-H4 hardening/OpenTelemetry iterations, the full 11H
 runtime-correctness roadmap (evidence reconciliation, cross-batch correlation, partial
-instrumentation, observed provider relations, coverage qualification, the Collector-based demo), and
-H5 (open-source readiness — this document, `docs/`, licensing, CI, community files) are all complete.
-See [`ROADMAP.md`](ROADMAP.md) for what's shipped and what's planned next.
+instrumentation, observed provider relations, coverage qualification, the Collector-based demo), H5
+(open-source readiness), v0.2 (the deterministic evaluation suite), and
+[`v0.3.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0)
+(real-world validation against Quarkus Super Heroes and Apache Airflow, plus cross-system model
+hardening — zero production semantic changes were justified by either system's independent
+evidence) are all shipped. See
+[`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
+for the full cross-system report and
+[`docs/release-validation/v0.3.0-post-release-verification.md`](docs/release-validation/v0.3.0-post-release-verification.md)
+for the published-artifact verification.
+
+See [`ROADMAP.md`](ROADMAP.md) for the full release track — v0.4 (Architecture Intelligence Tools)
+is next — and what's planned beyond it.
 
 ## License
 

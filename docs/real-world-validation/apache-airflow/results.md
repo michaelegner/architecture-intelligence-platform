@@ -1,0 +1,431 @@
+# Results — Apache Airflow
+
+Qualifying comparison for the pinned commit `3adbbe1c58e4532df1964cb7794805e763816ee8` (I3.3),
+against `expected.yaml` as fully and finally frozen by I3.1 (declaration-only facts) and I3.2
+(Phase B closure of the one item I3.1 left provisional). Executed by following `runbook.md` phases
+1-9 for real against a freshly built, freshly started stack for the qualifying run, then phase 10
+for the same-PR clean-state repeatability check below ("Repeatability evidence"). I3.4 later
+performed a **third**, separately-phased live execution ("Revalidation (I3.4)") to satisfy I3 spec
+§76's phase separation.
+
+**The three runs above recorded genuinely different AIP candidate/profile-revision commit SHAs
+(PR #47 re-review F4)** — I3 spec §59 requires the *same* candidate and *same* profile revision
+across repeated runs, not merely content-equivalent ones, so those three runs' identity fields are
+kept below as historical record (they still prove long-term content stability across the full I3
+series) but are **superseded** for §59 purposes by "Same-candidate revalidation (I3 spec §59)" at
+the end of this file — two fresh runs performed at one single pinned commit, which is the record
+that actually satisfies §59.
+
+## Run identity
+
+```text
+upstream commit:    3adbbe1c58e4532df1964cb7794805e763816ee8
+image:              apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+environment:        airflow-i3
+window_start:       2026-09-01T13:47:23Z
+window_end:         2026-09-01T13:47:58Z
+AIP candidate SHA:  ef7ad0d (this repository's HEAD at build time - see "Run/profile identity
+                    auditability" below for why the exact commit doesn't matter here)
+profile revision:   ef7ad0d (docs/real-world-validation/apache-airflow/{runtime/,expected.yaml,
+                    profile.md,ground-truth.md,runbook.md})
+```
+
+The full compose stack (`runtime/docker-compose.yml`) was started from clean state
+(`docker compose down -v` had already run; no prior volumes existed), the bounded readiness gate
+(`runbook.md` phase 3 — AIP/apiserver/Collector HTTP+TCP checks, scheduler/dag-processor/triggerer/
+both workers' container healthchecks via `docker compose ps --all`, and `i3_validation` DAG
+registration) passed on the first pass, `POST /api/import` succeeded (`nodes_written: 223`,
+`relations_written: 512` for `airflow-apiserver`), `runtime/traffic.sh` ran once inside the window
+above (both tasks `success` on `queue=default`, asserted by the script itself), and the drain
+barrier (`docker compose logs --since <window_start> architecture-intelligence` showing a
+`POST /v1/traces ... 200` entry) confirmed AIP had received the OTLP batch before capture began.
+The stack was torn down (`docker compose down -v`) after capture.
+
+## Repeatability evidence
+
+A second, independent execution of this exact profile — same commit, same image digest, same
+unmodified `expected.yaml`/`runtime/`/`runbook.md` — was run from a fresh clean state immediately
+after the first:
+
+```text
+window_start:       2026-09-01T13:51:12Z
+window_end:         2026-09-01T13:51:46Z
+AIP candidate SHA:  ef7ad0d (no commit happened between the two runs above)
+profile revision:   ef7ad0d (same as the run above)
+```
+
+`POST /api/import` returned identical counts (`223`/`512`), `traffic.sh` behaved identically (same
+task states, same queue, same assertions passing), and the drain barrier confirmed ingestion the
+same way. The captured actual-facts file
+([`artifacts/actual-revalidation.yaml`](artifacts/actual-revalidation.yaml)) is **byte-identical**
+to the first run's ([`artifacts/actual.yaml`](artifacts/actual.yaml)) — confirmed with `diff`. The
+comparator produced the identical summary and identical per-fact classification both times. This
+satisfies the repeatability requirement (I1 §28's runbook-reproducibility contract, matching
+Quarkus's I2.3/I2.4 precedent): two independent clean-state runs, same upstream pin, same profile,
+same frozen `expected.yaml`, same result.
+
+## AIP result capture
+
+[`artifacts/actual.yaml`](artifacts/actual.yaml) — captured via:
+
+```bash
+uv run python -m real_world_validation capture \
+  --neo4j-uri bolt://localhost:7687 --neo4j-user neo4j --neo4j-password <redacted> \
+  --database neo4j --environment airflow-i3 \
+  --since 2026-09-01T13:47:23Z --until 2026-09-01T13:47:58Z \
+  --scope-entities operation:service:airflow-apiserver:GET:/api/v2/monitor/health,operation:service:airflow-apiserver:GET:/api/v2/dags,operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id},operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns,operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns,operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id},operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances,operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id},operation:service:airflow-apiserver:GET:/api/v2/variables,queue:default \
+  --scope-relation-types PROVIDES,SENDS,RECEIVES_FROM \
+  --out artifacts/actual.yaml
+```
+
+(`--scope-entities` copied verbatim from `expected.yaml`'s own `scope.entities`, never hand-typed a
+second time.)
+
+9 facts captured: all 9 `PROVIDES` (`declared=true, observed=false` — real `DECLARED` evidence from
+the OpenAPI import; no runtime *status* concept applies to `PROVIDES`, matching Quarkus's own
+`PROVIDES` facts in I2.3). **0** `SENDS`/`RECEIVES_FROM` facts were captured — expected, since no
+AsyncAPI source exists for this system and I3.2's Phase B closure explicitly concluded no qualified
+messaging relation belongs in `expected.yaml` (see `ground-truth.md`'s Change log).
+
+Content identity of the committed file (PR #47 re-review non-blocking note — makes the
+"byte-identical" equality claims below durable without needing to inspect the file itself):
+
+```text
+SHA-256:        1d8a0db7741b0f108f4a23c78113e6cfb3466c01a975eac660b5ab2d7c026419
+Git blob SHA:   8891289baa9facaf70a0cc0c6b9b2e0fdd9c838a
+```
+
+## Summary
+
+```text
+Expected supported facts:      9
+Correct:                       9
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         2
+Insufficient evidence:         1
+Critical semantic errors:      0
+```
+
+Every one of the 9 selected `PROVIDES` facts was captured and matched exactly; the 3 `unsupported`,
+2 `unresolved_identity`, and 1 `insufficient_evidence` entries are the pre-existing I3.1/I3.2
+classifications passing through unchanged (I1 §32 — the comparator never re-derives these, it only
+carries them through). No finding in this run required a new decision record (`findings.md`).
+
+## Comparator output
+
+```bash
+uv run python -m real_world_validation compare \
+  --expected expected.yaml --actual artifacts/actual.yaml
+```
+
+```text
+AIP Real-World Validation — I1 contract
+
+
+[UNRESOLVED_IDENTITY/MINOR] airflow-execution-api-boundary
+
+[UNRESOLVED_IDENTITY/MINOR] airflow-runtime-role-identity
+
+[INSUFFICIENT_EVIDENCE/MINOR] airflow-celery-messaging-runtime-status
+
+[UNSUPPORTED/INFO] airflow-apiserver-postgres-dependency
+
+[UNSUPPORTED/INFO] airflow-celery-result-backend-postgres-dependency
+
+[UNSUPPORTED/INFO] airflow-scheduler-postgres-dependency
+
+[CORRECT/INFO] airflow-provides-get-dags
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-dag
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-dag-runs
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-dag-run
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-task-instances
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-task-instance
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-health
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get-variables
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/variables
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/variables
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-trigger-dag-run
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=false
+
+Expected supported facts:      9
+Correct:                       9
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         2
+Insufficient evidence:         1
+Critical semantic errors:      0
+```
+
+## Exit code
+
+```text
+0  (no release-blocking / CRITICAL-severity finding)
+```
+
+## Revalidation (I3.4)
+
+PR #47 review F1 correctly identified that the two runs above (both performed inside I3.3/PR #46)
+do not by themselves satisfy I3 spec §76's phase separation — Implementation Notes explicitly
+assigns "run AIP once and classify what happens" to I3.3 and "prove same-contract repeatability" to
+I3.4, mirroring Quarkus's own I2.3 (single run) + I2.4 (separate revalidation) precedent. A third,
+independent live execution was run under I3.4, at the same frozen contract, to supply that missing
+proof — this is not a duplicate of the two runs above; it is the first run performed *after* the
+hardening/no-fix decision, proving the finally accepted candidate still reproduces.
+
+```text
+upstream commit:    3adbbe1c58e4532df1964cb7794805e763816ee8
+image:              apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+apache-airflow-providers-celery: 3.23.1
+celery:                          5.6.3
+environment:        airflow-i3
+window_start:       2026-09-01T15:36:14Z
+window_end:         2026-09-01T15:36:48Z
+AIP candidate SHA:  1a2bda3 (this repository's HEAD at build time)
+profile revision:   ef7ad0d (runtime/,expected.yaml,profile.md,ground-truth.md - unchanged since
+                    I3.2); 4160af7 (runbook.md - unchanged since I3.3's own phases 7-10 fill-in)
+```
+
+**Correction (PR #47 re-review F4):** the paragraph that previously appeared here argued that a
+`git diff` between two endpoints proves the AIP candidate and profile revision were "the same" in
+the sense I3 spec §59 requires. That doesn't hold: §59 asks for the *same* candidate SHA and *same*
+profile revision, not two different SHAs shown to be content-equivalent — and even the
+content-equivalence argument was incomplete, since a two-endpoint `git diff` alone (unlike `git
+log --oneline <range> -- <path>`, which would show zero commits) doesn't by itself rule out
+intermediate commits touching a path and reverting it. This run's `ef7ad0d`/`1a2bda3` split identity
+above is kept as historical record only — it is **not** the evidence that satisfies §59. See "Same
+AIP candidate, same profile revision (I3 spec §59)" at the end of this file for the run pair that
+actually does.
+
+Same procedure as the qualifying run above: clean-state compose stack, bounded readiness gate
+passed for every service on the first pass, `POST /api/import` returned identical
+`nodes_written`/`relations_written` counts (`223`/`512`), `traffic.sh` ran once (both tasks
+`success` on `queue=default`, its own assertions passing), and the drain barrier confirmed persisted
+ingestion before capture. The Celery provider/instrumentation versions above were queried directly
+from the running scheduler container (`docker compose exec airflow-scheduler airflow providers
+list`) during this run — the first time this dossier records them, closing `upstream.md`'s
+previously open item (PR #47 review F3).
+
+Capture: 9 facts, **byte-identical** to `artifacts/actual.yaml` (confirmed with `diff`).
+
+Comparator result against the unmodified `expected.yaml`:
+
+```text
+Expected supported facts:      9
+Correct:                       9
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         2
+Insufficient evidence:         1
+Critical semantic errors:      0
+```
+
+Identical to the qualifying run's summary and every individual finding classification. This
+satisfies I3 spec §72's Comparison category item "Two clean qualifying runs produce the same
+semantic result" under the phase separation the specification actually intends: the second
+same-contract qualifying comparison is I3.4's own, executed after (not bundled inside) the
+hardening/no-fix decision.
+
+## Same AIP candidate, same profile revision (I3 spec §59)
+
+PR #47 re-review F4: §59 requires the repeated clean-state comparisons to use the same AIP
+candidate and the same profile revision — a literal identity, not a content-equivalence argument
+across different commits. The runs above (I3.3's two, I3.4's one) recorded three different commit
+SHAs and don't satisfy that literally. This section is the run pair that does: two fresh clean-state
+executions, performed back-to-back, **both checked out at the exact same commit** — no diffing
+across a range required, because there is no range; both builds used the identical commit.
+
+```text
+AIP candidate SHA:  310f5a3 (identical for both runs — confirmed via `git rev-parse HEAD` before
+                    each, not inferred)
+profile revision:   310f5a3 (identical for both runs, same commit — covers runtime/, expected.yaml,
+                    profile.md, ground-truth.md, and runbook.md as one unsplit value, unlike the
+                    historical runs above)
+environment:        airflow-i3
+```
+
+**Shared identity block, explicitly bound to both Run A and Run B (PR #47 post-merge re-review
+F5 — I3 spec §31/§59 require the Airflow upstream SHA and the same image/provider/instrumentation
+identities, not only the AIP candidate/profile revision above):**
+
+```text
+Airflow upstream SHA:                  3adbbe1c58e4532df1964cb7794805e763816ee8
+Airflow image:                         apache/airflow:3.3.1
+                                        @sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+apache-airflow-providers-celery:       3.23.1
+celery (runtime, not instrumentation): 5.6.3
+OpenTelemetry Celery instrumentation:  absent from the qualifying native profile for both runs —
+                                        opentelemetry-instrumentation-celery==0.65b0 is the
+                                        diagnostic-only package documented in profile.md's "Standard
+                                        Celery instrumentation decision" section; it and its
+                                        activating plugin were not installed/activated in Run A or
+                                        Run B, only in that separate, earlier, non-qualifying
+                                        experiment
+Airflow's own native OTel packages:    not separately version-pinned here — their complete package
+                                        set is bound by the content-addressed Airflow image digest
+                                        above, which fixes every installed package byte-for-byte
+OTel Collector image:                  otel/opentelemetry-collector:0.159.0
+                                        @sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2
+validation Dag revision:               dags/i3_validation.py @ Git blob 85afb5544dcfe4a0de0eaa43445c9f29d408648c
+traffic procedure revision:            traffic.sh @ Git blob b49cf655a94f6b023a058f2e196a0bde063edb7f
+frozen expected.yaml revision:         expected.yaml @ Git blob 86f84c9abae26c92da0ee8395c846b3abeafe5e8
+runtime Compose revision:              docker-compose.yml @ Git blob 88bc0280140823035d008c7cee07f974fe691752
+identity-decision revision:            ground-truth.md @ Git blob 50f8d3e5d0affb6a1f2f7305d6f10dad6547bafa
+```
+
+(PR #48 review F1/F2 — an earlier version of this block used `celery==5.6.3` as if it stood in for
+the OpenTelemetry Celery instrumentation identity, and its provenance paragraph below overstated how
+uniformly these values were established. Both corrected above and below.)
+
+These values come from three distinct evidence sources, not one uniform method: the Airflow upstream
+SHA is the pinned upstream release/source identity (`upstream.md`), not a local Compose value or a
+blob hash; the two image digests are pinned directly inside `runtime/docker-compose.yml`; the
+`apache-airflow-providers-celery`/`celery` package versions were queried live from the digest-pinned
+image itself (`docker run --rm --entrypoint python3
+apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339 -m pip
+show apache-airflow-providers-celery celery`) — since the digest is content-addressed, this is
+cryptographically the exact image Run A and Run B actually used, not merely presumed unchanged; and
+the Dag/traffic/`expected.yaml`/Compose/ground-truth revisions are `git ls-tree 310f5a3 <path>` blob
+hashes, offered as granular supporting evidence. The single pinned commit `310f5a3` recorded above
+("AIP candidate SHA"/"profile revision") remains the normative, unsplit profile-revision value —
+since Run A and Run B both built from that one commit, not two commits shown equivalent, every value
+in this block is identical for both runs *by construction*, not by separate re-verification per run.
+
+**Run A:**
+
+```text
+window_start:       2026-09-01T16:18:03Z
+window_end:         2026-09-01T16:18:37Z
+```
+
+**Run B** (fresh `docker compose down -v` between A and B; no commit made in between):
+
+```text
+window_start:       2026-09-01T16:21:38Z
+window_end:         2026-09-01T16:22:14Z
+```
+
+Both runs: clean-state stack, bounded readiness gate passed on the first pass, `POST /api/import`
+returned identical `nodes_written`/`relations_written` counts (`223`/`512`), `traffic.sh` ran once
+(both tasks `success` on `queue=default`), and the drain barrier confirmed persisted ingestion
+before capture, for both runs independently.
+
+Captures: Run A's and Run B's captured actual-facts files are **byte-identical to each other**
+(confirmed with `diff`) and **byte-identical to `artifacts/actual.yaml`** (the same file committed
+for I3.3's original qualifying run — confirmed with `diff`, not merely asserted). Comparator result,
+identical for both runs:
+
+```text
+Expected supported facts:      9
+Correct:                       9
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         2
+Insufficient evidence:         1
+Critical semantic errors:      0
+```
+
+This is the literal §59 evidence: one fixed AIP candidate SHA, one fixed profile revision, two
+independent clean-state runs, identical result both times. The three earlier runs above remain
+useful as a broader (and, per the corrected paragraph above, honestly-qualified) demonstration that
+the profile has been stable across the *entire* I3 series, not just this one commit — but this
+section, not those, is what closes PR #47 re-review F4.

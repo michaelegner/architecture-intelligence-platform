@@ -12,6 +12,7 @@ from typing import Any
 
 import yaml
 
+from app.ingestion.scanner import scan_directory
 from evaluation.model import (
     KNOWN_RELATION_TYPES,
     Observation,
@@ -24,6 +25,22 @@ from evaluation.model import (
 
 EXPECTED_FILENAME = "expected.yaml"
 
+_TOP_LEVEL_ALLOWED_KEYS = {
+    "scenario",
+    "description",
+    "scope",
+    "observation",
+    "expected",
+    "forbidden",
+}
+_SCOPE_ALLOWED_KEYS = {"entities", "relation_types"}
+_OBSERVATION_ALLOWED_KEYS = {"environment", "window"}
+_RELATIONS_CONTAINER_ALLOWED_KEYS = {"relations"}
+_WINDOW_ALLOWED_KEYS = {"start", "end"}
+_EXPECTED_RELATION_ALLOWED_KEYS = {"type", "source", "target", "status", "evidence"}
+_EVIDENCE_ALLOWED_KEYS = {"declared", "observed"}
+_KNOWN_STATUSES = {"CONFIRMED", "OBSERVED_ONLY", "NOT_OBSERVED_IN_WINDOW"}
+
 
 def discover_scenarios(scenarios_dir: Path) -> list[Path]:
     """Scenario directories directly under scenarios_dir, sorted by name for deterministic order."""
@@ -34,6 +51,16 @@ def discover_scenarios(scenarios_dir: Path) -> list[Path]:
 
 def _error(scenario_id: str, file: Path, field: str, reason: str) -> ScenarioValidationError:
     return ScenarioValidationError(scenario=scenario_id, file=str(file), field=field, reason=reason)
+
+
+def _reject_unknown_keys(
+    data: dict, allowed: set[str], *, scenario_id: str, file: Path, field: str
+) -> None:
+    """I4 spec §8: a scenario-schema typo (an unrecognized key at any validated level) is a
+    configuration error, not a silently-ignored no-op that could weaken an assertion."""
+    unknown = set(data) - allowed
+    if unknown:
+        raise _error(scenario_id, file, field, f"unknown field(s): {', '.join(sorted(unknown))}")
 
 
 def _require(data: dict, key: str, *, scenario_id: str, file: Path, prefix: str = "") -> Any:
@@ -69,14 +96,36 @@ def _validate_entity_id(value: Any, *, scenario_id: str, file: Path, field: str)
 
 
 def _validate_relation_type(value: Any, *, scenario_id: str, file: Path, field: str) -> str:
-    if value not in KNOWN_RELATION_TYPES:
+    # isinstance guard first: `value not in KNOWN_RELATION_TYPES` would raise a raw TypeError
+    # (not a ScenarioValidationError) for an unhashable value, e.g. a hand-authored `- [SENDS]`
+    # list where a plain string was expected - `or` short-circuits before that membership test.
+    if not isinstance(value, str) or value not in KNOWN_RELATION_TYPES:
         raise _error(scenario_id, file, field, f"unknown relation type: {value!r}")
     return value
+
+
+def _validate_status(value: Any, *, scenario_id: str, file: Path, field: str) -> str | None:
+    if value is not None and (not isinstance(value, str) or value not in _KNOWN_STATUSES):
+        raise _error(scenario_id, file, field, f"unknown status: {value!r}")
+    return value
+
+
+def _validate_evidence(evidence: dict, *, scenario_id: str, file: Path, field: str) -> dict:
+    _reject_unknown_keys(
+        evidence, _EVIDENCE_ALLOWED_KEYS, scenario_id=scenario_id, file=file, field=field
+    )
+    for key, value in evidence.items():
+        if not isinstance(value, bool):
+            raise _error(scenario_id, file, f"{field}.{key}", f"must be a boolean: {value!r}")
+    return evidence
 
 
 def _parse_relation_fact(raw: Any, *, scenario_id: str, file: Path, field: str) -> RelationFact:
     if not isinstance(raw, dict):
         raise _error(scenario_id, file, field, f"expected a mapping, got {raw!r}")
+    _reject_unknown_keys(
+        raw, _EXPECTED_RELATION_ALLOWED_KEYS, scenario_id=scenario_id, file=file, field=field
+    )
     relation_type = _validate_relation_type(
         _require(raw, "type", scenario_id=scenario_id, file=file, prefix=f"{field}."),
         scenario_id=scenario_id,
@@ -95,14 +144,22 @@ def _parse_relation_fact(raw: Any, *, scenario_id: str, file: Path, field: str) 
         file=file,
         field=f"{field}.target",
     )
-    evidence = _optional_mapping(
-        raw.get("evidence"), scenario_id=scenario_id, file=file, field=f"{field}.evidence"
+    evidence = _validate_evidence(
+        _optional_mapping(
+            raw.get("evidence"), scenario_id=scenario_id, file=file, field=f"{field}.evidence"
+        ),
+        scenario_id=scenario_id,
+        file=file,
+        field=f"{field}.evidence",
+    )
+    status = _validate_status(
+        raw.get("status"), scenario_id=scenario_id, file=file, field=f"{field}.status"
     )
     return RelationFact(
         type=relation_type,
         source=source,
         target=target,
-        status=raw.get("status"),
+        status=status,
         declared_evidence=evidence.get("declared"),
         observed_evidence=evidence.get("observed"),
     )
@@ -149,14 +206,21 @@ def _parse_timestamp(value: Any, *, scenario_id: str, file: Path, field: str) ->
     if not isinstance(value, str):
         raise _error(scenario_id, file, field, f"invalid timestamp: {value!r}")
     try:
-        return datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(value)
     except ValueError as exc:
         raise _error(scenario_id, file, field, f"invalid timestamp: {value!r} ({exc})") from exc
+    if parsed.tzinfo is None:
+        raise _error(scenario_id, file, field, f"timestamp must be timezone-aware: {value!r}")
+    return parsed
 
 
 def _has_telemetry_input(path: Path) -> bool:
     telemetry_dir = path / "input" / "telemetry"
     return telemetry_dir.is_dir() and any(telemetry_dir.iterdir())
+
+
+def _reconciliation_declarations_dir(path: Path) -> Path:
+    return path / "input" / "reconciliation" / "declarations"
 
 
 def load_scenario(path: Path) -> Scenario:
@@ -172,6 +236,10 @@ def load_scenario(path: Path) -> Scenario:
     if not scenario_id or not isinstance(scenario_id, str):
         raise _error(path.name, file, "scenario", "missing scenario id")
 
+    _reject_unknown_keys(
+        raw, _TOP_LEVEL_ALLOWED_KEYS, scenario_id=scenario_id, file=file, field="<root>"
+    )
+
     description = _require(raw, "description", scenario_id=scenario_id, file=file)
 
     scope_raw = _require_mapping(
@@ -180,38 +248,66 @@ def load_scenario(path: Path) -> Scenario:
         file=file,
         field="scope",
     )
+    _reject_unknown_keys(
+        scope_raw, _SCOPE_ALLOWED_KEYS, scenario_id=scenario_id, file=file, field="scope"
+    )
     entities_raw = _require_list(
         _require(scope_raw, "entities", scenario_id=scenario_id, file=file, prefix="scope."),
         scenario_id=scenario_id,
         file=file,
         field="scope.entities",
     )
+    if not entities_raw:
+        raise _error(scenario_id, file, "scope.entities", "must not be empty")
+    # Validate each element's type/format before hashing for duplicate detection - set() on the
+    # raw, unvalidated YAML values would raise a bare TypeError instead of a
+    # ScenarioValidationError if an author accidentally wrote a mapping/list in the entities list.
     entities = tuple(
         _validate_entity_id(e, scenario_id=scenario_id, file=file, field="scope.entities")
         for e in entities_raw
     )
+    if len(set(entities)) != len(entities):
+        raise _error(scenario_id, file, "scope.entities", "duplicate entities")
     relation_types_raw = scope_raw.get("relation_types")
     if relation_types_raw is not None:
         relation_types_raw = _require_list(
             relation_types_raw, scenario_id=scenario_id, file=file, field="scope.relation_types"
         )
-    relation_types = (
-        tuple(
+        if not relation_types_raw:
+            raise _error(
+                scenario_id, file, "scope.relation_types", "must not be empty when present"
+            )
+        relation_types = tuple(
             _validate_relation_type(
                 rt, scenario_id=scenario_id, file=file, field="scope.relation_types"
             )
             for rt in relation_types_raw
         )
-        if relation_types_raw
-        else None
-    )
+        if len(set(relation_types)) != len(relation_types):
+            raise _error(scenario_id, file, "scope.relation_types", "duplicate relation types")
+    else:
+        relation_types = None
     scope = ScenarioScope(entities=entities, relation_types=relation_types)
 
     observation_raw = _optional_mapping(
         raw.get("observation"), scenario_id=scenario_id, file=file, field="observation"
     )
+    _reject_unknown_keys(
+        observation_raw,
+        _OBSERVATION_ALLOWED_KEYS,
+        scenario_id=scenario_id,
+        file=file,
+        field="observation",
+    )
     window_raw = _optional_mapping(
         observation_raw.get("window"),
+        scenario_id=scenario_id,
+        file=file,
+        field="observation.window",
+    )
+    _reject_unknown_keys(
+        window_raw,
+        _WINDOW_ALLOWED_KEYS,
         scenario_id=scenario_id,
         file=file,
         field="observation.window",
@@ -231,13 +327,44 @@ def load_scenario(path: Path) -> Scenario:
             field="observation.window.end",
         ),
     )
-    if _has_telemetry_input(path) and not observation.environment:
+    if _has_telemetry_input(path):
+        if not observation.environment:
+            raise _error(
+                scenario_id, file, "observation.environment", "required for a runtime scenario"
+            )
+        if observation.window_start is None:
+            raise _error(
+                scenario_id, file, "observation.window.start", "required for a runtime scenario"
+            )
+        if observation.window_end is None:
+            raise _error(
+                scenario_id, file, "observation.window.end", "required for a runtime scenario"
+            )
+    if (
+        observation.window_start is not None
+        and observation.window_end is not None
+        and not observation.window_start < observation.window_end
+    ):
+        raise _error(scenario_id, file, "observation.window", "start must be before end")
+
+    reconciliation_dir = _reconciliation_declarations_dir(path)
+    if reconciliation_dir.is_dir() and not scan_directory(reconciliation_dir):
         raise _error(
-            scenario_id, file, "observation.environment", "required for a runtime scenario"
+            scenario_id,
+            file,
+            "input.reconciliation.declarations",
+            "no importable declaration sources found",
         )
 
     expected_raw = _require_mapping(
         _require(raw, "expected", scenario_id=scenario_id, file=file),
+        scenario_id=scenario_id,
+        file=file,
+        field="expected",
+    )
+    _reject_unknown_keys(
+        expected_raw,
+        _RELATIONS_CONTAINER_ALLOWED_KEYS,
         scenario_id=scenario_id,
         file=file,
         field="expected",
@@ -258,9 +385,23 @@ def load_scenario(path: Path) -> Scenario:
         if key in seen:
             raise _error(scenario_id, file, "expected.relations", f"duplicate expected fact: {key}")
         seen.add(key)
+        if not scope.contains(fact):
+            raise _error(
+                scenario_id,
+                file,
+                "expected.relations",
+                f"assertion excluded by scenario scope: {key}",
+            )
 
     forbidden_raw = _require_mapping(
         _require(raw, "forbidden", scenario_id=scenario_id, file=file),
+        scenario_id=scenario_id,
+        file=file,
+        field="forbidden",
+    )
+    _reject_unknown_keys(
+        forbidden_raw,
+        _RELATIONS_CONTAINER_ALLOWED_KEYS,
         scenario_id=scenario_id,
         file=file,
         field="forbidden",
@@ -285,6 +426,13 @@ def load_scenario(path: Path) -> Scenario:
                 scenario_id, file, "forbidden.relations", f"duplicate forbidden fact: {key}"
             )
         seen_forbidden.add(key)
+        if not scope.contains(fact):
+            raise _error(
+                scenario_id,
+                file,
+                "forbidden.relations",
+                f"assertion excluded by scenario scope: {key}",
+            )
         if key in seen:
             raise _error(
                 scenario_id,

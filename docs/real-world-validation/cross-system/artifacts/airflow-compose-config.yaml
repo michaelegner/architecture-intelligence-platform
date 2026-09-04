@@ -1,0 +1,563 @@
+name: runtime
+services:
+  airflow-apiserver:
+    command:
+      - api-server
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+    environment:
+      AIRFLOW__API_AUTH__JWT_ISSUER: airflow
+      AIRFLOW__API_AUTH__JWT_SECRET: airflow_jwt_secret
+      AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__FERNET_KEY: REDACTED
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+      AIRFLOW__TRACES__OTEL_ON: "True"
+      AIRFLOW_CONFIG: /opt/airflow/config/airflow.cfg
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=airflow-i3
+      OTEL_TRACES_EXPORTER: otlp_proto_http
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - http://localhost:8080/api/v2/monitor/health
+      timeout: 10s
+      interval: 30s
+      retries: 5
+      start_period: 30s
+    image: apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8080
+        published: "8080"
+        protocol: tcp
+    restart: always
+    user: '50000:0'
+    volumes:
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/apache-airflow/runtime/dags
+        target: /opt/airflow/dags
+        bind: {}
+      - type: volume
+        source: airflow-i3-logs
+        target: /opt/airflow/logs
+        volume: {}
+      - type: volume
+        source: airflow-i3-config
+        target: /opt/airflow/config
+        volume: {}
+      - type: volume
+        source: airflow-i3-plugins
+        target: /opt/airflow/plugins
+        volume: {}
+  airflow-dag-processor:
+    command:
+      - dag-processor
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+    environment:
+      AIRFLOW__API_AUTH__JWT_ISSUER: airflow
+      AIRFLOW__API_AUTH__JWT_SECRET: airflow_jwt_secret
+      AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__FERNET_KEY: REDACTED
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+      AIRFLOW__TRACES__OTEL_ON: "True"
+      AIRFLOW_CONFIG: /opt/airflow/config/airflow.cfg
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=airflow-i3
+      OTEL_TRACES_EXPORTER: otlp_proto_http
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"
+      timeout: 10s
+      interval: 30s
+      retries: 5
+      start_period: 30s
+    image: apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+    networks:
+      default: null
+    restart: always
+    user: '50000:0'
+    volumes:
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/apache-airflow/runtime/dags
+        target: /opt/airflow/dags
+        bind: {}
+      - type: volume
+        source: airflow-i3-logs
+        target: /opt/airflow/logs
+        volume: {}
+      - type: volume
+        source: airflow-i3-config
+        target: /opt/airflow/config
+        volume: {}
+      - type: volume
+        source: airflow-i3-plugins
+        target: /opt/airflow/plugins
+        volume: {}
+  airflow-init:
+    command:
+      - -c
+      - |
+        mkdir -v -p /opt/airflow/{logs,dags,plugins,config}
+        /entrypoint airflow version
+        /entrypoint airflow config list >/dev/null
+        chown -R "50000:0" /opt/airflow/
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+    entrypoint:
+      - /bin/bash
+    environment:
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_PASSWORD: airflow
+      _AIRFLOW_WWW_USER_USERNAME: airflow
+      AIRFLOW__API_AUTH__JWT_ISSUER: airflow
+      AIRFLOW__API_AUTH__JWT_SECRET: airflow_jwt_secret
+      AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__FERNET_KEY: REDACTED
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+      AIRFLOW__TRACES__OTEL_ON: "True"
+      AIRFLOW_CONFIG: /opt/airflow/config/airflow.cfg
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=airflow-i3
+      OTEL_TRACES_EXPORTER: otlp_proto_http
+    image: apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+    networks:
+      default: null
+    user: '0:0'
+    volumes:
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/apache-airflow/runtime/dags
+        target: /opt/airflow/dags
+        bind: {}
+      - type: volume
+        source: airflow-i3-logs
+        target: /opt/airflow/logs
+        volume: {}
+      - type: volume
+        source: airflow-i3-config
+        target: /opt/airflow/config
+        volume: {}
+      - type: volume
+        source: airflow-i3-plugins
+        target: /opt/airflow/plugins
+        volume: {}
+  airflow-scheduler:
+    command:
+      - scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+    environment:
+      AIRFLOW__API_AUTH__JWT_ISSUER: airflow
+      AIRFLOW__API_AUTH__JWT_SECRET: airflow_jwt_secret
+      AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__FERNET_KEY: REDACTED
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+      AIRFLOW__TRACES__OTEL_ON: "True"
+      AIRFLOW_CONFIG: /opt/airflow/config/airflow.cfg
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=airflow-i3
+      OTEL_TRACES_EXPORTER: otlp_proto_http
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"
+      timeout: 10s
+      interval: 30s
+      retries: 5
+      start_period: 30s
+    image: apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+    networks:
+      default: null
+    restart: always
+    user: '50000:0'
+    volumes:
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/apache-airflow/runtime/dags
+        target: /opt/airflow/dags
+        bind: {}
+      - type: volume
+        source: airflow-i3-logs
+        target: /opt/airflow/logs
+        volume: {}
+      - type: volume
+        source: airflow-i3-config
+        target: /opt/airflow/config
+        volume: {}
+      - type: volume
+        source: airflow-i3-plugins
+        target: /opt/airflow/plugins
+        volume: {}
+  airflow-triggerer:
+    command:
+      - triggerer
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+    environment:
+      AIRFLOW__API_AUTH__JWT_ISSUER: airflow
+      AIRFLOW__API_AUTH__JWT_SECRET: airflow_jwt_secret
+      AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__FERNET_KEY: REDACTED
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+      AIRFLOW__TRACES__OTEL_ON: "True"
+      AIRFLOW_CONFIG: /opt/airflow/config/airflow.cfg
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=airflow-i3
+      OTEL_TRACES_EXPORTER: otlp_proto_http
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"
+      timeout: 10s
+      interval: 30s
+      retries: 5
+      start_period: 30s
+    image: apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+    networks:
+      default: null
+    restart: always
+    user: '50000:0'
+    volumes:
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/apache-airflow/runtime/dags
+        target: /opt/airflow/dags
+        bind: {}
+      - type: volume
+        source: airflow-i3-logs
+        target: /opt/airflow/logs
+        volume: {}
+      - type: volume
+        source: airflow-i3-config
+        target: /opt/airflow/config
+        volume: {}
+      - type: volume
+        source: airflow-i3-plugins
+        target: /opt/airflow/plugins
+        volume: {}
+  airflow-worker:
+    command:
+      - celery
+      - worker
+    depends_on:
+      airflow-apiserver:
+        condition: service_healthy
+        required: true
+      airflow-init:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+    environment:
+      AIRFLOW__API_AUTH__JWT_ISSUER: airflow
+      AIRFLOW__API_AUTH__JWT_SECRET: airflow_jwt_secret
+      AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__FERNET_KEY: REDACTED
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+      AIRFLOW__TRACES__OTEL_ON: "True"
+      AIRFLOW_CONFIG: /opt/airflow/config/airflow.cfg
+      DUMB_INIT_SETSID: "0"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=airflow-i3
+      OTEL_TRACES_EXPORTER: otlp_proto_http
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - celery --app airflow.providers.celery.executors.celery_executor.app inspect
+          ping -d "celery@$${HOSTNAME}" || celery --app airflow.executors.celery_executor.app
+          inspect ping -d "celery@$${HOSTNAME}"
+      timeout: 10s
+      interval: 30s
+      retries: 5
+      start_period: 30s
+    image: apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+    networks:
+      default: null
+    restart: always
+    user: '50000:0'
+    volumes:
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/apache-airflow/runtime/dags
+        target: /opt/airflow/dags
+        bind: {}
+      - type: volume
+        source: airflow-i3-logs
+        target: /opt/airflow/logs
+        volume: {}
+      - type: volume
+        source: airflow-i3-config
+        target: /opt/airflow/config
+        volume: {}
+      - type: volume
+        source: airflow-i3-plugins
+        target: /opt/airflow/plugins
+        volume: {}
+  architecture-intelligence:
+    build:
+      context: /home/michael/code/ArchitectureIntelligencePlatform
+      dockerfile: Dockerfile
+    depends_on:
+      neo4j:
+        condition: service_healthy
+        required: true
+    environment:
+      CONFIG_PATH: config.airflow-i3.yaml
+      NEO4J_PASSWORD: REDACTED
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      OPENAI_API_KEY: ""
+    image: aip-candidate-9f95d48
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8000
+        published: "8000"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/apache-airflow/runtime/declarations
+        target: /app/declarations
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/apache-airflow/runtime/config.airflow-i3.yaml
+        target: /app/config.airflow-i3.yaml
+        read_only: true
+        bind: {}
+  neo4j:
+    environment:
+      NEO4J_AUTH: neo4j/REDACTED
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q --spider http://localhost:7474 || exit 1
+      timeout: 5s
+      interval: 5s
+      retries: 20
+    image: neo4j:5.26.0
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 7474
+        published: "7474"
+        protocol: tcp
+      - mode: ingress
+        target: 7687
+        published: "7687"
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: neo4j-airflow-i3-data
+        target: /data
+        volume: {}
+      - type: volume
+        source: neo4j-airflow-i3-logs
+        target: /logs
+        volume: {}
+  otel-collector:
+    command:
+      - --config=/etc/otel-collector-config.yaml
+    depends_on:
+      architecture-intelligence:
+        condition: service_healthy
+        required: true
+    image: otel/opentelemetry-collector:0.159.0@sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 4317
+        published: "4317"
+        protocol: tcp
+      - mode: ingress
+        target: 4318
+        published: "4318"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /home/michael/code/ArchitectureIntelligencePlatform/docs/real-world-validation/apache-airflow/runtime/otel-collector-config.yaml
+        target: /etc/otel-collector-config.yaml
+        read_only: true
+        bind: {}
+  postgres:
+    environment:
+      POSTGRES_DB: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_USER: airflow
+    healthcheck:
+      test:
+        - CMD
+        - pg_isready
+        - -U
+        - airflow
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    image: postgres:16.15
+    networks:
+      default: null
+    restart: always
+    volumes:
+      - type: volume
+        source: postgres-db-volume
+        target: /var/lib/postgresql/data
+        volume: {}
+  redis:
+    expose:
+      - "6379"
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      timeout: 30s
+      interval: 10s
+      retries: 50
+      start_period: 30s
+    image: redis:7.2-bookworm@sha256:74566c6910d13ae61e7ce73ebd3127438a1fe805b309b097c323142719ec8a5b
+    networks:
+      default: null
+    restart: always
+networks:
+  default:
+    name: runtime_default
+volumes:
+  airflow-i3-config:
+    name: runtime_airflow-i3-config
+  airflow-i3-logs:
+    name: runtime_airflow-i3-logs
+  airflow-i3-plugins:
+    name: runtime_airflow-i3-plugins
+  neo4j-airflow-i3-data:
+    name: runtime_neo4j-airflow-i3-data
+  neo4j-airflow-i3-logs:
+    name: runtime_neo4j-airflow-i3-logs
+  postgres-db-volume:
+    name: runtime_postgres-db-volume
+x-airflow-common:
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  environment:
+    AIRFLOW__API_AUTH__JWT_ISSUER: airflow
+    AIRFLOW__API_AUTH__JWT_SECRET: airflow_jwt_secret
+    AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    AIRFLOW__CORE__FERNET_KEY: REDACTED
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    AIRFLOW__TRACES__OTEL_ON: "True"
+    AIRFLOW_CONFIG: /opt/airflow/config/airflow.cfg
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=airflow-i3
+    OTEL_TRACES_EXPORTER: otlp_proto_http
+  image: apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+  user: '50000:0'
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - airflow-i3-logs:/opt/airflow/logs
+    - airflow-i3-config:/opt/airflow/config
+    - airflow-i3-plugins:/opt/airflow/plugins

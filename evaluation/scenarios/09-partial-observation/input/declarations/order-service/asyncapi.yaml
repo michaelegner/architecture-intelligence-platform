@@ -1,0 +1,16 @@
+asyncapi: '2.6.0'
+info:
+  title: OrderService
+  version: "1.0.0"
+channels:
+  audit-q:
+    publish:
+      operationId: sendAudit
+      message:
+        $ref: '#/components/messages/AuditMessage'
+components:
+  messages:
+    AuditMessage:
+      name: AuditMessage
+      payload:
+        type: object

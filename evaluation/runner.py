@@ -1,7 +1,8 @@
 """Orchestrates one evaluation scenario run against a live AIP instance.
 
 Orchestrates, per scenario: reset -> ingest declared architecture -> inject runtime fixture ->
-project canonical facts -> compare against ground truth (spec §12-16).
+optionally re-import reconciliation declarations -> project canonical facts -> compare against
+ground truth (spec §12-16, I3 spec §10.2).
 """
 
 from __future__ import annotations
@@ -35,6 +36,10 @@ def reset_graph(driver: neo4j.Driver, *, database: str) -> None:
 
 def _declarations_dir(scenario: Scenario) -> Path:
     return scenario.path / "input" / "declarations"
+
+
+def _reconciliation_declarations_dir(scenario: Scenario) -> Path:
+    return scenario.path / "input" / "reconciliation" / "declarations"
 
 
 def _telemetry_module_path(scenario: Scenario) -> Path:
@@ -89,12 +94,28 @@ def inject_runtime_fixture(driver: neo4j.Driver, *, database: str, scenario: Sce
     response.raise_for_status()
 
 
+def apply_reconciliation(driver: neo4j.Driver, *, database: str, scenario: Scenario) -> None:
+    """Re-imports a scenario's post-telemetry declaration state through the real declaration
+    import path (I3 spec §9-10) - no-op for a scenario with no
+    input/reconciliation/declarations/. This is what lets production's own per-service
+    reconciliation (app.graph.importer.import_service) expire stale DECLARED evidence for the
+    re-imported service while leaving surviving OBSERVED evidence, other services' declarations,
+    and the relation itself untouched (the evidence-preservation invariant, I3 spec §4.2) - the
+    evaluator never simulates this with its own Cypher mutation. The loader already rejects an
+    existing-but-empty reconciliation directory (I3 spec §10.3) before this ever runs."""
+    reconciliation_dir = _reconciliation_declarations_dir(scenario)
+    if reconciliation_dir.is_dir() and any(reconciliation_dir.iterdir()):
+        import_all_sources(driver, database=database, root=reconciliation_dir)
+
+
 def prepare_scenario(driver: neo4j.Driver, *, database: str, scenario: Scenario) -> None:
-    """Full per-scenario setup: reset -> ingest declared architecture -> inject runtime fixture,
-    always starting from clean evaluation state (spec §12-13)."""
+    """Full per-scenario setup: reset -> ingest declared architecture -> inject runtime fixture ->
+    optionally re-import reconciliation declarations, always starting from clean evaluation state
+    and never resetting in between (spec §12-13, I3 spec §10.2/§14)."""
     reset_graph(driver, database=database)
     ingest_declarations(driver, database=database, scenario=scenario)
     inject_runtime_fixture(driver, database=database, scenario=scenario)
+    apply_reconciliation(driver, database=database, scenario=scenario)
 
 
 def run_scenario(driver: neo4j.Driver, *, database: str, scenario: Scenario) -> ScenarioResult:

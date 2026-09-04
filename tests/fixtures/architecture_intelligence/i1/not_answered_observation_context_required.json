@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.4",
+  "producer": {
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0",
+    "build_revision": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567"
+  },
+  "tool": "get_service_dependencies",
+  "outcome": "NOT_ANSWERED",
+  "snapshot": {
+    "snapshot_id": "aip:snapshot:v1:372f4f46f2fb9c75a29c253902052eb2b8a30866c1ae837e399bb1fd26f7625e",
+    "model_revision": "sha256:372f4f46f2fb9c75a29c253902052eb2b8a30866c1ae837e399bb1fd26f7625e"
+  },
+  "observation_context": null,
+  "data": null,
+  "claims": [],
+  "evidence_refs": [],
+  "limitations": [
+    {
+      "code": "OBSERVATION_CONTEXT_REQUIRED",
+      "message": "observation_context.environment, window_start and window_end are required for a runtime-sensitive dependency query.",
+      "claim_ids": []
+    }
+  ]
+}

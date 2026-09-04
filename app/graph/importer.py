@@ -6,6 +6,7 @@ import neo4j
 from app.canonical.model import ArchitectureModel
 from app.graph.reconciliation import KNOWN_RELATION_TYPES, plan_reconciliation, relation_key
 from app.graph.repository import open_session
+from app.graph.revision_fence import bump_revision
 from app.graph.schema import ensure_schema
 from app.ingestion.pipeline import merge_models, parse_sources
 from app.validation.canonical_validation import validate_canonical_model
@@ -116,6 +117,15 @@ def _write_relations(
     return len(model.relations)
 
 
+def _pre_merge_tx(tx: neo4j.ManagedTransaction, service_id: str, model: ArchitectureModel) -> int:
+    """Pre-merge write path (spec §19 write-path list, item 1) - a separate transaction from
+    `_import_service_tx` below, so it bumps the revision fence independently rather than sharing
+    that function's bump."""
+    count = _write_nodes(tx, service_id, model)
+    bump_revision(tx)
+    return count
+
+
 def _import_service_tx(
     tx: neo4j.ManagedTransaction, service_id: str, model: ArchitectureModel
 ) -> ImportStats:
@@ -144,6 +154,8 @@ def _import_service_tx(
         tx.run(_STRIP_STALE_EVIDENCE_QUERY, ids=list(plan.stale_node_ids))
         tx.run(_EXPIRE_NODES_QUERY, ids=list(plan.stale_node_ids), service_id=service_id)
 
+    bump_revision(tx)
+
     return ImportStats(
         service_id=service_id,
         nodes_written=nodes_written,
@@ -170,7 +182,7 @@ def import_all_sources(
     with open_session(driver, database=database) as session:
         ensure_schema(session)
         for service_id, model in by_service.items():
-            session.execute_write(_write_nodes, service_id, model)
+            session.execute_write(_pre_merge_tx, service_id, model)
 
         return {
             service_id: import_service(session, service_id, model)

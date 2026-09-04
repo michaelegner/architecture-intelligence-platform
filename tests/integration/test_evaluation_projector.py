@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 import yaml
-from testcontainers.community.neo4j import Neo4jContainer
 
+from app.analysis.runtime import COVERAGE_PARTIAL, COVERAGE_SUFFICIENT, declared_only_relations
 from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.provenance.model import ObservedEvidence
@@ -22,24 +22,17 @@ from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 from evaluation.loader import load_scenario
 from evaluation.model import ScenarioScope
 from evaluation.projector import load_relation_facts
-from evaluation.runner import reset_graph, run_scenario
+from evaluation.runner import (
+    apply_reconciliation,
+    ingest_declarations,
+    inject_runtime_fixture,
+    reset_graph,
+    run_scenario,
+)
 
 SCENARIOS_DIR = Path(__file__).resolve().parent.parent.parent / "evaluation" / "scenarios"
 DATABASE = "neo4j"
 SINCE = datetime(2026, 8, 1, 0, 0, tzinfo=UTC)
-
-
-@pytest.fixture(scope="module")
-def neo4j_container():
-    with Neo4jContainer("neo4j:5") as container:
-        yield container
-
-
-@pytest.fixture(scope="module")
-def driver(neo4j_container):
-    drv = neo4j_container.get_driver()
-    yield drv
-    drv.close()
 
 
 @pytest.fixture
@@ -101,6 +94,64 @@ def test_wrong_expectation_is_reported_as_a_semantic_mismatch_not_a_pass(driver,
     assert len(result.mismatches) == 1
     assert result.mismatches[0].kind == "semantic_mismatch"
     assert result.mismatches[0].actual.status == "CONFIRMED"
+
+
+# --- I2 scenarios: orphan messaging, mixed REST+async, request/response queue pair --------------
+
+
+def test_orphan_messaging_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "04-orphan-messaging")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_mixed_rest_async_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "05-mixed-rest-async")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_request_response_queue_pair_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "06-request-response-queue-pair")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_forbidding_a_fact_that_is_actually_present_fails_the_scenario(driver, tmp_path):
+    """Sanity-break control for the forbidden-fact path: re-declaring one of the request/response
+    scenario's real, present facts (SENDS order-service->request-q) as forbidden instead of
+    expected must turn it into a reported FORBIDDEN_PRESENT FAIL, proving forbidden-fact
+    enforcement actually discriminates rather than being vacuously true."""
+    broken_dir = tmp_path / "06-request-response-queue-pair-broken"
+    shutil.copytree(SCENARIOS_DIR / "06-request-response-queue-pair", broken_dir)
+    expected_file = broken_dir / "expected.yaml"
+    data = yaml.safe_load(expected_file.read_text())
+    data["expected"]["relations"] = [
+        r
+        for r in data["expected"]["relations"]
+        if not (r["type"] == "SENDS" and r["target"] == "queue:request-q")
+    ]
+    data["forbidden"]["relations"] = [
+        {"type": "SENDS", "source": "service:order-service", "target": "queue:request-q"}
+    ]
+    expected_file.write_text(yaml.safe_dump(data))
+
+    scenario = load_scenario(broken_dir)
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert not result.passed
+    assert len(result.mismatches) == 1
+    assert result.mismatches[0].kind == "forbidden_present"
+    assert result.mismatches[0].actual.target == "queue:request-q"
 
 
 # --- F1 regression: status must be classified per (type, source, target), not per (source, type) ---
@@ -279,3 +330,159 @@ def test_a_caller_with_multiple_calls_targets_gets_independent_status_per_target
     assert fact_a.status == "CONFIRMED"
     assert fact_a.target == operation_a  # raw Operation id, not the provider id
     assert fact_b.status != "CONFIRMED"
+
+
+# --- I3: NOT_OBSERVED_IN_WINDOW -----------------------------------------------------------------
+
+
+def test_not_observed_in_window_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "07-not-observed-in-window")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_window_including_the_observation_reclassifies_it_as_confirmed(driver, tmp_path):
+    """I3 spec §8.5 window sanity-break: scenario 07's runtime fixture is deliberately outside its
+    selected window. Widening the window to include it must flip the classification to CONFIRMED,
+    proving NOT_OBSERVED_IN_WINDOW isn't produced by simply ignoring OBSERVED evidence."""
+    widened_dir = tmp_path / "07-not-observed-in-window-widened"
+    shutil.copytree(SCENARIOS_DIR / "07-not-observed-in-window", widened_dir)
+    expected_file = widened_dir / "expected.yaml"
+    data = yaml.safe_load(expected_file.read_text())
+    data["observation"]["window"] = {
+        "start": "2026-08-01T09:00:00Z",
+        "end": "2026-08-01T10:00:00Z",
+    }
+    data["expected"]["relations"][0]["status"] = "CONFIRMED"
+    data["expected"]["relations"][0]["evidence"] = {"declared": True, "observed": True}
+    expected_file.write_text(yaml.safe_dump(data))
+
+    scenario = load_scenario(widened_dir)
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+# --- I3: evidence reconciliation ---------------------------------------------------------------
+
+
+def test_evidence_reconciliation_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "08-evidence-reconciliation")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_evidence_reconciliation_transitions_from_confirmed_to_observed_only(driver, session):
+    """I3 spec §11.6: proves the transition itself using the same projector the evaluator uses -
+    before reconciliation the relation is CONFIRMED (declared+observed), after reconciliation it's
+    OBSERVED_ONLY (declared evidence expired, observed evidence survives)."""
+    scenario = load_scenario(SCENARIOS_DIR / "08-evidence-reconciliation")
+
+    reset_graph(driver, database=DATABASE)
+    ingest_declarations(driver, database=DATABASE, scenario=scenario)
+    inject_runtime_fixture(driver, database=DATABASE, scenario=scenario)
+
+    before = load_relation_facts(
+        session,
+        scope=scenario.scope,
+        environment=scenario.observation.environment,
+        since=scenario.observation.window_start,
+        until=scenario.observation.window_end,
+    )
+    before_fact = next(f for f in before if f.type == "CALLS")
+    assert before_fact.status == "CONFIRMED"
+    assert before_fact.declared_evidence is True
+    assert before_fact.observed_evidence is True
+
+    apply_reconciliation(driver, database=DATABASE, scenario=scenario)
+
+    after = load_relation_facts(
+        session,
+        scope=scenario.scope,
+        environment=scenario.observation.environment,
+        since=scenario.observation.window_start,
+        until=scenario.observation.window_end,
+    )
+    after_fact = next(f for f in after if f.type == "CALLS")
+    assert after_fact.status == "OBSERVED_ONLY"
+    assert after_fact.declared_evidence is False
+    assert after_fact.observed_evidence is True
+
+
+def test_evidence_reconciliation_sanity_break_without_reimport_stays_confirmed(driver, session):
+    """I3 spec §11.7: omitting the reconciliation re-import must leave the relation CONFIRMED,
+    proving the reconciliation phase is causally required for scenario 08's final expectation
+    rather than the scenario passing regardless."""
+    scenario = load_scenario(SCENARIOS_DIR / "08-evidence-reconciliation")
+
+    reset_graph(driver, database=DATABASE)
+    ingest_declarations(driver, database=DATABASE, scenario=scenario)
+    inject_runtime_fixture(driver, database=DATABASE, scenario=scenario)
+    # Deliberately no apply_reconciliation call.
+
+    facts = load_relation_facts(
+        session,
+        scope=scenario.scope,
+        environment=scenario.observation.environment,
+        since=scenario.observation.window_start,
+        until=scenario.observation.window_end,
+    )
+    fact = next(f for f in facts if f.type == "CALLS")
+    assert fact.status == "CONFIRMED"
+
+
+# --- I4: partial observation and coverage ------------------------------------------------------
+
+
+def test_partial_observation_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "09-partial-observation")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()
+
+
+def test_partial_observation_coverage_qualification(driver, session):
+    """I4 spec §6.6: a dedicated integration test against AIP's existing production
+    runtime-analysis boundary (declared_only_relations, O4) - never a reimplementation of
+    _classify_coverage in the evaluator. OrderService has observed HTTP traffic (the CONFIRMED
+    ProductService call) but no observed messaging traffic in this window, so its unobserved CALLS
+    to InventoryService shares the observed interaction kind (SUFFICIENT) while its unobserved
+    SENDS to audit-q does not (PARTIAL)."""
+    scenario = load_scenario(SCENARIOS_DIR / "09-partial-observation")
+
+    reset_graph(driver, database=DATABASE)
+    ingest_declarations(driver, database=DATABASE, scenario=scenario)
+    inject_runtime_fixture(driver, database=DATABASE, scenario=scenario)
+
+    rows = declared_only_relations(
+        session,
+        environment=scenario.observation.environment,
+        since=scenario.observation.window_start,
+        until=scenario.observation.window_end,
+    )
+
+    calls_row = next(r for r in rows if r.relation_type == "CALLS")
+    sends_row = next(r for r in rows if r.relation_type == "SENDS")
+    assert calls_row.coverage == COVERAGE_SUFFICIENT
+    assert sends_row.coverage == COVERAGE_PARTIAL
+
+
+# --- I4: complete core scenario set --------------------------------------------------------------
+
+
+def test_declared_rest_relation_scenario_passes_end_to_end(driver):
+    scenario = load_scenario(SCENARIOS_DIR / "10-declared-rest-relation")
+
+    result = run_scenario(driver, database=DATABASE, scenario=scenario)
+
+    assert result.passed, result.mismatches
+    assert result.mismatches == ()

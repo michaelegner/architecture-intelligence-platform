@@ -1,0 +1,25 @@
+asyncapi: '2.6.0'
+info:
+  title: OrderService
+  version: "1.0.0"
+channels:
+  request-q:
+    publish:
+      operationId: sendRequest
+      message:
+        $ref: '#/components/messages/RequestMessage'
+  response-q:
+    subscribe:
+      operationId: receiveResponse
+      message:
+        $ref: '#/components/messages/ResponseMessage'
+components:
+  messages:
+    RequestMessage:
+      name: RequestMessage
+      payload:
+        type: object
+    ResponseMessage:
+      name: ResponseMessage
+      payload:
+        type: object

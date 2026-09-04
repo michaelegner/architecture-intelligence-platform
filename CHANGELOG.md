@@ -9,6 +9,101 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-02
+
+### v0.3 — Real-World Validation and Cross-System Hardening
+
+AIP was validated against two independently authored real systems it was not built against:
+**Quarkus Super Heroes** (a controlled, externally authored microservice reference architecture)
+and **Apache Airflow** (a mature real-world system — API server, scheduler, workers, asynchronous
+task execution). This does not add another architecture-intelligence dimension; it tests whether
+the model validated reproducibly in `v0.2` survives contact with systems AIP's own authors did not
+build.
+
+- Independent real-world validation methodology frozen (I1): finding vocabulary, ground-truth
+  independence rules, supported-scope rules, comparator semantics, dossier/runbook contract.
+- Quarkus Super Heroes qualified (I2): **38 correct, 2 unsupported, 0 incorrect/missing
+  supported** (comparator-only score, reproduced byte-identical across two independent runs);
+  **1 insufficient evidence overall** (0 in the comparator-only score — `qsh-kafka-operation-
+  type-gap`, discovered once by a separate diagnostic inspection, not emitted by either
+  comparator run, carried forward as an accepted dossier disposition).
+- Apache Airflow qualified (I3): **9 correct, 3 unsupported, 2 unresolved identity, 1 insufficient
+  evidence, 0 incorrect/missing supported.** Two independent runs, byte-identical.
+- Cross-system finding dispositions (I4): all 10 findings from both dossiers dispositioned
+  `NO_CHANGE`, `DOCUMENT_UNSUPPORTED`, or `DEFER` — **zero required a production fix**. The
+  canonical-redesign gate answered **NO**: no fundamental Canonical Model redesign is required
+  before v0.4.
+- **Zero material `INCORRECT_SUPPORTED` findings** across either system, across every qualifying
+  run.
+- **No production semantic changes** were justified by either system's independent evidence — the
+  Canonical Model, relation semantics, identity resolution, and runtime-status classification are
+  unchanged from `v0.2.0`.
+- Explicit, bounded boundaries rather than silently-absorbed gaps: gRPC/protobuf calls, Kafka
+  topic/subscription semantics, and PostgreSQL/database dependencies remain unsupported; Airflow
+  Execution API caller identity and runtime-role identity remain unresolved rather than guessed;
+  a legacy OpenTelemetry messaging-attribute shape and Celery messaging identity remain
+  insufficient-evidence, deferred pending future evidence.
+- I4/`v0.3.0-rc.1` candidate repeatability baseline: both systems' qualifying comparisons were
+  re-executed twice each, from clean state, against that candidate (`9f95d48`), producing
+  byte-identical captures and comparator reports both times.
+- Final-candidate repeatability: after the version/lock fix below produced a new candidate
+  (`v0.3.0-rc.2`), both systems were revalidated fresh against it — two runs each, from clean
+  state — producing captures and comparator reports byte-identical to each other **and** to the
+  `rc.1` baseline above, proving the fix changed no application-facing fact.
+
+See
+[`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
+for the full cross-system report and finding ledger, and
+[`docs/release-validation/v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md) for the
+final qualification record.
+
+An initial release candidate, `v0.3.0-rc.1`, was tagged at the I4-qualified candidate — but I5's own
+entry qualification found `pyproject.toml`/`uv.lock` still declared project version `0.2.0`, which
+is release-blocking. That fix produced a new candidate, `v0.3.0-rc.2`; its fresh real-system
+revalidation, Quick Start, GHCR artifact, and CI/CodeQL/Trivy qualification are all complete and
+green, and the repository owner decided **`GO`** — see
+[`v0.3.0-go-no-go.md`](docs/release-validation/v0.3.0-go-no-go.md). `v0.3.0` was tagged at that
+exact candidate and published; its GHCR artifact and tagged source were independently re-verified —
+see [`v0.3.0-post-release-verification.md`](docs/release-validation/v0.3.0-post-release-verification.md).
+
+## [0.2.0] - 2026-08-31
+
+Adds a deterministic evaluation suite that verifies the architecture intelligence introduced in
+`v0.1` against independently authored ground truth — real AIP ingestion and runtime resolution,
+compared against a hand-written `expected.yaml`, with deterministic PASS/FAIL. This release does
+not add another architecture-intelligence dimension; it proves the existing one behaves correctly.
+See [`evaluation/README.md`](evaluation/README.md) and
+[`docs/specifications/0.2.0/`](docs/specifications/0.2.0/) for the full design history.
+
+### Added
+
+- A deterministic evaluation kernel (`evaluation/`): scenario fixtures run through real AIP
+  ingestion and runtime resolution, projected to canonical facts, and compared against independent,
+  hand-authored `expected.yaml` ground truth - never generated from AIP's own derivation code.
+- Ten core scenarios covering REST (`CALLS`/`PROVIDES`) and queue-based (`SENDS`/`RECEIVES_FROM`)
+  dependencies, the `CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW` status classifications,
+  topology/directionality (orphan messaging, mixed sync/async, request/response queue pairs),
+  partial observation with qualitative coverage, evidence reconciliation, and a pure declared-only
+  REST relation.
+- Exhaustive missing/unexpected/forbidden-fact detection - any in-scope actual fact that's neither
+  expected nor explicitly forbidden fails the scenario, not just a silently-ignored diagnostic.
+- `NOT_OBSERVED_IN_WINDOW` evaluation, context-qualified: a declared relation with no matching
+  observed evidence in the selected environment/window remains a real canonical fact, never treated
+  as absence.
+- Evidence-reconciliation evaluation: proves that removing a service's stale `DECLARED` evidence for
+  a relation never removes independently surviving `OBSERVED` evidence, and that the resulting
+  status transition (`CONFIRMED -> OBSERVED_ONLY`) is read from AIP itself, never re-derived.
+- Partial-observation coverage qualification: an unobserved relation's qualitative coverage
+  (`SUFFICIENT`/`PARTIAL`/`NONE`/`UNKNOWN`) is asserted through AIP's own production
+  runtime-analysis boundary, never reimplemented in the evaluator.
+- Strict `expected.yaml` schema validation: unknown fields, invalid status/evidence values, naive
+  (non-timezone-aware) timestamps, and scope-excluded assertions all fail at load time as
+  deterministic configuration errors rather than silently weakening an assertion.
+- Deterministic comparison and report ordering, independent of Python's internal set iteration
+  order.
+- Local reproducibility: the full suite runs from a clean checkout without a separately running
+  Neo4j and without an LLM API key (`uv run python -m evaluation run`).
+
 ## [0.1.0-alpha.2] - 2026-08-27
 
 Second public pre-release, cut specifically to give the fixed release pipeline (single Docker

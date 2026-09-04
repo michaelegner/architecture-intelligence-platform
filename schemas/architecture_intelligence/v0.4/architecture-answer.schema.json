@@ -1,0 +1,684 @@
+{
+  "$defs": {
+    "Coverage": {
+      "enum": [
+        "SUFFICIENT",
+        "PARTIAL",
+        "NONE",
+        "UNKNOWN"
+      ],
+      "title": "Coverage",
+      "type": "string"
+    },
+    "DeliveryKind": {
+      "enum": [
+        "SYNC_HTTP",
+        "ASYNC_MESSAGE"
+      ],
+      "title": "DeliveryKind",
+      "type": "string"
+    },
+    "DeliveryRef": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SYNC_HTTP"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "relation_type": {
+                "const": "CALLS"
+              },
+              "via": {
+                "properties": {
+                  "type": {
+                    "const": "OPERATION"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            "required": [
+              "relation_type",
+              "via"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "ASYNC_MESSAGE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "relation_type": {
+                "const": "SENDS"
+              },
+              "via": {
+                "properties": {
+                  "type": {
+                    "const": "QUEUE"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            "required": [
+              "relation_type",
+              "via"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/DeliveryKind"
+        },
+        "relation_type": {
+          "$ref": "#/$defs/DeliveryRelationType"
+        },
+        "via": {
+          "$ref": "#/$defs/EntityRef"
+        }
+      },
+      "required": [
+        "kind",
+        "relation_type",
+        "via"
+      ],
+      "title": "DeliveryRef",
+      "type": "object"
+    },
+    "DeliveryRelationType": {
+      "enum": [
+        "CALLS",
+        "SENDS"
+      ],
+      "title": "DeliveryRelationType",
+      "type": "string"
+    },
+    "DependencyClaim": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "coverage": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "qualification": {
+                "const": "NOT_OBSERVED_IN_WINDOW"
+              }
+            },
+            "required": [
+              "qualification"
+            ]
+          },
+          "then": {
+            "properties": {
+              "coverage": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "resolution_evidence_refs": {
+                "maxItems": 0
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "destination_resolution": {
+                "const": "RESOLVED_SERVICE"
+              }
+            },
+            "required": [
+              "destination_resolution"
+            ]
+          },
+          "then": {
+            "properties": {
+              "resolution_evidence_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "claim_id": {
+          "pattern": "^aip:claim:v1:[0-9a-f]{64}$",
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "coverage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Coverage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "delivery": {
+          "$ref": "#/$defs/DeliveryRef"
+        },
+        "destination_resolution": {
+          "$ref": "#/$defs/DestinationResolution"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "object": {
+          "$ref": "#/$defs/EntityRef"
+        },
+        "predicate": {
+          "$ref": "#/$defs/DependencyPredicate"
+        },
+        "qualification": {
+          "$ref": "#/$defs/Qualification"
+        },
+        "resolution_evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Resolution Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "subject": {
+          "$ref": "#/$defs/EntityRef"
+        }
+      },
+      "required": [
+        "claim_id",
+        "subject",
+        "predicate",
+        "object",
+        "destination_resolution",
+        "delivery",
+        "qualification",
+        "coverage",
+        "evidence_refs",
+        "resolution_evidence_refs"
+      ],
+      "title": "DependencyClaim",
+      "type": "object"
+    },
+    "DependencyPredicate": {
+      "enum": [
+        "DIRECT_DEPENDENCY"
+      ],
+      "title": "DependencyPredicate",
+      "type": "string"
+    },
+    "DestinationResolution": {
+      "enum": [
+        "RESOLVED_SERVICE",
+        "DIRECT_TARGET_FALLBACK"
+      ],
+      "title": "DestinationResolution",
+      "type": "string"
+    },
+    "EntityRef": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "method": {
+                "type": "null"
+              },
+              "path": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "type": {
+                "const": "OPERATION"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "namespace": {
+                "type": "null"
+              },
+              "protocol": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "type": {
+                "const": "QUEUE"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Method"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "protocol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Protocol"
+        },
+        "type": {
+          "$ref": "#/$defs/EntityType"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "name"
+      ],
+      "title": "EntityRef",
+      "type": "object"
+    },
+    "EntityType": {
+      "enum": [
+        "SERVICE",
+        "OPERATION",
+        "QUEUE"
+      ],
+      "title": "EntityType",
+      "type": "string"
+    },
+    "Limitation": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Claim Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "code": {
+          "$ref": "#/$defs/LimitationCode"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "Limitation",
+      "type": "object"
+    },
+    "LimitationCode": {
+      "enum": [
+        "UNRESOLVED_IDENTITY",
+        "INSUFFICIENT_EVIDENCE",
+        "UNKNOWN_ENTITY",
+        "OBSERVATION_CONTEXT_REQUIRED",
+        "SNAPSHOT_NOT_AVAILABLE",
+        "RESULT_LIMIT_EXCEEDED"
+      ],
+      "title": "LimitationCode",
+      "type": "string"
+    },
+    "ObservationContextRef": {
+      "additionalProperties": false,
+      "properties": {
+        "context_id": {
+          "pattern": "^aip:observation-context:v1:[0-9a-f]{64}$",
+          "title": "Context Id",
+          "type": "string"
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "window_end": {
+          "format": "date-time",
+          "title": "Window End",
+          "type": "string"
+        },
+        "window_start": {
+          "format": "date-time",
+          "title": "Window Start",
+          "type": "string"
+        }
+      },
+      "required": [
+        "context_id",
+        "environment",
+        "window_start",
+        "window_end"
+      ],
+      "title": "ObservationContextRef",
+      "type": "object"
+    },
+    "Outcome": {
+      "enum": [
+        "ANSWERED",
+        "PARTIAL",
+        "NOT_ANSWERED"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "Producer": {
+      "additionalProperties": false,
+      "properties": {
+        "build_revision": {
+          "title": "Build Revision",
+          "type": "string"
+        },
+        "name": {
+          "const": "architecture-intelligence-platform",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "build_revision"
+      ],
+      "title": "Producer",
+      "type": "object"
+    },
+    "Qualification": {
+      "enum": [
+        "CONFIRMED",
+        "OBSERVED_ONLY",
+        "NOT_OBSERVED_IN_WINDOW"
+      ],
+      "title": "Qualification",
+      "type": "string"
+    },
+    "ServiceDependenciesData": {
+      "additionalProperties": false,
+      "properties": {
+        "dependency_claim_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependency Claim Ids",
+          "type": "array"
+        },
+        "service": {
+          "$ref": "#/$defs/EntityRef"
+        }
+      },
+      "required": [
+        "service",
+        "dependency_claim_ids"
+      ],
+      "title": "ServiceDependenciesData",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "properties": {
+        "model_revision": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Model Revision",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "model_revision"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "ANSWERED",
+              "PARTIAL"
+            ]
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "not": {
+              "type": "null"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "observation_context": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "observation_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "contains": {
+              "properties": {
+                "code": {
+                  "const": "OBSERVATION_CONTEXT_REQUIRED"
+                }
+              },
+              "required": [
+                "code"
+              ]
+            }
+          }
+        },
+        "required": [
+          "limitations"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "claims": {
+      "items": {
+        "$ref": "#/$defs/DependencyClaim"
+      },
+      "title": "Claims",
+      "type": "array"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ServiceDependenciesData"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "limitations": {
+      "items": {
+        "$ref": "#/$defs/Limitation"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "observation_context": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ObservationContextRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome"
+    },
+    "producer": {
+      "$ref": "#/$defs/Producer"
+    },
+    "schema_version": {
+      "const": "0.4",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "snapshot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SnapshotRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tool": {
+      "title": "Tool",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "producer",
+    "tool",
+    "outcome",
+    "snapshot",
+    "observation_context",
+    "data",
+    "claims",
+    "evidence_refs",
+    "limitations"
+  ],
+  "title": "ArchitectureAnswer[ServiceDependenciesData]",
+  "type": "object"
+}

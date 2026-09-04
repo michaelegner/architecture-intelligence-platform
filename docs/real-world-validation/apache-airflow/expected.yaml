@@ -1,0 +1,160 @@
+# Frozen expected supported facts for apache-airflow (I1 §17, I3 spec §40).
+#
+# Frozen from ground-truth.md ALONE, before ever running AIP against this system. Do not edit
+# after the qualifying comparison run except per ground-truth.md's "Change log" policy.
+#
+# Schema reference: real_world_validation/README.md and real_world_validation/loader.py.
+#
+# I3.1/I3.2 scope: declaration-only + Phase B raw-telemetry qualification. No `status`/`observed`
+# evidence is asserted anywhere in this file (I3 spec §45-46) — that is I3.3's job (the first AIP
+# comparison) once a qualifying comparison run exists; I3.2 only closed the freeze gate itself.
+#
+# FINAL as of I3.2 (see ground-truth.md's Change log): I3.2 ran the profile, captured raw OTel
+# independently (never through AIP), and closed the one item I3.1 left provisional (the Celery
+# messaging boundary). Every fact in this file — the 9 PROVIDES facts, unsupported/unresolved
+# boundary items, and now the messaging item below — is a closed, final result. No qualified
+# SENDS/RECEIVES_FROM relation was added: raw evidence showed messaging attributes are observable
+# (with diagnostic instrumentation) but sender/consumer identity is not, which I3 spec §23 requires
+# regardless of messaging-evidence quality. `queue:default`'s scope entry stays as-is, so any future
+# SENDS/RECEIVES_FROM AIP emits there still correctly surfaces as INCORRECT_SUPPORTED.
+
+system: apache-airflow
+upstream_revision: "3adbbe1c58e4532df1964cb7794805e763816ee8"
+
+scope:
+  entities:
+    - operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+    - operation:service:airflow-apiserver:GET:/api/v2/dags
+    - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+    - operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+    - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+    - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+    - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+    - operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+    - operation:service:airflow-apiserver:GET:/api/v2/variables
+    - queue:default
+  relation_types:
+    - PROVIDES
+    - SENDS
+    - RECEIVES_FROM
+    # CALLS intentionally excluded from scope: no REST caller ground truth is established in
+    # I3.1 (ground-truth.md §"REST caller ground truth") and none is asserted here.
+
+expected:
+  relations:
+    - id: airflow-provides-health
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+      evidence:
+        declared: true
+    - id: airflow-provides-get-dags
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags
+      evidence:
+        declared: true
+    - id: airflow-provides-get-dag
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+      evidence:
+        declared: true
+    - id: airflow-provides-trigger-dag-run
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+      evidence:
+        declared: true
+    - id: airflow-provides-get-dag-runs
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+      evidence:
+        declared: true
+    - id: airflow-provides-get-dag-run
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+      evidence:
+        declared: true
+    - id: airflow-provides-get-task-instances
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+      evidence:
+        declared: true
+    - id: airflow-provides-get-task-instance
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+      evidence:
+        declared: true
+    - id: airflow-provides-get-variables
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: operation:service:airflow-apiserver:GET:/api/v2/variables
+      evidence:
+        declared: true
+
+# `queue:default` is deliberately in scope with relation_types PROVIDES/SENDS/RECEIVES_FROM but
+# carries NO expected SENDS/RECEIVES_FROM relation above (I3 spec §22-24, mirroring Quarkus's
+# I2.1 Kafka-topic boundary test): if AIP emits any SENDS/RECEIVES_FROM touching queue:default
+# before I3 has independently qualified the Celery flow with real runtime evidence, the I1
+# comparator reports it as an unexpected in-scope fact (INCORRECT_SUPPORTED) rather than staying
+# silent. The producer/consumer Service identity for that flow is intentionally left unresolved
+# (ground-truth.md's "Multiple runtime instances" / Logical Service boundary decision) rather than
+# guessed here.
+
+# Mechanisms present upstream but outside AIP's current supported semantic scope (I1 §12.4, I3
+# spec §25).
+unsupported:
+  - id: airflow-scheduler-postgres-dependency
+    mechanism: database-dependency
+    description: >
+      airflow-scheduler depends on PostgreSQL as its metadata database, which is outside the
+      current AIP canonical relation vocabulary.
+  - id: airflow-apiserver-postgres-dependency
+    mechanism: database-dependency
+    description: >
+      airflow-apiserver depends on PostgreSQL as its metadata database, which is outside the
+      current AIP canonical relation vocabulary.
+  - id: airflow-celery-result-backend-postgres-dependency
+    mechanism: database-dependency
+    description: >
+      The Celery result backend is configured as PostgreSQL, which is outside the current AIP
+      canonical relation vocabulary.
+
+# Relationships independent evidence suggests exist, but whose canonical identity AIP cannot
+# safely resolve without guessing (I1 §12.5, I3 spec §19/§43).
+unresolved_identity:
+  - id: airflow-execution-api-boundary
+    description: >
+      The pinned Airflow source independently defines the private Execution API and concrete
+      target routes (airflow-core/src/airflow/api_fastapi/execution_api/), but a supported CALLS
+      fact is not frozen in I3.1 because the worker/task-runner caller identity is unresolved
+      (see airflow-runtime-role-identity below) and the qualifying scope has not yet been
+      deliberately extended to this second contract surface (see ground-truth.md's "Execution API
+      boundary" §19). I3.2 SHALL revisit the boundary using the validation workload and
+      independent runtime evidence before I3.3.
+  - id: airflow-runtime-role-identity
+    description: >
+      airflow-scheduler, airflow-dag-processor, airflow-worker, and airflow-triggerer are
+      architecturally distinct roles (see ground-truth.md's Logical Service boundary analysis),
+      but the pinned official profile's default OTel configuration does not set a per-role
+      service.name/resource identity, so none of the four is asserted as a distinct canonical
+      Service in this qualifying profile.
+
+# Facts this dossier's own evidence cannot establish strongly enough to use as ground truth (I1
+# §12.6, I3 spec §23/§45-46).
+insufficient_evidence:
+  - id: airflow-celery-messaging-runtime-status
+    description: >
+      I3.2 exercised real traffic and captured real telemetry (ground-truth.md's Change log):
+      native Airflow tracing exposes zero Celery/broker/queue attributes. A diagnostic-only,
+      spec-§29-permitted addition of standard opentelemetry-instrumentation-celery did surface a
+      producer-side span confirming the destination is a queue named "default", but every span's
+      resource service.name was "unknown_service" regardless of component - sender/consumer
+      identity is not resolvable from this profile's OTel configuration, which I3 spec §23 requires
+      as a precondition independent of messaging-attribute quality. This is now a final result, not
+      an open question pending more evidence.

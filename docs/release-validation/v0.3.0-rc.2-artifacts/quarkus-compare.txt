@@ -1,0 +1,471 @@
+AIP Real-World Validation — I1 contract
+
+
+[UNSUPPORTED/INFO] qsh-grpc-locations
+
+[UNSUPPORTED/INFO] qsh-kafka-fights-topic
+
+[CORRECT/INFO] qsh-fights-calls-heroes
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: None  evidence: declared=true observed=?
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: CONFIRMED  evidence: declared=true observed=true
+
+[CORRECT/INFO] qsh-fights-calls-narration
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:POST:/api/narration
+  status: None  evidence: declared=true observed=?
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:POST:/api/narration
+  status: CONFIRMED  evidence: declared=true observed=true
+
+[CORRECT/INFO] qsh-fights-calls-villains
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: None  evidence: declared=true observed=?
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: CONFIRMED  evidence: declared=true observed=true
+
+[CORRECT/INFO] qsh-fights-provides-getAllFights
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-hello
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloHeroes
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloLocations
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/locations
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/locations
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloNarration
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/narration
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/narration
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloVillains
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-getRandomFighters
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomfighters
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomfighters
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-getRandomLocation
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomlocation
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomlocation
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-getFight
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-performFight
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-narrateFight
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-generateImageFromNarration
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate/image
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate/image
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-deleteAllHeroes
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-deleteHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-getAllHeroes
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-hello
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-getRandomHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-getHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-partiallyUpdateHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PATCH:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PATCH:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-createHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:POST:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:POST:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-replaceAllHeroes
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-fullyUpdateHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-narration-provides-hello
+Expected:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:GET:/api/narration/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:GET:/api/narration/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-narration-provides-narrate
+Expected:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-narration-provides-generateImageFromNarration
+Expected:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration/image
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration/image
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-deleteAllVillains
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-deleteVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-getAllVillains
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-hello
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-getRandomVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-getVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-partiallyUpdateVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PATCH:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PATCH:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-createVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:POST:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:POST:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-replaceAllVillains
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-fullyUpdateVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+Expected supported facts:      38
+Correct:                       38
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        2
+Unresolved identities:         0
+Insufficient evidence:         0
+Critical semantic errors:      0

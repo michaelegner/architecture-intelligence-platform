@@ -67,21 +67,46 @@ _DELETE = object()
 # --- discovery ------------------------------------------------------------------------------
 
 
-def test_discover_scenarios_finds_the_three_real_i1_scenarios():
+def test_discover_scenarios_finds_the_ten_real_scenarios():
     discovered = discover_scenarios(SCENARIOS_DIR)
     assert [p.name for p in discovered] == [
         "01-rest-confirmed",
         "02-rest-observed-only",
         "03-async-confirmed",
+        "04-orphan-messaging",
+        "05-mixed-rest-async",
+        "06-request-response-queue-pair",
+        "07-not-observed-in-window",
+        "08-evidence-reconciliation",
+        "09-partial-observation",
+        "10-declared-rest-relation",
     ]
 
 
-def test_the_three_real_i1_scenarios_all_load_and_validate():
+def test_the_ten_real_scenarios_all_load_and_validate():
     scenarios = load_scenarios(SCENARIOS_DIR)
-    assert [s.id for s in scenarios] == ["rest-confirmed", "rest-observed-only", "async-confirmed"]
+    assert [s.id for s in scenarios] == [
+        "rest-confirmed",
+        "rest-observed-only",
+        "async-confirmed",
+        "orphan-messaging",
+        "mixed-rest-async",
+        "request-response-queue-pair",
+        "not-observed-in-window",
+        "evidence-reconciliation",
+        "partial-observation",
+        "declared-rest-relation",
+    ]
     assert all(s.expected_relations for s in scenarios)
-    for s in scenarios:
-        assert s.observation.environment == "test"
+
+    # 01-09 are runtime scenarios (require a real observation environment/window); 10 is
+    # declaration-only by design (I4 spec §7.3) and must not carry one.
+    runtime_scenarios, declared_only = scenarios[:-1], scenarios[-1]
+    assert all(s.observation.environment == "test" for s in runtime_scenarios)
+    assert declared_only.id == "declared-rest-relation"
+    assert declared_only.observation.environment is None
+    assert declared_only.observation.window_start is None
+    assert declared_only.observation.window_end is None
 
 
 def test_discover_scenarios_ignores_directories_without_expected_yaml(tmp_path):
@@ -292,9 +317,9 @@ def test_rejects_an_invalid_window_end_timestamp(tmp_path):
 # --- forbidden-fact evaluation (I2 §6.1/§9) ------------------------------------------------------
 
 _FORBIDDEN_FACT = {
-    "type": "RECEIVES_FROM",
-    "source": "service:some-service",
-    "target": "queue:some-q",
+    "type": "CALLS",
+    "source": "service:order-service",
+    "target": "operation:service:product-service:GET:/other",
 }
 
 
@@ -305,7 +330,11 @@ def test_non_empty_forbidden_relations_now_loads_successfully(tmp_path):
     scenario = load_scenario(scenario_dir)
 
     assert scenario.forbidden_relations == (
-        RelationFact(type="RECEIVES_FROM", source="service:some-service", target="queue:some-q"),
+        RelationFact(
+            type="CALLS",
+            source="service:order-service",
+            target="operation:service:product-service:GET:/other",
+        ),
     )
 
 
@@ -360,3 +389,347 @@ def test_rejects_a_forbidden_identity_duplicated_in_expected(tmp_path):
     with pytest.raises(ScenarioValidationError) as excinfo:
         load_scenario(scenario_dir)
     assert "also asserted as expected" in excinfo.value.reason
+
+
+# --- I3: reconciliation input convention ------------------------------------------------------
+
+
+def test_rejects_an_empty_reconciliation_declarations_directory(tmp_path):
+    """I3 spec §10.3: an existing-but-empty reconciliation directory must be rejected as an
+    invalid fixture, not silently treated as no reconciliation phase at all."""
+    scenario_dir = _write_scenario(tmp_path, _VALID)
+    (scenario_dir / "input" / "reconciliation" / "declarations").mkdir(parents=True)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "input.reconciliation.declarations" in excinfo.value.field
+    assert "no importable declaration sources" in excinfo.value.reason
+
+
+def test_a_scenario_with_a_populated_reconciliation_directory_loads_normally(tmp_path):
+    """The Scenario model itself is unchanged by I3 (spec §6.2) - a reconciliation phase is a
+    runner-level input-directory convention, not a new loaded field."""
+    scenario_dir = _write_scenario(tmp_path, _VALID)
+    reconciliation_dir = (
+        scenario_dir / "input" / "reconciliation" / "declarations" / "order-service"
+    )
+    reconciliation_dir.mkdir(parents=True)
+    (reconciliation_dir / "architecture.yaml").write_text("service: order-service\ncalls: []\n")
+
+    scenario = load_scenario(scenario_dir)
+
+    assert scenario.id == "rest-confirmed"
+
+
+def test_rejects_a_reconciliation_service_directory_with_no_recognized_file(tmp_path):
+    """I4 spec §9.4: a subdirectory can exist under input/reconciliation/declarations/ while
+    containing zero files app.ingestion.scanner.scan_directory would recognize - that must not
+    silently no-op the reconciliation phase."""
+    scenario_dir = _write_scenario(tmp_path, _VALID)
+    service_dir = scenario_dir / "input" / "reconciliation" / "declarations" / "order-service"
+    service_dir.mkdir(parents=True)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "input.reconciliation.declarations" in excinfo.value.field
+    assert "no importable declaration sources" in excinfo.value.reason
+
+
+def test_rejects_a_reconciliation_directory_with_only_a_placeholder_file(tmp_path):
+    """I4 spec §9.4: a file with an unrecognized name (not openapi/asyncapi/architecture.yaml)
+    must not be mistaken for a real declaration source."""
+    scenario_dir = _write_scenario(tmp_path, _VALID)
+    service_dir = scenario_dir / "input" / "reconciliation" / "declarations" / "order-service"
+    service_dir.mkdir(parents=True)
+    (service_dir / "notes.txt").write_text("not a real declaration")
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "no importable declaration sources" in excinfo.value.reason
+
+
+# --- I4: strict scenario-schema validation (spec §8) --------------------------------------------
+
+
+def test_rejects_an_unknown_top_level_field(tmp_path):
+    data = _mutated(bogus="oops")
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+    assert "bogus" in excinfo.value.reason
+
+
+def test_rejects_an_unknown_scope_field(tmp_path):
+    data = _mutated(**{"scope.bogus": "oops"})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+
+
+def test_rejects_empty_scope_entities(tmp_path):
+    data = _mutated(**{"scope.entities": []})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "must not be empty" in excinfo.value.reason
+
+
+def test_rejects_duplicate_scope_entities(tmp_path):
+    data = _mutated(**{"scope.entities": ["service:order-service", "service:order-service"]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "duplicate" in excinfo.value.reason
+
+
+def test_rejects_an_explicitly_empty_scope_relation_types(tmp_path):
+    """Closes a latent bug: relation_types: [] previously fell through to "all types" via a
+    truthiness check instead of being rejected as an explicitly-empty-but-present list."""
+    data = _mutated(**{"scope.relation_types": []})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "must not be empty" in excinfo.value.reason
+
+
+def test_rejects_duplicate_scope_relation_types(tmp_path):
+    data = _mutated(**{"scope.relation_types": ["CALLS", "CALLS"]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "duplicate" in excinfo.value.reason
+
+
+def test_rejects_an_unknown_observation_field(tmp_path):
+    data = _mutated(**{"observation.bogus": "oops"})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+
+
+def test_rejects_an_unknown_observation_window_field(tmp_path):
+    data = _mutated(**{"observation.window.bogus": "oops"})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+
+
+def test_rejects_a_naive_window_timestamp(tmp_path):
+    data = _mutated(**{"observation.window.start": "2026-08-01T10:00:00"})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "timezone-aware" in excinfo.value.reason
+
+
+def test_runtime_scenario_requires_window_start(tmp_path):
+    data = _mutated(**{"observation.window.start": _DELETE})
+    scenario_dir = _write_scenario(tmp_path, data)
+    telemetry_dir = scenario_dir / "input" / "telemetry"
+    telemetry_dir.mkdir(parents=True)
+    (telemetry_dir / "spans.py").write_text("")
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert excinfo.value.field == "observation.window.start"
+
+
+def test_runtime_scenario_requires_window_end(tmp_path):
+    data = _mutated(**{"observation.window.end": _DELETE})
+    scenario_dir = _write_scenario(tmp_path, data)
+    telemetry_dir = scenario_dir / "input" / "telemetry"
+    telemetry_dir.mkdir(parents=True)
+    (telemetry_dir / "spans.py").write_text("")
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert excinfo.value.field == "observation.window.end"
+
+
+def test_rejects_a_window_where_start_is_not_before_end(tmp_path):
+    data = _mutated(
+        **{
+            "observation.window.start": "2026-08-01T11:00:00Z",
+            "observation.window.end": "2026-08-01T10:00:00Z",
+        }
+    )
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "start must be before end" in excinfo.value.reason
+
+
+def test_rejects_an_unknown_expected_relation_field(tmp_path):
+    data = _mutated(
+        **{"expected.relations": [{**_VALID["expected"]["relations"][0], "bogus": "oops"}]}
+    )
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+
+
+def test_rejects_an_unknown_status_value(tmp_path):
+    data = _mutated(
+        **{"expected.relations": [{**_VALID["expected"]["relations"][0], "status": "BOGUS"}]}
+    )
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown status" in excinfo.value.reason
+
+
+def test_rejects_an_unknown_evidence_field_on_an_expected_relation(tmp_path):
+    fact = {**_VALID["expected"]["relations"][0], "evidence": {"delcared": True}}
+    data = _mutated(**{"expected.relations": [fact]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+
+
+def test_rejects_a_string_evidence_value(tmp_path):
+    fact = {
+        **_VALID["expected"]["relations"][0],
+        "evidence": {"declared": "true", "observed": True},
+    }
+    data = _mutated(**{"expected.relations": [fact]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "must be a boolean" in excinfo.value.reason
+
+
+def test_rejects_an_integer_evidence_value(tmp_path):
+    fact = {**_VALID["expected"]["relations"][0], "evidence": {"declared": True, "observed": 1}}
+    data = _mutated(**{"expected.relations": [fact]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "must be a boolean" in excinfo.value.reason
+
+
+def test_rejects_an_expected_relation_excluded_by_its_own_scope(tmp_path):
+    fact = {
+        "type": "CALLS",
+        "source": "service:totally-unrelated",
+        "target": "operation:service:totally-unrelated:GET:/x",
+    }
+    data = _mutated(**{"expected.relations": [fact]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "excluded by scenario scope" in excinfo.value.reason
+
+
+def test_rejects_a_forbidden_relation_excluded_by_its_own_scope(tmp_path):
+    forbidden = {
+        "type": "CALLS",
+        "source": "service:totally-unrelated",
+        "target": "operation:service:totally-unrelated:GET:/x",
+    }
+    data = _mutated(forbidden={"relations": [forbidden]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "excluded by scenario scope" in excinfo.value.reason
+
+
+# --- I4 PR30 review F1/F2: malformed values must fail as ScenarioValidationError, never TypeError
+
+
+def test_rejects_a_mapping_in_scope_entities(tmp_path):
+    data = _mutated(**{"scope.entities": ["service:order-service", {"bad": "value"}]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "malformed canonical identifier" in excinfo.value.reason
+
+
+def test_rejects_a_list_in_scope_entities(tmp_path):
+    data = _mutated(**{"scope.entities": ["service:order-service", ["nested"]]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "malformed canonical identifier" in excinfo.value.reason
+
+
+def test_rejects_a_mapping_in_scope_relation_types(tmp_path):
+    data = _mutated(**{"scope.relation_types": ["CALLS", {"bad": "value"}]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown relation type" in excinfo.value.reason
+
+
+def test_rejects_a_list_in_scope_relation_types(tmp_path):
+    data = _mutated(**{"scope.relation_types": ["CALLS", ["SENDS"]]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown relation type" in excinfo.value.reason
+
+
+def test_rejects_a_mapping_as_an_expected_relation_type(tmp_path):
+    fact = {**_VALID["expected"]["relations"][0], "type": {"bad": "value"}}
+    data = _mutated(**{"expected.relations": [fact]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown relation type" in excinfo.value.reason
+
+
+def test_rejects_a_list_as_an_expected_status(tmp_path):
+    fact = {**_VALID["expected"]["relations"][0], "status": ["CONFIRMED"]}
+    data = _mutated(**{"expected.relations": [fact]})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown status" in excinfo.value.reason
+
+
+def test_rejects_an_unknown_expected_container_field_alongside_a_valid_relations_key(tmp_path):
+    data = _mutated(expected={**_VALID["expected"], "reltions": []})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+    assert "reltions" in excinfo.value.reason
+
+
+def test_rejects_an_unknown_forbidden_container_field_alongside_a_valid_relations_key(tmp_path):
+    data = _mutated(forbidden={"relations": [], "rules": []})
+    scenario_dir = _write_scenario(tmp_path, data)
+
+    with pytest.raises(ScenarioValidationError) as excinfo:
+        load_scenario(scenario_dir)
+    assert "unknown field" in excinfo.value.reason
+    assert "rules" in excinfo.value.reason
