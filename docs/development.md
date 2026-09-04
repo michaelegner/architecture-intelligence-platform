@@ -36,17 +36,23 @@ The most common local issue is a mismatched or missing `NEO4J_PASSWORD`.
 
 - Make sure you created `.env` from `.env.example` and that the password in `.env` matches what the
   Neo4j container or local Neo4j instance expects.
-- If you are using Docker Compose, check that the `neo4j` service is actually healthy before the app
-  starts using it:
+- Docker Compose already blocks the app on `depends_on: condition: service_healthy`, so check the
+  `neo4j` service health and logs if startup fails:
 
 ```bash
 docker compose ps
 docker compose logs neo4j
 ```
 
-If the logs show authentication errors or the container is still starting, wait until Neo4j reports
-healthy status and retry. A common pattern is that the app starts before Neo4j is ready, which tends
-to surface as connection or auth errors in the API.
+If the logs show authentication errors or the container is still starting, confirm that the
+credentials in `.env` match the Neo4j instance and wait until Neo4j reports healthy status before
+retrying. When running the app directly with `uvicorn`, Neo4j may still be unavailable when the app
+starts, so start Neo4j first and then launch the app.
+
+Neo4j initializes its credentials only when its data volume is created. Changing `NEO4J_PASSWORD`
+in `.env` does not update the credentials in an already initialized `neo4j-data` volume. To reset a
+local Compose database, run `docker compose down -v` before starting it again, but note that this
+deletes the local Compose volumes.
 
 If you are running the app directly with `uvicorn`, make sure the same password is exported in your
 shell as well:
@@ -112,20 +118,19 @@ uv sync
 
 ### `POST /api/import` returns 500 because Neo4j is not reachable yet
 
-This is expected when the app starts before Neo4j is ready. The import endpoint depends on a working
-Neo4j connection; if the graph database is still booting or its auth configuration is wrong, the
-request can fail with a 500.
-
-Typical checks:
+The import endpoint depends on a working Neo4j connection; if the graph database is still booting or
+its auth configuration is wrong, the request can fail with a 500. With Docker Compose, the app is
+blocked on `depends_on: condition: service_healthy`, so inspect the Compose health status, Neo4j
+logs, and the configured credentials:
 
 ```bash
 docker compose ps
 docker compose logs neo4j
 ```
 
-Wait for Neo4j to report healthy status, then retry `POST /api/import`. If you are running without
-Docker, start Neo4j first and confirm the expected URI/password are available in your environment
-before launching the app with `uvicorn`.
+Once Neo4j reports healthy status and the credentials match, retry `POST /api/import`. For a direct
+`uvicorn` run, start Neo4j first and confirm the expected URI and password are available in the
+environment before launching the app; the app may otherwise start while Neo4j is still unavailable.
 
 The app is configured to work against this repo's fixture services in `examples/`, so once Neo4j is
 reachable, `POST /api/import` should work immediately against the bundled reference architecture.
