@@ -1,0 +1,23 @@
+asyncapi: '2.6.0'
+info:
+  title: BillingService
+  version: "1.0.0"
+channels:
+  reporting-q:
+    subscribe:
+      operationId: receiveReportingEvent
+      message:
+        $ref: '#/components/messages/ReportingEvent'
+components:
+  messages:
+    ReportingEvent:
+      name: ReportingEvent
+      payload:
+        $ref: '#/components/schemas/ReportingEventPayload'
+  schemas:
+    ReportingEventPayload:
+      type: object
+      properties:
+        eventId:
+          type: string
+      required: [eventId]

@@ -1,0 +1,12 @@
+scenario: observed-only-undeclared
+description: >
+  order-service sends to reporting-q with no declared SENDS relation anywhere - only observed
+  evidence -> OBSERVED_ONLY, still resolved to billing-service via its declared RECEIVES_FROM.
+
+request:
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

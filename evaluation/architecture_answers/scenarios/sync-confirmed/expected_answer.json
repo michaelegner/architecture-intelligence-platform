@@ -1,0 +1,87 @@
+{
+  "claims": [
+    {
+      "claim_id": "aip:claim:v1:c41d3611d0e93513439ec4859dbd96e741750b689c6a77267e68b5705b977bc9",
+      "coverage": null,
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "via": {
+          "id": "operation:service:product-service:GET:/products/{id}",
+          "method": "GET",
+          "name": "GET /products/{id}",
+          "namespace": null,
+          "path": "/products/{id}",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:order-service",
+        "evidence:otel:test:2026-08-26:b1d283d583bd"
+      ],
+      "object": {
+        "id": "service:product-service",
+        "method": null,
+        "name": "ProductService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "CONFIRMED",
+      "resolution_evidence_refs": [
+        "evidence:openapi:product-service"
+      ],
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    }
+  ],
+  "data": {
+    "dependency_claim_ids": [
+      "aip:claim:v1:c41d3611d0e93513439ec4859dbd96e741750b689c6a77267e68b5705b977bc9"
+    ],
+    "service": {
+      "id": "service:order-service",
+      "method": null,
+      "name": "OrderService",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [
+    "evidence:manifest:order-service",
+    "evidence:openapi:product-service",
+    "evidence:otel:test:2026-08-26:b1d283d583bd"
+  ],
+  "limitations": [],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:f167a92590d91af550e6b587c2f2151ad0924331d44f18776b11507ef7d2601f",
+    "environment": "test",
+    "window_end": "2026-08-27T00:00:00.000000Z",
+    "window_start": "2026-08-26T00:00:00.000000Z"
+  },
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:1c34fc0633d35788887d0fe0c57188b0b725c472c5f8742e8195cac37ff06d04",
+    "snapshot_id": "aip:snapshot:v1:1c34fc0633d35788887d0fe0c57188b0b725c472c5f8742e8195cac37ff06d04"
+  },
+  "tool": "get_service_dependencies"
+}

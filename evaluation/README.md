@@ -1,5 +1,14 @@
 # AIP Evaluation Suite
 
+This directory holds two independent deterministic-evaluation suites, run via `python -m
+evaluation run` (relation facts, below) and `python -m evaluation answers` (architecture answers,
+[§ below](#the-architecture-answers-suite-i14)). Both prove AIP's real output against hand-authored,
+independently frozen ground truth - never generated from AIP's own output - but compare a different
+public shape: the older suite compares canonical relation facts (`type`/`source`/`target`/`status`/
+evidence booleans); the newer one compares the complete v0.4 `ArchitectureAnswer` envelope. They
+share nothing but the trivial: scenario-directory discovery conventions and
+`app.architecture_intelligence.canonical_json`'s deterministic JSON serialization.
+
 Deterministic evaluation kernel for AIP. Implements Iteration 1
 ([`i1-evaluation-kernel.md`](../docs/specifications/0.2.0/i1-evaluation-kernel.md), shipped as
 `v0.2.0-alpha.1`), Iteration 2
@@ -395,3 +404,133 @@ comparison contract, why forbidden assertions are identity-only rather than a co
 language, why evidence reconciliation is exercised through a real re-import rather than simulated,
 and why scenario-schema strictness and comparator ordering are load-bearing for a
 release-candidate-quality suite rather than cosmetic.
+
+---
+
+## The architecture-answers suite (I1.4)
+
+Implements Iteration 1.4
+([`i1-service-contract-and-dependency-vertical-slice.md`](../docs/specifications/0.4.0/i1-service-contract-and-dependency-vertical-slice.md)
+§25) of the `v0.4.0` release. Proves `ArchitectureIntelligenceService.get_service_dependencies` -
+the whole I1 dependency vertical slice - against independently authored ground truth: destination
+resolution, qualification, claims, limitations, evidence references, and snapshot/observation-context
+identity, compared exactly against a frozen `expected_answer.json`.
+
+### What this suite tests
+
+```text
+scenario fixture -> real ArchitectureIntelligenceService.get_service_dependencies -> compare -> PASS/FAIL
+```
+
+Eight scenarios exercise the spec's required semantic anchors: an HTTP dependency (`CONFIRMED`), a
+messaging dependency (`CONFIRMED`), `NOT_OBSERVED_IN_WINDOW` with coverage, an undeclared but
+observed dependency (`OBSERVED_ONLY`), an unresolved queue destination (`DIRECT_TARGET_FALLBACK` +
+`UNRESOLVED_IDENTITY`), one destination reached through two independent delivery paths, an unknown
+service, and a known service with zero dependencies. Outcome branches already proven by unit tests
+(`PARTIAL`, `OBSERVATION_CONTEXT_REQUIRED`, `SNAPSHOT_NOT_AVAILABLE`, `RESULT_LIMIT_EXCEEDED`) are
+not duplicated here.
+
+### Running
+
+```bash
+uv run python -m evaluation answers                        # all scenarios
+uv run python -m evaluation answers sync-confirmed          # one scenario, by directory name
+uv run python -m evaluation answers --scenario sync-confirmed
+```
+
+`python -m evaluation run` (no arguments) is unchanged and still runs the relation-facts suite -
+`answers` is a separate, additive subcommand. Same exit-code contract as `run`: `0` every scenario
+passed and both runs were semantically identical, `1` at least one semantic failure, `2` invalid
+scenario configuration.
+
+Every invocation runs the **full scenario suite twice**, end to end (reset -> ingest declarations ->
+inject telemetry -> reconcile -> call the real service), and writes a deterministic JSON report to
+`evaluation/architecture_answers/results/i1-evaluation-result.json`:
+
+```json
+{
+  "schema_version": "aip-evaluation-result/v1",
+  "suite": "architecture-answers-i1",
+  "result": "PASS",
+  "run_count": 2,
+  "semantic_outputs_identical": true,
+  "run_output_sha256": ["sha256:...", "sha256:..."],
+  "scenarios": [
+    {
+      "id": "sync-confirmed",
+      "result": "PASS",
+      "missing_claim_ids": [],
+      "unexpected_claim_ids": [],
+      "field_mismatches": [],
+      "broken_evidence_refs": []
+    }
+  ],
+  "summary": { "scenarios": 8, "passed": 8, "failed": 0 }
+}
+```
+
+No timestamps, absolute paths, or other run-specific values appear anywhere in this file - two
+invocations against a fresh container produce a byte-identical report.
+
+### Scenario structure
+
+```text
+evaluation/architecture_answers/scenarios/sync-confirmed/
+├── request.yaml            # small, hand-authored: service_id, observation{environment,window}
+├── expected_answer.json    # frozen literal ArchitectureAnswer - every public field
+└── input/
+    ├── declarations/        # same OpenAPI/AsyncAPI/Architecture Manifest convention as the
+    │                         # relation-facts suite - self-contained per scenario, never examples/
+    └── telemetry/spans.py   # same real-OTLP-path convention
+```
+
+`expected_answer.json` is not a bespoke ground-truth format - it's a literal instance of the same
+`ArchitectureAnswer[ServiceDependenciesData]` Pydantic type
+(`app.architecture_intelligence.contracts`) the real service returns, loaded via `model_validate`.
+This means the frozen fixture is schema-validated for free, and every public field (producer,
+snapshot, observation context, full claim envelope including both evidence-reference lists,
+limitations with `code`/`message`/`claim_ids`) is represented explicitly - nothing about the answer
+can be silently narrowed away by a trimmed comparison model.
+
+### Ground truth is independent of AIP - literally, not just by convention
+
+Unlike hashes a human could plausibly hand-verify, `claim_id`, `context_id`, `snapshot_id`, and
+`model_revision` are sha256 digests of canonicalized state. Comparing AIP's output against a value
+computed by calling AIP's own hashing functions a second time would let a shared defect pass its own
+grading. `evaluation/architecture_answers/reference/` is a small, deliberately separate
+reimplementation of those formulas - transcribed from the spec text (§12.1, §16.2, §17/§18), not
+imported from `app.architecture_intelligence.*` - used **only at scenario-authoring time**, never by
+the live loader/runner/comparator:
+
+```bash
+uv run python -m evaluation.architecture_answers.reference snapshot evaluation/architecture_answers/scenarios/sync-confirmed
+uv run python -m evaluation.architecture_answers.reference context-id test 2026-08-26T00:00:00Z 2026-08-27T00:00:00Z
+uv run python -m evaluation.architecture_answers.reference claim-id <subject_id> DIRECT_DEPENDENCY <object_id> <delivery_kind> <delivery_via_id>
+uv run python -m evaluation.architecture_answers.reference declared-evidence-id <source_type> <service_slug> [revision]
+uv run python -m evaluation.architecture_answers.reference observed-evidence-id <environment> <bucket_start> <subject_id> <relation_type> <object_id>
+```
+
+An author runs this against a scenario's prepared fixture, hand-verifies the printed literals
+against the fixture's own topology, and freezes them into `expected_answer.json`. **Regenerate a
+scenario's `snapshot_id`/`model_revision` (the largest, most maintenance-sensitive piece of the
+reference tool - it re-implements §18's full canonicalization procedure) whenever that scenario's
+own `input/` fixture files change** - this is inherent to frozen-literal expectations, not
+optional.
+
+### Suite internals (for contributors)
+
+```text
+model.py       Request/Scenario - the expected side is the real ArchitectureAnswer type directly,
+               not a bespoke dataclass
+loader.py      validates request.yaml's small schema; loads+validates expected_answer.json via the
+               real Pydantic contract
+comparator.py  full-envelope diff: claim identity by real claim_id (never re-derived), every claim
+               field including both evidence-reference lists, answer-level fields (outcome,
+               snapshot, context, top-level evidence_refs, limitations), plus an independent
+               real-Neo4j evidence-existence check (broken_evidence_refs)
+runner.py      two full clean-state passes per suite run, using evaluation.fixture_setup's shared
+               reset/ingest/telemetry/reconcile helpers and the real ArchitectureIntelligenceService
+reporter.py    deterministic JSON report, written to evaluation/architecture_answers/results/
+reference/     offline-only identity reimplementation (see above) - never imported by the four
+               modules above
+```

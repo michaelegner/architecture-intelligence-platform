@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from app.architecture_intelligence import service as service_module
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from app.architecture_intelligence.contracts import (
     DestinationResolution,
@@ -17,10 +18,12 @@ from app.architecture_intelligence.contracts import (
     Producer,
     Qualification,
 )
+from app.architecture_intelligence.repository import canonical_snapshot_state, snapshot_fingerprint
 from app.architecture_intelligence.request import ServiceDependenciesRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.canonical import ids
 from app.graph.importer import import_all_sources
+from app.graph.revision_fence import bump_revision, read_revision
 from app.provenance.model import ObservedEvidence
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
@@ -175,3 +178,75 @@ def test_matching_explicit_snapshot_repeats_the_answer(driver):
         _request(ids.service_id("order-service"), snapshot_id=first_answer.snapshot.snapshot_id)
     )
     assert canonical_json_bytes(repeated) == canonical_json_bytes(first_answer)
+
+
+def _fingerprint(driver) -> tuple[str, str]:
+    with driver.session(database=DATABASE) as session:
+        return snapshot_fingerprint(
+            canonical_snapshot_state(session, coverage_qualification_enabled=True)
+        )
+
+
+def test_service_call_performs_zero_graph_writes(driver, monkeypatch):
+    """Proven three ways (I1.4 review): the service actually asks for a READ_ACCESS session (Neo4j's
+    own access-mode enforcement is a routing hint on a standalone instance, not something this test
+    can rely on), the internal revision fence is untouched, and the full canonical fingerprint is
+    untouched - a write that incorrectly skipped bump_revision() but touched other state would still
+    fail the fingerprint check."""
+    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+
+    captured_read_only = []
+    real_open_session = service_module.open_session
+
+    def spy_open_session(drv, *, database, read_only=False):
+        captured_read_only.append(read_only)
+        return real_open_session(drv, database=database, read_only=read_only)
+
+    monkeypatch.setattr(service_module, "open_session", spy_open_session)
+
+    with driver.session(database=DATABASE) as session:
+        revision_before = read_revision(session)
+    fingerprint_before = _fingerprint(driver)
+
+    svc = ArchitectureIntelligenceService(driver, database=DATABASE, producer=PRODUCER)
+    svc.get_service_dependencies(_request(ids.service_id("order-service")))
+
+    with driver.session(database=DATABASE) as session:
+        revision_after = read_revision(session)
+    fingerprint_after = _fingerprint(driver)
+
+    assert captured_read_only == [True]
+    assert revision_after == revision_before
+    assert fingerprint_after == fingerprint_before
+
+
+def test_a_concurrent_write_during_the_stable_read_forces_a_retry_through_the_real_service_path(
+    driver, monkeypatch
+):
+    """The concurrent-write retry must be proven through ArchitectureIntelligenceService itself, not
+    just app.architecture_intelligence.repository.read_stable_snapshot_from_session directly (I1.4
+    review) - a real write is injected from inside the service's own read_extra callback (not a
+    thread race, so this is deterministic, not flaky) and the final answer must reflect only the
+    post-write state, never a mix."""
+    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+
+    real_read_rows = service_module.read_service_dependency_rows
+    calls = {"count": 0}
+
+    def flaky_read_rows(session, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            with driver.session(database=DATABASE) as write_session:
+                write_session.execute_write(bump_revision)
+        return real_read_rows(session, **kwargs)
+
+    monkeypatch.setattr(service_module, "read_service_dependency_rows", flaky_read_rows)
+
+    svc = ArchitectureIntelligenceService(driver, database=DATABASE, producer=PRODUCER)
+    answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
+
+    expected_snapshot_id, expected_model_revision = _fingerprint(driver)
+
+    assert calls["count"] >= 2  # the first, mid-read-mutated attempt was discarded and retried
+    assert answer.snapshot.snapshot_id == expected_snapshot_id
+    assert answer.snapshot.model_revision == expected_model_revision

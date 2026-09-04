@@ -1,0 +1,12 @@
+scenario: empty-service
+description: >
+  product-service is known but has zero outgoing CALLS/SENDS relations -> ANSWERED with empty
+  claims, distinguished from an unknown service.
+
+request:
+  service_id: service:product-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

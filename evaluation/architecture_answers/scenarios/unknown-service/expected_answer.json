@@ -1,0 +1,30 @@
+{
+  "claims": [],
+  "data": null,
+  "evidence_refs": [],
+  "limitations": [
+    {
+      "claim_ids": [],
+      "code": "UNKNOWN_ENTITY",
+      "message": "service:does-not-exist does not exist in the current snapshot"
+    }
+  ],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:f167a92590d91af550e6b587c2f2151ad0924331d44f18776b11507ef7d2601f",
+    "environment": "test",
+    "window_end": "2026-08-27T00:00:00.000000Z",
+    "window_start": "2026-08-26T00:00:00.000000Z"
+  },
+  "outcome": "NOT_ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:13871b930cf30efd71ce1de7148456cb39c7a71a035f4085ebdc5acea403a84f",
+    "snapshot_id": "aip:snapshot:v1:13871b930cf30efd71ce1de7148456cb39c7a71a035f4085ebdc5acea403a84f"
+  },
+  "tool": "get_service_dependencies"
+}

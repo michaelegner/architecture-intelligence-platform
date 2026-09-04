@@ -1,0 +1,23 @@
+asyncapi: '2.6.0'
+info:
+  title: OrderService
+  version: "1.0.0"
+channels:
+  product-events-q:
+    publish:
+      operationId: sendProductEvent
+      message:
+        $ref: '#/components/messages/ProductEvent'
+components:
+  messages:
+    ProductEvent:
+      name: ProductEvent
+      payload:
+        $ref: '#/components/schemas/ProductEventPayload'
+  schemas:
+    ProductEventPayload:
+      type: object
+      properties:
+        productId:
+          type: string
+      required: [productId]
