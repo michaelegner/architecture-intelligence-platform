@@ -26,10 +26,12 @@ _DATABASE = "neo4j"
 
 def _print_snapshot(scenario_dir: str) -> None:
     # Evidence.source_file (spec §18's allowlist) reflects the exact path string import_all_sources
-    # was given - resolve to an absolute path so this matches how every other caller (the real
-    # evaluation runner, its own scenarios_dir constant) invokes it, rather than producing a
-    # spuriously different fingerprint purely from relative-vs-absolute invocation.
-    scenario_path = Path(scenario_dir).resolve()
+    # was given verbatim - deliberately NOT resolved to an absolute path. An absolute,
+    # checkout-location-specific path would make the printed fingerprint (and any expected_answer
+    # .json literal frozen from it) unreproducible anywhere but this exact machine - invoke this
+    # command with a path relative to the repo root, the same way every other caller
+    # (evaluation/__main__.py's ANSWER_SCENARIOS_DIR, the test suite's SCENARIOS_DIR) does.
+    scenario_path = Path(scenario_dir)
     with Neo4jContainer("neo4j:5") as container:
         driver = container.get_driver()
         try:

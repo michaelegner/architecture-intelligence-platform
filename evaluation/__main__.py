@@ -41,7 +41,14 @@ from evaluation.reporter import render
 from evaluation.runner import run_scenario
 
 SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios"
-ANSWER_SCENARIOS_DIR = Path(__file__).resolve().parent / "architecture_answers" / "scenarios"
+# Deliberately relative to the current working directory (this project's convention is always to
+# invoke `uv run python -m evaluation ...` from the repo root, matched by CI's own workflow) rather
+# than resolved via __file__ - Evidence.source_file (spec §18's allowlist) is derived from exactly
+# this path string, and an absolute, checkout-location-specific path would make every scenario's
+# frozen snapshot_id/model_revision literal unreproducible outside the machine they were authored
+# on (this broke CI: the absolute form differs between a local checkout and the GitHub Actions
+# runner's workspace).
+ANSWER_SCENARIOS_DIR = Path("evaluation") / "architecture_answers" / "scenarios"
 DATABASE = "neo4j"
 
 EXIT_OK = 0

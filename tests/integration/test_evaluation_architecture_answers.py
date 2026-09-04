@@ -17,12 +17,11 @@ from evaluation.architecture_answers.loader import (
 from evaluation.architecture_answers.reporter import exit_code
 from evaluation.architecture_answers.runner import run_suite
 
-SCENARIOS_DIR = (
-    Path(__file__).resolve().parent.parent.parent
-    / "evaluation"
-    / "architecture_answers"
-    / "scenarios"
-)
+# Deliberately relative to the current working directory, matching evaluation/__main__.py's own
+# ANSWER_SCENARIOS_DIR (see its comment) - Evidence.source_file (spec §18's allowlist) is derived
+# from exactly this path, and an absolute, checkout-location-specific path would make the frozen
+# snapshot_id/model_revision literals in expected_answer.json unreproducible in CI.
+SCENARIOS_DIR = Path("evaluation") / "architecture_answers" / "scenarios"
 DATABASE = "neo4j"
 
 

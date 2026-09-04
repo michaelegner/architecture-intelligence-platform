@@ -28,8 +28,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:209a5ddf59473ea274600d6c5f6a09f6b6a713baf27a910365e3d553c5a8cf17",
-    "snapshot_id": "aip:snapshot:v1:209a5ddf59473ea274600d6c5f6a09f6b6a713baf27a910365e3d553c5a8cf17"
+    "model_revision": "sha256:fc77b1f674dcfbf785a04084b0167a5d781e30531839b08fc9879c64d69571e0",
+    "snapshot_id": "aip:snapshot:v1:fc77b1f674dcfbf785a04084b0167a5d781e30531839b08fc9879c64d69571e0"
   },
   "tool": "get_service_dependencies"
 }
