@@ -4,7 +4,12 @@ plus the two verified SDK gaps `app.mcp.guard` corrects and the request/response
 Tests against `app.mcp.app.build_mcp_app` directly (not the full `app.main` FastAPI app) with a real
 `httpx.AsyncClient`/`ASGITransport` - a real HTTP round trip through the guard and the SDK, not the
 SDK's own client, so this doesn't validate the SDK against itself. No Neo4j/settings dependency:
-neither tool has a working body in I2.1 (I2.2/I2.3), so nothing here opens a graph session.
+`get_evidence` has no working body until I2.3, and `register_tools(server)` here takes no
+`get_service` override, so `get_service_dependencies` dispatches against the never-`configure()`-d
+`app.mcp.wiring` singleton (see `_check_get_service_dependencies_fails_safely_when_wiring_is_
+unconfigured` - this is deliberate coverage of that path, not an oversight). Real
+`ArchitectureIntelligenceService` dispatch against a live Neo4j driver is
+`tests/integration/test_mcp_service_dependencies_equivalence.py`'s job (I2.2).
 
 All scenarios run inside one test function rather than one-test-per-scenario: `MCPServer.
 session_manager.run()` owns an anyio task group whose cancel scope must be entered and exited by the
@@ -254,23 +259,42 @@ async def _check_malformed_nested_arguments_are_a_tool_execution_error(
     assert result["isError"] is True
 
 
-async def _check_recognized_tool_call_is_discoverable_but_not_yet_implemented(
+async def _check_get_evidence_is_discoverable_but_not_yet_implemented(
     client: httpx.AsyncClient,
 ) -> None:
-    for name, arguments in (
-        ("get_service_dependencies", {"request": {"service_id": "service:order-service"}}),
-        (
-            "get_evidence",
-            {"request": {"evidence_refs": ["x"], "snapshot_id": "aip:snapshot:v1:" + "a" * 64}},
-        ),
-    ):
-        body = _tools_call_body(name, arguments)
-        headers = _headers(method="tools/call", name=name)
-        response = await client.post("/mcp", headers=headers, json=body)
-        assert response.status_code == 200
-        result = response.json()["result"]
-        assert result["isError"] is True
-        assert "not yet implemented" in result["content"][0]["text"]
+    body = _tools_call_body(
+        "get_evidence",
+        {"request": {"evidence_refs": ["x"], "snapshot_id": "aip:snapshot:v1:" + "a" * 64}},
+    )
+    headers = _headers(method="tools/call", name="get_evidence")
+    response = await client.post("/mcp", headers=headers, json=body)
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    assert "not yet implemented" in result["content"][0]["text"]
+
+
+async def _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigured(
+    client: httpx.AsyncClient,
+) -> None:
+    """v0.4.0 I2.2 - this test's server is registered via `register_tools(server)` with no
+    `get_service` override, so it defaults to `app.mcp.wiring.get_service`, which is never
+    `configure()`-d here (no Neo4j/settings in this test's minimal harness). `app.mcp.tools` doesn't
+    catch this `RuntimeError` itself - the SDK's own `Tool.run` sanitizes it into a generic
+    `UnexpectedToolError` (see `app.mcp.tools.get_service_dependencies`'s docstring for the verified
+    live behavior this relies on). This proves that default sanitization actually fires end to end,
+    not just that the adapter's own code never leaks anything."""
+    body = _tools_call_body(
+        "get_service_dependencies", {"request": {"service_id": "service:order-service"}}
+    )
+    headers = _headers(method="tools/call", name="get_service_dependencies")
+    response = await client.post("/mcp", headers=headers, json=body)
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    text = result["content"][0]["text"]
+    assert text == "Error executing tool get_service_dependencies"
+    assert "not configured" not in text
 
 
 async def _check_disallowed_origin_is_rejected(client: httpx.AsyncClient) -> None:
@@ -306,5 +330,6 @@ async def test_mcp_protocol_and_discovery() -> None:
             )
             await _check_unexpected_top_level_argument_fails_as_protocol_error(client)
             await _check_malformed_nested_arguments_are_a_tool_execution_error(client)
-            await _check_recognized_tool_call_is_discoverable_but_not_yet_implemented(client)
+            await _check_get_evidence_is_discoverable_but_not_yet_implemented(client)
+            await _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigured(client)
             await _check_disallowed_origin_is_rejected(client)

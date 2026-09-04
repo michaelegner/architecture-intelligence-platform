@@ -20,6 +20,13 @@ COPY --chown=app:app examples ./examples
 
 RUN uv sync --frozen --no-dev
 
+# v0.4.0 I2.2: this image has no git binary and no .git directory, so app/mcp/wiring.py cannot
+# resolve Producer.build_revision from `git rev-parse HEAD` - the build step supplies it explicitly
+# instead. Defaults to empty (app.mcp.wiring falls back to a logged "unknown" placeholder rather than
+# crashing startup) so a plain `docker build .` with no --build-arg still works.
+ARG AIP_BUILD_REVISION=""
+ENV AIP_BUILD_REVISION=${AIP_BUILD_REVISION}
+
 USER app
 
 EXPOSE 8000

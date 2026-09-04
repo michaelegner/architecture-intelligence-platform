@@ -22,6 +22,7 @@ from app.api import (
 )
 from app.deps import get_driver, get_settings
 from app.graph.repository import build_driver, open_session
+from app.mcp import wiring as mcp_wiring
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.settings import Settings, load_config, load_settings
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer
@@ -36,6 +37,14 @@ async def lifespan(app: FastAPI):
     app.state.settings = settings
     app.state.driver = build_driver(
         settings.config.graph.uri, settings.secrets.neo4j_user, settings.secrets.neo4j_password
+    )
+    # v0.4.0 I2.2 - the MCP tool bodies are registered at import time (app.mcp.server), before this
+    # driver exists; app.mcp.wiring.get_service() is the lazy indirection they resolve it through on
+    # every dispatch. See app.mcp.wiring's module docstring for why this can't be done eagerly.
+    mcp_wiring.configure(
+        mcp_wiring.build_production_service(
+            app.state.driver, database=settings.config.graph.database
+        )
     )
     if settings.config.llm.enabled and settings.secrets.openai_api_key:
         app.state.llm_provider = OpenAIProvider(api_key=settings.secrets.openai_api_key)
