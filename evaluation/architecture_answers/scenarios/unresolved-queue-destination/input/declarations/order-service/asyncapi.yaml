@@ -1,0 +1,16 @@
+asyncapi: '2.6.0'
+info:
+  title: OrderService
+  version: "1.0.0"
+channels:
+  unused-q:
+    publish:
+      operationId: sendUnusedMessage
+      message:
+        $ref: '#/components/messages/UnusedMessage'
+components:
+  messages:
+    UnusedMessage:
+      name: UnusedMessage
+      payload:
+        type: object

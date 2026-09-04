@@ -11,6 +11,7 @@
 | OTLP input | `POST /v1/traces` protobuf body | Decoded, then only allowlisted attributes are ever read (see [`opentelemetry.md`](opentelemetry.md)) — a malformed payload is rejected before any Neo4j access |
 | Bounded HTTP correlation buffer | In-memory span metadata awaiting a cross-batch match | See below — its own dedicated trust boundary |
 | Filesystem imports | OpenAPI/AsyncAPI/manifest documents under `sources.directories` | Parsed, source-validated, then canonically validated before any graph write; a partial import is never left in the graph |
+| MCP input (`POST /mcp`) | JSON-RPC tool calls from an MCP client | Origin/host allow-listed (`app/mcp/guard.py`, `MCPConfig`); tool arguments validated against a closed schema; every tool call is read-only (see below) |
 
 ## LLM output is untrusted input
 
@@ -44,3 +45,18 @@ Architecture Evidence.** The buffer exists purely to bridge two OTLP requests th
 single logical call across batches; it is never an alternative raw-telemetry or trace store, and it
 must never become one — see [`opentelemetry.md`](opentelemetry.md) for the full attribute allowlist
 this buffer (like everything else in the OpenTelemetry pipeline) is bound by.
+
+## MCP is local/trusted-network evaluation only (v0.4.0 I2)
+
+The `POST /mcp` endpoint (`app/mcp/`) is **not** a public-internet-safe surface, by design and
+permanently for this release — v0.4.0 does not implement authorization, tenancy, or a general audit
+platform for it. `MCPConfig.allowed_origins`/`allowed_hosts` (`app/settings.py`) default to
+loopback-only origins and must be overridden deliberately for any non-local deployment; a request
+whose `Origin`/`Host` isn't allow-listed is rejected (`403`) before any tool executes
+(`mcp.server.transport_security`).
+
+Within that boundary, every MCP tool call is read-only by the same architectural constraint as the
+LLM query layer above: the MCP adapter package (`app/mcp/`) has no graph-session or write-repository
+dependency, imports no graph repository, and cannot mutate the graph on any path (success, refusal,
+input error, or internal error) — it can only call `ArchitectureIntelligenceService`, which itself
+opens Neo4j `READ_ACCESS` sessions exclusively.

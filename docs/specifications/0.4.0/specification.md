@@ -57,7 +57,7 @@ The `v0.4.0` golden path is:
 ```text
 Independent MCP client
         |
-        | initialize / tools/list / tools/call
+        | per-request metadata / tools/list / tools/call
         v
 Read-only AIP MCP adapter
         |
@@ -502,8 +502,9 @@ Required behavior:
 
 ### 12.4 MCP Representation
 
-- The server SHALL implement MCP specification version `2026-07-28` or a later version explicitly
-  frozen before I1 exits.
+- The server SHALL implement MCP specification version `2026-07-28`.
+- Each JSON-RPC request SHALL carry the protocol and client metadata required by that version;
+  `initialize` and protocol-level sessions are not part of this protocol baseline.
 - `v0.4.0` SHALL support Streamable HTTP only.
 - `tools/list` SHALL expose complete JSON Schemas and read-only behavior descriptions.
 - `tools/call` SHALL return `ArchitectureAnswer<T>` as structured content.
@@ -621,7 +622,7 @@ answers.
 At least one client implementation not sharing the MCP server's internal call path SHALL execute:
 
 ```text
-initialize
+POST /mcp with required protocol and client metadata
 tools/list
 tools/call get_service_dependencies
 tools/call get_architecture_drift
@@ -775,7 +776,7 @@ Deliver:
 single Streamable HTTP MCP endpoint
 get_service_dependencies MCP adapter
 get_evidence service and MCP tool
-initialize / tools/list / tools/call integration tests
+per-request metadata / tools/list / tools/call integration tests
 read-only enforcement tests
 ```
 
@@ -878,7 +879,7 @@ unqualified new discovery/model semantics introduced
 evaluation expected answers derived from AIP output
 tool evaluation has missing, unexpected, or wrongly qualified claims
 repeat runs differ semantically for the same bound inputs
-independent client cannot initialize, list, or call every tool
+independent client cannot negotiate per request, list, or call every tool
 evidence drill-down cannot reconstruct why a claim exists
 hero demo cannot run from clean documented state
 ```
@@ -911,7 +912,8 @@ Release blockers = 0
 
 - [ ] `ArchitectureIntelligenceService` is the only semantic entry point used by the MCP tools.
 - [ ] Exactly three public tools exist with the names and scopes defined in §12.
-- [ ] An independent client completes `initialize`, `tools/list`, and all required `tools/call`s.
+- [ ] An independent client sends valid per-request metadata and completes `tools/list` and all
+  required `tools/call`s.
 - [ ] A client can obtain a dependency/drift claim and resolve why it exists.
 - [ ] No client needs graph-schema or Cypher knowledge.
 

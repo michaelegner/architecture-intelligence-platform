@@ -16,6 +16,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.provenance.model import EvidenceType, SourceType
+
 _SHA256_HEX = r"[0-9a-f]{64}"
 _SNAPSHOT_ID_PATTERN = rf"^aip:snapshot:v1:{_SHA256_HEX}$"
 _MODEL_REVISION_PATTERN = rf"^sha256:{_SHA256_HEX}$"
@@ -81,6 +83,20 @@ class LimitationCode(StrEnum):
 
 class DependencyPredicate(StrEnum):
     DIRECT_DEPENDENCY = "DIRECT_DEPENDENCY"
+
+
+class EvidenceRelationType(StrEnum):
+    """v0.4.0 I2.1 - the 7 canonical graph relation kinds (spec §11.2's `supports`). Deliberately its
+    own closed enum rather than reusing `DeliveryRelationType` (only CALLS/SENDS) or a graph-layer
+    string - `get_evidence` describes existing facts, never a new architecture claim."""
+
+    PROVIDES = "PROVIDES"
+    CALLS = "CALLS"
+    SENDS = "SENDS"
+    RECEIVES_FROM = "RECEIVES_FROM"
+    CARRIES = "CARRIES"
+    CONFORMS_TO = "CONFORMS_TO"
+    DEAD_LETTERS_TO = "DEAD_LETTERS_TO"
 
 
 # Fixed (kind, relation_type, via.type) pairs - spec §11.2/§13. No other combination is valid.
@@ -332,16 +348,162 @@ class ServiceDependenciesData(BaseModel):
     dependency_claim_ids: list[str]
 
 
+class SupportedFact(BaseModel):
+    """v0.4.0 I2.1 - spec §11.2: one existing canonical relation fact an evidence record supports.
+    Not a generic graph record and not a new architecture claim - only the 3 bounded fields."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    relation_type: EvidenceRelationType
+    source_id: str
+    target_id: str
+
+
+def _supported_fact_sort_key(fact: SupportedFact) -> tuple[str, str, str]:
+    return (fact.relation_type.value, fact.source_id, fact.target_id)
+
+
+class ObservedEvidenceMetadata(BaseModel):
+    """v0.4.0 I2.1 - spec §11.2: bounded observed-evidence metadata only. No raw payloads,
+    authorization values, full spans, baggage, resource attributes, or sample trace ids."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    environment: str
+    bucket_start: datetime
+    bucket_end: datetime
+    first_seen: datetime
+    last_seen: datetime
+    observation_count: int
+    service_version: str | None
+    correlation_mode: str | None
+
+
+def _evidence_record_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
+    """Encode the evidence_type/observation coupling (spec §11.2's field table) as JSON Schema
+    if/then/else so external (non-Pydantic) validators reject the same invalid shapes. The Python
+    model_validator below is still authoritative at runtime - this only mirrors it for the
+    committed schema."""
+    schema["allOf"] = [
+        *schema.get("allOf", []),
+        {
+            "if": {
+                "properties": {"evidence_type": {"const": "OBSERVED"}},
+                "required": ["evidence_type"],
+            },
+            "then": {"properties": {"observation": {"not": {"type": "null"}}}},
+            "else": {"properties": {"observation": {"type": "null"}}},
+        },
+    ]
+
+
+class EvidenceRecord(BaseModel):
+    """v0.4.0 I2.1 - spec §11.2. `evidence_type`/`source_type` reuse the existing
+    `app.provenance.model` enums rather than redefining them - no new adapter classification."""
+
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", json_schema_extra=_evidence_record_schema_extra
+    )
+
+    id: str
+    evidence_type: EvidenceType
+    source_type: SourceType
+    source_locator: str | None
+    source_revision: str | None
+    observation: ObservedEvidenceMetadata | None
+    supports: list[SupportedFact]
+
+    @field_validator("supports")
+    @classmethod
+    def _check_supports_sorted_and_deduplicated(
+        cls, value: list[SupportedFact]
+    ) -> list[SupportedFact]:
+        keys = [_supported_fact_sort_key(fact) for fact in value]
+        if keys != sorted(keys) or len(keys) != len(set(keys)):
+            raise ValueError(
+                "supports must be sorted by (relation_type, source_id, target_id) and deduplicated"
+            )
+        return value
+
+    @model_validator(mode="after")
+    def _check_observation_matches_evidence_type(self) -> EvidenceRecord:
+        if self.evidence_type == EvidenceType.OBSERVED and self.observation is None:
+            raise ValueError("observation is required when evidence_type == OBSERVED")
+        if self.evidence_type != EvidenceType.OBSERVED and self.observation is not None:
+            raise ValueError("observation is only allowed when evidence_type == OBSERVED")
+        return self
+
+
+class EvidenceData(BaseModel):
+    """v0.4.0 I2.1 - spec §11.2/§12. `claims`/top-level `evidence_refs` on the enclosing
+    `ArchitectureAnswer` stay empty for this tool - lookup creates no claim; resolved ids live here."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    requested_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
+    records: list[EvidenceRecord]
+    missing_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
+
+    @field_validator("requested_evidence_refs", "missing_evidence_refs")
+    @classmethod
+    def _check_refs_sorted_and_deduplicated(cls, value: list[str]) -> list[str]:
+        if value != sorted(set(value)):
+            raise ValueError("must be sorted lexicographically and deduplicated")
+        return value
+
+    @field_validator("records")
+    @classmethod
+    def _check_records_sorted_by_id(cls, value: list[EvidenceRecord]) -> list[EvidenceRecord]:
+        ids = [record.id for record in value]
+        if ids != sorted(ids) or len(ids) != len(set(ids)):
+            raise ValueError("records must be sorted by id and deduplicated")
+        return value
+
+    @model_validator(mode="after")
+    def _check_records_and_missing_partition_requested(self) -> EvidenceData:
+        # Not mirrored in the exported JSON Schema: a set union/disjointness check across three
+        # separate array properties has no standard JSON Schema expression - the Python validator
+        # here is the sole enforcement point.
+        record_ids = {record.id for record in self.records}
+        missing_ids = set(self.missing_evidence_refs)
+        if record_ids & missing_ids:
+            raise ValueError("records and missing_evidence_refs must be disjoint")
+        if record_ids | missing_ids != set(self.requested_evidence_refs):
+            raise ValueError(
+                "records and missing_evidence_refs together must exactly partition "
+                "requested_evidence_refs"
+            )
+        return self
+
+
 def _claim_sort_key(claim: DependencyClaim) -> tuple[str, str, str, str]:
     return (claim.object.id, claim.delivery.kind.value, claim.delivery.via.id, claim.claim_id)
 
 
-def _architecture_answer_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
-    """Encode two more envelope invariants (spec §8.3/§9) as JSON Schema if/then/contains so
+# v0.4.0 I2.1 - the tool name each generic specialization is locked to, keyed by its bound `T`.
+# Used both to close each frozen schema file down to its one valid `tool` value (each is generated
+# from ONE concrete `ArchitectureAnswer[...]` class, but the shared `tool` field's Literal otherwise
+# allows either string in both files - spec §14 requires each specialization stay semantically
+# closed, not just structurally) and, at runtime, to reject an instance whose `tool` disagrees with
+# the specialization it was constructed as (a dependency answer claiming to be `get_evidence`, or
+# vice versa).
+_TOOL_NAME_BY_DATA_TYPE = {
+    "ServiceDependenciesData": "get_service_dependencies",
+    "EvidenceData": "get_evidence",
+}
+
+
+def _bound_data_type_name(model: type[BaseModel]) -> str | None:
+    args = getattr(model, "__pydantic_generic_metadata__", {}).get("args", ())
+    return args[0].__name__ if args else None
+
+
+def _architecture_answer_schema_extra(schema: dict, model: type[BaseModel]) -> None:
+    """Encode more envelope invariants (spec §8.3/§9/§12/§14) as JSON Schema if/then/contains so
     external (non-Pydantic) validators reject the same invalid shapes. The Python
     model_validator below is still authoritative at runtime - this only mirrors it for the
     committed schema."""
-    schema["allOf"] = [
+    all_of = [
         *schema.get("allOf", []),
         {
             "if": {
@@ -352,8 +514,11 @@ def _architecture_answer_schema_extra(schema: dict, _model: type[BaseModel]) -> 
         },
         {
             "if": {
-                "properties": {"observation_context": {"type": "null"}},
-                "required": ["observation_context"],
+                "properties": {
+                    "observation_context": {"type": "null"},
+                    "tool": {"const": "get_service_dependencies"},
+                },
+                "required": ["observation_context", "tool"],
             },
             "then": {
                 "properties": {
@@ -367,7 +532,35 @@ def _architecture_answer_schema_extra(schema: dict, _model: type[BaseModel]) -> 
                 "required": ["limitations"],
             },
         },
+        {
+            "if": {
+                "properties": {"tool": {"const": "get_evidence"}},
+                "required": ["tool"],
+            },
+            "then": {
+                "properties": {
+                    "claims": {"maxItems": 0},
+                    "evidence_refs": {"maxItems": 0},
+                    "observation_context": {"type": "null"},
+                }
+            },
+        },
     ]
+    # This schema is generated from one concrete ArchitectureAnswer[T] class - lock `tool` to the
+    # one value valid for T, closing the gap the shared Literal otherwise leaves open (both values
+    # are structurally valid JSON for either T, since `tool` isn't itself generic).
+    tool_name = _TOOL_NAME_BY_DATA_TYPE.get(_bound_data_type_name(model))
+    if tool_name is not None:
+        all_of.append({"properties": {"tool": {"const": tool_name}}})
+    schema["allOf"] = all_of
+
+
+# v0.4.0 I2.1 - spec §3/§14's first sanctioned extension point: only `get_service_dependencies`
+# requires a non-null `observation_context` (or an explicit OBSERVATION_CONTEXT_REQUIRED
+# limitation); `get_evidence`'s `observation_context` is always null (spec §12) regardless of
+# outcome, including outcomes where `data` is also null - `tool`, not `data`'s type, is the only
+# discriminator that's always present to key off.
+_TOOLS_REQUIRING_OBSERVATION_CONTEXT = frozenset({"get_service_dependencies"})
 
 
 class ArchitectureAnswer[T: BaseModel](BaseModel):
@@ -377,7 +570,7 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
 
     schema_version: Literal["0.4"]
     producer: Producer
-    tool: str
+    tool: Literal["get_service_dependencies", "get_evidence"]
     outcome: Outcome
     snapshot: SnapshotRef | None
     observation_context: ObservationContextRef | None
@@ -391,11 +584,30 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
         if self.outcome != Outcome.NOT_ANSWERED and self.data is None:
             raise ValueError("data must not be null for ANSWERED/PARTIAL outcomes")
 
+        expected_tool = _TOOL_NAME_BY_DATA_TYPE.get(_bound_data_type_name(type(self)))
+        if expected_tool is not None and self.tool != expected_tool:
+            raise ValueError(f"tool must be {expected_tool!r} for this ArchitectureAnswer[T]")
+
+        if self.tool == "get_evidence":
+            if self.claims:
+                raise ValueError("get_evidence answers must have empty claims")
+            if self.evidence_refs:
+                raise ValueError("get_evidence answers must have empty top-level evidence_refs")
+            if self.observation_context is not None:
+                raise ValueError(
+                    "get_evidence answers must have observation_context = null (spec §12: "
+                    "get_evidence is not runtime-context-sensitive)"
+                )
+
         has_context_required_limitation = any(
             limitation.code == LimitationCode.OBSERVATION_CONTEXT_REQUIRED
             for limitation in self.limitations
         )
-        if self.observation_context is None and not has_context_required_limitation:
+        if (
+            self.tool in _TOOLS_REQUIRING_OBSERVATION_CONTEXT
+            and self.observation_context is None
+            and not has_context_required_limitation
+        ):
             raise ValueError(
                 "observation_context may only be null when a limitation with code "
                 "OBSERVATION_CONTEXT_REQUIRED is present"

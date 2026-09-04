@@ -1,0 +1,23 @@
+asyncapi: '2.6.0'
+info:
+  title: PaymentService
+  version: "1.0.0"
+channels:
+  payment-q:
+    subscribe:
+      operationId: receivePaymentRequested
+      message:
+        $ref: '#/components/messages/PaymentRequested'
+components:
+  messages:
+    PaymentRequested:
+      name: PaymentRequested
+      payload:
+        $ref: '#/components/schemas/PaymentRequestedPayload'
+  schemas:
+    PaymentRequestedPayload:
+      type: object
+      properties:
+        orderId:
+          type: string
+      required: [orderId]

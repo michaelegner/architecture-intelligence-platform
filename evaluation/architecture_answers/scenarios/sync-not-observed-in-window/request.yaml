@@ -1,0 +1,13 @@
+scenario: sync-not-observed-in-window
+description: >
+  order-service calls product-service's GET /products/{id}; declared only, no observed evidence at
+  all -> NOT_OBSERVED_IN_WINDOW with NONE coverage (no telemetry anywhere), still resolved to the
+  provider service.
+
+request:
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

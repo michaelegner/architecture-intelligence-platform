@@ -571,10 +571,14 @@
         "properties": {
           "observation_context": {
             "type": "null"
+          },
+          "tool": {
+            "const": "get_service_dependencies"
           }
         },
         "required": [
-          "observation_context"
+          "observation_context",
+          "tool"
         ]
       },
       "then": {
@@ -595,6 +599,38 @@
         "required": [
           "limitations"
         ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tool": {
+            "const": "get_evidence"
+          }
+        },
+        "required": [
+          "tool"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claims": {
+            "maxItems": 0
+          },
+          "evidence_refs": {
+            "maxItems": 0
+          },
+          "observation_context": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "get_service_dependencies"
+        }
       }
     }
   ],
@@ -663,6 +699,10 @@
       ]
     },
     "tool": {
+      "enum": [
+        "get_service_dependencies",
+        "get_evidence"
+      ],
       "title": "Tool",
       "type": "string"
     }

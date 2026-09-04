@@ -20,6 +20,7 @@ The release follows one principle:
 |---|---|---|
 | [`specification.md`](specification.md) | Normative capability and release contract for `v0.4.0`. | Draft 1.2 |
 | [`i1-service-contract-and-dependency-vertical-slice.md`](i1-service-contract-and-dependency-vertical-slice.md) | Self-contained implementation contract for the first service-level dependency vertical slice. | Draft 1 |
+| [`i2-mcp-vertical-slice-and-evidence-drill-down.md`](i2-mcp-vertical-slice-and-evidence-drill-down.md) | MCP exposure of the qualified dependency answer plus snapshot-bound evidence drill-down. | Draft 1 |
 
 ## Delivery Direction
 

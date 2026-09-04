@@ -1,0 +1,35 @@
+{
+  "claims": [],
+  "data": {
+    "dependency_claim_ids": [],
+    "service": {
+      "id": "service:product-service",
+      "method": null,
+      "name": "ProductService",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [],
+  "limitations": [],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:f167a92590d91af550e6b587c2f2151ad0924331d44f18776b11507ef7d2601f",
+    "environment": "test",
+    "window_end": "2026-08-27T00:00:00.000000Z",
+    "window_start": "2026-08-26T00:00:00.000000Z"
+  },
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:fc77b1f674dcfbf785a04084b0167a5d781e30531839b08fc9879c64d69571e0",
+    "snapshot_id": "aip:snapshot:v1:fc77b1f674dcfbf785a04084b0167a5d781e30531839b08fc9879c64d69571e0"
+  },
+  "tool": "get_service_dependencies"
+}

@@ -1,0 +1,13 @@
+scenario: unresolved-queue-destination
+description: >
+  order-service sends to unused-q with no declared or observed consumer anywhere -> the queue
+  itself is retained as the direct target (DIRECT_TARGET_FALLBACK) with an UNRESOLVED_IDENTITY
+  limitation, rather than guessed.
+
+request:
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

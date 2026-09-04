@@ -149,17 +149,20 @@ per-service telemetry coverage). None of these involve the LLM — see
 
 ## Deterministic Evaluation
 
-A ten-scenario evaluation suite proves the declared/observed architecture intelligence above
-against independently authored ground truth — real AIP ingestion and runtime resolution, compared
-against a hand-written `expected.yaml`, with deterministic PASS/FAIL:
+Two independent evaluation suites prove AIP's output against hand-authored, independently frozen
+ground truth — never generated from AIP's own output — with deterministic PASS/FAIL:
 
 ```bash
-uv run python -m evaluation run
+uv run python -m evaluation run       # ten scenarios over declared/observed relation facts (v0.2)
+uv run python -m evaluation answers   # eight scenarios over the v0.4 ArchitectureAnswer envelope (I1.4)
 ```
 
-No LLM provider key is required — this suite never touches the natural-language query layer. See
-[`evaluation/README.md`](evaluation/README.md) for the full scenario list, ground-truth format, and
-failure-report examples.
+`answers` compares the complete `ArchitectureAnswer` — claims, evidence references, snapshot and
+observation-context identity, limitations — against literal frozen expectations and emits a
+machine-readable JSON result to `evaluation/architecture_answers/results/i1-evaluation-result.json`.
+No LLM provider key is required — neither suite touches the natural-language query layer. See
+[`evaluation/README.md`](evaluation/README.md) for the full scenario lists, ground-truth formats,
+and failure-report examples.
 
 ## OpenTelemetry
 
