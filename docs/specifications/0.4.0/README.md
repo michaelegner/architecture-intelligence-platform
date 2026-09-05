@@ -35,16 +35,19 @@ The release follows one principle:
   through the actual production app), and each PR's own verification record are the evidence.
 
   ```text
-  GO — At <exact I2.4 candidate SHA>, an independent MCP 2026-07-28 client can obtain AIP's
-  qualified, snapshot-bound direct-dependency answer and resolve its evidence and provenance
-  through two read-only tools, with semantic differences from direct service calls = 0 and graph
-  writes = 0.
+  GO — At da5602524ca375b178922fab4f1c21016f3971d1, an independent MCP 2026-07-28 client can
+  obtain AIP's qualified, snapshot-bound direct-dependency answer and resolve its evidence and
+  provenance through two read-only tools, with semantic differences from direct service calls = 0
+  and graph writes = 0.
   ```
 
-  The candidate SHA is pinned only once `lint + test`, `CodeQL`, `analyze (actions)`,
-  `analyze (python)` and `dependency security scan (pip-audit, spec §29)` are confirmed
-  `completed`/`success` for that exact commit via `gh api repos/.../commits/<sha>/check-runs` —
-  never from the PR's ambient current-head view.
+  Verified against that exact commit via `gh api repos/.../commits/da56025.../check-runs` (never
+  the PR's ambient current-head view): `lint + test` ×2, `CodeQL`, `analyze (actions)`,
+  `analyze (python)`, `dependency security scan (pip-audit, spec §29)` ×2 — all `completed`/
+  `success`. The candidate carries the review-round-1 fixes: the golden path runs over a real
+  `uvicorn` listener rather than an in-process ASGI dispatch, spec §17 scenario 19 (concurrent
+  evidence writes) is qualified against real Neo4j, and both answers are validated against the
+  tools' advertised `outputSchema`.
 - **I3 (Drift Capability and Deterministic Qualification)** and **I4 (Release Candidate/
   Publication/Verification)** — not started.
 
