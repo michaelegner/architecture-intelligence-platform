@@ -259,9 +259,14 @@ async def _check_malformed_nested_arguments_are_a_tool_execution_error(
     assert result["isError"] is True
 
 
-async def _check_get_evidence_is_discoverable_but_not_yet_implemented(
+async def _check_get_evidence_fails_safely_when_wiring_is_unconfigured(
     client: httpx.AsyncClient,
 ) -> None:
+    """v0.4.0 I2.3 - `get_evidence` is discoverable via `tools/list` and, once dispatched, follows
+    the same default-sanitization path `get_service_dependencies` already proves below: this test's
+    server is registered via `register_tools(server)` with no `get_service` override, so
+    `wiring.get_service()` is never `configure()`-d, and the SDK sanitizes the resulting
+    `RuntimeError` into a generic `UnexpectedToolError`, never leaking "not configured"."""
     body = _tools_call_body(
         "get_evidence",
         {"request": {"evidence_refs": ["x"], "snapshot_id": "aip:snapshot:v1:" + "a" * 64}},
@@ -271,7 +276,9 @@ async def _check_get_evidence_is_discoverable_but_not_yet_implemented(
     assert response.status_code == 200
     result = response.json()["result"]
     assert result["isError"] is True
-    assert "not yet implemented" in result["content"][0]["text"]
+    text = result["content"][0]["text"]
+    assert text == "Error executing tool get_evidence"
+    assert "not configured" not in text
 
 
 async def _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigured(
@@ -330,6 +337,6 @@ async def test_mcp_protocol_and_discovery() -> None:
             )
             await _check_unexpected_top_level_argument_fails_as_protocol_error(client)
             await _check_malformed_nested_arguments_are_a_tool_execution_error(client)
-            await _check_get_evidence_is_discoverable_but_not_yet_implemented(client)
+            await _check_get_evidence_fails_safely_when_wiring_is_unconfigured(client)
             await _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigured(client)
             await _check_disallowed_origin_is_rejected(client)

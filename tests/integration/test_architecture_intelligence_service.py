@@ -19,7 +19,7 @@ from app.architecture_intelligence.contracts import (
     Qualification,
 )
 from app.architecture_intelligence.repository import canonical_snapshot_state, snapshot_fingerprint
-from app.architecture_intelligence.request import ServiceDependenciesRequest
+from app.architecture_intelligence.request import EvidenceRequest, ServiceDependenciesRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.canonical import ids
 from app.graph.importer import import_all_sources
@@ -265,3 +265,155 @@ def test_a_concurrent_write_during_the_stable_read_forces_a_retry_through_the_re
     assert calls["count"] >= 2  # the first, mid-read-mutated attempt was discarded and retried
     assert answer.snapshot.snapshot_id == expected_snapshot_id
     assert answer.snapshot.model_revision == expected_model_revision
+
+
+# --- I2.3: get_evidence --------------------------------------------------------------------------
+
+
+def test_evidence_resolves_declared_observed_and_resolution_evidence_from_a_dependency_answer(
+    driver,
+):
+    """spec §17 scenario 9: every qualification and resolution evidence referenced by a real
+    dependency answer resolves using its own snapshot - this is the code-level vertical-slice proof
+    (get_service_dependencies -> extract evidence_refs/snapshot_id -> get_evidence); the real
+    independent-HTTP-client version of this chain is I2.4's job."""
+    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    _observe_order_service_calls_product_service(driver)
+
+    svc = _service(driver)
+    dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
+    http_claim = next(
+        claim
+        for claim in dependency_answer.claims
+        if claim.object.id == ids.service_id("product-service")
+        and claim.delivery.kind.value == "SYNC_HTTP"
+    )
+    assert http_claim.qualification == Qualification.CONFIRMED
+    requested_ids = sorted(set(http_claim.evidence_refs) | set(http_claim.resolution_evidence_refs))
+    assert len(requested_ids) >= 2  # at least one declared + one observed evidence id
+
+    evidence_answer = svc.get_evidence(
+        EvidenceRequest(
+            evidence_refs=requested_ids, snapshot_id=dependency_answer.snapshot.snapshot_id
+        )
+    )
+
+    assert evidence_answer.outcome == Outcome.ANSWERED
+    assert evidence_answer.data.missing_evidence_refs == []
+    assert {record.id for record in evidence_answer.data.records} == set(requested_ids)
+    evidence_types = {record.evidence_type.value for record in evidence_answer.data.records}
+    assert "DECLARED" in evidence_types
+    assert "OBSERVED" in evidence_types
+    for record in evidence_answer.data.records:
+        assert record.supports  # every requested id genuinely supports at least one relation fact
+
+
+def test_evidence_with_one_unknown_ref_yields_partial_insufficient_evidence(driver):
+    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    svc = _service(driver)
+    dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
+    known_id = min(dependency_answer.evidence_refs)
+    unknown_id = "evidence:declared:does-not-exist"
+
+    evidence_answer = svc.get_evidence(
+        EvidenceRequest(
+            evidence_refs=[known_id, unknown_id],
+            snapshot_id=dependency_answer.snapshot.snapshot_id,
+        )
+    )
+
+    assert evidence_answer.outcome == Outcome.PARTIAL
+    assert evidence_answer.data.missing_evidence_refs == [unknown_id]
+    assert [record.id for record in evidence_answer.data.records] == [known_id]
+    assert [lim.code for lim in evidence_answer.limitations] == [
+        LimitationCode.INSUFFICIENT_EVIDENCE
+    ]
+
+
+def test_evidence_with_all_unknown_refs_yields_not_answered_with_data_present(driver):
+    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    svc = _service(driver)
+    dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
+
+    evidence_answer = svc.get_evidence(
+        EvidenceRequest(
+            evidence_refs=["evidence:declared:does-not-exist"],
+            snapshot_id=dependency_answer.snapshot.snapshot_id,
+        )
+    )
+
+    assert evidence_answer.outcome == Outcome.NOT_ANSWERED
+    assert evidence_answer.data is not None
+    assert evidence_answer.data.records == []
+    assert evidence_answer.data.missing_evidence_refs == ["evidence:declared:does-not-exist"]
+    assert [lim.code for lim in evidence_answer.limitations] == [
+        LimitationCode.INSUFFICIENT_EVIDENCE
+    ]
+
+
+def test_evidence_stale_explicit_snapshot_is_refused_without_fallback(driver):
+    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    svc = _service(driver)
+    stale_snapshot_id = "aip:snapshot:v1:" + "0" * 64
+
+    evidence_answer = svc.get_evidence(
+        EvidenceRequest(
+            evidence_refs=["evidence:declared:does-not-exist"], snapshot_id=stale_snapshot_id
+        )
+    )
+
+    assert evidence_answer.outcome == Outcome.NOT_ANSWERED
+    assert evidence_answer.data is None
+    assert evidence_answer.snapshot is not None
+    assert evidence_answer.snapshot.snapshot_id != stale_snapshot_id
+    assert [lim.code for lim in evidence_answer.limitations] == [
+        LimitationCode.SNAPSHOT_NOT_AVAILABLE
+    ]
+
+
+def test_evidence_two_consecutive_calls_are_canonically_byte_identical(driver):
+    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    svc = _service(driver)
+    dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
+    known_id = min(dependency_answer.evidence_refs)
+    request = EvidenceRequest(
+        evidence_refs=[known_id], snapshot_id=dependency_answer.snapshot.snapshot_id
+    )
+
+    first = canonical_json_bytes(svc.get_evidence(request))
+    second = canonical_json_bytes(svc.get_evidence(request))
+    assert first == second
+
+
+def test_evidence_call_performs_zero_graph_writes(driver, monkeypatch):
+    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    svc = _service(driver)
+    dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
+    known_id = min(dependency_answer.evidence_refs)
+
+    captured_read_only = []
+    real_open_session = service_module.open_session
+
+    def spy_open_session(drv, *, database, read_only=False):
+        captured_read_only.append(read_only)
+        return real_open_session(drv, database=database, read_only=read_only)
+
+    monkeypatch.setattr(service_module, "open_session", spy_open_session)
+
+    with driver.session(database=DATABASE) as session:
+        revision_before = read_revision(session)
+    fingerprint_before = _fingerprint(driver)
+
+    svc.get_evidence(
+        EvidenceRequest(
+            evidence_refs=[known_id], snapshot_id=dependency_answer.snapshot.snapshot_id
+        )
+    )
+
+    with driver.session(database=DATABASE) as session:
+        revision_after = read_revision(session)
+    fingerprint_after = _fingerprint(driver)
+
+    assert captured_read_only == [True]
+    assert revision_after == revision_before
+    assert fingerprint_after == fingerprint_before

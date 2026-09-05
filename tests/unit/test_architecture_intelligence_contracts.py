@@ -83,6 +83,33 @@ def test_fixture_conforms_to_frozen_schema(name):
     jsonschema.validate(instance=payload, schema=load_schema())
 
 
+EVIDENCE_FIXTURES_DIR = (
+    Path(__file__).resolve().parent.parent / "fixtures" / "architecture_intelligence" / "i2"
+)
+EVIDENCE_FIXTURE_NAMES = sorted(path.name for path in EVIDENCE_FIXTURES_DIR.glob("*.json"))
+
+
+def load_evidence_fixture(name: str) -> dict:
+    return json.loads((EVIDENCE_FIXTURES_DIR / name).read_text())
+
+
+def test_evidence_fixture_directory_is_not_empty():
+    assert EVIDENCE_FIXTURE_NAMES
+
+
+@pytest.mark.parametrize("name", EVIDENCE_FIXTURE_NAMES)
+def test_evidence_fixture_round_trips_through_model(name):
+    payload = load_evidence_fixture(name)
+    answer = EVIDENCE_ANSWER_TYPE.model_validate(payload)
+    assert answer.schema_version == "0.4"
+
+
+@pytest.mark.parametrize("name", EVIDENCE_FIXTURE_NAMES)
+def test_evidence_fixture_conforms_to_frozen_schema(name):
+    payload = load_evidence_fixture(name)
+    jsonschema.validate(instance=payload, schema=load_evidence_schema())
+
+
 def test_answered_full_has_expected_outcome_and_claim_count():
     answer = ANSWER_TYPE.model_validate(load_fixture("answered_full.json"))
     assert answer.outcome == Outcome.PARTIAL
