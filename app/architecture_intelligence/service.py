@@ -11,6 +11,7 @@ from app.architecture_intelligence.contracts import (
     DependencyClaim,
     EntityRef,
     EntityType,
+    EvidenceData,
     Limitation,
     LimitationCode,
     ObservationContextRef,
@@ -20,16 +21,19 @@ from app.architecture_intelligence.contracts import (
     SnapshotRef,
 )
 from app.architecture_intelligence.dependency_projection import project_service_dependencies
+from app.architecture_intelligence.evidence_projection import project_evidence
 from app.architecture_intelligence.observation_context import build_observation_context_ref
 from app.architecture_intelligence.repository import (
     SnapshotUnstable,
+    read_evidence_rows,
     read_service_dependency_rows,
     read_stable_snapshot_from_session,
 )
-from app.architecture_intelligence.request import ServiceDependenciesRequest
+from app.architecture_intelligence.request import EvidenceRequest, ServiceDependenciesRequest
 from app.graph.repository import open_session
 
 _TOOL_NAME = "get_service_dependencies"
+_EVIDENCE_TOOL_NAME = "get_evidence"
 _MAX_CLAIMS = 500
 
 
@@ -222,6 +226,96 @@ class ArchitectureIntelligenceService:
             outcome=Outcome.NOT_ANSWERED,
             snapshot=snapshot_ref,
             observation_context=context_ref,
+            data=None,
+            claims=[],
+            evidence_refs=[],
+            limitations=[Limitation(code=code, message=message)],
+        )
+
+    def get_evidence(self, request: EvidenceRequest) -> ArchitectureAnswer[EvidenceData]:
+        # `EvidenceRequest.evidence_refs` is already deduplicated (spec §11.1) - sorting here is
+        # what spec §11.1's "requested ids are sorted lexicographically for processing and output"
+        # requires; nothing upstream sorts it yet.
+        requested_ids = sorted(request.evidence_refs)
+
+        with open_session(self._driver, database=self._database, read_only=True) as session:
+            try:
+                snapshot = read_stable_snapshot_from_session(
+                    session,
+                    coverage_qualification_enabled=self._coverage_qualification_enabled,
+                    read_extra=lambda s: read_evidence_rows(s, evidence_ids=requested_ids),
+                )
+            except SnapshotUnstable:
+                return self._evidence_refusal(
+                    snapshot_ref=None,
+                    code=LimitationCode.SNAPSHOT_NOT_AVAILABLE,
+                    message="no consistent current snapshot could be acquired",
+                )
+
+            snapshot_ref = SnapshotRef(
+                snapshot_id=snapshot.snapshot_id, model_revision=snapshot.model_revision
+            )
+
+            # `get_evidence` never defaults to the current snapshot when the requested id is stale
+            # (spec §11.1/§13) - unlike `get_service_dependencies`, `snapshot_id` is required here,
+            # so there is no "omitted snapshot binds to current" case to handle.
+            if request.snapshot_id != snapshot.snapshot_id:
+                return self._evidence_refusal(
+                    snapshot_ref=snapshot_ref,
+                    code=LimitationCode.SNAPSHOT_NOT_AVAILABLE,
+                    message=(
+                        f"requested snapshot {request.snapshot_id} is not the current stable "
+                        "snapshot"
+                    ),
+                )
+
+            rows = snapshot.extra
+
+        result = project_evidence(rows, requested_ids=requested_ids)
+        data = EvidenceData(
+            requested_evidence_refs=requested_ids,
+            records=result.records,
+            missing_evidence_refs=result.missing_evidence_refs,
+        )
+
+        if not result.missing_evidence_refs:
+            outcome = Outcome.ANSWERED
+            limitations = []
+        else:
+            outcome = Outcome.PARTIAL if result.records else Outcome.NOT_ANSWERED
+            limitations = [
+                Limitation(
+                    code=LimitationCode.INSUFFICIENT_EVIDENCE,
+                    message=(
+                        f"{len(result.missing_evidence_refs)} of {len(requested_ids)} requested "
+                        "evidence refs could not be resolved"
+                    ),
+                )
+            ]
+
+        return ArchitectureAnswer[EvidenceData](
+            schema_version="0.4",
+            producer=self._producer,
+            tool=_EVIDENCE_TOOL_NAME,
+            outcome=outcome,
+            snapshot=snapshot_ref,
+            observation_context=None,
+            data=data,
+            claims=[],
+            evidence_refs=[],
+            limitations=limitations,
+        )
+
+    def _evidence_refusal(
+        self, *, snapshot_ref: SnapshotRef | None, code: LimitationCode, message: str
+    ) -> ArchitectureAnswer[EvidenceData]:
+        return ArchitectureAnswer[EvidenceData](
+            schema_version="0.4",
+            producer=self._producer,
+            tool=_EVIDENCE_TOOL_NAME,
+            outcome=Outcome.NOT_ANSWERED,
+            snapshot=snapshot_ref,
+            observation_context=None,
             data=None,
             claims=[],
             evidence_refs=[],

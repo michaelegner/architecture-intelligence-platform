@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.4",
+  "producer": {
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0",
+    "build_revision": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567"
+  },
+  "tool": "get_evidence",
+  "outcome": "NOT_ANSWERED",
+  "snapshot": {
+    "snapshot_id": "aip:snapshot:v1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "model_revision": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "observation_context": null,
+  "data": {
+    "requested_evidence_refs": [
+      "evidence:declared:missing-one"
+    ],
+    "records": [],
+    "missing_evidence_refs": [
+      "evidence:declared:missing-one"
+    ]
+  },
+  "claims": [],
+  "evidence_refs": [],
+  "limitations": [
+    {
+      "code": "INSUFFICIENT_EVIDENCE",
+      "message": "1 of 1 requested evidence refs could not be resolved",
+      "claim_ids": []
+    }
+  ]
+}

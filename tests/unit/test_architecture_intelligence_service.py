@@ -4,7 +4,7 @@ from app.analysis.runtime import ServiceTelemetryCoverage
 from app.architecture_intelligence import service as service_module
 from app.architecture_intelligence.contracts import LimitationCode, Outcome, Producer
 from app.architecture_intelligence.repository import SnapshotUnstable, StableSnapshot
-from app.architecture_intelligence.request import ServiceDependenciesRequest
+from app.architecture_intelligence.request import EvidenceRequest, ServiceDependenciesRequest
 
 ENVIRONMENT = "demo"
 WINDOW_START = "2026-08-26T00:00:00.000000Z"
@@ -334,4 +334,165 @@ def test_two_consecutive_calls_are_canonically_byte_identical(monkeypatch):
 
     first = canonical_json_bytes(svc.get_service_dependencies(_request()))
     second = canonical_json_bytes(svc.get_service_dependencies(_request()))
+    assert first == second
+
+
+# --- I2.3: get_evidence -------------------------------------------------------------------------
+
+DECLARED_EVIDENCE_ID = "evidence:declared:order-service"
+OBSERVED_EVIDENCE_ID = "evidence:observed:order-service"
+MISSING_EVIDENCE_ID = "evidence:declared:missing"
+
+_DECLARED_ROW = {
+    "id": DECLARED_EVIDENCE_ID,
+    "evidence_type": "DECLARED",
+    "source_type": "MANIFEST",
+    "source_file": "architecture.yaml",
+    "source_revision": None,
+}
+_OBSERVED_ROW = {
+    "id": OBSERVED_EVIDENCE_ID,
+    "evidence_type": "OBSERVED",
+    "source_type": "OPENTELEMETRY",
+    "source_file": "opentelemetry",
+    "source_revision": None,
+    "environment": ENVIRONMENT,
+    "bucket_start": datetime(2026, 8, 26, tzinfo=UTC),
+    "bucket_end": datetime(2026, 8, 26, tzinfo=UTC),
+    "first_seen": datetime(2026, 8, 26, tzinfo=UTC),
+    "last_seen": datetime(2026, 8, 26, tzinfo=UTC),
+    "observation_count": 3,
+    "service_version": None,
+    "correlation_mode": None,
+}
+
+EMPTY_EVIDENCE_ROWS = {"evidence": {}, "relations": []}
+
+
+def _evidence_service(
+    monkeypatch,
+    *,
+    rows=_UNSET,
+    raises: Exception | None = None,
+    snapshot_id: str = FAKE_SNAPSHOT_ID,
+):
+    monkeypatch.setattr(
+        service_module, "open_session", lambda driver, *, database, read_only: FakeSession()
+    )
+    monkeypatch.setattr(
+        service_module,
+        "read_stable_snapshot_from_session",
+        _make_fake_read_stable_snapshot(raises=raises, snapshot_id=snapshot_id),
+    )
+    if rows is not _UNSET:
+        monkeypatch.setattr(
+            service_module, "read_evidence_rows", lambda session, *, evidence_ids: rows
+        )
+    return service_module.ArchitectureIntelligenceService(
+        driver=object(), database="neo4j", producer=PRODUCER
+    )
+
+
+def _evidence_request(**overrides) -> EvidenceRequest:
+    payload = {"evidence_refs": [DECLARED_EVIDENCE_ID], "snapshot_id": FAKE_SNAPSHOT_ID}
+    payload.update(overrides)
+    return EvidenceRequest.model_validate(payload)
+
+
+def test_evidence_unstable_snapshot_yields_snapshot_not_available_without_snapshot_ref(
+    monkeypatch,
+):
+    svc = _evidence_service(monkeypatch, raises=SnapshotUnstable("boom"))
+    answer = svc.get_evidence(_evidence_request())
+
+    assert answer.outcome == Outcome.NOT_ANSWERED
+    assert answer.snapshot is None
+    assert answer.observation_context is None
+    assert answer.data is None
+    assert [lim.code for lim in answer.limitations] == [LimitationCode.SNAPSHOT_NOT_AVAILABLE]
+
+
+def test_evidence_stale_explicit_snapshot_is_refused_without_fallback(monkeypatch):
+    svc = _evidence_service(monkeypatch, rows=EMPTY_EVIDENCE_ROWS)
+    answer = svc.get_evidence(_evidence_request(snapshot_id=OTHER_SNAPSHOT_ID))
+
+    assert answer.outcome == Outcome.NOT_ANSWERED
+    assert answer.snapshot.snapshot_id == FAKE_SNAPSHOT_ID
+    assert answer.data is None
+    assert [lim.code for lim in answer.limitations] == [LimitationCode.SNAPSHOT_NOT_AVAILABLE]
+
+
+def test_evidence_all_resolved_yields_answered_with_declared_and_observed_records(monkeypatch):
+    rows = {
+        "evidence": {DECLARED_EVIDENCE_ID: _DECLARED_ROW, OBSERVED_EVIDENCE_ID: _OBSERVED_ROW},
+        "relations": [],
+    }
+    svc = _evidence_service(monkeypatch, rows=rows)
+    request = _evidence_request(evidence_refs=[DECLARED_EVIDENCE_ID, OBSERVED_EVIDENCE_ID])
+    answer = svc.get_evidence(request)
+
+    assert answer.outcome == Outcome.ANSWERED
+    assert answer.observation_context is None
+    assert answer.claims == []
+    assert answer.evidence_refs == []
+    assert answer.limitations == []
+    assert answer.data.missing_evidence_refs == []
+    assert [record.id for record in answer.data.records] == [
+        DECLARED_EVIDENCE_ID,
+        OBSERVED_EVIDENCE_ID,
+    ]
+    declared, observed = answer.data.records
+    assert declared.observation is None
+    assert observed.observation is not None
+    assert observed.observation.observation_count == 3
+
+
+def test_evidence_mixed_resolved_and_missing_yields_partial(monkeypatch):
+    rows = {"evidence": {DECLARED_EVIDENCE_ID: _DECLARED_ROW}, "relations": []}
+    svc = _evidence_service(monkeypatch, rows=rows)
+    request = _evidence_request(evidence_refs=[DECLARED_EVIDENCE_ID, MISSING_EVIDENCE_ID])
+    answer = svc.get_evidence(request)
+
+    assert answer.outcome == Outcome.PARTIAL
+    assert [record.id for record in answer.data.records] == [DECLARED_EVIDENCE_ID]
+    assert answer.data.missing_evidence_refs == [MISSING_EVIDENCE_ID]
+    assert [lim.code for lim in answer.limitations] == [LimitationCode.INSUFFICIENT_EVIDENCE]
+
+
+def test_evidence_all_missing_yields_not_answered_insufficient_evidence_with_data_present(
+    monkeypatch,
+):
+    svc = _evidence_service(monkeypatch, rows=EMPTY_EVIDENCE_ROWS)
+    answer = svc.get_evidence(_evidence_request(evidence_refs=[MISSING_EVIDENCE_ID]))
+
+    assert answer.outcome == Outcome.NOT_ANSWERED
+    # Spec §12: "No record resolves -> NOT_ANSWERED/INSUFFICIENT_EVIDENCE; empty records plus
+    # missing refs" - unlike get_service_dependencies' NOT_ANSWERED refusals, data stays non-null.
+    assert answer.data is not None
+    assert answer.data.records == []
+    assert answer.data.missing_evidence_refs == [MISSING_EVIDENCE_ID]
+    assert [lim.code for lim in answer.limitations] == [LimitationCode.INSUFFICIENT_EVIDENCE]
+
+
+def test_evidence_requested_ids_are_sorted_for_processing_and_output(monkeypatch):
+    rows = {
+        "evidence": {DECLARED_EVIDENCE_ID: _DECLARED_ROW, OBSERVED_EVIDENCE_ID: _OBSERVED_ROW},
+        "relations": [],
+    }
+    svc = _evidence_service(monkeypatch, rows=rows)
+    request = _evidence_request(evidence_refs=[OBSERVED_EVIDENCE_ID, DECLARED_EVIDENCE_ID])
+    answer = svc.get_evidence(request)
+
+    assert answer.data.requested_evidence_refs == sorted(
+        [OBSERVED_EVIDENCE_ID, DECLARED_EVIDENCE_ID]
+    )
+
+
+def test_evidence_two_consecutive_calls_are_canonically_byte_identical(monkeypatch):
+    rows = {"evidence": {DECLARED_EVIDENCE_ID: _DECLARED_ROW}, "relations": []}
+    svc = _evidence_service(monkeypatch, rows=rows)
+    from app.architecture_intelligence.canonical_json import canonical_json_bytes
+
+    first = canonical_json_bytes(svc.get_evidence(_evidence_request()))
+    second = canonical_json_bytes(svc.get_evidence(_evidence_request()))
     assert first == second

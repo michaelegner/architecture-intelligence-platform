@@ -1,8 +1,6 @@
-"""v0.4.0 I2.1/I2.2 - registers the two I2 tools for discovery (spec §9, §19's "deterministic
-two-tool discovery") and gives `get_service_dependencies` its real dispatch body (spec §10).
-
-`get_evidence` still raises `ToolError` here: discoverable via `tools/list`, not yet callable -
-its service logic lands in I2.3. Do not add real dispatch logic for it here.
+"""v0.4.0 I2.1/I2.2/I2.3 - registers the two I2 tools for discovery (spec §9, §19's "deterministic
+two-tool discovery") and gives both `get_service_dependencies` and `get_evidence` their real
+dispatch bodies (spec §10, §11).
 
 `register_tools` takes an explicit `MCPServer` rather than registering directly against the
 module-level singleton, so tests can build an isolated server (and session manager) per test instead
@@ -75,7 +73,16 @@ def register_tools(
         annotations=_READ_ONLY_ANNOTATIONS,
     )
     def get_evidence(request: EvidenceRequest) -> ArchitectureAnswer[EvidenceData]:
-        raise ToolError("get_evidence is not yet implemented (lands in I2.3)")
+        """Spec §11: constructs no new semantics - calls
+        `ArchitectureIntelligenceService.get_evidence` exactly once and returns its answer
+        unchanged as `structuredContent`. Unlike `get_service_dependencies`, `EvidenceRequest` has
+        no observation-context values to pre-validate before dispatch - `evidence_refs`/
+        `snapshot_id` are already fully validated by the closed `inputSchema`/Pydantic model before
+        this body runs, so there is nothing left to check here. Any unexpected internal/driver
+        failure still falls through uncaught into the SDK's own generic sanitization, same as
+        `get_service_dependencies` below.
+        """
+        return get_service().get_evidence(request)
 
     @server.tool(
         name="get_service_dependencies",
