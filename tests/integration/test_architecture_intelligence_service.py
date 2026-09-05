@@ -417,3 +417,64 @@ def test_evidence_call_performs_zero_graph_writes(driver, monkeypatch):
     assert captured_read_only == [True]
     assert revision_after == revision_before
     assert fingerprint_after == fingerprint_before
+
+
+def test_a_concurrent_evidence_write_during_the_stable_read_forces_a_retry_and_a_safe_refusal(
+    driver, monkeypatch
+):
+    """spec §17 scenario 19 ("Concurrent evidence writes force retry or safe refusal, never a mixed
+    response"), the get_evidence counterpart to the dependency-side proof above (PR #80 review
+    finding: neither the dependency-side test - which mutates a Service version - nor the unit-level
+    instability test, which substitutes an exception for the stable read, exercises a concurrent
+    mutation between the fingerprint projection and the requested-evidence read).
+
+    The injected write mutates a real, *requested* Evidence node's own metadata in the same
+    transaction as the revision bump - not a revision-counter bump alone, which could not produce a
+    semantically mixed read to discard in the first place. The mutation lands between the attempt's
+    fingerprint projection and its evidence read, so a missing fence would pair a pre-mutation
+    snapshot_id with post-mutation evidence data. Because the caller pinned the pre-mutation
+    snapshot, the only safe outcome after the retry is an explicit refusal bound to the *current*
+    (post-mutation) snapshot, with no records returned."""
+    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    svc = _service(driver)
+    dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
+    requested_id = min(dependency_answer.evidence_refs)
+    pinned_snapshot_id = dependency_answer.snapshot.snapshot_id
+
+    real_read_rows = service_module.read_evidence_rows
+    calls = {"count": 0}
+
+    def _mutate_requested_evidence_and_bump(tx):
+        tx.run(
+            "MATCH (e:Evidence {id: $id}) SET e.source_revision = $revision",
+            id=requested_id,
+            revision="mutated-mid-read",
+        )
+        bump_revision(tx)
+
+    def flaky_read_rows(session, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            with driver.session(database=DATABASE) as write_session:
+                write_session.execute_write(_mutate_requested_evidence_and_bump)
+        return real_read_rows(session, **kwargs)
+
+    monkeypatch.setattr(service_module, "read_evidence_rows", flaky_read_rows)
+
+    evidence_answer = svc.get_evidence(
+        EvidenceRequest(evidence_refs=[requested_id], snapshot_id=pinned_snapshot_id)
+    )
+
+    expected_snapshot_id, expected_model_revision = _fingerprint(driver)
+
+    assert calls["count"] >= 2  # the first, mid-read-mutated attempt was discarded and retried
+    assert evidence_answer.outcome == Outcome.NOT_ANSWERED
+    assert evidence_answer.data is None  # no records escaped from the discarded mixed attempt
+    assert [lim.code for lim in evidence_answer.limitations] == [
+        LimitationCode.SNAPSHOT_NOT_AVAILABLE
+    ]
+    # The refusal is bound to the real post-mutation state, never the stale pre-mutation fingerprint
+    # the caller pinned - proving the accepted attempt observed one committed state throughout.
+    assert evidence_answer.snapshot.snapshot_id == expected_snapshot_id
+    assert evidence_answer.snapshot.model_revision == expected_model_revision
+    assert evidence_answer.snapshot.snapshot_id != pinned_snapshot_id
