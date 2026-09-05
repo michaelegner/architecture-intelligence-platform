@@ -22,6 +22,28 @@ The release follows one principle:
 | [`i1-service-contract-and-dependency-vertical-slice.md`](i1-service-contract-and-dependency-vertical-slice.md) | Self-contained implementation contract for the first service-level dependency vertical slice. | Draft 1 |
 | [`i2-mcp-vertical-slice-and-evidence-drill-down.md`](i2-mcp-vertical-slice-and-evidence-drill-down.md) | MCP exposure of the qualified dependency answer plus snapshot-bound evidence drill-down. | Draft 1 |
 
+## Status
+
+- **I1 (Service Contract and Dependency Vertical Slice) — GO.** Candidate
+  `8031f640daac3067ba9e709b19464d8246959fe2` (PR #74). See
+  [`i1-completion-record.md`](i1-completion-record.md) for the full exit record.
+- **I2 (MCP Vertical Slice and Evidence Drill-Down) — GO.** Delivered as I2.1 Protocol and Contract
+  Skeleton (PR #77), I2.2 Dependency MCP Adapter (PR #78), I2.3 Evidence Service and Tool (PR #79),
+  I2.4 Independent-Client Qualification (this PR). No separate completion-record dossier per spec
+  §18; the executable schemas, focused test suites (including
+  `tests/integration/test_mcp_independent_client_golden_path.py`'s real end-to-end golden path
+  through the actual production app), and each PR's own verification record are the evidence.
+
+  ```text
+  GO — At <exact I2.4 candidate SHA, filled in once CI/CodeQL/dependency-audit are verified via
+  the GitHub API against that exact commit>, an independent MCP 2026-07-28 client can obtain AIP's
+  qualified, snapshot-bound direct-dependency answer and resolve its evidence and provenance
+  through two read-only tools, with semantic differences from direct service calls = 0 and graph
+  writes = 0.
+  ```
+- **I3 (Drift Capability and Deterministic Qualification)** and **I4 (Release Candidate/
+  Publication/Verification)** — not started.
+
 ## Delivery Direction
 
 The planned release surface comprises the `ArchitectureIntelligenceService`, structured
