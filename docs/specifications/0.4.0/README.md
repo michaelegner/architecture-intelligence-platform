@@ -35,16 +35,16 @@ The release follows one principle:
   through the actual production app), and each PR's own verification record are the evidence.
 
   ```text
-  GO — At e74b6b1e759e21894c8a73cd4067b4b3771cca5b, an independent MCP 2026-07-28 client can
-  obtain AIP's qualified, snapshot-bound direct-dependency answer and resolve its evidence and
-  provenance through two read-only tools, with semantic differences from direct service calls = 0
-  and graph writes = 0.
+  GO — At <exact I2.4 candidate SHA>, an independent MCP 2026-07-28 client can obtain AIP's
+  qualified, snapshot-bound direct-dependency answer and resolve its evidence and provenance
+  through two read-only tools, with semantic differences from direct service calls = 0 and graph
+  writes = 0.
   ```
 
-  Verified directly against that exact commit (`gh api repos/.../commits/e74b6b1.../check-runs`,
-  not the PR's ambient current-head view): `lint + test` ×2, `CodeQL`, `analyze (actions)`,
-  `analyze (python)`, `dependency security scan (pip-audit, spec §29)` ×2 — all `completed`/
-  `success`.
+  The candidate SHA is pinned only once `lint + test`, `CodeQL`, `analyze (actions)`,
+  `analyze (python)` and `dependency security scan (pip-audit, spec §29)` are confirmed
+  `completed`/`success` for that exact commit via `gh api repos/.../commits/<sha>/check-runs` —
+  never from the PR's ambient current-head view.
 - **I3 (Drift Capability and Deterministic Qualification)** and **I4 (Release Candidate/
   Publication/Verification)** — not started.
 
