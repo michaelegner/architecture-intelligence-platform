@@ -1274,6 +1274,32 @@ INSUFFICIENT_EVIDENCE
 NOT_ANSWERED or PARTIAL according to whether other safe drift claims exist
 ```
 
+**I3.3 implementation amendment (PR #84 review):** this state is not reachable through the
+declarative declarations+telemetry scenario format the rest of §27's synthetic scenarios use.
+`_qualify(...) -> None` (the only path to `INSUFFICIENT_EVIDENCE`) requires a relation whose
+evidence never resolves to an accepted `Evidence` node, and `app/graph/importer.py`'s own
+reconciliation query (`_EXPIRE_RELATIONS_QUERY`) deletes any relation whose `evidence_ids` reaches
+empty rather than leaving it dangling - the supported ingestion pipeline structurally cannot
+produce a "candidate path with insufficient evidence" left standing in the graph. Building this
+scenario would therefore require a new fixture-mechanism escape hatch (e.g. a raw post-import
+Cypher mutation step) solely to reproduce a state real ingestion never creates.
+
+`drift-insufficient-evidence` is therefore qualified instead by the real-Neo4j integration tests in
+`tests/integration/test_architecture_intelligence_service.py`
+(`test_drift_retains_a_claim_independent_insufficient_evidence_limitation` and
+`test_drift_is_not_answered_when_every_candidate_path_lacks_evidence`, added in I3.1), which
+construct the dangling-evidence state directly via a Cypher mutation against a real graph and
+qualify both the §18.4 (`NOT_ANSWERED`) and §19.2 (`PARTIAL`, claim-independent limitation
+retained) outcomes. These are part of the I3 regression gate (§60's `uv run pytest
+tests/integration`), not a separate, optional check. §51's "Deterministic Evaluation Scenario
+Budget" is non-normative ("6-9 focused scenarios... coverage over count"); this is the one §27
+scenario id qualified outside `evaluation/architecture_answers/` rather than inside it, and it is
+recorded here - not left as an undocumented implementation exception - specifically because §64/§65
+otherwise read as requiring it. The machine-readable I3 evaluation report records this exception
+under its own `cross_tool_invariants.insufficient_evidence_qualification` entry (`status:
+"QUALIFIED_EXTERNALLY"`, naming both tests) - not folded into an unrelated field, and not asserted
+as a self-reported `PASS` the evaluator process never actually ran.
+
 ---
 
 ### 27.7 `drift-unknown-service`
@@ -2636,7 +2662,9 @@ I3 blockers = 0
 - [ ] Empty drift is covered.
 - [ ] Mixed confirmed/drift is covered.
 - [ ] Unresolved identity is covered.
-- [ ] Insufficient evidence is covered.
+- [ ] Insufficient evidence is covered (§27.6's implementation amendment: qualified by I3.1's
+      real-Neo4j integration tests, not a synthetic `evaluation/architecture_answers` scenario -
+      the state is unreachable through the declarative declarations+telemetry format).
 - [ ] Unknown service is covered.
 - [ ] Missing context is covered.
 - [ ] Stale snapshot is covered.

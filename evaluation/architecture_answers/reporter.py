@@ -28,18 +28,35 @@ EXIT_FAILURES = 1
 EXIT_INVALID = 2
 
 # I3 spec §33.4/§35: the Service-to-MCP invariant is deliberately proven outside this process (see
-# evaluation.architecture_answers.invariants' module docstring for why) - this records that
-# qualifying evidence as a reviewed, static declaration rather than a live-computed field. Only
-# `covered_drift_scenarios` below is live-computed, from this exact run's own loaded scenarios, so
-# it can never silently drift out of sync with the real suite.
+# evaluation.architecture_answers.invariants' module docstring for why). `status` is deliberately
+# NOT "PASS" - this process never runs that pytest suite and receives no result from it, so
+# self-reporting a computed-looking pass here would be exactly the "prose claim" spec §33.4 asks
+# this report to avoid. "QUALIFIED_EXTERNALLY" says plainly that this dimension's real PASS/FAIL
+# comes from a separate part of the I3 regression gate (spec §60's `pytest tests/integration`), not
+# from this artifact. Only `covered_drift_scenarios` is live-computed, from this exact run's own
+# loaded scenarios, so it can never silently drift out of sync with the real suite.
 _MCP_PARITY_TEST_PATH = "tests/integration/test_mcp_drift_scenario_parity.py"
+
+# I3 spec §27.6's implementation amendment (PR #84 review): this state (a dangling evidence
+# reference) is unreachable through the declarative declarations+telemetry scenario format - a
+# relation with empty evidence_ids is deleted by app.graph.importer's own reconciliation query,
+# never left dangling. Recorded as its own report entry, not folded into `service_to_mcp`, and
+# likewise never a self-reported "PASS" for a check this process didn't run.
+_INSUFFICIENT_EVIDENCE_QUALIFYING_TESTS = (
+    (
+        "tests/integration/test_architecture_intelligence_service.py::"
+        "test_drift_retains_a_claim_independent_insufficient_evidence_limitation"
+    ),
+    (
+        "tests/integration/test_architecture_intelligence_service.py::"
+        "test_drift_is_not_answered_when_every_candidate_path_lacks_evidence"
+    ),
+)
 _INSUFFICIENT_EVIDENCE_NOTE = (
-    "drift-insufficient-evidence (spec section 27.6) is not a scenario in this suite - that state "
-    "is unreachable through the declarative declarations+telemetry scenario format (a relation "
-    "with empty evidence_ids is deleted by app.graph.importer's own reconciliation query, never "
-    "left dangling); it is qualified instead by "
-    "tests/integration/test_architecture_intelligence_service.py's real-Neo4j "
-    "INSUFFICIENT_EVIDENCE drift tests, which construct it via a direct evidence-id mutation."
+    "drift-insufficient-evidence (I3 spec section 27.6, amended) is not a scenario in this suite - "
+    "that state is unreachable through the declarative declarations+telemetry scenario format (a "
+    "relation with empty evidence_ids is deleted by app.graph.importer's own reconciliation query, "
+    "never left dangling)."
 )
 
 # I3 spec §37/§38/§61: the two frozen v0.3 real-system captures this suite's quarkus-frozen-*/
@@ -96,9 +113,13 @@ def _cross_tool_invariants(result: SuiteResult) -> dict:
         "dependency_to_drift": _live_invariant_section(result, invariant="dependency_to_drift"),
         "drift_to_evidence": _live_invariant_section(result, invariant="drift_to_evidence"),
         "service_to_mcp": {
-            "status": "PASS",
+            "status": "QUALIFIED_EXTERNALLY",
             "qualified_by": _MCP_PARITY_TEST_PATH,
             "covered_drift_scenarios": covered_drift_scenarios,
+        },
+        "insufficient_evidence_qualification": {
+            "status": "QUALIFIED_EXTERNALLY",
+            "qualified_by": list(_INSUFFICIENT_EVIDENCE_QUALIFYING_TESTS),
             "note": _INSUFFICIENT_EVIDENCE_NOTE,
         },
     }
@@ -128,8 +149,9 @@ def build_report(result: SuiteResult) -> dict:
     passed = sum(1 for report in result.reports if report.passed)
     total = len(result.reports)
     # Spec §36: a cross-tool invariant failure must fail the suite, same as any per-scenario
-    # mismatch - `service_to_mcp`'s reviewed static status deliberately never contributes here, its
-    # own gate (the pytest suite it names) is a separate part of the I3 regression gate (spec §60).
+    # mismatch - the two "QUALIFIED_EXTERNALLY" entries (service_to_mcp,
+    # insufficient_evidence_qualification) deliberately never contribute here: this process ran
+    # neither check, and their own gates are a separate part of the I3 regression gate (spec §60).
     overall_pass = (
         passed == total
         and result.semantic_outputs_identical
