@@ -21,6 +21,7 @@ The release follows one principle:
 | [`specification.md`](specification.md) | Normative capability and release contract for `v0.4.0`. | Draft 1.2 |
 | [`i1-service-contract-and-dependency-vertical-slice.md`](i1-service-contract-and-dependency-vertical-slice.md) | Self-contained implementation contract for the first service-level dependency vertical slice. | Draft 1 |
 | [`i2-mcp-vertical-slice-and-evidence-drill-down.md`](i2-mcp-vertical-slice-and-evidence-drill-down.md) | MCP exposure of the qualified dependency answer plus snapshot-bound evidence drill-down. | Draft 1 |
+| [`i3-drift-capability-and-deterministic-qualification.md`](i3-drift-capability-and-deterministic-qualification.md) | Drift capability plus complete deterministic three-tool qualification and hero demo. | Draft 1 |
 
 ## Status
 
@@ -48,8 +49,11 @@ The release follows one principle:
   `uvicorn` listener rather than an in-process ASGI dispatch, spec §17 scenario 19 (concurrent
   evidence writes) is qualified against real Neo4j, and both answers are validated against the
   tools' advertised `outputSchema`.
-- **I3 (Drift Capability and Deterministic Qualification)** and **I4 (Release Candidate/
-  Publication/Verification)** — not started.
+- **I3 (Drift Capability and Deterministic Qualification) — SPECIFIED.** Draft 1 defines the third
+  read-only tool as a filtered view over the qualified I1 dependency claims, the full deterministic
+  three-tool evaluation, frozen Quarkus/Airflow-derived qualification, and the hero demo.
+  Implementation has not started.
+- **I4 (Release Candidate/Publication/Verification) — not started.**
 
 ## Delivery Direction
 
