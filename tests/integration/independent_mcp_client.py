@@ -101,9 +101,10 @@ def run_drift_to_evidence_golden_path(
     client: httpx.Client, *, service_id: str, observation_context: dict[str, str]
 ) -> dict:
     """v0.4.0 I3.2 - I3 spec §44's extension of the same client rather than a second one:
-    `get_architecture_drift` -> collect every drift claim's evidence/resolution evidence refs and
-    the answer's `snapshot_id` -> `get_evidence` on that same snapshot. Returns both raw tool
-    results (`drift`, `evidence`) for the caller to assert on/validate against the advertised output
+    `get_architecture_drift` -> the answer's own top-level `evidence_refs` (spec §21's exact sorted
+    union) and `snapshot_id` -> `get_evidence` on that same snapshot, exactly the public §22
+    drill-down contract rather than a per-claim re-derivation of it. Returns both raw tool results
+    (`drift`, `evidence`) for the caller to assert on/validate against the advertised output
     schemas - this module does no assertion of its own."""
     drift_result = call_tool(
         client,
@@ -114,13 +115,7 @@ def run_drift_to_evidence_golden_path(
     )
     drift_answer = drift_result["structuredContent"]
 
-    evidence_refs = sorted(
-        {
-            ref
-            for claim in drift_answer["claims"]
-            for ref in (*claim["evidence_refs"], *claim["resolution_evidence_refs"])
-        }
-    )
+    evidence_refs = drift_answer["evidence_refs"]
     evidence_result = call_tool(
         client,
         name="get_evidence",

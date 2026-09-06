@@ -124,7 +124,7 @@ async def test_empty_drift_answer_round_trips_unchanged() -> None:
     async with mcp_session_manager_lifespan(server):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
-            result = await _call(client, {"request": {"service_id": "service:product-service"}})
+            result = await _call(client, {"request": {"service_id": "service:invoice-service"}})
             assert result["isError"] is False
             assert result["structuredContent"] == answer.model_dump(mode="json")
             assert result["structuredContent"]["outcome"] == "ANSWERED"
@@ -163,7 +163,7 @@ async def test_two_identical_calls_produce_identical_structured_content() -> Non
     async with mcp_session_manager_lifespan(server):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
-            arguments = {"request": {"service_id": "service:product-service"}}
+            arguments = {"request": {"service_id": "service:invoice-service"}}
             first = await _call(client, arguments)
             second = await _call(client, arguments)
             assert first["structuredContent"] == second["structuredContent"]
