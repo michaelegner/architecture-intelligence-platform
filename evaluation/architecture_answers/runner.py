@@ -163,8 +163,9 @@ def run_suite(
         # invariants all need a live read against the exact graph this specific answer was
         # produced from.
         broken_refs = _broken_evidence_refs(driver, evidence_refs=tuple(answer.evidence_refs))
-        service = ArchitectureIntelligenceService(driver, database=_DATABASE, producer=producer)
-        invariant_failures.extend(check_drift_invariants(answer, service=service))
+        if answer.tool == TOOL_ARCHITECTURE_DRIFT:
+            service = ArchitectureIntelligenceService(driver, database=_DATABASE, producer=producer)
+            invariant_failures.extend(check_drift_invariants(answer, service=service))
         reports.append(
             compare(scenario, answer, candidate_sha=resolved_sha, broken_evidence_refs=broken_refs)
         )

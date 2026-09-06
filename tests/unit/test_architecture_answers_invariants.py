@@ -259,6 +259,35 @@ def test_a_drift_evidence_ref_that_does_not_resolve_is_caught():
     assert [f.invariant for f in failures] == ["drift_to_evidence"]
 
 
+def test_get_evidence_refusing_is_caught_as_a_failure_not_a_crash():
+    """PR #84 review (Copilot): `get_evidence` legitimately refuses with `data=None`
+    (SNAPSHOT_NOT_AVAILABLE) - accessing `.data.missing_evidence_refs` unconditionally would raise
+    AttributeError and crash the whole suite run instead of reporting one invariant failure."""
+    drifting = _claim()
+    drift_answer = _drift_answer(claims=[drifting])
+    refusal = ArchitectureAnswer[EvidenceData](
+        schema_version="0.4",
+        producer=_PRODUCER,
+        tool="get_evidence",
+        outcome=Outcome.NOT_ANSWERED,
+        snapshot=_SNAPSHOT,
+        observation_context=None,
+        data=None,
+        claims=[],
+        evidence_refs=[],
+        limitations=[
+            {"code": "SNAPSHOT_NOT_AVAILABLE", "message": "no consistent snapshot", "claim_ids": []}
+        ],
+    )
+    service = _StubService(
+        dependency_answer=_dependency_answer(claims=[drifting]), evidence_answer=refusal
+    )
+
+    failures = check_drift_invariants(drift_answer, service=service)
+
+    assert [f.invariant for f in failures] == ["drift_to_evidence"]
+
+
 def test_drift_answer_with_no_evidence_refs_skips_the_evidence_check():
     drift_answer = _drift_answer(claims=[])
     service = _StubService(dependency_answer=_dependency_answer(claims=[]), evidence_answer=None)

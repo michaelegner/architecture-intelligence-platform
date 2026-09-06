@@ -58,6 +58,21 @@ def _check_drift_to_evidence(
             }
         )
     )
+    # get_evidence legitimately refuses with data=None (SNAPSHOT_NOT_AVAILABLE - the drift answer's
+    # own snapshot stopped being current between producing it and this immediately-following call,
+    # or the stable-read retry itself could not settle) - that refusal is itself a real invariant
+    # failure (the evidence a drift answer just returned no longer resolves at all), not something
+    # to crash the whole suite run over by blindly reading `.data.missing_evidence_refs`.
+    if evidence_answer.data is None:
+        return [
+            CrossToolInvariantFailure(
+                invariant="drift_to_evidence",
+                detail=(
+                    f"snapshot={answer.snapshot.snapshot_id}: get_evidence refused "
+                    f"({[lim.code.value for lim in evidence_answer.limitations]})"
+                ),
+            )
+        ]
     if not evidence_answer.data.missing_evidence_refs:
         return []
     return [
