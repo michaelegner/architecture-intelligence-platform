@@ -1,0 +1,15 @@
+scenario: drift-unresolved-destination
+description: >
+  I3 spec section 27.5. Reuses unresolved-queue-destination's exact input (order-service sends to
+  unused-q with no declared or observed consumer anywhere) - the DIRECT_TARGET_FALLBACK claim is
+  NOT_OBSERVED_IN_WINDOW, so it drifts and carries its UNRESOLVED_IDENTITY limitation with it -
+  PARTIAL, no guessed Service identity.
+
+request:
+  tool: get_architecture_drift
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

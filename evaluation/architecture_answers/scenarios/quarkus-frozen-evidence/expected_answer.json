@@ -1,0 +1,199 @@
+{
+  "claims": [],
+  "data": {
+    "missing_evidence_refs": [],
+    "records": [
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:manifest:rest-fights",
+        "observation": null,
+        "source_locator": "evaluation/architecture_answers/scenarios/quarkus-frozen-evidence/input/declarations/rest-fights/architecture.yaml",
+        "source_revision": null,
+        "source_type": "MANIFEST",
+        "supports": [
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes/random"
+          },
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-narration:POST:/api/narration"
+          },
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-villains:GET:/api/villains/random"
+          }
+        ]
+      },
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:openapi:rest-heroes",
+        "observation": null,
+        "source_locator": "evaluation/architecture_answers/scenarios/quarkus-frozen-evidence/input/declarations/rest-heroes/openapi.yml",
+        "source_revision": null,
+        "source_type": "OPENAPI",
+        "supports": [
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:DELETE:/api/heroes"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:DELETE:/api/heroes/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes/hello"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes/random"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:PATCH:/api/heroes/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:POST:/api/heroes"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:PUT:/api/heroes"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:PUT:/api/heroes/{id}"
+          }
+        ]
+      },
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:openapi:rest-narration",
+        "observation": null,
+        "source_locator": "evaluation/architecture_answers/scenarios/quarkus-frozen-evidence/input/declarations/rest-narration/openapi.yml",
+        "source_revision": null,
+        "source_type": "OPENAPI",
+        "supports": [
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-narration",
+            "target_id": "operation:service:rest-narration:GET:/api/narration/hello"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-narration",
+            "target_id": "operation:service:rest-narration:POST:/api/narration"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-narration",
+            "target_id": "operation:service:rest-narration:POST:/api/narration/image"
+          }
+        ]
+      },
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:openapi:rest-villains",
+        "observation": null,
+        "source_locator": "evaluation/architecture_answers/scenarios/quarkus-frozen-evidence/input/declarations/rest-villains/openapi.yml",
+        "source_revision": null,
+        "source_type": "OPENAPI",
+        "supports": [
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:DELETE:/api/villains"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:DELETE:/api/villains/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:GET:/api/villains"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:GET:/api/villains/hello"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:GET:/api/villains/random"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:GET:/api/villains/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:PATCH:/api/villains/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:POST:/api/villains"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:PUT:/api/villains"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:PUT:/api/villains/{id}"
+          }
+        ]
+      }
+    ],
+    "requested_evidence_refs": [
+      "evidence:manifest:rest-fights",
+      "evidence:openapi:rest-heroes",
+      "evidence:openapi:rest-narration",
+      "evidence:openapi:rest-villains"
+    ]
+  },
+  "evidence_refs": [],
+  "limitations": [],
+  "observation_context": null,
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:50889d9496c8038673c4c264dc00f545cfb081f94aec7e9bda795f46d6e25af9",
+    "snapshot_id": "aip:snapshot:v1:50889d9496c8038673c4c264dc00f545cfb081f94aec7e9bda795f46d6e25af9"
+  },
+  "tool": "get_evidence"
+}

@@ -2,6 +2,8 @@ from pathlib import Path
 
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
+    ArchitectureDriftData,
+    Coverage,
     DeliveryKind,
     DeliveryRef,
     DeliveryRelationType,
@@ -10,6 +12,7 @@ from app.architecture_intelligence.contracts import (
     DestinationResolution,
     EntityRef,
     EntityType,
+    EvidenceData,
     Limitation,
     LimitationCode,
     ObservationContextRef,
@@ -20,7 +23,12 @@ from app.architecture_intelligence.contracts import (
     SnapshotRef,
 )
 from evaluation.architecture_answers import comparator
-from evaluation.architecture_answers.model import Request, Scenario
+from evaluation.architecture_answers.model import (
+    TOOL_ARCHITECTURE_DRIFT,
+    TOOL_EVIDENCE,
+    Request,
+    Scenario,
+)
 
 _CANDIDATE_SHA = "f" * 40
 _PRODUCER = Producer(
@@ -58,7 +66,11 @@ _VIA = EntityRef(
 
 
 def _claim(
-    *, claim_id_suffix: str, qualification=Qualification.CONFIRMED, evidence_refs=("e1",)
+    *,
+    claim_id_suffix: str,
+    qualification=Qualification.CONFIRMED,
+    evidence_refs=("e1",),
+    coverage=None,
 ) -> DependencyClaim:
     return DependencyClaim(
         claim_id="aip:claim:v1:" + claim_id_suffix * 64,
@@ -70,7 +82,7 @@ def _claim(
             kind=DeliveryKind.SYNC_HTTP, relation_type=DeliveryRelationType.CALLS, via=_VIA
         ),
         qualification=qualification,
-        coverage=None,
+        coverage=coverage,
         evidence_refs=sorted(evidence_refs),
         resolution_evidence_refs=["r1"],
     )
@@ -238,3 +250,100 @@ def test_broken_evidence_refs_fail_the_scenario_even_with_a_perfect_semantic_mat
     assert not result.passed
     assert result.broken_evidence_refs == ("evidence:ghost",)
     assert result.field_mismatches == ()
+
+
+# --- I3.3: comparator generalized to drift/evidence answers (spec §29) ----------------------------
+
+
+def _drift_scenario(expected: ArchitectureAnswer[ArchitectureDriftData]) -> Scenario:
+    return Scenario(
+        id="test-drift-scenario",
+        description="test",
+        request=Request(tool=TOOL_ARCHITECTURE_DRIFT, service_id="service:order-service"),
+        expected=expected,
+        path=Path("/nonexistent"),
+    )
+
+
+def _drift_answer(*, claims=()) -> ArchitectureAnswer[ArchitectureDriftData]:
+    evidence_refs = sorted(
+        {ref for c in claims for ref in (*c.evidence_refs, *c.resolution_evidence_refs)}
+    )
+    return ArchitectureAnswer[ArchitectureDriftData](
+        schema_version="0.4",
+        producer=_PRODUCER,
+        tool="get_architecture_drift",
+        outcome=Outcome.ANSWERED,
+        snapshot=_SNAPSHOT,
+        observation_context=_CONTEXT,
+        data=ArchitectureDriftData(service=_SUBJECT, drift_claim_ids=[c.claim_id for c in claims]),
+        claims=list(claims),
+        evidence_refs=evidence_refs,
+        limitations=[],
+    )
+
+
+def test_the_scenario_report_records_the_scenario_own_tool():
+    claim = _claim(claim_id_suffix="1", qualification=Qualification.OBSERVED_ONLY)
+    answer = _drift_answer(claims=[claim])
+    result = _compare(_drift_scenario(answer), answer)
+
+    assert result.tool == TOOL_ARCHITECTURE_DRIFT
+    assert result.passed
+
+
+def test_identical_drift_answers_pass_with_no_mismatches():
+    claim = _claim(claim_id_suffix="1", qualification=Qualification.OBSERVED_ONLY)
+    answer = _drift_answer(claims=[claim])
+    result = _compare(_drift_scenario(answer), answer)
+
+    assert result.passed
+    assert result.missing_claim_ids == ()
+    assert result.unexpected_claim_ids == ()
+
+
+def test_a_drift_answer_missing_a_claim_is_caught_as_a_field_and_missing_claim_mismatch():
+    """`data.drift_claim_ids` (a `ArchitectureDriftData` field, not `dependency_claim_ids`) still
+    flows through the generic `data` comparison unchanged - no comparator logic change needed for
+    the second claim-carrying data type (spec §29: comparator relaxed only its type hints)."""
+    present = _claim(claim_id_suffix="1", qualification=Qualification.OBSERVED_ONLY)
+    missing = _claim(
+        claim_id_suffix="2",
+        qualification=Qualification.NOT_OBSERVED_IN_WINDOW,
+        evidence_refs=("e2",),
+        coverage=Coverage.SUFFICIENT,
+    )
+    expected = _drift_answer(claims=[present, missing])
+    actual = _drift_answer(claims=[present])
+    result = _compare(_drift_scenario(expected), actual)
+
+    assert not result.passed
+    assert result.missing_claim_ids == (missing.claim_id,)
+    assert any(m.field == "data" for m in result.field_mismatches)
+
+
+def test_evidence_scenario_report_records_get_evidence_as_its_tool():
+    evidence_answer = ArchitectureAnswer[EvidenceData](
+        schema_version="0.4",
+        producer=_PRODUCER,
+        tool="get_evidence",
+        outcome=Outcome.ANSWERED,
+        snapshot=_SNAPSHOT,
+        observation_context=None,
+        data=EvidenceData(requested_evidence_refs=[], records=[], missing_evidence_refs=[]),
+        claims=[],
+        evidence_refs=[],
+        limitations=[],
+    )
+    scenario = Scenario(
+        id="test-evidence-scenario",
+        description="test",
+        request=Request(tool=TOOL_EVIDENCE, snapshot_id=_SNAPSHOT.snapshot_id),
+        expected=evidence_answer,
+        path=Path("/nonexistent"),
+    )
+
+    result = _compare(scenario, evidence_answer)
+
+    assert result.tool == TOOL_EVIDENCE
+    assert result.passed

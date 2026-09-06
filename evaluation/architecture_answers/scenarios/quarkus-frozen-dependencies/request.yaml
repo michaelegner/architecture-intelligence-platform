@@ -1,0 +1,12 @@
+scenario: quarkus-frozen-dependencies
+description: >
+  I3 spec section 37/section 37.1. Derived from the frozen v0.3 Quarkus Super Heroes capture
+  (see SOURCE.md) - rest-fights has three declared+observed CALLS, all CONFIRMED.
+
+request:
+  service_id: service:rest-fights
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

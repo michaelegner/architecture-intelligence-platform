@@ -1,0 +1,25 @@
+{
+  "claims": [],
+  "data": null,
+  "evidence_refs": [],
+  "limitations": [
+    {
+      "claim_ids": [],
+      "code": "OBSERVATION_CONTEXT_REQUIRED",
+      "message": "observation_context.environment/window_start/window_end are all required"
+    }
+  ],
+  "observation_context": null,
+  "outcome": "NOT_ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:db819664424f7138b1afa6339bce83433aa6885c6669c07df033c3671820c841",
+    "snapshot_id": "aip:snapshot:v1:db819664424f7138b1afa6339bce83433aa6885c6669c07df033c3671820c841"
+  },
+  "tool": "get_architecture_drift"
+}

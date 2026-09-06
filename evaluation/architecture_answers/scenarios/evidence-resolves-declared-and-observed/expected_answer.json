@@ -1,0 +1,82 @@
+{
+  "claims": [],
+  "data": {
+    "missing_evidence_refs": [],
+    "records": [
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:manifest:order-service",
+        "observation": null,
+        "source_locator": "evaluation/architecture_answers/scenarios/evidence-resolves-declared-and-observed/input/declarations/order-service/architecture.yaml",
+        "source_revision": null,
+        "source_type": "MANIFEST",
+        "supports": [
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:order-service",
+            "target_id": "operation:service:product-service:GET:/products/{id}"
+          }
+        ]
+      },
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:openapi:product-service",
+        "observation": null,
+        "source_locator": "evaluation/architecture_answers/scenarios/evidence-resolves-declared-and-observed/input/declarations/product-service/openapi.yaml",
+        "source_revision": null,
+        "source_type": "OPENAPI",
+        "supports": [
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:product-service",
+            "target_id": "operation:service:product-service:GET:/products/{id}"
+          }
+        ]
+      },
+      {
+        "evidence_type": "OBSERVED",
+        "id": "evidence:otel:test:2026-08-26:b1d283d583bd",
+        "observation": {
+          "bucket_end": "2026-08-27T00:00:00.000000Z",
+          "bucket_start": "2026-08-26T00:00:00.000000Z",
+          "correlation_mode": "CLIENT_SERVER",
+          "environment": "test",
+          "first_seen": "2026-08-26T12:00:00.040000Z",
+          "last_seen": "2026-08-26T12:00:00.040000Z",
+          "observation_count": 1,
+          "service_version": null
+        },
+        "source_locator": "opentelemetry",
+        "source_revision": null,
+        "source_type": "OPENTELEMETRY",
+        "supports": [
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:order-service",
+            "target_id": "operation:service:product-service:GET:/products/{id}"
+          }
+        ]
+      }
+    ],
+    "requested_evidence_refs": [
+      "evidence:manifest:order-service",
+      "evidence:openapi:product-service",
+      "evidence:otel:test:2026-08-26:b1d283d583bd"
+    ]
+  },
+  "evidence_refs": [],
+  "limitations": [],
+  "observation_context": null,
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:a5b9a531a4a533d309fbfcce842b357649bb045d66912af2425ea06082a6b821",
+    "snapshot_id": "aip:snapshot:v1:a5b9a531a4a533d309fbfcce842b357649bb045d66912af2425ea06082a6b821"
+  },
+  "tool": "get_evidence"
+}

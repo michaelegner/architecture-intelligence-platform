@@ -154,13 +154,18 @@ ground truth — never generated from AIP's own output — with deterministic PA
 
 ```bash
 uv run python -m evaluation run       # ten scenarios over declared/observed relation facts (v0.2)
-uv run python -m evaluation answers   # eight scenarios over the v0.4 ArchitectureAnswer envelope (I1.4)
+uv run python -m evaluation answers   # three-tool ArchitectureAnswer envelope suite (I1.4, generalized by I3.3)
 ```
 
 `answers` compares the complete `ArchitectureAnswer` — claims, evidence references, snapshot and
-observation-context identity, limitations — against literal frozen expectations and emits a
-machine-readable JSON result to `evaluation/architecture_answers/results/i1-evaluation-result.json`.
-No LLM provider key is required — neither suite touches the natural-language query layer. See
+observation-context identity, limitations — against literal frozen expectations across all three
+tools (`get_service_dependencies`, `get_architecture_drift`, `get_evidence`) and emits a
+machine-readable JSON result to
+`evaluation/architecture_answers/results/architecture-answers-evaluation-result.json`. The original
+I1-only artifact, `evaluation/architecture_answers/results/i1-evaluation-result.json`, is kept as
+the immutable historical record `docs/specifications/0.4.0/i1-completion-record.md` cites by
+SHA-256 — it is no longer written by `answers`, only the generalized file is. No LLM provider key
+is required — neither suite touches the natural-language query layer. See
 [`evaluation/README.md`](evaluation/README.md) for the full scenario lists, ground-truth formats,
 and failure-report examples.
 

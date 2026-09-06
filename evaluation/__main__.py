@@ -148,7 +148,8 @@ def _run_answers(scenario_id: str | None, candidate_sha: str | None) -> int:
 
     # Only an unfiltered (full-suite) run writes the canonical qualification artifact - a
     # scenario-filtered run prints its result but must never silently overwrite the committed
-    # 8-scenario i1-evaluation-result.json with a partial one (I1.4 review finding #4).
+    # full-suite architecture-answers-evaluation-result.json with a partial one (I1.4 review
+    # finding #4).
     if scenario_id is None:
         print(write_answer_report(result))
     else:

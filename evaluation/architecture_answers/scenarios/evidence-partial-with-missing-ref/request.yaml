@@ -1,0 +1,12 @@
+scenario: evidence-partial-with-missing-ref
+description: >
+  I3 spec section 32. Reuses sync-confirmed's exact input. Requests one real evidence ref alongside
+  a well-formed but nonexistent one - PARTIAL, missing_evidence_refs populated, INSUFFICIENT_EVIDENCE
+  limitation, the resolvable ref still returned.
+
+request:
+  tool: get_evidence
+  evidence_refs:
+    - "evidence:manifest:order-service"
+    - "evidence:declared:does-not-exist"
+  snapshot_id: "aip:snapshot:v1:d3205b543aa479f38898533365aa09a805c72eaa6f5cffcdfb6dcab21275c68e"

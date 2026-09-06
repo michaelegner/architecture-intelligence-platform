@@ -407,7 +407,7 @@ release-candidate-quality suite rather than cosmetic.
 
 ---
 
-## The architecture-answers suite (I1.4)
+## The architecture-answers suite (I1.4, generalized to three tools by I3.3)
 
 Implements Iteration 1.4
 ([`i1-service-contract-and-dependency-vertical-slice.md`](../docs/specifications/0.4.0/i1-service-contract-and-dependency-vertical-slice.md)
@@ -415,6 +415,14 @@ Implements Iteration 1.4
 the whole I1 dependency vertical slice - against independently authored ground truth: destination
 resolution, qualification, claims, limitations, evidence references, and snapshot/observation-context
 identity, compared exactly against a frozen `expected_answer.json`.
+
+I3.3
+([`i3-drift-capability-and-deterministic-qualification.md`](../docs/specifications/0.4.0/i3-drift-capability-and-deterministic-qualification.md)
+§29-§36) generalized this same suite to `get_architecture_drift` and `get_evidence` - a scenario's
+`request.yaml` now names its `tool` explicitly (defaulting to `get_service_dependencies` for every
+scenario below, unchanged) - plus live cross-tool invariants and frozen real-system-derived
+scenarios. A concise usage guide for the three-tool suite is an I3.4 deliverable; this section still
+describes the original I1.4 dependency-only scenarios below verbatim.
 
 ### What this suite tests
 
@@ -445,12 +453,16 @@ scenario configuration.
 
 Every invocation runs the **full scenario suite twice**, end to end (reset -> ingest declarations ->
 inject telemetry -> reconcile -> call the real service), and writes a deterministic JSON report to
-`evaluation/architecture_answers/results/i1-evaluation-result.json`:
+`evaluation/architecture_answers/results/architecture-answers-evaluation-result.json` (schema v2,
+since I3.3 - see below). The original I1-only artifact,
+`evaluation/architecture_answers/results/i1-evaluation-result.json`, is kept in the repository as
+the immutable historical record `docs/specifications/0.4.0/i1-completion-record.md` cites by
+SHA-256; it is no longer written by `answers`.
 
 ```json
 {
-  "schema_version": "aip-evaluation-result/v1",
-  "suite": "architecture-answers-i1",
+  "schema_version": "aip-evaluation-result/v2",
+  "suite": "architecture-answers",
   "result": "PASS",
   "run_count": 2,
   "semantic_outputs_identical": true,
@@ -458,6 +470,7 @@ inject telemetry -> reconcile -> call the real service), and writes a determinis
   "scenarios": [
     {
       "id": "sync-confirmed",
+      "tool": "get_service_dependencies",
       "result": "PASS",
       "missing_claim_ids": [],
       "unexpected_claim_ids": [],
@@ -465,7 +478,9 @@ inject telemetry -> reconcile -> call the real service), and writes a determinis
       "broken_evidence_refs": []
     }
   ],
-  "summary": { "scenarios": 8, "passed": 8, "failed": 0 }
+  "summary": { "scenarios": 23, "passed": 23, "failed": 0 },
+  "cross_tool_invariants": "... see I3.3 spec §33/§35: dependency_to_drift, drift_to_evidence, service_to_mcp, insufficient_evidence_qualification",
+  "real_system_qualification": "... see I3.3 spec §61: one row per frozen Quarkus/Airflow source"
 }
 ```
 

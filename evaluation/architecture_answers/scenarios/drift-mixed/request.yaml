@@ -1,0 +1,16 @@
+scenario: drift-mixed
+description: >
+  I3 spec section 27.4, the primary synthetic drift scenario. order-service has all three
+  qualifications simultaneously: CONFIRMED (declared+observed CALLS product-service),
+  NOT_OBSERVED_IN_WINDOW (declared-only CALLS legacy-pricing-service), OBSERVED_ONLY
+  (observed-only SENDS audit-events-q, resolved to audit-service via its declared subscribe).
+  Exactly the two discrepancy-qualified claims survive; CONFIRMED is omitted.
+
+request:
+  tool: get_architecture_drift
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"
