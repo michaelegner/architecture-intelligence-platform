@@ -1,0 +1,231 @@
+{
+  "claims": [
+    {
+      "claim_id": "aip:claim:v1:494b7a4af689ce697b22041590a2b905446101f1efc7aaad56889d24a8f5105c",
+      "coverage": null,
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "via": {
+          "id": "operation:internal:GET:/internal/reconcile",
+          "method": "GET",
+          "name": "GET /internal/reconcile",
+          "namespace": null,
+          "path": "/internal/reconcile",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "DIRECT_TARGET_FALLBACK",
+      "evidence_refs": [
+        "evidence:observed:97a45c4b54976a2c2025fc77af39bd0b934b257ad1f70ea3e755af4f60b2e142"
+      ],
+      "object": {
+        "id": "operation:internal:GET:/internal/reconcile",
+        "method": "GET",
+        "name": "GET /internal/reconcile",
+        "namespace": null,
+        "path": "/internal/reconcile",
+        "protocol": null,
+        "type": "OPERATION"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "OBSERVED_ONLY",
+      "resolution_evidence_refs": [],
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:358d9083f8af0b614465874590ad4e4a1a16ecabb9740d8ec8656ba22e05f196",
+      "coverage": null,
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "via": {
+          "id": "operation:service:legacy-pricing-service:GET:/pricing",
+          "method": "GET",
+          "name": "GET /pricing",
+          "namespace": null,
+          "path": "/pricing",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:observed:8213875d12caaf5018fdbb0f1af4d4d3a1784bb89818e25cb70aa0631c70ee23"
+      ],
+      "object": {
+        "id": "service:legacy-pricing-service",
+        "method": null,
+        "name": "LegacyPricingService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "OBSERVED_ONLY",
+      "resolution_evidence_refs": [
+        "evidence:declared:3db415d3724d154f3b16831aefa20690f82c6e5f912028797e654356ac72ca91"
+      ],
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:8bbff807d02a9fe5817b86c92ec1617a826199a0e0acd84bb08800b084decae8",
+      "coverage": "PARTIAL",
+      "delivery": {
+        "kind": "ASYNC_MESSAGE",
+        "relation_type": "SENDS",
+        "via": {
+          "id": "queue:asb:commerce:payment-q",
+          "method": null,
+          "name": "payment-q",
+          "namespace": "commerce",
+          "path": null,
+          "protocol": "amqp",
+          "type": "QUEUE"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:declared:f42d6280a36efb42acb31f7231dfda52c48eb8e1971e1975e64a592a74419dcf"
+      ],
+      "object": {
+        "id": "service:payment-service",
+        "method": null,
+        "name": "PaymentService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "NOT_OBSERVED_IN_WINDOW",
+      "resolution_evidence_refs": [
+        "evidence:declared:7c57161a1f70ad7aed6c79ae0e8964a9e04b5dd7f598ea22661a4a03bac8a61d"
+      ],
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:5c5579b424d385f43224d67e2cd85a67935f3cfe4ef21a59497cf51b52687b0b",
+      "coverage": null,
+      "delivery": {
+        "kind": "ASYNC_MESSAGE",
+        "relation_type": "SENDS",
+        "via": {
+          "id": "queue:asb:commerce:product-events-q",
+          "method": null,
+          "name": "product-events-q",
+          "namespace": "commerce",
+          "path": null,
+          "protocol": "amqp",
+          "type": "QUEUE"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:observed:ea54d1365215923cad51a61684b36c534f5090393999c47578554bb53cb53cb9"
+      ],
+      "object": {
+        "id": "service:product-service",
+        "method": null,
+        "name": "ProductService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "OBSERVED_ONLY",
+      "resolution_evidence_refs": [
+        "evidence:declared:4074a35001811c8af56ca984f89bd5b2f9555147383d0af767bfeb6cff372d66"
+      ],
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    }
+  ],
+  "data": {
+    "drift_claim_ids": [
+      "aip:claim:v1:494b7a4af689ce697b22041590a2b905446101f1efc7aaad56889d24a8f5105c",
+      "aip:claim:v1:358d9083f8af0b614465874590ad4e4a1a16ecabb9740d8ec8656ba22e05f196",
+      "aip:claim:v1:8bbff807d02a9fe5817b86c92ec1617a826199a0e0acd84bb08800b084decae8",
+      "aip:claim:v1:5c5579b424d385f43224d67e2cd85a67935f3cfe4ef21a59497cf51b52687b0b"
+    ],
+    "service": {
+      "id": "service:order-service",
+      "method": null,
+      "name": "OrderService",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [
+    "evidence:declared:3db415d3724d154f3b16831aefa20690f82c6e5f912028797e654356ac72ca91",
+    "evidence:declared:4074a35001811c8af56ca984f89bd5b2f9555147383d0af767bfeb6cff372d66",
+    "evidence:declared:7c57161a1f70ad7aed6c79ae0e8964a9e04b5dd7f598ea22661a4a03bac8a61d",
+    "evidence:declared:f42d6280a36efb42acb31f7231dfda52c48eb8e1971e1975e64a592a74419dcf",
+    "evidence:observed:8213875d12caaf5018fdbb0f1af4d4d3a1784bb89818e25cb70aa0631c70ee23",
+    "evidence:observed:97a45c4b54976a2c2025fc77af39bd0b934b257ad1f70ea3e755af4f60b2e142",
+    "evidence:observed:ea54d1365215923cad51a61684b36c534f5090393999c47578554bb53cb53cb9"
+  ],
+  "limitations": [
+    {
+      "claim_ids": [
+        "aip:claim:v1:494b7a4af689ce697b22041590a2b905446101f1efc7aaad56889d24a8f5105c"
+      ],
+      "code": "UNRESOLVED_IDENTITY",
+      "message": "operation:internal:GET:/internal/reconcile has no evidenced provider service; retained as the direct operation target rather than guessed."
+    }
+  ],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:0aeb1ed9c606c3f8ab951c3614cdc44d5c25784f814f0bc9ed1ddbe6e15545b2",
+    "environment": "demo",
+    "window_end": "2026-08-27T00:00:00Z",
+    "window_start": "2026-08-26T00:00:00Z"
+  },
+  "outcome": "PARTIAL",
+  "producer": {
+    "build_revision": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:372f4f46f2fb9c75a29c253902052eb2b8a30866c1ae837e399bb1fd26f7625e",
+    "snapshot_id": "aip:snapshot:v1:372f4f46f2fb9c75a29c253902052eb2b8a30866c1ae837e399bb1fd26f7625e"
+  },
+  "tool": "get_architecture_drift"
+}

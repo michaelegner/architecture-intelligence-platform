@@ -185,16 +185,18 @@ async def _check_no_initialize_handshake_or_session_id_required(client: httpx.As
     assert "mcp-session-id" not in {k.lower() for k in response.headers}
 
 
-async def _check_tools_list_returns_exactly_two_tools_in_lexicographic_order(
+async def _check_tools_list_returns_exactly_three_tools_in_lexicographic_order(
     client: httpx.AsyncClient,
 ) -> None:
+    """v0.4.0 I3.2 - I3 spec §24/§45: `tools/list` count moves 2 -> 3 for the still-unreleased
+    v0.4.0 line; no existing tool name/schema meaning changes to make room for the third."""
     response = await client.post(
         "/mcp", headers=_headers(method="tools/list"), json=_tools_list_body()
     )
     result = response.json()["result"]
     assert result["resultType"] == "complete"
     names = [tool["name"] for tool in result["tools"]]
-    assert names == ["get_evidence", "get_service_dependencies"]
+    assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
 
 
 async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> None:
@@ -210,7 +212,11 @@ async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> Non
         # The request type is nested one level in ($ref'd, per app.mcp.server's verified findings)
         # and keeps its own extra=forbid closure - checked on both request models below.
         for definition in input_schema.get("$defs", {}).values():
-            if definition.get("title") in {"ServiceDependenciesRequest", "EvidenceRequest"}:
+            if definition.get("title") in {
+                "ServiceDependenciesRequest",
+                "EvidenceRequest",
+                "ArchitectureDriftRequest",
+            }:
                 assert definition["additionalProperties"] is False
         assert tool["outputSchema"]["title"].startswith("ArchitectureAnswer[")
 
@@ -304,6 +310,27 @@ async def _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigur
     assert "not configured" not in text
 
 
+async def _check_get_architecture_drift_fails_safely_when_wiring_is_unconfigured(
+    client: httpx.AsyncClient,
+) -> None:
+    """v0.4.0 I3.2 - `get_architecture_drift` is discoverable via `tools/list` and, once dispatched,
+    follows the same default-sanitization path the other two tools already prove above: this test's
+    server is registered via `register_tools(server)` with no `get_service` override, so
+    `wiring.get_service()` is never `configure()`-d, and the SDK sanitizes the resulting
+    `RuntimeError` into a generic `UnexpectedToolError`, never leaking "not configured"."""
+    body = _tools_call_body(
+        "get_architecture_drift", {"request": {"service_id": "service:order-service"}}
+    )
+    headers = _headers(method="tools/call", name="get_architecture_drift")
+    response = await client.post("/mcp", headers=headers, json=body)
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    text = result["content"][0]["text"]
+    assert text == "Error executing tool get_architecture_drift"
+    assert "not configured" not in text
+
+
 async def _check_disallowed_origin_is_rejected(client: httpx.AsyncClient) -> None:
     headers = dict(_headers(method="tools/list"), origin="http://evil.example")
     response = await client.post("/mcp", headers=headers, json=_tools_list_body())
@@ -330,7 +357,7 @@ async def test_mcp_protocol_and_discovery() -> None:
             await _check_unsupported_protocol_version_is_rejected(client)
             await _check_no_initialize_handshake_or_session_id_required(client)
             await _check_unrelated_path_is_a_normal_404(client)
-            await _check_tools_list_returns_exactly_two_tools_in_lexicographic_order(client)
+            await _check_tools_list_returns_exactly_three_tools_in_lexicographic_order(client)
             await _check_tools_list_schemas_are_closed(client)
             await _check_unknown_tool_name_fails_as_protocol_error_without_reaching_a_handler(
                 client
@@ -339,4 +366,5 @@ async def test_mcp_protocol_and_discovery() -> None:
             await _check_malformed_nested_arguments_are_a_tool_execution_error(client)
             await _check_get_evidence_fails_safely_when_wiring_is_unconfigured(client)
             await _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigured(client)
+            await _check_get_architecture_drift_fails_safely_when_wiring_is_unconfigured(client)
             await _check_disallowed_origin_is_rejected(client)

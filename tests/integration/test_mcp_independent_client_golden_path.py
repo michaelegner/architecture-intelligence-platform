@@ -38,6 +38,7 @@ from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 from .independent_mcp_client import (
     call_tool,
     run_dependency_to_evidence_golden_path,
+    run_drift_to_evidence_golden_path,
     tools_list,
 )
 
@@ -68,8 +69,16 @@ EVIDENCE_SCHEMA_PATH = (
     / "v0.4"
     / "evidence-answer.schema.json"
 )
+DRIFT_SCHEMA_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "schemas"
+    / "architecture_intelligence"
+    / "v0.4"
+    / "drift-answer.schema.json"
+)
 DEPENDENCY_SCHEMA = json.loads(DEPENDENCY_SCHEMA_PATH.read_text())
 EVIDENCE_SCHEMA = json.loads(EVIDENCE_SCHEMA_PATH.read_text())
+DRIFT_SCHEMA = json.loads(DRIFT_SCHEMA_PATH.read_text())
 
 
 @pytest.fixture(autouse=True)
@@ -198,7 +207,11 @@ def test_independent_client_completes_the_real_dependency_to_evidence_golden_pat
     assert real_app.state.llm_provider is None
 
     tools = tools_list(client)["tools"]
-    assert [tool["name"] for tool in tools] == ["get_evidence", "get_service_dependencies"]
+    assert [tool["name"] for tool in tools] == [
+        "get_architecture_drift",
+        "get_evidence",
+        "get_service_dependencies",
+    ]
     # The client validates against the schemas the server actually *advertises* (spec §17 scenario
     # 21), not only the repository-local frozen copies - a missing, incompatible or mis-wired
     # `outputSchema` would otherwise escape this qualification entirely (PR #80 review finding).
@@ -259,6 +272,80 @@ def test_independent_client_completes_the_real_dependency_to_evidence_golden_pat
     )
     assert _canonical_bytes(repeated["dependencies"]["structuredContent"]) == _canonical_bytes(
         dependencies_answer
+    )
+    assert _canonical_bytes(repeated["evidence"]["structuredContent"]) == _canonical_bytes(
+        evidence_answer
+    )
+
+
+def test_independent_client_completes_the_real_drift_to_evidence_golden_path(
+    driver, real_app_client
+):
+    """v0.4.0 I3.2 - I3 spec §44's required extension of the same independent client: the real
+    three-tool discovery, `get_architecture_drift` -> `get_evidence` drill-down, over real HTTP
+    against the real production wiring (not the isolated `build_mcp_app` harness
+    `test_mcp_architecture_drift_equivalence.py` uses)."""
+    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    _observe_order_service_calls_product_service(driver)
+    real_app, client = real_app_client
+
+    assert real_app.state.llm_provider is None
+
+    tools = tools_list(client)["tools"]
+    assert [tool["name"] for tool in tools] == [
+        "get_architecture_drift",
+        "get_evidence",
+        "get_service_dependencies",
+    ]
+    advertised_output_schemas = {tool["name"]: tool["outputSchema"] for tool in tools}
+
+    with driver.session(database=DATABASE) as session:
+        revision_before = read_revision(session)
+    fingerprint_before = _fingerprint(driver)
+
+    result = run_drift_to_evidence_golden_path(
+        client,
+        service_id=ids.service_id("order-service"),
+        observation_context=OBSERVATION_CONTEXT,
+    )
+
+    drift_result = result["drift"]
+    evidence_result = result["evidence"]
+    assert drift_result["isError"] is False
+    assert evidence_result["isError"] is False
+
+    drift_answer = drift_result["structuredContent"]
+    evidence_answer = evidence_result["structuredContent"]
+    # Validated against the schemas the server actually *advertises*, not only the repository-local
+    # frozen copies (same PR #80 review discipline the dependency golden path above follows).
+    jsonschema.validate(
+        instance=drift_answer, schema=advertised_output_schemas["get_architecture_drift"]
+    )
+    jsonschema.validate(instance=evidence_answer, schema=advertised_output_schemas["get_evidence"])
+    jsonschema.validate(instance=drift_answer, schema=DRIFT_SCHEMA)
+    jsonschema.validate(instance=evidence_answer, schema=EVIDENCE_SCHEMA)
+
+    assert drift_answer["claims"]
+    assert {claim["qualification"] for claim in drift_answer["claims"]} <= {
+        "OBSERVED_ONLY",
+        "NOT_OBSERVED_IN_WINDOW",
+    }
+    assert evidence_answer["outcome"] == "ANSWERED"
+    assert evidence_answer["data"]["missing_evidence_refs"] == []
+
+    with driver.session(database=DATABASE) as session:
+        revision_after = read_revision(session)
+    fingerprint_after = _fingerprint(driver)
+    assert revision_after == revision_before
+    assert fingerprint_after == fingerprint_before
+
+    repeated = run_drift_to_evidence_golden_path(
+        client,
+        service_id=ids.service_id("order-service"),
+        observation_context=OBSERVATION_CONTEXT,
+    )
+    assert _canonical_bytes(repeated["drift"]["structuredContent"]) == _canonical_bytes(
+        drift_answer
     )
     assert _canonical_bytes(repeated["evidence"]["structuredContent"]) == _canonical_bytes(
         evidence_answer
