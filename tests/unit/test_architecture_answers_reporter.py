@@ -16,9 +16,10 @@ def _result(reports, *, semantic_outputs_identical=True) -> SuiteResult:
     )
 
 
-def _passing_report(scenario_id: str) -> ScenarioReport:
+def _passing_report(scenario_id: str, *, tool: str = "get_service_dependencies") -> ScenarioReport:
     return ScenarioReport(
         scenario_id=scenario_id,
+        tool=tool,
         passed=True,
         missing_claim_ids=(),
         unexpected_claim_ids=(),
@@ -41,6 +42,7 @@ def test_build_report_result_is_pass_when_every_scenario_passes_and_runs_are_ide
 def test_build_report_result_is_fail_when_a_scenario_fails():
     failing = ScenarioReport(
         scenario_id="b",
+        tool="get_architecture_drift",
         passed=False,
         missing_claim_ids=("aip:claim:v1:" + "1" * 64,),
         unexpected_claim_ids=(),
@@ -55,6 +57,7 @@ def test_build_report_result_is_fail_when_a_scenario_fails():
     assert report["result"] == "FAIL"
     assert report["summary"] == {"scenarios": 2, "passed": 1, "failed": 1}
     scenario_b = next(s for s in report["scenarios"] if s["id"] == "b")
+    assert scenario_b["tool"] == "get_architecture_drift"
     assert scenario_b["missing_claim_ids"] == ["aip:claim:v1:" + "1" * 64]
     assert scenario_b["field_mismatches"] == [
         {"claim_id": None, "field": "outcome", "expected": "ANSWERED", "actual": "PARTIAL"}

@@ -1,0 +1,35 @@
+{
+  "claims": [],
+  "data": {
+    "drift_claim_ids": [],
+    "service": {
+      "id": "service:order-service",
+      "method": null,
+      "name": "OrderService",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [],
+  "limitations": [],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:f167a92590d91af550e6b587c2f2151ad0924331d44f18776b11507ef7d2601f",
+    "environment": "test",
+    "window_end": "2026-08-27T00:00:00.000000Z",
+    "window_start": "2026-08-26T00:00:00.000000Z"
+  },
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:77a826400c8e597571874dac2dfd37e1db81c34d22b23c16ba5567b080d8804e",
+    "snapshot_id": "aip:snapshot:v1:77a826400c8e597571874dac2dfd37e1db81c34d22b23c16ba5567b080d8804e"
+  },
+  "tool": "get_architecture_drift"
+}

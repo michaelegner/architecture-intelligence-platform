@@ -1,0 +1,50 @@
+{
+  "claims": [],
+  "data": {
+    "missing_evidence_refs": [
+      "evidence:declared:does-not-exist"
+    ],
+    "records": [
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:manifest:order-service",
+        "observation": null,
+        "source_locator": "evaluation/architecture_answers/scenarios/evidence-partial-with-missing-ref/input/declarations/order-service/architecture.yaml",
+        "source_revision": null,
+        "source_type": "MANIFEST",
+        "supports": [
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:order-service",
+            "target_id": "operation:service:product-service:GET:/products/{id}"
+          }
+        ]
+      }
+    ],
+    "requested_evidence_refs": [
+      "evidence:declared:does-not-exist",
+      "evidence:manifest:order-service"
+    ]
+  },
+  "evidence_refs": [],
+  "limitations": [
+    {
+      "claim_ids": [],
+      "code": "INSUFFICIENT_EVIDENCE",
+      "message": "1 of 2 requested evidence refs could not be resolved"
+    }
+  ],
+  "observation_context": null,
+  "outcome": "PARTIAL",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:d3205b543aa479f38898533365aa09a805c72eaa6f5cffcdfb6dcab21275c68e",
+    "snapshot_id": "aip:snapshot:v1:d3205b543aa479f38898533365aa09a805c72eaa6f5cffcdfb6dcab21275c68e"
+  },
+  "tool": "get_evidence"
+}

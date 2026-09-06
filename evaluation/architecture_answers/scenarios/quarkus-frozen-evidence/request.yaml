@@ -1,0 +1,18 @@
+scenario: quarkus-frozen-evidence
+description: >
+  I3 spec section 37/section 32. Shares quarkus-frozen-dependencies' derived input (see SOURCE.md) -
+  resolves the four declared evidence refs behind rest-fights' three CONFIRMED CALLS claims (the
+  one shared Architecture-Manifest evidence, plus each provider's own OpenAPI evidence). Restricted
+  to declared refs deliberately: spec section 32 requires this scenario's expected answer to never
+  be generated from a tool call, and every DECLARED PROVIDES/CALLS fact here is independently
+  reproducible straight from the frozen OpenAPI/Architecture-Manifest files' own path lists -
+  unlike an OBSERVED record's exact bucket/first-seen/last-seen timestamps, which are not.
+
+request:
+  tool: get_evidence
+  evidence_refs:
+    - "evidence:manifest:rest-fights"
+    - "evidence:openapi:rest-heroes"
+    - "evidence:openapi:rest-narration"
+    - "evidence:openapi:rest-villains"
+  snapshot_id: "aip:snapshot:v1:50889d9496c8038673c4c264dc00f545cfb081f94aec7e9bda795f46d6e25af9"

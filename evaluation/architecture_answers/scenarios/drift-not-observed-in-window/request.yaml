@@ -1,0 +1,15 @@
+scenario: drift-not-observed-in-window
+description: >
+  I3 spec section 27.2. Reuses sync-not-observed-in-window's exact input (order-service calls
+  product-service's GET /products/{id}, declared only, no observed evidence anywhere) - the one
+  supported direct dependency is NOT_OBSERVED_IN_WINDOW with NONE coverage, so it is the entire
+  drift answer.
+
+request:
+  tool: get_architecture_drift
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

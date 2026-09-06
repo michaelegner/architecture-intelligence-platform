@@ -1,0 +1,183 @@
+{
+  "claims": [
+    {
+      "claim_id": "aip:claim:v1:a669b8dd1dd4a8d7c17c45759e3137520b6462d803f9afadc51ec9222126fa4f",
+      "coverage": null,
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "via": {
+          "id": "operation:service:rest-heroes:GET:/api/heroes/random",
+          "method": "GET",
+          "name": "GET /api/heroes/random",
+          "namespace": null,
+          "path": "/api/heroes/random",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:rest-fights",
+        "evidence:otel:test:2026-08-26:4878531641e8"
+      ],
+      "object": {
+        "id": "service:rest-heroes",
+        "method": null,
+        "name": "Hero API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "CONFIRMED",
+      "resolution_evidence_refs": [
+        "evidence:openapi:rest-heroes"
+      ],
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:a8a00df70b4d864fa5dc3b27e9d6d8fa2cb416c4ac636931f5383a02389e41a9",
+      "coverage": null,
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "via": {
+          "id": "operation:service:rest-narration:POST:/api/narration",
+          "method": "POST",
+          "name": "POST /api/narration",
+          "namespace": null,
+          "path": "/api/narration",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:rest-fights",
+        "evidence:otel:test:2026-08-26:908f6fc7d0b9"
+      ],
+      "object": {
+        "id": "service:rest-narration",
+        "method": null,
+        "name": "Narration API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "CONFIRMED",
+      "resolution_evidence_refs": [
+        "evidence:openapi:rest-narration"
+      ],
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:42e73cd9f0ed6f067bdc064094dd632ffe53c2bedf03340ab3dedea432453a0f",
+      "coverage": null,
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "via": {
+          "id": "operation:service:rest-villains:GET:/api/villains/random",
+          "method": "GET",
+          "name": "GET /api/villains/random",
+          "namespace": null,
+          "path": "/api/villains/random",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:rest-fights",
+        "evidence:otel:test:2026-08-26:30e26b9f3dc5"
+      ],
+      "object": {
+        "id": "service:rest-villains",
+        "method": null,
+        "name": "Villain API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "CONFIRMED",
+      "resolution_evidence_refs": [
+        "evidence:openapi:rest-villains"
+      ],
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    }
+  ],
+  "data": {
+    "dependency_claim_ids": [
+      "aip:claim:v1:a669b8dd1dd4a8d7c17c45759e3137520b6462d803f9afadc51ec9222126fa4f",
+      "aip:claim:v1:a8a00df70b4d864fa5dc3b27e9d6d8fa2cb416c4ac636931f5383a02389e41a9",
+      "aip:claim:v1:42e73cd9f0ed6f067bdc064094dd632ffe53c2bedf03340ab3dedea432453a0f"
+    ],
+    "service": {
+      "id": "service:rest-fights",
+      "method": null,
+      "name": "Fights API",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [
+    "evidence:manifest:rest-fights",
+    "evidence:openapi:rest-heroes",
+    "evidence:openapi:rest-narration",
+    "evidence:openapi:rest-villains",
+    "evidence:otel:test:2026-08-26:30e26b9f3dc5",
+    "evidence:otel:test:2026-08-26:4878531641e8",
+    "evidence:otel:test:2026-08-26:908f6fc7d0b9"
+  ],
+  "limitations": [],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:f167a92590d91af550e6b587c2f2151ad0924331d44f18776b11507ef7d2601f",
+    "environment": "test",
+    "window_end": "2026-08-27T00:00:00.000000Z",
+    "window_start": "2026-08-26T00:00:00.000000Z"
+  },
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:848046ee8e2bfa6fdb9d7cd1fee5e9a2acc408ca79f46b91f18003ca566a799f",
+    "snapshot_id": "aip:snapshot:v1:848046ee8e2bfa6fdb9d7cd1fee5e9a2acc408ca79f46b91f18003ca566a799f"
+  },
+  "tool": "get_service_dependencies"
+}

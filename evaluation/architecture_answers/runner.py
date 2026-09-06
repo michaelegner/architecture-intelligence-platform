@@ -2,6 +2,10 @@
 scenario against a live AIP instance (I1.4 review finding #4 - "two identical runs" means two
 complete reset -> ingest -> observe -> reconcile -> call-service passes of the whole suite, not two
 calls against one already-prepared graph).
+
+I3.3 (spec §31) generalizes dispatch to all three tools via `_DISPATCH`, a fixed
+tool -> (request type, service method name) table - "dispatch, not architecture semantics" (spec
+§31): no generic tool-workflow DSL, just one small lookup.
 """
 
 from __future__ import annotations
@@ -12,21 +16,39 @@ from dataclasses import dataclass
 import neo4j
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
-from app.architecture_intelligence.contracts import (
-    ArchitectureAnswer,
-    Producer,
-    ServiceDependenciesData,
+from app.architecture_intelligence.contracts import Producer
+from app.architecture_intelligence.request import (
+    ArchitectureDriftRequest,
+    EvidenceRequest,
+    ServiceDependenciesRequest,
 )
-from app.architecture_intelligence.request import ServiceDependenciesRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.graph.schema import ensure_schema
 from evaluation import fixture_setup
 from evaluation.architecture_answers.candidate import resolve_candidate_sha
 from evaluation.architecture_answers.comparator import ScenarioReport, compare
-from evaluation.architecture_answers.model import Scenario
+from evaluation.architecture_answers.invariants import (
+    CrossToolInvariantFailure,
+    check_drift_invariants,
+)
+from evaluation.architecture_answers.model import (
+    TOOL_ARCHITECTURE_DRIFT,
+    TOOL_EVIDENCE,
+    TOOL_SERVICE_DEPENDENCIES,
+    ExpectedAnswer,
+    Request,
+    Scenario,
+)
 
 _DATABASE = "neo4j"
 _BROKEN_EVIDENCE_QUERY = "MATCH (e:Evidence {id: $id}) RETURN count(e) AS c"
+
+# tool -> (request type, ArchitectureIntelligenceService method name). Spec §31's dispatch table.
+_DISPATCH: dict[str, tuple[type, str]] = {
+    TOOL_SERVICE_DEPENDENCIES: (ServiceDependenciesRequest, "get_service_dependencies"),
+    TOOL_ARCHITECTURE_DRIFT: (ArchitectureDriftRequest, "get_architecture_drift"),
+    TOOL_EVIDENCE: (EvidenceRequest, "get_evidence"),
+}
 
 
 def _build_producer(candidate_sha: str) -> Producer:
@@ -40,8 +62,14 @@ def _build_producer(candidate_sha: str) -> Producer:
     )
 
 
-def _build_request(scenario: Scenario) -> ServiceDependenciesRequest:
-    request = scenario.request
+def build_request_payload(request: Request) -> dict:
+    """The tool-shaped request payload a scenario's `Request` maps to - public because
+    `tests/integration/test_mcp_drift_scenario_parity.py` (I3 spec §33.4) needs the exact same
+    construction the live evaluator run uses, not a second copy of it that could silently drift
+    apart from this one."""
+    if request.tool == TOOL_EVIDENCE:
+        return {"evidence_refs": list(request.evidence_refs), "snapshot_id": request.snapshot_id}
+
     observation_context = None
     has_any_context_field = (
         request.environment is not None
@@ -54,18 +82,14 @@ def _build_request(scenario: Scenario) -> ServiceDependenciesRequest:
             "window_start": request.window_start,
             "window_end": request.window_end,
         }
-    return ServiceDependenciesRequest.model_validate(
-        {
-            "service_id": request.service_id,
-            "observation_context": observation_context,
-            "snapshot_id": request.snapshot_id,
-        }
-    )
+    return {
+        "service_id": request.service_id,
+        "observation_context": observation_context,
+        "snapshot_id": request.snapshot_id,
+    }
 
 
-def _run_pass(
-    driver: neo4j.Driver, *, scenario: Scenario, producer: Producer
-) -> ArchitectureAnswer[ServiceDependenciesData]:
+def _run_pass(driver: neo4j.Driver, *, scenario: Scenario, producer: Producer) -> ExpectedAnswer:
     fixture_setup.prepare_scenario(driver, database=_DATABASE, scenario_path=scenario.path)
     # `import_all_sources` (inside prepare_scenario) also calls this, idempotently, whenever a
     # scenario has declarations - but a scenario with none at all (e.g. a request-level refusal
@@ -76,7 +100,9 @@ def _run_pass(
     with driver.session(database=_DATABASE) as session:
         ensure_schema(session)
     service = ArchitectureIntelligenceService(driver, database=_DATABASE, producer=producer)
-    return service.get_service_dependencies(_build_request(scenario))
+    request_type, method_name = _DISPATCH[scenario.request.tool]
+    request = request_type.model_validate(build_request_payload(scenario.request))
+    return getattr(service, method_name)(request)
 
 
 def _broken_evidence_refs(
@@ -95,7 +121,7 @@ def _broken_evidence_refs(
     return tuple(sorted(broken))
 
 
-def _suite_hash(answers: list[ArchitectureAnswer[ServiceDependenciesData]]) -> str:
+def _suite_hash(answers: list[ExpectedAnswer]) -> str:
     return "sha256:" + hashlib.sha256(canonical_json_bytes(answers)).hexdigest()
 
 
@@ -106,6 +132,7 @@ class SuiteResult:
     run_count: int
     run_output_sha256: tuple[str, str]
     semantic_outputs_identical: bool
+    cross_tool_invariant_failures: tuple[CrossToolInvariantFailure, ...] = ()
 
 
 def run_suite(
@@ -125,13 +152,19 @@ def run_suite(
         _run_pass(driver, scenario=scenario, producer=producer) for scenario in sorted_scenarios
     ]
 
-    second_pass: list[ArchitectureAnswer[ServiceDependenciesData]] = []
+    second_pass: list[ExpectedAnswer] = []
     reports: list[ScenarioReport] = []
+    invariant_failures: list[CrossToolInvariantFailure] = []
     for scenario in sorted_scenarios:
         answer = _run_pass(driver, scenario=scenario, producer=producer)
         second_pass.append(answer)
-        # Must happen immediately, before the next scenario's reset_graph wipes this state.
+        # Everything below must happen immediately, before the next scenario's reset_graph wipes
+        # this state - the broken-evidence-ref integrity check and both §33.1/§33.3 cross-tool
+        # invariants all need a live read against the exact graph this specific answer was
+        # produced from.
         broken_refs = _broken_evidence_refs(driver, evidence_refs=tuple(answer.evidence_refs))
+        service = ArchitectureIntelligenceService(driver, database=_DATABASE, producer=producer)
+        invariant_failures.extend(check_drift_invariants(answer, service=service))
         reports.append(
             compare(scenario, answer, candidate_sha=resolved_sha, broken_evidence_refs=broken_refs)
         )
@@ -145,4 +178,5 @@ def run_suite(
         run_count=2,
         run_output_sha256=(first_hash, second_hash),
         semantic_outputs_identical=first_hash == second_hash,
+        cross_tool_invariant_failures=tuple(invariant_failures),
     )

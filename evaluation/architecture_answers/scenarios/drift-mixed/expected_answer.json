@@ -1,0 +1,132 @@
+{
+  "claims": [
+    {
+      "claim_id": "aip:claim:v1:52fd3cb3335a5c9bcd15a561cf3dbd581bd1895aeb89045f322c78a6032ccff3",
+      "coverage": null,
+      "delivery": {
+        "kind": "ASYNC_MESSAGE",
+        "relation_type": "SENDS",
+        "via": {
+          "id": "queue:audit-events-q",
+          "method": null,
+          "name": "audit-events-q",
+          "namespace": null,
+          "path": null,
+          "protocol": null,
+          "type": "QUEUE"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:otel:test:2026-08-26:4c636a8d168e"
+      ],
+      "object": {
+        "id": "service:audit-service",
+        "method": null,
+        "name": "AuditService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "OBSERVED_ONLY",
+      "resolution_evidence_refs": [
+        "evidence:asyncapi:audit-service"
+      ],
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:1e0ea71aedbfbea587fd7b92192789d1f5d27d057448943e7910850a9bc15a63",
+      "coverage": "SUFFICIENT",
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "via": {
+          "id": "operation:service:legacy-pricing-service:GET:/pricing",
+          "method": "GET",
+          "name": "GET /pricing",
+          "namespace": null,
+          "path": "/pricing",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:order-service"
+      ],
+      "object": {
+        "id": "service:legacy-pricing-service",
+        "method": null,
+        "name": "LegacyPricingService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "NOT_OBSERVED_IN_WINDOW",
+      "resolution_evidence_refs": [
+        "evidence:openapi:legacy-pricing-service"
+      ],
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    }
+  ],
+  "data": {
+    "drift_claim_ids": [
+      "aip:claim:v1:52fd3cb3335a5c9bcd15a561cf3dbd581bd1895aeb89045f322c78a6032ccff3",
+      "aip:claim:v1:1e0ea71aedbfbea587fd7b92192789d1f5d27d057448943e7910850a9bc15a63"
+    ],
+    "service": {
+      "id": "service:order-service",
+      "method": null,
+      "name": "OrderService",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [
+    "evidence:asyncapi:audit-service",
+    "evidence:manifest:order-service",
+    "evidence:openapi:legacy-pricing-service",
+    "evidence:otel:test:2026-08-26:4c636a8d168e"
+  ],
+  "limitations": [],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:f167a92590d91af550e6b587c2f2151ad0924331d44f18776b11507ef7d2601f",
+    "environment": "test",
+    "window_end": "2026-08-27T00:00:00.000000Z",
+    "window_start": "2026-08-26T00:00:00.000000Z"
+  },
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:74232f04c150212ca6c67a9ccf87d973410e0055ba4e4eca87a758b64f9d7b38",
+    "snapshot_id": "aip:snapshot:v1:74232f04c150212ca6c67a9ccf87d973410e0055ba4e4eca87a758b64f9d7b38"
+  },
+  "tool": "get_architecture_drift"
+}

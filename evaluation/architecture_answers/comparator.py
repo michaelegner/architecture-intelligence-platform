@@ -15,8 +15,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel
 
-from app.architecture_intelligence.contracts import ArchitectureAnswer, ServiceDependenciesData
-from evaluation.architecture_answers.model import Scenario
+from evaluation.architecture_answers.model import ExpectedAnswer, Scenario
 
 _CLAIM_FIELDS = (
     "subject",
@@ -42,6 +41,7 @@ class FieldMismatch:
 @dataclass(frozen=True)
 class ScenarioReport:
     scenario_id: str
+    tool: str
     passed: bool
     missing_claim_ids: tuple[str, ...]
     unexpected_claim_ids: tuple[str, ...]
@@ -75,10 +75,7 @@ def _check(
 
 
 def _answer_level_mismatches(
-    expected: ArchitectureAnswer[ServiceDependenciesData],
-    actual: ArchitectureAnswer[ServiceDependenciesData],
-    *,
-    candidate_sha: str,
+    expected: ExpectedAnswer, actual: ExpectedAnswer, *, candidate_sha: str
 ) -> list[FieldMismatch]:
     mismatches: list[FieldMismatch] = []
     _check(
@@ -160,7 +157,7 @@ def _answer_level_mismatches(
 
 def compare(
     scenario: Scenario,
-    actual: ArchitectureAnswer[ServiceDependenciesData],
+    actual: ExpectedAnswer,
     *,
     candidate_sha: str,
     broken_evidence_refs: tuple[str, ...] = (),
@@ -188,6 +185,7 @@ def compare(
     passed = not (missing or unexpected or field_mismatches or broken_evidence_refs)
     return ScenarioReport(
         scenario_id=scenario.id,
+        tool=scenario.request.tool,
         passed=passed,
         missing_claim_ids=tuple(missing),
         unexpected_claim_ids=tuple(unexpected),

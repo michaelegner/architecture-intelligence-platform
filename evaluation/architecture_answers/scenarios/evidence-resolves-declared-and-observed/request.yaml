@@ -1,0 +1,15 @@
+scenario: evidence-resolves-declared-and-observed
+description: >
+  I3 spec section 32. Reuses sync-confirmed's exact input (order-service calls product-service's
+  GET /products/{id}, both declared and observed) and resolves all three of that dependency's
+  evidence refs directly via get_evidence: the MANIFEST-declared CALLS, the OPENAPI-declared
+  PROVIDES, and the OpenTelemetry-observed CALLS - both declared and observed evidence/source
+  types, sanitized source locators, bounded observation metadata, and full supports lists.
+
+request:
+  tool: get_evidence
+  evidence_refs:
+    - "evidence:manifest:order-service"
+    - "evidence:openapi:product-service"
+    - "evidence:otel:test:2026-08-26:b1d283d583bd"
+  snapshot_id: "aip:snapshot:v1:a5b9a531a4a533d309fbfcce842b357649bb045d66912af2425ea06082a6b821"

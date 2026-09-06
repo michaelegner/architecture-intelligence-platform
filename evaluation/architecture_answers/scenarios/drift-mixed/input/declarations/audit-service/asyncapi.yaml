@@ -1,0 +1,23 @@
+asyncapi: '2.6.0'
+info:
+  title: AuditService
+  version: "1.0.0"
+channels:
+  audit-events-q:
+    subscribe:
+      operationId: receiveAuditEvent
+      message:
+        $ref: '#/components/messages/AuditEvent'
+components:
+  messages:
+    AuditEvent:
+      name: AuditEvent
+      payload:
+        $ref: '#/components/schemas/AuditEventPayload'
+  schemas:
+    AuditEventPayload:
+      type: object
+      properties:
+        eventId:
+          type: string
+      required: [eventId]

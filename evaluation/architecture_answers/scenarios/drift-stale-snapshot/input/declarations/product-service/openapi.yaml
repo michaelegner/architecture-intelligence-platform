@@ -1,0 +1,22 @@
+openapi: 3.1.0
+info:
+  title: ProductService
+  version: "1.0.0"
+paths:
+  /products/{id}:
+    get:
+      operationId: getProduct
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+      required: [id]

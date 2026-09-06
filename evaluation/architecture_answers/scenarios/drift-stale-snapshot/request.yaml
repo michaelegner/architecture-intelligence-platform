@@ -1,0 +1,15 @@
+scenario: drift-stale-snapshot
+description: >
+  I3 spec section 27.9. Reuses empty-service's exact input (product-service, known) with a
+  well-formed but wrong explicit snapshot_id -> NOT_ANSWERED / SNAPSHOT_NOT_AVAILABLE, no fallback -
+  the current stable snapshot is reported instead of silently substituting stale data.
+
+request:
+  tool: get_architecture_drift
+  service_id: service:product-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"
+  snapshot_id: "aip:snapshot:v1:0000000000000000000000000000000000000000000000000000000000000000"

@@ -1,0 +1,23 @@
+openapi: 3.1.0
+info:
+  title: Airflow API
+  version: '2'
+paths:
+  /api/v2/assets:
+    get:
+      tags:
+      - Asset
+      summary: Get Assets
+      operationId: get_assets
+      responses:
+        '200':
+          description: Successful Response
+  /api/v2/assets/aliases:
+    get:
+      tags:
+      - Asset
+      summary: Get Asset Aliases
+      operationId: get_asset_aliases
+      responses:
+        '200':
+          description: Successful Response

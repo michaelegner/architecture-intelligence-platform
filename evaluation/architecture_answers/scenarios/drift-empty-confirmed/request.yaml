@@ -1,0 +1,15 @@
+scenario: drift-empty-confirmed
+description: >
+  I3 spec section 27.3. Reuses sync-confirmed's exact input (order-service calls product-service's
+  GET /products/{id}, both declared and observed) - the only supported direct dependency is
+  CONFIRMED, so drift is empty: ANSWERED, drift_claim_ids = [], claims = [], limitations = [].
+  Proves CONFIRMED is not drift.
+
+request:
+  tool: get_architecture_drift
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"
