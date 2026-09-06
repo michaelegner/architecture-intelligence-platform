@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
+    ArchitectureDriftData,
     Coverage,
     DeliveryKind,
     DeliveryRef,
@@ -27,6 +28,10 @@ from app.architecture_intelligence.contracts import (
     Qualification,
     ServiceDependenciesData,
     SnapshotRef,
+)
+from app.architecture_intelligence.request import (
+    ArchitectureDriftRequest,
+    ServiceDependenciesRequest,
 )
 
 FIXTURES_DIR = (
@@ -945,3 +950,199 @@ def test_evidence_record_rejects_observation_for_declared_evidence_fails_both_py
     payload = _valid_evidence_answer_dict(data=_valid_evidence_data(records=[record]))
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(instance=payload, schema=load_evidence_schema())
+
+
+# --- v0.4.0 I3.1: drift contract compatibility (I3 spec §48) -------------------------------------
+
+DRIFT_ANSWER_TYPE = ArchitectureAnswer[ArchitectureDriftData]
+
+DRIFT_SCHEMA_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "schemas"
+    / "architecture_intelligence"
+    / "v0.4"
+    / "drift-answer.schema.json"
+)
+
+
+def load_drift_schema() -> dict:
+    return json.loads(DRIFT_SCHEMA_PATH.read_text())
+
+
+def _valid_drift_answer_dict(**overrides) -> dict:
+    claim = _valid_claim(qualification=Qualification.OBSERVED_ONLY)
+    payload = {
+        "schema_version": "0.4",
+        "producer": _valid_producer().model_dump(mode="json"),
+        "tool": "get_architecture_drift",
+        "outcome": "ANSWERED",
+        "snapshot": _valid_snapshot().model_dump(mode="json"),
+        "observation_context": _valid_context(),
+        "data": {
+            "service": _valid_service_entity().model_dump(mode="json"),
+            "drift_claim_ids": [claim.claim_id],
+        },
+        "claims": [claim.model_dump(mode="json")],
+        "evidence_refs": sorted(set(claim.evidence_refs) | set(claim.resolution_evidence_refs)),
+        "limitations": [],
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_valid_drift_answer_passes_both_pydantic_and_the_frozen_schema():
+    payload = _valid_drift_answer_dict()
+    DRIFT_ANSWER_TYPE.model_validate(payload)
+    jsonschema.validate(instance=payload, schema=load_drift_schema())
+
+
+def test_architecture_drift_data_is_closed():
+    with pytest.raises(ValidationError):
+        ArchitectureDriftData.model_validate(
+            {
+                "service": _valid_service_entity().model_dump(mode="json"),
+                "drift_claim_ids": [],
+                "severity": "HIGH",
+            }
+        )
+
+
+def test_drift_answer_rejects_extra_top_level_fields_in_both_pydantic_and_schema():
+    payload = _valid_drift_answer_dict(drift_score=0.5)
+    with pytest.raises(ValidationError):
+        DRIFT_ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_drift_schema())
+
+
+def test_drift_request_is_closed():
+    with pytest.raises(ValidationError):
+        ArchitectureDriftRequest.model_validate(
+            {"service_id": "service:order-service", "include_confirmed": True}
+        )
+
+
+def test_drift_request_field_validation_equals_dependencies_request():
+    """I3 spec §9: `ArchitectureDriftRequest`'s field validation SHALL be equivalent to
+    `ServiceDependenciesRequest`'s, while §9.1 keeps them separate public contract types. The three
+    field declarations are therefore deliberately restated rather than inherited, so that the frozen
+    I1 model (and the MCP `inputSchema` derived from it) is left untouched - this test is what stops
+    the restatement from silently drifting apart. Only the model's own identity may differ."""
+
+    def _without_identity(schema: dict) -> dict:
+        return {key: value for key, value in schema.items() if key not in {"title", "description"}}
+
+    assert _without_identity(ArchitectureDriftRequest.model_json_schema()) == _without_identity(
+        ServiceDependenciesRequest.model_json_schema()
+    )
+
+
+def test_drift_answer_tool_const_is_exact_in_the_frozen_schema():
+    """The shared `tool` Literal admits all three names, so each specialization's schema has to lock
+    its own - otherwise a drift answer carrying `tool: get_service_dependencies` would be
+    structurally valid JSON against the drift schema."""
+    payload = _valid_drift_answer_dict(tool="get_service_dependencies")
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_drift_schema())
+
+
+def test_drift_answer_rejects_a_mismatched_tool_at_runtime():
+    with pytest.raises(ValidationError):
+        DRIFT_ANSWER_TYPE.model_validate(_valid_drift_answer_dict(tool="get_service_dependencies"))
+
+
+def test_dependency_and_evidence_answers_keep_their_own_tool_consts():
+    """I3 spec §11/§70: widening the shared `tool` Literal for the third specialization must not
+    loosen what the two already-qualified schemas mean."""
+    for schema, expected in (
+        (load_schema(), "get_service_dependencies"),
+        (load_evidence_schema(), "get_evidence"),
+        (load_drift_schema(), "get_architecture_drift"),
+    ):
+        consts = [
+            block["properties"]["tool"]["const"]
+            for block in schema["allOf"]
+            if set(block) == {"properties"} and "tool" in block["properties"]
+        ]
+        assert consts == [expected]
+
+
+def test_drift_answer_requires_observation_context_unless_refused_for_it():
+    payload = _valid_drift_answer_dict(
+        outcome="NOT_ANSWERED",
+        observation_context=None,
+        data=None,
+        claims=[],
+        evidence_refs=[],
+        limitations=[Limitation(code=LimitationCode.UNKNOWN_ENTITY, message="x").model_dump()],
+    )
+    with pytest.raises(ValidationError):
+        DRIFT_ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_drift_schema())
+
+
+def test_drift_answer_accepts_null_observation_context_for_a_context_refusal():
+    payload = _valid_drift_answer_dict(
+        outcome="NOT_ANSWERED",
+        observation_context=None,
+        data=None,
+        claims=[],
+        evidence_refs=[],
+        limitations=[
+            Limitation(code=LimitationCode.OBSERVATION_CONTEXT_REQUIRED, message="x").model_dump()
+        ],
+    )
+    DRIFT_ANSWER_TYPE.model_validate(payload)
+    jsonschema.validate(instance=payload, schema=load_drift_schema())
+
+
+def test_drift_answer_rejects_drift_claim_ids_that_do_not_match_claims():
+    claim = _valid_claim(qualification=Qualification.OBSERVED_ONLY)
+    with pytest.raises(ValidationError):
+        DRIFT_ANSWER_TYPE.model_validate(
+            _valid_drift_answer_dict(
+                data={
+                    "service": _valid_service_entity().model_dump(mode="json"),
+                    "drift_claim_ids": [],
+                },
+                claims=[claim.model_dump(mode="json")],
+            )
+        )
+
+
+def test_drift_answer_rejects_drift_claim_ids_in_a_different_order():
+    first = _valid_claim(
+        claim_id="aip:claim:v1:" + "1" * 64,
+        qualification=Qualification.OBSERVED_ONLY,
+        object=EntityRef(id="service:a-service", type=EntityType.SERVICE, name="A"),
+    )
+    second = _valid_claim(
+        claim_id="aip:claim:v1:" + "2" * 64,
+        qualification=Qualification.OBSERVED_ONLY,
+        object=EntityRef(id="service:z-service", type=EntityType.SERVICE, name="Z"),
+    )
+    with pytest.raises(ValidationError):
+        DRIFT_ANSWER_TYPE.model_validate(
+            _valid_drift_answer_dict(
+                data={
+                    "service": _valid_service_entity().model_dump(mode="json"),
+                    "drift_claim_ids": [second.claim_id, first.claim_id],
+                },
+                claims=[first.model_dump(mode="json"), second.model_dump(mode="json")],
+                evidence_refs=sorted(
+                    set(first.evidence_refs)
+                    | set(first.resolution_evidence_refs)
+                    | set(second.evidence_refs)
+                    | set(second.resolution_evidence_refs)
+                ),
+            )
+        )
+
+
+def test_drift_answer_rejects_an_evidence_union_that_is_not_exact():
+    claim = _valid_claim(qualification=Qualification.OBSERVED_ONLY)
+    with pytest.raises(ValidationError):
+        DRIFT_ANSWER_TYPE.model_validate(
+            _valid_drift_answer_dict(evidence_refs=sorted(claim.evidence_refs))
+        )
