@@ -49,7 +49,7 @@ from mcp.server import CacheHint, MCPServer
 
 from app.mcp.tools import register_tools
 
-TOOL_NAMES = ("get_evidence", "get_service_dependencies")
+TOOL_NAMES = ("get_architecture_drift", "get_evidence", "get_service_dependencies")
 
 _TOOLS_LIST_CACHE_HINT = CacheHint(scope="public", ttl_ms=0)
 
