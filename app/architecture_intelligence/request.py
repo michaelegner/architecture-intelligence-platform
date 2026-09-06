@@ -48,6 +48,27 @@ class ServiceDependenciesRequest(BaseModel):
     snapshot_id: str | None = Field(default=None, pattern=_SNAPSHOT_ID_PATTERN)
 
 
+class ArchitectureDriftRequest(BaseModel):
+    """v0.4.0 I3.1 - the `get_architecture_drift` request shape (I3 spec §9). Its field validation is
+    equivalent to `ServiceDependenciesRequest`'s (§9), but it is a separate public contract type
+    (§9.1): request-shape equality today is not permanent semantic identity, and the third tool needs
+    its own executable contract. The three field declarations are therefore deliberately restated
+    from the same private constants rather than inherited - `ServiceDependenciesRequest` is an
+    already-qualified I1 contract whose advertised MCP `inputSchema` is derived from it, and it stays
+    untouched. `tests/unit/test_architecture_intelligence_contracts.py` pins the equivalence so the
+    restatement cannot silently drift. Observation-context *normalization* is not duplicated (§9.1):
+    both types carry the same `ObservationContextInput`, and both are normalized by the single
+    `app.architecture_intelligence.observation_context.build_observation_context_ref`."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    service_id: str = Field(
+        min_length=1, max_length=_MAX_SERVICE_ID_LENGTH, pattern=_SERVICE_ID_PATTERN
+    )
+    observation_context: ObservationContextInput | None = None
+    snapshot_id: str | None = Field(default=None, pattern=_SNAPSHOT_ID_PATTERN)
+
+
 class EvidenceRequest(BaseModel):
     """v0.4.0 I2.1 - the `get_evidence` request shape (spec §11.1). Unlike
     `ServiceDependenciesRequest`, `snapshot_id` is required here - `get_evidence` never defaults to
