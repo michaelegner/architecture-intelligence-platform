@@ -78,25 +78,48 @@ for the published release.
   source independently re-verified — see
   [`docs/release-validation/v0.3.0-post-release-verification.md`](docs/release-validation/v0.3.0-post-release-verification.md).
 
-## v0.4 — Architecture Intelligence Tools (planned)
+## v0.4 — shipped
 
 **Goal: Trusted Architecture Context for Agents**
 
 Purpose: expose AIP's validated architecture model as stable, snapshot-bound, evidence-backed, and
-machine-consumable context for AI agents and architecture tools.
+machine-consumable context for AI agents and architecture tools. See
+[`docs/specifications/0.4.0/`](docs/specifications/0.4.0/) for the full design history and
+[`v0.4.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.0)
+for the published release.
 
 An agent consuming AIP must be able to determine not only what AIP claims about the architecture,
 but why that claim exists and under which evidence and observation context it was derived.
 
-Planned scope:
+| Iteration | Purpose | Status |
+|---|---|---|
+| I1 — Service Contract and Dependency Vertical Slice | `ArchitectureIntelligenceService`, `ArchitectureAnswer<T>`, snapshot fingerprinting, dependency projection | ✓ complete — `8031f64` |
+| I2 — MCP Vertical Slice and Evidence Drill-Down | `get_service_dependencies`/`get_evidence` MCP tools, independent-client qualification | ✓ complete — `da56025` |
+| I3 — Drift Capability and Deterministic Qualification | `get_architecture_drift`, full 3-tool deterministic evaluation, frozen Quarkus/Airflow qualification, hero demo | ✓ complete — `bbde691` |
+| I4 — Release Candidate, Publication, and Verification | Candidate freeze, RC/final publication, published-artifact verification | ✓ complete — **shipped as `v0.4.0`** |
 
-- `ArchitectureIntelligenceService`
-- Structured evidence-backed result contracts
-- Snapshot and observation-context binding
-- Evidence and provenance linkage
-- Qualification of architectural claims
-- Read-only MCP tools
-- Deterministic tool evaluation
+- ✓ Exactly three read-only MCP tools (`2026-07-28` protocol) — `get_architecture_drift`,
+  `get_evidence`, `get_service_dependencies` — every answer snapshot-bound and, where
+  runtime-sensitive, observation-context-bound; zero graph writes through any tool.
+- ✓ A complete deterministic tool evaluation (23 scenarios, synthetic plus real-system-derived)
+  passes two full clean-state runs with byte-identical semantic output, reusing `v0.3.0`'s frozen
+  Quarkus/Airflow evidence rather than re-running either system live.
+- ✓ A deterministic, timestamp-frozen hero demo: an independent MCP client discovers all three
+  tools and finds `OrderService -> LegacyPricingService` = `OBSERVED_ONLY`, reproducibly from a
+  clean state, with no LLM required — see [`docs/mcp.md`](docs/mcp.md).
+- ✓ I4.1's entry audit caught a real pre-existing gap (the committed evaluation artifact was bound
+  to a stale, pre-squash I3.3 commit rather than the actual I3.4-qualified candidate) and fixed it
+  before candidate freeze — see
+  [`docs/release-validation/v0.4.0-rc.1-candidate-preparation.md`](docs/release-validation/v0.4.0-rc.1-candidate-preparation.md).
+- ✓ `v0.4.0-rc.1`'s full qualification (clean-checkout, hero demo, published-image golden path) and
+  the GO decision are recorded in
+  [`docs/release-validation/v0.4.0-go-no-go.md`](docs/release-validation/v0.4.0-go-no-go.md)
+  (**GO**, decided by the repository owner 2026-09-07).
+- ✓ `v0.4.0` was tagged at the exact GO candidate, published, and its GHCR artifact and tagged
+  source independently re-verified — see
+  [`docs/release-validation/v0.4.0-post-release-verification.md`](docs/release-validation/v0.4.0-post-release-verification.md),
+  which also corrects an I4.2 Trivy query-scoping gap (same 3 pre-existing, non-exploitable
+  findings already accepted for `v0.3.0`; release blocker count unaffected).
 
 Principle:
 

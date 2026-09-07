@@ -1,7 +1,7 @@
 # AIP v0.4.0 — Architecture Intelligence Tools
 
 **Release:** `v0.4.0`  
-**Status:** Draft  
+**Status:** Shipped — [`v0.4.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.0) released 2026-09-07  
 **Goal:** Trusted Architecture Context for Agents
 
 ## Purpose
@@ -86,9 +86,32 @@ The release follows one principle:
   `first_seen`/`last_seen`: `OrderService -> LegacyPricingService` `OBSERVED_ONLY` (the hero finding)
   and `OrderService -> unused-q` `NOT_OBSERVED_IN_WINDOW`, with `ProductService`/`payment-q`
   correctly excluded as `CONFIRMED`.
-- **I4 (Release Candidate/Publication/Verification) — SPECIFIED.** Draft 1 defines candidate
-  preparation/freeze, exact-candidate and RC qualification, explicit GO/final publication, and
-  published-source/image verification. Implementation has not started.
+- **I4 (Release Candidate/Publication/Verification) — GO.** Delivered as I4.1 Candidate
+  Preparation and Freeze (PR #87), I4.2 Exact-Candidate and RC Qualification (PR #88), I4.3 GO and
+  Final Publication (PR #89 + the `v0.4.0` tag/release), I4.4 Published-Artifact Verification and
+  Public Closure (this PR). No separate completion-record dossier per spec §35; the combined
+  qualification record, the GO decision, and the post-release verification are the evidence.
+
+  ```text
+  GO — At a906a5895f803287aec973e9e3678655fd8c0f8a, AIP v0.4.0 is qualified as Trusted Architecture
+  Context for Agents. The exact candidate exposes exactly three read-only MCP 2026-07-28 tools
+  through ArchitectureIntelligenceService; answers are snapshot-bound, evidence-backed and
+  explicitly qualified; deterministic synthetic and frozen real-system-derived qualification
+  passes; the hero demo is reproducible; CI, CodeQL and dependency audit pass; and the
+  release-triggered v0.4.0 GHCR image is publicly pullable and completes the independent
+  dependency/drift/evidence MCP golden path with producer.version=0.4.0 and
+  producer.build_revision=a906a5895f803287aec973e9e3678655fd8c0f8a. Release blockers = 0.
+  ```
+
+  Decided by the repository owner 2026-09-07 — see
+  [`docs/release-validation/v0.4.0-go-no-go.md`](../../release-validation/v0.4.0-go-no-go.md) for
+  the full qualification record and decision, and
+  [`docs/release-validation/v0.4.0-post-release-verification.md`](../../release-validation/v0.4.0-post-release-verification.md)
+  for the independently re-verified published artifact (which also corrects an I4.2 Trivy
+  query-scoping gap — same 3 pre-existing, non-exploitable findings already accepted for
+  `v0.3.0`).
+
+  **`v0.4.0` is now shipped — see [`ROADMAP.md`](../../../ROADMAP.md)'s `v0.4` section.**
 
 ## Delivery Direction
 
