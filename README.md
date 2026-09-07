@@ -3,10 +3,12 @@
 [![CI](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
+⭐ If you find this repository helpful, please consider giving it a ⭐ here on GitHub (click the star button in the top right corner). It's a quick way to show support for this openly available code. ⭐
+
 Trusted architecture context for AI agents. AIP builds an evidence-backed model of your software
 architecture from declared specs and real runtime telemetry, and exposes it through three read-only
-MCP tools — every answer qualified against the evidence behind it, bound to a named graph snapshot,
-and traceable back to the file or the observation that produced it.
+MCP tools — dependency and drift answers carry qualified, evidence-linked architecture claims, while
+evidence drill-down resolves their provenance at the same graph snapshot.
 
 ![Evidence-backed Architecture Intelligence: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture model, which exposes facts, evidence, qualification and provenance.](images/architecture-intelligence-overview.png)
 
@@ -22,10 +24,11 @@ window. Both sound equally confident, and neither lets the agent tell a fact fro
 
 AIP answers that question from evidence that already exists and is already maintained as part of
 normal development — OpenAPI/AsyncAPI specs, a minimal manifest for the one thing they can't express
-(who calls what), and, optionally, real OpenTelemetry traffic. Every answer states which evidence
-supports it, whether runtime observation agrees with what was declared, and what it could *not*
-establish: a dependency that was never observed is reported as not observed, never as absent, and an
-unresolved identity is never guessed.
+(who calls what), and, optionally, real OpenTelemetry traffic. Dependency and drift answers state
+which evidence supports each claim, whether runtime observation agrees with what was declared, and
+what AIP could *not* establish: a dependency that was never observed is reported as not observed,
+never as absent, and an unresolved identity is never guessed. Evidence drill-down resolves those
+evidence references at the same snapshot without creating new architecture claims.
 
 > AIP may help agents reason about architecture, but an agent must never become the source of
 > architectural truth. — [`ROADMAP.md`](ROADMAP.md)'s v0.4 principle
@@ -44,10 +47,12 @@ three **read-only** tools:
 All three:
 
 - return the same `ArchitectureAnswer` envelope (`snapshot`, `outcome`, `claims`, `evidence_refs`,
-  `limitations`, `producer`), validated against a closed, published JSON Schema;
-- bind every answer to one immutable graph snapshot, so a claim and its evidence are always read
-  from the same state — and, where runtime-sensitive, to an explicit observation context
-  (environment + time window);
+  `limitations`, `producer`) with tool-specific data, validated against a closed, published JSON
+  Schema; dependency and drift answers populate `claims`/`evidence_refs`, while `get_evidence`
+  resolves evidence records and intentionally leaves those top-level arrays empty;
+- are bound to one stable graph snapshot identity; the runtime-sensitive dependency and drift tools
+  also carry an explicit observation context (environment + time window), while `get_evidence` is
+  intentionally observation-context-free and requires an explicit `snapshot_id`;
 - perform zero graph writes and need no LLM API key — the whole surface is deterministic;
 - never invent, guess, or upgrade an unresolved fact: insufficient evidence comes back as a
   `limitations` entry, never as silence.
@@ -178,8 +183,8 @@ manifest), `OBSERVED` (from real telemetry), or both. That's what turns into a s
 
 Removing a stale declaration never deletes a relation that still has observed evidence — it degrades
 `CONFIRMED` to `OBSERVED_ONLY` instead. See [`docs/graph-model.md`](docs/graph-model.md) for the
-exact invariant this guarantees and why it matters. The MCP tools above return exactly these
-qualifications; nothing is upgraded or smoothed over on the way out.
+exact invariant this guarantees and why it matters. The dependency and drift MCP tools above return
+exactly these qualifications; nothing is upgraded or smoothed over on the way out.
 
 ### Ingestion
 
@@ -202,9 +207,11 @@ per-service telemetry coverage). None of these involve the LLM — see
 
 **Architecture intelligence for agents**
 - ✓ Three read-only MCP tools over one `/mcp` endpoint, with closed input/output schemas
-- ✓ One `ArchitectureAnswer` envelope for every tool — claims, evidence references, limitations
-- ✓ Snapshot-bound answers: a claim and the evidence behind it always come from one graph state
-- ✓ Explicit observation context (environment + time window) on every runtime-sensitive answer
+- ✓ One `ArchitectureAnswer` envelope for every tool — qualified claims/evidence references on
+  dependency and drift answers, resolved evidence records on `get_evidence`
+- ✓ Snapshot-bound tool flow: claim-producing answers and evidence drill-down stay on one graph state
+- ✓ Explicit observation context (environment + time window) on every runtime-sensitive answer;
+  `get_evidence` is intentionally observation-context-free
 - ✓ Evidence drill-down to sanitized provenance — no raw span/trace payload, headers, or secrets
 - ✓ Explicit limitation vocabulary (`UNRESOLVED_IDENTITY`, `INSUFFICIENT_EVIDENCE`) — non-observation
   is never returned as absence, and an unresolved destination is never guessed
