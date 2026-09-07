@@ -46,22 +46,35 @@ three **read-only** tools:
 
 All three:
 
-- return the same `ArchitectureAnswer` envelope (`snapshot`, `outcome`, `claims`, `evidence_refs`,
-  `limitations`, `producer`) with tool-specific data, validated against a closed, published JSON
-  Schema; dependency and drift answers populate `claims`/`evidence_refs`, while `get_evidence`
-  resolves evidence records and intentionally leaves those top-level arrays empty;
-- are bound to one stable graph snapshot identity; the runtime-sensitive dependency and drift tools
-  also carry an explicit observation context (environment + time window), while `get_evidence` is
-  intentionally observation-context-free and requires an explicit `snapshot_id`;
+- return the same `ArchitectureAnswer` envelope (`schema_version`, `producer`, `tool`, `outcome`,
+  `snapshot`, `observation_context`, `data`, `claims`, `evidence_refs`, `limitations`), validated
+  against a closed, published JSON Schema; dependency and drift answers populate
+  `claims`/`evidence_refs`, while `get_evidence` resolves evidence records into `data` and
+  intentionally leaves those top-level arrays empty;
+- are bound to one stable graph snapshot identity — a fingerprint of the *current* graph state, so
+  two answers can be read against one immutable state; there is no historical or point-in-time
+  query surface, and a `snapshot_id` that is no longer the current one is refused with a
+  `SNAPSHOT_NOT_AVAILABLE` limitation rather than answered from stale data;
+- carry an explicit observation context (environment + time window) on the runtime-sensitive
+  dependency and drift tools, while `get_evidence` is intentionally observation-context-free and
+  requires an explicit `snapshot_id`;
 - perform zero graph writes and need no LLM API key — the whole surface is deterministic;
 - never invent, guess, or upgrade an unresolved fact: insufficient evidence comes back as a
   `limitations` entry, never as silence.
+
+The endpoint speaks the `2026-07-28` per-request envelope **only** — there is no legacy
+`initialize` session handshake, so a client negotiating an older protocol version is rejected
+rather than quietly served on a different path. And as with the rest of AIP, `/mcp` is built for a
+local or trusted-network posture; it is not hardened for direct public-internet exposure — see
+[`docs/security-model.md`](docs/security-model.md).
 
 Full reference, including the exact JSON-RPC call shape: [`docs/mcp.md`](docs/mcp.md).
 
 ## What an agent sees
 
-`get_architecture_drift` for `order-service`, exactly as the [demo below](#mcp-demo) prints it:
+`get_architecture_drift` for `order-service`, exactly as the [demo below](#mcp-demo) prints it —
+its `jq` flattens `snapshot.snapshot_id` and keeps the fields that matter here, rather than showing
+the full envelope:
 
 ```json
 {
@@ -132,8 +145,8 @@ examples/runtime-demo/mcp-demo.sh
 About five minutes. The script starts AIP + Neo4j + an OTel Collector, imports the bundled example
 architecture, seeds one timestamp-frozen batch of runtime telemetry, then drives `tools/list` →
 `get_architecture_drift` → `get_evidence` over plain HTTP/JSON-RPC — the same path any MCP client
-would take. Because every seeded span is frozen rather than clock-derived, two clean runs produce
-the same qualifications and the same `snapshot_id` shown above.
+speaking `2026-07-28` would take. Because every seeded span is frozen rather than clock-derived, two
+clean runs produce the same qualifications and the same `snapshot_id` shown above.
 Run `examples/runtime-demo/mcp-demo.sh --down` to tear it back down.
 
 For the step-by-step version — every `curl` spelled out, with what each answer means —
@@ -213,8 +226,8 @@ per-service telemetry coverage). None of these involve the LLM — see
 - ✓ Explicit observation context (environment + time window) on every runtime-sensitive answer;
   `get_evidence` is intentionally observation-context-free
 - ✓ Evidence drill-down to sanitized provenance — no raw span/trace payload, headers, or secrets
-- ✓ Explicit limitation vocabulary (`UNRESOLVED_IDENTITY`, `INSUFFICIENT_EVIDENCE`) — non-observation
-  is never returned as absence, and an unresolved destination is never guessed
+- ✓ Closed six-code limitation vocabulary (e.g. `UNRESOLVED_IDENTITY`, `INSUFFICIENT_EVIDENCE`) —
+  non-observation is never returned as absence, and an unresolved destination is never guessed
 
 **Evidence sources**
 - ✓ OpenAPI ingestion
