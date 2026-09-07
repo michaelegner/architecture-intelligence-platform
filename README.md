@@ -12,7 +12,7 @@ evidence drill-down resolves their provenance at the same graph snapshot.
 
 **[Five-Minute Demo](#see-it-in-five-minutes) · [MCP Tools](#mcp-tools) ·
 [How AIP Works](#how-aip-works) · [Evaluation](#evaluation) · [Boundaries](#boundaries) ·
-[Documentation](#documentation) · [Research Landscape](landscape.md)**
+[Documentation](#documentation) · [Research Landscape](docs/landscape.md)**
 
 ## See It in Five Minutes
 
@@ -424,8 +424,8 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
   the LLM is read-only and never a source of truth, and more
 - [`docs/specifications/`](docs/specifications/) — the original design specifications, as a
   traceable history of how the platform got here
-- [`landscape.md`](landscape.md) — research landscape: formal foundations, adjacent platforms,
-  agent context, architectural intent, governance, and verification
+- [`docs/landscape.md`](docs/landscape.md) — research landscape: formal foundations, adjacent
+  platforms, agent context, architectural intent, governance, and verification
 - [`ROADMAP.md`](ROADMAP.md) / [`CHANGELOG.md`](CHANGELOG.md) — where this is headed, and what's
   shipped so far
 
