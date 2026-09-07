@@ -7,6 +7,10 @@ plus the 11H evidence-reconciliation invariant. Steps 1-6 and 8 use `curl` again
 step 7 shows the same data through the web UI at <http://localhost:8000/>, including a natural
 language query.
 
+For the same `OBSERVED_ONLY` finding surfaced through AIP's `v0.4.0` MCP tools instead — a
+deterministic, timestamp-frozen walkthrough rather than this page's live traffic loop — see
+[`hero-demo.md`](hero-demo.md).
+
 Topology (see `traffic_generator.py`'s docstring for the exact spans it sends):
 
 ```text

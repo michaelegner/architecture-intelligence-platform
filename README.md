@@ -235,6 +235,8 @@ optional — the platform works completely without any LLM provider configured. 
 - [`docs/analyses.md`](docs/analyses.md) — A1-A5 and O1-O5
 - [`docs/semantic-validation.md`](docs/semantic-validation.md) — the NL query pipeline
 - [`docs/opentelemetry.md`](docs/opentelemetry.md) — runtime observation, attribute allowlist, coverage
+- [`docs/mcp.md`](docs/mcp.md) — the three read-only MCP tools for AI agents, and a runnable
+  hero-demo walkthrough
 - [`evaluation/README.md`](evaluation/README.md) — the deterministic evaluation suite: scenarios,
   ground-truth format, running it, and reading a failure report
 - [`real_world_validation/README.md`](real_world_validation/README.md) and

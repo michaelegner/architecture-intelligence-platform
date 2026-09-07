@@ -49,10 +49,42 @@ The release follows one principle:
   `uvicorn` listener rather than an in-process ASGI dispatch, spec §17 scenario 19 (concurrent
   evidence writes) is qualified against real Neo4j, and both answers are validated against the
   tools' advertised `outputSchema`.
-- **I3 (Drift Capability and Deterministic Qualification) — SPECIFIED.** Draft 1 defines the third
-  read-only tool as a filtered view over the qualified I1 dependency claims, the full deterministic
-  three-tool evaluation, frozen Quarkus/Airflow-derived qualification, and the hero demo.
-  Implementation has not started.
+- **I3 (Drift Capability and Deterministic Qualification) — GO.** Delivered as I3.1 Drift Contract
+  and Service (PR #82), I3.2 Drift MCP Tool (PR #83), I3.3 Full Deterministic Three-Tool Evaluation
+  (PR #84), I3.4 Hero Demo and I3 Completion (this PR). No separate completion-record dossier per
+  spec §63; the drift contract/schema, the three-tool evaluator's two clean-state passes, the
+  frozen Quarkus/Airflow-derived qualification, and each PR's own verification record are the
+  evidence.
+
+  ```text
+  GO — At bbde691d5d317ae167394b9871e26c0b2e183b63, ArchitectureIntelligenceService and the MCP
+  2026-07-28 surface expose exactly three read-only architecture tools. get_architecture_drift
+  returns only the existing direct-dependency claims qualified OBSERVED_ONLY or
+  NOT_OBSERVED_IN_WINDOW, preserving I1 claim identity, destination/delivery semantics, evidence,
+  observation context and snapshot binding. The complete three-tool deterministic evaluation passes
+  two clean-state runs with identical semantic outputs, frozen Quarkus/Airflow-derived qualification
+  passes without invented facts, the hero demo completes, and graph writes = 0.
+  ```
+
+  Verified against that exact commit via
+  `gh api repos/.../commits/bbde691.../check-runs` (never the PR's ambient current-head view):
+  `lint + test` ×2, `CodeQL`, `analyze (actions)`, `analyze (python)`,
+  `dependency security scan (pip-audit, spec §29)` ×2 — all `completed`/`success`. I3.4 itself made
+  no service/contract/MCP code changes (I3.1-I3.3 already delivered and qualified all drift
+  semantics); it added `examples/runtime-demo/seed_frozen_evidence.py` (a one-shot,
+  timestamp-frozen evidence seed satisfying spec §43's determinism requirement, rather than the
+  live traffic-generator's wall-clock loop), `examples/runtime-demo/hero-demo.md` (the ~5-minute
+  walkthrough), and `docs/mcp.md` (concise tool reference). PR review caught that an earlier
+  candidate (`0f45f5b`, now superseded) froze span timestamps but not the trace/span IDs
+  (`uuid.uuid4()`) or span-duration jitter (`random.randint`) also reachable from
+  `canonical_snapshot_state()`'s fingerprinted `Evidence.sample_trace_ids`/`first_seen`/`last_seen` -
+  `bbde691` fixes that by seeding a `random.Random` through the same span builders. The hero demo
+  was run live against a real local stack twice from a clean state (`docker compose down -v`
+  between runs) and produced byte-for-byte identical full tool responses both times - not just
+  matching qualifications, but identical `snapshot_id`, `model_revision`, `sample_trace_ids`, and
+  `first_seen`/`last_seen`: `OrderService -> LegacyPricingService` `OBSERVED_ONLY` (the hero finding)
+  and `OrderService -> unused-q` `NOT_OBSERVED_IN_WINDOW`, with `ProductService`/`payment-q`
+  correctly excluded as `CONFIRMED`.
 - **I4 (Release Candidate/Publication/Verification) — not started.**
 
 ## Delivery Direction
