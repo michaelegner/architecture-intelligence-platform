@@ -21,8 +21,10 @@ to or become the source of truth for.
 - Snapshot-bound, current-state answers: every answer names an exact, fingerprinted graph
   revision (`snapshot_id`/`model_revision`), with a bounded stable-read retry rather than a
   torn/partial read.
-- Explicit observation context (`environment`/`window_start`/`window_end`), normalized to one
-  stable `context_id` shared identically across all three tools.
+- Explicit observation context (`environment`/`window_start`/`window_end`) for the
+  runtime-sensitive dependency and drift answers, normalized to a stable `context_id`;
+  `get_evidence` is snapshot-bound and intentionally observation-context-free — it resolves
+  provenance for already-identified references rather than producing qualified claims of its own.
 - Evidence and provenance drill-down: every claim carries opaque evidence references resolvable,
   at the same snapshot, to sanitized `DECLARED`/`OBSERVED` provenance — no raw span/trace payload,
   headers, or secrets.
