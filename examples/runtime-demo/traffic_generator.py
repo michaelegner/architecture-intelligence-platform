@@ -89,6 +89,22 @@ def _now_nanos() -> int:
     return int(time.time() * 1e9)
 
 
+def _random_bytes(rng: random.Random | None, length: int) -> bytes:
+    """Trace/span IDs: `uuid.uuid4()` by default (this module's live loop, unaffected by `rng`); a
+    seeded `random.Random` when the caller needs them deterministic too. `app.architecture_intelligence
+    .repository.canonical_snapshot_state`'s `_EVIDENCE_QUERY` includes `Evidence.sample_trace_ids`
+    (and, via `first_seen`/`last_seen` below, each span's *end* timestamp) in the fingerprinted
+    snapshot state - so a hero demo claiming a reproducible `snapshot_id` must freeze these too, not
+    just `now_nanos`."""
+    if rng is None:
+        return uuid.uuid4().bytes[:length]
+    return rng.randbytes(length)
+
+
+def _random_duration_nanos(rng: random.Random | None, low: int, high: int) -> int:
+    return (rng or random).randint(low, high)
+
+
 def _http_pair(
     *,
     client_service: str,
@@ -96,20 +112,24 @@ def _http_pair(
     method: str,
     route: str,
     now_nanos: Callable[[], int] = _now_nanos,
+    rng: random.Random | None = None,
 ) -> tuple[ResourceSpans, ResourceSpans]:
     """One realistic CLIENT+SERVER span pair for a synchronous REST call (spec §20's
     CLIENT_SERVER correlation mode - the strongest signal AIP recognizes). Returned as a
     (client, server) tuple rather than a combined list so callers can choose to send both in one
     OTLP request (the common case) or in two separate requests (the cross-batch demo below).
 
-    `now_nanos` defaults to wall-clock time (this module's live loop); the I3.4 hero demo's
-    `seed_frozen_evidence.py` passes a fixed callable instead, so span timestamps don't depend on
-    when the seed script happens to run (spec §43's determinism requirement)."""
-    trace_id = uuid.uuid4().bytes
-    client_span_id = uuid.uuid4().bytes[:8]
-    server_span_id = uuid.uuid4().bytes[:8]
+    `now_nanos`/`rng` default to wall-clock time and `uuid.uuid4()`/the global `random` state (this
+    module's live loop); the I3.4 hero demo's `seed_frozen_evidence.py` passes a fixed callable and
+    a seeded `random.Random` instead, so nothing reaching AIP's canonical evidence fingerprint
+    depends on when or how many times the seed script runs (spec §43's determinism requirement)."""
+    trace_id = _random_bytes(rng, 16)
+    client_span_id = _random_bytes(rng, 8)
+    server_span_id = _random_bytes(rng, 8)
     start = now_nanos()
-    end = start + random.randint(5_000_000, 50_000_000)  # 5-50ms, synthetic but plausible
+    end = start + _random_duration_nanos(
+        rng, 5_000_000, 50_000_000
+    )  # 5-50ms, synthetic but plausible
 
     client_span = Span(
         trace_id=trace_id,
@@ -147,17 +167,18 @@ def _messaging_span(
     destination: str,
     system: str = "demo-broker",
     now_nanos: Callable[[], int] = _now_nanos,
+    rng: random.Random | None = None,
 ) -> ResourceSpans:
     """One send/receive messaging span (spec §24-26 - independently derivable, no correlation
-    needed, unlike the HTTP CLIENT/SERVER pair above). See `_http_pair`'s `now_nanos` note."""
+    needed, unlike the HTTP CLIENT/SERVER pair above). See `_http_pair`'s `now_nanos`/`rng` note."""
     start = now_nanos()
     span = Span(
-        trace_id=uuid.uuid4().bytes,
-        span_id=uuid.uuid4().bytes[:8],
+        trace_id=_random_bytes(rng, 16),
+        span_id=_random_bytes(rng, 8),
         name=f"{operation_type} {destination}",
         kind=Span.SPAN_KIND_PRODUCER if operation_type == "send" else Span.SPAN_KIND_CONSUMER,
         start_time_unix_nano=start,
-        end_time_unix_nano=start + random.randint(1_000_000, 10_000_000),
+        end_time_unix_nano=start + _random_duration_nanos(rng, 1_000_000, 10_000_000),
         attributes=[
             _kv("messaging.operation.type", operation_type),
             _kv("messaging.destination.name", destination),
@@ -167,9 +188,11 @@ def _messaging_span(
     return ResourceSpans(resource=_resource(service), scope_spans=[ScopeSpans(spans=[span])])
 
 
-def build_batch(*, now_nanos: Callable[[], int] = _now_nanos) -> ExportTraceServiceRequest:
-    """`now_nanos` defaults to wall-clock time; see `_http_pair`'s docstring for why the I3.4 hero
-    demo passes a fixed callable instead."""
+def build_batch(
+    *, now_nanos: Callable[[], int] = _now_nanos, rng: random.Random | None = None
+) -> ExportTraceServiceRequest:
+    """`now_nanos`/`rng` default to wall-clock time and the live-loop's own randomness; see
+    `_http_pair`'s docstring for why the I3.4 hero demo passes fixed values for both instead."""
     resource_spans: list[ResourceSpans] = []
     resource_spans.extend(
         _http_pair(
@@ -178,6 +201,7 @@ def build_batch(*, now_nanos: Callable[[], int] = _now_nanos) -> ExportTraceServ
             method="GET",
             route="/products/{id}",
             now_nanos=now_nanos,
+            rng=rng,
         )
     )
     # Undeclared REST dependency (spec §14's "Zusätzlich H4" addendum) - never appears in
@@ -189,6 +213,7 @@ def build_batch(*, now_nanos: Callable[[], int] = _now_nanos) -> ExportTraceServ
             method="GET",
             route="/pricing/{sku}",
             now_nanos=now_nanos,
+            rng=rng,
         )
     )
     resource_spans.append(
@@ -197,6 +222,7 @@ def build_batch(*, now_nanos: Callable[[], int] = _now_nanos) -> ExportTraceServ
             operation_type="send",
             destination="payment-q",
             now_nanos=now_nanos,
+            rng=rng,
         )
     )
     resource_spans.append(
@@ -205,6 +231,7 @@ def build_batch(*, now_nanos: Callable[[], int] = _now_nanos) -> ExportTraceServ
             operation_type="receive",
             destination="payment-q",
             now_nanos=now_nanos,
+            rng=rng,
         )
     )
     resource_spans.append(
@@ -213,6 +240,7 @@ def build_batch(*, now_nanos: Callable[[], int] = _now_nanos) -> ExportTraceServ
             operation_type="send",
             destination="invoice-q",
             now_nanos=now_nanos,
+            rng=rng,
         )
     )
     resource_spans.append(
@@ -221,6 +249,7 @@ def build_batch(*, now_nanos: Callable[[], int] = _now_nanos) -> ExportTraceServ
             operation_type="receive",
             destination="invoice-q",
             now_nanos=now_nanos,
+            rng=rng,
         )
     )
     return ExportTraceServiceRequest(resource_spans=resource_spans)
