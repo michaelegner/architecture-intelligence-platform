@@ -57,7 +57,7 @@ The release follows one principle:
   evidence.
 
   ```text
-  GO — At 0f45f5bbc23715f3e4575817a43bae499e14ff12, ArchitectureIntelligenceService and the MCP
+  GO — At bbde691d5d317ae167394b9871e26c0b2e183b63, ArchitectureIntelligenceService and the MCP
   2026-07-28 surface expose exactly three read-only architecture tools. get_architecture_drift
   returns only the existing direct-dependency claims qualified OBSERVED_ONLY or
   NOT_OBSERVED_IN_WINDOW, preserving I1 claim identity, destination/delivery semantics, evidence,
@@ -67,18 +67,24 @@ The release follows one principle:
   ```
 
   Verified against that exact commit via
-  `gh api repos/.../commits/0f45f5b.../check-runs` (never the PR's ambient current-head view):
+  `gh api repos/.../commits/bbde691.../check-runs` (never the PR's ambient current-head view):
   `lint + test` ×2, `CodeQL`, `analyze (actions)`, `analyze (python)`,
   `dependency security scan (pip-audit, spec §29)` ×2 — all `completed`/`success`. I3.4 itself made
   no service/contract/MCP code changes (I3.1-I3.3 already delivered and qualified all drift
   semantics); it added `examples/runtime-demo/seed_frozen_evidence.py` (a one-shot,
   timestamp-frozen evidence seed satisfying spec §43's determinism requirement, rather than the
   live traffic-generator's wall-clock loop), `examples/runtime-demo/hero-demo.md` (the ~5-minute
-  walkthrough), and `docs/mcp.md` (concise tool reference). The hero demo was run live against a
-  real local stack twice from a clean state (`docker compose down -v` between runs) and produced
-  identical qualifications both times: `OrderService -> LegacyPricingService` `OBSERVED_ONLY` (the
-  hero finding) and `OrderService -> unused-q` `NOT_OBSERVED_IN_WINDOW`, with `ProductService`/
-  `payment-q` correctly excluded as `CONFIRMED`.
+  walkthrough), and `docs/mcp.md` (concise tool reference). PR review caught that an earlier
+  candidate (`0f45f5b`, now superseded) froze span timestamps but not the trace/span IDs
+  (`uuid.uuid4()`) or span-duration jitter (`random.randint`) also reachable from
+  `canonical_snapshot_state()`'s fingerprinted `Evidence.sample_trace_ids`/`first_seen`/`last_seen` -
+  `bbde691` fixes that by seeding a `random.Random` through the same span builders. The hero demo
+  was run live against a real local stack twice from a clean state (`docker compose down -v`
+  between runs) and produced byte-for-byte identical full tool responses both times - not just
+  matching qualifications, but identical `snapshot_id`, `model_revision`, `sample_trace_ids`, and
+  `first_seen`/`last_seen`: `OrderService -> LegacyPricingService` `OBSERVED_ONLY` (the hero finding)
+  and `OrderService -> unused-q` `NOT_OBSERVED_IN_WINDOW`, with `ProductService`/`payment-q`
+  correctly excluded as `CONFIRMED`.
 - **I4 (Release Candidate/Publication/Verification) — not started.**
 
 ## Delivery Direction
