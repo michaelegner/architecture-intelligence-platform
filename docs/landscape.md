@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-04_
+_Last reviewed: 2026-09-07_
 
 ## AIP anchor
 
@@ -207,6 +207,36 @@ evidence-backed, qualified architecture knowledge
 derived from declared and observed signals
 ```
 
+### Logorythm — Architecture Intelligence from Static Analysis
+
+**Source**
+
+- [Logorythm](https://logorythm.io/en)
+
+**Core idea**
+
+Logorythm builds service maps from repositories using static analysis, with an explicit emphasis on discovering service dependencies without tracing, runtime instrumentation, or manual cross-repository investigation. This can reveal code paths that a runtime observation window has not exercised.
+
+**Why this matters to AIP**
+
+Logorythm is close to AIP's architecture-intelligence problem, but approaches evidence from the code side:
+
+```text
+Logorythm
+code / static analysis
+        ↓
+service map + structural risk
+
+AIP
+declared evidence + observed evidence
+        ↓
+qualified architecture facts
+```
+
+The distinction is useful rather than competitive by definition. Static code evidence can answer what a system **can declare or encode as a dependency**; runtime evidence can answer what was **observed in a bounded context**. AIP's role is to preserve that distinction and qualify the resulting architectural claim rather than collapse the two into one notion of truth.
+
+Logorythm is therefore a relevant reference for future code-discovery work, dependency extraction, structural-risk analysis, and possible adapter boundaries. It does not by itself change AIP's evidence or roadmap semantics.
+
 ---
 
 ## 3. Agent context and machine consumption
@@ -279,6 +309,62 @@ The particularly relevant question for AIP is **reverse propagation**: after age
 A useful AIP distinction is:
 
 > Context is useful. Evidence makes architecture context trustworthy.
+
+### Nicole Königstein — AI Agents: The Definitive Guide
+
+**Source**
+
+- [AI Agents — The Definitive Guide repository](https://github.com/Nicolepcx/ai-agents-the-definitive-guide)
+
+**Relevant concepts**
+
+The open repository accompanying the O'Reilly book spans agent architectures and planning through production tool contracts, MCP, secure execution, evaluation, observability, memory, cost, and threat modeling. Particularly relevant to AIP are the examples around MCP/tool contracts, governed execution, production reliability, and deterministic evaluation harnesses.
+
+**Why this matters to AIP**
+
+The guide describes the engineering environment in which AIP's architecture context will be consumed:
+
+```text
+Agent system
+planning · tools · MCP · governance · evaluation
+                         ▲
+                         │
+                architecture context
+                         │
+                        AIP
+```
+
+Its production focus reinforces that architecture context exposed to agents needs explicit contracts, bounded tool behavior, failure semantics, evaluation, and provenance. AIP remains narrower: the agent framework determines **how an agent acts**, while AIP determines **which architecture claims are supported by evidence and how they are qualified**.
+
+The repository is therefore useful both as an integration reference and as a source of agent-side evaluation scenarios, without making its agent architecture part of AIP itself.
+
+### Tim O'Reilly — Why Open Source Matters for AI
+
+**Source**
+
+- [Why Open Source Matters for AI](https://oreillyradar.substack.com/p/why-open-source-matters-for-ai)
+
+**Core idea**
+
+O'Reilly argues that durable openness comes not only from licenses but from **composable architecture**: small replaceable components connected by standard interfaces and protocols. In AI, this means keeping models, agent harnesses, context, tools, memory, and skills sufficiently unbundled that one component can be replaced without rewriting the whole system. MCP is cited as an example of protocol-centric composition.
+
+**Why this matters to AIP**
+
+This supports an important architectural boundary for AIP:
+
+```text
+Model
+  ≠
+Agent harness
+  ≠
+Architecture context
+  ≠
+Tools / evidence sources
+```
+
+AIP should be useful across model and agent-framework choices. Its durable interface should be evidence-backed architecture semantics exposed through open, replaceable integration boundaries rather than coupling architectural truth to one model vendor or agent runtime.
+
+This makes composability relevant to AIP's architecture, but not an argument for adding every adjacent agent capability. The stronger design goal is that models, harnesses, discovery adapters, and protocols can evolve independently while AIP's evidence and qualification guarantees remain explicit.
 
 ### Google Cloud — Gemini Enterprise for Financial Services
 
@@ -534,8 +620,11 @@ and what evidence supports that conclusion?
 | Temporal / contextual knowledge | Burgess / Semantic Spacetime | How should architecture knowledge evolve across time and observation contexts? |
 | Runtime evidence | OpenTelemetry | What can runtime signals safely prove? |
 | Software catalogs | Backstage | How does evidence-backed architecture intelligence differ from maintained catalog metadata? |
+| Static architecture discovery | Logorythm | What architectural structure can code reveal before or without runtime observation, and how should that evidence be qualified? |
 | Agent context | MCP | How should architecture facts be exposed safely to agents? |
 | Agentic development platforms | Thoughtworks AI/works | How are as-is state, enterprise context, transformation, and reverse propagation connected? |
+| Production agent engineering | AI Agents — The Definitive Guide | What contracts, governance, and evaluation does the agent side need when consuming architecture context? |
+| Composable AI architecture | Tim O'Reilly / open source and protocols | How can architecture context remain portable across models, agent harnesses, tools, and protocol evolution? |
 | Governed domain context for agents | Google Gemini Enterprise for Financial Services | How should agents consume secure, auditable context with lineage, snapshots, citations, and governance? |
 | Pre-generation governance | Mneme HQ | How should machine-readable intent constrain coding agents? |
 | Architecture guardrails | O'Reilly | How can decisions become enforceable without making an LLM the authority? |
