@@ -128,8 +128,8 @@ About five minutes. The script starts AIP + Neo4j + an OTel Collector, imports t
 architecture, seeds one timestamp-frozen batch of runtime telemetry, then drives `tools/list` →
 `get_architecture_drift` → `get_evidence` over plain HTTP/JSON-RPC — the same path any MCP client
 would take. Because every seeded span is frozen rather than clock-derived, two clean runs produce
-the same qualifications and the same `snapshot_id` shown above. `examples/runtime-demo/mcp-demo.sh
---down` tears it back down.
+the same qualifications and the same `snapshot_id` shown above.
+Run `examples/runtime-demo/mcp-demo.sh --down` to tear it back down.
 
 For the step-by-step version — every `curl` spelled out, with what each answer means —
 see [`examples/runtime-demo/hero-demo.md`](examples/runtime-demo/hero-demo.md).
