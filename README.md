@@ -3,6 +3,8 @@
 [![CI](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
+⭐ If you find this repository helpful, please consider giving it a ⭐ here on GitHub (click the star button in the top right corner). It's a quick way to show support for this openly available code. ⭐
+
 Trusted architecture context for AI agents. AIP builds an evidence-backed model of your software
 architecture from declared specs and real runtime telemetry, and exposes it through three read-only
 MCP tools — every answer qualified against the evidence behind it, bound to a named graph snapshot,
