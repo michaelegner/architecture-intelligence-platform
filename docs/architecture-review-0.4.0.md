@@ -17,7 +17,7 @@ per-service atomic reimport, the revision-fenced stable read, the frozen answer 
 read-only LLM/MCP boundary. Nothing in `v0.5`'s scope requires undoing any of them.
 
 Four structural items do need decisions, recorded as [ADR 0009](adr/0009-source-adapter-seam.md)
-– [0013](adr/0013-no-topic-family-without-guards.md):
+– [ADR 0013](adr/0013-no-topic-family-without-guards.md):
 
 | # | Finding | Why now |
 |---|---|---|
@@ -87,13 +87,17 @@ The same semantics exist in two implementations:
 |---|---|---|
 | Evidence-window match | [`app/analysis/runtime.py:28`](../app/analysis/runtime.py) — `_OBSERVED_EXISTS`, `_NOT_OBSERVED_EXISTS`, `_DECLARED_EXISTS` | [`dependency_projection.py:52`](../app/architecture_intelligence/dependency_projection.py) — `_matches_declared`, `_matches_observed` |
 | Coverage classification | `app/analysis/runtime.py:364` `_classify_coverage` | `dependency_projection.py:82` `_classify_coverage` |
-| Consumers | O1–O5, REST (`app/api/runtime.py`), the UI | all three MCP tools |
+| Consumers | O1–O5, REST (`app/api/runtime.py`), the UI | `get_service_dependencies` and `get_architecture_drift` |
 
 Part of this is deliberate and defensible: `contracts.py`'s enums "mirror `app.analysis.runtime`'s
 literal values by value, not by import, so this public contract doesn't couple to internal analysis
 module churn", and the coverage rule itself is genuinely *shared* rather than reimplemented —
 [`repository.py:296`](../app/architecture_intelligence/repository.py) calls `telemetry_coverage` and
 says so ("*is* that rule, not a reimplementation of it").
+
+`get_evidence` is not affected: it resolves provenance for already-identified references and
+produces no qualified claims of its own, so the divergence risk covers `get_service_dependencies`
+and `get_architecture_drift` only.
 
 The gap is that **nothing executable asserts the two paths agree**. Both are covered by frozen
 evaluation — [`evaluation/projector.py`](../evaluation/projector.py) exercises the Cypher path,

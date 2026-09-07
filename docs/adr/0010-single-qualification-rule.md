@@ -11,12 +11,15 @@ Status: Proposed — see [`architecture-review-0.4.0.md`](../architecture-review
 |---|---|---|
 | Evidence-window match | `app/analysis/runtime.py:28` — `_OBSERVED_EXISTS`, `_NOT_OBSERVED_EXISTS`, `_DECLARED_EXISTS` | `app/architecture_intelligence/dependency_projection.py:52` — `_matches_declared`, `_matches_observed` |
 | Coverage classification | `app/analysis/runtime.py:364` `_classify_coverage` | `dependency_projection.py:82` `_classify_coverage` |
-| Consumers | O1–O5, REST, the UI | the three MCP tools |
+| Consumers | O1–O5, REST, the UI | `get_service_dependencies`, `get_architecture_drift` |
 
 Some of that duplication is deliberate and worth keeping: `contracts.py` states that its enums
 "mirror `app.analysis.runtime`'s literal values by value, not by import, so this public contract
 doesn't couple to internal analysis module churn", and the coverage *rule* is genuinely shared —
 `repository.py:296` calls `telemetry_coverage` rather than reimplementing it.
+
+`get_evidence` is out of scope for this ADR: it is snapshot-bound provenance resolution for
+already-identified references, with no observation context and no qualified claims of its own.
 
 What is missing is any executable statement that the two paths agree. Both are covered by frozen
 evaluation (`evaluation/projector.py` for the Cypher path, `evaluation/architecture_answers/` for the
