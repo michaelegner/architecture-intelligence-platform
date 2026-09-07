@@ -14,6 +14,17 @@ project's stated architecture principles.
 | [0006](0006-declared-vs-observed.md) | Declared and observed architecture are independent evidence sources |
 | [0007](0007-do-not-store-full-traces-in-neo4j.md) | Never store full traces or raw span payloads in Neo4j |
 | [0008](0008-apache-2.0-license.md) | License under Apache License 2.0 |
+| [0009](0009-source-adapter-seam.md) | Source adapters are a registered seam, not a pipeline convention (Proposed) |
+| [0010](0010-single-qualification-rule.md) | The declared-vs-observed rule has one owner and one executable cross-check (Proposed) |
+| [0011](0011-snapshot-identity-read-cost.md) | Snapshot identity must not cost a full-graph read per call (Proposed) |
+| [0012](0012-observed-evidence-retention.md) | Observed evidence is compacted on a retention policy, never silently dropped (Proposed) |
+| [0013](0013-no-topic-family-without-guards.md) | No topic/pub-sub family in the Canonical Model without both safety guards |
 
 A new ADR is numbered sequentially and never renumbered or deleted — if a decision is superseded,
 add a new ADR and mark the old one's Status as `Superseded by NNNN`.
+
+An ADR whose decision is settled but not yet implemented carries `Status: Proposed`; it moves to
+`Accepted` when the work it describes lands (or, for [0011](0011-snapshot-identity-read-cost.md)
+and [0012](0012-observed-evidence-retention.md), when the benchmark and the retention thresholds
+it names are decided). 0009-0013 came out of
+[`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md).
