@@ -22,6 +22,7 @@ The release follows one principle:
 | [`i1-service-contract-and-dependency-vertical-slice.md`](i1-service-contract-and-dependency-vertical-slice.md) | Self-contained implementation contract for the first service-level dependency vertical slice. | Draft 1 |
 | [`i2-mcp-vertical-slice-and-evidence-drill-down.md`](i2-mcp-vertical-slice-and-evidence-drill-down.md) | MCP exposure of the qualified dependency answer plus snapshot-bound evidence drill-down. | Draft 1 |
 | [`i3-drift-capability-and-deterministic-qualification.md`](i3-drift-capability-and-deterministic-qualification.md) | Drift capability plus complete deterministic three-tool qualification and hero demo. | Draft 1 |
+| [`i4-release-candidate-publication-and-verification.md`](i4-release-candidate-publication-and-verification.md) | Exact-candidate release qualification, RC publication, final publication, and published-artifact verification. | Draft 1 |
 
 ## Status
 
@@ -85,7 +86,9 @@ The release follows one principle:
   `first_seen`/`last_seen`: `OrderService -> LegacyPricingService` `OBSERVED_ONLY` (the hero finding)
   and `OrderService -> unused-q` `NOT_OBSERVED_IN_WINDOW`, with `ProductService`/`payment-q`
   correctly excluded as `CONFIRMED`.
-- **I4 (Release Candidate/Publication/Verification) — not started.**
+- **I4 (Release Candidate/Publication/Verification) — SPECIFIED.** Draft 1 defines candidate
+  preparation/freeze, exact-candidate and RC qualification, explicit GO/final publication, and
+  published-source/image verification. Implementation has not started.
 
 ## Delivery Direction
 
