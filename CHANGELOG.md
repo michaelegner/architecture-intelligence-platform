@@ -9,6 +9,8 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-07
+
 ### v0.4 — Trusted Architecture Context for Agents
 
 AIP's validated architecture model is now exposed to AI agents and other MCP clients as stable,
@@ -60,6 +62,13 @@ version bump — see `ROADMAP.md`.
 
 See [`docs/specifications/0.4.0/`](docs/specifications/0.4.0/) for the full design history and
 [`docs/mcp.md`](docs/mcp.md) for the tool reference and a runnable hero-demo walkthrough.
+
+An initial release candidate, `v0.4.0-rc.1`, was published and fully qualified end to end — clean
+checkout, hero demo, and the published GHCR image's own MCP golden path — see
+[`docs/release-validation/v0.4.0-go-no-go.md`](docs/release-validation/v0.4.0-go-no-go.md) (**GO**,
+decided by the repository owner 2026-09-07). `v0.4.0` was tagged at that exact candidate and
+published; its GHCR artifact and tagged source were independently re-verified — see
+[`docs/release-validation/v0.4.0-post-release-verification.md`](docs/release-validation/v0.4.0-post-release-verification.md).
 
 ## [0.3.0] - 2026-09-02
 

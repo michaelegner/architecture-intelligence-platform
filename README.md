@@ -269,17 +269,21 @@ The original PoC (Canonical Model, OpenAPI/AsyncAPI/manifest ingestion, Neo4j gr
 deterministic analyses, LLM query layer), the H1-H4 hardening/OpenTelemetry iterations, the full 11H
 runtime-correctness roadmap (evidence reconciliation, cross-batch correlation, partial
 instrumentation, observed provider relations, coverage qualification, the Collector-based demo), H5
-(open-source readiness), v0.2 (the deterministic evaluation suite), and
+(open-source readiness), v0.2 (the deterministic evaluation suite),
 [`v0.3.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.3.0)
 (real-world validation against Quarkus Super Heroes and Apache Airflow, plus cross-system model
 hardening — zero production semantic changes were justified by either system's independent
-evidence) are all shipped. See
+evidence), and
+[`v0.4.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.0)
+(Trusted Architecture Context for Agents — three read-only MCP tools exposing snapshot-bound,
+evidence-qualified architecture answers) are all shipped. See
 [`docs/real-world-validation/cross-system/report.md`](docs/real-world-validation/cross-system/report.md)
-for the full cross-system report and
-[`docs/release-validation/v0.3.0-post-release-verification.md`](docs/release-validation/v0.3.0-post-release-verification.md)
-for the published-artifact verification.
+for the full cross-system report,
+[`docs/mcp.md`](docs/mcp.md) for the MCP tool reference, and
+[`docs/release-validation/v0.4.0-post-release-verification.md`](docs/release-validation/v0.4.0-post-release-verification.md)
+for the latest published-artifact verification.
 
-See [`ROADMAP.md`](ROADMAP.md) for the full release track — v0.4 (Architecture Intelligence Tools)
+See [`ROADMAP.md`](ROADMAP.md) for the full release track — v0.5 (Broader Architecture Discovery)
 is next — and what's planned beyond it.
 
 ## License
