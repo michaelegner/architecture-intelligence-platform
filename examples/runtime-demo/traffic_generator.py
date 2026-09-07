@@ -47,6 +47,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
@@ -89,16 +90,25 @@ def _now_nanos() -> int:
 
 
 def _http_pair(
-    *, client_service: str, server_service: str, method: str, route: str
+    *,
+    client_service: str,
+    server_service: str,
+    method: str,
+    route: str,
+    now_nanos: Callable[[], int] = _now_nanos,
 ) -> tuple[ResourceSpans, ResourceSpans]:
     """One realistic CLIENT+SERVER span pair for a synchronous REST call (spec §20's
     CLIENT_SERVER correlation mode - the strongest signal AIP recognizes). Returned as a
     (client, server) tuple rather than a combined list so callers can choose to send both in one
-    OTLP request (the common case) or in two separate requests (the cross-batch demo below)."""
+    OTLP request (the common case) or in two separate requests (the cross-batch demo below).
+
+    `now_nanos` defaults to wall-clock time (this module's live loop); the I3.4 hero demo's
+    `seed_frozen_evidence.py` passes a fixed callable instead, so span timestamps don't depend on
+    when the seed script happens to run (spec §43's determinism requirement)."""
     trace_id = uuid.uuid4().bytes
     client_span_id = uuid.uuid4().bytes[:8]
     server_span_id = uuid.uuid4().bytes[:8]
-    start = _now_nanos()
+    start = now_nanos()
     end = start + random.randint(5_000_000, 50_000_000)  # 5-50ms, synthetic but plausible
 
     client_span = Span(
@@ -131,11 +141,16 @@ def _http_pair(
 
 
 def _messaging_span(
-    *, service: str, operation_type: str, destination: str, system: str = "demo-broker"
+    *,
+    service: str,
+    operation_type: str,
+    destination: str,
+    system: str = "demo-broker",
+    now_nanos: Callable[[], int] = _now_nanos,
 ) -> ResourceSpans:
     """One send/receive messaging span (spec §24-26 - independently derivable, no correlation
-    needed, unlike the HTTP CLIENT/SERVER pair above)."""
-    start = _now_nanos()
+    needed, unlike the HTTP CLIENT/SERVER pair above). See `_http_pair`'s `now_nanos` note."""
+    start = now_nanos()
     span = Span(
         trace_id=uuid.uuid4().bytes,
         span_id=uuid.uuid4().bytes[:8],
@@ -152,7 +167,9 @@ def _messaging_span(
     return ResourceSpans(resource=_resource(service), scope_spans=[ScopeSpans(spans=[span])])
 
 
-def build_batch() -> ExportTraceServiceRequest:
+def build_batch(*, now_nanos: Callable[[], int] = _now_nanos) -> ExportTraceServiceRequest:
+    """`now_nanos` defaults to wall-clock time; see `_http_pair`'s docstring for why the I3.4 hero
+    demo passes a fixed callable instead."""
     resource_spans: list[ResourceSpans] = []
     resource_spans.extend(
         _http_pair(
@@ -160,6 +177,7 @@ def build_batch() -> ExportTraceServiceRequest:
             server_service="ProductService",
             method="GET",
             route="/products/{id}",
+            now_nanos=now_nanos,
         )
     )
     # Undeclared REST dependency (spec §14's "Zusätzlich H4" addendum) - never appears in
@@ -170,19 +188,40 @@ def build_batch() -> ExportTraceServiceRequest:
             server_service="LegacyPricingService",
             method="GET",
             route="/pricing/{sku}",
+            now_nanos=now_nanos,
         )
     )
     resource_spans.append(
-        _messaging_span(service="OrderService", operation_type="send", destination="payment-q")
+        _messaging_span(
+            service="OrderService",
+            operation_type="send",
+            destination="payment-q",
+            now_nanos=now_nanos,
+        )
     )
     resource_spans.append(
-        _messaging_span(service="PaymentService", operation_type="receive", destination="payment-q")
+        _messaging_span(
+            service="PaymentService",
+            operation_type="receive",
+            destination="payment-q",
+            now_nanos=now_nanos,
+        )
     )
     resource_spans.append(
-        _messaging_span(service="PaymentService", operation_type="send", destination="invoice-q")
+        _messaging_span(
+            service="PaymentService",
+            operation_type="send",
+            destination="invoice-q",
+            now_nanos=now_nanos,
+        )
     )
     resource_spans.append(
-        _messaging_span(service="InvoiceService", operation_type="receive", destination="invoice-q")
+        _messaging_span(
+            service="InvoiceService",
+            operation_type="receive",
+            destination="invoice-q",
+            now_nanos=now_nanos,
+        )
     )
     return ExportTraceServiceRequest(resource_spans=resource_spans)
 
