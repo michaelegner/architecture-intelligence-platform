@@ -10,7 +10,7 @@ architecture from declared specs and real runtime telemetry, and exposes it thro
 MCP tools — dependency and drift answers carry qualified, evidence-linked architecture claims, while
 evidence drill-down resolves their provenance at the same graph snapshot.
 
-![Evidence-backed Architecture Intelligence: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture model, which exposes facts, evidence, qualification and provenance.](images/architecture-intelligence-overview.png)
+![AIP v0.4.0: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture graph, exposed to AI agents through three read-only MCP tools for dependencies, drift and provenance.](images/architecture-intelligence-overview-v0.4.webp)
 
 **[MCP Demo](#mcp-demo) · [MCP Tools](#mcp-tools) · [How AIP Works](#how-aip-works) ·
 [Evaluation](#evaluation) · [Documentation](#documentation) · [Research Landscape](landscape.md)**
