@@ -366,6 +366,8 @@ depends on it. See [`docs/semantic-validation.md`](docs/semantic-validation.md).
 - [`docs/security-model.md`](docs/security-model.md) — trust boundaries
 - [`docs/development.md`](docs/development.md) — local dev, tests, linting
 - [`docs/adapter-development.md`](docs/adapter-development.md) — extending AIP with a new source
+- [`docs/architecture-review-0.4.0.md`](docs/architecture-review-0.4.0.md) — post-`v0.4.0`
+  architecture review: what held up, four structural findings, measured read cost
 - [`docs/adr/`](docs/adr/) — Architecture Decision Records: why Neo4j, why a Canonical Model, why
   the LLM is read-only and never a source of truth, and more
 - [`docs/specifications/`](docs/specifications/) — the original design specifications, as a
