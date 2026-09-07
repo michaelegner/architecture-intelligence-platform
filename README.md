@@ -3,8 +3,6 @@
 [![CI](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-⭐ If you find this repository helpful, please consider giving it a ⭐ here on GitHub (click the star button in the top right corner). It's a quick way to show support for this openly available code. ⭐
-
 Trusted architecture context for AI agents. AIP builds an evidence-backed model of your software
 architecture from declared specs and real runtime telemetry, and exposes it through three read-only
 MCP tools — dependency and drift answers carry qualified, evidence-linked architecture claims, while
@@ -12,69 +10,47 @@ evidence drill-down resolves their provenance at the same graph snapshot.
 
 ![Architecture Intelligence Platform v0.4.0 — trusted architecture context for agents: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture graph, exposed to AI coding agents through three read-only MCP tools — get_service_dependencies, get_architecture_drift and get_evidence.](images/aip-hero-v0.4.png)
 
-**[MCP Demo](#mcp-demo) · [MCP Tools](#mcp-tools) · [How AIP Works](#how-aip-works) ·
-[Evaluation](#evaluation) · [Documentation](#documentation) · [Research Landscape](landscape.md)**
+**[Five-Minute Demo](#see-it-in-five-minutes) · [MCP Tools](#mcp-tools) ·
+[How AIP Works](#how-aip-works) · [Evaluation](#evaluation) · [Boundaries](#boundaries) ·
+[Documentation](#documentation) · [Research Landscape](docs/landscape.md)**
 
-## Why?
+## See It in Five Minutes
 
-An agent changing a service needs to know what that service actually talks to. Today it gets that
-from the two least reliable sources available: architecture documentation that drifted from reality
-months ago, and its own plausible inference from whatever code happened to fit in the context
-window. Both sound equally confident, and neither lets the agent tell a fact from a guess.
+Requires Docker (with Compose), `curl` and `jq`. **No LLM API key** — nothing on this path calls a
+model:
 
-AIP answers that question from evidence that already exists and is already maintained as part of
-normal development — OpenAPI/AsyncAPI specs, a minimal manifest for the one thing they can't express
-(who calls what), and, optionally, real OpenTelemetry traffic. Dependency and drift answers state
-which evidence supports each claim, whether runtime observation agrees with what was declared, and
-what AIP could *not* establish: a dependency that was never observed is reported as not observed,
-never as absent, and an unresolved identity is never guessed. Evidence drill-down resolves those
-evidence references at the same snapshot without creating new architecture claims.
+```bash
+git clone https://github.com/michaelegner/architecture-intelligence-platform.git
+cd architecture-intelligence-platform
+cp .env.example .env
+examples/runtime-demo/mcp-demo.sh
+```
 
-> AIP may help agents reason about architecture, but an agent must never become the source of
-> architectural truth. — [`ROADMAP.md`](ROADMAP.md)'s v0.4 principle
+The script starts AIP + Neo4j + an OTel Collector, imports the bundled example architecture, seeds
+one timestamp-frozen batch of runtime telemetry, then drives `tools/list` →
+`get_architecture_drift` → `get_evidence` over plain HTTP/JSON-RPC — the same path any MCP client
+speaking `2026-07-28` would take.
 
-## MCP Tools
+Asking `get_architecture_drift` about `order-service` returns two findings:
 
-`v0.4.0` exposes the validated architecture model at `/mcp` (MCP protocol `2026-07-28`) as exactly
-three **read-only** tools:
+| Dependency | Qualification | What it means |
+|---|---|---|
+| `LegacyPricingService` | `OBSERVED_ONLY` | A real dependency, seen in live traffic, that **nothing declares** |
+| `unused-q` | `NOT_OBSERVED_IN_WINDOW` | Declared in `asyncapi.yaml`, not seen in this window — deliberately *not* reported as "unused" or "dead" |
 
-| Tool | Answers |
-|---|---|
-| `get_service_dependencies` | What does this service directly depend on, and is each dependency confirmed by runtime observation? |
-| `get_architecture_drift` | Which of those direct dependencies disagree with what was declared — observed but undocumented, or declared but not observed in this window? |
-| `get_evidence` | What is the actual provenance behind those claims — which spec file, manifest, or observation window? |
+`ProductService` and `PaymentService` (via `payment-q`) are `CONFIRMED` — declared **and**
+observed — and correctly don't appear at all: drift returns discrepancies, never matches.
+`get_service_dependencies` is the tool that lists all four. Alongside the two claims the answer
+carries a `limitations` entry: AIP declining to name a consumer for `unused-q` that it cannot
+evidence. Each claim's `evidence_refs` then resolve through `get_evidence`, at the same
+`snapshot_id`, to the `asyncapi.yaml` that declared one and the OpenTelemetry window that observed
+the other.
 
-All three:
+<details>
+<summary><b>The full JSON both calls return</b></summary>
 
-- return the same `ArchitectureAnswer` envelope (`schema_version`, `producer`, `tool`, `outcome`,
-  `snapshot`, `observation_context`, `data`, `claims`, `evidence_refs`, `limitations`), validated
-  against a closed, published JSON Schema; dependency and drift answers populate
-  `claims`/`evidence_refs`, while `get_evidence` resolves evidence records into `data` and
-  intentionally leaves those top-level arrays empty;
-- are bound to one stable graph snapshot identity — a fingerprint of the *current* graph state, so
-  two answers can be read against one immutable state; there is no historical or point-in-time
-  query surface, and a `snapshot_id` that is no longer the current one is refused with a
-  `SNAPSHOT_NOT_AVAILABLE` limitation rather than answered from stale data;
-- carry an explicit observation context (environment + time window) on the runtime-sensitive
-  dependency and drift tools, while `get_evidence` is intentionally observation-context-free and
-  requires an explicit `snapshot_id`;
-- perform zero graph writes and need no LLM API key — the whole surface is deterministic;
-- never invent, guess, or upgrade an unresolved fact: insufficient evidence comes back as a
-  `limitations` entry, never as silence.
-
-The endpoint speaks the `2026-07-28` per-request envelope **only** — there is no legacy
-`initialize` session handshake, so a client negotiating an older protocol version is rejected
-rather than quietly served on a different path. And as with the rest of AIP, `/mcp` is built for a
-local or trusted-network posture; it is not hardened for direct public-internet exposure — see
-[`docs/security-model.md`](docs/security-model.md).
-
-Full reference, including the exact JSON-RPC call shape: [`docs/mcp.md`](docs/mcp.md).
-
-## What an agent sees
-
-`get_architecture_drift` for `order-service`, exactly as the [demo below](#mcp-demo) prints it —
-its `jq` flattens `snapshot.snapshot_id` and keeps the fields that matter here, rather than showing
-the full envelope:
+`get_architecture_drift` for `order-service`, exactly as the demo prints it — its `jq` flattens
+`snapshot.snapshot_id` and keeps the fields that matter here, rather than showing the full envelope:
 
 ```json
 {
@@ -104,13 +80,6 @@ the full envelope:
 }
 ```
 
-`LegacyPricingService` is a real dependency nothing declares — seen only at runtime. `unused-q` is
-the opposite: declared in `asyncapi.yaml`, not observed in this window, which is deliberately *not*
-reported as "unused" or "dead". `ProductService` and `PaymentService` (via `payment-q`) are
-`CONFIRMED` — declared **and** observed — and correctly don't appear here at all: drift returns
-discrepancies, never matches. `get_service_dependencies` is the tool that lists all four. The
-`limitations` entry is AIP declining to name a consumer it cannot evidence.
-
 Feeding those `evidence_refs` back into `get_evidence` at the **same** `snapshot_id` returns the
 provenance behind each claim:
 
@@ -131,26 +100,65 @@ provenance behind each claim:
 ]
 ```
 
-## MCP Demo
+</details>
 
-Requires Docker (with Compose), `curl` and `jq` — no LLM API key:
-
-```bash
-git clone https://github.com/michaelegner/architecture-intelligence-platform.git
-cd architecture-intelligence-platform
-cp .env.example .env
-examples/runtime-demo/mcp-demo.sh
-```
-
-About five minutes. The script starts AIP + Neo4j + an OTel Collector, imports the bundled example
-architecture, seeds one timestamp-frozen batch of runtime telemetry, then drives `tools/list` →
-`get_architecture_drift` → `get_evidence` over plain HTTP/JSON-RPC — the same path any MCP client
-speaking `2026-07-28` would take. Because every seeded span is frozen rather than clock-derived, two
-clean runs produce the same qualifications and the same `snapshot_id` shown above.
-Run `examples/runtime-demo/mcp-demo.sh --down` to tear it back down.
-
-For the step-by-step version — every `curl` spelled out, with what each answer means —
+Because every seeded span is frozen rather than clock-derived, two clean runs produce the same
+qualifications and the same `snapshot_id`. Run `examples/runtime-demo/mcp-demo.sh --down` to tear it
+back down. For the step-by-step version — every `curl` spelled out, with what each answer means —
 see [`examples/runtime-demo/hero-demo.md`](examples/runtime-demo/hero-demo.md).
+
+## What You Can Do With It
+
+**Find dependencies nobody wrote down.** Real traffic reveals calls that exist in no spec, manifest
+or diagram. AIP surfaces them as `OBSERVED_ONLY`, with the observation window that saw them —
+`OrderService -> LegacyPricingService` in the demo above.
+
+**Check whether the architecture you declared is the one that's running.** Drift is reported per
+dependency and in both directions — declared but not observed, observed but never declared — each
+qualified rather than asserted.
+
+**Give a coding agent context it can cite.** Three read-only MCP tools hand an agent direct
+dependencies, drift and provenance bound to one graph snapshot, so it can tell a fact from a guess
+— and so it can never write to the model it is reading from.
+
+## Why?
+
+An agent changing a service needs to know what that service actually talks to. Today it gets that
+from the two least reliable sources available: architecture documentation that drifted from reality
+months ago, and its own plausible inference from whatever code happened to fit in the context
+window. Both sound equally confident, and neither lets the agent tell a fact from a guess.
+
+AIP answers that question from evidence that already exists and is already maintained as part of
+normal development — OpenAPI/AsyncAPI specs, a minimal manifest for the one thing they can't express
+(who calls what), and, optionally, real OpenTelemetry traffic. Dependency and drift answers state
+which evidence supports each claim, whether runtime observation agrees with what was declared, and
+what AIP could *not* establish: a dependency that was never observed is reported as not observed,
+never as absent, and an unresolved identity is never guessed. Evidence drill-down resolves those
+evidence references at the same snapshot without creating new architecture claims.
+
+> AIP may help agents reason about architecture, but an agent must never become the source of
+> architectural truth. — [`ROADMAP.md`](ROADMAP.md)'s v0.4 principle
+
+⭐ If you find this repository helpful, please consider giving it a ⭐ here on GitHub (click the star button in the top right corner). It's a quick way to show support for this openly available code. ⭐
+
+## MCP Tools
+
+`v0.4.0` exposes the validated architecture model at `/mcp` (MCP protocol `2026-07-28`) as exactly
+three **read-only** tools:
+
+| Tool | Answers |
+|---|---|
+| `get_service_dependencies` | What does this service directly depend on, and is each dependency confirmed by runtime observation? |
+| `get_architecture_drift` | Which of those direct dependencies disagree with what was declared — observed but undocumented, or declared but not observed in this window? |
+| `get_evidence` | What is the actual provenance behind those claims — which spec file, manifest, or observation window? |
+
+All three perform zero graph writes and need no LLM API key — the whole surface is deterministic —
+and none of them will invent, guess, or upgrade an unresolved fact: insufficient evidence comes back
+as a `limitations` entry, never as silence.
+
+What each answer contains, what it is bound to, and what the surface deliberately does *not* do:
+[Boundaries](#boundaries) below. Full reference, including the exact JSON-RPC call shape:
+[`docs/mcp.md`](docs/mcp.md).
 
 ## Quick Start
 
@@ -312,8 +320,8 @@ modes, and coverage-qualification model: [`docs/opentelemetry.md`](docs/opentele
 
 ### Runtime demo
 
-Where the [MCP demo](#mcp-demo) freezes its telemetry for reproducibility, this one generates live
-traffic continuously:
+Where the [five-minute demo](#see-it-in-five-minutes) freezes its telemetry for reproducibility,
+this one generates live traffic continuously:
 
 ```bash
 docker compose -f docker-compose.demo.yml up --build
@@ -358,6 +366,37 @@ write credentials and its Cypher is always shown back alongside the answer for t
 optional — the platform works completely without any LLM provider configured, and no MCP tool
 depends on it. See [`docs/semantic-validation.md`](docs/semantic-validation.md).
 
+## Boundaries
+
+What the three MCP tools return, and what they deliberately don't.
+
+**One envelope.** Every tool returns the same `ArchitectureAnswer` (`schema_version`, `producer`,
+`tool`, `outcome`, `snapshot`, `observation_context`, `data`, `claims`, `evidence_refs`,
+`limitations`), validated against a closed, published JSON Schema. Dependency and drift answers
+populate `claims`/`evidence_refs`, while `get_evidence` resolves evidence records into `data` and
+intentionally leaves those top-level arrays empty.
+
+**Current state, not history.** Every answer is bound to one stable graph snapshot identity — a
+fingerprint of the *current* graph state, so two answers can be read against one immutable state.
+There is no historical or point-in-time query surface, and a `snapshot_id` that is no longer the
+current one is refused with a `SNAPSHOT_NOT_AVAILABLE` limitation rather than answered from stale
+data.
+
+**Explicit observation context.** The runtime-sensitive dependency and drift tools carry an
+environment and time window on every answer, while `get_evidence` is intentionally
+observation-context-free and requires an explicit `snapshot_id`.
+
+**Direct dependencies only.** One hop — no transitive traversal, and no generic Cypher or graph
+query surface behind the tools.
+
+**One protocol path.** The endpoint speaks the `2026-07-28` per-request envelope **only** — there is
+no legacy `initialize` session handshake, so a client negotiating an older protocol version is
+rejected rather than quietly served on a different path.
+
+**Local or trusted network.** As with the rest of AIP, `/mcp` is built for a local or
+trusted-network posture; it is not hardened for direct public-internet exposure — see
+[`docs/security-model.md`](docs/security-model.md).
+
 ## Documentation
 
 - [`docs/mcp.md`](docs/mcp.md) — the three read-only MCP tools for AI agents, and a runnable
@@ -385,8 +424,8 @@ depends on it. See [`docs/semantic-validation.md`](docs/semantic-validation.md).
   the LLM is read-only and never a source of truth, and more
 - [`docs/specifications/`](docs/specifications/) — the original design specifications, as a
   traceable history of how the platform got here
-- [`landscape.md`](landscape.md) — research landscape: formal foundations, adjacent platforms,
-  agent context, architectural intent, governance, and verification
+- [`docs/landscape.md`](docs/landscape.md) — research landscape: formal foundations, adjacent
+  platforms, agent context, architectural intent, governance, and verification
 - [`ROADMAP.md`](ROADMAP.md) / [`CHANGELOG.md`](CHANGELOG.md) — where this is headed, and what's
   shipped so far
 
