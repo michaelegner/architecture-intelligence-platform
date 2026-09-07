@@ -9,6 +9,58 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+### v0.4 — Trusted Architecture Context for Agents
+
+AIP's validated architecture model is now exposed to AI agents and other MCP clients as stable,
+snapshot-bound, evidence-backed, machine-consumable context — never as a system an agent can write
+to or become the source of truth for.
+
+- `ArchitectureIntelligenceService`: one semantic entry point in front of the graph, returning a
+  uniform `ArchitectureAnswer<T>` envelope (`schema_version`, `producer`, `snapshot`, `outcome`,
+  `claims`, `evidence_refs`, `limitations`) for every tool.
+- Snapshot-bound, current-state answers: every answer names an exact, fingerprinted graph
+  revision (`snapshot_id`/`model_revision`), with a bounded stable-read retry rather than a
+  torn/partial read.
+- Explicit observation context (`environment`/`window_start`/`window_end`) for the
+  runtime-sensitive dependency and drift answers, normalized to a stable `context_id`;
+  `get_evidence` is snapshot-bound and intentionally observation-context-free — it resolves
+  provenance for already-identified references rather than producing qualified claims of its own.
+- Evidence and provenance drill-down: every claim carries opaque evidence references resolvable,
+  at the same snapshot, to sanitized `DECLARED`/`OBSERVED` provenance — no raw span/trace payload,
+  headers, or secrets.
+- Explicit claim qualification (`CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW`) and
+  limitation vocabulary (e.g. `UNRESOLVED_IDENTITY`, `INSUFFICIENT_EVIDENCE`) — non-observation is
+  never represented as absence, and an unresolved destination is never guessed.
+- Exactly three read-only MCP tools (`2026-07-28` protocol, one `/mcp` endpoint), in frozen
+  lexicographic order: `get_architecture_drift` (direct dependencies whose evidence shows a
+  declared-versus-observed discrepancy), `get_evidence` (bounded evidence-reference resolution),
+  `get_service_dependencies` (one-hop qualified direct dependencies). Closed input/output schemas;
+  an independent client (no AIP internal module, no LLM key) can drive the full dependency/drift →
+  evidence golden path over plain HTTP/JSON-RPC.
+- A complete deterministic tool evaluation: 23 scenarios (synthetic plus real-system-derived) run
+  against all three tools, two full clean-state passes producing byte-identical semantic output
+  both times, plus cross-tool invariants (dependency↔drift, drift↔evidence) proven live rather than
+  asserted.
+- Frozen Quarkus Super Heroes/Apache Airflow-derived qualification: the three-tool surface is
+  proven against both systems' already-validated (`v0.3.0`) evidence, with zero fresh live reruns
+  and zero invented facts.
+- A deterministic, timestamp-frozen hero demo: an independent MCP client discovers all three
+  tools, then calls `get_architecture_drift`/`get_evidence` to find and explain a real,
+  undocumented dependency — `OrderService -> LegacyPricingService`, qualified `OBSERVED_ONLY` —
+  reproducibly from a clean state, in about five minutes, with no LLM required.
+- No LLM is required for any tool's correctness — the entire architecture-intelligence surface
+  this release adds is deterministic.
+
+Important boundaries: the three tools return **direct** dependencies only (no transitive
+traversal), no historical/point-in-time snapshots (current state only), no generic Cypher/graph
+query surface, and zero graph writes through any tool. MCP is exposed for a local/trusted-network
+posture, not hardened for direct public-internet exposure. Pre-1.0 contracts (REST/MCP surface,
+Graph Schema, Canonical Model, Adapter SPI, configuration format) may still change on a minor
+version bump — see `ROADMAP.md`.
+
+See [`docs/specifications/0.4.0/`](docs/specifications/0.4.0/) for the full design history and
+[`docs/mcp.md`](docs/mcp.md) for the tool reference and a runnable hero-demo walkthrough.
+
 ## [0.3.0] - 2026-09-02
 
 ### v0.3 — Real-World Validation and Cross-System Hardening
