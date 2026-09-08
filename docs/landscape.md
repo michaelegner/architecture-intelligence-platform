@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-07_
+_Last reviewed: 2026-09-08_
 
 ## AIP anchor
 
@@ -236,6 +236,58 @@ qualified architecture facts
 The distinction is useful rather than competitive by definition. Static code evidence can answer what a system **can declare or encode as a dependency**; runtime evidence can answer what was **observed in a bounded context**. AIP's role is to preserve that distinction and qualify the resulting architectural claim rather than collapse the two into one notion of truth.
 
 Logorythm is therefore a relevant reference for future code-discovery work, dependency extraction, structural-risk analysis, and possible adapter boundaries. It does not by itself change AIP's evidence or roadmap semantics.
+
+### Praveen Kasam — Why Your AI Agent Fails: The Answer Is Almost Never the Model
+
+**Source**
+
+- [Why Your AI Agent Fails: The Answer Is Almost Never the Model](https://www.linkedin.com/pulse/why-your-ai-agent-fails-answer-almost-never-model-praveen-kasam-goaef/)
+
+**Core idea**
+
+Kasam argues that most agent failures trace back to the knowledge the agent reasoned over — stale, ambiguous, or incomplete premises — rather than to model capability. Reasoning quality cannot exceed the quality of what it reasons about.
+
+**Why this matters to AIP**
+
+This is a direct statement of AIP's founding assumption, seen from the agent-consumption side rather than the architecture side:
+
+```text
+Weak, stale, or ambiguous premise
+      ↓
+confident-looking but wrong conclusion
+
+regardless of model capability
+```
+
+AIP's provenance and freshness guarantees — `source_revision`, `evidence_type`, per-service atomic reimport (no partial import ever left in the graph) — exist to keep the premises an agent reasons over evidence-backed and current, rather than merely plausible-looking. This reinforces why AIP treats provenance and qualification as architecture, not as an optional annotation.
+
+### Spark Tsai — From Trace IDs to Trace Matrix: What Does a Change Actually Affect?
+
+**Source**
+
+- [From Trace IDs to Trace Matrix: What Does a Change Actually Affect?](https://www.linkedin.com/pulse/from-trace-ids-matrix-what-does-change-actually-affect-spark-tsai-u1rzc/)
+
+**Core idea**
+
+Tsai argues that answering "what does this change actually affect" well requires typed, structured relationships between artifacts — a trace matrix — rather than untyped trace IDs pointing at commits or tickets. Known, typed relationships let impact analysis run deterministically instead of being re-derived by an LLM each time it's asked.
+
+**Why this matters to AIP**
+
+```text
+Known typed relationship (graph edge)
+      ↓
+deterministic traversal
+      ↓
+impact analysis
+
+untyped reference
+      ↓
+LLM re-inference of the relationship, each time it's asked
+      ↓
+inconsistent / non-reproducible impact analysis
+```
+
+This mirrors AIP's own `PROVIDES` / `CALLS` / `SENDS` / `RECEIVES_FROM` model and the A5 blast-radius analysis: relationships are declared once, from evidence, and traversed deterministically rather than re-inferred by an LLM per question. It is also a plausible reference point for a future Intent / Transformation layer (Section 4): typed relationships between decisions and implementation would need the same discipline AIP already applies to typed relationships between services.
 
 ---
 
@@ -581,6 +633,31 @@ For v0.4, this is useful input for deterministic tool evaluation. An AIP tool re
 
 AIP should still distinguish trajectory evaluation from architectural verification. An LLM-as-judge metric may assess whether an agent used context well; it must not become the authority that decides whether an architecture claim is true.
 
+### Agentic Software: How AI Agents Are Restructuring the Software Paradigm
+
+**Source**
+
+- [Agentic Software: How AI Agents Are Restructuring the Software Paradigm](https://arxiv.org/html/2606.05608)
+
+**Core idea**
+
+The paper examines context drift and verification fidelity across long-running, agent-driven software evolution, and argues for shared, observable context that multiple agents and humans can rely on across sessions rather than each agent re-deriving its own working picture of the system.
+
+**Why this matters to AIP**
+
+```text
+single-session working context
+      ↓
+context drift across sessions / agents / time
+
+evidence-backed architecture context
+      ↓
+stable reference point, re-derived from evidence on each import
+rather than accumulated in any one agent's session state
+```
+
+AIP's graph is a candidate for exactly this durable, shared context layer: a system whose state does not drift with conversation history, because it is re-derived from declared and observed evidence on each import rather than carried forward as accumulated agent memory.
+
 ### Deterministic verification
 
 AIP should preserve an important distinction as agent-facing features grow:
@@ -594,6 +671,28 @@ deterministic verification
 Probabilistic reasoning may help formulate or interpret a question, while supported architecture claims should remain independently traceable to deterministic model state and evidence.
 
 Mneme's benchmark methodology is relevant here because it similarly emphasizes structured outputs, reproducibility, explicit scope, and avoiding subjective LLM-as-judge grading where deterministic checks are possible.
+
+### Lucas F. Costa — Backpressure Is All You Need
+
+**Source**
+
+- [Backpressure Is All You Need](https://www.lucasfcosta.com/blog/backpressure-is-all-you-need)
+
+**Core idea**
+
+Costa argues for shifting feedback left: deterministic, automated checks applied at planning/generation time act as backpressure on agents, catching problems before they compound, rather than relying on downstream review to catch them after the fact.
+
+**Why this matters to AIP**
+
+```text
+agent proposes a change
+      ↓
+deterministic check against evidence-backed Current State
+      ↓
+accept / block — before the change compounds
+```
+
+This is close to AIP's own emphasis on deterministic Cypher analyses over LLM judgment (see "Deterministic verification" above). AIP's Current State graph is itself a natural backpressure signal: an agent's plan can be checked against it before code is written, not only reviewed against it afterwards.
 
 ### Agent observability
 
@@ -621,6 +720,8 @@ and what evidence supports that conclusion?
 | Runtime evidence | OpenTelemetry | What can runtime signals safely prove? |
 | Software catalogs | Backstage | How does evidence-backed architecture intelligence differ from maintained catalog metadata? |
 | Static architecture discovery | Logorythm | What architectural structure can code reveal before or without runtime observation, and how should that evidence be qualified? |
+| Premise quality for agent reasoning | Praveen Kasam | How much of an agent's failure traces back to stale, ambiguous, or incomplete premises rather than model capability? |
+| Typed relationships & impact analysis | Spark Tsai / Trace Matrix | How should typed relationships support impact analysis without re-inferring them via an LLM each time? |
 | Agent context | MCP | How should architecture facts be exposed safely to agents? |
 | Agentic development platforms | Thoughtworks AI/works | How are as-is state, enterprise context, transformation, and reverse propagation connected? |
 | Production agent engineering | AI Agents — The Definitive Guide | What contracts, governance, and evaluation does the agent side need when consuming architecture context? |
@@ -631,6 +732,8 @@ and what evidence supports that conclusion?
 | AI-era engineering workflow | Rachel Laycock / Martin Fowler | Which assurance work should move before or beyond human code review? |
 | AI-system reliability | Shahani / Building Reliable AI Systems | Which reliability concerns belong to agents and operations, and which require independently verifiable context? |
 | Agent trajectory evaluation | Google agent evaluation metrics | How should agent behavior be evaluated independently from the truth and provenance of the architecture context it consumes? |
+| Long-running agentic context drift | Agentic Software paradigm paper | How should shared, observable context stay stable across long-running, drifting agent sessions? |
+| Deterministic backpressure on agents | Lucas F. Costa / Backpressure | Where should deterministic checks be applied to backpressure agents before problems compound? |
 
 ---
 
