@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from app.settings import load_config, load_secrets, load_settings
+from pydantic import ValidationError
+from app.settings import load_config, load_secrets, load_settings, HttpCorrelationConfig
 
 CONFIG_YAML = """
 architecture_intelligence:
@@ -85,6 +86,16 @@ def test_load_secrets_raises_without_password(monkeypatch):
     monkeypatch.delenv("NEO4J_PASSWORD", raising=False)
     with pytest.raises(RuntimeError, match="NEO4J_PASSWORD"):
         load_secrets()
+
+
+def test_http_correlation_rejects_non_positive_limits():
+    with pytest.raises(ValidationError) as exc_info:
+        HttpCorrelationConfig(**{"ttl-seconds": 0})
+    assert "Input should be greater than 0" in str(exc_info.value)
+    
+    with pytest.raises(ValidationError) as exc_info:
+        HttpCorrelationConfig(**{"max-pending-spans": -5})
+    assert "Input should be greater than 0" in str(exc_info.value)
 
 
 def test_coverage_qualification_enabled_defaults_true_when_absent(tmp_path):

@@ -37,8 +37,8 @@ class HttpCorrelationConfig(BaseModel):
     starts the app unchanged (spec §22)."""
 
     enabled: bool = True
-    ttl_seconds: int = Field(default=60, alias="ttl-seconds")
-    max_pending_spans: int = Field(default=10000, alias="max-pending-spans")
+    ttl_seconds: int = Field(default=60, alias="ttl-seconds", gt=0)
+    max_pending_spans: int = Field(default=10000, alias="max-pending-spans", gt=0)
 
     model_config = {"populate_by_name": True}
 
