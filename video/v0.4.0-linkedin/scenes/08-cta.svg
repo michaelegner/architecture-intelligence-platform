@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+<defs>
+<linearGradient id="logoGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#38BDF8"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+<linearGradient id="logoGradient2" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2563EB"/><stop offset="1" stop-color="#4F46E5"/></linearGradient>
+<radialGradient id="halo"><stop stop-color="#2DD4BF" stop-opacity=".16"/><stop offset="1" stop-color="#2DD4BF" stop-opacity="0"/></radialGradient>
+<pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.4" fill="#31415D" opacity=".5"/></pattern>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#38BDF8"/></marker>
+</defs>
+<rect width="1080" height="1350" fill="#0B1020"/>
+<rect width="1080" height="1350" fill="url(#grid)"/>
+<ellipse cx="920" cy="170" rx="330" ry="330" fill="url(#halo)"/>
+<polygon points="72,99 95,62 110,83" fill="url(#logoGradient)"/><polygon points="98,99 116,72 136,99" fill="url(#logoGradient2)"/>
+<text x="150" y="102" fill="#F8FAFC" font-family="DejaVu Sans" font-size="32" font-weight="700" text-anchor="start" letter-spacing="0">AIP</text>
+<text x="1000" y="98" fill="#38BDF8" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="end" letter-spacing="1">v0.4.0</text>
+<rect x="72" y="132" width="936" height="2" fill="#263653"/>
+<text x="72" y="180" fill="#94A3B8" font-family="DejaVu Sans" font-size="20" font-weight="700" text-anchor="start" letter-spacing="4">OPEN SOURCE</text>
+<text x="540" y="1248" fill="#94A3B8" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">github.com/michaelegner/architecture-intelligence-platform</text>
+<rect x="72" y="1280" width="936" height="4" rx="2" fill="#2DD4BF"/>
+<rect x="1008" y="1280" width="0" height="4" rx="2" fill="#263653"/>
+<text x="1008" y="1317" fill="#94A3B8" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="end" letter-spacing="0">08</text>
+<text x="540" y="420" fill="#F8FAFC" font-family="DejaVu Sans" font-size="70" font-weight="700" text-anchor="middle" letter-spacing="0">23 scenarios.</text>
+<text x="540" y="515" fill="#F8FAFC" font-family="DejaVu Sans" font-size="70" font-weight="700" text-anchor="middle" letter-spacing="0">Two clean runs.</text>
+<text x="540" y="610" fill="#2DD4BF" font-family="DejaVu Sans" font-size="70" font-weight="700" text-anchor="middle" letter-spacing="0">Byte-identical</text>
+<text x="540" y="695" fill="#2DD4BF" font-family="DejaVu Sans" font-size="70" font-weight="700" text-anchor="middle" letter-spacing="0">semantic output.</text>
+<rect x="132" y="800" width="816" height="118" rx="59" fill="#102B35" stroke="#2DD4BF" stroke-width="3" opacity="1"/>
+<text x="540" y="873" fill="#2DD4BF" font-family="DejaVu Sans" font-size="25" font-weight="700" text-anchor="middle" letter-spacing="1">EXPLORE v0.4.0 ON GITHUB</text>
+<text x="540" y="1005" fill="#94A3B8" font-family="DejaVu Sans Mono" font-size="28" font-weight="400" text-anchor="middle" letter-spacing="0">github.com/michaelegner/</text>
+<text x="540" y="1045" fill="#F8FAFC" font-family="DejaVu Sans Mono" font-size="28" font-weight="700" text-anchor="middle" letter-spacing="0">architecture-intelligence-platform</text>
+<rect x="382" y="1120" width="316" height="52" rx="26" fill="#38BDF818" stroke="#38BDF8" stroke-width="2" opacity="1"/><text x="540" y="1155" fill="#38BDF8" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="middle" letter-spacing="0">MCP 2026-07-28</text>
+</svg>

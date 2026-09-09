@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+<defs>
+<linearGradient id="logoGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#38BDF8"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+<linearGradient id="logoGradient2" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2563EB"/><stop offset="1" stop-color="#4F46E5"/></linearGradient>
+<radialGradient id="halo"><stop stop-color="#2DD4BF" stop-opacity=".16"/><stop offset="1" stop-color="#2DD4BF" stop-opacity="0"/></radialGradient>
+<pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.4" fill="#31415D" opacity=".5"/></pattern>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#38BDF8"/></marker>
+</defs>
+<rect width="1080" height="1350" fill="#0B1020"/>
+<rect width="1080" height="1350" fill="url(#grid)"/>
+<ellipse cx="920" cy="170" rx="330" ry="330" fill="url(#halo)"/>
+<polygon points="72,99 95,62 110,83" fill="url(#logoGradient)"/><polygon points="98,99 116,72 136,99" fill="url(#logoGradient2)"/>
+<text x="150" y="102" fill="#F8FAFC" font-family="DejaVu Sans" font-size="32" font-weight="700" text-anchor="start" letter-spacing="0">AIP</text>
+<text x="1000" y="98" fill="#38BDF8" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="end" letter-spacing="1">v0.4.0</text>
+<rect x="72" y="132" width="936" height="2" fill="#263653"/>
+<text x="72" y="180" fill="#94A3B8" font-family="DejaVu Sans" font-size="20" font-weight="700" text-anchor="start" letter-spacing="4">MCP SURFACE</text>
+<text x="540" y="1248" fill="#94A3B8" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">github.com/michaelegner/architecture-intelligence-platform</text>
+<rect x="72" y="1280" width="468" height="4" rx="2" fill="#2DD4BF"/>
+<rect x="540" y="1280" width="468" height="4" rx="2" fill="#263653"/>
+<text x="1008" y="1317" fill="#94A3B8" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="end" letter-spacing="0">04</text>
+<text x="72" y="286" fill="#F8FAFC" font-family="DejaVu Sans" font-size="62" font-weight="700" text-anchor="start" letter-spacing="0">Three read-only</text>
+<text x="72" y="360" fill="#38BDF8" font-family="DejaVu Sans" font-size="62" font-weight="700" text-anchor="start" letter-spacing="0">MCP tools.</text>
+<rect x="72" y="438" width="936" height="178" rx="24" fill="#111A2E" stroke="#38BDF8" stroke-width="2" opacity="1"/><circle cx="140" cy="527" r="34" fill="#38BDF8" opacity=".18"/><text x="140" y="538" fill="#38BDF8" font-family="DejaVu Sans Mono" font-size="27" font-weight="700" text-anchor="middle" letter-spacing="0">01</text><text x="208" y="516" fill="#F8FAFC" font-family="DejaVu Sans Mono" font-size="31" font-weight="700" text-anchor="start" letter-spacing="0">get_service_dependencies</text><text x="208" y="564" fill="#94A3B8" font-family="DejaVu Sans" font-size="25" font-weight="400" text-anchor="start" letter-spacing="0">Explore direct, qualified dependencies</text>
+<rect x="72" y="642" width="936" height="178" rx="24" fill="#111A2E" stroke="#F59E0B" stroke-width="2" opacity="1"/><circle cx="140" cy="731" r="34" fill="#F59E0B" opacity=".18"/><text x="140" y="742" fill="#F59E0B" font-family="DejaVu Sans Mono" font-size="27" font-weight="700" text-anchor="middle" letter-spacing="0">02</text><text x="208" y="720" fill="#F8FAFC" font-family="DejaVu Sans Mono" font-size="31" font-weight="700" text-anchor="start" letter-spacing="0">get_architecture_drift</text><text x="208" y="768" fill="#94A3B8" font-family="DejaVu Sans" font-size="25" font-weight="400" text-anchor="start" letter-spacing="0">Find declared-versus-observed discrepancies</text>
+<rect x="72" y="846" width="936" height="178" rx="24" fill="#111A2E" stroke="#2DD4BF" stroke-width="2" opacity="1"/><circle cx="140" cy="935" r="34" fill="#2DD4BF" opacity=".18"/><text x="140" y="946" fill="#2DD4BF" font-family="DejaVu Sans Mono" font-size="27" font-weight="700" text-anchor="middle" letter-spacing="0">03</text><text x="208" y="924" fill="#F8FAFC" font-family="DejaVu Sans Mono" font-size="31" font-weight="700" text-anchor="start" letter-spacing="0">get_evidence</text><text x="208" y="972" fill="#94A3B8" font-family="DejaVu Sans" font-size="25" font-weight="400" text-anchor="start" letter-spacing="0">Resolve the provenance behind every claim</text>
+<rect x="72" y="1085" width="240" height="52" rx="26" fill="#38BDF818" stroke="#38BDF8" stroke-width="2" opacity="1"/><text x="192" y="1120" fill="#38BDF8" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="middle" letter-spacing="0">READ-ONLY</text>
+<rect x="332" y="1085" width="278" height="52" rx="26" fill="#2DD4BF18" stroke="#2DD4BF" stroke-width="2" opacity="1"/><text x="471" y="1120" fill="#2DD4BF" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="middle" letter-spacing="0">DETERMINISTIC</text>
+<rect x="630" y="1085" width="378" height="52" rx="26" fill="#8B5CF618" stroke="#8B5CF6" stroke-width="2" opacity="1"/><text x="819" y="1120" fill="#8B5CF6" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="middle" letter-spacing="0">NO LLM REQUIRED</text>
+</svg>

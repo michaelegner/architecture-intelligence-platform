@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+<defs>
+<linearGradient id="logoGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#38BDF8"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+<linearGradient id="logoGradient2" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2563EB"/><stop offset="1" stop-color="#4F46E5"/></linearGradient>
+<radialGradient id="halo"><stop stop-color="#2DD4BF" stop-opacity=".16"/><stop offset="1" stop-color="#2DD4BF" stop-opacity="0"/></radialGradient>
+<pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.4" fill="#31415D" opacity=".5"/></pattern>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#38BDF8"/></marker>
+</defs>
+<rect width="1080" height="1350" fill="#0B1020"/>
+<rect width="1080" height="1350" fill="url(#grid)"/>
+<ellipse cx="920" cy="170" rx="330" ry="330" fill="url(#halo)"/>
+<polygon points="72,99 95,62 110,83" fill="url(#logoGradient)"/><polygon points="98,99 116,72 136,99" fill="url(#logoGradient2)"/>
+<text x="150" y="102" fill="#F8FAFC" font-family="DejaVu Sans" font-size="32" font-weight="700" text-anchor="start" letter-spacing="0">AIP</text>
+<text x="1000" y="98" fill="#38BDF8" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="end" letter-spacing="1">v0.4.0</text>
+<rect x="72" y="132" width="936" height="2" fill="#263653"/>
+<text x="72" y="180" fill="#94A3B8" font-family="DejaVu Sans" font-size="20" font-weight="700" text-anchor="start" letter-spacing="4">THE PROBLEM</text>
+<text x="540" y="1248" fill="#94A3B8" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">github.com/michaelegner/architecture-intelligence-platform</text>
+<rect x="72" y="1280" width="234" height="4" rx="2" fill="#2DD4BF"/>
+<rect x="306" y="1280" width="702" height="4" rx="2" fill="#263653"/>
+<text x="1008" y="1317" fill="#94A3B8" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="end" letter-spacing="0">02</text>
+<text x="72" y="292" fill="#F8FAFC" font-family="DejaVu Sans" font-size="62" font-weight="700" text-anchor="start" letter-spacing="0">AI agents need facts.</text>
+<text x="72" y="368" fill="#2DD4BF" font-family="DejaVu Sans" font-size="62" font-weight="700" text-anchor="start" letter-spacing="0">Not plausible guesses.</text>
+<rect x="72" y="480" width="420" height="470" rx="24" fill="#151A2A" stroke="#334155" stroke-width="2" opacity="1"/>
+<text x="282" y="548" fill="#94A3B8" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" letter-spacing="2">STALE CONTEXT</text>
+<text x="112" y="650" fill="#64748B" font-family="DejaVu Sans" font-size="42" font-weight="700" text-anchor="start" letter-spacing="0">architecture</text>
+<text x="112" y="708" fill="#64748B" font-family="DejaVu Sans Mono" font-size="32" font-weight="400" text-anchor="start" letter-spacing="0">diagram-v12-final</text>
+<path d="M112 790 C190 720 250 850 334 760 S430 820 452 740" fill="none" stroke="#64748B" stroke-width="4" stroke-dasharray="12 12"/>
+<line x1="112" y1="880" x2="452" y2="540" stroke="#FB7185" stroke-width="8" stroke-linecap="round"/>
+<rect x="550" y="480" width="458" height="470" rx="24" fill="#0F2530" stroke="#2DD4BF" stroke-width="2" opacity="1"/>
+<text x="779" y="548" fill="#2DD4BF" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" letter-spacing="2">TRUSTED CONTEXT</text>
+<text x="779" y="650" fill="#F8FAFC" font-family="DejaVu Sans" font-size="32" font-weight="700" text-anchor="middle" letter-spacing="0">Declared + Observed</text>
+<circle cx="665" cy="775" r="34" fill="#38BDF8"/><circle cx="875" cy="775" r="34" fill="#F59E0B"/>
+<line x1="700" y1="775" x2="840" y2="775" stroke="#2DD4BF" stroke-width="6"/>
+<circle cx="770" cy="775" r="48" fill="#16233D" stroke="#2DD4BF" stroke-width="4"/>
+<text x="770" y="791" fill="#2DD4BF" font-family="DejaVu Sans" font-size="46" font-weight="700" text-anchor="middle" letter-spacing="0">✓</text>
+<rect x="628" y="868" width="302" height="52" rx="26" fill="#2DD4BF18" stroke="#2DD4BF" stroke-width="2" opacity="1"/><text x="779" y="903" fill="#2DD4BF" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="middle" letter-spacing="0">EVIDENCE-BACKED</text>
+<text x="540" y="1070" fill="#94A3B8" font-family="DejaVu Sans" font-size="34" font-weight="400" text-anchor="middle" letter-spacing="0">Architecture claims an agent can verify.</text>
+</svg>
