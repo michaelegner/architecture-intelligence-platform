@@ -49,6 +49,31 @@ def test_valid_openapi_document_passes():
     validate_openapi_document(VALID_OPENAPI_DOC, source_file="openapi.yaml")
 
 
+def test_openapi_local_ref_decodes_json_pointer_tokens_in_order():
+    doc = {
+        "openapi": "3.1.0",
+        "info": {"title": "X"},
+        "paths": {
+            "/x": {
+                "get": {
+                    "responses": {
+                        "200": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/a~01~1b"}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "components": {"schemas": {"a~1/b": {"type": "object"}}},
+    }
+
+    validate_openapi_document(doc, source_file="openapi.yaml")
+
+
 def test_openapi_missing_required_field_raises():
     with pytest.raises(SourceValidationError):
         validate_openapi_document({"openapi": "3.1.0", "paths": {}}, source_file="openapi.yaml")
@@ -104,6 +129,17 @@ def test_openapi_external_ref_rejected():
 
 def test_valid_asyncapi_document_passes():
     validate_asyncapi_document(VALID_ASYNCAPI_DOC, source_file="asyncapi.yaml")
+
+
+def test_asyncapi_local_ref_decodes_json_pointer_tokens():
+    doc = {
+        "asyncapi": "2.6.0",
+        "info": {"title": "X"},
+        "channels": {"x-q": {"publish": {"message": {"$ref": "#/components/messages/m~1n~0o"}}}},
+        "components": {"messages": {"m/n~o": {"name": "X"}}},
+    }
+
+    validate_asyncapi_document(doc, source_file="asyncapi.yaml")
 
 
 def test_asyncapi_missing_required_field_raises():
