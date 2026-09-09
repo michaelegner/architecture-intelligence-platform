@@ -10,9 +10,9 @@ evidence drill-down resolves their provenance at the same graph snapshot.
 
 ![Architecture Intelligence Platform v0.4.0 — trusted architecture context for agents: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture graph, exposed to AI coding agents through three read-only MCP tools — get_service_dependencies, get_architecture_drift and get_evidence.](images/aip-hero-v0.4.png)
 
-**[Five-Minute Demo](#see-it-in-five-minutes) · [MCP Tools](#mcp-tools) ·
-[How AIP Works](#how-aip-works) · [Evaluation](#evaluation) · [Boundaries](#boundaries) ·
-[Documentation](#documentation) · [Research Landscape](docs/landscape.md)**
+**[Five-Minute Demo](#see-it-in-five-minutes) · [Video Walkthrough](https://www.linkedin.com/feed/update/urn:li:activity:7503338966553882625/) ·
+[MCP Tools](#mcp-tools) · [How AIP Works](#how-aip-works) · [Evaluation](#evaluation) ·
+[Boundaries](#boundaries) · [Documentation](#documentation) · [Research Landscape](docs/landscape.md)**
 
 ## See It in Five Minutes
 
