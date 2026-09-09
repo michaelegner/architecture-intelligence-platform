@@ -808,7 +808,10 @@
             "type": "null"
           },
           "tool": {
-            "const": "get_service_dependencies"
+            "enum": [
+              "get_architecture_drift",
+              "get_service_dependencies"
+            ]
           }
         },
         "required": [
@@ -936,7 +939,8 @@
     "tool": {
       "enum": [
         "get_service_dependencies",
-        "get_evidence"
+        "get_evidence",
+        "get_architecture_drift"
       ],
       "title": "Tool",
       "type": "string"

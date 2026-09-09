@@ -241,36 +241,3 @@ async def test_unexpected_validation_error_from_service_is_sanitized_not_leaked(
             text = result["content"][0]["text"]
             assert "sk-internal-secret-do-not-leak" not in text
             assert text == "Error executing tool get_service_dependencies"
-
-
-@pytest.mark.asyncio
-async def test_get_evidence_still_not_implemented() -> None:
-    service = _FakeService()
-    server = MCPServer(name="test", version="0.4.0")
-    register_tools(server, get_service=lambda: service)
-    app = build_mcp_app(
-        allowed_origins=[_ALLOWED_ORIGIN], allowed_hosts=[_ALLOWED_HOST], server=server
-    )
-    async with mcp_session_manager_lifespan(server):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
-            body = {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "tools/call",
-                "params": {
-                    "name": "get_evidence",
-                    "arguments": {
-                        "request": {
-                            "evidence_refs": ["x"],
-                            "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
-                        }
-                    },
-                    "_meta": _meta(),
-                },
-            }
-            response = await client.post("/mcp", headers=_headers(name="get_evidence"), json=body)
-            result = response.json()["result"]
-            assert result["isError"] is True
-            assert "not yet implemented" in result["content"][0]["text"]
-            assert service.call_count == 0

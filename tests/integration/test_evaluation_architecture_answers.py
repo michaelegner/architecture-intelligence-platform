@@ -16,7 +16,7 @@ from evaluation.architecture_answers.loader import (
     load_scenario,
 )
 from evaluation.architecture_answers.model import ScenarioValidationError
-from evaluation.architecture_answers.reporter import exit_code
+from evaluation.architecture_answers.reporter import build_report, exit_code
 from evaluation.architecture_answers.runner import run_suite
 
 # Deliberately relative to the current working directory, matching evaluation/__main__.py's own
@@ -29,7 +29,10 @@ DATABASE = "neo4j"
 
 def test_every_bundled_scenario_passes_with_identical_two_pass_output(driver):
     scenarios = [load_scenario(p) for p in discover_scenarios(SCENARIOS_DIR)]
-    assert len(scenarios) >= 8  # spec §23's required semantic anchors, not a duplicate test matrix
+    # I3 spec §51's budget (8 unchanged dependency + 6-9 drift + 2-3 evidence + 2 real-system-
+    # derived source profiles, non-normative): not a duplicate test matrix, just proof the suite
+    # wasn't accidentally trimmed back down to its I1 size.
+    assert len(scenarios) >= 20
 
     result = run_suite(driver, scenarios)
 
@@ -42,6 +45,15 @@ def test_every_bundled_scenario_passes_with_identical_two_pass_output(driver):
             report.missing_claim_ids,
         )
     assert exit_code(result) == 0
+    # I3 spec §33.1/§33.3: live cross-tool invariants over the full suite's real answers.
+    assert result.cross_tool_invariant_failures == ()
+    # I3 spec §37/§38/§61: both frozen real-system-derived scenario groups are present and PASS.
+    report = build_report(result)
+    assert {row["system"]: row["status"] for row in report["real_system_qualification"]} == {
+        "quarkus-super-heroes": "PASS",
+        "apache-airflow": "PASS",
+    }
+    assert report["cross_tool_invariants"]["service_to_mcp"]["covered_drift_scenarios"] >= 6
 
 
 def test_a_wrong_expected_qualification_is_caught_as_a_field_mismatch(tmp_path, driver):
@@ -84,9 +96,10 @@ def test_a_forged_expected_claim_id_is_caught_as_missing_and_unexpected(tmp_path
 
 
 def test_a_wrong_expected_tool_is_caught_at_load_time(tmp_path):
-    """v0.4.0 I2.1 tightened `tool` to a closed `Literal["get_service_dependencies",
-    "get_evidence"]` - an invalid value now fails Pydantic validation at load time, before ever
-    reaching the comparator. Stronger than the field-mismatch catch this test used to rely on."""
+    """v0.4.0 I2.1 tightened `tool` to a closed three-way `Literal` (I3.3 added
+    `get_architecture_drift` alongside `get_service_dependencies`/`get_evidence`) - an invalid
+    value now fails Pydantic validation at load time, before ever reaching the comparator. Stronger
+    than the field-mismatch catch this test used to rely on."""
     broken_dir = tmp_path / "sync-confirmed"
     shutil.copytree(SCENARIOS_DIR / "sync-confirmed", broken_dir)
     expected_path = broken_dir / EXPECTED_ANSWER_FILENAME

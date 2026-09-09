@@ -1,0 +1,14 @@
+scenario: drift-observed-only
+description: >
+  I3 spec section 27.1. Reuses observed-only-undeclared's exact input (order-service sends to
+  reporting-q with no declared SENDS relation anywhere, only observed evidence) - the one supported
+  direct dependency is OBSERVED_ONLY, so it is the entire drift answer.
+
+request:
+  tool: get_architecture_drift
+  service_id: service:order-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

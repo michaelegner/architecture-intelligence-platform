@@ -1,4 +1,4 @@
-"""Regenerate the frozen v0.4 ArchitectureAnswer JSON Schemas.
+"""Regenerate the frozen v0.4 ArchitectureAnswer JSON Schemas (all three since I3.1).
 
     uv run python -m app.architecture_intelligence.schema_export
 
@@ -15,6 +15,7 @@ from typing import Any
 
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
+    ArchitectureDriftData,
     EvidenceData,
     ServiceDependenciesData,
 )
@@ -24,6 +25,7 @@ _SCHEMA_DIR = (
 )
 DEPENDENCIES_SCHEMA_PATH = _SCHEMA_DIR / "architecture-answer.schema.json"
 EVIDENCE_SCHEMA_PATH = _SCHEMA_DIR / "evidence-answer.schema.json"
+DRIFT_SCHEMA_PATH = _SCHEMA_DIR / "drift-answer.schema.json"
 
 
 def generate_dependencies_schema() -> dict[str, Any]:
@@ -34,6 +36,10 @@ def generate_evidence_schema() -> dict[str, Any]:
     return ArchitectureAnswer[EvidenceData].model_json_schema()
 
 
+def generate_drift_schema() -> dict[str, Any]:
+    return ArchitectureAnswer[ArchitectureDriftData].model_json_schema()
+
+
 def render_dependencies_schema() -> str:
     return json.dumps(generate_dependencies_schema(), indent=2, sort_keys=True) + "\n"
 
@@ -42,10 +48,15 @@ def render_evidence_schema() -> str:
     return json.dumps(generate_evidence_schema(), indent=2, sort_keys=True) + "\n"
 
 
+def render_drift_schema() -> str:
+    return json.dumps(generate_drift_schema(), indent=2, sort_keys=True) + "\n"
+
+
 def main() -> None:
     _SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
     DEPENDENCIES_SCHEMA_PATH.write_text(render_dependencies_schema())
     EVIDENCE_SCHEMA_PATH.write_text(render_evidence_schema())
+    DRIFT_SCHEMA_PATH.write_text(render_drift_schema())
 
 
 if __name__ == "__main__":

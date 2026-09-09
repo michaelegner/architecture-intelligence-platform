@@ -348,6 +348,19 @@ class ServiceDependenciesData(BaseModel):
     dependency_claim_ids: list[str]
 
 
+class ArchitectureDriftData(BaseModel):
+    """v0.4.0 I3.1 - spec §10. Deliberately only the service and the drift claim ids: no
+    `observed_only[]`/`not_observed[]` buckets, no `severity`/`score`/`summary_text` (spec §10 names
+    each of those as prohibited), because every returned `DependencyClaim` already carries the
+    authoritative `qualification` that made it drift. The claims themselves stay on the enclosing
+    `ArchitectureAnswer.claims` - this data payload only names them, in the same order."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    service: EntityRef
+    drift_claim_ids: list[str]
+
+
 class SupportedFact(BaseModel):
     """v0.4.0 I2.1 - spec §11.2: one existing canonical relation fact an evidence record supports.
     Not a generic graph record and not a new architecture claim - only the 3 bounded fields."""
@@ -490,6 +503,16 @@ def _claim_sort_key(claim: DependencyClaim) -> tuple[str, str, str, str]:
 _TOOL_NAME_BY_DATA_TYPE = {
     "ServiceDependenciesData": "get_service_dependencies",
     "EvidenceData": "get_evidence",
+    "ArchitectureDriftData": "get_architecture_drift",
+}
+
+# v0.4.0 I3.1 - the two claim-carrying data types name their claims under different field names, but
+# both fields carry the identical spec §11 invariant: the id list is a projection of `claims`, never
+# an independent list that could disagree with it. Keyed by type so the envelope check stays one
+# branch rather than one copy per specialization.
+_CLAIM_ID_FIELD_BY_DATA_TYPE: dict[type[BaseModel], str] = {
+    ServiceDependenciesData: "dependency_claim_ids",
+    ArchitectureDriftData: "drift_claim_ids",
 }
 
 
@@ -516,7 +539,7 @@ def _architecture_answer_schema_extra(schema: dict, model: type[BaseModel]) -> N
             "if": {
                 "properties": {
                     "observation_context": {"type": "null"},
-                    "tool": {"const": "get_service_dependencies"},
+                    "tool": {"enum": sorted(_TOOLS_REQUIRING_OBSERVATION_CONTEXT)},
                 },
                 "required": ["observation_context", "tool"],
             },
@@ -555,12 +578,16 @@ def _architecture_answer_schema_extra(schema: dict, model: type[BaseModel]) -> N
     schema["allOf"] = all_of
 
 
-# v0.4.0 I2.1 - spec §3/§14's first sanctioned extension point: only `get_service_dependencies`
-# requires a non-null `observation_context` (or an explicit OBSERVATION_CONTEXT_REQUIRED
+# v0.4.0 I2.1 - spec §3/§14's first sanctioned extension point: only the runtime-context-sensitive
+# tools require a non-null `observation_context` (or an explicit OBSERVATION_CONTEXT_REQUIRED
 # limitation); `get_evidence`'s `observation_context` is always null (spec §12) regardless of
 # outcome, including outcomes where `data` is also null - `tool`, not `data`'s type, is the only
 # discriminator that's always present to key off.
-_TOOLS_REQUIRING_OBSERVATION_CONTEXT = frozenset({"get_service_dependencies"})
+# v0.4.0 I3.1 - `get_architecture_drift` joins it (I3 spec §11): drift is a view of an answer that
+# is itself qualified against one explicit environment/window, so it inherits the same requirement.
+_TOOLS_REQUIRING_OBSERVATION_CONTEXT = frozenset(
+    {"get_service_dependencies", "get_architecture_drift"}
+)
 
 
 class ArchitectureAnswer[T: BaseModel](BaseModel):
@@ -570,7 +597,7 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
 
     schema_version: Literal["0.4"]
     producer: Producer
-    tool: Literal["get_service_dependencies", "get_evidence"]
+    tool: Literal["get_service_dependencies", "get_evidence", "get_architecture_drift"]
     outcome: Outcome
     snapshot: SnapshotRef | None
     observation_context: ObservationContextRef | None
@@ -626,11 +653,12 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
                 "evidence_refs and resolution_evidence_refs"
             )
 
-        if isinstance(self.data, ServiceDependenciesData):
+        claim_id_field = _CLAIM_ID_FIELD_BY_DATA_TYPE.get(type(self.data))
+        if claim_id_field is not None:
             expected_claim_ids = [claim.claim_id for claim in self.claims]
-            if self.data.dependency_claim_ids != expected_claim_ids:
+            if getattr(self.data, claim_id_field) != expected_claim_ids:
                 raise ValueError(
-                    "data.dependency_claim_ids must equal claims[*].claim_id in the same order"
+                    f"data.{claim_id_field} must equal claims[*].claim_id in the same order"
                 )
 
         claim_sort_keys = [_claim_sort_key(claim) for claim in self.claims]

@@ -78,7 +78,8 @@ def _ref_resolves(ref: str, document: dict) -> bool:
     node: object = document
     try:
         for part in ref.lstrip("#/").split("/"):
-            node = node[part]  # type: ignore[index]
+            token = part.replace("~1", "/").replace("~0", "~")
+            node = node[token]  # type: ignore[index]
     except (KeyError, TypeError, IndexError):
         return False
     return True

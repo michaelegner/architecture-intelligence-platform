@@ -1,0 +1,50 @@
+{
+  "schema_version": "0.4",
+  "producer": {
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0",
+    "build_revision": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567"
+  },
+  "tool": "get_evidence",
+  "outcome": "PARTIAL",
+  "snapshot": {
+    "snapshot_id": "aip:snapshot:v1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "model_revision": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "observation_context": null,
+  "data": {
+    "requested_evidence_refs": [
+      "evidence:declared:manifest:order-service",
+      "evidence:declared:missing-one"
+    ],
+    "records": [
+      {
+        "id": "evidence:declared:manifest:order-service",
+        "evidence_type": "DECLARED",
+        "source_type": "MANIFEST",
+        "source_locator": "architecture.yaml",
+        "source_revision": null,
+        "observation": null,
+        "supports": [
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:order-service",
+            "target_id": "operation:service:product-service:GET:/products/{id}"
+          }
+        ]
+      }
+    ],
+    "missing_evidence_refs": [
+      "evidence:declared:missing-one"
+    ]
+  },
+  "claims": [],
+  "evidence_refs": [],
+  "limitations": [
+    {
+      "code": "INSUFFICIENT_EVIDENCE",
+      "message": "1 of 2 requested evidence refs could not be resolved",
+      "claim_ids": []
+    }
+  ]
+}

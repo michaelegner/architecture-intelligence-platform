@@ -4,6 +4,6 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir "opentelemetry-proto>=1.44.0"
 
-COPY traffic_generator.py .
+COPY traffic_generator.py seed_frozen_evidence.py .
 
 CMD ["python", "traffic_generator.py"]

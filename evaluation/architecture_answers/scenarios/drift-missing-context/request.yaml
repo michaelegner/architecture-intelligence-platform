@@ -1,0 +1,10 @@
+scenario: drift-missing-context
+description: >
+  I3 spec section 27.8. Reuses empty-service's exact input (product-service, known) but omits
+  observation entirely -> NOT_ANSWERED / OBSERVATION_CONTEXT_REQUIRED, observation_context = null.
+  This refusal is decided before the unknown-service check (spec section 14/section 18.6), so the
+  service being known and otherwise-empty is irrelevant to the outcome.
+
+request:
+  tool: get_architecture_drift
+  service_id: service:product-service

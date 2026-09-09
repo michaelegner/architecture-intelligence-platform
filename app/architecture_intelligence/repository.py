@@ -227,6 +227,60 @@ def _referenced_evidence_ids(*row_groups: list[dict]) -> list[str]:
     return sorted({eid for rows in row_groups for row in rows for eid in row["evidence_ids"]})
 
 
+# --- I2.3: request-scoped evidence-lookup read (spec §11/§13) -----------------------------------
+#
+# Deliberately excludes `sample_trace_ids` - spec §11.2 explicitly keeps it out of the public
+# `EvidenceRecord` contract, unlike `_EVIDENCE_QUERY` above which selects it for internal
+# fingerprinting only. Passed as this call's `read_extra` (see service.py), so it runs inside the
+# same stable-read attempt - and therefore observes the same committed state - as the fingerprinted
+# state used to compute snapshot_id/model_revision (spec §13).
+
+_EVIDENCE_BY_ID_QUERY = (
+    "MATCH (e:Evidence) WHERE e.id IN $evidence_ids "
+    "RETURN e.id AS id, e.source_type AS source_type, e.source_file AS source_file, "
+    "e.source_revision AS source_revision, e.evidence_type AS evidence_type, "
+    "e.environment AS environment, e.bucket_start AS bucket_start, e.bucket_end AS bucket_end, "
+    "e.first_seen AS first_seen, e.last_seen AS last_seen, "
+    "e.observation_count AS observation_count, e.service_version AS service_version, "
+    "e.correlation_mode AS correlation_mode"
+)
+# Restricted to the 7 canonical relation kinds `EvidenceRelationType` closes over (spec §11.2) -
+# REQUEST_SCHEMA/RESPONSE_SCHEMA also carry evidence_ids but describe Operation->Schema payload
+# wiring, not a "supported fact" this contract exposes; excluding them here (rather than filtering
+# in Python) keeps the query itself the single source of truth for what counts as a supporting
+# relation.
+_SUPPORTING_RELATIONS_QUERY = (
+    "MATCH (a)-[r:PROVIDES|CALLS|SENDS|RECEIVES_FROM|CARRIES|CONFORMS_TO|DEAD_LETTERS_TO]->(b) "
+    "WHERE any(eid IN coalesce(r.evidence_ids, []) WHERE eid IN $evidence_ids) "
+    "RETURN type(r) AS type, a.id AS source_id, b.id AS target_id, "
+    "coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+
+_EVIDENCE_DATETIME_FIELDS = frozenset({"bucket_start", "bucket_end", "first_seen", "last_seen"})
+
+
+def read_evidence_rows(session: neo4j.Session, *, evidence_ids: list[str]) -> dict:
+    """The raw rows `evidence_projection.project_evidence` needs to resolve `evidence_ids` into
+    `EvidenceRecord`s (spec §11.2): the requested `Evidence` nodes' full public field set, and every
+    relation supported by at least one of the requested ids (for `EvidenceRecord.supports`).
+    `evidence` is keyed by id so a requested id absent from it is reported as missing by the caller
+    - this function only reports raw presence/absence, never decides the public outcome."""
+    evidence = {}
+    for record in session.run(_EVIDENCE_BY_ID_QUERY, evidence_ids=evidence_ids):
+        row = dict(record)
+        for field in _EVIDENCE_DATETIME_FIELDS:
+            if row.get(field) is not None:
+                row[field] = row[field].to_native()
+        evidence[row["id"]] = row
+
+    relations = [
+        dict(record)
+        for record in session.run(_SUPPORTING_RELATIONS_QUERY, evidence_ids=evidence_ids)
+    ]
+
+    return {"evidence": evidence, "relations": relations}
+
+
 def read_service_dependency_rows(
     session: neo4j.Session,
     *,

@@ -1,0 +1,30 @@
+{
+  "claims": [],
+  "data": null,
+  "evidence_refs": [],
+  "limitations": [
+    {
+      "claim_ids": [],
+      "code": "SNAPSHOT_NOT_AVAILABLE",
+      "message": "requested snapshot aip:snapshot:v1:0000000000000000000000000000000000000000000000000000000000000000 is not the current stable snapshot"
+    }
+  ],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:f167a92590d91af550e6b587c2f2151ad0924331d44f18776b11507ef7d2601f",
+    "environment": "test",
+    "window_end": "2026-08-27T00:00:00.000000Z",
+    "window_start": "2026-08-26T00:00:00.000000Z"
+  },
+  "outcome": "NOT_ANSWERED",
+  "producer": {
+    "build_revision": "0000000000000000000000000000000000000000",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.0"
+  },
+  "schema_version": "0.4",
+  "snapshot": {
+    "model_revision": "sha256:f9f6b2c24ec394f8285d28fd0bed309bb1f568d3ea165da2433be9439eb2ef9b",
+    "snapshot_id": "aip:snapshot:v1:f9f6b2c24ec394f8285d28fd0bed309bb1f568d3ea165da2433be9439eb2ef9b"
+  },
+  "tool": "get_architecture_drift"
+}

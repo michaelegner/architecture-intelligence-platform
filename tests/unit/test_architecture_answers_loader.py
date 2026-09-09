@@ -138,3 +138,166 @@ def test_load_scenarios_loads_every_discovered_scenario(tmp_path):
     _write_scenario(tmp_path)
     scenarios = loader.load_scenarios(tmp_path)
     assert [s.id for s in scenarios] == ["empty-service"]
+
+
+# --- I3.3: tool-aware request.yaml (spec §29/§31) -------------------------------------------------
+
+_MINIMAL_DRIFT_ANSWER = {
+    **_MINIMAL_ANSWERED_ANSWER,
+    "tool": "get_architecture_drift",
+    "data": {
+        "service": {"id": "service:product-service", "type": "SERVICE", "name": "ProductService"},
+        "drift_claim_ids": [],
+    },
+}
+
+_MINIMAL_EVIDENCE_ANSWER = {
+    **_MINIMAL_ANSWERED_ANSWER,
+    "tool": "get_evidence",
+    "outcome": "NOT_ANSWERED",
+    "observation_context": None,
+    "data": {
+        "requested_evidence_refs": ["evidence:manifest:order-service"],
+        "records": [],
+        "missing_evidence_refs": ["evidence:manifest:order-service"],
+    },
+    "limitations": [
+        {
+            "code": "INSUFFICIENT_EVIDENCE",
+            "message": "1 of 1 requested evidence refs could not be resolved",
+            "claim_ids": [],
+        }
+    ],
+}
+
+_DRIFT_REQUEST_YAML = """\
+scenario: drift-empty-service
+description: minimal drift scenario
+request:
+  tool: get_architecture_drift
+  service_id: service:product-service
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"
+"""
+
+_EVIDENCE_REQUEST_YAML = """\
+scenario: evidence-scenario
+description: minimal evidence scenario
+request:
+  tool: get_evidence
+  evidence_refs:
+    - "evidence:manifest:order-service"
+  snapshot_id: "aip:snapshot:v1:{}"
+""".format("a" * 64)
+
+
+def _write_named_scenario(tmp_path, *, name, request_yaml, expected_answer):
+    scenario_dir = tmp_path / name
+    scenario_dir.mkdir()
+    (scenario_dir / loader.REQUEST_FILENAME).write_text(request_yaml)
+    (scenario_dir / loader.EXPECTED_ANSWER_FILENAME).write_text(json.dumps(expected_answer))
+    return scenario_dir
+
+
+def test_a_request_with_no_tool_key_defaults_to_get_service_dependencies(tmp_path):
+    scenario_dir = _write_scenario(tmp_path)
+    scenario = loader.load_scenario(scenario_dir)
+    assert scenario.request.tool == "get_service_dependencies"
+
+
+def test_load_scenario_loads_a_drift_tool_scenario(tmp_path):
+    scenario_dir = _write_named_scenario(
+        tmp_path,
+        name="drift-empty-service",
+        request_yaml=_DRIFT_REQUEST_YAML,
+        expected_answer=_MINIMAL_DRIFT_ANSWER,
+    )
+    scenario = loader.load_scenario(scenario_dir)
+    assert scenario.request.tool == "get_architecture_drift"
+    assert scenario.request.service_id == "service:product-service"
+    assert scenario.expected.tool == "get_architecture_drift"
+
+
+def test_load_scenario_loads_an_evidence_tool_scenario(tmp_path):
+    scenario_dir = _write_named_scenario(
+        tmp_path,
+        name="evidence-scenario",
+        request_yaml=_EVIDENCE_REQUEST_YAML,
+        expected_answer=_MINIMAL_EVIDENCE_ANSWER,
+    )
+    scenario = loader.load_scenario(scenario_dir)
+    assert scenario.request.tool == "get_evidence"
+    assert scenario.request.evidence_refs == ("evidence:manifest:order-service",)
+    assert scenario.request.snapshot_id == "aip:snapshot:v1:" + "a" * 64
+    assert scenario.expected.tool == "get_evidence"
+
+
+def test_load_scenario_rejects_an_unknown_tool_name(tmp_path):
+    bad_yaml = _DRIFT_REQUEST_YAML.replace(
+        "tool: get_architecture_drift", "tool: get_something_else"
+    )
+    scenario_dir = _write_named_scenario(
+        tmp_path, name="bad-tool", request_yaml=bad_yaml, expected_answer=_MINIMAL_DRIFT_ANSWER
+    )
+    with pytest.raises(ScenarioValidationError):
+        loader.load_scenario(scenario_dir)
+
+
+def test_load_scenario_rejects_an_evidence_request_with_an_observation_key(tmp_path):
+    bad_yaml = _EVIDENCE_REQUEST_YAML + "  observation:\n    environment: test\n"
+    scenario_dir = _write_named_scenario(
+        tmp_path,
+        name="evidence-scenario",
+        request_yaml=bad_yaml,
+        expected_answer=_MINIMAL_EVIDENCE_ANSWER,
+    )
+    with pytest.raises(ScenarioValidationError):
+        loader.load_scenario(scenario_dir)
+
+
+def test_load_scenario_rejects_an_evidence_request_missing_snapshot_id(tmp_path):
+    bad_yaml = "\n".join(
+        line for line in _EVIDENCE_REQUEST_YAML.splitlines() if not line.startswith("  snapshot_id")
+    )
+    scenario_dir = _write_named_scenario(
+        tmp_path,
+        name="evidence-scenario",
+        request_yaml=bad_yaml,
+        expected_answer=_MINIMAL_EVIDENCE_ANSWER,
+    )
+    with pytest.raises(ScenarioValidationError):
+        loader.load_scenario(scenario_dir)
+
+
+def test_load_scenario_rejects_an_evidence_request_with_no_evidence_refs(tmp_path):
+    bad_yaml = _EVIDENCE_REQUEST_YAML.replace(
+        '  evidence_refs:\n    - "evidence:manifest:order-service"\n', "  evidence_refs: []\n"
+    )
+    scenario_dir = _write_named_scenario(
+        tmp_path,
+        name="evidence-scenario",
+        request_yaml=bad_yaml,
+        expected_answer=_MINIMAL_EVIDENCE_ANSWER,
+    )
+    with pytest.raises(ScenarioValidationError):
+        loader.load_scenario(scenario_dir)
+
+
+def test_load_scenario_rejects_a_drift_request_whose_expected_answer_names_a_different_tool(
+    tmp_path,
+):
+    """A `request.tool` naming one tool while `expected_answer.json`'s own `"tool"` field names
+    another must fail - the runtime tool-const check on the specialization the loader picked to
+    validate against catches this automatically (no separate cross-check needed)."""
+    mismatched_answer = {**_MINIMAL_DRIFT_ANSWER, "tool": "get_service_dependencies"}
+    scenario_dir = _write_named_scenario(
+        tmp_path,
+        name="drift-empty-service",
+        request_yaml=_DRIFT_REQUEST_YAML,
+        expected_answer=mismatched_answer,
+    )
+    with pytest.raises(ScenarioValidationError):
+        loader.load_scenario(scenario_dir)

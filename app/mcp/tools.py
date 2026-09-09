@@ -1,8 +1,12 @@
-"""v0.4.0 I2.1/I2.2 - registers the two I2 tools for discovery (spec §9, §19's "deterministic
-two-tool discovery") and gives `get_service_dependencies` its real dispatch body (spec §10).
+"""v0.4.0 I2.1/I2.2/I2.3 - registers the two I2 tools for discovery (spec §9, §19's "deterministic
+two-tool discovery") and gives both `get_service_dependencies` and `get_evidence` their real
+dispatch bodies (spec §10, §11).
 
-`get_evidence` still raises `ToolError` here: discoverable via `tools/list`, not yet callable -
-its service logic lands in I2.3. Do not add real dispatch logic for it here.
+v0.4.0 I3.2 adds a third tool, `get_architecture_drift` (I3 spec §23), registered first so
+`tools/list`'s now-three-tool discovery stays lexicographic (I3 spec §24). Its `ArchitectureDriftRequest`
+carries the identical `observation_context` shape `ServiceDependenciesRequest` does (I3.1 pinned
+this field-validation equivalence), so the pre-dispatch context check below is factored into
+`_reject_malformed_observation_context` and shared by both tools rather than duplicated.
 
 `register_tools` takes an explicit `MCPServer` rather than registering directly against the
 module-level singleton, so tests can build an isolated server (and session manager) per test instead
@@ -39,11 +43,17 @@ from mcp.types import ToolAnnotations
 
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
+    ArchitectureDriftData,
     EvidenceData,
     ServiceDependenciesData,
 )
 from app.architecture_intelligence.observation_context import build_observation_context_ref
-from app.architecture_intelligence.request import EvidenceRequest, ServiceDependenciesRequest
+from app.architecture_intelligence.request import (
+    ArchitectureDriftRequest,
+    EvidenceRequest,
+    ObservationContextInput,
+    ServiceDependenciesRequest,
+)
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.mcp import wiring
 
@@ -61,10 +71,32 @@ def register_tools(
     get_service: Callable[[], ArchitectureIntelligenceService] = wiring.get_service,
 ) -> None:
     """Registration order IS `tools/list` order - confirmed live that the SDK reports tools in
-    registration order, not sorted. Spec §9 requires exactly `get_evidence`,
-    `get_service_dependencies` (lexicographic) - `get_evidence` is registered first for that
-    reason. Do not reorder without re-checking tests/unit/test_mcp_discovery.py's exact-order
-    assertion."""
+    registration order, not sorted. I3 spec §24 requires exactly `get_architecture_drift`,
+    `get_evidence`, `get_service_dependencies` (lexicographic) - registered in that order below. Do
+    not reorder without re-checking tests/unit/test_mcp_discovery.py's exact-order assertion."""
+
+    @server.tool(
+        name="get_architecture_drift",
+        description=(
+            "Direct service dependencies whose current evidence qualification shows a "
+            "declared-versus-observed discrepancy, bound to the same stable snapshot."
+        ),
+        annotations=_READ_ONLY_ANNOTATIONS,
+    )
+    def get_architecture_drift(
+        request: ArchitectureDriftRequest,
+    ) -> ArchitectureAnswer[ArchitectureDriftData]:
+        """I3 spec §23: constructs no new semantics - calls
+        `ArchitectureIntelligenceService.get_architecture_drift` exactly once and returns its answer
+        unchanged as `structuredContent`. Follows the exact same input-error-mapping split as
+        `get_service_dependencies` below (I3 spec §46): only the caller's own `observation_context`
+        *values* are pre-validated here, via the shared `_reject_malformed_observation_context`;
+        every other outcome, including any refusal, is a normal returned `ArchitectureAnswer`, and
+        any unexpected internal/driver failure falls through uncaught into the same SDK sanitization
+        `get_service_dependencies` relies on.
+        """
+        _reject_malformed_observation_context(request.observation_context)
+        return get_service().get_architecture_drift(request)
 
     @server.tool(
         name="get_evidence",
@@ -75,7 +107,16 @@ def register_tools(
         annotations=_READ_ONLY_ANNOTATIONS,
     )
     def get_evidence(request: EvidenceRequest) -> ArchitectureAnswer[EvidenceData]:
-        raise ToolError("get_evidence is not yet implemented (lands in I2.3)")
+        """Spec §11: constructs no new semantics - calls
+        `ArchitectureIntelligenceService.get_evidence` exactly once and returns its answer
+        unchanged as `structuredContent`. Unlike `get_service_dependencies`, `EvidenceRequest` has
+        no observation-context values to pre-validate before dispatch - `evidence_refs`/
+        `snapshot_id` are already fully validated by the closed `inputSchema`/Pydantic model before
+        this body runs, so there is nothing left to check here. Any unexpected internal/driver
+        failure still falls through uncaught into the SDK's own generic sanitization, same as
+        `get_service_dependencies` below.
+        """
+        return get_service().get_evidence(request)
 
     @server.tool(
         name="get_service_dependencies",
@@ -94,8 +135,9 @@ def register_tools(
         value is used directly, not wrapped).
 
         A supplied `observation_context`'s *values* (bad offset, reversed/excessive window, invalid
-        environment) are pre-validated here, before dispatch, by calling the exact same
-        `build_observation_context_ref` helper the service itself calls internally - not a
+        environment) are pre-validated here, before dispatch, by the shared
+        `_reject_malformed_observation_context` helper, which calls the exact same
+        `build_observation_context_ref` the service itself calls internally - not a
         reimplementation, the same pure function, called once more for its side-effect-free
         `pydantic.ValidationError`. This is deliberate, not redundant: a first review round of this
         file caught that catching `pydantic.ValidationError` broadly *around the service call*
@@ -127,19 +169,26 @@ def register_tools(
         already gives `isError: false` for those, satisfying spec §10 rule 5 with no code needed
         here.
         """
-        context = request.observation_context
-        if context is not None and context.is_complete:
-            try:
-                build_observation_context_ref(
-                    context.environment, context.window_start, context.window_end
-                )
-            except pydantic.ValidationError as exc:
-                raise ToolError(str(exc)) from exc
-
+        _reject_malformed_observation_context(request.observation_context)
         return get_service().get_service_dependencies(request)
 
-    for tool_name in ("get_evidence", "get_service_dependencies"):
+    for tool_name in ("get_architecture_drift", "get_evidence", "get_service_dependencies"):
         _close_input_schema(server, tool_name)
+
+
+def _reject_malformed_observation_context(context: ObservationContextInput | None) -> None:
+    """Shared by `get_architecture_drift` and `get_service_dependencies` (I3 spec §23/§46): the only
+    two tools whose request carries an `observation_context` to pre-validate. Raises `ToolError` for
+    a malformed *caller-supplied* value (bad offset, reversed/excessive window, invalid environment)
+    - see `get_service_dependencies`'s docstring above for why this must happen before, not around,
+    the service call itself."""
+    if context is not None and context.is_complete:
+        try:
+            build_observation_context_ref(
+                context.environment, context.window_start, context.window_end
+            )
+        except pydantic.ValidationError as exc:
+            raise ToolError(str(exc)) from exc
 
 
 def _close_input_schema(server: MCPServer, tool_name: str) -> None:

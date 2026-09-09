@@ -1,9 +1,14 @@
 """Discovers and validates architecture-answers scenarios.
 
 Ground truth is frozen ahead of time in each scenario's `expected_answer.json` - a literal
-`ArchitectureAnswer`, never computed from a live run (I1.4 review finding #1). `request.yaml` is the
-small, hand-authored input side; its own schema is validated here with the same strictness as
-`evaluation.loader` applies to `expected.yaml`.
+`ArchitectureAnswer`, never computed from a live run (I1.4 review finding #1, restated as I3 spec
+§28's explicit prohibition on generating a drift/evidence expected answer by running another tool
+and filtering/reusing its output). `request.yaml` is the small, hand-authored input side; its own
+schema is validated here with the same strictness as `evaluation.loader` applies to `expected.yaml`.
+
+I3.3 (spec §29/§31) generalizes this to all three tools via an explicit `request.tool` key,
+defaulting to `get_service_dependencies` so every existing I1 `request.yaml` file keeps parsing -
+and keeps meaning - unchanged.
 """
 
 from __future__ import annotations
@@ -16,18 +21,40 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from app.architecture_intelligence.contracts import ArchitectureAnswer, ServiceDependenciesData
-from evaluation.architecture_answers.model import Request, Scenario, ScenarioValidationError
+from app.architecture_intelligence.contracts import (
+    ArchitectureAnswer,
+    ArchitectureDriftData,
+    EvidenceData,
+    ServiceDependenciesData,
+)
+from evaluation.architecture_answers.model import (
+    TOOL_ARCHITECTURE_DRIFT,
+    TOOL_EVIDENCE,
+    TOOL_NAMES,
+    TOOL_SERVICE_DEPENDENCIES,
+    ExpectedAnswer,
+    Request,
+    Scenario,
+    ScenarioValidationError,
+)
 
 REQUEST_FILENAME = "request.yaml"
 EXPECTED_ANSWER_FILENAME = "expected_answer.json"
 
 _TOP_LEVEL_ALLOWED_KEYS = {"scenario", "description", "request"}
-_REQUEST_ALLOWED_KEYS = {"service_id", "observation", "snapshot_id"}
+_DEPENDENCY_SHAPED_REQUEST_ALLOWED_KEYS = {"tool", "service_id", "observation", "snapshot_id"}
+_EVIDENCE_REQUEST_ALLOWED_KEYS = {"tool", "evidence_refs", "snapshot_id"}
 _OBSERVATION_ALLOWED_KEYS = {"environment", "window"}
 _WINDOW_ALLOWED_KEYS = {"start", "end"}
 
-_ANSWER_TYPE = ArchitectureAnswer[ServiceDependenciesData]
+# I3 spec §31's dispatch table: which real ArchitectureAnswer specialization a scenario's
+# `expected_answer.json` validates against, keyed by the same `request.tool` name that picks the
+# runner's own request type/service method (evaluation.architecture_answers.runner._DISPATCH).
+_ANSWER_TYPE_BY_TOOL: dict[str, type] = {
+    TOOL_SERVICE_DEPENDENCIES: ArchitectureAnswer[ServiceDependenciesData],
+    TOOL_ARCHITECTURE_DRIFT: ArchitectureAnswer[ArchitectureDriftData],
+    TOOL_EVIDENCE: ArchitectureAnswer[EvidenceData],
+}
 
 
 def discover_scenarios(scenarios_dir: Path) -> list[Path]:
@@ -79,6 +106,20 @@ def _optional_string(value: Any, *, scenario_id: str, file: Path, field: str) ->
     return _require_string(value, scenario_id=scenario_id, file=file, field=field)
 
 
+def _require_string_list(
+    value: Any, *, scenario_id: str, file: Path, field: str
+) -> tuple[str, ...]:
+    if not isinstance(value, list) or not value or not all(isinstance(v, str) for v in value):
+        raise _error(
+            scenario_id, file, field, f"expected a non-empty list of strings, got {value!r}"
+        )
+    if len(value) > 20:
+        raise _error(scenario_id, file, field, f"at most 20 evidence refs, got {len(value)}")
+    if len(set(value)) != len(value):
+        raise _error(scenario_id, file, field, "evidence_refs must not contain duplicates")
+    return tuple(value)
+
+
 def _parse_timestamp(value: Any, *, scenario_id: str, file: Path, field: str) -> datetime | None:
     if value is None:
         return None
@@ -93,15 +134,15 @@ def _parse_timestamp(value: Any, *, scenario_id: str, file: Path, field: str) ->
     return parsed
 
 
-def _load_request(raw: dict, *, scenario_id: str, file: Path) -> Request:
-    request_raw = _require_mapping(
-        _require(raw, "request", scenario_id=scenario_id, file=file),
+def _load_dependency_shaped_request(
+    request_raw: dict, *, tool: str, scenario_id: str, file: Path
+) -> Request:
+    _reject_unknown_keys(
+        request_raw,
+        _DEPENDENCY_SHAPED_REQUEST_ALLOWED_KEYS,
         scenario_id=scenario_id,
         file=file,
         field="request",
-    )
-    _reject_unknown_keys(
-        request_raw, _REQUEST_ALLOWED_KEYS, scenario_id=scenario_id, file=file, field="request"
     )
     service_id = _require(
         request_raw, "service_id", scenario_id=scenario_id, file=file, prefix="request."
@@ -152,6 +193,7 @@ def _load_request(raw: dict, *, scenario_id: str, file: Path) -> Request:
     )
 
     return Request(
+        tool=tool,
         service_id=service_id,
         environment=environment,
         window_start=_parse_timestamp(
@@ -170,15 +212,68 @@ def _load_request(raw: dict, *, scenario_id: str, file: Path) -> Request:
     )
 
 
-def _load_expected_answer(
-    path: Path, *, scenario_id: str
-) -> ArchitectureAnswer[ServiceDependenciesData]:
+def _load_evidence_request(request_raw: dict, *, scenario_id: str, file: Path) -> Request:
+    _reject_unknown_keys(
+        request_raw,
+        _EVIDENCE_REQUEST_ALLOWED_KEYS,
+        scenario_id=scenario_id,
+        file=file,
+        field="request",
+    )
+    evidence_refs = _require_string_list(
+        _require(
+            request_raw, "evidence_refs", scenario_id=scenario_id, file=file, prefix="request."
+        ),
+        scenario_id=scenario_id,
+        file=file,
+        field="request.evidence_refs",
+    )
+    # get_evidence never defaults to the current snapshot (spec §11.1) - required here too, unlike
+    # the dependency-shaped tools' optional snapshot_id.
+    snapshot_id = _require_string(
+        _require(request_raw, "snapshot_id", scenario_id=scenario_id, file=file, prefix="request."),
+        scenario_id=scenario_id,
+        file=file,
+        field="request.snapshot_id",
+    )
+    return Request(tool=TOOL_EVIDENCE, evidence_refs=evidence_refs, snapshot_id=snapshot_id)
+
+
+def _load_request(raw: dict, *, scenario_id: str, file: Path) -> Request:
+    request_raw = _require_mapping(
+        _require(raw, "request", scenario_id=scenario_id, file=file),
+        scenario_id=scenario_id,
+        file=file,
+        field="request",
+    )
+    tool = _optional_string(
+        request_raw.get("tool"), scenario_id=scenario_id, file=file, field="request.tool"
+    )
+    if tool is None:
+        tool = TOOL_SERVICE_DEPENDENCIES
+    elif tool not in TOOL_NAMES:
+        raise _error(
+            scenario_id,
+            file,
+            "request.tool",
+            f"must be one of {sorted(TOOL_NAMES)}, got {tool!r}",
+        )
+
+    if tool == TOOL_EVIDENCE:
+        return _load_evidence_request(request_raw, scenario_id=scenario_id, file=file)
+    return _load_dependency_shaped_request(
+        request_raw, tool=tool, scenario_id=scenario_id, file=file
+    )
+
+
+def _load_expected_answer(path: Path, *, scenario_id: str, tool: str) -> ExpectedAnswer:
+    answer_type = _ANSWER_TYPE_BY_TOOL[tool]
     try:
         payload = json.loads(path.read_text())
     except (OSError, json.JSONDecodeError) as exc:
         raise _error(scenario_id, path, "<root>", f"could not read/parse: {exc}") from exc
     try:
-        return _ANSWER_TYPE.model_validate(payload)
+        return answer_type.model_validate(payload)
     except ValidationError as exc:
         raise _error(
             scenario_id, path, "<root>", f"does not conform to ArchitectureAnswer: {exc}"
@@ -211,7 +306,9 @@ def load_scenario(path: Path) -> Scenario:
     expected_answer_path = path / EXPECTED_ANSWER_FILENAME
     if not expected_answer_path.is_file():
         raise _error(scenario_id, expected_answer_path, "<root>", "expected_answer.json is missing")
-    expected = _load_expected_answer(expected_answer_path, scenario_id=scenario_id)
+    expected = _load_expected_answer(
+        expected_answer_path, scenario_id=scenario_id, tool=request.tool
+    )
 
     return Scenario(
         id=scenario_id, description=description, request=request, expected=expected, path=path

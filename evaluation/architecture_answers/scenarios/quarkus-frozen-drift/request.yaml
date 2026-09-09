@@ -1,0 +1,14 @@
+scenario: quarkus-frozen-drift
+description: >
+  I3 spec section 37.1. Shares quarkus-frozen-dependencies' derived input (see SOURCE.md) - all
+  three of rest-fights' CALLS are CONFIRMED, so drift is empty: ANSWERED, drift_claim_ids = [],
+  claims = [], limitations = []. The frozen capture records no discrepancy for this service.
+
+request:
+  tool: get_architecture_drift
+  service_id: service:rest-fights
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

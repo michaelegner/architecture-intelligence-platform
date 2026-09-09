@@ -1,0 +1,14 @@
+scenario: airflow-frozen-drift
+description: >
+  I3 spec section 38.1. Shares airflow-frozen-dependencies' derived input (see SOURCE.md) - zero
+  supported outgoing CALLS/SENDS means drift is empty: ANSWERED, drift_claim_ids = [], claims = [],
+  limitations = [].
+
+request:
+  tool: get_architecture_drift
+  service_id: service:airflow-apiserver
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"

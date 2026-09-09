@@ -1,0 +1,14 @@
+scenario: drift-unknown-service
+description: >
+  I3 spec section 27.7. Reuses unknown-service's exact (empty) input - a well-formed but absent
+  service_id against an otherwise-empty graph -> NOT_ANSWERED / UNKNOWN_ENTITY, same as the
+  dependency tool's own refusal.
+
+request:
+  tool: get_architecture_drift
+  service_id: service:does-not-exist
+  observation:
+    environment: test
+    window:
+      start: "2026-08-26T00:00:00Z"
+      end: "2026-08-27T00:00:00Z"
