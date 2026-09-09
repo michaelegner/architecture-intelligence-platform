@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-08_
+_Last reviewed: 2026-09-09_
 
 ## AIP anchor
 
@@ -207,6 +207,40 @@ evidence-backed, qualified architecture knowledge
 derived from declared and observed signals
 ```
 
+### ProvenMap — Architecture Intelligence
+
+**Sources**
+
+- [Why Architecture Intelligence, Not Visualization](https://provenmap.com/blog/why-architecture-intelligence-not-visualization)
+- [ProvenMap Documentation](https://provenmap.com/docs)
+- [ProvenMap Intents](https://provenmap.com/docs/platform-features/intents)
+
+**Core idea**
+
+ProvenMap positions itself as an Architecture Intelligence platform rather than a diagramming tool: AI-assisted development changes systems faster than architects can maintain diagrams by hand, so tooling has to move from "help me illustrate what I know" toward "help me understand what I don't." Its documentation describes real sources populating an architecture model with provenance-carrying relationships, and **Intents** — living specifications of a desired change, anchored to existing architecture, that can come back **verified rather than merely reported**.
+
+**Why this matters to AIP**
+
+This is currently AIP's closest strategic product neighbor:
+
+```text
+ProvenMap
+sources → architecture model → IS / OUGHT → intent → verification
+
+AIP
+evidence → qualified Current State → Architecture Intelligence → trusted context for agents
+```
+
+`IS vs. OUGHT` is a useful reference point for AIP's own future Current State vs. Intent split (Section 4), and `Finding → Intent → implementation → verification` is a plausible model for a future Transformation Lineage.
+
+**AIP distinction**
+
+Having provenance does not by itself answer AIP's sharper epistemic question:
+
+> **What does the available evidence actually entitle us to claim?**
+
+That is what drives AIP's explicit qualification (`CONFIRMED`, `OBSERVED_ONLY`, `NOT_OBSERVED_IN_WINDOW`) and its binding of every answer to an observation context and snapshot — a distinction that survives even where ProvenMap's provenance model overlaps with AIP's own.
+
 ### Logorythm — Architecture Intelligence from Static Analysis
 
 **Source**
@@ -320,6 +354,80 @@ MCP / agent
 ```
 
 An agent must remain downstream of the deterministic architecture model and must not become the source of canonical architectural truth.
+
+### Kin Lane — Agents Should Write Code to Integrate, Not Infer It at Runtime
+
+**Source**
+
+- [Agents Should Write Code to Integrate, Not Infer It at Runtime](https://apievangelist.com/2026/09/01/agents-should-write-code-to-integrate-not-infer/)
+
+**Core idea**
+
+Lane argues for a clear division between probabilistic and deterministic work: an agent is useful for ambiguous tasks like discovering capabilities and deciding what integration to build, but once a contract is understood, repeated production integration should be deterministic, reviewed, and testable — not re-interpreted by an LLM at runtime on every call.
+
+```text
+ambiguity
+   ↓
+inference
+
+known contract + repeated operation
+   ↓
+deterministic implementation
+```
+
+**Why this matters to AIP**
+
+The same rule applies to architecture, and is already implicit in how AIP's MCP tools above are built:
+
+```text
+sources
+   ↓
+deterministic evidence processing
+   ↓
+qualified architecture claims
+   ↓
+agent reasoning
+```
+
+AIP does not expose raw OpenAPI, telemetry, or arbitrary graph access and ask an LLM to infer their architectural meaning on each call — the deterministic architecture layer sits behind MCP, not inside it:
+
+> **Do not spend probabilistic reasoning on facts and relationships that can be established deterministically.**
+
+### UI Atlas — AI Successors
+
+**Sources**
+
+- [UI Atlas — GitHub repository](https://github.com/AI-Successors/ui-atlas)
+- [UI Atlas — architecture documentation](https://github.com/AI-Successors/ui-atlas/blob/main/docs/architecture.md)
+- [Interaction Trace documentation](https://github.com/AI-Successors/ui-atlas/blob/main/docs/interaction-trace.md)
+
+**Core idea**
+
+UI Atlas builds a persistent, evidence-linked representation of desktop software for computer-use agents, transforming raw observations deterministically through four retained layers:
+
+```text
+Raw Data Streams → Raw World → Semantic World → UI Knowledge Graph
+```
+
+Canonical identities deliberately exclude volatile properties (process IDs, window handles, timestamps). Its interaction model only links an observed action to an observed result state — a merely possible UI affordance never receives an invented destination, and failed, timed-out, or no-change interactions remain explicit evidence rather than being discarded.
+
+**Why this matters to AIP**
+
+At a different system layer, UI Atlas implements almost the same grounding discipline:
+
+```text
+UI Atlas
+UI evidence → persistent evidenced UI map → computer-use agent
+
+AIP
+architecture evidence → qualified architecture model → software agent
+```
+
+The shared principle — **do not invent a relationship simply because it is plausible** — is one AIP already applies to `CALLS`/`SENDS` edges, and UI Atlas's layered raw-to-semantic transformation with retained lineage is a useful external reference for AIP's own evidence-to-claim derivation chain (Section 2).
+
+**AIP distinction**
+
+UI Atlas models UI states, controls, and transitions; AIP models architectural relationships and additionally reconciles distinct evidence classes (declared vs. observed). The two are complementary rather than competing.
 
 ### Thoughtworks AI/works
 
@@ -464,6 +572,32 @@ Confidence scores or standardized skills should also not be confused with determ
 
 ## 4. Architectural Intent and Governance
 
+### Daniel Kocot — Context Is Not More Information
+
+**Source**
+
+- [Context Is Not More Information. It Shapes the Conditions for Interpretation and Action](https://www.linkedin.com/pulse/context-more-information-shapes-conditions-action-daniel-kocot-z55ze/)
+
+**Core idea**
+
+Kocot argues that context is not the amount of information supplied to a system — its usefulness depends on boundaries, relationships, authority, purpose, and relevance. Architecture artifacts (OpenAPI documents, code, diagrams) describe parts of a system but do not necessarily preserve why a boundary exists, which policy applies, or which domain gives a concept meaning. Critically: **a knowledge graph itself is not context** — it is infrastructure from which the information relevant to a particular interpretation or action can be assembled.
+
+**Why this matters to AIP**
+
+This sharpens AIP's own positioning:
+
+```text
+complete architecture graph
+        ≠
+architecture context needed for this question
+```
+
+AIP's narrow, per-question MCP tools (Section 3) are already a move in this direction — an agent receives a bounded, qualified answer, not generic Cypher access or a full graph dump:
+
+> **The graph is infrastructure. The qualified answer is the context.**
+
+Kocot's separation of "what exists / what does it mean / why should it exist / what is permitted" is also a useful frame for scoping this section: AIP currently answers mainly the first question and should not infer the remaining three from Current State alone.
+
 ### Mneme HQ
 
 **Sources**
@@ -530,6 +664,76 @@ Architecture assessment / drift / governance
 ```
 
 This is a future direction, not v0.4 scope.
+
+### Alireza Rahmani Khalili — AI Did Not Eliminate Software Design
+
+**Source**
+
+- [AI Did Not Eliminate Software Design](https://nidly.substack.com/p/ai-did-not-eliminate-software-design)
+
+**Core idea**
+
+Rahmani Khalili argues that AI separates implementation from design — "design chooses constraints, implementation expresses them" — and that as implementation gets cheaper, architecture increasingly moves toward constraints, authority, boundaries, and verification. AI can produce locally coherent systems whose global architecture is worse; passing tests do not establish architectural correctness, which the article treats as a distinct concern from behavioral verification.
+
+**Why this matters to AIP**
+
+This supports AIP's core split between probabilistic reasoning and deterministic verification (Section 5), and explains why architecture intelligence becomes more valuable as generation gets cheaper:
+
+```text
+faster generation
+      ↓
+more architectural change
+      ↓
+less human ability to inspect every change
+      ↓
+explicit context + constraints + verification
+```
+
+The article's distinction between intelligence and authority mirrors AIP's own stance:
+
+> An agent may reason about architecture, but must not become the source of architectural truth.
+
+**AIP distinction**
+
+The article reaches into future concepts — architectural intent, domain authority, enforceable constraints — that should stay separate from AIP's present evidence-backed Current State rather than being folded prematurely into the Canonical Model.
+
+### Matthew Skelton — Reframing the AI-native SDLC in Terms of Stewardship Boundaries
+
+**Source**
+
+- [Reframing the AI-native SDLC in terms of stewardship boundaries](https://www.linkedin.com/pulse/reframing-ai-native-sdlc-terms-stewardship-boundaries-matthew-skelton-vrfpe)
+
+**Core idea**
+
+Skelton proposes shifting from *construction boundaries* (who builds what) to *stewardship boundaries*: which long-lived human teams remain accountable for the ongoing health, outcomes, and risk of a value flow. He draws an analogy between human cognitive load and agent context windows — both become less reliable given large, loosely bounded information — and argues reliable agentic engineering needs narrow, well-defined context and platform capabilities, illustrated by a case combining agent-assisted development with deterministic guardrails rather than prompting alone.
+
+**Why this matters to AIP**
+
+The context argument fits AIP's own MCP design (Section 3) directly:
+
+```text
+more architecture information
+        ≠
+better agent context
+
+bounded + relevant + trustworthy architecture information
+        ↓
+better reasoning
+```
+
+The stewardship concept is more future-facing but relevant to this section:
+
+```text
+architecture relationship + ownership/responsibility + constraints
+                    ↓
+            stewardship boundary
+```
+
+> **More autonomous implementation requires stronger boundaries and independently verifiable context.**
+
+**AIP distinction**
+
+Organizational accountability must not be inferred from runtime connectivity. `Service`, Bounded Context, deployment unit, team, and stewardship boundary are distinct concepts; any future relationship between them needs explicit evidence or intent, echoing the same caution already stated for Strategic DDD (Section 1).
 
 ### Rachel Laycock / Martin Fowler — Code Review in an AI-heavy SDLC
 
@@ -719,16 +923,22 @@ and what evidence supports that conclusion?
 | Temporal / contextual knowledge | Burgess / Semantic Spacetime | How should architecture knowledge evolve across time and observation contexts? |
 | Runtime evidence | OpenTelemetry | What can runtime signals safely prove? |
 | Software catalogs | Backstage | How does evidence-backed architecture intelligence differ from maintained catalog metadata? |
+| Architecture intelligence product neighbor | ProvenMap | How does epistemic qualification (what evidence entitles us to claim) differ from provenance-tracked current-state modeling and Intents? |
 | Static architecture discovery | Logorythm | What architectural structure can code reveal before or without runtime observation, and how should that evidence be qualified? |
 | Premise quality for agent reasoning | Praveen Kasam | How much of an agent's failure traces back to stale, ambiguous, or incomplete premises rather than model capability? |
 | Typed relationships & impact analysis | Spark Tsai / Trace Matrix | How should typed relationships support impact analysis without re-inferring them via an LLM each time? |
 | Agent context | MCP | How should architecture facts be exposed safely to agents? |
+| Deterministic vs. inferred integration | Kin Lane | Where should agent inference stop and deterministic, reviewable implementation begin for repeated tool/API operations? |
+| Persistent evidenced agent representations | UI Atlas | How should raw observations be deterministically transformed into a persistent, evidence-linked knowledge layer without inventing plausible relationships? |
 | Agentic development platforms | Thoughtworks AI/works | How are as-is state, enterprise context, transformation, and reverse propagation connected? |
 | Production agent engineering | AI Agents — The Definitive Guide | What contracts, governance, and evaluation does the agent side need when consuming architecture context? |
 | Composable AI architecture | Tim O'Reilly / open source and protocols | How can architecture context remain portable across models, agent harnesses, tools, and protocol evolution? |
 | Governed domain context for agents | Google Gemini Enterprise for Financial Services | How should agents consume secure, auditable context with lineage, snapshots, citations, and governance? |
+| Definition of context | Daniel Kocot | What separates a knowledge graph (infrastructure) from context (boundaries, relevance, authority, meaning)? |
 | Pre-generation governance | Mneme HQ | How should machine-readable intent constrain coding agents? |
 | Architecture guardrails | O'Reilly | How can decisions become enforceable without making an LLM the authority? |
+| Design vs. implementation under AI | Alireza Rahmani Khalili | As implementation cost falls, how does architecture shift toward constraints, authority, and verification? |
+| Stewardship boundaries | Matthew Skelton | How should long-lived accountability boundaries and bounded agent context relate to architecture ownership? |
 | AI-era engineering workflow | Rachel Laycock / Martin Fowler | Which assurance work should move before or beyond human code review? |
 | AI-system reliability | Shahani / Building Reliable AI Systems | Which reliability concerns belong to agents and operations, and which require independently verifiable context? |
 | Agent trajectory evaluation | Google agent evaluation metrics | How should agent behavior be evaluated independently from the truth and provenance of the architecture context it consumes? |
