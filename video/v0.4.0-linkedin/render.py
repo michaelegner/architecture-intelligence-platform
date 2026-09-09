@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
 from __future__ import annotations
 
 import html
 import subprocess
 from pathlib import Path
-
 
 WIDTH = 1080
 HEIGHT = 1350
@@ -103,7 +101,7 @@ def base(scene_number: int, section: str) -> list[str]:
         logo(72, 62, 0.5),
         text("AIP", 150, 102, 32, weight=700),
         text("v0.4.0", 1000, 98, 24, fill=BLUE, weight=700, anchor="end", spacing=1),
-        f'<rect x="72" y="132" width="936" height="2" fill="#263653"/>',
+        '<rect x="72" y="132" width="936" height="2" fill="#263653"/>',
         text(section.upper(), 72, 180, 20, fill=MUTED, weight=700, spacing=4),
         text(
             "github.com/michaelegner/architecture-intelligence-platform",
@@ -116,7 +114,9 @@ def base(scene_number: int, section: str) -> list[str]:
         ),
         f'<rect x="72" y="1280" width="{scene_number * 117}" height="4" rx="2" fill="{TEAL}"/>',
         f'<rect x="{72 + scene_number * 117}" y="1280" width="{936 - scene_number * 117}" height="4" rx="2" fill="#263653"/>',
-        text(f"0{scene_number}", 1008, 1317, 18, fill=MUTED, anchor="end", family="DejaVu Sans Mono"),
+        text(
+            f"0{scene_number}", 1008, 1317, 18, fill=MUTED, anchor="end", family="DejaVu Sans Mono"
+        ),
     ]
 
 
@@ -132,7 +132,9 @@ def scene_release() -> str:
             text("Architecture", 540, 665, 74, weight=700, anchor="middle"),
             text("Intelligence Platform", 540, 748, 74, weight=700, anchor="middle"),
             rect(215, 810, 650, 86, fill="#14213B", stroke=BLUE, radius=43),
-            text("RELEASE  v0.4.0", 540, 866, 30, fill=BLUE, weight=700, anchor="middle", spacing=2),
+            text(
+                "RELEASE  v0.4.0", 540, 866, 30, fill=BLUE, weight=700, anchor="middle", spacing=2
+            ),
             text("Trusted architecture context", 540, 1010, 43, weight=700, anchor="middle"),
             text("for AI agents.", 540, 1068, 43, fill=TEAL, weight=700, anchor="middle"),
         ]
@@ -153,14 +155,23 @@ def scene_problem() -> str:
             '<path d="M112 790 C190 720 250 850 334 760 S430 820 452 740" fill="none" stroke="#64748B" stroke-width="4" stroke-dasharray="12 12"/>',
             f'<line x1="112" y1="880" x2="452" y2="540" stroke="{RED}" stroke-width="8" stroke-linecap="round"/>',
             rect(550, 480, 458, 470, fill="#0F2530", stroke=TEAL),
-            text("TRUSTED CONTEXT", 779, 548, 18, fill=TEAL, weight=700, anchor="middle", spacing=2),
+            text(
+                "TRUSTED CONTEXT", 779, 548, 18, fill=TEAL, weight=700, anchor="middle", spacing=2
+            ),
             text("Declared + Observed", 779, 650, 32, weight=700, anchor="middle"),
             f'<circle cx="665" cy="775" r="34" fill="{BLUE}"/><circle cx="875" cy="775" r="34" fill="{AMBER}"/>',
             f'<line x1="700" y1="775" x2="840" y2="775" stroke="{TEAL}" stroke-width="6"/>',
             f'<circle cx="770" cy="775" r="48" fill="{PANEL_LIGHT}" stroke="{TEAL}" stroke-width="4"/>',
             text("✓", 770, 791, 46, fill=TEAL, weight=700, anchor="middle"),
             badge("EVIDENCE-BACKED", 628, 868, 302, TEAL),
-            text("Architecture claims an agent can verify.", 540, 1070, 34, fill=MUTED, anchor="middle"),
+            text(
+                "Architecture claims an agent can verify.",
+                540,
+                1070,
+                34,
+                fill=MUTED,
+                anchor="middle",
+            ),
         ]
     )
     return finish(parts)
@@ -185,7 +196,9 @@ def scene_pipeline() -> str:
             rect(300, 758, 480, 230, fill="#102B35", stroke=TEAL, radius=34, stroke_width=4),
             f'<circle cx="540" cy="828" r="46" fill="{TEAL}" opacity=".18"/>',
             text("◈", 540, 846, 58, fill=TEAL, weight=700, anchor="middle"),
-            text("EVIDENCE-BACKED", 540, 915, 24, fill=TEAL, weight=700, anchor="middle", spacing=1),
+            text(
+                "EVIDENCE-BACKED", 540, 915, 24, fill=TEAL, weight=700, anchor="middle", spacing=1
+            ),
             text("ARCHITECTURE GRAPH", 540, 957, 37, weight=700, anchor="middle"),
             text("Every fact keeps its evidence.", 540, 1090, 38, anchor="middle", weight=700),
         ]
@@ -198,7 +211,16 @@ def tool_card(name: str, purpose: str, y: int, color: str, index: str) -> str:
         [
             rect(72, y, 936, 178, fill=PANEL, stroke=color),
             f'<circle cx="140" cy="{y + 89}" r="34" fill="{color}" opacity=".18"/>',
-            text(index, 140, y + 100, 27, fill=color, weight=700, anchor="middle", family="DejaVu Sans Mono"),
+            text(
+                index,
+                140,
+                y + 100,
+                27,
+                fill=color,
+                weight=700,
+                anchor="middle",
+                family="DejaVu Sans Mono",
+            ),
             text(name, 208, y + 78, 31, fill=TEXT, weight=700, family="DejaVu Sans Mono"),
             text(purpose, 208, y + 126, 25, fill=MUTED),
         ]
@@ -211,8 +233,20 @@ def scene_tools() -> str:
         [
             text("Three read-only", 72, 286, 62, weight=700),
             text("MCP tools.", 72, 360, 62, fill=BLUE, weight=700),
-            tool_card("get_service_dependencies", "Explore direct, qualified dependencies", 438, BLUE, "01"),
-            tool_card("get_architecture_drift", "Find declared-versus-observed discrepancies", 642, AMBER, "02"),
+            tool_card(
+                "get_service_dependencies",
+                "Explore direct, qualified dependencies",
+                438,
+                BLUE,
+                "01",
+            ),
+            tool_card(
+                "get_architecture_drift",
+                "Find declared-versus-observed discrepancies",
+                642,
+                AMBER,
+                "02",
+            ),
             tool_card("get_evidence", "Resolve the provenance behind every claim", 846, TEAL, "03"),
             badge("READ-ONLY", 72, 1085, 240, BLUE),
             badge("DETERMINISTIC", 332, 1085, 278, TEAL),
@@ -231,8 +265,23 @@ def scene_drift() -> str:
             rect(72, 414, 936, 720, fill="#080D18", stroke="#334155", radius=26),
             rect(92, 440, 896, 600, fill="#050810", stroke=AMBER, radius=16),
             text("TELLA CAPTURE", 540, 694, 24, fill=AMBER, weight=700, anchor="middle", spacing=3),
-            text("05-drift-tella.mp4", 540, 746, 28, fill=MUTED, anchor="middle", family="DejaVu Sans Mono"),
-            text("Real tools/call request + OBSERVED_ONLY result", 540, 800, 24, fill=MUTED, anchor="middle"),
+            text(
+                "05-drift-tella.mp4",
+                540,
+                746,
+                28,
+                fill=MUTED,
+                anchor="middle",
+                family="DejaVu Sans Mono",
+            ),
+            text(
+                "Real tools/call request + OBSERVED_ONLY result",
+                540,
+                800,
+                24,
+                fill=MUTED,
+                anchor="middle",
+            ),
             badge("LIVE MCP RESPONSE", 212, 1060, 314, AMBER),
             badge("JSON-RPC / HTTP", 550, 1060, 318, BLUE),
         ]
@@ -249,8 +298,23 @@ def scene_evidence() -> str:
             rect(72, 414, 936, 720, fill="#080D18", stroke="#334155", radius=26),
             rect(92, 440, 896, 600, fill="#050810", stroke=TEAL, radius=16),
             text("TELLA CAPTURE", 540, 694, 24, fill=TEAL, weight=700, anchor="middle", spacing=3),
-            text("06-evidence-tella.mp4", 540, 746, 28, fill=MUTED, anchor="middle", family="DejaVu Sans Mono"),
-            text("Real evidence resolution at the same snapshot", 540, 800, 24, fill=MUTED, anchor="middle"),
+            text(
+                "06-evidence-tella.mp4",
+                540,
+                746,
+                28,
+                fill=MUTED,
+                anchor="middle",
+                family="DejaVu Sans Mono",
+            ),
+            text(
+                "Real evidence resolution at the same snapshot",
+                540,
+                800,
+                24,
+                fill=MUTED,
+                anchor="middle",
+            ),
             badge("SAME SNAPSHOT", 132, 1060, 320, BLUE),
             badge("SANITIZED PROVENANCE", 476, 1060, 472, TEAL),
         ]
@@ -278,9 +342,18 @@ def scene_value() -> str:
             text("can trust.", 72, 360, 62, fill=TEAL, weight=700),
             value_card("Qualified claims", "Fact, discrepancy, or unknown", 72, 452, GREEN, "✓"),
             value_card("Stable snapshots", "One consistent graph state", 560, 452, BLUE, "◷"),
-            value_card("Traceable provenance", "Evidence behind every answer", 72, 742, PURPLE, "◎"),
+            value_card(
+                "Traceable provenance", "Evidence behind every answer", 72, 742, PURPLE, "◎"
+            ),
             value_card("Zero graph writes", "Agents can read, never rewrite", 560, 742, AMBER, "◇"),
-            text("Deterministic architecture intelligence through MCP.", 540, 1115, 31, fill=MUTED, anchor="middle"),
+            text(
+                "Deterministic architecture intelligence through MCP.",
+                540,
+                1115,
+                31,
+                fill=MUTED,
+                anchor="middle",
+            ),
         ]
     )
     return finish(parts)
@@ -295,9 +368,35 @@ def scene_cta() -> str:
             text("Byte-identical", 540, 610, 70, fill=TEAL, weight=700, anchor="middle"),
             text("semantic output.", 540, 695, 70, fill=TEAL, weight=700, anchor="middle"),
             rect(132, 800, 816, 118, fill="#102B35", stroke=TEAL, radius=59, stroke_width=3),
-            text("EXPLORE v0.4.0 ON GITHUB", 540, 873, 25, fill=TEAL, weight=700, anchor="middle", spacing=1),
-            text("github.com/michaelegner/", 540, 1005, 28, fill=MUTED, anchor="middle", family="DejaVu Sans Mono"),
-            text("architecture-intelligence-platform", 540, 1045, 28, fill=TEXT, weight=700, anchor="middle", family="DejaVu Sans Mono"),
+            text(
+                "EXPLORE v0.4.0 ON GITHUB",
+                540,
+                873,
+                25,
+                fill=TEAL,
+                weight=700,
+                anchor="middle",
+                spacing=1,
+            ),
+            text(
+                "github.com/michaelegner/",
+                540,
+                1005,
+                28,
+                fill=MUTED,
+                anchor="middle",
+                family="DejaVu Sans Mono",
+            ),
+            text(
+                "architecture-intelligence-platform",
+                540,
+                1045,
+                28,
+                fill=TEXT,
+                weight=700,
+                anchor="middle",
+                family="DejaVu Sans Mono",
+            ),
             badge("MCP 2026-07-28", 382, 1120, 316, BLUE),
         ]
     )
