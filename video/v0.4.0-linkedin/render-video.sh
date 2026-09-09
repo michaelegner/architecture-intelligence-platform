@@ -8,13 +8,29 @@ DRIFT_CAPTURE="${CAPTURES}/05-drift-tella.mp4"
 EVIDENCE_CAPTURE="${CAPTURES}/06-evidence-tella.mp4"
 OUTPUT="${ROOT}/aip-v0.4.0-linkedin-silent.mp4"
 
-for capture in "${DRIFT_CAPTURE}" "${EVIDENCE_CAPTURE}"; do
+check_capture() {
+  local capture="$1"
+  local min_seconds="$2"
+
   if [[ ! -f "${capture}" ]]; then
     printf 'error: required Tella capture is missing: %s\n' "${capture}" >&2
     printf 'see %s/README.md for the recording contract\n' "${ROOT}" >&2
     exit 1
   fi
-done
+
+  local duration
+  duration="$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${capture}")"
+  if awk -v d="${duration}" -v m="${min_seconds}" 'BEGIN { exit !(d < m) }'; then
+    printf 'error: %s is %.2fs, shorter than the required %ds minimum\n' \
+      "${capture}" "${duration}" "${min_seconds}" >&2
+    printf 'ffmpeg would silently pad the shortfall with cloned frames - re-record instead; ' >&2
+    printf 'see %s/README.md for the recording contract\n' "${ROOT}" >&2
+    exit 1
+  fi
+}
+
+check_capture "${DRIFT_CAPTURE}" 12
+check_capture "${EVIDENCE_CAPTURE}" 11
 
 ffmpeg -y \
   -loop 1 -t 4 -i "${SCENES}/01-release.png" \

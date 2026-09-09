@@ -418,7 +418,7 @@ SCENES = [
 def render_scene(name: str, builder) -> None:
     svg_path = SCENES_DIR / f"{name}.svg"
     png_path = SCENES_DIR / f"{name}.png"
-    svg_path.write_text(builder())
+    svg_path.write_text(builder(), encoding="utf-8")
     subprocess.run(
         ["convert", "-background", "none", str(svg_path), str(png_path)],
         check=True,
