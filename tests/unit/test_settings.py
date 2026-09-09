@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from app.settings import load_config, load_secrets, load_settings
 
@@ -46,6 +47,23 @@ def test_load_config_defaults_on_empty_file(tmp_path):
 
     assert config.graph.database == "neo4j"
     assert config.import_.openapi is True
+
+
+@pytest.mark.parametrize("field", ["ttl-seconds", "max-pending-spans"])
+@pytest.mark.parametrize("value", [0, -1])
+def test_http_correlation_limits_must_be_positive(tmp_path, field, value):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        f"architecture_intelligence:\n  telemetry:\n    http-correlation:\n      {field}: {value}\n"
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        load_config(config_path)
+
+    error = exc_info.value.errors()[0]
+    assert error["loc"][-1] == field
+    assert error["type"] == "greater_than"
+    assert error["ctx"] == {"gt": 0}
 
 
 def test_neo4j_uri_env_var_overrides_config(tmp_path, monkeypatch):
