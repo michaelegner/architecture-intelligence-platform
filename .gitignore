@@ -50,6 +50,12 @@ codeql-db/
 # Local Docker Compose overrides
 docker-compose.override.yml
 
+# Local scratch review/gap-remediation notes - not meant to be versioned
+docs/gaps/
+
+# Rendered video output - large binaries regenerable from video/**/render*.py|sh
+*.mp4
+
 # Editors / OS
 .vscode/
 .idea/
