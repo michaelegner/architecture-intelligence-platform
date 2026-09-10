@@ -142,12 +142,15 @@ def test_tier4_observed_only_includes_namespace_when_present():
 def test_generic_service_name_is_still_minted_as_qualified_observed_only():
     # Documents docs/real-world-validation/cross-system/decisions/
     # messaging-operation-compatibility.md (I4.1): Tier 4 has no refusal path for a generic,
-    # ambiguous name - it mints an OBSERVED_ONLY Service exactly as readily as for a distinctive
-    # one, regardless of upstream system. "unknown_service" is used here as a real motivating
-    # instance (every Airflow role - scheduler, DAG processor, worker, triggerer - reports this
-    # identical service.name, so nothing here would distinguish them), not as an Airflow-specific
-    # rule. This test pins the current, deliberately-unguarded behavior; it does not assert
-    # safety.
+    # ambiguous name - resolve_service() is a shared, low-level candidate-matching primitive, not
+    # a safety decision, and it remains the HTTP path's resolver unchanged. As of v0.4.1 I2,
+    # production messaging correlation no longer calls this function at all:
+    # app.telemetry.messaging_guards.decide_service_identity is the sole production entry point
+    # for minting a Service from a messaging span's identity, and it does refuse this exact name
+    # (see tests/unit/test_messaging_guards.py's S10-S12). "unknown_service" is used here as a
+    # real motivating instance (every Airflow role - scheduler, DAG processor, worker, triggerer -
+    # reports this identical service.name), not as an Airflow-specific rule. This function stays
+    # as a historical/shared-primitive characterization only.
     result = resolve_service(
         [ORDER_SERVICE, PAYMENT_SERVICE],
         service_name="unknown_service",
