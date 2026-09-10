@@ -11,10 +11,19 @@ qualifies against.
 - **I1.2 (Wire Both Existing Paths):** merged to `main` as `664857d` (PR #113, 2026-09-10) plus a
   same-PR review-round follow-up closing `_status_query`'s remaining hand-written OBSERVED
   predicate and a stale docstring reference (`4cc5a54`, squashed into `664857d` on merge).
-- **I1.3 (Differential Qualification and Completion):** `fc50cb0` on branch
-  `feature/v0.4.1-i1.3-differential-qualification` (PR #114) — this record is committed as part of
-  the same commit it evaluates, since I1.3's own regression suite and differential-test result
-  (below) were verified against that exact working tree before commit.
+- **I1.3 (Differential Qualification and Completion) candidate:**
+  `385604b7c7098184b04193abf13727e90cd8b555` on branch
+  `feature/v0.4.1-i1.3-differential-qualification` (PR #114) — the last code-changing commit (the
+  first-round differential test and fix, `fc50cb0`, plus a review-round follow-up closing a real
+  oracle blind spot in that same test and a docs clarification, `385604b`). This completion record
+  is committed after it, changing no code the candidate's own CI needed to re-validate, per this
+  repository's `v0.4.0` precedent (`i1-completion-record.md`'s own "Candidate identity" section).
+- **CI, verified via the GitHub API against this exact SHA** (not `gh pr checks`, per this
+  repository's standing rule that an unscoped/PR-view check query can silently miss what's actually
+  attributed to the candidate commit —
+  `gh api repos/michaelegner/architecture-intelligence-platform/commits/385604b.../check-runs`):
+  `lint + test` ×2, `CodeQL`, `analyze (actions)`, `analyze (python)`,
+  `dependency security scan (pip-audit, spec §29)` ×2 — all `completed`/`success`.
 - **Environment / window used throughout the I1.3 differential fixture:** `qualification-test`,
   `2026-09-01T00:00:00Z`–`2026-09-02T00:00:00Z`.
 
@@ -110,8 +119,9 @@ produce different qualifications."*
 
 ## I1 exit statement (spec §40)
 
-> GO — At the I1.3 candidate commit, AIP's analysis/REST and ArchitectureIntelligenceService/MCP
-> qualification paths are governed by one declared-versus-observed semantic owner
+> GO — At `385604b7c7098184b04193abf13727e90cd8b555`, AIP's analysis/REST and
+> ArchitectureIntelligenceService/MCP qualification paths are governed by one
+> declared-versus-observed semantic owner
 > (`app/qualification/declared_observed.py`). Against a shared deterministic real-Neo4j fixture,
 > equivalent effective observation contexts produce qualification mismatches = 0 and coverage
 > mismatches = 0 across CALLS and SENDS cases including declared-only, observed-only, confirmed,
