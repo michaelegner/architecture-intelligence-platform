@@ -9,6 +9,8 @@ review. No Neo4j required anywhere in this file.
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from app.qualification.declared_observed import (
     CONFIRMED,
     COVERAGE_NONE,
@@ -99,38 +101,39 @@ def test_observed_only_when_no_declared_evidence_matches():
 # --- Q3/Q4/Q5/Q8-style: declared only -> NOT_OBSERVED_IN_WINDOW + coverage ----------------------
 
 
-def test_not_observed_in_window_with_sufficient_coverage_for_calls():
-    evidence_by_id = _by_id(_declared("e1"))
-    result = _qualify(["e1"], evidence_by_id, relation_type="CALLS", http_observed=True)
-    assert result == QualifiedRelation(NOT_OBSERVED_IN_WINDOW, COVERAGE_SUFFICIENT, ["e1"])
-
-
-def test_not_observed_in_window_with_partial_coverage_for_calls():
-    evidence_by_id = _by_id(_declared("e1"))
-    result = _qualify(
-        ["e1"], evidence_by_id, relation_type="CALLS", messaging_observed=True, spans_observed=True
-    )
-    assert result == QualifiedRelation(NOT_OBSERVED_IN_WINDOW, COVERAGE_PARTIAL, ["e1"])
-
-
-def test_not_observed_in_window_with_no_coverage_for_calls():
-    evidence_by_id = _by_id(_declared("e1"))
-    result = _qualify(["e1"], evidence_by_id, relation_type="CALLS")
-    assert result == QualifiedRelation(NOT_OBSERVED_IN_WINDOW, COVERAGE_NONE, ["e1"])
-
-
-def test_not_observed_in_window_with_sufficient_coverage_for_sends():
-    evidence_by_id = _by_id(_declared("e1"))
-    result = _qualify(["e1"], evidence_by_id, relation_type="SENDS", messaging_observed=True)
-    assert result == QualifiedRelation(NOT_OBSERVED_IN_WINDOW, COVERAGE_SUFFICIENT, ["e1"])
-
-
-def test_not_observed_in_window_with_sufficient_coverage_for_receives_from():
+@pytest.mark.parametrize(
+    ("relation_type", "http_observed", "messaging_observed", "expected_coverage"),
+    [
+        # CALLS: relevant signal is http_observed.
+        pytest.param("CALLS", True, False, COVERAGE_SUFFICIENT, id="calls-sufficient"),
+        pytest.param("CALLS", False, True, COVERAGE_PARTIAL, id="calls-partial"),
+        pytest.param("CALLS", False, False, COVERAGE_NONE, id="calls-none"),
+        # SENDS: relevant signal is messaging_observed.
+        pytest.param("SENDS", False, True, COVERAGE_SUFFICIENT, id="sends-sufficient"),
+        pytest.param("SENDS", True, False, COVERAGE_PARTIAL, id="sends-partial"),
+        pytest.param("SENDS", False, False, COVERAGE_NONE, id="sends-none"),
+        # RECEIVES_FROM: relevant signal is also messaging_observed (spec §12.1).
+        pytest.param("RECEIVES_FROM", False, True, COVERAGE_SUFFICIENT, id="receives-sufficient"),
+        pytest.param("RECEIVES_FROM", True, False, COVERAGE_PARTIAL, id="receives-partial"),
+        pytest.param("RECEIVES_FROM", False, False, COVERAGE_NONE, id="receives-none"),
+    ],
+)
+def test_not_observed_in_window_coverage_by_relation_kind(
+    relation_type, http_observed, messaging_observed, expected_coverage
+):
     evidence_by_id = _by_id(_declared("e1"))
     result = _qualify(
-        ["e1"], evidence_by_id, relation_type="RECEIVES_FROM", messaging_observed=True
+        ["e1"],
+        evidence_by_id,
+        relation_type=relation_type,
+        http_observed=http_observed,
+        messaging_observed=messaging_observed,
+        # A relation kind's own signal being False doesn't mean nothing was ever observed for the
+        # service - spans_observed mirrors the real http_observed-or-messaging_observed semantics
+        # (app.analysis.runtime.ServiceTelemetryCoverage.spans_observed).
+        spans_observed=http_observed or messaging_observed,
     )
-    assert result == QualifiedRelation(NOT_OBSERVED_IN_WINDOW, COVERAGE_SUFFICIENT, ["e1"])
+    assert result == QualifiedRelation(NOT_OBSERVED_IN_WINDOW, expected_coverage, ["e1"])
 
 
 # --- Q9-style: wrong environment ------------------------------------------------------------
