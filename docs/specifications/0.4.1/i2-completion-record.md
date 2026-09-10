@@ -16,14 +16,16 @@ qualifies against.
   artifact types and fixing the C13 composed-matrix case to use a genuinely namespaced service
   (`7b902d4`, squashed into `aedda84` on merge).
 - **I2.3 (Frozen Qualification and Completion) candidate:**
-  `690434601043cd0d7e20f26a4e1e5eb0dbd2a2c5` on branch
+  `d37399b256062d4da5c116ae332ed25d69395e04` on branch
   `feature/v0.4.1-i2.3-frozen-qualification-completion` (PR #117) — a documentation/test-only
-  slice; the review round added two literal-captured-shape regressions (below) on top of the two
-  synthetic-reachability tests, no production code changed throughout.
+  slice; the review round added two literal-captured-shape regressions plus a stale-citation fix
+  in ADR 0013 (below) on top of the two synthetic-reachability tests, no production code changed
+  throughout. This tip also merges in an unrelated `main` update (PR #118, `docs/landscape.md`
+  only) picked up via a GitHub "update branch" while this PR was open; no I2 file is touched by it.
 - **CI, verified via the GitHub API against this exact SHA** (not `gh pr checks`, per this
   repository's standing rule that an unscoped/PR-view check query can silently miss what's actually
   attributed to the candidate commit —
-  `gh api repos/michaelegner/architecture-intelligence-platform/commits/6904346.../check-runs`):
+  `gh api repos/michaelegner/architecture-intelligence-platform/commits/d37399b.../check-runs`):
   `lint + test` ×2, `CodeQL`, `analyze (actions)`, `analyze (python)`,
   `dependency security scan (pip-audit, spec §29)` ×2 — all `completed`/`success`.
 - **Environment / data used throughout I2's persistence-boundary tests:** the real
@@ -108,7 +110,7 @@ shape.
 
 ## I2 exit statement (spec §42)
 
-> GO — At `690434601043cd0d7e20f26a4e1e5eb0dbd2a2c5`, AIP's production runtime messaging path requires both
+> GO — At `d37399b256062d4da5c116ae332ed25d69395e04`, AIP's production runtime messaging path requires both
 > deterministic Queue-compatible destination semantics and safe service identity before deriving a
 > canonical `SENDS`/`RECEIVES_FROM` observation. Topic-shaped, unresolved, conflicting, ambiguous,
 > and placeholder inputs produce zero Service/Queue/Evidence/relation artifacts from the refused
