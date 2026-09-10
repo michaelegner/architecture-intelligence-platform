@@ -440,19 +440,19 @@ public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 ## Project Status
 
 Latest release:
+[`v0.4.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.1)
+— **Semantic Hardening for Broader Discovery**. Hardens the qualification and messaging semantics
 [`v0.4.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.0)
-— **Trusted Architecture Context for Agents**. `v0.4.1` — **Semantic Hardening for Broader
-Discovery** — is in release qualification; see
-[`docs/specifications/0.4.1/README.md`](docs/specifications/0.4.1/README.md) for its current
-status.
+(**Trusted Architecture Context for Agents**) shipped, and commits reproducible evidence of current
+whole-graph read cost. Adds no discovery source, Canonical Model family, or MCP tool.
 
 Today AIP ingests OpenAPI, AsyncAPI, architecture manifests and OpenTelemetry traces into an
 evidence-backed knowledge graph; reconciles declared against observed architecture; runs ten
 deterministic analyses over the result; and exposes it to agents through three read-only,
 snapshot-bound MCP tools. Every part of that path is deterministic and independently qualified: two
-frozen evaluation suites, real-world validation against Quarkus Super Heroes and Apache Airflow, and
-a published-artifact verification per release —
-[`docs/release-validation/v0.4.0-post-release-verification.md`](docs/release-validation/v0.4.0-post-release-verification.md)
+frozen evaluation suites, real-world validation against Quarkus Super Heroes and Apache Airflow, a
+committed reproducible read-cost benchmark, and a published-artifact verification per release —
+[`docs/release-validation/v0.4.1-post-release-verification.md`](docs/release-validation/v0.4.1-post-release-verification.md)
 is the most recent.
 
 Pre-1.0: the REST/MCP surface, Graph Schema, Canonical Model, Adapter SPI and configuration format

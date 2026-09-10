@@ -129,7 +129,7 @@ Principle:
 The tool layer stays downstream of AIP's deterministic architecture model. It must not let an LLM,
 agent, or MCP client create canonical facts, bypass semantic validation, or reach a graph write path.
 
-## v0.4.1 — in release qualification
+## v0.4.1 — shipped
 
 **Goal: Semantic Hardening for Broader Discovery**
 
@@ -137,16 +137,36 @@ Purpose: harden the qualification and messaging semantics `v0.4.0` shipped, and 
 reproducible evidence of current whole-graph read cost, before any `v0.5` discovery work widens
 the surface those semantics govern. Adds no discovery source, Canonical Model family, or MCP tool.
 See [`docs/specifications/0.4.1/`](docs/specifications/0.4.1/) for the full design history and
-current status.
+[`v0.4.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.1)
+for the published release.
 
 | Increment | Purpose | Status |
 |---|---|---|
 | I1 — Qualification Consistency | One declared-versus-observed semantic owner, real-Neo4j differential qualification | ✓ complete — `385604b` |
 | I2 — Messaging Semantic Guards | Queue-compatible destination guard, safe messaging service-identity guard | ✓ complete — `d37399b` |
-| I3 — Hardening, Qualification and Release | Committed snapshot/read-cost benchmark, exact-candidate qualification, RC/final publication, post-release verification | in progress — I3.1 (benchmark harness) merged |
+| I3 — Hardening, Qualification and Release | Committed snapshot/read-cost benchmark, exact-candidate qualification, RC/final publication, post-release verification | ✓ complete — **shipped as `v0.4.1`** |
 
-This section is updated to **shipped** once I3 closes and `v0.4.1` is published — see
-[`CHANGELOG.md`](CHANGELOG.md) for the eventual dated entry.
+- ✓ One declared-versus-observed semantic owner (`app/qualification/declared_observed.py`)
+  governs both the analysis/REST path and MCP; qualification mismatches = 0, coverage mismatches =
+  0 against a real-Neo4j differential fixture — see
+  [`docs/adr/0010-single-qualification-rule.md`](docs/adr/0010-single-qualification-rule.md)
+  (`Accepted`).
+- ✓ Runtime messaging requires two independent guards (Queue-compatible destination, safe
+  service-identity) before minting any canonical fact; either guard's refusal creates zero
+  semantic artifacts — see
+  [`docs/adr/0013-no-topic-family-without-guards.md`](docs/adr/0013-no-topic-family-without-guards.md)
+  (satisfied).
+- ✓ A committed, reproducible read-cost benchmark (`benchmarks/`) makes AIP's current whole-graph
+  snapshot/read cost measurable, supplying the baseline half of
+  [`docs/adr/0011-snapshot-identity-read-cost.md`](docs/adr/0011-snapshot-identity-read-cost.md)'s
+  acceptance condition — no cache or retention change shipped; ADR 0011 stays `Proposed`.
+- ✓ `v0.4.1-rc.1`'s full qualification (clean-checkout, hero demo, published-image golden path) and
+  the GO decision are recorded in
+  [`docs/release-validation/v0.4.1-go-no-go.md`](docs/release-validation/v0.4.1-go-no-go.md)
+  (**GO**, decided by the repository owner 2026-09-10).
+- ✓ `v0.4.1` was tagged at the exact GO candidate, published, and its GHCR artifact and tagged
+  source independently re-verified — see
+  [`docs/release-validation/v0.4.1-post-release-verification.md`](docs/release-validation/v0.4.1-post-release-verification.md).
 
 ## v0.5 — Broader Architecture Discovery (planned)
 
