@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-09_
+_Last reviewed: 2026-09-10_
 
 ## AIP anchor
 
@@ -207,6 +207,50 @@ evidence-backed, qualified architecture knowledge
 derived from declared and observed signals
 ```
 
+### EventCatalog — Connected Architecture Catalog for Humans and Agents
+
+**Sources**
+
+- [EventCatalog](https://www.eventcatalog.dev/)
+- [EventCatalog on GitHub](https://github.com/event-catalog/eventcatalog)
+
+**Core idea**
+
+EventCatalog exposes a broad, connected catalog of services, domains, events, schemas, and their
+relationships for people, tools, and agents. Its scope includes more architectural and
+organizational concepts than AIP currently models, making it an important product and positioning
+reference.
+
+**Why this matters to AIP**
+
+```text
+EventCatalog
+source / catalog entry
+      ↓
+connected architecture catalog
+      ↓
+visualization / search / impact / agent access
+
+AIP
+source
+      ↓
+typed evidence
+      ↓
+canonical architecture fact
+      ↓
+qualification
+      ↓
+snapshot-bound architecture claim
+      ↓
+agent access
+```
+
+AIP should remain narrower where catalog breadth would blur its evidence and qualification
+boundary. Integration may be more valuable than duplicating catalog capabilities.
+
+> **EventCatalog makes architecture connected and queryable. AIP makes architecture claims
+> evidence-qualified and independently inspectable.**
+
 ### ProvenMap — Architecture Intelligence
 
 **Sources**
@@ -240,6 +284,35 @@ Having provenance does not by itself answer AIP's sharper epistemic question:
 > **What does the available evidence actually entitle us to claim?**
 
 That is what drives AIP's explicit qualification (`CONFIRMED`, `OBSERVED_ONLY`, `NOT_OBSERVED_IN_WINDOW`) and its binding of every answer to an observation context and snapshot — a distinction that survives even where ProvenMap's provenance model overlaps with AIP's own.
+
+### ProvenMap — Evidence, Provenance, and Architecture Context
+
+**Sources**
+
+- [ProvenMap Documentation](https://provenmap.com/docs)
+- [ProvenMap](https://provenmap.com/)
+
+**Core idea**
+
+ProvenMap connects source material, architecture knowledge, provenance, and verified context. Its
+proximity to AIP sharpens an important distinction between locating a claim's origin and deciding
+what the originating evidence can legitimately establish.
+
+**Why this matters to AIP**
+
+```text
+Provenance
+  where did this claim come from?
+
+Qualification
+  what does that evidence actually entitle us to claim?
+```
+
+AIP should retain both. Future derivation lineage should let an agent reproduce how evidence,
+mapping rules, applicability, observation context, and qualification combined to produce a claim.
+
+> **Provenance tells you where a claim came from. Qualification tells you what that evidence is
+> allowed to mean.**
 
 ### Logorythm — Architecture Intelligence from Static Analysis
 
@@ -354,6 +427,65 @@ MCP / agent
 ```
 
 An agent must remain downstream of the deterministic architecture model and must not become the source of canonical architectural truth.
+
+### Daniel Kocot — Agent-Ready APIs Start Before an Agent Sees the API
+
+**Source**
+
+- [Agent-Ready APIs Start Before an Agent Sees the API](https://www.linkedin.com/pulse/agent-ready-apis-start-before-agent-sees-api-daniel-kocot-twnbe/)
+
+**Core idea**
+
+Kocot argues that agent-readiness begins before OpenAPI, MCP, retrieval, or the context window.
+Machine-readable interfaces are not sufficient by themselves: purpose, semantics, boundaries,
+constraints, and relationships must already be captured and reliably traceable.
+
+**Why this matters to AIP**
+
+A graph can connect artifacts without making every inferred relationship authoritative. AIP's
+agent-facing value lies in assembling the smallest useful, bounded context while preserving
+qualification, evidence, provenance, observation context, and limitations.
+
+```text
+Graph
+  = infrastructure for connecting architecture knowledge
+
+Qualified ArchitectureAnswer
+  = bounded context an agent can actually reason from
+```
+
+> **The graph is infrastructure. The qualified answer is the context.**
+
+### BootUI — Runtime Context for Coding Agents
+
+**Source**
+
+- [BootUI on GitHub](https://github.com/jdubois/boot-ui)
+
+**Core idea**
+
+BootUI exposes deterministic, application-local runtime diagnostics through a shared registry and
+bounded UI, CLI, REST, and opt-in MCP interfaces. Coding agents can inspect a running Spring Boot or
+Quarkus application without making the agent itself the diagnostic authority.
+
+**Why this matters to AIP**
+
+```text
+deterministic core
+      ↓
+bounded result contract
+      ↓
+UI / CLI / MCP
+      ↓
+agent
+```
+
+BootUI mainly asks what is happening inside one running application. AIP asks which cross-service,
+cross-source architecture claims the available evidence supports. It is a useful boundary reference
+for deciding which runtime-derived context belongs in AIP and which diagnostics should remain in
+application-local tools.
+
+> **MCP is the interface, not the intelligence.**
 
 ### Kin Lane — Agents Should Write Code to Integrate, Not Infer It at Runtime
 
@@ -598,6 +730,32 @@ AIP's narrow, per-question MCP tools (Section 3) are already a move in this dire
 
 Kocot's separation of "what exists / what does it mean / why should it exist / what is permitted" is also a useful frame for scoping this section: AIP currently answers mainly the first question and should not infer the remaining three from Current State alone.
 
+### Andreas Toth — AI Shouldn't Guess What We Mean. It Should Ask.
+
+**Source**
+
+- [AI Shouldn't Guess What We Mean. It Should Ask.](https://www.linkedin.com/pulse/ai-shouldnt-guess-what-we-mean-should-ask-andreas-toth-dsn5f/)
+
+**Core idea**
+
+Toth distinguishes a likely interpretation from confirmed intent. That distinction becomes
+important if AIP later relates evidence-qualified Current State to architectural intent,
+constraints, ADRs, or Desired State.
+
+```text
+inferred intent
+    ≠
+confirmed intent
+```
+
+**Why this matters to AIP**
+
+AIP may eventually preserve or qualify explicit intent, but it should not establish intent from
+runtime behavior, code structure, naming, or an LLM's interpretation. Inference may propose an
+interpretation for confirmation; only explicit evidence can establish architectural intent.
+
+> **Inference may propose architectural intent; only explicit evidence may establish it.**
+
 ### Mneme HQ
 
 **Sources**
@@ -664,6 +822,37 @@ Architecture assessment / drift / governance
 ```
 
 This is a future direction, not v0.4 scope.
+
+### Ankur Agnihotri — Architecture Drift Reduction with LLMs
+
+**Sources**
+
+- [Architecture Drift Reduction with LLMs: Fighting Entropy in the Age of AI Coding Agents](https://www.linkedin.com/pulse/architecture-drift-reduction-llms-fighting-entropy-age-agnihotri-csjwf/)
+- [Thoughtworks Technology Radar — Architecture drift reduction with LLMs](https://www.thoughtworks.com/radar/techniques/architecture-drift-reduction-with-llms)
+
+**Core idea**
+
+AI-assisted development can reproduce and amplify existing architectural patterns without knowing
+whether those patterns express deliberate design or accumulated compromise. As generation speeds
+up, architectural drift can compound more quickly, increasing the value of deterministic analysis
+and an independent verification loop.
+
+**Why this matters to AIP**
+
+```text
+Before change
+  bounded, evidence-qualified architecture context
+
+After change
+  independently re-establish the resulting architecture state
+```
+
+The sources give LLMs a role in identifying or evaluating drift. AIP should maintain a stricter
+truth boundary: an LLM may interpret or discuss intent, but explicit evidence must establish it, and
+AIP must not turn inferred intent into architectural truth.
+
+> **AI agents amplify the architecture they infer. AIP should help establish the architecture they
+> are actually entitled to assume.**
 
 ### Alireza Rahmani Khalili — AI Did Not Eliminate Software Design
 
@@ -837,6 +1026,36 @@ For v0.4, this is useful input for deterministic tool evaluation. An AIP tool re
 
 AIP should still distinguish trajectory evaluation from architectural verification. An LLM-as-judge metric may assess whether an agent used context well; it must not become the authority that decides whether an architecture claim is true.
 
+### Zhao et al. — Failure as a Process
+
+**Source**
+
+- [Failure as a Process: An Anatomy of CLI Coding Agent Trajectories](https://arxiv.org/abs/2607.09510)
+
+**Core idea**
+
+Zhao et al. study coding-agent failure as a trajectory rather than only a final outcome. Their
+results identify epistemic errors as a major source of failure and show that failures often begin
+early, remain hidden, and become difficult to recover from later in the trajectory.
+
+**Why this matters to AIP**
+
+AIP addresses a bounded subset of premise quality: architectural premises.
+
+```text
+unsupported architecture premise
+        ↓
+agent reasoning
+        ↓
+plausible but wrong implementation path
+```
+
+AIP can move one class of premise checking before or alongside reasoning by supplying
+evidence-qualified architecture context with explicit limitations. The agent still decides what to
+do; AIP determines what the available architecture evidence supports.
+
+> **Reliable agent reasoning starts before the reasoning step — with trustworthy premises.**
+
 ### Agentic Software: How AI Agents Are Restructuring the Software Paradigm
 
 **Source**
@@ -923,11 +1142,15 @@ and what evidence supports that conclusion?
 | Temporal / contextual knowledge | Burgess / Semantic Spacetime | How should architecture knowledge evolve across time and observation contexts? |
 | Runtime evidence | OpenTelemetry | What can runtime signals safely prove? |
 | Software catalogs | Backstage | How does evidence-backed architecture intelligence differ from maintained catalog metadata? |
+| Agent-queryable architecture catalogs | EventCatalog | Where should AIP remain narrower than a broad catalog, and where is integration preferable to duplication? |
 | Architecture intelligence product neighbor | ProvenMap | How does epistemic qualification (what evidence entitles us to claim) differ from provenance-tracked current-state modeling and Intents? |
+| Provenance and qualification | ProvenMap | How should evidence origin, derivation, applicability, and qualification combine into a reproducible claim? |
 | Static architecture discovery | Logorythm | What architectural structure can code reveal before or without runtime observation, and how should that evidence be qualified? |
 | Premise quality for agent reasoning | Praveen Kasam | How much of an agent's failure traces back to stale, ambiguous, or incomplete premises rather than model capability? |
 | Typed relationships & impact analysis | Spark Tsai / Trace Matrix | How should typed relationships support impact analysis without re-inferring them via an LLM each time? |
 | Agent context | MCP | How should architecture facts be exposed safely to agents? |
+| Agent-ready API context | Daniel Kocot | What context must be established before an agent consumes an API or architecture answer? |
+| Application-local runtime context | BootUI | Which runtime diagnostics belong in AIP's cross-system model, and which should remain application-local? |
 | Deterministic vs. inferred integration | Kin Lane | Where should agent inference stop and deterministic, reviewable implementation begin for repeated tool/API operations? |
 | Persistent evidenced agent representations | UI Atlas | How should raw observations be deterministically transformed into a persistent, evidence-linked knowledge layer without inventing plausible relationships? |
 | Agentic development platforms | Thoughtworks AI/works | How are as-is state, enterprise context, transformation, and reverse propagation connected? |
@@ -935,13 +1158,16 @@ and what evidence supports that conclusion?
 | Composable AI architecture | Tim O'Reilly / open source and protocols | How can architecture context remain portable across models, agent harnesses, tools, and protocol evolution? |
 | Governed domain context for agents | Google Gemini Enterprise for Financial Services | How should agents consume secure, auditable context with lineage, snapshots, citations, and governance? |
 | Definition of context | Daniel Kocot | What separates a knowledge graph (infrastructure) from context (boundaries, relevance, authority, meaning)? |
+| Confirmed versus inferred intent | Andreas Toth | How should explicit architectural intent remain distinct from plausible but unconfirmed interpretation? |
 | Pre-generation governance | Mneme HQ | How should machine-readable intent constrain coding agents? |
 | Architecture guardrails | O'Reilly | How can decisions become enforceable without making an LLM the authority? |
+| AI-accelerated architecture drift | Ankur Agnihotri / Thoughtworks | How can drift be detected and re-verified without making an LLM authoritative for architectural intent? |
 | Design vs. implementation under AI | Alireza Rahmani Khalili | As implementation cost falls, how does architecture shift toward constraints, authority, and verification? |
 | Stewardship boundaries | Matthew Skelton | How should long-lived accountability boundaries and bounded agent context relate to architecture ownership? |
 | AI-era engineering workflow | Rachel Laycock / Martin Fowler | Which assurance work should move before or beyond human code review? |
 | AI-system reliability | Shahani / Building Reliable AI Systems | Which reliability concerns belong to agents and operations, and which require independently verifiable context? |
 | Agent trajectory evaluation | Google agent evaluation metrics | How should agent behavior be evaluated independently from the truth and provenance of the architecture context it consumes? |
+| Early coding-agent failure | Zhao et al. | How much agent failure can be prevented by establishing architecture premises before implementation? |
 | Long-running agentic context drift | Agentic Software paradigm paper | How should shared, observable context stay stable across long-running, drifting agent sessions? |
 | Deterministic backpressure on agents | Lucas F. Costa / Backpressure | Where should deterministic checks be applied to backpressure agents before problems compound? |
 
