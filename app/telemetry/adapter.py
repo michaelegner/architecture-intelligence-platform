@@ -4,6 +4,7 @@ from typing import Literal
 from app.canonical import ids
 from app.provenance.model import ObservedEvidence
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer, PendingHttpSpan
+from app.telemetry.messaging_guards import decide_destination_semantics, decide_service_identity
 from app.telemetry.model import (
     DiscoveryStatus,
     ObservationBatch,
@@ -14,9 +15,10 @@ from app.telemetry.model import (
     day_bucket,
 )
 from app.telemetry.operation_resolver import DeclaredOperationCandidate, resolve_operation
-from app.telemetry.queue_resolver import DeclaredQueueCandidate, resolve_queue
+from app.telemetry.queue_resolver import DeclaredQueueCandidate
 from app.telemetry.semconv.http import HTTP_REQUEST_METHOD, HTTP_ROUTE, PEER_SERVICE, URL_TEMPLATE
 from app.telemetry.semconv.messaging import (
+    MESSAGING_DESTINATION_KIND,
     MESSAGING_DESTINATION_NAME,
     MESSAGING_OPERATION_TYPE,
     MESSAGING_SYSTEM,
@@ -545,7 +547,15 @@ def correlate_queue_observations(
     conventions specifically because span_kind is too coarse to disambiguate "receive" from
     "process"). A span with no recognized operation.type is not a candidate observation at all and
     is silently skipped, not reported as unresolved - the same status as an INTERNAL-kind span in
-    the HTTP path.
+    the HTTP path. This recognition surface is frozen (v0.4.1 I2 spec §21) - I2 only adds refusal
+    paths after this point, never new recognition before it.
+
+    v0.4.1 I2 (spec §6/§18/§22): the destination and service-identity guards both run, in that
+    order, before any entity, Evidence, or fact is recorded for a span - neither guard is wired
+    alone (spec §36), and no unsafe "mint anyway" path exists. A destination refusal is reported
+    without ever resolving service identity (spec §6's destination-first precedence, so exactly one
+    reason is produced when both would fail); a service refusal after a destination accept still
+    records nothing - the accepted destination's resolution is discarded, not partially persisted.
     """
     facts: list[ObservedFactCandidate] = []
     entities: dict[str, ObservedOnlyEntity] = {}
@@ -576,26 +586,47 @@ def correlate_queue_observations(
             unresolved.append(UnresolvedObservation(trace_id=span.trace_id, reason=NO_ENVIRONMENT))
             continue
 
-        service = resolve_runtime_span(service_candidates, span, aliases=service_aliases)
-        _record_if_observed_only(
-            entities,
-            entity_id=service.service_id,
-            discovery_status=service.discovery_status,
-            label="Service",
-            name=span.service_name,
-        )
-
         messaging_system = span.attributes.get(MESSAGING_SYSTEM)
-        queue = resolve_queue(
+        destination_decision = decide_destination_semantics(
             queue_candidates,
             messaging_system=messaging_system,
             destination_name=destination_name,
+            destination_kind=span.attributes.get(MESSAGING_DESTINATION_KIND),
             aliases=queue_aliases,
+        )
+        if not destination_decision.accepted:
+            unresolved.append(
+                UnresolvedObservation(
+                    trace_id=span.trace_id, reason=destination_decision.refusal_reason
+                )
+            )
+            continue
+
+        service_decision = decide_service_identity(
+            service_candidates,
+            service_name=span.service_name,
+            service_namespace=span.service_namespace,
+            aliases=service_aliases,
+        )
+        if not service_decision.accepted:
+            unresolved.append(
+                UnresolvedObservation(
+                    trace_id=span.trace_id, reason=service_decision.refusal_reason
+                )
+            )
+            continue
+
+        _record_if_observed_only(
+            entities,
+            entity_id=service_decision.service_id,
+            discovery_status=service_decision.discovery_status,
+            label="Service",
+            name=span.service_name,
         )
         _record_if_observed_only(
             entities,
-            entity_id=queue.queue_id,
-            discovery_status=queue.discovery_status,
+            entity_id=destination_decision.queue_id,
+            discovery_status=destination_decision.discovery_status,
             label="Queue",
             name=destination_name,
         )
@@ -603,7 +634,11 @@ def correlate_queue_observations(
         timestamp = span.end_time
         bucket_start, bucket_end = day_bucket(timestamp)
         evidence_id = ids.observed_evidence_id(
-            span.environment, bucket_start, service.service_id, relation_type, queue.queue_id
+            span.environment,
+            bucket_start,
+            service_decision.service_id,
+            relation_type,
+            destination_decision.queue_id,
         )
         evidence = ObservedEvidence(
             id=evidence_id,
@@ -619,9 +654,9 @@ def correlate_queue_observations(
         )
         facts.append(
             ObservedFactCandidate(
-                subject_id=service.service_id,
+                subject_id=service_decision.service_id,
                 relation_type=relation_type,
-                object_id=queue.queue_id,
+                object_id=destination_decision.queue_id,
                 environment=span.environment,
                 timestamp=timestamp,
                 trace_id=span.trace_id,

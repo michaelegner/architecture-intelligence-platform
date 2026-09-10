@@ -12,6 +12,13 @@ from app.telemetry.adapter import (
     correlate_queue_observations,
 )
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer
+from app.telemetry.messaging_guards import (
+    AMBIGUOUS_SERVICE_IDENTITY,
+    CONFLICTING_SERVICE_IDENTITY,
+    PLACEHOLDER_SERVICE_IDENTITY,
+    UNRESOLVED_DESTINATION_SEMANTICS,
+    UNSUPPORTED_DESTINATION_SEMANTICS,
+)
 from app.telemetry.model import RuntimeSpan
 from app.telemetry.operation_resolver import DeclaredOperationCandidate
 from app.telemetry.queue_resolver import DeclaredQueueCandidate
@@ -561,9 +568,16 @@ def test_missing_environment_is_unresolved_for_queue_observations():
 
 
 def test_observed_only_service_and_queue_are_both_recorded():
+    # v0.4.1 I2: an undeclared destination with no destination-kind evidence now refuses (default-
+    # deny, spec §11) rather than silently minting - explicit kind=queue is what still allows an
+    # otherwise-undeclared destination to be recorded here.
     span = _span(
         service_name="FraudService",
-        attributes={"messaging.operation.type": "send", "messaging.destination.name": "legacy-q"},
+        attributes={
+            "messaging.operation.type": "send",
+            "messaging.destination.name": "legacy-q",
+            "messaging.destination_kind": "queue",
+        },
     )
     batch = _queue_correlate([span])
     labels = {e.label for e in batch.entities}
@@ -580,6 +594,339 @@ def test_queue_evidence_matches_the_single_observation_seed_shape():
     assert evidence.evidence_type == "OBSERVED"
     assert evidence.observation_count == 1
     assert evidence.sample_trace_ids == [span.trace_id]
+
+
+# --- v0.4.1 I2.2: composed messaging-guard matrix (spec §27, C1-C17) ----------------------------
+#
+# Asserts complete entities/facts/unresolved shapes, not just counts, per spec §27's own
+# requirement. NAMESPACED_FRAUD/AMBIGUOUS_BILLING_* are local to this section - not added to the
+# shared SERVICE_CANDIDATES/QUEUE_CANDIDATES used elsewhere in this file, to avoid affecting any
+# other test.
+
+NAMESPACED_FRAUD = DeclaredServiceCandidate(
+    id="service:commerce:fraud-service", name="FraudService", namespace="commerce"
+)
+AMBIGUOUS_BILLING_A = DeclaredServiceCandidate(
+    id="service:billing-v1", name="Billing", namespace=None
+)
+AMBIGUOUS_BILLING_B = DeclaredServiceCandidate(
+    id="service:billing-v2", name="Billing", namespace=None
+)
+
+
+def _assert_one_fact(batch, *, subject_id, relation_type, object_id, environment, correlation_mode):
+    """Full-shape fact assertion (spec §27: "complete entities/facts/unresolved results, not only
+    fact count")."""
+    assert len(batch.facts) == 1
+    fact = batch.facts[0]
+    assert fact.subject_id == subject_id
+    assert fact.relation_type == relation_type
+    assert fact.object_id == object_id
+    assert fact.environment == environment
+    assert fact.evidence.correlation_mode == correlation_mode
+
+
+def test_c1_declared_service_and_declared_queue_send_produces_one_sends_fact_no_unresolved():
+    span = _span(
+        service_name="OrderService",
+        attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
+    )
+    batch = _queue_correlate([span])
+    assert batch.unresolved == []
+    assert batch.entities == []
+    _assert_one_fact(
+        batch,
+        subject_id="service:order-service",
+        relation_type="SENDS",
+        object_id="queue:payment-q",
+        environment="production",
+        correlation_mode="MESSAGING_SEND",
+    )
+
+
+def test_c2_declared_service_and_declared_queue_receive_produces_one_receives_from_fact():
+    span = _span(
+        service_name="OrderService",
+        attributes={
+            "messaging.operation.type": "receive",
+            "messaging.destination.name": "payment-q",
+        },
+    )
+    batch = _queue_correlate([span])
+    assert batch.unresolved == []
+    assert batch.entities == []
+    _assert_one_fact(
+        batch,
+        subject_id="service:order-service",
+        relation_type="RECEIVES_FROM",
+        object_id="queue:payment-q",
+        environment="production",
+        correlation_mode="MESSAGING_RECEIVE",
+    )
+
+
+def test_c3_declared_service_and_declared_queue_process_produces_one_receives_from_fact():
+    span = _span(
+        service_name="OrderService",
+        attributes={
+            "messaging.operation.type": "process",
+            "messaging.destination.name": "payment-q",
+        },
+    )
+    batch = _queue_correlate([span])
+    assert batch.unresolved == []
+    assert batch.entities == []
+    _assert_one_fact(
+        batch,
+        subject_id="service:order-service",
+        relation_type="RECEIVES_FROM",
+        object_id="queue:payment-q",
+        environment="production",
+        correlation_mode="MESSAGING_PROCESS",
+    )
+
+
+def test_c4_explicit_observed_only_service_with_declared_queue_records_service_entity():
+    span = _span(
+        service_name="FraudService",
+        attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
+    )
+    batch = _queue_correlate([span])
+    assert batch.unresolved == []
+    _assert_one_fact(
+        batch,
+        subject_id="service:fraudservice",
+        relation_type="SENDS",
+        object_id="queue:payment-q",
+        environment="production",
+        correlation_mode="MESSAGING_SEND",
+    )
+    assert len(batch.entities) == 1
+    assert batch.entities[0].id == "service:fraudservice"
+    assert batch.entities[0].label == "Service"
+    assert batch.entities[0].name == "FraudService"
+
+
+def test_c5_declared_service_with_explicit_kind_queue_undeclared_destination_records_queue_entity():
+    span = _span(
+        service_name="OrderService",
+        attributes={
+            "messaging.operation.type": "send",
+            "messaging.destination.name": "events",
+            "messaging.destination_kind": "queue",
+        },
+    )
+    batch = _queue_correlate([span])
+    assert batch.unresolved == []
+    _assert_one_fact(
+        batch,
+        subject_id="service:order-service",
+        relation_type="SENDS",
+        object_id="queue:events",
+        environment="production",
+        correlation_mode="MESSAGING_SEND",
+    )
+    assert len(batch.entities) == 1
+    assert batch.entities[0].id == "queue:events"
+    assert batch.entities[0].label == "Queue"
+    assert batch.entities[0].name == "events"
+
+
+def test_c6_explicit_observed_only_service_and_queue_both_record_entities_one_fact():
+    span = _span(
+        service_name="FraudService",
+        attributes={
+            "messaging.operation.type": "send",
+            "messaging.destination.name": "events",
+            "messaging.destination_kind": "queue",
+        },
+    )
+    batch = _queue_correlate([span])
+    assert batch.unresolved == []
+    _assert_one_fact(
+        batch,
+        subject_id="service:fraudservice",
+        relation_type="SENDS",
+        object_id="queue:events",
+        environment="production",
+        correlation_mode="MESSAGING_SEND",
+    )
+    entities_by_label = {e.label: e for e in batch.entities}
+    assert set(entities_by_label) == {"Service", "Queue"}
+    assert entities_by_label["Service"].id == "service:fraudservice"
+    assert entities_by_label["Queue"].id == "queue:events"
+
+
+def test_c7_explicit_kind_topic_is_destination_refusal_no_entities_or_facts():
+    span = _span(
+        service_name="OrderService",
+        attributes={
+            "messaging.operation.type": "send",
+            "messaging.destination.name": "payment-q",
+            "messaging.destination_kind": "topic",
+        },
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [UNSUPPORTED_DESTINATION_SEMANTICS]
+
+
+def test_c8_unresolved_destination_semantics_no_entities_or_facts():
+    span = _span(
+        service_name="OrderService",
+        attributes={
+            "messaging.operation.type": "send",
+            "messaging.destination.name": "unknown-destination",
+        },
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [UNRESOLVED_DESTINATION_SEMANTICS]
+
+
+def test_c9_placeholder_service_with_declared_queue_is_service_refusal_no_entities_or_facts():
+    span = _span(
+        service_name="unknown_service",
+        attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [PLACEHOLDER_SERVICE_IDENTITY]
+
+
+def test_c10_ambiguous_service_with_declared_queue_is_service_refusal():
+    span = _span(
+        service_name="Billing",
+        attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
+    )
+    batch = _queue_correlate([span], service_candidates=[AMBIGUOUS_BILLING_A, AMBIGUOUS_BILLING_B])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [AMBIGUOUS_SERVICE_IDENTITY]
+
+
+def test_c11_conflicting_namespace_with_declared_queue_is_service_refusal():
+    span = _span(
+        service_name="FraudService",
+        service_namespace="warehouse",
+        attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
+    )
+    batch = _queue_correlate([span], service_candidates=[NAMESPACED_FRAUD])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [CONFLICTING_SERVICE_IDENTITY]
+
+
+def test_c12_placeholder_service_with_explicit_kind_topic_reports_destination_reason_only():
+    # Destination-first precedence (spec §6): when both guards would refuse, exactly one reason -
+    # the destination's - is produced, never both and never the service reason instead.
+    span = _span(
+        service_name="unknown_service",
+        attributes={
+            "messaging.operation.type": "send",
+            "messaging.destination.name": "payment-q",
+            "messaging.destination_kind": "topic",
+        },
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [UNSUPPORTED_DESTINATION_SEMANTICS]
+
+
+def test_c13_accepted_span_environment_is_scoped_to_the_reporting_environment():
+    # "valid namespaced service" per spec §27's C13 row - NAMESPACED_FRAUD/"commerce" is a genuinely
+    # namespaced declared candidate, matched via tier1 (spec §14 step 1), not an unnamespaced one.
+    span = _span(
+        service_name="FraudService",
+        service_namespace="commerce",
+        environment="staging",
+        attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
+    )
+    batch = _queue_correlate([span], service_candidates=[NAMESPACED_FRAUD])
+    assert batch.unresolved == []
+    assert batch.entities == []  # declared match - nothing new
+    _assert_one_fact(
+        batch,
+        subject_id="service:commerce:fraud-service",
+        relation_type="SENDS",
+        object_id="queue:payment-q",
+        environment="staging",
+        correlation_mode="MESSAGING_SEND",
+    )
+    assert batch.facts[0].evidence.environment == "staging"
+
+
+def test_c14_unrecognized_operation_is_silently_skipped_even_with_otherwise_guard_failing_fields():
+    # The guards never even run - operation recognition remains frozen and is checked first (spec
+    # §20), so a topic-shaped destination and a placeholder service on the same span still produce
+    # neither a fact nor an unresolved entry.
+    span = _span(
+        service_name="unknown_service",
+        attributes={
+            "messaging.operation.type": "publish",
+            "messaging.destination.name": "payment-q",
+            "messaging.destination_kind": "topic",
+        },
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert batch.unresolved == []
+
+
+def test_c15_missing_destination_name_is_still_no_destination_name():
+    span = _span(service_name="OrderService", attributes={"messaging.operation.type": "send"})
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [NO_DESTINATION_NAME]
+
+
+def test_c16_missing_environment_is_still_no_environment():
+    span = _span(
+        service_name="OrderService",
+        environment=None,
+        attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [NO_ENVIRONMENT]
+
+
+def test_c17_mixed_batch_only_the_valid_span_contributes_artifacts():
+    refused_span = _span(
+        service_name="OrderService",
+        trace_id="1" * 32,
+        span_id="r1" * 8,
+        attributes={
+            "messaging.operation.type": "send",
+            "messaging.destination.name": "payment-q",
+            "messaging.destination_kind": "topic",
+        },
+    )
+    valid_span = _span(
+        service_name="OrderService",
+        trace_id="2" * 32,
+        span_id="v1" * 8,
+        attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
+    )
+    batch = _queue_correlate([refused_span, valid_span])
+    assert batch.entities == []  # both spans use the already-declared OrderService/payment-q
+    _assert_one_fact(
+        batch,
+        subject_id="service:order-service",
+        relation_type="SENDS",
+        object_id="queue:payment-q",
+        environment="production",
+        correlation_mode="MESSAGING_SEND",
+    )
+    assert batch.facts[0].trace_id == valid_span.trace_id
+    assert [u.reason for u in batch.unresolved] == [UNSUPPORTED_DESTINATION_SEMANTICS]
 
 
 # --- adapt: combines HTTP and queue observations ------------------------------------------------
@@ -621,3 +968,56 @@ def test_adapt_deduplicates_entities_discovered_via_both_paths():
     )
     fraud_entities = [e for e in batch.entities if e.name == "FraudService"]
     assert len(fraud_entities) == 1
+
+
+def test_refused_messaging_span_does_not_suppress_valid_http_facts_in_the_same_batch():
+    client, server = _client_server_pair()
+    refused_queue_span = _span(
+        span_id="q3" * 8,
+        service_name="OrderService",
+        attributes={
+            "messaging.operation.type": "send",
+            "messaging.destination.name": "payment-q",
+            "messaging.destination_kind": "topic",
+        },
+    )
+    batch = adapt(
+        [client, server, refused_queue_span],
+        service_candidates=SERVICE_CANDIDATES,
+        operation_candidates=OPERATION_CANDIDATES,
+        queue_candidates=QUEUE_CANDIDATES,
+        service_aliases={},
+        queue_aliases={},
+    )
+    assert {f.relation_type for f in batch.facts} == {"CALLS"}
+    assert [u.reason for u in batch.unresolved] == [UNSUPPORTED_DESTINATION_SEMANTICS]
+
+
+def test_messaging_placeholder_refusal_does_not_change_http_service_resolution():
+    # The messaging service-identity guard is scoped to the messaging path only (spec §14) -
+    # "unknown_service" refuses for messaging but the HTTP path's own resolver is untouched and
+    # still mints it as OBSERVED_ONLY exactly as before (this is the provider/SERVER side here;
+    # _client_server_pair only exposes server_overrides).
+    client, server = _client_server_pair(service_name="unknown_service")
+    queue_span = _span(
+        span_id="q4" * 8,
+        service_name="unknown_service",
+        attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
+    )
+    batch = adapt(
+        [client, server, queue_span],
+        service_candidates=SERVICE_CANDIDATES,
+        operation_candidates=OPERATION_CANDIDATES,
+        queue_candidates=QUEUE_CANDIDATES,
+        service_aliases={},
+        queue_aliases={},
+    )
+    calls_facts = [f for f in batch.facts if f.relation_type == "CALLS"]
+    assert len(calls_facts) == 1
+    assert calls_facts[0].subject_id == "service:order-service"
+    unknown_service_entities = [e for e in batch.entities if e.id == "service:unknown-service"]
+    assert len(unknown_service_entities) == 1  # HTTP path still minted it, unaffected
+
+    sends_facts = [f for f in batch.facts if f.relation_type == "SENDS"]
+    assert sends_facts == []
+    assert [u.reason for u in batch.unresolved] == [PLACEHOLDER_SERVICE_IDENTITY]
