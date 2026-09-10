@@ -1,7 +1,7 @@
 # AIP v0.4.1 — Semantic Hardening for Broader Discovery
 
-**Release:** `v0.4.1`
-**Status:** Shipped — [`v0.4.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.1) released 2026-09-10
+**Release:** `v0.4.1`  
+**Status:** Shipped — [`v0.4.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.1) released 2026-09-10  
 **Goal:** Semantic Hardening for Broader Discovery
 
 ## Purpose
