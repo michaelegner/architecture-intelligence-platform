@@ -140,6 +140,36 @@ def test_o1_filters_by_relation_type_and_from_id(driver, session):
     assert none_matching == []
 
 
+def test_o1_with_no_environment_filter_returns_rows_from_every_environment(driver, session):
+    """v0.4.1 I1.2 regression: O1's environment-optional inline clause
+    (`observed_evidence_condition(environment_optional=True)`) must still behave like the original
+    `$environment IS NULL OR e.environment = $environment` text post-migration - a plain
+    `environment=None` call is a valid, all-environments listing, not an empty result."""
+    subject_id = ids.service_id("order-service")
+    object_id = ids.queue_id("payment-q")
+    _persist(
+        driver,
+        _fact(
+            subject_id=subject_id,
+            relation_type="SENDS",
+            object_id=object_id,
+            environment="o1-env-none-a",
+        ),
+        _fact(
+            subject_id=subject_id,
+            relation_type="SENDS",
+            object_id=object_id,
+            environment="o1-env-none-b",
+        ),
+    )
+
+    results = observed_relations(
+        session, environment=None, relation_type="SENDS", from_id=subject_id, since=SINCE
+    )
+    environments = {r.environment for r in results}
+    assert {"o1-env-none-a", "o1-env-none-b"}.issubset(environments)
+
+
 # --- O2: confirmed relations --------------------------------------------------------------------
 
 

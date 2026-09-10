@@ -27,9 +27,7 @@ from app.architecture_intelligence.contracts import (
     LimitationCode,
     Qualification,
 )
-
-_DECLARED = "DECLARED"
-_OBSERVED = "OBSERVED"
+from app.qualification.declared_observed import qualify_relation as _kernel_qualify_relation
 
 
 def compute_claim_id(
@@ -49,49 +47,6 @@ def compute_claim_id(
     return f"aip:claim:v1:{digest}"
 
 
-def _matches_declared(evidence_ids: list[str], evidence_by_id: dict[str, dict]) -> list[str]:
-    return sorted(
-        eid
-        for eid in evidence_ids
-        if eid in evidence_by_id and evidence_by_id[eid]["evidence_type"] == _DECLARED
-    )
-
-
-def _matches_observed(
-    evidence_ids: list[str],
-    evidence_by_id: dict[str, dict],
-    *,
-    environment: str,
-    window_start: datetime,
-    window_end: datetime,
-) -> list[str]:
-    matches = []
-    for eid in evidence_ids:
-        row = evidence_by_id.get(eid)
-        if row is None or row["evidence_type"] != _OBSERVED:
-            continue
-        if row["environment"] != environment:
-            continue
-        last_seen = row["last_seen"]
-        if last_seen is None or last_seen < window_start or last_seen > window_end:
-            continue
-        matches.append(eid)
-    return sorted(matches)
-
-
-def _classify_coverage(*, relevant_observed: bool, spans_observed: bool, enabled: bool) -> Coverage:
-    """Spec §14's coverage classification for a `NOT_OBSERVED_IN_WINDOW` claim - the same rule
-    `app.analysis.runtime._classify_coverage` already applies to O4, restated over the booleans
-    O5's `telemetry_coverage` computes rather than re-deriving them."""
-    if not enabled:
-        return Coverage.UNKNOWN
-    if relevant_observed:
-        return Coverage.SUFFICIENT
-    if spans_observed:
-        return Coverage.PARTIAL
-    return Coverage.NONE
-
-
 def _qualify(
     evidence_ids: list[str],
     evidence_by_id: dict[str, dict],
@@ -99,32 +54,40 @@ def _qualify(
     environment: str,
     window_start: datetime,
     window_end: datetime,
-    relevant_observed: bool,
-    spans_observed: bool,
+    relation_type: str,
+    coverage: ServiceTelemetryCoverage,
     coverage_enabled: bool,
 ) -> tuple[Qualification, Coverage | None, list[str]] | None:
     """Spec §14's qualification table. `None` means "no supported dependency claim" - the caller
-    must not create one."""
-    declared = _matches_declared(evidence_ids, evidence_by_id)
-    observed = _matches_observed(
+    must not create one.
+
+    v0.4.1 I1.2: delegates to the shared kernel (`app.qualification.declared_observed.
+    qualify_relation`) rather than an independent implementation, and maps the kernel's plain
+    strings onto this module's public `Qualification`/`Coverage` enums. `coverage_row_exists` is
+    always `True` here: `app.architecture_intelligence.repository.read_service_dependency_rows`'s
+    `telemetry_coverage(service_ids=[service_id])[0]` always synthesizes exactly one coverage row
+    per requested id, so this call site can never observe "no coverage row" in production - that
+    branch is exercised only by the kernel's own I1.1 unit tests, per spec §25.3."""
+    result = _kernel_qualify_relation(
         evidence_ids,
         evidence_by_id,
         environment=environment,
         window_start=window_start,
         window_end=window_end,
+        relation_type=relation_type,
+        http_observed=coverage.http_observed,
+        messaging_observed=coverage.messaging_observed,
+        spans_observed=coverage.spans_observed,
+        coverage_row_exists=True,
+        qualification_enabled=coverage_enabled,
     )
-    if declared and observed:
-        return Qualification.CONFIRMED, None, sorted(set(declared) | set(observed))
-    if observed:
-        return Qualification.OBSERVED_ONLY, None, observed
-    if declared:
-        coverage = _classify_coverage(
-            relevant_observed=relevant_observed,
-            spans_observed=spans_observed,
-            enabled=coverage_enabled,
-        )
-        return Qualification.NOT_OBSERVED_IN_WINDOW, coverage, declared
-    return None
+    if result is None:
+        return None
+    return (
+        Qualification(result.qualification),
+        Coverage(result.coverage) if result.coverage is not None else None,
+        result.evidence_refs,
+    )
 
 
 def _operation_ref(call: dict) -> EntityRef:
@@ -153,7 +116,8 @@ def _accepted_evidence_ids(evidence_ids: list[str], evidence_by_id: dict[str, di
     accepted snapshot. A relation's raw `evidence_ids` can be non-empty yet dangling (the id no
     longer resolves to any Evidence row `read_service_dependency_rows` fetched) - that must not
     count as "evidenced" for destination resolution, any more than it counts for qualification
-    (`_matches_declared`/`_matches_observed` apply the same `eid in evidence_by_id` filter)."""
+    (`app.qualification.declared_observed.matches_declared_evidence`/`matches_observed_evidence`
+    apply the same `eid in evidence_by_id` filter)."""
     return sorted(eid for eid in evidence_ids if eid in evidence_by_id)
 
 
@@ -331,8 +295,8 @@ def project_service_dependencies(
             environment=environment,
             window_start=window_start,
             window_end=window_end,
-            relevant_observed=coverage.http_observed,
-            spans_observed=coverage.spans_observed,
+            relation_type="CALLS",
+            coverage=coverage,
             coverage_enabled=coverage_enabled,
         )
         if qualified is None:
@@ -373,8 +337,8 @@ def project_service_dependencies(
             environment=environment,
             window_start=window_start,
             window_end=window_end,
-            relevant_observed=coverage.messaging_observed,
-            spans_observed=coverage.spans_observed,
+            relation_type="SENDS",
+            coverage=coverage,
             coverage_enabled=coverage_enabled,
         )
         if qualified is None:

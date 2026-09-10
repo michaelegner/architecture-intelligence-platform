@@ -3,17 +3,26 @@ from datetime import UTC, datetime, timedelta
 
 import neo4j
 
-NOT_OBSERVED_IN_WINDOW = "NOT_OBSERVED_IN_WINDOW"
+from app.qualification.declared_observed import (
+    CONFIRMED,
+    COVERAGE_NONE,  # noqa: F401 - re-exported; external importers use app.analysis.runtime.COVERAGE_NONE
+    COVERAGE_PARTIAL,  # noqa: F401 - re-exported; see COVERAGE_NONE above
+    COVERAGE_SUFFICIENT,  # noqa: F401 - re-exported; see COVERAGE_NONE above
+    COVERAGE_UNKNOWN,  # noqa: F401 - re-exported; see COVERAGE_NONE above
+    NOT_OBSERVED_IN_WINDOW,
+    OBSERVED_ONLY,
+    declared_evidence_exists,
+    not_declared_evidence_exists,
+    not_observed_evidence_exists,
+    observed_evidence_condition,
+    observed_evidence_exists,
+)
+from app.qualification.declared_observed import (
+    classify_coverage as _kernel_classify_coverage,
+)
+
 DEFAULT_WINDOW_HOURS = 24
 DEFAULT_ENVIRONMENT = "production"
-
-# 11H R7/spec §11.2 - qualitative coverage classification for a NOT_OBSERVED_IN_WINDOW finding.
-# Deliberately a fixed small vocabulary, not a numeric confidence score (spec §11.2 explicitly
-# doesn't require one).
-COVERAGE_SUFFICIENT = "SUFFICIENT"
-COVERAGE_PARTIAL = "PARTIAL"
-COVERAGE_NONE = "NONE"
-COVERAGE_UNKNOWN = "UNKNOWN"
 
 # Shared building blocks for the CALLS branch used by O1-O4: CALLS always goes
 # (Service)-[r]->(Operation), never Service->Service, and PROVIDES is only ever written by the
@@ -25,24 +34,15 @@ _CALLS_TARGET_ID_EXPR = "coalesce(provider.id, o.id)"
 _CALLS_TARGET_NAME_EXPR = "coalesce(provider.name, o.name, o.method + ' ' + o.path, o.id)"
 _CALLS_TARGET = f"{_CALLS_TARGET_ID_EXPR} AS target_id, {_CALLS_TARGET_NAME_EXPR} AS target_name"
 
-_OBSERVED_EXISTS = (
-    "EXISTS { UNWIND r.evidence_ids AS eid MATCH (e:Evidence {id: eid}) "
-    "WHERE e.evidence_type = 'OBSERVED' AND e.environment = $environment "
-    "AND e.last_seen >= $since AND ($until IS NULL OR e.last_seen <= $until) }"
-)
-_NOT_OBSERVED_EXISTS = (
-    "NOT EXISTS { UNWIND r.evidence_ids AS eid MATCH (e:Evidence {id: eid}) "
-    "WHERE e.evidence_type = 'OBSERVED' AND e.environment = $environment "
-    "AND e.last_seen >= $since AND ($until IS NULL OR e.last_seen <= $until) }"
-)
-_DECLARED_EXISTS = (
-    "EXISTS { UNWIND r.evidence_ids AS eid2 MATCH (e2:Evidence {id: eid2}) "
-    "WHERE e2.evidence_type = 'DECLARED' }"
-)
-_NOT_DECLARED_EXISTS = (
-    "NOT EXISTS { UNWIND r.evidence_ids AS eid2 MATCH (e2:Evidence {id: eid2}) "
-    "WHERE e2.evidence_type = 'DECLARED' }"
-)
+# I1.2 (spec §13): these Cypher fragments now originate from app.qualification.declared_observed,
+# the single shared semantic owner for declared/observed evidence matching, instead of being
+# independently authored here. Reconstructed under their existing private names so every
+# downstream f-string usage below (_O2_QUERY/_O3_QUERY via _status_query, _O4_QUERY, the four
+# coverage-driver queries) needs no further edits.
+_OBSERVED_EXISTS = observed_evidence_exists()
+_NOT_OBSERVED_EXISTS = not_observed_evidence_exists()
+_DECLARED_EXISTS = declared_evidence_exists()
+_NOT_DECLARED_EXISTS = not_declared_evidence_exists()
 
 
 def default_since(hours: int = DEFAULT_WINDOW_HOURS) -> datetime:
@@ -80,10 +80,7 @@ _O1_QUERY = (
     f"AND ($to_id IS NULL OR {_CALLS_TARGET_ID_EXPR} = $to_id) "
     "UNWIND coalesce(r.evidence_ids, []) AS eid "
     "MATCH (e:Evidence {id: eid}) "
-    "WHERE e.evidence_type = 'OBSERVED' "
-    "AND ($environment IS NULL OR e.environment = $environment) "
-    "AND e.last_seen >= $since "
-    "AND ($until IS NULL OR e.last_seen <= $until) "
+    f"WHERE {observed_evidence_condition(environment_optional=True)} "
     f"RETURN a.id AS source_id, a.name AS source_name, 'CALLS' AS relation_type, {_CALLS_TARGET}, "
     "e.environment AS environment, "
     "min(e.first_seen) AS first_seen, max(e.last_seen) AS last_seen, "
@@ -94,8 +91,7 @@ _O1_QUERY = (
     "AND ($from_id IS NULL OR a.id = $from_id) AND ($to_id IS NULL OR b.id = $to_id) "
     "UNWIND coalesce(r.evidence_ids, []) AS eid "
     "MATCH (e:Evidence {id: eid}) "
-    "WHERE e.evidence_type = 'OBSERVED' AND ($environment IS NULL OR e.environment = $environment) "
-    "AND e.last_seen >= $since AND ($until IS NULL OR e.last_seen <= $until) "
+    f"WHERE {observed_evidence_condition(environment_optional=True)} "
     "RETURN a.id AS source_id, a.name AS source_name, type(r) AS relation_type, "
     "b.id AS target_id, b.name AS target_name, e.environment AS environment, "
     "min(e.first_seen) AS first_seen, max(e.last_seen) AS last_seen, "
@@ -142,8 +138,7 @@ def _status_query(declared_guard: str, observed_guard: str) -> str:
         f"WHERE {declared_guard} AND {observed_guard} "
         "UNWIND coalesce(r.evidence_ids, []) AS eid "
         "MATCH (e:Evidence {id: eid}) "
-        "WHERE e.evidence_type = 'OBSERVED' AND e.environment = $environment "
-        "AND e.last_seen >= $since AND ($until IS NULL OR e.last_seen <= $until) "
+        f"WHERE {observed_evidence_condition()} "
         f"RETURN a.id AS source_id, a.name AS source_name, 'CALLS' AS relation_type, {_CALLS_TARGET}, "
         "e.environment AS environment, "
         "min(e.first_seen) AS first_seen, max(e.last_seen) AS last_seen, "
@@ -153,8 +148,7 @@ def _status_query(declared_guard: str, observed_guard: str) -> str:
         f"WHERE {declared_guard} AND {observed_guard} "
         "UNWIND coalesce(r.evidence_ids, []) AS eid "
         "MATCH (e:Evidence {id: eid}) "
-        "WHERE e.evidence_type = 'OBSERVED' AND e.environment = $environment "
-        "AND e.last_seen >= $since AND ($until IS NULL OR e.last_seen <= $until) "
+        f"WHERE {observed_evidence_condition()} "
         "RETURN a.id AS source_id, a.name AS source_name, type(r) AS relation_type, "
         "b.id AS target_id, b.name AS target_name, e.environment AS environment, "
         "min(e.first_seen) AS first_seen, max(e.last_seen) AS last_seen, "
@@ -368,29 +362,19 @@ def _classify_coverage(
     qualification_enabled: bool,
 ) -> str:
     """Qualifies how much weight an O4 NOT_OBSERVED_IN_WINDOW finding should carry (11H R7/spec
-    §11, 11H.11) - derived entirely from the O5 coverage signals already computed for this
-    service/window/environment, no new Cypher. UNKNOWN when qualification is disabled (spec §22)
-    or the subject has no coverage row at all (shouldn't normally happen - its own declared
-    relation makes it a real Service - but is structurally the "can't assess" case either way).
-    Otherwise: SUFFICIENT if the service has observed traffic of the *same* relation kind
-    (CALLS -> http_observed, SENDS/RECEIVES_FROM -> messaging_observed) in this window/
-    environment - a not-observed edge of a well-covered kind is meaningful evidence. PARTIAL if
-    the service emits some telemetry but not of this kind (e.g. HTTP is instrumented but
-    messaging isn't) - weaker evidence, since this kind simply isn't watched. NONE if the service
-    emitted no usable telemetry at all in this window/environment - spec §11.1's Case B, the
-    weakest possible evidence for "not observed"."""
-    if not qualification_enabled or service_coverage is None:
-        return COVERAGE_UNKNOWN
-    relevant_observed = (
-        service_coverage.http_observed
-        if relation_type == "CALLS"
-        else service_coverage.messaging_observed
+    §11, 11H.11; v0.4.1 spec §12). Thin adapter over the shared kernel's `classify_coverage`
+    (app.qualification.declared_observed) - I1.2 unpacks this module's own
+    `ServiceTelemetryCoverage` into the flat booleans the dependency-free kernel accepts. The
+    kernel cannot import `ServiceTelemetryCoverage` itself: it's defined here, and this module
+    imports the kernel, so the reverse import would be circular."""
+    return _kernel_classify_coverage(
+        relation_type,
+        http_observed=service_coverage.http_observed if service_coverage else False,
+        messaging_observed=service_coverage.messaging_observed if service_coverage else False,
+        spans_observed=service_coverage.spans_observed if service_coverage else False,
+        coverage_row_exists=service_coverage is not None,
+        qualification_enabled=qualification_enabled,
     )
-    if relevant_observed:
-        return COVERAGE_SUFFICIENT
-    if service_coverage.spans_observed:
-        return COVERAGE_PARTIAL
-    return COVERAGE_NONE
 
 
 @dataclass(frozen=True)
@@ -475,7 +459,7 @@ def service_runtime_profile(
                 relation_type=r.relation_type,
                 target_id=r.target_id,
                 target_name=r.target_name,
-                status="CONFIRMED",
+                status=CONFIRMED,
                 first_seen=r.first_seen,
                 last_seen=r.last_seen,
                 observation_count=r.observation_count,
@@ -489,7 +473,7 @@ def service_runtime_profile(
                 relation_type=r.relation_type,
                 target_id=r.target_id,
                 target_name=r.target_name,
-                status="OBSERVED_ONLY",
+                status=OBSERVED_ONLY,
                 first_seen=r.first_seen,
                 last_seen=r.last_seen,
                 observation_count=r.observation_count,
