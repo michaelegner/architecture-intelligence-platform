@@ -15,16 +15,10 @@ qualifies against.
   same-PR review-round follow-up completing the real-Neo4j persistence assertions to all four
   artifact types and fixing the C13 composed-matrix case to use a genuinely namespaced service
   (`7b902d4`, squashed into `aedda84` on merge).
-- **I2.3 (Frozen Qualification and Completion) candidate:**
-  `cff31a9f02946682a274b0dc5b679b6b05d8dd30` on branch
-  `feature/v0.4.1-i2.3-frozen-qualification-completion` (PR #117) — a documentation/test-only
-  slice, no production code changed beyond the two new synthetic-reachability tests.
-- **CI, verified via the GitHub API against this exact SHA** (not `gh pr checks`, per this
-  repository's standing rule that an unscoped/PR-view check query can silently miss what's actually
-  attributed to the candidate commit —
-  `gh api repos/michaelegner/architecture-intelligence-platform/commits/cff31a9.../check-runs`):
-  `lint + test` ×2, `CodeQL`, `analyze (actions)`, `analyze (python)`,
-  `dependency security scan (pip-audit, spec §29)` ×2 — all `completed`/`success`.
+- **I2.3 (Frozen Qualification and Completion) candidate:** see the commit this file is part of
+  for the exact SHA (branch `feature/v0.4.1-i2.3-frozen-qualification-completion`, PR #117) — a
+  documentation/test-only slice; the review round added two literal-captured-shape regressions
+  (below) on top of the two synthetic-reachability tests, no production code changed throughout.
 - **Environment / data used throughout I2's persistence-boundary tests:** the real
   `examples/` reference fixture landscape (module-scoped, shared within each integration test file),
   with distinct `environment` values per test to avoid cross-test evidence-id collisions.
@@ -35,16 +29,17 @@ qualifies against.
 |---|---|
 | `uv run ruff check .` | clean |
 | `uv run ruff format --check .` | clean |
-| `uv run pytest tests/unit` | 928 passed |
+| `uv run pytest tests/unit` | 930 passed |
 | `uv run pytest tests/integration` | 254 passed |
 
-928 unit tests = the 867 v0.4.1-I1 baseline + 36 (I2.1 guard matrices) + 4 (I2.1 review-round
+930 unit tests = the 867 v0.4.1-I1 baseline + 36 (I2.1 guard matrices) + 4 (I2.1 review-round
 regressions) + 17 (I2.2 composed matrix C1-C17) + 2 (I2.2 mixed-batch regressions) + 2 (I2.3
-synthetic-reachability regressions). 254 integration tests = the 248 v0.4.1-I1 baseline + 6 (I2.2
-real-Neo4j persistence proof, one positive control + five refusal families) — I2.3 adds no new
-integration tests, only unit-level synthetic-reachability proofs, since the frozen-shape regressions
-themselves are unit-level (spec §20 already establishes this: recognition is checked before any
-guard or Neo4j access is reached at all).
+synthetic-reachability regressions) + 2 (I2.3 review-round literal-captured-shape regressions,
+below). 254 integration tests = the 248 v0.4.1-I1 baseline + 6 (I2.2 real-Neo4j persistence proof,
+one positive control + five refusal families) — I2.3 adds no new integration tests, only unit-level
+frozen-shape/reachability proofs, since the frozen-shape regressions themselves are unit-level
+(spec §20 already establishes this: recognition is checked before any guard or Neo4j access is
+reached at all).
 
 ## Destination guard: default-deny (spec §9-11)
 
@@ -70,12 +65,23 @@ regression (`test_messaging_placeholder_refusal_does_not_change_http_service_res
 
 ## Frozen Quarkus and Airflow regressions (spec §30-31)
 
+Review caught a real gap in the first draft of this slice: the frozen-shape and synthetic-
+reachability tests used neutral stand-in values (`orders-topic`, `task-queue`) rather than the
+literal captured attributes, so they proved the attribute-key recognition boundary is name-generic
+but not that the *exact real captured inputs* were ever exercised — weaker evidence than the
+ADR/this record's own claim. Fixed by adding two new tests using the literal captured values
+verbatim, and switching the Quarkus synthetic-reachability test's destination to the real `fights`
+value as well; the pre-existing neutral-name tests are kept alongside them (spec §17's own
+genericity convention, still useful evidence in its own right).
+
 | Case | Test | Result |
 |---|---|---|
-| Quarkus exact captured shape (`messaging.operation: publish`, no `.type`) stays unrecognized | `test_legacy_messaging_operation_attribute_shape_is_not_recognized` | unmodified, passing |
-| Quarkus synthetic reachability (`kafka`/`orders-topic`, recognized `operation.type`, no kind) | `test_quarkus_shape_destination_guard_reachability_with_a_recognized_operation_type` | new — refuses `unresolved_destination_semantics` |
-| Airflow exact captured shape (`messaging.destination`, not `.name`) stays unrecognized | `test_celery_instrumentation_semconv_shape_is_not_recognized` | unmodified, passing |
-| Airflow synthetic reachability (`service.name: unknown_service`, recognized operation type, declared Queue) | `test_airflow_shape_service_identity_guard_reachability_with_a_recognized_operation_type` | new — refuses `placeholder_service_identity` |
+| Quarkus neutral-name shape (`messaging.operation: publish`, no `.type`) stays unrecognized | `test_legacy_messaging_operation_attribute_shape_is_not_recognized` | unmodified, passing |
+| Quarkus **literal** captured shape (`messaging.destination.name: fights`, `messaging.system: kafka`) stays unrecognized | `test_quarkus_fights_topic_exact_captured_shape_is_not_recognized` | new — zero facts/entities/unresolved |
+| Quarkus synthetic reachability (`fights`/`kafka`, recognized `operation.type`, no kind) | `test_quarkus_shape_destination_guard_reachability_with_a_recognized_operation_type` | refuses `unresolved_destination_semantics` |
+| Airflow neutral-name shape (`messaging.destination`, not `.name`) stays unrecognized | `test_celery_instrumentation_semconv_shape_is_not_recognized` | unmodified, passing |
+| Airflow **literal** captured shape (`service.name: unknown_service`, `messaging.destination: default`) stays unrecognized | `test_airflow_unknown_service_exact_captured_shape_is_not_recognized` | new — zero facts/entities/unresolved |
+| Airflow synthetic reachability (`service.name: unknown_service`, recognized operation type, declared Queue) | `test_airflow_shape_service_identity_guard_reachability_with_a_recognized_operation_type` | refuses `placeholder_service_identity` |
 
 Neither synthetic test asserts that `messaging.system: kafka` alone means topic (spec §30's explicit
 constraint), and neither predicate under test inspects the words "Quarkus"/"Airflow", a role name,
@@ -95,7 +101,7 @@ shape.
 
 ## I2 exit statement (spec §42)
 
-> GO — At `cff31a9f02946682a274b0dc5b679b6b05d8dd30`, AIP's production runtime messaging path requires both
+> GO — At the I2.3 candidate commit (see Run identity above), AIP's production runtime messaging path requires both
 > deterministic Queue-compatible destination semantics and safe service identity before deriving a
 > canonical `SENDS`/`RECEIVES_FROM` observation. Topic-shaped, unresolved, conflicting, ambiguous,
 > and placeholder inputs produce zero Service/Queue/Evidence/relation artifacts from the refused

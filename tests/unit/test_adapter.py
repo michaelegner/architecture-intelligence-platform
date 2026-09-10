@@ -530,17 +530,39 @@ def test_legacy_messaging_operation_attribute_shape_is_not_recognized():
     assert batch.unresolved == []
 
 
+def test_quarkus_fights_topic_exact_captured_shape_is_not_recognized():
+    # v0.4.1 I2.3 (spec §30): unlike the neutral-name test above (spec §17's general-genericity
+    # convention), this uses the literal captured attributes from the real Quarkus Super Heroes
+    # Kafka producer span verbatim - docs/real-world-validation/quarkus-super-heroes/evidence/
+    # messaging.md and decisions/qsh-kafka-operation-type-gap.md: messaging.destination.name:
+    # fights, messaging.operation (not .type): publish, messaging.system: kafka. This is what
+    # actually backs the ADR 0013/completion-record claim that "the real captured Quarkus shape
+    # remains unrecognized" - the neutral test alone only proves the attribute-key behavior is
+    # name-generic, not that this exact real input was ever run through it.
+    span = _span(
+        attributes={
+            "messaging.operation": "publish",
+            "messaging.destination.name": "fights",
+            "messaging.system": "kafka",
+        }
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert batch.unresolved == []
+
+
 def test_quarkus_shape_destination_guard_reachability_with_a_recognized_operation_type():
     # v0.4.1 I2.3 (spec §30): the frozen shape above stays unrecognized only because operation
-    # recognition is frozen - this proves the destination guard itself refuses the same
-    # destination/system independently, once a currently-recognized operation.type reaches it. No
-    # messaging.destination_kind is supplied (matching the real captured shape, which never carried
-    # one) - the refusal is "unresolved" by default-deny, not because "kafka" is asserted to mean
-    # topic (spec §30 explicitly forbids that assertion).
+    # recognition is frozen - this proves the destination guard itself refuses the same real
+    # captured destination/system (fights/kafka) independently, once a currently-recognized
+    # operation.type reaches it. No messaging.destination_kind is supplied (matching the real
+    # captured shape, which never carried one) - the refusal is "unresolved" by default-deny, not
+    # because "kafka" is asserted to mean topic (spec §30 explicitly forbids that assertion).
     span = _span(
         attributes={
             "messaging.operation.type": "send",
-            "messaging.destination.name": "orders-topic",
+            "messaging.destination.name": "fights",
             "messaging.system": "kafka",
         }
     )
@@ -567,6 +589,28 @@ def test_celery_instrumentation_semconv_shape_is_not_recognized():
     )
     batch = _queue_correlate([span])
     assert batch.facts == []
+    assert batch.unresolved == []
+
+
+def test_airflow_unknown_service_exact_captured_shape_is_not_recognized():
+    # v0.4.1 I2.3 (spec §31): unlike the neutral-name test above (spec §17's general-genericity
+    # convention), this uses the literal captured attributes from the real Apache Airflow/Celery
+    # producer span verbatim - docs/real-world-validation/apache-airflow/profile.md: service.name:
+    # unknown_service, messaging.destination_kind: queue, messaging.destination (not
+    # .destination.name): default, no messaging.system. This is what actually backs the ADR 0013/
+    # completion-record claim that "the real captured Airflow shape remains unrecognized" - the
+    # neutral test alone only proves the attribute-key behavior is name-generic, not that this
+    # exact real input was ever run through it.
+    span = _span(
+        service_name="unknown_service",
+        attributes={
+            "messaging.destination_kind": "queue",
+            "messaging.destination": "default",
+        },
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
     assert batch.unresolved == []
 
 
