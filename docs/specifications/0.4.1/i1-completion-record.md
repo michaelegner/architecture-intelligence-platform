@@ -11,10 +11,10 @@ qualifies against.
 - **I1.2 (Wire Both Existing Paths):** merged to `main` as `664857d` (PR #113, 2026-09-10) plus a
   same-PR review-round follow-up closing `_status_query`'s remaining hand-written OBSERVED
   predicate and a stale docstring reference (`4cc5a54`, squashed into `664857d` on merge).
-- **I1.3 (Differential Qualification and Completion):** this record's own candidate — see the
-  commit this file is committed alongside for the exact SHA (PR branch
-  `feature/v0.4.1-i1.3-differential-qualification`); the evidence commit necessarily follows the
-  code commit it evaluates, per this repository's `v0.4.0` precedent.
+- **I1.3 (Differential Qualification and Completion):** `fc50cb0` on branch
+  `feature/v0.4.1-i1.3-differential-qualification` (PR #114) — this record is committed as part of
+  the same commit it evaluates, since I1.3's own regression suite and differential-test result
+  (below) were verified against that exact working tree before commit.
 - **Environment / window used throughout the I1.3 differential fixture:** `qualification-test`,
   `2026-09-01T00:00:00Z`–`2026-09-02T00:00:00Z`.
 
