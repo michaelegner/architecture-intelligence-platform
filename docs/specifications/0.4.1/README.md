@@ -1,8 +1,7 @@
 # AIP v0.4.1 — Semantic Hardening for Broader Discovery
 
-**Release:** `v0.4.1`
-**Status:** In release qualification — I1 and I2 are `GO`; I3 (this document's own increment) is
-in progress.
+**Release:** `v0.4.1`  
+**Status:** Shipped — [`v0.4.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.1) released 2026-09-10  
 **Goal:** Semantic Hardening for Broader Discovery
 
 ## Purpose
@@ -20,6 +19,7 @@ discovery source, Canonical Model family, or MCP tool.
 | [`i1-qualification-consistency.md`](i1-qualification-consistency.md) | One declared-versus-observed semantic owner, real-Neo4j differential qualification. | Draft |
 | [`i2-messaging-semantic-guards.md`](i2-messaging-semantic-guards.md) | Queue-compatible destination guard and safe messaging service-identity guard. | Draft |
 | [`i3-hardening-qualification-and-release.md`](i3-hardening-qualification-and-release.md) | Committed snapshot/read-cost benchmark, exact-candidate qualification, RC/final publication, post-release verification. | Draft 0.1 |
+| [`i3-completion-record.md`](i3-completion-record.md) | Full I3 exit record: run identity, regression suite, benchmark result, release publication identity. | Final |
 
 ## Status
 
@@ -60,12 +60,30 @@ discovery source, Canonical Model family, or MCP tool.
 
   ADR 0013 is satisfied (not superseded) by this record.
 
-- **I3 (Hardening, Qualification and Release) — in progress.** Delivered as I3.1 Reproducible
-  Benchmark Harness (PR #119, merged). I3.2 (candidate preparation and exact qualification), I3.3
-  (RC publication, GO decision, final publication), and I3.4 (post-release verification and public
-  closure) are not yet complete. This section is updated to `GO`, with the full exit record, once
-  I3 closes — see [`i3-hardening-qualification-and-release.md`](i3-hardening-qualification-and-release.md)
-  for the governing spec in the meantime.
+- **I3 (Hardening, Qualification and Release) — GO.** Delivered as I3.1 Reproducible Benchmark
+  Harness (PR #119), I3.2 Candidate Preparation (PR #120) plus qualification evidence (PR #121),
+  I3.3 RC Publication/GO Decision/Final Publication (PRs #122-124), I3.4 Post-Release Verification
+  and Closure (this record). See [`i3-completion-record.md`](i3-completion-record.md) for the full
+  exit record.
+
+  ```text
+  GO — At bc03602f95557eb0450506a9f5c3a7f7c296b2da, AIP v0.4.1 preserves the shipped v0.4
+  ArchitectureAnswer schema family and exactly three read-only MCP tools while completing its
+  semantic hardening: the analysis and Architecture Intelligence paths remain governed by one
+  declared-versus-observed rule with qualification mismatches = 0 and coverage mismatches = 0, and
+  runtime messaging still requires both Queue-compatible destination semantics and safe service
+  identity before producing any canonical artifact. A committed, disposable, deterministic
+  benchmark reproduces and records the current relationship between total graph/evidence size and
+  snapshot/dependency read cost without changing snapshot identity, retention, or public semantics.
+  The exact source candidate, release-triggered RC image, final v0.4.1 tag, and final GHCR image
+  have passed their required independent qualification, with producer.version=0.4.1 and
+  producer.build_revision=bc03602f95557eb0450506a9f5c3a7f7c296b2da. Release blockers = 0.
+  ```
+
+  ADR 0011 follows spec §18 and stays `Proposed` — this record does not imply the cache shipped.
+  ADR 0012 remains deferred/proposed. ADR 0010 and ADR 0013 remain `Accepted`.
+
+  **`v0.4.1` is now shipped — see [`ROADMAP.md`](../../../ROADMAP.md)'s `v0.4.1` section.**
 
 ## Delivery Direction
 
