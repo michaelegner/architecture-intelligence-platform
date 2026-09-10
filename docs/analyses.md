@@ -105,6 +105,28 @@ and a `since`/`until` time window:
 `GET /api/runtime/services/{id}` (`service_runtime_profile`) composes O2+O3+O4+O5 into one
 per-service view — this is what powers the Service Explorer UI's "Observed" section.
 
+## Qualification consistency across surfaces (v0.4.1 ADR 0010)
+
+The analysis/REST path above may use an implicit clock-relative default observation window and may
+allow an open-ended upper bound — when a caller omits `until`, the underlying qualification query
+places no upper bound on `last_seen` at all. This is distinct from what a REST *response* displays:
+`app/api/runtime.py`'s `RuntimeWindow.to` field always reports `until or datetime.now(UTC)` for
+human-readable display, even when the query itself ran with no upper bound — so an omitted `until`
+shows as "now" in the response body while still being genuinely open-ended underneath. Don't read
+`window.to` as the bound the query actually enforced.
+
+The MCP tools (see [`mcp.md`](mcp.md)) require the explicit observation context defined by the v0.4
+contract instead — there is no implicit default there.
+
+> Equivalent effective observation contexts MUST produce equivalent qualification semantics.
+> Different effective observation windows MAY legitimately produce different qualifications.
+
+That line is what distinguishes intended request-contract asymmetry from implementation divergence.
+Both surfaces derive their declared-vs-observed evidence matching and coverage classification from
+one shared semantic owner, `app/qualification/declared_observed.py`, proven equivalent by a real
+Neo4j differential test (`tests/integration/test_qualification_consistency.py`) rather than by
+inspection alone.
+
 ## Natural-language routing
 
 `app/analysis/registry.py`'s `INTENT_HANDLERS` maps each recognized intent (A1-A5, O1-O5) straight

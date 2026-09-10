@@ -1,6 +1,6 @@
 # 10. The declared-vs-observed rule has one owner and one executable cross-check
 
-Status: Proposed — see [`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md#f2--the-declared-vs-observed-rule-is-stated-twice-and-never-cross-checked)
+Status: Accepted — implemented v0.4.1 I1 (`docs/specifications/0.4.1/i1-qualification-consistency.md`); see [`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md#f2--the-declared-vs-observed-rule-is-stated-twice-and-never-cross-checked)
 
 ## Context
 
@@ -58,3 +58,32 @@ difference in the differential test — never left implicit.
   not converge them — it only removes the risk that they disagree. Convergence, if ever wanted,
   belongs to `v0.9`'s REST contract stabilization.
 - Cost is one test plus a small refactor, not a redesign; the public contracts are unchanged.
+
+## Implementation record (v0.4.1 I1)
+
+Implemented in three PRs: I1.1 added the shared owner, `app/qualification/declared_observed.py`
+(pure, dependency-free — no Neo4j/FastAPI/MCP import); I1.2 migrated both
+`app/analysis/runtime.py` and `app/architecture_intelligence/dependency_projection.py` to consume
+it, removing their independent evidence-matching/coverage-classification code; I1.3 added the
+differential test (`tests/integration/test_qualification_consistency.py`), covering the Q1–Q15
+boundary matrix from the I1 spec against a hand-built, `PROVIDES`-free fixture.
+
+The differential test found a real pre-existing bug, not merely duplicated code: `app/analysis/
+runtime.py`'s `declared_only_relations` (O4) computed its coverage annotation via an internal
+`telemetry_coverage` call that omitted the `until` bound entirely, so a service's coverage always
+used an open-ended upper bound regardless of what window the caller actually requested — an
+observed relation from *after* the requested window silently counted as coverage. The Python/MCP
+path's equivalent computation (`repository.read_service_dependency_rows`) already bounded coverage
+by `until` correctly. Per this project's standing rule for exactly this situation, the divergent
+case was recorded, the correct side was identified from the two paths' behavior rather than assumed,
+and only the incorrect side (`declared_only_relations`) was changed — with its own regression test
+(`tests/integration/test_runtime_analysis.py::test_o4_coverage_respects_an_explicit_until_bound`,
+confirmed to fail without the fix before being kept as a permanent regression).
+
+`coverage_row_exists=False` (the shared kernel's "no coverage row for this subject" branch) remains
+supported and unit-tested but is not reachable by either production caller today — both
+`app.analysis.runtime.telemetry_coverage` and `app.architecture_intelligence.repository.
+read_service_dependency_rows` always synthesize exactly one coverage row per requested `service_id`.
+Widening `telemetry_coverage`/O5 to validate service existence (which would make this branch live)
+was deliberately left out of I1's scope — a real behavior change to a query several other callers
+depend on, not required by the Q1–Q15 matrix or this ADR's decision.

@@ -235,10 +235,19 @@ def declared_only_relations(
         for record in session.run(_O4_QUERY, environment=environment, since=since, until=until)
     ]
     subject_ids = sorted({row["source_id"] for row in rows})
+    # v0.4.1 I1.3: `until` MUST be threaded through here, not just into the O4 query above - a
+    # pre-existing bug (predating I1) omitted it, so a service's coverage annotation always used an
+    # open-ended upper bound regardless of what `until` this function itself was given, silently
+    # counting observed evidence from *after* the requested window as coverage. Caught by the real-
+    # Neo4j differential test (tests/integration/test_qualification_consistency.py, case Q13)
+    # disagreeing with app.architecture_intelligence.dependency_projection's equivalent computation,
+    # which already bounded coverage by `until` correctly (repository.read_service_dependency_rows
+    # passes `until=window_end` to `telemetry_coverage` explicitly) - per spec §15, the differential
+    # path was determined correct and only this path was changed.
     coverage = {
         c.service_id: c
         for c in telemetry_coverage(
-            session, environment=environment, since=since, service_ids=subject_ids
+            session, environment=environment, since=since, until=until, service_ids=subject_ids
         )
     }
     results = []
