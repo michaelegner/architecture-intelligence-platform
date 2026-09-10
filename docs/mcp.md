@@ -4,7 +4,10 @@
 **read-only** tools, mounted at `/mcp` (MCP protocol `2026-07-28`, per-request envelope only — no
 legacy `initialize` session handshake). See
 [`docs/specifications/0.4.0/specification.md`](specifications/0.4.0/specification.md) for the full
-normative contract; this page is a short practical reference.
+normative tool contract (unchanged since `v0.4.0`) and
+[`docs/specifications/0.4.1/specification.md`](specifications/0.4.1/specification.md) for the
+qualification/messaging semantic hardening layered on top in `v0.4.1`; this page is a short
+practical reference.
 
 Every answer's `producer.version` reports the current package/producer version (`0.4.1` as of the
 `v0.4.1` patch release) — this is build/producer metadata, separate from the public

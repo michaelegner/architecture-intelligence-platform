@@ -441,7 +441,10 @@ public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 
 Latest release:
 [`v0.4.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.0)
-— **Trusted Architecture Context for Agents**.
+— **Trusted Architecture Context for Agents**. `v0.4.1` — **Semantic Hardening for Broader
+Discovery** — is in release qualification; see
+[`docs/specifications/0.4.1/README.md`](docs/specifications/0.4.1/README.md) for its current
+status.
 
 Today AIP ingests OpenAPI, AsyncAPI, architecture manifests and OpenTelemetry traces into an
 evidence-backed knowledge graph; reconciles declared against observed architecture; runs ten

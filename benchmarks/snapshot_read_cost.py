@@ -45,6 +45,7 @@ from app.graph.revision_fence import read_revision
 from app.provenance.model import ObservedEvidence
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate, ObservedOnlyEntity
+from app.version import package_version
 from tests.integration.independent_mcp_client import call_tool
 
 SCHEMA_VERSION = "aip-benchmark/v1"
@@ -556,10 +557,12 @@ def _memory_total_bytes() -> int | None:
 
 
 def _aip_package_version() -> str | None:
+    # Delegates to app.version.package_version() (PR #120 review finding: this module previously
+    # duplicated the tomllib-parsing logic, one more independent copy that could drift) - still
+    # wrapped, since runtime metadata collection SHALL degrade to "unavailable" rather than fail
+    # the whole benchmark run over a missing/unreadable pyproject.toml (spec §14).
     try:
-        with (_REPO_ROOT / "pyproject.toml").open("rb") as f:
-            data = tomllib.load(f)
-        return data["project"]["version"]
+        return package_version()
     except (OSError, KeyError, tomllib.TOMLDecodeError):
         return None
 

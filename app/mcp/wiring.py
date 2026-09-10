@@ -50,6 +50,7 @@ import neo4j
 
 from app.architecture_intelligence.contracts import Producer
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
+from app.version import package_version
 
 logger = logging.getLogger("architecture_intelligence.mcp")
 
@@ -109,7 +110,7 @@ def build_production_service(
 ) -> ArchitectureIntelligenceService:
     producer = Producer(
         name="architecture-intelligence-platform",
-        version="0.4.1",
+        version=package_version(),
         build_revision=_resolve_build_revision(),
     )
     return ArchitectureIntelligenceService(driver, database=database, producer=producer)

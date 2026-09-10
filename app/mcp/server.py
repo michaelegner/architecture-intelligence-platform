@@ -48,6 +48,7 @@ from __future__ import annotations
 from mcp.server import CacheHint, MCPServer
 
 from app.mcp.tools import register_tools
+from app.version import package_version
 
 TOOL_NAMES = ("get_architecture_drift", "get_evidence", "get_service_dependencies")
 
@@ -55,7 +56,7 @@ _TOOLS_LIST_CACHE_HINT = CacheHint(scope="public", ttl_ms=0)
 
 mcp_server: MCPServer = MCPServer(
     name="architecture-intelligence-platform",
-    version="0.4.1",
+    version=package_version(),
     cache_hints={"tools/list": _TOOLS_LIST_CACHE_HINT},
 )
 register_tools(mcp_server)
