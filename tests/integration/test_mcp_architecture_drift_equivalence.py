@@ -44,7 +44,7 @@ _ALLOWED_ORIGIN = "http://localhost"
 _ALLOWED_HOST = "localhost"
 
 PRODUCER = Producer(
-    name="architecture-intelligence-platform", version="0.4.0", build_revision="f" * 40
+    name="architecture-intelligence-platform", version="0.4.1", build_revision="f" * 40
 )
 
 DRIFT_ANSWER_SCHEMA = json.loads(SCHEMA_PATH.read_text())

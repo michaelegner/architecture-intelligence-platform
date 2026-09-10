@@ -55,7 +55,7 @@ _TOOLS_LIST_CACHE_HINT = CacheHint(scope="public", ttl_ms=0)
 
 mcp_server: MCPServer = MCPServer(
     name="architecture-intelligence-platform",
-    version="0.4.0",
+    version="0.4.1",
     cache_hints={"tools/list": _TOOLS_LIST_CACHE_HINT},
 )
 register_tools(mcp_server)

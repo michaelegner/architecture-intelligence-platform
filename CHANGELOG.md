@@ -9,6 +9,43 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-10
+
+### v0.4.1 — Semantic Hardening for Broader Discovery
+
+Hardens the qualification and messaging semantics `v0.4.0` shipped, and commits reproducible
+evidence of current whole-graph read cost — before any broader discovery work widens the surface
+those semantics govern. Adds no discovery source, Canonical Model family, or MCP tool.
+
+- One declared-versus-observed semantic owner (`app/qualification/declared_observed.py`) now
+  governs both the analysis/REST path and `ArchitectureIntelligenceService`/MCP, proven equivalent
+  by a real-Neo4j differential fixture: qualification mismatches = 0, coverage mismatches = 0
+  across declared-only, observed-only, confirmed, environment-mismatch, window-boundary, and
+  unsupported/dangling-evidence cases. Found and fixed one real pre-existing coverage-window bug
+  in the process (ADR 0010, now `Accepted`).
+- Runtime messaging now requires two independent guards before minting any canonical fact: a
+  Queue-compatible destination guard (default-deny — `messaging.system`/a destination name alone
+  is never sufficient) and a safe service-identity guard (refuses the real OpenTelemetry SDK
+  placeholder family, e.g. `unknown_service:<process>`, while still minting distinctive
+  runtime-only names). Either guard's refusal creates zero Service/Queue/Evidence/relation
+  artifacts. The frozen Quarkus Super Heroes Kafka and Apache Airflow/Celery shapes remain
+  unsupported, with zero invented messaging facts, confirmed against their real captured attribute
+  values (ADR 0013, satisfied).
+- A committed, reproducible benchmark (`benchmarks/`, `uv run python -m benchmarks --profile
+  {smoke,review-comparable}`) makes AIP's current whole-graph snapshot/read cost measurable —
+  timing `canonical_snapshot_state()`/`snapshot_fingerprint()` and one end-to-end
+  `get_service_dependencies` call through the real MCP boundary as unrelated total graph/evidence
+  size grows, with a fixed target answer held semantically constant throughout. This supplies only
+  the baseline half of [ADR 0011](docs/adr/0011-snapshot-identity-read-cost.md)'s acceptance
+  condition — no cache, snapshot-identity change, or retention policy ships in this release; ADR
+  0011 stays `Proposed`.
+- The shipped `v0.4` public contract is unchanged throughout: exactly three read-only MCP tools,
+  `schema_version = "0.4"`, the `ArchitectureAnswer<T>` envelope family, zero graph writes through
+  any tool.
+
+See [`docs/specifications/0.4.1/`](docs/specifications/0.4.1/) for the full design history and
+completion records.
+
 ## [0.4.0] - 2026-09-07
 
 ### v0.4 — Trusted Architecture Context for Agents

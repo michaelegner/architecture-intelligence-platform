@@ -32,7 +32,7 @@ from evaluation.architecture_answers.model import (
 
 _CANDIDATE_SHA = "f" * 40
 _PRODUCER = Producer(
-    name="architecture-intelligence-platform", version="0.4.0", build_revision=_CANDIDATE_SHA
+    name="architecture-intelligence-platform", version="0.4.1", build_revision=_CANDIDATE_SHA
 )
 
 

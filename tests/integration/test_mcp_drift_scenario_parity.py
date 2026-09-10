@@ -49,7 +49,7 @@ SCENARIOS_DIR = (
 )
 
 PRODUCER = Producer(
-    name="architecture-intelligence-platform", version="0.4.0", build_revision="f" * 40
+    name="architecture-intelligence-platform", version="0.4.1", build_revision="f" * 40
 )
 
 

@@ -109,7 +109,7 @@ def build_production_service(
 ) -> ArchitectureIntelligenceService:
     producer = Producer(
         name="architecture-intelligence-platform",
-        version="0.4.0",
+        version="0.4.1",
         build_revision=_resolve_build_revision(),
     )
     return ArchitectureIntelligenceService(driver, database=database, producer=producer)
