@@ -198,6 +198,40 @@ def test_d17_candidate_order_does_not_affect_the_result():
     assert forward == reversed_
 
 
+# --- Review regression: a namespaced candidate is still eligible when no system is observed -------
+
+
+def test_namespaced_declared_queue_is_accepted_with_no_observed_system_and_kind_queue():
+    # No messaging_system means there is no observed namespace value to conflict with - the sole
+    # namespaced declared candidate must still be selected, not treated as ineligible.
+    result = _destination([NAMESPACED_Q], destination_name="orders-q", kind="queue")
+    assert result.accepted
+    assert result.discovery_status == DiscoveryStatus.DECLARED
+    assert result.queue_id == "queue:kafka:orders-q"
+
+
+def test_namespaced_declared_queue_is_accepted_with_no_observed_system_and_no_kind():
+    result = _destination([NAMESPACED_Q], destination_name="orders-q", kind=None)
+    assert result.accepted
+    assert result.discovery_status == DiscoveryStatus.DECLARED
+    assert result.queue_id == "queue:kafka:orders-q"
+
+
+# --- Review regression: a valid alias disambiguates an otherwise-ambiguous direct match ------------
+
+
+def test_valid_alias_disambiguates_duplicate_declared_queue_candidates():
+    result = _destination(
+        [DUPLICATE_Q_A, DUPLICATE_Q_B],
+        destination_name="events",
+        kind="queue",
+        aliases={"events": "queue:events-v2"},
+    )
+    assert result.accepted
+    assert result.discovery_status == DiscoveryStatus.DECLARED
+    assert result.queue_id == "queue:events-v2"
+
+
 # --- Service-identity guard: S1-S16 ---------------------------------------------------------------
 
 
@@ -327,6 +361,21 @@ def test_s16_identical_identity_inputs_produce_the_same_canonical_service_id():
     first = _service([], service_name="FraudService", service_namespace="commerce")
     second = _service([], service_name="FraudService", service_namespace="commerce")
     assert first.service_id == second.service_id == "service:commerce:fraudservice"
+
+
+# --- Review regression: a valid alias disambiguates an otherwise-ambiguous direct match ------------
+
+
+def test_valid_alias_disambiguates_duplicate_declared_service_candidates():
+    result = _service(
+        [DUPLICATE_SVC_A, DUPLICATE_SVC_B],
+        service_name="Billing",
+        service_namespace=None,
+        aliases={"Billing": "service:billing-v2"},
+    )
+    assert result.accepted
+    assert result.discovery_status == DiscoveryStatus.DECLARED
+    assert result.service_id == "service:billing-v2"
 
 
 # --- Determinism/robustness beyond the named matrices ---------------------------------------------

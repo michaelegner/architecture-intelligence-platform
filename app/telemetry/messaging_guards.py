@@ -1,11 +1,12 @@
 """AIP v0.4.1 I2 - the messaging destination and service-identity safety guards
 (docs/specifications/0.4.1/i2-messaging-semantic-guards.md, ADR 0013).
 
-Pure, dependency-free - no `neo4j`/FastAPI/MCP/LLM imports (spec §7/§23). Both guard functions are
-evaluated by `app.telemetry.adapter.correlate_queue_observations` before any entity, Evidence, or
-`SENDS`/`RECEIVES_FROM` fact is recorded for a messaging span (spec §6/§18/§22). This module is
-scoped to the messaging path only - `app.telemetry.service_resolver.resolve_service` (used by the
-HTTP path) is untouched (spec §14).
+Pure, dependency-free - no `neo4j`/FastAPI/MCP/LLM imports (spec §7/§23). I2.2 wires both guard
+functions into `app.telemetry.adapter.correlate_queue_observations` so they are evaluated before
+any entity, Evidence, or `SENDS`/`RECEIVES_FROM` fact is recorded for a messaging span (spec
+§6/§18/§22) - this module is unused by any production caller until then (spec §36's I2.1 slice).
+The guards are scoped to the messaging path only - `app.telemetry.service_resolver.resolve_service`
+(used by the HTTP path) is untouched (spec §14).
 """
 
 from __future__ import annotations
@@ -91,11 +92,20 @@ def _match_declared_queue(
     aliases: dict[str, str],
 ) -> tuple[str, str | None]:
     """Spec §10's 5-step precedence. Returns ("declared", id) | ("none", None) | ("ambiguous", None).
+
     A same-name declared candidate whose namespace conflicts with a present `messaging_system`
     (both non-null, unequal) is "ambiguous", not silently skipped - a bare-name fallback MUST NOT
-    merge across that conflict (spec §10)."""
+    merge across that conflict. When `messaging_system` is absent entirely, there is no observed
+    namespace value to conflict with, so every exact-name candidate is eligible regardless of its
+    own namespace (spec §10 step 2's "otherwise... form the exact-name candidates that do not carry
+    a *conflicting* non-null namespace" - nothing conflicts with an absent system).
+
+    A valid configured alias MAY disambiguate an otherwise-ambiguous or fully-unmatched direct
+    result (spec §10 step 4 runs "after no direct unique match" - including a multi-candidate or
+    conflicting one, not only a zero-candidate one); an alias present for this name but whose
+    target isn't a real candidate is always ambiguous, regardless of what the direct match alone
+    would have produced."""
     name_matches = [c for c in candidates if c.name == destination_name]
-    conflict_detected = False
 
     if messaging_system is not None:
         tier1 = [c for c in name_matches if c.namespace == messaging_system]
@@ -103,20 +113,30 @@ def _match_declared_queue(
             distinct_ids = {c.id for c in tier1}
             if len(distinct_ids) == 1:
                 return "declared", tier1[0].id
-            return "ambiguous", None
-        conflicting = [
-            c for c in name_matches if c.namespace is not None and c.namespace != messaging_system
-        ]
-        conflict_detected = bool(conflicting)
-        eligible = [c for c in name_matches if c.namespace is None]
+            direct_result = "ambiguous"
+        else:
+            conflicting = [
+                c
+                for c in name_matches
+                if c.namespace is not None and c.namespace != messaging_system
+            ]
+            eligible = [c for c in name_matches if c.namespace is None]
+            if eligible:
+                distinct_ids = {c.id for c in eligible}
+                if len(distinct_ids) == 1 and not conflicting:
+                    return "declared", eligible[0].id
+                direct_result = "ambiguous"
+            elif conflicting:
+                direct_result = "ambiguous"
+            else:
+                direct_result = "none"
+    elif name_matches:
+        distinct_ids = {c.id for c in name_matches}
+        if len(distinct_ids) == 1:
+            return "declared", name_matches[0].id
+        direct_result = "ambiguous"
     else:
-        eligible = [c for c in name_matches if c.namespace is None]
-
-    if eligible:
-        distinct_ids = {c.id for c in eligible}
-        if len(distinct_ids) == 1 and not conflict_detected:
-            return "declared", eligible[0].id
-        return "ambiguous", None
+        direct_result = "none"
 
     if destination_name in aliases:
         target = aliases[destination_name]
@@ -124,7 +144,7 @@ def _match_declared_queue(
             return "declared", target
         return "ambiguous", None
 
-    return ("ambiguous", None) if conflict_detected else ("none", None)
+    return direct_result, None
 
 
 def decide_destination_semantics(
@@ -192,7 +212,13 @@ def _match_declared_service(
     """Spec §14's precedence. Returns ("declared", id) | ("none", None) | ("ambiguous", None) |
     ("conflicting", None). A runtime namespace and a different non-null declared namespace conflict
     outright - the messaging path MUST NOT fall through to a namespace-agnostic name match in that
-    case (spec §14)."""
+    case (spec §14).
+
+    A valid configured alias MAY disambiguate an otherwise-ambiguous, conflicting, or fully-
+    unmatched direct result (spec §14 step 5 - alias - runs before step 6 finalizes "ambiguous" vs
+    "conflicting" as the refusal reason); an alias present for this name but whose target isn't a
+    real candidate is always ambiguous, regardless of what the direct match alone would have
+    produced."""
     name_matches = [c for c in candidates if c.name == service_name]
 
     if service_namespace is not None:
@@ -201,21 +227,31 @@ def _match_declared_service(
             distinct_ids = {c.id for c in tier1}
             if len(distinct_ids) == 1:
                 return "declared", tier1[0].id
-            return "ambiguous", None
-        conflicting = [
-            c for c in name_matches if c.namespace is not None and c.namespace != service_namespace
-        ]
-        if conflicting:
-            return "conflicting", None
-        eligible = [c for c in name_matches if c.namespace is None]
-    else:
-        eligible = name_matches
-
-    if eligible:
-        distinct_ids = {c.id for c in eligible}
+            direct_result = "ambiguous"
+        else:
+            conflicting = [
+                c
+                for c in name_matches
+                if c.namespace is not None and c.namespace != service_namespace
+            ]
+            if conflicting:
+                direct_result = "conflicting"
+            else:
+                eligible = [c for c in name_matches if c.namespace is None]
+                if eligible:
+                    distinct_ids = {c.id for c in eligible}
+                    if len(distinct_ids) == 1:
+                        return "declared", eligible[0].id
+                    direct_result = "ambiguous"
+                else:
+                    direct_result = "none"
+    elif name_matches:
+        distinct_ids = {c.id for c in name_matches}
         if len(distinct_ids) == 1:
-            return "declared", eligible[0].id
-        return "ambiguous", None
+            return "declared", name_matches[0].id
+        direct_result = "ambiguous"
+    else:
+        direct_result = "none"
 
     if service_name in aliases:
         target = aliases[service_name]
@@ -223,7 +259,7 @@ def _match_declared_service(
             return "declared", target
         return "ambiguous", None
 
-    return "none", None
+    return direct_result, None
 
 
 def decide_service_identity(
