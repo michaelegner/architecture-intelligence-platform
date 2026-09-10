@@ -52,3 +52,49 @@ Restate the `v0.3` conclusion as a standing architectural constraint:
   a new ADR citing the guards' regression tests, and the dossier records stay untouched as history.
 - The general rule survives beyond messaging: recognizing a signal is not the same decision as
   qualifying a canonical fact from it.
+
+## Implementation record (v0.4.1 I2)
+
+Both prerequisite guards named above are now implemented and wired into the production runtime
+messaging path (`docs/specifications/0.4.1/i2-messaging-semantic-guards.md`). This ADR is satisfied
+by I2, not superseded — the topic/pub-sub prohibition in the Decision above remains in force; only
+the two guards it named as prerequisites now exist as executable code.
+
+**Production guard entry points**: `app/telemetry/messaging_guards.py`'s `decide_destination_semantics`
+(topic-vs-queue) and `decide_service_identity` (service-identity), both evaluated by
+`app/telemetry/adapter.py::correlate_queue_observations` — destination decision first, service
+decision second, with no entity/Evidence/fact recorded for a span until both accept (spec §6/§18).
+Neither guard is reachable only as an unused helper; both are proven reachable in the production
+messaging path itself, not merely as direct-call unit tests.
+
+**Merged candidates**: I2.1 `5cfccf7` (PR #115, guard decisions, unused until wired), I2.2 `aedda84`
+(PR #116, atomic production wiring), I2.3 this record's own candidate (PR #117).
+
+**Guard-level and persistence-level regression tests**:
+- `tests/unit/test_messaging_guards.py` — the destination guard's D1–D17 matrix and the
+  service-identity guard's S1–S16 matrix (spec §25-26), directly against the two pure functions.
+- `tests/unit/test_adapter.py` — the composed C1–C17 matrix (spec §27) against the real production
+  wiring, plus two mixed HTTP/messaging regressions (spec §33).
+- `tests/integration/test_adapter.py` — real-Neo4j persistence proof (spec §29): one positive
+  control plus one test per refusal family (topic-shaped destination, unresolved destination,
+  placeholder service, ambiguous service, both guards failing), each querying Service nodes, Queue
+  nodes, Evidence nodes, and the SENDS/RECEIVES_FROM relation to prove zero new semantic artifacts.
+- `tests/unit/test_adapter.py::test_quarkus_shape_destination_guard_reachability_with_a_recognized_operation_type`
+  and `test_airflow_shape_service_identity_guard_reachability_with_a_recognized_operation_type` —
+  synthetic reachability proofs (spec §30-31): the real captured Quarkus/Airflow attribute shapes
+  stay silently unrecognized (operation-attribute recognition is unchanged), but the same
+  destination/identity refuses independently once a currently-recognized operation type reaches it.
+
+**Operation-recognition boundary — unchanged**: `messaging.operation.type` values `send`/`receive`/
+`process` remain the complete recognized surface (spec §21). The real captured Quarkus/SmallRye
+shape (`messaging.operation`, not `.type`) and the real captured Airflow/Celery shape
+(`messaging.destination`, not `.destination.name`) both remain silently unrecognized, exactly as
+before I2 — confirmed unmodified by `test_legacy_messaging_operation_attribute_shape_is_not_recognized`
+and `test_celery_instrumentation_semconv_shape_is_not_recognized`.
+
+**Topic/Subscription — still absent**: no canonical entity or relation family was added. A
+topic-shaped or unresolved destination is refused (zero facts), never represented as a placeholder
+Queue or any other stand-in.
+
+A future ADR proposing a generic Pub/Sub model may supersede this ADR's prohibition, citing the
+guard regression evidence above as its prerequisite — that ADR is `v0.5.0` work, not part of I2.

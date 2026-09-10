@@ -530,6 +530,26 @@ def test_legacy_messaging_operation_attribute_shape_is_not_recognized():
     assert batch.unresolved == []
 
 
+def test_quarkus_shape_destination_guard_reachability_with_a_recognized_operation_type():
+    # v0.4.1 I2.3 (spec §30): the frozen shape above stays unrecognized only because operation
+    # recognition is frozen - this proves the destination guard itself refuses the same
+    # destination/system independently, once a currently-recognized operation.type reaches it. No
+    # messaging.destination_kind is supplied (matching the real captured shape, which never carried
+    # one) - the refusal is "unresolved" by default-deny, not because "kafka" is asserted to mean
+    # topic (spec §30 explicitly forbids that assertion).
+    span = _span(
+        attributes={
+            "messaging.operation.type": "send",
+            "messaging.destination.name": "orders-topic",
+            "messaging.system": "kafka",
+        }
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [UNRESOLVED_DESTINATION_SEMANTICS]
+
+
 def test_celery_instrumentation_semconv_shape_is_not_recognized():
     # Characterizes the current behavior underlying ledger findings
     # airflow-celery-messaging-runtime-status and i4-celery-instrumentation-semconv-mismatch
@@ -548,6 +568,23 @@ def test_celery_instrumentation_semconv_shape_is_not_recognized():
     batch = _queue_correlate([span])
     assert batch.facts == []
     assert batch.unresolved == []
+
+
+def test_airflow_shape_service_identity_guard_reachability_with_a_recognized_operation_type():
+    # v0.4.1 I2.3 (spec §31): the frozen shape above stays unrecognized only because destination-
+    # name recognition is frozen (messaging.destination, not messaging.destination.name) - this
+    # proves the service-identity guard itself refuses the real captured identity
+    # (service.name: unknown_service) independently, once a currently-recognized operation.type
+    # and a real destination.name reach it. The predicate under test is generic - it does not
+    # inspect "Airflow", a role name, or a fixture path (spec §31).
+    span = _span(
+        service_name="unknown_service",
+        attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
+    )
+    batch = _queue_correlate([span])
+    assert batch.facts == []
+    assert batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [PLACEHOLDER_SERVICE_IDENTITY]
 
 
 def test_missing_destination_name_is_unresolved():
