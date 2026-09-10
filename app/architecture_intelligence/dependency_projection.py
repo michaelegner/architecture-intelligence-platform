@@ -116,7 +116,8 @@ def _accepted_evidence_ids(evidence_ids: list[str], evidence_by_id: dict[str, di
     accepted snapshot. A relation's raw `evidence_ids` can be non-empty yet dangling (the id no
     longer resolves to any Evidence row `read_service_dependency_rows` fetched) - that must not
     count as "evidenced" for destination resolution, any more than it counts for qualification
-    (`_matches_declared`/`_matches_observed` apply the same `eid in evidence_by_id` filter)."""
+    (`app.qualification.declared_observed.matches_declared_evidence`/`matches_observed_evidence`
+    apply the same `eid in evidence_by_id` filter)."""
     return sorted(eid for eid in evidence_ids if eid in evidence_by_id)
 
 
