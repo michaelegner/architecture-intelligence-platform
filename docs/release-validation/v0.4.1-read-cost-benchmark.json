@@ -1,0 +1,214 @@
+{
+  "benchmark_implementation_version": 1,
+  "benchmark_name": "snapshot_read_cost",
+  "candidate_sha": "bc03602f95557eb0450506a9f5c3a7f7c296b2da",
+  "completed_at": "2026-09-10T18:06:10.367144Z",
+  "database_lifecycle": "clean_rebuild_per_scale_point",
+  "dirty_worktree": false,
+  "profile": "review-comparable",
+  "request": {
+    "observation_context": {
+      "environment": "benchmark",
+      "window_end": "2026-01-02T00:00:00.000000Z",
+      "window_start": "2026-01-01T00:00:00.000000Z"
+    },
+    "service_id": "service:order-service",
+    "tool": "get_service_dependencies"
+  },
+  "runtime_metadata": {
+    "aip_package_version": "0.4.1",
+    "architecture": "x86_64",
+    "container_runtime_version": "docker/29.7.2",
+    "cpu_model": "x86_64",
+    "logical_cpu_count": 14,
+    "memory_total_bytes": 16511676416,
+    "neo4j_version": "Neo4j/5.26.30",
+    "os": "Linux",
+    "os_release": "5.15.153.1-microsoft-standard-WSL2",
+    "python_version": "3.13.14"
+  },
+  "sample_count": 3,
+  "scale_points": [
+    {
+      "actual_node_counts": {
+        "evidence": 37,
+        "message": 4,
+        "operation": 33,
+        "queue": 5,
+        "schema": 7,
+        "service": 34
+      },
+      "actual_relation_counts": {
+        "calls": 31,
+        "total": 53
+      },
+      "dependency_call_seconds": {
+        "median_seconds": 0.09107513000344625,
+        "minimum_seconds": 0.08999715599929914,
+        "raw_seconds": [
+          0.08999715599929914,
+          0.0921144500025548,
+          0.09107513000344625
+        ]
+      },
+      "model_revision_consistent": true,
+      "planned_unrelated_fact_count": 30,
+      "producer_build_revision": "bc03602f95557eb0450506a9f5c3a7f7c296b2da",
+      "producer_build_revision_consistent": true,
+      "revision_fence_value": 10,
+      "scale_index": 0,
+      "semantic_validation": "PASS",
+      "snapshot_fingerprint_seconds": {
+        "median_seconds": 0.03809261599963065,
+        "minimum_seconds": 0.035291408996272366,
+        "raw_seconds": [
+          0.04732039000373334,
+          0.035291408996272366,
+          0.03809261599963065
+        ]
+      },
+      "snapshot_id_consistent": true,
+      "structural_validation": "PASS",
+      "structural_validation_detail": "structural counts match the deterministic plan",
+      "target_claim_count": 3,
+      "target_evidence_reference_count": 5
+    },
+    {
+      "actual_node_counts": {
+        "evidence": 1657,
+        "message": 4,
+        "operation": 1653,
+        "queue": 5,
+        "schema": 7,
+        "service": 1654
+      },
+      "actual_relation_counts": {
+        "calls": 1651,
+        "total": 1673
+      },
+      "dependency_call_seconds": {
+        "median_seconds": 0.4333014549993095,
+        "minimum_seconds": 0.4098596800031373,
+        "raw_seconds": [
+          0.4333014549993095,
+          0.4098596800031373,
+          0.5043004489998566
+        ]
+      },
+      "model_revision_consistent": true,
+      "planned_unrelated_fact_count": 1650,
+      "producer_build_revision": "bc03602f95557eb0450506a9f5c3a7f7c296b2da",
+      "producer_build_revision_consistent": true,
+      "revision_fence_value": 13,
+      "scale_index": 1,
+      "semantic_validation": "PASS",
+      "snapshot_fingerprint_seconds": {
+        "median_seconds": 0.38510812699678354,
+        "minimum_seconds": 0.36860500300099375,
+        "raw_seconds": [
+          0.40335980799864046,
+          0.38510812699678354,
+          0.36860500300099375
+        ]
+      },
+      "snapshot_id_consistent": true,
+      "structural_validation": "PASS",
+      "structural_validation_detail": "structural counts match the deterministic plan",
+      "target_claim_count": 3,
+      "target_evidence_reference_count": 5
+    },
+    {
+      "actual_node_counts": {
+        "evidence": 6657,
+        "message": 4,
+        "operation": 6653,
+        "queue": 5,
+        "schema": 7,
+        "service": 6654
+      },
+      "actual_relation_counts": {
+        "calls": 6651,
+        "total": 6673
+      },
+      "dependency_call_seconds": {
+        "median_seconds": 1.5634884880055324,
+        "minimum_seconds": 1.5170455150000635,
+        "raw_seconds": [
+          1.6654467070038663,
+          1.5170455150000635,
+          1.5634884880055324
+        ]
+      },
+      "model_revision_consistent": true,
+      "planned_unrelated_fact_count": 6650,
+      "producer_build_revision": "bc03602f95557eb0450506a9f5c3a7f7c296b2da",
+      "producer_build_revision_consistent": true,
+      "revision_fence_value": 23,
+      "scale_index": 2,
+      "semantic_validation": "PASS",
+      "snapshot_fingerprint_seconds": {
+        "median_seconds": 1.4715270309970947,
+        "minimum_seconds": 1.3896947859975626,
+        "raw_seconds": [
+          1.3896947859975626,
+          1.5246590329988976,
+          1.4715270309970947
+        ]
+      },
+      "snapshot_id_consistent": true,
+      "structural_validation": "PASS",
+      "structural_validation_detail": "structural counts match the deterministic plan",
+      "target_claim_count": 3,
+      "target_evidence_reference_count": 5
+    },
+    {
+      "actual_node_counts": {
+        "evidence": 33007,
+        "message": 4,
+        "operation": 33003,
+        "queue": 5,
+        "schema": 7,
+        "service": 33004
+      },
+      "actual_relation_counts": {
+        "calls": 33001,
+        "total": 33023
+      },
+      "dependency_call_seconds": {
+        "median_seconds": 8.303260602995579,
+        "minimum_seconds": 8.109262452999246,
+        "raw_seconds": [
+          8.479938197997399,
+          8.303260602995579,
+          8.109262452999246
+        ]
+      },
+      "model_revision_consistent": true,
+      "planned_unrelated_fact_count": 33000,
+      "producer_build_revision": "bc03602f95557eb0450506a9f5c3a7f7c296b2da",
+      "producer_build_revision_consistent": true,
+      "revision_fence_value": 75,
+      "scale_index": 3,
+      "semantic_validation": "PASS",
+      "snapshot_fingerprint_seconds": {
+        "median_seconds": 7.419542473006004,
+        "minimum_seconds": 7.303457779002201,
+        "raw_seconds": [
+          7.597757659001218,
+          7.419542473006004,
+          7.303457779002201
+        ]
+      },
+      "snapshot_id_consistent": true,
+      "structural_validation": "PASS",
+      "structural_validation_detail": "structural counts match the deterministic plan",
+      "target_claim_count": 3,
+      "target_evidence_reference_count": 5
+    }
+  ],
+  "schema_version": "aip-benchmark/v1",
+  "seed_method": "production_import_and_telemetry_aggregation",
+  "semantic_validation_detail": "target answer identical at every scale point",
+  "started_at": "2026-09-10T17:35:12.684125Z",
+  "warmup_count": 1
+}
