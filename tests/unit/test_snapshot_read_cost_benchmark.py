@@ -1,9 +1,16 @@
 """v0.4.1 I3.1 - spec `docs/specifications/0.4.1/i3-hardening-qualification-and-release.md` §17
 items 1-8: deterministic fixture-plan generation, deterministic canonical ids/timestamps,
 JSON-schema acceptance/refusal, canonicalization-for-determinism, structural-count mismatch
-refusal, target-answer semantic mismatch refusal, and dirty-worktree/unknown-candidate release
-refusal - all pure/no-Neo4j. §17 items 9-10 (real disposable-Neo4j lifecycle and smoke execution)
-are covered by `tests/integration/test_snapshot_read_cost_benchmark.py`."""
+refusal (both the target-baseline and unrelated-delta halves), target-answer semantic mismatch
+refusal, and candidate-identity/consistency release refusal - all pure/no-Neo4j. §17 items 9-10
+(real disposable-Neo4j lifecycle and smoke execution) are covered by
+`tests/integration/test_snapshot_read_cost_benchmark.py`.
+
+Also covers the four PR #119 review findings: an explicit --candidate-sha must match the actual
+checkout (or the measured producer.build_revision), every scale point's snapshot/model-revision/
+producer.build_revision consistency is release-blocking via one centralized predicate, and
+structural validation checks the target subgraph against a frozen baseline (not just a
+self-consistent delta) plus a benchmark-relevant relation type, not only the aggregate total."""
 
 from __future__ import annotations
 
@@ -16,6 +23,7 @@ import pytest
 
 from benchmarks.snapshot_read_cost import (
     _BUCKET_START,
+    _EXPECTED_TARGET_COUNTS,
     UNKNOWN_CANDIDATE_SHA,
     ActualCounts,
     FixturePlan,
@@ -26,14 +34,18 @@ from benchmarks.snapshot_read_cost import (
     canonicalize_target_answer,
     qualifies_for_release,
     resolve_candidate_sha,
+    scale_points_are_valid,
     verify_structural_counts,
     verify_target_answer_invariance,
+    verify_target_baseline,
 )
 
 SCHEMA_PATH = (
     Path(__file__).resolve().parent.parent.parent / "benchmarks" / "snapshot_read_cost.schema.json"
 )
 SCHEMA = json.loads(SCHEMA_PATH.read_text())
+
+_CANDIDATE_SHA = "a" * 40
 
 
 def _valid_scale_point(index: int = 0) -> dict:
@@ -48,7 +60,7 @@ def _valid_scale_point(index: int = 0) -> dict:
             "schema": 0,
             "evidence": 6,
         },
-        "actual_relation_count": 6,
+        "actual_relation_counts": {"total": 6, "calls": 6},
         "target_claim_count": 1,
         "target_evidence_reference_count": 1,
         "revision_fence_value": 7,
@@ -64,6 +76,8 @@ def _valid_scale_point(index: int = 0) -> dict:
         },
         "snapshot_id_consistent": True,
         "model_revision_consistent": True,
+        "producer_build_revision": _CANDIDATE_SHA,
+        "producer_build_revision_consistent": True,
         "structural_validation": "PASS",
         "structural_validation_detail": "structural counts match the deterministic plan",
         "semantic_validation": "PASS",
@@ -75,7 +89,7 @@ def _valid_result() -> dict:
         "schema_version": "aip-benchmark/v1",
         "benchmark_name": "snapshot_read_cost",
         "benchmark_implementation_version": 1,
-        "candidate_sha": "a" * 40,
+        "candidate_sha": _CANDIDATE_SHA,
         "dirty_worktree": False,
         "started_at": "2026-09-10T00:00:00.000000Z",
         "completed_at": "2026-09-10T00:00:05.000000Z",
@@ -101,7 +115,9 @@ def _valid_result() -> dict:
             "logical_cpu_count": 8,
             "memory_total_bytes": 1024,
             "python_version": "3.13.0",
-            "neo4j_version": "5",
+            "neo4j_version": "Neo4j/5.26.0",
+            "aip_package_version": "0.4.0",
+            "container_runtime_version": "docker/25.0.0",
         },
         "semantic_validation_detail": "target answer identical at every scale point",
         "scale_points": [_valid_scale_point(0), _valid_scale_point(1)],
@@ -193,6 +209,18 @@ class TestSchemaRefusal:
         with pytest.raises(jsonschema.ValidationError):
             jsonschema.validate(instance=result, schema=SCHEMA)
 
+    def test_malformed_producer_build_revision_is_rejected(self):
+        result = _valid_result()
+        result["scale_points"][0]["producer_build_revision"] = "not-a-sha"
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(instance=result, schema=SCHEMA)
+
+    def test_missing_runtime_metadata_field_is_rejected(self):
+        result = _valid_result()
+        del result["runtime_metadata"]["aip_package_version"]
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(instance=result, schema=SCHEMA)
+
 
 class TestCanonicalizationForDeterminism:
     def test_strips_only_the_documented_variable_fields(self):
@@ -214,26 +242,90 @@ class TestCanonicalizationForDeterminism:
         assert canonicalize_for_determinism(result_a) != canonicalize_for_determinism(result_b)
 
 
+class TestTargetBaselineVerification:
+    def test_the_frozen_baseline_itself_passes(self):
+        assert verify_target_baseline(_EXPECTED_TARGET_COUNTS).passed
+
+    def test_a_drifted_baseline_fails(self):
+        drifted = ActualCounts(
+            **{
+                **vars(_EXPECTED_TARGET_COUNTS),
+                "service_count": _EXPECTED_TARGET_COUNTS.service_count + 1,
+            }
+        )
+        result = verify_target_baseline(drifted)
+        assert not result.passed
+        assert "frozen expectation" in result.detail
+
+
 class TestStructuralCountVerification:
-    def test_matching_delta_passes(self):
-        before = ActualCounts(1, 1, 0, 0, 0, 1, 1)
-        after = ActualCounts(6, 6, 0, 0, 0, 6, 6)
+    def test_matching_delta_from_the_frozen_baseline_passes(self):
+        after = ActualCounts(
+            service_count=_EXPECTED_TARGET_COUNTS.service_count + 5,
+            operation_count=_EXPECTED_TARGET_COUNTS.operation_count + 5,
+            queue_count=_EXPECTED_TARGET_COUNTS.queue_count,
+            message_count=_EXPECTED_TARGET_COUNTS.message_count,
+            schema_count=_EXPECTED_TARGET_COUNTS.schema_count,
+            evidence_count=_EXPECTED_TARGET_COUNTS.evidence_count + 5,
+            relation_count=_EXPECTED_TARGET_COUNTS.relation_count + 5,
+            calls_relation_count=_EXPECTED_TARGET_COUNTS.calls_relation_count + 5,
+        )
         plan = FixturePlan(profile="smoke", scale_index=0, unrelated_fact_count=5)
-        result = verify_structural_counts(before, after, plan)
+        result = verify_structural_counts(_EXPECTED_TARGET_COUNTS, after, plan)
         assert result.passed
 
-    def test_mismatched_evidence_delta_fails(self):
-        before = ActualCounts(1, 1, 0, 0, 0, 1, 1)
-        after = ActualCounts(6, 6, 0, 0, 0, 5, 6)  # evidence short by one
+    def test_a_drifted_target_baseline_fails_even_when_the_unrelated_delta_is_self_consistent(self):
+        """The exact PR #119 review scenario: examples/ (or `seed_target_subgraph`) drifts, but the
+        unrelated-fact delta on top of that drifted baseline is still internally consistent - this
+        must still fail, not silently pass because the delta alone looks right."""
+        drifted_before = ActualCounts(
+            **{**vars(_EXPECTED_TARGET_COUNTS), "calls_relation_count": 2}  # one CALLS too many
+        )
+        after = ActualCounts(
+            service_count=drifted_before.service_count + 5,
+            operation_count=drifted_before.operation_count + 5,
+            queue_count=drifted_before.queue_count,
+            message_count=drifted_before.message_count,
+            schema_count=drifted_before.schema_count,
+            evidence_count=drifted_before.evidence_count + 5,
+            relation_count=drifted_before.relation_count + 5,
+            calls_relation_count=drifted_before.calls_relation_count + 5,
+        )
         plan = FixturePlan(profile="smoke", scale_index=0, unrelated_fact_count=5)
-        result = verify_structural_counts(before, after, plan)
+        result = verify_structural_counts(drifted_before, after, plan)
         assert not result.passed
 
-    def test_mismatched_relation_delta_fails(self):
-        before = ActualCounts(1, 1, 0, 0, 0, 1, 1)
-        after = ActualCounts(6, 6, 0, 0, 0, 6, 5)  # relation short by one
+    def test_mismatched_evidence_delta_fails(self):
+        after = ActualCounts(
+            service_count=_EXPECTED_TARGET_COUNTS.service_count + 5,
+            operation_count=_EXPECTED_TARGET_COUNTS.operation_count + 5,
+            queue_count=_EXPECTED_TARGET_COUNTS.queue_count,
+            message_count=_EXPECTED_TARGET_COUNTS.message_count,
+            schema_count=_EXPECTED_TARGET_COUNTS.schema_count,
+            evidence_count=_EXPECTED_TARGET_COUNTS.evidence_count + 4,  # short by one
+            relation_count=_EXPECTED_TARGET_COUNTS.relation_count + 5,
+            calls_relation_count=_EXPECTED_TARGET_COUNTS.calls_relation_count + 5,
+        )
         plan = FixturePlan(profile="smoke", scale_index=0, unrelated_fact_count=5)
-        result = verify_structural_counts(before, after, plan)
+        result = verify_structural_counts(_EXPECTED_TARGET_COUNTS, after, plan)
+        assert not result.passed
+
+    def test_mismatched_calls_relation_delta_fails_even_when_total_relation_count_matches(self):
+        """The exact PR #119 review scenario: total relation count grows by the right amount, but
+        the CALLS-specific count doesn't - one fewer CALLS offset by one extra relation of some
+        other type must still be caught."""
+        after = ActualCounts(
+            service_count=_EXPECTED_TARGET_COUNTS.service_count + 5,
+            operation_count=_EXPECTED_TARGET_COUNTS.operation_count + 5,
+            queue_count=_EXPECTED_TARGET_COUNTS.queue_count,
+            message_count=_EXPECTED_TARGET_COUNTS.message_count,
+            schema_count=_EXPECTED_TARGET_COUNTS.schema_count,
+            evidence_count=_EXPECTED_TARGET_COUNTS.evidence_count + 5,
+            relation_count=_EXPECTED_TARGET_COUNTS.relation_count + 5,  # total matches...
+            calls_relation_count=_EXPECTED_TARGET_COUNTS.calls_relation_count + 4,  # ...calls don't
+        )
+        plan = FixturePlan(profile="smoke", scale_index=0, unrelated_fact_count=5)
+        result = verify_structural_counts(_EXPECTED_TARGET_COUNTS, after, plan)
         assert not result.passed
 
 
@@ -307,13 +399,63 @@ class TestTargetAnswerInvariance:
 
 
 class TestCandidateIdentity:
-    def test_explicit_well_formed_sha_is_accepted(self):
+    def test_explicit_sha_matching_the_actual_checkout_is_accepted(self):
         sha = "c" * 40
-        assert resolve_candidate_sha(sha) == sha
+        assert resolve_candidate_sha(sha, actual_sha_fn=lambda: sha) == sha
 
     def test_malformed_explicit_sha_is_rejected(self):
         with pytest.raises(InvalidCandidateSha):
-            resolve_candidate_sha("not-a-sha")
+            resolve_candidate_sha("not-a-sha", actual_sha_fn=lambda: "c" * 40)
+
+    def test_explicit_sha_not_matching_the_actual_checkout_is_rejected(self):
+        """PR #119 review finding: code from commit A run with --candidate-sha <commit B> must be
+        refused, not silently attributed to B."""
+        with pytest.raises(InvalidCandidateSha, match="does not match"):
+            resolve_candidate_sha("c" * 40, actual_sha_fn=lambda: "d" * 40)
+
+    def test_explicit_sha_is_accepted_when_the_actual_checkout_cannot_be_determined(self):
+        # e.g. no git binary/.git dir available - can't verify, so trust the caller's pin, matching
+        # app.mcp.wiring._resolve_build_revision's own graceful-degradation precedent.
+        sha = "c" * 40
+        assert resolve_candidate_sha(sha, actual_sha_fn=lambda: None) == sha
+
+    def test_no_explicit_sha_falls_back_to_the_actual_checkout(self):
+        sha = "e" * 40
+        assert resolve_candidate_sha(None, actual_sha_fn=lambda: sha) == sha
+
+    def test_no_explicit_sha_and_no_actual_checkout_is_unknown(self):
+        assert resolve_candidate_sha(None, actual_sha_fn=lambda: None) == UNKNOWN_CANDIDATE_SHA
+
+
+class TestScalePointsAreValid:
+    def test_a_fully_valid_result_passes(self):
+        assert scale_points_are_valid(_valid_result()).passed
+
+    def test_structural_failure_is_release_blocking(self):
+        result = _valid_result()
+        result["scale_points"][0]["structural_validation"] = "FAIL"
+        assert not scale_points_are_valid(result).passed
+
+    def test_semantic_failure_is_release_blocking(self):
+        result = _valid_result()
+        result["scale_points"][0]["semantic_validation"] = "FAIL"
+        assert not scale_points_are_valid(result).passed
+
+    def test_unstable_snapshot_id_is_release_blocking(self):
+        """PR #119 review finding: a run with changing snapshot ids must not exit 0/qualify."""
+        result = _valid_result()
+        result["scale_points"][0]["snapshot_id_consistent"] = False
+        assert not scale_points_are_valid(result).passed
+
+    def test_unstable_model_revision_is_release_blocking(self):
+        result = _valid_result()
+        result["scale_points"][0]["model_revision_consistent"] = False
+        assert not scale_points_are_valid(result).passed
+
+    def test_unstable_producer_build_revision_is_release_blocking(self):
+        result = _valid_result()
+        result["scale_points"][0]["producer_build_revision_consistent"] = False
+        assert not scale_points_are_valid(result).passed
 
 
 class TestReleaseQualificationRefusal:
@@ -335,3 +477,23 @@ class TestReleaseQualificationRefusal:
         result = _valid_result()
         result["dirty_worktree"] = True
         assert not qualifies_for_release(result).passed
+
+    def test_unstable_snapshot_id_is_refused(self):
+        result = _valid_result()
+        result["scale_points"][0]["snapshot_id_consistent"] = False
+        assert not qualifies_for_release(result).passed
+
+    def test_measured_producer_build_revision_disagreeing_with_candidate_sha_is_refused(self):
+        """PR #119 review finding: a result attributed to a commit that did not actually produce
+        it must be refused."""
+        result = _valid_result()
+        result["scale_points"][0]["producer_build_revision"] = "b" * 40
+        assert not qualifies_for_release(result).passed
+
+    def test_measured_producer_build_revision_agreeing_with_candidate_sha_qualifies(self):
+        result = _valid_result()
+        assert all(
+            point["producer_build_revision"] == result["candidate_sha"]
+            for point in result["scale_points"]
+        )
+        assert qualifies_for_release(result).passed

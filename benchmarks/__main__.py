@@ -33,6 +33,7 @@ from benchmarks.snapshot_read_cost import (
     render_human_summary,
     resolve_candidate_sha,
     run_profile,
+    scale_points_are_valid,
 )
 from tests.integration.support.live_server import free_loopback_port, serve_over_real_http
 
@@ -50,13 +51,6 @@ def _write_config(config_path: Path, *, base_url: str, port: int) -> None:
         f'    allowed-origins: ["{base_url}"]\n'
         f'    allowed-hosts: ["127.0.0.1:{port}"]\n'
     )
-
-
-def _neo4j_version(container: Neo4jContainer) -> str | None:
-    image = getattr(container, "image", None)
-    if isinstance(image, str) and ":" in image:
-        return image.split(":", 1)[1]
-    return None
 
 
 def _run(*, profile: str, candidate_sha: str | None, dirty_worktree: bool | None, out: Path) -> int:
@@ -98,7 +92,6 @@ def _run(*, profile: str, candidate_sha: str | None, dirty_worktree: bool | None
                         client=client,
                         candidate_sha=resolved_sha,
                         dirty_worktree=resolved_dirty,
-                        neo4j_version=_neo4j_version(container),
                     )
         except RevisionFenceMoved as exc:
             print(str(exc), file=sys.stderr)
@@ -114,11 +107,10 @@ def _run(*, profile: str, candidate_sha: str | None, dirty_worktree: bool | None
     print(render_human_summary(result))
     print(f"\nwrote {out}")
 
-    all_passed = all(
-        point["structural_validation"] == "PASS" and point["semantic_validation"] == "PASS"
-        for point in result["scale_points"]
-    )
-    return EXIT_OK if all_passed else EXIT_VALIDATION_FAILED
+    validity = scale_points_are_valid(result)
+    if not validity.passed:
+        print(validity.detail, file=sys.stderr)
+    return EXIT_OK if validity.passed else EXIT_VALIDATION_FAILED
 
 
 def main(argv: list[str] | None = None) -> int:

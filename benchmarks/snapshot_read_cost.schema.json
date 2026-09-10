@@ -68,7 +68,9 @@
         "logical_cpu_count",
         "memory_total_bytes",
         "python_version",
-        "neo4j_version"
+        "neo4j_version",
+        "aip_package_version",
+        "container_runtime_version"
       ],
       "properties": {
         "os": { "type": "string" },
@@ -78,7 +80,9 @@
         "logical_cpu_count": { "type": ["integer", "null"], "minimum": 0 },
         "memory_total_bytes": { "type": ["integer", "null"], "minimum": 0 },
         "python_version": { "type": "string" },
-        "neo4j_version": { "type": ["string", "null"] }
+        "neo4j_version": { "type": "string", "minLength": 1 },
+        "aip_package_version": { "type": ["string", "null"] },
+        "container_runtime_version": { "type": ["string", "null"] }
       }
     },
     "semantic_validation_detail": { "type": "string" },
@@ -110,7 +114,7 @@
         "scale_index",
         "planned_unrelated_fact_count",
         "actual_node_counts",
-        "actual_relation_count",
+        "actual_relation_counts",
         "target_claim_count",
         "target_evidence_reference_count",
         "revision_fence_value",
@@ -118,6 +122,8 @@
         "dependency_call_seconds",
         "snapshot_id_consistent",
         "model_revision_consistent",
+        "producer_build_revision",
+        "producer_build_revision_consistent",
         "structural_validation",
         "structural_validation_detail",
         "semantic_validation"
@@ -138,7 +144,15 @@
             "evidence": { "type": "integer", "minimum": 0 }
           }
         },
-        "actual_relation_count": { "type": "integer", "minimum": 0 },
+        "actual_relation_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "calls"],
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "calls": { "type": "integer", "minimum": 0 }
+          }
+        },
         "target_claim_count": { "type": "integer", "minimum": 0 },
         "target_evidence_reference_count": { "type": "integer", "minimum": 0 },
         "revision_fence_value": { "type": "integer", "minimum": 0 },
@@ -146,6 +160,11 @@
         "dependency_call_seconds": { "$ref": "#/$defs/timing_summary" },
         "snapshot_id_consistent": { "type": "boolean" },
         "model_revision_consistent": { "type": "boolean" },
+        "producer_build_revision": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{40}|unknown)$"
+        },
+        "producer_build_revision_consistent": { "type": "boolean" },
         "structural_validation": { "enum": ["PASS", "FAIL"] },
         "structural_validation_detail": { "type": "string" },
         "semantic_validation": { "enum": ["PASS", "FAIL"] }

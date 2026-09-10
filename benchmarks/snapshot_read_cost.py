@@ -27,6 +27,8 @@ import statistics
 import subprocess
 import sys
 import time
+import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -117,15 +119,30 @@ def is_dirty_worktree() -> bool | None:
         return None
 
 
-def resolve_candidate_sha(explicit: str | None = None) -> str:
+def resolve_candidate_sha(
+    explicit: str | None = None, *, actual_sha_fn: Callable[[], str | None] = current_git_sha
+) -> str:
     """The candidate SHA one `run_profile` call qualifies. `explicit` if given (validated as a real
-    40-hex SHA), otherwise the current git HEAD, otherwise `UNKNOWN_CANDIDATE_SHA` for local
-    development only - spec §13: "a result with unknown candidate identity cannot qualify I3"."""
+    40-hex SHA that also matches the actual checkout, when that can be determined - a mismatch
+    means the code that ran is not the code the result would claim, a real PR #119 review finding),
+    otherwise the current git HEAD, otherwise `UNKNOWN_CANDIDATE_SHA` for local development only -
+    spec §13: "a result with unknown candidate identity cannot qualify I3".
+
+    `actual_sha_fn` is injected (defaulting to `current_git_sha`) so this cross-check is
+    unit-testable without depending on this process's own git state - mirrors
+    `app.architecture_intelligence.repository.read_stable_snapshot`'s injected-read pattern."""
     if explicit is not None:
         if not _SHA_PATTERN.match(explicit):
             raise InvalidCandidateSha(f"not a well-formed 40-hex git SHA: {explicit!r}")
+        actual = actual_sha_fn()
+        if actual is not None and explicit != actual:
+            raise InvalidCandidateSha(
+                f"--candidate-sha {explicit!r} does not match the actual checkout HEAD "
+                f"{actual!r} - run from a clean checkout at the exact candidate SHA rather than "
+                "asserting an unrelated identity"
+            )
         return explicit
-    return current_git_sha() or UNKNOWN_CANDIDATE_SHA
+    return actual_sha_fn() or UNKNOWN_CANDIDATE_SHA
 
 
 # --- deterministic fixture plan (spec §9, §17.1) --------------------------------------------------
@@ -262,11 +279,15 @@ class ActualCounts:
     schema_count: int
     evidence_count: int
     relation_count: int
+    calls_relation_count: int
 
 
 def measure_structural_counts(session: neo4j.Session) -> ActualCounts:
     def count(label: str) -> int:
         return session.run(f"MATCH (n:{label}) RETURN count(n) AS c").single()["c"]
+
+    def count_relation(relation_type: str) -> int:
+        return session.run(f"MATCH ()-[r:{relation_type}]->() RETURN count(r) AS c").single()["c"]
 
     relation_count = session.run("MATCH ()-[r]->() RETURN count(r) AS c").single()["c"]
     return ActualCounts(
@@ -277,7 +298,33 @@ def measure_structural_counts(session: neo4j.Session) -> ActualCounts:
         schema_count=count("Schema"),
         evidence_count=count("Evidence"),
         relation_count=relation_count,
+        # CALLS is the one relation type both the target subgraph's own fixed fact and every
+        # unrelated synthetic fact use - tracking it specifically (spec §12: "actual relation
+        # counts by type or benchmark-relevant family") catches a case the aggregate
+        # `relation_count` alone cannot: one fewer CALLS offset by one extra relation of some other
+        # type, which would leave the total delta looking correct while being structurally wrong
+        # (PR #119 review finding).
+        calls_relation_count=count_relation("CALLS"),
     )
+
+
+# Frozen expected structural shape of the target subgraph alone - examples/'s 4 declared services
+# (order-service, product-service, payment-service, invoice-service) plus the one OBSERVED CALLS
+# fact `seed_target_subgraph` adds - measured directly against real Neo4j at PR #119 review time.
+# Spec §12 requires actual counts be compared with the deterministic fixture plan, not merely a
+# self-consistent delta (PR #119 review finding): a silent drift in `examples/` itself, or a bug in
+# `seed_target_subgraph`, must fail here rather than being silently absorbed into the "unrelated"
+# delta `verify_structural_counts` checks below.
+_EXPECTED_TARGET_COUNTS = ActualCounts(
+    service_count=4,
+    operation_count=3,
+    queue_count=5,
+    message_count=4,
+    schema_count=7,
+    evidence_count=7,
+    relation_count=23,
+    calls_relation_count=1,
+)
 
 
 @dataclass(frozen=True)
@@ -286,13 +333,30 @@ class ValidationResult:
     detail: str
 
 
+def verify_target_baseline(counts_after_target: ActualCounts) -> ValidationResult:
+    if counts_after_target != _EXPECTED_TARGET_COUNTS:
+        return ValidationResult(
+            passed=False,
+            detail=(
+                "target subgraph structural counts drifted from the frozen expectation: expected "
+                f"{_EXPECTED_TARGET_COUNTS}, measured {counts_after_target} - examples/ or "
+                "seed_target_subgraph changed since this baseline was frozen"
+            ),
+        )
+    return ValidationResult(passed=True, detail="target subgraph matches its frozen expected shape")
+
+
 def verify_structural_counts(
     counts_after_target: ActualCounts, counts_after_unrelated: ActualCounts, plan: FixturePlan
 ) -> ValidationResult:
-    """A mismatch is a benchmark failure, not a timing anomaly (spec §12). Compares the *delta*
-    against the plan rather than a hardcoded absolute count, so this never depends on `examples/`'s
-    own exact fixture shape - only on each unrelated fact adding exactly one Service, one
-    Operation, one Evidence node and one CALLS relation."""
+    """A mismatch is a benchmark failure, not a timing anomaly (spec §12). First checks the target
+    subgraph itself against the frozen baseline above (not just a self-consistent delta - PR #119
+    review finding), then checks the *unrelated* delta against the plan: each unrelated fact adds
+    exactly one Service, one Operation, one Evidence node and one CALLS relation."""
+    baseline_result = verify_target_baseline(counts_after_target)
+    if not baseline_result.passed:
+        return baseline_result
+
     n = plan.unrelated_fact_count
     expected = ActualCounts(
         service_count=counts_after_target.service_count + n,
@@ -302,6 +366,7 @@ def verify_structural_counts(
         schema_count=counts_after_target.schema_count,
         evidence_count=counts_after_target.evidence_count + n,
         relation_count=counts_after_target.relation_count + n,
+        calls_relation_count=counts_after_target.calls_relation_count + n,
     )
     if counts_after_unrelated != expected:
         return ValidationResult(
@@ -368,6 +433,7 @@ class DependencyTimingSamples:
     durations_seconds: list[float]
     snapshot_ids: list[str]
     model_revisions: list[str]
+    build_revisions: list[str]
     last_structured_content: dict[str, Any]
 
 
@@ -394,6 +460,11 @@ def measure_dependency_call(
     durations: list[float] = []
     snapshot_ids: list[str] = []
     model_revisions: list[str] = []
+    # Every measured answer's own `producer.build_revision` - not just the candidate_sha the
+    # caller *declares* - so `run_profile` can catch a result attributed to a commit whose code
+    # did not actually produce it (PR #119 review finding: nothing previously cross-checked the
+    # declared candidate identity against what the running code itself reported).
+    build_revisions: list[str] = []
     last_structured_content: dict[str, Any] = {}
     for _ in range(samples):
         start = time.perf_counter()
@@ -401,9 +472,10 @@ def measure_dependency_call(
         durations.append(time.perf_counter() - start)
         snapshot_ids.append(structured_content["snapshot"]["snapshot_id"])
         model_revisions.append(structured_content["snapshot"]["model_revision"])
+        build_revisions.append(structured_content["producer"]["build_revision"])
         last_structured_content = structured_content
     return DependencyTimingSamples(
-        durations, snapshot_ids, model_revisions, last_structured_content
+        durations, snapshot_ids, model_revisions, build_revisions, last_structured_content
     )
 
 
@@ -467,6 +539,15 @@ def verify_target_answer_invariance(canonical_answers: list[dict[str, Any]]) -> 
 # --- runtime metadata (spec §14) ----------------------------------------------------------------
 
 
+def query_neo4j_version(session: neo4j.Session) -> str:
+    """The actual connected server's own reported identity (e.g. "Neo4j/5.26.0"), not a guess
+    derived from a mutable image tag like `neo4j:5` - a PR #119 review finding: the CLI's own
+    `neo4j:5` tag alone can't distinguish two different Neo4j 5 minor versions producing
+    indistinguishable runtime metadata."""
+    summary = session.run("RETURN 1").consume()
+    return summary.server.agent
+
+
 def _memory_total_bytes() -> int | None:
     try:
         return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
@@ -474,7 +555,31 @@ def _memory_total_bytes() -> int | None:
         return None
 
 
-def collect_runtime_metadata(*, neo4j_version: str | None) -> dict[str, Any]:
+def _aip_package_version() -> str | None:
+    try:
+        with (_REPO_ROOT / "pyproject.toml").open("rb") as f:
+            data = tomllib.load(f)
+        return data["project"]["version"]
+    except (OSError, KeyError, tomllib.TOMLDecodeError):
+        return None
+
+
+def _container_runtime_version() -> str | None:
+    try:
+        result = subprocess.run(
+            ["docker", "version", "--format", "{{.Server.Version}}"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        )
+        version = result.stdout.strip()
+        return f"docker/{version}" if version else None
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return None
+
+
+def collect_runtime_metadata(*, neo4j_version: str) -> dict[str, Any]:
     return {
         "os": platform.system(),
         "os_release": platform.release(),
@@ -484,6 +589,8 @@ def collect_runtime_metadata(*, neo4j_version: str | None) -> dict[str, Any]:
         "memory_total_bytes": _memory_total_bytes(),
         "python_version": sys.version.split()[0],
         "neo4j_version": neo4j_version,
+        "aip_package_version": _aip_package_version(),
+        "container_runtime_version": _container_runtime_version(),
     }
 
 
@@ -501,7 +608,6 @@ def run_profile(
     client: httpx.Client,
     candidate_sha: str,
     dirty_worktree: bool,
-    neo4j_version: str | None = None,
     warmup: int = 1,
     samples: int = 3,
 ) -> dict[str, Any]:
@@ -515,6 +621,9 @@ def run_profile(
         "window_start": _iso(_WINDOW_START),
         "window_end": _iso(_WINDOW_END),
     }
+
+    with open_session(driver, database=DATABASE, read_only=True) as session:
+        neo4j_version = query_neo4j_version(session)
 
     scale_point_results: list[dict[str, Any]] = []
     canonical_answers: list[dict[str, Any]] = []
@@ -569,7 +678,10 @@ def run_profile(
                     "schema": counts_after_unrelated.schema_count,
                     "evidence": counts_after_unrelated.evidence_count,
                 },
-                "actual_relation_count": counts_after_unrelated.relation_count,
+                "actual_relation_counts": {
+                    "total": counts_after_unrelated.relation_count,
+                    "calls": counts_after_unrelated.calls_relation_count,
+                },
                 "target_claim_count": len(claims),
                 "target_evidence_reference_count": target_evidence_ref_count,
                 "revision_fence_value": revision_after,
@@ -581,6 +693,10 @@ def run_profile(
                 "model_revision_consistent": _all_equal(snapshot_samples.model_revisions)
                 and _all_equal(dependency_samples.model_revisions)
                 and snapshot_samples.model_revisions[0] == dependency_samples.model_revisions[0],
+                "producer_build_revision": dependency_samples.build_revisions[0],
+                "producer_build_revision_consistent": _all_equal(
+                    dependency_samples.build_revisions
+                ),
                 "structural_validation": "PASS" if structural_result.passed else "FAIL",
                 "structural_validation_detail": structural_result.detail,
             }
@@ -616,19 +732,68 @@ def run_profile(
     }
 
 
-# --- determinism canonicalization (spec §15) ----------------------------------------------------
+# --- release qualification (spec §13/§21/§30) ---------------------------------------------------
 
-_VARIABLE_TOP_LEVEL_FIELDS = frozenset({"started_at", "completed_at", "runtime_metadata"})
-_VARIABLE_SCALE_POINT_FIELDS = frozenset(
-    {"snapshot_fingerprint_seconds", "dependency_call_seconds"}
-)
+
+def scale_points_are_valid(result: dict[str, Any]) -> ValidationResult:
+    """The complete per-scale-point measurement-validity predicate (spec §13): every scale point's
+    structural and target-answer semantic validation passed, and every scale point's `snapshot_id`,
+    `model_revision`, and measured `producer.build_revision` stayed consistent across its own
+    repeated no-write samples (spec §13's "snapshot_id consistency within the no-write sample
+    set"/"model_revision consistency..."). This is candidate-identity-agnostic - it is the single
+    predicate both the CLI's own exit code and `qualifies_for_release` below are built from (PR
+    #119 review finding: two separate, incomplete "is this run OK" checks previously existed, and
+    neither one actually looked at the consistency flags the benchmark itself computes)."""
+    for point in result["scale_points"]:
+        if point["structural_validation"] != "PASS":
+            return ValidationResult(
+                passed=False,
+                detail=f"scale point {point['scale_index']}: structural_validation != PASS",
+            )
+        if point["semantic_validation"] != "PASS":
+            return ValidationResult(
+                passed=False,
+                detail=f"scale point {point['scale_index']}: semantic_validation != PASS",
+            )
+        if not point["snapshot_id_consistent"]:
+            return ValidationResult(
+                passed=False,
+                detail=(
+                    f"scale point {point['scale_index']}: snapshot_id was not stable across "
+                    "repeated no-write samples"
+                ),
+            )
+        if not point["model_revision_consistent"]:
+            return ValidationResult(
+                passed=False,
+                detail=(
+                    f"scale point {point['scale_index']}: model_revision was not stable across "
+                    "repeated no-write samples"
+                ),
+            )
+        if not point["producer_build_revision_consistent"]:
+            return ValidationResult(
+                passed=False,
+                detail=(
+                    f"scale point {point['scale_index']}: producer.build_revision was not stable "
+                    "across repeated no-write samples"
+                ),
+            )
+    return ValidationResult(
+        passed=True,
+        detail="every scale point's structural/semantic/identity consistency checks passed",
+    )
 
 
 def qualifies_for_release(result: dict[str, Any]) -> ValidationResult:
     """Spec §13: "a result with unknown candidate identity cannot qualify I3"; "dirty_worktree =
-    true is release-blocking". A pure check over an already-produced result dict, used during
-    candidate qualification (I3.2) - a local/dev run with `unknown`/dirty state is still allowed to
-    run and be inspected; it just cannot be cited as release evidence."""
+    true is release-blocking". Layers candidate-identity requirements on top of
+    `scale_points_are_valid` - including that every scale point's *measured* `producer.
+    build_revision` actually equals the *declared* `candidate_sha` (PR #119 review finding: nothing
+    previously verified this, so a result generated by one commit could be mislabeled with another
+    commit's SHA and still "qualify"). A pure check over an already-produced result dict, used
+    during candidate qualification (I3.2) - a local/dev run with `unknown`/dirty state is still
+    allowed to run and be inspected; it just cannot be cited as release evidence."""
     if result["candidate_sha"] == UNKNOWN_CANDIDATE_SHA:
         return ValidationResult(
             passed=False, detail="candidate_sha is unknown - not release-qualifying"
@@ -642,7 +807,26 @@ def qualifies_for_release(result: dict[str, Any]) -> ValidationResult:
         return ValidationResult(
             passed=False, detail="dirty_worktree is true - not release-qualifying"
         )
-    return ValidationResult(passed=True, detail="candidate identity is release-qualifying")
+
+    validity = scale_points_are_valid(result)
+    if not validity.passed:
+        return validity
+
+    for point in result["scale_points"]:
+        if point["producer_build_revision"] != result["candidate_sha"]:
+            return ValidationResult(
+                passed=False,
+                detail=(
+                    f"scale point {point['scale_index']}: measured producer.build_revision "
+                    f"{point['producer_build_revision']!r} does not match declared candidate_sha "
+                    f"{result['candidate_sha']!r}"
+                ),
+            )
+
+    return ValidationResult(
+        passed=True,
+        detail="candidate identity is release-qualifying and every scale point is valid",
+    )
 
 
 def render_human_summary(result: dict[str, Any]) -> str:
@@ -661,7 +845,7 @@ def render_human_summary(result: dict[str, Any]) -> str:
         total_nodes = sum(point["actual_node_counts"].values())
         lines.append(
             f"  scale_index={point['scale_index']} total_nodes={total_nodes} "
-            f"relations={point['actual_relation_count']} "
+            f"relations={point['actual_relation_counts']['total']} "
             f"snapshot_min={point['snapshot_fingerprint_seconds']['minimum_seconds']:.4f}s "
             f"dependency_min={point['dependency_call_seconds']['minimum_seconds']:.4f}s "
             f"structural={point['structural_validation']} semantic={point['semantic_validation']}"
@@ -694,6 +878,14 @@ def render_human_summary(result: dict[str, Any]) -> str:
         "measurements only (spec §16)."
     )
     return "\n".join(lines)
+
+
+# --- determinism canonicalization (spec §15) ----------------------------------------------------
+
+_VARIABLE_TOP_LEVEL_FIELDS = frozenset({"started_at", "completed_at", "runtime_metadata"})
+_VARIABLE_SCALE_POINT_FIELDS = frozenset(
+    {"snapshot_fingerprint_seconds", "dependency_call_seconds"}
+)
 
 
 def canonicalize_for_determinism(result: dict[str, Any]) -> dict[str, Any]:

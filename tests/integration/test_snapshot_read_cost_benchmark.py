@@ -93,10 +93,10 @@ def test_smoke_profile_runs_end_to_end_through_real_snapshot_and_mcp_code(
         client=benchmark_app_client,
         candidate_sha=resolve_candidate_sha(),
         dirty_worktree=True,  # irrelevant to this smoke assertion - not a release-bound run
-        neo4j_version="5",
     )
 
     assert result["profile"] == SMOKE_PROFILE
+    assert result["runtime_metadata"]["neo4j_version"].startswith("Neo4j/")
     assert len(result["scale_points"]) >= 2
     target_claim_counts = set()
     for point in result["scale_points"]:
@@ -104,6 +104,8 @@ def test_smoke_profile_runs_end_to_end_through_real_snapshot_and_mcp_code(
         assert point["semantic_validation"] == "PASS", result["semantic_validation_detail"]
         assert point["snapshot_id_consistent"] is True
         assert point["model_revision_consistent"] is True
+        assert point["producer_build_revision_consistent"] is True
+        assert point["producer_build_revision"] == result["candidate_sha"]
         assert point["target_claim_count"] > 0
         target_claim_counts.add(point["target_claim_count"])
     # order-service's real declared+observed dependency candidates (spec §9's fixed target
