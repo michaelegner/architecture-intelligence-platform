@@ -39,7 +39,7 @@ from app.architecture_intelligence.request import EvidenceRequest, ServiceDepend
 from evaluation.architecture_answers.invariants import check_drift_invariants
 
 _PRODUCER = Producer(
-    name="architecture-intelligence-platform", version="0.4.0", build_revision="f" * 40
+    name="architecture-intelligence-platform", version="0.4.1", build_revision="f" * 40
 )
 _SNAPSHOT = SnapshotRef(
     snapshot_id="aip:snapshot:v1:" + "a" * 64, model_revision="sha256:" + "a" * 64

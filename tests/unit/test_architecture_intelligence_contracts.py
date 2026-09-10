@@ -133,7 +133,7 @@ def test_not_answered_observation_context_required_has_null_context():
 
 def _valid_producer() -> Producer:
     return Producer(
-        name="architecture-intelligence-platform", version="0.4.0", build_revision="a" * 40
+        name="architecture-intelligence-platform", version="0.4.1", build_revision="a" * 40
     )
 
 

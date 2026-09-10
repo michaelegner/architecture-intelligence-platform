@@ -1,10 +1,18 @@
 # MCP Tools
 
-`v0.4.0` exposes AIP's validated architecture model to AI agents and other MCP clients as three
+`v0.4` exposes AIP's validated architecture model to AI agents and other MCP clients as three
 **read-only** tools, mounted at `/mcp` (MCP protocol `2026-07-28`, per-request envelope only — no
 legacy `initialize` session handshake). See
 [`docs/specifications/0.4.0/specification.md`](specifications/0.4.0/specification.md) for the full
-normative contract; this page is a short practical reference.
+normative tool contract (unchanged since `v0.4.0`) and
+[`docs/specifications/0.4.1/specification.md`](specifications/0.4.1/specification.md) for the
+qualification/messaging semantic hardening layered on top in `v0.4.1`; this page is a short
+practical reference.
+
+Every answer's `producer.version` reports the current package/producer version (`0.4.1` as of the
+`v0.4.1` patch release) — this is build/producer metadata, separate from the public
+`schema_version`, which stays `"0.4"` across the whole `v0.4.x` line unless the schema itself
+changes.
 
 > AIP may help agents reason about architecture, but an agent must never become the source of
 > architectural truth. — [`ROADMAP.md`](../ROADMAP.md)'s v0.4 principle.

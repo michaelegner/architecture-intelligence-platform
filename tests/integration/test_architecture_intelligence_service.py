@@ -39,7 +39,7 @@ WINDOW_START = "2026-08-26T00:00:00.000000Z"
 WINDOW_END = "2026-08-27T00:00:00.000000Z"
 
 PRODUCER = Producer(
-    name="architecture-intelligence-platform", version="0.4.0", build_revision="f" * 40
+    name="architecture-intelligence-platform", version="0.4.1", build_revision="f" * 40
 )
 
 

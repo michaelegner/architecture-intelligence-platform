@@ -24,7 +24,7 @@ FAKE_MODEL_REVISION = "sha256:" + "a" * 64
 OTHER_SNAPSHOT_ID = "aip:snapshot:v1:" + "b" * 64
 
 PRODUCER = Producer(
-    name="architecture-intelligence-platform", version="0.4.0", build_revision="f" * 40
+    name="architecture-intelligence-platform", version="0.4.1", build_revision="f" * 40
 )
 
 _NO_COVERAGE = ServiceTelemetryCoverage(

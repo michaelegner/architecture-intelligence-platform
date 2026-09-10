@@ -129,6 +129,25 @@ Principle:
 The tool layer stays downstream of AIP's deterministic architecture model. It must not let an LLM,
 agent, or MCP client create canonical facts, bypass semantic validation, or reach a graph write path.
 
+## v0.4.1 — in release qualification
+
+**Goal: Semantic Hardening for Broader Discovery**
+
+Purpose: harden the qualification and messaging semantics `v0.4.0` shipped, and commit
+reproducible evidence of current whole-graph read cost, before any `v0.5` discovery work widens
+the surface those semantics govern. Adds no discovery source, Canonical Model family, or MCP tool.
+See [`docs/specifications/0.4.1/`](docs/specifications/0.4.1/) for the full design history and
+current status.
+
+| Increment | Purpose | Status |
+|---|---|---|
+| I1 — Qualification Consistency | One declared-versus-observed semantic owner, real-Neo4j differential qualification | ✓ complete — `385604b` |
+| I2 — Messaging Semantic Guards | Queue-compatible destination guard, safe messaging service-identity guard | ✓ complete — `d37399b` |
+| I3 — Hardening, Qualification and Release | Committed snapshot/read-cost benchmark, exact-candidate qualification, RC/final publication, post-release verification | in progress — I3.1 (benchmark harness) merged |
+
+This section is updated to **shipped** once I3 closes and `v0.4.1` is published — see
+[`CHANGELOG.md`](CHANGELOG.md) for the eventual dated entry.
+
 ## v0.5 — Broader Architecture Discovery (planned)
 
 Focus: broaden what AIP can discover, now that the semantic core is validated and exposed through

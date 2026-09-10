@@ -24,6 +24,7 @@ from app.architecture_intelligence.request import (
 )
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.graph.schema import ensure_schema
+from app.version import package_version
 from evaluation import fixture_setup
 from evaluation.architecture_answers.candidate import resolve_candidate_sha
 from evaluation.architecture_answers.comparator import ScenarioReport, compare
@@ -55,10 +56,14 @@ def _build_producer(candidate_sha: str) -> Producer:
     # Real production build-provenance wiring is finalized in I4 (spec §10); until then this
     # evaluator injects the resolved candidate SHA rather than a placeholder literal (spec §27/§28
     # - a missing or placeholder build revision must never qualify a release artifact).
-    # name/version are still frozen literals - the application identity/version target, not the
-    # per-run revision.
+    # `version` is read from `app.version.package_version()` (PR #120 review finding: a frozen
+    # literal here independently drifted from the real production version, and every scenario's
+    # own `expected_answer.json` had frozen the same wrong literal alongside it, so the mismatch
+    # never surfaced) - `name` stays a frozen literal, the fixed application identity.
     return Producer(
-        name="architecture-intelligence-platform", version="0.4.0", build_revision=candidate_sha
+        name="architecture-intelligence-platform",
+        version=package_version(),
+        build_revision=candidate_sha,
     )
 
 
