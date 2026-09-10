@@ -108,7 +108,12 @@ per-service view — this is what powers the Service Explorer UI's "Observed" se
 ## Qualification consistency across surfaces (v0.4.1 ADR 0010)
 
 The analysis/REST path above may use an implicit clock-relative default observation window and may
-allow an open-ended upper bound — `until` omitted means "no upper observation bound", not "now".
+allow an open-ended upper bound — when a caller omits `until`, the underlying qualification query
+places no upper bound on `last_seen` at all. This is distinct from what a REST *response* displays:
+`app/api/runtime.py`'s `RuntimeWindow.to` field always reports `until or datetime.now(UTC)` for
+human-readable display, even when the query itself ran with no upper bound — so an omitted `until`
+shows as "now" in the response body while still being genuinely open-ended underneath. Don't read
+`window.to` as the bound the query actually enforced.
 
 The MCP tools (see [`mcp.md`](mcp.md)) require the explicit observation context defined by the v0.4
 contract instead — there is no implicit default there.

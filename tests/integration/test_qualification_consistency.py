@@ -450,23 +450,23 @@ def test_qualification_consistency_across_analysis_and_architecture_intelligence
     expected = _expected_map()
     excluded = _excluded_keys()
 
+    # Review finding: comparing path_a's and path_b's key sets *only to each other* has a blind
+    # spot - if both paths independently omit the same required key (a shared bug, not merely
+    # duplicated code, is exactly what this whole differential test exists to catch per its own
+    # module docstring), only_in_a/only_in_b would both stay empty and the expected-value loop
+    # below would never see that key at all, so the test would pass despite a real defect. Each
+    # path's key set is therefore checked against `expected` independently, not just against the
+    # other path.
     leaked_a = sorted(k for k in path_a if k in excluded)
     leaked_b = sorted(k for k in path_b if k in excluded)
-    assert not leaked_a, f"path A (analysis) reported an excluded relation: {leaked_a}"
-    assert not leaked_b, (
-        f"path B (Architecture Intelligence) reported an excluded relation: {leaked_b}"
-    )
-
-    only_in_a = sorted(set(path_a) - set(path_b))
-    only_in_b = sorted(set(path_b) - set(path_a))
-    assert not only_in_a, f"relations only reported by path A (analysis): {only_in_a}"
-    assert not only_in_b, (
-        f"relations only reported by path B (Architecture Intelligence): {only_in_b}"
-    )
+    missing_from_a = sorted(set(expected) - set(path_a))
+    missing_from_b = sorted(set(expected) - set(path_b))
+    only_in_a = sorted(set(path_a) - set(path_b) - set(missing_from_b))
+    only_in_b = sorted(set(path_b) - set(path_a) - set(missing_from_a))
 
     qualification_mismatches = []
     coverage_mismatches = []
-    for key in sorted(set(path_a) & set(path_b)):
+    for key in sorted(set(path_a) & set(path_b) & set(expected)):
         a_qualification, a_coverage = path_a[key]
         b_qualification, b_coverage = path_b[key]
         exp_qualification, exp_coverage = expected[key]
@@ -489,9 +489,23 @@ def test_qualification_consistency_across_analysis_and_architecture_intelligence
                 }
             )
 
-    assert not qualification_mismatches, (
-        f"qualification mismatches = {len(qualification_mismatches)}: {qualification_mismatches}"
-    )
-    assert not coverage_mismatches, (
-        f"coverage mismatches = {len(coverage_mismatches)}: {coverage_mismatches}"
+    problems = {
+        "excluded relations leaked by path A (analysis)": leaked_a,
+        "excluded relations leaked by path B (Architecture Intelligence)": leaked_b,
+        "expected relations missing from path A (analysis)": missing_from_a,
+        "expected relations missing from path B (Architecture Intelligence)": missing_from_b,
+        "relations only reported by path A (analysis), not expected as B-only": only_in_a,
+        "relations only reported by path B (Architecture Intelligence), not expected as A-only": (
+            only_in_b
+        ),
+        "qualification mismatches": qualification_mismatches,
+        "coverage mismatches": coverage_mismatches,
+    }
+    failures = {name: rows for name, rows in problems.items() if rows}
+    assert not failures, (
+        f"qualification mismatches = {len(qualification_mismatches)}, "
+        f"coverage mismatches = {len(coverage_mismatches)}, "
+        f"unexplained differential cases = "
+        f"{len(leaked_a) + len(leaked_b) + len(missing_from_a) + len(missing_from_b) + len(only_in_a) + len(only_in_b)}: "
+        f"{failures}"
     )
