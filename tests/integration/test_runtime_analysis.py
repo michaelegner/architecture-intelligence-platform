@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -248,6 +248,31 @@ def test_o2_o3_o4_do_not_cross_leak_when_the_same_environment_has_both_confirmed
     assert (order_id, product_operation_id) not in declared_only_pairs
 
 
+def test_o2_with_no_until_bound_still_confirms_a_far_future_observation(driver, session):
+    """v0.4.1 I1.3 (spec §21.2): the analysis/REST path's open-ended upper bound (`until=None`,
+    meaning "no upper observation bound") must still work end to end post-I1.2-migration - proven
+    here against real Cypher, complementing the kernel-level unit proof in
+    tests/unit/test_qualification_declared_observed.py."""
+    subject_id = ids.service_id("order-service")
+    operation_id = ids.operation_id(ids.service_id("product-service"), "GET", "/products/{id}")
+    provider_id = ids.service_id("product-service")
+    far_future = datetime(2036, 8, 26, 12, 0, tzinfo=UTC)
+    _persist(
+        driver,
+        _fact(
+            subject_id=subject_id,
+            relation_type="CALLS",
+            object_id=operation_id,
+            environment="o2-open-ended-env",
+            timestamp=far_future,
+        ),
+    )
+
+    # No `until` passed at all - defaults to None (open-ended upper bound).
+    results = confirmed_relations(session, environment="o2-open-ended-env", since=SINCE)
+    assert any(r.source_id == subject_id and r.target_id == provider_id for r in results)
+
+
 # --- O3: observed-only relations, including a genuinely undeclared (no PROVIDES) operation ------
 
 
@@ -365,6 +390,42 @@ def test_o4_reports_partial_coverage_when_only_a_different_relation_kind_was_obs
     assert row.status == NOT_OBSERVED_IN_WINDOW
     assert row.telemetry_coverage_available is False  # unchanged boolean semantics (kind-specific)
     assert row.coverage == COVERAGE_PARTIAL
+
+
+def test_o4_coverage_respects_an_explicit_until_bound(driver, session):
+    """v0.4.1 I1.3 regression: declared_only_relations' internal O5 coverage lookup previously
+    omitted `until`, so a service's coverage annotation always used an open-ended upper bound
+    regardless of what `until` this function itself was given - an observed relation from *after*
+    the requested window silently counted as coverage. Caught by the real-Neo4j differential test
+    (tests/integration/test_qualification_consistency.py, case Q13)."""
+    subject_id = ids.service_id("payment-service")
+    until = datetime(2026, 8, 26, 12, 0, tzinfo=UTC)
+    # Same relation kind as payment-service->invoice-q (the row under test) - would grant
+    # SUFFICIENT coverage if counted, but its timestamp is after `until`, so it must not be.
+    _persist(
+        driver,
+        _fact(
+            subject_id=subject_id,
+            relation_type="SENDS",
+            object_id=ids.queue_id("some-other-queue-after-until"),
+            environment="o4-env-until-bound",
+            timestamp=until + timedelta(hours=1),
+        ),
+        entities=[
+            ObservedOnlyEntity(
+                id=ids.queue_id("some-other-queue-after-until"), label="Queue", name="x"
+            )
+        ],
+    )
+
+    object_id = ids.queue_id("invoice-q")
+    results = declared_only_relations(
+        session, environment="o4-env-until-bound", since=SINCE, until=until
+    )
+    row = next(r for r in results if r.source_id == subject_id and r.target_id == object_id)
+    assert row.status == NOT_OBSERVED_IN_WINDOW
+    assert row.telemetry_coverage_available is False
+    assert row.coverage == COVERAGE_NONE
 
 
 def test_o4_coverage_is_unknown_when_qualification_is_disabled(driver, session):

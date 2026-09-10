@@ -15,7 +15,7 @@ project's stated architecture principles.
 | [0007](0007-do-not-store-full-traces-in-neo4j.md) | Never store full traces or raw span payloads in Neo4j |
 | [0008](0008-apache-2.0-license.md) | License under Apache License 2.0 |
 | [0009](0009-source-adapter-seam.md) | Source adapters are a registered seam, not a pipeline convention (Proposed) |
-| [0010](0010-single-qualification-rule.md) | The declared-vs-observed rule has one owner and one executable cross-check (Proposed) |
+| [0010](0010-single-qualification-rule.md) | The declared-vs-observed rule has one owner and one executable cross-check (Accepted) |
 | [0011](0011-snapshot-identity-read-cost.md) | Snapshot identity must not cost a full-graph read per call (Proposed) |
 | [0012](0012-observed-evidence-retention.md) | Observed evidence is compacted on a retention policy, never silently dropped (Proposed) |
 | [0013](0013-no-topic-family-without-guards.md) | No topic/pub-sub family in the Canonical Model without both safety guards |

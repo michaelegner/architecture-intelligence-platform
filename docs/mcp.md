@@ -34,6 +34,20 @@ Schemas live at `schemas/architecture_intelligence/v0.4/`:
 `architecture-answer.schema.json` (`get_service_dependencies`), `drift-answer.schema.json`
 (`get_architecture_drift`), `evidence-answer.schema.json` (`get_evidence`).
 
+## Qualification consistency with the analysis/REST surface (v0.4.1 ADR 0010)
+
+These MCP tools require the explicit observation context defined by the v0.4 contract above —
+unlike the analysis/REST path (see [`analyses.md`](analyses.md)'s runtime analyses), which may use
+an implicit clock-relative default window and may allow an open-ended upper bound.
+
+> Equivalent effective observation contexts MUST produce equivalent qualification semantics.
+> Different effective observation windows MAY legitimately produce different qualifications.
+
+Both surfaces share one semantic owner for declared-vs-observed evidence matching and coverage
+classification (`app/qualification/declared_observed.py`), proven equivalent by a real Neo4j
+differential test (`tests/integration/test_qualification_consistency.py`) rather than by inspection
+alone.
+
 ## Calling a tool
 
 Every request/response is JSON-RPC 2.0 over `POST /mcp`. Three headers are required and must agree
