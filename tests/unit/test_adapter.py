@@ -614,6 +614,18 @@ AMBIGUOUS_BILLING_B = DeclaredServiceCandidate(
 )
 
 
+def _assert_one_fact(batch, *, subject_id, relation_type, object_id, environment, correlation_mode):
+    """Full-shape fact assertion (spec §27: "complete entities/facts/unresolved results, not only
+    fact count")."""
+    assert len(batch.facts) == 1
+    fact = batch.facts[0]
+    assert fact.subject_id == subject_id
+    assert fact.relation_type == relation_type
+    assert fact.object_id == object_id
+    assert fact.environment == environment
+    assert fact.evidence.correlation_mode == correlation_mode
+
+
 def test_c1_declared_service_and_declared_queue_send_produces_one_sends_fact_no_unresolved():
     span = _span(
         service_name="OrderService",
@@ -622,12 +634,14 @@ def test_c1_declared_service_and_declared_queue_send_produces_one_sends_fact_no_
     batch = _queue_correlate([span])
     assert batch.unresolved == []
     assert batch.entities == []
-    assert len(batch.facts) == 1
-    fact = batch.facts[0]
-    assert fact.subject_id == "service:order-service"
-    assert fact.relation_type == "SENDS"
-    assert fact.object_id == "queue:payment-q"
-    assert fact.evidence.correlation_mode == "MESSAGING_SEND"
+    _assert_one_fact(
+        batch,
+        subject_id="service:order-service",
+        relation_type="SENDS",
+        object_id="queue:payment-q",
+        environment="production",
+        correlation_mode="MESSAGING_SEND",
+    )
 
 
 def test_c2_declared_service_and_declared_queue_receive_produces_one_receives_from_fact():
@@ -640,9 +654,15 @@ def test_c2_declared_service_and_declared_queue_receive_produces_one_receives_fr
     )
     batch = _queue_correlate([span])
     assert batch.unresolved == []
-    assert len(batch.facts) == 1
-    assert batch.facts[0].relation_type == "RECEIVES_FROM"
-    assert batch.facts[0].evidence.correlation_mode == "MESSAGING_RECEIVE"
+    assert batch.entities == []
+    _assert_one_fact(
+        batch,
+        subject_id="service:order-service",
+        relation_type="RECEIVES_FROM",
+        object_id="queue:payment-q",
+        environment="production",
+        correlation_mode="MESSAGING_RECEIVE",
+    )
 
 
 def test_c3_declared_service_and_declared_queue_process_produces_one_receives_from_fact():
@@ -655,9 +675,15 @@ def test_c3_declared_service_and_declared_queue_process_produces_one_receives_fr
     )
     batch = _queue_correlate([span])
     assert batch.unresolved == []
-    assert len(batch.facts) == 1
-    assert batch.facts[0].relation_type == "RECEIVES_FROM"
-    assert batch.facts[0].evidence.correlation_mode == "MESSAGING_PROCESS"
+    assert batch.entities == []
+    _assert_one_fact(
+        batch,
+        subject_id="service:order-service",
+        relation_type="RECEIVES_FROM",
+        object_id="queue:payment-q",
+        environment="production",
+        correlation_mode="MESSAGING_PROCESS",
+    )
 
 
 def test_c4_explicit_observed_only_service_with_declared_queue_records_service_entity():
@@ -667,9 +693,18 @@ def test_c4_explicit_observed_only_service_with_declared_queue_records_service_e
     )
     batch = _queue_correlate([span])
     assert batch.unresolved == []
-    assert len(batch.facts) == 1
-    assert [e.label for e in batch.entities] == ["Service"]
-    assert batch.facts[0].subject_id == batch.entities[0].id
+    _assert_one_fact(
+        batch,
+        subject_id="service:fraudservice",
+        relation_type="SENDS",
+        object_id="queue:payment-q",
+        environment="production",
+        correlation_mode="MESSAGING_SEND",
+    )
+    assert len(batch.entities) == 1
+    assert batch.entities[0].id == "service:fraudservice"
+    assert batch.entities[0].label == "Service"
+    assert batch.entities[0].name == "FraudService"
 
 
 def test_c5_declared_service_with_explicit_kind_queue_undeclared_destination_records_queue_entity():
@@ -683,9 +718,18 @@ def test_c5_declared_service_with_explicit_kind_queue_undeclared_destination_rec
     )
     batch = _queue_correlate([span])
     assert batch.unresolved == []
-    assert len(batch.facts) == 1
-    assert [e.label for e in batch.entities] == ["Queue"]
-    assert batch.facts[0].object_id == batch.entities[0].id
+    _assert_one_fact(
+        batch,
+        subject_id="service:order-service",
+        relation_type="SENDS",
+        object_id="queue:events",
+        environment="production",
+        correlation_mode="MESSAGING_SEND",
+    )
+    assert len(batch.entities) == 1
+    assert batch.entities[0].id == "queue:events"
+    assert batch.entities[0].label == "Queue"
+    assert batch.entities[0].name == "events"
 
 
 def test_c6_explicit_observed_only_service_and_queue_both_record_entities_one_fact():
@@ -699,8 +743,18 @@ def test_c6_explicit_observed_only_service_and_queue_both_record_entities_one_fa
     )
     batch = _queue_correlate([span])
     assert batch.unresolved == []
-    assert len(batch.facts) == 1
-    assert {e.label for e in batch.entities} == {"Service", "Queue"}
+    _assert_one_fact(
+        batch,
+        subject_id="service:fraudservice",
+        relation_type="SENDS",
+        object_id="queue:events",
+        environment="production",
+        correlation_mode="MESSAGING_SEND",
+    )
+    entities_by_label = {e.label: e for e in batch.entities}
+    assert set(entities_by_label) == {"Service", "Queue"}
+    assert entities_by_label["Service"].id == "service:fraudservice"
+    assert entities_by_label["Queue"].id == "queue:events"
 
 
 def test_c7_explicit_kind_topic_is_destination_refusal_no_entities_or_facts():
@@ -784,16 +838,26 @@ def test_c12_placeholder_service_with_explicit_kind_topic_reports_destination_re
 
 
 def test_c13_accepted_span_environment_is_scoped_to_the_reporting_environment():
+    # "valid namespaced service" per spec §27's C13 row - NAMESPACED_FRAUD/"commerce" is a genuinely
+    # namespaced declared candidate, matched via tier1 (spec §14 step 1), not an unnamespaced one.
     span = _span(
-        service_name="OrderService",
+        service_name="FraudService",
+        service_namespace="commerce",
         environment="staging",
         attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
     )
-    batch = _queue_correlate([span])
-    assert len(batch.facts) == 1
-    fact = batch.facts[0]
-    assert fact.environment == "staging"
-    assert fact.evidence.environment == "staging"
+    batch = _queue_correlate([span], service_candidates=[NAMESPACED_FRAUD])
+    assert batch.unresolved == []
+    assert batch.entities == []  # declared match - nothing new
+    _assert_one_fact(
+        batch,
+        subject_id="service:commerce:fraud-service",
+        relation_type="SENDS",
+        object_id="queue:payment-q",
+        environment="staging",
+        correlation_mode="MESSAGING_SEND",
+    )
+    assert batch.facts[0].evidence.environment == "staging"
 
 
 def test_c14_unrecognized_operation_is_silently_skipped_even_with_otherwise_guard_failing_fields():
@@ -818,6 +882,7 @@ def test_c15_missing_destination_name_is_still_no_destination_name():
     span = _span(service_name="OrderService", attributes={"messaging.operation.type": "send"})
     batch = _queue_correlate([span])
     assert batch.facts == []
+    assert batch.entities == []
     assert [u.reason for u in batch.unresolved] == [NO_DESTINATION_NAME]
 
 
@@ -829,6 +894,7 @@ def test_c16_missing_environment_is_still_no_environment():
     )
     batch = _queue_correlate([span])
     assert batch.facts == []
+    assert batch.entities == []
     assert [u.reason for u in batch.unresolved] == [NO_ENVIRONMENT]
 
 
@@ -850,7 +916,15 @@ def test_c17_mixed_batch_only_the_valid_span_contributes_artifacts():
         attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
     )
     batch = _queue_correlate([refused_span, valid_span])
-    assert len(batch.facts) == 1
+    assert batch.entities == []  # both spans use the already-declared OrderService/payment-q
+    _assert_one_fact(
+        batch,
+        subject_id="service:order-service",
+        relation_type="SENDS",
+        object_id="queue:payment-q",
+        environment="production",
+        correlation_mode="MESSAGING_SEND",
+    )
     assert batch.facts[0].trace_id == valid_span.trace_id
     assert [u.reason for u in batch.unresolved] == [UNSUPPORTED_DESTINATION_SEMANTICS]
 

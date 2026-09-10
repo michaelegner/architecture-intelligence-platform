@@ -198,6 +198,46 @@ def test_unknown_destination_mints_observed_only_queue_against_real_service_data
 # persists normally through the same real boundary.
 
 
+def _assert_no_new_messaging_artifacts(
+    session,
+    *,
+    service_id: str,
+    queue_id: str,
+    evidence_id: str,
+    relation_type: str,
+    service_preexists: bool,
+    queue_preexists: bool,
+) -> None:
+    """Spec §29: "The negative assertion SHALL query nodes, Evidence, and SENDS/RECEIVES_FROM" -
+    all four artifact types, not just one. `service_preexists`/`queue_preexists` mark an identity
+    that was already a real declared node before this span (its node's mere presence isn't itself
+    evidence of this span's effect) - that count is expected to stay exactly 1, never duplicated;
+    an identity this span's guards refused to mint is expected to stay exactly 0."""
+    service_count = session.run(
+        "MATCH (s:Service {id: $id}) RETURN count(s) AS c", id=service_id
+    ).single()["c"]
+    assert service_count == (1 if service_preexists else 0)
+
+    queue_count = session.run(
+        "MATCH (q:Queue {id: $id}) RETURN count(q) AS c", id=queue_id
+    ).single()["c"]
+    assert queue_count == (1 if queue_preexists else 0)
+
+    evidence_count = session.run(
+        "MATCH (e:Evidence {id: $id}) RETURN count(e) AS c", id=evidence_id
+    ).single()["c"]
+    assert evidence_count == 0
+
+    relation_count = session.run(
+        f"MATCH (:Service {{id: $sid}})-[r:{relation_type}]->(:Queue {{id: $qid}}) "
+        "WHERE $eid IN coalesce(r.evidence_ids, []) RETURN count(r) AS c",
+        sid=service_id,
+        qid=queue_id,
+        eid=evidence_id,
+    ).single()["c"]
+    assert relation_count == 0
+
+
 def test_positive_control_declared_span_persists_service_queue_evidence_and_relation(
     driver, session
 ):
@@ -266,16 +306,22 @@ def test_topic_shaped_destination_persists_no_new_artifacts(driver, session):
         "SENDS",
         ids.queue_id("payment-q"),
     )
-    count = session.run(
-        "MATCH (e:Evidence {id: $id}) RETURN count(e) AS c", id=would_be_evidence_id
-    ).single()["c"]
-    assert count == 0
+    _assert_no_new_messaging_artifacts(
+        session,
+        service_id=ids.service_id("order-service"),
+        queue_id=ids.queue_id("payment-q"),
+        evidence_id=would_be_evidence_id,
+        relation_type="SENDS",
+        service_preexists=True,  # OrderService is declared - unaffected by this refusal
+        queue_preexists=True,  # payment-q is declared - unaffected by this refusal
+    )
 
 
 def test_unresolved_destination_persists_no_new_artifacts(driver, session):
     span = _span(
         span_id="ur1" * 4,
         service_name="OrderService",
+        environment="i2-unresolved-refusal",
         attributes={
             "messaging.operation.type": "send",
             "messaging.destination.name": "totally-unrecognized-destination",
@@ -291,19 +337,33 @@ def test_unresolved_destination_persists_no_new_artifacts(driver, session):
         queue_aliases={},
     )
     assert batch.facts == []
+    assert batch.entities == []
     persist_observation_batch(driver, DATABASE, batch)
 
-    count = session.run(
-        "MATCH (q:Queue {id: $id}) RETURN count(q) AS c",
-        id=ids.queue_id("totally-unrecognized-destination"),
-    ).single()["c"]
-    assert count == 0
+    would_be_queue_id = ids.queue_id("totally-unrecognized-destination")
+    would_be_evidence_id = ids.observed_evidence_id(
+        span.environment,
+        day_bucket(span.end_time)[0],
+        ids.service_id("order-service"),
+        "SENDS",
+        would_be_queue_id,
+    )
+    _assert_no_new_messaging_artifacts(
+        session,
+        service_id=ids.service_id("order-service"),
+        queue_id=would_be_queue_id,
+        evidence_id=would_be_evidence_id,
+        relation_type="SENDS",
+        service_preexists=True,  # OrderService is declared - unaffected by this refusal
+        queue_preexists=False,  # the destination guard refused to mint this Queue at all
+    )
 
 
 def test_placeholder_service_persists_no_new_artifacts(driver, session):
     span = _span(
         span_id="ph1" * 4,
         service_name="unknown_service",
+        environment="i2-placeholder-refusal",
         attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
     )
     service_candidates = fetch_candidates(session)
@@ -316,27 +376,45 @@ def test_placeholder_service_persists_no_new_artifacts(driver, session):
         queue_aliases={},
     )
     assert batch.facts == []
+    assert batch.entities == []
     persist_observation_batch(driver, DATABASE, batch)
 
-    count = session.run(
-        "MATCH (s:Service {id: $id}) RETURN count(s) AS c", id=ids.service_id("unknown-service")
-    ).single()["c"]
-    assert count == 0
+    would_be_service_id = ids.service_id("unknown-service")
+    would_be_evidence_id = ids.observed_evidence_id(
+        span.environment,
+        day_bucket(span.end_time)[0],
+        would_be_service_id,
+        "SENDS",
+        ids.queue_id("payment-q"),
+    )
+    _assert_no_new_messaging_artifacts(
+        session,
+        service_id=would_be_service_id,
+        queue_id=ids.queue_id("payment-q"),
+        evidence_id=would_be_evidence_id,
+        relation_type="SENDS",
+        service_preexists=False,  # the service guard refused to mint this Service at all
+        queue_preexists=True,  # payment-q is declared - unaffected by this refusal
+    )
 
 
 def test_ambiguous_service_persists_no_new_artifacts(driver, session):
     # Hand-seeds two declared Services sharing a distinctive, otherwise-unused name - the real
     # examples/ fixture never declares a namespace (spec's own confirmed finding), so an ambiguous
     # same-name collision can't occur from the fixture alone and must be constructed directly.
+    # Neither pre-existing candidate id is "the" resolved one (that's the point of "ambiguous") -
+    # both are checked explicitly, alongside Evidence and relation absence, per spec §29.
+    duplicate_a, duplicate_b = "service:duplicated-role-a", "service:duplicated-role-b"
     session.run(
         "CREATE (:Service {id: $id1, name: $name}) CREATE (:Service {id: $id2, name: $name})",
-        id1="service:duplicated-role-a",
-        id2="service:duplicated-role-b",
+        id1=duplicate_a,
+        id2=duplicate_b,
         name="DuplicatedRoleService",
     )
     span = _span(
         span_id="am1" * 4,
         service_name="DuplicatedRoleService",
+        environment="i2-ambiguous-refusal",
         attributes={"messaging.operation.type": "send", "messaging.destination.name": "payment-q"},
     )
     service_candidates = fetch_candidates(session)
@@ -349,20 +427,38 @@ def test_ambiguous_service_persists_no_new_artifacts(driver, session):
         queue_aliases={},
     )
     assert batch.facts == []
+    assert batch.entities == []
     persist_observation_batch(driver, DATABASE, batch)
 
-    count = session.run(
-        "MATCH (:Service {name: $name})-[r:SENDS]->(:Queue {id: $qid}) RETURN count(r) AS c",
-        name="DuplicatedRoleService",
-        qid=ids.queue_id("payment-q"),
+    payment_q = ids.queue_id("payment-q")
+    payment_q_count = session.run(
+        "MATCH (q:Queue {id: $id}) RETURN count(q) AS c", id=payment_q
     ).single()["c"]
-    assert count == 0
+    assert payment_q_count == 1  # declared - unaffected by this refusal
+
+    for candidate_id in (duplicate_a, duplicate_b):
+        would_be_evidence_id = ids.observed_evidence_id(
+            span.environment, day_bucket(span.end_time)[0], candidate_id, "SENDS", payment_q
+        )
+        evidence_count = session.run(
+            "MATCH (e:Evidence {id: $id}) RETURN count(e) AS c", id=would_be_evidence_id
+        ).single()["c"]
+        assert evidence_count == 0
+        relation_count = session.run(
+            "MATCH (:Service {id: $sid})-[r:SENDS]->(:Queue {id: $qid}) "
+            "WHERE $eid IN coalesce(r.evidence_ids, []) RETURN count(r) AS c",
+            sid=candidate_id,
+            qid=payment_q,
+            eid=would_be_evidence_id,
+        ).single()["c"]
+        assert relation_count == 0
 
 
 def test_both_guards_failing_persists_no_new_artifacts(driver, session):
     span = _span(
         span_id="bf1" * 4,
         service_name="unknown_service",
+        environment="i2-both-guards-failing",
         attributes={
             "messaging.operation.type": "send",
             "messaging.destination.name": "payment-q",
@@ -379,11 +475,25 @@ def test_both_guards_failing_persists_no_new_artifacts(driver, session):
         queue_aliases={},
     )
     assert batch.facts == []
+    assert batch.entities == []
     # Destination-first precedence (spec §6): exactly one reason, the destination's.
     assert [u.reason for u in batch.unresolved] == [UNSUPPORTED_DESTINATION_SEMANTICS]
     persist_observation_batch(driver, DATABASE, batch)
 
-    count = session.run(
-        "MATCH (s:Service {id: $id}) RETURN count(s) AS c", id=ids.service_id("unknown-service")
-    ).single()["c"]
-    assert count == 0
+    would_be_service_id = ids.service_id("unknown-service")
+    would_be_evidence_id = ids.observed_evidence_id(
+        span.environment,
+        day_bucket(span.end_time)[0],
+        would_be_service_id,
+        "SENDS",
+        ids.queue_id("payment-q"),
+    )
+    _assert_no_new_messaging_artifacts(
+        session,
+        service_id=would_be_service_id,
+        queue_id=ids.queue_id("payment-q"),
+        evidence_id=would_be_evidence_id,
+        relation_type="SENDS",
+        service_preexists=False,  # never reached - destination refused first - but still unminted
+        queue_preexists=True,  # payment-q is declared - unaffected by this refusal
+    )
