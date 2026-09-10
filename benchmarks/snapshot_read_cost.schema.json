@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://architecture-intelligence-platform/benchmarks/snapshot_read_cost.schema.json",
+  "title": "AIP snapshot/read-cost benchmark result (v0.4.1 I3.1, spec §13/§14)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_name",
+    "benchmark_implementation_version",
+    "candidate_sha",
+    "dirty_worktree",
+    "started_at",
+    "completed_at",
+    "profile",
+    "database_lifecycle",
+    "seed_method",
+    "warmup_count",
+    "sample_count",
+    "request",
+    "runtime_metadata",
+    "semantic_validation_detail",
+    "scale_points"
+  ],
+  "properties": {
+    "schema_version": { "const": "aip-benchmark/v1" },
+    "benchmark_name": { "const": "snapshot_read_cost" },
+    "benchmark_implementation_version": { "type": "integer", "minimum": 1 },
+    "candidate_sha": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|unknown)$"
+    },
+    "dirty_worktree": { "type": "boolean" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "profile": { "enum": ["smoke", "review-comparable"] },
+    "database_lifecycle": { "type": "string", "minLength": 1 },
+    "seed_method": { "type": "string", "minLength": 1 },
+    "warmup_count": { "type": "integer", "minimum": 0 },
+    "sample_count": { "type": "integer", "minimum": 3 },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "service_id", "observation_context"],
+      "properties": {
+        "tool": { "const": "get_service_dependencies" },
+        "service_id": { "type": "string", "minLength": 1 },
+        "observation_context": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["environment", "window_start", "window_end"],
+          "properties": {
+            "environment": { "type": "string", "minLength": 1 },
+            "window_start": { "type": "string", "format": "date-time" },
+            "window_end": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
+    },
+    "runtime_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "os_release",
+        "architecture",
+        "cpu_model",
+        "logical_cpu_count",
+        "memory_total_bytes",
+        "python_version",
+        "neo4j_version"
+      ],
+      "properties": {
+        "os": { "type": "string" },
+        "os_release": { "type": "string" },
+        "architecture": { "type": "string" },
+        "cpu_model": { "type": ["string", "null"] },
+        "logical_cpu_count": { "type": ["integer", "null"], "minimum": 0 },
+        "memory_total_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "python_version": { "type": "string" },
+        "neo4j_version": { "type": ["string", "null"] }
+      }
+    },
+    "semantic_validation_detail": { "type": "string" },
+    "scale_points": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/scale_point" }
+    }
+  },
+  "$defs": {
+    "timing_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw_seconds", "minimum_seconds", "median_seconds"],
+      "properties": {
+        "raw_seconds": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "number", "exclusiveMinimum": 0 }
+        },
+        "minimum_seconds": { "type": "number", "exclusiveMinimum": 0 },
+        "median_seconds": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "scale_point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scale_index",
+        "planned_unrelated_fact_count",
+        "actual_node_counts",
+        "actual_relation_count",
+        "target_claim_count",
+        "target_evidence_reference_count",
+        "revision_fence_value",
+        "snapshot_fingerprint_seconds",
+        "dependency_call_seconds",
+        "snapshot_id_consistent",
+        "model_revision_consistent",
+        "structural_validation",
+        "structural_validation_detail",
+        "semantic_validation"
+      ],
+      "properties": {
+        "scale_index": { "type": "integer", "minimum": 0 },
+        "planned_unrelated_fact_count": { "type": "integer", "minimum": 0 },
+        "actual_node_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["service", "operation", "queue", "message", "schema", "evidence"],
+          "properties": {
+            "service": { "type": "integer", "minimum": 0 },
+            "operation": { "type": "integer", "minimum": 0 },
+            "queue": { "type": "integer", "minimum": 0 },
+            "message": { "type": "integer", "minimum": 0 },
+            "schema": { "type": "integer", "minimum": 0 },
+            "evidence": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "actual_relation_count": { "type": "integer", "minimum": 0 },
+        "target_claim_count": { "type": "integer", "minimum": 0 },
+        "target_evidence_reference_count": { "type": "integer", "minimum": 0 },
+        "revision_fence_value": { "type": "integer", "minimum": 0 },
+        "snapshot_fingerprint_seconds": { "$ref": "#/$defs/timing_summary" },
+        "dependency_call_seconds": { "$ref": "#/$defs/timing_summary" },
+        "snapshot_id_consistent": { "type": "boolean" },
+        "model_revision_consistent": { "type": "boolean" },
+        "structural_validation": { "enum": ["PASS", "FAIL"] },
+        "structural_validation_detail": { "type": "string" },
+        "semantic_validation": { "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

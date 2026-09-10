@@ -68,3 +68,29 @@ correctness, which is a much larger correctness surface than caching a pure func
   acceptable at scale — it is necessary but not sufficient, and depends on
   [ADR 0012](0012-observed-evidence-retention.md) bounding how large the graph gets in the first
   place.
+
+## Implementation/evidence note (v0.4.1 I3.1)
+
+This ADR's acceptance condition (Decision point 3) asks for a committed benchmark that reproduces
+the table above *and* shows the cache's effect. I3.1 supplies only the first half: a committed,
+reproducible current-state baseline. It deliberately ships no cache, no incremental fingerprint, and
+no snapshot-identity change — there is nothing here whose *effect* the benchmark could show.
+
+**Status stays `Proposed`.** Per spec
+[`i3-hardening-qualification-and-release.md`](../specifications/0.4.1/i3-hardening-qualification-and-release.md)
+§18, this ADR is not marked `Accepted` merely because a benchmark now exists — its stated cache-effect
+condition remains unsatisfied until a future increment implements the cache and re-measures against
+this same harness.
+
+- **Benchmark entry point**: `uv run python -m benchmarks --profile
+  {smoke,review-comparable}` (`benchmarks/snapshot_read_cost.py`, `benchmarks/__main__.py`).
+- **Result schema**: `benchmarks/snapshot_read_cost.schema.json` — a committed, closed JSON Schema;
+  every run is validated against it before being written.
+- **Exact candidate benchmark result and observed scaling-shape conclusion**: recorded at candidate
+  freeze in `docs/release-validation/v0.4.1-read-cost-benchmark.json`/`.md` (v0.4.1 I3.2), not here —
+  this ADR is not the place tracked, release-bound evidence is re-derived from.
+- **No cache, lookup optimization, or snapshot semantic change shipped in I3.1.** The stable-read
+  algorithm, `snapshot_id`/`model_revision` contract, and `canonical_snapshot_state()`/
+  `snapshot_fingerprint()` themselves are byte-for-byte unchanged — the benchmark only calls them,
+  under `tests/integration/independent_mcp_client.py`'s existing real-HTTP MCP boundary, and never
+  reimplements their algorithm (spec R1/R2).

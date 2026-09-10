@@ -14,17 +14,12 @@ independent-client golden path").
 from __future__ import annotations
 
 import json
-import socket
-import threading
-import time
-from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
 import jsonschema
 import pytest
-import uvicorn
 
 import app.main
 from app.architecture_intelligence.repository import canonical_snapshot_state, snapshot_fingerprint
@@ -41,14 +36,13 @@ from .independent_mcp_client import (
     run_drift_to_evidence_golden_path,
     tools_list,
 )
+from .support.live_server import free_loopback_port, serve_over_real_http
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
 ENVIRONMENT = "test"
 WINDOW_START = "2026-08-26T00:00:00.000000Z"
 WINDOW_END = "2026-08-27T00:00:00.000000Z"
-_SERVER_STARTUP_TIMEOUT_SECONDS = 30.0
-_SERVER_SHUTDOWN_TIMEOUT_SECONDS = 10.0
 OBSERVATION_CONTEXT = {
     "environment": ENVIRONMENT,
     "window_start": WINDOW_START,
@@ -118,38 +112,6 @@ def _observe_order_service_calls_product_service(driver):
     persist_observation_batch(driver, DATABASE, batch)
 
 
-def _free_loopback_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        probe.bind(("127.0.0.1", 0))
-        return probe.getsockname()[1]
-
-
-@contextmanager
-def _serve_over_real_http(served_app, *, port: int):
-    """Runs the app under a real `uvicorn` server bound to a loopback TCP port - the same server
-    this project's `Dockerfile` uses - so the client below reaches it over ordinary network HTTP.
-
-    Deliberately NOT `fastapi.testclient.TestClient`/`httpx.ASGITransport` (PR #80 review finding):
-    those dispatch straight into the ASGI callable, so a loopback-looking base_url proves nothing
-    about a real listener. Spec §18/§19 require one *real* HTTP independent-client golden path."""
-    config = uvicorn.Config(served_app, host="127.0.0.1", port=port, log_level="warning")
-    server = uvicorn.Server(config)
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
-    deadline = time.monotonic() + _SERVER_STARTUP_TIMEOUT_SECONDS
-    while not server.started:
-        if time.monotonic() > deadline:
-            server.should_exit = True
-            thread.join(timeout=_SERVER_SHUTDOWN_TIMEOUT_SECONDS)
-            raise TimeoutError("uvicorn did not report startup within the bounded wait")
-        time.sleep(0.02)
-    try:
-        yield
-    finally:
-        server.should_exit = True
-        thread.join(timeout=_SERVER_SHUTDOWN_TIMEOUT_SECONDS)
-
-
 @pytest.fixture
 def real_app_client(driver, neo4j_container, tmp_path, monkeypatch):
     """Boots the actual production app against the same shared Neo4j testcontainer the `driver`
@@ -164,7 +126,7 @@ def real_app_client(driver, neo4j_container, tmp_path, monkeypatch):
     monkeypatch.setenv("NEO4J_PASSWORD", neo4j_container.password)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
-    port = _free_loopback_port()
+    port = free_loopback_port()
     base_url = f"http://127.0.0.1:{port}"
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
@@ -178,7 +140,7 @@ def real_app_client(driver, neo4j_container, tmp_path, monkeypatch):
     real_app = app.main.create_app()
     # A plain httpx.Client with its default network transport - no ASGI shortcut.
     with (
-        _serve_over_real_http(real_app, port=port),
+        serve_over_real_http(real_app, port=port),
         httpx.Client(base_url=base_url, headers={"origin": base_url}, timeout=30.0) as client,
     ):
         assert client.get("/health").status_code == 200  # the listener really is serving
