@@ -87,10 +87,17 @@ messaging path itself, not merely as direct-call unit tests.
 
 **Operation-recognition boundary — unchanged**: `messaging.operation.type` values `send`/`receive`/
 `process` remain the complete recognized surface (spec §21). The real captured Quarkus/SmallRye
-shape (`messaging.operation`, not `.type`) and the real captured Airflow/Celery shape
-(`messaging.destination`, not `.destination.name`) both remain silently unrecognized, exactly as
-before I2 — confirmed unmodified by `test_legacy_messaging_operation_attribute_shape_is_not_recognized`
-and `test_celery_instrumentation_semconv_shape_is_not_recognized`.
+shape (`messaging.operation`, not `.type`; `messaging.destination.name: fights`;
+`messaging.system: kafka`) and the real captured Airflow/Celery shape (`service.name:
+unknown_service`; `messaging.destination_kind: queue`; `messaging.destination`, not
+`.destination.name`: `default`) both remain silently unrecognized, exactly as before I2 —
+confirmed with the literal captured values by
+`test_quarkus_fights_topic_exact_captured_shape_is_not_recognized` and
+`test_airflow_unknown_service_exact_captured_shape_is_not_recognized`. The pre-existing
+`test_legacy_messaging_operation_attribute_shape_is_not_recognized`/
+`test_celery_instrumentation_semconv_shape_is_not_recognized` (neutral stand-in values, per spec
+§17's genericity convention) remain unmodified alongside them, confirming the attribute-key
+boundary itself is name-generic.
 
 **Topic/Subscription — still absent**: no canonical entity or relation family was added. A
 topic-shaped or unresolved destination is refused (zero facts), never represented as a placeholder
