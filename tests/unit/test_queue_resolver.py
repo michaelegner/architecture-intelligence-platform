@@ -71,13 +71,13 @@ def test_missing_messaging_system_skips_tier_one_gracefully():
 
 def test_topic_shaped_destination_is_still_minted_as_observed_only_queue():
     # Documents docs/real-world-validation/cross-system/decisions/queue-topic-boundary.md
-    # (I4.1, motivated by Quarkus's Kafka `fights` topic finding): resolve_queue() has no
-    # topic-vs-queue refusal path - a topic/fan-out messaging_system like Kafka does not change
-    # resolution at all once the bare-name tier is reached (spec §10.2's Topic-vs-Queue safety
-    # boundary is enforced today only by correlate_queue_observations() never reaching this call
-    # for that span - not by any guard in this function). Uses a neutral destination name per
-    # spec §17 ("assert canonical facts and evidence semantics, not upstream-specific names");
-    # this test pins the current, deliberately-unguarded behavior, it does not assert safety.
+    # (I4.1, motivated by Quarkus's Kafka `fights` topic finding): resolve_queue() itself has no
+    # topic-vs-queue refusal path - it is a shared, low-level candidate-matching primitive, not a
+    # safety decision. Once v0.4.1 I2.2 wires app.telemetry.messaging_guards.
+    # decide_destination_semantics into production messaging correlation, that guard becomes the
+    # sole entry point for turning a messaging destination into a Queue and does refuse this exact
+    # shape (see tests/unit/test_messaging_guards.py's D3/D10/D15) - until then, and afterward for
+    # any other caller, this function stays as a historical/shared-primitive characterization only.
     result = resolve_queue(
         [PAYMENT_Q], messaging_system="kafka", destination_name="events-topic", aliases={}
     )
