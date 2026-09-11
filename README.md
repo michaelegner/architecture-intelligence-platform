@@ -3,16 +3,29 @@
 [![CI](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Trusted architecture context for AI agents. AIP builds an evidence-backed model of your software
-architecture from declared specs and real runtime telemetry, and exposes it through three read-only
-MCP tools — dependency and drift answers carry qualified, evidence-linked architecture claims, while
-evidence drill-down resolves their provenance at the same graph snapshot.
+## Agents should reason about architecture — not reconstruct it.
+
+AIP gives coding agents evidence-qualified architecture context.
+
+It reconciles declared API contracts with observed runtime behavior so an agent can distinguish:
+
+- dependencies that are declared and observed;
+- dependencies seen in production but documented nowhere;
+- declared relationships not observed in the selected runtime window;
+- facts AIP cannot safely establish.
+
+Every answer is read-only, snapshot-bound and traceable to evidence.
+
+**[Run the 5-Minute Demo](#see-it-in-five-minutes) · [Connect an MCP Client](#mcp-tools) · [How It Works](#how-aip-works)**
+
+⭐ Star AIP if evidence-qualified architecture context for coding agents is a problem you want
+solved.
 
 ![Architecture Intelligence Platform v0.4.0 — trusted architecture context for agents: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture graph, exposed to AI coding agents through three read-only MCP tools — get_service_dependencies, get_architecture_drift and get_evidence.](images/aip-hero-v0.4.png)
 
-**[Five-Minute Demo](#see-it-in-five-minutes) · [Video Walkthrough](https://www.linkedin.com/feed/update/urn:li:activity:7503338966553882625/) ·
-[MCP Tools](#mcp-tools) · [How AIP Works](#how-aip-works) · [Evaluation](#evaluation) ·
-[Boundaries](#boundaries) · [Documentation](#documentation) · [Research Landscape](docs/landscape.md)**
+**[Video Walkthrough](https://www.linkedin.com/feed/update/urn:li:activity:7503338966553882625/) ·
+[Evaluation](#evaluation) · [Boundaries](#boundaries) · [Documentation](#documentation) ·
+[Research Landscape](docs/landscape.md)**
 
 ## See It in Five Minutes
 
@@ -138,8 +151,6 @@ evidence references at the same snapshot without creating new architecture claim
 
 > AIP may help agents reason about architecture, but an agent must never become the source of
 > architectural truth. — [`ROADMAP.md`](ROADMAP.md)'s v0.4 principle
-
-⭐ If you find this repository helpful, please consider giving it a ⭐ here on GitHub (click the star button in the top right corner). It's a quick way to show support for this openly available code. ⭐
 
 ## MCP Tools
 
