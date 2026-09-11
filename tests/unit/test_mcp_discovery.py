@@ -406,22 +406,43 @@ async def _check_markerless_initialize_reaches_negotiated_sdk_path(
 async def _check_negotiated_mode_issues_no_session_id(client: httpx.AsyncClient) -> None:
     """spec §15/§34's conditional session-behavior determination: SESSION_BEHAVIOR =
     NOT_APPLICABLE for this release candidate, because the pinned SDK's stateless handler never
-    issues an `Mcp-Session-Id` - confirmed here across `initialize`, `tools/list`, and `tools/call`,
-    not just the single call `_check_no_initialize_handshake_or_session_id_required` already checks
-    for direct mode."""
+    issues an `Mcp-Session-Id` - confirmed here across successful `initialize`, `tools/list`, and
+    `tools/call` operations, not just the single call `_check_no_initialize_handshake_or_session_id_
+    required` already checks for direct mode. Each non-`initialize` request must carry a recognized
+    handshake-era `MCP-Protocol-Version` header so it actually reaches the SDK's negotiated dispatch
+    (`_negotiated_headers()`'s own default omits the header entirely, which would otherwise make
+    this assertion vacuous - both requests would be guard-rejected before ever reaching the SDK, so
+    trivially carry no session header either; PR review finding on this file's first draft)."""
     init_response = await client.post(
         "/mcp",
         headers=_negotiated_headers(protocol_version=None),
         json=_negotiated_initialize_body(),
     )
+    assert init_response.status_code == 200
+    assert init_response.json()["result"]["protocolVersion"] == "2025-11-25"
+
     list_response = await client.post(
-        "/mcp", headers=_negotiated_headers(), json=_negotiated_tools_list_body()
+        "/mcp",
+        headers=_negotiated_headers(protocol_version="2025-11-25"),
+        json=_negotiated_tools_list_body(),
+    )
+    assert list_response.status_code == 200
+    assert len(list_response.json()["result"]["tools"]) == 3
+
+    call_body = _negotiated_tools_call_body(
+        "get_evidence",
+        {"request": {"evidence_refs": ["x"], "snapshot_id": "aip:snapshot:v1:" + "a" * 64}},
     )
     call_response = await client.post(
-        "/mcp",
-        headers=_negotiated_headers(),
-        json=_negotiated_tools_call_body("get_evidence", {}),
+        "/mcp", headers=_negotiated_headers(protocol_version="2025-11-25"), json=call_body
     )
+    assert call_response.status_code == 200
+    # Wiring is unconfigured in this unit-test harness (see e.g.
+    # _check_get_evidence_fails_safely_when_wiring_is_unconfigured above) - isError: true here means
+    # the call *reached* negotiated tool dispatch and was sanitized normally, the same successful
+    # dispatch outcome direct mode gets from this same harness, not a rejection before dispatch.
+    assert call_response.json()["result"]["isError"] is True
+
     for response in (init_response, list_response, call_response):
         assert "mcp-session-id" not in {k.lower() for k in response.headers}
 
