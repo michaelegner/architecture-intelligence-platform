@@ -22,11 +22,13 @@ PURPLE = "#8B5CF6"
 RED = "#FB7185"
 
 # Placeholder panel geometry -- render-video.sh composites the real Tella captures into
-# this exact rectangle on scenes 02 and 03. Keep these two definitions in sync.
-PANEL_X = 170
-PANEL_Y = 230
-PANEL_W = 860
-PANEL_H = 370
+# this exact rectangle on scenes 02 and 03. Keep these two definitions in sync. Sized as
+# large as the layout allows (and cropped tight in render-video.sh) so the composited
+# terminal text reads at a legible size instead of shrinking to a sliver of the frame.
+PANEL_X = 60
+PANEL_Y = 178
+PANEL_W = 1080
+PANEL_H = 420
 
 ROOT = Path(__file__).resolve().parent
 SCENES_DIR = ROOT / "scenes"
@@ -161,21 +163,20 @@ def scene_mismatch() -> str:
             node(620, 300, 28, "product-service", BLUE),
             node(620, 490, 28, "payment-service", BLUE),
             node(950, 400, 28, "LegacyPricingService", AMBER),
-            badge("OBSERVED_ONLY", 860, 500, 180, AMBER),
+            badge("OBSERVED_ONLY", 840, 500, 220, AMBER),
         ]
     )
     return finish(parts)
 
 
-def capture_scene(section: str, title: str, subtitle: str, caption: str, accent: str) -> str:
+def capture_scene(section: str, title: str, subtitle: str, accent: str) -> str:
     parts = base(section)
     parts.extend(
         [
-            text(title, 64, 174, 40, weight=700),
-            text(subtitle, 64, 203, 19, fill=MUTED, family="DejaVu Sans Mono"),
-            rect(150, 210, 900, 410, fill="#080D18", stroke="#334155", radius=20),
+            text(title, 64, 125, 38, weight=700),
+            text(subtitle, 64, 153, 19, fill=MUTED, family="DejaVu Sans Mono"),
+            rect(40, 165, 1120, 445, fill="#080D18", stroke="#334155", radius=20),
             rect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H, fill="#050810", stroke=accent, radius=12),
-            text(caption, 600, 632, 17, fill=MUTED, anchor="middle"),
         ]
     )
     return finish(parts)
@@ -186,7 +187,6 @@ def scene_drift() -> str:
         "Drift result",
         "Undocumented dependency found.",
         "get_architecture_drift — live MCP response",
-        "Real tools/call request. Real OBSERVED_ONLY result.",
         AMBER,
     )
 
@@ -196,7 +196,6 @@ def scene_evidence() -> str:
         "Evidence drill-down",
         "Every claim is traceable to evidence.",
         "get_evidence — live MCP response",
-        "Real evidence resolution at the same snapshot.",
         TEAL,
     )
 

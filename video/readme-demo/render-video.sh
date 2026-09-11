@@ -25,24 +25,28 @@ D_EVIDENCE=7
 D_CTA=4
 
 # Placeholder panel geometry -- must match PANEL_X/Y/W/H in render.py.
-PANEL_X=170
-PANEL_Y=230
-PANEL_W=860
-PANEL_H=370
+PANEL_X=60
+PANEL_Y=178
+PANEL_W=1080
+PANEL_H=420
 
 # Crop windows into the real captures. Picked by extracting and eyeballing frames from
 # both clips: the terminal content is static for the full recording (no scroll to time
-# around), and the dark terminal box sits at roughly x=100-1820 in both 1920-wide
-# captures, y=97-947 (05-drift, 1920x1042 source) / y=130-890 (06-evidence, 1920x1012
-# source). These crop boxes sit safely inside that box with margin. Re-tune here if the
+# around), so these crop the decisive JSON block tightly rather than the whole 1700px-tall
+# terminal box -- a full-box crop scaled down into the panel above made the composited
+# text too small to read. Both crops deliberately drop the less essential header line
+# ("==> Asking ..." / "==> Resolving ...") and, for evidence, the third (least central)
+# evidence entry, to keep the remaining text as large as possible. Re-derive these by
+# extracting a frame (e.g. `ffmpeg -i <capture> -frames:v 1 <out>.png`, written under this
+# package's directory, not /tmp -- see README) and cropping candidates to eyeball if the
 # captures are ever re-recorded.
 DRIFT_START=0.3
 DRIFT_LEN=7.0
-DRIFT_CROP="crop=1700:850:110:95"
+DRIFT_CROP="crop=1300:480:110:452"
 
 EVIDENCE_START=0.3
 EVIDENCE_LEN=7.0
-EVIDENCE_CROP="crop=1700:750:110:140"
+EVIDENCE_CROP="crop=1300:410:110:210"
 
 # Both real captures are ~8.5s/8.7s long; keep the minimum comfortably below that
 # instead of copying video/v0.4.0-linkedin/render-video.sh's 12s/11s, which were never
