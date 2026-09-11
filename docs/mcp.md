@@ -130,7 +130,9 @@ lacking AIP's direct-envelope markers to the pinned SDK's own negotiation and di
 answers it statelessly — no session identifier is issued or required. The three tools, their
 schemas, and their `ArchitectureAnswer` semantics are identical to direct mode; only the transport
 envelope differs. Client-specific setup steps for particular coding-agent tools are out of scope for
-this page — see `examples/mcp-clients/` (added in a later `v0.4.2` increment) once available.
+this page — see [`examples/mcp-clients/`](../examples/mcp-clients/README.md) for candidate setup
+guides (Codex CLI, Claude Code, Cursor, VS Code). Those are verified configuration syntax, not yet a
+qualified-client claim — see that directory's README for the distinction.
 
 ## Evidence drill-down
 
