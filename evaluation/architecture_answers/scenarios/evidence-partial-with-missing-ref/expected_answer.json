@@ -39,7 +39,7 @@
   "producer": {
     "build_revision": "0000000000000000000000000000000000000000",
     "name": "architecture-intelligence-platform",
-    "version": "0.4.1"
+    "version": "0.4.2"
   },
   "schema_version": "0.4",
   "snapshot": {

@@ -1,6 +1,6 @@
 [project]
 name = "architecture-intelligence-platform"
-version = "0.4.1"
+version = "0.4.2"
 description = "Evidence-backed architecture intelligence from OpenAPI, AsyncAPI and OpenTelemetry."
 requires-python = ">=3.13"
 dependencies = [

@@ -358,9 +358,11 @@ observation-context-free and requires an explicit `snapshot_id`.
 **Direct dependencies only.** One hop — no transitive traversal, and no generic Cypher or graph
 query surface behind the tools.
 
-**One protocol path.** The endpoint speaks the `2026-07-28` per-request envelope **only** — there is
-no legacy `initialize` session handshake, so a client negotiating an older protocol version is
-rejected rather than quietly served on a different path.
+**One path, two connection modes.** `/mcp` speaks the strict `2026-07-28` per-request envelope as
+before, and also accepts standard negotiated MCP client initialization on that same path — both
+expose identical architecture semantics (see [`docs/mcp.md`](docs/mcp.md)), and a request that is
+neither a valid direct call nor valid negotiated traffic is rejected rather than silently downgraded
+to whichever path is more permissive.
 
 **Local or trusted network.** As with the rest of AIP, `/mcp` is built for a local or
 trusted-network posture; it is not hardened for direct public-internet exposure — see

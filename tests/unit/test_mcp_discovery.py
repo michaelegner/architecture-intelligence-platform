@@ -1,6 +1,14 @@
 """v0.4.0 I2.1 - MCP protocol/discovery tests (spec §17's "Protocol and Discovery" scenarios 1-4,
 plus the two verified SDK gaps `app.mcp.guard` corrects and the request/response contract shape).
 
+v0.4.2 I1 adds the dual-mode transport routing-truth-table coverage from
+`docs/specifications/0.4.2/i1-dual-mode-mcp-transport.md` §11.1/§28/§30: every request-shape
+row that must route to negotiated SDK handling vs. be rejected before SDK dispatch, plus the
+per-HTTP-method contract for `/mcp`. All direct-mode tests above are unchanged and untouched by
+that increment - every one of them sends the `mcp-method` header via `_headers()`, which is
+itself an AIP direct-envelope marker, so they all still take the pre-I1 `classify_inbound_request`
+path byte-for-byte.
+
 Tests against `app.mcp.app.build_mcp_app` directly (not the full `app.main` FastAPI app) with a real
 `httpx.AsyncClient`/`ASGITransport` - a real HTTP round trip through the guard and the SDK, not the
 SDK's own client, so this doesn't validate the SDK against itself. No Neo4j/settings dependency:
@@ -337,6 +345,250 @@ async def _check_disallowed_origin_is_rejected(client: httpx.AsyncClient) -> Non
     assert response.status_code == 403
 
 
+# --- Dual-mode transport routing (v0.4.2 I1, spec §11.1/§28/§30) ----------------------------------
+
+
+def _negotiated_headers(*, protocol_version: str | None = None) -> dict[str, str]:
+    """A markerless request: no `mcp-method`/`mcp-name` - the only headers a genuine negotiated SDK
+    client would send. `protocol_version`, when given, is the *only* AIP-adjacent header present."""
+    headers = {
+        "content-type": "application/json",
+        "accept": "application/json, text/event-stream",
+        "origin": _ALLOWED_ORIGIN,
+    }
+    if protocol_version is not None:
+        headers["mcp-protocol-version"] = protocol_version
+    return headers
+
+
+def _negotiated_initialize_body(request_id: int = 1) -> dict[str, object]:
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-11-25",
+            "capabilities": {},
+            "clientInfo": {"name": "test-negotiated-client", "version": "0.0.0"},
+        },
+    }
+
+
+def _negotiated_tools_list_body(request_id: int = 1) -> dict[str, object]:
+    return {"jsonrpc": "2.0", "id": request_id, "method": "tools/list", "params": {}}
+
+
+def _negotiated_tools_call_body(
+    name: str, arguments: dict[str, object], request_id: int = 1
+) -> dict[str, object]:
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "method": "tools/call",
+        "params": {"name": name, "arguments": arguments},
+    }
+
+
+async def _check_markerless_initialize_reaches_negotiated_sdk_path(
+    client: httpx.AsyncClient,
+) -> None:
+    """Only `initialize` may be markerless - it must reach the pinned SDK's own negotiation, not
+    the guard's direct-mode ladder, even with no `MCP-Protocol-Version` header at all."""
+    response = await client.post(
+        "/mcp", headers=_negotiated_headers(), json=_negotiated_initialize_body()
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["protocolVersion"] == "2025-11-25"
+    assert "error" not in response.json()
+
+
+async def _check_negotiated_mode_issues_no_session_id(client: httpx.AsyncClient) -> None:
+    """spec §15/§34's conditional session-behavior determination: SESSION_BEHAVIOR =
+    NOT_APPLICABLE for this release candidate, because the pinned SDK's stateless handler never
+    issues an `Mcp-Session-Id` - confirmed here across `initialize`, `tools/list`, and `tools/call`,
+    not just the single call `_check_no_initialize_handshake_or_session_id_required` already checks
+    for direct mode."""
+    init_response = await client.post(
+        "/mcp",
+        headers=_negotiated_headers(protocol_version=None),
+        json=_negotiated_initialize_body(),
+    )
+    list_response = await client.post(
+        "/mcp", headers=_negotiated_headers(), json=_negotiated_tools_list_body()
+    )
+    call_response = await client.post(
+        "/mcp",
+        headers=_negotiated_headers(),
+        json=_negotiated_tools_call_body("get_evidence", {}),
+    )
+    for response in (init_response, list_response, call_response):
+        assert "mcp-session-id" not in {k.lower() for k in response.headers}
+
+
+async def _check_protocol_version_header_alone_does_not_select_direct_mode(
+    client: httpx.AsyncClient,
+) -> None:
+    """`MCP-Protocol-Version` by itself (no `mcp-method`/`mcp-name`, no `_meta`) must NOT be treated
+    as a direct-envelope marker: a handshake-era value on a markerless non-`initialize` follow-up
+    reaches the pinned SDK's own stateless negotiated dispatch (confirmed live: the SDK answers a
+    standalone `tools/list` statelessly, with no prior `initialize` needed on the same connection) -
+    it must not fall into the guard's `classify_inbound_request` ladder, which would reject it for
+    missing `_meta` instead of returning a real tool list."""
+    headers = _negotiated_headers(protocol_version="2025-11-25")
+    response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
+    assert response.status_code == 200
+    names = [tool["name"] for tool in response.json()["result"]["tools"]]
+    assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+
+
+async def _check_markerless_tools_list_without_header_is_rejected(
+    client: httpx.AsyncClient,
+) -> None:
+    """A markerless non-`initialize` request with no `MCP-Protocol-Version` header at all must be
+    rejected before SDK tool dispatch, not silently answered."""
+    response = await client.post(
+        "/mcp", headers=_negotiated_headers(), json=_negotiated_tools_list_body()
+    )
+    assert response.status_code == 400
+    error = response.json()["error"]
+    assert error["code"] == -32600
+    assert "result" not in response.json()
+
+
+async def _check_markerless_tools_call_without_header_is_rejected(
+    client: httpx.AsyncClient,
+) -> None:
+    body = _negotiated_tools_call_body("get_evidence", {})
+    response = await client.post("/mcp", headers=_negotiated_headers(), json=body)
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == -32600
+    assert "result" not in response.json()
+
+
+async def _check_direct_era_header_without_marker_is_rejected(
+    client: httpx.AsyncClient,
+) -> None:
+    """A markerless follow-up naming the direct/single-exchange `2026-07-28` era must never become
+    negotiated traffic - that combination is rejected outright, not delegated to the SDK."""
+    headers = _negotiated_headers(protocol_version="2026-07-28")
+    response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == -32600
+    assert "result" not in response.json()
+
+
+async def _check_session_id_header_alone_is_not_a_direct_marker(
+    client: httpx.AsyncClient,
+) -> None:
+    """An MCP session identifier by itself is also not a direct-mode discriminator - a markerless
+    request carrying only a (fabricated, unrecognized) session id and no protocol-version header
+    fails the same way a bare markerless request does, not differently."""
+    headers = dict(_negotiated_headers(), **{"mcp-session-id": "not-a-real-session"})
+    response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == -32600
+
+
+async def _check_unrecognized_protocol_version_is_handled_by_sdk_without_dispatch(
+    client: httpx.AsyncClient,
+) -> None:
+    """A `MCP-Protocol-Version` value that is neither the direct era nor a known handshake era is
+    still delegated to the pinned SDK rather than guard-rejected (spec: "use pinned SDK
+    recognition/error semantics") - confirmed live that the SDK's own streamable-HTTP dispatch
+    produces a real JSON-RPC error and never reaches tool dispatch for this case on its own."""
+    headers = _negotiated_headers(protocol_version="garbage-2099")
+    response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
+    assert response.status_code == 400
+    assert "result" not in response.json()
+
+
+async def _check_malformed_json_without_direct_header_reaches_sdk_parse_handler(
+    client: httpx.AsyncClient,
+) -> None:
+    """Malformed/non-object JSON with no direct-specific header must be owned by the pinned SDK's
+    own parse handler, not the guard's negotiated-header precheck - no valid method has been
+    extracted yet, so that check does not apply."""
+    response = await client.post("/mcp", headers=_negotiated_headers(), content=b"{not valid json")
+    assert response.status_code == 400
+    error = response.json()["error"]
+    assert error["code"] == -32700
+    assert (
+        error["message"] != "Malformed JSON body"
+    )  # this is the SDK's own message, not the guard's
+
+
+async def _check_malformed_json_with_direct_header_is_owned_by_direct_path(
+    client: httpx.AsyncClient,
+) -> None:
+    """Malformed/non-object JSON WITH a direct-specific header (`mcp-method`) stays sticky to the
+    direct path - it must not fall through to the SDK's negotiated parse handler."""
+    headers = dict(_negotiated_headers(), **{"mcp-method": "tools/list"})
+    response = await client.post("/mcp", headers=headers, content=b"{not valid json")
+    assert response.status_code == 400
+    error = response.json()["error"]
+    assert error["code"] == -32700
+    assert error["message"] == "Malformed JSON body"
+
+
+async def _check_negotiated_tools_call_shares_the_direct_tool_implementation(
+    client: httpx.AsyncClient,
+) -> None:
+    """A negotiated `tools/call` must dispatch to the exact same tool implementation as direct mode
+    - proven here by getting the identical sanitized-error shape the direct-mode equivalents above
+    get from this same unconfigured-wiring test harness, not a negotiated-only code path."""
+    headers = _negotiated_headers(protocol_version="2025-11-25")
+    body = _negotiated_tools_call_body(
+        "get_architecture_drift", {"request": {"service_id": "service:order-service"}}
+    )
+    response = await client.post("/mcp", headers=headers, json=body)
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    assert result["content"][0]["text"] == "Error executing tool get_architecture_drift"
+
+
+async def _check_get_is_rejected_with_405_before_sdk_invocation(
+    client: httpx.AsyncClient,
+) -> None:
+    response = await client.get("/mcp", headers={"origin": _ALLOWED_ORIGIN})
+    assert response.status_code == 405
+    assert response.headers["allow"] == "POST"
+    assert len(response.content) <= 512
+    assert response.json() == {
+        "error": {
+            "code": "METHOD_NOT_ALLOWED",
+            "message": "Only POST /mcp is supported in stateless mode.",
+        }
+    }
+
+
+async def _check_delete_is_rejected_with_405_before_sdk_invocation(
+    client: httpx.AsyncClient,
+) -> None:
+    response = await client.delete("/mcp", headers={"origin": _ALLOWED_ORIGIN})
+    assert response.status_code == 405
+    assert response.headers["allow"] == "POST"
+    assert len(response.content) <= 512
+
+
+async def _check_head_is_rejected_with_405_and_empty_body(client: httpx.AsyncClient) -> None:
+    response = await client.head("/mcp", headers={"origin": _ALLOWED_ORIGIN})
+    assert response.status_code == 405
+    assert response.headers["allow"] == "POST"
+    assert response.content == b""
+
+
+async def _check_other_non_post_methods_are_rejected_with_405(
+    client: httpx.AsyncClient,
+) -> None:
+    for verb in ("PUT", "PATCH", "OPTIONS"):
+        response = await client.request(verb, "/mcp", headers={"origin": _ALLOWED_ORIGIN})
+        assert response.status_code == 405, verb
+        assert response.headers["allow"] == "POST", verb
+        assert len(response.content) <= 512, verb
+
+
 @pytest.mark.asyncio
 async def test_mcp_protocol_and_discovery() -> None:
     server = MCPServer(name="architecture-intelligence-platform-test", version="0.4.0")
@@ -368,3 +620,18 @@ async def test_mcp_protocol_and_discovery() -> None:
             await _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigured(client)
             await _check_get_architecture_drift_fails_safely_when_wiring_is_unconfigured(client)
             await _check_disallowed_origin_is_rejected(client)
+            await _check_markerless_initialize_reaches_negotiated_sdk_path(client)
+            await _check_negotiated_mode_issues_no_session_id(client)
+            await _check_protocol_version_header_alone_does_not_select_direct_mode(client)
+            await _check_markerless_tools_list_without_header_is_rejected(client)
+            await _check_markerless_tools_call_without_header_is_rejected(client)
+            await _check_direct_era_header_without_marker_is_rejected(client)
+            await _check_session_id_header_alone_is_not_a_direct_marker(client)
+            await _check_unrecognized_protocol_version_is_handled_by_sdk_without_dispatch(client)
+            await _check_malformed_json_without_direct_header_reaches_sdk_parse_handler(client)
+            await _check_malformed_json_with_direct_header_is_owned_by_direct_path(client)
+            await _check_negotiated_tools_call_shares_the_direct_tool_implementation(client)
+            await _check_get_is_rejected_with_405_before_sdk_invocation(client)
+            await _check_delete_is_rejected_with_405_before_sdk_invocation(client)
+            await _check_head_is_rejected_with_405_and_empty_body(client)
+            await _check_other_non_post_methods_are_rejected_with_405(client)
