@@ -21,7 +21,9 @@ Every answer is read-only, snapshot-bound and traceable to evidence.
 ⭐ Star AIP if evidence-qualified architecture context for coding agents is a problem you want
 solved.
 
-![Architecture Intelligence Platform — trusted architecture context for agents: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture graph, exposed to AI coding agents through three read-only MCP tools — get_service_dependencies, get_architecture_drift and get_evidence.](images/aip-hero-v0.4.png)
+![Architecture Intelligence Platform demo: get_architecture_drift finds an undocumented LegacyPricingService dependency, then get_evidence traces it to the real OpenTelemetry observation that proves it — both real MCP tool calls, no mockups.](video/readme-demo/output/aip-readme-demo.webp)
+
+**Undocumented dependency found — and traced to runtime evidence.**
 
 **[Video Walkthrough](https://www.linkedin.com/feed/update/urn:li:activity:7503338966553882625/) ·
 [Evaluation](#evaluation) · [Boundaries](#boundaries) · [Documentation](#documentation) ·
