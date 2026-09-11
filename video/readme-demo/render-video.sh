@@ -26,9 +26,9 @@ D_CTA=4
 
 # Placeholder panel geometry -- must match PANEL_X/Y/W/H in render.py.
 PANEL_X=60
-PANEL_Y=178
+PANEL_Y=198
 PANEL_W=1080
-PANEL_H=420
+PANEL_H=405
 
 # Crop windows into the real captures. Picked by extracting and eyeballing frames from
 # both clips: the terminal content is static for the full recording (no scroll to time
