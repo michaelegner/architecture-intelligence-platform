@@ -10,12 +10,17 @@ a real `get_evidence` call traces that same claim to the OpenTelemetry observati
 
 ## Deliverables
 
-- `output/aip-readme-demo.mp4` — silent H.264 master, source quality
-- `output/aip-readme-demo.webp` — animated WebP, this is what `README.md` actually embeds
-- `storyboard.png` — 2×2 contact sheet for reviewing all four scenes at once
-- `scenes/*.png` — rendered scene backplates
-- `scenes/*.svg` — editable vector sources
-- `render.py` / `render-video.sh` — reproducible renderers
+Everything below is committed to the repo **except** the MP4, which is gitignored (repo-wide
+`*.mp4` rule) as a regenerable build artifact, like `video/v0.4.0-linkedin/`'s rendered video:
+
+- `output/aip-readme-demo.mp4` — silent H.264 master, source quality, **not committed** — rebuild
+  locally with `render-video.sh` if you need it
+- `output/aip-readme-demo.webp` — animated WebP, **committed** — this is what `README.md` actually
+  embeds
+- `storyboard.png` — committed, 2×2 contact sheet for reviewing all four scenes at once
+- `scenes/*.png` — committed, rendered scene backplates
+- `scenes/*.svg` — committed, editable vector sources
+- `render.py` / `render-video.sh` — committed, reproducible renderers
 
 ## Why the WebP, not the MP4, is what's embedded in `README.md`
 
@@ -70,7 +75,9 @@ bash video/readme-demo/render-video.sh
 ```
 
 `render.py` needs only the Python standard library plus the `convert`/`montage` CLIs
-(ImageMagick). `render-video.sh` needs `ffmpeg`. Neither needs a PyPI or npm dependency.
+(ImageMagick). `render-video.sh` needs `ffmpeg` and `awk` (used for duration/fade-timing math
+instead of `bc`, which isn't otherwise installed by default everywhere). Neither needs a PyPI or
+npm dependency.
 
 Two portability notes, both already handled in `render-video.sh`:
 

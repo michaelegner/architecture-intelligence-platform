@@ -24,6 +24,15 @@ D_DRIFT=7
 D_EVIDENCE=7
 D_CTA=4
 
+# Fade duration and, derived from it, each scene's fade-out start time (duration - fade).
+# Computed once with awk (already a dependency below) rather than `bc` inline in the
+# filter_complex string -- `bc` isn't otherwise needed anywhere in this script.
+FADE=0.35
+FADE_OUT_MISMATCH=$(awk -v d="${D_MISMATCH}" -v f="${FADE}" 'BEGIN{printf "%.2f", d-f}')
+FADE_OUT_DRIFT=$(awk -v d="${D_DRIFT}" -v f="${FADE}" 'BEGIN{printf "%.2f", d-f}')
+FADE_OUT_EVIDENCE=$(awk -v d="${D_EVIDENCE}" -v f="${FADE}" 'BEGIN{printf "%.2f", d-f}')
+FADE_OUT_CTA=$(awk -v d="${D_CTA}" -v f="${FADE}" 'BEGIN{printf "%.2f", d-f}')
+
 # Placeholder panel geometry -- must match PANEL_X/Y/W/H in render.py.
 PANEL_X=60
 PANEL_Y=198
@@ -98,14 +107,14 @@ ffmpeg -y \
   -i "${EVIDENCE_CAPTURE}" \
   -loop 1 -t "${D_CTA}" -i "${SCENES}/04-cta.png" \
   -filter_complex "\
-    [0:v]fps=30,fade=t=in:st=0:d=0.35:color=0x0B1020,fade=t=out:st=$(echo "${D_MISMATCH}-0.35" | bc):d=0.35:color=0x0B1020,setpts=PTS-STARTPTS[v0];\
+    [0:v]fps=30,fade=t=in:st=0:d=${FADE}:color=0x0B1020,fade=t=out:st=${FADE_OUT_MISMATCH}:d=${FADE}:color=0x0B1020,setpts=PTS-STARTPTS[v0];\
     [1:v]fps=30,setpts=PTS-STARTPTS[drift_bg];\
     [2:v]trim=start=${DRIFT_START}:duration=${DRIFT_LEN},setpts=PTS-STARTPTS,${DRIFT_CROP},scale=${PANEL_W}:${PANEL_H}:force_original_aspect_ratio=decrease,pad=${PANEL_W}:${PANEL_H}:(ow-iw)/2:(oh-ih)/2:color=0x050810,fps=30,tpad=stop_mode=clone:stop_duration=${D_DRIFT},trim=duration=${D_DRIFT}[drift_capture];\
-    [drift_bg][drift_capture]overlay=${PANEL_X}:${PANEL_Y}:shortest=1,fade=t=in:st=0:d=0.35:color=0x0B1020,fade=t=out:st=$(echo "${D_DRIFT}-0.35" | bc):d=0.35:color=0x0B1020[v1];\
+    [drift_bg][drift_capture]overlay=${PANEL_X}:${PANEL_Y}:shortest=1,fade=t=in:st=0:d=${FADE}:color=0x0B1020,fade=t=out:st=${FADE_OUT_DRIFT}:d=${FADE}:color=0x0B1020[v1];\
     [3:v]fps=30,setpts=PTS-STARTPTS[evidence_bg];\
     [4:v]trim=start=${EVIDENCE_START}:duration=${EVIDENCE_LEN},setpts=PTS-STARTPTS,${EVIDENCE_CROP},scale=${PANEL_W}:${PANEL_H}:force_original_aspect_ratio=decrease,pad=${PANEL_W}:${PANEL_H}:(ow-iw)/2:(oh-ih)/2:color=0x050810,fps=30,tpad=stop_mode=clone:stop_duration=${D_EVIDENCE},trim=duration=${D_EVIDENCE}[evidence_capture];\
-    [evidence_bg][evidence_capture]overlay=${PANEL_X}:${PANEL_Y}:shortest=1,fade=t=in:st=0:d=0.35:color=0x0B1020,fade=t=out:st=$(echo "${D_EVIDENCE}-0.35" | bc):d=0.35:color=0x0B1020[v2];\
-    [5:v]fps=30,fade=t=in:st=0:d=0.35:color=0x0B1020,fade=t=out:st=$(echo "${D_CTA}-0.35" | bc):d=0.35:color=0x0B1020,setpts=PTS-STARTPTS[v3];\
+    [evidence_bg][evidence_capture]overlay=${PANEL_X}:${PANEL_Y}:shortest=1,fade=t=in:st=0:d=${FADE}:color=0x0B1020,fade=t=out:st=${FADE_OUT_EVIDENCE}:d=${FADE}:color=0x0B1020[v2];\
+    [5:v]fps=30,fade=t=in:st=0:d=${FADE}:color=0x0B1020,fade=t=out:st=${FADE_OUT_CTA}:d=${FADE}:color=0x0B1020,setpts=PTS-STARTPTS[v3];\
     [v0][v1][v2][v3]concat=n=4:v=1:a=0[outv]" \
   -map "[outv]" \
   -an \
