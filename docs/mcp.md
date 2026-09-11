@@ -1,16 +1,35 @@
 # MCP Tools
 
-`v0.4` exposes AIP's validated architecture model to AI agents and other MCP clients as three
-**read-only** tools, mounted at `/mcp` (MCP protocol `2026-07-28`, per-request envelope only — no
-legacy `initialize` session handshake). See
-[`docs/specifications/0.4.0/specification.md`](specifications/0.4.0/specification.md) for the full
-normative tool contract (unchanged since `v0.4.0`) and
+AIP exposes its validated architecture model to AI agents and other MCP clients as three
+**read-only** tools, mounted at the single public path `/mcp`. Two connection modes are supported,
+both exposing identical Architecture Intelligence semantics — see
+[`docs/adr/0014-negotiated-mcp-client-interoperability.md`](adr/0014-negotiated-mcp-client-interoperability.md)
+for the decision record:
+
+- **Direct mode** — the strict per-request envelope introduced in `v0.4.0`: every request carries
+  `mcp-protocol-version: 2026-07-28`, `mcp-method`, and — for `tools/call` — `mcp-name` HTTP headers
+  that must agree with a `params._meta` object in the body naming the same protocol version and
+  client capabilities. No session, no `initialize` handshake. `## Calling a tool` below documents
+  this path in full.
+- **Negotiated mode** (`v0.4.2`) — standard MCP client negotiation, handled by the pinned MCP SDK: a
+  markerless `initialize` request followed by ordinary `MCP-Protocol-Version`-headed traffic. This is
+  the path a mainstream coding-agent MCP client uses out of the box; see `## Connecting a negotiated
+  client` below and
+  [`docs/specifications/0.4.2/i1-dual-mode-mcp-transport.md`](specifications/0.4.2/i1-dual-mode-mcp-transport.md)
+  for the exact routing contract.
+
+`/mcp` supports `POST` only in this stateless release. Every other HTTP method — `GET`, `DELETE`,
+`HEAD`, and everything else — returns `405 Method Not Allowed` with `Allow: POST` before either
+mode's logic runs (and, for every method but `HEAD`, a small bounded JSON error body).
+
+See [`docs/specifications/0.4.0/specification.md`](specifications/0.4.0/specification.md) for the
+full normative tool contract (unchanged since `v0.4.0`) and
 [`docs/specifications/0.4.1/specification.md`](specifications/0.4.1/specification.md) for the
 qualification/messaging semantic hardening layered on top in `v0.4.1`; this page is a short
 practical reference.
 
-Every answer's `producer.version` reports the current package/producer version (`0.4.1` as of the
-`v0.4.1` patch release) — this is build/producer metadata, separate from the public
+Every answer's `producer.version` reports the current package/producer version (`0.4.2` as of the
+`v0.4.2` patch release) — this is build/producer metadata, separate from the public
 `schema_version`, which stays `"0.4"` across the whole `v0.4.x` line unless the schema itself
 changes.
 
@@ -56,7 +75,7 @@ classification (`app/qualification/declared_observed.py`), proven equivalent by 
 differential test (`tests/integration/test_qualification_consistency.py`) rather than by inspection
 alone.
 
-## Calling a tool
+## Calling a tool (direct mode)
 
 Every request/response is JSON-RPC 2.0 over `POST /mcp`. Three headers are required and must agree
 with the body (`app/mcp/guard.py` rejects a mismatch as `HEADER_MISMATCH` before dispatch):
@@ -100,6 +119,18 @@ curl -s http://localhost:8000/mcp \
 `get_architecture_drift` takes the identical `request` shape (`service_id` +
 `observation_context`); `get_evidence` instead takes `{"evidence_refs": [...], "snapshot_id":
 "..."}`, both usually read from a prior answer's own `evidence_refs`/`snapshot.snapshot_id`.
+
+## Connecting a negotiated client
+
+A standard MCP client — the kind a mainstream coding-agent tool ships out of the box — connects to
+`http://localhost:8000/mcp` and speaks ordinary negotiated MCP: an `initialize` request (no
+`mcp-method`/`mcp-name` headers, no `params._meta`) followed by `tools/list`/`tools/call` requests
+carrying only a standard `MCP-Protocol-Version` header. AIP's ingress layer routes any request
+lacking AIP's direct-envelope markers to the pinned SDK's own negotiation and dispatch, which
+answers it statelessly — no session identifier is issued or required. The three tools, their
+schemas, and their `ArchitectureAnswer` semantics are identical to direct mode; only the transport
+envelope differs. Client-specific setup steps for particular coding-agent tools are out of scope for
+this page — see `examples/mcp-clients/` (added in a later `v0.4.2` increment) once available.
 
 ## Evidence drill-down
 

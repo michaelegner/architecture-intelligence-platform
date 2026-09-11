@@ -19,6 +19,7 @@ project's stated architecture principles.
 | [0011](0011-snapshot-identity-read-cost.md) | Snapshot identity must not cost a full-graph read per call (Proposed) |
 | [0012](0012-observed-evidence-retention.md) | Observed evidence is compacted on a retention policy, never silently dropped (Proposed) |
 | [0013](0013-no-topic-family-without-guards.md) | No topic/pub-sub family in the Canonical Model without both safety guards |
+| [0014](0014-negotiated-mcp-client-interoperability.md) | Support negotiated MCP client interoperability without weakening the direct 2026-07-28 contract (Accepted) |
 
 A new ADR is numbered sequentially and never renumbered or deleted — if a decision is superseded,
 add a new ADR and mark the old one's Status as `Superseded by NNNN`.
@@ -27,4 +28,4 @@ An ADR whose decision is settled but not yet implemented carries `Status: Propos
 `Accepted` when the work it describes lands (or, for [0011](0011-snapshot-identity-read-cost.md)
 and [0012](0012-observed-evidence-retention.md), when the benchmark and the retention thresholds
 it names are decided). 0009-0013 came out of
-[`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md).
+[`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md). 0014 came out of `v0.4.2` I1.
