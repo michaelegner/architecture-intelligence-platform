@@ -1,0 +1,564 @@
+{
+    "canonical_state": {
+        "evidence": [
+            {
+                "evidence_type": "DECLARED",
+                "id": "evidence:asyncapi:invoice-service",
+                "source_file": "examples/invoice-service/asyncapi.yaml",
+                "source_type": "ASYNCAPI"
+            },
+            {
+                "evidence_type": "DECLARED",
+                "id": "evidence:asyncapi:order-service",
+                "source_file": "examples/order-service/asyncapi.yaml",
+                "source_type": "ASYNCAPI"
+            },
+            {
+                "evidence_type": "DECLARED",
+                "id": "evidence:asyncapi:payment-service",
+                "source_file": "examples/payment-service/asyncapi.yaml",
+                "source_type": "ASYNCAPI"
+            },
+            {
+                "evidence_type": "DECLARED",
+                "id": "evidence:manifest:order-service",
+                "source_file": "examples/order-service/architecture.yaml",
+                "source_type": "MANIFEST"
+            },
+            {
+                "evidence_type": "DECLARED",
+                "id": "evidence:openapi:order-service",
+                "source_file": "examples/order-service/openapi.yaml",
+                "source_type": "OPENAPI"
+            },
+            {
+                "evidence_type": "DECLARED",
+                "id": "evidence:openapi:product-service",
+                "source_file": "examples/product-service/openapi.yaml",
+                "source_type": "OPENAPI"
+            },
+            {
+                "bucket_end": "2026-08-27T00:00:00.000000Z",
+                "bucket_start": "2026-08-26T00:00:00.000000Z",
+                "correlation_mode": "CLIENT_SERVER",
+                "environment": "demo",
+                "evidence_type": "OBSERVED",
+                "first_seen": "2026-08-26T12:00:00.044222Z",
+                "id": "evidence:otel:demo:2026-08-26:29d4976aeaf9",
+                "last_seen": "2026-08-26T12:00:00.044222Z",
+                "observation_count": 1,
+                "sample_trace_ids": [
+                    "56acf182cce790345e927b200e16b31d"
+                ],
+                "source_file": "opentelemetry",
+                "source_type": "OPENTELEMETRY"
+            },
+            {
+                "bucket_end": "2026-08-27T00:00:00.000000Z",
+                "bucket_start": "2026-08-26T00:00:00.000000Z",
+                "correlation_mode": "MESSAGING_RECEIVE",
+                "environment": "demo",
+                "evidence_type": "OBSERVED",
+                "first_seen": "2026-08-26T12:00:00.009880Z",
+                "id": "evidence:otel:demo:2026-08-26:2cc93cd3a300",
+                "last_seen": "2026-08-26T12:00:00.009880Z",
+                "observation_count": 1,
+                "sample_trace_ids": [
+                    "9f9dd4c40926188acc22d90ed901aea2"
+                ],
+                "source_file": "opentelemetry",
+                "source_type": "OPENTELEMETRY"
+            },
+            {
+                "bucket_end": "2026-08-27T00:00:00.000000Z",
+                "bucket_start": "2026-08-26T00:00:00.000000Z",
+                "correlation_mode": "MESSAGING_SEND",
+                "environment": "demo",
+                "evidence_type": "OBSERVED",
+                "first_seen": "2026-08-26T12:00:00.005554Z",
+                "id": "evidence:otel:demo:2026-08-26:2f8aa3990cfe",
+                "last_seen": "2026-08-26T12:00:00.005554Z",
+                "observation_count": 1,
+                "sample_trace_ids": [
+                    "125a37c5612150754147ed7f9d71e6af"
+                ],
+                "source_file": "opentelemetry",
+                "source_type": "OPENTELEMETRY"
+            },
+            {
+                "bucket_end": "2026-08-27T00:00:00.000000Z",
+                "bucket_start": "2026-08-26T00:00:00.000000Z",
+                "correlation_mode": "MESSAGING_RECEIVE",
+                "environment": "demo",
+                "evidence_type": "OBSERVED",
+                "first_seen": "2026-08-26T12:00:00.009992Z",
+                "id": "evidence:otel:demo:2026-08-26:6f7642279871",
+                "last_seen": "2026-08-26T12:00:00.009992Z",
+                "observation_count": 1,
+                "sample_trace_ids": [
+                    "57c50691087017661f1fa47ccab2833b"
+                ],
+                "source_file": "opentelemetry",
+                "source_type": "OPENTELEMETRY"
+            },
+            {
+                "bucket_end": "2026-08-27T00:00:00.000000Z",
+                "bucket_start": "2026-08-26T00:00:00.000000Z",
+                "correlation_mode": "MESSAGING_SEND",
+                "environment": "demo",
+                "evidence_type": "OBSERVED",
+                "first_seen": "2026-08-26T12:00:00.001535Z",
+                "id": "evidence:otel:demo:2026-08-26:9c327dd69b1f",
+                "last_seen": "2026-08-26T12:00:00.001535Z",
+                "observation_count": 1,
+                "sample_trace_ids": [
+                    "f332cadf51eb930b59cfa536dc02551e"
+                ],
+                "source_file": "opentelemetry",
+                "source_type": "OPENTELEMETRY"
+            },
+            {
+                "bucket_end": "2026-08-27T00:00:00.000000Z",
+                "bucket_start": "2026-08-26T00:00:00.000000Z",
+                "correlation_mode": "CLIENT_SERVER",
+                "environment": "demo",
+                "evidence_type": "OBSERVED",
+                "first_seen": "2026-08-26T12:00:00.014336Z",
+                "id": "evidence:otel:demo:2026-08-26:b1d283d583bd",
+                "last_seen": "2026-08-26T12:00:00.014336Z",
+                "observation_count": 1,
+                "sample_trace_ids": [
+                    "53667779587209885dffa89af80ec10b"
+                ],
+                "source_file": "opentelemetry",
+                "source_type": "OPENTELEMETRY"
+            },
+            {
+                "bucket_end": "2026-08-27T00:00:00.000000Z",
+                "bucket_start": "2026-08-26T00:00:00.000000Z",
+                "correlation_mode": "CLIENT_SERVER",
+                "environment": "demo",
+                "evidence_type": "OBSERVED",
+                "first_seen": "2026-08-26T12:00:00.044222Z",
+                "id": "evidence:otel:demo:2026-08-26:bfae54276215",
+                "last_seen": "2026-08-26T12:00:00.044222Z",
+                "observation_count": 1,
+                "sample_trace_ids": [
+                    "56acf182cce790345e927b200e16b31d"
+                ],
+                "source_file": "opentelemetry",
+                "source_type": "OPENTELEMETRY"
+            }
+        ],
+        "messages": [
+            {
+                "id": "message:InvoiceCreated:v1",
+                "name": "InvoiceCreated",
+                "schema_id": "schema:InvoiceCreated:v1",
+                "version": "v1"
+            },
+            {
+                "id": "message:PaymentRequested:v2",
+                "name": "PaymentRequested",
+                "schema_id": "schema:PaymentRequested:v2",
+                "version": "v2"
+            },
+            {
+                "id": "message:UnknownProducerMessage",
+                "name": "UnknownProducerMessage",
+                "schema_id": "schema:UnknownProducerMessage"
+            },
+            {
+                "id": "message:UnusedMessage",
+                "name": "UnusedMessage",
+                "schema_id": "schema:UnusedMessage"
+            }
+        ],
+        "operations": [
+            {
+                "discovery_status": "OBSERVED_ONLY",
+                "id": "operation:service:legacypricingservice:GET:/pricing/{sku}",
+                "name": "GET /pricing/{sku}"
+            },
+            {
+                "id": "operation:service:order-service:GET:/orders/{id}",
+                "method": "GET",
+                "operation_id": "getOrder",
+                "path": "/orders/{id}",
+                "request_schema_ids": [],
+                "response_schema_ids": [
+                    "schema:Order"
+                ],
+                "service_id": "service:order-service"
+            },
+            {
+                "id": "operation:service:order-service:POST:/orders",
+                "method": "POST",
+                "operation_id": "createOrder",
+                "path": "/orders",
+                "request_schema_ids": [
+                    "schema:OrderRequest"
+                ],
+                "response_schema_ids": [
+                    "schema:Order"
+                ],
+                "service_id": "service:order-service"
+            },
+            {
+                "id": "operation:service:product-service:GET:/products/{id}",
+                "method": "GET",
+                "operation_id": "getProduct",
+                "path": "/products/{id}",
+                "request_schema_ids": [],
+                "response_schema_ids": [
+                    "schema:Product"
+                ],
+                "service_id": "service:product-service"
+            }
+        ],
+        "queues": [
+            {
+                "id": "queue:invoice-q",
+                "name": "invoice-q",
+                "queue_type": "STANDARD"
+            },
+            {
+                "id": "queue:payment-dlq",
+                "name": "payment-dlq",
+                "queue_type": "STANDARD"
+            },
+            {
+                "id": "queue:payment-q",
+                "name": "payment-q",
+                "queue_type": "STANDARD"
+            },
+            {
+                "id": "queue:unknown-producer-q",
+                "name": "unknown-producer-q",
+                "queue_type": "STANDARD"
+            },
+            {
+                "id": "queue:unused-q",
+                "name": "unused-q",
+                "queue_type": "STANDARD"
+            }
+        ],
+        "relations": [
+            {
+                "evidence_ids": [
+                    "evidence:otel:demo:2026-08-26:bfae54276215"
+                ],
+                "source_id": "service:order-service",
+                "target_id": "operation:service:legacypricingservice:GET:/pricing/{sku}",
+                "type": "CALLS"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:manifest:order-service",
+                    "evidence:otel:demo:2026-08-26:b1d283d583bd"
+                ],
+                "source_id": "service:order-service",
+                "target_id": "operation:service:product-service:GET:/products/{id}",
+                "type": "CALLS"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:invoice-service",
+                    "evidence:asyncapi:payment-service"
+                ],
+                "source_id": "queue:invoice-q",
+                "target_id": "message:InvoiceCreated:v1",
+                "type": "CARRIES"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:order-service",
+                    "evidence:asyncapi:payment-service"
+                ],
+                "source_id": "queue:payment-q",
+                "target_id": "message:PaymentRequested:v2",
+                "type": "CARRIES"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:payment-service"
+                ],
+                "source_id": "queue:unknown-producer-q",
+                "target_id": "message:UnknownProducerMessage",
+                "type": "CARRIES"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:order-service"
+                ],
+                "source_id": "queue:unused-q",
+                "target_id": "message:UnusedMessage",
+                "type": "CARRIES"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:invoice-service",
+                    "evidence:asyncapi:payment-service"
+                ],
+                "source_id": "message:InvoiceCreated:v1",
+                "target_id": "schema:InvoiceCreated:v1",
+                "type": "CONFORMS_TO"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:order-service",
+                    "evidence:asyncapi:payment-service"
+                ],
+                "source_id": "message:PaymentRequested:v2",
+                "target_id": "schema:PaymentRequested:v2",
+                "type": "CONFORMS_TO"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:payment-service"
+                ],
+                "source_id": "message:UnknownProducerMessage",
+                "target_id": "schema:UnknownProducerMessage",
+                "type": "CONFORMS_TO"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:order-service"
+                ],
+                "source_id": "message:UnusedMessage",
+                "target_id": "schema:UnusedMessage",
+                "type": "CONFORMS_TO"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:payment-service"
+                ],
+                "source_id": "queue:payment-q",
+                "target_id": "queue:payment-dlq",
+                "type": "DEAD_LETTERS_TO"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:otel:demo:2026-08-26:29d4976aeaf9"
+                ],
+                "source_id": "service:legacypricingservice",
+                "target_id": "operation:service:legacypricingservice:GET:/pricing/{sku}",
+                "type": "PROVIDES"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:openapi:order-service"
+                ],
+                "source_id": "service:order-service",
+                "target_id": "operation:service:order-service:GET:/orders/{id}",
+                "type": "PROVIDES"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:openapi:order-service"
+                ],
+                "source_id": "service:order-service",
+                "target_id": "operation:service:order-service:POST:/orders",
+                "type": "PROVIDES"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:openapi:product-service"
+                ],
+                "source_id": "service:product-service",
+                "target_id": "operation:service:product-service:GET:/products/{id}",
+                "type": "PROVIDES"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:invoice-service",
+                    "evidence:otel:demo:2026-08-26:2cc93cd3a300"
+                ],
+                "source_id": "service:invoice-service",
+                "target_id": "queue:invoice-q",
+                "type": "RECEIVES_FROM"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:payment-service",
+                    "evidence:otel:demo:2026-08-26:6f7642279871"
+                ],
+                "source_id": "service:payment-service",
+                "target_id": "queue:payment-q",
+                "type": "RECEIVES_FROM"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:payment-service"
+                ],
+                "source_id": "service:payment-service",
+                "target_id": "queue:unknown-producer-q",
+                "type": "RECEIVES_FROM"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:openapi:order-service"
+                ],
+                "source_id": "operation:service:order-service:POST:/orders",
+                "target_id": "schema:OrderRequest",
+                "type": "REQUEST_SCHEMA"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:openapi:order-service"
+                ],
+                "source_id": "operation:service:order-service:GET:/orders/{id}",
+                "target_id": "schema:Order",
+                "type": "RESPONSE_SCHEMA"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:openapi:order-service"
+                ],
+                "source_id": "operation:service:order-service:POST:/orders",
+                "target_id": "schema:Order",
+                "type": "RESPONSE_SCHEMA"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:openapi:product-service"
+                ],
+                "source_id": "operation:service:product-service:GET:/products/{id}",
+                "target_id": "schema:Product",
+                "type": "RESPONSE_SCHEMA"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:order-service",
+                    "evidence:otel:demo:2026-08-26:9c327dd69b1f"
+                ],
+                "source_id": "service:order-service",
+                "target_id": "queue:payment-q",
+                "type": "SENDS"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:order-service"
+                ],
+                "source_id": "service:order-service",
+                "target_id": "queue:unused-q",
+                "type": "SENDS"
+            },
+            {
+                "evidence_ids": [
+                    "evidence:asyncapi:payment-service",
+                    "evidence:otel:demo:2026-08-26:2f8aa3990cfe"
+                ],
+                "source_id": "service:payment-service",
+                "target_id": "queue:invoice-q",
+                "type": "SENDS"
+            }
+        ],
+        "schemas": [
+            {
+                "canonical_hash": "2af300583ec299ececf49f14c7ec8da629eec33fcd03ff707082fdd5fa1a40d3",
+                "format": "application/json",
+                "id": "schema:InvoiceCreated:v1",
+                "name": "InvoiceCreated",
+                "version": "v1"
+            },
+            {
+                "canonical_hash": "8ff889c9978446c03fcd339c29050fc808b03f93ca697d20d1c48f98721e1298",
+                "format": "application/json",
+                "id": "schema:Order",
+                "name": "Order"
+            },
+            {
+                "canonical_hash": "ebff3b8ac1978e34f1c8ddeb2c732f4bbe56fe459c8d49ebf1fcd5501f173673",
+                "format": "application/json",
+                "id": "schema:OrderRequest",
+                "name": "OrderRequest"
+            },
+            {
+                "canonical_hash": "2e8769654729709ab92e51cc6d194544f968df11f7dfc7c9ccca9f864506e356",
+                "format": "application/json",
+                "id": "schema:PaymentRequested:v2",
+                "name": "PaymentRequested",
+                "version": "v2"
+            },
+            {
+                "canonical_hash": "8b114f0644a4f65acfc557d8f1be96062653263b6fda47452042a70c42dc3786",
+                "format": "application/json",
+                "id": "schema:Product",
+                "name": "Product"
+            },
+            {
+                "canonical_hash": "ff419ebbeba438f66900abe77818ce940702bdfe70fa173cb94beecee8d3f112",
+                "format": "application/json",
+                "id": "schema:UnknownProducerMessage",
+                "name": "UnknownProducerMessage"
+            },
+            {
+                "canonical_hash": "ff419ebbeba438f66900abe77818ce940702bdfe70fa173cb94beecee8d3f112",
+                "format": "application/json",
+                "id": "schema:UnusedMessage",
+                "name": "UnusedMessage"
+            }
+        ],
+        "semantic_config": {
+            "coverage_qualification_enabled": true
+        },
+        "services": [
+            {
+                "id": "service:invoice-service",
+                "name": "InvoiceService",
+                "version": "1.0.0"
+            },
+            {
+                "id": "service:legacypricingservice",
+                "name": "LegacyPricingService"
+            },
+            {
+                "id": "service:order-service",
+                "name": "OrderService",
+                "version": "1.0.0"
+            },
+            {
+                "id": "service:payment-service",
+                "name": "PaymentService",
+                "version": "1.0.0"
+            },
+            {
+                "id": "service:product-service",
+                "name": "ProductService",
+                "version": "1.0.0"
+            }
+        ],
+        "version": 1
+    },
+    "environment": "demo",
+    "expected_drift_claims": [
+        {
+            "evidence_refs": [
+                "evidence:otel:demo:2026-08-26:bfae54276215"
+            ],
+            "qualification": "OBSERVED_ONLY",
+            "subject": "service:order-service",
+            "target": "LegacyPricingService",
+            "via": "GET /pricing/{sku}"
+        },
+        {
+            "evidence_refs": [
+                "evidence:asyncapi:order-service"
+            ],
+            "qualification": "NOT_OBSERVED_IN_WINDOW",
+            "subject": "service:order-service",
+            "target": "unused-q",
+            "via": "unused-q"
+        }
+    ],
+    "expected_snapshot_id": "aip:snapshot:v1:685a34157b6842b00d7130b8490df63060c3d80871c2ed6f56cd9206e62342d8",
+    "fixture_id": "runtime-demo-frozen-2026-08-26",
+    "manifest_version": 1,
+    "seed_timestamp": "2026-08-26T12:00:00.000000Z",
+    "service_id": "service:order-service",
+    "total_node_count": 39,
+    "total_relationship_count": 25,
+    "window_end": "2026-08-27T00:00:00.000000Z",
+    "window_start": "2026-08-26T00:00:00.000000Z"
+}
