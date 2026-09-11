@@ -494,16 +494,24 @@ The mode prepares the exact deterministic demo state but stops before scripted M
 3. validate `curl`;
 4. validate `jq`;
 5. validate the repository `.env`;
-6. start AIP;
-7. start Neo4j;
-8. start the OpenTelemetry Collector;
-9. import the bundled declared architecture;
-10. seed the timestamp-frozen telemetry;
-11. poll until the expected observed relations have landed;
-12. verify the demo state is queryable;
-13. stop before any scripted `tools/list` or `tools/call`;
-14. leave the stack running;
-15. print:
+6. start the required demo stack through Docker Compose;
+7. wait explicitly for Neo4j readiness;
+8. wait explicitly for AIP readiness;
+9. classify the deterministic fixture state as `EMPTY`, `COMPLETE`, or `PARTIAL_OR_INCOMPATIBLE`;
+10. if `EMPTY`:
+    - import the bundled declared architecture;
+    - submit the timestamp-frozen telemetry fixture once;
+    - treat successful fixture submission plus arrival of every expected observed relation as the functional OpenTelemetry readiness proof;
+11. if `COMPLETE`:
+    - skip declaration re-import and telemetry reseeding;
+    - perform no mutation of the deterministic fixture;
+12. if `PARTIAL_OR_INCOMPATIBLE`:
+    - fail non-zero;
+    - report that the fixture must be cleaned/recreated rather than repaired implicitly;
+13. verify the final deterministic demo state is queryable and complete;
+14. stop before any scripted `tools/list` or `tools/call`;
+15. leave the stack running;
+16. print:
     - MCP endpoint,
     - Service Explorer URL,
     - service id,
@@ -541,24 +549,213 @@ conflicting arguments
 
 ---
 
-## 17. Demo Determinism
+## 17. Demo Determinism and Normative Fixture Oracle
 
-Repeated `--serve` execution against an already prepared local demo MUST remain semantically deterministic.
+Repeated `--serve` execution MUST be idempotent **by avoiding a second fixture ingestion**, not by assuming telemetry aggregation is idempotent.
 
-The qualification SHALL prove:
+I2 SHALL introduce one normative, checked-in fixture manifest and one canonical classifier command:
 
 ```text
+examples/runtime-demo/fixture-state.json
+examples/runtime-demo/check_fixture_state.py
+```
+
+The manifest is the release-owned oracle for the deterministic demo. The shell script MUST NOT maintain a second independent copy of the expected graph state.
+
+
+The checker runtime is the `architecture-intelligence` container. The Docker image already contains Python and the project dependencies, and the demo Compose file mounts `./examples` at `/app/examples:ro`; therefore the checked-in checker/manifest are available without adding Python to the host prerequisite list.
+
+The checker SHALL be read-only and SHALL emit exactly one classification:
+
+```text
+EMPTY
+COMPLETE
+PARTIAL_OR_INCOMPATIBLE
+```
+
+### 17.1 Normative fixture manifest
+
+`fixture-state.json` MUST freeze every value needed to distinguish a clean one-seed demo from an empty, polluted, partial, or double-seeded database.
+
+At minimum it SHALL contain exact values for:
+
+```text
+manifest_version
+fixture_id
+service_id
+environment
+window_start
+window_end
+seed_timestamp
+
+expected_snapshot_id
+total_node_count
+total_relationship_count
+
+canonical_state:
+  the exact canonical_snapshot_state() projection (app.architecture_intelligence.repository) -
+  whose sha256 canonical-JSON digest IS expected_snapshot_id, not a second independently
+  maintained representation of the same graph state. It SHALL contain:
+
+  services[] / operations[] / queues[] / messages[] / schemas[]:
+    id, and every other allowlisted canonical field
+
+  relations[]:
+    type
+    source_id
+    target_id
+    evidence_ids
+
+  evidence[]:
+    id
+    evidence_type
+    source_type
+    source_file
+    environment where applicable
+    bucket_start / bucket_end where applicable
+    observation_count where applicable
+    first_seen where applicable
+    last_seen where applicable
+    sample_trace_ids where snapshot-relevant
+
+  A relation's declared-vs-observed nature is not a separate manifest field: it is derived by
+  cross-referencing each relation's evidence_ids against the referenced evidence[] entries'
+  evidence_type (DECLARED / OBSERVED). This is the same "the shell script MUST NOT maintain a
+  second independent copy of the expected graph state" principle (§17), applied to the manifest
+  schema itself rather than only to mcp-demo.sh.
+
+expected_drift_claims[]:
+  subject
+  target
+  via
+  qualification
+  evidence_refs
+```
+
+No wildcard, lower bound, prefix-only match, `>= 1`, "non-empty", or "contains at least" predicate is permitted for snapshot-relevant fixture state.
+
+The manifest MUST be created from one clean fixture preparation, reviewed against the bundled declarations and frozen telemetry generator, and committed as part of I2. It MUST NOT be regenerated automatically from whatever graph happens to exist at runtime.
+
+### 17.2 Whole-database strictness
+
+The deterministic demo owns its Neo4j target database.
+
+`EMPTY` is allowed **only** when the target database contains:
+
+```text
+total graph nodes = 0
+total graph relationships = 0
+```
+
+Indexes and constraints are schema metadata and do not count as graph data.
+
+Any unrelated node or relationship therefore prevents `EMPTY`.
+
+`COMPLETE` is allowed **only** when all of the following are true:
+
+1. the actual canonical snapshot/fingerprint equals `expected_snapshot_id`;
+2. total node count equals the manifest value;
+3. total relationship count equals the manifest value;
+4. declared relation tuples equal the manifest set exactly;
+5. observed relation tuples equal the manifest set exactly;
+6. every manifest evidence record matches all snapshot-relevant fields exactly;
+7. expected drift claims equal the manifest set exactly;
+8. no additional graph node, relationship, evidence record, or canonical relation exists outside the manifest's accepted state.
+
+Any other successfully queried state is:
+
+```text
+PARTIAL_OR_INCOMPATIBLE
+```
+
+This includes:
+
+- unrelated pre-existing graph data;
+- partial declaration import;
+- partial telemetry ingestion;
+- missing expected evidence;
+- duplicated telemetry ingestion;
+- changed `observation_count`;
+- changed `first_seen` / `last_seen`;
+- changed `sample_trace_ids`;
+- additional canonical nodes or relations;
+- any snapshot mismatch.
+
+### 17.3 Canonical checker contract
+
+The checker SHALL run **inside the already running `architecture-intelligence` container**, so I2 introduces no host-Python dependency.
+
+The canonical machine-readable invocation is:
+
+```bash
+"${COMPOSE[@]}" exec -T architecture-intelligence python examples/runtime-demo/check_fixture_state.py --json
+```
+
+where `COMPOSE` is the existing demo-script array:
+
+```bash
+COMPOSE=(docker compose -f "${REPO_ROOT}/docker-compose.demo.yml")
+```
+
+The host SHALL NOT be required to provide Python, Neo4j drivers, or AIP project dependencies for fixture classification.
+
+with output equivalent to:
+
+```json
+{
+  "fixture_id": "runtime-demo-frozen-2026-08-26",
+  "classification": "COMPLETE",
+  "expected_snapshot_id": "aip:snapshot:v1:...",
+  "actual_snapshot_id": "aip:snapshot:v1:...",
+  "mismatches": []
+}
+```
+
+For `PARTIAL_OR_INCOMPATIBLE`, `mismatches` MUST identify the exact failed manifest predicates with stable machine-readable mismatch codes and bounded sanitized details.
+
+The checker MUST perform zero graph writes.
+
+### 17.4 `--serve` branching
+
+`mcp-demo.sh --serve` SHALL invoke the checker through exactly this container boundary:
+
+```bash
+"${COMPOSE[@]}" exec -T architecture-intelligence python examples/runtime-demo/check_fixture_state.py --json
+```
+
+and SHALL branch only on that canonical checker result:
+
+```text
+EMPTY
+  -> import declarations once
+  -> submit frozen telemetry once
+  -> wait for expected observations
+  -> rerun checker
+  -> succeed only if COMPLETE
+
+COMPLETE
+  -> perform no fixture mutation
+  -> reuse state
+
+PARTIAL_OR_INCOMPATIBLE
+  -> fail non-zero
+  -> no import
+  -> no reseed
+  -> print cleanup/retry guidance
+```
+
+This rule is necessary because ingesting the same telemetry again changes snapshot-relevant aggregate fields such as observation counts.
+
+Qualification SHALL prove:
+
+```text
+second --serve on COMPLETE fixture performs no fixture mutation
 no duplicate canonical relations
 no duplicate semantic architecture claims
 no changed qualification
 no changed expected evidence meaning
+snapshot_after_run_1 = snapshot_after_run_2
 ```
-
-Additionally:
-
-> **The architecture-answer snapshot for the prepared deterministic demo SHALL remain semantically identical across repeated `--serve` preparation.**
-
-If repeated seeding changes graph state or evidence identity in a way that changes the snapshot while preserving only the visible relation set, that is a failed idempotency condition and MUST be resolved or explicitly redesigned before release.
 
 ---
 
@@ -572,12 +769,15 @@ At minimum cover:
 - Docker Compose unavailable;
 - missing `.env`;
 - AIP health timeout;
+- deterministic fixture classified as `PARTIAL_OR_INCOMPATIBLE`;
 - declaration import failure;
-- telemetry seed failure;
-- observed-evidence timeout;
+- telemetry fixture submission failure;
+- expected-observed-relation timeout after successful fixture submission;
 - unexpected empty runtime relation set;
 - invalid CLI argument;
 - teardown failure.
+
+There is no separate OpenTelemetry Collector health/readiness gate in `v0.4.2`. Successful fixture submission followed by arrival of every expected observed relation is the functional readiness proof for the demo's telemetry path.
 
 The script MUST fail non-zero and identify the failing phase.
 
@@ -724,7 +924,11 @@ The exact supported syntax MUST be reverified before implementation.
 
 ## 25. Qualified Client/Platform Matrix
 
-The client guide SHALL maintain a qualification matrix whose rows represent **tested platform tuples**, not client families in the abstract.
+This matrix is an **I3 deliverable**, not an I2 deliverable.
+
+I2 SHALL provide candidate setup guides only and MUST NOT publish qualified client/platform tuples.
+
+I3 SHALL create and maintain the qualification matrix whose rows represent **tested platform tuples**, not client families in the abstract.
 
 Each row MUST record at least:
 
@@ -790,13 +994,17 @@ examples/mcp-clients/
 
 ## 27. README Flow
 
-The section SHOULD follow this sequence:
+During I2, the section SHOULD follow this sequence:
 
 1. start deterministic client-ready demo;
 2. connect one coding-agent client;
 3. run the supplied prompt;
 4. state the deterministic expected architecture result;
-5. link to the detailed compatibility matrix and setup guide.
+5. link to the detailed **candidate setup guides only**.
+
+I2 MUST NOT link to or imply a qualified compatibility matrix because actual-client qualification belongs to I3.
+
+After I3 has produced the qualified client/platform matrix, I3 MUST update the README to add a link to that matrix alongside the setup guides.
 
 Example:
 
@@ -1406,6 +1614,11 @@ raw unsanitized qualification capture is retained or uploaded contrary to policy
 
 ```text
 --serve cannot prepare deterministic state
+fixture-state.json does not freeze exact snapshot-relevant state
+fixture checker requires host Python or host-installed AIP/Neo4j dependencies
+fixture classifier uses wildcard/lower-bound/non-empty predicates
+unrelated graph data can be classified as EMPTY or COMPLETE
+partial or double-seeded state can be classified as COMPLETE
 repeated --serve changes semantic demo snapshot unexpectedly
 README context differs from actual demo state
 existing full direct hero demo regresses
@@ -1423,13 +1636,6 @@ At minimum, the worktree MUST NOT contain:
 *:Zone.Identifier
 .DS_Store
 Thumbs.db
-```
-
-The current review identified these files for removal:
-
-```text
-docs/specifications/0.4.2/aip-v0.4.2-i1-dual-mode-mcp-transport-v2.md:Zone.Identifier
-docs/specifications/0.4.2/aip-v0.4.2-specification-updated-after-second-review.md:Zone.Identifier
 ```
 
 Repository-hygiene artifacts are not part of the specification and MUST NOT be committed.
@@ -1470,6 +1676,10 @@ Deliver:
 
 ```text
 mcp-demo.sh --serve
+examples/runtime-demo/fixture-state.json
+examples/runtime-demo/check_fixture_state.py
+exact EMPTY / COMPLETE / PARTIAL_OR_INCOMPATIBLE fixture oracle
+skip-reseed idempotency for an already COMPLETE fixture
 deterministic repeated-serve validation
 examples/mcp-clients/
 Codex setup
@@ -1492,6 +1702,7 @@ Deliver:
 
 ```text
 qualified client/platform tuple matrix
+README link to the qualified client/platform matrix
 actual-client protocol traces for all four target client families
 deterministic drift->evidence qualification
 agent-workflow observation record
