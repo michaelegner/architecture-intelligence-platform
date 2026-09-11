@@ -459,34 +459,41 @@ expected_snapshot_id
 total_node_count
 total_relationship_count
 
-declared_relations[]:
-  relation_type
-  source_id
-  target_id
-  evidence_ids
+canonical_state:
+  the exact canonical_snapshot_state() projection (app.architecture_intelligence.repository) -
+  whose sha256 canonical-JSON digest IS expected_snapshot_id, not a second independently
+  maintained representation of the same graph state. It SHALL contain:
 
-observed_relations[]:
-  relation_type
-  source_id
-  target_id
-  via identity where applicable
-  evidence_ids
+  services[] / operations[] / queues[] / messages[] / schemas[]:
+    id, and every other allowlisted canonical field
 
-evidence[]:
-  id
-  evidence_type
-  source_type
-  source_locator
-  environment where applicable
-  bucket/window identity where applicable
-  observation_count where applicable
-  first_seen where applicable
-  last_seen where applicable
-  sample_trace_ids where snapshot-relevant
+  relations[]:
+    type
+    source_id
+    target_id
+    evidence_ids
+
+  evidence[]:
+    id
+    evidence_type
+    source_type
+    source_file
+    environment where applicable
+    bucket_start / bucket_end where applicable
+    observation_count where applicable
+    first_seen where applicable
+    last_seen where applicable
+    sample_trace_ids where snapshot-relevant
+
+  A relation's declared-vs-observed nature is not a separate manifest field: it is derived by
+  cross-referencing each relation's evidence_ids against the referenced evidence[] entries'
+  evidence_type (DECLARED / OBSERVED). This is the same "the shell script MUST NOT maintain a
+  second independent copy of the expected graph state" principle (§17.4/§51), applied to the
+  manifest schema itself rather than only to mcp-demo.sh.
 
 expected_drift_claims[]:
   subject
-  target/dependency
+  target
   via
   qualification
   evidence_refs

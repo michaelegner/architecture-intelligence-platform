@@ -183,6 +183,23 @@ def test_partial_from_an_unrelated_node(driver):
     assert any(m["code"] == "NODE_COUNT_MISMATCH" for m in result["mismatches"])
 
 
+def test_partial_from_an_unrelated_node_with_no_revision_singleton(driver):
+    """The exact I2 §45 case, on a database that has never been imported into at all: one
+    unrelated node and nothing else, so no `(:AipInternalState)` singleton exists yet either.
+    `get_architecture_drift`'s own stable-read requires that singleton and would otherwise raise
+    `RevisionSingletonMissing` uncaught - the checker must still report a normative classification,
+    not crash."""
+    manifest = {"fixture_id": "test-fixture", "expected_snapshot_id": "aip:snapshot:v1:unused"}
+
+    with driver.session(database=DATABASE) as session:
+        session.run("CREATE (n:Junk {id: 'junk:1'})")
+
+    result = _classify(driver, manifest)
+
+    assert result["classification"] == "PARTIAL_OR_INCOMPATIBLE"
+    assert any(m["code"] == "MISSING_REVISION_SINGLETON" for m in result["mismatches"])
+
+
 def test_partial_from_a_missing_observed_relation(driver):
     _prepare_fixture(driver)
     manifest = _capture_manifest(driver)

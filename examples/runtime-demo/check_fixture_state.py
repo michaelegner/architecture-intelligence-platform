@@ -76,6 +76,7 @@ _TRACE_SAMPLE_MISMATCH = "TRACE_SAMPLE_MISMATCH"
 _DRIFT_CLAIM_MISMATCH = "DRIFT_CLAIM_MISMATCH"
 _SNAPSHOT_MISMATCH = "SNAPSHOT_MISMATCH"
 _UNSTABLE_DATABASE_STATE = "UNSTABLE_DATABASE_STATE"
+_MISSING_REVISION_SINGLETON = "MISSING_REVISION_SINGLETON"
 
 _MAX_CONSISTENCY_ATTEMPTS = 5
 
@@ -350,6 +351,16 @@ def _read_consistent_fixture_data(
         if node_count == 0 and relationship_count == 0:
             return node_count, relationship_count, state, []
 
+        if revision_before is None:
+            # Non-empty graph with no trustworthy (:AipInternalState) revision (missing entirely,
+            # or an invalid value read_revision() itself rejects) - e.g. a lone unrelated node in
+            # an otherwise-untouched database, which I2 §45 requires to classify as
+            # PARTIAL_OR_INCOMPATIBLE. get_architecture_drift's own stable-read requires the
+            # singleton and would raise RevisionSingletonMissing uncaught, so never call it here.
+            raise RevisionSingletonMissing(
+                "database contains graph data but no valid (:AipInternalState) revision singleton"
+            )
+
         # get_architecture_drift performs its own separate stable read internally, so the only
         # remaining race is a write landing between the bracket above and this call - re-check the
         # fence once more after it returns.
@@ -394,6 +405,14 @@ def classify_fixture(
             "expected_snapshot_id": manifest.get("expected_snapshot_id"),
             "actual_snapshot_id": None,
             "mismatches": [_mismatch(_UNSTABLE_DATABASE_STATE, str(exc))],
+        }
+    except RevisionSingletonMissing as exc:
+        return {
+            "fixture_id": manifest["fixture_id"],
+            "classification": "PARTIAL_OR_INCOMPATIBLE",
+            "expected_snapshot_id": manifest.get("expected_snapshot_id"),
+            "actual_snapshot_id": None,
+            "mismatches": [_mismatch(_MISSING_REVISION_SINGLETON, str(exc))],
         }
 
     result = classify(
