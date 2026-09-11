@@ -26,9 +26,9 @@ RED = "#FB7185"
 # large as the layout allows (and cropped tight in render-video.sh) so the composited
 # terminal text reads at a legible size instead of shrinking to a sliver of the frame.
 PANEL_X = 60
-PANEL_Y = 178
+PANEL_Y = 198
 PANEL_W = 1080
-PANEL_H = 420
+PANEL_H = 405
 
 ROOT = Path(__file__).resolve().parent
 SCENES_DIR = ROOT / "scenes"
@@ -79,11 +79,21 @@ def line(x1: int, y1: int, x2: int, y2: int, *, stroke: str, width: int = 4) -> 
     )
 
 
-def badge(value: str, x: int, y: int, width: int, color: str) -> str:
+def badge(
+    value: str, x: int, y: int, width: int, color: str, *, height: int = 60, size: int = 26
+) -> str:
     return "".join(
         [
-            rect(x, y, width, 52, fill=f"{color}18", stroke=color, radius=26),
-            text(value, x + width // 2, y + 35, 23, fill=color, weight=700, anchor="middle"),
+            rect(x, y, width, height, fill=f"{color}18", stroke=color, radius=height // 2),
+            text(
+                value,
+                x + width // 2,
+                y + height // 2 + int(size * 0.35),
+                size,
+                fill=color,
+                weight=700,
+                anchor="middle",
+            ),
         ]
     )
 
@@ -163,7 +173,7 @@ def scene_mismatch() -> str:
             node(620, 300, 28, "product-service", BLUE),
             node(620, 490, 28, "payment-service", BLUE),
             node(950, 400, 28, "LegacyPricingService", AMBER),
-            badge("OBSERVED_ONLY", 840, 500, 220, AMBER),
+            badge("OBSERVED_ONLY", 810, 495, 280, AMBER),
         ]
     )
     return finish(parts)
@@ -173,9 +183,9 @@ def capture_scene(section: str, title: str, subtitle: str, accent: str) -> str:
     parts = base(section)
     parts.extend(
         [
-            text(title, 64, 125, 38, weight=700),
-            text(subtitle, 64, 153, 19, fill=MUTED, family="DejaVu Sans Mono"),
-            rect(40, 165, 1120, 445, fill="#080D18", stroke="#334155", radius=20),
+            text(title, 64, 132, 38, weight=700),
+            text(subtitle, 64, 172, 19, fill=MUTED, family="DejaVu Sans Mono"),
+            rect(40, 185, 1120, 430, fill="#080D18", stroke="#334155", radius=20),
             rect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H, fill="#050810", stroke=accent, radius=12),
         ]
     )
