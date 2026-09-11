@@ -21,6 +21,7 @@ import pytest
 
 from app.canonical import ids
 from app.graph.importer import import_all_sources
+from app.graph.revision_fence import bump_revision
 from app.provenance.model import ObservedEvidence
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate, ObservedOnlyEntity
@@ -213,3 +214,45 @@ def test_partial_from_duplicated_telemetry(driver):
 
     assert result["classification"] == "PARTIAL_OR_INCOMPATIBLE"
     assert any(m["code"] == "OBSERVATION_COUNT_MISMATCH" for m in result["mismatches"])
+
+
+def test_composite_read_retries_when_the_database_mutates_mid_read(driver, monkeypatch):
+    """Injects a real, revision-bumping write in the middle of `_read_consistent_fixture_data`'s
+    single read attempt - between its `canonical_snapshot_state` call and its second
+    `(:AipInternalState).revision` check - and proves the fence discards that attempt and retries
+    rather than combining pre- and post-write data into one classification. The injected write uses
+    `bump_revision` inside its own transaction, exactly like every real production write path
+    (`app.graph.revision_fence.bump_revision`'s docstring), since an ordinary `CREATE` alone would
+    never advance the fence and so would never be caught by it."""
+    _prepare_fixture(driver)
+    manifest = _capture_manifest(driver)
+
+    real_canonical_snapshot_state = check_fixture_state.canonical_snapshot_state
+    call_count = {"n": 0}
+
+    def _inject_racy_write(tx):
+        tx.run("CREATE (n:Junk {id: 'junk:race'})")
+        bump_revision(tx)
+
+    def _racy_canonical_snapshot_state(session, *, coverage_qualification_enabled):
+        call_count["n"] += 1
+        state = real_canonical_snapshot_state(
+            session, coverage_qualification_enabled=coverage_qualification_enabled
+        )
+        if call_count["n"] == 1:
+            with driver.session(database=DATABASE) as other_session:
+                other_session.execute_write(_inject_racy_write)
+        return state
+
+    monkeypatch.setattr(
+        check_fixture_state, "canonical_snapshot_state", _racy_canonical_snapshot_state
+    )
+
+    result = _classify(driver, manifest)
+
+    assert call_count["n"] >= 2, "the revision fence should have retried after the injected write"
+    # The retried attempt reads the database only after the injected write has fully landed, so it
+    # sees a stable (post-write) revision throughout and correctly reports the mutation - never a
+    # mix of the manifest's pre-write expectations with some partial slice of the post-write state.
+    assert result["classification"] == "PARTIAL_OR_INCOMPATIBLE"
+    assert any(m["code"] == "NODE_COUNT_MISMATCH" for m in result["mismatches"])

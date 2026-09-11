@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """v0.4.2 I2 - the normative EMPTY/COMPLETE/PARTIAL_OR_INCOMPATIBLE fixture-state classifier (spec
 `docs/specifications/0.4.2/i2-client-ready-demo-and-documentation.md` Part II §15).
 
@@ -54,6 +53,7 @@ from app.architecture_intelligence.request import (
     ObservationContextInput,
 )
 from app.graph.repository import build_driver, open_session
+from app.graph.revision_fence import RevisionSingletonMissing, read_revision
 from app.mcp.wiring import build_production_service
 from app.settings import load_settings
 
@@ -75,6 +75,9 @@ _LAST_SEEN_MISMATCH = "LAST_SEEN_MISMATCH"
 _TRACE_SAMPLE_MISMATCH = "TRACE_SAMPLE_MISMATCH"
 _DRIFT_CLAIM_MISMATCH = "DRIFT_CLAIM_MISMATCH"
 _SNAPSHOT_MISMATCH = "SNAPSHOT_MISMATCH"
+_UNSTABLE_DATABASE_STATE = "UNSTABLE_DATABASE_STATE"
+
+_MAX_CONSISTENCY_ATTEMPTS = 5
 
 _EVIDENCE_FIELD_CODES = (
     ("observation_count", _OBSERVATION_COUNT_MISMATCH),
@@ -304,6 +307,67 @@ def _read_actual_drift_claims(
     return project_drift_claims(answer)
 
 
+class FixtureStateUnstable(RuntimeError):
+    """Raised when the composite read below (whole-database counts, canonical state, and drift
+    claims) couldn't observe one consistent committed database revision after
+    `_MAX_CONSISTENCY_ATTEMPTS` tries. Mirrors `app.architecture_intelligence.repository.
+    SnapshotUnstable`'s bounded discard-and-retry idiom (spec §19.1's stable-read algorithm),
+    extended to also cover this checker's own extra whole-database count queries and its separate
+    `get_architecture_drift` call - not just `canonical_snapshot_state` alone."""
+
+
+def _read_revision_or_none(session) -> int | None:
+    """`None` means "no `(:AipInternalState)` singleton yet" - a legitimate state for a virgin/
+    EMPTY database (spec §15.2), not a fencing failure."""
+    try:
+        return read_revision(session)
+    except RevisionSingletonMissing:
+        return None
+
+
+def _read_consistent_fixture_data(
+    driver, *, database: str, coverage_qualification_enabled: bool, manifest: dict[str, Any]
+) -> tuple[int, int, dict, list[dict[str, Any]]]:
+    """Reads whole-database counts, canonical state, and (when non-empty) drift claims as one
+    logically consistent snapshot, fenced by `(:AipInternalState).revision`: a write landing
+    anywhere between the first and last revision read below discards the whole bundle and retries,
+    rather than letting the checker silently combine pre- and post-write data into one
+    classification (spec §15's checker is a normative oracle - it must never observe a state that
+    never actually existed as one committed revision)."""
+    for _ in range(_MAX_CONSISTENCY_ATTEMPTS):
+        with open_session(driver, database=database, read_only=True) as session:
+            revision_before = _read_revision_or_none(session)
+            node_count = session.run(_TOTAL_NODE_COUNT_QUERY).single()["count"]
+            relationship_count = session.run(_TOTAL_RELATIONSHIP_COUNT_QUERY).single()["count"]
+            state = canonical_snapshot_state(
+                session, coverage_qualification_enabled=coverage_qualification_enabled
+            )
+            revision_after_state = _read_revision_or_none(session)
+
+        if revision_before != revision_after_state:
+            continue  # mutated mid-read - discard everything and retry
+
+        if node_count == 0 and relationship_count == 0:
+            return node_count, relationship_count, state, []
+
+        # get_architecture_drift performs its own separate stable read internally, so the only
+        # remaining race is a write landing between the bracket above and this call - re-check the
+        # fence once more after it returns.
+        drift_claims = _read_actual_drift_claims(driver, database=database, manifest=manifest)
+
+        with open_session(driver, database=database, read_only=True) as session:
+            revision_final = _read_revision_or_none(session)
+
+        if revision_final != revision_before:
+            continue  # mutated between the state/count read and the drift-claims read - retry
+
+        return node_count, relationship_count, state, drift_claims
+
+    raise FixtureStateUnstable(
+        f"no consistent database revision observed after {_MAX_CONSISTENCY_ATTEMPTS} attempts"
+    )
+
+
 def classify_fixture(
     manifest: dict[str, Any],
     driver,
@@ -314,16 +378,24 @@ def classify_fixture(
     """The Neo4j-backed half of this tool, factored out from `run()` so integration tests can drive
     it directly against a real (e.g. testcontainers) driver without going through `load_settings`'s
     environment-variable contract. Opens no write transaction (spec §15.3)."""
-    actual_state = _read_actual_state(
-        driver, database=database, coverage_qualification_enabled=coverage_qualification_enabled
-    )
-    node_count, relationship_count = _read_whole_database_counts(driver, database=database)
-    if node_count == 0 and relationship_count == 0:
-        actual_drift_claims: list[dict[str, Any]] = []
-    else:
-        actual_drift_claims = _read_actual_drift_claims(
-            driver, database=database, manifest=manifest
+    try:
+        node_count, relationship_count, actual_state, actual_drift_claims = (
+            _read_consistent_fixture_data(
+                driver,
+                database=database,
+                coverage_qualification_enabled=coverage_qualification_enabled,
+                manifest=manifest,
+            )
         )
+    except FixtureStateUnstable as exc:
+        return {
+            "fixture_id": manifest["fixture_id"],
+            "classification": "PARTIAL_OR_INCOMPATIBLE",
+            "expected_snapshot_id": manifest.get("expected_snapshot_id"),
+            "actual_snapshot_id": None,
+            "mismatches": [_mismatch(_UNSTABLE_DATABASE_STATE, str(exc))],
+        }
+
     result = classify(
         manifest,
         actual_state,

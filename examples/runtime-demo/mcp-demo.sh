@@ -71,6 +71,10 @@ validate_prerequisites() {
   for tool in docker curl jq; do
     command -v "$tool" >/dev/null || { echo "error: '$tool' is required but not installed" >&2; exit 1; }
   done
+  docker compose version >/dev/null 2>&1 || {
+    echo "error: 'docker compose' (the Compose plugin) is required but not available" >&2
+    exit 1
+  }
   [[ -f "${REPO_ROOT}/.env" ]] || { echo "error: no .env at ${REPO_ROOT} - run: cp .env.example .env" >&2; exit 1; }
 }
 
@@ -89,9 +93,15 @@ wait_for_core_services() {
   # healthcheck (depends_on: condition: service_healthy), so neo4j is healthy by the time `up -d`
   # above returns - this step exists to make that readiness gate explicit and independently
   # verifiable (spec §7 item 7), not to add a second competing wait mechanism.
+  #
+  # Queried via `docker inspect` on the container id rather than `docker compose ps --format
+  # '{{.Health}}'`: the latter's Go-template field set isn't stable across Compose versions and can
+  # return an empty string even for a healthy container, which would falsely time out here.
   step "Confirming neo4j is healthy"
+  local neo4j_container status
+  neo4j_container="$("${COMPOSE[@]}" ps -q neo4j)"
   for _ in $(seq 1 30); do
-    status="$("${COMPOSE[@]}" ps neo4j --format '{{.Health}}' 2>/dev/null || true)"
+    status="$(docker inspect --format '{{.State.Health.Status}}' "${neo4j_container}" 2>/dev/null || true)"
     [[ "${status}" == "healthy" ]] && break
     sleep 2
   done
@@ -164,8 +174,16 @@ prepare_fixture_if_empty() {
       wait_for_observed_relations
 
       step "Re-checking the fixture state after seeding"
-      check_result="$(run_fixture_checker)"
-      classification="$(printf '%s' "${check_result}" | jq -r '.classification')"
+      # A non-empty observed-relations count only proves the *first* expected relation has landed;
+      # the rest of the batch (and any downstream aggregation) can still be converging on a slower
+      # machine, so poll the checker itself for a bounded window rather than re-checking once and
+      # failing immediately on a transient PARTIAL_OR_INCOMPATIBLE.
+      for _ in $(seq 1 15); do
+        check_result="$(run_fixture_checker)"
+        classification="$(printf '%s' "${check_result}" | jq -r '.classification')"
+        [[ "${classification}" == "COMPLETE" ]] && break
+        sleep 2
+      done
       [[ "${classification}" == "COMPLETE" ]] || fail_partial_fixture "${check_result}"
       ;;
     COMPLETE)
