@@ -14,7 +14,7 @@ It reconciles declared API contracts with observed runtime behavior so an agent 
 - declared relationships not observed in the selected runtime window;
 - facts AIP cannot safely establish.
 
-Every answer is read-only, snapshot-bound and traceable to evidence.
+Every answer is snapshot-bound and traceable to evidence. The agent-facing tools are read-only.
 
 **[Run the 5-Minute Demo](#see-it-in-five-minutes) · [MCP Tools](#mcp-tools) · [How It Works](#how-aip-works)**
 
@@ -44,14 +44,14 @@ examples/runtime-demo/mcp-demo.sh
 
 The script starts AIP + Neo4j + an OTel Collector, imports the bundled example architecture, seeds
 one timestamp-frozen batch of runtime telemetry, then drives `tools/list` →
-`get_architecture_drift` → `get_evidence` over plain HTTP/JSON-RPC — the same path any MCP client
-speaking `2026-07-28` would take.
+`get_architecture_drift` → `get_evidence` over plain HTTP/JSON-RPC — the same direct `2026-07-28`
+request path a compatible MCP client would take.
 
 Asking `get_architecture_drift` about `order-service` returns two findings:
 
 | Dependency | Qualification | What it means |
 |---|---|---|
-| `LegacyPricingService` | `OBSERVED_ONLY` | A real dependency, seen in live traffic, that **nothing declares** |
+| `LegacyPricingService` | `OBSERVED_ONLY` | A runtime dependency observed in the seeded telemetry that **nothing declares** |
 | `unused-q` | `NOT_OBSERVED_IN_WINDOW` | Declared in `asyncapi.yaml`, not seen in this window — deliberately *not* reported as "unused" or "dead" |
 
 `ProductService` and `PaymentService` (via `payment-q`) are `CONFIRMED` — declared **and**
@@ -139,10 +139,10 @@ dependencies, drift and provenance bound to one graph snapshot, so it can tell a
 
 ## Why?
 
-An agent changing a service needs to know what that service actually talks to. Today it gets that
-from the two least reliable sources available: architecture documentation that drifted from reality
-months ago, and its own plausible inference from whatever code happened to fit in the context
-window. Both sound equally confident, and neither lets the agent tell a fact from a guess.
+An agent changing a service needs to know what that service actually talks to. Today it often gets
+that from two problematic sources: architecture documentation that may have drifted from reality,
+and plausible inference from whatever code happened to fit in the context window. Both sound
+equally confident, and neither lets the agent tell a fact from a guess.
 
 AIP answers that question from evidence that already exists and is already maintained as part of
 normal development — OpenAPI/AsyncAPI specs, a minimal manifest for the one thing they can't express
@@ -270,7 +270,8 @@ generated from AIP's own output — with deterministic PASS/FAIL:
 
 - 10 deterministic scenarios over declared/observed relation facts
 - 23 `ArchitectureAnswer` scenarios across all three MCP tools
-- Two clean runs produce byte-identical results
+- Two clean `ArchitectureAnswer` runs are semantically identical; the hero demo's
+  `structuredContent` is byte-identical across repeated clean runs
 - Real-system validation against Quarkus Super Heroes and Apache Airflow
 
 ```bash
@@ -307,54 +308,23 @@ SHA-256 — it is no longer written by `answers`, only the generalized file is.
 
 ## Runtime Evidence with OpenTelemetry
 
-**AIP consumes OTLP traces as an additional telemetry consumer, not the primary observability
-backend.** It must never be the only thing an OTel Collector forwards to, and its own availability
-must never affect an application's normal observability:
+**AIP consumes OTLP traces as an additional telemetry consumer, not a replacement for your
+observability backend.** It must never be the only thing an OTel Collector forwards to, and its own
+availability must never affect an application's normal observability:
 
 ![Applications send to an OTel Collector, which forwards in parallel to a primary observability backend and, separately, to Architecture Intelligence Platform.](images/otel-fanout-light.svg#gh-light-mode-only)
 ![Applications send to an OTel Collector, which forwards in parallel to a primary observability backend and, separately, to Architecture Intelligence Platform.](images/otel-fanout-dark.svg#gh-dark-mode-only)
 
-[OpenTelemetry integration →](docs/opentelemetry.md) ·
-[Runtime demo →](examples/runtime-demo/README.md)
-
-### Runtime demo
-
-Where the [five-minute demo](#see-it-in-five-minutes) freezes its telemetry for reproducibility,
-this one generates live traffic continuously:
-
-```bash
-docker compose -f docker-compose.demo.yml up --build
-```
-
-Brings up `architecture-intelligence` + `neo4j` (as above) plus an `otel-collector` service and a
-`traffic-generator` that emits realistic synthetic OTLP traces for the `examples/` fixture topology
-every few seconds (see `examples/runtime-demo/traffic_generator.py`'s docstring for why this repo
-generates spans directly rather than running real HTTP services). The Collector forwards every batch
-to AIP's `/v1/traces` and, in parallel, to a `debug` exporter — standing in for "an additional
-tracing backend" in the topology above.
-
-Once it's running, `POST /api/import` to declare the fixture topology, then watch
-`GET /api/runtime/relations?environment=demo` fill in with `OBSERVED`/`CONFIRMED` relations as the
-generator's traffic lands — a live demonstration of the `DECLARED + OBSERVED -> CONFIRMED` and, on a
-later reimport with a declaration removed, `-> OBSERVED_ONLY` transition described above. The
-generator also emits an undeclared `OrderService -> LegacyPricingService` call (surfacing as
-`OBSERVED_ONLY` on its own, with no reimport needed) and periodically splits one CLIENT/SERVER pair
-across two OTLP requests to demonstrate cross-batch correlation. See
-[`examples/runtime-demo/README.md`](examples/runtime-demo/README.md) for the full step-by-step
-walkthrough — every state (`CONFIRMED`, `OBSERVED_ONLY`, `NOT_OBSERVED_IN_WINDOW`) and the
-reconciliation scenario, each with exact `curl` commands and expected results.
-
-### In the web UI
-
-The same states are visible at <http://localhost:8000/> — the Service Explorer shows declared vs.
-observed side by side:
+The bundled runtime demo generates continuous synthetic traffic and shows `CONFIRMED`,
+`OBSERVED_ONLY` and `NOT_OBSERVED_IN_WINDOW` relationships fill in live, in both the API and the
+Service Explorer:
 
 ![Service Explorer showing OrderService's declared vs. observed dependencies: ProductService and
 payment-q are CONFIRMED, LegacyPricingService is OBSERVED_ONLY, and unused-q is
 NOT_OBSERVED_IN_WINDOW.](images/runtime-demo-drift.png)
 
-<http://localhost:8000/query> answers questions like "Which dependencies are observed but
-undocumented?" without needing an LLM configured.
+[OpenTelemetry integration →](docs/opentelemetry.md) ·
+[Runtime demo walkthrough →](examples/runtime-demo/README.md)
 
 ### Optional human query interface
 
@@ -376,10 +346,10 @@ populate `claims`/`evidence_refs`, while `get_evidence` resolves evidence record
 intentionally leaves those top-level arrays empty.
 
 **Current state, not history.** Every answer is bound to one stable graph snapshot identity — a
-fingerprint of the *current* graph state, so two answers can be read against one immutable state.
-There is no historical or point-in-time query surface, and a `snapshot_id` that is no longer the
-current one is refused with a `SNAPSHOT_NOT_AVAILABLE` limitation rather than answered from stale
-data.
+fingerprint of the *current* graph state, so two related answers can be proven to refer to the same
+identified graph state. There is no historical or point-in-time query surface, and a `snapshot_id`
+that is no longer the current one is refused with a `SNAPSHOT_NOT_AVAILABLE` limitation rather than
+answered from stale data.
 
 **Explicit observation context.** The runtime-sensitive dependency and drift tools carry an
 environment and time window on every answer, while `get_evidence` is intentionally
