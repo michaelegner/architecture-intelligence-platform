@@ -3,16 +3,32 @@
 [![CI](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Trusted architecture context for AI agents. AIP builds an evidence-backed model of your software
-architecture from declared specs and real runtime telemetry, and exposes it through three read-only
-MCP tools — dependency and drift answers carry qualified, evidence-linked architecture claims, while
-evidence drill-down resolves their provenance at the same graph snapshot.
+## Agents should reason about architecture — not reconstruct it.
 
-![Architecture Intelligence Platform v0.4.0 — trusted architecture context for agents: declared OpenAPI, AsyncAPI and architecture.yaml plus observed OpenTelemetry feed an evidence-backed architecture graph, exposed to AI coding agents through three read-only MCP tools — get_service_dependencies, get_architecture_drift and get_evidence.](images/aip-hero-v0.4.png)
+AIP gives coding agents evidence-qualified architecture context.
 
-**[Five-Minute Demo](#see-it-in-five-minutes) · [Video Walkthrough](https://www.linkedin.com/feed/update/urn:li:activity:7503338966553882625/) ·
-[MCP Tools](#mcp-tools) · [How AIP Works](#how-aip-works) · [Evaluation](#evaluation) ·
-[Boundaries](#boundaries) · [Documentation](#documentation) · [Research Landscape](docs/landscape.md)**
+It reconciles declared API contracts with observed runtime behavior so an agent can distinguish:
+
+- dependencies that are declared and observed;
+- dependencies seen in production but documented nowhere;
+- declared relationships not observed in the selected runtime window;
+- facts AIP cannot safely establish.
+
+Every answer is snapshot-bound and traceable to evidence. The agent-facing tools are read-only.
+
+**[Run the 5-Minute Demo](#see-it-in-five-minutes) · [MCP Tools](#mcp-tools) · [How It Works](#how-aip-works)**
+
+![Architecture Intelligence Platform demo: get_architecture_drift finds an undocumented LegacyPricingService dependency, then get_evidence traces it to the real OpenTelemetry observation that proves it — both real MCP tool calls, no mockups.](video/readme-demo/output/aip-readme-demo.webp)
+
+**`LegacyPricingService` was never declared. AIP observed the dependency at runtime as
+`OBSERVED_ONLY` and traces the claim back to its OpenTelemetry evidence.**
+
+⭐ Star AIP if evidence-qualified architecture context for coding agents is a problem you want
+solved.
+
+**[Video Walkthrough](https://www.linkedin.com/feed/update/urn:li:activity:7503338966553882625/) ·
+[Evaluation](#evaluation) · [Boundaries](#boundaries) · [Documentation](#documentation) ·
+[Research Landscape](docs/landscape.md)**
 
 ## See It in Five Minutes
 
@@ -28,14 +44,14 @@ examples/runtime-demo/mcp-demo.sh
 
 The script starts AIP + Neo4j + an OTel Collector, imports the bundled example architecture, seeds
 one timestamp-frozen batch of runtime telemetry, then drives `tools/list` →
-`get_architecture_drift` → `get_evidence` over plain HTTP/JSON-RPC — the same path any MCP client
-speaking `2026-07-28` would take.
+`get_architecture_drift` → `get_evidence` over plain HTTP/JSON-RPC — the same direct `2026-07-28`
+request path a compatible MCP client would take.
 
 Asking `get_architecture_drift` about `order-service` returns two findings:
 
 | Dependency | Qualification | What it means |
 |---|---|---|
-| `LegacyPricingService` | `OBSERVED_ONLY` | A real dependency, seen in live traffic, that **nothing declares** |
+| `LegacyPricingService` | `OBSERVED_ONLY` | A runtime dependency observed in the seeded telemetry that **nothing declares** |
 | `unused-q` | `NOT_OBSERVED_IN_WINDOW` | Declared in `asyncapi.yaml`, not seen in this window — deliberately *not* reported as "unused" or "dead" |
 
 `ProductService` and `PaymentService` (via `payment-q`) are `CONFIRMED` — declared **and**
@@ -123,10 +139,10 @@ dependencies, drift and provenance bound to one graph snapshot, so it can tell a
 
 ## Why?
 
-An agent changing a service needs to know what that service actually talks to. Today it gets that
-from the two least reliable sources available: architecture documentation that drifted from reality
-months ago, and its own plausible inference from whatever code happened to fit in the context
-window. Both sound equally confident, and neither lets the agent tell a fact from a guess.
+An agent changing a service needs to know what that service actually talks to. Today it often gets
+that from two problematic sources: architecture documentation that may have drifted from reality,
+and plausible inference from whatever code happened to fit in the context window. Both sound
+equally confident, and neither lets the agent tell a fact from a guess.
 
 AIP answers that question from evidence that already exists and is already maintained as part of
 normal development — OpenAPI/AsyncAPI specs, a minimal manifest for the one thing they can't express
@@ -139,11 +155,9 @@ evidence references at the same snapshot without creating new architecture claim
 > AIP may help agents reason about architecture, but an agent must never become the source of
 > architectural truth. — [`ROADMAP.md`](ROADMAP.md)'s v0.4 principle
 
-⭐ If you find this repository helpful, please consider giving it a ⭐ here on GitHub (click the star button in the top right corner). It's a quick way to show support for this openly available code. ⭐
-
 ## MCP Tools
 
-`v0.4.0` exposes the validated architecture model at `/mcp` (MCP protocol `2026-07-28`) as exactly
+AIP exposes the validated architecture model at `/mcp` (MCP protocol `2026-07-28`) as exactly
 three **read-only** tools:
 
 | Tool | Answers |
@@ -224,49 +238,19 @@ orphan queues, mixed-architecture blast radius) plus five over declared-vs-obser
 per-service telemetry coverage). None of these involve the LLM — see
 [`docs/analyses.md`](docs/analyses.md) for the full list and what each one answers.
 
-## Capabilities
+## Core Capabilities
 
-**Architecture intelligence for agents**
-- ✓ Three read-only MCP tools over one `/mcp` endpoint, with closed input/output schemas
-- ✓ One `ArchitectureAnswer` envelope for every tool — qualified claims/evidence references on
-  dependency and drift answers, resolved evidence records on `get_evidence`
-- ✓ Snapshot-bound tool flow: claim-producing answers and evidence drill-down stay on one graph state
-- ✓ Explicit observation context (environment + time window) on every runtime-sensitive answer;
-  `get_evidence` is intentionally observation-context-free
-- ✓ Evidence drill-down to sanitized provenance — no raw span/trace payload, headers, or secrets
-- ✓ Closed six-code limitation vocabulary (e.g. `UNRESOLVED_IDENTITY`, `INSUFFICIENT_EVIDENCE`) —
-  non-observation is never returned as absence, and an unresolved destination is never guessed
+- Evidence-qualified service dependencies and architecture drift, via three read-only MCP tools
+- OpenAPI, AsyncAPI and OpenTelemetry evidence, reconciled into one graph
+- Snapshot-bound provenance — every claim traces back to the spec file, manifest, or observation
+  window that produced it
+- Deterministic declared-vs-observed reconciliation, with cross-batch OTel correlation
+- Conservative handling of missing evidence and unresolved identity — never guessed, never silently
+  dropped
+- Neo4j-backed architecture model with an optional Service Explorer UI
 
-**Evidence sources**
-- ✓ OpenAPI ingestion
-- ✓ AsyncAPI queue topology
-- ✓ Architecture manifest support (the one place declared REST *callers* come from)
-- ✓ OpenTelemetry runtime discovery of undeclared operations, services and queues
-- ✓ Cross-batch HTTP correlation (a CLIENT and SERVER span arriving in separate OTLP requests still
-  correlate to one observed dependency)
-- ✓ Partial-instrumentation tolerance (a stable one-sided observation still counts, an unreliable one
-  never gets guessed)
-
-**Reconciliation and qualification**
-- ✓ Evidence / provenance on every fact, independently for declared and observed evidence
-- ✓ Declared vs. observed reconciliation and architecture drift detection
-- ✓ Telemetry coverage qualification for negative findings
-- ✓ Atomic per-service reimport — a partial import is never left in the graph
-
-**Analysis and queries**
-- ✓ Deterministic dependency analyses (queue senders/consumers, orphan queues)
-- ✓ Architecture blast radius (mixed sync + async traversal)
-- ✓ Semantic Cypher validation (a hard allowlist gate, not an LLM guardrail)
-- ✓ Natural-language architecture queries — deterministic where possible, validated read-only Cypher
-  otherwise, and entirely optional
-
-**Platform**
-- ✓ Technology-independent Canonical Model with stable, repository-independent entity IDs
-- ✓ Neo4j architecture knowledge graph
-- ✓ Service Explorer UI showing declared and observed dependencies side by side
-
-See [`docs/opentelemetry.md`](docs/opentelemetry.md) for what the `CLIENT_SERVER`/`CLIENT_ONLY`/
-`SERVER_ONLY`/`UNRESOLVED` correlation modes above actually mean.
+[See the architecture and capability documentation →](docs/architecture.md) ·
+[Correlation modes →](docs/opentelemetry.md)
 
 ## Example
 
@@ -281,13 +265,35 @@ one call.
 
 ## Evaluation
 
-Two independent evaluation suites prove AIP's output against hand-authored, independently frozen
-ground truth — never generated from AIP's own output — with deterministic PASS/FAIL:
+AIP is evaluated against independently authored ground truth — never against expectations
+generated from AIP's own output — with deterministic PASS/FAIL:
+
+- 10 deterministic scenarios over declared/observed relation facts
+- 23 `ArchitectureAnswer` scenarios across all three MCP tools
+- Two clean `ArchitectureAnswer` runs are semantically identical; the hero demo's
+  `structuredContent` is byte-identical across repeated clean runs
+- Real-system validation against Quarkus Super Heroes and Apache Airflow
 
 ```bash
-uv run python -m evaluation run       # ten scenarios over declared/observed relation facts (v0.2)
-uv run python -m evaluation answers   # three-tool ArchitectureAnswer envelope suite (I1.4, generalized by I3.3)
+uv run python -m evaluation run       # ten relation-fact scenarios
+uv run python -m evaluation answers   # 23 ArchitectureAnswer scenarios
 ```
+
+No LLM provider key is required — neither suite touches the natural-language query layer. See
+[`evaluation/README.md`](evaluation/README.md) for the full scenario lists, ground-truth formats,
+and failure-report examples.
+
+### Tested against real systems
+
+AIP's model was also challenged against two systems it wasn't designed for: Quarkus Super Heroes
+and Apache Airflow. The important result wasn't that AIP "discovered everything" — it was that
+unsupported and unresolved cases stayed explicit instead of being converted into plausible
+architecture facts. See
+[`docs/real-world-validation/README.md`](docs/real-world-validation/README.md) for the
+ground-truth independence rule, dossier structure, and per-system findings.
+
+<details>
+<summary>Implementation details: exact result files, historical artifacts, SHA references</summary>
 
 `answers` compares the complete `ArchitectureAnswer` — claims, evidence references, snapshot and
 observation-context identity, limitations — against literal frozen expectations across all three
@@ -296,75 +302,38 @@ machine-readable JSON result to
 `evaluation/architecture_answers/results/architecture-answers-evaluation-result.json`. The original
 I1-only artifact, `evaluation/architecture_answers/results/i1-evaluation-result.json`, is kept as
 the immutable historical record `docs/specifications/0.4.0/i1-completion-record.md` cites by
-SHA-256 — it is no longer written by `answers`, only the generalized file is. No LLM provider key
-is required — neither suite touches the natural-language query layer. See
-[`evaluation/README.md`](evaluation/README.md) for the full scenario lists, ground-truth formats,
-and failure-report examples.
+SHA-256 — it is no longer written by `answers`, only the generalized file is.
 
-## OpenTelemetry
+</details>
 
-`POST /v1/traces` is AIP's OTLP/HTTP ingestion boundary. It resolves incoming spans against whatever
-is already declared in the graph and persists observed facts and evidence alongside the declared
-ones — never inventing a fact it can't trace back to real telemetry.
+## Runtime Evidence with OpenTelemetry
 
-**AIP is an additional telemetry consumer, not the primary observability backend.** It must never be
-the only thing an OTel Collector forwards to, and its own availability must never affect an
-application's normal observability:
+**AIP consumes OTLP traces as an additional telemetry consumer, not a replacement for your
+observability backend.** It must never be the only thing an OTel Collector forwards to, and its own
+availability must never affect an application's normal observability:
 
 ![Applications send to an OTel Collector, which forwards in parallel to a primary observability backend and, separately, to Architecture Intelligence Platform.](images/otel-fanout-light.svg#gh-light-mode-only)
 ![Applications send to an OTel Collector, which forwards in parallel to a primary observability backend and, separately, to Architecture Intelligence Platform.](images/otel-fanout-dark.svg#gh-dark-mode-only)
 
-Failure isolation, buffering, and retry behavior belong in the Collector/deployment configuration —
-`/v1/traces` does no buffering or retry of its own, by design. Full attribute allowlist, correlation
-modes, and coverage-qualification model: [`docs/opentelemetry.md`](docs/opentelemetry.md).
-
-### Runtime demo
-
-Where the [five-minute demo](#see-it-in-five-minutes) freezes its telemetry for reproducibility,
-this one generates live traffic continuously:
-
-```bash
-docker compose -f docker-compose.demo.yml up --build
-```
-
-Brings up `architecture-intelligence` + `neo4j` (as above) plus an `otel-collector` service and a
-`traffic-generator` that emits realistic synthetic OTLP traces for the `examples/` fixture topology
-every few seconds (see `examples/runtime-demo/traffic_generator.py`'s docstring for why this repo
-generates spans directly rather than running real HTTP services). The Collector forwards every batch
-to AIP's `/v1/traces` and, in parallel, to a `debug` exporter — standing in for "an additional
-tracing backend" in the topology above.
-
-Once it's running, `POST /api/import` to declare the fixture topology, then watch
-`GET /api/runtime/relations?environment=demo` fill in with `OBSERVED`/`CONFIRMED` relations as the
-generator's traffic lands — a live demonstration of the `DECLARED + OBSERVED -> CONFIRMED` and, on a
-later reimport with a declaration removed, `-> OBSERVED_ONLY` transition described above. The
-generator also emits an undeclared `OrderService -> LegacyPricingService` call (surfacing as
-`OBSERVED_ONLY` on its own, with no reimport needed) and periodically splits one CLIENT/SERVER pair
-across two OTLP requests to demonstrate cross-batch correlation. See
-[`examples/runtime-demo/README.md`](examples/runtime-demo/README.md) for the full step-by-step
-walkthrough — every state (`CONFIRMED`, `OBSERVED_ONLY`, `NOT_OBSERVED_IN_WINDOW`) and the
-reconciliation scenario, each with exact `curl` commands and expected results.
-
-### In the web UI
-
-The same states are visible at <http://localhost:8000/> — the Service Explorer shows declared vs.
-observed side by side:
+The bundled runtime demo generates continuous synthetic traffic and shows `CONFIRMED`,
+`OBSERVED_ONLY` and `NOT_OBSERVED_IN_WINDOW` relationships fill in live, in both the API and the
+Service Explorer:
 
 ![Service Explorer showing OrderService's declared vs. observed dependencies: ProductService and
 payment-q are CONFIRMED, LegacyPricingService is OBSERVED_ONLY, and unused-q is
 NOT_OBSERVED_IN_WINDOW.](images/runtime-demo-drift.png)
 
-<http://localhost:8000/query> answers questions like "Which dependencies are observed but
-undocumented?" without needing an LLM configured.
+[OpenTelemetry integration →](docs/opentelemetry.md) ·
+[Runtime demo walkthrough →](examples/runtime-demo/README.md)
 
-## Natural Language Queries
+### Optional human query interface
 
-`POST /api/query` answers a plain-language question either by routing it to an existing
-deterministic analysis (above) or, if it doesn't recognize the question, by generating Cypher that
-must pass a strict read-only allowlist validator before it ever touches Neo4j. The LLM never holds
-write credentials and its Cypher is always shown back alongside the answer for traceability. Fully
-optional — the platform works completely without any LLM provider configured, and no MCP tool
-depends on it. See [`docs/semantic-validation.md`](docs/semantic-validation.md).
+`POST /api/query` also answers plain-language questions for interactive exploration — routed to an
+existing deterministic analysis where possible, or otherwise answered with LLM-generated Cypher
+that must pass a strict read-only allowlist validator before it ever touches Neo4j. The LLM never
+holds write credentials and its Cypher is always shown back for traceability. Entirely optional —
+the platform works with no LLM provider configured, and no MCP tool depends on it. See
+[`docs/semantic-validation.md`](docs/semantic-validation.md).
 
 ## Boundaries
 
@@ -377,10 +346,10 @@ populate `claims`/`evidence_refs`, while `get_evidence` resolves evidence record
 intentionally leaves those top-level arrays empty.
 
 **Current state, not history.** Every answer is bound to one stable graph snapshot identity — a
-fingerprint of the *current* graph state, so two answers can be read against one immutable state.
-There is no historical or point-in-time query surface, and a `snapshot_id` that is no longer the
-current one is refused with a `SNAPSHOT_NOT_AVAILABLE` limitation rather than answered from stale
-data.
+fingerprint of the *current* graph state, so two related answers can be proven to refer to the same
+identified graph state. There is no historical or point-in-time query surface, and a `snapshot_id`
+that is no longer the current one is refused with a `SNAPSHOT_NOT_AVAILABLE` limitation rather than
+answered from stale data.
 
 **Explicit observation context.** The runtime-sensitive dependency and drift tools carry an
 environment and time window on every answer, while `get_evidence` is intentionally
@@ -441,23 +410,13 @@ public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 
 Latest release:
 [`v0.4.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.1)
-— **Semantic Hardening for Broader Discovery**. Hardens the qualification and messaging semantics
-[`v0.4.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.0)
-(**Trusted Architecture Context for Agents**) shipped, and commits reproducible evidence of current
-whole-graph read cost. Adds no discovery source, Canonical Model family, or MCP tool.
-
-Today AIP ingests OpenAPI, AsyncAPI, architecture manifests and OpenTelemetry traces into an
-evidence-backed knowledge graph; reconciles declared against observed architecture; runs ten
-deterministic analyses over the result; and exposes it to agents through three read-only,
-snapshot-bound MCP tools. Every part of that path is deterministic and independently qualified: two
-frozen evaluation suites, real-world validation against Quarkus Super Heroes and Apache Airflow, a
-committed reproducible read-cost benchmark, and a published-artifact verification per release —
-[`docs/release-validation/v0.4.1-post-release-verification.md`](docs/release-validation/v0.4.1-post-release-verification.md)
-is the most recent.
+— **Semantic Hardening for Broader Discovery**.
 
 Pre-1.0: the REST/MCP surface, Graph Schema, Canonical Model, Adapter SPI and configuration format
-may still change on a minor version bump. See [`CHANGELOG.md`](CHANGELOG.md) for what shipped in
-each release and [`ROADMAP.md`](ROADMAP.md) for what's next — v0.5 (Broader Architecture Discovery).
+may still change on a minor version bump. Every release ships a published-artifact verification —
+[`docs/release-validation/v0.4.1-post-release-verification.md`](docs/release-validation/v0.4.1-post-release-verification.md)
+is the most recent. See [`CHANGELOG.md`](CHANGELOG.md) for what shipped in each release and
+[`ROADMAP.md`](ROADMAP.md) for what's next — v0.5 (Broader Architecture Discovery).
 
 ## License
 
