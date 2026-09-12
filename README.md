@@ -137,6 +137,65 @@ qualified rather than asserted.
 dependencies, drift and provenance bound to one graph snapshot, so it can tell a fact from a guess
 — and so it can never write to the model it is reading from.
 
+## Connect AIP to Your Coding Agent
+
+Prepare the deterministic demo without running the scripted MCP calls yourself:
+
+```bash
+examples/runtime-demo/mcp-demo.sh --serve
+```
+
+AIP is now available at `http://localhost:8000/mcp`. Configure a coding-agent client using the
+examples below — configuration syntax is verified against each client's current official docs;
+release-qualified client/platform support is a separate, later claim (see
+[`examples/mcp-clients/`](examples/mcp-clients/README.md)).
+
+### Codex CLI
+
+```bash
+codex mcp add aip --url http://localhost:8000/mcp
+```
+
+### Claude Code
+
+```bash
+claude mcp add --transport http --scope local aip http://localhost:8000/mcp
+```
+
+<details>
+<summary>Cursor / VS Code</summary>
+
+**Cursor** — `.cursor/mcp.json`:
+
+```json
+{ "mcpServers": { "aip": { "url": "http://localhost:8000/mcp" } } }
+```
+
+**VS Code** — `.vscode/mcp.json`:
+
+```json
+{ "servers": { "aip": { "type": "http", "url": "http://localhost:8000/mcp" } } }
+```
+
+</details>
+
+Then ask:
+
+> Use AIP to find architecture drift for service:order-service in the demo environment between
+> 2026-08-26T00:00:00Z and 2026-08-27T00:00:00Z. For every finding, explain its qualification and
+> resolve its evidence using the same snapshot. Do not infer facts AIP does not establish.
+
+Expected AIP findings:
+
+- `LegacyPricingService` — `OBSERVED_ONLY` (observed at runtime, never declared)
+- `unused-q` — `NOT_OBSERVED_IN_WINDOW` (declared, not seen in this window — never "unused" or "dead")
+
+These instructions target **locally running** clients — a hosted/cloud agent usually can't reach
+your `localhost`. `/mcp` has no public-internet authentication in `v0.4.2`; keep it local or on a
+trusted network. AIP itself needs no LLM API key for this path; your client may still need its own.
+
+[Detailed per-client setup, verification sources, and cleanup instructions →](examples/mcp-clients/README.md)
+
 ## Why?
 
 An agent changing a service needs to know what that service actually talks to. Today it often gets
