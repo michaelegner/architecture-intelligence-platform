@@ -1,12 +1,11 @@
 # AIP Product Doctrine and Strategic Direction
 
-**Status:** Working strategy — revised after semantic-boundary and roadmap-alignment review<br>
+**Status:** Working strategy — revised after lineage, roadmap, locality-boundary, and portability review<br>
 **Project:** Architecture Intelligence Platform (AIP)<br>
 **Date:** 2026-09-12<br>
-**Scope:** Product doctrine, target wedge, semantic model, strategic direction, and roadmap hypotheses<br>
+**Scope:** Product doctrine, target wedge, semantic model, strategic direction, and roadmap alignment<br>
 **Current implementation center:** Evidence-qualified Current State and read-only agent context<br>
-**Important:** `ROADMAP.md` now assigns planned themes to v0.6–v0.8; their detailed scope remains
-subject to release-specific specifications and qualification gates.
+**Important:** ROADMAP.md assigns planned themes to v0.6–v0.8; detailed scope remains subject to release-specific specifications and qualification gates.
 
 ---
 
@@ -352,18 +351,24 @@ not:
 13. **Current State must be derivable entirely from current-state evidence and qualification rules;
     Intent must never be an input to Current-State establishment.**
 14. **AIP establishes architecture locally before projecting it globally.**
-15. **Global architecture knowledge is a context-bound projection of qualified local assessments.**
+15. **Global architecture knowledge is a context-bound projection of qualified local evidence
+    assessments.**
 16. **Locality and connectivity are independent: WHERE something is does not establish HOW it
     interacts.**
-17. **Emergent behavior may establish Current State; it does not establish Intent.**
-18. **Current State and Intent may both be partial, local, and time-bound.**
-19. **Desired architecture should be declarative and partial rather than encoded as a migration
+17. **Service identity, Bounded Context, deployment unit, and team boundary are distinct concepts.
+    They may align, but that alignment is itself an architectural claim requiring evidence or
+    explicit intent.**
+18. **Emergent behavior may establish Current State; it does not establish Intent.**
+19. **Current State and Intent may both be partial, local, and time-bound.**
+20. **Desired architecture should be declarative and partial rather than encoded as a migration
     script.**
-20. **Assessment must preserve evidence, context, time, rule version, provenance, and limitations.**
-21. **Agent-facing convenience must not weaken deterministic semantics.**
-22. **Advisory, read-only architecture intelligence is preferred over policy enforcement in the AIP
+21. **Assessment must preserve evidence, context, time, rule version, provenance, and limitations.**
+22. **Agent-facing convenience must not weaken deterministic semantics.**
+23. **Advisory, read-only architecture intelligence is preferred over policy enforcement in the AIP
     core.**
-23. **Transformation planning is downstream from qualified Current State, explicit Intent, and
+24. **AIP's semantic contracts should remain portable across model vendors, agent frameworks, coding
+    agents, and integration transports.**
+25. **Transformation planning is downstream from qualified Current State, explicit Intent, and
     qualified difference.**
 
 ---
@@ -632,6 +637,21 @@ provides / accepts capability
 AIP must not infer interaction from co-location.
 
 AIP must not infer absence of interaction from separation.
+
+AIP must also keep technical, semantic, deployment, and organizational boundaries distinct:
+
+```text
+Service
+    ≠
+Bounded Context
+    ≠
+Deployment Unit
+    ≠
+Team Boundary
+```
+
+These concepts may align in a specific system, but the alignment is not assumed. It must itself be
+supported by evidence or explicit intent appropriate to that claim.
 
 This distinction becomes especially important with Kubernetes and broader infrastructure discovery.
 
@@ -1054,13 +1074,13 @@ time without claiming a trajectory across historical states.
 
 ---
 
-## 18. Distributed Local Assessment
+## 18. Distributed Local Assessment — Post-v1.0 Deployment Hypothesis
 
 If qualified local assessment becomes a core semantic unit, some evidence collection and
 deterministic qualification may naturally move closer to the locality where the evidence has
 meaning.
 
-This is a strategic architecture candidate, not a current deployment requirement.
+The **semantic concept** of local assessment is required before v1.0, but physically distributing assessment execution toward services/workloads is a **beyond-v1.0, unscheduled deployment hypothesis** under the current roadmap.
 
 Conceptually:
 
@@ -1140,40 +1160,96 @@ application dependency.
 
 ## 19. Derivation Lineage
 
-Derivation lineage should be modeled as a DAG, not a linear chain.
+Derivation lineage should be modeled as a **directed acyclic graph (DAG)** rather than a linear chain
+because one result may depend on several independent evidence items, mappings, qualification rules,
+contexts, and projections.
 
-A useful conceptual structure is:
+The two assessment paths must have separate lineage structures.
+
+### 19.1 Current-State lineage
+
+A Current-State claim or projection depends only on Current-State evidence and Current-State rules.
 
 ```text
-Architecture Assessment / Claim
-├── Assertion
-├── Applicable Evidence
-│   ├── source artifact(s)
-│   └── mapping rule + version
-├── Applicable Intent
-│   ├── explicit intent artifact(s)
-│   └── intent mapping rule + version
-├── Context / Locality / Time
-├── Qualification Rule + Version
-├── Projection Rule + Version
-├── Snapshot / trajectory identity
+Current-State Claim / Projection
+├── Qualified Local Evidence Assessment(s)
+│   ├── Assertion
+│   ├── Applicable Current-State Evidence
+│   │   ├── source artifact(s)
+│   │   └── evidence mapping rule + version
+│   ├── Observation Context / Locality
+│   ├── Observation Window
+│   ├── Qualification Rule + Version
+│   ├── Provenance
+│   └── Limitations
+├── Current-State Projection Rule + Version
+├── Snapshot Identity
+└── Projection Completeness / Limitations
+```
+
+**Intent is not a dependency anywhere in this DAG.**
+
+AIP should be able to reconstruct:
+
+```text
+which Current-State evidence was used
+which mapping rule interpreted it
+which local evidence assessment was produced
+which qualification rule evaluated it
+which observation context / locality / window applied
+which projection rule produced the Current-State view
+which snapshot the result belongs to
+which limitations or unresolved items remain
+```
+
+### 19.2 Current ↔ Intent assessment lineage
+
+A Current↔Intent assessment is a separate second-order derivation. It consumes two independently
+established inputs:
+
+```text
+Current-State Projection ──────────────┐
+                                       ├──► Qualified Current ↔ Intent Assessment
+Applicable Intent Projection ──────────┘
+
+Current-State Projection lineage:
+  evidence-only; established independently
+
+Applicable Intent Projection lineage:
+  ├── Explicit Intent Assertion(s)
+  ├── Intent source artifact(s)
+  ├── Intent mapping rule + version
+  ├── Intent scope
+  ├── effective_from / effective_until
+  └── Intent provenance
+
+Qualified Current ↔ Intent Assessment
+├── Current-State projection reference
+├── Current-State lineage reference(s)
+├── Applicable Intent projection reference
+├── Intent lineage reference(s)
+├── Evaluation Context
+├── Assessment Rule + Version
+├── Qualification
+├── Provenance
 └── Limitations
 ```
 
-AIP should eventually make it possible to reconstruct:
+The assessment DAG may reference both paths, but it must never create a back-edge from Intent into
+Current-State establishment.
+
+This means:
 
 ```text
-which source evidence was used
-which intent artifact was used
-which mapping rules interpreted them
-which local assessment was produced
-which qualification rule evaluated it
-which context/locality/time applied
-which projection rule produced a broader architecture view
-which snapshot or trajectory point the answer belongs to
+Intent ───────────────X──► Current-State Assessment
+
+Current State ────────┐
+                      ├──► Current ↔ Intent Assessment
+Intent Projection ────┘
 ```
 
-Stable rule identity/version is essential.
+Stable rule identity/version is essential in both DAGs. Evidence or intent provenance alone is
+insufficient to reproduce why AIP produced a specific result.
 
 ---
 
@@ -1228,10 +1304,50 @@ The MCP transport should remain as stable and boring as practical.
 Future product evolution should appear primarily through typed architecture-intelligence contracts,
 not repeated transport redesign.
 
-Conceptually:
+### 21.1 Portability and composability
+
+AIP should remain useful across model vendors, coding agents, agent harnesses, and integration
+frameworks.
+
+The durable boundary is:
 
 ```text
-MCP
+Model
+  ≠
+Agent Harness
+  ≠
+Architecture Context
+  ≠
+Discovery / Evidence Source
+  ≠
+Transport Protocol
+```
+
+AIP's architecture semantics must therefore not depend on one LLM vendor, one coding-agent product,
+one agent framework, or one MCP client implementation.
+
+Open and replaceable integration boundaries should allow:
+
+```text
+model changes
+agent-framework changes
+client changes
+discovery-adapter changes
+transport evolution
+```
+
+without weakening or redefining AIP's evidence, qualification, provenance, and assessment semantics.
+
+MCP is the current primary agent-facing integration protocol, but AIP's semantic contracts should be
+portable enough to support other consumers or transports without making those consumers the source
+of architecture truth.
+
+### 21.2 Semantic tool layers
+
+Conceptually, the pre-v1.0 agent-facing semantics may evolve as:
+
+```text
+MCP / other typed integration boundary
 │
 ├── Current State
 │   dependencies / drift / evidence
@@ -1239,13 +1355,14 @@ MCP
 ├── Intent
 │   applicable explicit intent
 │
-├── Assessment
-│   qualified local assessments
-│   Current ↔ Intent difference
-│
-└── Evolution
-    trajectories across context / time
+└── Assessment
+    Qualified Current ↔ Intent Assessment
 ```
+
+The Current-State layer remains independent of Intent.
+
+Architecture trajectories and trajectory-facing tools remain **beyond v1.0, unscheduled** under the
+current roadmap and require historical-state foundations first.
 
 Exact future tool names and schemas require release-specific specifications.
 
@@ -1311,7 +1428,9 @@ Beyond v1.0 under the current roadmap:
 
 - historical-state persistence/import sufficient for temporal reasoning;
 - architecture trajectories;
-- trajectory-aware Current ↔ Intent assessment.
+- trajectory-aware Current ↔ Intent assessment;
+- distributed Local Architecture Assessor deployment (sidecar, DaemonSet, OTel extension, local
+  gateway, or similar), unless the roadmap is explicitly revised.
 
 ### AIP should not own
 
@@ -1445,22 +1564,48 @@ AIP relevance:
 - model offered/accepted capabilities without assuming centralized control;
 - support explicit partial intent rather than a globally complete target blueprint;
 - distinguish promises from observed cooperation;
-- assess promises contextually rather than assigning them timeless intrinsic truth states;
 - preserve the rule that observed behavior does not imply intended behavior;
-- provide a semantic bridge from local intent and cooperation to qualified local assessment.
+- assess the relationship between independently established cooperation and independently
+  established promises.
 
-AIP's preferred Promise-Theory interpretation is:
+Promise Theory must not blur AIP's two semantic paths.
+
+First, Current-State cooperation is established independently:
 
 ```text
-explicit promises
-        +
 declared / observed cooperation evidence
         +
-locality / time / observation context
+locality / observation context
+        +
+Current-State qualification rule
+        ↓
+Qualified Local Evidence Assessment
+        ↓
+Current-State Projection
+```
+
+Separately, explicit promises establish Intent:
+
+```text
+explicit attributable promise
+        +
+scope / effective interval
+        +
+intent mapping rule
+        ↓
+Applicable Intent Projection
+```
+
+Only then may AIP compare them:
+
+```text
+Current-State Projection
+        +
+Applicable Intent Projection
         +
 assessment rule
         ↓
-qualified local assessment
+Qualified Current ↔ Intent Assessment
 ```
 
 AIP is the observer/assessor in this relationship, not the promise-maker and not necessarily the
@@ -1468,8 +1613,8 @@ promisee.
 
 The product-facing implication is:
 
-> **Architecture emerges from local promises and cooperation; AIP qualifies what the available
-> evidence establishes about both.**
+> **AIP establishes evidence-qualified cooperation independently, then separately assesses how that
+> cooperation relates to explicit promises in the locality and time where those promises apply.**
 
 Promise Theory should remain a semantic foundation and design lens. AIP should not require users to
 adopt Promise-Theory-specific terminology or encode the Canonical Model directly as a Promise Theory
@@ -1537,159 +1682,137 @@ That is a future research problem, not a pre-v1.0 product commitment.
 
 ## 26. Roadmap Alignment
 
-`ROADMAP.md` is authoritative for release sequencing and committed/planned scope. This doctrine is
-**non-binding strategic guidance**.
+`ROADMAP.md` is authoritative for release sequencing and planned scope. This doctrine is strategic
+guidance for the semantics and product boundaries behind that roadmap.
 
-### 26.1 Current committed/planned direction
+### 26.1 Planned pre-v1.0 sequence
 
 ```text
-v0.4.x
-Trusted Architecture Context hardening and interoperability
+v0.5 — Broader Architecture Discovery
+  Broaden what AIP can safely know.
 
-v0.5
-Broader Architecture Discovery
-- Kubernetes discovery
-- broader evidence sources/adapters subject to semantic approval
-- deeper runtime discovery
-- reconciliation with existing declared and observed evidence
+v0.6 — Locality-Aware Current State
+  Establish what Current-State evidence supports within explicit locality
+  and observation context, while keeping execution centralized if desired.
 
-v0.6
-Locality-Aware Current State
+v0.7 — Explicit Architecture Intent
+  Represent explicit, attributable Intent without allowing Intent to alter
+  established Current State.
 
-v0.7
-Explicit Architecture Intent
+v0.8 — Qualified Architecture Assessment
+  Assess independently established Current State against independently
+  established applicable Intent.
 
-v0.8
-Qualified Architecture Assessment
+v0.9 — Contract Freeze / Production Qualification
+  Stabilize and production-qualify the contracts intended for v1.0.
 
-v0.9
-Contract Freeze / Production Qualification
-
-v1.0
-Stable Architecture Intelligence Platform
-
-Beyond v1.0, unscheduled
-Architecture trajectories and other future capabilities named by ROADMAP.md
+v1.0 — Stable Architecture Intelligence Platform
 ```
 
-v0.5 remains focused on broadening what AIP can safely know about Current State.
-
-Bigraph-inspired `WHERE != HOW` semantics are relevant to v0.5 design, but a Bigraph implementation is
-not part of the release requirement.
-
-### 26.2 Planned v0.6–v0.8 direction and remaining hypotheses
-
-`ROADMAP.md` now assigns the following semantic sequence to v0.6–v0.8. This doctrine explains the
-strategic rationale; release-specific specifications still own exact scope and acceptance criteria.
-
-#### v0.6 — Locality-Aware Current State
-
-Question:
+The semantic dependency between these themes is deliberate:
 
 ```text
-What does Current-State evidence establish in this explicit locality and observation context?
+DISCOVER
+   ↓
+ESTABLISH CURRENT STATE LOCALLY
+   ↓
+REPRESENT INTENT INDEPENDENTLY
+   ↓
+ASSESS CURRENT ↔ INTENT
+   ↓
+FREEZE / QUALIFY
 ```
 
-Candidate capability:
+### 26.2 v0.6 boundary: locality semantics, not distributed deployment
+
+v0.6 requires locality-aware Current-State semantics. It does **not** require assessment execution to
+run beside the service or workload.
+
+The required semantic direction is:
 
 ```text
+Current-State Evidence
+        +
+explicit observation context / locality
+        ↓
 Qualified Local Evidence Assessment
-context/locality preservation
-deterministic Current-State projection
-explicit projection completeness and limitations
+        ↓
+Current-State Projection
 ```
 
-This release theme must preserve the independence of locality and connectivity and must not require
-a distributed Local Architecture Assessor deployment.
+This may be implemented centrally.
 
-#### v0.7 — Explicit Architecture Intent
+A sidecar, DaemonSet, OTel extension, local gateway, or other distributed Local Architecture Assessor
+is explicitly **beyond v1.0, unscheduled** under the current roadmap.
 
-Question:
+This keeps:
 
 ```text
-What architectural intent / promises have been explicitly stated?
+local assessment as semantics
+        ≠
+distributed assessor as deployment architecture
 ```
 
-Candidate capability:
+### 26.3 v0.7 and v0.8 are planned capabilities
+
+Explicit Intent and Qualified Current↔Intent Assessment are no longer unallocated hypotheses.
+
+v0.7 must implement and qualify the independent Intent path while preserving the invariant:
+
+> **For an unchanged evidence snapshot, adding, removing, or changing an Intent artifact must not
+> change established Current State.**
+
+v0.8 must implement and qualify the separate Current↔Intent assessment path over the two independent
+projections.
+
+### 26.4 v0.9 qualification and freeze rule
+
+v0.9 should attempt to stabilize the planned pre-v1.0 capabilities that have been implemented and
+qualified through v0.8.
+
+The rule is:
+
+> **Implement and qualify the planned capability before freezing its public contract.**
+
+If a planned v0.7 or v0.8 capability does not satisfy its semantic, deterministic, security,
+performance, or real-system qualification gates, it must not be promoted into the stable v1.0
+contract merely because it appeared on the roadmap.
+
+Such a capability should instead be one of:
 
 ```text
-source-neutral intent/assertion model
-explicit provenance and authority
-partial declarative intent
-promise/capability semantics where useful
-multiple intent carriers/adapters
+deferred beyond v1.0
+kept explicitly experimental / unstable
+reduced in scope and re-qualified
+removed from the v1.0 contract
 ```
 
-Potential carriers may include OpenAPI Overlay, AsyncAPI-compatible explicit extensions/artifacts,
-OpenSpec, and other attributable specifications.
+No additional "roadmap change" is required merely to implement v0.7 Intent or v0.8 Assessment;
+those capabilities are now part of the planned roadmap. A roadmap change is required only if their
+release assignment or product boundary is changed materially.
 
-#### v0.8 — Qualified Current ↔ Intent Assessment
+### 26.5 Beyond v1.0, unscheduled
 
-Question:
+The current roadmap places these capabilities beyond v1.0:
 
 ```text
-What does the already-established Current State imply
-when compared with independently established applicable Intent?
+historical architecture-state retention/import
+architecture trajectories
+distributed Local Architecture Assessor deployment
+safe architecture transformation research
+causal runtime-flow analysis
+other explicitly future integrations/capabilities
 ```
 
-Candidate capability:
+Architecture trajectories require a prior historical-state foundation including temporal identity,
+provenance continuity, intent history, retention/import semantics, and temporal querying.
 
-```text
-separate Intent projection
-separate Current-State projection
-deterministic comparison rules
-Qualified Current ↔ Intent Assessment
-evidence + intent + context + rule lineage
-```
+Distributed Local Architecture Assessor deployment may be evaluated only after v1.0 unless the
+roadmap is explicitly revised based on compelling qualification evidence.
 
-This release theme must preserve:
+### 26.6 Transformation hypothesis
 
-```text
-Intent cannot influence Current-State establishment.
-```
-
-#### Unallocated hypothesis — Distributed Local Current-State Assessment
-
-Question:
-
-```text
-Can deterministic evidence qualification move closer to the locality
-where evidence has meaning without making AIP part of the functional runtime path?
-```
-
-Candidate capability:
-
-```text
-Local Architecture Assessor
-Qualified Local Evidence Assessment
-central reconciliation / projection
-flexible deployment topology
-```
-
-This deployment hypothesis remains unallocated. It may inform a future roadmap revision only after
-concrete user/system evidence and a release-specific specification justify it.
-
-### 26.3 v0.9 implication
-
-v0.9 freezes only the public contracts that actually exist and are intended for v1.0.
-
-If Intent or Current↔Intent assessment has **not** been implemented and validated before v0.9, v0.9
-must not freeze hypothetical contracts for those capabilities.
-
-If such capabilities are introduced before v0.9 through an explicit roadmap change, they must be
-qualified and stabilized like any other public contract.
-
-### 26.4 Beyond v1.0: architecture trajectories
-
-Under the current roadmap, architecture trajectories stay beyond v1.0 and unscheduled.
-
-Before trajectory work begins, AIP needs an accepted design for historical-state
-retention/import, temporal identity, provenance continuity, intent history, and temporal query
-semantics.
-
-### 26.5 Transformation hypothesis
-
-Full transformation reasoning remains downstream of both qualified assessment and historical
+Full transformation reasoning remains downstream of qualified assessment and future historical
 evolution semantics:
 
 ```text
@@ -1707,7 +1830,7 @@ Safe / Unsafe / Unresolved
 ```
 
 Formal Bigraphical Reactive Systems and other transformation formalisms are more likely to become
-relevant here than in the current pre-v1.0 discovery and trusted-context roadmap.
+relevant here than in the current pre-v1.0 discovery, locality, intent, and assessment roadmap.
 
 ---
 
@@ -1748,21 +1871,29 @@ and, where appropriate, against independently authored or real-system evidence?
 
 ## 28. Near-Term Priority Order
 
-Given the current product position, the preferred order remains:
+Given the current roadmap, the preferred order is:
 
 ```text
 1. Preserve qualification correctness and semantic safety.
 2. Complete the current agent-facing interoperability work.
 3. Broaden trustworthy discovery in v0.5.
-4. Keep locality and connectivity semantically independent during v0.5 design.
-5. Improve reproducibility and derivation lineage.
-6. Validate the pre-change architecture-context wedge with real users/agent workflows.
-7. Keep any Intent work separate from Current-State establishment.
-8. Deliver explicit Intent and Current↔Intent assessment only through the v0.7 and v0.8
-   release-specific specifications and qualification gates; keep distributed local assessment an
-   unallocated hypothesis until user and system evidence justify roadmap commitment.
-9. Keep architecture trajectories beyond v1.0 unless `ROADMAP.md` is explicitly revised and the
-   required historical-state prerequisites are designed first.
+4. Preserve WHERE != HOW and the service != Bounded Context != deployment unit != team boundary rule.
+5. Implement locality-aware Current-State semantics in v0.6 without requiring distributed execution.
+6. Implement the independent explicit-Intent path in v0.7.
+7. Implement the separate Current ↔ Intent assessment path in v0.8.
+8. In v0.9, freeze only contracts that survive implementation and qualification.
+9. Keep historical trajectories and distributed Local Architecture Assessor deployment beyond v1.0,
+   unscheduled, unless the roadmap is explicitly revised.
+```
+
+This sequence preserves the central dependency:
+
+```text
+Current State first and independently
+        ↓
+Intent second and independently
+        ↓
+Assessment only over both established projections
 ```
 
 ---
@@ -1964,7 +2095,7 @@ AIP
   -> evidence applicability, qualification, provenance, assessment
 ```
 
-Before v1.0, these ideas should influence semantics only where they solve concrete product problems.
+Before v1.0, these ideas should influence semantics only where they solve concrete product problems; distributed Local Architecture Assessor deployment remains beyond v1.0 under the current roadmap.
 The Canonical Model should not be replaced wholesale by any formal theory.
 
 The preferred strategic journey is:
