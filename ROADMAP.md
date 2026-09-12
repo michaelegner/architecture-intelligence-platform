@@ -398,11 +398,11 @@ Qualification/freeze scope includes, where actually implemented and accepted:
 - REST and MCP contract stabilization
 - Graph Schema stabilization
 - Adapter SPI stabilization
-- configuration-format stabilization
-- migration and deprecation rules
-- security and production-operability qualification
-- performance and resilience qualification
-- release/support policy
+- Configuration-format stabilization
+- Migration and deprecation rules
+- Security and production-operability qualification
+- Performance and resilience qualification
+- Release/support policy
 
 Any known breaking redesign required for the stable contract must be completed before the v1.0
 candidate is frozen.
