@@ -55,6 +55,16 @@ PROJECT_NAME = f"aip-mcp-demo-test-{uuid.uuid4().hex[:8]}"
 COMPOSE = ["docker", "compose", "-f", str(COMPOSE_FILE)]
 REQUIRED_PORTS = (8000, 7474, 7687, 4317, 4318)
 
+# Test-owned, passed explicitly to every Compose/mcp-demo.sh invocation below (shell environment
+# variables take precedence over .env file values in Compose's variable substitution - verified
+# directly with `docker compose config`) so stack startup and _inject_stray_node()'s cypher-shell
+# login always agree, regardless of whatever NEO4J_PASSWORD happens to be in the developer's own
+# .env (PR #139 review, finding 7: a hand-rolled dotenv parser reading the file directly could
+# disagree with Compose's own resolution - quoting, a shell-level override, etc. - and fail
+# authentication instead of testing fixture rejection).
+TEST_NEO4J_USER = "neo4j"
+TEST_NEO4J_PASSWORD = "aip-mcp-demo-test-password"
+
 AIP_URL = "http://localhost:8000"
 SERVICE_ID = "service:order-service"
 ENVIRONMENT = "demo"
@@ -68,7 +78,12 @@ pytestmark = pytest.mark.skipif(
 
 
 def _env(**overrides: str) -> dict[str, str]:
-    merged = {**os.environ, "COMPOSE_PROJECT_NAME": PROJECT_NAME}
+    merged = {
+        **os.environ,
+        "COMPOSE_PROJECT_NAME": PROJECT_NAME,
+        "NEO4J_USER": TEST_NEO4J_USER,
+        "NEO4J_PASSWORD": TEST_NEO4J_PASSWORD,
+    }
     merged.update(overrides)
     return merged
 
@@ -138,33 +153,21 @@ def _aip_logs(since: str | None = None) -> str:
     return result.stdout
 
 
-def _neo4j_credentials() -> tuple[str, str]:
-    values: dict[str, str] = {}
-    for line in ENV_FILE.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        values[key.strip()] = value.strip()
-    return values.get("NEO4J_USER", "neo4j"), values["NEO4J_PASSWORD"]
-
-
 def _inject_stray_node() -> None:
     """Pollutes the graph with one node no manifest/import path ever creates, so the checker must
     classify the fixture as PARTIAL_OR_INCOMPATIBLE (spec §15.2) - proving §45's requirement that
     `--serve` then fails non-zero without importing, reseeding, or repairing anything (PR #139
     review, finding 3: the checker's own classifier tests never invoke `mcp-demo.sh`, so they alone
     cannot prove the *shell script's* reaction to PARTIAL)."""
-    user, password = _neo4j_credentials()
     result = _compose(
         "exec",
         "-T",
         "neo4j",
         "cypher-shell",
         "-u",
-        user,
+        TEST_NEO4J_USER,
         "-p",
-        password,
+        TEST_NEO4J_PASSWORD,
         "CREATE (:Pr139ReviewStrayNode {marker: 'i2.3-review-partial-test'})",
         timeout=30,
     )
