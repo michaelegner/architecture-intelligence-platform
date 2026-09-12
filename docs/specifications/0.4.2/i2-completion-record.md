@@ -8,7 +8,7 @@ PR itself — found.
 
 ## Run identity
 
-- **Candidate commit verified against:** `cd83e70` (branch `v0.4.2-i2.3-clean`, tip before this
+- **Candidate commit verified against:** `4cbf875` (branch `v0.4.2-i2.3-clean`, tip before this
   record's own commit) — includes I2.1, I2.2, and I2.3's own test/doc fixes.
 - **I1 dependency (Dual-Mode MCP Transport):** merged to `main` as `2b6f865` (PR #135).
 - **I2.1 (Client-Ready Demo — `--serve` mode and fixture-state oracle):** merged to `main` as
@@ -20,9 +20,9 @@ PR itself — found.
   CLI-added server is), both confirmed against official docs and the installed `codex-cli 0.154.0`
   binary before fixing.
 - **I2.3 (this record) — completion record and final documentation-coherence/DoD verification:**
-  found and closed two real gaps beyond documentation wording in the first pass, then a human review
-  round (PR #139) found and required fixes for four more real gaps in the new test module itself —
-  all logged below rather than only recording a passing checklist.
+  found and closed two real gaps beyond documentation wording in the first pass, then two further
+  human review rounds (PR #139) found and required fixes for five more real gaps in the new test
+  module itself — all logged below rather than only recording a passing checklist.
 
 ## I2.3 findings and fixes
 
@@ -92,6 +92,23 @@ independently before fixing:
    whether or not the container is recreated — and asserting the log-fetch itself succeeded before
    trusting its output. The completion record's "every rebuild recreates the container" claim below
    is kept as an observation, not as something the test now depends on.
+
+**Second re-review round (PR #139)**, one more real gap:
+
+7. **[P2] The stray-node injection could use the wrong Neo4j credentials.** `_neo4j_credentials()`
+   hand-parsed `.env` and returned its literal values, while stack startup goes through Compose's own
+   variable resolution — for a quoted value such as `NEO4J_PASSWORD="some-password"`, Compose strips
+   the quotes but the hand-rolled parser passed the quote characters straight through to
+   `cypher-shell`; a shell-level `NEO4J_PASSWORD` override (which Compose also honors) would produce
+   the same kind of mismatch. Either way, the demo stack could start successfully while
+   `_inject_stray_node()` then failed on authentication instead of exercising `PARTIAL_OR_INCOMPATIBLE`
+   rejection — reproduced directly with `docker compose config` showing the two resolutions diverge,
+   and independently by writing a `.env` with a quoted password and confirming all 8 tests still pass
+   after the fix below. Fixed by removing the dotenv parser entirely: a fixed, test-owned
+   `NEO4J_USER`/`NEO4J_PASSWORD` pair is now passed as an explicit environment override to *every*
+   Compose/`mcp-demo.sh` invocation this module makes (shell environment variables take precedence
+   over `.env` file values in Compose's substitution), so stack startup and the injection command are
+   structurally guaranteed to agree — never two independent reads of the same fact.
 
 ## Demo
 
@@ -199,7 +216,7 @@ intentionally GitHub-relative link outside I2's scope, already noted in PR #137'
 
 ## I2 exit statement
 
-> GO — At `cd83e70` (plus this record's own commit), a new user can run
+> GO — At `4cbf875` (plus this record's own commit), a new user can run
 > `examples/runtime-demo/mcp-demo.sh --serve`, get a deterministic, idempotent, MCP-call-free
 > prepared architecture state, and configure one of four candidate coding-agent clients from
 > documentation whose syntax is verified against each client's current official documentation (two
