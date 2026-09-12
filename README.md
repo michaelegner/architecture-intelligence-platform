@@ -450,6 +450,8 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 - [`docs/adapter-development.md`](docs/adapter-development.md) — extending AIP with a new source
 - [`docs/architecture-review-0.4.0.md`](docs/architecture-review-0.4.0.md) — post-`v0.4.0`
   architecture review: what held up, four structural findings, measured read cost
+- [`docs/product-doctrine-and-strategic-direction.md`](docs/product-doctrine-and-strategic-direction.md)
+  — product doctrine, semantic boundaries, strategic direction, and roadmap rationale
 - [`docs/adr/`](docs/adr/) — Architecture Decision Records: why Neo4j, why a Canonical Model, why
   the LLM is read-only and never a source of truth, and more
 - [`docs/specifications/`](docs/specifications/) — the original design specifications, as a

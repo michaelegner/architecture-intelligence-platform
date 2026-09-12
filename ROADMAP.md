@@ -170,41 +170,251 @@ for the published release.
 
 ## v0.5 — Broader Architecture Discovery (planned)
 
-Focus: broaden what AIP can discover, now that the semantic core is validated and exposed through
-controlled tools rather than before.
+**Goal: Broaden what AIP can safely know about distributed systems.**
 
-- Kubernetes discovery (declared-architecture source: Deployments/Services as an additional
-  `ArchitectureSourceAdapter`)
-- Additional source adapters (candidates: gRPC/protobuf service definitions, Kafka Connect configs
-  — see the "New adapter proposal" issue template for the extension-point contract; no specific
-  adapter is promised before its semantics and validation profile are approved)
-- Deeper runtime discovery, reconciled with existing declared/observed evidence
+Focus: broaden architecture discovery now that the semantic core is validated and exposed through
+controlled tools, while preserving AIP's evidence, identity, qualification, provenance, and
+unsupported-case guarantees.
 
-Every new discovery source maps through the shared Canonical Model, retains provenance, avoids
-environment-specific identity leakage, and must prove it doesn't create supported relations from
-mere co-location or naming coincidence. Deeper runtime discovery preserves the same safety rules
-already governing v0.1–v0.3: non-observation != absence; unresolved identity beats guessed identity;
-explicitly unsupported beats incorrectly represented as supported.
+- Kubernetes discovery as an additional architecture source, with explicit mapping between
+  Kubernetes workload/service resources and AIP identities rather than name-based equivalence
+- Source-adapter extension seam suitable for broader discovery sources
+- Deeper runtime discovery reconciled with existing declared/observed evidence
+- Generic source-independent Pub/Sub semantics may enter scope only if Topic/Subscription/Queue
+  distinctions and identity guards can be qualified without broker-specific guessing
+- Additional adapters remain candidates (for example gRPC/protobuf or Kafka Connect configuration)
+  and require separately approved semantics and deterministic conformance tests
 
-Versions between v0.5 and v0.9 are intentionally unspecified — their scope will be derived from
-validated user/tool experience and discovery findings, not invented ahead of that evidence.
+Every new discovery source maps through the shared Canonical Model, retains provenance, and must
+prove it does not create supported relations from mere co-location, naming coincidence, or an
+insufficiently qualified runtime signal.
+
+The structural rule for infrastructure discovery is:
+
+> **WHERE something is does not establish HOW it interacts.**
+
+Therefore deployment/locality evidence and connectivity/cooperation evidence remain independent.
+The release continues to preserve:
+
+```text
+non-observation != absence
+unresolved identity > guessed identity
+explicitly unsupported > incorrectly represented as supported
+Queue != Topic
+Topic != Subscription
+co-location != dependency
+observed behavior != intent
+```
+
+Exit capability:
+
+> **AIP can safely discover a broader distributed-system Current State while retaining the context
+> and locality required for later qualification.**
+
+No explicit architectural Intent model, Current↔Intent assessment, historical trajectory model, or
+distributed local-assessor runtime is required in v0.5.
+
+## v0.6 — Locality-Aware Current State (planned)
+
+**Goal: Establish architecture knowledge locally and contextually before projecting it into broader
+Current-State views.**
+
+Focus: make context/locality an explicit part of Current-State qualification without changing the
+fundamental rule that Current State is derived only from Current-State evidence.
+
+AIP should be able to qualify a local assertion under an explicit context such as environment,
+region, cluster/namespace, workload identity, service version, or observation window when — and
+only when — the available evidence can support that dimension.
+
+Conceptually:
+
+```text
+Current-State Evidence
+        ↓
+Qualified Local Evidence Assessment
+        ↓
+Deterministic Current-State Projection
+        ↓
+Evidence-Qualified Current State
+```
+
+Key requirements:
+
+- define a first-class internal semantics for qualified local evidence assessment;
+- preserve locality/context from source evidence through qualification and projection;
+- keep observation window separate from any future Intent effective interval;
+- make projection completeness and limitations explicit;
+- prevent locally established claims from being silently promoted into universal/global facts;
+- keep place/locality and connectivity independent (`WHERE != HOW`);
+- prove that adding locality does not weaken deterministic replay, evidence provenance, or
+  unsupported/unresolved semantics.
+
+The implementation may remain centralized. A sidecar, DaemonSet, local agent, OTel extension, or
+other distributed Local Architecture Assessor is **not** a v0.6 requirement.
+
+Exit capability:
+
+> **AIP can establish what its evidence supports within an explicit locality and observation context,
+> and can deterministically project those qualified local assessments into a bounded Current-State
+> view.**
+
+## v0.7 — Explicit Architecture Intent (planned)
+
+**Goal: Represent explicit, attributable architectural intent without allowing Intent to alter
+established Current State.**
+
+Focus: introduce a source-neutral Intent/Assertion model after the Current-State path is already
+locality-aware and independently qualified.
+
+The governing invariant is:
+
+> **For an unchanged evidence snapshot, adding, removing, or changing an Intent artifact must not
+> change the established Current State.**
+
+Conceptually:
+
+```text
+CURRENT-STATE PATH
+
+Current-State Evidence
+        ↓
+Qualified Local Evidence Assessments
+        ↓
+Current-State Projection
+
+
+INTENT PATH
+
+Explicit Attributable Intent Artifact
+        ↓
+Intent Assertion
+        ↓
+Applicable Intent Projection
+```
+
+Candidate Intent semantics include explicit promises/capabilities, constraints, required or
+prohibited relationships, scope, effective interval, and provenance.
+
+Potential carriers may include OpenAPI Overlay, AsyncAPI-compatible explicit extensions/artifacts,
+standalone AIP Intent artifacts, OpenSpec, or other attributable machine-readable specifications.
+The carrier must not become the semantic model: AIP should normalize Intent into source-neutral
+assertions.
+
+Intent must never be inferred as authoritative from runtime frequency, code structure, naming,
+co-location, probabilistic interpretation, or agent-generated rationale.
+
+Exit capability:
+
+> **AIP can ingest explicit architectural Intent with provenance, scope, and effective applicability
+> without treating that Intent as evidence of Current State.**
+
+No Current↔Intent compliance/enforcement engine, historical trajectory model, migration scripting,
+or automatic remediation is required in v0.7.
+
+## v0.8 — Qualified Architecture Assessment (planned)
+
+**Goal: Assess independently established Current State against independently established applicable
+Intent.**
+
+Focus: add a separate, read-only, evidence-linked assessment layer over the two already independent
+semantic paths.
+
+The dependency direction is:
+
+```text
+Current-State Evidence
+        ↓
+Qualified Local Evidence Assessments
+        ↓
+Current-State Projection
+                         \
+                          +--> Qualified Current ↔ Intent Assessment
+                         /
+Explicit Intent Artifacts
+        ↓
+Applicable Intent Projection
+```
+
+Never:
+
+```text
+Intent
+  ↓
+Current-State qualification
+```
+
+Assessment semantics must preserve both temporal dimensions independently:
+
+```text
+observation_window
+    = when Current-State evidence was observed
+
+effective_from / effective_until
+    = when the explicit Intent applies
+```
+
+Possible assessment outcomes may include concepts such as `ESTABLISHED`, `CONTRADICTED`,
+`NOT_ESTABLISHED`, `INSUFFICIENT_EVIDENCE`, and `CONFLICTING_EVIDENCE`, but the exact public
+vocabulary must not be frozen until deterministic truth tables and independently authored evaluation
+fixtures exist.
+
+`CONTRADICTED` must never mean merely "not observed" unless an explicit closed-world rule permits
+that interpretation.
+
+The agent-facing surface may gain additional read-only Architecture Intelligence capabilities if
+needed, but MCP transport should remain stable and generic graph/Cypher access should remain outside
+the correctness path.
+
+Exit capability:
+
+> **AIP can explain where an independently established Current State aligns with, diverges from, or
+> cannot yet be evaluated against the explicit Intent that applies in the selected context.**
+
+Explicitly out of scope for v0.8:
+
+- architecture trajectories / historical architecture state;
+- migration planning or transformation scripting;
+- automatic remediation;
+- policy authoring, approval workflow, or CI blocking;
+- distributed local-assessor deployment as a requirement;
+- agent-generated authoritative Intent.
 
 ## v0.9 — Contract Freeze / Production Qualification (planned)
 
-Focus: stabilize public contracts and qualify the platform for production-grade use.
+**Goal: Stabilize and production-qualify the architecture-intelligence contracts intended for
+v1.0.**
+
+Focus: freeze only semantics and public contracts that have survived implementation, deterministic
+evaluation, and real-system qualification across v0.5-v0.8.
+
+Qualification/freeze scope includes, where actually implemented and accepted:
 
 - Canonical Model compatibility review
+- Current-State evidence and qualification semantics
+- locality/context semantics and Current-State projection contracts
+- explicit Intent and applicable-Intent projection contracts
+- qualified Current↔Intent assessment contracts
+- derivation-lineage and evidence/provenance requirements
 - REST and MCP contract stabilization
 - Graph Schema stabilization
 - Adapter SPI stabilization
-- Configuration-format stabilization
-- Migration and deprecation rules
-- Security and production-operability qualification
-- Performance and resilience qualification
-- Release/support policy
+- configuration-format stabilization
+- migration and deprecation rules
+- security and production-operability qualification
+- performance and resilience qualification
+- release/support policy
 
 Any known breaking redesign required for the stable contract must be completed before the v1.0
 candidate is frozen.
+
+v0.9 must not freeze hypothetical contracts merely because they appeared in earlier strategy or
+roadmap text. A capability that did not survive implementation and qualification is either removed,
+kept explicitly experimental, or deferred beyond v1.0.
+
+Exit capability:
+
+> **The architecture-intelligence model and public contracts intended for v1.0 are semantically
+> stable, reproducible, migration-aware, and production-qualified.**
 
 ## v1.0 — Stable Architecture Intelligence Platform (planned)
 
@@ -216,26 +426,62 @@ production qualification completed; critical semantic errors = 0; release blocke
 ## Sequencing principle
 
 ```text
-v0.3 validation and hardening
-  -> v0.4 architecture-intelligence tools
-  -> v0.5 broader discovery
-  -> v0.9 contract freeze and production qualification
-  -> v1.0 stable platform
+v0.3  validation and hardening
+  -> v0.4  trusted architecture context for agents
+  -> v0.5  broader architecture discovery
+  -> v0.6  locality-aware Current State
+  -> v0.7  explicit architecture Intent
+  -> v0.8  qualified architecture assessment
+  -> v0.9  contract freeze and production qualification
+  -> v1.0  stable platform
 ```
 
-Validate the semantic core first, expose it as evidence-backed tools second, broaden discovery
-third, then freeze and qualify the public contracts last. `v0.3` carries a hard gate: had either
-real-system dossier shown the Canonical Architecture Model needed a fundamental breaking redesign,
-AIP would not proceed to v0.4 until that redesign was specified, implemented, and revalidated — I4's
-[`canonical-redesign-gate.md`](docs/real-world-validation/cross-system/decisions/canonical-redesign-gate.md)
-answered `NO`, so that gate does not block here.
+In capability terms:
 
-None of the above are committed dates — this is a planning sequence, not a schedule.
+```text
+VALIDATE
+   ↓
+EXPOSE
+   ↓
+DISCOVER
+   ↓
+ESTABLISH LOCALLY
+   ↓
+REPRESENT INTENT
+   ↓
+ASSESS
+   ↓
+FREEZE
+```
+
+The ordering is semantic, not merely chronological:
+
+1. broader evidence must be trustworthy before it is used to establish more Current State;
+2. locality-aware Current State must remain independently derivable before Intent exists;
+3. Intent must be explicit and attributable before AIP compares Current State with it;
+4. Current↔Intent assessment must remain read-only and downstream of both independent projections;
+5. only implemented and qualified contracts are frozen for v1.0.
+
+`v0.3` carried a hard gate: had either real-system dossier shown the Canonical Architecture Model
+needed a fundamental breaking redesign, AIP would not proceed to v0.4 until that redesign was
+specified, implemented, and revalidated — I4's
+[`canonical-redesign-gate.md`](docs/real-world-validation/cross-system/decisions/canonical-redesign-gate.md)
+answered `NO`, so that gate did not block.
+
+None of the above are committed dates — this is a planning sequence, not a schedule. The detailed
+scope of each planned release remains subject to its release specification and qualification gate;
+the semantic dependency between the release themes is the stable part of this roadmap.
 
 ## Future (beyond v1.0, unscheduled)
 
-- Architecture trajectories (how the declared/observed graph changes over time, not just a single
-  snapshot)
+- Historical architecture-state retention/import sufficient for principled temporal reasoning
+- Architecture trajectories (how evidence-qualified Current State and applicable Intent evolve over
+  time, once historical identity/provenance continuity exists)
+- Distributed Local Architecture Assessor deployment options (for example sidecar, DaemonSet, OTel
+  extension, or local gateway) if real-system evidence shows that moving deterministic qualification
+  closer to the locality provides correctness or operational value
+- Safe architecture transformation research, potentially including Bigraphical Reactive Systems,
+  process calculi, type systems, temporal logic, or related formalisms
 - Causal runtime flow analysis (beyond pairwise CLIENT/SERVER and send/receive correlation)
 - GraphRAG (retrieval over the graph as LLM context, distinct from today's Cypher-generation-only
   query layer)
