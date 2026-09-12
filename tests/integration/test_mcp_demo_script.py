@@ -252,6 +252,15 @@ class TestPrerequisiteFailures:
         assert result.returncode != 0
         assert "jq" in result.stderr
 
+    def test_invalid_build_revision_exits_nonzero_before_any_docker_call(self, tmp_path):
+        # spec §6.1 (v0.4.2 I3): BUILD_REVISION must be a full 40-hex commit SHA or the script must
+        # fail before serving. Rejected during validate_prerequisites, so - like the two cases above
+        # - this needs no running stack, just docker/curl/jq present.
+        _ensure_env_file()
+        result = _run_script("--serve", timeout=15, env=_env(BUILD_REVISION="not-a-real-sha"))
+        assert result.returncode != 0
+        assert "BUILD_REVISION" in result.stderr
+
 
 class TestServeLifecycle:
     def test_full_lifecycle(self, clean_demo_stack):
