@@ -134,6 +134,13 @@ this page — see [`examples/mcp-clients/`](../examples/mcp-clients/README.md) f
 guides (Codex CLI, Claude Code, Cursor, VS Code). Those are verified configuration syntax, not yet a
 qualified-client claim — see that directory's README for the distinction.
 
+## Local security boundary
+
+`/mcp` is built for a local or trusted-network posture, in `v0.4.2` as in every prior release: it
+has no public-internet authentication, so do not expose it directly to an untrusted network. AIP
+itself needs no LLM API key for this deterministic tool-call path — the coding-agent client on the
+other end may still need its own account or model access, independent of AIP.
+
 ## Evidence drill-down
 
 Every claim from `get_architecture_drift`/`get_service_dependencies` carries `evidence_refs` (and,
