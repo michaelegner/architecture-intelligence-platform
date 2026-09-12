@@ -47,8 +47,13 @@ codex mcp list
 
 ## 4. Ask the stable prompt
 
-Start a Codex session in this repository (or any directory — the MCP server is a URL, not tied to a
-project) and paste the [stable onboarding prompt](README.md#3-ask-the-stable-prompt). Inside the
+If you added `aip` with the CLI (global `~/.codex/config.toml`), start a Codex session in any
+directory — the server isn't tied to a project. If you used the project-scoped `.codex/config.toml`
+alternative instead, start Codex from inside this (trusted) repository: Codex only loads project
+`.codex/config.toml` layers when walking from a trusted project's root to your current working
+directory, and ignores them entirely for an untrusted project.
+
+Either way, paste the [stable onboarding prompt](README.md#3-ask-the-stable-prompt). Inside the
 session, `/mcp` shows connected servers and their tools if you want to confirm `aip` is live before
 asking.
 
