@@ -9,12 +9,12 @@ Interoperability qualification is pending I3 — this is not a "Codex CLI is sup
 |---|---|
 | Official source | <https://learn.chatgpt.com/docs/extend/mcp?surface=cli> |
 | Verification date | 2026-09-12 |
-| Result | PASS — syntax below matches the current official page |
+| Result | PASS — syntax below matches the current official page and `codex-cli 0.154.0 --help` |
 
-The official docs' own guidance for a remote **Streamable HTTP** MCP server (AIP's transport) is to
-edit `~/.codex/config.toml` directly rather than a CLI flag, and reserve `codex mcp add ... --env ...
--- <command>` for local **stdio** servers. We follow that guidance here rather than inventing an
-unverified `--url` flag some third-party guides describe but the official page does not.
+The official docs and the stable `codex mcp add` CLI both document a `--url` flag for registering a
+remote **Streamable HTTP** MCP server (AIP's transport) directly from the command line — no manual
+`config.toml` edit required. `--env ... -- <command>` remains the flag combination for local **stdio**
+servers instead.
 
 ## 1. Start AIP
 
@@ -22,15 +22,20 @@ unverified `--url` flag some third-party guides describe but the official page d
 examples/runtime-demo/mcp-demo.sh --serve
 ```
 
-## 2. Add AIP to `~/.codex/config.toml`
+## 2. Add AIP with the Codex CLI
+
+```bash
+codex mcp add aip --url http://localhost:8000/mcp
+```
+
+This registers `aip` in your global `~/.codex/config.toml`. `codex mcp add` always writes to that
+global file — if you'd rather scope it to this project instead, add the same block to a project-scoped
+`.codex/config.toml` in the repository root by hand:
 
 ```toml
 [mcp_servers.aip]
 url = "http://localhost:8000/mcp"
 ```
-
-A trusted project may instead use a project-scoped `.codex/config.toml` in the repository root with
-the same `[mcp_servers.aip]` block, if you'd rather not add it to your global config.
 
 ## 3. Verify it's registered
 
@@ -49,8 +54,11 @@ asking.
 
 ## Removing it
 
-Delete the `[mcp_servers.aip]` block from `~/.codex/config.toml` (or the project-scoped
-`.codex/config.toml`, if that's where you added it).
+```bash
+codex mcp remove aip
+```
+
+(Or delete the `[mcp_servers.aip]` block by hand, if you added it by editing `config.toml`.)
 
 ## No secrets required
 

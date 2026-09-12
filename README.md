@@ -152,10 +152,8 @@ release-qualified client/platform support is a separate, later claim (see
 
 ### Codex CLI
 
-```toml
-# ~/.codex/config.toml
-[mcp_servers.aip]
-url = "http://localhost:8000/mcp"
+```bash
+codex mcp add aip --url http://localhost:8000/mcp
 ```
 
 ### Claude Code
