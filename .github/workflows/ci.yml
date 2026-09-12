@@ -32,6 +32,12 @@ jobs:
       - name: ruff format --check
         run: uv run ruff format --check .
 
+      # v0.4.2 I3 spec §8.2/§8.3 "shell lint" gate. shellcheck ships preinstalled on GitHub-hosted
+      # ubuntu-latest runners - no extra action/install needed. examples/runtime-demo/ is the only
+      # directory with shipped, qualification-relevant shell scripts.
+      - name: shellcheck
+        run: shellcheck examples/runtime-demo/*.sh
+
       - name: Unit tests
         run: uv run pytest tests/unit
 

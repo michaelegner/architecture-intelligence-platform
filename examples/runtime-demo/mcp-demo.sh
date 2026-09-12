@@ -18,12 +18,25 @@
 # Requires docker (with compose), curl and jq, and a .env at the repo root (cp .env.example .env).
 # --serve additionally requires no host Python: fixture classification runs inside the already
 # running architecture-intelligence container (spec §15.3).
+#
+# (v0.4.2 I3, spec §6.1) Optional: set BUILD_REVISION to a full 40-character candidate commit SHA to
+# pin the built image's producer.build_revision for release-gating actual-client qualification, e.g.:
+#   BUILD_REVISION="$(git rev-parse HEAD)" examples/runtime-demo/mcp-demo.sh --serve
+# Unset by default, leaving everyday demo usage unaffected.
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE=(docker compose -f "${REPO_ROOT}/docker-compose.demo.yml")
 AIP_URL="${AIP_URL:-http://localhost:8000}"
+
+# v0.4.2 I3 (spec §6.1): the exact candidate revision to build into the image, for release-gating
+# actual-client qualification runs. Named BUILD_REVISION on this script's own CLI surface (matching
+# the spec's own invocation example) but forwarded below as the existing AIP_BUILD_REVISION build-arg
+# that the Dockerfile/app already consume - never a second, differently-named production contract.
+# Unset (the default) leaves everyday demo usage exactly as before this change.
+BUILD_REVISION="${BUILD_REVISION:-}"
+_BUILD_REVISION_PATTERN='^[0-9a-f]{40}$'
 
 # Frozen to match seed_frozen_evidence.py's SEED_TIMESTAMP (2026-08-26T12:00:00Z). Never derive
 # these from wall-clock time - the whole point of the hero demo is a result that does not move.
@@ -76,13 +89,24 @@ validate_prerequisites() {
     exit 1
   }
   [[ -f "${REPO_ROOT}/.env" ]] || { echo "error: no .env at ${REPO_ROOT} - run: cp .env.example .env" >&2; exit 1; }
+  if [[ -n "${BUILD_REVISION}" && ! "${BUILD_REVISION}" =~ ${_BUILD_REVISION_PATTERN} ]]; then
+    echo "error: BUILD_REVISION must be a full 40-character lowercase hex commit SHA, got: ${BUILD_REVISION}" >&2
+    exit 1
+  fi
 }
 
 start_stack() {
   # Bring up AIP + neo4j + collector, but deliberately NOT the live traffic-generator service: the
   # only evidence in the graph must be the frozen batch seeded by prepare_fixture_if_empty.
   step "Starting architecture-intelligence, neo4j and otel-collector"
-  "${COMPOSE[@]}" up -d --build architecture-intelligence otel-collector
+  if [[ -n "${BUILD_REVISION}" ]]; then
+    # docker compose up has no --build-arg flag (only `docker compose build` does), so a pinned
+    # BUILD_REVISION needs its own explicit build step before `up -d` rather than `up -d --build`.
+    "${COMPOSE[@]}" build --build-arg "AIP_BUILD_REVISION=${BUILD_REVISION}" architecture-intelligence
+    "${COMPOSE[@]}" up -d architecture-intelligence otel-collector
+  else
+    "${COMPOSE[@]}" up -d --build architecture-intelligence otel-collector
+  fi
   # Built now, not by the `run --build` below: a later build would recreate the already-running
   # architecture-intelligence container in the middle of the demo.
   "${COMPOSE[@]}" build traffic-generator
