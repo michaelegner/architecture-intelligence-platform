@@ -351,8 +351,8 @@ not:
     time, observation context, applicable evidence, and the assessment rule.**
 13. **Current State must be derivable entirely from current-state evidence and qualification rules;
     Intent must never be an input to Current-State establishment.**
-15. **AIP establishes architecture locally before projecting it globally.**
-14. **Global architecture knowledge is a context-bound projection of qualified local assessments.**
+14. **AIP establishes architecture locally before projecting it globally.**
+15. **Global architecture knowledge is a context-bound projection of qualified local assessments.**
 16. **Locality and connectivity are independent: WHERE something is does not establish HOW it
     interacts.**
 17. **Emergent behavior may establish Current State; it does not establish Intent.**
