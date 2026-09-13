@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.settings import AppConfig, Secrets, Settings
+from app.version import package_version
 
 
 def _build_app():
@@ -14,6 +15,12 @@ def _build_app():
 
 
 client = TestClient(_build_app(), raise_server_exceptions=False)
+
+
+def test_openapi_reports_the_package_version():
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    assert response.json()["info"]["version"] == package_version()
 
 
 def test_health_neo4j_failure_never_leaks_exception_detail():

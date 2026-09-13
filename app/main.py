@@ -26,6 +26,7 @@ from app.mcp import wiring as mcp_wiring
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.settings import Settings, load_config, load_settings
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer
+from app.version import package_version
 
 CONFIG_PATH = Path(os.environ.get("CONFIG_PATH", "config.yaml"))
 logger = logging.getLogger("architecture_intelligence.health")
@@ -67,7 +68,9 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Builds the FastAPI app without touching env vars/Neo4j - real settings/driver only load on lifespan startup."""
-    app = FastAPI(title="Architecture Intelligence PoC", lifespan=lifespan)
+    app = FastAPI(
+        title="Architecture Intelligence PoC", version=package_version(), lifespan=lifespan
+    )
 
     app.include_router(services.router)
     app.include_router(queues.router)
