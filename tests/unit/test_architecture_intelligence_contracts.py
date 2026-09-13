@@ -31,6 +31,7 @@ from app.architecture_intelligence.contracts import (
 )
 from app.architecture_intelligence.request import (
     ArchitectureDriftRequest,
+    EvidenceRequest,
     ServiceDependenciesRequest,
 )
 
@@ -1013,6 +1014,30 @@ def test_drift_answer_rejects_extra_top_level_fields_in_both_pydantic_and_schema
         DRIFT_ANSWER_TYPE.model_validate(payload)
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(instance=payload, schema=load_drift_schema())
+
+
+def test_evidence_request_rejects_non_evidence_reference_items():
+    with pytest.raises(ValidationError) as exc_info:
+        EvidenceRequest.model_validate(
+            {
+                "evidence_refs": ["service:order-service"],
+                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
+            }
+        )
+
+    assert exc_info.value.errors()[0]["type"] == "string_pattern_mismatch"
+
+
+def test_evidence_request_rejects_oversized_reference_items():
+    with pytest.raises(ValidationError) as exc_info:
+        EvidenceRequest.model_validate(
+            {
+                "evidence_refs": ["evidence:" + "a" * 504],
+                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
+            }
+        )
+
+    assert exc_info.value.errors()[0]["type"] == "string_too_long"
 
 
 def test_drift_request_is_closed():
