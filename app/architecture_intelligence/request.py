@@ -13,6 +13,7 @@ excessive window, invalid environment) remain input-schema errors - those are re
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -20,6 +21,11 @@ from app.architecture_intelligence.contracts import _SNAPSHOT_ID_PATTERN
 
 _SERVICE_ID_PATTERN = r"^service:"
 _MAX_SERVICE_ID_LENGTH = 512
+_EVIDENCE_REF_PATTERN = r"^evidence:"
+_MAX_EVIDENCE_REF_LENGTH = 512
+_EvidenceRef = Annotated[
+    str, Field(max_length=_MAX_EVIDENCE_REF_LENGTH, pattern=_EVIDENCE_REF_PATTERN)
+]
 
 
 class ObservationContextInput(BaseModel):
@@ -76,7 +82,7 @@ class EvidenceRequest(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    evidence_refs: list[str] = Field(
+    evidence_refs: list[_EvidenceRef] = Field(
         min_length=1, max_length=20, json_schema_extra={"uniqueItems": True}
     )
     snapshot_id: str = Field(pattern=_SNAPSHOT_ID_PATTERN)

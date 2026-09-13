@@ -119,7 +119,12 @@ async def _check_mcp_name_header_mismatch_is_rejected(client: httpx.AsyncClient)
     headers = _headers(method="tools/call", name="get_evidence")
     body = _tools_call_body(
         "get_evidence",
-        {"request": {"evidence_refs": ["x"], "snapshot_id": "aip:snapshot:v1:" + "a" * 64}},
+        {
+            "request": {
+                "evidence_refs": ["evidence:missing"],
+                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
+            }
+        },
     )
     response = await client.post(
         "/mcp", headers=dict(headers, **{"mcp-name": "get_service_dependencies"}), json=body
@@ -211,6 +216,7 @@ async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> Non
     response = await client.post(
         "/mcp", headers=_headers(method="tools/list"), json=_tools_list_body()
     )
+    evidence_request_schema = None
     for tool in response.json()["result"]["tools"]:
         input_schema = tool["inputSchema"]
         assert input_schema["type"] == "object"
@@ -226,7 +232,19 @@ async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> Non
                 "ArchitectureDriftRequest",
             }:
                 assert definition["additionalProperties"] is False
+            if definition.get("title") == "EvidenceRequest":
+                evidence_request_schema = definition
         assert tool["outputSchema"]["title"].startswith("ArchitectureAnswer[")
+
+    assert evidence_request_schema is not None
+    evidence_refs_schema = evidence_request_schema["properties"]["evidence_refs"]
+    assert evidence_refs_schema["minItems"] == 1
+    assert evidence_refs_schema["maxItems"] == 20
+    assert evidence_refs_schema["uniqueItems"] is True
+    evidence_items = evidence_refs_schema["items"]
+    assert evidence_items["type"] == "string"
+    assert evidence_items["pattern"] == r"^evidence:"
+    assert evidence_items["maxLength"] == 512
 
 
 async def _check_unknown_tool_name_fails_as_protocol_error_without_reaching_a_handler(
@@ -248,7 +266,10 @@ async def _check_unexpected_top_level_argument_fails_as_protocol_error(
     body = _tools_call_body(
         "get_evidence",
         {
-            "request": {"evidence_refs": ["x"], "snapshot_id": "aip:snapshot:v1:" + "a" * 64},
+            "request": {
+                "evidence_refs": ["evidence:missing"],
+                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
+            },
             "junk": 1,
         },
     )
@@ -265,7 +286,7 @@ async def _check_malformed_nested_arguments_are_a_tool_execution_error(
     only the expected top-level key, argument-schema validation is the SDK's own verified behavior
     (spec §16: "Invalid tool arguments -> Tool execution error with isError: true") and must not be
     intercepted by the guard. `snapshot_id` is required on `EvidenceRequest` and omitted here."""
-    body = _tools_call_body("get_evidence", {"request": {"evidence_refs": ["x"]}})
+    body = _tools_call_body("get_evidence", {"request": {"evidence_refs": ["evidence:missing"]}})
     headers = _headers(method="tools/call", name="get_evidence")
     response = await client.post("/mcp", headers=headers, json=body)
     assert response.status_code == 200
@@ -283,7 +304,12 @@ async def _check_get_evidence_fails_safely_when_wiring_is_unconfigured(
     `RuntimeError` into a generic `UnexpectedToolError`, never leaking "not configured"."""
     body = _tools_call_body(
         "get_evidence",
-        {"request": {"evidence_refs": ["x"], "snapshot_id": "aip:snapshot:v1:" + "a" * 64}},
+        {
+            "request": {
+                "evidence_refs": ["evidence:missing"],
+                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
+            }
+        },
     )
     headers = _headers(method="tools/call", name="get_evidence")
     response = await client.post("/mcp", headers=headers, json=body)
@@ -431,7 +457,12 @@ async def _check_negotiated_mode_issues_no_session_id(client: httpx.AsyncClient)
 
     call_body = _negotiated_tools_call_body(
         "get_evidence",
-        {"request": {"evidence_refs": ["x"], "snapshot_id": "aip:snapshot:v1:" + "a" * 64}},
+        {
+            "request": {
+                "evidence_refs": ["evidence:missing"],
+                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
+            }
+        },
     )
     call_response = await client.post(
         "/mcp", headers=_negotiated_headers(protocol_version="2025-11-25"), json=call_body
