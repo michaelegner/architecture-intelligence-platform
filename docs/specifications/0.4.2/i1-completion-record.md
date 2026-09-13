@@ -10,15 +10,16 @@ now, after I1 and I2 are both complete, satisfying that gate.
 ## Run identity
 
 - **I1 (Dual-Mode MCP Transport):** merged to `main` as `2b6f865` (PR #135, predates I2 entirely).
-- **Retrospective candidate binding:** `279c0ae824b3a7ef9c57f99e3e29790f4ac90e1a` — current `main` HEAD
-  as of this record's authorship (I2 fully merged: PRs #136/#137/#139). This is **not** a frozen
-  `RELEASE_CANDIDATE_SHA` — that happens later in I3, per spec §4.3. If a candidate-affecting change
-  lands on `main` before that freeze, re-bind this record to the new HEAD (spec §4.4); I1's own suite
-  is unmodified and still passes at every commit since `2b6f865`, so re-binding is a citation update,
-  not a re-verification.
+- **Candidate binding:** `RELEASE_CANDIDATE_SHA = 71e2d8b954fa92430723fced302baa3666255397`, frozen
+  by I3.2 (`docs/release-validation/v0.4.2-rc.1-candidate-preparation.md`). This record was originally
+  written retrospectively against `279c0ae824b3a7ef9c57f99e3e29790f4ac90e1a` (`main` HEAD before I3.1's
+  own commits landed) and is rebound here to the actual frozen candidate — a citation update, not a
+  re-verification, per this record's own original note: I1's suite is unmodified between those two
+  SHAs (I3.1 only added new tests; it changed none of I1's existing test files), and I3.2's own
+  clean-checkout run at `71e2d8b` already reproduced the identical 998/287 counts below.
 - I1's own suite is exercised unmodified at this SHA — none of I1's test files changed since `2b6f865`.
 
-## Regression suite (full local run at the retrospective binding)
+## Regression suite (full local run at `RELEASE_CANDIDATE_SHA`)
 
 | Suite | Result |
 |---|---|
@@ -74,7 +75,7 @@ duplicates, the three existing files' broader semantic-equivalence assertions.
 
 ## I1 exit statement
 
-> GO — At `279c0ae824b3a7ef9c57f99e3e29790f4ac90e1a` (retrospective binding), AIP's direct
+> GO — At `71e2d8b954fa92430723fced302baa3666255397` (`RELEASE_CANDIDATE_SHA`, frozen by I3.2), AIP's direct
 > (`2026-07-28`) and negotiated MCP transport modes remain semantically equivalent: identical
 > `ArchitectureAnswer` results for equivalent requests, identical snapshot/evidence continuity in
 > both cross-mode directions, identical Origin/Host protection, and identical non-POST rejection
