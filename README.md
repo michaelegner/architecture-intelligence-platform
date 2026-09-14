@@ -194,6 +194,10 @@ Expected AIP findings:
 - `LegacyPricingService` — `OBSERVED_ONLY` (observed at runtime, never declared)
 - `unused-q` — `NOT_OBSERVED_IN_WINDOW` (declared, not seen in this window — never "unused" or "dead")
 
+Here's Codex CLI doing exactly that, live:
+
+![Codex CLI autonomously calling AIP's get_architecture_drift and get_evidence tools, finding LegacyPricingService as an undocumented OBSERVED_ONLY dependency and resolving its OpenTelemetry evidence — no manual per-call direction.](video/agent-demo/output/aip-agent-demo.webp)
+
 These instructions target **locally running** clients — a hosted/cloud agent usually can't reach
 your `localhost`. `/mcp` has no public-internet authentication in `v0.4.2`; keep it local or on a
 trusted network. AIP itself needs no LLM API key for this path; your client may still need its own.
