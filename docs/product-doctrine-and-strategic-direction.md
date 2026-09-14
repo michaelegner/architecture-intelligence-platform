@@ -1,8 +1,8 @@
 # AIP Product Doctrine and Strategic Direction
 
-**Status:** Working strategy — revised after lineage, roadmap, locality-boundary, and portability review<br>
+**Status:** Working strategy — revised after composition, authority, verification, temporal, and product-validation review<br>
 **Project:** Architecture Intelligence Platform (AIP)<br>
-**Date:** 2026-09-12<br>
+**Date:** 2026-09-14<br>
 **Scope:** Product doctrine, target wedge, semantic model, strategic direction, and roadmap alignment<br>
 **Current implementation center:** Evidence-qualified Current State and read-only agent context<br>
 **Important:** ROADMAP.md assigns planned themes to v0.6–v0.8; detailed scope remains subject to release-specific specifications and qualification gates.
@@ -151,7 +151,10 @@ who caused it
 whether the change was intentional
 ```
 
-Causal attribution requires separate evidence.
+Causal attribution requires separate evidence. Independent evaluation also does not guarantee
+independent evidence: re-reading an agent-edited declaration establishes what is declared, not that
+the implementation behaves accordingly. The source-independence and verification-scope boundary in
+§22 applies to this workflow.
 
 The longer-term wedge extension is:
 
@@ -305,6 +308,27 @@ time to distinguish local deviation from system-wide deviation
 
 Metrics should remain small enough to support actual product decisions.
 
+### 6.4 Pilot decision gate
+
+Validate the initial workflow on a bounded set of representative architecture tasks with and without
+AIP, using comparable source access and independently authored expected results. Record the task
+set, baseline, and success/stop thresholds before evaluating the pilot.
+
+Measure jointly:
+
+- supported-claim correctness and the proportion of questions answered usefully;
+- unresolved and unsupported outcomes, including whether abstention was justified;
+- total engineering time, including setup, source maintenance, identity mapping, and clarification;
+- independently detected post-change discrepancies and false alarms.
+
+A lower false-claim rate achieved only by returning more unresolved answers does not establish product
+value. Reduced review time must be evaluated against the added maintenance burden.
+
+Pilot criteria must support an explicit continue, narrow, defer, or stop decision. Planned releases
+remain subject to these product-value gates as well as semantic and implementation qualification;
+failed gates require a documented scope or roadmap decision. This doctrine does not claim that a
+pilot has already passed or prescribe unvalidated numerical thresholds.
+
 ---
 
 ## 7. Core Product Question
@@ -351,8 +375,9 @@ not:
 13. **Current State must be derivable entirely from current-state evidence and qualification rules;
     Intent must never be an input to Current-State establishment.**
 14. **AIP establishes architecture locally before projecting it globally.**
-15. **Global architecture knowledge is a context-bound projection of qualified local evidence
-    assessments.**
+15. **System-level Current-State views are context-bound projections of qualified evidence
+    assessments. Claims about cross-boundary interactions require their own evidence and
+    qualification rules. Intent and alignment assessments remain separate knowledge domains.**
 16. **Locality and connectivity are independent: WHERE something is does not establish HOW it
     interacts.**
 17. **Service identity, Bounded Context, deployment unit, and team boundary are distinct concepts.
@@ -526,7 +551,7 @@ There is **no `applicable_intent` field** in this assessment.
 
 The governing rule is:
 
-> **AIP qualifies what current-state evidence establishes locally before projecting it into a broader
+> **AIP qualifies what current-state evidence establishes within an explicit scope before projecting it into a broader
 > Current-State view.**
 
 Example:
@@ -599,6 +624,21 @@ Current-State Architecture Projection
 ```
 
 Intent remains on a separate path until an explicit advisory comparison is requested.
+
+### 11.1 Composition boundary
+
+Local means an explicit scope of applicability, not necessarily one service, team, or deployment.
+An assessment may span several components when the evidence and qualification rule support that scope.
+
+Projection may select and reconcile existing qualified claims. It must not silently create stronger
+claims. Any new cross-boundary or system-level claim requires its own qualification rule, applicable
+evidence, compatible identities and contexts, temporal compatibility, and explicit coverage limits.
+For example, independently established `A -> B` and `B -> C` relations do not by themselves establish
+one causal runtime flow `A -> B -> C`. Likewise, locally satisfied promises do not establish an
+end-to-end business outcome without a rule and evidence that support that outcome.
+
+Conflicting, excluded, stale, or unresolved inputs remain visible in the projection. Intent and
+Current↔Intent assessments are not derivable from Current-State projection alone.
 
 ---
 
@@ -766,8 +806,9 @@ evidence does not justify.
 
 The invariant is:
 
-> **Adding, removing, or changing an Intent artifact must not change the established Current State
-> for an unchanged evidence snapshot.**
+> **With evidence, evaluation context, identity resolution, and mapping, qualification, and projection
+> rule versions held constant, adding, removing, or changing Intent must not change established
+> Current State.**
 
 ---
 
@@ -794,7 +835,8 @@ Advisory Architecture Assessment
 
 ### 15.1 Intent authority rule
 
-> **Inference may propose architectural intent; only explicit evidence may establish it.**
+> **Inference may propose architectural intent. Explicit attributable artifacts establish candidate
+> assertions; applicable authority and lifecycle evidence determine whether they are governing Intent.**
 
 AIP should not establish intent from:
 
@@ -809,6 +851,23 @@ agent-generated rationale
 
 An inferred intent is a hypothesis, not an instruction.
 
+Attribution identifies who authored an assertion; authority establishes whether that actor may make
+that assertion for the stated scope. They must not be conflated. A requirement imposed on a service,
+a capability offered by it, and a promise made by its accountable owner are distinct assertion kinds.
+One does not imply the others.
+
+Intent applicability must account for externally evidenced approval status, authority scope,
+exceptions, effective intervals, revocation, and explicit supersession. A draft or an attributable
+but unauthorized assertion must not silently become governing Intent. An authorized exception must
+identify the assertion and scope it qualifies.
+
+When an enterprise requirement conflicts with a local promise, AIP must preserve both and report an
+unresolved authority/applicability conflict unless an explicit, attributable resolution rule or
+exception establishes precedence. AIP must not invent hierarchy from source format or specificity.
+
+AIP consumes authority and lifecycle evidence; it does not own approvals or decide who should have
+authority. Exact fields and conflict outcomes require qualification in the Intent specification.
+
 ### 15.2 Promise-oriented interpretation
 
 Promise Theory provides a useful semantic interpretation of explicit architectural intent without
@@ -817,8 +876,8 @@ making Promise Theory itself a required AIP implementation model.
 The key separation is:
 
 ```text
-EXPLICIT PROMISE
-what an autonomous component explicitly offers, accepts, requires, or commits to
+EXPLICIT INTENT ASSERTION
+an attributable requirement, capability offer, capability acceptance, constraint, or promise
 
         ≠
 
@@ -832,9 +891,14 @@ what that evidence supports about the relationship between promise and cooperati
 in a given locality and time
 ```
 
+A promise is a distinct Intent Assertion with an explicit promiser, promised behavior or capability,
+conditions, and an identified recipient or audience where applicable. A requirement expressed by a
+consumer does not establish a provider's promise to satisfy it. Offers, acceptances, and requirements
+retain their own assertion kinds and attributable actors; none is silently converted into another.
+
 AIP does not assign promises to autonomous components. It preserves explicit, attributable promise
-artifacts where available and assesses how the observed or declared cooperation relates to those
-promises.
+artifacts where available, applies the authority and lifecycle rules in §15.1, and assesses how the
+observed or declared cooperation relates to the applicable promises.
 
 AIP should therefore prefer statements of the form:
 
@@ -895,7 +959,8 @@ provenance
 
 Intent applicability is independent of Current-State observation context. An intent assertion may be
 effective during an interval while the Current-State evidence used to assess it comes from a
-different, explicitly recorded observation window.
+different, explicitly recorded observation window. Recording both intervals is necessary but not
+sufficient: their use together must pass an explicit temporal-compatibility rule (see §16).
 
 OpenAPI Overlay should therefore be treated as **one carrier**, not as the AIP intent model.
 
@@ -959,6 +1024,7 @@ IntentAlignmentAssessment(
     current_state_ref,
     current_assessment_refs,
     intent_assertion_ref,
+    intent_projection_ref,  // identifies the versioned applicable Intent projection
     evaluation_context,
     evaluated_at,
 
@@ -979,6 +1045,18 @@ IntentAlignmentAssessment(
     limitations
 )
 ```
+
+### Temporal comparability
+
+Assessment requires explicit temporal compatibility between evidence and Intent, including relevant
+service/deployment versions. Evidence from before an Intent became effective does not by itself
+establish present compliance or violation. For partially overlapping windows, an assessment may use
+only a qualified overlapping portion; if the evidence cannot be separated safely, the comparison
+remains inconclusive. Extrapolation requires a separately qualified rule and explicit limitations.
+
+Incompatible, stale, or insufficient temporal coverage must produce an inconclusive assessment rather
+than an assertion that a promise is kept or broken. Release-specific specifications must freeze the
+compatibility and coverage rules before qualification fixtures are authored.
 
 The two temporal dimensions remain independent:
 
@@ -1216,11 +1294,16 @@ Current-State Projection lineage:
   evidence-only; established independently
 
 Applicable Intent Projection lineage:
-  ├── Explicit Intent Assertion(s)
+  ├── Versioned Intent projection identity
+  ├── Explicit Intent Assertion(s) + source revisions
   ├── Intent source artifact(s)
   ├── Intent mapping rule + version
-  ├── Intent scope
+  ├── Intent scope + evaluation context
   ├── effective_from / effective_until
+  ├── Authority evidence + authority scope
+  ├── Lifecycle evidence (approval status, exceptions, revocation, supersession)
+  ├── Applicability / precedence rule identity + version
+  ├── Unresolved authority / applicability conflicts and limitations
   └── Intent provenance
 
 Qualified Current ↔ Intent Assessment
@@ -1234,6 +1317,19 @@ Qualified Current ↔ Intent Assessment
 ├── Provenance
 └── Limitations
 ```
+
+Each applicable Intent projection must have a versioned identity bound to the exact assertion
+revisions, authority and lifecycle evidence, evaluation context, and mapping/applicability rule
+versions used. These dependencies must be explicitly referenced in its lineage rather than left
+implicit in a generic provenance field. Missing or unresolved authority evidence remains a limitation,
+not an assumed approval.
+
+A Current↔Intent assessment must reference that exact projection identity. For example, revoking an
+exception must produce a distinguishable Intent projection even when the assertion text and Current
+State remain unchanged. Resolving an assessment's lineage must not silently substitute the latest
+authority or lifecycle status for the version used at evaluation. Historical retrieval and retention
+remain governed by the roadmap; where prior dependencies are unavailable, AIP must explicitly report
+that the earlier assessment cannot be reproduced rather than claim historical replay.
 
 The assessment DAG may reference both paths, but it must never create a back-edge from Intent into
 Current-State establishment.
@@ -1390,9 +1486,19 @@ AIP establishes the post-change architecture state
 AIP re-assesses the Current ↔ Intent difference
 ```
 
-This supports independent verification.
+This supports independent evaluation of post-change evidence within the supported claim scope.
+Independent evaluation does not imply independent evidence, and neither implies complete verification
+of a change.
 
-It does not by itself establish causality.
+If an agent changes both code and an API contract, re-importing that contract establishes a new
+DECLARED state. It does not independently confirm implementation or runtime behavior. An assessment
+must identify which aspects are supported by declarations, implementation-derived evidence,
+infrastructure evidence, or observations, and disclose shared origins or dependencies where known.
+Distinct source formats alone do not establish source independence; unknown independence must remain
+explicit. No unsupported corroboration may be inferred from multiple representations of one assertion.
+
+Post-change results must state what was evaluated, which sources support it, and what remains
+unverified. They do not by themselves establish causality or overall change correctness.
 
 ---
 
@@ -1755,12 +1861,15 @@ distributed assessor as deployment architecture
 
 ### 26.3 v0.7 and v0.8 are planned capabilities
 
-Explicit Intent and Qualified Current↔Intent Assessment are no longer unallocated hypotheses.
+Explicit Intent and Qualified Current↔Intent Assessment are planned capabilities, not unallocated
+ideas. Planned scope, authorization to execute a release, and qualification for the stable v1.0
+contract are distinct decisions. Planned status does not establish customer value or waive the
+product and qualification gates.
 
 v0.7 must implement and qualify the independent Intent path while preserving the invariant:
 
-> **For an unchanged evidence snapshot, adding, removing, or changing an Intent artifact must not
-> change established Current State.**
+> **With evidence, evaluation context, identity resolution, and mapping, qualification, and projection
+> rule versions held constant, changing Intent must not change established Current State.**
 
 v0.8 must implement and qualify the separate Current↔Intent assessment path over the two independent
 projections.
@@ -1787,9 +1896,10 @@ reduced in scope and re-qualified
 removed from the v1.0 contract
 ```
 
-No additional "roadmap change" is required merely to implement v0.7 Intent or v0.8 Assessment;
-those capabilities are now part of the planned roadmap. A roadmap change is required only if their
-release assignment or product boundary is changed materially.
+No additional roadmap change is required merely to specify and implement the planned v0.7 Intent or
+v0.8 Assessment capabilities. Product-value and qualification gates still apply. A failed gate must
+result in a documented decision to narrow, defer, or remove scope; material changes to release
+assignment or product boundary must also be reflected in ROADMAP.md.
 
 ### 26.5 Beyond v1.0, unscheduled
 
@@ -1997,7 +2107,8 @@ AIP should not design migration execution before Current State and any future In
 
 > **For platform engineering and architecture teams enabling coding agents across multi-service
 > systems, AIP provides bounded, evidence-qualified architecture context before a change and
-> independent architecture verification afterward.**
+> independent evaluation of available architecture evidence afterward, with the supported scope and
+> remaining verification gaps made explicit.**
 
 ### Boundary statement
 
@@ -2074,7 +2185,12 @@ The most important conceptual insight is:
 
 And the corresponding long-term product principle is:
 
-> **Global architecture knowledge is a context-bound projection of qualified local assessments.**
+> **System-level Current-State views are context-bound projections of qualified evidence assessments.
+> Claims about cross-boundary interactions require their own evidence and qualification rules.**
+
+This principle applies to Current-State views; explicit Intent and alignment assessments remain
+separate knowledge domains. Locality alone does not make a claim composable or establish an
+enterprise outcome.
 
 This makes locality, time, provenance, and observer context first-class without turning AIP into a
 general knowledge-representation system.
@@ -2107,9 +2223,9 @@ Qualify local Current-State assertions from evidence.
         ↓
 Project those assessments into contextual Current-State views.
         ↓
-Validate whether explicit Intent is a valuable separate product capability.
+Implement the planned independent Intent capability, subject to product-value and qualification gates.
         ↓
-If justified, compare established Current State with applicable Intent.
+Implement the planned separate Current↔Intent assessment, subject to the same gates.
         ↓
 Freeze and production-qualify only the contracts that actually exist.
         ↓

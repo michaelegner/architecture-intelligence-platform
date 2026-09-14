@@ -290,6 +290,9 @@ Key requirements:
 - keep observation window separate from any future Intent effective interval;
 - make projection completeness and limitations explicit;
 - prevent locally established claims from being silently promoted into universal/global facts;
+- treat local as an explicit scope, which may span components when supported by evidence;
+- require separate applicable evidence and qualification rules for new cross-boundary or system-level
+  claims; composing local results alone does not establish causal flows or end-to-end outcomes;
 - keep place/locality and connectivity independent (`WHERE != HOW`);
 - prove that adding locality does not weaken deterministic replay, evidence provenance, or
   unsupported/unresolved semantics.
@@ -313,8 +316,8 @@ locality-aware and independently qualified.
 
 The governing invariant is:
 
-> **For an unchanged evidence snapshot, adding, removing, or changing an Intent artifact must not
-> change the established Current State.**
+> **With evidence, evaluation context, identity resolution, and mapping, qualification, and projection
+> rule versions held constant, changing Intent must not change established Current State.**
 
 Conceptually:
 
@@ -337,8 +340,22 @@ Intent Assertion
 Applicable Intent Projection
 ```
 
-Candidate Intent semantics include explicit promises/capabilities, constraints, required or
-prohibited relationships, scope, effective interval, and provenance.
+Candidate Intent semantics include explicit promises, capability offers and acceptances, requirements,
+constraints, required or prohibited relationships, scope, effective interval, and provenance.
+Requirements, offers, acceptances, and promises retain distinct assertion kinds and attributable
+actors. A consumer requirement does not establish a provider promise; a promise identifies its
+promiser, content, conditions, and recipient or audience where applicable.
+
+Intent applicability must distinguish authorship from authority and account for externally evidenced
+approval status, authority scope, exceptions, revocation, and explicit supersession. Conflicting or
+missing authority remains unresolved unless an explicit applicable resolution rule establishes
+precedence. AIP consumes these decisions and does not own approval workflows.
+
+Each applicable Intent projection requires a versioned identity and explicit lineage references to
+its assertion revisions, authority/lifecycle evidence, evaluation context, and mapping/applicability
+rule versions. Revoking an exception must produce a distinguishable projection even if the Intent
+text remains unchanged. Identity/versioning does not promise historical retention or retrieval;
+unavailable prior dependencies must be reported explicitly.
 
 Potential carriers may include OpenAPI Overlay, AsyncAPI-compatible explicit extensions/artifacts,
 standalone AIP Intent artifacts, OpenSpec, or other attributable machine-readable specifications.
@@ -350,8 +367,9 @@ co-location, probabilistic interpretation, or agent-generated rationale.
 
 Exit capability:
 
-> **AIP can ingest explicit architectural Intent with provenance, scope, and effective applicability
-> without treating that Intent as evidence of Current State.**
+> **AIP can ingest distinct, attributable Intent assertions and establish their applicability from
+> authority, lifecycle, scope, and time evidence, preserving versioned projection identity and lineage
+> without treating Intent as evidence of Current State.**
 
 No Current↔Intent compliance/enforcement engine, historical trajectory model, migration scripting,
 or automatic remediation is required in v0.7.
@@ -398,6 +416,22 @@ effective_from / effective_until
     = when the explicit Intent applies
 ```
 
+Assessment also requires explicit temporal compatibility between evidence and Intent, including
+relevant service/deployment versions. Evidence predating an Intent's effective interval does not by
+itself establish present fulfillment or violation. Partial overlaps require a qualified comparable
+portion; otherwise the result remains inconclusive. Compatibility and coverage rules must be frozen
+before qualification fixtures are authored.
+
+Each assessment must reference the exact Current-State and versioned applicable-Intent projections
+used, with their rule and evidence lineage. It must not silently replace earlier authority/lifecycle
+inputs with their latest status. Where dependencies are unavailable, reproducibility limitations
+must be explicit; historical retrieval remains beyond v1.0.
+
+Independent evaluation does not imply independent evidence or complete verification of a change.
+Assessments must preserve source modes and disclose known shared origins or unknown independence.
+Re-importing an agent-edited contract establishes a declaration, not independent confirmation of
+implementation or runtime behavior.
+
 Possible assessment outcomes may include concepts such as `ESTABLISHED`, `CONTRADICTED`,
 `NOT_ESTABLISHED`, `INSUFFICIENT_EVIDENCE`, and `CONFLICTING_EVIDENCE`, but the exact public
 vocabulary must not be frozen until deterministic truth tables and independently authored evaluation
@@ -437,9 +471,11 @@ Qualification/freeze scope includes, where actually implemented and accepted:
 - Canonical Model compatibility review
 - Current-State evidence and qualification semantics
 - locality/context semantics and Current-State projection contracts
-- explicit Intent and applicable-Intent projection contracts
+- explicit Intent assertion kinds, authority/lifecycle applicability, and versioned projection contracts
 - qualified Current↔Intent assessment contracts
-- derivation-lineage and evidence/provenance requirements
+- derivation-lineage and evidence/provenance requirements, including authority/lifecycle evidence
+  references, rule versions, and exact projection binding
+- temporal compatibility and coverage rules for Current↔Intent assessment
 - REST and MCP contract stabilization
 - Graph Schema stabilization
 - Adapter SPI stabilization
@@ -503,7 +539,8 @@ The ordering is semantic, not merely chronological:
 
 1. broader evidence must be trustworthy before it is used to establish more Current State;
 2. locality-aware Current State must remain independently derivable before Intent exists;
-3. Intent must be explicit and attributable before AIP compares Current State with it;
+3. Intent must be explicit, attributable, and qualified for authority, lifecycle, scope, and time
+   applicability before AIP compares Current State with it;
 4. Current↔Intent assessment must remain read-only and downstream of both independent projections;
 5. only implemented and qualified contracts are frozen for v1.0.
 
@@ -516,6 +553,23 @@ answered `NO`, so that gate did not block.
 None of the above are committed dates — this is a planning sequence, not a schedule. The detailed
 scope of each planned release remains subject to its release specification and qualification gate;
 the semantic dependency between the release themes is the stable part of this roadmap.
+
+## Product validation gates
+
+Planned scope, authorization to execute a release, and qualification for the stable v1.0 contract are
+separate decisions. Planned status does not waive product-value or technical qualification gates.
+
+Validate representative architecture tasks with and without AIP using comparable source access and
+independently authored expected results. Define baselines and success/stop thresholds before the
+pilot. Assess correctness together with useful answer coverage, justified abstention, false alarms,
+and total engineering effort including setup, source maintenance, identity mapping, and clarification.
+Reducing false claims only by returning more unresolved answers does not establish product value.
+
+Record a continue, narrow, defer, or stop decision when evaluating these gates. Failed gates require
+a documented scope decision and, where release assignment or product boundaries change materially,
+a corresponding roadmap update. Apply these gates before accepting affected capabilities into the
+stable contract. Detailed pilot design belongs in release-specific specifications; see
+[Product Doctrine §6.4](docs/product-doctrine-and-strategic-direction.md#64-pilot-decision-gate).
 
 ## Future (beyond v1.0, unscheduled)
 
