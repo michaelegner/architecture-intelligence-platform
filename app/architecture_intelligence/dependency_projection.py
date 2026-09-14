@@ -14,6 +14,7 @@ from datetime import datetime
 from app.analysis.runtime import ServiceTelemetryCoverage
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from app.architecture_intelligence.contracts import (
+    CLAIM_ID_PREFIX,
     Coverage,
     DeliveryKind,
     DeliveryRef,
@@ -44,7 +45,7 @@ def compute_claim_id(
         "delivery_via_id": delivery_via_id,
     }
     digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
-    return f"aip:claim:v1:{digest}"
+    return f"{CLAIM_ID_PREFIX}{digest}"
 
 
 def _qualify(
