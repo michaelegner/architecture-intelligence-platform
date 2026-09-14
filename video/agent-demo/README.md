@@ -62,8 +62,10 @@ terminal mockup** — this repo's established discipline for this kind of asset
 
 Create these exact files before rendering:
 
-- `captures/01-connect-tella.mp4` — at least 8 seconds
-- `captures/02-toolcalls-tella.mp4` — at least 18 seconds
+- `captures/01-connect-tella.mp4` — at least 9 seconds (the renderer trims a 0.3s lead-in and needs
+  8s of output after that, so it rejects anything under 8.3s — record comfortably above that)
+- `captures/02-toolcalls-tella.mp4` — at least 19 seconds (same 0.3s lead-in trim, needs 18s of
+  output after that — rejects anything under 18.3s)
 
 Record from a clean `examples/runtime-demo/mcp-demo.sh --serve`, in one continuous Codex CLI session
 split into two clips:

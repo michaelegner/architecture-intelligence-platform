@@ -58,11 +58,11 @@ TOOLCALLS_LEN=${D_TOOLCALLS}
 TOOLCALLS_CROP="crop=iw:ih:0:0"
 
 # Minimums must cover the trim window actually consumed (START + LEN), not just the output
-# duration - otherwise an exactly-contract-compliant capture (matching captures/README.md's
-# stated 8s/18s) would have less footage available after the START offset than LEN needs,
-# and ffmpeg would silently pad the shortfall with cloned frames despite this check's intent
-# to reject exactly that. captures/README.md's stated minimums stay 8s/18s (the output
-# duration a viewer actually sees); this script's own enforcement is intentionally stricter.
+# duration - otherwise a capture at the old, looser 8s/18s minimum would have had less footage
+# available after the START offset than LEN needs, and ffmpeg would silently pad the shortfall
+# with cloned frames despite this check's intent to reject exactly that. captures/README.md's
+# stated minimums (9s/19s) already build in a safety margin above this exact 8.3s/18.3s
+# threshold - keep both in sync if either changes.
 MIN_CONNECT_SECONDS=$(awk -v s="${CONNECT_START}" -v l="${CONNECT_LEN}" 'BEGIN{printf "%.2f", s+l}')
 MIN_TOOLCALLS_SECONDS=$(awk -v s="${TOOLCALLS_START}" -v l="${TOOLCALLS_LEN}" 'BEGIN{printf "%.2f", s+l}')
 
