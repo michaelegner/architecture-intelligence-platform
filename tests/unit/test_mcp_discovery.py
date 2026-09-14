@@ -36,11 +36,18 @@ import httpx
 import pytest
 from mcp.server import MCPServer
 
+from app.mcp import guard as guard_module
+from app.mcp import server as server_module
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
-from app.mcp.tools import register_tools
+from app.mcp.tools import TOOL_NAMES, register_tools
 
 _ALLOWED_ORIGIN = "http://localhost"
 _ALLOWED_HOST = "localhost"
+
+
+def test_tool_names_are_single_sourced() -> None:
+    assert server_module.TOOL_NAMES is TOOL_NAMES
+    assert guard_module.TOOL_NAMES is TOOL_NAMES
 
 
 def _headers(

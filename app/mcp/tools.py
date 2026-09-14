@@ -57,6 +57,8 @@ from app.architecture_intelligence.request import (
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.mcp import wiring
 
+TOOL_NAMES = ("get_architecture_drift", "get_evidence", "get_service_dependencies")
+
 _READ_ONLY_ANNOTATIONS = ToolAnnotations(
     read_only_hint=True,
     destructive_hint=False,
@@ -172,7 +174,7 @@ def register_tools(
         _reject_malformed_observation_context(request.observation_context)
         return get_service().get_service_dependencies(request)
 
-    for tool_name in ("get_architecture_drift", "get_evidence", "get_service_dependencies"):
+    for tool_name in TOOL_NAMES:
         _close_input_schema(server, tool_name)
 
 

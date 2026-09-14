@@ -117,11 +117,13 @@ from mcp_types.jsonrpc import INVALID_PARAMS, INVALID_REQUEST, METHOD_NOT_FOUND,
 from mcp_types.version import MODERN_PROTOCOL_VERSIONS
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from app.mcp.server import TOOL_NAMES
+from app.mcp.tools import TOOL_NAMES
 
 MCP_PATH = "/mcp"
 _EXPECTED_ARGUMENT_KEY = "request"
 _DEFAULT_HTTP_STATUS = 400
+_MAX_REQUEST_BODY_BYTES = 1024 * 1024
+_PAYLOAD_TOO_LARGE_STATUS = 413
 
 # The closed set of methods direct mode has ever actually implemented (see module docstring's
 # "These markers are not AIP-proprietary" section for why this allowlist exists at all - a
@@ -210,7 +212,19 @@ class ModernProtocolGuard:
         more_body = True
         while more_body:
             message = await receive()
-            body += message.get("body", b"")
+            chunk = message.get("body", b"")
+            if len(body) + len(chunk) > _MAX_REQUEST_BODY_BYTES:
+                await _send_json_error(
+                    send,
+                    _PAYLOAD_TOO_LARGE_STATUS,
+                    _error_body(
+                        None,
+                        INVALID_REQUEST,
+                        "Request body exceeds the maximum allowed size",
+                    ),
+                )
+                return
+            body += chunk
             more_body = message.get("more_body", False)
 
         async def replay_receive() -> dict[str, Any]:
