@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 WIDTH = 1200
-HEIGHT = 676  # even, libx264/yuv420p requires it; matches video/readme-demo/'s framing
+HEIGHT = 676  # even, libx264/yuv420p requires it; matches the readme-demo package's framing
 
 # Palette reused verbatim from video/readme-demo/render.py (itself reused from
 # video/v0.4.0-linkedin/render.py) -- do not diverge from these values, they are the

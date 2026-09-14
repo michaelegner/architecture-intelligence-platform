@@ -57,9 +57,14 @@ TOOLCALLS_START=0.3
 TOOLCALLS_LEN=${D_TOOLCALLS}
 TOOLCALLS_CROP="crop=iw:ih:0:0"
 
-# Minimums match the capture contract's own required lengths (captures/README.md).
-MIN_CONNECT_SECONDS=8
-MIN_TOOLCALLS_SECONDS=18
+# Minimums must cover the trim window actually consumed (START + LEN), not just the output
+# duration - otherwise an exactly-contract-compliant capture (matching captures/README.md's
+# stated 8s/18s) would have less footage available after the START offset than LEN needs,
+# and ffmpeg would silently pad the shortfall with cloned frames despite this check's intent
+# to reject exactly that. captures/README.md's stated minimums stay 8s/18s (the output
+# duration a viewer actually sees); this script's own enforcement is intentionally stricter.
+MIN_CONNECT_SECONDS=$(awk -v s="${CONNECT_START}" -v l="${CONNECT_LEN}" 'BEGIN{printf "%.2f", s+l}')
+MIN_TOOLCALLS_SECONDS=$(awk -v s="${TOOLCALLS_START}" -v l="${TOOLCALLS_LEN}" 'BEGIN{printf "%.2f", s+l}')
 
 probe_duration() {
   local f="$1"
@@ -86,7 +91,7 @@ check_capture() {
   local duration
   duration="$(probe_duration "${capture}")"
   if awk -v d="${duration}" -v m="${min_seconds}" 'BEGIN { exit !(d < m) }'; then
-    printf 'error: %s is %.2fs, shorter than the required %ds minimum\n' \
+    printf 'error: %s is %.2fs, shorter than the required %.2fs minimum\n' \
       "${capture}" "${duration}" "${min_seconds}" >&2
     printf 'ffmpeg would silently pad the shortfall with cloned frames - re-record instead\n' >&2
     exit 1

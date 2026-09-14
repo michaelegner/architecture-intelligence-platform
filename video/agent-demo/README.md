@@ -1,7 +1,14 @@
 # AIP — Agent-in-Action Demo
 
-This production package builds a short (~39 second, silent, 1200×676 landscape) animation embedded
-in `README.md`'s "Connect AIP to Your Coding Agent" section. Like
+**Status: pipeline built, not yet rendered.** The two required real captures
+(`captures/01-connect-tella.mp4`, `captures/02-toolcalls-tella.mp4`) have not been recorded yet, so
+`output/aip-agent-demo.webp` does not exist and `README.md` does not embed it yet — embedding a
+reference to a file that doesn't exist would be a broken image on GitHub. Once the real captures are
+recorded (see "Required Codex CLI captures" below) and `render-video.sh` produces the final WebP, a
+follow-up change adds the actual `README.md` embed.
+
+This production package builds a short (~39 second, silent, 1200×676 landscape) animation intended
+for `README.md`'s "Connect AIP to Your Coding Agent" section. Like
 [`video/readme-demo/`](../readme-demo/), it carries no version number, release badge, or scene
 counter — it demonstrates a durable capability (a coding agent using AIP's tools on its own), not a
 release-specific claim, so it should not need re-cutting on the next release.
@@ -18,28 +25,33 @@ Claude Code, Cursor, and VS Code instead.
 
 ## Deliverables
 
-Everything below is committed to the repo **except** the MP4 and the raw captures, which are
-gitignored (repo-wide `*.mp4` rule) as regenerable/source build artifacts, exactly like
-`video/v0.4.0-linkedin/`'s and `video/readme-demo/`'s own packages:
+Once the real captures exist and `render-video.sh` has been run, everything below will be committed
+to the repo **except** the MP4 and the raw captures, which are gitignored (repo-wide `*.mp4` rule)
+as regenerable/source build artifacts, exactly like `video/v0.4.0-linkedin/`'s and
+`video/readme-demo/`'s own packages. Currently committed: `render.py`, `render-video.sh`, this
+README, `captures/README.md`, `scenes/*.svg`/`*.png`, and `storyboard.png`. Not yet committed
+(pipeline exists, awaiting the real captures): `output/aip-agent-demo.webp`,
+`output/aip-agent-demo-poster.png`.
 
 - `output/aip-agent-demo.mp4` — silent H.264 master, source quality, **not committed** — rebuild
   locally with `render-video.sh` if you need it
-- `output/aip-agent-demo.webp` — animated WebP, **committed** — this is what `README.md` actually
-  embeds
-- `output/aip-agent-demo-poster.png` — committed, static first-frame poster for slow connections
+- `output/aip-agent-demo.webp` — animated WebP — **will be committed** once rendered; this is what
+  `README.md` will embed
+- `output/aip-agent-demo-poster.png` — **will be committed** once rendered, a static first-frame
+  poster for slow connections
 - `storyboard.png` — committed, 3×2 contact sheet for reviewing all five scenes at once
 - `scenes/*.png` — committed, rendered scene backplates
 - `scenes/*.svg` — committed, editable vector sources
 - `render.py` / `render-video.sh` — committed, reproducible renderers
 - `captures/*.mp4` — **not committed** — the real Codex CLI screen recordings (see below)
 
-## Why the WebP, not the MP4, is what's embedded in `README.md`
+## Why the WebP, not the MP4, will be what's embedded in `README.md`
 
 Same reasoning as `video/readme-demo/README.md`: GitHub only autoplays `<video>`-tag content
 uploaded through its own web-UI drag-and-drop pipeline, not a `<video src="...">` pointing at an
 ordinary committed repo path. A plain markdown image reference to an **animated WebP**
 (`![alt](path.webp)`) autoplays and loops via ordinary browser `<img>` animated-image behavior — the
-same mechanism animated GIFs use. So `README.md` references
+same mechanism animated GIFs use. So once rendered, `README.md` will reference
 `video/agent-demo/output/aip-agent-demo.webp` directly with `![]()` syntax, never a `<video>` tag.
 
 ## Required Codex CLI captures
