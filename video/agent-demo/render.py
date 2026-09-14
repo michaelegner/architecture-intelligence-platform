@@ -23,13 +23,17 @@ PURPLE = "#8B5CF6"
 RED = "#FB7185"
 
 # Placeholder panel geometry -- render-video.sh composites the real Tella captures into
-# this exact rectangle on scenes 02 and 03. Keep these two definitions in sync. Identical
-# to video/readme-demo/render.py's own PANEL_* -- same panel size reads well at the same
-# 1200x676 frame, no reason to diverge.
+# this exact rectangle on scenes 02 and 03. Keep these two definitions in sync. Deliberately
+# PANEL_H=404, not readme-demo/render.py's PANEL_H=405: an odd height is invalid for yuv420p
+# (chroma planes are subsampled by 2 in both dimensions), and real captures decode as yuv420p
+# - discovered when compositing genuine Tella footage into this panel produced "Padded
+# dimensions cannot be smaller than input dimensions" from ffmpeg's pad filter on every frame
+# past the first. Confirmed via isolated ffmpeg tests: the exact same scale+pad chain succeeds
+# at PANEL_H=404 and fails at 405, regardless of crop/scale details.
 PANEL_X = 60
 PANEL_Y = 198
 PANEL_W = 1080
-PANEL_H = 405
+PANEL_H = 404
 
 ROOT = Path(__file__).resolve().parent
 SCENES_DIR = ROOT / "scenes"

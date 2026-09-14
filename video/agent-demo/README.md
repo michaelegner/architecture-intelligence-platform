@@ -1,11 +1,8 @@
 # AIP — Agent-in-Action Demo
 
-**Status: pipeline built, not yet rendered.** The two required real captures
-(`captures/01-connect-tella.mp4`, `captures/02-toolcalls-tella.mp4`) have not been recorded yet, so
-`output/aip-agent-demo.webp` does not exist and `README.md` does not embed it yet — embedding a
-reference to a file that doesn't exist would be a broken image on GitHub. Once the real captures are
-recorded (see "Required Codex CLI captures" below) and `render-video.sh` produces the final WebP, a
-follow-up change adds the actual `README.md` embed.
+**Status: rendered.** The two required real Codex CLI captures have been recorded and composited;
+`output/aip-agent-demo.webp` exists and `README.md`'s "Connect AIP to Your Coding Agent" section
+embeds it.
 
 This production package builds a short (~39 second, silent, 1200×676 landscape) animation intended
 for `README.md`'s "Connect AIP to Your Coding Agent" section. Like
@@ -25,33 +22,27 @@ Claude Code, Cursor, and VS Code instead.
 
 ## Deliverables
 
-Once the real captures exist and `render-video.sh` has been run, everything below will be committed
-to the repo **except** the MP4 and the raw captures, which are gitignored (repo-wide `*.mp4` rule)
-as regenerable/source build artifacts, exactly like `video/v0.4.0-linkedin/`'s and
-`video/readme-demo/`'s own packages. Currently committed: `render.py`, `render-video.sh`, this
-README, `captures/README.md`, `scenes/*.svg`/`*.png`, and `storyboard.png`. Not yet committed
-(pipeline exists, awaiting the real captures): `output/aip-agent-demo.webp`,
-`output/aip-agent-demo-poster.png`.
+Everything below is committed to the repo **except** the MP4 and the raw captures, which are
+gitignored (repo-wide `*.mp4` rule) as regenerable/source build artifacts, exactly like
+`video/v0.4.0-linkedin/`'s and `video/readme-demo/`'s own packages:
 
 - `output/aip-agent-demo.mp4` — silent H.264 master, source quality, **not committed** — rebuild
   locally with `render-video.sh` if you need it
-- `output/aip-agent-demo.webp` — animated WebP — **will be committed** once rendered; this is what
-  `README.md` will embed
-- `output/aip-agent-demo-poster.png` — **will be committed** once rendered, a static first-frame
-  poster for slow connections
+- `output/aip-agent-demo.webp` — animated WebP, **committed** — this is what `README.md` embeds
+- `output/aip-agent-demo-poster.png` — committed, static first-frame poster for slow connections
 - `storyboard.png` — committed, 3×2 contact sheet for reviewing all five scenes at once
 - `scenes/*.png` — committed, rendered scene backplates
 - `scenes/*.svg` — committed, editable vector sources
 - `render.py` / `render-video.sh` — committed, reproducible renderers
 - `captures/*.mp4` — **not committed** — the real Codex CLI screen recordings (see below)
 
-## Why the WebP, not the MP4, will be what's embedded in `README.md`
+## Why the WebP, not the MP4, is what's embedded in `README.md`
 
 Same reasoning as `video/readme-demo/README.md`: GitHub only autoplays `<video>`-tag content
 uploaded through its own web-UI drag-and-drop pipeline, not a `<video src="...">` pointing at an
 ordinary committed repo path. A plain markdown image reference to an **animated WebP**
 (`![alt](path.webp)`) autoplays and loops via ordinary browser `<img>` animated-image behavior — the
-same mechanism animated GIFs use. So once rendered, `README.md` will reference
+same mechanism animated GIFs use. So `README.md` references
 `video/agent-demo/output/aip-agent-demo.webp` directly with `![]()` syntax, never a `<video>` tag.
 
 ## Required Codex CLI captures
@@ -142,12 +133,31 @@ package (`output/`, a `mktemp -d` inside `${ROOT}`) rather than the system `/tmp
 autonomous tool calls (real capture) → result → CTA. Transitions are 0.35s fades through the
 background color (`#0B1020`), matching `video/readme-demo/`'s convention.
 
-**Crop windows are untuned placeholders.** `render-video.sh`'s `CONNECT_CROP`/`TOOLCALLS_CROP`
-currently default to "no crop, just scale to fit" because no real footage exists yet. Once the two
-captures above are recorded, re-derive these the same way `video/readme-demo/README.md` documents:
-extract a frame or two (e.g. `ffmpeg -i <capture> -frames:v 1 <out>.png`, written under this
-package's directory, not `/tmp`), eyeball where the decisive terminal content sits, and crop tightly
-to it so the composited text reads at a legible size instead of shrinking to a sliver of the panel.
+**Crop windows are tuned against the real captures.** `render-video.sh`'s `CONNECT_CROP`/
+`TOOLCALLS_CROP` were derived the same way `video/readme-demo/README.md` documents: extract a frame
+or two (e.g. `ffmpeg -i <capture> -frames:v 1 <out>.png`, written under this package's directory, not
+`/tmp` — both recordings' source app windows use OBS's private `/tmp` mount, invisible to a
+snap-packaged `ffmpeg`, on at least one environment this was tuned in), eyeball where the decisive
+terminal content sits, and crop tightly to it. Both source recordings are full 1920×1080 app windows,
+not tightly-framed terminals, so a full-frame "no crop, scale to fit" leaves most of the panel empty
+— re-derive these values the same way if the captures are ever re-recorded.
+
+Two other environment-specific findings from tuning against real footage, in case they recur
+elsewhere:
+
+- **`PANEL_H` must be even.** An odd panel height is invalid for yuv420p (chroma planes are
+  subsampled by 2 in both dimensions) — real captures decode as yuv420p, and compositing them
+  produced ffmpeg's `pad` filter failing with "Padded dimensions cannot be smaller than input
+  dimensions" on every frame past the first. This is why this package's `PANEL_H` is `404`, not
+  `video/readme-demo/render.py`'s `405` — confirmed via isolated tests that the identical filter
+  chain fails at height 405 and succeeds at 404, independent of crop/scale details.
+- **ImageMagick's `policy.xml` "area" resource is a hard per-invocation ceiling** (commonly 256
+  megapixels) that a CLI `-limit` flag can only lower, never raise. On environments where `ffmpeg`
+  lacks a native `libwebp` encoder (this script's fallback path), building one animated WebP from
+  every extracted frame can exceed it for a clip this long, corrupting the output silently ("cache
+  resources exhausted" during the build, then "image data not found" reading the result back) rather
+  than failing loudly. `WEBP_FPS` is deliberately lower here (`7`) than `video/readme-demo`'s `13` to
+  keep the total frame count safely under that ceiling at this package's longer ~39s runtime.
 
 ## Acceptance criteria
 

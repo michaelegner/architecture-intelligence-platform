@@ -39,23 +39,22 @@ FADE_OUT_CTA=$(awk -v d="${D_CTA}" -v f="${FADE}" 'BEGIN{printf "%.2f", d-f}')
 PANEL_X=60
 PANEL_Y=198
 PANEL_W=1080
-PANEL_H=405
+PANEL_H=404
 
-# Crop windows into the real captures. UNTUNED PLACEHOLDERS: no real footage exists yet,
-# so these default to "no crop, just scale to fit the panel" rather than a guessed crop
-# rectangle. Once captures/01-connect-tella.mp4 and captures/02-toolcalls-tella.mp4 are
-# recorded, re-derive these the same way video/readme-demo/render-video.sh's own
-# DRIFT_CROP/EVIDENCE_CROP were derived: extract a frame or two (e.g. `ffmpeg -i <capture>
-# -frames:v 1 <out>.png`, written under this package's directory, not /tmp - see README),
-# eyeball where the decisive terminal content sits, and crop tightly to it so the
-# composited text reads at a legible size instead of shrinking to a sliver of the panel.
+# Crop windows into the real captures, derived by extracting frames across each clip's used
+# window and eyeballing where the decisive terminal content sits (same method
+# video/readme-demo/render-video.sh's own DRIFT_CROP/EVIDENCE_CROP were derived by). Both
+# recordings are full-1920x1080 app windows, not a tightly-framed terminal, so a full-frame
+# "no crop" scale-to-fit leaves most of the panel empty. Re-derive if the captures are
+# re-recorded: `ffmpeg -i <capture> -frames:v 1 <out>.png`, written under this package's
+# directory, not /tmp (see README).
 CONNECT_START=0.3
 CONNECT_LEN=${D_CONNECT}
-CONNECT_CROP="crop=iw:ih:0:0"
+CONNECT_CROP="crop=1900:600:10:0"
 
 TOOLCALLS_START=0.3
 TOOLCALLS_LEN=${D_TOOLCALLS}
-TOOLCALLS_CROP="crop=iw:ih:0:0"
+TOOLCALLS_CROP="crop=1920:970:0:60"
 
 # Minimums must cover the trim window actually consumed (START + LEN), not just the output
 # duration - otherwise a capture at the old, looser 8s/18s minimum would have had less footage
@@ -133,17 +132,30 @@ ffmpeg -y \
 
 printf 'Rendered %s\n' "${MP4_OUTPUT}"
 
+# This package's longer runtime (39s vs. video/readme-demo's 22s) means significantly more
+# frames at the same fps. ImageMagick's `policy.xml` "area" resource (commonly 256MP, a
+# per-invocation ceiling regardless of any `-limit` CLI flag - a CLI limit can only lower it,
+# never raise it) is a *cumulative* check across every frame in one animated-WebP build on
+# some builds: at 13fps x 39s = 507 frames x 1200x676px each, that's ~411MP total, well past a
+# 256MP ceiling. This failed with "cache resources exhausted" and silently wrote a
+# truncated/corrupt WebP (confirmed: ffprobe reported "image data not found" on the result) -
+# the fallback path only, not the native ffmpeg libwebp encoder below, which streams frames
+# without holding the whole sequence in an ImageMagick pixel cache. Both branches use the same
+# lower fps regardless, so the shipped WebP looks the same across environments rather than its
+# smoothness depending on which encoder happened to be available at build time.
+WEBP_FPS=7
+
 if ffmpeg -hide_banner -h encoder=libwebp 2>&1 | grep -q "^Encoder libwebp"; then
   ffmpeg -y -i "${MP4_OUTPUT}" \
-    -vf "fps=13,scale=${WIDTH}:${HEIGHT}:flags=lanczos" \
+    -vf "fps=${WEBP_FPS},scale=${WIDTH}:${HEIGHT}:flags=lanczos" \
     -loop 0 -an -c:v libwebp -q:v 75 -preset default -compression_level 6 \
     "${WEBP_OUTPUT}"
 else
   WORKDIR="$(mktemp -d "${ROOT}/.webp-frames.XXXXXX")"
   trap 'rm -rf "${WORKDIR}"' EXIT
-  ffmpeg -y -i "${MP4_OUTPUT}" -vf "fps=13,scale=${WIDTH}:${HEIGHT}:flags=lanczos" \
+  ffmpeg -y -i "${MP4_OUTPUT}" -vf "fps=${WEBP_FPS},scale=${WIDTH}:${HEIGHT}:flags=lanczos" \
     "${WORKDIR}/frame-%04d.png"
-  convert -delay "$(awk 'BEGIN{printf "%.0f", 100/13}')" -loop 0 -dispose previous \
+  convert -delay "$(awk -v f="${WEBP_FPS}" 'BEGIN{printf "%.0f", 100/f}')" -loop 0 -dispose previous \
     "${WORKDIR}"/frame-*.png -define webp:method=6 -quality 78 \
     "${WEBP_OUTPUT}"
 fi

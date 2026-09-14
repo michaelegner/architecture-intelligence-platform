@@ -17,5 +17,5 @@
 <text x="64" y="132" fill="#F8FAFC" font-family="DejaVu Sans" font-size="38" font-weight="700" text-anchor="start" letter-spacing="0">The agent calls the tools itself.</text>
 <text x="64" y="172" fill="#94A3B8" font-family="DejaVu Sans Mono" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">get_architecture_drift -&gt; get_evidence -- live, autonomous</text>
 <rect x="40" y="185" width="1120" height="430" rx="20" fill="#080D18" stroke="#334155" stroke-width="2" opacity="1"/>
-<rect x="60" y="198" width="1080" height="405" rx="12" fill="#050810" stroke="#2DD4BF" stroke-width="2" opacity="1"/>
+<rect x="60" y="198" width="1080" height="404" rx="12" fill="#050810" stroke="#2DD4BF" stroke-width="2" opacity="1"/>
 </svg>
