@@ -1,0 +1,112 @@
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Protocol
+
+from app.canonical.model import ArchitectureModel
+from app.sources.model import IngestionDiagnostic, IngestionResult, LoadedSource, SourceKind
+from app.sources.service_identity import ServiceIdentityResolution
+
+
+class ServiceIdentityResolver(Protocol):
+    """I1 spec §4.1's per-construct Service-identity resolution, exposed to adapters as an injected
+    closure rather than a pre-resolved value: resolution is per-construct (a document root vs. a
+    deeper `x-aip-service-id` vs. a manifest binding at a pointer prefix), and only the adapter
+    walking its own document knows its constructs' pointers. The orchestrator builds one resolver
+    per discovery run, closing over phase-1's completed `BindingIndex` and any configured mappings,
+    and hands the same resolver to every adapter - adapters never see the `BindingIndex` directly.
+    """
+
+    def resolve(
+        self, *, source_instance_id: str, construct_pointer: str, extension_value: str | None
+    ) -> ServiceIdentityResolution: ...
+
+
+@dataclass(frozen=True)
+class AdapterOutcome:
+    """I1 spec §10: "Each source receives exactly one result." Adapters return this instead of
+    raising for source/construct-level problems, so the orchestrator's inventory/commit-gate/
+    reconciliation stages have a structured outcome to reason about rather than a stack unwind.
+    `semantic_input_digest` is `None` only when `result` never reached a normalized projection to
+    hash (e.g. a shape so invalid that no document/reference projection could be built).
+    """
+
+    result: IngestionResult
+    model: ArchitectureModel
+    diagnostics: tuple[IngestionDiagnostic, ...]
+    semantic_input_digest: str | None
+
+
+class SourceAdapter(Protocol):
+    """I1 spec §4/§7: a registered adapter, not a hard-coded per-source-kind branch. "Adapters MUST
+    NOT write directly to the graph or call another adapter's mapping logic" - `map()` may only
+    read `upstream_model`, never mutate it; `dependency_phase` is the sole, generic mechanism for a
+    later-phase adapter (e.g. the Architecture Manifest adapter) to see an earlier phase's merged
+    result, without the orchestrator branching on source kind.
+    """
+
+    adapter_identity: str
+    mapping_rule_version: str
+    dependency_phase: int
+
+    def supports(self, loaded: LoadedSource) -> bool: ...
+
+    def map(
+        self,
+        loaded: LoadedSource,
+        *,
+        service_identity: ServiceIdentityResolver,
+        upstream_model: ArchitectureModel,
+        mapping_context_digest: str,
+    ) -> AdapterOutcome: ...
+
+
+@dataclass(frozen=True)
+class DiscoveryOutcome:
+    """I1 spec §6: a discovery run's raw enumeration, before any per-source load/validate/map
+    result is known. `enumeration_complete=False` means the discoverer itself could not produce a
+    trustworthy source list (missing root, auth failure, timeout, truncation, pagination error -
+    §6's own list of preserve-prior-state triggers) - see
+    `app.sources.commit_gate.classify_inventory_status`.
+    """
+
+    loaded_sources: tuple[LoadedSource, ...]
+    enumeration_complete: bool
+    diagnostics: tuple[IngestionDiagnostic, ...]
+
+
+class SourceDiscoverer(Protocol):
+    source_kind: SourceKind
+    discoverer_identity: str
+
+    def discover(self) -> DiscoveryOutcome: ...
+
+
+class AmbiguousAdapterRegistrationError(ValueError):
+    """Raised when more than one registered adapter claims `supports()` for the same `LoadedSource`
+    - a registration bug (adapters should partition document shapes disjointly), never a per-source
+    runtime outcome a discovery run could legitimately produce.
+    """
+
+
+class SourceAdapterRegistry:
+    """I1 spec §7: "The orchestrator MUST NOT contain a hard-coded branch per source kind." Adapters
+    declare `supports()`/`map()` and are registered rather than branched on.
+    """
+
+    def __init__(self, adapters: Sequence[SourceAdapter]):
+        self._adapters = tuple(adapters)
+
+    def adapter_for(self, loaded: LoadedSource) -> SourceAdapter | None:
+        matches = [adapter for adapter in self._adapters if adapter.supports(loaded)]
+        if len(matches) > 1:
+            raise AmbiguousAdapterRegistrationError(
+                f"{len(matches)} registered adapters claim to support "
+                f"{loaded.descriptor.locator!r}: {[a.adapter_identity for a in matches]!r}"
+            )
+        return matches[0] if matches else None
+
+    def phases(self) -> tuple[int, ...]:
+        return tuple(sorted({adapter.dependency_phase for adapter in self._adapters}))
+
+    def adapters_in_phase(self, phase: int) -> tuple[SourceAdapter, ...]:
+        return tuple(adapter for adapter in self._adapters if adapter.dependency_phase == phase)
