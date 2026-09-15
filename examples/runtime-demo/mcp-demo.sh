@@ -217,7 +217,7 @@ prepare_fixture_if_empty() {
   case "${classification}" in
     EMPTY)
       step "Importing the declared architecture (POST /api/import)"
-      curl -sf -X POST "${AIP_URL}/api/import" | jq '{imported_services: (.services | keys)}'
+      curl -sf -X POST "${AIP_URL}/api/import" | jq '{imported_sources: (.sources | keys)}'
 
       step "Seeding frozen runtime evidence"
       "${COMPOSE[@]}" run --rm --no-deps traffic-generator python seed_frozen_evidence.py
