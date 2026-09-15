@@ -1,25 +1,42 @@
 from app.canonical import ids
 from app.canonical.model import ArchitectureModel, Operation, Relation, Schema, Service
-from app.ingestion._shared import rejected_outcome_for_identity, strip_excluded_schema_fields
+from app.ingestion._shared import (
+    build_resolution_cache,
+    enforce_reference_closure,
+    rejected_outcome_for_identity,
+    rejected_outcome_for_reference_error,
+    resolve_and_normalize_schema,
+    schema_display_name,
+    semantic_input_digest_bytes,
+)
 from app.provenance.model import Provenance
 from app.sources.identity import semantic_input_digest
-from app.sources.jcs import canonical_json_bytes, canonical_sha256_hex
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
 from app.sources.owner_ids import schema_owned_id
 from app.sources.pointers import encode_pointer_tokens
+from app.sources.reference_resolution import ReferenceResolutionError
 from app.sources.registry import AdapterOutcome, ServiceIdentityResolver
 from app.sources.service_identity import ServiceIdentityOutcome
-from app.validation.source_validation import SourceValidationError, validate_openapi_document
+from app.validation.source_validation import (
+    SourceValidationError,
+    check_supported_dialect_version,
+    find_remote_reference,
+    validate_openapi_document,
+)
 
 HTTP_METHODS = {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
 
+# I1 spec §8: "accept exactly OpenAPI 3.0.3, 3.1.0, and 3.1.2" (3.1.2 added by the Draft 0.3
+# amendment - see docs/specifications/0.5.0/i1-source-ingestion-foundation.md §12).
+ACCEPTED_OPENAPI_VERSIONS = frozenset({"3.0.3", "3.1.0", "3.1.2"})
+
 
 class OpenApiSourceAdapter:
-    """I1 spec §8: migrates `parse_openapi` onto the registry seam. Preserves today's parsing
-    fidelity exactly (named-component `$ref` schemas only, single document, no limits/cycles/
-    composition handling - all 3b); what changes here is *identity*: owner-scoped RFC 8785 Schema
-    ids instead of name-based ones, and Service identity resolved via `resolve_service_identity`
-    (root + per-operation `x-aip-service-id`) instead of a bare directory-derived parameter.
+    """I1 spec §8: migrates `parse_openapi` onto the registry seam. Owner-scoped RFC 8785 Schema
+    ids; Service identity resolved via `resolve_service_identity` (root + per-operation
+    `x-aip-service-id`); bounded multi-file `$ref` resolution, recursive inline/array/nested schema
+    normalization, and `allOf`/`oneOf`/`anyOf` composition (structurally preserved, not
+    interpreted) per §8.1 (PR3b).
     """
 
     adapter_identity = "openapi-adapter@1"
@@ -58,6 +75,38 @@ class OpenApiSourceAdapter:
                 semantic_input_digest=None,
             )
 
+        remote_ref = find_remote_reference(document)
+        if remote_ref is not None:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_UNSUPPORTED,
+                model=ArchitectureModel(),
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.REMOTE_REFERENCE_UNSUPPORTED,
+                        message=f"remote/non-local reference is not supported: {remote_ref}",
+                        source_pointer=locator,
+                    ),
+                ),
+                semantic_input_digest=None,
+            )
+
+        version_error = check_supported_dialect_version(
+            document, dialect_key="openapi", accepted_versions=ACCEPTED_OPENAPI_VERSIONS
+        )
+        if version_error is not None:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_UNSUPPORTED,
+                model=ArchitectureModel(),
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.UNSUPPORTED_DIALECT_VERSION,
+                        message=version_error,
+                        source_pointer=locator,
+                    ),
+                ),
+                semantic_input_digest=None,
+            )
+
         root_resolution = service_identity.resolve(
             source_instance_id=source_instance_id,
             construct_pointer="",
@@ -67,35 +116,59 @@ class OpenApiSourceAdapter:
             return rejected_outcome_for_identity(root_resolution)
 
         info = document.get("info") or {}
-        components_schemas = ((document.get("components") or {}).get("schemas")) or {}
+
+        cache, root_relative_path = build_resolution_cache(loaded)
+        closure_error = enforce_reference_closure(
+            document, root_relative_path=root_relative_path, cache=cache, source_pointer=locator
+        )
+        if closure_error is not None:
+            return closure_error
 
         operations: list[Operation] = []
         relations: list[Relation] = []
         schemas_by_id: dict[str, Schema] = {}
         resolved_service_ids: set[str] = {root_resolution.service_id}
+        any_uninterpreted_composition = False
 
-        def resolve_schema_ref(
-            schema_obj: dict | None, *, canonical_service_id: str, media_type: str | None
-        ) -> str | None:
+        def resolve_schema(
+            schema_obj: dict | None,
+            *,
+            canonical_service_id: str,
+            media_type: str | None,
+            own_pointer_tokens: tuple[str, ...],
+        ) -> tuple[str | None, AdapterOutcome | None]:
+            nonlocal any_uninterpreted_composition
             if not schema_obj:
-                return None
-            ref = schema_obj.get("$ref")
-            if not ref:
-                return None
-            name = ref.rsplit("/", 1)[-1]
+                return None, None
+            try:
+                normalized = resolve_and_normalize_schema(
+                    schema_obj,
+                    own_document_relative_path=root_relative_path,
+                    own_pointer_tokens=own_pointer_tokens,
+                    cache=cache,
+                )
+            except ReferenceResolutionError as exc:
+                return None, rejected_outcome_for_reference_error(
+                    exc, source_pointer=encode_pointer_tokens(own_pointer_tokens)
+                )
+
+            if normalized.has_uninterpreted_composition:
+                any_uninterpreted_composition = True
+
             schema_id_value = schema_owned_id(
                 canonical_service_id=canonical_service_id,
                 source_instance_id=source_instance_id,
-                normalized_definition_document_path="",
-                definition_pointer_tokens=("components", "schemas", name),
+                normalized_definition_document_path=normalized.normalized_definition_document_path,
+                definition_pointer_tokens=normalized.definition_pointer_tokens,
             )
             if schema_id_value not in schemas_by_id:
-                definition = components_schemas.get(name) or {}
-                canonical_hash = canonical_sha256_hex(strip_excluded_schema_fields(definition))
                 schemas_by_id[schema_id_value] = Schema(
-                    id=schema_id_value, name=name, format=media_type, canonical_hash=canonical_hash
+                    id=schema_id_value,
+                    name=schema_display_name(normalized.definition_pointer_tokens),
+                    format=media_type,
+                    canonical_hash=normalized.canonical_hash,
                 )
-            return schema_id_value
+            return schema_id_value, None
 
         for path, path_item in (document.get("paths") or {}).items():
             if not isinstance(path_item, dict):
@@ -123,24 +196,47 @@ class OpenApiSourceAdapter:
                 request_schema_ids: list[str] = []
                 request_content = ((op.get("requestBody") or {}).get("content")) or {}
                 for media_type, media_obj in request_content.items():
-                    schema_id_value = resolve_schema_ref(
+                    schema_id_value, error_outcome = resolve_schema(
                         media_obj.get("schema"),
                         canonical_service_id=canonical_service_id,
                         media_type=media_type,
+                        own_pointer_tokens=(
+                            "paths",
+                            path,
+                            method,
+                            "requestBody",
+                            "content",
+                            media_type,
+                            "schema",
+                        ),
                     )
+                    if error_outcome is not None:
+                        return error_outcome
                     if schema_id_value and schema_id_value not in request_schema_ids:
                         request_schema_ids.append(schema_id_value)
 
                 response_schema_ids: list[str] = []
-                for response_obj in (op.get("responses") or {}).values():
+                for status, response_obj in (op.get("responses") or {}).items():
                     if not isinstance(response_obj, dict):
                         continue
                     for media_type, media_obj in (response_obj.get("content") or {}).items():
-                        schema_id_value = resolve_schema_ref(
+                        schema_id_value, error_outcome = resolve_schema(
                             media_obj.get("schema"),
                             canonical_service_id=canonical_service_id,
                             media_type=media_type,
+                            own_pointer_tokens=(
+                                "paths",
+                                path,
+                                method,
+                                "responses",
+                                status,
+                                "content",
+                                media_type,
+                                "schema",
+                            ),
                         )
+                        if error_outcome is not None:
+                            return error_outcome
                         if schema_id_value and schema_id_value not in response_schema_ids:
                             response_schema_ids.append(schema_id_value)
 
@@ -203,13 +299,26 @@ class OpenApiSourceAdapter:
         )
 
         digest = semantic_input_digest(
-            normalized_document_projection_bytes=canonical_json_bytes(document),
+            normalized_document_projection_bytes=semantic_input_digest_bytes(cache),
             mapping_context_digest=mapping_context_digest,
         )
 
+        diagnostics: tuple[IngestionDiagnostic, ...] = ()
+        result = IngestionResult.ACCEPTED
+        if any_uninterpreted_composition:
+            result = IngestionResult.ACCEPTED_WITH_LIMITATIONS
+            diagnostics = (
+                IngestionDiagnostic(
+                    code=DiagnosticCode.SCHEMA_COMPOSITION_UNINTERPRETED,
+                    message=(
+                        "one or more schemas contain an allOf/oneOf/anyOf composition, preserved "
+                        "structurally in the canonical hash but not interpreted as an effective "
+                        "object shape"
+                    ),
+                    source_pointer=locator,
+                ),
+            )
+
         return AdapterOutcome(
-            result=IngestionResult.ACCEPTED,
-            model=model,
-            diagnostics=(),
-            semantic_input_digest=digest,
+            result=result, model=model, diagnostics=diagnostics, semantic_input_digest=digest
         )

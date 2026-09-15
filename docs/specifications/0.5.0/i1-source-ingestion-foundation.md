@@ -1,6 +1,6 @@
 # AIP v0.5.0 I1 — Source Ingestion Foundation
 
-**Status:** Draft 0.2  
+**Status:** Draft 0.3  
 **Release:** `v0.5.0`  
 **Increment:** I1  
 **Parent specification:** [`specification.md`](specification.md)
@@ -442,7 +442,7 @@ for multiple services, and a service may be supported by multiple sources.
 
 The OpenAPI adapter SHALL:
 
-- accept exactly OpenAPI `3.0.3` and `3.1.0`; any other version is
+- accept exactly OpenAPI `3.0.3`, `3.1.0`, and `3.1.2`; any other version is
   `REJECTED_UNSUPPORTED` unless a reviewed amendment adds that exact version and its conformance
   fixtures;
 - map schemas through the normalization and identity contract in §8.1;
@@ -883,6 +883,15 @@ before qualification; silent enum widening or undocumented payload drift is proh
 The I1 implementation specification may decide package-level interfaces and diagnostic wire details,
 but it MUST NOT change the source identity, inventory authority, atomicity, replay, evidence, or
 result rules in this document without a reviewed parent-specification amendment.
+
+**Draft 0.3 amendment (PR3b):** `3.1.2` was added to §8's accepted OpenAPI version set. `3.1.2` is a
+published OAS patch release with a schema identical to `3.1.0` (no breaking or structural change to
+the specification format itself). The amendment's conformance evidence is the real, already-bundled
+`docs/real-world-validation/quarkus-super-heroes/` fixtures (`rest-fights`/`rest-heroes`/
+`rest-villains`/`rest-narration`), pinned byte-identical to a real upstream commit by their own
+git-blob-SHA provenance test - these declare `openapi: 3.1.2` and would otherwise be rejected
+outright the moment exact-version enforcement (§8's own new requirement, also introduced in PR3b)
+went live, silently emptying the `quarkus-frozen-*` evaluation scenarios that depend on them.
 
 ## 13. Required evidence and handoff
 

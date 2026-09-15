@@ -20,6 +20,7 @@ project's stated architecture principles.
 | [0012](0012-observed-evidence-retention.md) | Observed evidence is compacted on a retention policy, never silently dropped (Proposed) |
 | [0013](0013-no-topic-family-without-guards.md) | No topic/pub-sub family in the Canonical Model without both safety guards |
 | [0014](0014-negotiated-mcp-client-interoperability.md) | Support negotiated MCP client interoperability without weakening the direct 2026-07-28 contract (Accepted) |
+| [0015](0015-bounded-reference-resolution.md) | Bounded multi-file `$ref` resolution is hand-rolled, not delegated to `referencing` (Accepted) |
 
 A new ADR is numbered sequentially and never renumbered or deleted — if a decision is superseded,
 add a new ADR and mark the old one's Status as `Superseded by NNNN`.
@@ -29,3 +30,4 @@ An ADR whose decision is settled but not yet implemented carries `Status: Propos
 and [0012](0012-observed-evidence-retention.md), when the benchmark and the retention thresholds
 it names are decided). 0009-0013 came out of
 [`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md). 0014 came out of `v0.4.2` I1.
+0015 came out of `v0.5.0` I1 PR3b.

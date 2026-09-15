@@ -1,11 +1,10 @@
-from datetime import date, datetime
-from typing import Any
+from pathlib import Path
 
 import yaml
 
 from app.sources.identity import (
-    EMPTY_CLOSURE_DIGEST,
     content_sha256,
+    dependency_closure_digest,
     discovery_scope_id,
     normalize_relative_posix_path,
     scope_definition_digest,
@@ -18,6 +17,12 @@ from app.sources.model import (
     LoadedSource,
     SourceDescriptor,
     SourceKind,
+)
+from app.sources.reference_resolution import (
+    ReferenceResolutionError,
+    new_resolution_cache,
+    normalize_non_json_scalars,
+    walk_transitive_closure,
 )
 from app.sources.registry import DiscoveryOutcome
 
@@ -42,31 +47,35 @@ CANDIDATE_FILENAMES = (
 _DIALECT_KEYS = ("openapi", "asyncapi", "apiVersion")
 
 
-def _normalize_non_json_scalars(value: Any) -> Any:
-    """YAML's default schema auto-converts an unquoted date/timestamp-shaped scalar (e.g. an
-    illustrative `examples:` value) into a native `datetime.date`/`datetime.datetime` - a type JSON
-    has no representation for, which crashes RFC 8785 canonicalization deep in an adapter's
-    identity/digest computation with an opaque library error instead of a clean diagnostic. Since a
-    JSON-format equivalent of the same document could only ever have carried that value as a quoted
-    string, converting it to its ISO 8601 string form here - once, centrally, for every discovered
-    document - loses no information and keeps every downstream consumer JSON-safe."""
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, date):
-        return value.isoformat()
-    if isinstance(value, dict):
-        return {key: _normalize_non_json_scalars(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_normalize_non_json_scalars(item) for item in value]
-    return value
-
-
 def _document_dialect_version(document: dict) -> str | None:
     for key in _DIALECT_KEYS:
         value = document.get(key)
         if isinstance(value, str):
             return value
     return None
+
+
+def _best_effort_closure_digest(
+    *, source_root: Path, relative_path: str, document: dict, raw_bytes: bytes
+) -> str | None:
+    """Best-effort, non-fatal closure walk at discovery time - purely to compute the provenance
+    digest up front (co-located with `content_sha256`). Any failure here (a bad ref, a limit
+    exceeded, a cycle) is deliberately swallowed: the adapter's own resolution during `map()`, using
+    the identical shared primitives, is the authoritative pass that raises the real `REJECTED_*` +
+    diagnostic. Two independent walks disagreeing about what failed would be worse than one of them
+    staying silent.
+    """
+    cache = new_resolution_cache(
+        source_root,
+        root_relative_path=relative_path,
+        root_document=document,
+        root_bytes=raw_bytes,
+    )
+    try:
+        entries = walk_transitive_closure(document, root_relative_path=relative_path, cache=cache)
+    except ReferenceResolutionError:
+        return None
+    return dependency_closure_digest(entries)
 
 
 class FilesystemSourceDiscoverer:
@@ -147,7 +156,7 @@ class FilesystemSourceDiscoverer:
                         )
                     )
                     continue
-                document = _normalize_non_json_scalars(document)
+                document = normalize_non_json_scalars(document)
 
                 relative_path = normalize_relative_posix_path(str(candidate.relative_to(root)))
                 instance_id = source_instance_id(
@@ -171,7 +180,12 @@ class FilesystemSourceDiscoverer:
                     discovery_scope_id=scope_id,
                     scope_definition_digest=scope_digest,
                     content_sha256=content_sha256(raw_bytes),
-                    dependency_closure_digest=EMPTY_CLOSURE_DIGEST,
+                    dependency_closure_digest=_best_effort_closure_digest(
+                        source_root=root,
+                        relative_path=relative_path,
+                        document=document,
+                        raw_bytes=raw_bytes,
+                    ),
                     semantic_input_digest="",
                     mapping_context_digest="",
                     document_dialect_version=_document_dialect_version(document),
@@ -179,7 +193,9 @@ class FilesystemSourceDiscoverer:
                     mapping_rule_id="",
                     mapping_rule_version="",
                 )
-                loaded_sources.append(LoadedSource(descriptor=descriptor, document=document))
+                loaded_sources.append(
+                    LoadedSource(descriptor=descriptor, document=document, source_root=str(root))
+                )
 
         return DiscoveryOutcome(
             loaded_sources=tuple(loaded_sources),

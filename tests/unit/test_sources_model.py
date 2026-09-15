@@ -48,6 +48,18 @@ def test_loaded_source_defaults_to_no_diagnostics():
     assert loaded.diagnostics == []
 
 
+def test_loaded_source_defaults_to_empty_source_root():
+    loaded = LoadedSource(descriptor=_descriptor(), document={"openapi": "3.1.0"})
+    assert loaded.source_root == ""
+
+
+def test_loaded_source_carries_source_root():
+    loaded = LoadedSource(
+        descriptor=_descriptor(), document={"openapi": "3.1.0"}, source_root="/tmp/x"
+    )
+    assert loaded.source_root == "/tmp/x"
+
+
 def test_loaded_source_carries_diagnostics():
     diagnostic = IngestionDiagnostic(
         code=DiagnosticCode.SERVICE_IDENTITY_UNRESOLVED,
@@ -67,3 +79,11 @@ def test_ingestion_result_has_exactly_five_values():
         "REJECTED_UNSUPPORTED",
         "REJECTED_CONFLICT",
     }
+
+
+def test_diagnostic_code_includes_pr3b_reference_resolution_codes():
+    assert {
+        DiagnosticCode.REMOTE_REFERENCE_UNSUPPORTED,
+        DiagnosticCode.REFERENCE_INVALID,
+        DiagnosticCode.UNSUPPORTED_DIALECT_VERSION,
+    } <= set(DiagnosticCode)
