@@ -6,6 +6,7 @@ import yaml
 from app.ingestion.scanner import SpecificationType, scan_directory
 from app.validation.source_validation import (
     SourceValidationError,
+    check_supported_dialect_version,
     validate_asyncapi_document,
     validate_manifest_document,
     validate_openapi_document,
@@ -104,7 +105,10 @@ def test_openapi_dangling_ref_raises():
     assert "dangling" in str(exc.value)
 
 
-def test_openapi_external_ref_rejected():
+def test_openapi_relative_file_ref_is_not_flagged_here():
+    # As of PR3b, a relative-file $ref (no scheme/authority) is deliberately NOT rejected at this
+    # structural-validation layer - existence/containment/cycles are the resolver's job, at map()
+    # time, once the approved source root is known. This validator has no notion of sibling files.
     doc = {
         "openapi": "3.1.0",
         "info": {"title": "X"},
@@ -122,9 +126,32 @@ def test_openapi_external_ref_rejected():
             }
         },
     }
+    validate_openapi_document(doc, source_file="openapi.yaml")
+
+
+def test_openapi_remote_ref_rejected():
+    doc = {
+        "openapi": "3.1.0",
+        "info": {"title": "X"},
+        "paths": {
+            "/x": {
+                "get": {
+                    "responses": {
+                        "200": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "https://example.com/foo.yaml#/Bar"}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+    }
     with pytest.raises(SourceValidationError) as exc:
         validate_openapi_document(doc, source_file="openapi.yaml")
-    assert "external" in str(exc.value)
+    assert "remote/non-local reference is not supported" in str(exc.value)
 
 
 def test_valid_asyncapi_document_passes():
@@ -167,6 +194,35 @@ def test_valid_manifest_document_passes():
 def test_manifest_missing_service_raises():
     with pytest.raises(SourceValidationError):
         validate_manifest_document({"calls": []}, source_file="architecture.yaml")
+
+
+def test_check_supported_dialect_version_accepts_exact_match():
+    assert (
+        check_supported_dialect_version(
+            {"openapi": "3.1.0"},
+            dialect_key="openapi",
+            accepted_versions=frozenset({"3.0.3", "3.1.0", "3.1.2"}),
+        )
+        is None
+    )
+
+
+def test_check_supported_dialect_version_rejects_unlisted_version():
+    error = check_supported_dialect_version(
+        {"openapi": "3.1.1"},
+        dialect_key="openapi",
+        accepted_versions=frozenset({"3.0.3", "3.1.0", "3.1.2"}),
+    )
+    assert error is not None
+    assert "3.1.1" in error
+
+
+def test_check_supported_dialect_version_rejects_missing_version():
+    error = check_supported_dialect_version(
+        {}, dialect_key="asyncapi", accepted_versions=frozenset({"2.6.0"})
+    )
+    assert error is not None
+    assert "asyncapi" in error
 
 
 def test_manifest_call_entry_missing_operation_id_raises():
