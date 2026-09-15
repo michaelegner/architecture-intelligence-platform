@@ -693,3 +693,35 @@ def test_a_ref_to_a_whole_document_with_no_fragment_gets_a_synthetic_schema_name
 
     assert outcome.result is IngestionResult.ACCEPTED
     assert outcome.model.schemas[0].name == "<root>"
+
+
+def test_a_root_document_with_no_references_over_the_byte_budget_is_rejected_end_to_end(tmp_path):
+    """Regression for a real review finding: a root document with no references at all (a large
+    info.description, no $ref anywhere) was never checked against the 8 MiB budget, since the only
+    byte-budget check lived inside a per-reference loop that a reference-free document never
+    enters. Proven through the real discovery+adapter pipeline, at the real wired default (not a
+    reduced test-only limit)."""
+    from app.sources.reference_resolution import DEFAULT_MAX_REFERENCE_BYTES
+
+    service_dir = tmp_path / "big-root-service"
+    path = service_dir / "openapi.yaml"
+    doc = {
+        "openapi": "3.1.0",
+        "info": {"title": "BigRootService", "description": "x"},
+        "x-aip-service-id": "service:bigroot",
+        "paths": {},
+    }
+    _write(path, doc)
+    current_size = len(path.read_bytes())
+    # Comfortably over the real default budget - the primitive-level tests already prove exact
+    # boundary/boundary+1 precision with a custom max_bytes; this just proves the wired default
+    # rejects a realistically oversized root end to end.
+    doc["info"]["description"] = "x" * (DEFAULT_MAX_REFERENCE_BYTES - current_size + 1024)
+    _write(path, doc)
+    assert len(path.read_bytes()) > DEFAULT_MAX_REFERENCE_BYTES
+
+    result = run_filesystem_discovery(FilesystemSourceConfig(id="bigroot", root=tmp_path))
+    outcome = _outcome_for(result, "openapi.yaml")
+
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert any(d.code is DiagnosticCode.REFERENCE_LIMIT_EXCEEDED for d in outcome.diagnostics)

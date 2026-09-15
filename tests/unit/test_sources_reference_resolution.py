@@ -553,3 +553,47 @@ def test_walk_transitive_closure_byte_budget_fails_at_boundary_plus_one(tmp_path
             max_bytes=exact_size - 1,
         )
     assert exc_info.value.code is DiagnosticCode.REFERENCE_LIMIT_EXCEEDED
+
+
+def test_walk_transitive_closure_byte_budget_is_checked_for_a_root_with_no_references_at_all(
+    tmp_path,
+):
+    """Regression for a real review finding: with zero references, the per-reference loop that
+    contained the only byte-budget check never ran even once - a root document with no $ref at all
+    (e.g. a large info.description and no closure) sailed through with no REFERENCE_LIMIT_EXCEEDED
+    regardless of its own size. The budget must be checked once, unconditionally, before traversal
+    even starts."""
+    root_document = {"marker": True}
+    (tmp_path / "root.yaml").write_text(yaml.safe_dump(root_document))
+    exact_size = len((tmp_path / "root.yaml").read_bytes())
+    cache = _cache(tmp_path, root_document, "root.yaml")
+
+    assert (
+        walk_transitive_closure(
+            root_document, root_relative_path="root.yaml", cache=cache, max_bytes=exact_size
+        )
+        == ()
+    )
+    with pytest.raises(ReferenceResolutionError) as exc_info:
+        walk_transitive_closure(
+            root_document, root_relative_path="root.yaml", cache=cache, max_bytes=exact_size - 1
+        )
+    assert exc_info.value.code is DiagnosticCode.REFERENCE_LIMIT_EXCEEDED
+
+
+def test_walk_transitive_closure_byte_budget_is_checked_for_a_root_with_only_fragment_only_refs(
+    tmp_path,
+):
+    """Same gap, reached via a different path: a fragment-only ref also `continue`s past the
+    byte-budget check inside the loop before ever reaching it, so a root whose only references are
+    same-document ones was equally unchecked."""
+    root_document = {"a": {"$ref": "#/b"}, "b": {"marker": True}}
+    (tmp_path / "root.yaml").write_text(yaml.safe_dump(root_document))
+    exact_size = len((tmp_path / "root.yaml").read_bytes())
+    cache = _cache(tmp_path, root_document, "root.yaml")
+
+    with pytest.raises(ReferenceResolutionError) as exc_info:
+        walk_transitive_closure(
+            root_document, root_relative_path="root.yaml", cache=cache, max_bytes=exact_size - 1
+        )
+    assert exc_info.value.code is DiagnosticCode.REFERENCE_LIMIT_EXCEEDED

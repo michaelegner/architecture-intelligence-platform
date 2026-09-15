@@ -393,6 +393,14 @@ def walk_transitive_closure(
     visited: set[str] = set()
     entries: list[ClosureEntry] = []
     total_bytes = len(cache.file_bytes.get(root_relative_path, b""))
+    # The byte budget is checked unconditionally here, before any traversal - a root document with
+    # no references at all never enters the loop below, so a check only inside it would never run
+    # even once, letting an oversized root alone (no closure needed) sail through unchecked.
+    if total_bytes > max_bytes:
+        raise ReferenceResolutionError(
+            code=DiagnosticCode.REFERENCE_LIMIT_EXCEEDED,
+            message=f"reference closure exceeds the maximum of {max_bytes} total bytes",
+        )
 
     def visit(
         document: dict, document_relative_path: str, *, depth: int, path_stack: tuple[str, ...]
