@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
+from typing import get_args
 from unittest.mock import Mock
 
+from app.architecture_intelligence.contracts import PRODUCER_NAME, Producer
 from app.mcp.server import mcp_server
 from app.mcp.wiring import build_production_service
 from app.version import package_version
@@ -28,6 +30,14 @@ def _uv_lock_root_project_version() -> str:
         data = tomllib.load(f)
     [package] = [p for p in data["package"] if p["name"] == "architecture-intelligence-platform"]
     return package["version"]
+
+
+def test_producer_name_constant_matches_contract_literal():
+    assert get_args(Producer.model_fields["name"].annotation) == (PRODUCER_NAME,)
+
+
+def test_mcp_server_name_agrees_with_producer_name():
+    assert mcp_server.name == PRODUCER_NAME
 
 
 def test_package_version_reports_the_current_release_version():
@@ -50,9 +60,11 @@ def test_production_wired_producer_version_agrees_with_package_version(monkeypat
     # never touches it, before this test's one assertion.
     monkeypatch.setenv("AIP_BUILD_REVISION", "f" * 40)
     service = build_production_service(Mock(), database="neo4j")
+    assert service._producer.name == PRODUCER_NAME
     assert service._producer.version == package_version()
 
 
 def test_architecture_answers_evaluator_producer_version_agrees_with_package_version():
     producer = _build_producer("f" * 40)
+    assert producer.name == PRODUCER_NAME
     assert producer.version == package_version()
