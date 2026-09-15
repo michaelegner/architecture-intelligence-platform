@@ -31,6 +31,64 @@ Copy `.env.example` to `.env` and fill these in for local development.
 | `telemetry.coverage` | `qualification-enabled` (`true`) — the O4 coverage-classification kill switch (11H-E) |
 | `runtime_analysis` | `default_window_hours` (`24`), `default_environment` (`production`) |
 
+## Complete worked example
+
+The following is the repository's current `config.yaml`, annotated so each section can be copied
+and adjusted without reconstructing it from the reference table above:
+
+```yaml
+# All application configuration lives under this single top-level key.
+architecture_intelligence:
+  # Directories scanned for declared architecture sources.
+  sources:
+    directories:
+      - examples
+
+  # Neo4j connection and graph traversal settings.
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+    max_traversal_depth: 5
+
+  # Enable or disable each declared-source ingestion adapter.
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+
+  # Optional LLM query layer and its maximum result size.
+  llm:
+    enabled: true
+    max_result_rows: 100
+
+  # Confidence threshold for deterministic routing before LLM fallback.
+  intent_router:
+    deterministic_threshold: 0.9
+
+  # Runtime telemetry name mapping, correlation, and coverage classification.
+  telemetry:
+    service_aliases: {}
+    queue_aliases: {}
+
+    # Bounds for correlating HTTP spans that arrive in different batches.
+    http-correlation:
+      enabled: true
+      ttl-seconds: 60
+      max-pending-spans: 10000
+
+    # Enable runtime coverage qualification.
+    coverage:
+      qualification-enabled: true
+
+  # Defaults used when runtime-analysis requests omit a window or environment.
+  runtime_analysis:
+    default_window_hours: 24
+    default_environment: production
+```
+
+Keep credentials out of this file. `NEO4J_USER`, `NEO4J_PASSWORD`, `OPENAI_API_KEY`, and the
+optional `NEO4J_URI` override belong in the environment as described above.
+
 ## Backward compatibility guarantee
 
 Every 11H-era property (`telemetry.http-correlation.*`, `telemetry.coverage.*`) is optional with a
