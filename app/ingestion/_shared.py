@@ -15,6 +15,7 @@ from app.sources.identity import (
 from app.sources.jcs import canonical_sha256_hex, sort_by_canonical_hash
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
 from app.sources.reference_resolution import (
+    DEFAULT_MAX_REFERENCE_DEPTH,
     ReferenceResolutionError,
     ResolutionCache,
     new_resolution_cache,
@@ -87,6 +88,13 @@ def build_resolution_cache(loaded: LoadedSource) -> tuple[ResolutionCache, str]:
 # schema content, not the schema-level `description` annotation that keyword otherwise denotes.
 _NAMED_SCHEMA_MAP_KEYS = frozenset({"properties", "patternProperties", "definitions", "$defs"})
 
+# I1 spec §8.1: "All validation/serialization keywords and every extension key are retained." An
+# `x-...` vendor extension's value is arbitrary, opaque vendor data - not a schema construct at
+# all - so it must never be run through EXCLUDED_SCHEMA_FIELDS filtering (a nested `description`
+# key inside one is real data, not the schema-level annotation) or `$ref`/composition handling.
+# Preserved byte-for-byte (already JSON-safe: normalize_non_json_scalars ran at parse time).
+_EXTENSION_KEY_PREFIX = "x-"
+
 
 def _normalize_schema_node(
     node: Any,
@@ -95,6 +103,8 @@ def _normalize_schema_node(
     cache: ResolutionCache,
     path_stack: tuple[tuple[str, tuple[str, ...]], ...],
     composition_seen: list[bool],
+    depth: int,
+    max_depth: int,
     is_named_schema_map: bool = False,
 ) -> Any:
     """§8.1: "Every admitted schema is converted to a JSON-compatible value, all local references
@@ -106,6 +116,15 @@ def _normalize_schema_node(
     (`REFERENCE_CYCLE_UNSUPPORTED`); a target visited via a different, already-completed branch
     (a diamond) is not tracked here at all and is simply re-normalized, which is safe since this
     walk has no side effects to duplicate.
+
+    `depth` counts every `$ref` hop actually expanded here - same-document (fragment-only) and
+    cross-file alike, per ADR 0015's "a same-file chain A -> B -> C is 2 hops even though it
+    touches only 1 file". This is the sole authoritative depth enforcement for a same-document (or
+    mixed same-document/cross-file) chain: `app.sources.reference_resolution.walk_transitive_
+    closure` (run separately, before this, via `enforce_reference_closure`) deliberately skips
+    fragment-only refs entirely (it never recurses into that branch, so it has nothing to count),
+    and only enforces file-count/byte budgets for the cross-file closure - depth for a chain that
+    stays within one document is invisible to it by design.
 
     `is_named_schema_map` marks a dict reached via a `_NAMED_SCHEMA_MAP_KEYS` key (e.g.
     `properties`): its own keys are arbitrary names, so EXCLUDED_SCHEMA_FIELDS filtering and
@@ -121,6 +140,8 @@ def _normalize_schema_node(
                     cache=cache,
                     path_stack=path_stack,
                     composition_seen=composition_seen,
+                    depth=depth,
+                    max_depth=max_depth,
                 )
                 for name, value in node.items()
             }
@@ -138,17 +159,28 @@ def _normalize_schema_node(
                     code=DiagnosticCode.REFERENCE_CYCLE_UNSUPPORTED,
                     message=f"reference cycle detected at {cycle_key!r}",
                 )
+            new_depth = depth + 1
+            if new_depth > max_depth:
+                raise ReferenceResolutionError(
+                    code=DiagnosticCode.REFERENCE_LIMIT_EXCEEDED,
+                    message=f"reference depth exceeds the maximum of {max_depth}",
+                )
             return _normalize_schema_node(
                 resolved.target_node,
                 containing_document_relative_path=resolved.normalized_relative_path,
                 cache=cache,
                 path_stack=(*path_stack, cycle_key),
                 composition_seen=composition_seen,
+                depth=new_depth,
+                max_depth=max_depth,
             )
 
         normalized = {}
         for key, value in node.items():
             if key in EXCLUDED_SCHEMA_FIELDS:
+                continue
+            if key.startswith(_EXTENSION_KEY_PREFIX):
+                normalized[key] = value
                 continue
             normalized[key] = _normalize_schema_node(
                 value,
@@ -156,6 +188,8 @@ def _normalize_schema_node(
                 cache=cache,
                 path_stack=path_stack,
                 composition_seen=composition_seen,
+                depth=depth,
+                max_depth=max_depth,
                 is_named_schema_map=key in _NAMED_SCHEMA_MAP_KEYS,
             )
         for composition_key in _COMPOSITION_KEYS:
@@ -173,6 +207,8 @@ def _normalize_schema_node(
                 cache=cache,
                 path_stack=path_stack,
                 composition_seen=composition_seen,
+                depth=depth,
+                max_depth=max_depth,
             )
             for item in node
         ]
@@ -188,20 +224,33 @@ class NormalizedSchema:
     has_uninterpreted_composition: bool
 
 
+# `Schema.name`/`Message.name` (app.canonical.model) are required strings - a label only, never
+# identity - so a `$ref` that resolves to an entire document with no fragment (e.g. `file.yaml`
+# with no `#/...`) has empty `definition_pointer_tokens` and no meaningful "last path segment" to
+# use as a name. This deterministic, synthetic placeholder fills that gap; angle brackets can never
+# collide with a real YAML/JSON key or OpenAPI component name.
+ANONYMOUS_SCHEMA_NAME = "<root>"
+
+
+def schema_display_name(definition_pointer_tokens: tuple[str, ...]) -> str:
+    return definition_pointer_tokens[-1] if definition_pointer_tokens else ANONYMOUS_SCHEMA_NAME
+
+
 def resolve_and_normalize_schema(
     top_node: dict,
     *,
     own_document_relative_path: str,
     own_pointer_tokens: tuple[str, ...],
     cache: ResolutionCache,
+    max_depth: int = DEFAULT_MAX_REFERENCE_DEPTH,
 ) -> NormalizedSchema:
     """§8.1's full per-construct identity + canonical-hash computation for one top-level schema
     slot (an operation's request/response media-type schema, or a message's payload). `top_node`
     may itself be a `$ref` (identity comes from the resolved target's own document path + pointer)
     or inline (identity is `own_pointer_tokens`, "its own stable request/response/media-type
     pointer"). Raises `ReferenceResolutionError` on any resolution failure anywhere in the tree
-    (dangling/invalid/remote/cyclic) - callers convert that into the appropriate whole-source
-    `REJECTED_*` outcome, per §8.1's construct-outcome table.
+    (dangling/invalid/remote/cyclic/over-limit) - callers convert that into the appropriate
+    whole-source `REJECTED_*` outcome, per §8.1's construct-outcome table.
     """
     composition_seen: list[bool] = []
     ref = top_node.get("$ref") if isinstance(top_node, dict) else None
@@ -217,6 +266,8 @@ def resolve_and_normalize_schema(
             cache=cache,
             path_stack=((resolved.normalized_relative_path, resolved.pointer_tokens),),
             composition_seen=composition_seen,
+            depth=1,  # the top slot's own $ref is already hop 1 from the root document
+            max_depth=max_depth,
         )
     else:
         definition_document_path = own_document_relative_path
@@ -227,6 +278,8 @@ def resolve_and_normalize_schema(
             cache=cache,
             path_stack=((own_document_relative_path, own_pointer_tokens),),
             composition_seen=composition_seen,
+            depth=0,
+            max_depth=max_depth,
         )
 
     return NormalizedSchema(

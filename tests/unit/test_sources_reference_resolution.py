@@ -48,7 +48,8 @@ def test_parse_ref_uri_does_not_decode_percent_escapes():
 
 
 def test_reject_remote_reference_accepts_local():
-    reject_remote_reference(parse_ref_uri("schemas/common.yaml#/Foo"))  # no raise
+    ref = "schemas/common.yaml#/Foo"
+    reject_remote_reference(parse_ref_uri(ref), ref=ref)  # no raise
 
 
 @pytest.mark.parametrize(
@@ -62,8 +63,12 @@ def test_reject_remote_reference_accepts_local():
 )
 def test_reject_remote_reference_rejects_scheme_or_authority(ref):
     with pytest.raises(ReferenceResolutionError) as exc_info:
-        reject_remote_reference(parse_ref_uri(ref))
+        reject_remote_reference(parse_ref_uri(ref), ref=ref)
     assert exc_info.value.code is DiagnosticCode.REMOTE_REFERENCE_UNSUPPORTED
+    # The diagnostic must carry the whole offending ref string, not just whichever of
+    # scheme/authority happened to be non-empty (a real review finding: a bare scheme like
+    # "'https'" told the user nothing about which $ref was the problem).
+    assert ref in str(exc_info.value)
 
 
 # --- percent_decode_path_once ---------------------------------------------------------------------

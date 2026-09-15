@@ -501,3 +501,195 @@ def test_a_property_literally_named_description_is_not_stripped_as_an_annotation
         }
     )
     assert outcome.model.schemas[0].canonical_hash == expected_hash
+
+
+def _same_document_schema_chain(num_schemas: int) -> dict:
+    """S0 -> S1 -> ... -> S{num_schemas - 1}, all same-document (`#/...`) refs - a fragment-only
+    chain that never crosses a file, so it is invisible to walk_transitive_closure/
+    enforce_reference_closure by design and can only be caught by _normalize_schema_node's own
+    depth counter."""
+    schemas: dict = {}
+    for i in range(num_schemas):
+        schemas[f"S{i}"] = {"type": "object"}
+        if i < num_schemas - 1:
+            schemas[f"S{i}"]["properties"] = {"next": {"$ref": f"#/components/schemas/S{i + 1}"}}
+    return schemas
+
+
+def _same_document_chain_openapi_doc(num_schemas: int) -> dict:
+    return {
+        "openapi": "3.1.0",
+        "info": {"title": "SameDocChainService"},
+        "x-aip-service-id": "service:samedocchain",
+        "paths": {
+            "/x": {
+                "get": {
+                    "operationId": "getX",
+                    "responses": {
+                        "200": {
+                            "content": {
+                                "application/json": {"schema": {"$ref": "#/components/schemas/S0"}}
+                            }
+                        }
+                    },
+                }
+            }
+        },
+        "components": {"schemas": _same_document_schema_chain(num_schemas)},
+    }
+
+
+def test_a_same_document_reference_chain_within_the_depth_limit_is_accepted(tmp_path):
+    _write(
+        tmp_path / "same-doc-service" / "openapi.yaml", _same_document_chain_openapi_doc(16)
+    )  # 16 hops: response -> S0 (1) -> ... -> S15 (16), at the limit
+
+    result = run_filesystem_discovery(FilesystemSourceConfig(id="samedoc-ok", root=tmp_path))
+    outcome = _outcome_for(result, "openapi.yaml")
+
+    assert outcome.result is IngestionResult.ACCEPTED
+
+
+def test_a_same_document_reference_chain_exceeding_the_depth_limit_is_rejected(tmp_path):
+    """Regression for a real review finding: enforce_reference_closure's walk_transitive_closure
+    deliberately skips fragment-only ($ref within the same document) references entirely, and
+    resolve_and_normalize_schema had no depth counter of its own - so a purely same-document chain
+    of 21+ hops sailed through map() as ACCEPTED with no REFERENCE_LIMIT_EXCEEDED at all, even
+    though ADR 0015 explicitly defines depth as counting every hop, same-file or not."""
+    _write(
+        tmp_path / "same-doc-service" / "openapi.yaml", _same_document_chain_openapi_doc(17)
+    )  # 17 hops: one past the depth-16 limit, entirely within one document
+
+    result = run_filesystem_discovery(FilesystemSourceConfig(id="samedoc-bad", root=tmp_path))
+    outcome = _outcome_for(result, "openapi.yaml")
+
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert any(d.code is DiagnosticCode.REFERENCE_LIMIT_EXCEEDED for d in outcome.diagnostics)
+
+
+def test_a_mixed_cross_file_and_same_document_chain_shares_one_depth_budget(tmp_path):
+    """A single cross-file hop into a file that then continues with 16 more same-document hops is
+    17 hops total - the depth budget must be shared across the file boundary, not reset to zero
+    once a same-document chain begins inside the referenced file."""
+    service_dir = tmp_path / "mixed-chain-service"
+    # 1 cross-file hop (root -> chain.yaml#/.../S0) + 16 same-document hops (S0 -> ... -> S16,
+    # 17 schemas = 16 transitions) = 17 total, one past the depth-16 limit.
+    _write(
+        service_dir / "schemas" / "chain.yaml",
+        {"components": {"schemas": _same_document_schema_chain(17)}},
+    )
+    _write(
+        service_dir / "openapi.yaml",
+        {
+            "openapi": "3.1.0",
+            "info": {"title": "MixedChainService"},
+            "x-aip-service-id": "service:mixedchain",
+            "paths": {
+                "/x": {
+                    "get": {
+                        "operationId": "getX",
+                        "responses": {
+                            "200": {
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "$ref": "schemas/chain.yaml#/components/schemas/S0"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    }
+                }
+            },
+        },
+    )
+
+    result = run_filesystem_discovery(FilesystemSourceConfig(id="mixed-bad", root=tmp_path))
+    outcome = _outcome_for(result, "openapi.yaml")
+
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert any(d.code is DiagnosticCode.REFERENCE_LIMIT_EXCEEDED for d in outcome.diagnostics)
+
+
+def test_extension_data_is_preserved_intact_in_the_canonical_hash(tmp_path):
+    """Regression for a real review finding: EXCLUDED_SCHEMA_FIELDS filtering was still applied
+    inside an arbitrary vendor extension's own nested data (any dict was treated as a schema node),
+    so a key like "description" nested inside an `x-contract` extension was silently stripped -
+    contrary to I1 spec §8.1's "every extension key are retained." Two schemas differing only in an
+    extension's nested content must hash differently."""
+
+    def _doc(inner_value: str) -> dict:
+        return {
+            "openapi": "3.1.0",
+            "info": {"title": "ExtService"},
+            "x-aip-service-id": "service:ext",
+            "paths": {
+                "/x": {
+                    "get": {
+                        "operationId": "getX",
+                        "responses": {
+                            "200": {
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "x-contract": {"description": inner_value},
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    }
+                }
+            },
+        }
+
+    _write(tmp_path / "ext-service" / "openapi.yaml", _doc("before"))
+    before = run_filesystem_discovery(FilesystemSourceConfig(id="ext", root=tmp_path))
+    hash_before = _outcome_for(before, "openapi.yaml").model.schemas[0].canonical_hash
+
+    _write(tmp_path / "ext-service" / "openapi.yaml", _doc("after"))
+    after = run_filesystem_discovery(FilesystemSourceConfig(id="ext", root=tmp_path))
+    hash_after = _outcome_for(after, "openapi.yaml").model.schemas[0].canonical_hash
+
+    assert hash_before != hash_after
+
+
+def test_a_ref_to_a_whole_document_with_no_fragment_gets_a_synthetic_schema_name(tmp_path):
+    """Regression for a real review finding: Schema.name is a required string in the canonical
+    model, but a $ref with no fragment (e.g. "other.yaml", resolving to the entire document as the
+    schema) has empty definition_pointer_tokens and thus no "last path segment" to use as a name -
+    constructing Schema(name=None, ...) raised a pydantic validation error at runtime."""
+    _write(
+        tmp_path / "whole-doc-service" / "schemas" / "whole.yaml",
+        {"type": "object", "properties": {"id": {"type": "string"}}},
+    )
+    _write(
+        tmp_path / "whole-doc-service" / "openapi.yaml",
+        {
+            "openapi": "3.1.0",
+            "info": {"title": "WholeDocService"},
+            "x-aip-service-id": "service:wholedoc",
+            "paths": {
+                "/x": {
+                    "get": {
+                        "operationId": "getX",
+                        "responses": {
+                            "200": {
+                                "content": {
+                                    "application/json": {"schema": {"$ref": "schemas/whole.yaml"}}
+                                }
+                            }
+                        },
+                    }
+                }
+            },
+        },
+    )
+
+    result = run_filesystem_discovery(FilesystemSourceConfig(id="wholedoc", root=tmp_path))
+    outcome = _outcome_for(result, "openapi.yaml")
+
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert outcome.model.schemas[0].name == "<root>"

@@ -6,6 +6,7 @@ from app.ingestion._shared import (
     rejected_outcome_for_identity,
     rejected_outcome_for_reference_error,
     resolve_and_normalize_schema,
+    schema_display_name,
     semantic_input_digest_bytes,
 )
 from app.provenance.model import Provenance
@@ -163,9 +164,7 @@ class OpenApiSourceAdapter:
             if schema_id_value not in schemas_by_id:
                 schemas_by_id[schema_id_value] = Schema(
                     id=schema_id_value,
-                    name=normalized.definition_pointer_tokens[-1]
-                    if normalized.definition_pointer_tokens
-                    else None,
+                    name=schema_display_name(normalized.definition_pointer_tokens),
                     format=media_type,
                     canonical_hash=normalized.canonical_hash,
                 )

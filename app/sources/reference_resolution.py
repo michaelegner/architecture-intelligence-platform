@@ -77,14 +77,16 @@ def parse_ref_uri(ref: str) -> ParsedRef:
     )
 
 
-def reject_remote_reference(parsed: ParsedRef) -> None:
+def reject_remote_reference(parsed: ParsedRef, *, ref: str) -> None:
     """§8.1 step 1's rejection: a non-empty scheme or authority makes the whole reference remote/
     non-local, which is `REJECTED_UNSUPPORTED` for the *whole source* (§8.1: "remote/non-local
-    reference -> REJECTED_UNSUPPORTED for the whole source") - not a per-construct omission."""
+    reference -> REJECTED_UNSUPPORTED for the whole source") - not a per-construct omission. The
+    diagnostic carries the full original `ref` string (not just whichever of scheme/authority
+    happened to be non-empty) so the offending `$ref` is identifiable at a glance."""
     if parsed.scheme or parsed.authority:
         raise ReferenceResolutionError(
             code=DiagnosticCode.REMOTE_REFERENCE_UNSUPPORTED,
-            message=f"remote/non-local reference is not supported: {parsed.scheme or parsed.authority!r}",
+            message=f"remote/non-local reference is not supported: {ref!r}",
         )
 
 
@@ -311,7 +313,7 @@ def resolve_and_read(
     any step's failure; never lets a raw filesystem/YAML/lookup exception escape.
     """
     parsed = parse_ref_uri(ref)
-    reject_remote_reference(parsed)
+    reject_remote_reference(parsed, ref=ref)
     decoded_path = percent_decode_path_once(parsed.path)
 
     if decoded_path:
@@ -398,7 +400,7 @@ def walk_transitive_closure(
         nonlocal total_bytes
         for ref in _iter_ref_strings(document):
             parsed = parse_ref_uri(ref)
-            reject_remote_reference(parsed)
+            reject_remote_reference(parsed, ref=ref)
             decoded_path = percent_decode_path_once(parsed.path)
             if not decoded_path:
                 continue  # same-document reference: no new file, not this function's concern

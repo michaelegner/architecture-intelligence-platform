@@ -14,6 +14,7 @@ from app.ingestion._shared import (
     rejected_outcome_for_identity,
     rejected_outcome_for_reference_error,
     resolve_and_normalize_schema,
+    schema_display_name,
     semantic_input_digest_bytes,
 )
 from app.provenance.model import Provenance
@@ -327,11 +328,7 @@ class AsyncApiSourceAdapter:
                     normalized_definition_document_path=normalized.normalized_definition_document_path,
                     definition_pointer_tokens=normalized.definition_pointer_tokens,
                 )
-                schema_name = (
-                    normalized.definition_pointer_tokens[-1]
-                    if normalized.definition_pointer_tokens
-                    else None
-                )
+                schema_name = schema_display_name(normalized.definition_pointer_tokens)
             else:
                 try:
                     normalized = resolve_and_normalize_schema(
