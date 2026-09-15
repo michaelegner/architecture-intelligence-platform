@@ -1,5 +1,8 @@
+import pytest
+
 from app.sources.model import DiagnosticCode
 from app.sources.tombstones import (
+    InconsistentCommittedInventoryStateError,
     Tombstone,
     TombstoneRejectionReason,
     validate_tombstone_against_committed_inventory,
@@ -82,3 +85,23 @@ def test_scope_digest_mismatch_is_rejected_even_with_matching_revision():
     )
     assert result.accepted is False
     assert result.rejection_reason is TombstoneRejectionReason.SCOPE_MISMATCH
+
+
+def test_partial_committed_state_revision_only_raises():
+    with pytest.raises(InconsistentCommittedInventoryStateError):
+        validate_tombstone_against_committed_inventory(
+            tombstone=_tombstone(),
+            committed_discovery_scope_id=None,
+            committed_scope_definition_digest=None,
+            committed_inventory_revision=REVISION,
+        )
+
+
+def test_partial_committed_state_scope_only_raises():
+    with pytest.raises(InconsistentCommittedInventoryStateError):
+        validate_tombstone_against_committed_inventory(
+            tombstone=_tombstone(),
+            committed_discovery_scope_id=SCOPE_ID,
+            committed_scope_definition_digest=SCOPE_DIGEST,
+            committed_inventory_revision=None,
+        )

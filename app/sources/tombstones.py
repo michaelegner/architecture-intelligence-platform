@@ -27,6 +27,14 @@ class TombstoneRejectionReason(StrEnum):
     SCOPE_MISMATCH = "SCOPE_MISMATCH"
 
 
+class InconsistentCommittedInventoryStateError(ValueError):
+    """Raised when the three `committed_*` parameters disagree on whether an inventory has ever
+    committed - all three must be `None` together (nothing committed yet) or all three set together
+    (a real committed inventory exists). A partial combination is always a caller bug, not a
+    legitimate state this function can validate a tombstone against.
+    """
+
+
 @dataclass(frozen=True)
 class TombstoneValidation:
     accepted: bool
@@ -52,7 +60,26 @@ def validate_tombstone_against_committed_inventory(
       - `SCOPE_MISMATCH`: the tombstone's own `discovery_scope_id`/`scope_definition_digest` do not
         match what is actually committed, even if `expected_prior_inventory_revision` happens to
         match by coincidence.
+
+    Raises `InconsistentCommittedInventoryStateError` if exactly one or two of the three
+    `committed_*` parameters are `None` - a real committed inventory always has all three fields
+    set together, so a partial combination indicates a caller bug rather than a legitimate "nothing
+    committed yet" or "something committed" state to validate against.
     """
+    committed_fields = (
+        committed_discovery_scope_id,
+        committed_scope_definition_digest,
+        committed_inventory_revision,
+    )
+    if any(field is None for field in committed_fields) and any(
+        field is not None for field in committed_fields
+    ):
+        raise InconsistentCommittedInventoryStateError(
+            "committed_discovery_scope_id, committed_scope_definition_digest, and "
+            "committed_inventory_revision must be either all None or all set; got "
+            f"{committed_fields!r}"
+        )
+
     if committed_inventory_revision is None:
         return TombstoneValidation(
             accepted=False,

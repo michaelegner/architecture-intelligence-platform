@@ -6,7 +6,9 @@ from app.sources.tombstones import TombstoneValidation
 
 
 class RemovalAuthorityDenialReason(StrEnum):
-    TOMBSTONE_INVALID_OR_ABSENT = "TOMBSTONE_INVALID_OR_ABSENT"
+    # No separate "tombstone invalid/absent" member: the function always falls through to the
+    # enumeration-path checks below, which produce a concrete reason for every denial regardless of
+    # tombstone state - a distinct tombstone-only reason would be unreachable dead API surface.
     ENUMERATION_NOT_COMPLETE = "ENUMERATION_NOT_COMPLETE"
     ENUMERATION_SCOPE_MISMATCH = "ENUMERATION_SCOPE_MISMATCH"
     SOURCE_STILL_PRESENT_IN_ENUMERATION = "SOURCE_STILL_PRESENT_IN_ENUMERATION"
