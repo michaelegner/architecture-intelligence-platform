@@ -28,10 +28,16 @@ string-prefix containment check bypassable (encoded traversal, `..` escape, syml
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any
 from urllib.parse import unquote, urlsplit
 
+import yaml
+
 from app.sources.model import DiagnosticCode
+from app.sources.pointers import decode_pointer_tokens
 
 _VALID_PERCENT_ESCAPE = re.compile(r"%[0-9A-Fa-f]{2}")
 
@@ -150,3 +156,182 @@ def resolve_relative_path(*, containing_document_relative_path: str, ref_path: s
     )
     joined = f"{containing_dir}/{ref_path}" if containing_dir else ref_path
     return normalize_dot_segments(joined)
+
+
+def normalize_non_json_scalars(value: Any) -> Any:
+    """YAML's default schema auto-converts an unquoted date/timestamp-shaped scalar (e.g. an
+    illustrative `examples:` value) into a native `datetime.date`/`datetime.datetime` - a type JSON
+    has no representation for, which crashes RFC 8785 canonicalization deep in an adapter's
+    identity/digest computation with an opaque library error instead of a clean diagnostic. Since a
+    JSON-format equivalent of the same document could only ever have carried that value as a quoted
+    string, converting it to its ISO 8601 string form here - once, centrally, for every parsed
+    document (root or referenced) - loses no information and keeps every downstream consumer
+    JSON-safe. Shared with `app.ingestion.filesystem_discoverer`, which applies it to root
+    documents; this module applies it to every referenced document it reads too.
+    """
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {key: normalize_non_json_scalars(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [normalize_non_json_scalars(item) for item in value]
+    return value
+
+
+@dataclass
+class ResolutionCache:
+    """Per-source-instance cache of every document read while resolving its `$ref` graph, keyed by
+    normalized path relative to `source_root`. Shared across every `resolve_and_read` call for one
+    source (and the discoverer's own closure walk) so a file referenced from multiple places is
+    read and parsed exactly once, and so cycle/limit accounting has one consistent view of what's
+    already been visited.
+    """
+
+    source_root: Path
+    source_root_real: Path
+    documents: dict[str, dict] = field(default_factory=dict)
+    file_bytes: dict[str, bytes] = field(default_factory=dict)
+
+
+def new_resolution_cache(
+    source_root: Path, *, root_relative_path: str, root_document: dict, root_bytes: bytes
+) -> ResolutionCache:
+    """Builds a `ResolutionCache` pre-seeded with the already-loaded root document, so a
+    fragment-only `$ref` inside it resolves without re-reading anything from disk."""
+    cache = ResolutionCache(
+        source_root=source_root, source_root_real=source_root.resolve(strict=False)
+    )
+    cache.documents[root_relative_path] = root_document
+    cache.file_bytes[root_relative_path] = root_bytes
+    return cache
+
+
+def _load_and_validate_document(
+    cache: ResolutionCache, normalized_relative_path: str
+) -> tuple[dict, bytes]:
+    """§8.1 steps 6-7: resolve symlinks to the real filesystem path, then require that real path to
+    be a regular file inside the approved source root's own real path. `Path.resolve(strict=False)`
+    both follows symlinks to their real target and normalizes the path, without raising for a
+    missing target (that becomes a clean `REJECTED_INVALID`, never an uncaught OSError).
+    `is_relative_to` (not a string-prefix check, which `"/root-evil".startswith("/root")` shows is
+    bypassable) is the actual containment boundary.
+    """
+    if normalized_relative_path in cache.documents:
+        return cache.documents[normalized_relative_path], cache.file_bytes[normalized_relative_path]
+
+    candidate = cache.source_root / normalized_relative_path
+    real_path = candidate.resolve(strict=False)
+    if not real_path.is_relative_to(cache.source_root_real):
+        raise ReferenceResolutionError(
+            code=DiagnosticCode.REFERENCE_INVALID,
+            message=f"reference {normalized_relative_path!r} escapes the approved source root",
+        )
+    if not real_path.is_file():
+        raise ReferenceResolutionError(
+            code=DiagnosticCode.REFERENCE_INVALID,
+            message=f"referenced file does not exist or is not a regular file: {normalized_relative_path!r}",
+        )
+
+    raw_bytes = real_path.read_bytes()
+    try:
+        parsed = yaml.safe_load(raw_bytes)
+    except yaml.YAMLError as exc:
+        raise ReferenceResolutionError(
+            code=DiagnosticCode.REFERENCE_INVALID,
+            message=f"malformed referenced document {normalized_relative_path!r}: {exc}",
+        ) from exc
+    if not isinstance(parsed, dict):
+        raise ReferenceResolutionError(
+            code=DiagnosticCode.REFERENCE_INVALID,
+            message=f"referenced document root is not a mapping: {normalized_relative_path!r}",
+        )
+    document = normalize_non_json_scalars(parsed)
+
+    cache.documents[normalized_relative_path] = document
+    cache.file_bytes[normalized_relative_path] = raw_bytes
+    return document, raw_bytes
+
+
+def resolve_pointer(document: dict, pointer_tokens: tuple[str, ...]) -> Any:
+    """§8.1 step 8's node walk, once the fragment's tokens are already decoded. A token that
+    doesn't resolve - a missing dict key, a non-integer or out-of-range list index, or a walk past
+    a scalar - is a dangling JSON Pointer, `REJECTED_INVALID`."""
+    node: Any = document
+    for token in pointer_tokens:
+        if isinstance(node, dict):
+            if token not in node:
+                raise ReferenceResolutionError(
+                    code=DiagnosticCode.REFERENCE_INVALID,
+                    message=f"dangling JSON Pointer: no key {token!r}",
+                )
+            node = node[token]
+        elif isinstance(node, list):
+            if not token.lstrip("-").isdigit() or token.startswith("-"):
+                raise ReferenceResolutionError(
+                    code=DiagnosticCode.REFERENCE_INVALID,
+                    message=f"dangling JSON Pointer: not a valid array index {token!r}",
+                )
+            index = int(token)
+            if index >= len(node):
+                raise ReferenceResolutionError(
+                    code=DiagnosticCode.REFERENCE_INVALID,
+                    message=f"dangling JSON Pointer: array index {index} out of range",
+                )
+            node = node[index]
+        else:
+            raise ReferenceResolutionError(
+                code=DiagnosticCode.REFERENCE_INVALID,
+                message=f"dangling JSON Pointer: cannot descend into a scalar at {token!r}",
+            )
+    return node
+
+
+@dataclass(frozen=True)
+class ResolvedRef:
+    target_document: dict
+    normalized_relative_path: str
+    pointer_tokens: tuple[str, ...]
+    target_node: Any
+
+
+def resolve_and_read(
+    *, containing_document_relative_path: str, ref: str, cache: ResolutionCache
+) -> ResolvedRef:
+    """The full §8.1 resolution order for one `$ref` string, end to end. `containing_document_
+    relative_path` must already be a key in `cache.documents` (the discoverer/adapter seeds the
+    cache with the root document via `new_resolution_cache`; every other document this function
+    resolves gets cached as a side effect of resolving it). Raises `ReferenceResolutionError` on
+    any step's failure; never lets a raw filesystem/YAML/lookup exception escape.
+    """
+    parsed = parse_ref_uri(ref)
+    reject_remote_reference(parsed)
+    decoded_path = percent_decode_path_once(parsed.path)
+
+    if decoded_path:
+        reject_absolute_decoded_path(decoded_path)
+        target_relative_path = resolve_relative_path(
+            containing_document_relative_path=containing_document_relative_path,
+            ref_path=decoded_path,
+        )
+        target_document, _ = _load_and_validate_document(cache, target_relative_path)
+    else:
+        target_relative_path = containing_document_relative_path
+        target_document = cache.documents[containing_document_relative_path]
+
+    try:
+        pointer_tokens = decode_pointer_tokens(parsed.fragment)
+    except ValueError as exc:
+        raise ReferenceResolutionError(
+            code=DiagnosticCode.REFERENCE_INVALID,
+            message=f"malformed JSON Pointer fragment {parsed.fragment!r}: {exc}",
+        ) from exc
+
+    target_node = resolve_pointer(target_document, pointer_tokens)
+    return ResolvedRef(
+        target_document=target_document,
+        normalized_relative_path=target_relative_path,
+        pointer_tokens=pointer_tokens,
+        target_node=target_node,
+    )
