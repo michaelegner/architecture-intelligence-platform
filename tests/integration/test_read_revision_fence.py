@@ -40,8 +40,15 @@ def _whole_database_node_count(driver) -> int:
 
 def test_matches_read_revision_after_a_real_import(driver):
     from app.graph.importer import import_all_sources
+    from app.sources.model import FilesystemSourceConfig
 
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-read-revision-fence-examples", root=EXAMPLES_DIR
+        ),
+    )
     with driver.session(database=DATABASE) as session:
         expected = read_revision(session)
 

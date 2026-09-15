@@ -6,6 +6,7 @@ import pytest
 from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.provenance.model import ObservedEvidence
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate, ObservedOnlyEntity
 
@@ -17,7 +18,11 @@ DATABASE = "neo4j"
 def populated_graph(driver):
     with driver.session(database=DATABASE) as session:
         session.run("MATCH (n) DETACH DELETE n")
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aggregator-examples", root=EXAMPLES_DIR),
+    )
 
 
 @pytest.fixture

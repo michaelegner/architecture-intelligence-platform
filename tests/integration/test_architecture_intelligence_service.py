@@ -29,6 +29,7 @@ from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.graph.revision_fence import bump_revision, read_revision
 from app.provenance.model import ObservedEvidence
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 
@@ -52,6 +53,13 @@ def clean_database(driver):
 
 def _service(driver) -> ArchitectureIntelligenceService:
     return ArchitectureIntelligenceService(driver, database=DATABASE, producer=PRODUCER)
+
+
+def _queue_id(driver, name: str) -> str:
+    with driver.session(database=DATABASE) as session:
+        record = session.run("MATCH (q:Queue {name: $name}) RETURN q.id AS id", name=name).single()
+    assert record is not None, f"no Queue node found with name {name!r}"
+    return record["id"]
 
 
 def _request(service_id: str, **overrides) -> ServiceDependenciesRequest:
@@ -98,7 +106,11 @@ def _observe_order_service_calls_product_service(driver):
 
 
 def test_order_service_dependencies_resolve_confirmed_not_observed_and_unresolved(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     _observe_order_service_calls_product_service(driver)
 
     svc = _service(driver)
@@ -115,7 +127,7 @@ def test_order_service_dependencies_resolve_confirmed_not_observed_and_unresolve
     assert async_claim.destination_resolution == DestinationResolution.RESOLVED_SERVICE
     assert async_claim.qualification == Qualification.NOT_OBSERVED_IN_WINDOW
 
-    unused_queue_id = ids.queue_id("unused-q")
+    unused_queue_id = _queue_id(driver, "unused-q")
     fallback_claim = by_object_and_kind[(unused_queue_id, "ASYNC_MESSAGE")]
     assert fallback_claim.destination_resolution == DestinationResolution.DIRECT_TARGET_FALLBACK
     assert any(
@@ -129,7 +141,11 @@ def test_order_service_dependencies_resolve_confirmed_not_observed_and_unresolve
 
 
 def test_two_consecutive_calls_are_canonically_byte_identical(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     request = _request(ids.service_id("order-service"))
 
@@ -139,7 +155,11 @@ def test_two_consecutive_calls_are_canonically_byte_identical(driver):
 
 
 def test_service_with_no_outgoing_dependencies_is_answered_with_empty_claims(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     answer = svc.get_service_dependencies(_request(ids.service_id("product-service")))
 
@@ -149,7 +169,11 @@ def test_service_with_no_outgoing_dependencies_is_answered_with_empty_claims(dri
 
 
 def test_unknown_service_is_distinguished_from_a_valid_empty_service(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     answer = svc.get_service_dependencies(_request("service:does-not-exist"))
 
@@ -159,7 +183,11 @@ def test_unknown_service_is_distinguished_from_a_valid_empty_service(driver):
 
 
 def test_stale_explicit_snapshot_is_refused_without_fallback(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     stale_snapshot_id = "aip:snapshot:v1:" + "0" * 64
     answer = svc.get_service_dependencies(
@@ -173,7 +201,11 @@ def test_stale_explicit_snapshot_is_refused_without_fallback(driver):
 
 
 def test_matching_explicit_snapshot_repeats_the_answer(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     request = _request(ids.service_id("order-service"))
     first_answer = svc.get_service_dependencies(request)
@@ -197,7 +229,11 @@ def test_service_call_performs_zero_graph_writes(driver, monkeypatch):
     can rely on), the internal revision fence is untouched, and the full canonical fingerprint is
     untouched - a write that incorrectly skipped bump_revision() but touched other state would still
     fail the fingerprint check."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
 
     captured_read_only = []
     real_open_session = service_module.open_session
@@ -239,7 +275,11 @@ def test_a_concurrent_write_during_the_stable_read_forces_a_retry_through_the_re
     discard, since revision isn't part of the canonical fingerprint itself. Mutating a real
     allowlisted field is what makes the final fingerprint assertion below meaningfully prove no
     stale-field/bumped-revision mix was ever accepted."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
 
     real_read_rows = service_module.read_service_dependency_rows
     calls = {"count": 0}
@@ -281,7 +321,11 @@ def test_evidence_resolves_declared_observed_and_resolution_evidence_from_a_depe
     dependency answer resolves using its own snapshot - this is the code-level vertical-slice proof
     (get_service_dependencies -> extract evidence_refs/snapshot_id -> get_evidence); the real
     independent-HTTP-client version of this chain is I2.4's job."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     _observe_order_service_calls_product_service(driver)
 
     svc = _service(driver)
@@ -313,7 +357,11 @@ def test_evidence_resolves_declared_observed_and_resolution_evidence_from_a_depe
 
 
 def test_evidence_with_one_unknown_ref_yields_partial_insufficient_evidence(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
     known_id = min(dependency_answer.evidence_refs)
@@ -335,7 +383,11 @@ def test_evidence_with_one_unknown_ref_yields_partial_insufficient_evidence(driv
 
 
 def test_evidence_with_all_unknown_refs_yields_not_answered_with_data_present(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
 
@@ -356,7 +408,11 @@ def test_evidence_with_all_unknown_refs_yields_not_answered_with_data_present(dr
 
 
 def test_evidence_stale_explicit_snapshot_is_refused_without_fallback(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     stale_snapshot_id = "aip:snapshot:v1:" + "0" * 64
 
@@ -376,7 +432,11 @@ def test_evidence_stale_explicit_snapshot_is_refused_without_fallback(driver):
 
 
 def test_evidence_two_consecutive_calls_are_canonically_byte_identical(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
     known_id = min(dependency_answer.evidence_refs)
@@ -390,7 +450,11 @@ def test_evidence_two_consecutive_calls_are_canonically_byte_identical(driver):
 
 
 def test_evidence_call_performs_zero_graph_writes(driver, monkeypatch):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
     known_id = min(dependency_answer.evidence_refs)
@@ -439,7 +503,11 @@ def test_a_concurrent_evidence_write_during_the_stable_read_forces_a_retry_and_a
     snapshot_id with post-mutation evidence data. Because the caller pinned the pre-mutation
     snapshot, the only safe outcome after the retry is an explicit refusal bound to the *current*
     (post-mutation) snapshot, with no records returned."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
     requested_id = min(dependency_answer.evidence_refs)
@@ -504,7 +572,11 @@ def test_drift_returns_only_discrepancy_qualified_claims_of_a_real_service(drive
     """The `examples/` landscape gives OrderService one CONFIRMED sync dependency (observed below)
     alongside async dependencies with no matching observation - so the drift answer is exactly the
     dependency answer minus the CONFIRMED claim (I3 spec §7.1)."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     _observe_order_service_calls_product_service(driver)
     svc = _service(driver)
 
@@ -526,7 +598,11 @@ def test_drift_returns_only_discrepancy_qualified_claims_of_a_real_service(drive
 
 
 def test_drift_not_observed_in_window_claims_carry_their_coverage_and_evidence(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
 
     drift = svc.get_architecture_drift(_drift_request(ids.service_id("order-service")))
@@ -545,7 +621,11 @@ def test_drift_not_observed_in_window_claims_carry_their_coverage_and_evidence(d
 def test_drift_observed_only_claim_appears_for_an_undeclared_observed_dependency(driver):
     """OBSERVED_ONLY is the "undocumented observed dependency" half of I3 spec §7.2: an observation
     of a call that the manifest never declared."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     subject_id = ids.service_id("invoice-service")
     object_id = ids.operation_id(ids.service_id("product-service"), "GET", "/products/{id}")
     bucket_start = datetime(2026, 8, 26, 12, tzinfo=UTC)
@@ -589,7 +669,11 @@ def test_drift_observed_only_claim_appears_for_an_undeclared_observed_dependency
 def test_drift_claims_are_byte_identical_to_their_dependency_counterparts(driver):
     """I3 spec §8's exact claim-reuse invariant against real Neo4j: same claim_id, and every field
     of the claim identical - no drift-specific id namespace, evidence list or destination."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     _observe_order_service_calls_product_service(driver)
     svc = _service(driver)
 
@@ -607,7 +691,11 @@ def test_drift_claims_are_byte_identical_to_their_dependency_counterparts(driver
 def test_drift_retains_the_unresolved_limitation_of_a_returned_fallback_claim(driver):
     """`unused-q` has a sender but no consumer, so its claim stays a DIRECT_TARGET_FALLBACK with an
     UNRESOLVED_IDENTITY limitation - and it drifts, so the limitation travels with it (§19.1)."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
 
     drift = svc.get_architecture_drift(_drift_request(ids.service_id("order-service")))
@@ -617,7 +705,7 @@ def test_drift_retains_the_unresolved_limitation_of_a_returned_fallback_claim(dr
         for claim in drift.claims
         if claim.destination_resolution == DestinationResolution.DIRECT_TARGET_FALLBACK
     ]
-    assert [claim.object.id for claim in fallback] == [ids.queue_id("unused-q")]
+    assert [claim.object.id for claim in fallback] == [_queue_id(driver, "unused-q")]
     returned_ids = {claim.claim_id for claim in drift.claims}
     unresolved = [
         lim for lim in drift.limitations if lim.code == LimitationCode.UNRESOLVED_IDENTITY
@@ -631,7 +719,11 @@ def test_drift_retains_the_unresolved_limitation_of_a_returned_fallback_claim(dr
 def test_drift_for_a_service_with_no_outgoing_dependencies_is_answered_empty(driver):
     """I3 spec §18.2's second half: a service with zero applicable outgoing dependency claims is an
     ANSWERED empty drift, not a refusal. ProductService only *provides*."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     _observe_order_service_calls_product_service(driver)
     svc = _service(driver)
 
@@ -650,9 +742,13 @@ def test_drift_for_a_fully_confirmed_service_is_answered_empty(driver):
     supported outgoing dependency (it sends to `invoice-q`), so observing that send makes every one
     of its dependencies CONFIRMED. Empty drift is then a successful answer about a service that
     genuinely has dependencies - not the trivially-empty zero-candidate case above."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     subject_id = ids.service_id("payment-service")
-    object_id = ids.queue_id("invoice-q")
+    object_id = _queue_id(driver, "invoice-q")
     bucket_start = datetime(2026, 8, 26, 12, tzinfo=UTC)
     evidence = ObservedEvidence(
         id=ids.observed_evidence_id(ENVIRONMENT, bucket_start, subject_id, "SENDS", object_id),
@@ -718,12 +814,16 @@ def test_drift_retains_a_claim_independent_insufficient_evidence_limitation(driv
     outgoing paths can no longer be qualified at all. "No safe claim" is not "proved non-drift", so
     that claim-independent limitation must survive the drift filter and make the answer PARTIAL -
     silently dropping it would understate the drift result as complete."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     _strip_evidence_from_relation(
         driver,
         relation_type="SENDS",
         subject_id=ids.service_id("order-service"),
-        object_id=ids.queue_id("unused-q"),
+        object_id=_queue_id(driver, "unused-q"),
     )
     svc = _service(driver)
 
@@ -731,12 +831,12 @@ def test_drift_retains_a_claim_independent_insufficient_evidence_limitation(driv
 
     assert drift.outcome == Outcome.PARTIAL
     assert drift.claims
-    assert ids.queue_id("unused-q") not in {claim.object.id for claim in drift.claims}
+    assert _queue_id(driver, "unused-q") not in {claim.object.id for claim in drift.claims}
     insufficient = [
         lim for lim in drift.limitations if lim.code == LimitationCode.INSUFFICIENT_EVIDENCE
     ]
     assert [lim.claim_ids for lim in insufficient] == [[]]
-    assert ids.queue_id("unused-q") in insufficient[0].message
+    assert _queue_id(driver, "unused-q") in insufficient[0].message
     # §19.1's other half in the same run: the fallback claim is gone, so is its scoped limitation.
     assert not [lim for lim in drift.limitations if lim.code == LimitationCode.UNRESOLVED_IDENTITY]
 
@@ -746,12 +846,16 @@ def test_drift_is_not_answered_when_every_candidate_path_lacks_evidence(driver):
     `invoice-q`, so unqualifiable evidence there leaves zero drift claims *and* zero confirmed ones.
     That must not be reported as the §18.2 empty-drift success - "could not establish a claim" is
     not "no drift"."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     _strip_evidence_from_relation(
         driver,
         relation_type="SENDS",
         subject_id=ids.service_id("payment-service"),
-        object_id=ids.queue_id("invoice-q"),
+        object_id=_queue_id(driver, "invoice-q"),
     )
     svc = _service(driver)
 
@@ -769,7 +873,11 @@ def test_drift_is_not_answered_when_every_candidate_path_lacks_evidence(driver):
 
 
 def test_drift_unknown_service_is_refused(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
 
     drift = svc.get_architecture_drift(_drift_request("service:does-not-exist"))
@@ -780,7 +888,11 @@ def test_drift_unknown_service_is_refused(driver):
 
 
 def test_drift_stale_explicit_snapshot_is_refused_without_fallback(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     stale_snapshot_id = "aip:snapshot:v1:" + "0" * 64
 
@@ -795,7 +907,11 @@ def test_drift_stale_explicit_snapshot_is_refused_without_fallback(driver):
 
 
 def test_drift_two_consecutive_calls_are_canonically_byte_identical(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     svc = _service(driver)
     request = _drift_request(ids.service_id("order-service"))
 
@@ -807,7 +923,11 @@ def test_drift_two_consecutive_calls_are_canonically_byte_identical(driver):
 def test_drift_evidence_refs_all_resolve_through_the_evidence_tool_at_the_same_snapshot(driver):
     """I3 spec §22's required drill-down: drift answer -> snapshot_id + evidence_refs -> get_evidence
     at that same snapshot, resolving every reference."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
     _observe_order_service_calls_product_service(driver)
     svc = _service(driver)
 
@@ -826,7 +946,11 @@ def test_drift_evidence_refs_all_resolve_through_the_evidence_tool_at_the_same_s
 def test_drift_call_performs_zero_graph_writes(driver, monkeypatch):
     """I3 spec §25: same three-way proof as the I1 dependency path - a READ_ACCESS session, an
     untouched revision fence, and an untouched canonical fingerprint."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
 
     captured_read_only = []
     real_open_session = service_module.open_session
@@ -855,7 +979,11 @@ def test_drift_call_performs_zero_graph_writes(driver, monkeypatch):
 
 def test_drift_refusal_paths_perform_zero_graph_writes(driver, monkeypatch):
     """I3 spec §25 requires the write-free proof for the refusal paths too, not only for ANSWERED."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
 
     captured_read_only = []
     real_open_session = service_module.open_session
@@ -902,7 +1030,11 @@ def test_a_concurrent_write_during_a_drift_stable_read_forces_a_retry(driver, mo
     """I3 spec §26: the drift path reuses the I1 revision fence and stable-read retry rather than
     introducing a second read boundary - so it can never mix claims from state A with a snapshot
     fingerprint from state B. Same deterministic injection as the I1 dependency test."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
 
     real_read_rows = service_module.read_service_dependency_rows
     calls = {"count": 0}

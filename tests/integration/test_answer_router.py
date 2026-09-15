@@ -7,6 +7,7 @@ from app.analysis.queues import consumers_of_queue, queues_without_senders, send
 from app.answer_router import LLMNotConfiguredError, answer_question
 from app.canonical import ids
 from app.graph.importer import import_all_sources
+from app.sources.model import FilesystemSourceConfig
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
@@ -37,13 +38,23 @@ class FakeProvider:
 def populated_graph(driver):
     with driver.session(database=DATABASE) as session:
         session.run("MATCH (n) DETACH DELETE n")
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-answer-router-examples", root=EXAMPLES_DIR),
+    )
 
 
 @pytest.fixture
 def session(driver):
     with driver.session(database=DATABASE) as s:
         yield s
+
+
+def _queue_id(session, name: str) -> str:
+    record = session.run("MATCH (q:Queue {name: $name}) RETURN q.id AS id", name=name).single()
+    assert record is not None, f"no Queue node found with name {name!r}"
+    return record["id"]
 
 
 def _build_question_service(driver, provider):
@@ -65,7 +76,7 @@ def test_a1_queue_senders_routed_deterministically(session, driver):
     assert routed.execution_mode == "DETERMINISTIC"
     assert routed.intent == "A1_QUEUE_SENDERS"
     assert routed.cypher is None
-    expected = senders_of_queue(session, ids.queue_id("payment-q"))
+    expected = senders_of_queue(session, _queue_id(session, "payment-q"))
     assert routed.rows == [{"id": r.id, "name": r.name} for r in expected]
 
 
@@ -78,7 +89,7 @@ def test_a2_queue_consumers_routed_deterministically_german(session, driver):
     )
     assert routed.execution_mode == "DETERMINISTIC"
     assert routed.intent == "A2_QUEUE_CONSUMERS"
-    expected = consumers_of_queue(session, ids.queue_id("payment-q"))
+    expected = consumers_of_queue(session, _queue_id(session, "payment-q"))
     assert routed.rows == [{"id": r.id, "name": r.name} for r in expected]
 
 
@@ -91,7 +102,7 @@ def test_a3_queues_without_consumers_routed_deterministically(session, driver):
     )
     assert routed.execution_mode == "DETERMINISTIC"
     assert routed.intent == "A3_QUEUES_WITHOUT_CONSUMERS"
-    assert routed.rows == [{"id": ids.queue_id("unused-q"), "name": "unused-q"}]
+    assert routed.rows == [{"id": _queue_id(session, "unused-q"), "name": "unused-q"}]
 
 
 def test_a5_blast_radius_routed_deterministically(session, driver):

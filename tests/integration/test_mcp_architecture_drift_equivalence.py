@@ -27,6 +27,7 @@ from app.graph.importer import import_all_sources
 from app.graph.revision_fence import read_revision
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
+from app.sources.model import FilesystemSourceConfig
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 SCHEMA_PATH = (
@@ -133,7 +134,13 @@ async def _call_drift(client: httpx.AsyncClient, request_payload: dict) -> dict:
 
 @pytest.mark.asyncio
 async def test_drift_answer_with_claims_is_identical_direct_vs_mcp(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-architecture-drift-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     direct_json = (
         _service(driver)
         .get_architecture_drift(_request(ids.service_id("order-service")))
@@ -157,7 +164,13 @@ async def test_drift_answer_with_claims_is_identical_direct_vs_mcp(driver):
 async def test_empty_drift_answer_is_identical_direct_vs_mcp(driver):
     """`product-service` only provides (I3 spec §18.2's zero-candidate empty-drift case) - a
     different envelope branch than the claim-bearing case above."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-architecture-drift-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     direct_json = (
         _service(driver)
         .get_architecture_drift(_request(ids.service_id("product-service")))
@@ -178,7 +191,13 @@ async def test_empty_drift_answer_is_identical_direct_vs_mcp(driver):
 
 @pytest.mark.asyncio
 async def test_two_identical_mcp_drift_calls_produce_byte_identical_structured_content(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-architecture-drift-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     server, app = _build_server_and_app(driver)
     payload = _request_payload(ids.service_id("order-service"))
     async with mcp_session_manager_lifespan(server):
@@ -191,7 +210,13 @@ async def test_two_identical_mcp_drift_calls_produce_byte_identical_structured_c
 
 @pytest.mark.asyncio
 async def test_successful_mcp_drift_call_leaves_revision_fence_unchanged(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-architecture-drift-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     with driver.session(database=DATABASE) as session:
         before = read_revision(session)
 
@@ -211,7 +236,13 @@ async def test_successful_mcp_drift_call_leaves_revision_fence_unchanged(driver)
 async def test_refusal_mcp_drift_call_leaves_revision_fence_unchanged(driver):
     """A stale/mismatched snapshot_id forces `NOT_ANSWERED`/`SNAPSHOT_NOT_AVAILABLE` - still zero
     graph writes (I3 spec §25)."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-architecture-drift-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     with driver.session(database=DATABASE) as session:
         before = read_revision(session)
 
@@ -238,7 +269,13 @@ async def test_drift_evidence_refs_resolve_through_mcp_get_evidence_at_the_same_
     """I3 spec §22/§63's required drift -> evidence drill-down, proven through the MCP dispatch path
     (mirrors `test_architecture_intelligence_service.py`'s service-level version of this test, which
     already covers the direct-call path)."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-architecture-drift-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     server, app = _build_server_and_app(driver)
     async with mcp_session_manager_lifespan(server):
         transport = httpx.ASGITransport(app=app)

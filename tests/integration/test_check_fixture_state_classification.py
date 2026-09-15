@@ -23,6 +23,7 @@ from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.graph.revision_fence import bump_revision
 from app.provenance.model import ObservedEvidence
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate, ObservedOnlyEntity
 
@@ -95,7 +96,13 @@ def _observe_order_service_calls_legacy_pricing(driver) -> None:
 
 
 def _prepare_fixture(driver) -> None:
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-check-fixture-state-classification-examples", root=EXAMPLES_DIR
+        ),
+    )
     _observe_order_service_calls_legacy_pricing(driver)
 
 
