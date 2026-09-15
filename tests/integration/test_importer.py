@@ -16,6 +16,7 @@ from app.canonical.model import (
     Service,
 )
 from app.graph.importer import import_all_sources, import_source
+from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
 from app.provenance.model import ObservedEvidence, Provenance
 from app.sources.model import FilesystemSourceConfig
@@ -662,6 +663,39 @@ def test_import_all_sources_is_idempotent(driver):
     assert first_nodes == second_nodes
     assert first_relations == second_relations
     assert all(not s.graph_revision_advanced for s in stats.per_source.values())
+
+
+def test_import_all_sources_property_change_advances_revision_through_the_real_pipeline(
+    driver, tmp_path
+):
+    """A real bug found in PR review, specific to the `import_all_sources` path (not exercised by
+    driving `import_source` directly, as the other revision-fence regression tests above do):
+    `_import_all_sources_tx` pre-merges every source's nodes - including this one's own new
+    property values - before this source's own `_import_source_tx` call ever takes its "before"
+    snapshot, making a genuine property change invisible to the no-op check. Reimporting through
+    the real filesystem-discovery pipeline with only product-service's OpenAPI `info.title` changed
+    must still advance the revision fence."""
+    root = tmp_path / "root"
+    shutil.copytree(EXAMPLES_DIR / "product-service", root / "product-service")
+    config = FilesystemSourceConfig(id="revision-fence-test", root=root)
+
+    import_all_sources(driver, database=DATABASE, source_config=config)
+    with driver.session(database=DATABASE) as session:
+        revision_before = read_revision(session)
+
+    openapi_path = root / "product-service" / "openapi.yaml"
+    openapi_path.write_text(openapi_path.read_text().replace("ProductService", "ProductServiceV2"))
+
+    stats = import_all_sources(driver, database=DATABASE, source_config=config)
+    with driver.session(database=DATABASE) as session:
+        revision_after = read_revision(session)
+        name = session.run(
+            "MATCH (s:Service {id: 'service:product-service'}) RETURN s.name AS name"
+        ).single()["name"]
+
+    assert name == "ProductServiceV2"
+    assert revision_after > revision_before
+    assert any(s.graph_revision_advanced for s in stats.per_source.values())
 
 
 def test_import_all_sources_removes_source_no_longer_discovered(driver, tmp_path):

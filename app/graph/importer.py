@@ -268,7 +268,20 @@ def _import_source_tx(
     semantic_input_digest: str,
     discovery_scope_id: str,
     scope_definition_digest: str,
+    committed_nodes_before: dict[str, dict] | None = None,
+    committed_relations_before: dict[str, dict] | None = None,
 ) -> SourceImportStats:
+    """`committed_nodes_before`/`committed_relations_before`, when given, must be a snapshot of
+    every node/relation this call could touch, taken before ANY write in this run (including
+    another source's pre-merge) - see `_import_all_sources_tx`, which is the only caller that needs
+    this: `import_all_sources` pre-merges every source's nodes before any source's own
+    `_import_source_tx` runs (so cross-source relation targets always resolve), which would
+    otherwise already have applied this exact source's own new property values by the time this
+    function queried "before" state itself, making a real property-only change invisible to the
+    no-op check below (a real bug found in PR review). `None` (the default, and always the case for
+    a direct standalone `import_source()` call, which has no pre-merge step to race against) means
+    "query the current graph state now" - correct there, since nothing else has written yet.
+    """
     for relation in model.relations:
         if relation.type not in KNOWN_RELATION_TYPES:
             raise ValueError(f"Unknown relation type: {relation.type}")
@@ -323,8 +336,16 @@ def _import_source_tx(
     # diff (added/removed/expired), this is the complete no-op signal - the claim-set diff alone
     # misses a property-only change on a retained claim, and semantic_input_digest alone
     # over-triggers on a canonically-inert input change.
-    nodes_before = _snapshot_node_props(tx, new_node_ids)
-    relations_before = _snapshot_relation_props(tx, new_relation_keys)
+    if committed_nodes_before is not None:
+        nodes_before = {k: v for k, v in committed_nodes_before.items() if k in new_node_ids}
+    else:
+        nodes_before = _snapshot_node_props(tx, new_node_ids)
+    if committed_relations_before is not None:
+        relations_before = {
+            k: v for k, v in committed_relations_before.items() if k in new_relation_keys
+        }
+    else:
+        relations_before = _snapshot_relation_props(tx, new_relation_keys)
 
     nodes_written = _write_nodes(tx, source_instance_id, model)
     relations_written = _write_relations(tx, source_instance_id, model)
@@ -468,6 +489,21 @@ def _import_all_sources_tx(
     - contradicting this module's own "nothing is written unless the whole run is COMPLETE"
     contract (I1 spec §6), a real bug found in PR review.
     """
+    # Snapshot every source's own emitted node/relation properties BEFORE the pre-merge pass below
+    # touches anything - the pre-merge writes every source's nodes first (see its own comment), so
+    # by the time a given source's own `_import_source_tx` ran, its own PRE-MERGE write had already
+    # applied its new property values, making its no-op check's "before" snapshot indistinguishable
+    # from "after" even for a genuine property-only change (a real bug found in PR review: this
+    # made a title-only reimport through the real `import_all_sources` path silently skip the
+    # revision fence). Captured once, for the union of every source's own node ids/relation keys.
+    all_node_ids: set[str] = set()
+    all_relation_keys: set[str] = set()
+    for source_outcome in run_result.source_outcomes.values():
+        all_node_ids |= _model_node_ids(source_outcome.outcome.model)
+        all_relation_keys |= _model_relation_keys(source_outcome.outcome.model)
+    committed_nodes_before = _snapshot_node_props(tx, all_node_ids)
+    committed_relations_before = _snapshot_relation_props(tx, all_relation_keys)
+
     # Pre-merge every source's nodes first so cross-source relation targets always resolve
     # regardless of processing order - unchanged in spirit from the PoC-era pre-merge pass, now
     # scoped per source instance instead of per service. This pass does NOT bump the revision fence
@@ -487,6 +523,8 @@ def _import_all_sources_tx(
             semantic_input_digest=source_outcome.outcome.semantic_input_digest,
             discovery_scope_id=run_result.discovery_scope_id,
             scope_definition_digest=run_result.scope_definition_digest,
+            committed_nodes_before=committed_nodes_before,
+            committed_relations_before=committed_relations_before,
         )
 
     removed_source_instance_ids: list[str] = []
