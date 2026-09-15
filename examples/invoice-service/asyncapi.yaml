@@ -2,8 +2,18 @@ asyncapi: '2.6.0'
 info:
   title: InvoiceService
   version: "1.0.0"
+x-aip-service-id: service:invoice-service
+servers:
+  asb:
+    url: amqps://asb.example.com
+    protocol: amqp
+    x-aip-broker-id: asb
+    bindings:
+      amqp:
+        virtualHost: commerce
 channels:
   invoice-q:
+    x-aip-destination-kind: "queue"
     subscribe:
       operationId: receiveInvoiceCreated
       message:

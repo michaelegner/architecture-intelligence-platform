@@ -2,6 +2,7 @@ openapi: 3.1.0
 info:
   title: OrderService
   version: "1.0.0"
+x-aip-service-id: service:order-service
 paths:
   /orders:
     post:
