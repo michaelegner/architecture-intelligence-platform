@@ -30,6 +30,10 @@ CANDIDATE_FILENAMES = (
     "asyncapi.yml",
     "asyncapi.json",
     "architecture.yaml",
+    # I1 spec §4.2's new ArchitectureIdentityBindings artifact - a distinct filename from the
+    # existing architecture.yaml CALLS-relation manifest, since both may coexist per service.
+    "architecture-identity-bindings.yaml",
+    "architecture-identity-bindings.yml",
 )
 
 _DIALECT_KEYS = ("openapi", "asyncapi", "apiVersion")
@@ -148,4 +152,6 @@ class FilesystemSourceDiscoverer:
             loaded_sources=tuple(loaded_sources),
             enumeration_complete=True,
             diagnostics=tuple(diagnostics),
+            discovery_scope_id=scope_id,
+            scope_definition_digest=scope_digest,
         )

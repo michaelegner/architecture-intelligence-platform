@@ -67,11 +67,19 @@ class DiscoveryOutcome:
     trustworthy source list (missing root, auth failure, timeout, truncation, pagination error -
     §6's own list of preserve-prior-state triggers) - see
     `app.sources.commit_gate.classify_inventory_status`.
+
+    `discovery_scope_id`/`scope_definition_digest` are carried at this level (not only inside each
+    `LoadedSource.descriptor`) so a caller can still identify the scope when zero sources were
+    found - a legitimately empty scope must be distinguishable from "we don't know what scope this
+    was."  `None` only when `enumeration_complete` is `False` and the scope itself could not be
+    computed (e.g. the configured root doesn't exist).
     """
 
     loaded_sources: tuple[LoadedSource, ...]
     enumeration_complete: bool
     diagnostics: tuple[IngestionDiagnostic, ...]
+    discovery_scope_id: str | None = None
+    scope_definition_digest: str | None = None
 
 
 class SourceDiscoverer(Protocol):
@@ -95,6 +103,10 @@ class SourceAdapterRegistry:
 
     def __init__(self, adapters: Sequence[SourceAdapter]):
         self._adapters = tuple(adapters)
+
+    @property
+    def adapters(self) -> tuple[SourceAdapter, ...]:
+        return self._adapters
 
     def adapter_for(self, loaded: LoadedSource) -> SourceAdapter | None:
         matches = [adapter for adapter in self._adapters if adapter.supports(loaded)]
