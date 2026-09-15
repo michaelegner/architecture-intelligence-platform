@@ -1,3 +1,6 @@
+from datetime import date, datetime
+from typing import Any
+
 import yaml
 
 from app.sources.identity import (
@@ -37,6 +40,25 @@ CANDIDATE_FILENAMES = (
 )
 
 _DIALECT_KEYS = ("openapi", "asyncapi", "apiVersion")
+
+
+def _normalize_non_json_scalars(value: Any) -> Any:
+    """YAML's default schema auto-converts an unquoted date/timestamp-shaped scalar (e.g. an
+    illustrative `examples:` value) into a native `datetime.date`/`datetime.datetime` - a type JSON
+    has no representation for, which crashes RFC 8785 canonicalization deep in an adapter's
+    identity/digest computation with an opaque library error instead of a clean diagnostic. Since a
+    JSON-format equivalent of the same document could only ever have carried that value as a quoted
+    string, converting it to its ISO 8601 string form here - once, centrally, for every discovered
+    document - loses no information and keeps every downstream consumer JSON-safe."""
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {key: _normalize_non_json_scalars(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_normalize_non_json_scalars(item) for item in value]
+    return value
 
 
 def _document_dialect_version(document: dict) -> str | None:
@@ -115,6 +137,7 @@ class FilesystemSourceDiscoverer:
                         )
                     )
                     continue
+                document = _normalize_non_json_scalars(document)
 
                 relative_path = normalize_relative_posix_path(str(candidate.relative_to(root)))
                 instance_id = source_instance_id(

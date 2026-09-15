@@ -322,7 +322,9 @@ class AsyncApiSourceAdapter:
                 exact_channel_address=target_address,
             )
             if target_queue_id not in queues_by_id:
-                queues_by_id[target_queue_id] = Queue(id=target_queue_id, name=dlq_target_name)
+                queues_by_id[target_queue_id] = Queue(
+                    id=target_queue_id, name=dlq_target_name, namespace=namespace or None
+                )
             add_relation("DEAD_LETTERS_TO", channel_queue_id[channel_name], target_queue_id)
 
         # Pass 2: publish/subscribe operations and their messages, only for channels with a

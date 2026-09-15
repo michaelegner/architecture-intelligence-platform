@@ -92,3 +92,42 @@ def test_document_dialect_version_is_captured():
         if Path(s.descriptor.locator) == EXAMPLES_DIR / "product-service" / "openapi.yaml"
     )
     assert openapi_source.descriptor.document_dialect_version == "3.1.0"
+
+
+def test_unquoted_yaml_timestamp_in_an_example_value_is_normalized_to_a_string(tmp_path):
+    """YAML's default schema auto-converts an unquoted date/timestamp-shaped scalar into a native
+    `datetime.date`/`datetime.datetime` - a type RFC 8785 canonicalization (used deep inside every
+    adapter's identity/digest computation) has no representation for and would otherwise crash on
+    with an opaque library error instead of a clean diagnostic."""
+    service_dir = tmp_path / "dated-service"
+    service_dir.mkdir()
+    (service_dir / "openapi.yaml").write_text(
+        "openapi: 3.1.0\n"
+        'info:\n  title: DatedService\n  version: "1.0"\n'
+        "paths:\n"
+        "  /events:\n"
+        "    get:\n"
+        "      operationId: getEvent\n"
+        "      responses:\n"
+        '        "200":\n'
+        "          description: ok\n"
+        "          content:\n"
+        "            application/json:\n"
+        "              schema:\n"
+        "                type: object\n"
+        "              examples:\n"
+        "                sample:\n"
+        "                  value:\n"
+        "                    eventDate: 2075-10-27 16:51:41.787000+00:00\n"
+    )
+
+    discoverer = FilesystemSourceDiscoverer(_config(tmp_path))
+    outcome = discoverer.discover()
+
+    assert outcome.diagnostics == ()
+    [source] = outcome.loaded_sources
+    example_value = source.document["paths"]["/events"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["examples"]["sample"]["value"]
+    assert isinstance(example_value["eventDate"], str)
+    assert example_value["eventDate"] == "2075-10-27T16:51:41.787000+00:00"

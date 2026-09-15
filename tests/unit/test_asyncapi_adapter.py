@@ -243,6 +243,10 @@ def test_dead_letters_to_relation_inherits_declaring_channel_broker():
     assert len(dlq_relations) == 1
     dlq_queue = next(q for q in outcome.model.queues if q.name == "orders-dlq")
     assert dlq_relations[0].target_id == dlq_queue.id
+    declaring_queue = next(q for q in outcome.model.queues if q.name == "orders-q")
+    # The DLQ target's identity hash already incorporates the inherited namespace (§9); its node
+    # property must agree, not just its id, or the two would silently disagree about ownership.
+    assert dlq_queue.namespace == declaring_queue.namespace
 
 
 def test_referenced_message_payload_uses_schema_owned_id():
