@@ -42,10 +42,14 @@ def _resolve_ref(ref: str, document: dict) -> dict:
 
 
 def _extract_message_defs(
-    operation_def: dict, document: dict
+    operation_def: dict, document: dict, *, channel_name: str, operation_key: str
 ) -> list[tuple[dict, tuple[str, ...]]]:
     """Returns (message_def, definition_pointer_tokens) pairs - the pointer is the resolved
-    component pointer for a `$ref`, or the message's own inline operation-message pointer.
+    component pointer for a `$ref` (correctly shared across every channel/operation referencing the
+    same named component), or the message's own document-unique inline operation-message pointer
+    (`channel_name`/`operation_key` included: two different channels each declaring their own
+    inline, non-`$ref` message must never collide onto the same owner-scoped identity just because
+    both happen to sit at an operation's bare `message` key - a real bug found in PR review).
     """
     message_obj = operation_def.get("message")
     if not message_obj:
@@ -59,12 +63,17 @@ def _extract_message_defs(
                     (_resolve_ref(candidate["$ref"], document), ("components", "messages", name))
                 )
             else:
-                results.append((candidate, ("message", "oneOf", str(index))))
+                results.append(
+                    (
+                        candidate,
+                        ("channels", channel_name, operation_key, "message", "oneOf", str(index)),
+                    )
+                )
         return results
     if "$ref" in message_obj:
         name = message_obj["$ref"].rsplit("/", 1)[-1]
         return [(_resolve_ref(message_obj["$ref"], document), ("components", "messages", name))]
-    return [(message_obj, ("message",))]
+    return [(message_obj, ("channels", channel_name, operation_key, "message"))]
 
 
 def _resolve_payload_schema_id(
@@ -343,7 +352,7 @@ class AsyncApiSourceAdapter:
                 add_relation(RELATION_TYPES[direction], canonical_service_id, queue_id_value)
 
                 for message_def, message_pointer_tokens in _extract_message_defs(
-                    operation_def, document
+                    operation_def, document, channel_name=channel_name, operation_key=operation_key
                 ):
                     try:
                         normalized_x_version = normalize_x_version(

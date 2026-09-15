@@ -274,6 +274,40 @@ def test_inline_message_payload_uses_inline_payload_schema_id():
     assert schema.name == "InlineMessage payload"
 
 
+def test_two_channels_with_distinct_inline_messages_do_not_collide():
+    """A real bug found in PR review: an inline (non-`$ref`) message's pointer used to be the bare
+    `("message",)` (or `("message", "oneOf", index)`), with no channel/operation disambiguation -
+    two different channels each declaring their own inline message got the identical owner-scoped
+    message_owned_id, silently merging two distinct messages/payloads into one Message node with
+    the first channel's content, and both queues' CARRIES relations pointing at it."""
+    document = _base_document()
+    document["channels"]["orders-q"]["publish"]["message"] = {
+        "name": "OrderMessage",
+        "payload": {"type": "object", "properties": {"order_id": {"type": "string"}}},
+    }
+    document["channels"]["shipping-q"] = {
+        "x-aip-destination-kind": "queue",
+        "publish": {
+            "operationId": "sendShipping",
+            "message": {
+                "name": "ShippingMessage",
+                "payload": {"type": "object", "properties": {"tracking_id": {"type": "string"}}},
+            },
+        },
+    }
+    outcome = _map(document)
+
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert {m.name for m in outcome.model.messages} == {"OrderMessage", "ShippingMessage"}
+    assert len({m.id for m in outcome.model.messages}) == 2
+    assert len({s.id for s in outcome.model.schemas}) == 2
+
+    carries = {r.source_id: r.target_id for r in outcome.model.relations if r.type == "CARRIES"}
+    order_queue = next(q.id for q in outcome.model.queues if q.name == "orders-q")
+    shipping_queue = next(q.id for q in outcome.model.queues if q.name == "shipping-q")
+    assert carries[order_queue] != carries[shipping_queue]
+
+
 def test_message_with_no_name_or_title_gets_deterministic_fallback():
     document = _base_document()
     document["channels"]["orders-q"]["publish"]["message"] = {
