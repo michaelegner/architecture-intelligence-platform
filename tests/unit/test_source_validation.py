@@ -7,6 +7,7 @@ from app.ingestion.scanner import SpecificationType, scan_directory
 from app.validation.source_validation import (
     SourceValidationError,
     check_supported_dialect_version,
+    find_remote_reference,
     validate_asyncapi_document,
     validate_manifest_document,
     validate_openapi_document,
@@ -129,7 +130,11 @@ def test_openapi_relative_file_ref_is_not_flagged_here():
     validate_openapi_document(doc, source_file="openapi.yaml")
 
 
-def test_openapi_remote_ref_rejected():
+def test_openapi_remote_ref_is_not_flagged_by_validate_openapi_document():
+    # A remote reference is REJECTED_UNSUPPORTED (I1 spec §8.1), a materially different
+    # qualification category from the REJECTED_INVALID validate_openapi_document raises for every
+    # other structural error - so it is deliberately NOT raised here; find_remote_reference (below)
+    # is the adapter's own separate pre-check for this case.
     doc = {
         "openapi": "3.1.0",
         "info": {"title": "X"},
@@ -149,9 +154,26 @@ def test_openapi_remote_ref_rejected():
             }
         },
     }
-    with pytest.raises(SourceValidationError) as exc:
-        validate_openapi_document(doc, source_file="openapi.yaml")
-    assert "remote/non-local reference is not supported" in str(exc.value)
+    validate_openapi_document(doc, source_file="openapi.yaml")
+
+
+def test_find_remote_reference_detects_a_scheme_qualified_ref():
+    doc = {"paths": {"/x": {"get": {"schema": {"$ref": "https://example.com/foo.yaml#/Bar"}}}}}
+    assert find_remote_reference(doc) == "https://example.com/foo.yaml#/Bar"
+
+
+def test_find_remote_reference_ignores_local_refs():
+    doc = {
+        "paths": {
+            "/x": {
+                "get": {
+                    "a": {"$ref": "#/components/schemas/X"},
+                    "b": {"$ref": "other-file.yaml#/Foo"},
+                }
+            }
+        }
+    }
+    assert find_remote_reference(doc) is None
 
 
 def test_valid_asyncapi_document_passes():

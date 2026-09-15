@@ -96,16 +96,38 @@ def _dangling_ref_errors(document: dict) -> list[str]:
     only ever looks inside `document`, so it cannot correctly evaluate a cross-file `$ref` at all
     (it would incorrectly flag every legitimate one as dangling). Existence, containment, cycles,
     and limits for a relative-file reference are resolved entirely by
-    `app.sources.reference_resolution` later, inside the adapter's own `map()`. Only a genuinely
-    remote (scheme- or authority-qualified) reference is still rejected at this structural layer."""
+    `app.sources.reference_resolution` later, inside the adapter's own `map()`. A remote (scheme- or
+    authority-qualified) reference is NOT flagged here either - see `find_remote_reference` - since
+    I1 spec §8.1 makes it `REJECTED_UNSUPPORTED`, a materially different qualification category
+    from the generic structural `REJECTED_INVALID` every error in this function raises via
+    `SourceValidationError`, so it cannot share this function's single error-list-and-raise shape.
+    """
     errors = []
     for ref in _iter_refs(document):
         parsed = parse_ref_uri(ref)
-        if parsed.scheme or parsed.authority:
-            errors.append(f"remote/non-local reference is not supported: {ref}")
-        elif not parsed.path and not _ref_resolves(ref, document):
+        if (
+            not parsed.scheme
+            and not parsed.authority
+            and not parsed.path
+            and not _ref_resolves(ref, document)
+        ):
             errors.append(f"dangling $ref: {ref}")
     return errors
+
+
+def find_remote_reference(document: dict) -> str | None:
+    """I1 spec §8.1: "remote/non-local reference -> REJECTED_UNSUPPORTED for the whole source" -
+    kept as its own pre-check (called from each adapter's `map()`, mirroring
+    `check_supported_dialect_version`) rather than folded into `_dangling_ref_errors`, because it
+    must produce `REJECTED_UNSUPPORTED` + `REMOTE_REFERENCE_UNSUPPORTED`, not the generic
+    `REJECTED_INVALID` every `_dangling_ref_errors` case raises via `SourceValidationError`.
+    Returns the first remote (non-empty URI scheme or authority) `$ref` string found, or `None`.
+    """
+    for ref in _iter_refs(document):
+        parsed = parse_ref_uri(ref)
+        if parsed.scheme or parsed.authority:
+            return ref
+    return None
 
 
 def check_supported_dialect_version(

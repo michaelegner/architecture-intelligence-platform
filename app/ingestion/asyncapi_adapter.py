@@ -35,6 +35,7 @@ from app.sources.service_identity import ServiceIdentityOutcome
 from app.validation.source_validation import (
     SourceValidationError,
     check_supported_dialect_version,
+    find_remote_reference,
     validate_asyncapi_document,
 )
 
@@ -217,6 +218,21 @@ class AsyncApiSourceAdapter:
                         source_pointer=locator,
                     )
                     for message in exc.errors
+                ),
+                semantic_input_digest=None,
+            )
+
+        remote_ref = find_remote_reference(document)
+        if remote_ref is not None:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_UNSUPPORTED,
+                model=ArchitectureModel(),
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.REMOTE_REFERENCE_UNSUPPORTED,
+                        message=f"remote/non-local reference is not supported: {remote_ref}",
+                        source_pointer=locator,
+                    ),
                 ),
                 semantic_input_digest=None,
             )
