@@ -44,7 +44,8 @@ class FilesystemSourceConfig(BaseModel):
             raise ValueError(  # noqa: TRY004
                 "sources.directories entries must be objects with 'id' and 'root' fields "
                 f"(got {value!r}) - a bare directory path can no longer serve as a source's "
-                "stable identity; see the v0.5.0 migration guide"
+                "stable identity; add an explicit 'id' (e.g. {'id': "
+                "'aip-bundled-examples-v0.5', 'root': <path>})"
             )
         return value
 
