@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: OrderService
-  version: "1.0.0"
+  version: 1.0.0
 paths:
   /orders:
     post:
@@ -10,13 +10,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/OrderRequest"
+              $ref: '#/components/schemas/OrderRequest'
       responses:
-        "201":
+        '201':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: '#/components/schemas/Order'
 components:
   schemas:
     OrderRequest:
@@ -24,10 +24,13 @@ components:
       properties:
         productId:
           type: string
-      required: [productId]
+      required:
+      - productId
     Order:
       type: object
       properties:
         id:
           type: string
-      required: [id]
+      required:
+      - id
+x-aip-service-id: service:order-service

@@ -1,18 +1,18 @@
 openapi: 3.1.0
 info:
   title: InventoryService
-  version: "1.0.0"
+  version: 1.0.0
 paths:
   /inventory/{id}:
     get:
       operationId: getInventory
       summary: Get inventory status by product id
       responses:
-        "200":
+        '200':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Inventory"
+                $ref: '#/components/schemas/Inventory'
 components:
   schemas:
     Inventory:
@@ -22,4 +22,7 @@ components:
           type: string
         quantity:
           type: integer
-      required: [id, quantity]
+      required:
+      - id
+      - quantity
+x-aip-service-id: service:inventory-service

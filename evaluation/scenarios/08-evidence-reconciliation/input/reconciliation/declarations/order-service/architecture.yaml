@@ -1,2 +1,3 @@
 service: order-service
 calls: []
+x-aip-service-id: service:order-service

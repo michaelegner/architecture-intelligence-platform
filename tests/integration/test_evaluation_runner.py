@@ -48,6 +48,12 @@ def _evidence_types(session, *, source_id: str, relation_type: str, target_id: s
     }
 
 
+def _queue_id(session, name: str) -> str:
+    record = session.run("MATCH (q:Queue {name: $name}) RETURN q.id AS id", name=name).single()
+    assert record is not None, f"no Queue node found with name {name!r}"
+    return record["id"]
+
+
 def _relation_exists(session, *, source_id: str, relation_type: str, target_id: str) -> bool:
     return (
         session.run(
@@ -88,7 +94,7 @@ def test_async_confirmed_scenario_is_declared_and_observed_in_both_directions(dr
     scenario = load_scenario(SCENARIOS_DIR / "03-async-confirmed")
     prepare_scenario(driver, database=DATABASE, scenario=scenario)
 
-    queue_id = ids.queue_id("order-events-q")
+    queue_id = _queue_id(session, "order-events-q")
     sends_evidence = _evidence_types(
         session,
         source_id=ids.service_id("order-service"),
