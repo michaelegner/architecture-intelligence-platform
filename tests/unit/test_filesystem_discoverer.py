@@ -42,6 +42,11 @@ def test_discover_reports_incomplete_enumeration_for_missing_root(tmp_path):
 
 
 def test_discover_skips_malformed_document_with_diagnostic(tmp_path):
+    """A parse failure must never be silently treated as "this candidate is legitimately absent" -
+    unlike a file that doesn't exist, bytes were read here but couldn't be understood, so
+    `enumeration_complete` must be False (I1 spec §6's FAILED trigger), blocking the whole run's
+    commit rather than letting a corrupted/mid-edit file authorize deleting prior committed facts
+    for that source."""
     service_dir = tmp_path / "broken-service"
     service_dir.mkdir()
     (service_dir / "openapi.yaml").write_text("openapi: 3.1.0\n  bad indent: [\n")
@@ -49,7 +54,7 @@ def test_discover_skips_malformed_document_with_diagnostic(tmp_path):
     discoverer = FilesystemSourceDiscoverer(_config(tmp_path))
     outcome = discoverer.discover()
 
-    assert outcome.enumeration_complete is True
+    assert outcome.enumeration_complete is False
     assert outcome.loaded_sources == ()
     assert outcome.diagnostics[0].code is DiagnosticCode.DOCUMENT_PARSE_INVALID
 
@@ -62,8 +67,31 @@ def test_discover_skips_non_mapping_document_with_diagnostic(tmp_path):
     discoverer = FilesystemSourceDiscoverer(_config(tmp_path))
     outcome = discoverer.discover()
 
+    assert outcome.enumeration_complete is False
     assert outcome.loaded_sources == ()
     assert outcome.diagnostics[0].code is DiagnosticCode.DOCUMENT_PARSE_INVALID
+
+
+def test_a_parse_failure_does_not_prevent_other_valid_sources_from_being_discovered(tmp_path):
+    """`enumeration_complete=False` still reports every source it could successfully parse - the
+    orchestrator is what refuses to commit anything for a FAILED run (I1 spec §6), not the
+    discoverer silently hiding the sources it did understand."""
+    broken_dir = tmp_path / "broken-service"
+    broken_dir.mkdir()
+    (broken_dir / "openapi.yaml").write_text("openapi: 3.1.0\n  bad indent: [\n")
+
+    ok_dir = tmp_path / "ok-service"
+    ok_dir.mkdir()
+    (ok_dir / "openapi.yaml").write_text(
+        'openapi: 3.1.0\ninfo:\n  title: OkService\n  version: "1.0"\npaths: {}\n'
+    )
+
+    discoverer = FilesystemSourceDiscoverer(_config(tmp_path))
+    outcome = discoverer.discover()
+
+    assert outcome.enumeration_complete is False
+    assert len(outcome.loaded_sources) == 1
+    assert Path(outcome.loaded_sources[0].descriptor.locator) == ok_dir / "openapi.yaml"
 
 
 def test_source_instance_id_is_independent_of_checkout_location(tmp_path):

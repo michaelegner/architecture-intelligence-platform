@@ -31,6 +31,24 @@ def test_empty_directory_is_complete_and_commit_eligible(tmp_path):
     assert result.merged_model.services == []
 
 
+def test_a_malformed_document_fails_the_whole_run_not_just_that_source(tmp_path):
+    """A parse failure must never be treated as "this source is legitimately absent" - reimporting
+    a previously-valid source whose file has since become malformed (a corrupted read, a mid-edit
+    save) must FAIL the run and commit nothing, not silently authorize deleting that source's prior
+    facts as though it had simply stopped being declared (I1 spec §6)."""
+    service_dir = tmp_path / "broken-service"
+    service_dir.mkdir()
+    (service_dir / "openapi.yaml").write_text("openapi: [unterminated")
+
+    config = FilesystemSourceConfig(id="x", root=tmp_path)
+    result = run_filesystem_discovery(config)
+
+    assert result.inventory_status is InventoryStatus.FAILED
+    assert result.commit_eligible is False
+    assert result.merged_model.services == []
+    assert result.source_outcomes == {}
+
+
 def test_multi_service_multi_source_discovery(tmp_path):
     _write(
         tmp_path / "svc-a" / "openapi.yaml",

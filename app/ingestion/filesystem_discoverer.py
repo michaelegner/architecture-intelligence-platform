@@ -109,6 +109,7 @@ class FilesystemSourceDiscoverer:
 
         loaded_sources: list[LoadedSource] = []
         diagnostics: list[IngestionDiagnostic] = []
+        enumeration_complete = True
 
         for service_dir in sorted(p for p in root.iterdir() if p.is_dir()):
             for filename in CANDIDATE_FILENAMES:
@@ -120,6 +121,14 @@ class FilesystemSourceDiscoverer:
                 try:
                     document = yaml.safe_load(raw_bytes)
                 except yaml.YAMLError as exc:
+                    # A parse failure means this candidate's presence/absence can never be trusted -
+                    # unlike a file that legitimately doesn't exist, we saw bytes here but couldn't
+                    # understand them. Treating this as "cleanly absent" would let a single corrupted
+                    # or mid-edit file authorize deleting that source's previously-committed facts
+                    # (I1 spec §6's own FAILED trigger list: "truncation, pagination error" - this is
+                    # the filesystem-discoverer analog). enumeration_complete=False forces FAILED,
+                    # never COMPLETE, for the whole run.
+                    enumeration_complete = False
                     diagnostics.append(
                         IngestionDiagnostic(
                             code=DiagnosticCode.DOCUMENT_PARSE_INVALID,
@@ -129,6 +138,7 @@ class FilesystemSourceDiscoverer:
                     )
                     continue
                 if not isinstance(document, dict):
+                    enumeration_complete = False
                     diagnostics.append(
                         IngestionDiagnostic(
                             code=DiagnosticCode.DOCUMENT_PARSE_INVALID,
@@ -173,7 +183,7 @@ class FilesystemSourceDiscoverer:
 
         return DiscoveryOutcome(
             loaded_sources=tuple(loaded_sources),
-            enumeration_complete=True,
+            enumeration_complete=enumeration_complete,
             diagnostics=tuple(diagnostics),
             discovery_scope_id=scope_id,
             scope_definition_digest=scope_digest,
