@@ -11,7 +11,7 @@ import hashlib
 from datetime import UTC, datetime
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes, format_utc_timestamp
-from app.architecture_intelligence.contracts import ObservationContextRef
+from app.architecture_intelligence.contracts import CONTEXT_ID_PREFIX, ObservationContextRef
 
 _CONTEXT_ID_VERSION = 1
 
@@ -35,7 +35,7 @@ def compute_context_id(environment: str, window_start: datetime, window_end: dat
         "window_end_utc": format_utc_timestamp(window_end),
     }
     digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
-    return f"aip:observation-context:v1:{digest}"
+    return f"{CONTEXT_ID_PREFIX}{digest}"
 
 
 def build_observation_context_ref(

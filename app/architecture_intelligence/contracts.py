@@ -18,11 +18,16 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.provenance.model import EvidenceType, SourceType
 
+SNAPSHOT_ID_PREFIX = "aip:snapshot:v1:"
+MODEL_REVISION_PREFIX = "sha256:"
+CONTEXT_ID_PREFIX = "aip:observation-context:v1:"
+CLAIM_ID_PREFIX = "aip:claim:v1:"
+
 _SHA256_HEX = r"[0-9a-f]{64}"
-_SNAPSHOT_ID_PATTERN = rf"^aip:snapshot:v1:{_SHA256_HEX}$"
-_MODEL_REVISION_PATTERN = rf"^sha256:{_SHA256_HEX}$"
-_CONTEXT_ID_PATTERN = rf"^aip:observation-context:v1:{_SHA256_HEX}$"
-_CLAIM_ID_PATTERN = rf"^aip:claim:v1:{_SHA256_HEX}$"
+_SNAPSHOT_ID_PATTERN = rf"^{SNAPSHOT_ID_PREFIX}{_SHA256_HEX}$"
+_MODEL_REVISION_PATTERN = rf"^{MODEL_REVISION_PREFIX}{_SHA256_HEX}$"
+_CONTEXT_ID_PATTERN = rf"^{CONTEXT_ID_PREFIX}{_SHA256_HEX}$"
+_CLAIM_ID_PATTERN = rf"^{CLAIM_ID_PREFIX}{_SHA256_HEX}$"
 
 # No leading/trailing whitespace and no control characters anywhere (spec §16.1). Expressed as a
 # single character-class-only pattern (no lookaround) so it also compiles under pydantic-core's
