@@ -2,7 +2,9 @@ import datetime
 from pathlib import Path
 
 import pytest
+import yaml
 
+from app.sources.identity import EMPTY_CLOSURE_DIGEST, dependency_closure_digest
 from app.sources.model import DiagnosticCode
 from app.sources.reference_resolution import (
     ParsedRef,
@@ -17,6 +19,7 @@ from app.sources.reference_resolution import (
     resolve_and_read,
     resolve_pointer,
     resolve_relative_path,
+    walk_transitive_closure,
 )
 
 # --- parse_ref_uri / reject_remote_reference -----------------------------------------------------
@@ -373,3 +376,175 @@ def test_resolve_and_read_caches_a_document_read_more_than_once(tmp_path):
     )
     assert result.target_node == {"type": "string"}
     assert cache.file_bytes["common.yaml"] == common_bytes_after_first
+
+
+# --- walk_transitive_closure ------------------------------------------------------------------
+
+
+def _write_chain(tmp_path: Path, num_files: int) -> dict:
+    """file_0.yaml -> file_1.yaml -> ... -> file_{num_files - 1}.yaml, a chain of num_files - 1
+    cross-file $refs. Returns the parsed root (file_0.yaml) document."""
+    for i in range(num_files):
+        content: dict = {"marker": True}
+        if i < num_files - 1:
+            content["next"] = {"$ref": f"file_{i + 1}.yaml#/marker"}
+        (tmp_path / f"file_{i}.yaml").write_text(yaml.safe_dump(content))
+    return yaml.safe_load((tmp_path / "file_0.yaml").read_text())
+
+
+def _cache(tmp_path: Path, root_document: dict, root_relative_path: str = "file_0.yaml"):
+    return new_resolution_cache(
+        tmp_path,
+        root_relative_path=root_relative_path,
+        root_document=root_document,
+        root_bytes=(tmp_path / root_relative_path).read_bytes(),
+    )
+
+
+def test_walk_transitive_closure_empty_for_a_document_with_no_refs(tmp_path):
+    root_document = {"info": {}}
+    (tmp_path / "openapi.yaml").write_text(yaml.safe_dump(root_document))
+    cache = _cache(tmp_path, root_document, "openapi.yaml")
+    assert (
+        walk_transitive_closure(root_document, root_relative_path="openapi.yaml", cache=cache) == ()
+    )
+
+
+def test_walk_transitive_closure_visits_every_referenced_file(tmp_path):
+    root_document = _write_chain(tmp_path, 3)  # file_0 -> file_1 -> file_2
+    cache = _cache(tmp_path, root_document)
+    entries = walk_transitive_closure(root_document, root_relative_path="file_0.yaml", cache=cache)
+    assert {e.normalized_relative_path for e in entries} == {"file_1.yaml", "file_2.yaml"}
+    # dependency_closure_digest already exists and is spec-correct - this proves it's now fed real,
+    # order-independent entries rather than the always-empty digest PR3a shipped with.
+    assert dependency_closure_digest(entries) != EMPTY_CLOSURE_DIGEST
+
+
+def test_walk_transitive_closure_ignores_fragment_only_same_document_refs(tmp_path):
+    root_document = {"a": {"$ref": "#/b"}, "b": {"type": "object"}}
+    (tmp_path / "openapi.yaml").write_text(yaml.safe_dump(root_document))
+    cache = _cache(tmp_path, root_document, "openapi.yaml")
+    assert (
+        walk_transitive_closure(root_document, root_relative_path="openapi.yaml", cache=cache) == ()
+    )
+
+
+def test_walk_transitive_closure_a_diamond_shared_reference_is_not_a_cycle(tmp_path):
+    (tmp_path / "shared.yaml").write_text(yaml.safe_dump({"marker": True}))
+    (tmp_path / "b.yaml").write_text(yaml.safe_dump({"ref": {"$ref": "shared.yaml#/marker"}}))
+    (tmp_path / "c.yaml").write_text(yaml.safe_dump({"ref": {"$ref": "shared.yaml#/marker"}}))
+    root_document = {
+        "b": {"$ref": "b.yaml#/ref"},
+        "c": {"$ref": "c.yaml#/ref"},
+    }
+    (tmp_path / "root.yaml").write_text(yaml.safe_dump(root_document))
+    cache = _cache(tmp_path, root_document, "root.yaml")
+    entries = walk_transitive_closure(root_document, root_relative_path="root.yaml", cache=cache)
+    assert {e.normalized_relative_path for e in entries} == {"b.yaml", "c.yaml", "shared.yaml"}
+
+
+def test_walk_transitive_closure_detects_a_real_cross_file_cycle(tmp_path):
+    (tmp_path / "a.yaml").write_text(yaml.safe_dump({"next": {"$ref": "b.yaml#/next"}}))
+    (tmp_path / "b.yaml").write_text(yaml.safe_dump({"next": {"$ref": "a.yaml#/next"}}))
+    root_document = yaml.safe_load((tmp_path / "a.yaml").read_text())
+    cache = _cache(tmp_path, root_document, "a.yaml")
+    with pytest.raises(ReferenceResolutionError) as exc_info:
+        walk_transitive_closure(root_document, root_relative_path="a.yaml", cache=cache)
+    assert exc_info.value.code is DiagnosticCode.REFERENCE_CYCLE_UNSUPPORTED
+
+
+def test_walk_transitive_closure_a_self_reference_is_a_cycle(tmp_path):
+    (tmp_path / "a.yaml").write_text(yaml.safe_dump({"next": {"$ref": "a.yaml#/next"}}))
+    root_document = yaml.safe_load((tmp_path / "a.yaml").read_text())
+    cache = _cache(tmp_path, root_document, "a.yaml")
+    with pytest.raises(ReferenceResolutionError) as exc_info:
+        walk_transitive_closure(root_document, root_relative_path="a.yaml", cache=cache)
+    assert exc_info.value.code is DiagnosticCode.REFERENCE_CYCLE_UNSUPPORTED
+
+
+def test_walk_transitive_closure_depth_passes_at_the_boundary(tmp_path):
+    root_document = _write_chain(tmp_path, 3)  # 2 hops
+    cache = _cache(tmp_path, root_document)
+    entries = walk_transitive_closure(
+        root_document, root_relative_path="file_0.yaml", cache=cache, max_depth=2
+    )
+    assert len(entries) == 2
+
+
+def test_walk_transitive_closure_depth_fails_at_boundary_plus_one(tmp_path):
+    root_document = _write_chain(tmp_path, 4)  # 3 hops
+    cache = _cache(tmp_path, root_document)
+    with pytest.raises(ReferenceResolutionError) as exc_info:
+        walk_transitive_closure(
+            root_document, root_relative_path="file_0.yaml", cache=cache, max_depth=2
+        )
+    assert exc_info.value.code is DiagnosticCode.REFERENCE_LIMIT_EXCEEDED
+
+
+def test_walk_transitive_closure_depth_default_matches_the_spec_boundary(tmp_path):
+    # I1 spec §8: "enforce a maximum reference depth of 16" - proves the wired default, not just
+    # the mechanism, matches the spec's own literal boundary (DoD: "pass at the boundary and fail
+    # at boundary+1").
+    passing_document = _write_chain(tmp_path, 17)  # 16 hops - exactly the boundary
+    cache = _cache(tmp_path, passing_document)
+    entries = walk_transitive_closure(
+        passing_document, root_relative_path="file_0.yaml", cache=cache
+    )
+    assert len(entries) == 16
+
+
+def test_walk_transitive_closure_depth_default_fails_one_past_the_spec_boundary(tmp_path):
+    failing_document = _write_chain(tmp_path, 18)  # 17 hops - boundary + 1
+    cache = _cache(tmp_path, failing_document)
+    with pytest.raises(ReferenceResolutionError) as exc_info:
+        walk_transitive_closure(failing_document, root_relative_path="file_0.yaml", cache=cache)
+    assert exc_info.value.code is DiagnosticCode.REFERENCE_LIMIT_EXCEEDED
+
+
+def test_walk_transitive_closure_file_count_passes_at_the_boundary(tmp_path):
+    root_document = _write_chain(tmp_path, 4)  # 3 referenced files
+    cache = _cache(tmp_path, root_document)
+    entries = walk_transitive_closure(
+        root_document, root_relative_path="file_0.yaml", cache=cache, max_files=3
+    )
+    assert len(entries) == 3
+
+
+def test_walk_transitive_closure_file_count_fails_at_boundary_plus_one(tmp_path):
+    root_document = _write_chain(tmp_path, 5)  # 4 referenced files
+    cache = _cache(tmp_path, root_document)
+    with pytest.raises(ReferenceResolutionError) as exc_info:
+        walk_transitive_closure(
+            root_document, root_relative_path="file_0.yaml", cache=cache, max_files=3
+        )
+    assert exc_info.value.code is DiagnosticCode.REFERENCE_LIMIT_EXCEEDED
+
+
+def test_walk_transitive_closure_byte_budget_passes_at_the_boundary(tmp_path):
+    root_document = {"next": {"$ref": "big.yaml#/marker"}}
+    (tmp_path / "root.yaml").write_text(yaml.safe_dump(root_document))
+    big_bytes = tmp_path / "big.yaml"
+    big_bytes.write_text(yaml.safe_dump({"marker": True}))
+    exact_size = len((tmp_path / "root.yaml").read_bytes()) + len(big_bytes.read_bytes())
+    cache = _cache(tmp_path, root_document, "root.yaml")
+    entries = walk_transitive_closure(
+        root_document, root_relative_path="root.yaml", cache=cache, max_bytes=exact_size
+    )
+    assert len(entries) == 1
+
+
+def test_walk_transitive_closure_byte_budget_fails_at_boundary_plus_one(tmp_path):
+    root_document = {"next": {"$ref": "big.yaml#/marker"}}
+    (tmp_path / "root.yaml").write_text(yaml.safe_dump(root_document))
+    big_path = tmp_path / "big.yaml"
+    big_path.write_text(yaml.safe_dump({"marker": True}))
+    exact_size = len((tmp_path / "root.yaml").read_bytes()) + len(big_path.read_bytes())
+    cache = _cache(tmp_path, root_document, "root.yaml")
+    with pytest.raises(ReferenceResolutionError) as exc_info:
+        walk_transitive_closure(
+            root_document,
+            root_relative_path="root.yaml",
+            cache=cache,
+            max_bytes=exact_size - 1,
+        )
+    assert exc_info.value.code is DiagnosticCode.REFERENCE_LIMIT_EXCEEDED

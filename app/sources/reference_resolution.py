@@ -36,8 +36,13 @@ from urllib.parse import unquote, urlsplit
 
 import yaml
 
+from app.sources.identity import ClosureEntry
 from app.sources.model import DiagnosticCode
 from app.sources.pointers import decode_pointer_tokens
+
+DEFAULT_MAX_REFERENCE_DEPTH = 16
+DEFAULT_MAX_REFERENCE_FILES = 128
+DEFAULT_MAX_REFERENCE_BYTES = 8 * 1024 * 1024
 
 _VALID_PERCENT_ESCAPE = re.compile(r"%[0-9A-Fa-f]{2}")
 
@@ -335,3 +340,107 @@ def resolve_and_read(
         pointer_tokens=pointer_tokens,
         target_node=target_node,
     )
+
+
+def _iter_ref_strings(node: Any) -> Any:
+    """Generic (format-agnostic) recursive scan for every `$ref` string value anywhere in a parsed
+    document tree - a `$ref` node has the identical shape in an OpenAPI and an AsyncAPI document,
+    so this needs no per-format knowledge at all, matching §9's "reuse the complete... contract
+    from §8" requirement by literal code sharing.
+    """
+    if isinstance(node, dict):
+        ref = node.get("$ref")
+        if isinstance(ref, str):
+            yield ref
+        for value in node.values():
+            yield from _iter_ref_strings(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _iter_ref_strings(item)
+
+
+def walk_transitive_closure(
+    root_document: dict,
+    *,
+    root_relative_path: str,
+    cache: ResolutionCache,
+    max_depth: int = DEFAULT_MAX_REFERENCE_DEPTH,
+    max_files: int = DEFAULT_MAX_REFERENCE_FILES,
+    max_bytes: int = DEFAULT_MAX_REFERENCE_BYTES,
+) -> tuple[ClosureEntry, ...]:
+    """§8's bounded-closure requirement: "enforce a maximum reference depth of 16, 128 distinct
+    referenced files, and 8 MiB total bytes across the root and closure; exceeding any limit is
+    REJECTED_UNSUPPORTED with REFERENCE_LIMIT_EXCEEDED." Depth is a closure-wide `$ref` hop count
+    from the root (a same-file chain of A -> B -> C is 2 hops even though it's 1 file) - the file
+    count and byte limits are likewise closure-wide, not per-branch; the spec doesn't define
+    "depth"'s unit precisely, so this is a deliberate, documented resolution of that ambiguity,
+    flagged for review.
+
+    File count and depth apply only to *referenced* files (the root itself is never counted against
+    either); the byte budget is explicit "across the root and closure", so the root's own bytes do
+    count there. Cycle detection here is file-level only (a target file already on the *current*
+    resolution path, never merely "seen before" - that would wrongly reject a legitimate diamond/
+    shared reference) - a *same-document* composition cycle (e.g. a schema's `allOf` referencing
+    itself via a fragment-only `$ref`) adds no new file to this closure at all, so it is not this
+    function's concern; the adapter's own recursive schema-normalization walk (which actually
+    expands a fragment-only `$ref`'s content) carries its own, separate cycle guard for that case.
+
+    Returns the closure entries actually visited (root excluded, matching `dependency_closure_
+    digest`'s own "the root document is excluded" contract) for the discoverer to hash.
+    """
+    visited: set[str] = set()
+    entries: list[ClosureEntry] = []
+    total_bytes = len(cache.file_bytes.get(root_relative_path, b""))
+
+    def visit(
+        document: dict, document_relative_path: str, *, depth: int, path_stack: tuple[str, ...]
+    ) -> None:
+        nonlocal total_bytes
+        for ref in _iter_ref_strings(document):
+            parsed = parse_ref_uri(ref)
+            reject_remote_reference(parsed)
+            decoded_path = percent_decode_path_once(parsed.path)
+            if not decoded_path:
+                continue  # same-document reference: no new file, not this function's concern
+            reject_absolute_decoded_path(decoded_path)
+            target_relative_path = resolve_relative_path(
+                containing_document_relative_path=document_relative_path, ref_path=decoded_path
+            )
+            if target_relative_path in path_stack:
+                raise ReferenceResolutionError(
+                    code=DiagnosticCode.REFERENCE_CYCLE_UNSUPPORTED,
+                    message=f"reference cycle detected at {target_relative_path!r}",
+                )
+            new_depth = depth + 1
+            if new_depth > max_depth:
+                raise ReferenceResolutionError(
+                    code=DiagnosticCode.REFERENCE_LIMIT_EXCEEDED,
+                    message=f"reference depth exceeds the maximum of {max_depth}",
+                )
+            if target_relative_path in visited:
+                continue  # already fully explored via another path - a diamond, not a cycle
+            target_document, target_bytes = _load_and_validate_document(cache, target_relative_path)
+            visited.add(target_relative_path)
+            if len(visited) > max_files:
+                raise ReferenceResolutionError(
+                    code=DiagnosticCode.REFERENCE_LIMIT_EXCEEDED,
+                    message=f"reference closure exceeds the maximum of {max_files} distinct files",
+                )
+            total_bytes += len(target_bytes)
+            if total_bytes > max_bytes:
+                raise ReferenceResolutionError(
+                    code=DiagnosticCode.REFERENCE_LIMIT_EXCEEDED,
+                    message=f"reference closure exceeds the maximum of {max_bytes} total bytes",
+                )
+            entries.append(
+                ClosureEntry(normalized_relative_path=target_relative_path, file_bytes=target_bytes)
+            )
+            visit(
+                target_document,
+                target_relative_path,
+                depth=new_depth,
+                path_stack=(*path_stack, target_relative_path),
+            )
+
+    visit(root_document, root_relative_path, depth=0, path_stack=(root_relative_path,))
+    return tuple(entries)
