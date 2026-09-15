@@ -1,6 +1,14 @@
 import re
+from collections.abc import Sequence
 
 _POINTER_TOKEN_RE = re.compile(r"/([^/]*)")
+
+
+def encode_pointer_tokens(tokens: Sequence[str]) -> str:
+    """RFC 6901 encode: the inverse of `decode_pointer_tokens`. `()` -> "" (document root);
+    `("paths", "/foo")` -> "/paths/~1foo".
+    """
+    return "".join("/" + token.replace("~", "~0").replace("/", "~1") for token in tokens)
 
 
 def is_well_formed_pointer(pointer: str) -> bool:

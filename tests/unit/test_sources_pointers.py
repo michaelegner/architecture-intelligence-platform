@@ -2,6 +2,7 @@ import pytest
 
 from app.sources.pointers import (
     decode_pointer_tokens,
+    encode_pointer_tokens,
     is_well_formed_pointer,
     pointer_prefix_matches,
 )
@@ -63,3 +64,17 @@ def test_pointer_prefix_matches_root_matches_everything():
 
 def test_pointer_prefix_matches_rejects_shorter_candidate():
     assert pointer_prefix_matches(prefix="/paths/~1foo/get", candidate="/paths/~1foo") is False
+
+
+def test_encode_pointer_tokens_root_is_empty_string():
+    assert encode_pointer_tokens(()) == ""
+
+
+def test_encode_pointer_tokens_escapes_reserved_characters():
+    assert encode_pointer_tokens(("paths", "/foo", "get")) == "/paths/~1foo/get"
+    assert encode_pointer_tokens(("a~b",)) == "/a~0b"
+
+
+def test_encode_pointer_tokens_round_trips_with_decode():
+    tokens = ("paths", "/orders/{id}", "get", "a~b")
+    assert decode_pointer_tokens(encode_pointer_tokens(tokens)) == tokens
