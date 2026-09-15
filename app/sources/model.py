@@ -1,7 +1,8 @@
 from enum import StrEnum
+from pathlib import Path
 from typing import NewType
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 SourceInstanceId = NewType("SourceInstanceId", str)
 DiscoveryScopeId = NewType("DiscoveryScopeId", str)
@@ -11,6 +12,49 @@ class SourceKind(StrEnum):
     FILESYSTEM = "filesystem"
     # Kubernetes stable-source-key is reserved for I2 (I1 spec §5.1) - deliberately no member here
     # yet: "unsupported > falsely supported".
+
+
+class FilesystemSourceConfig(BaseModel):
+    """I1 spec §5.1's "configured filesystem-source id" plus the physical root it scans. A source's
+    stable identity must be an explicit, operator-assigned id, never the directory path itself (I1
+    §6: "stable target identity MUST NOT be an absolute checkout path, resolved physical directory,
+    mount point, or other mutable root location").
+
+    A pure domain contract (not a settings-loading concern) so `app/ingestion/` and `app/graph/`
+    can depend on it directly without depending on `app.settings`; `app.settings.SourcesConfig`
+    reuses this same type as its field shape.
+
+    `scope_id` and `stable_target_identity` default from `id` when omitted, which is sufficient for
+    the common one-directory-one-scope case; a deployment scanning multiple physically distinct
+    roots under one logical scope can override `scope_id` to group them.
+    """
+
+    id: str
+    root: Path
+    scope_id: str | None = None
+    stable_target_identity: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_bare_entry(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            # Must be ValueError, not TypeError: pydantic only wraps ValueError/AssertionError
+            # raised inside a validator into a ValidationError - a TypeError would propagate
+            # uncaught instead of surfacing as a normal config-validation failure.
+            raise ValueError(  # noqa: TRY004
+                "sources.directories entries must be objects with 'id' and 'root' fields "
+                f"(got {value!r}) - a bare directory path can no longer serve as a source's "
+                "stable identity; see the v0.5.0 migration guide"
+            )
+        return value
+
+    @property
+    def resolved_scope_id(self) -> str:
+        return self.scope_id or self.id
+
+    @property
+    def resolved_stable_target_identity(self) -> str:
+        return self.stable_target_identity or f"urn:aip:logical-root:{self.id}"
 
 
 class IngestionResult(StrEnum):

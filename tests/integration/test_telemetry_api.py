@@ -39,7 +39,15 @@ def _build_app(driver):
     app.state.settings = Settings(
         config=AppConfig.model_validate(
             {
-                "sources": {"directories": [str(EXAMPLES_DIR)]},
+                "sources": {
+                    "directories": [
+                        {
+                            "id": "aip-bundled-examples-v0.5",
+                            "root": str(EXAMPLES_DIR),
+                            "stable_target_identity": "urn:aip:logical-root:bundled-examples",
+                        }
+                    ]
+                },
                 "graph": {"uri": "bolt://ignored:7687", "database": DATABASE},
             }
         ),
