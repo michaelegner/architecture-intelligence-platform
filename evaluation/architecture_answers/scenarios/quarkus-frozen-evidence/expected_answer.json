@@ -5,9 +5,9 @@
     "records": [
       {
         "evidence_type": "DECLARED",
-        "id": "evidence:manifest:rest-fights",
+        "id": "evidence:manifest:urn:aip:source:filesystem:16a0e0a2ac8d5aabc8fd7c12e93562319200efb8d315348d743fac51dfd711f9",
         "observation": null,
-        "source_locator": "evaluation/architecture_answers/scenarios/quarkus-frozen-evidence/input/declarations/rest-fights/architecture.yaml",
+        "source_locator": "tmp/aip-evaluation-staging/quarkus-frozen-evidence/rest-fights/architecture.yaml",
         "source_revision": null,
         "source_type": "MANIFEST",
         "supports": [
@@ -30,9 +30,9 @@
       },
       {
         "evidence_type": "DECLARED",
-        "id": "evidence:openapi:rest-heroes",
+        "id": "evidence:openapi:urn:aip:source:filesystem:2091cbf69786114342a27f3fb796a6939e783c5cdd318319d97d06ab86f0a8ef",
         "observation": null,
-        "source_locator": "evaluation/architecture_answers/scenarios/quarkus-frozen-evidence/input/declarations/rest-heroes/openapi.yml",
+        "source_locator": "tmp/aip-evaluation-staging/quarkus-frozen-evidence/rest-heroes/openapi.yml",
         "source_revision": null,
         "source_type": "OPENAPI",
         "supports": [
@@ -90,9 +90,9 @@
       },
       {
         "evidence_type": "DECLARED",
-        "id": "evidence:openapi:rest-narration",
+        "id": "evidence:openapi:urn:aip:source:filesystem:e3ea1c83343c5ce1f56f2df0fb9fa3f6915ce421d1c44e293fba7b2f1ea43397",
         "observation": null,
-        "source_locator": "evaluation/architecture_answers/scenarios/quarkus-frozen-evidence/input/declarations/rest-narration/openapi.yml",
+        "source_locator": "tmp/aip-evaluation-staging/quarkus-frozen-evidence/rest-narration/openapi.yml",
         "source_revision": null,
         "source_type": "OPENAPI",
         "supports": [
@@ -115,9 +115,9 @@
       },
       {
         "evidence_type": "DECLARED",
-        "id": "evidence:openapi:rest-villains",
+        "id": "evidence:openapi:urn:aip:source:filesystem:ef25f366c0bbe08110e7febc1089016c482f69a016a2df016e651e97641c78f0",
         "observation": null,
-        "source_locator": "evaluation/architecture_answers/scenarios/quarkus-frozen-evidence/input/declarations/rest-villains/openapi.yml",
+        "source_locator": "tmp/aip-evaluation-staging/quarkus-frozen-evidence/rest-villains/openapi.yml",
         "source_revision": null,
         "source_type": "OPENAPI",
         "supports": [
@@ -175,10 +175,10 @@
       }
     ],
     "requested_evidence_refs": [
-      "evidence:manifest:rest-fights",
-      "evidence:openapi:rest-heroes",
-      "evidence:openapi:rest-narration",
-      "evidence:openapi:rest-villains"
+      "evidence:manifest:urn:aip:source:filesystem:16a0e0a2ac8d5aabc8fd7c12e93562319200efb8d315348d743fac51dfd711f9",
+      "evidence:openapi:urn:aip:source:filesystem:2091cbf69786114342a27f3fb796a6939e783c5cdd318319d97d06ab86f0a8ef",
+      "evidence:openapi:urn:aip:source:filesystem:e3ea1c83343c5ce1f56f2df0fb9fa3f6915ce421d1c44e293fba7b2f1ea43397",
+      "evidence:openapi:urn:aip:source:filesystem:ef25f366c0bbe08110e7febc1089016c482f69a016a2df016e651e97641c78f0"
     ]
   },
   "evidence_refs": [],
@@ -192,8 +192,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:50889d9496c8038673c4c264dc00f545cfb081f94aec7e9bda795f46d6e25af9",
-    "snapshot_id": "aip:snapshot:v1:50889d9496c8038673c4c264dc00f545cfb081f94aec7e9bda795f46d6e25af9"
+    "model_revision": "sha256:fcd7c0e195c1c1093f3ad14db7d5622c7314d068a9803360b08ad9ca80f9717e",
+    "snapshot_id": "aip:snapshot:v1:fcd7c0e195c1c1093f3ad14db7d5622c7314d068a9803360b08ad9ca80f9717e"
   },
   "tool": "get_evidence"
 }

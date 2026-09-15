@@ -1,16 +1,16 @@
 {
   "claims": [
     {
-      "claim_id": "aip:claim:v1:52fd3cb3335a5c9bcd15a561cf3dbd581bd1895aeb89045f322c78a6032ccff3",
+      "claim_id": "aip:claim:v1:aeb8f65cb49258f83724e559e534860e36edb15b7303c02725e296901cfeacbd",
       "coverage": null,
       "delivery": {
         "kind": "ASYNC_MESSAGE",
         "relation_type": "SENDS",
         "via": {
-          "id": "queue:audit-events-q",
+          "id": "queue:owned:453bc757f82e1d40f4fc5b07bd526f8c69988a27c1654c52e4fc0f725349429a",
           "method": null,
           "name": "audit-events-q",
-          "namespace": null,
+          "namespace": "commerce",
           "path": null,
           "protocol": null,
           "type": "QUEUE"
@@ -18,7 +18,7 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:otel:test:2026-08-26:4c636a8d168e"
+        "evidence:otel:test:2026-08-26:bb544f9f446a"
       ],
       "object": {
         "id": "service:audit-service",
@@ -32,7 +32,7 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "OBSERVED_ONLY",
       "resolution_evidence_refs": [
-        "evidence:asyncapi:audit-service"
+        "evidence:asyncapi:urn:aip:source:filesystem:478adfc42e1a8e33ff2e1b49b79ac216c2284fcdaec0703c821758a6ac7640ca"
       ],
       "subject": {
         "id": "service:order-service",
@@ -62,7 +62,7 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:manifest:order-service"
+        "evidence:manifest:urn:aip:source:filesystem:fc166f9557be9e1a9279c54363e467d3a567c9589025c17ea6ad5b86d247c2e3"
       ],
       "object": {
         "id": "service:legacy-pricing-service",
@@ -76,7 +76,7 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "NOT_OBSERVED_IN_WINDOW",
       "resolution_evidence_refs": [
-        "evidence:openapi:legacy-pricing-service"
+        "evidence:openapi:urn:aip:source:filesystem:73b2ca6eae71b6ec2861537657d0d1a07fee03ab2c061b9a60a984e2e1b4a7d1"
       ],
       "subject": {
         "id": "service:order-service",
@@ -91,7 +91,7 @@
   ],
   "data": {
     "drift_claim_ids": [
-      "aip:claim:v1:52fd3cb3335a5c9bcd15a561cf3dbd581bd1895aeb89045f322c78a6032ccff3",
+      "aip:claim:v1:aeb8f65cb49258f83724e559e534860e36edb15b7303c02725e296901cfeacbd",
       "aip:claim:v1:1e0ea71aedbfbea587fd7b92192789d1f5d27d057448943e7910850a9bc15a63"
     ],
     "service": {
@@ -105,10 +105,10 @@
     }
   },
   "evidence_refs": [
-    "evidence:asyncapi:audit-service",
-    "evidence:manifest:order-service",
-    "evidence:openapi:legacy-pricing-service",
-    "evidence:otel:test:2026-08-26:4c636a8d168e"
+    "evidence:asyncapi:urn:aip:source:filesystem:478adfc42e1a8e33ff2e1b49b79ac216c2284fcdaec0703c821758a6ac7640ca",
+    "evidence:manifest:urn:aip:source:filesystem:fc166f9557be9e1a9279c54363e467d3a567c9589025c17ea6ad5b86d247c2e3",
+    "evidence:openapi:urn:aip:source:filesystem:73b2ca6eae71b6ec2861537657d0d1a07fee03ab2c061b9a60a984e2e1b4a7d1",
+    "evidence:otel:test:2026-08-26:bb544f9f446a"
   ],
   "limitations": [],
   "observation_context": {
@@ -125,8 +125,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:74232f04c150212ca6c67a9ccf87d973410e0055ba4e4eca87a758b64f9d7b38",
-    "snapshot_id": "aip:snapshot:v1:74232f04c150212ca6c67a9ccf87d973410e0055ba4e4eca87a758b64f9d7b38"
+    "model_revision": "sha256:12471df9afda84f64ffc07c0f0ffe4b7c36de3d47ed87f03cf5eeb8a155ae58c",
+    "snapshot_id": "aip:snapshot:v1:12471df9afda84f64ffc07c0f0ffe4b7c36de3d47ed87f03cf5eeb8a155ae58c"
   },
   "tool": "get_architecture_drift"
 }

@@ -1,17 +1,17 @@
 openapi: 3.1.0
 info:
   title: ProductService
-  version: "1.0.0"
+  version: 1.0.0
 paths:
   /products/{id}:
     get:
       operationId: getProduct
       responses:
-        "200":
+        '200':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Product"
+                $ref: '#/components/schemas/Product'
 components:
   schemas:
     Product:
@@ -19,4 +19,6 @@ components:
       properties:
         id:
           type: string
-      required: [id]
+      required:
+      - id
+x-aip-service-id: service:product-service

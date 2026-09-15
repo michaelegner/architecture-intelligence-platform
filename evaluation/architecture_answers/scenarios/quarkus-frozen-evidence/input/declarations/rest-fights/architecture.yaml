@@ -1,8 +1,9 @@
 service: rest-fights
 calls:
-  - service: rest-heroes
-    operationId: getRandomHero
-  - service: rest-villains
-    operationId: getRandomVillain
-  - service: rest-narration
-    operationId: narrate
+- service: service:rest-heroes
+  operationId: getRandomHero
+- service: service:rest-villains
+  operationId: getRandomVillain
+- service: service:rest-narration
+  operationId: narrate
+x-aip-service-id: service:rest-fights

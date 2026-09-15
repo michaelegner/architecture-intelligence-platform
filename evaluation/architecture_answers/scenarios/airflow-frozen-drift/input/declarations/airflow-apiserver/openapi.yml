@@ -21,3 +21,4 @@ paths:
       responses:
         '200':
           description: Successful Response
+x-aip-service-id: service:airflow-apiserver

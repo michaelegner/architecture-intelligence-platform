@@ -18,7 +18,7 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:manifest:order-service",
+        "evidence:manifest:urn:aip:source:filesystem:9cbaa26c6bb8086b7f547dd628a3cc6cbcc562b0f6e37a9f8c4621bc18ec8558",
         "evidence:otel:test:2026-08-26:b1d283d583bd"
       ],
       "object": {
@@ -33,7 +33,7 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "CONFIRMED",
       "resolution_evidence_refs": [
-        "evidence:openapi:product-service"
+        "evidence:openapi:urn:aip:source:filesystem:ff6b09003d945921d2400ed537a38779b70b567f0107bbdfbe93d7bbd5745283"
       ],
       "subject": {
         "id": "service:order-service",
@@ -61,8 +61,8 @@
     }
   },
   "evidence_refs": [
-    "evidence:manifest:order-service",
-    "evidence:openapi:product-service",
+    "evidence:manifest:urn:aip:source:filesystem:9cbaa26c6bb8086b7f547dd628a3cc6cbcc562b0f6e37a9f8c4621bc18ec8558",
+    "evidence:openapi:urn:aip:source:filesystem:ff6b09003d945921d2400ed537a38779b70b567f0107bbdfbe93d7bbd5745283",
     "evidence:otel:test:2026-08-26:b1d283d583bd"
   ],
   "limitations": [],
@@ -80,8 +80,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:15e1cf949d5bef8fc92b047ea64298d98232809a0bcaf41bed4e7b1806e29eae",
-    "snapshot_id": "aip:snapshot:v1:15e1cf949d5bef8fc92b047ea64298d98232809a0bcaf41bed4e7b1806e29eae"
+    "model_revision": "sha256:09fca6cc95ca956d0d1fcd8423a07f763b7298067a7c5f5fee6686a77061258c",
+    "snapshot_id": "aip:snapshot:v1:09fca6cc95ca956d0d1fcd8423a07f763b7298067a7c5f5fee6686a77061258c"
   },
   "tool": "get_service_dependencies"
 }
