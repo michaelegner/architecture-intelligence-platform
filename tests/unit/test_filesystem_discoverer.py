@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
+from app.sources.identity import EMPTY_CLOSURE_DIGEST
 from app.sources.model import DiagnosticCode, FilesystemSourceConfig
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
@@ -159,3 +160,84 @@ def test_unquoted_yaml_timestamp_in_an_example_value_is_normalized_to_a_string(t
     ]["examples"]["sample"]["value"]
     assert isinstance(example_value["eventDate"], str)
     assert example_value["eventDate"] == "2075-10-27T16:51:41.787000+00:00"
+
+
+def test_loaded_source_carries_the_configured_root_as_source_root():
+    discoverer = FilesystemSourceDiscoverer(_config(EXAMPLES_DIR))
+    outcome = discoverer.discover()
+
+    assert outcome.loaded_sources
+    for source in outcome.loaded_sources:
+        assert source.source_root == str(EXAMPLES_DIR)
+
+
+def test_a_source_with_no_refs_gets_the_empty_closure_digest():
+    discoverer = FilesystemSourceDiscoverer(_config(EXAMPLES_DIR))
+    outcome = discoverer.discover()
+
+    product_service_source = next(
+        s
+        for s in outcome.loaded_sources
+        if Path(s.descriptor.locator) == EXAMPLES_DIR / "product-service" / "openapi.yaml"
+    )
+    assert product_service_source.descriptor.dependency_closure_digest == EMPTY_CLOSURE_DIGEST
+
+
+def test_a_source_with_a_real_cross_file_ref_gets_a_non_empty_closure_digest(tmp_path):
+    service_dir = tmp_path / "cross-file-service"
+    service_dir.mkdir()
+    (service_dir / "openapi.yaml").write_text(
+        "openapi: 3.1.0\n"
+        'info:\n  title: CrossFileService\n  version: "1.0"\n'
+        "paths:\n"
+        "  /widgets:\n"
+        "    get:\n"
+        "      operationId: getWidget\n"
+        "      responses:\n"
+        '        "200":\n'
+        "          description: ok\n"
+        "          content:\n"
+        "            application/json:\n"
+        "              schema:\n"
+        "                $ref: schemas/widget.yaml#/Widget\n"
+    )
+    (service_dir / "schemas").mkdir()
+    (service_dir / "schemas" / "widget.yaml").write_text("Widget:\n  type: object\n")
+
+    discoverer = FilesystemSourceDiscoverer(_config(tmp_path))
+    outcome = discoverer.discover()
+
+    assert outcome.enumeration_complete is True
+    [source] = outcome.loaded_sources
+    assert source.descriptor.dependency_closure_digest is not None
+    assert source.descriptor.dependency_closure_digest != EMPTY_CLOSURE_DIGEST
+
+
+def test_a_ref_that_would_fail_resolution_does_not_fail_discovery(tmp_path):
+    """The discoverer's closure walk is best-effort: a bad/cyclic/over-limit `$ref` graph is left
+    for the adapter's own authoritative resolution (at map() time) to reject with the real
+    diagnostic - discovery itself must never fail just because a closure walk couldn't complete."""
+    service_dir = tmp_path / "dangling-ref-service"
+    service_dir.mkdir()
+    (service_dir / "openapi.yaml").write_text(
+        "openapi: 3.1.0\n"
+        'info:\n  title: DanglingRefService\n  version: "1.0"\n'
+        "paths:\n"
+        "  /widgets:\n"
+        "    get:\n"
+        "      operationId: getWidget\n"
+        "      responses:\n"
+        '        "200":\n'
+        "          description: ok\n"
+        "          content:\n"
+        "            application/json:\n"
+        "              schema:\n"
+        "                $ref: schemas/missing.yaml#/Widget\n"
+    )
+
+    discoverer = FilesystemSourceDiscoverer(_config(tmp_path))
+    outcome = discoverer.discover()
+
+    assert outcome.enumeration_complete is True
+    [source] = outcome.loaded_sources
+    assert source.descriptor.dependency_closure_digest is None
