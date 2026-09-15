@@ -94,6 +94,9 @@ class DiagnosticCode(StrEnum):
     QUEUE_KIND_CONFLICT = "QUEUE_KIND_CONFLICT"
     QUEUE_IDENTITY_CONFLICT = "QUEUE_IDENTITY_CONFLICT"
     QUEUE_EVIDENCE_MISSING = "QUEUE_EVIDENCE_MISSING"
+    # Not named by the spec text; introduced here for the Architecture Manifest CALLS-relation
+    # adapter, distinct from the ArchitectureIdentityBindings manifest's own diagnostic codes above.
+    MANIFEST_CALL_TARGET_UNRESOLVED = "MANIFEST_CALL_TARGET_UNRESOLVED"
 
 
 class IngestionDiagnostic(BaseModel):
