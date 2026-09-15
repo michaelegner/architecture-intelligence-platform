@@ -9,6 +9,12 @@ CONSTRAINTS = [
     "CREATE CONSTRAINT message_id IF NOT EXISTS FOR (m:Message) REQUIRE m.id IS UNIQUE",
     "CREATE CONSTRAINT schema_id IF NOT EXISTS FOR (s:Schema) REQUIRE s.id IS UNIQUE",
     "CREATE CONSTRAINT evidence_id IF NOT EXISTS FOR (e:Evidence) REQUIRE e.id IS UNIQUE",
+    # I1 v0.5.0 PR 3a: one committed-replay-state node per source instance, read/written by
+    # app.graph.importer to feed app.sources.replay.classify_replay_case.
+    (
+        "CREATE CONSTRAINT source_state_source_instance_id IF NOT EXISTS "
+        "FOR (s:SourceState) REQUIRE s.source_instance_id IS UNIQUE"
+    ),
     # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.

@@ -1,6 +1,6 @@
 import neo4j
 
-from app.graph.reconciliation import KNOWN_RELATION_TYPES
+from app.graph.importer import KNOWN_RELATION_TYPES
 from app.graph.repository import open_session
 from app.graph.revision_fence import bump_revision
 from app.graph.schema import ensure_schema
@@ -42,9 +42,10 @@ def _stronger_mode(a: str | None, b: str | None) -> str | None:
 _MERGE_EVIDENCE_QUERY = "MERGE (e:Evidence {id: $id}) SET e += $props"
 
 # Mirrors app/graph/importer.py's _MERGE_RELATION_TEMPLATE's evidence_ids dedup-append expression,
-# but deliberately never touches r.sources - that's declared-import-only reconciliation bookkeeping
-# that must not apply to incremental runtime observation (spec §40: absence of observation is not
-# evidence of absence, so an observed fact is never "expired" by a later batch not re-observing it).
+# but deliberately never touches r.owner_source_ids - that's declared-import-only reconciliation
+# bookkeeping that must not apply to incremental runtime observation (spec §40: absence of
+# observation is not evidence of absence, so an observed fact is never "expired" by a later batch
+# not re-observing it).
 _MERGE_FACT_RELATION_QUERY = (
     "MATCH (a {{id: $subject_id}}), (b {{id: $object_id}}) "
     "MERGE (a)-[r:{relation_type}]->(b) "
