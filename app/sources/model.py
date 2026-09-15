@@ -98,6 +98,20 @@ class DiagnosticCode(StrEnum):
     # Not named by the spec text; introduced here for the Architecture Manifest CALLS-relation
     # adapter, distinct from the ArchitectureIdentityBindings manifest's own diagnostic codes above.
     MANIFEST_CALL_TARGET_UNRESOLVED = "MANIFEST_CALL_TARGET_UNRESOLVED"
+    # Not named by the spec text; introduced here for PR3b's bounded multi-file $ref resolution
+    # (I1 spec §8.1/§9). REFERENCE_LIMIT_EXCEEDED/REFERENCE_CYCLE_UNSUPPORTED already existed above
+    # (added ahead of their real use); these three cover the remaining §8.1 resolution-order
+    # rejection cases the spec describes in prose without naming a code: a `$ref` with a non-empty
+    # URI scheme/authority ("remote/non-local reference -> REJECTED_UNSUPPORTED for the whole
+    # source"), and every other resolution-order failure - malformed percent-encoding, an absolute
+    # decoded path, a traversal/symlink escape outside the approved source root, a missing/non-file
+    # target, or a dangling JSON Pointer fragment ("invalid structure/reference" -> REJECTED_INVALID).
+    REMOTE_REFERENCE_UNSUPPORTED = "REMOTE_REFERENCE_UNSUPPORTED"
+    REFERENCE_INVALID = "REFERENCE_INVALID"
+    # Not named by the spec text; introduced here for §8/§9's exact-version enforcement
+    # ("any other version is REJECTED_UNSUPPORTED unless a reviewed amendment adds that exact
+    # version and its conformance fixtures").
+    UNSUPPORTED_DIALECT_VERSION = "UNSUPPORTED_DIALECT_VERSION"
 
 
 class IngestionDiagnostic(BaseModel):
@@ -137,3 +151,9 @@ class LoadedSource(BaseModel):
     descriptor: SourceDescriptor
     document: dict
     diagnostics: list[IngestionDiagnostic] = Field(default_factory=list)
+    source_root: str = ""
+    """The approved containment boundary a `$ref` may resolve within (I1 spec §8.1's "approved
+    source root"), as an absolute or process-relative filesystem path string. Populated by the
+    discoverer (the only component that knows the configured root); empty only for a `LoadedSource`
+    built directly by a test with no real filesystem backing, since none of PR3b's cross-file
+    resolution paths apply to it."""
