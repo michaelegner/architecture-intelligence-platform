@@ -953,6 +953,54 @@ def test_evidence_record_rejects_observation_for_declared_evidence_fails_both_py
         jsonschema.validate(instance=payload, schema=load_evidence_schema())
 
 
+@pytest.mark.parametrize(
+    "supports",
+    [
+        # Out of (relation_type, source_id, target_id) order.
+        [
+            {"relation_type": "CALLS", "source_id": "service:zzz", "target_id": "operation:x"},
+            {"relation_type": "CALLS", "source_id": "service:aaa", "target_id": "operation:x"},
+        ],
+        # Exact duplicate.
+        [
+            {"relation_type": "CALLS", "source_id": "service:a", "target_id": "operation:x"},
+            {"relation_type": "CALLS", "source_id": "service:a", "target_id": "operation:x"},
+        ],
+    ],
+)
+def test_evidence_record_rejects_unsorted_or_duplicated_supports(supports):
+    with pytest.raises(ValidationError):
+        EvidenceRecord.model_validate(_valid_evidence_record(supports=supports))
+
+
+@pytest.mark.parametrize("field", ["requested_evidence_refs", "missing_evidence_refs"])
+@pytest.mark.parametrize(
+    "refs",
+    [
+        ["evidence:manifest:zzz-service", "evidence:manifest:aaa-service"],  # unsorted
+        ["evidence:manifest:order-service", "evidence:manifest:order-service"],  # duplicate
+    ],
+)
+def test_evidence_data_rejects_unsorted_or_duplicated_refs(field, refs):
+    with pytest.raises(ValidationError):
+        EvidenceData.model_validate(_valid_evidence_data(**{field: refs}))
+
+
+def test_evidence_data_rejects_records_not_sorted_by_id():
+    unsorted_records = [
+        _valid_evidence_record(id="evidence:manifest:zzz-service"),
+        _valid_evidence_record(id="evidence:manifest:aaa-service"),
+    ]
+    with pytest.raises(ValidationError):
+        EvidenceData.model_validate(_valid_evidence_data(records=unsorted_records))
+
+
+def test_evidence_data_rejects_duplicate_record_ids():
+    record = _valid_evidence_record()
+    with pytest.raises(ValidationError):
+        EvidenceData.model_validate(_valid_evidence_data(records=[record, record]))
+
+
 # --- v0.4.0 I3.1: drift contract compatibility (I3 spec §48) -------------------------------------
 
 DRIFT_ANSWER_TYPE = ArchitectureAnswer[ArchitectureDriftData]

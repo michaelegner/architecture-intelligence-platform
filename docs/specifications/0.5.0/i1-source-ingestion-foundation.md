@@ -1,6 +1,6 @@
 # AIP v0.5.0 I1 — Source Ingestion Foundation
 
-**Status:** Draft 0.1  
+**Status:** Draft 0.2  
 **Release:** `v0.5.0`  
 **Increment:** I1  
 **Parent specification:** [`specification.md`](specification.md)
@@ -25,7 +25,9 @@ The baseline is the published and post-release-verified `v0.4.2` ingestion behav
 qualified fixtures retain their canonical meaning through explicit, versioned migration mappings.
 Unchanged legacy inputs with authoritative Service identity but without legacy entity/destination
 mappings may become `ACCEPTED_WITH_LIMITATIONS` where v0.4.2 derived shared identity or Queue
-identity from names alone. Without authoritative Service identity they are `REJECTED_UNSUPPORTED`.
+identity from names alone. An AsyncAPI source with channels but no supported Queue relation is
+`REJECTED_UNSUPPORTED`, as specified in §9.1. Without authoritative Service identity, sources are
+also `REJECTED_UNSUPPORTED`.
 These safety corrections SHALL be recorded and qualified as intentional migration, never hidden as
 backward-compatible parsing.
 
@@ -87,6 +89,7 @@ declared/provider revision, where available
 content_sha256
 dependency_closure_digest, where applicable
 semantic_input_digest
+mapping_context_digest
 declared/configured service identity, where available
 document dialect/version
 adapter identity
@@ -246,6 +249,7 @@ source_revision_id
 source_capture_id
 declared/provider revision, where available
 semantic_input_digest
+mapping_context_digest
 content_sha256
 dependency_closure_digest, where applicable
 capture time
@@ -275,7 +279,32 @@ The semantic input digest SHALL hash a versioned source-kind projection:
 - volatile metadata excluded by the adapter contract is removed;
 - normalization-rule changes are mapping-rule changes and require new golden tests.
 
-Equivalent documents MUST produce equivalent semantic input digests and canonical results.
+Equivalent documents under the same mapping context MUST produce equivalent semantic input digests
+and canonical results.
+
+The normalized document/reference projection alone is insufficient for replay. I1 SHALL compute
+one common `mapping_context_digest` per discovery run after phase 1 validation. Its input is the
+complete canonical index of configured and manifest Service bindings, shared Schema/Message
+mappings, Queue/destination and broker/server/namespace mappings, bundled migration mappings, and
+all active adapter, normalization, and mapping-rule identities/versions. Each mapping entry retains
+its stable artifact identity, revision, content digest, attribution, normalized source pointers,
+targets, and semantic options. Capture times and physical checkout paths are excluded.
+
+Canonicalize the context as RFC 8785 JSON; sort unordered entry arrays by their complete canonical
+JSON bytes before hashing. Explicit empty arrays represent absent mapping categories. The context
+digest is lowercase hexadecimal SHA-256 of those bytes. No fine-grained dependency index is required.
+
+```text
+semantic_input_digest
+  = sha256(length-delimited(
+      normalized document/reference projection, mapping_context_digest))
+```
+
+Mapping additions, modifications, removals, or active rule-version changes therefore invalidate
+replay even when document bytes are unchanged. A changed common context may conservatively cause
+all sources in the run to be reevaluated. Missing required mapping artifacts or invalid bindings
+remain failures under §§4–6; they MUST NOT be silently treated as an empty context. A valid explicit
+mapping removal is reevaluated and may still cause unresolved identity and rejection.
 
 `content_sha256` is the SHA-256 of the exact bytes received for the root document. It is retained
 for provenance and is allowed to differ across semantically equivalent captures. For OpenAPI and
@@ -292,14 +321,15 @@ Entries are concatenated in normalized-path byte order and SHA-256 hashed to pro
 `dependency_closure_digest`. The root document is excluded because its exact bytes are represented
 by `content_sha256`. The empty closure digest is SHA-256 of the zero-length byte string
 (`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`).
-`semantic_input_digest` is computed from the normalized projection and is the only digest used to
-decide semantic replay no-op.
+`semantic_input_digest` binds the normalized document projection and mapping context above and is
+used to decide semantic replay no-op.
 
 ### 5.4 Replay behavior
 
 ```text
 same SourceInstanceId + same semantic_input_digest
-  -> no-op; no duplicate ownership/evidence; no graph-revision advance
+  -> mapping replay no-op; no duplicate ownership/evidence; no graph-revision advance
+  -> inventory validation and scope/removal checks still execute
 
 same SourceInstanceId + changed semantic_input_digest
   + same completed scope_definition_digest
@@ -309,9 +339,16 @@ same SourceInstanceId + changed scope digest
   -> preserve claims absent from the new scope
   -> expire them only through an explicit inventory transition/tombstone
 
-invalid or incomplete load
+invalid or incomplete load or reevaluation
   -> commit nothing; preserve last successful source state
 ```
+
+A changed mapping context requires reevaluation, not an unconditional graph-revision increment.
+After reevaluation, compare canonical claims, ownership, and answer-visible evidence with committed
+state. Only an identical result is a semantic no-op; changed identity or evidence is reconciled
+atomically under the same scope/removal guards. Audit capture changes alone do not advance the graph.
+If mapping removal leaves Service identity unresolved, the run fails and preserves prior claims;
+it does not authorize their deletion.
 
 ## 6. Inventory and removal authority
 
@@ -595,7 +632,8 @@ identity evidence leaves the channel unsupported. Channel name, `-q` suffix, ope
 protocol name, URL, or content coincidence never establishes Queue identity.
 
 The unchanged v0.4.2 AsyncAPI document with its authoritative Service mapping but without a Queue
-mapping therefore produces `ACCEPTED_WITH_LIMITATIONS` and no guessed Queue. I1 SHALL ship an
+mapping is `REJECTED_UNSUPPORTED` when none of its channels can emit a supported Queue relation.
+No Queue is guessed and the failed discovery run preserves its previously committed state. I1 SHALL ship an
 explicit, versioned migration mapping for each qualified v0.4.2 fixture, binding its channel pointer
 to the prior full canonical Queue ID; input plus that mapping preserves the prior canonical meaning.
 The adapter MUST NOT grandfather legacy inputs through hidden filename or naming rules.
@@ -678,7 +716,16 @@ channel without at least one successful, non-conflicting Queue-evidence result, 
 diagnostic and produces `ACCEPTED_WITH_LIMITATIONS`; other supported operations may still be emitted. The source is
 `REJECTED_UNSUPPORTED` when it contains channels but none has both (a) a supported `publish` or
 `subscribe` operation and (b) sufficient evidence under the versioned I1 destination rule to emit
-the existing Queue relation. A document with no channels is accepted as a Service-only source.
+the existing Queue relation. This source-level rejection takes precedence over channel-level
+limitations. A document with no channels is accepted as a Service-only source.
+
+For an otherwise valid source with authoritative Service identity and no other rejection:
+- no channels: `ACCEPTED` as Service-only;
+- channels present, zero supported Queue relations: `REJECTED_UNSUPPORTED`;
+- some supported Queue relations and some omitted constructs: `ACCEPTED_WITH_LIMITATIONS`;
+- all constructs supported without limitations: `ACCEPTED`.
+
+Any `REJECTED_*` result prevents the discovery run from committing, as required by §6.
 Missing message `name`/`title` is not itself unsupported because §9.1 defines deterministic
 fallbacks. Invalid structure and dangling/invalid local references produce `REJECTED_INVALID`. Cycles produce
 `REJECTED_UNSUPPORTED` with `REFERENCE_CYCLE_UNSUPPORTED`; exceeded reference limits produce
@@ -694,7 +741,7 @@ source locator
 source revision and capture
 content_sha256
 dependency_closure_digest, where applicable
-semantic input digest
+semantic input digest and mapping context digest
 source pointer / JSON Pointer
 adapter identity
 mapping-rule identity and version
@@ -734,8 +781,15 @@ The persisted audit record retains capture-specific fields, including capture ti
 The deterministic semantic report is a separately defined projection and SHALL exclude those
 capture-specific fields. It includes only semantic source/inventory revisions, scope definitions,
 ordered diagnostics, canonical planned/committed effects, result statuses, and stable identities.
-Two runs over semantically identical inputs MUST produce byte-identical canonical JSON for this
-semantic projection even when their audit captures differ.
+Two runs over semantically identical inputs and mapping contexts, with the same initial committed
+graph (including ownership and answer-visible evidence) and inventory state and the same active
+rules, MUST produce byte-identical canonical JSON for this projection even when audit captures
+differ. Qualification SHALL record the initial-state fixture identity and revision.
+
+An initial import and its subsequent replay have different initial states and need not have
+byte-identical effect reports. Sequential replay qualification instead requires unchanged canonical
+results, zero canonical mutations, no duplicate ownership/evidence, and an unchanged graph revision.
+Capture-specific audit records may still be appended.
 
 ## 11. Qualification and Definition of Done
 
@@ -771,8 +825,12 @@ I1 is complete only when deterministic tests prove that:
 - every Queue kind and identity evidence path, missing broker identity, multi-server ambiguity, and
   conflicting path has positive and negative coverage;
 - unchanged v0.4.2 fixtures with only authoritative Service mappings produce owner-scoped
-  schema/message identities and explicit Queue limitations; without Service mappings they are
-  rejected unresolved; full versioned mappings restore previous Schema/Message/Queue IDs and meaning;
+  schema/message identities where accepted; partial Queue support yields limitations, while zero
+  supported Queue relations rejects the source and preserves the entire committed run state;
+  without Service mappings they are rejected unresolved; full versioned mappings restore previous
+  Schema/Message/Queue IDs and meaning;
+- empty, entirely unsupported, partially supported, and fully supported AsyncAPI channel sets have
+  the exact source-level outcomes in §9.1, including atomic preservation on rejection;
 - two clean checkouts at different absolute paths derive the fixed bundled-example scope/source IDs
   and apply the same Service/Schema/Message/Queue migration mappings;
 - cycles, duplicate identities, conflicts, and invalid inputs fail without partial writes;
@@ -780,7 +838,15 @@ I1 is complete only when deterministic tests prove that:
 - fragment-only and nested-file-relative references resolve from the containing document;
 - absolute, percent-encoded traversal, symlink-escape, unsupported-URI, malformed fragment, and
   pointer-alias references are handled exactly as specified;
-- reimport is idempotent and a semantic no-op does not advance graph revision;
+- reimport with unchanged mapping context is idempotent and a semantic no-op does not advance
+  graph revision;
+- unchanged documents with added, changed, or explicitly removed Service, shared Schema/Message,
+  Queue, broker, namespace, or manifest mappings are reevaluated using a changed context digest;
+- active adapter/normalization/mapping-rule version changes invalidate replay;
+- mapping removal causing unresolved identity rejects the run without expiring prior claims;
+- an unrelated context change may trigger reevaluation but identical canonical claims, ownership,
+  and answer-visible evidence produce no graph-revision advance;
+- context entry ordering and physical checkout paths do not affect the context digest;
 - checkout paths do not affect source identity;
 - changing roots/filters preserves `DiscoveryScopeId` and changes only `scope_definition_digest`;
 - identical inventories retain `inventory_revision` across captures while distinct capture times or
@@ -797,9 +863,13 @@ I1 is complete only when deterministic tests prove that:
 - dependency-closure tuple encoding, path ordering, byte lengths, and the empty-closure digest match
   the fixed vectors in §5.3;
 - exact accepted and rejected OpenAPI/AsyncAPI versions and every construct-level result are covered;
-- repeated equivalent captures produce distinct audit capture metadata where expected but
-  byte-identical deterministic semantic report projections;
-- two clean runs produce byte-identical semantic reports.
+- equivalent runs from the same recorded initial graph/ownership/evidence and inventory state,
+  with identical mapping contexts and rules, produce byte-identical semantic reports despite
+  capture-specific audit differences;
+- an initial import followed by replay yields unchanged canonical results, zero replay mutations,
+  no duplicate ownership/evidence, and unchanged graph revision, without requiring identical
+  first-import and replay effect reports;
+- two clean runs from the same initial-state fixture produce byte-identical semantic reports.
 
 Qualification evidence SHALL include independent fixtures for source identity, lifecycle transitions,
 reference limits, merge outcomes, diagnostics, and the existing regression corpus.
