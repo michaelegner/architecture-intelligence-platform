@@ -18,7 +18,9 @@ OPENAPI_SCHEMA = {
 
 ASYNCAPI_SCHEMA = {
     "type": "object",
-    "required": ["asyncapi", "info", "channels"],
+    # "channels" is intentionally not required: I1 spec §9 - "A document with no channels is
+    # accepted as a Service-only source."
+    "required": ["asyncapi", "info"],
     "properties": {
         "asyncapi": {"type": "string"},
         "info": {

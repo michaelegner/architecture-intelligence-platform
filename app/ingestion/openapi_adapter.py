@@ -1,5 +1,6 @@
 from app.canonical import ids
 from app.canonical.model import ArchitectureModel, Operation, Relation, Schema, Service
+from app.ingestion._shared import rejected_outcome_for_identity, strip_excluded_schema_fields
 from app.provenance.model import Provenance
 from app.sources.identity import semantic_input_digest
 from app.sources.jcs import canonical_json_bytes, canonical_sha256_hex
@@ -11,32 +12,6 @@ from app.sources.service_identity import ServiceIdentityOutcome
 from app.validation.source_validation import SourceValidationError, validate_openapi_document
 
 HTTP_METHODS = {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
-
-# I1 spec §8.1: "The canonical projection excludes only description, summary, example, examples,
-# and externalDocs." 3a applies this exclusion at the top level of each named-component schema
-# only (today's parsing fidelity - no recursive/inline/composition handling; that's 3b).
-_EXCLUDED_SCHEMA_FIELDS = frozenset(
-    {"description", "summary", "example", "examples", "externalDocs"}
-)
-
-_OUTCOME_TO_RESULT = {
-    ServiceIdentityOutcome.REJECTED_UNSUPPORTED: IngestionResult.REJECTED_UNSUPPORTED,
-    ServiceIdentityOutcome.REJECTED_CONFLICT: IngestionResult.REJECTED_CONFLICT,
-    ServiceIdentityOutcome.REJECTED_INVALID: IngestionResult.REJECTED_INVALID,
-}
-
-
-def _strip_excluded_schema_fields(definition: dict) -> dict:
-    return {key: value for key, value in definition.items() if key not in _EXCLUDED_SCHEMA_FIELDS}
-
-
-def _rejected(resolution) -> AdapterOutcome:
-    return AdapterOutcome(
-        result=_OUTCOME_TO_RESULT[resolution.outcome],
-        model=ArchitectureModel(),
-        diagnostics=tuple(resolution.diagnostics),
-        semantic_input_digest=None,
-    )
 
 
 class OpenApiSourceAdapter:
@@ -89,7 +64,7 @@ class OpenApiSourceAdapter:
             extension_value=document.get("x-aip-service-id"),
         )
         if root_resolution.outcome is not ServiceIdentityOutcome.RESOLVED:
-            return _rejected(root_resolution)
+            return rejected_outcome_for_identity(root_resolution)
 
         info = document.get("info") or {}
         components_schemas = ((document.get("components") or {}).get("schemas")) or {}
@@ -116,7 +91,7 @@ class OpenApiSourceAdapter:
             )
             if schema_id_value not in schemas_by_id:
                 definition = components_schemas.get(name) or {}
-                canonical_hash = canonical_sha256_hex(_strip_excluded_schema_fields(definition))
+                canonical_hash = canonical_sha256_hex(strip_excluded_schema_fields(definition))
                 schemas_by_id[schema_id_value] = Schema(
                     id=schema_id_value, name=name, format=media_type, canonical_hash=canonical_hash
                 )
@@ -137,7 +112,7 @@ class OpenApiSourceAdapter:
                         extension_value=op_extension,
                     )
                     if resolution.outcome is not ServiceIdentityOutcome.RESOLVED:
-                        return _rejected(resolution)
+                        return rejected_outcome_for_identity(resolution)
                     canonical_service_id = resolution.service_id
                     resolved_service_ids.add(canonical_service_id)
                 else:

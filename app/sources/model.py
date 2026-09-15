@@ -89,6 +89,11 @@ class DiagnosticCode(StrEnum):
     # malformed source documents encountered before an adapter can even attempt to map them.
     SOURCE_ROOT_UNAVAILABLE = "SOURCE_ROOT_UNAVAILABLE"
     DOCUMENT_PARSE_INVALID = "DOCUMENT_PARSE_INVALID"
+    # Not named by the spec text; introduced here for §9's AsyncAPI Queue kind/identity evidence
+    # rules. AMBIGUOUS (above) already covers the multi-server broker/namespace-disagreement case.
+    QUEUE_KIND_CONFLICT = "QUEUE_KIND_CONFLICT"
+    QUEUE_IDENTITY_CONFLICT = "QUEUE_IDENTITY_CONFLICT"
+    QUEUE_EVIDENCE_MISSING = "QUEUE_EVIDENCE_MISSING"
 
 
 class IngestionDiagnostic(BaseModel):
