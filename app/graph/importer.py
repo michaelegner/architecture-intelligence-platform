@@ -6,7 +6,7 @@ from app.canonical.model import ArchitectureModel
 from app.graph.repository import open_session
 from app.graph.revision_fence import bump_revision
 from app.graph.schema import ensure_schema
-from app.ingestion.orchestrator import run_filesystem_discovery
+from app.ingestion.orchestrator import DiscoveryRunResult, run_filesystem_discovery
 from app.sources.claim_reconciliation import plan_source_claim_reconciliation
 from app.sources.inventory import InventoryStatus
 from app.sources.model import FilesystemSourceConfig, IngestionDiagnostic, IngestionResult
@@ -323,8 +323,15 @@ def _import_source_tx(
         discovery_scope_id=discovery_scope_id,
     )
 
-    is_no_op = node_plan.is_semantic_no_op and relation_plan.is_semantic_no_op
-    graph_revision_advanced = replay_decision.graph_revision_advance_possible and not is_no_op
+    # `graph_revision_advance_possible` (False only for FAILED_LOAD_PRESERVE_PRIOR and
+    # REPLAY_NO_OP - the latter meaning semantic_input_digest is byte-identical to what's already
+    # committed) is the authoritative no-op signal, not node_plan/relation_plan.is_semantic_no_op:
+    # those only see claim-KEY-set membership (added/removed), never a property-only change (e.g.
+    # an OpenAPI info.title edit) on a claim this source already owned and still owns. `SET n +=
+    # $props`/`SET r.evidence_ids = ...` above write such changes unconditionally regardless of the
+    # claim-set diff, so gating the revision bump on is_semantic_no_op as well let a real graph
+    # mutation land without ever advancing the fence a stable read relies on to detect it.
+    graph_revision_advanced = replay_decision.graph_revision_advance_possible
     if graph_revision_advanced:
         bump_revision(tx)
 
@@ -402,12 +409,74 @@ def _remove_source_tx(
     )
 
 
+def _import_all_sources_tx(
+    tx: neo4j.ManagedTransaction, *, run_result: DiscoveryRunResult
+) -> tuple[dict[str, SourceImportStats], tuple[str, ...]]:
+    """Pre-merge, per-source reconciliation, and removal for one whole discovery run, all against
+    the same transaction - a run either commits in full or (on any error, including a driver/
+    infrastructure failure partway through) rolls back in full. Previously these were separate
+    `execute_write` calls per source: a failure partway through the loop left earlier sources'
+    writes committed even though the run as a whole never reached `ImportRunStats(committed=True)`
+    - contradicting this module's own "nothing is written unless the whole run is COMPLETE"
+    contract (I1 spec §6), a real bug found in PR review.
+    """
+    # Pre-merge every source's nodes first so cross-source relation targets always resolve
+    # regardless of processing order - unchanged in spirit from the PoC-era pre-merge pass, now
+    # scoped per source instance instead of per service. This pass does NOT bump the revision fence
+    # itself: MERGE here is idempotent, and the real "did anything semantically change" decision
+    # (and the resulting conditional bump) happens once, per source, in `_import_source_tx` below.
+    for source_instance_id, source_outcome in run_result.source_outcomes.items():
+        _write_nodes(tx, source_instance_id, source_outcome.outcome.model)
+
+    per_source: dict[str, SourceImportStats] = {}
+    for source_instance_id, source_outcome in run_result.source_outcomes.items():
+        per_source[source_instance_id] = _import_source_tx(
+            tx,
+            source_instance_id=source_instance_id,
+            locator=source_outcome.descriptor_locator,
+            model=source_outcome.outcome.model,
+            result=source_outcome.outcome.result,
+            semantic_input_digest=source_outcome.outcome.semantic_input_digest,
+            discovery_scope_id=run_result.discovery_scope_id,
+            scope_definition_digest=run_result.scope_definition_digest,
+        )
+
+    removed_source_instance_ids: list[str] = []
+    if run_result.inventory_status is InventoryStatus.COMPLETE:
+        known_states = list(
+            tx.run(
+                _READ_SOURCE_STATES_FOR_SCOPE_QUERY,
+                discovery_scope_id=run_result.discovery_scope_id,
+            )
+        )
+        for record in known_states:
+            source_instance_id = record["source_instance_id"]
+            if source_instance_id in run_result.source_outcomes:
+                continue
+            decision = authorize_source_removal(
+                tombstone_validation=None,
+                enumeration_status=run_result.inventory_status,
+                enumeration_discovery_scope_id=run_result.discovery_scope_id,
+                enumeration_scope_definition_digest=run_result.scope_definition_digest,
+                committed_discovery_scope_id=run_result.discovery_scope_id,
+                committed_scope_definition_digest=record["scope_definition_digest"],
+                source_absent_from_enumeration=True,
+            )
+            if decision.authorized:
+                _remove_source_tx(tx, source_instance_id=source_instance_id)
+                removed_source_instance_ids.append(source_instance_id)
+
+    return per_source, tuple(removed_source_instance_ids)
+
+
 def import_all_sources(
     driver: neo4j.Driver, *, database: str, source_config: FilesystemSourceConfig
 ) -> ImportRunStats:
     """Runs the I1 orchestrator for one configured filesystem source, then atomically commits the
     result: nothing is written to Neo4j unless the whole discovery run is COMPLETE (I1 spec §6 - a
-    PARTIAL/FAILED run must preserve prior state, never a partial write).
+    PARTIAL/FAILED run must preserve prior state, never a partial write), and pre-merge/
+    reconciliation/removal for every source in the run share one transaction (see
+    `_import_all_sources_tx`), so a failure partway through the run leaves nothing committed.
     """
     run_result = run_filesystem_discovery(source_config)
 
@@ -424,59 +493,14 @@ def import_all_sources(
 
     with open_session(driver, database=database) as session:
         ensure_schema(session)
-
-        # Pre-merge every source's nodes first (separate transactions) so cross-source relation
-        # targets always resolve regardless of processing order - unchanged in spirit from the
-        # PoC-era pre-merge pass, now scoped per source instance instead of per service. Unlike the
-        # PoC-era version, this pass does NOT bump the revision fence itself: MERGE here is
-        # idempotent, and the real "did anything semantically change" decision (and the resulting
-        # conditional bump) happens once, per source, in `_import_source_tx` below.
-        for source_instance_id, source_outcome in run_result.source_outcomes.items():
-            session.execute_write(_write_nodes, source_instance_id, source_outcome.outcome.model)
-
-        per_source: dict[str, SourceImportStats] = {}
-        for source_instance_id, source_outcome in run_result.source_outcomes.items():
-            stats = import_source(
-                session,
-                source_instance_id=source_instance_id,
-                locator=source_outcome.descriptor_locator,
-                model=source_outcome.outcome.model,
-                result=source_outcome.outcome.result,
-                semantic_input_digest=source_outcome.outcome.semantic_input_digest,
-                discovery_scope_id=run_result.discovery_scope_id,
-                scope_definition_digest=run_result.scope_definition_digest,
-            )
-            per_source[source_instance_id] = stats
-
-        removed_source_instance_ids: list[str] = []
-        if run_result.inventory_status is InventoryStatus.COMPLETE:
-            known_states = list(
-                session.run(
-                    _READ_SOURCE_STATES_FOR_SCOPE_QUERY,
-                    discovery_scope_id=run_result.discovery_scope_id,
-                )
-            )
-            for record in known_states:
-                source_instance_id = record["source_instance_id"]
-                if source_instance_id in run_result.source_outcomes:
-                    continue
-                decision = authorize_source_removal(
-                    tombstone_validation=None,
-                    enumeration_status=run_result.inventory_status,
-                    enumeration_discovery_scope_id=run_result.discovery_scope_id,
-                    enumeration_scope_definition_digest=run_result.scope_definition_digest,
-                    committed_discovery_scope_id=run_result.discovery_scope_id,
-                    committed_scope_definition_digest=record["scope_definition_digest"],
-                    source_absent_from_enumeration=True,
-                )
-                if decision.authorized:
-                    session.execute_write(_remove_source_tx, source_instance_id=source_instance_id)
-                    removed_source_instance_ids.append(source_instance_id)
+        per_source, removed_source_instance_ids = session.execute_write(
+            _import_all_sources_tx, run_result=run_result
+        )
 
         return ImportRunStats(
             inventory_status=run_result.inventory_status,
             committed=True,
             per_source=per_source,
-            removed_source_instance_ids=tuple(removed_source_instance_ids),
+            removed_source_instance_ids=removed_source_instance_ids,
             diagnostics=run_result.diagnostics,
         )

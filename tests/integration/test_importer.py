@@ -294,6 +294,29 @@ def test_import_source_is_idempotent(driver):
     assert second.graph_revision_advanced is False
 
 
+def test_reimport_with_only_a_property_change_still_advances_revision(driver):
+    """A real bug found in PR review: node/relation reconciliation only diffs claim-KEY sets, so a
+    reimport that changes a property on an already-owned claim (e.g. a Service's declared name,
+    here standing in for any OpenAPI info.title-style edit) adds/removes no claim key - but
+    _write_nodes' `SET n += $props` still writes the new value unconditionally. The graph-revision
+    fence must advance whenever semantic_input_digest changes (i.e. whenever the source's
+    normalized input actually changed), not only when a claim was added or removed, or a stable
+    read could observe an unfenced property change."""
+    original = ArchitectureModel(services=[Service(id="service:x", name="X")])
+    renamed = ArchitectureModel(services=[Service(id="service:x", name="X Renamed")])
+
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, "src:x", original)
+        stats = _import(session, "src:x", renamed, digest=DIGEST_2)
+        name = session.run("MATCH (s:Service {id: 'service:x'}) RETURN s.name AS name").single()[
+            "name"
+        ]
+
+    assert stats.graph_revision_advanced is True
+    assert name == "X Renamed"
+
+
 def test_reimport_expires_stale_facts_no_longer_declared(driver):
     with_queue = ArchitectureModel(
         services=[Service(id="service:x", name="X")],
@@ -649,4 +672,55 @@ def test_import_all_sources_removes_source_no_longer_discovered(driver, tmp_path
     )
     assert (
         _count(driver, "MATCH (s:Service {id: 'service:order-service'}) RETURN count(s) AS c") == 1
+    )
+
+
+def test_import_all_sources_rolls_back_in_full_when_a_later_source_fails(
+    driver, tmp_path, monkeypatch
+):
+    """A real bug found in PR review: pre-merge/reconciliation/removal used one `execute_write` per
+    source, so a failure partway through a multi-source run left earlier sources' writes committed
+    even though the run as a whole never reached `committed=True` - contradicting
+    `import_all_sources`'s own "nothing is written unless the whole run is COMPLETE" contract.
+    Everything must now share one transaction: injecting a failure on the second of two sources
+    must leave the first source's change unwritten too."""
+    import app.graph.importer as importer_module
+
+    root = tmp_path / "root"
+    shutil.copytree(EXAMPLES_DIR / "product-service", root / "product-service")
+    shutil.copytree(EXAMPLES_DIR / "order-service", root / "order-service")
+    (root / "order-service" / "architecture.yaml").unlink()
+    config = FilesystemSourceConfig(id="atomicity-test", root=root)
+
+    import_all_sources(driver, database=DATABASE, source_config=config)
+    assert (
+        _count(driver, "MATCH (s:Service {id: 'service:product-service'}) RETURN s.name AS c")
+        == "ProductService"
+    )
+
+    # Rename the already-committed product-service, and inject a failure on order-service's
+    # asyncapi.yaml source, which is processed *after* product-service's openapi.yaml in this
+    # fixture's deterministic (source_instance_id-sorted) order - verified directly, not assumed -
+    # so the rename write has already executed within the transaction by the time this raises.
+    (root / "product-service" / "openapi.yaml").write_text(
+        (root / "product-service" / "openapi.yaml")
+        .read_text()
+        .replace("ProductService", "ProductServiceRenamed")
+    )
+    real_import_source_tx = importer_module._import_source_tx
+
+    def flaky_import_source_tx(tx, *, locator, **kwargs):
+        if "asyncapi" in locator:
+            raise RuntimeError("simulated failure on a later source")
+        return real_import_source_tx(tx, locator=locator, **kwargs)
+
+    monkeypatch.setattr(importer_module, "_import_source_tx", flaky_import_source_tx)
+
+    with pytest.raises(RuntimeError, match="simulated failure"):
+        import_all_sources(driver, database=DATABASE, source_config=config)
+
+    # Nothing committed - not even product-service's rename, processed before the injected failure.
+    assert (
+        _count(driver, "MATCH (s:Service {id: 'service:product-service'}) RETURN s.name AS c")
+        == "ProductService"
     )

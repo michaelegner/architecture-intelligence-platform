@@ -66,18 +66,22 @@ def classify_replay_case(
     4. Only once scope is confirmed unchanged do we compare the semantic digest: unchanged -> no-op,
        changed -> reconcile.
 
-    `graph_revision_advance_possible=True` means a graph-revision advance is *eligible* to happen,
-    not a guaranteed mutation. It is `False` only for `FAILED_LOAD_PRESERVE_PRIOR` and
-    `REPLAY_NO_OP` - every other case may legitimately mutate the graph. In particular,
+    `graph_revision_advance_possible` directly gates whether `app.graph.importer` bumps the graph
+    revision fence for this source's import - it is `False` only for `FAILED_LOAD_PRESERVE_PRIOR`
+    (no load, no write) and `REPLAY_NO_OP` (semantic_input_digest is byte-identical to what's
+    already committed, so the adapter's normalized projection - and therefore every property/
+    evidence value it could write - is provably unchanged). Every other case advances the fence,
+    because `semantic_input_digest` having changed at all means `app.graph.importer`'s
+    unconditional `SET n += $props`/evidence-merge writes may change node/relation properties even
+    when no claim key was added or removed (e.g. an OpenAPI `info.title` edit) -
+    `app.sources.claim_reconciliation.plan_source_claim_reconciliation`'s `is_semantic_no_op` only
+    sees claim-key-set membership, not property content, so it must never additionally gate the
+    revision bump (a real bug this fixed: such a property-only change wrote to the graph but never
+    advanced the fence a stable read relies on to detect it). In particular,
     `SCOPE_CHANGED_PRESERVE_PENDING_TOMBSTONE` does **not** mean "nothing may change": §5.4 only
     requires that claims *absent from the new scope* not be auto-expired without an explicit
     tombstone/transition (see `app.sources.removal_authority.authorize_source_removal`) - it does
-    not prohibit adding newly emitted claims or reconciling retained ones. A scope expansion that
-    successfully emits `{existing, added}` against a committed `{existing}` is a legitimate,
-    eligible update. Whether any case *actually* advances the graph is decided by
-    `app.sources.claim_reconciliation.plan_source_claim_reconciliation`'s `is_semantic_no_op`, once a
-    later increment has real committed/newly-emitted claim sets to compare - `eligible` is a
-    necessary, not sufficient, condition for a real mutation.
+    not prohibit adding newly emitted claims or reconciling retained ones.
 
     Raises `InconsistentReplayStateError` if `committed_semantic_input_digest` and
     `committed_scope_definition_digest` disagree on whether prior state exists (exactly one is
