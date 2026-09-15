@@ -15,12 +15,15 @@ scan -> parse -> source-level validate -> map to Canonical Model -> canonical va
      -> reconcile/diff -> transactional graph write
 ```
 
-`app/ingestion/pipeline.py` drives scanning and parsing; `app/graph/importer.py` drives
-reconciliation and the write. A service's import is **atomic**: it either fully succeeds or is
-entirely discarded — a partial import is never left in the graph (this is validation rule V9 /
-acceptance criterion AC14 of the original PoC spec). Per-service reimport is MERGE-based and
-idempotent: importing the same service twice produces the same graph state, and a relation that's
-still supported by evidence from another declaring service is never wrongly deleted (see
+`app/ingestion/orchestrator.py` drives discovery, mapping, and merge, via a registered
+`SourceAdapter` seam (`app/sources/registry.py` — see [ADR 0009](adr/0009-source-adapter-seam.md));
+`app/graph/importer.py` drives reconciliation and the write. A source's import is **atomic**: it
+either fully succeeds or is entirely discarded — a partial import is never left in the graph (this
+is validation rule V9 / acceptance criterion AC14 of the original PoC spec, now scoped per source
+instance rather than per service — one service may be declared by more than one source, and one
+source may declare more than one service). Per-source reimport is MERGE-based and idempotent:
+importing the same source twice produces the same graph state, and a relation that's still
+supported by evidence from another declaring source is never wrongly deleted (see
 [`evidence.md`](evidence.md) and [`graph-model.md`](graph-model.md) for the exact invariant this
 guarantees).
 

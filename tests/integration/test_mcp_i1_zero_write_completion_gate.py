@@ -30,6 +30,7 @@ from app.graph.importer import import_all_sources
 from app.graph.revision_fence import read_revision
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
+from app.sources.model import FilesystemSourceConfig
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
@@ -160,7 +161,13 @@ async def _call_negotiated(client: httpx.AsyncClient, name: str, arguments: dict
 
 @pytest.mark.asyncio
 async def test_zero_graph_writes_across_every_i1_routing_path(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-i1-zero-write-completion-gate-examples", root=EXAMPLES_DIR
+        ),
+    )
     with driver.session(database=DATABASE) as session:
         revision_before = read_revision(session)
 

@@ -4,7 +4,9 @@
 architecture_intelligence:
   sources:
     directories:
-      - examples
+      - id: aip-bundled-examples-v0.5
+        root: examples
+        stable_target_identity: urn:aip:logical-root:bundled-examples
   graph:
     uri: bolt://localhost:7687
     database: neo4j

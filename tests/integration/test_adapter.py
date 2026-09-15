@@ -5,6 +5,7 @@ import pytest
 
 from app.canonical import ids
 from app.graph.importer import import_all_sources
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.adapter import correlate_http_call_observations, correlate_queue_observations
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.messaging_guards import UNSUPPORTED_DESTINATION_SEMANTICS
@@ -21,13 +22,23 @@ DATABASE = "neo4j"
 def populated_graph(driver):
     with driver.session(database=DATABASE) as session:
         session.run("MATCH (n) DETACH DELETE n")
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-adapter-examples", root=EXAMPLES_DIR),
+    )
 
 
 @pytest.fixture
 def session(driver):
     with driver.session(database=DATABASE) as s:
         yield s
+
+
+def _queue_id(session, name: str) -> str:
+    record = session.run("MATCH (q:Queue {name: $name}) RETURN q.id AS id", name=name).single()
+    assert record is not None, f"no Queue node found with name {name!r}"
+    return record["id"]
 
 
 def _span(**overrides) -> RuntimeSpan:
@@ -117,11 +128,15 @@ def test_unknown_route_mints_observed_only_operation_against_real_service_data(s
     assert count == 0
 
 
-def test_fetch_queue_candidates_returns_declared_queues_with_no_namespace(session):
+def test_fetch_queue_candidates_returns_declared_queues_with_the_amqp_virtual_host_namespace(
+    session,
+):
+    # PR3a wires the real AMQP virtualHost as a declared Queue's namespace (I1 §9); the examples
+    # fixtures all declare the same broker/virtualHost, so every candidate shares one namespace.
     candidates = fetch_queue_candidates(session)
     by_name = {c.name for c in candidates}
     assert {"payment-q", "invoice-q", "unused-q", "unknown-producer-q"} <= by_name
-    assert all(c.namespace is None for c in candidates)
+    assert all(c.namespace == "commerce" for c in candidates)
 
 
 def test_send_observation_reuses_the_real_declared_queue(session):
@@ -147,7 +162,7 @@ def test_send_observation_reuses_the_real_declared_queue(session):
     fact = batch.facts[0]
     assert fact.subject_id == ids.service_id("order-service")
     assert fact.relation_type == "SENDS"
-    assert fact.object_id == ids.queue_id("payment-q")
+    assert fact.object_id == _queue_id(session, "payment-q")
     assert batch.entities == []
 
 
@@ -269,7 +284,7 @@ def test_positive_control_declared_span_persists_service_queue_evidence_and_rela
         "MATCH (:Service {id: $sid})-[r:SENDS]->(:Queue {id: $qid}) "
         "WHERE $eid IN r.evidence_ids RETURN count(r) AS c",
         sid=ids.service_id("order-service"),
-        qid=ids.queue_id("payment-q"),
+        qid=_queue_id(session, "payment-q"),
         eid=evidence_id,
     ).single()["c"]
     assert relation_count == 1
@@ -299,17 +314,18 @@ def test_topic_shaped_destination_persists_no_new_artifacts(driver, session):
     assert batch.entities == []
     persist_observation_batch(driver, DATABASE, batch)
 
+    payment_q_id = _queue_id(session, "payment-q")
     would_be_evidence_id = ids.observed_evidence_id(
         span.environment,
         day_bucket(span.end_time)[0],
         ids.service_id("order-service"),
         "SENDS",
-        ids.queue_id("payment-q"),
+        payment_q_id,
     )
     _assert_no_new_messaging_artifacts(
         session,
         service_id=ids.service_id("order-service"),
-        queue_id=ids.queue_id("payment-q"),
+        queue_id=payment_q_id,
         evidence_id=would_be_evidence_id,
         relation_type="SENDS",
         service_preexists=True,  # OrderService is declared - unaffected by this refusal
@@ -380,17 +396,18 @@ def test_placeholder_service_persists_no_new_artifacts(driver, session):
     persist_observation_batch(driver, DATABASE, batch)
 
     would_be_service_id = ids.service_id("unknown-service")
+    payment_q_id = _queue_id(session, "payment-q")
     would_be_evidence_id = ids.observed_evidence_id(
         span.environment,
         day_bucket(span.end_time)[0],
         would_be_service_id,
         "SENDS",
-        ids.queue_id("payment-q"),
+        payment_q_id,
     )
     _assert_no_new_messaging_artifacts(
         session,
         service_id=would_be_service_id,
-        queue_id=ids.queue_id("payment-q"),
+        queue_id=payment_q_id,
         evidence_id=would_be_evidence_id,
         relation_type="SENDS",
         service_preexists=False,  # the service guard refused to mint this Service at all
@@ -430,7 +447,7 @@ def test_ambiguous_service_persists_no_new_artifacts(driver, session):
     assert batch.entities == []
     persist_observation_batch(driver, DATABASE, batch)
 
-    payment_q = ids.queue_id("payment-q")
+    payment_q = _queue_id(session, "payment-q")
     payment_q_count = session.run(
         "MATCH (q:Queue {id: $id}) RETURN count(q) AS c", id=payment_q
     ).single()["c"]
@@ -481,17 +498,18 @@ def test_both_guards_failing_persists_no_new_artifacts(driver, session):
     persist_observation_batch(driver, DATABASE, batch)
 
     would_be_service_id = ids.service_id("unknown-service")
+    payment_q_id = _queue_id(session, "payment-q")
     would_be_evidence_id = ids.observed_evidence_id(
         span.environment,
         day_bucket(span.end_time)[0],
         would_be_service_id,
         "SENDS",
-        ids.queue_id("payment-q"),
+        payment_q_id,
     )
     _assert_no_new_messaging_artifacts(
         session,
         service_id=would_be_service_id,
-        queue_id=ids.queue_id("payment-q"),
+        queue_id=payment_q_id,
         evidence_id=would_be_evidence_id,
         relation_type="SENDS",
         service_preexists=False,  # never reached - destination refused first - but still unminted

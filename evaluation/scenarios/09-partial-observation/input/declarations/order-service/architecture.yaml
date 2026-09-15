@@ -1,6 +1,7 @@
 service: order-service
 calls:
-  - service: product-service
-    operationId: getProduct
-  - service: inventory-service
-    operationId: getInventory
+- service: service:product-service
+  operationId: getProduct
+- service: service:inventory-service
+  operationId: getInventory
+x-aip-service-id: service:order-service

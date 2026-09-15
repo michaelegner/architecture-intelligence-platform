@@ -1,16 +1,16 @@
 {
   "claims": [
     {
-      "claim_id": "aip:claim:v1:69eac64e23cb0f47c35a3fa0459a1f1c4095ddee8c51fd4a2a80943677faaa8a",
+      "claim_id": "aip:claim:v1:e929e58d4fbc6e19f1d7929feaec4d63e34f3479b48293733e3207cbb2fbd1d4",
       "coverage": null,
       "delivery": {
         "kind": "ASYNC_MESSAGE",
         "relation_type": "SENDS",
         "via": {
-          "id": "queue:reporting-q",
+          "id": "queue:owned:7cbc86ec93ff71448b51b3e9d9590fabbe8ab98dedec71976cc325a92b57cdf6",
           "method": null,
           "name": "reporting-q",
-          "namespace": null,
+          "namespace": "commerce",
           "path": null,
           "protocol": null,
           "type": "QUEUE"
@@ -18,7 +18,7 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:otel:test:2026-08-26:9db22e0ae3c6"
+        "evidence:otel:test:2026-08-26:bd7c7d2f71f4"
       ],
       "object": {
         "id": "service:billing-service",
@@ -32,7 +32,7 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "OBSERVED_ONLY",
       "resolution_evidence_refs": [
-        "evidence:asyncapi:billing-service"
+        "evidence:asyncapi:urn:aip:source:filesystem:11a027b42ebc6df51b54577d97586896fb8c81a3b68f8f0f3420a6c5ee0fce37"
       ],
       "subject": {
         "id": "service:order-service",
@@ -47,7 +47,7 @@
   ],
   "data": {
     "drift_claim_ids": [
-      "aip:claim:v1:69eac64e23cb0f47c35a3fa0459a1f1c4095ddee8c51fd4a2a80943677faaa8a"
+      "aip:claim:v1:e929e58d4fbc6e19f1d7929feaec4d63e34f3479b48293733e3207cbb2fbd1d4"
     ],
     "service": {
       "id": "service:order-service",
@@ -60,8 +60,8 @@
     }
   },
   "evidence_refs": [
-    "evidence:asyncapi:billing-service",
-    "evidence:otel:test:2026-08-26:9db22e0ae3c6"
+    "evidence:asyncapi:urn:aip:source:filesystem:11a027b42ebc6df51b54577d97586896fb8c81a3b68f8f0f3420a6c5ee0fce37",
+    "evidence:otel:test:2026-08-26:bd7c7d2f71f4"
   ],
   "limitations": [],
   "observation_context": {
@@ -78,8 +78,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:4812c10e1a740e5931fecf27cc2f443df4add9a00761ca8fd78c7f36251500c3",
-    "snapshot_id": "aip:snapshot:v1:4812c10e1a740e5931fecf27cc2f443df4add9a00761ca8fd78c7f36251500c3"
+    "model_revision": "sha256:c3928e4ac41bdac9d056845aeeae2d6cdb299287b8898c23dcb9dcf764b37308",
+    "snapshot_id": "aip:snapshot:v1:c3928e4ac41bdac9d056845aeeae2d6cdb299287b8898c23dcb9dcf764b37308"
   },
   "tool": "get_architecture_drift"
 }

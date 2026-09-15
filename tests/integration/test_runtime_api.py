@@ -9,6 +9,7 @@ from app.graph.importer import import_all_sources
 from app.main import create_app
 from app.provenance.model import ObservedEvidence
 from app.settings import AppConfig, Secrets, Settings
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate, ObservedOnlyEntity
 
@@ -58,7 +59,11 @@ def populated_graph(driver):
     invoice-q DECLARED_ONLY (declared, nothing observed in this window/environment)."""
     with driver.session(database=DATABASE) as session:
         session.run("MATCH (n) DETACH DELETE n")
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-runtime-api-examples", root=EXAMPLES_DIR),
+    )
 
     order_id = ids.service_id("order-service")
     product_operation_id = ids.operation_id(
@@ -97,7 +102,15 @@ def _build_app(driver):
     app.state.settings = Settings(
         config=AppConfig.model_validate(
             {
-                "sources": {"directories": [str(EXAMPLES_DIR)]},
+                "sources": {
+                    "directories": [
+                        {
+                            "id": "aip-bundled-examples-v0.5",
+                            "root": str(EXAMPLES_DIR),
+                            "stable_target_identity": "urn:aip:logical-root:bundled-examples",
+                        }
+                    ]
+                },
                 "graph": {"uri": "bolt://ignored:7687", "database": DATABASE},
             }
         ),
@@ -111,7 +124,12 @@ def client(driver):
     return TestClient(_build_app(driver))
 
 
-def _ids():
+def _ids(driver):
+    with driver.session(database=DATABASE) as session:
+        record = session.run(
+            "MATCH (q:Queue {name: $name}) RETURN q.id AS id", name="invoice-q"
+        ).single()
+    assert record is not None, "no Queue node found with name 'invoice-q'"
     return {
         "order": ids.service_id("order-service"),
         "product": ids.service_id("product-service"),
@@ -122,14 +140,14 @@ def _ids():
             ids.service_id("legacy-pricing-service"), "GET", "/pricing"
         ),
         "payment": ids.service_id("payment-service"),
-        "invoice_q": ids.queue_id("invoice-q"),
+        "invoice_q": record["id"],
     }
 
 
 # --- Runtime API ----------------------------------------------------------------------------------
 
 
-def test_get_observed_relations_envelope_and_camelcase_keys(client):
+def test_get_observed_relations_envelope_and_camelcase_keys(client, driver):
     response = client.get("/api/runtime/relations", params={"environment": ENVIRONMENT})
     assert response.status_code == 200
     body = response.json()
@@ -149,14 +167,14 @@ def test_get_observed_relations_envelope_and_camelcase_keys(client):
         "lastSeen",
         "observationCount",
     }
-    ids_map = _ids()
+    ids_map = _ids(driver)
     target_ids = {r["targetId"] for r in body["relations"]}
     assert ids_map["product"] in target_ids
     assert ids_map["legacy_operation"] in target_ids
 
 
-def test_get_service_runtime_profile(client):
-    ids_map = _ids()
+def test_get_service_runtime_profile(client, driver):
+    ids_map = _ids(driver)
     response = client.get(f"/api/runtime/services/{ids_map['order']}")
     assert response.status_code == 200
     body = response.json()
@@ -209,19 +227,19 @@ def test_get_observed_only_pins_spec_48_literal_json_contract(client):
         assert key in row
 
 
-def test_get_declared_only_status_is_literal_not_observed_in_window(client):
+def test_get_declared_only_status_is_literal_not_observed_in_window(client, driver):
     response = client.get(
         "/api/analysis/runtime/declared-only", params={"environment": ENVIRONMENT}
     )
     assert response.status_code == 200
     body = response.json()
-    ids_map = _ids()
+    ids_map = _ids(driver)
     row = next(r for r in body["relations"] if r["targetId"] == ids_map["invoice_q"])
     assert row["status"] == "NOT_OBSERVED_IN_WINDOW"
     assert "telemetryCoverageAvailable" in row
 
 
-def test_get_declared_only_exposes_coverage_qualification(client):
+def test_get_declared_only_exposes_coverage_qualification(client, driver):
     # I6/11H-E: payment-service (the payment->invoice-q row's subject) has no observed traffic at
     # all in this fixture/environment - coverage must classify as NONE, the weakest evidence for a
     # NOT_OBSERVED_IN_WINDOW finding.
@@ -230,16 +248,16 @@ def test_get_declared_only_exposes_coverage_qualification(client):
     )
     assert response.status_code == 200
     body = response.json()
-    ids_map = _ids()
+    ids_map = _ids(driver)
     row = next(r for r in body["relations"] if r["targetId"] == ids_map["invoice_q"])
     assert row["coverage"] == "NONE"
 
 
-def test_get_coverage(client):
+def test_get_coverage(client, driver):
     response = client.get("/api/analysis/runtime/coverage", params={"environment": ENVIRONMENT})
     assert response.status_code == 200
     body = response.json()
-    ids_map = _ids()
+    ids_map = _ids(driver)
     row = next(s for s in body["services"] if s["serviceId"] == ids_map["order"])
     assert row["httpObserved"] is True
     assert "messagingObserved" in row
@@ -249,8 +267,10 @@ def test_get_coverage(client):
 # --- Service Explorer UI --------------------------------------------------------------------------
 
 
-def test_ui_service_explorer_shows_observed_section_with_confirmed_and_observed_only(client):
-    ids_map = _ids()
+def test_ui_service_explorer_shows_observed_section_with_confirmed_and_observed_only(
+    client, driver
+):
+    ids_map = _ids(driver)
     response = client.get(f"/services/{ids_map['order']}")
     assert response.status_code == 200
     text = response.text
@@ -264,8 +284,8 @@ def test_ui_service_explorer_shows_observed_section_with_confirmed_and_observed_
         assert forbidden not in text.lower()
 
 
-def test_ui_service_explorer_shows_not_observed_in_window_for_declared_only(client):
-    ids_map = _ids()
+def test_ui_service_explorer_shows_not_observed_in_window_for_declared_only(client, driver):
+    ids_map = _ids(driver)
     response = client.get(f"/services/{ids_map['payment']}")
     assert response.status_code == 200
     text = response.text
@@ -276,8 +296,8 @@ def test_ui_service_explorer_shows_not_observed_in_window_for_declared_only(clie
         assert forbidden not in text.lower()
 
 
-def test_ui_service_explorer_shows_observed_evidence_block(client):
-    ids_map = _ids()
+def test_ui_service_explorer_shows_observed_evidence_block(client, driver):
+    ids_map = _ids(driver)
     response = client.get(f"/services/{ids_map['order']}")
     assert response.status_code == 200
     text = response.text
@@ -289,7 +309,7 @@ def test_ui_service_explorer_shows_observed_evidence_block(client):
 # --- O1-O5 NL intents ------------------------------------------------------------------------------
 
 
-def test_post_query_o3_deterministic_routing(client):
+def test_post_query_o3_deterministic_routing(client, driver):
     response = client.post(
         "/api/query",
         json={
@@ -300,7 +320,7 @@ def test_post_query_o3_deterministic_routing(client):
     body = response.json()
     assert body["execution_mode"] == "DETERMINISTIC"
     assert body["intent"] == "O3_OBSERVED_ONLY_RELATIONS"
-    ids_map = _ids()
+    ids_map = _ids(driver)
     row_targets = {row["target_id"] for row in body["rows"]}
     assert ids_map["legacy_operation"] in row_targets
 

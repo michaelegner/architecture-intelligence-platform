@@ -19,6 +19,7 @@ from app.analysis.runtime import (
 from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.provenance.model import ObservedEvidence
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate, ObservedOnlyEntity
 
@@ -31,13 +32,25 @@ SINCE = datetime(2026, 8, 26, 0, 0, tzinfo=UTC)
 def populated_graph(driver):
     with driver.session(database=DATABASE) as session:
         session.run("MATCH (n) DETACH DELETE n")
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-runtime-analysis-examples", root=EXAMPLES_DIR
+        ),
+    )
 
 
 @pytest.fixture
 def session(driver):
     with driver.session(database=DATABASE) as s:
         yield s
+
+
+def _queue_id(session, name: str) -> str:
+    record = session.run("MATCH (q:Queue {name: $name}) RETURN q.id AS id", name=name).single()
+    assert record is not None, f"no Queue node found with name {name!r}"
+    return record["id"]
 
 
 def _fact(
@@ -84,7 +97,7 @@ def _persist(driver, *facts, entities=()):
 
 def test_o1_aggregates_multiple_observations_of_the_same_relation(driver, session):
     subject_id = ids.service_id("order-service")
-    object_id = ids.queue_id("payment-q")
+    object_id = _queue_id(session, "payment-q")
     first = _fact(
         subject_id=subject_id,
         relation_type="SENDS",
@@ -120,7 +133,7 @@ def test_o1_filters_by_relation_type_and_from_id(driver, session):
         _fact(
             subject_id=subject_id,
             relation_type="SENDS",
-            object_id=ids.queue_id("payment-q"),
+            object_id=_queue_id(session, "payment-q"),
             environment="o1-filter-env",
         ),
     )
@@ -146,7 +159,7 @@ def test_o1_with_no_environment_filter_returns_rows_from_every_environment(drive
     `$environment IS NULL OR e.environment = $environment` text post-migration - a plain
     `environment=None` call is a valid, all-environments listing, not an empty result."""
     subject_id = ids.service_id("order-service")
-    object_id = ids.queue_id("payment-q")
+    object_id = _queue_id(session, "payment-q")
     _persist(
         driver,
         _fact(
@@ -218,7 +231,7 @@ def test_o2_o3_o4_do_not_cross_leak_when_the_same_environment_has_both_confirmed
     )
     provider_id = ids.service_id("product-service")
     payment_id = ids.service_id("payment-service")
-    invoice_q_id = ids.queue_id("invoice-q")
+    invoice_q_id = _queue_id(session, "invoice-q")
 
     # order-service -> product-service GET /products/{id} is declared (examples fixture); observe
     # it here so it becomes CONFIRMED. payment-service -> invoice-q is also declared (examples
@@ -330,7 +343,7 @@ def test_o3_resolves_target_identity_for_an_undeclared_operation_with_no_provide
 
 def test_o4_reports_not_observed_in_window_with_no_coverage(driver, session):
     subject_id = ids.service_id("payment-service")
-    object_id = ids.queue_id("invoice-q")
+    object_id = _queue_id(session, "invoice-q")
 
     results = declared_only_relations(session, environment="o4-env-nocoverage", since=SINCE)
     row = next(r for r in results if r.source_id == subject_id and r.target_id == object_id)
@@ -359,7 +372,7 @@ def test_o4_reports_coverage_available_when_the_subject_has_other_observed_traff
         entities=[ObservedOnlyEntity(id=ids.queue_id("some-other-queue"), label="Queue", name="x")],
     )
 
-    object_id = ids.queue_id("invoice-q")
+    object_id = _queue_id(session, "invoice-q")
     results = declared_only_relations(session, environment="o4-env-coverage", since=SINCE)
     row = next(r for r in results if r.source_id == subject_id and r.target_id == object_id)
     assert row.status == NOT_OBSERVED_IN_WINDOW
@@ -384,7 +397,7 @@ def test_o4_reports_partial_coverage_when_only_a_different_relation_kind_was_obs
         ),
     )
 
-    object_id = ids.queue_id("invoice-q")
+    object_id = _queue_id(session, "invoice-q")
     results = declared_only_relations(session, environment="o4-env-partial", since=SINCE)
     row = next(r for r in results if r.source_id == subject_id and r.target_id == object_id)
     assert row.status == NOT_OBSERVED_IN_WINDOW
@@ -418,7 +431,7 @@ def test_o4_coverage_respects_an_explicit_until_bound(driver, session):
         ],
     )
 
-    object_id = ids.queue_id("invoice-q")
+    object_id = _queue_id(session, "invoice-q")
     results = declared_only_relations(
         session, environment="o4-env-until-bound", since=SINCE, until=until
     )
@@ -430,7 +443,7 @@ def test_o4_coverage_respects_an_explicit_until_bound(driver, session):
 
 def test_o4_coverage_is_unknown_when_qualification_is_disabled(driver, session):
     subject_id = ids.service_id("payment-service")
-    object_id = ids.queue_id("invoice-q")
+    object_id = _queue_id(session, "invoice-q")
 
     results = declared_only_relations(
         session, environment="o4-env-disabled", since=SINCE, qualification_enabled=False
@@ -468,7 +481,7 @@ def test_o5_reports_messaging_observed_for_a_sender(driver, session):
         _fact(
             subject_id=subject_id,
             relation_type="RECEIVES_FROM",
-            object_id=ids.queue_id("invoice-q"),
+            object_id=_queue_id(session, "invoice-q"),
             environment="o5-env-2",
         ),
     )
@@ -568,12 +581,13 @@ def test_service_runtime_profile_combines_confirmed_observed_only_and_declared_o
 
     assert any(r.target_id == product_service_id for r in by_status.get("CONFIRMED", []))
     assert any(r.target_id == legacy_operation_id for r in by_status.get("OBSERVED_ONLY", []))
+    payment_q_id = _queue_id(session, "payment-q")
     declared_only_targets = {r.target_id for r in by_status.get(NOT_OBSERVED_IN_WINDOW, [])}
-    assert ids.queue_id("payment-q") in declared_only_targets
+    assert payment_q_id in declared_only_targets
     # 11H-E: order-service has observed CALLS (http) traffic in this env but no observed
     # SENDS (messaging) traffic - the payment-q row is a different kind, so PARTIAL not SUFFICIENT.
     payment_q_row = next(
-        r for r in by_status[NOT_OBSERVED_IN_WINDOW] if r.target_id == ids.queue_id("payment-q")
+        r for r in by_status[NOT_OBSERVED_IN_WINDOW] if r.target_id == payment_q_id
     )
     assert payment_q_row.coverage == COVERAGE_PARTIAL
 

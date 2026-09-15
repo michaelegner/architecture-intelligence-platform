@@ -23,11 +23,11 @@ model.
 
 Reads `architecture.yaml` — the only source that can close the "who calls this REST operation" gap,
 since OpenAPI alone only describes providers. The manifest is deliberately minimal: it must only
-contain information not already reliably derivable from OpenAPI/AsyncAPI. It resolves each declared
-call against a pre-built `operation_index` (built once, in `app/ingestion/pipeline.py`, from every
-scanned service's real `Operation.id` values) — the manifest adapter itself never constructs an
-operation id independently, so it can never drift out of sync with however operation ids are
-actually minted.
+contain information not already reliably derivable from OpenAPI/AsyncAPI. `ManifestSourceAdapter`
+runs at `dependency_phase=1` (`app/sources/registry.py`), so it resolves each declared call against
+an `operation_index` it builds from `upstream_model` — every phase-0 adapter's merged real
+`Operation.id` values — the manifest adapter itself never constructs an operation id independently,
+so it can never drift out of sync with however operation ids are actually minted.
 
 ## Runtime observation adapter
 

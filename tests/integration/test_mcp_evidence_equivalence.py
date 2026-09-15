@@ -30,6 +30,7 @@ from app.graph.revision_fence import read_revision
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
 from app.provenance.model import ObservedEvidence
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 
@@ -162,7 +163,13 @@ async def test_full_dependency_to_evidence_chain_is_identical_direct_vs_mcp(driv
     client, which is I2.4's job): a real dependency answer's evidence_refs/resolution_evidence_refs
     and snapshot_id feed directly into get_evidence, and every reference resolves identically
     whether called directly or through MCP."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-evidence-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     _observe_order_service_calls_product_service(driver)
 
     dependency_answer = _service(driver).get_service_dependencies(
@@ -201,7 +208,13 @@ async def test_full_dependency_to_evidence_chain_is_identical_direct_vs_mcp(driv
 
 @pytest.mark.asyncio
 async def test_two_identical_mcp_calls_produce_byte_identical_structured_content(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-evidence-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     dependency_answer = _service(driver).get_service_dependencies(
         _dependency_request(ids.service_id("order-service"))
     )
@@ -219,7 +232,13 @@ async def test_two_identical_mcp_calls_produce_byte_identical_structured_content
 
 @pytest.mark.asyncio
 async def test_successful_mcp_call_leaves_revision_fence_unchanged(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-evidence-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     dependency_answer = _service(driver).get_service_dependencies(
         _dependency_request(ids.service_id("order-service"))
     )
@@ -245,7 +264,13 @@ async def test_successful_mcp_call_leaves_revision_fence_unchanged(driver):
 async def test_refusal_mcp_call_leaves_revision_fence_unchanged(driver):
     """A stale/mismatched snapshot_id forces `NOT_ANSWERED`/`SNAPSHOT_NOT_AVAILABLE` (spec §12) -
     still zero graph writes."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-evidence-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     with driver.session(database=DATABASE) as session:
         before = read_revision(session)
 

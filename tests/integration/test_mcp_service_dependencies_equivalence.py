@@ -28,6 +28,7 @@ from app.graph.importer import import_all_sources
 from app.graph.revision_fence import read_revision
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
+from app.sources.model import FilesystemSourceConfig
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 SCHEMA_PATH = (
@@ -128,7 +129,13 @@ async def _call_mcp(client: httpx.AsyncClient, request_payload: dict) -> dict:
 
 @pytest.mark.asyncio
 async def test_confirmed_dependency_answer_is_identical_direct_vs_mcp(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-service-dependencies-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     direct_json = (
         _service(driver)
         .get_service_dependencies(_request(ids.service_id("order-service")))
@@ -154,7 +161,13 @@ async def test_provider_only_service_refusal_is_identical_direct_vs_mcp(driver):
     """`product-service` only provides, never calls/sends (see CLAUDE.md's `examples/` fixture
     description) - an ANSWERED-with-empty-claims outcome, not a claim-bearing one, exercising a
     different branch of the envelope invariants than the confirmed-answer case above."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-service-dependencies-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     direct_json = (
         _service(driver)
         .get_service_dependencies(_request(ids.service_id("product-service")))
@@ -175,7 +188,13 @@ async def test_provider_only_service_refusal_is_identical_direct_vs_mcp(driver):
 
 @pytest.mark.asyncio
 async def test_two_identical_mcp_calls_produce_byte_identical_structured_content(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-service-dependencies-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     server, app = _build_server_and_app(driver)
     payload = _request_payload(ids.service_id("order-service"))
     async with mcp_session_manager_lifespan(server):
@@ -188,7 +207,13 @@ async def test_two_identical_mcp_calls_produce_byte_identical_structured_content
 
 @pytest.mark.asyncio
 async def test_successful_mcp_call_leaves_revision_fence_unchanged(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-service-dependencies-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     with driver.session(database=DATABASE) as session:
         before = read_revision(session)
 
@@ -208,7 +233,13 @@ async def test_successful_mcp_call_leaves_revision_fence_unchanged(driver):
 async def test_refusal_mcp_call_leaves_revision_fence_unchanged(driver):
     """A stale/mismatched snapshot_id forces `NOT_ANSWERED`/`SNAPSHOT_NOT_AVAILABLE` (spec §12) -
     still zero graph writes."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-service-dependencies-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     with driver.session(database=DATABASE) as session:
         before = read_revision(session)
 
@@ -236,7 +267,13 @@ async def test_service_validation_error_leaves_revision_fence_unchanged(driver):
     (`app.architecture_intelligence.service`'s documented behavior) - `app.mcp.tools` maps this to
     `isError: true` (see `tests/unit/test_mcp_service_dependencies_adapter.py` for that mapping in
     isolation); here it must still leave the graph untouched end to end through the real MCP path."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-service-dependencies-equivalence-examples", root=EXAMPLES_DIR
+        ),
+    )
     with driver.session(database=DATABASE) as session:
         before = read_revision(session)
 

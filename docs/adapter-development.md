@@ -1,36 +1,61 @@
 # Adapter Development
 
 AIP has two kinds of extension point — one for a new *declared* architecture source, one for a new
-*runtime observation* source. The conceptual interfaces:
+*runtime observation* source.
+
+A declared-source adapter is registered, not branched on (ADR 0009). The real interface, from
+`app/sources/registry.py`:
 
 ```python
-class ArchitectureSourceAdapter(Protocol):
-    def supports(self, source: Source) -> bool: ...
-    def load(self, source: Source) -> ArchitectureModel: ...
+class SourceAdapter(Protocol):
+    adapter_identity: str
+    mapping_rule_version: str
+    dependency_phase: int
+
+    def supports(self, loaded: LoadedSource) -> bool: ...
+
+    def map(
+        self,
+        loaded: LoadedSource,
+        *,
+        service_identity: ServiceIdentityResolver,
+        upstream_model: ArchitectureModel,
+        mapping_context_digest: str,
+    ) -> AdapterOutcome: ...
 
 
 class ObservationSourceAdapter(Protocol):
     def ingest(self, source: Any) -> ObservationBatch: ...
 ```
 
-**Note on current implementation status:** today's three declared adapters
-(`app/ingestion/openapi_adapter.py`, `asyncapi_adapter.py`, `manifest_adapter.py`) and the runtime
-adapter (`app/telemetry/adapter.py`) are plain functions, not classes implementing these `Protocol`s
-— e.g. `parse_openapi(document, *, service_id, source_file, source_revision=None) ->
-ArchitectureModel`. The `Protocol` shapes above describe the *target* extension point a future,
-pluggable adapter registry would formalize; they are not a claim that the current code already
-implements them as classes. What every existing adapter already honors, and what a new one must
-honor too, is the *contract* those Protocols describe:
+Today's three declared adapters (`OpenApiSourceAdapter`, `AsyncApiSourceAdapter`,
+`ManifestSourceAdapter`, in `app/ingestion/openapi_adapter.py`/`asyncapi_adapter.py`/
+`manifest_adapter.py`) and the runtime adapter (`app/telemetry/adapter.py`) already implement this
+shape — a plugin registry exists (`app.sources.registry.SourceAdapterRegistry`,
+`app.ingestion.orchestrator.default_registry()`), so a new declared-source adapter is registered
+alongside them, not hand-wired into a pipeline function. `dependency_phase` is the sole mechanism
+for a later-phase adapter (e.g. the Architecture Manifest adapter, `dependency_phase=1`) to see an
+earlier phase's merged result via `upstream_model` — the orchestrator never branches on source kind
+to decide this.
 
 ## What a declared-source adapter must produce
 
-An `ArchitectureModel` (`app/canonical/model.py`) — never a partial or adapter-specific shape. In
-practice that means:
+An `AdapterOutcome` (`app/sources/registry.py`) wrapping an `ArchitectureModel`
+(`app/canonical/model.py`) — never a partial or adapter-specific shape. `map()` must not raise for
+a source/construct-level problem; instead it returns `AdapterOutcome(result=..., diagnostics=...)`
+with an `IngestionResult` (ACCEPTED / ACCEPTED_WITH_LIMITATIONS / REJECTED_INVALID /
+REJECTED_UNSUPPORTED / REJECTED_CONFLICT — I1 spec §10: "each source receives exactly one result").
+In practice that means:
 
-- Every entity id must be built with `app/canonical/ids.py`'s deterministic formatters, never an
-  ad-hoc string and never anything derived from a local filesystem path (see
+- Every entity id must be built with `app/canonical/ids.py`'s deterministic formatters (or, for
+  Schema/Message/Queue, `app/sources/owner_ids.py`'s owner-scoped RFC 8785 identity — I1 spec §8/§9)
+  — never an ad-hoc string and never anything derived from a local filesystem path (see
   [`canonical-model.md`](canonical-model.md) for why, including the specific bug class this
   prevents).
+- Every construct's Service identity must be resolved through the injected `service_identity`
+  closure (`app.sources.service_identity.resolve_service_identity`'s three evidence paths — an
+  `x-aip-service-id` extension, a configured mapping, or an `ArchitectureIdentityBindings` manifest
+  binding), never derived from a directory/file slug.
 - Every `Relation` must carry `evidence_ids` pointing at a real `Provenance`/`Evidence` record the
   same adapter call also returns in `ArchitectureModel.provenance` — an adapter must never produce
   a fact with no supporting evidence (see [`graph-model.md`](graph-model.md)'s fact/evidence
@@ -57,10 +82,15 @@ OpenTelemetry adapter's own rules are the model to follow for a new runtime sour
 
 ## Wiring a new adapter in
 
-There's no plugin registry yet — a new adapter is wired in the same way the existing three are: a
-new module under `app/ingestion/` (or `app/telemetry/` for a runtime source), invoked from
-`app/ingestion/pipeline.py` (or the OTLP request handler in `app/api/telemetry.py`) alongside its
-siblings.
+A new declared-source adapter is a new module under `app/ingestion/` implementing `SourceAdapter`,
+added to `app.ingestion.orchestrator.default_registry()`'s adapter list. `supports()` inspects the
+loaded document's *content* to decide whether this adapter claims it (e.g. `"openapi" in
+loaded.document`) — never the filename; discovery (`app/ingestion/filesystem_discoverer.py`) only
+uses filename conventions as an enumeration convenience, and dispatch itself is
+`SourceAdapterRegistry.adapter_for()`'s job. A runtime-source adapter is still wired directly into
+its own request handler (e.g. `app/api/telemetry.py`'s OTLP endpoint) — the registry above only
+covers declared sources.
+
 ## Worked example: a tiny declared-source adapter
 
 The following is a deliberately small, non-production example. It shows the complete shape of a
@@ -77,116 +107,125 @@ Imagine a toy format called `toy-arch.json`:
 }
 ```
 
-A toy adapter could read that file, construct canonical IDs, attach provenance, and return an
-`ArchitectureModel`:
+A toy adapter could resolve the declaring Service's identity, construct canonical IDs, attach
+provenance, and return an `AdapterOutcome`:
 
 ```python
-import json
-from pathlib import Path
-
 from app.canonical import ids
 from app.canonical.model import ArchitectureModel, Operation, Relation, Service
 from app.provenance.model import Provenance
+from app.sources.model import IngestionResult, LoadedSource
+from app.sources.registry import AdapterOutcome, ServiceIdentityResolver
+from app.sources.service_identity import ServiceIdentityOutcome
 
 
-def load_toy_document(path: Path) -> dict:
-    return json.loads(path.read_text())
+class ToySourceAdapter:
+    adapter_identity = "toy-adapter@1"
+    mapping_rule_version = "v1"
+    dependency_phase = 0
 
+    def supports(self, loaded: LoadedSource) -> bool:
+        return "service" in loaded.document and "operations" in loaded.document
 
-def parse_toy(
-    document: dict,
-    *,
-    source_file: str,
-    source_revision: str | None = None,
-) -> ArchitectureModel:
-    service_slug = document["service"]
+    def map(
+        self,
+        loaded: LoadedSource,
+        *,
+        service_identity: ServiceIdentityResolver,
+        upstream_model: ArchitectureModel,
+        mapping_context_digest: str,
+    ) -> AdapterOutcome:
+        document = loaded.document
+        source_instance_id = loaded.descriptor.source_instance_id
 
-    service = Service(
-        id=ids.service_id(service_slug),
-        name=service_slug,
-    )
-
-    operations = [
-        Operation(
-            id=ids.operation_id(
-                service.id,
-                entry["method"],
-                entry["path"],
-            ),
-            service_id=service.id,
-            method=entry["method"].upper(),
-            path=entry["path"],
+        resolution = service_identity.resolve(
+            source_instance_id=source_instance_id,
+            construct_pointer="",
+            extension_value=document.get("x-aip-service-id"),
         )
-        for entry in document.get("operations", [])
-    ]
+        if resolution.outcome is not ServiceIdentityOutcome.RESOLVED:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_UNSUPPORTED,
+                model=ArchitectureModel(),
+                diagnostics=resolution.diagnostics,
+                semantic_input_digest=None,
+            )
+        service_id = resolution.service_id
 
-    evidence = Provenance(
-        id=ids.evidence_id(
-            "TOY",
-            service_slug,
-            source_revision,
-        ),
-        source_type="TOY",
-        source_file=source_file,
-        source_revision=source_revision,
-    )
+        operations = [
+            Operation(
+                id=ids.operation_id(service_id, entry["method"], entry["path"]),
+                service_id=service_id,
+                method=entry["method"].upper(),
+                path=entry["path"],
+            )
+            for entry in document.get("operations", [])
+        ]
 
-    relations = [
-        Relation(
-            type="PROVIDES",
-            source_id=service.id,
-            target_id=operation.id,
-            evidence_ids=[evidence.id],
+        evidence = Provenance(
+            id=ids.evidence_id("TOY", source_instance_id, loaded.descriptor.content_sha256),
+            source_type="TOY",
+            source_file=loaded.descriptor.locator,
+            source_revision=loaded.descriptor.content_sha256,
         )
-        for operation in operations
-    ]
 
-    return ArchitectureModel(
-        services=[service],
-        operations=operations,
-        relations=relations,
-        provenance=[evidence],
-    )
+        relations = [
+            Relation(
+                type="PROVIDES",
+                source_id=service_id,
+                target_id=operation.id,
+                evidence_ids=[evidence.id],
+            )
+            for operation in operations
+        ]
+
+        model = ArchitectureModel(
+            services=[Service(id=service_id, name=document["service"])],
+            operations=operations,
+            relations=relations,
+            provenance=[evidence],
+        )
+        return AdapterOutcome(
+            result=IngestionResult.ACCEPTED,
+            model=model,
+            diagnostics=(),
+            semantic_input_digest=ids.evidence_id("TOY", source_instance_id),
+        )
 ```
 
 ### Why this satisfies the adapter contract
 
 The example follows the same contract as the existing adapters:
 
-- `Service` uses `ids.service_id()`.
-- Each `Operation` uses `ids.operation_id()`.
-- The adapter returns an `ArchitectureModel`.
+- `Service`/`Operation` use `ids.service_id()`/`ids.operation_id()`, keyed off the resolved
+  canonical Service id — never a filename or directory slug.
+- Service identity is resolved through the injected `service_identity` closure, exactly like
+  `OpenApiSourceAdapter`/`AsyncApiSourceAdapter`/`ManifestSourceAdapter` do (I1 spec §4.1) — an
+  unresolvable identity is a diagnostic and `REJECTED_UNSUPPORTED`, never an exception.
+- The adapter returns an `AdapterOutcome`, never raises for a source-level problem.
 - Source provenance is returned with the model.
 - No local filesystem path is used to construct entity IDs.
 - The example does not introduce a new production source format.
 
-### Wiring the adapter into the pipeline
+### Wiring the adapter into the registry
 
-A real adapter would be imported and invoked from `app/ingestion/pipeline.py` alongside the
-existing OpenAPI, AsyncAPI, and manifest adapters.
-
-Conceptually, the pipeline would:
-
-1. Detect the toy source.
-2. Load it with `load_toy_document()`.
-3. Parse it with `parse_toy()`.
-4. Add the returned `ArchitectureModel` to the models being merged.
-
-For example:
+A real adapter is registered in `app.ingestion.orchestrator.default_registry()` alongside the
+existing OpenAPI, AsyncAPI, and manifest adapters:
 
 ```python
-from app.ingestion.toy_adapter import load_toy_document, parse_toy
+from app.ingestion.toy_adapter import ToySourceAdapter
 
-document = load_toy_document(source.path)
-
-model = parse_toy(
-    document,
-    source_file=str(source.path),
-    source_revision=source.revision,
+_DEFAULT_ADAPTERS = (
+    OpenApiSourceAdapter(),
+    AsyncApiSourceAdapter(),
+    ManifestSourceAdapter(),
+    ToySourceAdapter(),
 )
-
-partials_by_service[source.service_id].append(model)
 ```
 
-This example is illustrative only. It does not require creating `toy_adapter.py` or wiring the toy
-format into the production scanner.
+`SourceAdapterRegistry.adapter_for()` then picks it by content (`supports()`), not by filename or
+configuration — `app/ingestion/filesystem_discoverer.py`'s `CANDIDATE_FILENAMES` only needs a new
+entry if the toy format uses a filename convention discovery wouldn't otherwise read.
+
+This example is illustrative only. It does not require creating `toy_adapter.py` or registering the
+toy format in production.

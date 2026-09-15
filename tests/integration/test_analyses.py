@@ -12,6 +12,7 @@ from app.analysis.queues import (
 )
 from app.canonical import ids
 from app.graph.importer import import_all_sources
+from app.sources.model import FilesystemSourceConfig
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
@@ -21,7 +22,11 @@ DATABASE = "neo4j"
 def populated_graph(driver):
     with driver.session(database=DATABASE) as session:
         session.run("MATCH (n) DETACH DELETE n")
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-analyses-examples", root=EXAMPLES_DIR),
+    )
 
 
 @pytest.fixture
@@ -30,33 +35,39 @@ def session(driver):
         yield s
 
 
+def _queue_id(session, name: str) -> str:
+    record = session.run("MATCH (q:Queue {name: $name}) RETURN q.id AS id", name=name).single()
+    assert record is not None, f"no Queue node found with name {name!r}"
+    return record["id"]
+
+
 def test_a1_senders_of_payment_q(session):
-    result = senders_of_queue(session, ids.queue_id("payment-q"))
+    result = senders_of_queue(session, _queue_id(session, "payment-q"))
     assert [r.id for r in result] == [ids.service_id("order-service")]
 
 
 def test_a1_senders_of_queue_with_none(session):
-    assert senders_of_queue(session, ids.queue_id("unknown-producer-q")) == []
+    assert senders_of_queue(session, _queue_id(session, "unknown-producer-q")) == []
 
 
 def test_a2_consumers_of_payment_q(session):
-    result = consumers_of_queue(session, ids.queue_id("payment-q"))
+    result = consumers_of_queue(session, _queue_id(session, "payment-q"))
     assert [r.id for r in result] == [ids.service_id("payment-service")]
 
 
 def test_a2_consumers_of_queue_with_none(session):
-    assert consumers_of_queue(session, ids.queue_id("unused-q")) == []
+    assert consumers_of_queue(session, _queue_id(session, "unused-q")) == []
 
 
 def test_a3_queues_without_consumers(session):
     result = queues_without_consumers(session)
-    assert [r.id for r in result] == [ids.queue_id("unused-q")]
+    assert [r.id for r in result] == [_queue_id(session, "unused-q")]
 
 
 def test_a4_queues_without_senders(session):
     result = queues_without_senders(session)
     assert len(result) == 1
-    assert result[0].queue_id == ids.queue_id("unknown-producer-q")
+    assert result[0].queue_id == _queue_id(session, "unknown-producer-q")
     assert result[0].consumer_name == "PaymentService"
 
 

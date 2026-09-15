@@ -284,9 +284,9 @@ evaluation-only Cypher mutation - after the telemetry fixture and before project
 reset -> ingest declarations -> inject telemetry -> re-import reconciliation declarations -> project -> compare
 ```
 
-This is what lets AIP's own per-service reconciliation (`app.graph.importer.import_service`) expire
-a service's stale `DECLARED` evidence for a relation it no longer declares, while any surviving
-`OBSERVED` evidence - and any other service's declarations - are left untouched. An
+This is what lets AIP's own per-source reconciliation (`app.graph.importer.import_source`) expire
+a source's stale `DECLARED` evidence for a relation it no longer declares, while any surviving
+`OBSERVED` evidence - and any other source's declarations - are left untouched. An
 existing-but-empty `input/reconciliation/declarations/` directory is rejected at load time as an
 invalid fixture, not silently treated as "no reconciliation phase."
 

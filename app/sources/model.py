@@ -1,7 +1,8 @@
 from enum import StrEnum
+from pathlib import Path
 from typing import NewType
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 SourceInstanceId = NewType("SourceInstanceId", str)
 DiscoveryScopeId = NewType("DiscoveryScopeId", str)
@@ -11,6 +12,50 @@ class SourceKind(StrEnum):
     FILESYSTEM = "filesystem"
     # Kubernetes stable-source-key is reserved for I2 (I1 spec §5.1) - deliberately no member here
     # yet: "unsupported > falsely supported".
+
+
+class FilesystemSourceConfig(BaseModel):
+    """I1 spec §5.1's "configured filesystem-source id" plus the physical root it scans. A source's
+    stable identity must be an explicit, operator-assigned id, never the directory path itself (I1
+    §6: "stable target identity MUST NOT be an absolute checkout path, resolved physical directory,
+    mount point, or other mutable root location").
+
+    A pure domain contract (not a settings-loading concern) so `app/ingestion/` and `app/graph/`
+    can depend on it directly without depending on `app.settings`; `app.settings.SourcesConfig`
+    reuses this same type as its field shape.
+
+    `scope_id` and `stable_target_identity` default from `id` when omitted, which is sufficient for
+    the common one-directory-one-scope case; a deployment scanning multiple physically distinct
+    roots under one logical scope can override `scope_id` to group them.
+    """
+
+    id: str
+    root: Path
+    scope_id: str | None = None
+    stable_target_identity: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_bare_entry(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            # Must be ValueError, not TypeError: pydantic only wraps ValueError/AssertionError
+            # raised inside a validator into a ValidationError - a TypeError would propagate
+            # uncaught instead of surfacing as a normal config-validation failure.
+            raise ValueError(  # noqa: TRY004
+                "sources.directories entries must be objects with 'id' and 'root' fields "
+                f"(got {value!r}) - a bare directory path can no longer serve as a source's "
+                "stable identity; add an explicit 'id' (e.g. {'id': "
+                "'aip-bundled-examples-v0.5', 'root': <path>})"
+            )
+        return value
+
+    @property
+    def resolved_scope_id(self) -> str:
+        return self.scope_id or self.id
+
+    @property
+    def resolved_stable_target_identity(self) -> str:
+        return self.stable_target_identity or f"urn:aip:logical-root:{self.id}"
 
 
 class IngestionResult(StrEnum):
@@ -40,6 +85,19 @@ class DiagnosticCode(StrEnum):
     # Not named by the spec text; introduced here for §6's tombstone-staleness rejection reasons.
     TOMBSTONE_STALE = "TOMBSTONE_STALE"
     TOMBSTONE_SCOPE_MISMATCH = "TOMBSTONE_SCOPE_MISMATCH"
+    # Not named by the spec text; introduced here for filesystem-discovery-level failures (I1 §6's
+    # "missing roots, incomplete checkouts ... MUST preserve the prior inventory" list) and
+    # malformed source documents encountered before an adapter can even attempt to map them.
+    SOURCE_ROOT_UNAVAILABLE = "SOURCE_ROOT_UNAVAILABLE"
+    DOCUMENT_PARSE_INVALID = "DOCUMENT_PARSE_INVALID"
+    # Not named by the spec text; introduced here for §9's AsyncAPI Queue kind/identity evidence
+    # rules. AMBIGUOUS (above) already covers the multi-server broker/namespace-disagreement case.
+    QUEUE_KIND_CONFLICT = "QUEUE_KIND_CONFLICT"
+    QUEUE_IDENTITY_CONFLICT = "QUEUE_IDENTITY_CONFLICT"
+    QUEUE_EVIDENCE_MISSING = "QUEUE_EVIDENCE_MISSING"
+    # Not named by the spec text; introduced here for the Architecture Manifest CALLS-relation
+    # adapter, distinct from the ArchitectureIdentityBindings manifest's own diagnostic codes above.
+    MANIFEST_CALL_TARGET_UNRESOLVED = "MANIFEST_CALL_TARGET_UNRESOLVED"
 
 
 class IngestionDiagnostic(BaseModel):

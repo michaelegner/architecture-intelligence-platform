@@ -1,7 +1,6 @@
 import re
 
-from app.graph.importer import NODE_LABELS
-from app.graph.reconciliation import KNOWN_RELATION_TYPES
+from app.graph.importer import KNOWN_RELATION_TYPES, NODE_LABELS
 
 DEFAULT_MAX_DEPTH = 5
 DEFAULT_MAX_RESULT_ROWS = 100

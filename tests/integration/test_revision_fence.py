@@ -10,10 +10,11 @@ from app.architecture_intelligence.repository import (
 )
 from app.canonical import ids
 from app.canonical.model import ArchitectureModel, Relation, Service
-from app.graph.importer import import_all_sources, import_service
+from app.graph.importer import import_all_sources, import_source
 from app.graph.revision_fence import RevisionSingletonMissing, bump_revision, read_revision
 from app.graph.schema import ensure_schema
 from app.provenance.model import ObservedEvidence
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 
@@ -75,13 +76,18 @@ def test_import_all_sources_bumps_revision_once_per_write_transaction(driver):
         ensure_schema(session)
         revision_before = read_revision(session)
 
-    stats = import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    stats = import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-revision-fence-examples", root=EXAMPLES_DIR),
+    )
 
     with driver.session(database=DATABASE) as session:
         revision_after = read_revision(session)
 
-    # one pre-merge transaction plus one reconciliation transaction per service (spec §19).
-    assert revision_after - revision_before == 2 * len(stats)
+    # PR3a: the pre-merge pass no longer bumps the revision fence itself (MERGE is idempotent);
+    # exactly one conditional bump happens per source, inside its own reconciliation transaction.
+    assert revision_after - revision_before == len(stats.per_source)
 
 
 def test_rolled_back_import_does_not_advance_revision(driver):
@@ -96,7 +102,15 @@ def test_rolled_back_import_does_not_advance_revision(driver):
             ],
         )
         with pytest.raises(ValueError):
-            import_service(session, "x", model)
+            import_source(
+                session,
+                source_instance_id="urn:aip:source:test:x",
+                locator="test-locator",
+                model=model,
+                semantic_input_digest="deadbeef",
+                discovery_scope_id="urn:aip:scope:test",
+                scope_definition_digest="deadbeef",
+            )
 
         revision_after = read_revision(session)
 
@@ -104,7 +118,11 @@ def test_rolled_back_import_does_not_advance_revision(driver):
 
 
 def test_persist_observation_batch_advances_revision_by_one(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-revision-fence-examples", root=EXAMPLES_DIR),
+    )
     with driver.session(database=DATABASE) as session:
         revision_before = read_revision(session)
 
@@ -150,17 +168,29 @@ def _fingerprint(driver):
 
 
 def test_snapshot_fingerprint_is_stable_across_reimport_of_identical_sources(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-revision-fence-examples", root=EXAMPLES_DIR),
+    )
     fingerprint_1 = _fingerprint(driver)
 
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)  # idempotent reimport
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-revision-fence-examples", root=EXAMPLES_DIR),
+    )  # idempotent reimport
     fingerprint_2 = _fingerprint(driver)
 
     assert fingerprint_1 == fingerprint_2
 
 
 def test_snapshot_fingerprint_changes_when_a_node_property_changes(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-revision-fence-examples", root=EXAMPLES_DIR),
+    )
     fingerprint_before = _fingerprint(driver)
 
     with driver.session(database=DATABASE) as session:
@@ -174,7 +204,11 @@ def test_snapshot_fingerprint_changes_when_a_node_property_changes(driver):
 
 
 def test_snapshot_fingerprint_changes_when_evidence_changes(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-revision-fence-examples", root=EXAMPLES_DIR),
+    )
     with driver.session(database=DATABASE) as session:
         fingerprint_before = snapshot_fingerprint(
             canonical_snapshot_state(session, coverage_qualification_enabled=True)
@@ -192,7 +226,11 @@ def test_snapshot_fingerprint_changes_when_evidence_changes(driver):
 
 
 def test_snapshot_fingerprint_unaffected_by_reconciliation_only_metadata(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-revision-fence-examples", root=EXAMPLES_DIR),
+    )
     fingerprint_before = _fingerprint(driver)
 
     with driver.session(database=DATABASE) as session:
@@ -206,7 +244,11 @@ def test_read_stable_snapshot_from_session_matches_independent_computation(drive
     """The actual Neo4j-wired entry point I1.3 will call - proves the retry loop, the revision
     fence, and the canonical projection compose correctly against a real database, not just as
     individually tested pieces."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-revision-fence-examples", root=EXAMPLES_DIR),
+    )
 
     with driver.session(database=DATABASE) as session:
         result = read_stable_snapshot_from_session(session, coverage_qualification_enabled=True)
@@ -218,7 +260,11 @@ def test_read_stable_snapshot_from_session_matches_independent_computation(drive
 
 
 def test_read_stable_snapshot_from_session_passes_through_a_real_read_extra(driver):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-revision-fence-examples", root=EXAMPLES_DIR),
+    )
 
     def count_services(session):
         return session.run("MATCH (n:Service) RETURN count(n) AS c").single()["c"]

@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.provenance.model import ObservedEvidence
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 from real_world_validation.capture import capture_actual_facts
@@ -60,17 +61,28 @@ def _import_fights_heroes(driver, tmp_path):
     heroes_dir.mkdir(parents=True)
 
     (heroes_dir / "openapi.yaml").write_text(
-        'openapi: 3.1.0\ninfo:\n  title: Hero API\n  version: "1.0"\npaths:\n'
+        'openapi: 3.1.0\ninfo:\n  title: Hero API\n  version: "1.0"\n'
+        "x-aip-service-id: service:rest-heroes\n"
+        "paths:\n"
         "  /api/heroes/random:\n    get:\n      operationId: getRandomHero\n      responses:\n"
         '        "200":\n          description: ok\n'
     )
     (fights_dir / "openapi.yaml").write_text(
-        'openapi: 3.1.0\ninfo:\n  title: Fights API\n  version: "1.0"\npaths: {}\n'
+        "openapi: 3.1.0\n"
+        'info:\n  title: Fights API\n  version: "1.0"\n'
+        "x-aip-service-id: service:rest-fights\n"
+        "paths: {}\n"
     )
     (fights_dir / "architecture.yaml").write_text(
-        "service: rest-fights\ncalls:\n  - service: rest-heroes\n    operationId: getRandomHero\n"
+        "service: rest-fights\n"
+        "x-aip-service-id: service:rest-fights\n"
+        "calls:\n  - service: service:rest-heroes\n    operationId: getRandomHero\n"
     )
-    import_all_sources(driver, database=DATABASE, root=root)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-real-world-capture-fights-heroes", root=root),
+    )
 
     return (
         ids.service_id("rest-fights"),
@@ -169,6 +181,7 @@ def test_request_schema_relation_is_captured_with_declared_evidence(driver, tmp_
     root.mkdir(parents=True)
     (root / "openapi.yaml").write_text(
         'openapi: 3.1.0\ninfo:\n  title: Hero API\n  version: "1.0"\n'
+        "x-aip-service-id: service:rest-heroes\n"
         "paths:\n"
         "  /api/heroes:\n"
         "    post:\n"
@@ -184,7 +197,13 @@ def test_request_schema_relation_is_captured_with_declared_evidence(driver, tmp_
         "  schemas:\n"
         "    Hero:\n      type: object\n"
     )
-    import_all_sources(driver, database=DATABASE, root=tmp_path / "declarations")
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-real-world-capture-request-schema", root=tmp_path / "declarations"
+        ),
+    )
 
     heroes_id = ids.service_id("rest-heroes")
     operation_id = ids.operation_id(heroes_id, "POST", "/api/heroes")

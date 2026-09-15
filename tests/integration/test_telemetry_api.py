@@ -1,7 +1,10 @@
+import shutil
+import tempfile
 import time
 from pathlib import Path
 
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
 from opentelemetry.proto.common.v1.common_pb2 import AnyValue, KeyValue
@@ -9,22 +12,35 @@ from opentelemetry.proto.resource.v1.resource_pb2 import Resource
 from opentelemetry.proto.trace.v1.trace_pb2 import ResourceSpans, ScopeSpans, Span
 
 from app.canonical import ids
-from app.graph.importer import import_all_sources, import_service
-from app.ingestion.openapi_adapter import load_openapi_document, parse_openapi
+from app.graph.importer import import_all_sources
 from app.main import create_app
 from app.settings import AppConfig, Secrets, Settings
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
 _CONTENT_TYPE = "application/x-protobuf"
+_SOURCE_ID = "test-telemetry-api-examples"
+# A writable staging copy, not the real examples/ tree directly: one test below mutates a declared
+# document in place and reimports it to prove reconciliation - reusing the same configured source
+# id and physical root across both imports keeps SourceInstanceId/scope_definition_digest stable
+# (I1 spec §5.1/§6), exactly like evaluation/fixture_setup.py's staging pattern.
+_STAGING_ROOT = Path(tempfile.gettempdir()) / "aip-test-telemetry-api-examples"
 
 
 @pytest.fixture(scope="module", autouse=True)
 def populated_graph(driver):
     with driver.session(database=DATABASE) as session:
         session.run("MATCH (n) DETACH DELETE n")
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    if _STAGING_ROOT.exists():
+        shutil.rmtree(_STAGING_ROOT)
+    shutil.copytree(EXAMPLES_DIR, _STAGING_ROOT)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id=_SOURCE_ID, root=_STAGING_ROOT),
+    )
 
 
 @pytest.fixture
@@ -39,7 +55,15 @@ def _build_app(driver):
     app.state.settings = Settings(
         config=AppConfig.model_validate(
             {
-                "sources": {"directories": [str(EXAMPLES_DIR)]},
+                "sources": {
+                    "directories": [
+                        {
+                            "id": "aip-bundled-examples-v0.5",
+                            "root": str(EXAMPLES_DIR),
+                            "stable_target_identity": "urn:aip:logical-root:bundled-examples",
+                        }
+                    ]
+                },
                 "graph": {"uri": "bolt://ignored:7687", "database": DATABASE},
             }
         ),
@@ -332,20 +356,21 @@ def test_later_declaring_an_observed_only_operation_reconciles_without_duplicati
     provider_id = ids.service_id("product-service")
     operation_id = ids.operation_id(provider_id, "GET", "/internal/products2/{id}")
 
-    document = load_openapi_document(EXAMPLES_DIR / "product-service" / "openapi.yaml")
+    openapi_path = _STAGING_ROOT / "product-service" / "openapi.yaml"
+    document = yaml.safe_load(openapi_path.read_text())
     document["paths"]["/internal/products2/{id}"] = {
         "get": {
             "operationId": "getInternalProduct2",
             "responses": {"200": {"content": {"application/json": {"schema": {}}}}},
         }
     }
-    model = parse_openapi(
-        document,
-        service_id="product-service",
-        source_file="examples/product-service/openapi.yaml",
+    openapi_path.write_text(yaml.safe_dump(document))
+
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id=_SOURCE_ID, root=_STAGING_ROOT),
     )
-    with driver.session(database=DATABASE) as write_session:
-        import_service(write_session, "product-service", model)
 
     count = session.run(
         "MATCH (o:Operation {id: $id}) RETURN count(o) AS c", id=operation_id

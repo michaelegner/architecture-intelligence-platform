@@ -1,17 +1,17 @@
 openapi: 3.1.0
 info:
   title: LegacyPricingService
-  version: "1.0.0"
+  version: 1.0.0
 paths:
   /pricing:
     get:
       operationId: getPricing
       responses:
-        "200":
+        '200':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Price"
+                $ref: '#/components/schemas/Price'
 components:
   schemas:
     Price:
@@ -19,4 +19,6 @@ components:
       properties:
         amount:
           type: number
-      required: [amount]
+      required:
+      - amount
+x-aip-service-id: service:legacy-pricing-service

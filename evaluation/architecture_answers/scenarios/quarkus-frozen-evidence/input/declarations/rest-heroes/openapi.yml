@@ -1,4 +1,3 @@
----
 openapi: 3.1.2
 info:
   title: Hero API
@@ -6,7 +5,7 @@ info:
   contact:
     name: Quarkus
     url: https://github.com/quarkusio
-  version: "1.0"
+  version: '1.0'
 tags:
 - name: hello
 - name: heroes
@@ -25,7 +24,7 @@ paths:
         schema:
           type: string
       responses:
-        "200":
+        '200':
           description: Gets all heroes
           content:
             application/json:
@@ -40,7 +39,7 @@ paths:
                     name: Luke Skywalker
                     level: 10
                     picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
-                    powers: "Uses light sabre, The force"
+                    powers: Uses light sabre, The force
     put:
       tags:
       - heroes
@@ -61,10 +60,10 @@ paths:
                   name: Luke Skywalker
                   level: 10
                   picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
-                  powers: "Uses light sabre, The force"
+                  powers: Uses light sabre, The force
         required: true
       responses:
-        "201":
+        '201':
           description: The URI to retrieve all the created heroes
           headers:
             Location:
@@ -72,7 +71,7 @@ paths:
               schema:
                 format: uri
                 type: string
-        "400":
+        '400':
           description: Invalid heroes passed in (or no request body found)
     post:
       tags:
@@ -91,10 +90,10 @@ paths:
                   name: Luke Skywalker
                   level: 10
                   picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
-                  powers: "Uses light sabre, The force"
+                  powers: Uses light sabre, The force
         required: true
       responses:
-        "201":
+        '201':
           description: The URI of the created hero
           headers:
             Location:
@@ -102,7 +101,7 @@ paths:
               schema:
                 format: uri
                 type: string
-        "400":
+        '400':
           description: Invalid hero passed in (or no request body found)
     delete:
       tags:
@@ -110,7 +109,7 @@ paths:
       summary: Delete all heroes
       operationId: deleteAllHeroes
       responses:
-        "204":
+        '204':
           description: Deletes all heroes
   /api/heroes/hello:
     get:
@@ -119,7 +118,7 @@ paths:
       summary: Ping hello
       operationId: hello
       responses:
-        "200":
+        '200':
           description: Ping hello
           content:
             text/plain:
@@ -136,7 +135,7 @@ paths:
       operationId: getRandomHero
       x-return-type: jakarta.ws.rs.core.Response
       responses:
-        "200":
+        '200':
           description: Gets a random hero
           content:
             application/json:
@@ -149,8 +148,8 @@ paths:
                     name: Luke Skywalker
                     level: 10
                     picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
-                    powers: "Uses light sabre, The force"
-        "404":
+                    powers: Uses light sabre, The force
+        '404':
           description: No hero found
   /api/heroes/{id}:
     get:
@@ -167,7 +166,7 @@ paths:
           format: int64
           type: integer
       responses:
-        "200":
+        '200':
           description: Gets a hero for a given id
           content:
             application/json:
@@ -180,8 +179,8 @@ paths:
                     name: Luke Skywalker
                     level: 10
                     picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
-                    powers: "Uses light sabre, The force"
-        "404":
+                    powers: Uses light sabre, The force
+        '404':
           description: The hero is not found for a given identifier
     put:
       tags:
@@ -209,14 +208,14 @@ paths:
                   name: Luke Skywalker
                   level: 10
                   picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
-                  powers: "Uses light sabre, The force"
+                  powers: Uses light sabre, The force
         required: true
       responses:
-        "204":
+        '204':
           description: Replaced the hero
-        "400":
+        '400':
           description: Invalid hero passed in (or no request body found)
-        "404":
+        '404':
           description: No hero found
     delete:
       tags:
@@ -231,7 +230,7 @@ paths:
           format: int64
           type: integer
       responses:
-        "204":
+        '204':
           description: Deletes a hero
     patch:
       tags:
@@ -258,10 +257,10 @@ paths:
                   name: Luke Skywalker
                   level: 10
                   picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
-                  powers: "Uses light sabre, The force"
+                  powers: Uses light sabre, The force
         required: true
       responses:
-        "200":
+        '200':
           description: Updated the hero
           content:
             application/json:
@@ -274,10 +273,10 @@ paths:
                     name: Luke Skywalker
                     level: 10
                     picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg
-                    powers: "Uses light sabre, The force"
-        "400":
+                    powers: Uses light sabre, The force
+        '400':
           description: Null hero passed in (or no request body found)
-        "404":
+        '404':
           description: No hero found
 components:
   schemas:
@@ -327,3 +326,4 @@ components:
           type: string
         powers:
           type: string
+x-aip-service-id: service:rest-heroes

@@ -1,14 +1,17 @@
 from dataclasses import dataclass
-from pathlib import Path
 
 import neo4j
 
 from app.canonical.model import ArchitectureModel
-from app.graph.reconciliation import KNOWN_RELATION_TYPES, plan_reconciliation, relation_key
 from app.graph.repository import open_session
 from app.graph.revision_fence import bump_revision
 from app.graph.schema import ensure_schema
-from app.ingestion.pipeline import merge_models, parse_sources
+from app.ingestion.orchestrator import DiscoveryRunResult, run_filesystem_discovery
+from app.sources.claim_reconciliation import plan_source_claim_reconciliation
+from app.sources.inventory import InventoryStatus
+from app.sources.model import FilesystemSourceConfig, IngestionDiagnostic, IngestionResult
+from app.sources.removal_authority import authorize_source_removal
+from app.sources.replay import ReplayCase, classify_replay_case
 from app.validation.canonical_validation import validate_canonical_model
 
 NODE_LABELS = {
@@ -20,29 +23,67 @@ NODE_LABELS = {
     "provenance": "Evidence",
 }
 
+# I1 spec §4/§7: this is the source-adapter seam's own frozen relation vocabulary, unchanged from
+# the PoC-era value in the now-deleted app.graph.reconciliation - relocated here since that module
+# is deleted (its node/relation-id set diffing is superseded by source-instance-scoped,
+# multi-owner-aware reconciliation below).
+KNOWN_RELATION_TYPES = {
+    "PROVIDES",
+    "CALLS",
+    "REQUEST_SCHEMA",
+    "RESPONSE_SCHEMA",
+    "SENDS",
+    "RECEIVES_FROM",
+    "CARRIES",
+    "CONFORMS_TO",
+    "DEAD_LETTERS_TO",
+}
+
+
+def relation_key(relation) -> str:
+    return f"{relation.type}:{relation.source_id}:{relation.target_id}"
+
+
+def _model_node_ids(model: ArchitectureModel) -> set[str]:
+    return {
+        *(s.id for s in model.services),
+        *(o.id for o in model.operations),
+        *(q.id for q in model.queues),
+        *(m.id for m in model.messages),
+        *(sc.id for sc in model.schemas),
+        *(p.id for p in model.provenance),
+    }
+
+
+def _model_relation_keys(model: ArchitectureModel) -> set[str]:
+    return {relation_key(r) for r in model.relations}
+
+
+# Ownership is now tracked per SOURCE INSTANCE, not per service-directory slug (ADR 0009): one
+# source may declare many services, and a service may be declared by more than one source. A full
+# reimport rewrites every `.owner_source_ids` value, so no data migration from the old `.sources`
+# property name is required (a fresh graph never has both).
 _MERGE_NODE_TEMPLATE = (
     "MERGE (n:{label} {{id: $id}}) "
     "SET n += $props "
-    "SET n.sources = CASE WHEN $service_id IN coalesce(n.sources, []) "
-    "THEN n.sources ELSE coalesce(n.sources, []) + $service_id END"
+    "SET n.owner_source_ids = CASE WHEN $source_instance_id IN coalesce(n.owner_source_ids, []) "
+    "THEN n.owner_source_ids ELSE coalesce(n.owner_source_ids, []) + $source_instance_id END"
 )
 
 _MERGE_RELATION_TEMPLATE = (
     "MATCH (a {{id: $source_id}}), (b {{id: $target_id}}) "
     "MERGE (a)-[r:{relation_type}]->(b) "
     "SET r.key = $key "
-    "SET r.sources = CASE WHEN $service_id IN coalesce(r.sources, []) "
-    "THEN r.sources ELSE coalesce(r.sources, []) + $service_id END "
+    "SET r.owner_source_ids = CASE WHEN $source_instance_id IN coalesce(r.owner_source_ids, []) "
+    "THEN r.owner_source_ids ELSE coalesce(r.owner_source_ids, []) + $source_instance_id END "
     "SET r.evidence_ids = reduce(acc = coalesce(r.evidence_ids, []), eid IN $evidence_ids | "
     "CASE WHEN eid IN acc THEN acc ELSE acc + eid END)"
 )
 
-_EXISTING_NODE_IDS_QUERY = (
-    "MATCH (n) WHERE $service_id IN coalesce(n.sources, []) RETURN n.id AS id"
+_OWNED_NODE_IDS_QUERY = (
+    "MATCH (n) WHERE $source_instance_id IN coalesce(n.owner_source_ids, []) RETURN n.id AS id"
 )
-_EXISTING_RELATION_KEYS_QUERY = (
-    "MATCH ()-[r]->() WHERE $service_id IN coalesce(r.sources, []) RETURN r.key AS key"
-)
+_OWNED_RELATION_KEYS_QUERY = "MATCH ()-[r]->() WHERE $source_instance_id IN coalesce(r.owner_source_ids, []) RETURN r.key AS key"
 
 _STRIP_STALE_EVIDENCE_QUERY = (
     "UNWIND $ids AS eid "
@@ -52,57 +93,129 @@ _STRIP_STALE_EVIDENCE_QUERY = (
 _EXPIRE_NODES_QUERY = (
     "UNWIND $ids AS nid "
     "MATCH (n {id: nid}) "
-    "SET n.sources = [x IN n.sources WHERE x <> $service_id] "
-    "WITH n WHERE size(n.sources) = 0 "
+    "SET n.owner_source_ids = [x IN n.owner_source_ids WHERE x <> $source_instance_id] "
+    "WITH n WHERE size(n.owner_source_ids) = 0 "
     "DETACH DELETE n"
 )
-# A stale relation key must not be deleted outright just because its declaring service stopped
-# declaring it (11H R1/spec Delete(F) iff Evidence(F) = empty) - it may still carry OBSERVED
-# evidence (from the H4 telemetry pipeline) or DECLARED evidence from another declaring service
-# (spec §5.3's shared-evidence case). So this strips $service_id from r.sources as before, but
-# also recomputes r.evidence_ids by removing only the ids that are (a) DECLARED and (b) actually
-# attributed to $service_id via that specific Evidence node's own sources array - never touching
-# another service's DECLARED evidence or any OBSERVED evidence - and only deletes the relation
-# once evidence_ids is truly empty. The list comprehension (not UNWIND+collect) is deliberate:
-# UNWIND over an empty evidence_ids list would produce zero rows and silently drop r from the rest
-# of the pipeline, which would incorrectly let an evidence-less stale relation survive forever.
+_REMOVE_NODE_OWNERSHIP_QUERY = (
+    "UNWIND $ids AS nid "
+    "MATCH (n {id: nid}) "
+    "SET n.owner_source_ids = [x IN n.owner_source_ids WHERE x <> $source_instance_id]"
+)
+# A stale relation key must not be deleted outright just because its declaring source stopped
+# declaring it - it may still carry OBSERVED evidence (the H4 telemetry pipeline) or DECLARED
+# evidence from another declaring source (shared-evidence case). This strips $source_instance_id
+# from r.owner_source_ids, recomputes r.evidence_ids by removing only ids that are (a) DECLARED and
+# (b) actually attributed to $source_instance_id via that Evidence node's own owner_source_ids -
+# never touching another source's DECLARED evidence or any OBSERVED evidence - and only deletes the
+# relation once evidence_ids is truly empty.
 _EXPIRE_RELATIONS_QUERY = (
     "UNWIND $keys AS rkey "
     "MATCH ()-[r {key: rkey}]->() "
-    "SET r.sources = [x IN r.sources WHERE x <> $service_id] "
+    "SET r.owner_source_ids = [x IN r.owner_source_ids WHERE x <> $source_instance_id] "
     "WITH r, [eid IN r.evidence_ids WHERE NOT EXISTS { "
     "MATCH (e:Evidence {id: eid}) "
-    "WHERE e.evidence_type = 'DECLARED' AND $service_id IN coalesce(e.sources, []) "
+    "WHERE e.evidence_type = 'DECLARED' AND $source_instance_id IN coalesce(e.owner_source_ids, []) "
     "} ] AS remaining_evidence_ids "
     "SET r.evidence_ids = remaining_evidence_ids "
     "WITH r WHERE size(r.evidence_ids) = 0 "
     "DELETE r"
 )
+_REMOVE_RELATION_OWNERSHIP_QUERY = (
+    "UNWIND $keys AS rkey "
+    "MATCH ()-[r {key: rkey}]->() "
+    "SET r.owner_source_ids = [x IN r.owner_source_ids WHERE x <> $source_instance_id]"
+)
+
+_READ_SOURCE_STATE_QUERY = (
+    "MATCH (s:SourceState {source_instance_id: $source_instance_id}) "
+    "RETURN s.semantic_input_digest AS semantic_input_digest, "
+    "s.scope_definition_digest AS scope_definition_digest"
+)
+_WRITE_SOURCE_STATE_QUERY = (
+    "MERGE (s:SourceState {source_instance_id: $source_instance_id}) "
+    "SET s.semantic_input_digest = $semantic_input_digest, "
+    "s.scope_definition_digest = $scope_definition_digest, "
+    "s.discovery_scope_id = $discovery_scope_id"
+)
+_READ_SOURCE_STATES_FOR_SCOPE_QUERY = (
+    "MATCH (s:SourceState {discovery_scope_id: $discovery_scope_id}) "
+    "RETURN s.source_instance_id AS source_instance_id, "
+    "s.scope_definition_digest AS scope_definition_digest"
+)
+_DELETE_SOURCE_STATE_QUERY = (
+    "MATCH (s:SourceState {source_instance_id: $source_instance_id}) DELETE s"
+)
 
 
 @dataclass(frozen=True)
-class ImportStats:
-    service_id: str
+class SourceImportStats:
+    source_instance_id: str
+    locator: str
+    result: IngestionResult
     nodes_written: int
     relations_written: int
     nodes_expired: int
     relations_expired: int
+    graph_revision_advanced: bool
 
 
-def _write_nodes(tx: neo4j.ManagedTransaction, service_id: str, model: ArchitectureModel) -> int:
+@dataclass(frozen=True)
+class ImportRunStats:
+    inventory_status: InventoryStatus
+    committed: bool
+    per_source: dict[str, SourceImportStats]
+    removed_source_instance_ids: tuple[str, ...]
+    diagnostics: tuple[IngestionDiagnostic, ...]
+
+
+def _write_nodes(
+    tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
+) -> int:
     count = 0
     for field_name, label in NODE_LABELS.items():
         query = _MERGE_NODE_TEMPLATE.format(label=label)
         for entity in getattr(model, field_name):
             tx.run(
-                query, id=entity.id, props=entity.model_dump(exclude={"id"}), service_id=service_id
+                query,
+                id=entity.id,
+                props=entity.model_dump(exclude={"id"}),
+                source_instance_id=source_instance_id,
             )
             count += 1
     return count
 
 
+_SNAPSHOT_NODE_PROPS_QUERY = (
+    "UNWIND $ids AS nid MATCH (n {id: nid}) RETURN n.id AS id, properties(n) AS props"
+)
+_SNAPSHOT_RELATION_PROPS_QUERY = (
+    "UNWIND $keys AS rkey MATCH ()-[r {key: rkey}]->() RETURN r.key AS key, properties(r) AS props"
+)
+
+
+def _snapshot_node_props(tx: neo4j.ManagedTransaction, node_ids: set[str]) -> dict[str, dict]:
+    if not node_ids:
+        return {}
+    return {
+        record["id"]: dict(record["props"])
+        for record in tx.run(_SNAPSHOT_NODE_PROPS_QUERY, ids=list(node_ids))
+    }
+
+
+def _snapshot_relation_props(
+    tx: neo4j.ManagedTransaction, relation_keys: set[str]
+) -> dict[str, dict]:
+    if not relation_keys:
+        return {}
+    return {
+        record["key"]: dict(record["props"])
+        for record in tx.run(_SNAPSHOT_RELATION_PROPS_QUERY, keys=list(relation_keys))
+    }
+
+
 def _write_relations(
-    tx: neo4j.ManagedTransaction, service_id: str, model: ArchitectureModel
+    tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
 ) -> int:
     for relation in model.relations:
         query = _MERGE_RELATION_TEMPLATE.format(relation_type=relation.type)
@@ -111,80 +224,369 @@ def _write_relations(
             source_id=relation.source_id,
             target_id=relation.target_id,
             key=relation_key(relation),
-            service_id=service_id,
+            source_instance_id=source_instance_id,
             evidence_ids=relation.evidence_ids,
         )
     return len(model.relations)
 
 
-def _pre_merge_tx(tx: neo4j.ManagedTransaction, service_id: str, model: ArchitectureModel) -> int:
-    """Pre-merge write path (spec §19 write-path list, item 1) - a separate transaction from
-    `_import_service_tx` below, so it bumps the revision fence independently rather than sharing
-    that function's bump."""
-    count = _write_nodes(tx, service_id, model)
-    bump_revision(tx)
-    return count
+def import_source(
+    session: neo4j.Session,
+    *,
+    source_instance_id: str,
+    locator: str,
+    model: ArchitectureModel,
+    result: IngestionResult = IngestionResult.ACCEPTED,
+    semantic_input_digest: str,
+    discovery_scope_id: str,
+    scope_definition_digest: str,
+) -> SourceImportStats:
+    """Transactionally MERGEs one source instance's facts and expires its stale ones, applying the
+    I1 spec §5.4 replay decision against this source's own previously committed state. Public
+    (unlike the transaction function it wraps) so callers - tests included - can drive one source's
+    import directly without needing a full filesystem discovery run.
+    """
+    return session.execute_write(
+        _import_source_tx,
+        source_instance_id=source_instance_id,
+        locator=locator,
+        model=model,
+        result=result,
+        semantic_input_digest=semantic_input_digest,
+        discovery_scope_id=discovery_scope_id,
+        scope_definition_digest=scope_definition_digest,
+    )
 
 
-def _import_service_tx(
-    tx: neo4j.ManagedTransaction, service_id: str, model: ArchitectureModel
-) -> ImportStats:
+def _import_source_tx(
+    tx: neo4j.ManagedTransaction,
+    *,
+    source_instance_id: str,
+    locator: str,
+    model: ArchitectureModel,
+    result: IngestionResult,
+    semantic_input_digest: str,
+    discovery_scope_id: str,
+    scope_definition_digest: str,
+    committed_nodes_before: dict[str, dict] | None = None,
+    committed_relations_before: dict[str, dict] | None = None,
+) -> SourceImportStats:
+    """`committed_nodes_before`/`committed_relations_before`, when given, must be a snapshot of
+    every node/relation this call could touch, taken before ANY write in this run (including
+    another source's pre-merge) - see `_import_all_sources_tx`, which is the only caller that needs
+    this: `import_all_sources` pre-merges every source's nodes before any source's own
+    `_import_source_tx` runs (so cross-source relation targets always resolve), which would
+    otherwise already have applied this exact source's own new property values by the time this
+    function queried "before" state itself, making a real property-only change invisible to the
+    no-op check below (a real bug found in PR review). `None` (the default, and always the case for
+    a direct standalone `import_source()` call, which has no pre-merge step to race against) means
+    "query the current graph state now" - correct there, since nothing else has written yet.
+    """
     for relation in model.relations:
         if relation.type not in KNOWN_RELATION_TYPES:
             raise ValueError(f"Unknown relation type: {relation.type}")
 
+    committed = tx.run(_READ_SOURCE_STATE_QUERY, source_instance_id=source_instance_id).single()
+    committed_semantic_input_digest = committed["semantic_input_digest"] if committed else None
+    committed_scope_definition_digest = committed["scope_definition_digest"] if committed else None
+
+    replay_decision = classify_replay_case(
+        load_or_reevaluation_successful=True,
+        committed_semantic_input_digest=committed_semantic_input_digest,
+        new_semantic_input_digest=semantic_input_digest,
+        committed_scope_definition_digest=committed_scope_definition_digest,
+        new_scope_definition_digest=scope_definition_digest,
+    )
+
     existing_node_ids = {
-        record["id"] for record in tx.run(_EXISTING_NODE_IDS_QUERY, service_id=service_id)
+        record["id"]
+        for record in tx.run(_OWNED_NODE_IDS_QUERY, source_instance_id=source_instance_id)
     }
     existing_relation_keys = {
-        record["key"] for record in tx.run(_EXISTING_RELATION_KEYS_QUERY, service_id=service_id)
+        record["key"]
+        for record in tx.run(_OWNED_RELATION_KEYS_QUERY, source_instance_id=source_instance_id)
     }
-    plan = plan_reconciliation(
-        existing_node_ids=existing_node_ids,
-        existing_relation_keys=existing_relation_keys,
-        new_model=model,
+
+    new_node_ids = _model_node_ids(model)
+    new_relation_keys = _model_relation_keys(model)
+    if replay_decision.case is ReplayCase.SCOPE_CHANGED_PRESERVE_PENDING_TOMBSTONE:
+        # I1 spec §5.4/§6: a scope change must not itself authorize expiring claims absent from the
+        # new scope - only an explicit inventory transition/tombstone may. Treat everything this
+        # source already owned as still "emitted" so nothing computes as dropped this run.
+        new_node_ids = new_node_ids | existing_node_ids
+        new_relation_keys = new_relation_keys | existing_relation_keys
+
+    node_plan = plan_source_claim_reconciliation(
+        source_instance_id=source_instance_id,
+        committed_claim_owners={node_id: {source_instance_id} for node_id in existing_node_ids},
+        newly_emitted_claim_keys=new_node_ids,
+    )
+    relation_plan = plan_source_claim_reconciliation(
+        source_instance_id=source_instance_id,
+        committed_claim_owners={key: {source_instance_id} for key in existing_relation_keys},
+        newly_emitted_claim_keys=new_relation_keys,
     )
 
-    nodes_written = _write_nodes(tx, service_id, model)
-    relations_written = _write_relations(tx, service_id, model)
+    # I1 §5.4/§14: a semantic no-op means the canonical snapshot doesn't change, not merely that
+    # semantic_input_digest changed - an adapter's normalized projection can hash raw input the
+    # canonical model never surfaces at all (e.g. OpenAPI's info.description, unmapped to any
+    # canonical field). Snapshotting each emitted node/relation's properties immediately before and
+    # after this source's own write isolates exactly what THIS write actually changed, independent
+    # of what varied in the raw input bytes. Combined with node_plan/relation_plan's claim-KEY-set
+    # diff (added/removed/expired), this is the complete no-op signal - the claim-set diff alone
+    # misses a property-only change on a retained claim, and semantic_input_digest alone
+    # over-triggers on a canonically-inert input change.
+    if committed_nodes_before is not None:
+        nodes_before = {k: v for k, v in committed_nodes_before.items() if k in new_node_ids}
+    else:
+        nodes_before = _snapshot_node_props(tx, new_node_ids)
+    if committed_relations_before is not None:
+        relations_before = {
+            k: v for k, v in committed_relations_before.items() if k in new_relation_keys
+        }
+    else:
+        relations_before = _snapshot_relation_props(tx, new_relation_keys)
 
-    if plan.stale_relation_keys:
-        tx.run(_EXPIRE_RELATIONS_QUERY, keys=list(plan.stale_relation_keys), service_id=service_id)
-    if plan.stale_node_ids:
-        tx.run(_STRIP_STALE_EVIDENCE_QUERY, ids=list(plan.stale_node_ids))
-        tx.run(_EXPIRE_NODES_QUERY, ids=list(plan.stale_node_ids), service_id=service_id)
+    nodes_written = _write_nodes(tx, source_instance_id, model)
+    relations_written = _write_relations(tx, source_instance_id, model)
 
-    bump_revision(tx)
+    if relation_plan.expired_claim_keys:
+        tx.run(
+            _EXPIRE_RELATIONS_QUERY,
+            keys=list(relation_plan.expired_claim_keys),
+            source_instance_id=source_instance_id,
+        )
+    if relation_plan.ownership_removed_claim_keys:
+        tx.run(
+            _REMOVE_RELATION_OWNERSHIP_QUERY,
+            keys=list(relation_plan.ownership_removed_claim_keys),
+            source_instance_id=source_instance_id,
+        )
+    if node_plan.expired_claim_keys:
+        tx.run(_STRIP_STALE_EVIDENCE_QUERY, ids=list(node_plan.expired_claim_keys))
+        tx.run(
+            _EXPIRE_NODES_QUERY,
+            ids=list(node_plan.expired_claim_keys),
+            source_instance_id=source_instance_id,
+        )
+    if node_plan.ownership_removed_claim_keys:
+        tx.run(
+            _REMOVE_NODE_OWNERSHIP_QUERY,
+            ids=list(node_plan.ownership_removed_claim_keys),
+            source_instance_id=source_instance_id,
+        )
 
-    return ImportStats(
-        service_id=service_id,
+    tx.run(
+        _WRITE_SOURCE_STATE_QUERY,
+        source_instance_id=source_instance_id,
+        semantic_input_digest=semantic_input_digest,
+        scope_definition_digest=scope_definition_digest,
+        discovery_scope_id=discovery_scope_id,
+    )
+
+    nodes_after = _snapshot_node_props(tx, new_node_ids)
+    relations_after = _snapshot_relation_props(tx, new_relation_keys)
+    content_changed = nodes_before != nodes_after or relations_before != relations_after
+
+    # graph_revision_advance_possible=False (FAILED_LOAD_PRESERVE_PRIOR, or REPLAY_NO_OP whose
+    # byte-identical semantic_input_digest already proves nothing could have changed) is a
+    # necessary condition: skip it and never advance, without paying for the snapshot diff at all.
+    # Otherwise, is_no_op is the real decision - both the claim-KEY-set diff (an add/remove/
+    # expire/ownership change, e.g. node_plan.is_semantic_no_op is False) AND the before/after
+    # content diff above (a property-only change on a claim this source retains) count as a real
+    # change; neither alone is sufficient (the claim-set diff alone misses property-only edits, and
+    # semantic_input_digest alone over-triggers on an input change the canonical model never
+    # surfaces, e.g. OpenAPI's info.description).
+    is_no_op = (
+        node_plan.is_semantic_no_op and relation_plan.is_semantic_no_op and not content_changed
+    )
+    graph_revision_advanced = replay_decision.graph_revision_advance_possible and not is_no_op
+    if graph_revision_advanced:
+        bump_revision(tx)
+
+    return SourceImportStats(
+        source_instance_id=source_instance_id,
+        locator=locator,
+        result=result,
         nodes_written=nodes_written,
         relations_written=relations_written,
-        nodes_expired=len(plan.stale_node_ids),
-        relations_expired=len(plan.stale_relation_keys),
+        nodes_expired=len(node_plan.expired_claim_keys),
+        relations_expired=len(relation_plan.expired_claim_keys),
+        graph_revision_advanced=graph_revision_advanced,
     )
 
 
-def import_service(
-    session: neo4j.Session, service_id: str, model: ArchitectureModel
-) -> ImportStats:
-    """Transactionally MERGEs one service's facts and expires its stale ones (spec §12)."""
-    return session.execute_write(_import_service_tx, service_id, model)
+def _remove_source_tx(
+    tx: neo4j.ManagedTransaction, *, source_instance_id: str
+) -> SourceImportStats:
+    existing_node_ids = {
+        record["id"]
+        for record in tx.run(_OWNED_NODE_IDS_QUERY, source_instance_id=source_instance_id)
+    }
+    existing_relation_keys = {
+        record["key"]
+        for record in tx.run(_OWNED_RELATION_KEYS_QUERY, source_instance_id=source_instance_id)
+    }
+    node_plan = plan_source_claim_reconciliation(
+        source_instance_id=source_instance_id,
+        committed_claim_owners={node_id: {source_instance_id} for node_id in existing_node_ids},
+        newly_emitted_claim_keys=frozenset(),
+    )
+    relation_plan = plan_source_claim_reconciliation(
+        source_instance_id=source_instance_id,
+        committed_claim_owners={key: {source_instance_id} for key in existing_relation_keys},
+        newly_emitted_claim_keys=frozenset(),
+    )
+
+    if relation_plan.expired_claim_keys:
+        tx.run(
+            _EXPIRE_RELATIONS_QUERY,
+            keys=list(relation_plan.expired_claim_keys),
+            source_instance_id=source_instance_id,
+        )
+    if relation_plan.ownership_removed_claim_keys:
+        tx.run(
+            _REMOVE_RELATION_OWNERSHIP_QUERY,
+            keys=list(relation_plan.ownership_removed_claim_keys),
+            source_instance_id=source_instance_id,
+        )
+    if node_plan.expired_claim_keys:
+        tx.run(_STRIP_STALE_EVIDENCE_QUERY, ids=list(node_plan.expired_claim_keys))
+        tx.run(
+            _EXPIRE_NODES_QUERY,
+            ids=list(node_plan.expired_claim_keys),
+            source_instance_id=source_instance_id,
+        )
+    if node_plan.ownership_removed_claim_keys:
+        tx.run(
+            _REMOVE_NODE_OWNERSHIP_QUERY,
+            ids=list(node_plan.ownership_removed_claim_keys),
+            source_instance_id=source_instance_id,
+        )
+    tx.run(_DELETE_SOURCE_STATE_QUERY, source_instance_id=source_instance_id)
+    bump_revision(tx)
+
+    return SourceImportStats(
+        source_instance_id=source_instance_id,
+        locator="",
+        result=IngestionResult.ACCEPTED,
+        nodes_written=0,
+        relations_written=0,
+        nodes_expired=len(node_plan.expired_claim_keys),
+        relations_expired=len(relation_plan.expired_claim_keys),
+        graph_revision_advanced=True,
+    )
+
+
+def _import_all_sources_tx(
+    tx: neo4j.ManagedTransaction, *, run_result: DiscoveryRunResult
+) -> tuple[dict[str, SourceImportStats], tuple[str, ...]]:
+    """Pre-merge, per-source reconciliation, and removal for one whole discovery run, all against
+    the same transaction - a run either commits in full or (on any error, including a driver/
+    infrastructure failure partway through) rolls back in full. Previously these were separate
+    `execute_write` calls per source: a failure partway through the loop left earlier sources'
+    writes committed even though the run as a whole never reached `ImportRunStats(committed=True)`
+    - contradicting this module's own "nothing is written unless the whole run is COMPLETE"
+    contract (I1 spec §6), a real bug found in PR review.
+    """
+    # Snapshot every source's own emitted node/relation properties BEFORE the pre-merge pass below
+    # touches anything - the pre-merge writes every source's nodes first (see its own comment), so
+    # by the time a given source's own `_import_source_tx` ran, its own PRE-MERGE write had already
+    # applied its new property values, making its no-op check's "before" snapshot indistinguishable
+    # from "after" even for a genuine property-only change (a real bug found in PR review: this
+    # made a title-only reimport through the real `import_all_sources` path silently skip the
+    # revision fence). Captured once, for the union of every source's own node ids/relation keys.
+    all_node_ids: set[str] = set()
+    all_relation_keys: set[str] = set()
+    for source_outcome in run_result.source_outcomes.values():
+        all_node_ids |= _model_node_ids(source_outcome.outcome.model)
+        all_relation_keys |= _model_relation_keys(source_outcome.outcome.model)
+    committed_nodes_before = _snapshot_node_props(tx, all_node_ids)
+    committed_relations_before = _snapshot_relation_props(tx, all_relation_keys)
+
+    # Pre-merge every source's nodes first so cross-source relation targets always resolve
+    # regardless of processing order - unchanged in spirit from the PoC-era pre-merge pass, now
+    # scoped per source instance instead of per service. This pass does NOT bump the revision fence
+    # itself: MERGE here is idempotent, and the real "did anything semantically change" decision
+    # (and the resulting conditional bump) happens once, per source, in `_import_source_tx` below.
+    for source_instance_id, source_outcome in run_result.source_outcomes.items():
+        _write_nodes(tx, source_instance_id, source_outcome.outcome.model)
+
+    per_source: dict[str, SourceImportStats] = {}
+    for source_instance_id, source_outcome in run_result.source_outcomes.items():
+        per_source[source_instance_id] = _import_source_tx(
+            tx,
+            source_instance_id=source_instance_id,
+            locator=source_outcome.descriptor_locator,
+            model=source_outcome.outcome.model,
+            result=source_outcome.outcome.result,
+            semantic_input_digest=source_outcome.outcome.semantic_input_digest,
+            discovery_scope_id=run_result.discovery_scope_id,
+            scope_definition_digest=run_result.scope_definition_digest,
+            committed_nodes_before=committed_nodes_before,
+            committed_relations_before=committed_relations_before,
+        )
+
+    removed_source_instance_ids: list[str] = []
+    if run_result.inventory_status is InventoryStatus.COMPLETE:
+        known_states = list(
+            tx.run(
+                _READ_SOURCE_STATES_FOR_SCOPE_QUERY,
+                discovery_scope_id=run_result.discovery_scope_id,
+            )
+        )
+        for record in known_states:
+            source_instance_id = record["source_instance_id"]
+            if source_instance_id in run_result.source_outcomes:
+                continue
+            decision = authorize_source_removal(
+                tombstone_validation=None,
+                enumeration_status=run_result.inventory_status,
+                enumeration_discovery_scope_id=run_result.discovery_scope_id,
+                enumeration_scope_definition_digest=run_result.scope_definition_digest,
+                committed_discovery_scope_id=run_result.discovery_scope_id,
+                committed_scope_definition_digest=record["scope_definition_digest"],
+                source_absent_from_enumeration=True,
+            )
+            if decision.authorized:
+                _remove_source_tx(tx, source_instance_id=source_instance_id)
+                removed_source_instance_ids.append(source_instance_id)
+
+    return per_source, tuple(removed_source_instance_ids)
 
 
 def import_all_sources(
-    driver: neo4j.Driver, *, database: str, root: Path
-) -> dict[str, ImportStats]:
-    """Runs the pipeline then writes every service to Neo4j, pre-merging all nodes first so cross-service relations always find their target regardless of processing order (spec §5.2/§12.2)."""
-    by_service = parse_sources(root)
-    validate_canonical_model(merge_models(list(by_service.values())))
+    driver: neo4j.Driver, *, database: str, source_config: FilesystemSourceConfig
+) -> ImportRunStats:
+    """Runs the I1 orchestrator for one configured filesystem source, then atomically commits the
+    result: nothing is written to Neo4j unless the whole discovery run is COMPLETE (I1 spec §6 - a
+    PARTIAL/FAILED run must preserve prior state, never a partial write), and pre-merge/
+    reconciliation/removal for every source in the run share one transaction (see
+    `_import_all_sources_tx`), so a failure partway through the run leaves nothing committed.
+    """
+    run_result = run_filesystem_discovery(source_config)
+
+    if not run_result.commit_eligible:
+        return ImportRunStats(
+            inventory_status=run_result.inventory_status,
+            committed=False,
+            per_source={},
+            removed_source_instance_ids=(),
+            diagnostics=run_result.diagnostics,
+        )
+
+    validate_canonical_model(run_result.merged_model)
 
     with open_session(driver, database=database) as session:
         ensure_schema(session)
-        for service_id, model in by_service.items():
-            session.execute_write(_pre_merge_tx, service_id, model)
+        per_source, removed_source_instance_ids = session.execute_write(
+            _import_all_sources_tx, run_result=run_result
+        )
 
-        return {
-            service_id: import_service(session, service_id, model)
-            for service_id, model in by_service.items()
-        }
+        return ImportRunStats(
+            inventory_status=run_result.inventory_status,
+            committed=True,
+            per_source=per_source,
+            removed_source_instance_ids=removed_source_instance_ids,
+            diagnostics=run_result.diagnostics,
+        )

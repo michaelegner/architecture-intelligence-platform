@@ -9,7 +9,9 @@ CONFIG_YAML = """
 architecture_intelligence:
   sources:
     directories:
-      - examples
+      - id: aip-bundled-examples-v0.5
+        root: examples
+        stable_target_identity: urn:aip:logical-root:bundled-examples
   graph:
     uri: bolt://localhost:7687
     database: neo4j
@@ -30,13 +32,47 @@ def test_load_config_parses_spec_shape(tmp_path):
 
     config = load_config(config_path)
 
-    assert config.sources.directories == [Path("examples")]
+    assert len(config.sources.directories) == 1
+    source = config.sources.directories[0]
+    assert source.id == "aip-bundled-examples-v0.5"
+    assert source.root == Path("examples")
+    assert source.resolved_scope_id == "aip-bundled-examples-v0.5"
+    assert source.resolved_stable_target_identity == "urn:aip:logical-root:bundled-examples"
     assert config.graph.uri == "bolt://localhost:7687"
     assert config.graph.database == "neo4j"
     assert config.graph.max_traversal_depth == 5
     assert config.import_.openapi is True
     assert config.import_.asyncapi is False
     assert config.llm.max_result_rows == 100
+
+
+def test_sources_directories_rejects_bare_string_entry(tmp_path):
+    # A bare directory path can no longer serve as a source's stable identity (I1 spec §6) - this
+    # must fail clearly rather than silently deriving an id from the path.
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "architecture_intelligence:\n  sources:\n    directories:\n      - examples\n"
+    )
+
+    with pytest.raises(ValidationError, match="stable identity"):
+        load_config(config_path)
+
+
+def test_sources_directories_defaults_scope_id_and_target_identity_from_id(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "architecture_intelligence:\n"
+        "  sources:\n"
+        "    directories:\n"
+        "      - id: my-repos\n"
+        "        root: ./repositories\n"
+    )
+
+    config = load_config(config_path)
+
+    source = config.sources.directories[0]
+    assert source.resolved_scope_id == "my-repos"
+    assert source.resolved_stable_target_identity == "urn:aip:logical-root:my-repos"
 
 
 def test_load_config_defaults_on_empty_file(tmp_path):

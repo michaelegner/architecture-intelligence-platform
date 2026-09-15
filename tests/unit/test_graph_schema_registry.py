@@ -1,4 +1,4 @@
-from app.graph.reconciliation import KNOWN_RELATION_TYPES
+from app.graph.importer import KNOWN_RELATION_TYPES
 from app.graph_schema.registry import RELATIONS
 
 
