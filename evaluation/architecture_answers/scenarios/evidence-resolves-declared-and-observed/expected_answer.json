@@ -75,8 +75,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:5c8e28526540a1954e917312263d929de3871dd138836b1b61253dfa4bda8caa",
-    "snapshot_id": "aip:snapshot:v1:5c8e28526540a1954e917312263d929de3871dd138836b1b61253dfa4bda8caa"
+    "model_revision": "sha256:ddd98446423b8346c72d17abb09f12c85af28603a7665dc2947924fee46f82c0",
+    "snapshot_id": "aip:snapshot:v1:ddd98446423b8346c72d17abb09f12c85af28603a7665dc2947924fee46f82c0"
   },
   "tool": "get_evidence"
 }
