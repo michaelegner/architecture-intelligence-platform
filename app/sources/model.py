@@ -84,6 +84,11 @@ class DiagnosticCode(StrEnum):
     # Not named by the spec text; introduced here for §6's tombstone-staleness rejection reasons.
     TOMBSTONE_STALE = "TOMBSTONE_STALE"
     TOMBSTONE_SCOPE_MISMATCH = "TOMBSTONE_SCOPE_MISMATCH"
+    # Not named by the spec text; introduced here for filesystem-discovery-level failures (I1 §6's
+    # "missing roots, incomplete checkouts ... MUST preserve the prior inventory" list) and
+    # malformed source documents encountered before an adapter can even attempt to map them.
+    SOURCE_ROOT_UNAVAILABLE = "SOURCE_ROOT_UNAVAILABLE"
+    DOCUMENT_PARSE_INVALID = "DOCUMENT_PARSE_INVALID"
 
 
 class IngestionDiagnostic(BaseModel):
