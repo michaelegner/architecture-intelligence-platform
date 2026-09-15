@@ -186,6 +186,34 @@ def _write_nodes(
     return count
 
 
+_SNAPSHOT_NODE_PROPS_QUERY = (
+    "UNWIND $ids AS nid MATCH (n {id: nid}) RETURN n.id AS id, properties(n) AS props"
+)
+_SNAPSHOT_RELATION_PROPS_QUERY = (
+    "UNWIND $keys AS rkey MATCH ()-[r {key: rkey}]->() RETURN r.key AS key, properties(r) AS props"
+)
+
+
+def _snapshot_node_props(tx: neo4j.ManagedTransaction, node_ids: set[str]) -> dict[str, dict]:
+    if not node_ids:
+        return {}
+    return {
+        record["id"]: dict(record["props"])
+        for record in tx.run(_SNAPSHOT_NODE_PROPS_QUERY, ids=list(node_ids))
+    }
+
+
+def _snapshot_relation_props(
+    tx: neo4j.ManagedTransaction, relation_keys: set[str]
+) -> dict[str, dict]:
+    if not relation_keys:
+        return {}
+    return {
+        record["key"]: dict(record["props"])
+        for record in tx.run(_SNAPSHOT_RELATION_PROPS_QUERY, keys=list(relation_keys))
+    }
+
+
 def _write_relations(
     tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
 ) -> int:
@@ -286,6 +314,18 @@ def _import_source_tx(
         newly_emitted_claim_keys=new_relation_keys,
     )
 
+    # I1 §5.4/§14: a semantic no-op means the canonical snapshot doesn't change, not merely that
+    # semantic_input_digest changed - an adapter's normalized projection can hash raw input the
+    # canonical model never surfaces at all (e.g. OpenAPI's info.description, unmapped to any
+    # canonical field). Snapshotting each emitted node/relation's properties immediately before and
+    # after this source's own write isolates exactly what THIS write actually changed, independent
+    # of what varied in the raw input bytes. Combined with node_plan/relation_plan's claim-KEY-set
+    # diff (added/removed/expired), this is the complete no-op signal - the claim-set diff alone
+    # misses a property-only change on a retained claim, and semantic_input_digest alone
+    # over-triggers on a canonically-inert input change.
+    nodes_before = _snapshot_node_props(tx, new_node_ids)
+    relations_before = _snapshot_relation_props(tx, new_relation_keys)
+
     nodes_written = _write_nodes(tx, source_instance_id, model)
     relations_written = _write_relations(tx, source_instance_id, model)
 
@@ -323,15 +363,23 @@ def _import_source_tx(
         discovery_scope_id=discovery_scope_id,
     )
 
-    # `graph_revision_advance_possible` (False only for FAILED_LOAD_PRESERVE_PRIOR and
-    # REPLAY_NO_OP - the latter meaning semantic_input_digest is byte-identical to what's already
-    # committed) is the authoritative no-op signal, not node_plan/relation_plan.is_semantic_no_op:
-    # those only see claim-KEY-set membership (added/removed), never a property-only change (e.g.
-    # an OpenAPI info.title edit) on a claim this source already owned and still owns. `SET n +=
-    # $props`/`SET r.evidence_ids = ...` above write such changes unconditionally regardless of the
-    # claim-set diff, so gating the revision bump on is_semantic_no_op as well let a real graph
-    # mutation land without ever advancing the fence a stable read relies on to detect it.
-    graph_revision_advanced = replay_decision.graph_revision_advance_possible
+    nodes_after = _snapshot_node_props(tx, new_node_ids)
+    relations_after = _snapshot_relation_props(tx, new_relation_keys)
+    content_changed = nodes_before != nodes_after or relations_before != relations_after
+
+    # graph_revision_advance_possible=False (FAILED_LOAD_PRESERVE_PRIOR, or REPLAY_NO_OP whose
+    # byte-identical semantic_input_digest already proves nothing could have changed) is a
+    # necessary condition: skip it and never advance, without paying for the snapshot diff at all.
+    # Otherwise, is_no_op is the real decision - both the claim-KEY-set diff (an add/remove/
+    # expire/ownership change, e.g. node_plan.is_semantic_no_op is False) AND the before/after
+    # content diff above (a property-only change on a claim this source retains) count as a real
+    # change; neither alone is sufficient (the claim-set diff alone misses property-only edits, and
+    # semantic_input_digest alone over-triggers on an input change the canonical model never
+    # surfaces, e.g. OpenAPI's info.description).
+    is_no_op = (
+        node_plan.is_semantic_no_op and relation_plan.is_semantic_no_op and not content_changed
+    )
+    graph_revision_advanced = replay_decision.graph_revision_advance_possible and not is_no_op
     if graph_revision_advanced:
         bump_revision(tx)
 

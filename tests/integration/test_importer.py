@@ -299,9 +299,8 @@ def test_reimport_with_only_a_property_change_still_advances_revision(driver):
     reimport that changes a property on an already-owned claim (e.g. a Service's declared name,
     here standing in for any OpenAPI info.title-style edit) adds/removes no claim key - but
     _write_nodes' `SET n += $props` still writes the new value unconditionally. The graph-revision
-    fence must advance whenever semantic_input_digest changes (i.e. whenever the source's
-    normalized input actually changed), not only when a claim was added or removed, or a stable
-    read could observe an unfenced property change."""
+    fence must advance whenever the canonical content this source emits actually changes, not only
+    when a claim was added or removed, or a stable read could observe an unfenced property change."""
     original = ArchitectureModel(services=[Service(id="service:x", name="X")])
     renamed = ArchitectureModel(services=[Service(id="service:x", name="X Renamed")])
 
@@ -315,6 +314,24 @@ def test_reimport_with_only_a_property_change_still_advances_revision(driver):
 
     assert stats.graph_revision_advanced is True
     assert name == "X Renamed"
+
+
+def test_reimport_with_only_a_non_canonical_digest_change_does_not_advance_revision(driver):
+    """A real bug found in PR review, on top of the previous fix: semantic_input_digest hashes an
+    adapter's whole normalized input projection, which can include raw content the canonical model
+    never surfaces at all (e.g. OpenAPI's info.description, unlike info.title unmapped to any
+    canonical field) - so gating the revision bump on "digest changed" alone over-triggers on a
+    canonically-inert input edit (I1 spec §5.4/§14's semantic-no-op requirement). Same model, only
+    the digest differs (standing in for a description-only source edit): the graph-revision fence
+    must NOT advance, since nothing this source actually emits into the canonical model changed."""
+    model = ArchitectureModel(services=[Service(id="service:x", name="X")])
+
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, "src:x", model)
+        stats = _import(session, "src:x", model, digest=DIGEST_2)
+
+    assert stats.graph_revision_advanced is False
 
 
 def test_reimport_expires_stale_facts_no_longer_declared(driver):
