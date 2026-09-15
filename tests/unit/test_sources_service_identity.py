@@ -152,6 +152,64 @@ def test_resolve_service_identity_non_matching_pointer_prefix_is_ignored():
     assert result.service_id == "service:order-service"
 
 
+def test_resolve_service_identity_ignores_malformed_mapping_from_different_source():
+    # A malformed mapping that would never apply to this construct (wrong source_instance_id) must
+    # not poison an otherwise-resolvable construct.
+    unrelated_malformed = PointerBinding(
+        source_instance_id="urn:aip:source:filesystem:" + "b" * 64,
+        pointer_prefix="",
+        service_id="not-a-service-id",
+        path=ServiceIdentityPath.MANIFEST_BINDING,
+    )
+    result = resolve_service_identity(
+        source_instance_id=SOURCE,
+        construct_pointer=POINTER,
+        extension_value="service:order-service",
+        configured_mappings=[],
+        manifest_bindings=[unrelated_malformed],
+    )
+    assert result.outcome is ServiceIdentityOutcome.RESOLVED
+    assert result.service_id == "service:order-service"
+
+
+def test_resolve_service_identity_ignores_malformed_mapping_at_non_matching_pointer():
+    # A malformed mapping at a pointer prefix that doesn't cover this construct must likewise not
+    # poison resolution, even though it's for the same source.
+    unrelated_malformed = PointerBinding(
+        source_instance_id=SOURCE,
+        pointer_prefix="/paths/~1invoices",
+        service_id="not-a-service-id",
+        path=ServiceIdentityPath.MANIFEST_BINDING,
+    )
+    result = resolve_service_identity(
+        source_instance_id=SOURCE,
+        construct_pointer=POINTER,
+        extension_value="service:order-service",
+        configured_mappings=[],
+        manifest_bindings=[unrelated_malformed],
+    )
+    assert result.outcome is ServiceIdentityOutcome.RESOLVED
+    assert result.service_id == "service:order-service"
+
+
+def test_resolve_service_identity_rejects_applicable_malformed_mapping():
+    # An applicable malformed mapping (matching source and pointer) must still be rejected.
+    applicable_malformed = PointerBinding(
+        source_instance_id=SOURCE,
+        pointer_prefix="",
+        service_id="not-a-service-id",
+        path=ServiceIdentityPath.MANIFEST_BINDING,
+    )
+    result = resolve_service_identity(
+        source_instance_id=SOURCE,
+        construct_pointer=POINTER,
+        extension_value=None,
+        configured_mappings=[],
+        manifest_bindings=[applicable_malformed],
+    )
+    assert result.outcome is ServiceIdentityOutcome.REJECTED_INVALID
+
+
 def test_resolve_service_identity_binding_from_different_source_is_ignored():
     other_source_binding = PointerBinding(
         source_instance_id="urn:aip:source:filesystem:" + "b" * 64,

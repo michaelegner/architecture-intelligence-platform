@@ -1,6 +1,7 @@
 import pytest
 
 from app.sources.owner_ids import (
+    MISSING,
     InvalidXVersionError,
     inline_payload_schema_id,
     message_owned_id,
@@ -10,8 +11,27 @@ from app.sources.owner_ids import (
 )
 
 
-def test_normalize_x_version_none_is_empty():
-    assert normalize_x_version(None) == ""
+def test_normalize_x_version_missing_sentinel_is_empty():
+    assert normalize_x_version(MISSING) == ""
+
+
+def test_normalize_x_version_missing_key_via_dict_get_is_empty():
+    document = {}
+    assert normalize_x_version(document.get("x-version", MISSING)) == ""
+
+
+def test_normalize_x_version_explicit_none_is_rejected():
+    # x-version: null in a source document is an explicit non-string value, distinct from the key
+    # being absent - dict.get would return None for both, so callers must pass MISSING for "absent"
+    # and let a genuine None reach this function to be rejected here.
+    with pytest.raises(InvalidXVersionError):
+        normalize_x_version(None)
+
+
+def test_normalize_x_version_explicit_none_via_dict_get_is_rejected():
+    document = {"x-version": None}
+    with pytest.raises(InvalidXVersionError):
+        normalize_x_version(document.get("x-version", MISSING))
 
 
 def test_normalize_x_version_empty_string_is_empty():

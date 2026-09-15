@@ -24,12 +24,16 @@ def length_delimited(*parts: bytes) -> bytes:
 
 
 def length_delimited_group(parts: Sequence[bytes]) -> bytes:
-    """Nests a variable-length sequence of parts as one opaque, self-delimited blob: encoded as
-    `length_delimited(*parts)`, then wrapped so the *number* of parts is also fixed at this level.
-    Used wherever several such groups are concatenated side by side (e.g. several distinct field
-    lists in one identity hash) - a flat `length_delimited(*group_a, *group_b)` would lose the
-    boundary between groups, letting an item shift from one group to another produce an identical
-    encoding for a differently-partitioned input.
+    """Nests a variable-length sequence of parts as one opaque, self-delimited blob: `length_delimited
+    (*parts)`, the same encoding as `length_delimited` itself. The distinct name marks intent at the
+    call site - the result is meant to be passed as a single part to an *outer* `length_delimited(...)`
+    call, not concatenated loose. Used wherever several such groups sit side by side (e.g. several
+    distinct field lists in one identity hash): a flat `length_delimited(*group_a, *group_b)` would
+    lose the boundary between the groups, letting an item shift from one group to another produce an
+    identical encoding for a differently-partitioned input. Nesting fixes this without any extra
+    part-count field - each group becomes one length-prefixed part at the outer level, so the outer
+    call's own length prefix bounds exactly where that group's bytes end, regardless of how many
+    parts or how much internal structure it contains.
     """
     return length_delimited(*parts)
 

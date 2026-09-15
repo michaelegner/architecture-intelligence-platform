@@ -98,6 +98,13 @@ def resolve_service_identity(
         )
 
     for candidate in (*configured_mappings, *manifest_bindings):
+        if candidate.source_instance_id != source_instance_id:
+            continue
+        if not pointer_prefix_matches(prefix=candidate.pointer_prefix, candidate=construct_pointer):
+            continue
+        # Only a candidate that actually applies to this construct can poison its resolution - an
+        # unrelated mapping for a different source or a non-matching pointer must not reject a
+        # construct it was never going to apply to.
         if not is_valid_service_id(candidate.service_id):
             return ServiceIdentityResolution(
                 outcome=ServiceIdentityOutcome.REJECTED_INVALID,
@@ -111,10 +118,7 @@ def resolve_service_identity(
                     ),
                 ),
             )
-        if candidate.source_instance_id == source_instance_id and pointer_prefix_matches(
-            prefix=candidate.pointer_prefix, candidate=construct_pointer
-        ):
-            applicable.append(candidate)
+        applicable.append(candidate)
 
     distinct_ids = {candidate.service_id for candidate in applicable}
 

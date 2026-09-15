@@ -24,12 +24,29 @@ class InvalidXVersionError(ValueError):
     """I1 spec §9.1: "another type is REJECTED_INVALID" for a non-string, non-absent `x-version`."""
 
 
+class _Missing:
+    def __repr__(self) -> str:
+        return "MISSING"
+
+
+MISSING = _Missing()
+"""Sentinel for "the `x-version` key is not present at all", distinct from an explicit `null`/`None`
+value. A caller reading a parsed YAML/JSON document must pass this instead of relying on `dict.get`'s
+default `None`, since `document.get("x-version")` returns `None` for both an absent key and a key
+explicitly set to `null` - those two cases are not the same under I1 §9.1 (missing participates as
+the empty placeholder; an explicit `null` is a non-string value and is `REJECTED_INVALID`). Callers
+should use `document.get("x-version", MISSING)`.
+"""
+
+
 def normalize_x_version(value: object) -> str:
     """I1 spec §9.1: "x-version participates in the owner key only when it is a non-empty string;
-    another type is REJECTED_INVALID." `None`, a missing value, and an empty string all normalize
-    identically to the empty placeholder; only a genuinely non-empty string participates distinctly.
+    another type is REJECTED_INVALID." A missing key (the `MISSING` sentinel) and an empty string
+    both normalize to the empty placeholder; a genuinely non-empty string participates distinctly.
+    An explicit `None` (i.e. `x-version: null` in the source document) is a non-string *value*, not
+    an absent key, and is therefore rejected exactly like any other non-string type.
     """
-    if value is None:
+    if value is MISSING:
         return ""
     if isinstance(value, str):
         return value
