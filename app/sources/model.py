@@ -50,7 +50,8 @@ class SourceDescriptor(BaseModel):
     """I1 spec §4's `SourceDescriptor` fields. Field names are this PR's own choice - the spec gives
     only a prose bullet list, not a schema - and are called out for review in the PR description.
     `source_inventory_snapshot_ref` is a placeholder `str | None` until a later increment defines the
-    real `SourceInventorySnapshot`.
+    real `SourceInventorySnapshot`. `mapping_context_digest` was added by the I1 spec's Draft 0.2
+    revision (§5.3) - see `app.sources.identity.mapping_context_digest`.
     """
 
     source_instance_id: str
@@ -63,6 +64,7 @@ class SourceDescriptor(BaseModel):
     content_sha256: str
     dependency_closure_digest: str | None = None
     semantic_input_digest: str
+    mapping_context_digest: str
     declared_service_id: str | None = None
     document_dialect_version: str | None = None
     adapter_identity: str

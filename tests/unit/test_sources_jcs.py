@@ -1,6 +1,11 @@
 import hashlib
 
-from app.sources.jcs import canonical_json_bytes, canonical_sha256_hex, sort_by_canonical_hash
+from app.sources.jcs import (
+    canonical_json_bytes,
+    canonical_sha256_hex,
+    sort_by_canonical_hash,
+    sort_entries_by_canonical_bytes,
+)
 
 
 def test_canonical_json_bytes_reorders_object_keys():
@@ -43,3 +48,19 @@ def test_sort_by_canonical_hash_is_idempotent():
     once = sort_by_canonical_hash(branches)
     twice = sort_by_canonical_hash(once)
     assert once == twice
+
+
+def test_sort_entries_by_canonical_bytes_is_order_independent_of_input_order():
+    entries = [{"id": "c"}, {"id": "a"}, {"id": "b"}]
+    forward = sort_entries_by_canonical_bytes(entries)
+    backward = sort_entries_by_canonical_bytes(list(reversed(entries)))
+    assert forward == backward
+
+
+def test_sort_entries_by_canonical_bytes_sorts_by_raw_bytes_not_hash():
+    # A byte-lexicographic sort is not the same ordering as a hash-based sort - use values whose
+    # canonical JSON byte order is trivially known ("a" < "b" < "c" as JSON strings) to confirm this
+    # function sorts by the bytes themselves, not by delegating to sort_by_canonical_hash.
+    entries = [{"id": "c"}, {"id": "a"}, {"id": "b"}]
+    sorted_entries = sort_entries_by_canonical_bytes(entries)
+    assert sorted_entries == [{"id": "a"}, {"id": "b"}, {"id": "c"}]

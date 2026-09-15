@@ -6,6 +6,7 @@ from app.sources.identity import (
     content_sha256,
     dependency_closure_digest,
     discovery_scope_id,
+    mapping_context_digest,
     normalize_relative_posix_path,
     scope_definition_digest,
     semantic_input_digest,
@@ -13,6 +14,7 @@ from app.sources.identity import (
     source_instance_id,
     source_revision_id,
 )
+from app.sources.jcs import canonical_sha256_hex
 from app.sources.model import SourceKind
 
 
@@ -42,8 +44,53 @@ def test_content_sha256_matches_stdlib():
     assert content_sha256(b"hello") == hashlib.sha256(b"hello").hexdigest()
 
 
-def test_semantic_input_digest_matches_stdlib():
-    assert semantic_input_digest(b"projection") == hashlib.sha256(b"projection").hexdigest()
+def test_mapping_context_digest_matches_canonical_sha256():
+    context = {"serviceBindings": [], "sharedSchemaMappings": [], "queueMappings": []}
+    assert mapping_context_digest(context) == canonical_sha256_hex(context)
+
+
+def test_mapping_context_digest_is_stable_across_equivalent_key_order():
+    assert mapping_context_digest({"a": 1, "b": 2}) == mapping_context_digest({"b": 2, "a": 1})
+
+
+def test_mapping_context_digest_changes_with_content():
+    empty_context = {"serviceBindings": []}
+    populated_context = {"serviceBindings": [{"sourceInstanceId": "urn:aip:source:filesystem:a"}]}
+    assert mapping_context_digest(empty_context) != mapping_context_digest(populated_context)
+
+
+def test_semantic_input_digest_changes_with_mapping_context_digest():
+    # I1 spec §5.3 (Draft 0.2): a changed mapping context invalidates replay even when the
+    # document's own bytes are unchanged.
+    unversioned = semantic_input_digest(
+        normalized_document_projection_bytes=b"projection",
+        mapping_context_digest="a" * 64,
+    )
+    versioned = semantic_input_digest(
+        normalized_document_projection_bytes=b"projection",
+        mapping_context_digest="b" * 64,
+    )
+    assert unversioned != versioned
+
+
+def test_semantic_input_digest_changes_with_document_projection():
+    first = semantic_input_digest(
+        normalized_document_projection_bytes=b"projection-one",
+        mapping_context_digest="a" * 64,
+    )
+    second = semantic_input_digest(
+        normalized_document_projection_bytes=b"projection-two",
+        mapping_context_digest="a" * 64,
+    )
+    assert first != second
+
+
+def test_semantic_input_digest_is_stable_for_identical_inputs():
+    kwargs = {
+        "normalized_document_projection_bytes": b"projection",
+        "mapping_context_digest": "a" * 64,
+    }
+    assert semantic_input_digest(**kwargs) == semantic_input_digest(**kwargs)
 
 
 def test_normalize_relative_posix_path_forces_forward_slashes():

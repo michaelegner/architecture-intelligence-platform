@@ -17,6 +17,7 @@ def _descriptor(**overrides) -> SourceDescriptor:
         "scope_definition_digest": "c" * 64,
         "content_sha256": "d" * 64,
         "semantic_input_digest": "e" * 64,
+        "mapping_context_digest": "f" * 64,
         "adapter_identity": "openapi-adapter",
         "mapping_rule_id": "openapi-mapping",
         "mapping_rule_version": "v1",

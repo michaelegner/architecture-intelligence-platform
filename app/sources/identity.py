@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from app.sources.encoding import length_delimited, length_delimited_group, sha256_hex
+from app.sources.jcs import JSONValue, canonical_sha256_hex
 from app.sources.model import DiscoveryScopeId, SourceInstanceId, SourceKind
 
 # I1 spec §5.3: "The empty closure digest is SHA-256 of the zero-length byte string."
@@ -101,13 +102,42 @@ def content_sha256(root_document_bytes: bytes) -> str:
     return sha256_hex(root_document_bytes)
 
 
-def semantic_input_digest(canonical_projection_bytes: bytes) -> str:
-    """I1 spec §5.3: hash of the already-built versioned source-kind canonical projection. Building
-    that projection (key ordering, comment/path stripping, closure ordering) is an adapter's job (a
-    later increment); this function owns only the final hash step - "the only digest used to decide
-    semantic replay no-op."
+def mapping_context_digest(context: JSONValue) -> str:
+    """I1 spec §5.3 (Draft 0.2): the one common per-discovery-run mapping-context digest. "Canonicalize
+    the context as RFC 8785 JSON; sort unordered entry arrays by their complete canonical JSON bytes
+    before hashing ... The context digest is lowercase hexadecimal SHA-256 of those bytes."
+
+    Assembling the actual context - the canonical index of configured/manifest Service bindings,
+    shared Schema/Message/Queue mappings, and all active adapter/normalization/mapping-rule
+    identities and versions - is orchestration work for a later increment, the same scoping already
+    used for `discovery_scope_id`/`scope_definition_digest` in this PR. This function owns only the
+    canonicalize+hash step; the caller must pre-sort every unordered entry array in `context` with
+    `app.sources.jcs.sort_entries_by_canonical_bytes` before calling this.
     """
-    return sha256_hex(canonical_projection_bytes)
+    return canonical_sha256_hex(context)
+
+
+def semantic_input_digest(
+    *,
+    normalized_document_projection_bytes: bytes,
+    mapping_context_digest: str,
+) -> str:
+    """I1 spec §5.3 (Draft 0.2):
+
+        semantic_input_digest = sha256(length-delimited(
+            normalized document/reference projection, mapping_context_digest))
+
+    Building the normalized document/reference projection (key ordering, comment/path stripping,
+    closure ordering) is an adapter's job (a later increment); computing `mapping_context_digest`
+    is this module's own `mapping_context_digest` function plus orchestration to assemble its input.
+    This function owns only the final combining hash step - "the only digest used to decide semantic
+    replay no-op" per §5.3. A changed mapping context (e.g. an added/removed shared-identity mapping)
+    therefore invalidates replay even when the document's own bytes are unchanged.
+    """
+    digest_input = length_delimited(
+        normalized_document_projection_bytes, _utf8(mapping_context_digest)
+    )
+    return sha256_hex(digest_input)
 
 
 @dataclass(frozen=True)

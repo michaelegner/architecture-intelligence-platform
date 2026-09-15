@@ -35,3 +35,13 @@ def sort_by_canonical_hash(branches: Sequence[JSONValue]) -> list[JSONValue]:
     only supplies the deterministic ordering primitive.
     """
     return sorted(branches, key=canonical_sha256_hex)
+
+
+def sort_entries_by_canonical_bytes(entries: Sequence[JSONValue]) -> list[JSONValue]:
+    """I1 spec §5.3 (mapping_context_digest, Draft 0.2): "sort unordered entry arrays by their
+    complete canonical JSON bytes before hashing." This sorts by each entry's raw canonical JSON
+    bytes directly - deliberately distinct from `sort_by_canonical_hash` (§8.1's allOf/oneOf/anyOf
+    branch ordering, which sorts by each branch's SHA-256 instead). The two orderings are not
+    equivalent and must not be used interchangeably.
+    """
+    return sorted(entries, key=canonical_json_bytes)
