@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from app.sources.encoding import length_delimited, length_delimited_group, sha256_hex
-from app.sources.jcs import JSONValue, canonical_sha256_hex
+from app.sources.jcs import JSONValue, canonical_json_bytes, canonical_sha256_hex
 from app.sources.model import DiscoveryScopeId, SourceInstanceId, SourceKind
 
 # I1 spec §5.3: "The empty closure digest is SHA-256 of the zero-length byte string."
@@ -138,6 +138,30 @@ def semantic_input_digest(
         normalized_document_projection_bytes, _utf8(mapping_context_digest)
     )
     return sha256_hex(digest_input)
+
+
+def normalized_document_and_reference_projection_bytes(
+    documents_by_normalized_relative_path: dict[str, JSONValue],
+) -> bytes:
+    """I1 spec §5.3's "normalized document/reference projection" - the piece `semantic_input_digest`
+    itself deliberately left as "an adapter's job": "OpenAPI/AsyncAPI roots and bounded local
+    reference closures are ordered by normalized relative path." Unlike `dependency_closure_digest`
+    (raw file bytes, for provenance, root excluded), this hashes each document's own RFC 8785
+    canonical JSON projection - so YAML/JSON formatting and object-key order never affect the
+    digest - and INCLUDES the root document alongside its resolved closure. Hashing only the root
+    document (as PR3b initially did) makes an edit to a referenced-only file invisible to
+    `semantic_input_digest` and therefore to the revision fence - the root's own bytes are
+    unchanged, so `graph_revision_advance_possible` never fires even though the referenced
+    definition's canonical content changed.
+    """
+    ordered = sorted(documents_by_normalized_relative_path.items(), key=lambda item: _utf8(item[0]))
+    return length_delimited(
+        *(
+            part
+            for path, document in ordered
+            for part in (_utf8(path), canonical_json_bytes(document))
+        )
+    )
 
 
 @dataclass(frozen=True)

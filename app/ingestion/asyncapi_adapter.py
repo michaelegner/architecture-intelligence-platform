@@ -10,14 +10,15 @@ from app.canonical.model import (
 )
 from app.ingestion._shared import (
     build_resolution_cache,
+    enforce_reference_closure,
     rejected_outcome_for_identity,
     rejected_outcome_for_reference_error,
     resolve_and_normalize_schema,
+    semantic_input_digest_bytes,
 )
 from app.provenance.model import Provenance
 from app.sources.encoding import unicode_nfc
 from app.sources.identity import semantic_input_digest
-from app.sources.jcs import canonical_json_bytes
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
 from app.sources.owner_ids import (
     MISSING,
@@ -267,6 +268,11 @@ class AsyncApiSourceAdapter:
         channels = document.get("channels") or {}
 
         cache, root_relative_path = build_resolution_cache(loaded)
+        closure_error = enforce_reference_closure(
+            document, root_relative_path=root_relative_path, cache=cache, source_pointer=locator
+        )
+        if closure_error is not None:
+            return closure_error
 
         queues_by_id: dict[str, Queue] = {}
         messages_by_id: dict[str, Message] = {}
@@ -289,10 +295,17 @@ class AsyncApiSourceAdapter:
             *,
             message_id: str,
             message_name: str,
+            message_document_path: str,
             message_pointer_tokens: tuple[str, ...],
         ) -> tuple[str | None, AdapterOutcome | None]:
             """I1 spec §9.1: "A payload $ref always uses the resolved definition's §8.1 Schema ID;
-            only a payload defined inline uses the message-owned inline payload ID"."""
+            only a payload defined inline uses the message-owned inline payload ID". The payload
+            lives inside the message's OWN document, not necessarily the root - a relative $ref
+            (or an inline payload's own identity pointer) must resolve against
+            `message_document_path`, never unconditionally against the root's own path, or a
+            payload declared inside an externally-referenced message document resolves relative to
+            the wrong directory.
+            """
             nonlocal any_uninterpreted_composition
             if not payload:
                 return None, None
@@ -300,7 +313,7 @@ class AsyncApiSourceAdapter:
                 try:
                     normalized = resolve_and_normalize_schema(
                         payload,
-                        own_document_relative_path=root_relative_path,
+                        own_document_relative_path=message_document_path,
                         own_pointer_tokens=message_pointer_tokens,
                         cache=cache,
                     )
@@ -323,7 +336,7 @@ class AsyncApiSourceAdapter:
                 try:
                     normalized = resolve_and_normalize_schema(
                         payload,
-                        own_document_relative_path=root_relative_path,
+                        own_document_relative_path=message_document_path,
                         own_pointer_tokens=(*message_pointer_tokens, "payload"),
                         cache=cache,
                     )
@@ -525,6 +538,7 @@ class AsyncApiSourceAdapter:
                             payload,
                             message_id=message_id_value,
                             message_name=message_name,
+                            message_document_path=message_def.document_path,
                             message_pointer_tokens=message_pointer_tokens,
                         )
                         if error_outcome is not None:
@@ -592,7 +606,7 @@ class AsyncApiSourceAdapter:
         )
 
         digest = semantic_input_digest(
-            normalized_document_projection_bytes=canonical_json_bytes(document),
+            normalized_document_projection_bytes=semantic_input_digest_bytes(cache),
             mapping_context_digest=mapping_context_digest,
         )
 

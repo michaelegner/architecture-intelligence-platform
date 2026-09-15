@@ -8,7 +8,10 @@ from pathlib import Path
 from typing import Any
 
 from app.canonical.model import ArchitectureModel
-from app.sources.identity import normalize_relative_posix_path
+from app.sources.identity import (
+    normalize_relative_posix_path,
+    normalized_document_and_reference_projection_bytes,
+)
 from app.sources.jcs import canonical_sha256_hex, sort_by_canonical_hash
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
 from app.sources.reference_resolution import (
@@ -16,6 +19,7 @@ from app.sources.reference_resolution import (
     ResolutionCache,
     new_resolution_cache,
     resolve_and_read,
+    walk_transitive_closure,
 )
 from app.sources.registry import AdapterOutcome
 from app.sources.service_identity import ServiceIdentityOutcome, ServiceIdentityResolution
@@ -77,6 +81,13 @@ def build_resolution_cache(loaded: LoadedSource) -> tuple[ResolutionCache, str]:
     return cache, root_relative_path
 
 
+# Keys whose VALUE is a map of arbitrary user-chosen names to sub-schemas - the map's own keys are
+# names, never schema annotation keywords, and must never be run through EXCLUDED_SCHEMA_FIELDS
+# filtering: a property or definition literally named "description" (or "example", etc.) is real
+# schema content, not the schema-level `description` annotation that keyword otherwise denotes.
+_NAMED_SCHEMA_MAP_KEYS = frozenset({"properties", "patternProperties", "definitions", "$defs"})
+
+
 def _normalize_schema_node(
     node: Any,
     *,
@@ -84,6 +95,7 @@ def _normalize_schema_node(
     cache: ResolutionCache,
     path_stack: tuple[tuple[str, tuple[str, ...]], ...],
     composition_seen: list[bool],
+    is_named_schema_map: bool = False,
 ) -> Any:
     """§8.1: "Every admitted schema is converted to a JSON-compatible value, all local references
     are expanded" - recursively substitutes every `$ref` node with its fully-normalized resolved
@@ -94,8 +106,25 @@ def _normalize_schema_node(
     (`REFERENCE_CYCLE_UNSUPPORTED`); a target visited via a different, already-completed branch
     (a diamond) is not tracked here at all and is simply re-normalized, which is safe since this
     walk has no side effects to duplicate.
+
+    `is_named_schema_map` marks a dict reached via a `_NAMED_SCHEMA_MAP_KEYS` key (e.g.
+    `properties`): its own keys are arbitrary names, so EXCLUDED_SCHEMA_FIELDS filtering and
+    `$ref`/composition handling apply only to each VALUE (a real schema node), never to the map
+    itself.
     """
     if isinstance(node, dict):
+        if is_named_schema_map:
+            return {
+                name: _normalize_schema_node(
+                    value,
+                    containing_document_relative_path=containing_document_relative_path,
+                    cache=cache,
+                    path_stack=path_stack,
+                    composition_seen=composition_seen,
+                )
+                for name, value in node.items()
+            }
+
         ref = node.get("$ref")
         if isinstance(ref, str):
             resolved = resolve_and_read(
@@ -117,17 +146,18 @@ def _normalize_schema_node(
                 composition_seen=composition_seen,
             )
 
-        normalized = {
-            key: _normalize_schema_node(
+        normalized = {}
+        for key, value in node.items():
+            if key in EXCLUDED_SCHEMA_FIELDS:
+                continue
+            normalized[key] = _normalize_schema_node(
                 value,
                 containing_document_relative_path=containing_document_relative_path,
                 cache=cache,
                 path_stack=path_stack,
                 composition_seen=composition_seen,
+                is_named_schema_map=key in _NAMED_SCHEMA_MAP_KEYS,
             )
-            for key, value in node.items()
-            if key not in EXCLUDED_SCHEMA_FIELDS
-        }
         for composition_key in _COMPOSITION_KEYS:
             branches = normalized.get(composition_key)
             if isinstance(branches, list):
@@ -230,3 +260,33 @@ def rejected_outcome_for_reference_error(
         ),
         semantic_input_digest=None,
     )
+
+
+def enforce_reference_closure(
+    document: dict, *, root_relative_path: str, cache: ResolutionCache, source_pointer: str
+) -> AdapterOutcome | None:
+    """§8's authoritative depth/file-count/byte-budget and cross-file-cycle enforcement. The
+    discoverer's own `walk_transitive_closure` call (`filesystem_discoverer._best_effort_closure_
+    digest`) is deliberately best-effort/non-fatal - it exists only to compute the provenance
+    digest early. THIS call, made by the adapter itself before any per-construct schema resolution,
+    is the actual enforcement: without it, a reference chain whose per-hop resolution individually
+    succeeds (e.g. 20 single-`$ref` hops, each resolving one file at a time) would never trip any
+    limit, since no single `resolve_and_normalize_schema` call for one construct ever counts total
+    depth/files/bytes across the *whole* closure - only a closure-wide walk can. Returns `None` on
+    success, or the whole-source rejection to return immediately from `map()` on failure.
+    """
+    try:
+        walk_transitive_closure(document, root_relative_path=root_relative_path, cache=cache)
+    except ReferenceResolutionError as exc:
+        return rejected_outcome_for_reference_error(exc, source_pointer=source_pointer)
+    return None
+
+
+def semantic_input_digest_bytes(cache: ResolutionCache) -> bytes:
+    """I1 spec §5.3's "normalized document/reference projection": every document this source's
+    resolution touched - the root plus its whole resolved closure - ordered by normalized relative
+    path. Must be called only after the source's full closure has already been loaded into `cache`
+    (i.e. after `enforce_reference_closure` has run) - otherwise a referenced-file-only edit would
+    be invisible to the resulting `semantic_input_digest` and the revision fence would never see it.
+    """
+    return normalized_document_and_reference_projection_bytes(cache.documents)

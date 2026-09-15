@@ -2,13 +2,14 @@ from app.canonical import ids
 from app.canonical.model import ArchitectureModel, Operation, Relation, Schema, Service
 from app.ingestion._shared import (
     build_resolution_cache,
+    enforce_reference_closure,
     rejected_outcome_for_identity,
     rejected_outcome_for_reference_error,
     resolve_and_normalize_schema,
+    semantic_input_digest_bytes,
 )
 from app.provenance.model import Provenance
 from app.sources.identity import semantic_input_digest
-from app.sources.jcs import canonical_json_bytes
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
 from app.sources.owner_ids import schema_owned_id
 from app.sources.pointers import encode_pointer_tokens
@@ -116,6 +117,11 @@ class OpenApiSourceAdapter:
         info = document.get("info") or {}
 
         cache, root_relative_path = build_resolution_cache(loaded)
+        closure_error = enforce_reference_closure(
+            document, root_relative_path=root_relative_path, cache=cache, source_pointer=locator
+        )
+        if closure_error is not None:
+            return closure_error
 
         operations: list[Operation] = []
         relations: list[Relation] = []
@@ -294,7 +300,7 @@ class OpenApiSourceAdapter:
         )
 
         digest = semantic_input_digest(
-            normalized_document_projection_bytes=canonical_json_bytes(document),
+            normalized_document_projection_bytes=semantic_input_digest_bytes(cache),
             mapping_context_digest=mapping_context_digest,
         )
 
