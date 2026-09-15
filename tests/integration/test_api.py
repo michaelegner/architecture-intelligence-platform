@@ -7,6 +7,7 @@ from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.main import create_app
 from app.settings import AppConfig, Secrets, Settings
+from app.sources.model import FilesystemSourceConfig
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
@@ -16,7 +17,44 @@ DATABASE = "neo4j"
 def populated_graph(driver):
     with driver.session(database=DATABASE) as session:
         session.run("MATCH (n) DETACH DELETE n")
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="aip-bundled-examples-v0.5",
+            root=EXAMPLES_DIR,
+            stable_target_identity="urn:aip:logical-root:bundled-examples",
+        ),
+    )
+
+
+def _queue_id(driver, name: str) -> str:
+    """I1 spec §9: Queue identity is owner-scoped (broker+namespace+channel), not name-based - all
+    bundled fixtures share one broker/namespace, so a queue name still resolves to exactly one id.
+    """
+    with driver.session(database=DATABASE) as session:
+        return session.run("MATCH (q:Queue {name: $name}) RETURN q.id AS id", name=name).single()[
+            "id"
+        ]
+
+
+def _message_id(driver, name: str) -> str:
+    """I1 spec §9.1: Message identity is owner-scoped per declaring service - a name like
+    "PaymentRequested" may resolve to more than one distinct Message node (one per declaring
+    service) absent an explicit shared-identity mapping (not wired in this increment). Picks one
+    deterministically; callers only need *a* real, round-trippable message id."""
+    with driver.session(database=DATABASE) as session:
+        return session.run(
+            "MATCH (m:Message {name: $name}) RETURN m.id AS id ORDER BY m.id LIMIT 1", name=name
+        ).single()["id"]
+
+
+def _evidence_id(driver, *, source_type: str) -> str:
+    with driver.session(database=DATABASE) as session:
+        return session.run(
+            "MATCH (e:Evidence {source_type: $source_type}) RETURN e.id AS id ORDER BY e.id LIMIT 1",
+            source_type=source_type,
+        ).single()["id"]
 
 
 class FakeProvider:
@@ -103,8 +141,8 @@ def test_list_queues(client):
     assert names == {"payment-q", "invoice-q", "unused-q", "unknown-producer-q", "payment-dlq"}
 
 
-def test_get_queue(client):
-    response = client.get(f"/api/queues/{ids.queue_id('payment-q')}")
+def test_get_queue(client, driver):
+    response = client.get(f"/api/queues/{_queue_id(driver, 'payment-q')}")
     assert response.status_code == 200
     assert response.json()["name"] == "payment-q"
 
@@ -126,8 +164,8 @@ def test_list_messages(client):
     }
 
 
-def test_get_message(client):
-    response = client.get(f"/api/messages/{ids.message_id('PaymentRequested', 'v2')}")
+def test_get_message(client, driver):
+    response = client.get(f"/api/messages/{_message_id(driver, 'PaymentRequested')}")
     assert response.status_code == 200
     assert response.json()["version"] == "v2"
 
@@ -147,8 +185,8 @@ def test_list_evidence(client):
     assert source_types == {"OPENAPI", "ASYNCAPI", "MANIFEST"}
 
 
-def test_get_evidence(client):
-    response = client.get("/api/evidence/evidence:manifest:order-service")
+def test_get_evidence(client, driver):
+    response = client.get(f"/api/evidence/{_evidence_id(driver, source_type='MANIFEST')}")
     assert response.status_code == 200
     body = response.json()
     assert body["source_type"] == "MANIFEST"
@@ -174,13 +212,13 @@ def test_get_service_evidence_not_found(client):
     assert response.status_code == 404
 
 
-def test_get_queue_evidence(client):
-    response = client.get(f"/api/queues/{ids.queue_id('payment-q')}/evidence")
+def test_get_queue_evidence(client, driver):
+    response = client.get(f"/api/queues/{_queue_id(driver, 'payment-q')}/evidence")
     assert response.status_code == 200
-    ids_found = {e["id"] for e in response.json()}
     # payment-q's SENDS/CARRIES/RECEIVES_FROM/DEAD_LETTERS_TO relations are declared by
     # both order-service (sender) and payment-service (consumer + DLQ)
-    assert ids_found == {"evidence:asyncapi:order-service", "evidence:asyncapi:payment-service"}
+    assert len(response.json()) == 2
+    assert all(e["source_type"] == "ASYNCAPI" for e in response.json())
 
 
 def test_get_queue_evidence_not_found(client):
@@ -188,30 +226,30 @@ def test_get_queue_evidence_not_found(client):
     assert response.status_code == 404
 
 
-def test_a1_senders_endpoint(client):
-    response = client.get(f"/api/analysis/queues/{ids.queue_id('payment-q')}/senders")
+def test_a1_senders_endpoint(client, driver):
+    response = client.get(f"/api/analysis/queues/{_queue_id(driver, 'payment-q')}/senders")
     assert response.status_code == 200
     assert [s["id"] for s in response.json()] == [ids.service_id("order-service")]
 
 
-def test_a2_consumers_endpoint(client):
-    response = client.get(f"/api/analysis/queues/{ids.queue_id('payment-q')}/consumers")
+def test_a2_consumers_endpoint(client, driver):
+    response = client.get(f"/api/analysis/queues/{_queue_id(driver, 'payment-q')}/consumers")
     assert response.status_code == 200
     assert [s["id"] for s in response.json()] == [ids.service_id("payment-service")]
 
 
-def test_a3_queues_without_consumers_endpoint(client):
+def test_a3_queues_without_consumers_endpoint(client, driver):
     response = client.get("/api/analysis/queues/without-consumers")
     assert response.status_code == 200
-    assert [q["id"] for q in response.json()] == [ids.queue_id("unused-q")]
+    assert [q["id"] for q in response.json()] == [_queue_id(driver, "unused-q")]
 
 
-def test_a4_queues_without_senders_endpoint(client):
+def test_a4_queues_without_senders_endpoint(client, driver):
     response = client.get("/api/analysis/queues/without-senders")
     assert response.status_code == 200
     body = response.json()
     assert len(body) == 1
-    assert body[0]["queue_id"] == ids.queue_id("unknown-producer-q")
+    assert body[0]["queue_id"] == _queue_id(driver, "unknown-producer-q")
 
 
 def test_a5_blast_radius_endpoint_default_depth(client):
@@ -240,24 +278,21 @@ def test_post_import_all(client):
     assert response.status_code == 200
     body = response.json()
     assert "import_id" in body
-    assert set(body["services"]) == {
-        "order-service",
-        "product-service",
-        "payment-service",
-        "invoice-service",
-    }
+    assert body["committed"] is True
+    assert len(body["sources"]) == 6  # order-service (x3), product/payment/invoice-service
 
 
 def test_post_import_service(client):
-    response = client.post("/api/import/service/order-service")
+    response = client.post(f"/api/import/service/{ids.service_id('order-service')}")
     assert response.status_code == 200
     body = response.json()
     assert "import_id" in body
-    assert body["service"]["service_id"] == "order-service"
+    assert body["service_id"] == ids.service_id("order-service")
+    assert body["committed"] is True
 
 
 def test_post_import_service_not_found(client):
-    response = client.post("/api/import/service/does-not-exist")
+    response = client.post("/api/import/service/service:does-not-exist")
     assert response.status_code == 404
 
 
@@ -303,9 +338,9 @@ def test_post_query_deterministic_intent_works_without_llm_configured(client):
     assert body["cypher"] is None
 
 
-def test_post_query_deterministic_rows_match_analysis_endpoint_a1(client):
+def test_post_query_deterministic_rows_match_analysis_endpoint_a1(client, driver):
     query_response = client.post("/api/query", json={"question": "Who sends to payment-q?"})
-    analysis_response = client.get(f"/api/analysis/queues/{ids.queue_id('payment-q')}/senders")
+    analysis_response = client.get(f"/api/analysis/queues/{_queue_id(driver, 'payment-q')}/senders")
     assert query_response.json()["rows"] == analysis_response.json()
 
 
@@ -353,8 +388,8 @@ def test_ui_service_explorer_not_found(client):
     assert response.status_code == 404
 
 
-def test_ui_queue_explorer(client):
-    response = client.get(f"/queues/{ids.queue_id('payment-q')}")
+def test_ui_queue_explorer(client, driver):
+    response = client.get(f"/queues/{_queue_id(driver, 'payment-q')}")
     assert response.status_code == 200
     assert "OrderService" in response.text  # sender
     assert "PaymentService" in response.text  # consumer
