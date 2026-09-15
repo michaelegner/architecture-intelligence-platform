@@ -48,7 +48,7 @@ from pathlib import Path
 
 import neo4j
 
-from app.architecture_intelligence.contracts import Producer
+from app.architecture_intelligence.contracts import PRODUCER_NAME, Producer
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.version import package_version
 
@@ -109,7 +109,7 @@ def build_production_service(
     driver: neo4j.Driver, *, database: str
 ) -> ArchitectureIntelligenceService:
     producer = Producer(
-        name="architecture-intelligence-platform",
+        name=PRODUCER_NAME,
         version=package_version(),
         build_revision=_resolve_build_revision(),
     )

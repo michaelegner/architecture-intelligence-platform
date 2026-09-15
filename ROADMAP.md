@@ -217,36 +217,48 @@ for the published release.
 
 **Goal: Broaden what AIP can safely know about distributed systems.**
 
-Focus: broaden architecture discovery now that the semantic core is validated and exposed through
-controlled tools, while preserving AIP's evidence, identity, qualification, provenance, and
-unsupported-case guarantees.
+The [v0.5.0 parent specification](docs/specifications/0.5.0/specification.md) defines the release
+contract. The scope combines ingestion hardening, one new discovery-source family, and bounded
+identity reconciliation while preserving evidence, provenance, unsupported-case, and read-only
+Architecture Intelligence guarantees.
 
-- Kubernetes discovery as an additional architecture source, with explicit mapping between
-  Kubernetes workload/service resources and AIP identities rather than name-based equivalence
-- Source-adapter extension seam suitable for broader discovery sources
-- Deeper runtime discovery reconciled with existing declared/observed evidence
-- Generic source-independent Pub/Sub semantics may enter scope only if Topic/Subscription/Queue
-  distinctions and identity guards can be qualified without broker-specific guessing
-- Additional adapters remain candidates (for example gRPC/protobuf or Kafka Connect configuration)
-  and require separately approved semantics and deterministic conformance tests
+| Increment | Scope and exit |
+|---|---|
+| I1 — Source Ingestion Foundation | One adapter/discoverer seam for existing OpenAPI, AsyncAPI, Architecture Manifest, and filesystem discovery; bounded local references, deterministic identity/inventory/replay, and explicit versioned migration mappings. |
+| I2 — Kubernetes Discovery | Kubernetes is the only new source family. Deterministic offline discovery is mandatory; bounded read-only live discovery is optional and decided before implementation. Infrastructure claims do not establish application interaction. |
+| I3 — Runtime Identity Reconciliation | Bounded declared-Service/Workload association through explicit annotations, configured mappings, or qualified OTel Pod-UID/owner-chain evidence. The public relation is `DEPLOYED_AS`; disagreements remain conflicts, not precedence-based guesses. |
+| I4 — Conditional Pub/Sub | Recorded `GO` or `DEFER`. Source-independent semantics require qualified Queue/Topic/Subscription distinctions and identity guards. No live broker adapter is introduced. |
+| I5 — Cross-System Qualification | Two materially different systems and negative fixtures; deterministic cross-source qualification and evidence-justified hardening. |
+| I6 — Release and Post-Release Verification | Exact-candidate qualification, publication disposition, and separate unpublished `RELEASE_READY_NOT_PUBLISHED` or published `SHIPPED_VERIFIED` outcomes. Publication requires authorization; shipped verification requires final-artifact and security evidence. |
 
-Every new discovery source maps through the shared Canonical Model, retains provenance, and must
-prove it does not create supported relations from mere co-location, naming coincidence, or an
-insufficiently qualified runtime signal.
+The [I1 implementation contract](docs/specifications/0.5.0/i1-source-ingestion-foundation.md)
+accepts exactly OpenAPI `3.0.3`/`3.1.0` and AsyncAPI `2.6.0`. It preserves composition
+structurally with explicit limitations. Equal content does not establish shared Schema/Message
+identity: owner-scoped IDs remain distinct unless explicitly mapped. Portable, versioned
+Service/Schema/Message/Queue mappings preserve qualified legacy fixture meaning without naming
+fallbacks. Additional dialects require a reviewed amendment and qualification.
 
-The structural rule for infrastructure discovery is:
+Source disappearance is not authorized removal. Expiration requires a qualified complete
+same-scope inventory or an explicit versioned tombstone. Failed/incomplete discovery preserves the
+last committed state; changed scopes cannot silently expire previous ownership.
+
+I2/I3 freeze concrete claim schemas and public exposure locations before implementation and
+fixtures. The existing three read-only MCP tools remain the scope budget. A live-discovery decision
+activates live-specific qualification in I2, not I1.
 
 > **WHERE something is does not establish HOW it interacts.**
 
-Therefore deployment/locality evidence and connectivity/cooperation evidence remain independent.
-The release continues to preserve:
+Every source maps through the shared Canonical Model. Placement is retained as source/context
+evidence only; v0.5 exposes no locality-qualified claim or projection.
 
 ```text
 non-observation != absence
+source disappearance != authorized source removal
 unresolved identity > guessed identity
 explicitly unsupported > incorrectly represented as supported
 Queue != Topic
 Topic != Subscription
+Service != Kubernetes Service != Workload != Pod
 co-location != dependency
 observed behavior != intent
 ```
@@ -256,8 +268,9 @@ Exit capability:
 > **AIP can safely discover a broader distributed-system Current State while retaining the context
 > and locality required for later qualification.**
 
-No explicit architectural Intent model, Current↔Intent assessment, historical trajectory model, or
-distributed local-assessor runtime is required in v0.5.
+gRPC/protobuf, Kafka Connect, other new source families, explicit Intent, Current↔Intent assessment,
+historical trajectories, and distributed local-assessor deployment are outside v0.5. I4 may end in
+`DEFER` without blocking the remaining qualified release.
 
 ## v0.6 — Locality-Aware Current State (planned)
 
@@ -570,6 +583,12 @@ a documented scope decision and, where release assignment or product boundaries 
 a corresponding roadmap update. Apply these gates before accepting affected capabilities into the
 stable contract. Detailed pilot design belongs in release-specific specifications; see
 [Product Doctrine §6.4](docs/product-doctrine-and-strategic-direction.md#64-pilot-decision-gate).
+
+## Additional discovery candidates (unscheduled)
+
+gRPC/protobuf and Kafka Connect configuration remain candidates outside v0.5, with no assigned
+release. Each requires a separately approved later-release specification, explicit semantics, and
+deterministic conformance tests; the adapter seam does not automatically admit additional sources.
 
 ## Future (beyond v1.0, unscheduled)
 

@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import neo4j
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
-from app.architecture_intelligence.contracts import Producer
+from app.architecture_intelligence.contracts import PRODUCER_NAME, Producer
 from app.architecture_intelligence.request import (
     ArchitectureDriftRequest,
     EvidenceRequest,
@@ -61,7 +61,7 @@ def _build_producer(candidate_sha: str) -> Producer:
     # own `expected_answer.json` had frozen the same wrong literal alongside it, so the mismatch
     # never surfaced) - `name` stays a frozen literal, the fixed application identity.
     return Producer(
-        name="architecture-intelligence-platform",
+        name=PRODUCER_NAME,
         version=package_version(),
         build_revision=candidate_sha,
     )

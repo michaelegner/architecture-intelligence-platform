@@ -1,6 +1,6 @@
 # AIP v0.5.0 Release Specification — Broader Architecture Discovery
 
-**Status:** Draft 0.1 — release capability and implementation contract  
+**Status:** Draft 0.1 — release capability and implementation contract (aligned with I1)  
 **Target release:** `v0.5.0`  
 **Release theme:** Broader Architecture Discovery  
 **Entry baseline:** Published and post-release-verified `v0.4.2`  
@@ -150,7 +150,9 @@ positive exit capability.
 # Part I — Source Ingestion Foundation
 
 The increment-level implementation contract is maintained in
-[`i1-source-ingestion-foundation.md`](i1-source-ingestion-foundation.md).
+[`i1-source-ingestion-foundation.md`](i1-source-ingestion-foundation.md). Its frozen identity,
+normalization, inventory, construct-outcome, and migration rules are the detailed I1 contract;
+the release-level summaries below do not broaden its accepted inputs or qualification claims.
 
 ## 6. Source Model
 
@@ -269,6 +271,15 @@ create a new semantic graph revision when normalized input is unchanged.
 
 Changing normalization is a mapping-rule version change and requires golden tests.
 
+I1 Draft 0.2 amends this replay contract: its `semantic_input_digest` binds the normalized
+document/reference projection and a common `mapping_context_digest` as specified in I1 §5.3.
+The context includes the complete configured/manifest identity and migration mappings and active
+adapter, normalization, and mapping-rule identities/versions. Changes or valid removals trigger
+reevaluation even with unchanged documents; missing required artifacts remain errors. A changed
+fingerprint alone does not mandate a graph-revision increment: identical canonical claims,
+ownership, and answer-visible evidence after reevaluation remain a semantic no-op. Inventory,
+scope, and removal checks cannot be skipped by a mapping replay no-op.
+
 ### 7.4 Replay behavior
 
 ```text
@@ -317,7 +328,7 @@ requires one authoritative decision:
 ```text
 REGISTERED inventory mode
   -> versioned desired-source inventory explicitly tombstones SourceInstanceId
-     or COMPLETE successor inventory explicitly records removal
+     (including an explicit tombstone in a COMPLETE successor inventory)
 
 AUTHORITATIVE enumeration mode
   -> identical DiscoveryScopeId
@@ -334,7 +345,7 @@ No other absence authorizes whole-source expiration.
 Every discovery run SHALL produce a `SourceInventorySnapshot` containing:
 
 ```text
-inventory id and revision
+inventory_revision and inventory_capture_id
 DiscoveryScopeId
 scope_definition_digest
 discoverer/adapter identity and mapping-rule version
@@ -345,8 +356,13 @@ capture time
 diagnostic references
 ```
 
-`DiscoveryScopeId` identifies the stable configured boundary. The scope digest covers configured
-roots, namespace/resource filters, target identity without secrets, and all inclusion rules.
+`DiscoveryScopeId` identifies the stable configured boundary. Its derivation and inventory
+revision/capture identities follow I1 §6:
+`DiscoveryScopeId` binds the configured scope id and stable logical target identity, never an
+absolute checkout path or mutable physical root. The scope digest covers that ID, normalized roots,
+namespace/resource filters, and inclusion rules. Physical root/filter changes preserve the scope ID
+while changing its digest. Inventory revisions are semantic and idempotent; capture identities are
+audit provenance, not semantic replay keys.
 
 A changed scope digest SHALL NOT expire ownership last confirmed under a prior digest. Narrowing or
 retiring the previous scope requires an explicit versioned transition/tombstone.
@@ -360,7 +376,13 @@ authorization, I/O, timeout, truncation, or adapter error could hide a source.
 `PARTIAL`/`FAILED`, missing roots, incomplete checkouts, unavailable Kubernetes APIs, and unverified
 scope changes SHALL preserve the last inventory and every claim owned by an undiscovered source.
 
-Inventory update, per-source reconciliation, and authorized tombstones SHALL commit atomically.
+An explicit tombstone SHALL bind its target source, scope ID/digest, expected prior committed
+inventory revision, attributable actor/reason, and tombstone revision. A stale expected revision
+rejects removal without expiration, as specified in I1 §6.
+
+The transaction unit is one complete discovery run. Inventory update, all source reconciliations,
+and authorized tombstones SHALL commit atomically. Any source load/validation failure makes the run
+`PARTIAL` or `FAILED`: no reconciliation, COMPLETE inventory, or tombstone from that run commits.
 Temporary non-observation MAY be diagnosed but MUST NOT be represented as removal.
 
 ### 8.4 Ownership and expiration
@@ -397,21 +419,34 @@ Architecture Manifest adapter
 filesystem source discoverer
 ```
 
-Existing qualified inputs retain their canonical meaning unless a separately recorded general
-defect is fixed and deterministically qualified.
+Existing qualified fixtures retain canonical meaning through explicit, versioned migration mappings,
+as specified in I1 §§2, 5.1.1, 8.1, and 9. Without authoritative Service identity, inputs are
+`REJECTED_UNSUPPORTED`. Without shared Schema/Message mappings they use safe owner-scoped IDs;
+Queue mapping requires independently qualified destination kind and identity, with limitation or
+rejection outcomes exactly as specified in I1 §9. Legacy names are never identity fallbacks.
+
+I1 SHALL ship the portable bundled-example Service/Schema/Message/Queue mappings at
+`config/migrations/v0.5.0-bundled-example-identities.yaml`. These intentional safety migrations
+SHALL be recorded and qualified, not described as unchanged legacy parsing.
 
 ## 10. OpenAPI Ingestion Expansion
 
 I1 SHALL support:
 
-- explicit OpenAPI `3.0`/`3.1` detection and version-specific validation;
+- exactly OpenAPI `3.0.3` and `3.1.0`, with version-specific validation;
 - safe local multi-file `$ref` within an approved source root;
 - cycle, depth, file-count, and total-byte bounds;
 - transitive reference-closure hashing;
-- inline, array, nested, `allOf`, `oneOf`, and `anyOf` schemas where mapping is specified;
+- supported inline, array, and nested schemas under I1's owner-scoped identity rules;
+- structural preservation of `allOf`, `oneOf`, and `anyOf` in canonical hashes, without flattening
+  or effective-shape inference; valid composition reports `ACCEPTED_WITH_LIMITATIONS` and
+  `SCHEMA_COMPOSITION_UNINTERPRETED`;
 - relevant path-level parameters and server/base-path metadata;
 - stable operation identity and duplicate-`operationId` diagnostics;
 - equivalent semantics for YAML/JSON and irrelevant key ordering.
+
+Other OpenAPI versions require a reviewed amendment with exact-version conformance fixtures.
+Construct-level acceptance, omission, and rejection follow I1 §8.
 
 Remote Internet `$ref`, security-policy analysis, complete API-catalog behavior, callbacks, and
 webhooks are out of scope unless a reviewed bounded amendment admits them before implementation.
@@ -420,7 +455,7 @@ webhooks are out of scope unless a reviewed bounded amendment admits them before
 
 I1 SHALL support:
 
-- explicit AsyncAPI version/dialect detection and validation;
+- exactly AsyncAPI `2.6.0`, with explicit dialect detection and validation;
 - safe bounded local multi-file `$ref`;
 - transitive message/payload-schema resolution;
 - deterministic message identity and collision diagnostics;
@@ -429,8 +464,11 @@ I1 SHALL support:
 - strict separation between AsyncAPI Channel and canonical broker destination;
 - explicit diagnostics where kind or operation semantics cannot be mapped safely.
 
-An unsupported version SHALL NOT pass through an older mapping. AsyncAPI 3 constructs are admitted
-only where explicitly specified and qualified. Topic/Subscription meaning belongs to I4.
+An unsupported version SHALL NOT pass through an older mapping. Every AsyncAPI 3.x document is
+`REJECTED_UNSUPPORTED` in I1; admitting another version requires a reviewed amendment or later
+increment with deterministic qualification. I4 `GO` does not itself expand dialect support.
+Topic/Subscription meaning belongs to I4. Queue kind and Queue identity require separate evidence
+under I1 §9; channel names, URLs, or operation direction cannot establish either by themselves.
 
 ## 12. Merge Results and Diagnostics
 
@@ -468,18 +506,28 @@ tombstones, and final commit status. A dry-run SHOULD return the same plan witho
 
 I1 requires deterministic proof that:
 
-- all existing adapters use the seam and preserve qualified meaning;
+- all existing adapters use the seam and preserve qualified meaning through explicit migration mappings;
 - multiple sources/service and services/source work;
-- equivalent YAML/JSON, key-order, and inline/reference forms are semantically equal;
+- equivalent YAML/JSON and key-order forms preserve normalized hashes and canonical meaning;
+- content-equivalent inline/reference schemas preserve normalized hashes and operation-contract
+  roles while retaining distinct owner-scoped IDs unless explicitly mapped to a shared identity;
 - cycles, duplicates, and conflicts fail deterministically without partial writes;
-- reimport is idempotent and semantic no-op does not advance graph revision;
+- reimport with unchanged mapping context is idempotent and semantic no-op does not advance graph revision;
+- changed/removed mappings and active rule versions force reevaluation; unresolved identity rejects
+  the run without expiration;
+- AsyncAPI with channels but zero supported Queue relations is rejected; partial support yields
+  limitations, and empty channel sets may be accepted as Service-only under I1 §9.1;
 - checkout paths do not affect source identity;
-- equivalent frozen/live Kubernetes replay preserves ownership with matching source id/cluster UID;
+- generic source identity, replay, and inventory rules pass I1 fixtures; Kubernetes mapping and
+  any frozen/live replay qualification belong to I2;
 - explicit tombstones and complete same-scope inventory retire exactly intended ownership;
 - missing sources, incomplete checkouts, failed/partial discovery preserve committed state;
 - changed filters/scopes cannot expire prior ownership without explicit transition;
 - shared claims survive removal of one source;
-- two clean runs produce byte-identical semantic reports.
+- two clean runs with identical mapping contexts/rules and the same initial graph, ownership,
+  evidence, and inventory state produce byte-identical semantic reports;
+- sequential replay preserves canonical results with zero mutations and unchanged graph revision;
+  first-import and replay effect reports need not be identical.
 
 ---
 
@@ -539,13 +587,17 @@ provider revision, source pointer, and mapping-rule version.
 
 Names, labels, selectors, and co-location SHALL NOT establish an AIP Service identity.
 
-I2 MAY support frozen manifests and bounded read-only live discovery. A deterministic offline path
-is REQUIRED. A resource disappearance is actionable only after `COMPLETE` observation of the same
+I2 SHALL support deterministic offline frozen-manifest discovery. Bounded read-only live discovery
+is optional. Before implementation and fixture authoring, I2 SHALL record `LIVE_INCLUDED` or
+`OFFLINE_ONLY`. Live API, RBAC, pagination, and frozen/live-equivalence gates apply only to
+`LIVE_INCLUDED`; offline identity, inventory, deletion, and incomplete-input safety remain mandatory.
+
+A resource disappearance is actionable only after `COMPLETE` observation of the same
 cluster and unchanged scope digest. Failure, timeout, truncation, pagination error, or partial
 enumeration preserves state. Filter changes require explicit scope transition before expiration.
 
-Live discovery SHALL use a least-privilege, read-only identity. The normative minimum permission
-set is:
+If `LIVE_INCLUDED`, live discovery SHALL use a least-privilege, read-only identity.
+The normative minimum permission set is:
 
 ```text
 get, list, watch:
@@ -574,7 +626,9 @@ write, exec, attach, port-forward, log, proxy, or secret-read requests as a fall
 
 I2 requires:
 
-- equivalent frozen/live inputs produce equivalent semantics;
+- equivalent frozen inputs produce equivalent semantics;
+- if `LIVE_INCLUDED`, equivalent frozen/live inputs preserve semantics and ownership with the
+  same configured source id and independently captured cluster UID;
 - ordering has no effect;
 - namespace/cluster identity prevents collisions;
 - selectors and owner chains resolve deterministically;
@@ -700,7 +754,7 @@ I3 requires:
 - service-name-only remains unresolved;
 - conflicts/unsupported combinations emit no association artifact;
 - Kubernetes-only evidence creates no interaction;
-- equivalent REST/MCP projections preserve qualification;
+- equivalent exposed REST/MCP semantics preserve qualification under the §28 exposure contract;
 - two runs produce byte-identical semantics.
 
 ---
@@ -959,6 +1013,14 @@ explicitly to the relevant versioned schema before qualification. The increment 
 whether this is backward compatible or needs a schema-version change. Silent widening of a closed
 enum or undocumented payload drift is prohibited.
 
+Before implementation and fixture authoring, I2 and I3 SHALL freeze an exposure table for their
+claims: exact canonical name/shape, internal-only or public status, REST response location, existing
+MCP tool/result field where applicable, schema version, and evidence/limitation representation.
+I3's public `DEPLOYED_AS` meaning remains frozen by §17; only its concrete exposure locations are
+specified here. Infrastructure claims and `DEPLOYED_AS` MUST NOT be relabeled as application
+dependencies to fit an existing response. If an additional MCP tool is necessary, it requires a
+separately approved scope amendment. Equivalence gates apply to the same exposed semantics.
+
 Evidence drill-down for every public new claim preserves source, inventory, mapping rule,
 observation context, and snapshot continuity. Tool adapters do not infer or rewrite claims.
 
@@ -967,8 +1029,10 @@ observation context, and snapshot continuity. Tool adapters do not infer or rewr
 The release SHALL preserve the least-privilege, read-only Kubernetes RBAC contract in §14.3;
 bounded local document references; no remote Internet `$ref`; no credential, secret, or arbitrary
 environment capture; sanitized evidence; zero MCP writes; and dependency/container/SBOM security
-checks. Qualification SHALL include denied-verb and denied-scope cases and verify that they produce
-`PARTIAL`/`FAILED` without state expiration or fallback writes.
+checks. If `LIVE_INCLUDED`, qualification SHALL include denied-verb and denied-scope cases and
+verify that they produce `PARTIAL`/`FAILED` without state expiration or fallback writes.
+`OFFLINE_ONLY` SHALL qualify failed/partial frozen-input and inventory scenarios; it does not
+claim live API or RBAC qualification.
 
 `SHIPPED_VERIFIED` requires zero unresolved release-blocking findings bound to the final workflow
 and image digest. Candidate/local-image security evidence cannot substitute for this disposition.
@@ -1023,7 +1087,8 @@ Explicit Intent remains `v0.7`, followed by Current-to-Intent assessment in `v0.
 | Owner | Decision still to freeze | Constraint already fixed here |
 |---|---|---|
 | I1 | Package interfaces and diagnostic wire schema | Source identity, inventory authority, atomicity, result taxonomy, and behavior cannot change. |
-| I2 | Exact shapes for bounded infrastructure claims | No locality claim, interaction, or name-based AIP Service equivalence. |
+| I2 | Exact infrastructure claim shapes and exposure table; `LIVE_INCLUDED` or `OFFLINE_ONLY` before implementation/fixtures | Offline discovery mandatory; no locality claim, interaction, or name-based AIP Service equivalence. |
+| I3 | Concrete REST/existing-MCP exposure locations and schema versions | §§15–17 identity paths, precedence, conflicts, and public `DEPLOYED_AS` meaning remain frozen. |
 | I4 | `GO`/`DEFER`; if `GO`, final Topic/Subscription schema | Queue/Topic/Subscription distinctions and multi-broker qualification are mandatory. |
 | I5 | Real systems, revisions, expected facts | Two materially different systems plus negative fixtures; target-specific fixes prohibited. |
 | I6 | Exact commands and evidence filenames | Candidate/revision/security/publication/terminal-state rules are fixed. |
