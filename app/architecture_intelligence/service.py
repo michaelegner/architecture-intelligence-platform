@@ -14,6 +14,7 @@ import neo4j
 
 from app.architecture_intelligence.contracts import (
     ARCHITECTURE_SCHEMA_VERSION,
+    TOOL_NAMES,
     ArchitectureAnswer,
     ArchitectureDriftData,
     DependencyClaim,
@@ -49,9 +50,7 @@ from app.architecture_intelligence.request import (
 )
 from app.graph.repository import open_session
 
-_TOOL_NAME = "get_service_dependencies"
-_EVIDENCE_TOOL_NAME = "get_evidence"
-_DRIFT_TOOL_NAME = "get_architecture_drift"
+_DRIFT_TOOL_NAME, _EVIDENCE_TOOL_NAME, _TOOL_NAME = TOOL_NAMES
 _MAX_CLAIMS = 500
 
 

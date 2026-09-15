@@ -33,6 +33,8 @@ _MAX_OBSERVATION_WINDOW = timedelta(days=31)
 
 ArchitectureSchemaVersion = Literal["0.4"]
 ARCHITECTURE_SCHEMA_VERSION: ArchitectureSchemaVersion = get_args(ArchitectureSchemaVersion)[0]
+ArchitectureToolName = Literal["get_service_dependencies", "get_evidence", "get_architecture_drift"]
+TOOL_NAMES: tuple[ArchitectureToolName, ...] = get_args(ArchitectureToolName)[::-1]
 
 
 class Outcome(StrEnum):
@@ -601,7 +603,7 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
 
     schema_version: ArchitectureSchemaVersion
     producer: Producer
-    tool: Literal["get_service_dependencies", "get_evidence", "get_architecture_drift"]
+    tool: ArchitectureToolName
     outcome: Outcome
     snapshot: SnapshotRef | None
     observation_context: ObservationContextRef | None

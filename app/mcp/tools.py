@@ -42,6 +42,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
 from app.architecture_intelligence.contracts import (
+    TOOL_NAMES,
     ArchitectureAnswer,
     ArchitectureDriftData,
     EvidenceData,
@@ -56,8 +57,6 @@ from app.architecture_intelligence.request import (
 )
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.mcp import wiring
-
-TOOL_NAMES = ("get_architecture_drift", "get_evidence", "get_service_dependencies")
 
 _READ_ONLY_ANNOTATIONS = ToolAnnotations(
     read_only_hint=True,

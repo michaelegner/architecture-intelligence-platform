@@ -36,6 +36,8 @@ import httpx
 import pytest
 from mcp.server import MCPServer
 
+from app.architecture_intelligence import contracts as contracts_module
+from app.architecture_intelligence import service as service_module
 from app.mcp import guard as guard_module
 from app.mcp import server as server_module
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
@@ -46,8 +48,14 @@ _ALLOWED_HOST = "localhost"
 
 
 def test_tool_names_are_single_sourced() -> None:
+    assert contracts_module.TOOL_NAMES is TOOL_NAMES
     assert server_module.TOOL_NAMES is TOOL_NAMES
     assert guard_module.TOOL_NAMES is TOOL_NAMES
+    assert {
+        service_module._DRIFT_TOOL_NAME,
+        service_module._EVIDENCE_TOOL_NAME,
+        service_module._TOOL_NAME,
+    } == set(TOOL_NAMES)
 
 
 def _headers(
