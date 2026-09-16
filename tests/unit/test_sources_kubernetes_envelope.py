@@ -1,5 +1,7 @@
 import hashlib
+import io
 from pathlib import Path
+from typing import Self
 
 import pytest
 import yaml
@@ -14,6 +16,7 @@ from app.sources.kubernetes_envelope import (
     KubernetesEnvelopeLimitExceeded,
     KubernetesEnvelopeMalformedError,
     KubernetesSourceSnapshot,
+    _read_at_most,
     load_bounded_yaml_documents,
     parse_kubernetes_envelope,
     validate_kubernetes_snapshot,
@@ -200,11 +203,28 @@ def test_duplicate_file_paths_rejected():
         parse_kubernetes_envelope(_dump(doc))
 
 
-@pytest.mark.parametrize("bad_path", ["../escape.yaml", "..", "a/../../escape.yaml"])
-def test_unsafe_relative_file_path_rejected(bad_path):
+@pytest.mark.parametrize(
+    "bad_path",
+    [
+        "../escape.yaml",
+        "..",
+        "a/../../escape.yaml",
+        "a/../b.yaml",  # resolvable, but not already normalized - §4.2 requires it to already be
+        "./b.yaml",
+        "a//b.yaml",
+        "a/",
+        "a\\b.yaml",
+    ],
+)
+def test_non_normalized_or_traversing_file_path_rejected(bad_path):
+    # §4.2: "File paths are unique normalized relative POSIX paths." The producer must supply an
+    # already-canonical path; this is not resolved/collapsed on their behalf (unlike $ref
+    # resolution elsewhere in this codebase), since silently accepting a non-normalized form would
+    # let two differently-spelled entries alias the same file, undermining the spec's own
+    # uniqueness requirement over the *supplied* path list.
     doc = _valid_envelope_dict()
     doc["files"] = [{"path": bad_path, "sha256": "a" * 64}]
-    with pytest.raises(ValidationError, match="traversal"):
+    with pytest.raises(ValidationError, match="normalized relative POSIX path"):
         parse_kubernetes_envelope(_dump(doc))
 
 
@@ -212,18 +232,6 @@ def test_absolute_file_path_rejected():
     doc = _valid_envelope_dict()
     doc["files"] = [{"path": "/etc/passwd", "sha256": "a" * 64}]
     with pytest.raises(ValidationError, match="absolute path"):
-        parse_kubernetes_envelope(_dump(doc))
-
-
-def test_file_path_with_resolvable_dot_segments_is_treated_as_its_collapsed_form():
-    # "a/../b.yaml" collapses to "b.yaml" - listing both as separate entries must be caught by the
-    # uniqueness check, since they alias the same physical file once dot segments are resolved.
-    doc = _valid_envelope_dict()
-    doc["files"] = [
-        {"path": "b.yaml", "sha256": "a" * 64},
-        {"path": "a/../b.yaml", "sha256": "a" * 64},
-    ]
-    with pytest.raises(ValidationError, match="unique"):
         parse_kubernetes_envelope(_dump(doc))
 
 
@@ -544,31 +552,70 @@ def test_total_bytes_at_the_boundary_is_accepted_and_one_over_is_rejected(tmp_pa
     assert rejected.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED
 
 
-def test_oversized_envelope_is_rejected_without_reading_its_full_bytes(tmp_path, monkeypatch):
+def test_read_at_most_boundary_and_one_over(tmp_path):
+    # Direct unit coverage of the primitive the byte bound is actually built on: a stat()-then-
+    # read_bytes() pair is a TOCTOU race (the file can grow between the two calls), so the bound
+    # must be enforced by the read call itself, not by trusting a size measured beforehand.
+    path = tmp_path / "data.bin"
+    path.write_bytes(b"x" * 10)
+    assert _read_at_most(path, 9) is None
+    assert _read_at_most(path, 10) == b"x" * 10
+    assert _read_at_most(path, 11) == b"x" * 10
+
+
+def test_read_at_most_never_reads_more_than_the_limit_plus_one_byte(tmp_path, monkeypatch):
+    # A sparse file (no real content materialized) large enough that fully reading it would be
+    # unreasonably slow if this regressed to an unbounded read - proves the read call itself is
+    # capped, independent of the file's actual on-disk size. `io.BufferedReader` is a C type and
+    # cannot be monkeypatched directly, so `Path.open` is wrapped instead.
+    path = tmp_path / "huge.bin"
+    with open(path, "wb") as handle:
+        handle.seek(MAX_TOTAL_BYTES * 4)
+        handle.write(b"\0")
+
+    seen_sizes: list[int] = []
+    original_open = Path.open
+
+    class _TrackingFile:
+        def __init__(self, real_file: io.BufferedReader) -> None:
+            self._real_file = real_file
+
+        def read(self, size: int = -1) -> bytes:
+            seen_sizes.append(size)
+            return self._real_file.read(size)
+
+        def __enter__(self) -> Self:
+            return self
+
+        def __exit__(self, *exc_info: object) -> None:
+            self._real_file.close()
+
+    def _tracking_open(self: Path, *args: object, **kwargs: object) -> _TrackingFile:
+        return _TrackingFile(original_open(self, *args, **kwargs))
+
+    monkeypatch.setattr(Path, "open", _tracking_open)
+    result = _read_at_most(path, MAX_TOTAL_BYTES)
+    assert result is None
+    assert seen_sizes == [MAX_TOTAL_BYTES + 1]
+
+
+def test_oversized_envelope_is_rejected(tmp_path):
     # The envelope's own bytes alone can exceed the bound with an empty files list, in which case
     # the byte-total check inside the per-file loop never runs at all - it must also be checked
-    # once up front, via stat(), *before* the envelope is ever read. A sparse file (no real content
-    # written) is enough to prove this: if the code read the file first, it wouldn't need to be
-    # valid YAML at all to reach the size check, but it also must never actually be read.
+    # once up front, before the envelope's shape is ever parsed. A sparse file (no real content
+    # written) is enough to prove the rejection fires: `_read_at_most` never needs valid YAML to
+    # reach its own size check.
     envelope_path = tmp_path / "envelope.yaml"
     with open(envelope_path, "wb") as handle:
         handle.seek(MAX_TOTAL_BYTES)
         handle.write(b"\0")
 
-    original_read_bytes = Path.read_bytes
-
-    def _guarded_read_bytes(self: Path) -> bytes:
-        if self == envelope_path:
-            pytest.fail("oversized envelope was read despite exceeding the size bound")
-        return original_read_bytes(self)
-
-    monkeypatch.setattr(Path, "read_bytes", _guarded_read_bytes)
     result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert result.result is IngestionResult.REJECTED_UNSUPPORTED
     assert result.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED
 
 
-def test_oversized_listed_file_is_rejected_without_reading_its_full_bytes(tmp_path, monkeypatch):
+def test_oversized_listed_file_is_rejected(tmp_path):
     doc = _valid_envelope_dict()
     doc["files"] = [{"path": "resources.yaml", "sha256": "a" * 64}]
     (tmp_path / "envelope.yaml").write_bytes(_dump(doc))
@@ -577,14 +624,6 @@ def test_oversized_listed_file_is_rejected_without_reading_its_full_bytes(tmp_pa
         handle.seek(MAX_TOTAL_BYTES)
         handle.write(b"\0")
 
-    original_read_bytes = Path.read_bytes
-
-    def _guarded_read_bytes(self: Path) -> bytes:
-        if self == resource_path:
-            pytest.fail("oversized listed file was read despite exceeding the size bound")
-        return original_read_bytes(self)
-
-    monkeypatch.setattr(Path, "read_bytes", _guarded_read_bytes)
     result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert result.result is IngestionResult.REJECTED_UNSUPPORTED
     assert result.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED

@@ -20,9 +20,7 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from app.sources.encoding import sha256_hex
-from app.sources.identity import normalize_relative_posix_path
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult
-from app.sources.reference_resolution import normalize_dot_segments
 
 # I2 Draft 0.2 §4.3: "parser nesting is bounded to 64 levels."
 MAX_YAML_NESTING_DEPTH = 64
@@ -155,14 +153,14 @@ class _BoundedSafeLoader(yaml.SafeLoader):
             # PyYAML's own base `construct_mapping` (which `super()` below would eventually reach)
             # already guards this the same way, but only *after* this loop's own membership check
             # would already have crashed first.
+            # Never echoes the key's own value in the raised message - a mapping key can carry
+            # attacker-controlled document content just as readily as a value can.
             try:
                 is_duplicate = key in seen_keys
             except TypeError as exc:
-                raise KubernetesEnvelopeMalformedError(
-                    f"unhashable YAML mapping key: {key!r}"
-                ) from exc
+                raise KubernetesEnvelopeMalformedError("unhashable YAML mapping key") from exc
             if is_duplicate:
-                raise KubernetesEnvelopeMalformedError(f"duplicate mapping key: {key!r}")
+                raise KubernetesEnvelopeMalformedError("duplicate mapping key")
             seen_keys.add(key)
         return super().construct_mapping(node, deep=deep)
 
@@ -221,9 +219,7 @@ class KubernetesSourceSnapshotSource(_StrictModel):
     @model_validator(mode="after")
     def _check_mode(self) -> KubernetesSourceSnapshotSource:
         if self.mode not in ("DECLARED_MANIFEST", "CAPTURED_RESOURCE"):
-            raise ValueError(
-                f"source.mode must be DECLARED_MANIFEST or CAPTURED_RESOURCE, got {self.mode!r}"
-            )
+            raise ValueError("source.mode must be DECLARED_MANIFEST or CAPTURED_RESOURCE")
         return self
 
 
@@ -244,16 +240,18 @@ class KubernetesSourceSnapshotScope(_StrictModel):
         if "*" in self.namespaces:
             raise ValueError("scope.namespaces must not contain a wildcard")
         if len(set(self.namespaces)) != len(self.namespaces):
-            raise ValueError(f"scope.namespaces must be duplicate-free: {self.namespaces!r}")
+            raise ValueError("scope.namespaces must be duplicate-free")
         if list(self.namespaces) != sorted(self.namespaces):
-            raise ValueError(f"scope.namespaces must be sorted: {self.namespaces!r}")
+            raise ValueError("scope.namespaces must be sorted")
         # §4.2: "The resourceTypes list is the exact eight-entry set above." Set equality, not
         # list-order equality - the spec's own text says "set", and its YAML example shows only one
         # of several plausible orderings (an implementation decision, flagged in the plan/PR).
+        # The expected set itself is a frozen, public constant, safe to echo; the submitted set is
+        # not - it isn't included in the message (see `_sanitize_validation_error`'s own docstring).
         if set(self.resource_types) != EXPECTED_RESOURCE_TYPES:
             raise ValueError(
-                "scope.resourceTypes must be exactly the frozen eight-entry set: "
-                f"{sorted(EXPECTED_RESOURCE_TYPES)!r}, got {sorted(set(self.resource_types))!r}"
+                f"scope.resourceTypes must be exactly the frozen eight-entry set: "
+                f"{sorted(EXPECTED_RESOURCE_TYPES)!r}"
             )
         if len(self.resource_types) != len(EXPECTED_RESOURCE_TYPES):
             raise ValueError("scope.resourceTypes must not contain duplicates")
@@ -283,25 +281,23 @@ class KubernetesSourceSnapshotCompleteness(_StrictModel):
 
 
 def _normalize_relative_file_path(raw_path: str) -> str:
-    """Fully normalizes a `files[].path` entry - used for both the traversal-safety check and the
-    "unique paths" check, so both agree on what counts as "the same file". Absolute-path rejection
-    happens *before* dot-segment normalization (which would otherwise silently strip a leading "/"
-    and mask that the input was absolute at all), mirroring
-    `app.sources.reference_resolution.reject_absolute_decoded_path`'s own "ordering is itself
-    security-relevant" reasoning. Collapsing dot segments (via the same
-    `normalize_dot_segments` this codebase's `$ref` resolution already uses) before the traversal
-    check matters: a bare `normalize_relative_posix_path` never resolves `..` segments, so
-    `"a/../../etc/passwd"` would otherwise pass a naive `startswith("../")` check (it starts with
-    `"a/"`) despite escaping upward once collapsed, and `"a/../b.yaml"` would be wrongly treated as
-    distinct from `"b.yaml"` by the uniqueness check.
+    """§4.2: "File paths are unique normalized relative POSIX paths." This *requires* the producer
+    to already supply a canonical path - it does not resolve one on the producer's behalf. Unlike
+    `$ref` resolution elsewhere in this codebase (which legitimately collapses relative navigation
+    such as `a/../b.yaml` while resolving one document against another), silently accepting and
+    collapsing a non-normalized `files[].path` here would let two differently-spelled envelope
+    entries alias the same underlying file, undermining the spec's own "unique...paths" requirement
+    as stated over the *supplied* list. A backslash, an absolute leading `/`, or any `.`/`..`/empty
+    path segment (the last covers a leading/trailing/doubled `/`) means the path was not already
+    normalized, and is rejected outright rather than silently rewritten.
     """
-    posix_path = normalize_relative_posix_path(raw_path)
-    if posix_path.startswith("/"):
-        raise ValueError(f"files[].path must not be an absolute path: {raw_path!r}")
-    normalized = normalize_dot_segments(posix_path)
-    if normalized.startswith("../") or normalized == "..":
-        raise ValueError(f"files[].path must be a relative path with no traversal: {raw_path!r}")
-    return normalized
+    if not raw_path or "\\" in raw_path:
+        raise ValueError("files[].path must be a normalized relative POSIX path")
+    if raw_path.startswith("/"):
+        raise ValueError("files[].path must not be an absolute path")
+    if any(segment in ("", ".", "..") for segment in raw_path.split("/")):
+        raise ValueError("files[].path must be a normalized relative POSIX path with no traversal")
+    return raw_path
 
 
 class KubernetesSourceSnapshotFileEntry(_StrictModel):
@@ -314,9 +310,7 @@ class KubernetesSourceSnapshotFileEntry(_StrictModel):
         # §4.2: "lowercase-sha256-of-exact-file-bytes" - a hex digest is always lowercase hex, a
         # cheap structural check independent of verifying it against real file bytes later.
         if len(self.sha256) != 64 or any(c not in "0123456789abcdef" for c in self.sha256):
-            raise ValueError(
-                f"files[].sha256 must be a lowercase 64-character hex digest: {self.sha256!r}"
-            )
+            raise ValueError("files[].sha256 must be a lowercase 64-character hex digest")
         return self
 
 
@@ -340,16 +334,16 @@ class KubernetesSourceSnapshot(_StrictModel):
     @model_validator(mode="after")
     def _check_api_version_kind_and_files(self) -> KubernetesSourceSnapshot:
         if self.api_version != "aip.dev/v1":
-            raise ValueError(f"apiVersion must be 'aip.dev/v1', got {self.api_version!r}")
+            raise ValueError("apiVersion must be 'aip.dev/v1'")
         if self.kind != "KubernetesSourceSnapshot":
-            raise ValueError(f"kind must be 'KubernetesSourceSnapshot', got {self.kind!r}")
+            raise ValueError("kind must be 'KubernetesSourceSnapshot'")
         # §4.2: "File paths are unique normalized relative POSIX paths." A missing file list is
         # legal only via an explicit empty list (§4.3: "A bundle with no resources can be complete
         # only through an explicit empty file list") - `files: []` satisfies that; `files` being
         # absent entirely is already rejected by Pydantic's own required-field check.
         normalized_paths = [_normalize_relative_file_path(f.path) for f in self.files]
         if len(set(normalized_paths)) != len(normalized_paths):
-            raise ValueError(f"files[].path must be unique: {normalized_paths!r}")
+            raise ValueError("files[].path must be unique")
         return self
 
 
@@ -472,6 +466,21 @@ def _resolve_contained_file(root: Path, root_real: Path, relative_path: str) -> 
     return real_path
 
 
+def _read_at_most(path: Path, limit: int) -> bytes | None:
+    """Reads at most `limit + 1` bytes from `path`, returning `None` (without ever holding more
+    than `limit + 1` bytes of it in memory) if the file turns out to contain more than `limit`
+    bytes. A prior `stat()` followed by an unbounded `read_bytes()` is a TOCTOU race - the file can
+    grow between those two calls, so the size actually read is never guaranteed to match what was
+    measured. Reading with an explicit cap removes the race entirely: the bound is enforced by the
+    read itself, not by trusting a separate measurement taken beforehand.
+    """
+    with path.open("rb") as handle:
+        data = handle.read(limit + 1)
+    if len(data) > limit:
+        return None
+    return data
+
+
 def validate_kubernetes_snapshot(
     *, root: Path, envelope_relative_path: str
 ) -> KubernetesSnapshotValidationResult:
@@ -488,14 +497,14 @@ def validate_kubernetes_snapshot(
         return _rejected(
             result=IngestionResult.REJECTED_INVALID,
             code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
-            message=f"envelope file is missing or escapes the configured root: {envelope_relative_path!r}",
+            message="envelope file is missing or escapes the configured root",
             source_pointer=envelope_relative_path,
         )
 
-    envelope_size = envelope_path.stat().st_size
-    if envelope_size > MAX_TOTAL_BYTES:
-        # Checked via stat() before ever reading the envelope's bytes, so an oversized envelope is
-        # never fully materialized in memory just to be rejected a moment later.
+    # A bounded read, not stat()-then-read_bytes(): the latter is a TOCTOU race (the file can grow
+    # between the two calls), so the byte-total bound is enforced by the read itself.
+    envelope_bytes = _read_at_most(envelope_path, MAX_TOTAL_BYTES)
+    if envelope_bytes is None:
         return _rejected(
             result=IngestionResult.REJECTED_UNSUPPORTED,
             code=DiagnosticCode.K8S_LIMIT_EXCEEDED,
@@ -503,7 +512,6 @@ def validate_kubernetes_snapshot(
             source_pointer=envelope_relative_path,
         )
 
-    envelope_bytes = envelope_path.read_bytes()
     try:
         envelope = parse_kubernetes_envelope(envelope_bytes)
     except KubernetesEnvelopeLimitExceeded as exc:
@@ -525,7 +533,7 @@ def validate_kubernetes_snapshot(
         return _rejected(
             result=IngestionResult.REJECTED_INVALID,
             code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
-            message=f"completeness.status is not COMPLETE: {envelope.completeness.status!r}",
+            message="completeness.status is not COMPLETE",
             source_pointer=envelope_relative_path,
         )
 
@@ -537,7 +545,7 @@ def validate_kubernetes_snapshot(
             source_pointer=envelope_relative_path,
         )
 
-    total_bytes = envelope_size
+    total_bytes = len(envelope_bytes)
     resources: list[dict] = []
     for file_entry in envelope.files:
         normalized_path = _normalize_relative_file_path(file_entry.path)
@@ -546,26 +554,26 @@ def validate_kubernetes_snapshot(
             return _rejected(
                 result=IngestionResult.REJECTED_INVALID,
                 code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
-                message=f"listed file is missing or escapes the configured root: {file_entry.path!r}",
+                message="listed file is missing or escapes the configured root",
                 source_pointer=normalized_path,
             )
 
-        # Checked via stat() before this file is read, for the same reason as the envelope's own
-        # check above - a single oversized listed file must never be fully read into memory first.
-        total_bytes += resolved.stat().st_size
-        if total_bytes > MAX_TOTAL_BYTES:
+        # Bounded by the *remaining* budget, not stat()-then-read_bytes() - see _read_at_most's own
+        # docstring for why a separate size measurement before the read is a TOCTOU race.
+        file_bytes = _read_at_most(resolved, MAX_TOTAL_BYTES - total_bytes)
+        if file_bytes is None:
             return _rejected(
                 result=IngestionResult.REJECTED_UNSUPPORTED,
                 code=DiagnosticCode.K8S_LIMIT_EXCEEDED,
                 message=f"total input bytes exceeds the {MAX_TOTAL_BYTES}-byte limit",
                 source_pointer=normalized_path,
             )
-        file_bytes = resolved.read_bytes()
+        total_bytes += len(file_bytes)
         if sha256_hex(file_bytes) != file_entry.sha256:
             return _rejected(
                 result=IngestionResult.REJECTED_INVALID,
                 code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
-                message=f"file digest does not match the declared sha256: {file_entry.path!r}",
+                message="file digest does not match the declared sha256",
                 source_pointer=normalized_path,
             )
 
@@ -583,7 +591,7 @@ def validate_kubernetes_snapshot(
             return _rejected(
                 result=IngestionResult.REJECTED_INVALID,
                 code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
-                message=f"file cannot be parsed: {file_entry.path!r}: {_sanitize_parse_error(exc)}",
+                message=f"file cannot be parsed: {_sanitize_parse_error(exc)}",
                 source_pointer=normalized_path,
             )
 
