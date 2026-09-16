@@ -1333,7 +1333,11 @@ def test_persisted_infrastructure_facts_do_not_leak_into_the_public_snapshot(dri
 
 
 def _infra_claim_model(
-    *, source_instance_id: str, evidence_id: str, digest: str = "digest-1"
+    *,
+    source_instance_id: str,
+    evidence_id: str,
+    digest: str = "digest-1",
+    evidence_mode: KubernetesEvidenceMode = KubernetesEvidenceMode.CAPTURED_RESOURCE,
 ) -> ArchitectureModel:
     """The same shared claim (same kind/subject/object, hence the same §7.2 claim identity) asserted
     by a given source with its OWN evidence record."""
@@ -1347,7 +1351,7 @@ def _infra_claim_model(
             InfrastructureContribution(
                 entity_id=entity.id,
                 source_instance_id=source_instance_id,
-                evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+                evidence_mode=evidence_mode,
                 resource_semantic_digest=digest,
                 evidence_refs=[evidence_id],
                 mapping_rule_id="kubernetes-adapter@1",
@@ -1553,3 +1557,53 @@ def test_a_retained_claim_that_changes_evidence_reflects_only_the_new_refs(drive
     )
     # Exactly one claim-support row for this source (overwritten, not accumulated).
     assert _count(driver, "MATCH (c:InfrastructureClaimContribution) RETURN count(c) AS c") == 1
+
+
+def test_two_co_owners_with_different_evidence_modes_each_retain_their_own_mode(driver):
+    """I2 Draft 0.2 §7.2: "Evidence mode is retained per contribution... merging declarations and
+    captures never turns all support into observation" - the same rule §7.1 states for entity
+    contributions, applying here to claim contributions. Two sources supporting the SAME claim via
+    different modes (one DECLARED_MANIFEST, one CAPTURED_RESOURCE) must each retain their own mode
+    on their own contribution row - neither may be overwritten or confused with the other's."""
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(
+            session,
+            "src:k8s-declared",
+            _infra_claim_model(
+                source_instance_id="src:k8s-declared",
+                evidence_id="evidence:kubernetes:declared",
+                evidence_mode=KubernetesEvidenceMode.DECLARED_MANIFEST,
+            ),
+        )
+        _import(
+            session,
+            "src:k8s-captured",
+            _infra_claim_model(
+                source_instance_id="src:k8s-captured",
+                evidence_id="evidence:kubernetes:captured",
+                evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+            ),
+        )
+
+        modes_by_source = {
+            record["source"]: record["mode"]
+            for record in session.run(
+                "MATCH (c:InfrastructureClaimContribution) "
+                "UNWIND c.owner_source_ids AS source "
+                "RETURN source, c.evidence_mode AS mode"
+            )
+        }
+        claim = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.evidence_refs AS refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+
+    # One shared claim, owned by both, carrying both sources' evidence...
+    assert sorted(claim["owners"]) == ["src:k8s-captured", "src:k8s-declared"]
+    assert sorted(claim["refs"]) == ["evidence:kubernetes:captured", "evidence:kubernetes:declared"]
+    # ...but each source's OWN contribution row retains its OWN evidence mode, not the other's.
+    assert modes_by_source == {
+        "src:k8s-declared": "DECLARED_MANIFEST",
+        "src:k8s-captured": "CAPTURED_RESOURCE",
+    }

@@ -418,10 +418,23 @@ def _write_infrastructure_nodes(
         )
         count += 1
 
+    # I2 Draft 0.2 §7.2: "Evidence mode is retained per contribution... merging declarations and
+    # captures never turns all support into observation" - the same requirement §7.1 states for
+    # entity contributions, applied to claim contributions too. `InfrastructureClaim` itself (§7.2's
+    # frozen adapter-facing schema) carries no `evidence_mode` field - by design, since that's a
+    # per-CONTRIBUTION property, not a property of the shared claim - so it is looked up here from
+    # this SAME model's own entity contribution for the claim's subject, which does carry it. This
+    # holds because a claim and its subject's own contribution are always emitted together by the
+    # same adapter for the same source in the same model, and §4.1 guarantees one source has exactly
+    # one immutable evidence mode - so the subject's contribution is authoritative for this claim's
+    # contribution too. `None` only if the model is malformed (a claim whose subject has no
+    # contribution from this same source at all).
+    contribution_by_entity_id = {c.entity_id: c for c in model.infrastructure_contributions}
+
     # The claim node itself carries every field EXCEPT evidence_refs, which is never written here -
     # see `_recompute_infrastructure_claim_evidence`. Its own per-source CONTRIBUTION row (id-scoped
     # per (claim, source), so a reimport correctly overwrites rather than accumulates) is what
-    # actually carries this source's own evidence_refs.
+    # actually carries this source's own evidence_refs and evidence mode.
     claim_query = _MERGE_NODE_TEMPLATE.format(label=INFRASTRUCTURE_CLAIM_LABEL)
     claim_contribution_query = _MERGE_NODE_TEMPLATE.format(
         label=INFRASTRUCTURE_CLAIM_CONTRIBUTION_LABEL
@@ -433,6 +446,7 @@ def _write_infrastructure_nodes(
             props=claim.model_dump(exclude={"evidence_refs"}),
             source_instance_id=source_instance_id,
         )
+        subject_contribution = contribution_by_entity_id.get(claim.subject_id)
         tx.run(
             claim_contribution_query,
             id=_infrastructure_claim_contribution_id(claim.id, source_instance_id),
@@ -441,6 +455,9 @@ def _write_infrastructure_nodes(
                 "evidence_refs": claim.evidence_refs,
                 "mapping_rule_id": claim.mapping_rule_id,
                 "mapping_rule_version": claim.mapping_rule_version,
+                "evidence_mode": (
+                    subject_contribution.evidence_mode if subject_contribution else None
+                ),
             },
             source_instance_id=source_instance_id,
         )
