@@ -60,3 +60,42 @@ def detect_shared_claim_content_conflicts(
     ]
     # Deterministic order regardless of caller-supplied model order or dict iteration order.
     return tuple(sorted(diagnostics, key=lambda d: (d.code, d.source_pointer or "")))
+
+
+def detect_infrastructure_entity_content_conflicts(
+    models: Sequence[ArchitectureModel],
+) -> tuple[IngestionDiagnostic, ...]:
+    """I2 Draft 0.2 §7.1: "For one logical entity ID, equal semantic digests merge contributions and
+    union evidence deterministically... Different semantic digests from simultaneously current
+    sources are incompatible and reject the affected discovery run... no source wins by
+    precedence." A separate function from `detect_shared_claim_content_conflicts` above rather than
+    folding infrastructure entities into it - a distinct fact category (infrastructure, not
+    application), matching `app.canonical.infrastructure` being its own module - but identical in
+    structure: groups every source's claimed entity contributions by `entity_id` across the whole
+    set of models about to be merged, called with the same pre-merge per-source model list before
+    `merge_models`'s own first-wins dedup could discard the disagreement.
+
+    Nothing populates `infrastructure_contributions` yet (I2 Draft 0.2 §3 prerequisite slice, PR B) -
+    this function is exercised today only by direct unit tests, and becomes load-bearing once I2 §12
+    slice 3's Kubernetes adapter exists.
+    """
+    entity_digests: dict[str, set[str]] = {}
+    for model in models:
+        for contribution in model.infrastructure_contributions:
+            entity_digests.setdefault(contribution.entity_id, set()).add(
+                contribution.resource_semantic_digest
+            )
+
+    diagnostics = [
+        IngestionDiagnostic(
+            code=DiagnosticCode.INFRASTRUCTURE_ENTITY_CONTENT_CONFLICT,
+            message=(
+                f"infrastructure entity {entity_id!r} has {len(digests)} disagreeing semantic "
+                f"digests across sources: {sorted(digests)!r}"
+            ),
+            source_pointer=entity_id,
+        )
+        for entity_id, digests in entity_digests.items()
+        if len(digests) > 1
+    ]
+    return tuple(sorted(diagnostics, key=lambda d: (d.code, d.source_pointer or "")))

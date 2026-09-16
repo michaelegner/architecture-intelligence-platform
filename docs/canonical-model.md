@@ -21,6 +21,27 @@ and different data sources from one another.
 pipeline stages: `services`, `operations`, `queues`, `messages`, `schemas`, `relations`,
 `provenance`.
 
+## Infrastructure entities and claims (`app/canonical/infrastructure.py`) — internal-only
+
+v0.5.0 I2 (Kubernetes discovery) added the Canonical Model's *capacity* to carry Kubernetes
+infrastructure facts, a category distinct from the application-level entities above. As of this
+writing no adapter populates them yet (that begins with I2's own later increments) — the shapes
+exist so `merge_models` and cross-source content-conflict detection already know how to carry and
+reconcile them once a real adapter does.
+
+| Entity | Key fields |
+|---|---|
+| `InfrastructureEntity` | `id`, `entity_kind` (`KUBERNETES_WORKLOAD` \| `KUBERNETES_POD` \| `KUBERNETES_NETWORK_SERVICE` \| `KUBERNETES_INGRESS`), `cluster_uid`, `api_group`, `resource_kind`, `namespace`, `name`, plus `service_type`/`ports` (meaningful only for `KUBERNETES_NETWORK_SERVICE`) |
+| `InfrastructureContribution` | one source's own claim about an `InfrastructureEntity`: `entity_id`, `source_instance_id`, `evidence_mode` (`DECLARED_MANIFEST` \| `CAPTURED_RESOURCE`), `resource_semantic_digest`, `evidence_refs`, `mapping_rule_id`, `mapping_rule_version` |
+| `InfrastructureClaim` | `kind` (`WORKLOAD_EXISTS` \| `WORKLOAD_OWNS_POD` \| `NETWORK_SERVICE_SELECTS_WORKLOAD` \| `INGRESS_ROUTES_TO_NETWORK_SERVICE`), `subject_id`, `object_id` (`None` for the unary `WORKLOAD_EXISTS` claim — no sentinel entity or self-edge), `evidence_refs`, `mapping_rule_id`, `mapping_rule_version` |
+
+`ArchitectureModel` carries these as `infrastructure_entities`, `infrastructure_contributions`, and
+`infrastructure_claims` alongside the application-level lists above. They are **internal-only**: not
+persisted to Neo4j, not exposed via REST or MCP, and unrelated to `docs/graph-model.md`'s node/
+relationship model — see the governing spec
+(`docs/specifications/0.5.0/i2-kubernetes-discovery-vertical-slice.md` §7, §9) before assuming any
+public exposure or graph persistence exists for them.
+
 ## Deterministic IDs (`app/canonical/ids.py`)
 
 Every entity id is a stable, deterministic string, never a database-generated surrogate key and

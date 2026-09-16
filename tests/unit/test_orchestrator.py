@@ -2,7 +2,16 @@ from pathlib import Path
 
 import yaml
 
-from app.ingestion.orchestrator import run_discovery, run_filesystem_discovery
+from app.canonical.infrastructure import (
+    InfrastructureClaim,
+    InfrastructureClaimKind,
+    InfrastructureContribution,
+    InfrastructureEntity,
+    InfrastructureEntityKind,
+    KubernetesEvidenceMode,
+)
+from app.canonical.model import ArchitectureModel
+from app.ingestion.orchestrator import merge_models, run_discovery, run_filesystem_discovery
 from app.sources.identity import source_instance_id
 from app.sources.inventory import InventoryStatus
 from app.sources.migration_mappings import (
@@ -778,3 +787,99 @@ def test_a_tombstone_for_a_different_scope_does_not_affect_this_scopes_snapshot_
         with_out_of_scope_tombstone.inventory_snapshot.inventory_revision
         == without.inventory_snapshot.inventory_revision
     )
+
+
+# I2 Draft 0.2 §3 prerequisite slice (PR B), §7.1: merge_models' dedup behavior for the new
+# infrastructure entity/contribution/claim lists, mirroring every existing entity kind's own
+# first-wins dedup - nothing populates these fields through a real adapter yet (I2 §12 slice 3), so
+# these are direct unit tests of merge_models rather than end-to-end filesystem-discovery ones.
+
+_ENTITY = InfrastructureEntity(
+    id="urn:aip:k8s-resource:deadbeef",
+    entity_kind=InfrastructureEntityKind.KUBERNETES_WORKLOAD,
+    cluster_uid="cluster-1",
+    api_group="apps",
+    resource_kind="Deployment",
+    namespace="default",
+    name="order-service",
+)
+
+
+def _contribution(*, entity_id: str, source_instance_id: str) -> InfrastructureContribution:
+    return InfrastructureContribution(
+        entity_id=entity_id,
+        source_instance_id=source_instance_id,
+        evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+        resource_semantic_digest="digest-1",
+        evidence_refs=["evidence:kubernetes:1"],
+        mapping_rule_id="kubernetes-adapter@1",
+        mapping_rule_version="v1",
+    )
+
+
+def _claim(*, subject_id: str) -> InfrastructureClaim:
+    return InfrastructureClaim(
+        kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+        subject_id=subject_id,
+        evidence_refs=["evidence:kubernetes:1"],
+        mapping_rule_id="kubernetes-adapter@1",
+        mapping_rule_version="v1",
+    )
+
+
+def test_merge_models_dedupes_infrastructure_entities_by_id():
+    merged = merge_models(
+        [
+            ArchitectureModel(infrastructure_entities=[_ENTITY]),
+            ArchitectureModel(infrastructure_entities=[_ENTITY]),
+        ]
+    )
+    assert merged.infrastructure_entities == [_ENTITY]
+
+
+def test_merge_models_dedupes_identical_infrastructure_contributions():
+    contribution = _contribution(
+        entity_id=_ENTITY.id, source_instance_id="urn:aip:source:kubernetes:1"
+    )
+    merged = merge_models(
+        [
+            ArchitectureModel(infrastructure_contributions=[contribution]),
+            ArchitectureModel(infrastructure_contributions=[contribution]),
+        ]
+    )
+    assert merged.infrastructure_contributions == [contribution]
+
+
+def test_merge_models_keeps_distinct_contributions_from_different_sources():
+    first = _contribution(entity_id=_ENTITY.id, source_instance_id="urn:aip:source:kubernetes:1")
+    second = _contribution(entity_id=_ENTITY.id, source_instance_id="urn:aip:source:kubernetes:2")
+    merged = merge_models(
+        [
+            ArchitectureModel(infrastructure_contributions=[first]),
+            ArchitectureModel(infrastructure_contributions=[second]),
+        ]
+    )
+    assert len(merged.infrastructure_contributions) == 2
+
+
+def test_merge_models_dedupes_infrastructure_claims_by_kind_subject_object():
+    claim = _claim(subject_id=_ENTITY.id)
+    merged = merge_models(
+        [
+            ArchitectureModel(infrastructure_claims=[claim]),
+            ArchitectureModel(infrastructure_claims=[claim]),
+        ]
+    )
+    assert merged.infrastructure_claims == [claim]
+
+
+def test_merge_models_keeps_distinct_claims_with_different_subjects():
+    first = _claim(subject_id="urn:aip:k8s-resource:a")
+    second = _claim(subject_id="urn:aip:k8s-resource:b")
+    merged = merge_models(
+        [
+            ArchitectureModel(infrastructure_claims=[first]),
+            ArchitectureModel(infrastructure_claims=[second]),
+        ]
+    )
+    assert len(merged.infrastructure_claims) == 2

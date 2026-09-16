@@ -137,6 +137,13 @@ class DiagnosticCode(StrEnum):
     # general (source-kind-neutral) transactional predecessor check - the general mechanism the
     # Kubernetes-specific K8S_STALE_INVENTORY code (a later, K8s-specific slice) will layer on.
     STALE_INVENTORY_PREDECESSOR = "STALE_INVENTORY_PREDECESSOR"
+    # Not named by the spec text; introduced here for the I2 Draft 0.2 §3 prerequisite slice's (PR
+    # B) infrastructure-entity cross-source content-conflict rule (§7.1: "different semantic digests
+    # from simultaneously current sources are incompatible and reject the affected discovery run"),
+    # mirroring SCHEMA_CONTENT_CONFLICT/MESSAGE_CONTENT_CONFLICT above. Generalized, not Kubernetes-
+    # specific, matching STALE_INVENTORY_PREDECESSOR's own precedent - a later Kubernetes-specific
+    # K8S_RESOURCE_CONFLICT code (§10) may layer on top of this same underlying rejection.
+    INFRASTRUCTURE_ENTITY_CONTENT_CONFLICT = "INFRASTRUCTURE_ENTITY_CONTENT_CONFLICT"
 
 
 class IngestionDiagnostic(BaseModel):

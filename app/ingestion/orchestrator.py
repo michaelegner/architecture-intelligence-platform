@@ -18,13 +18,21 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.canonical.infrastructure import (
+    InfrastructureClaim,
+    InfrastructureContribution,
+    InfrastructureEntity,
+)
 from app.canonical.model import ArchitectureModel, Message, Operation, Queue, Schema, Service
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.manifest_adapter import ManifestSourceAdapter
 from app.ingestion.openapi_adapter import OpenApiSourceAdapter
 from app.provenance.model import Provenance
-from app.sources.claim_conflicts import detect_shared_claim_content_conflicts
+from app.sources.claim_conflicts import (
+    detect_infrastructure_entity_content_conflicts,
+    detect_shared_claim_content_conflicts,
+)
 from app.sources.commit_gate import classify_inventory_status, run_is_eligible_to_commit
 from app.sources.identity import mapping_context_digest as compute_mapping_context_digest
 from app.sources.inventory import (
@@ -83,6 +91,16 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
     relations = []
     seen_relations: set[tuple[str, str, str]] = set()
     provenance: list[Provenance] = []
+    # I2 Draft 0.2 §3 prerequisite slice (PR B), §7.1: dedup keys are this PR's own choice, matching
+    # the pattern `relations`' own (type, source_id, target_id) key already establishes - not
+    # literally named by the spec text, which describes the merge/conflict *rule*, not an in-memory
+    # dict key. First-wins here, exactly like every other entity kind above: the real per-source
+    # evidence union (§7.1: "equal semantic digests merge contributions and union evidence") is a
+    # later slice's graph-write concern, once a real adapter and persistence path exist - nothing
+    # populates these fields yet.
+    infrastructure_entities: dict[str, InfrastructureEntity] = {}
+    infrastructure_contributions: dict[tuple[str, str], InfrastructureContribution] = {}
+    infrastructure_claims: dict[tuple[str, str, str | None], InfrastructureClaim] = {}
 
     for model in models:
         for service in model.services:
@@ -101,6 +119,14 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
                 seen_relations.add(key)
                 relations.append(relation)
         provenance.extend(model.provenance)
+        for entity in model.infrastructure_entities:
+            infrastructure_entities.setdefault(entity.id, entity)
+        for contribution in model.infrastructure_contributions:
+            infrastructure_contributions.setdefault(
+                (contribution.entity_id, contribution.source_instance_id), contribution
+            )
+        for claim in model.infrastructure_claims:
+            infrastructure_claims.setdefault((claim.kind, claim.subject_id, claim.object_id), claim)
 
     return ArchitectureModel(
         services=list(services.values()),
@@ -110,6 +136,9 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
         schemas=list(schemas.values()),
         relations=relations,
         provenance=provenance,
+        infrastructure_entities=list(infrastructure_entities.values()),
+        infrastructure_contributions=list(infrastructure_contributions.values()),
+        infrastructure_claims=list(infrastructure_claims.values()),
     )
 
 
@@ -544,8 +573,16 @@ def run_discovery(
     # §8.1/§9.1: "Two current owners explicitly mapped to one shared Schema ID with different
     # canonical hashes are REJECTED_CONFLICT" (and the Message equivalent) - only visible once every
     # source's own claims are collected together, so this runs on the pre-merge per-source model
-    # list, before merge_models' own first-wins dedup could discard the disagreement.
-    content_conflicts = detect_shared_claim_content_conflicts(source_models)
+    # list, before merge_models' own first-wins dedup could discard the disagreement. I2 Draft 0.2
+    # §7.1's equivalent rule for infrastructure entity contributions is checked the same way, at the
+    # same point, even though nothing populates infrastructure_contributions yet.
+    content_conflicts = tuple(
+        sorted(
+            detect_shared_claim_content_conflicts(source_models)
+            + detect_infrastructure_entity_content_conflicts(source_models),
+            key=lambda d: (d.code, d.source_pointer or ""),
+        )
+    )
     if content_conflicts:
         run_diagnostics.extend(content_conflicts)
         return DiscoveryRunResult(
