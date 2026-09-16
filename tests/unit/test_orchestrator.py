@@ -824,11 +824,11 @@ def _contribution(*, entity_id: str, source_instance_id: str) -> InfrastructureC
     )
 
 
-def _claim(*, subject_id: str) -> InfrastructureClaim:
+def _claim(*, subject_id: str, evidence_refs=("evidence:kubernetes:1",)) -> InfrastructureClaim:
     return InfrastructureClaim(
         kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
         subject_id=subject_id,
-        evidence_refs=["evidence:kubernetes:1"],
+        evidence_refs=list(evidence_refs),
         mapping_rule_id="kubernetes-adapter@1",
         mapping_rule_version="v1",
     )
@@ -997,3 +997,29 @@ def test_disagreeing_infrastructure_digests_reject_the_run_and_both_sources():
         IngestionResult.REJECTED_CONFLICT,
         IngestionResult.REJECTED_CONFLICT,
     ]
+
+
+def test_merge_models_unions_evidence_for_a_shared_claim():
+    """§7.2 requires "deterministic evidence union" for a claim identity shared across sources -
+    first-wins would silently discard the second source's evidence (a real bug found in PR review).
+    """
+    first = _claim(subject_id=_ENTITY.id, evidence_refs=("evidence:kubernetes:b",))
+    second = _claim(subject_id=_ENTITY.id, evidence_refs=("evidence:kubernetes:a",))
+    merged = merge_models(
+        [
+            ArchitectureModel(infrastructure_claims=[first]),
+            ArchitectureModel(infrastructure_claims=[second]),
+        ]
+    )
+    [claim] = merged.infrastructure_claims
+    # Unioned and re-sorted, so the merged claim still satisfies its own sorted/duplicate-free
+    # invariant - and identical regardless of which source was seen first.
+    assert claim.evidence_refs == ["evidence:kubernetes:a", "evidence:kubernetes:b"]
+
+    reversed_merge = merge_models(
+        [
+            ArchitectureModel(infrastructure_claims=[second]),
+            ArchitectureModel(infrastructure_claims=[first]),
+        ]
+    )
+    assert reversed_merge.infrastructure_claims[0].evidence_refs == claim.evidence_refs

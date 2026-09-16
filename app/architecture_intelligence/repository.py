@@ -18,6 +18,7 @@ import neo4j
 
 from app.analysis.runtime import telemetry_coverage
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
+from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
 
 # Bumping this - or changing any query/rule below - is a snapshot-fingerprint contract change and
@@ -43,8 +44,13 @@ _SCHEMA_QUERY = (
     "MATCH (n:Schema) RETURN n.id AS id, n.name AS name, n.version AS version, "
     "n.format AS format, n.canonical_hash AS canonical_hash"
 )
+# I2 Draft 0.2 §9 (amended): evidence from a Kubernetes source supports only internal-only
+# infrastructure entities/contributions/claims, none of which this projection exposes - so the
+# evidence itself stays internal too. Without this filter, merely configuring a Kubernetes source
+# would change the public snapshot fingerprint every MCP answer carries.
 _EVIDENCE_QUERY = (
-    "MATCH (n:Evidence) RETURN n.id AS id, n.source_type AS source_type, "
+    f"MATCH (n:Evidence) WHERE n.source_type <> '{KUBERNETES_SOURCE_TYPE}' "
+    "RETURN n.id AS id, n.source_type AS source_type, "
     "n.source_file AS source_file, n.source_revision AS source_revision, "
     "n.evidence_type AS evidence_type, n.environment AS environment, "
     "n.bucket_start AS bucket_start, n.bucket_end AS bucket_end, n.first_seen AS first_seen, "

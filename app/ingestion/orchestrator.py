@@ -126,7 +126,23 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
                 (contribution.entity_id, contribution.source_instance_id), contribution
             )
         for claim in model.infrastructure_claims:
-            infrastructure_claims.setdefault((claim.kind, claim.subject_id, claim.object_id), claim)
+            # §7.2: a claim's identity is shared across sources (hash of kind/subject/object), and
+            # "deterministic evidence union" is required - first-wins would silently discard the
+            # second source's evidence here, exactly as `SET n += $props` would overwrite it at the
+            # graph layer (a real bug found in PR review). Union and re-sort so the merged claim
+            # still satisfies its own sorted/duplicate-free invariant.
+            key = (claim.kind, claim.subject_id, claim.object_id)
+            existing = infrastructure_claims.get(key)
+            if existing is None:
+                infrastructure_claims[key] = claim
+            elif set(claim.evidence_refs) - set(existing.evidence_refs):
+                infrastructure_claims[key] = existing.model_copy(
+                    update={
+                        "evidence_refs": sorted(
+                            set(existing.evidence_refs) | set(claim.evidence_refs)
+                        )
+                    }
+                )
 
     return ArchitectureModel(
         services=list(services.values()),

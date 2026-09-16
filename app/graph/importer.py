@@ -74,6 +74,23 @@ INFRASTRUCTURE_ENTITY_LABEL = "InfrastructureEntity"
 INFRASTRUCTURE_CONTRIBUTION_LABEL = "InfrastructureContribution"
 INFRASTRUCTURE_CLAIM_LABEL = "InfrastructureClaim"
 
+# A claim node is shared by every source asserting the same (kind, subject, object) - §7.2's own
+# identity rule - so its `evidence_refs` MUST be unioned across sources, never overwritten:
+# `SET n += $props` would make the stored evidence depend on which source happened to write last,
+# and dropping that source would leave the surviving claim pointing at deleted evidence (a real bug
+# found in PR review). This mirrors `_MERGE_RELATION_TEMPLATE`'s `reduce(...)` union, the proven
+# in-repo mechanism for the identical "one shared fact, several sources' evidence" shape. Entity and
+# contribution nodes need no such treatment: an entity carries no evidence of its own, and a
+# contribution's id is already per-(entity, source), so two sources can never write the same one.
+_MERGE_INFRASTRUCTURE_CLAIM_QUERY = (
+    f"MERGE (n:{INFRASTRUCTURE_CLAIM_LABEL} {{id: $id}}) "
+    "SET n += $props "
+    "SET n.owner_source_ids = CASE WHEN $source_instance_id IN coalesce(n.owner_source_ids, []) "
+    "THEN n.owner_source_ids ELSE coalesce(n.owner_source_ids, []) + $source_instance_id END "
+    "SET n.evidence_refs = reduce(acc = coalesce(n.evidence_refs, []), eid IN $evidence_refs | "
+    "CASE WHEN eid IN acc THEN acc ELSE acc + eid END)"
+)
+
 # I1 spec §4/§7: this is the source-adapter seam's own frozen relation vocabulary, unchanged from
 # the PoC-era value in the now-deleted app.graph.reconciliation - relocated here since that module
 # is deleted (its node/relation-id set diffing is superseded by source-instance-scoped,
@@ -149,17 +166,44 @@ _STRIP_STALE_EVIDENCE_QUERY = (
     "MATCH ()-[r]->() WHERE eid IN coalesce(r.evidence_ids, []) "
     "SET r.evidence_ids = [x IN r.evidence_ids WHERE x <> eid]"
 )
+# `WHERE NOT n:InfrastructureClaim` on both: a claim node is shared by every source that asserts
+# the same (kind, subject, object) but carries each of their evidence, so it retires through
+# `_EXPIRE_INFRASTRUCTURE_CLAIMS_QUERY` below - which strips only the departing source's own
+# evidence - rather than through these owner-count-only queries. Without that exclusion, a claim
+# losing one of two owners would keep the *other* source's node while silently retaining the
+# departing source's (now deleted) evidence refs.
 _EXPIRE_NODES_QUERY = (
     "UNWIND $ids AS nid "
-    "MATCH (n {id: nid}) "
+    "MATCH (n {id: nid}) WHERE NOT n:InfrastructureClaim "
     "SET n.owner_source_ids = [x IN n.owner_source_ids WHERE x <> $source_instance_id] "
     "WITH n WHERE size(n.owner_source_ids) = 0 "
     "DETACH DELETE n"
 )
 _REMOVE_NODE_OWNERSHIP_QUERY = (
     "UNWIND $ids AS nid "
-    "MATCH (n {id: nid}) "
+    "MATCH (n {id: nid}) WHERE NOT n:InfrastructureClaim "
     "SET n.owner_source_ids = [x IN n.owner_source_ids WHERE x <> $source_instance_id]"
+)
+
+# I2 Draft 0.2 §7.2: "Claim contributions use the same source ownership, evidence-mode retention,
+# deterministic evidence union, and incompatible-current-contribution rejection rules as entity
+# contributions." A claim's identity is shared across sources (hash of kind/subject/object), so this
+# mirrors `_EXPIRE_RELATIONS_QUERY` exactly - the proven in-repo mechanism for "one shared fact,
+# per-source evidence": strip this source from the owner list, recompute `evidence_refs` by dropping
+# only refs that are (a) DECLARED and (b) actually attributed to this source via that Evidence node's
+# own `owner_source_ids`, and delete the claim only once no evidence supports it at all. Correct for
+# both the expired and ownership-removed cases: a surviving co-owner's evidence keeps it alive.
+_EXPIRE_INFRASTRUCTURE_CLAIMS_QUERY = (
+    "UNWIND $ids AS nid "
+    "MATCH (n:InfrastructureClaim {id: nid}) "
+    "SET n.owner_source_ids = [x IN n.owner_source_ids WHERE x <> $source_instance_id] "
+    "WITH n, [eid IN n.evidence_refs WHERE NOT EXISTS { "
+    "MATCH (e:Evidence {id: eid}) "
+    "WHERE e.evidence_type = 'DECLARED' AND $source_instance_id IN coalesce(e.owner_source_ids, []) "
+    "} ] AS remaining_evidence_refs "
+    "SET n.evidence_refs = remaining_evidence_refs "
+    "WITH n WHERE size(n.evidence_refs) = 0 "
+    "DETACH DELETE n"
 )
 # A stale relation key must not be deleted outright just because its declaring source stopped
 # declaring it - it may still carry OBSERVED evidence (the H4 telemetry pipeline) or DECLARED
@@ -291,6 +335,26 @@ def _infrastructure_entity_props(entity) -> dict:
     return props
 
 
+def _expire_infrastructure_claims(tx, node_plan, *, source_instance_id: str) -> None:
+    """Retires this source's stake in every infrastructure claim it no longer emits - whether it was
+    the claim's sole owner (`expired_claim_keys`) or one of several (`ownership_removed_claim_keys`).
+    The same query serves both: it removes only this source's own evidence, and deletes the claim
+    only once nothing supports it, so a co-owner's evidence keeps the claim alive by construction.
+
+    MUST run before `_EXPIRE_NODES_QUERY` deletes this source's `Evidence` nodes - the query decides
+    which refs to drop by looking those nodes up, so a deleted one would read as "not this source's"
+    and be wrongly retained. `_EXPIRE_RELATIONS_QUERY` is sequenced ahead of the same deletion for
+    exactly this reason.
+    """
+    claim_keys = sorted(node_plan.expired_claim_keys | node_plan.ownership_removed_claim_keys)
+    if claim_keys:
+        tx.run(
+            _EXPIRE_INFRASTRUCTURE_CLAIMS_QUERY,
+            ids=claim_keys,
+            source_instance_id=source_instance_id,
+        )
+
+
 def _write_infrastructure_nodes(
     tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
 ) -> int:
@@ -327,12 +391,12 @@ def _write_infrastructure_nodes(
         )
         count += 1
 
-    claim_query = _MERGE_NODE_TEMPLATE.format(label=INFRASTRUCTURE_CLAIM_LABEL)
     for claim in model.infrastructure_claims:
         tx.run(
-            claim_query,
+            _MERGE_INFRASTRUCTURE_CLAIM_QUERY,
             id=claim.id,
-            props=claim.model_dump(),
+            props=claim.model_dump(exclude={"evidence_refs"}),
+            evidence_refs=claim.evidence_refs,
             source_instance_id=source_instance_id,
         )
         count += 1
@@ -515,6 +579,7 @@ def _import_source_tx(
             keys=list(relation_plan.ownership_removed_claim_keys),
             source_instance_id=source_instance_id,
         )
+    _expire_infrastructure_claims(tx, node_plan, source_instance_id=source_instance_id)
     if node_plan.expired_claim_keys:
         tx.run(_STRIP_STALE_EVIDENCE_QUERY, ids=list(node_plan.expired_claim_keys))
         tx.run(
@@ -603,6 +668,7 @@ def _remove_source_tx(
             keys=list(relation_plan.ownership_removed_claim_keys),
             source_instance_id=source_instance_id,
         )
+    _expire_infrastructure_claims(tx, node_plan, source_instance_id=source_instance_id)
     if node_plan.expired_claim_keys:
         tx.run(_STRIP_STALE_EVIDENCE_QUERY, ids=list(node_plan.expired_claim_keys))
         tx.run(

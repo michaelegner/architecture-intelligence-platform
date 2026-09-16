@@ -489,6 +489,20 @@ This draft freezes the following deliberately bounded exposure decision:
 | Scope/ingestion diagnostics | Existing I1 ingestion report envelope | Follow I1 ingestion reporting where present; no architecture claim payload | Not added to MCP |
 | `DEPLOYED_AS` | Not emitted by I2 | I3 owns its schema/exposure | I3 owns its existing-tool integration |
 | Locality-qualified relations | Not created | Not exposed | Not exposed |
+| Kubernetes source evidence/provenance | Ordinary `Evidence`/`Provenance` records owned by the Kubernetes source | Not exposed | Not exposed |
+
+**Draft 0.2 amendment (§9 evidence exposure).** A Kubernetes source writes ordinary
+`Evidence`/`Provenance` records for the facts it contributes. Those records SHALL NOT appear on any
+public evidence surface — neither the REST evidence endpoints nor the canonical snapshot projection
+that every MCP answer's snapshot identity is computed from. Evidence supporting only internal-only
+entities, contributions, and claims is itself internal: exposing it while hiding everything it
+supports would leak the existence, count, and source attribution of those facts indirectly, and
+would make merely *configuring* a Kubernetes source change the public snapshot fingerprint for every
+existing consumer — a public-surface change this increment does not otherwise make. This resolves an
+ambiguity found during I2's prerequisite implementation: the original table listed only claims, the
+resource/incarnation index, diagnostics, `DEPLOYED_AS`, and locality relations, leaving evidence
+unstated. Exposure of Kubernetes evidence requires an explicit versioned exposure amendment, exactly
+as §9 already requires for the claims themselves.
 
 The internal logical claim fields are fixed by §7. No public ArchitectureAnswer schema version
 change is required solely for these internal-only claims. Their inclusion in any future public

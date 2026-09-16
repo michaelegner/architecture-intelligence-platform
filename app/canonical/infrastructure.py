@@ -51,6 +51,16 @@ class InfrastructureClaimKind(StrEnum):
     INGRESS_ROUTES_TO_NETWORK_SERVICE = "INGRESS_ROUTES_TO_NETWORK_SERVICE"
 
 
+KUBERNETES_SOURCE_TYPE = "KUBERNETES"
+"""The `Provenance.source_type` a Kubernetes source stamps on its own evidence.
+
+Deliberately not a member of `app.provenance.model.SourceType`: that enum types the *frozen* public
+v0.4 evidence schema, and I2 Draft 0.2 §9 (as amended) keeps Kubernetes evidence off every public
+surface, so no public payload can ever carry this value - widening the public enum would change a
+frozen schema to admit something unreachable. `app.architecture_intelligence.repository` and
+`app.api.evidence` filter on exactly this value.
+"""
+
 UNARY_CLAIM_KINDS = frozenset({InfrastructureClaimKind.WORKLOAD_EXISTS})
 """I2 Draft 0.2 §7.2: "`WORKLOAD_EXISTS` is a first-class unary claim whose `object_id` is null.
 Implementations MUST NOT invent a sentinel entity or self-edge to force it through a binary-relation

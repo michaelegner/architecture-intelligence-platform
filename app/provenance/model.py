@@ -4,6 +4,17 @@ from enum import StrEnum
 from pydantic import BaseModel, Field
 
 
+# The source types a *public* evidence answer may carry. Deliberately does NOT include Kubernetes:
+# `app.architecture_intelligence.contracts` types the frozen v0.4 evidence schema's `source_type`
+# from this enum, and I2 Draft 0.2 §9 (as amended) keeps Kubernetes evidence off every public
+# surface - so no public payload can ever carry it, and widening this enum would change a frozen
+# public schema to admit a value that can never appear. The internal value lives at
+# `app.canonical.infrastructure.KUBERNETES_SOURCE_TYPE`.
+#
+# Kept as a comment rather than a class docstring on purpose: Pydantic exports a model/enum
+# docstring as the generated JSON Schema's `description`, so writing this as a docstring would
+# itself change the frozen public schema (caught by tests/unit/test_architecture_intelligence_
+# schema_frozen.py).
 class SourceType(StrEnum):
     OPENAPI = "OPENAPI"
     ASYNCAPI = "ASYNCAPI"
