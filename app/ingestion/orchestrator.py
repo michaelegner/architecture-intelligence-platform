@@ -31,6 +31,10 @@ from app.sources.manifest_bindings import (
     build_binding_index,
     parse_architecture_identity_bindings,
 )
+from app.sources.migration_mappings import (
+    EMPTY_SHARED_IDENTITY_INDEX,
+    SharedIdentityMappingIndex,
+)
 from app.sources.model import (
     DiagnosticCode,
     FilesystemSourceConfig,
@@ -117,6 +121,25 @@ class _RunServiceIdentityResolver:
         )
 
 
+class _RunSharedIdentityResolver:
+    """One instance built per discovery run, closing over every configured migration-mapping file's
+    merged `SharedIdentityMappingIndex`. Handed to every adapter the same way
+    `_RunServiceIdentityResolver` is - adapters never see the index or its source files directly.
+    """
+
+    def __init__(self, index: SharedIdentityMappingIndex):
+        self._index = index
+
+    def schema_id_for(self, *, source_instance_id: str, pointer: str) -> str | None:
+        return self._index.schema_id_for(source_instance_id=source_instance_id, pointer=pointer)
+
+    def message_id_for(self, *, source_instance_id: str, pointer: str) -> str | None:
+        return self._index.message_id_for(source_instance_id=source_instance_id, pointer=pointer)
+
+    def queue_id_for(self, *, source_instance_id: str, pointer: str) -> str | None:
+        return self._index.queue_id_for(source_instance_id=source_instance_id, pointer=pointer)
+
+
 def _binding_index_to_pointer_bindings(binding_index: BindingIndex) -> tuple[PointerBinding, ...]:
     return tuple(
         PointerBinding(
@@ -130,16 +153,21 @@ def _binding_index_to_pointer_bindings(binding_index: BindingIndex) -> tuple[Poi
 
 
 def _compute_mapping_context_digest(
-    binding_index: BindingIndex, registry: SourceAdapterRegistry
+    binding_index: BindingIndex,
+    registry: SourceAdapterRegistry,
+    shared_identity_index: SharedIdentityMappingIndex,
 ) -> str:
     """I1 spec §5.3: the context's input is "the complete canonical index of configured and
     manifest Service bindings, shared Schema/Message mappings, Queue/destination and broker/server/
     namespace mappings, bundled migration mappings, and all active adapter, normalization, and
-    mapping-rule identities/versions." 3a's context is honestly small: only the manifest-binding
-    index and the registered adapters' own identities are populated; every other mapping category
-    not yet wired in 3a is an explicit empty array ("Explicit empty arrays represent absent mapping
-    categories" - §5.3).
+    mapping-rule identities/versions." `shared_identity_index` is accepted here starting in PR4 but
+    not yet folded into the context (still explicit empty arrays below) - wiring its real content
+    into `sharedSchemaMappings`/`sharedMessageMappings`/`sharedQueueMappings`/
+    `bundledMigrationMappings` per the classification rule is a later commit in this same PR, kept
+    separate so this plumbing-only change has zero behavior difference from before it landed.
+    "Explicit empty arrays represent absent mapping categories" - §5.3.
     """
+    del shared_identity_index  # not yet consumed - see docstring
     context = {
         "manifestBindings": sort_entries_by_canonical_bytes(
             [
@@ -188,9 +216,13 @@ class DiscoveryRunResult:
 
 
 def run_filesystem_discovery(
-    config: FilesystemSourceConfig, *, registry: SourceAdapterRegistry | None = None
+    config: FilesystemSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
 ) -> DiscoveryRunResult:
     registry = registry or default_registry()
+    shared_identity_index = migration_mappings or EMPTY_SHARED_IDENTITY_INDEX
     discovery_outcome = FilesystemSourceDiscoverer(config).discover()
 
     if not discovery_outcome.enumeration_complete:
@@ -253,7 +285,10 @@ def run_filesystem_discovery(
         )
 
     resolver = _RunServiceIdentityResolver(_binding_index_to_pointer_bindings(binding_index))
-    run_mapping_context_digest = _compute_mapping_context_digest(binding_index, registry)
+    shared_identity_resolver = _RunSharedIdentityResolver(shared_identity_index)
+    run_mapping_context_digest = _compute_mapping_context_digest(
+        binding_index, registry, shared_identity_index
+    )
 
     mappable_sources = [
         loaded for loaded in loaded_sources if not _is_identity_bindings_document(loaded.document)
@@ -289,6 +324,7 @@ def run_filesystem_discovery(
             outcome = adapter.map(
                 enriched,
                 service_identity=resolver,
+                shared_identity=shared_identity_resolver,
                 upstream_model=phase_upstream_model,
                 mapping_context_digest=run_mapping_context_digest,
             )

@@ -21,6 +21,19 @@ class ServiceIdentityResolver(Protocol):
     ) -> ServiceIdentityResolution: ...
 
 
+class SharedIdentityResolver(Protocol):
+    """I1 spec §5.1.1/§8.1/§9/§9.1's explicit shared-identity/migration mapping mechanism, exposed
+    to adapters the same way `ServiceIdentityResolver` is: an injected lookup, not a pre-resolved
+    value, since only the adapter walking its own document knows a construct's exact resolved
+    pointer. `None` means no configured mapping applies to that exact `(source_instance_id,
+    pointer)` pair - the adapter falls back to its own owner-scoped default identity formula.
+    """
+
+    def schema_id_for(self, *, source_instance_id: str, pointer: str) -> str | None: ...
+    def message_id_for(self, *, source_instance_id: str, pointer: str) -> str | None: ...
+    def queue_id_for(self, *, source_instance_id: str, pointer: str) -> str | None: ...
+
+
 @dataclass(frozen=True)
 class AdapterOutcome:
     """I1 spec §10: "Each source receives exactly one result." Adapters return this instead of
@@ -55,6 +68,7 @@ class SourceAdapter(Protocol):
         loaded: LoadedSource,
         *,
         service_identity: ServiceIdentityResolver,
+        shared_identity: SharedIdentityResolver,
         upstream_model: ArchitectureModel,
         mapping_context_digest: str,
     ) -> AdapterOutcome: ...

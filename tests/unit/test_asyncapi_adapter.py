@@ -5,6 +5,7 @@ from app.canonical.model import ArchitectureModel
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.sources.jcs import canonical_sha256_hex
+from app.sources.migration_mappings import EMPTY_SHARED_IDENTITY_INDEX
 from app.sources.model import (
     DiagnosticCode,
     FilesystemSourceConfig,
@@ -60,6 +61,7 @@ def _map(document: dict):
     return AsyncApiSourceAdapter().map(
         _loaded(document),
         service_identity=_StubResolver(),
+        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
         upstream_model=ArchitectureModel(),
         mapping_context_digest="e" * 64,
     )
@@ -374,6 +376,7 @@ def test_maps_real_bundled_fixtures_with_matching_queue_ids_across_sources():
         outcome = adapter.map(
             loaded,
             service_identity=_StubResolver(),
+            shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
             upstream_model=ArchitectureModel(),
             mapping_context_digest="e" * 64,
         )

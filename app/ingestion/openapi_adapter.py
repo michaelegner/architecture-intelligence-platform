@@ -15,7 +15,7 @@ from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResu
 from app.sources.owner_ids import schema_owned_id
 from app.sources.pointers import encode_pointer_tokens
 from app.sources.reference_resolution import ReferenceResolutionError
-from app.sources.registry import AdapterOutcome, ServiceIdentityResolver
+from app.sources.registry import AdapterOutcome, ServiceIdentityResolver, SharedIdentityResolver
 from app.sources.service_identity import ServiceIdentityOutcome
 from app.validation.source_validation import (
     SourceValidationError,
@@ -51,6 +51,7 @@ class OpenApiSourceAdapter:
         loaded: LoadedSource,
         *,
         service_identity: ServiceIdentityResolver,
+        shared_identity: SharedIdentityResolver,
         upstream_model: ArchitectureModel,
         mapping_context_digest: str,
     ) -> AdapterOutcome:

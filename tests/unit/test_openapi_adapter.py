@@ -5,6 +5,7 @@ from app.canonical.model import ArchitectureModel
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.openapi_adapter import OpenApiSourceAdapter
 from app.sources.jcs import canonical_sha256_hex
+from app.sources.migration_mappings import EMPTY_SHARED_IDENTITY_INDEX
 from app.sources.model import (
     DiagnosticCode,
     FilesystemSourceConfig,
@@ -91,6 +92,7 @@ def _map(document: dict, **resolver_kwargs):
     return adapter.map(
         _loaded(document),
         service_identity=_StubResolver(**resolver_kwargs),
+        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
         upstream_model=ArchitectureModel(),
         mapping_context_digest="e" * 64,
     )
@@ -327,6 +329,7 @@ def test_maps_real_product_service_fixture_via_discoverer():
     outcome = OpenApiSourceAdapter().map(
         loaded,
         service_identity=_StubResolver(),
+        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
         upstream_model=ArchitectureModel(),
         mapping_context_digest="e" * 64,
     )
@@ -346,6 +349,7 @@ def test_maps_real_order_service_fixture_via_discoverer():
     outcome = OpenApiSourceAdapter().map(
         loaded,
         service_identity=_StubResolver(),
+        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
         upstream_model=ArchitectureModel(),
         mapping_context_digest="e" * 64,
     )

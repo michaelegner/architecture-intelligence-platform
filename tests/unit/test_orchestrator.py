@@ -5,6 +5,12 @@ import yaml
 from app.ingestion.orchestrator import run_filesystem_discovery
 from app.sources.identity import source_instance_id
 from app.sources.inventory import InventoryStatus
+from app.sources.migration_mappings import (
+    EMPTY_SHARED_IDENTITY_INDEX,
+    IdentityMappingEntry,
+    MigrationMappingsDocument,
+    build_shared_identity_index,
+)
 from app.sources.model import FilesystemSourceConfig, IngestionResult, SourceKind
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
@@ -186,3 +192,51 @@ def test_maps_real_bundled_examples_end_to_end():
     calls = [r for r in result.merged_model.relations if r.type == "CALLS"]
     assert len(calls) == 1
     assert calls[0].source_id == "service:order-service"
+
+
+def test_migration_mappings_parameter_is_accepted_and_defaults_to_a_no_op(tmp_path):
+    """The SharedIdentityResolver seam is wired end to end in this PR's commit 4, but no adapter
+    consults it yet (that lands in a later commit) - passing a real, non-empty index today must be
+    accepted without error and must not change the result, proving the plumbing alone is inert."""
+    _write(
+        tmp_path / "svc" / "openapi.yaml",
+        {
+            "openapi": "3.1.0",
+            "info": {"title": "Svc"},
+            "x-aip-service-id": "service:svc",
+            "paths": {"/x": {"get": {"operationId": "getX", "responses": {"200": {}}}}},
+        },
+    )
+    config = FilesystemSourceConfig(id="migtest", root=tmp_path)
+
+    without_mappings = run_filesystem_discovery(config)
+
+    sid = source_instance_id(
+        configured_source_id="migtest",
+        source_kind=SourceKind.FILESYSTEM,
+        normalized_root_document_path="svc/openapi.yaml",
+    )
+    index, diagnostics = build_shared_identity_index(
+        [
+            MigrationMappingsDocument(
+                artifact_id="unrelated-artifact",
+                artifact_revision="v1",
+                locator="migrations.yaml",
+                schema_mappings=(
+                    IdentityMappingEntry(
+                        source_instance_id=sid,
+                        pointer="/components/schemas/Nonexistent",
+                        pointer_tokens=("components", "schemas", "Nonexistent"),
+                        target_id="schema:Nonexistent",
+                    ),
+                ),
+            )
+        ]
+    )
+    assert diagnostics == []
+    assert index != EMPTY_SHARED_IDENTITY_INDEX
+
+    with_mappings = run_filesystem_discovery(config, migration_mappings=index)
+
+    assert with_mappings.inventory_status == without_mappings.inventory_status
+    assert with_mappings.merged_model == without_mappings.merged_model
