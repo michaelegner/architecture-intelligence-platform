@@ -15,6 +15,7 @@ responsibilities - `merge_models` (kept, moved here) and hard-coded per-source-k
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 from app.canonical.model import ArchitectureModel, Message, Operation, Queue, Schema, Service
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
@@ -182,16 +183,18 @@ def _mapping_entry_context(
         # §5.3: "Each mapping entry retains its stable artifact identity, revision, content digest,
         # attribution, normalized source pointers, targets, and semantic options." contentDigest is
         # the SHA-256 of this artifact file's own exact raw bytes (MigrationMappingsDocument.
-        # content_digest, computed once per file by load_migration_mappings); attribution is which
-        # configured file declared the mapping (MigrationMappingsDocument.locator) - both were
-        # previously carried on the document but never projected into this digest, so an edit to
-        # the artifact's own content/attribution that didn't also change any entry's pointer/target
-        # would have gone completely unnoticed by the revision fence. There is no per-artifact
-        # "semantic options" concept this mechanism exposes, so that part of §5.3's list has nothing
-        # to project (mirroring configuredServiceMappings/destinationBrokerMappings staying explicit
-        # empty arrays for categories with no configured instance).
+        # content_digest, computed once per file by load_migration_mappings). attribution is the
+        # configured file's own *basename*, not document.locator's full path - §5.3 elsewhere
+        # requires "Capture times and physical checkout paths are excluded", and load_migration_
+        # mappings sets locator to str(path) verbatim, which is the exact absolute (or otherwise
+        # checkout-root-dependent) path when the caller configures one, exactly the kind of physical
+        # path that MUST NOT enter a portable digest. The basename is still real attribution (which
+        # configured file declared the mapping) without being checkout-root-dependent. There is no
+        # per-artifact "semantic options" concept this mechanism exposes, so that part of §5.3's
+        # list has nothing to project (mirroring configuredServiceMappings/destinationBrokerMappings
+        # staying explicit empty arrays for categories with no configured instance).
         "contentDigest": document.content_digest,
-        "attribution": document.locator,
+        "attribution": Path(document.locator).name,
         "sourceInstanceId": entry.source_instance_id,
         # documentPath is part of this entry's own lookup identity (source_instance_id,
         # document_path, pointer) - omitting it here would mean moving an otherwise identical

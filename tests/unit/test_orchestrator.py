@@ -424,9 +424,11 @@ def test_a_content_digest_only_change_still_changes_the_mapping_context_digest(t
 
 def test_an_attribution_only_change_still_changes_the_mapping_context_digest(tmp_path):
     """I1 §5.3: "Each mapping entry retains its ... attribution ..." - the same byte-identical
-    migration-mapping content, configured from two different file paths, must still produce a
-    different `semantic_input_digest`, since attribution (which configured file declared the
-    mapping) is part of what a change in configuration must be able to invalidate replay for."""
+    migration-mapping content, configured under two different file *names* (not just two different
+    directories - see the portability regression right below this one, which proves the opposite
+    for a checkout-root-only difference), must still produce a different `semantic_input_digest`,
+    since attribution (the configured file's own name) is part of what a change in configuration
+    must be able to invalidate replay for."""
     _write(tmp_path / "svc" / "openapi.yaml", _single_schema_openapi_doc({"type": "object"}))
     config = FilesystemSourceConfig(id="digest-attribution-test", root=tmp_path)
     sid = source_instance_id(
@@ -446,7 +448,7 @@ def test_an_attribution_only_change_still_changes_the_mapping_context_digest(tmp
     index_two, diagnostics_two = load_migration_mappings([path_two])
     assert diagnostics_one == ()
     assert diagnostics_two == ()
-    # Sanity: byte-identical content - only locator (attribution) differs.
+    # Sanity: byte-identical content - only the file's own name (attribution) differs.
     assert index_one.documents[0].content_digest == index_two.documents[0].content_digest
     assert index_one.documents[0].locator != index_two.documents[0].locator
 
@@ -455,6 +457,50 @@ def test_an_attribution_only_change_still_changes_the_mapping_context_digest(tmp
     [outcome_one] = with_one.source_outcomes.values()
     [outcome_two] = with_two.source_outcomes.values()
     assert outcome_one.outcome.semantic_input_digest != outcome_two.outcome.semantic_input_digest
+
+
+def test_attribution_is_portable_across_two_absolute_checkout_roots(tmp_path):
+    """I1 §5.3: "Capture times and physical checkout paths are excluded." Two clean checkouts of
+    the exact same repository content, at two different absolute directories, must produce
+    identical semantic_input_digest values even when each checkout's own migration-mapping file is
+    loaded via its own absolute path (as a real deployment would) - `document.locator` is itself
+    the exact absolute path per checkout and therefore always differs, so attribution in the digest
+    projection must be derived from something checkout-root-independent (the file's own name), not
+    `locator` directly."""
+    checkout_one = tmp_path / "checkout-one"
+    checkout_two = tmp_path / "somewhere" / "else" / "checkout-two"
+
+    sid = source_instance_id(
+        configured_source_id="portability-test",
+        source_kind=SourceKind.FILESYSTEM,
+        normalized_root_document_path="svc/openapi.yaml",
+    )
+    document_yaml = _bundled_mapping_document(sid)
+    raw_bytes = yaml.safe_dump(document_yaml)
+
+    results = []
+    for checkout_root in (checkout_one, checkout_two):
+        _write(
+            checkout_root / "svc" / "openapi.yaml", _single_schema_openapi_doc({"type": "object"})
+        )
+        migration_path = checkout_root / "config" / "migrations" / "mapping.yaml"
+        migration_path.parent.mkdir(parents=True, exist_ok=True)
+        migration_path.write_text(raw_bytes)
+
+        index, diagnostics = load_migration_mappings([migration_path])
+        assert diagnostics == ()
+        config = FilesystemSourceConfig(id="portability-test", root=checkout_root)
+        result = run_filesystem_discovery(config, migration_mappings=index)
+        [outcome] = result.source_outcomes.values()
+        results.append((index, outcome))
+
+    (index_one, outcome_one), (index_two, outcome_two) = results
+    # Sanity: same content, different absolute directories - locator legitimately differs, but
+    # content_digest and the resulting semantic_input_digest must not.
+    assert index_one.documents[0].content_digest == index_two.documents[0].content_digest
+    assert index_one.documents[0].locator != index_two.documents[0].locator
+    assert outcome_one.outcome.semantic_input_digest == outcome_two.outcome.semantic_input_digest
+    assert outcome_one.outcome.model.schemas[0].id == "schema:X"
 
 
 def test_cross_source_schema_content_conflict_blocks_the_whole_run(tmp_path):
