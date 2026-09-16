@@ -112,6 +112,22 @@ class DiagnosticCode(StrEnum):
     # ("any other version is REJECTED_UNSUPPORTED unless a reviewed amendment adds that exact
     # version and its conformance fixtures").
     UNSUPPORTED_DIALECT_VERSION = "UNSUPPORTED_DIALECT_VERSION"
+    # Not named by the spec text; introduced here for PR4's explicit shared-identity/migration
+    # mapping mechanism (§5.1.1/§8.1/§9/§9.1), mirroring the MANIFEST_BINDING_* codes' own
+    # "shape, then pointer/target validity, then cross-entry conflict" split.
+    MIGRATION_MAPPING_SHAPE_INVALID = "MIGRATION_MAPPING_SHAPE_INVALID"
+    MIGRATION_MAPPING_TARGET_INVALID = "MIGRATION_MAPPING_TARGET_INVALID"
+    MIGRATION_MAPPING_CONFLICT = "MIGRATION_MAPPING_CONFLICT"
+    # §5.1.1: "Missing or modified migration configuration is diagnosed and MUST NOT fall back to a
+    # directory slug or name-derived identity" - a configured migration path that can't be read at
+    # all is its own distinct failure from a file that parses but has the wrong shape.
+    MIGRATION_MAPPING_FILE_UNAVAILABLE = "MIGRATION_MAPPING_FILE_UNAVAILABLE"
+    # Not named by the spec text; introduced here for the cross-source/within-source content-
+    # conflict rule §8.1/§9.1 both state prose-only ("different hashes under an explicit shared ID
+    # are REJECTED_CONFLICT"): two claims converging on the same owner-scoped or explicitly-mapped
+    # Schema/Message id with disagreeing canonical content.
+    SCHEMA_CONTENT_CONFLICT = "SCHEMA_CONTENT_CONFLICT"
+    MESSAGE_CONTENT_CONFLICT = "MESSAGE_CONTENT_CONFLICT"
 
 
 class IngestionDiagnostic(BaseModel):
