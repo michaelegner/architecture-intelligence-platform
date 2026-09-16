@@ -189,6 +189,58 @@ def dependency_closure_digest(entries: Sequence[ClosureEntry]) -> str:
     return sha256_hex(concatenated)
 
 
+def kubernetes_source_instance_id(
+    *, configured_kubernetes_source_id: str, cluster_uid: str
+) -> SourceInstanceId:
+    """I2 Draft 0.2 §6:
+
+        source_kind = kubernetes
+        SourceInstanceId
+          = urn:aip:source:kubernetes:<sha256(configured Kubernetes-source id, cluster UID)>
+
+    Takes the literal `"kubernetes"` source-kind string directly rather than `SourceKind.KUBERNETES`
+    - that enum member is deliberately not added until a later slice wires a real
+    `KubernetesSourceDiscoverer` into the registry (I2 §12 slice 2b); this formula stands on its own,
+    exactly as §6 states it, and does not depend on that wiring existing yet.
+    """
+    stable_source_key = length_delimited(_utf8(configured_kubernetes_source_id), _utf8(cluster_uid))
+    return SourceInstanceId(f"urn:aip:source:kubernetes:{sha256_hex(stable_source_key)}")
+
+
+def kubernetes_logical_resource_id(
+    *, cluster_uid: str, api_group: str, kind: str, namespace: str, name: str
+) -> str:
+    """I2 Draft 0.2 §6:
+
+        logical resource key = (cluster UID, API group, kind, namespace-or-empty, resource name)
+        logical resource id = urn:aip:k8s-resource:<sha256(logical resource key)>
+
+    "The core API group is the empty string. Namespace objects have an empty namespace component."
+    - `api_group`/`namespace` are simply passed through as empty strings for those cases, not
+    special-cased here. "Names are exact validated Kubernetes names; no case folding, slug
+    conversion, or name equivalence with application Services is permitted" - this function performs
+    none of those; the caller is responsible for passing the resource's own exact name unmodified.
+    """
+    logical_resource_key = length_delimited(
+        _utf8(cluster_uid), _utf8(api_group), _utf8(kind), _utf8(namespace), _utf8(name)
+    )
+    return f"urn:aip:k8s-resource:{sha256_hex(logical_resource_key)}"
+
+
+@dataclass(frozen=True)
+class KubernetesResourceIncarnation:
+    """I2 Draft 0.2 §6: "resource incarnation = (logical resource id, captured resource UID)." Not a
+    hash formula (§6 never spells one for it, unlike the two functions above) - a plain identity
+    pairing used to detect resource replacement: "A replacement resource with the same name and a
+    new UID preserves logical identity while changing incarnation evidence. Old UID links must not
+    resolve against the replacement." A caller comparing two incarnations for the same
+    `logical_resource_id` with different `captured_uid` values has detected exactly that replacement.
+    """
+
+    logical_resource_id: str
+    captured_uid: str
+
+
 def discovery_scope_id(
     *, configured_scope_id: str, stable_target_identity: str
 ) -> DiscoveryScopeId:
