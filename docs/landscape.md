@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-10_
+_Last reviewed: 2026-09-16_
 
 ## AIP anchor
 
@@ -206,6 +206,66 @@ AIP
 evidence-backed, qualified architecture knowledge
 derived from declared and observed signals
 ```
+
+### Cartography — Infrastructure and Security Graph Discovery
+
+**Sources**
+
+- [Cartography](https://github.com/cartography-cncf/cartography)
+- [Kubernetes module](https://github.com/cartography-cncf/cartography/tree/master/docs/root/modules/kubernetes)
+
+**Core idea**
+
+Cartography ingests infrastructure assets and their relationships from Kubernetes, cloud platforms,
+identity systems, source-control systems, and other operational sources into Neo4j. Its graph is
+primarily designed for infrastructure inventory, security analysis, exposure paths, and
+cross-provider queries.
+
+Its Kubernetes ingestion is especially relevant to AIP v0.5. It models clusters, namespaces,
+workload controllers, pods, services, ingress, storage, RBAC, and related infrastructure. It also
+resolves controller ownership such as `Pod -> ReplicaSet -> Deployment` and protects previously
+ingested state when a required discovery scope cannot be completed.
+
+**Why this matters to AIP**
+
+Cartography is a strong reference implementation for source adapters, Kubernetes discovery,
+cross-provider graph modeling, and failure-aware reconciliation:
+
+```text
+Cartography
+live infrastructure APIs
+        ↓
+asset and security graph
+        ↓
+inventory / path / exposure queries
+
+AIP
+source-bound observations
+        ↓
+typed evidence and claims
+        ↓
+qualification
+        ↓
+snapshot-bound architecture context
+```
+
+The overlap is strongest in discovery mechanics, not in epistemic semantics. A directly ingested
+asset or relationship is not automatically a qualified AIP architecture claim. In particular, AIP
+must not infer that a Kubernetes workload is an application service, that a selector establishes a
+service dependency, or that co-location establishes communication.
+
+Cartography's handling of incomplete discovery is a useful design comparison: failed or
+unauthorized collection can preserve the last committed graph rather than treating missing results
+as confirmed removal. AIP requires the stronger, source-explicit form of this rule through
+successful-scope markers or tombstones, stable source identity, evidence continuity, and
+deterministic reconciliation.
+
+**AIP stance**
+
+Use Cartography as a comparison implementation and possible future source-adapter boundary, not as
+a dependency or authority for v0.5 semantics. A future adapter could import Cartography output as
+source-bound evidence, but would still require separately approved mappings and deterministic
+conformance tests before any relation entered an AIP Current-State projection.
 
 ### EventCatalog — Connected Architecture Catalog for Humans and Agents
 
@@ -1142,6 +1202,7 @@ and what evidence supports that conclusion?
 | Temporal / contextual knowledge | Burgess / Semantic Spacetime | How should architecture knowledge evolve across time and observation contexts? |
 | Runtime evidence | OpenTelemetry | What can runtime signals safely prove? |
 | Software catalogs | Backstage | How does evidence-backed architecture intelligence differ from maintained catalog metadata? |
+| Infrastructure and security graph discovery | Cartography | Which discovery and reconciliation patterns can AIP reuse while preserving its stronger evidence, identity, and qualification boundaries? |
 | Agent-queryable architecture catalogs | EventCatalog | Where should AIP remain narrower than a broad catalog, and where is integration preferable to duplication? |
 | Architecture intelligence product neighbor | ProvenMap | How does epistemic qualification (what evidence entitles us to claim) differ from provenance-tracked current-state modeling and Intents? |
 | Provenance and qualification | ProvenMap | How should evidence origin, derivation, applicability, and qualification combine into a reproducible claim? |
