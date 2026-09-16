@@ -430,3 +430,27 @@ def test_ui_query_page_deterministic_intent_shown_without_provider(client):
     assert response.status_code == 200
     assert "Deterministic Analysis" in response.text
     assert "A3_QUEUES_WITHOUT_CONSUMERS" in response.text
+
+
+def test_kubernetes_evidence_is_absent_from_the_public_evidence_surface(client, driver):
+    """I2 Draft 0.2 §9 (as amended): a Kubernetes source's evidence supports only internal-only
+    infrastructure facts, so it is not part of the public evidence surface - exposing it while
+    hiding everything it supports would leak those facts' existence and attribution by the back
+    door."""
+    evidence_id = "evidence:kubernetes:surface-test"
+    with driver.session(database=DATABASE) as session:
+        session.run(
+            "CREATE (e:Evidence {id: $id, source_type: 'KUBERNETES', source_file: 'snapshot.yaml', "
+            "evidence_type: 'DECLARED'})",
+            id=evidence_id,
+        )
+    try:
+        listed = client.get("/api/evidence")
+        assert listed.status_code == 200
+        assert evidence_id not in {e["id"] for e in listed.json()}
+        assert "KUBERNETES" not in {e["source_type"] for e in listed.json()}
+
+        assert client.get(f"/api/evidence/{evidence_id}").status_code == 404
+    finally:
+        with driver.session(database=DATABASE) as session:
+            session.run("MATCH (e:Evidence {id: $id}) DETACH DELETE e", id=evidence_id)

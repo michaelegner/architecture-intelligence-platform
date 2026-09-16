@@ -18,6 +18,7 @@ import neo4j
 
 from app.analysis.runtime import telemetry_coverage
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
+from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
 
 # Bumping this - or changing any query/rule below - is a snapshot-fingerprint contract change and
@@ -43,8 +44,13 @@ _SCHEMA_QUERY = (
     "MATCH (n:Schema) RETURN n.id AS id, n.name AS name, n.version AS version, "
     "n.format AS format, n.canonical_hash AS canonical_hash"
 )
+# I2 Draft 0.2 §9 (amended): evidence from a Kubernetes source supports only internal-only
+# infrastructure entities/contributions/claims, none of which this projection exposes - so the
+# evidence itself stays internal too. Without this filter, merely configuring a Kubernetes source
+# would change the public snapshot fingerprint every MCP answer carries.
 _EVIDENCE_QUERY = (
-    "MATCH (n:Evidence) RETURN n.id AS id, n.source_type AS source_type, "
+    f"MATCH (n:Evidence) WHERE n.source_type <> '{KUBERNETES_SOURCE_TYPE}' "
+    "RETURN n.id AS id, n.source_type AS source_type, "
     "n.source_file AS source_file, n.source_revision AS source_revision, "
     "n.evidence_type AS evidence_type, n.environment AS environment, "
     "n.bucket_start AS bucket_start, n.bucket_end AS bucket_end, n.first_seen AS first_seen, "
@@ -235,8 +241,13 @@ def _referenced_evidence_ids(*row_groups: list[dict]) -> list[str]:
 # same stable-read attempt - and therefore observes the same committed state - as the fingerprinted
 # state used to compute snapshot_id/model_revision (spec §13).
 
+# I2 Draft 0.2 §9 (amended): unlike `_EVIDENCE_QUERY` above, this lookup is keyed by caller-supplied
+# ids (`EvidenceRequest.evidence_refs`, spec §11.1) - a client can name *any* id string, not only
+# one it already learned from a public answer. Without this filter, a client that merely guessed or
+# otherwise obtained a Kubernetes evidence id could read its full internal record back through
+# `get_evidence`, even though every other public surface hides it (a real gap found in PR review).
 _EVIDENCE_BY_ID_QUERY = (
-    "MATCH (e:Evidence) WHERE e.id IN $evidence_ids "
+    f"MATCH (e:Evidence) WHERE e.id IN $evidence_ids AND e.source_type <> '{KUBERNETES_SOURCE_TYPE}' "
     "RETURN e.id AS id, e.source_type AS source_type, e.source_file AS source_file, "
     "e.source_revision AS source_revision, e.evidence_type AS evidence_type, "
     "e.environment AS environment, e.bucket_start AS bucket_start, e.bucket_end AS bucket_end, "

@@ -1,3 +1,4 @@
+import json
 import shutil
 import threading
 from datetime import UTC, datetime
@@ -6,7 +7,20 @@ from pathlib import Path
 import pytest
 
 from app.analysis.runtime import confirmed_relations, observed_only_relations
+from app.architecture_intelligence.repository import (
+    canonical_snapshot_state,
+    snapshot_fingerprint,
+)
 from app.canonical import ids
+from app.canonical.infrastructure import (
+    InfrastructureClaim,
+    InfrastructureClaimKind,
+    InfrastructureContribution,
+    InfrastructureEntity,
+    InfrastructureEntityKind,
+    InfrastructurePort,
+    KubernetesEvidenceMode,
+)
 from app.canonical.model import (
     ArchitectureModel,
     Message,
@@ -74,6 +88,10 @@ def test_ensure_schema_creates_constraints(driver):
         "message_id",
         "schema_id",
         "source_state_source_instance_id",
+        "infrastructure_entity_id",
+        "infrastructure_contribution_id",
+        "infrastructure_claim_id",
+        "infrastructure_claim_contribution_id",
     } <= names
 
 
@@ -1094,3 +1112,498 @@ def test_import_all_sources_denies_removal_via_a_tombstone_with_a_stale_expected
     assert stats3.removed_source_instance_ids == ()
     assert _count(driver, "MATCH (s:Service) RETURN count(s) AS c") == 1
     assert any(d.code == DiagnosticCode.TOMBSTONE_STALE for d in stats3.diagnostics)
+
+
+# I2 Draft 0.2 §3 item 6: infrastructure facts go through the SAME write/ownership/reconciliation/
+# expiry path as every other canonical fact. Driven through the real `import_source` -> Neo4j path
+# with hand-built models, since no Kubernetes adapter exists yet - without this, a later adapter
+# could commit its inventory while its facts were silently dropped.
+
+INFRA_ENTITY_ID = "urn:aip:k8s-resource:workload-1"
+INFRA_EVIDENCE = Provenance(
+    id="evidence:kubernetes:1", source_type="KUBERNETES", source_file="snapshot.yaml"
+)
+
+
+def _infra_entity(entity_id: str = INFRA_ENTITY_ID) -> InfrastructureEntity:
+    return InfrastructureEntity(
+        id=entity_id,
+        entity_kind=InfrastructureEntityKind.KUBERNETES_WORKLOAD,
+        cluster_uid="cluster-1",
+        api_group="apps",
+        resource_kind="Deployment",
+        namespace="default",
+        name="order-service",
+    )
+
+
+def _infra_model(
+    *, source_instance_id: str, entity_id: str = INFRA_ENTITY_ID, digest: str = "digest-1"
+) -> ArchitectureModel:
+    entity = _infra_entity(entity_id)
+    return ArchitectureModel(
+        provenance=[INFRA_EVIDENCE],
+        infrastructure_entities=[entity],
+        infrastructure_contributions=[
+            InfrastructureContribution(
+                entity_id=entity.id,
+                source_instance_id=source_instance_id,
+                evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+                resource_semantic_digest=digest,
+                evidence_refs=[INFRA_EVIDENCE.id],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+        infrastructure_claims=[
+            InfrastructureClaim(
+                kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+                subject_id=entity.id,
+                evidence_refs=[INFRA_EVIDENCE.id],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+    )
+
+
+def test_import_source_writes_and_owns_infrastructure_facts(driver):
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, "src:k8s-1", _infra_model(source_instance_id="src:k8s-1"))
+
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 1
+    assert _count(driver, "MATCH (c:InfrastructureContribution) RETURN count(c) AS c") == 1
+    assert _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == 1
+
+    with driver.session(database=DATABASE) as session:
+        entity = session.run(
+            "MATCH (e:InfrastructureEntity {id: $id}) RETURN e.owner_source_ids AS owners, "
+            "e.entity_kind AS kind, e.name AS name, e.namespace AS namespace",
+            id=INFRA_ENTITY_ID,
+        ).single()
+        claim = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.kind AS kind, c.subject_id AS subject_id, "
+            "c.object_id AS object_id, c.evidence_refs AS evidence_refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+        contribution = session.run(
+            "MATCH (c:InfrastructureContribution) RETURN c.evidence_mode AS evidence_mode, "
+            "c.resource_semantic_digest AS digest, c.owner_source_ids AS owners"
+        ).single()
+
+    assert entity["owners"] == ["src:k8s-1"]
+    assert entity["kind"] == "KUBERNETES_WORKLOAD"
+    assert entity["name"] == "order-service"
+    assert claim["kind"] == "WORKLOAD_EXISTS"
+    assert claim["subject_id"] == INFRA_ENTITY_ID
+    # §7.2: a unary claim's absent object survives persistence as a real null, not a sentinel.
+    assert claim["object_id"] is None
+    assert claim["evidence_refs"] == [INFRA_EVIDENCE.id]
+    assert claim["owners"] == ["src:k8s-1"]
+    assert contribution["evidence_mode"] == "CAPTURED_RESOURCE"
+    assert contribution["digest"] == "digest-1"
+    assert contribution["owners"] == ["src:k8s-1"]
+
+
+def test_network_service_ports_survive_persistence_as_canonical_json(driver):
+    entity = InfrastructureEntity(
+        id="urn:aip:k8s-resource:svc-1",
+        entity_kind=InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE,
+        cluster_uid="cluster-1",
+        api_group="",
+        resource_kind="Service",
+        namespace="default",
+        name="order-service",
+        service_type="ClusterIP",
+        ports=[
+            InfrastructurePort(name=None, protocol="TCP", port=9090),
+            InfrastructurePort(name="http", protocol="TCP", port=8080),
+        ],
+    )
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, "src:k8s-1", ArchitectureModel(infrastructure_entities=[entity]))
+        stored = session.run(
+            "MATCH (e:InfrastructureEntity {id: $id}) RETURN e.ports AS ports, "
+            "e.service_type AS service_type",
+            id=entity.id,
+        ).single()
+
+    assert stored["service_type"] == "ClusterIP"
+    # Nested objects can't be Neo4j properties, so each port is one canonical-JSON string, in the
+    # entity's own §7.1 sorted order.
+    assert stored["ports"] == [
+        '{"name":null,"port":9090,"protocol":"TCP"}',
+        '{"name":"http","port":8080,"protocol":"TCP"}',
+    ]
+
+
+def test_reimport_without_an_infrastructure_fact_expires_it(driver):
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, "src:k8s-1", _infra_model(source_instance_id="src:k8s-1"))
+        assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 1
+
+        # The same source no longer emits any infrastructure fact - the shared reconciliation path
+        # must expire them exactly as it would a dropped Service or Operation.
+        _import(session, "src:k8s-1", ArchitectureModel(), digest=DIGEST_2)
+
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 0
+    assert _count(driver, "MATCH (c:InfrastructureContribution) RETURN count(c) AS c") == 0
+    assert _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == 0
+
+
+def test_infrastructure_entity_shared_by_two_sources_survives_one_source_dropping_it(driver):
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, "src:k8s-1", _infra_model(source_instance_id="src:k8s-1"))
+        _import(session, "src:k8s-2", _infra_model(source_instance_id="src:k8s-2"))
+
+        with driver.session(database=DATABASE) as read_session:
+            owners = read_session.run(
+                "MATCH (e:InfrastructureEntity {id: $id}) RETURN e.owner_source_ids AS owners",
+                id=INFRA_ENTITY_ID,
+            ).single()["owners"]
+        assert sorted(owners) == ["src:k8s-1", "src:k8s-2"]
+        # Each source owns its own contribution; the shared entity is owned by both.
+        assert _count(driver, "MATCH (c:InfrastructureContribution) RETURN count(c) AS c") == 2
+
+        _import(session, "src:k8s-1", ArchitectureModel(), digest=DIGEST_2)
+
+    with driver.session(database=DATABASE) as session:
+        record = session.run(
+            "MATCH (e:InfrastructureEntity {id: $id}) RETURN e.owner_source_ids AS owners",
+            id=INFRA_ENTITY_ID,
+        ).single()
+    # Still present, now owned only by the source that still claims it - the other source's
+    # contribution is gone, but its withdrawal never deleted the shared entity.
+    assert record is not None
+    assert record["owners"] == ["src:k8s-2"]
+    assert _count(driver, "MATCH (c:InfrastructureContribution) RETURN count(c) AS c") == 1
+
+
+def test_persisted_infrastructure_facts_do_not_leak_into_the_public_snapshot(driver):
+    """I2 Draft 0.2 §9: these internal-only facts "MUST NOT leak through generic serialization,
+    existing dependency answers, or a graph tool". Note `_RELATION_QUERY` in
+    `app.architecture_intelligence.repository` is deliberately untyped (`MATCH (a)-[r]->(b)`), so
+    any binary claim modelled as a graph *edge* would silently enter every MCP answer's relation
+    projection and snapshot fingerprint - modelling all four claim kinds as owned claim *nodes*
+    (which §7.2's unary `WORKLOAD_EXISTS` requires anyway) is what keeps this boundary intact.
+    """
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(
+            session,
+            "src:app",
+            ArchitectureModel(services=[Service(id="service:order-service", name="OrderService")]),
+        )
+        before = canonical_snapshot_state(session, coverage_qualification_enabled=True)
+        before_id, _ = snapshot_fingerprint(before)
+
+        _import(session, "src:k8s-1", _infra_model(source_instance_id="src:k8s-1"))
+        after = canonical_snapshot_state(session, coverage_qualification_enabled=True)
+        after_id, _ = snapshot_fingerprint(after)
+
+    # The infrastructure facts really are committed...
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 1
+    assert _count(driver, "MATCH (c:InfrastructureContribution) RETURN count(c) AS c") == 1
+    assert _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == 1
+
+    # ...yet no entity, contribution, or claim of theirs appears anywhere in the public snapshot,
+    # and no infrastructure graph *edge* exists for the untyped relation projection to pick up.
+    serialized = json.dumps(after)
+    assert INFRA_ENTITY_ID not in serialized
+    assert "WORKLOAD_EXISTS" not in serialized
+    assert "KUBERNETES_WORKLOAD" not in serialized
+    assert after["relations"] == before["relations"]
+    assert _count(driver, "MATCH (:InfrastructureEntity)-[r]-() RETURN count(r) AS c") == 0
+
+    # Nor does the Kubernetes source's own Evidence record: §9 as amended in Draft 0.2 keeps
+    # evidence supporting only internal-only facts internal too, so merely configuring a Kubernetes
+    # source cannot change the public snapshot fingerprint every MCP answer carries.
+    assert after == before
+    assert after_id == before_id
+    assert INFRA_EVIDENCE.id not in serialized
+    # ...even though the evidence node really is committed and really is owned by that source.
+    assert (
+        _count(driver, "MATCH (e:Evidence {id: $id}) RETURN count(e) AS c", id=INFRA_EVIDENCE.id)
+        == 1
+    )
+
+
+def _infra_claim_model(
+    *,
+    source_instance_id: str,
+    evidence_id: str,
+    digest: str = "digest-1",
+    evidence_mode: KubernetesEvidenceMode = KubernetesEvidenceMode.CAPTURED_RESOURCE,
+) -> ArchitectureModel:
+    """The same shared claim (same kind/subject/object, hence the same §7.2 claim identity) asserted
+    by a given source with its OWN evidence record."""
+    entity = _infra_entity()
+    return ArchitectureModel(
+        provenance=[
+            Provenance(id=evidence_id, source_type="KUBERNETES", source_file=f"{evidence_id}.yaml")
+        ],
+        infrastructure_entities=[entity],
+        infrastructure_contributions=[
+            InfrastructureContribution(
+                entity_id=entity.id,
+                source_instance_id=source_instance_id,
+                evidence_mode=evidence_mode,
+                resource_semantic_digest=digest,
+                evidence_refs=[evidence_id],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+        infrastructure_claims=[
+            InfrastructureClaim(
+                kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+                subject_id=entity.id,
+                evidence_refs=[evidence_id],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+    )
+
+
+def test_a_shared_claim_unions_evidence_from_both_sources_and_drops_only_the_departing_ones(driver):
+    """I2 Draft 0.2 §7.2: "Claim contributions use the same source ownership, evidence-mode
+    retention, deterministic evidence union... as entity contributions." A claim's identity is
+    shared across sources, so a plain `SET n += $props` would make its stored evidence depend on
+    which source wrote last, and dropping that source would leave the surviving claim pointing at
+    deleted evidence (a real bug found in PR review)."""
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(
+            session,
+            "src:k8s-1",
+            _infra_claim_model(source_instance_id="src:k8s-1", evidence_id="evidence:kubernetes:a"),
+        )
+        _import(
+            session,
+            "src:k8s-2",
+            _infra_claim_model(source_instance_id="src:k8s-2", evidence_id="evidence:kubernetes:b"),
+        )
+
+        claim = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.evidence_refs AS refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+
+    # One shared claim node, owned by both, carrying BOTH sources' evidence - not just the last
+    # writer's.
+    assert _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == 1
+    assert sorted(claim["refs"]) == ["evidence:kubernetes:a", "evidence:kubernetes:b"]
+    assert sorted(claim["owners"]) == ["src:k8s-1", "src:k8s-2"]
+
+    # The second source stops emitting anything at all.
+    with driver.session(database=DATABASE) as session:
+        _import(session, "src:k8s-2", ArchitectureModel(), digest=DIGEST_2)
+        surviving = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.evidence_refs AS refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+
+    # The claim survives on the remaining owner's evidence only - and critically does NOT still
+    # point at the departed source's now-deleted evidence record.
+    assert surviving is not None
+    assert surviving["refs"] == ["evidence:kubernetes:a"]
+    assert surviving["owners"] == ["src:k8s-1"]
+    assert (
+        _count(
+            driver,
+            "MATCH (e:Evidence {id: 'evidence:kubernetes:b'}) RETURN count(e) AS c",
+        )
+        == 0
+    )
+    # Every ref the claim still holds resolves to a live Evidence node ("a fact exists iff its
+    # evidence exists").
+    assert (
+        _count(
+            driver,
+            "MATCH (c:InfrastructureClaim) UNWIND c.evidence_refs AS ref "
+            "MATCH (e:Evidence {id: ref}) RETURN count(e) AS c",
+        )
+        == 1
+    )
+
+    # The last owner drops it too - now nothing supports the claim, so it goes.
+    with driver.session(database=DATABASE) as session:
+        _import(session, "src:k8s-1", ArchitectureModel(), digest=DIGEST_2)
+
+    assert _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == 0
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 0
+
+
+def test_a_shared_claim_survives_when_its_evidence_id_is_co_owned_by_the_remaining_source(driver):
+    """A real bug found in PR re-review: the original `_EXPIRE_INFRASTRUCTURE_CLAIMS_QUERY` decided
+    whether to strip a ref by checking only whether the DEPARTING source owned its Evidence node -
+    not whether a REMAINING claim owner also did. When the same evidence id is genuinely co-owned by
+    two sources (not just two distinct ids, as in the test above), that stripped a ref the surviving
+    owner still supported, and could have deleted the claim entirely despite a remaining owner."""
+    shared_evidence_id = "evidence:kubernetes:shared"
+    entity = _infra_entity()
+
+    def _model_with_shared_evidence(source_instance_id: str) -> ArchitectureModel:
+        return ArchitectureModel(
+            provenance=[
+                Provenance(
+                    id=shared_evidence_id, source_type="KUBERNETES", source_file="shared.yaml"
+                )
+            ],
+            infrastructure_entities=[entity],
+            infrastructure_contributions=[
+                InfrastructureContribution(
+                    entity_id=entity.id,
+                    source_instance_id=source_instance_id,
+                    evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+                    resource_semantic_digest="digest-1",
+                    evidence_refs=[shared_evidence_id],
+                    mapping_rule_id="kubernetes-adapter@1",
+                    mapping_rule_version="v1",
+                )
+            ],
+            infrastructure_claims=[
+                InfrastructureClaim(
+                    kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+                    subject_id=entity.id,
+                    evidence_refs=[shared_evidence_id],
+                    mapping_rule_id="kubernetes-adapter@1",
+                    mapping_rule_version="v1",
+                )
+            ],
+        )
+
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, "src:k8s-1", _model_with_shared_evidence("src:k8s-1"))
+        _import(session, "src:k8s-2", _model_with_shared_evidence("src:k8s-2"))
+
+        evidence_owners = session.run(
+            "MATCH (e:Evidence {id: $id}) RETURN e.owner_source_ids AS owners",
+            id=shared_evidence_id,
+        ).single()["owners"]
+        assert sorted(evidence_owners) == ["src:k8s-1", "src:k8s-2"]
+
+        # src:k8s-1 stops emitting anything at all - src:k8s-2 still emits the same claim,
+        # referencing the SAME shared evidence id.
+        _import(session, "src:k8s-1", ArchitectureModel(), digest=DIGEST_2)
+
+        claim = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.evidence_refs AS refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+
+    # The claim survives with its evidence ref intact - the departing source's co-ownership of that
+    # SAME evidence node must not strip a ref the surviving source still genuinely supports.
+    assert claim is not None
+    assert claim["refs"] == [shared_evidence_id]
+    assert claim["owners"] == ["src:k8s-2"]
+    assert (
+        _count(driver, "MATCH (e:Evidence {id: $id}) RETURN count(e) AS c", id=shared_evidence_id)
+        == 1
+    )
+
+
+def test_a_retained_claim_that_changes_evidence_reflects_only_the_new_refs(driver):
+    """A real bug found in PR re-review, distinct from the co-owned-evidence one above: a single
+    source that RETAINS the same claim (same kind/subject/object, hence the same claim identity)
+    across a reimport, but replaces its own evidence, must end up with only the NEW refs - not the
+    old ones still accumulated (a plain evidence union never subtracts), and not a dangling
+    reference to the now-deleted old Evidence node (a plain overwrite-on-write was order-dependent
+    and raced with which write happened last). Ownership of the claim never changes here at all -
+    the earlier fixes for cross-source ownership changes never even ran for this case."""
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(
+            session,
+            "src:k8s-1",
+            _infra_claim_model(
+                source_instance_id="src:k8s-1", evidence_id="evidence:kubernetes:old"
+            ),
+        )
+        first = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.evidence_refs AS refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+        assert first["refs"] == ["evidence:kubernetes:old"]
+        assert first["owners"] == ["src:k8s-1"]
+
+        # Same source, same claim identity, reimported with a DIFFERENT evidence ref - the old
+        # Evidence node is no longer emitted at all, so it is expired in this same reimport.
+        _import(
+            session,
+            "src:k8s-1",
+            _infra_claim_model(
+                source_instance_id="src:k8s-1", evidence_id="evidence:kubernetes:new"
+            ),
+            digest=DIGEST_2,
+        )
+        second = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.evidence_refs AS refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+
+    assert second is not None
+    assert second["refs"] == ["evidence:kubernetes:new"]
+    assert second["owners"] == ["src:k8s-1"]
+    assert (
+        _count(driver, "MATCH (e:Evidence {id: 'evidence:kubernetes:old'}) RETURN count(e) AS c")
+        == 0
+    )
+    # Exactly one claim-support row for this source (overwritten, not accumulated).
+    assert _count(driver, "MATCH (c:InfrastructureClaimContribution) RETURN count(c) AS c") == 1
+
+
+def test_two_co_owners_with_different_evidence_modes_each_retain_their_own_mode(driver):
+    """I2 Draft 0.2 §7.2: "Evidence mode is retained per contribution... merging declarations and
+    captures never turns all support into observation" - the same rule §7.1 states for entity
+    contributions, applying here to claim contributions. Two sources supporting the SAME claim via
+    different modes (one DECLARED_MANIFEST, one CAPTURED_RESOURCE) must each retain their own mode
+    on their own contribution row - neither may be overwritten or confused with the other's."""
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(
+            session,
+            "src:k8s-declared",
+            _infra_claim_model(
+                source_instance_id="src:k8s-declared",
+                evidence_id="evidence:kubernetes:declared",
+                evidence_mode=KubernetesEvidenceMode.DECLARED_MANIFEST,
+            ),
+        )
+        _import(
+            session,
+            "src:k8s-captured",
+            _infra_claim_model(
+                source_instance_id="src:k8s-captured",
+                evidence_id="evidence:kubernetes:captured",
+                evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+            ),
+        )
+
+        modes_by_source = {
+            record["source"]: record["mode"]
+            for record in session.run(
+                "MATCH (c:InfrastructureClaimContribution) "
+                "UNWIND c.owner_source_ids AS source "
+                "RETURN source, c.evidence_mode AS mode"
+            )
+        }
+        claim = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.evidence_refs AS refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+
+    # One shared claim, owned by both, carrying both sources' evidence...
+    assert sorted(claim["owners"]) == ["src:k8s-captured", "src:k8s-declared"]
+    assert sorted(claim["refs"]) == ["evidence:kubernetes:captured", "evidence:kubernetes:declared"]
+    # ...but each source's OWN contribution row retains its OWN evidence mode, not the other's.
+    assert modes_by_source == {
+        "src:k8s-declared": "DECLARED_MANIFEST",
+        "src:k8s-captured": "CAPTURED_RESOURCE",
+    }

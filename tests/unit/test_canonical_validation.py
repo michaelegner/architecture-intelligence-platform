@@ -3,6 +3,14 @@ from pathlib import Path
 import pytest
 import yaml
 
+from app.canonical.infrastructure import (
+    InfrastructureClaim,
+    InfrastructureClaimKind,
+    InfrastructureContribution,
+    InfrastructureEntity,
+    InfrastructureEntityKind,
+    KubernetesEvidenceMode,
+)
 from app.canonical.model import (
     ArchitectureModel,
     Message,
@@ -203,3 +211,162 @@ def test_multiple_errors_are_all_reported():
     with pytest.raises(CanonicalValidationError) as exc:
         validate_canonical_model(model)
     assert len(exc.value.errors) == 2
+
+
+# I2 Draft 0.2 §3 item 6: infrastructure facts pass through the same validation path as every other
+# canonical fact - §7.2's "resolve within the selected snapshot" / "both referenced entity IDs must
+# resolve in the canonical model".
+
+
+def _infra_entity(entity_id: str = "urn:aip:k8s-resource:workload") -> InfrastructureEntity:
+    return InfrastructureEntity(
+        id=entity_id,
+        entity_kind=InfrastructureEntityKind.KUBERNETES_WORKLOAD,
+        cluster_uid="cluster-1",
+        api_group="apps",
+        resource_kind="Deployment",
+        namespace="default",
+        name="order-service",
+    )
+
+
+def _infra_evidence(evidence_id: str = "evidence:kubernetes:1") -> Provenance:
+    return Provenance(
+        id=evidence_id,
+        source_type="KUBERNETES",
+        source_file="snapshot.yaml",
+    )
+
+
+def test_infrastructure_model_with_resolving_references_passes():
+    entity = _infra_entity()
+    model = ArchitectureModel(
+        provenance=[_infra_evidence()],
+        infrastructure_entities=[entity],
+        infrastructure_contributions=[
+            InfrastructureContribution(
+                entity_id=entity.id,
+                source_instance_id="urn:aip:source:kubernetes:1",
+                evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+                resource_semantic_digest="digest-1",
+                evidence_refs=["evidence:kubernetes:1"],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+        infrastructure_claims=[
+            InfrastructureClaim(
+                kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+                subject_id=entity.id,
+                evidence_refs=["evidence:kubernetes:1"],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+    )
+    validate_canonical_model(model)
+
+
+def test_contribution_referencing_an_unknown_entity_is_rejected():
+    model = ArchitectureModel(
+        provenance=[_infra_evidence()],
+        infrastructure_contributions=[
+            InfrastructureContribution(
+                entity_id="urn:aip:k8s-resource:missing",
+                source_instance_id="urn:aip:source:kubernetes:1",
+                evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+                resource_semantic_digest="digest-1",
+                evidence_refs=["evidence:kubernetes:1"],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+    )
+    with pytest.raises(CanonicalValidationError, match="unknown entity"):
+        validate_canonical_model(model)
+
+
+def test_binary_claim_referencing_an_unknown_object_is_rejected():
+    entity = _infra_entity()
+    model = ArchitectureModel(
+        provenance=[_infra_evidence()],
+        infrastructure_entities=[entity],
+        infrastructure_claims=[
+            InfrastructureClaim(
+                kind=InfrastructureClaimKind.WORKLOAD_OWNS_POD,
+                subject_id=entity.id,
+                object_id="urn:aip:k8s-resource:missing-pod",
+                evidence_refs=["evidence:kubernetes:1"],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+    )
+    with pytest.raises(CanonicalValidationError, match="unknown object"):
+        validate_canonical_model(model)
+
+
+def test_claim_referencing_an_unknown_subject_is_rejected():
+    model = ArchitectureModel(
+        provenance=[_infra_evidence()],
+        infrastructure_claims=[
+            InfrastructureClaim(
+                kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+                subject_id="urn:aip:k8s-resource:missing",
+                evidence_refs=["evidence:kubernetes:1"],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+    )
+    with pytest.raises(CanonicalValidationError, match="unknown subject"):
+        validate_canonical_model(model)
+
+
+def test_infrastructure_evidence_refs_must_resolve_to_a_provenance_record():
+    entity = _infra_entity()
+    model = ArchitectureModel(
+        infrastructure_entities=[entity],
+        infrastructure_claims=[
+            InfrastructureClaim(
+                kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+                subject_id=entity.id,
+                evidence_refs=["evidence:kubernetes:never-declared"],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+    )
+    with pytest.raises(CanonicalValidationError, match="unknown evidence"):
+        validate_canonical_model(model)
+
+
+def test_duplicate_infrastructure_entity_ids_are_rejected():
+    model = ArchitectureModel(infrastructure_entities=[_infra_entity(), _infra_entity()])
+    with pytest.raises(CanonicalValidationError, match="Infrastructure entity id is not unique"):
+        validate_canonical_model(model)
+
+
+def test_infrastructure_evidence_must_be_stamped_with_the_kubernetes_source_type():
+    """§9 (as amended): infrastructure evidence must be internal-only. If an adapter ever stamped
+    it with a public source_type, the exposure filters that key on source_type - not on what
+    references the evidence - would have nothing to hide it by."""
+    entity = _infra_entity()
+    mis_stamped_evidence = Provenance(
+        id="evidence:kubernetes:1", source_type="MANIFEST", source_file="snapshot.yaml"
+    )
+    model = ArchitectureModel(
+        provenance=[mis_stamped_evidence],
+        infrastructure_entities=[entity],
+        infrastructure_claims=[
+            InfrastructureClaim(
+                kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+                subject_id=entity.id,
+                evidence_refs=[mis_stamped_evidence.id],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+    )
+    with pytest.raises(CanonicalValidationError, match="expected 'KUBERNETES'"):
+        validate_canonical_model(model)

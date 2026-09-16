@@ -2,6 +2,11 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+from app.canonical.infrastructure import (
+    InfrastructureClaim,
+    InfrastructureContribution,
+    InfrastructureEntity,
+)
 from app.provenance.model import Provenance
 
 
@@ -69,3 +74,9 @@ class ArchitectureModel(BaseModel):
     schemas: list[Schema] = Field(default_factory=list)
     relations: list[Relation] = Field(default_factory=list)
     provenance: list[Provenance] = Field(default_factory=list)
+    # I2 Draft 0.2 §3 prerequisite slice (PR B), §7.1/§7.2: the Canonical Model's capacity to carry
+    # Kubernetes infrastructure facts - internal-only (§9), unpopulated until I2 §12 slice 3's
+    # adapter exists.
+    infrastructure_entities: list[InfrastructureEntity] = Field(default_factory=list)
+    infrastructure_contributions: list[InfrastructureContribution] = Field(default_factory=list)
+    infrastructure_claims: list[InfrastructureClaim] = Field(default_factory=list)

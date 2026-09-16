@@ -11,6 +11,7 @@ own first-wins dedup discards the disagreement.
 """
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from app.canonical.model import ArchitectureModel
 from app.sources.model import DiagnosticCode, IngestionDiagnostic
@@ -60,3 +61,73 @@ def detect_shared_claim_content_conflicts(
     ]
     # Deterministic order regardless of caller-supplied model order or dict iteration order.
     return tuple(sorted(diagnostics, key=lambda d: (d.code, d.source_pointer or "")))
+
+
+@dataclass(frozen=True)
+class InfrastructureEntityConflicts:
+    """I2 Draft 0.2 §10 specifies `K8S_RESOURCE_CONFLICT`'s outcome as "REJECTED_CONFLICT; no
+    commit" - a *source* result, not only a run-level diagnostic. `conflicted_source_instance_ids`
+    names exactly the sources whose contributions disagree, so the orchestrator can mark their own
+    outcomes `REJECTED_CONFLICT` rather than leaving them reported as ACCEPTED in a run that
+    rejected because of them.
+    """
+
+    diagnostics: tuple[IngestionDiagnostic, ...]
+    conflicted_source_instance_ids: frozenset[str]
+
+    def __bool__(self) -> bool:
+        return bool(self.diagnostics)
+
+
+def detect_infrastructure_entity_content_conflicts(
+    models: Sequence[ArchitectureModel],
+) -> InfrastructureEntityConflicts:
+    """I2 Draft 0.2 §7.1: "For one logical entity ID, equal semantic digests merge contributions and
+    union evidence deterministically... Different semantic digests from simultaneously current
+    sources are incompatible and reject the affected discovery run as `K8S_RESOURCE_CONFLICT`; no
+    source wins by precedence." A separate function from `detect_shared_claim_content_conflicts`
+    above rather than folding infrastructure entities into it - a distinct fact category
+    (infrastructure, not application), matching `app.canonical.infrastructure` being its own module -
+    but identical in structure: groups every source's claimed entity contributions by `entity_id`
+    across the whole set of models about to be merged, called with the same pre-merge per-source
+    model list before `merge_models`'s own first-wins dedup could discard the disagreement.
+
+    Nothing populates `infrastructure_contributions` yet (I2 Draft 0.2 §3 prerequisite slice, PR B) -
+    this becomes load-bearing once I2 §12 slice 3's Kubernetes adapter exists.
+    """
+    digests_by_entity: dict[str, set[str]] = {}
+    sources_by_entity: dict[str, set[str]] = {}
+    for model in models:
+        for contribution in model.infrastructure_contributions:
+            digests_by_entity.setdefault(contribution.entity_id, set()).add(
+                contribution.resource_semantic_digest
+            )
+            sources_by_entity.setdefault(contribution.entity_id, set()).add(
+                contribution.source_instance_id
+            )
+
+    conflicted_entity_ids = [
+        entity_id for entity_id, digests in digests_by_entity.items() if len(digests) > 1
+    ]
+    diagnostics = [
+        IngestionDiagnostic(
+            code=DiagnosticCode.K8S_RESOURCE_CONFLICT,
+            message=(
+                f"infrastructure entity {entity_id!r} has "
+                f"{len(digests_by_entity[entity_id])} disagreeing semantic digests across sources "
+                f"{sorted(sources_by_entity[entity_id])!r}: "
+                f"{sorted(digests_by_entity[entity_id])!r}"
+            ),
+            source_pointer=entity_id,
+        )
+        for entity_id in conflicted_entity_ids
+    ]
+    conflicted_sources: set[str] = set()
+    for entity_id in conflicted_entity_ids:
+        conflicted_sources |= sources_by_entity[entity_id]
+
+    return InfrastructureEntityConflicts(
+        # Deterministic order regardless of caller-supplied model order or dict iteration order.
+        diagnostics=tuple(sorted(diagnostics, key=lambda d: (d.code, d.source_pointer or ""))),
+        conflicted_source_instance_ids=frozenset(conflicted_sources),
+    )

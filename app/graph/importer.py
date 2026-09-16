@@ -9,8 +9,10 @@ from app.graph.revision_fence import bump_revision
 from app.graph.schema import ensure_schema
 from app.ingestion.orchestrator import DiscoveryRunResult, run_filesystem_discovery
 from app.sources.claim_reconciliation import plan_source_claim_reconciliation
+from app.sources.encoding import length_delimited, sha256_hex
 from app.sources.inventory import InventoryStatus
 from app.sources.inventory import inventory_event_id as compute_inventory_event_id
+from app.sources.jcs import canonical_json_bytes
 from app.sources.migration_mappings import SharedIdentityMappingIndex
 from app.sources.model import (
     DiagnosticCode,
@@ -64,6 +66,32 @@ NODE_LABELS = {
     "provenance": "Evidence",
 }
 
+# I2 Draft 0.2 §3 item 6 / §7: internal-only infrastructure labels, deliberately NOT in
+# `NODE_LABELS` above - that mapping is keyed by `ArchitectureModel` field name and assumes
+# `model_dump(exclude={"id"})` yields Neo4j-storable primitives, which is not true for an entity's
+# nested `ports` nor for contributions/claims whose `id` is a computed property rather than a field.
+# `_write_infrastructure_nodes` handles them explicitly, using the same MERGE template.
+INFRASTRUCTURE_ENTITY_LABEL = "InfrastructureEntity"
+INFRASTRUCTURE_CONTRIBUTION_LABEL = "InfrastructureContribution"
+INFRASTRUCTURE_CLAIM_LABEL = "InfrastructureClaim"
+# I2 Draft 0.2 §7.2: "Claim contributions use the same source ownership, evidence-mode retention,
+# deterministic evidence union... as entity contributions." A claim node is shared by every source
+# asserting the same (kind, subject, object) - §7.2's own identity rule - so its own `evidence_refs`
+# can never be written directly from any one source's model (a real bug found in PR review, twice:
+# a plain overwrite made the stored evidence depend on which source wrote last, and a reduce-based
+# union could accumulate refs forever - neither let a RETAINED source correctly REPLACE its own
+# evidence on reimport, since nothing ever ran for a claim whose ownership hadn't changed). Instead,
+# each source's own view of a claim is persisted as its own `InfrastructureClaimContribution` row -
+# id-scoped per (claim, source) exactly like `InfrastructureContribution`, so a reimport correctly
+# *overwrites* (never accumulates) that source's own evidence - and the claim's own `evidence_refs`
+# is a derived, recomputed-from-scratch union of whatever contribution rows currently exist,
+# computed by `_recompute_infrastructure_claim_evidence` after every source's own write+reconcile
+# step. This is the same "one shared fact, several sources' own evidence" shape `InfrastructureEntity`
+# /`InfrastructureContribution` already solve correctly; a claim needed its own contribution layer
+# because §7.2 (unlike §7.1) puts `evidence_refs` on the shared claim object itself, with no
+# adapter-facing per-source contribution type of its own.
+INFRASTRUCTURE_CLAIM_CONTRIBUTION_LABEL = "InfrastructureClaimContribution"
+
 # I1 spec §4/§7: this is the source-adapter seam's own frozen relation vocabulary, unchanged from
 # the PoC-era value in the now-deleted app.graph.reconciliation - relocated here since that module
 # is deleted (its node/relation-id set diffing is superseded by source-instance-scoped,
@@ -85,7 +113,7 @@ def relation_key(relation) -> str:
     return f"{relation.type}:{relation.source_id}:{relation.target_id}"
 
 
-def _model_node_ids(model: ArchitectureModel) -> set[str]:
+def _model_node_ids(model: ArchitectureModel, *, source_instance_id: str) -> set[str]:
     return {
         *(s.id for s in model.services),
         *(o.id for o in model.operations),
@@ -93,6 +121,21 @@ def _model_node_ids(model: ArchitectureModel) -> set[str]:
         *(m.id for m in model.messages),
         *(sc.id for sc in model.schemas),
         *(p.id for p in model.provenance),
+        # I2 Draft 0.2 §3 item 6: infrastructure facts go through the *same* ownership and
+        # reconciliation path as every other canonical fact - including them here is what makes
+        # `plan_source_claim_reconciliation`'s claim-key diff, `_EXPIRE_NODES_QUERY`'s
+        # last-owner-wins deletion, and `_REMOVE_NODE_OWNERSHIP_QUERY`'s shared-ownership retirement
+        # apply to them unchanged.
+        *(e.id for e in model.infrastructure_entities),
+        *(c.id for c in model.infrastructure_contributions),
+        *(c.id for c in model.infrastructure_claims),
+        # The per-source claim-contribution row (see _write_infrastructure_nodes) is its own owned
+        # node, keyed per (claim, THIS source), so it must participate in ownership reconciliation
+        # the same way `InfrastructureContribution` already does.
+        *(
+            _infrastructure_claim_contribution_id(claim.id, source_instance_id)
+            for claim in model.infrastructure_claims
+        ),
     }
 
 
@@ -255,6 +298,170 @@ def _write_nodes(
                 source_instance_id=source_instance_id,
             )
             count += 1
+    return count + _write_infrastructure_nodes(tx, source_instance_id, model)
+
+
+def _infrastructure_entity_props(entity) -> dict:
+    """I2 Draft 0.2 §7.1 delegates "persistence encoding" to the implementation. Everything except
+    `ports` is already a Neo4j-storable primitive; `ports` is the Canonical Model's only nested
+    object, and Neo4j properties cannot hold nested maps - so each port is stored as one RFC 8785
+    canonical-JSON string, reusing `app.sources.jcs` rather than inventing a second canonicalization.
+    The list stays in the entity's own §7.1 sorted order, so the stored value is deterministic and
+    the before/after property snapshot that drives the revision fence stays meaningful.
+    """
+    props = entity.model_dump(exclude={"id", "ports"})
+    props["ports"] = [
+        canonical_json_bytes(port.model_dump()).decode("utf-8") for port in entity.ports
+    ]
+    return props
+
+
+def _utf8(text: str) -> bytes:
+    return text.encode("utf-8")
+
+
+def _infrastructure_claim_contribution_id(claim_id: str, source_instance_id: str) -> str:
+    """Not spec-named (§7.2 describes the per-source contribution *concept* in prose, not a schema
+    - the same discipline as every other id formula this PR's own layer invents). Length-delimited
+    like every other identity hash in this codebase; deliberately a different literal prefix from
+    `InfrastructureClaim.id`'s own `urn:aip:infra-claim:` so `_recompute_infrastructure_claim_evidence`
+    can distinguish "a claim id" from "a claim-contribution id" by a plain string prefix check,
+    without needing a Neo4j label lookup.
+    """
+    key = length_delimited(_utf8(claim_id), _utf8(source_instance_id))
+    return f"urn:aip:infra-claim-support:{sha256_hex(key)}"
+
+
+_INFRASTRUCTURE_CLAIM_ID_PREFIX = "urn:aip:infra-claim:"
+
+_READ_CLAIM_CONTRIBUTION_EVIDENCE_QUERY = (
+    f"MATCH (c:{INFRASTRUCTURE_CLAIM_CONTRIBUTION_LABEL} {{claim_id: $claim_id}}) "
+    "RETURN c.evidence_refs AS evidence_refs"
+)
+_SET_CLAIM_EVIDENCE_REFS_QUERY = (
+    f"MATCH (n:{INFRASTRUCTURE_CLAIM_LABEL} {{id: $claim_id}}) SET n.evidence_refs = $evidence_refs"
+)
+
+
+def _recompute_affected_infrastructure_claims(
+    tx: neo4j.ManagedTransaction,
+    node_plan,
+    *,
+    currently_emitted_claim_ids: frozenset[str] = frozenset(),
+) -> None:
+    """Recomputes every infrastructure claim a source's own reconciliation step could have
+    affected: every claim it currently emits (`currently_emitted_claim_ids` - empty for whole-source
+    removal, which emits nothing), plus every claim it just stopped emitting (found by filtering
+    `node_plan`'s expired/ownership-removed id set for the claim-id prefix, since that set mixes
+    every node kind together). Must run AFTER this source's own nodes are written/reconciled, so the
+    read-your-own-writes view each recompute sees already reflects them.
+    """
+    affected_claim_ids = currently_emitted_claim_ids | {
+        node_id
+        for node_id in node_plan.expired_claim_keys | node_plan.ownership_removed_claim_keys
+        if node_id.startswith(_INFRASTRUCTURE_CLAIM_ID_PREFIX)
+    }
+    for claim_id in sorted(affected_claim_ids):
+        _recompute_infrastructure_claim_evidence(tx, claim_id)
+
+
+def _recompute_infrastructure_claim_evidence(tx: neo4j.ManagedTransaction, claim_id: str) -> None:
+    """A claim's `evidence_refs` is never written directly from any one source's model - it is
+    recomputed, from scratch, as the sorted union of every *currently live*
+    `InfrastructureClaimContribution` row for this claim id. Correct regardless of why this claim
+    was touched: a brand-new claim, a retained claim whose owning source replaced its own evidence
+    (the specific bug this replaces two prior write-time-union attempts to fix), or a claim losing
+    one of several owners (a real co-ownership bug found in PR review) - all three reduce to "read
+    what's currently there and set the union," with no incremental accumulate/strip logic to get
+    subtly wrong. A no-op if the claim node was already deleted (its last contribution just expired):
+    `MATCH` finds no rows to `SET`.
+    """
+    refs: set[str] = set()
+    for record in tx.run(_READ_CLAIM_CONTRIBUTION_EVIDENCE_QUERY, claim_id=claim_id):
+        refs.update(record["evidence_refs"] or [])
+    tx.run(_SET_CLAIM_EVIDENCE_REFS_QUERY, claim_id=claim_id, evidence_refs=sorted(refs))
+
+
+def _write_infrastructure_nodes(
+    tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
+) -> int:
+    """I2 Draft 0.2 §3 item 6: infrastructure entities, contributions, and claims are written
+    through the same MERGE-with-`owner_source_ids` template as every other canonical node, so they
+    inherit the identical ownership, shared-ownership, reconciliation, and expiry semantics without
+    a second mechanism (§12: "no second reconciliation engine is permitted").
+
+    Contributions and claims are nodes rather than graph relationships on purpose: `WORKLOAD_EXISTS`
+    is a first-class *unary* claim, and §7.2 forbids inventing "a sentinel entity or self-edge to
+    force it through a binary-relation representation" - modelling all four claim kinds uniformly as
+    owned claim nodes honors that, and keeps these internal-only facts out of every existing
+    untyped relationship traversal (§9: they "MUST NOT leak through generic serialization, existing
+    dependency answers, or a graph tool").
+    """
+    count = 0
+    entity_query = _MERGE_NODE_TEMPLATE.format(label=INFRASTRUCTURE_ENTITY_LABEL)
+    for entity in model.infrastructure_entities:
+        tx.run(
+            entity_query,
+            id=entity.id,
+            props=_infrastructure_entity_props(entity),
+            source_instance_id=source_instance_id,
+        )
+        count += 1
+
+    contribution_query = _MERGE_NODE_TEMPLATE.format(label=INFRASTRUCTURE_CONTRIBUTION_LABEL)
+    for contribution in model.infrastructure_contributions:
+        tx.run(
+            contribution_query,
+            id=contribution.id,
+            props=contribution.model_dump(),
+            source_instance_id=source_instance_id,
+        )
+        count += 1
+
+    # I2 Draft 0.2 §7.2: "Evidence mode is retained per contribution... merging declarations and
+    # captures never turns all support into observation" - the same requirement §7.1 states for
+    # entity contributions, applied to claim contributions too. `InfrastructureClaim` itself (§7.2's
+    # frozen adapter-facing schema) carries no `evidence_mode` field - by design, since that's a
+    # per-CONTRIBUTION property, not a property of the shared claim - so it is looked up here from
+    # this SAME model's own entity contribution for the claim's subject, which does carry it. This
+    # holds because a claim and its subject's own contribution are always emitted together by the
+    # same adapter for the same source in the same model, and §4.1 guarantees one source has exactly
+    # one immutable evidence mode - so the subject's contribution is authoritative for this claim's
+    # contribution too. `None` only if the model is malformed (a claim whose subject has no
+    # contribution from this same source at all).
+    contribution_by_entity_id = {c.entity_id: c for c in model.infrastructure_contributions}
+
+    # The claim node itself carries every field EXCEPT evidence_refs, which is never written here -
+    # see `_recompute_infrastructure_claim_evidence`. Its own per-source CONTRIBUTION row (id-scoped
+    # per (claim, source), so a reimport correctly overwrites rather than accumulates) is what
+    # actually carries this source's own evidence_refs and evidence mode.
+    claim_query = _MERGE_NODE_TEMPLATE.format(label=INFRASTRUCTURE_CLAIM_LABEL)
+    claim_contribution_query = _MERGE_NODE_TEMPLATE.format(
+        label=INFRASTRUCTURE_CLAIM_CONTRIBUTION_LABEL
+    )
+    for claim in model.infrastructure_claims:
+        tx.run(
+            claim_query,
+            id=claim.id,
+            props=claim.model_dump(exclude={"evidence_refs"}),
+            source_instance_id=source_instance_id,
+        )
+        subject_contribution = contribution_by_entity_id.get(claim.subject_id)
+        tx.run(
+            claim_contribution_query,
+            id=_infrastructure_claim_contribution_id(claim.id, source_instance_id),
+            props={
+                "claim_id": claim.id,
+                "evidence_refs": claim.evidence_refs,
+                "mapping_rule_id": claim.mapping_rule_id,
+                "mapping_rule_version": claim.mapping_rule_version,
+                "evidence_mode": (
+                    subject_contribution.evidence_mode if subject_contribution else None
+                ),
+            },
+            source_instance_id=source_instance_id,
+        )
+        count += 2
     return count
 
 
@@ -379,7 +586,7 @@ def _import_source_tx(
         for record in tx.run(_OWNED_RELATION_KEYS_QUERY, source_instance_id=source_instance_id)
     }
 
-    new_node_ids = _model_node_ids(model)
+    new_node_ids = _model_node_ids(model, source_instance_id=source_instance_id)
     new_relation_keys = _model_relation_keys(model)
     if replay_decision.case is ReplayCase.SCOPE_CHANGED_PRESERVE_PENDING_TOMBSTONE:
         # I1 spec §5.4/§6: a scope change must not itself authorize expiring claims absent from the
@@ -447,6 +654,16 @@ def _import_source_tx(
             ids=list(node_plan.ownership_removed_claim_keys),
             source_instance_id=source_instance_id,
         )
+
+    # I2 Draft 0.2 §7.2: a brand-new claim, a retained one whose owning source just replaced its own
+    # evidence (the specific bug this mechanism replaces two prior write-time-union attempts to
+    # fix), and a claim losing one of several owners (a real co-ownership bug found in PR review)
+    # all reduce to the same derive-from-scratch recompute.
+    _recompute_affected_infrastructure_claims(
+        tx,
+        node_plan,
+        currently_emitted_claim_ids=frozenset(claim.id for claim in model.infrastructure_claims),
+    )
 
     tx.run(
         _WRITE_SOURCE_STATE_QUERY,
@@ -535,6 +752,9 @@ def _remove_source_tx(
             ids=list(node_plan.ownership_removed_claim_keys),
             source_instance_id=source_instance_id,
         )
+    # This source dropped every claim it owned (emits nothing) - see the identical mechanism in
+    # `_import_source_tx`.
+    _recompute_affected_infrastructure_claims(tx, node_plan)
     tx.run(_DELETE_SOURCE_STATE_QUERY, source_instance_id=source_instance_id)
     bump_revision(tx)
 
@@ -632,8 +852,10 @@ def _import_all_sources_tx(
     # revision fence). Captured once, for the union of every source's own node ids/relation keys.
     all_node_ids: set[str] = set()
     all_relation_keys: set[str] = set()
-    for source_outcome in run_result.source_outcomes.values():
-        all_node_ids |= _model_node_ids(source_outcome.outcome.model)
+    for source_instance_id, source_outcome in run_result.source_outcomes.items():
+        all_node_ids |= _model_node_ids(
+            source_outcome.outcome.model, source_instance_id=source_instance_id
+        )
         all_relation_keys |= _model_relation_keys(source_outcome.outcome.model)
     committed_nodes_before = _snapshot_node_props(tx, all_node_ids)
     committed_relations_before = _snapshot_relation_props(tx, all_relation_keys)

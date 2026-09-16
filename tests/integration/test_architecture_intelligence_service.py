@@ -1064,3 +1064,39 @@ def test_a_concurrent_write_during_a_drift_stable_read_forces_a_retry(driver, mo
     assert calls["count"] >= 2
     assert answer.snapshot.snapshot_id == expected_snapshot_id
     assert answer.snapshot.model_revision == expected_model_revision
+
+
+def test_kubernetes_evidence_is_never_returned_by_get_evidence_even_when_the_id_is_known(driver):
+    """I2 Draft 0.2 §9 (as amended): a Kubernetes source's evidence is internal-only. Unlike every
+    other public evidence read, `get_evidence` is keyed entirely by CALLER-supplied ids
+    (`EvidenceRequest.evidence_refs`) - so this is not just "is it listed anywhere public", it's "if
+    a client already has this exact id (leaked, guessed, or logged from an internal system), can it
+    read the record back". A real gap found in PR re-review:
+    `app.architecture_intelligence.repository._EVIDENCE_BY_ID_QUERY` had no such filter, unlike the
+    snapshot-listing query next to it."""
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-aiservice-examples", root=EXAMPLES_DIR),
+    )
+    kubernetes_evidence_id = "evidence:kubernetes:leak-test"
+    with driver.session(database=DATABASE) as session:
+        session.run(
+            "CREATE (e:Evidence {id: $id, source_type: 'KUBERNETES', "
+            "source_file: 'snapshot.yaml', evidence_type: 'DECLARED', owner_source_ids: ['src:k8s']})",
+            id=kubernetes_evidence_id,
+        )
+
+    svc = _service(driver)
+    dependency_answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
+
+    evidence_answer = svc.get_evidence(
+        EvidenceRequest(
+            evidence_refs=[kubernetes_evidence_id],
+            snapshot_id=dependency_answer.snapshot.snapshot_id,
+        )
+    )
+
+    # Identical to a genuinely nonexistent id - never a real record, never a distinguishable error.
+    assert evidence_answer.data.missing_evidence_refs == [kubernetes_evidence_id]
+    assert evidence_answer.data.records == []

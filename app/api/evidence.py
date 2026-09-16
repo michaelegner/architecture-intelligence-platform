@@ -1,6 +1,7 @@
 import neo4j
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.deps import get_read_session
 
 router = APIRouter(prefix="/api/evidence", tags=["evidence"])
@@ -9,8 +10,12 @@ _FIELDS = (
     "e.id AS id, e.source_type AS source_type, e.source_file AS source_file, "
     "e.source_revision AS source_revision, e.evidence_type AS evidence_type"
 )
-_LIST_QUERY = f"MATCH (e:Evidence) RETURN {_FIELDS} ORDER BY e.id"
-_GET_QUERY = f"MATCH (e:Evidence {{id: $id}}) RETURN {_FIELDS}"
+# I2 Draft 0.2 §9 (amended): a Kubernetes source's evidence supports only internal-only
+# infrastructure facts, so it is not part of this public surface either - exposing it here while
+# hiding everything it supports would leak the existence and shape of those facts by the back door.
+_NOT_INTERNAL = f"e.source_type <> '{KUBERNETES_SOURCE_TYPE}'"
+_LIST_QUERY = f"MATCH (e:Evidence) WHERE {_NOT_INTERNAL} RETURN {_FIELDS} ORDER BY e.id"
+_GET_QUERY = f"MATCH (e:Evidence {{id: $id}}) WHERE {_NOT_INTERNAL} RETURN {_FIELDS}"
 
 
 @router.get("")

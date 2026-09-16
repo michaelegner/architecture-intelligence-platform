@@ -14,17 +14,25 @@ responsibilities - `merge_models` (kept, moved here) and hard-coded per-source-k
 """
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.canonical.infrastructure import (
+    InfrastructureClaim,
+    InfrastructureContribution,
+    InfrastructureEntity,
+)
 from app.canonical.model import ArchitectureModel, Message, Operation, Queue, Schema, Service
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.manifest_adapter import ManifestSourceAdapter
 from app.ingestion.openapi_adapter import OpenApiSourceAdapter
 from app.provenance.model import Provenance
-from app.sources.claim_conflicts import detect_shared_claim_content_conflicts
+from app.sources.claim_conflicts import (
+    detect_infrastructure_entity_content_conflicts,
+    detect_shared_claim_content_conflicts,
+)
 from app.sources.commit_gate import classify_inventory_status, run_is_eligible_to_commit
 from app.sources.identity import mapping_context_digest as compute_mapping_context_digest
 from app.sources.inventory import (
@@ -83,6 +91,16 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
     relations = []
     seen_relations: set[tuple[str, str, str]] = set()
     provenance: list[Provenance] = []
+    # I2 Draft 0.2 §3 prerequisite slice (PR B), §7.1: dedup keys are this PR's own choice, matching
+    # the pattern `relations`' own (type, source_id, target_id) key already establishes - not
+    # literally named by the spec text, which describes the merge/conflict *rule*, not an in-memory
+    # dict key. First-wins here, exactly like every other entity kind above: the real per-source
+    # evidence union (§7.1: "equal semantic digests merge contributions and union evidence") is a
+    # later slice's graph-write concern, once a real adapter and persistence path exist - nothing
+    # populates these fields yet.
+    infrastructure_entities: dict[str, InfrastructureEntity] = {}
+    infrastructure_contributions: dict[tuple[str, str], InfrastructureContribution] = {}
+    infrastructure_claims: dict[tuple[str, str, str | None], InfrastructureClaim] = {}
 
     for model in models:
         for service in model.services:
@@ -101,6 +119,30 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
                 seen_relations.add(key)
                 relations.append(relation)
         provenance.extend(model.provenance)
+        for entity in model.infrastructure_entities:
+            infrastructure_entities.setdefault(entity.id, entity)
+        for contribution in model.infrastructure_contributions:
+            infrastructure_contributions.setdefault(
+                (contribution.entity_id, contribution.source_instance_id), contribution
+            )
+        for claim in model.infrastructure_claims:
+            # §7.2: a claim's identity is shared across sources (hash of kind/subject/object), and
+            # "deterministic evidence union" is required - first-wins would silently discard the
+            # second source's evidence here, exactly as `SET n += $props` would overwrite it at the
+            # graph layer (a real bug found in PR review). Union and re-sort so the merged claim
+            # still satisfies its own sorted/duplicate-free invariant.
+            key = (claim.kind, claim.subject_id, claim.object_id)
+            existing = infrastructure_claims.get(key)
+            if existing is None:
+                infrastructure_claims[key] = claim
+            elif set(claim.evidence_refs) - set(existing.evidence_refs):
+                infrastructure_claims[key] = existing.model_copy(
+                    update={
+                        "evidence_refs": sorted(
+                            set(existing.evidence_refs) | set(claim.evidence_refs)
+                        )
+                    }
+                )
 
     return ArchitectureModel(
         services=list(services.values()),
@@ -110,6 +152,9 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
         schemas=list(schemas.values()),
         relations=relations,
         provenance=provenance,
+        infrastructure_entities=list(infrastructure_entities.values()),
+        infrastructure_contributions=list(infrastructure_contributions.values()),
+        infrastructure_claims=list(infrastructure_claims.values()),
     )
 
 
@@ -293,6 +338,17 @@ def _compute_mapping_context_digest(
 class SourceRunOutcome:
     descriptor_locator: str
     outcome: AdapterOutcome
+
+
+def _rejected_conflict(run_outcome: SourceRunOutcome) -> SourceRunOutcome:
+    """I2 Draft 0.2 §10: `K8S_RESOURCE_CONFLICT` -> "REJECTED_CONFLICT; no commit". Rewrites one
+    source's own result while preserving everything else it produced (diagnostics, digest, and the
+    model it mapped - none of which commits, since the run is not commit-eligible).
+    """
+    return replace(
+        run_outcome,
+        outcome=replace(run_outcome.outcome, result=IngestionResult.REJECTED_CONFLICT),
+    )
 
 
 @dataclass(frozen=True)
@@ -544,10 +600,30 @@ def run_discovery(
     # §8.1/§9.1: "Two current owners explicitly mapped to one shared Schema ID with different
     # canonical hashes are REJECTED_CONFLICT" (and the Message equivalent) - only visible once every
     # source's own claims are collected together, so this runs on the pre-merge per-source model
-    # list, before merge_models' own first-wins dedup could discard the disagreement.
-    content_conflicts = detect_shared_claim_content_conflicts(source_models)
+    # list, before merge_models' own first-wins dedup could discard the disagreement. I2 Draft 0.2
+    # §7.1's equivalent rule for infrastructure entity contributions is checked the same way, at the
+    # same point, even though nothing populates infrastructure_contributions yet.
+    infrastructure_conflicts = detect_infrastructure_entity_content_conflicts(source_models)
+    content_conflicts = tuple(
+        sorted(
+            detect_shared_claim_content_conflicts(source_models)
+            + infrastructure_conflicts.diagnostics,
+            key=lambda d: (d.code, d.source_pointer or ""),
+        )
+    )
     if content_conflicts:
         run_diagnostics.extend(content_conflicts)
+        # §10: `K8S_RESOURCE_CONFLICT`'s outcome is "REJECTED_CONFLICT; no commit" - a source
+        # result, not only a run-level status. Every source whose contribution disagreed carries
+        # that result, rather than staying reported as ACCEPTED in a run it caused to reject.
+        source_outcomes = {
+            source_instance_id: (
+                _rejected_conflict(run_outcome)
+                if source_instance_id in infrastructure_conflicts.conflicted_source_instance_ids
+                else run_outcome
+            )
+            for source_instance_id, run_outcome in source_outcomes.items()
+        }
         return DiscoveryRunResult(
             inventory_status=InventoryStatus.PARTIAL,
             commit_eligible=False,
