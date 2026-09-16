@@ -1,5 +1,9 @@
 # I1 Completion Record — v0.5.0 Source Ingestion Foundation
 
+**Status:** Corrected after the I2 Draft 0.2 integration review — adapter/mapping delivery complete;
+source-neutral production orchestration and the normative inventory lifecycle remain prerequisite
+completion work.
+
 Governing spec: `docs/specifications/0.5.0/i1-source-ingestion-foundation.md` (Draft 0.3, amended
 during PR3b to accept OpenAPI `3.1.2` — see its own §12 amendment note). Per §13: "The I1 completion
 record SHALL identify the candidate revision, adapter/mapping-rule versions, fixture identities,
@@ -9,7 +13,7 @@ reintroducing directory-based ownership or name-based identity."
 
 ## Run identity
 
-I1 shipped as four sequential PRs, each independently reviewed and merged, per the user-approved
+I1 was delivered as four sequential PRs, each independently reviewed and merged, per the user-approved
 delivery plan:
 
 | PR | Scope | Merge commit | PR # |
@@ -18,7 +22,7 @@ delivery plan:
 | 2 | Inventory lifecycle, atomic reconciliation, removal/tombstone safety | `87a5806` | #181 |
 | 3a | Registry seam (ADR 0009); adapter migration to owner-scoped RFC 8785 Schema/Message/Queue identity | `7492bd2` | #185 |
 | 3b | Bounded multi-file `$ref` resolution/containment (ADR 0015), `allOf`/`oneOf`/`anyOf` composition, exact OpenAPI/AsyncAPI version enforcement | `934de3f` | #186 |
-| 4 | Explicit shared-identity/migration mapping mechanism, cross-source content-conflict detection, deterministic-qualification evidence, this record | *(this branch, pending merge)* | — |
+| 4 | Explicit shared-identity/migration mapping mechanism, cross-source content-conflict detection, deterministic-qualification evidence, this record | `ecc598a5` | #187 |
 
 **Adapter/mapping-rule identities and versions** (unchanged since PR3a, all `v1`):
 `openapi-adapter@1`, `asyncapi-adapter@1`, `manifest-adapter@1`.
@@ -109,7 +113,7 @@ record's own full regression run (unaffected by PR4's changes).
 | Shared claims survive removal of one source | `tests/integration/test_importer.py::test_import_all_sources_removes_source_no_longer_discovered` |
 | Byte-different/semantically-equivalent inputs share `semantic_input_digest`; dependency-closure encoding/ordering/empty-digest match fixed vectors | `tests/unit/test_sources_identity.py`; `tests/unit/test_sources_reference_resolution.py` (closure-walk tests) |
 | Replay determinism; two clean runs from the same initial state produce byte-identical semantic reports; sequential replay is a true no-op | `tests/unit/test_sources_replay.py`; `tests/integration/test_revision_fence.py`; `tests/integration/test_i1_bundled_migration_determinism.py` (the discovery/mapping-layer byte-identity proof) |
-| I1 blockers | `0` |
+| I1 blockers | `2` found by the post-merge I2 integration review: source-neutral production orchestration; end-to-end inventory/predecessor/tombstone persistence |
 
 ## Limitations and unsupported constructs (explicitly disclosed, not silently omitted)
 
@@ -131,22 +135,38 @@ record's own full regression run (unaffected by PR4's changes).
 
 ## Handoff to I2
 
-I2 (`docs/specifications/0.5.0/i2-kubernetes-discovery-vertical-slice.md`) may rely on the registry
-seam (`app.sources.registry.SourceAdapter`/`SourceAdapterRegistry`), the discovery/inventory
-lifecycle (`app.ingestion.orchestrator.run_filesystem_discovery`, `app.sources.commit_gate`/
-`inventory`/`replay`/`claim_reconciliation`/`removal_authority`), and the owner-scoped identity
-formulas (`app.sources.owner_ids`, `app.sources.migration_mappings` for any future shared-identity
-needs) exactly as built, without reintroducing directory-based ownership or name-based identity for
-any new source kind it adds.
+The I2 Draft 0.2 integration review tested the merged I1 baseline
+`ecc598a5ae57c614172cb1cfe4e76198f4b4a5e6` and corrected the original handoff claim.
 
-## I1 exit statement
+I2 may rely on the adapter registry, owner-scoped identity formulas, replay/commit-gate calculations,
+claim reconciliation, removal-authority rules, and inventory/tombstone models. It MUST NOT treat the
+production orchestration and inventory lifecycle as complete exactly as built:
 
-> GO — At this branch's tip, all four PRs' work is present and re-verified together: the registry
+- `SourceDiscoverer` is generic, but `run_filesystem_discovery` constructs filesystem discovery and
+  the graph importer accepts filesystem configuration directly;
+- `SourceInventorySnapshot` and its revision/capture calculations exist, but the production discovery
+  result does not construct or carry a snapshot;
+- committed source state does not persist the current inventory revision/capture reference, so an
+  expected predecessor cannot be transactionally compared;
+- the production removal path exercises complete same-scope enumeration but does not accept and
+  validate explicit tombstones.
+
+These are gaps against I1 Draft 0.3 §§6–7, not permission for I2 to build a second lifecycle. I2's
+first implementation slice must complete the shared source-neutral orchestration, snapshot,
+persistence, predecessor, and tombstone path and regress the existing filesystem behavior. The
+directory-independent and non-name-based identity requirements remain fully binding.
+
+## Corrected I1 exit statement
+
+> CONDITIONAL — At PR #187's merge revision, all four PRs' adapter, identity, reference-resolution,
+> mapping, and conflict work is present and re-verified together: the registry
 > seam and owner-scoped RFC 8785 Schema/Message/Queue identity (PR3a), bounded multi-file `$ref`
 > resolution with exact composition/version-enforcement semantics (PR3b), and the explicit
 > shared-identity/migration mapping mechanism proving portable, deterministic restoration of prior
 > canonical meaning for the bundled examples, including two genuine cross-source merges
 > (PaymentRequested, InvoiceCreated) and a genuine cross-source content-conflict rejection (PR4).
 > `uv run pytest tests/unit` (1372) and `tests/integration` (300) both pass in full; lint/format are
-> clean. I1 blockers = 0. I2 may build its Kubernetes discovery vertical slice directly on this
-> seam and lifecycle contract.
+> clean. The later I2 Draft 0.2 integration review found two remaining I1 completion blockers:
+> source-neutral production orchestration and end-to-end inventory/predecessor/tombstone persistence.
+> I2 may reuse the delivered primitives, but Kubernetes mapping must not begin until its prerequisite
+> shared-lifecycle slice closes those blockers with executable evidence.

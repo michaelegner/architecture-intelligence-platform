@@ -1,10 +1,11 @@
 # AIP v0.5.0 I2 — Kubernetes Discovery Vertical Slice
 
-**Status:** Draft 0.1 — proposed contracts; pending review and I1 integration check  
-**Release:** `v0.5.0`  
-**Increment:** I2  
-**Parent:** [v0.5.0 release specification](specification.md), especially §§7–8, 14, 28–29  
-**Dependency:** [I1 Source Ingestion Foundation, Draft 0.2](i1-source-ingestion-foundation.md)  
+**Status:** Draft 0.2 — post-I1 integration amendment; pending acceptance<br>
+**Release:** `v0.5.0`<br>
+**Increment:** I2<br>
+**Parent:** [v0.5.0 release specification](specification.md), especially §§7–8, 14, 28–29<br>
+**Dependency:** [I1 Source Ingestion Foundation, Draft 0.3](i1-source-ingestion-foundation.md)<br>
+**Reviewed I1 implementation baseline:** `ecc598a5ae57c614172cb1cfe4e76198f4b4a5e6`<br>
 **Draft scope disposition:** `OFFLINE_ONLY`
 
 ## 1. Purpose and boundaries
@@ -69,20 +70,56 @@ I2 reuses I1's source descriptors, result taxonomy, inventory authority, tombsto
 fingerprint, atomic discovery-run transaction, and deterministic report comparison. It does not
 create a parallel lifecycle pipeline or write directly to the graph.
 
-Before I2 implementation starts, record an integration check against the implemented I1 revision:
+The Draft 0.2 integration review was performed against I1 Draft 0.3 at merge revision
+`ecc598a5ae57c614172cb1cfe4e76198f4b4a5e6`. It found that I1's source/adapter protocols and
+lifecycle calculation primitives exist, but three contracts I2 depends on are not complete in the
+production path:
 
-| Dependency | Required confirmation |
-|---|---|
-| Registration | A new source kind can register without a hard-coded orchestration branch. |
-| Identity/replay | Kubernetes normalization can contribute to the common mapping context and semantic digest. |
-| Inventory | Explicit complete snapshots, failure preservation, scope transitions, and stale tombstones work. |
-| Merge | Ownership from multiple sources survives removal of one owner; incompatible current contributions conflict. |
-| Evidence | Resource pointers, sanitized context, revision/capture identities, and limitations can be retained. |
-| Qualification | Initial-state fixtures and semantic/audit report separation are available. |
+- the production discovery runner and graph importer are filesystem-specific even though the
+  discoverer and adapter protocols are generic;
+- discovery does not construct or return a real `SourceInventorySnapshot`, and the commit path does
+  not persist or transactionally compare the committed inventory revision;
+- the current Canonical Model has neither infrastructure entities nor a first-class unary-claim
+  representation.
+
+The resulting integration disposition is:
+
+| Dependency | Draft 0.2 integration finding | Required closure before Kubernetes mapping |
+|---|---|---|
+| Registration | `SourceDiscoverer` and `SourceAdapterRegistry` are generic; production orchestration constructs filesystem discovery directly. | A source-neutral orchestration path accepts a configured discoverer and registered adapters without a source-kind branch. |
+| Identity/replay | Common mapping-context and semantic-digest primitives exist. | Kubernetes registration semantics and adapter/rule versions participate in those existing digests. |
+| Inventory | Snapshot/revision/tombstone models and calculations exist, but the production run and commit paths do not carry or persist them end to end. | Every run produces a snapshot; current inventory state and capture audit identity are persisted; predecessor and tombstone checks execute in the atomic commit. |
+| Merge | Existing source ownership and conflict primitives are reusable. | Infrastructure entity/claim contributions use those primitives and the Draft 0.2 conflict rules in §7. |
+| Evidence | Existing provenance can retain source pointers, but infrastructure entity and unary-claim shapes are absent. | The logical schemas in §7 are implemented without widening a public response. |
+| Qualification | Initial-state fixtures exist, while the semantic/audit inventory report path remains incomplete. | Qualification includes committed inventory state and distinct semantic versus capture-specific projections. |
+
+Before any Kubernetes mapping slice begins, the implementation SHALL complete one shared I1
+integration slice with these properties:
+
+1. Source-neutral orchestration consumes a configured discoverer plus the adapter registry and
+   returns the common discovery-run result. Existing filesystem entry points MAY remain as
+   compatibility wrappers.
+2. The common commit path consumes that result and MUST NOT instantiate filesystem discovery or
+   branch on source kind.
+3. Every discovery attempt constructs a real `SourceInventorySnapshot`. The result carries that
+   snapshot through planning/reporting, and a successful `COMPLETE` run persists its current
+   semantic inventory revision together with its capture/audit identity in the same transaction as
+   source reconciliation and authorized removals.
+4. The transaction compares any expected predecessor with the currently committed inventory before
+   mutation. A mismatch, including null-versus-existing and value-versus-missing, rejects the run
+   and preserves the last committed state.
+5. Explicit source/scope-transition tombstones are validated against committed inventory and wired
+   into production removal authorization. Ordinary same-scope resource withdrawal remains a
+   source-owned reconciliation and does not require one tombstone per Kubernetes resource.
+6. The canonical layer can carry the logical infrastructure entities, contributions, and unary or
+   binary claims frozen in §7 through the same merge, validation, ownership, and reconciliation
+   path as other canonical facts.
 
 Package names, Python interfaces, persistence labels, CLI wiring, and diagnostic envelope integration
-remain implementation decisions. They must be recorded before executable fixtures are frozen.
-A mismatch with I1 requires an explicit specification correction, not a hidden adapter workaround.
+remain implementation decisions. The requirements above constrain behavior and transaction
+boundaries, not function names or graph labels. They must be recorded before executable fixtures
+are frozen. A further mismatch with I1 requires an explicit specification correction, not a hidden
+adapter workaround or a second reconciliation engine.
 
 ## 4. Frozen input and authority contract
 
@@ -138,11 +175,22 @@ files:
 ```
 
 All displayed fields are required. `expectedPriorInventoryRevision` is null only for a first import;
-successor bundles bind the currently committed inventory revision. IDs and attribution fields are
-non-empty strings. Namespace lists are non-empty, sorted, duplicate-free explicit names: no wildcard
-or implicit default namespace. The resourceTypes list is the exact eight-entry set above. No label
-filter is supported in Draft 0.1. File paths are unique normalized relative POSIX paths. Unknown
-envelope fields and duplicate YAML/JSON keys are rejected. Wire schema validation precedes mapping.
+successor bundles bind the currently committed inventory revision. The comparison occurs inside the
+atomic commit transaction: null is accepted only when no inventory is committed for the configured
+scope, and a non-null value is accepted only when it equals the current committed revision. A stale
+or racing predecessor is `K8S_STALE_INVENTORY` and commits nothing.
+
+After registration binding and validation of every listed file, one snapshot envelope and all of its
+listed resource files become exactly one `LoadedSource` with one `SourceInstanceId`. The envelope is
+the source locator and its normalized resource projection is the adapter input. Listed files are
+subordinate snapshot artifacts: they retain pointers and byte digests but are never registered,
+owned, reconciled, or removed as independent sources.
+
+IDs and attribution fields are non-empty strings. Namespace lists are non-empty, sorted,
+duplicate-free explicit names: no wildcard or implicit default namespace. The resourceTypes list is
+the exact eight-entry set above. No label filter is supported in Draft 0.2. File paths are unique
+normalized relative POSIX paths. Unknown envelope fields and duplicate YAML/JSON keys are rejected.
+Wire schema validation precedes mapping.
 
 The configured source registration binds the source/scope IDs, cluster UID, evidence mode,
 authorized snapshot producer, and authority record. Envelope values must match it. The authority
@@ -263,13 +311,80 @@ semantics. Document and mapping changes trigger reevaluation. Comparison after r
 I1: changed canonical facts, ownership, or answer-visible evidence require reconciliation; audit-only
 changes do not. Replay never skips inventory, predecessor, or removal checks.
 
-## 7. Canonical claim contracts
+## 7. Canonical infrastructure contracts
+
+### 7.1 Entity and contribution schema
+
+I2 adds exactly four internal canonical infrastructure entity kinds. They are distinct from all
+existing application entities:
+
+| Entity kind | Admitted Kubernetes resource | Additional semantic fields |
+|---|---|---|
+| `KUBERNETES_WORKLOAD` | Deployment, StatefulSet, or DaemonSet | none beyond the common fields; `resource_kind` distinguishes the three kinds |
+| `KUBERNETES_POD` | Pod | none beyond the common fields |
+| `KUBERNETES_NETWORK_SERVICE` | Service | `service_type` and a sorted list of ports `(name-or-null, protocol, port)` |
+| `KUBERNETES_INGRESS` | Ingress | none beyond the common fields; backend semantics are represented by claims |
+
+Each entity's common logical fields are exactly:
+
+```text
+id
+entity_kind
+cluster_uid
+api_group
+resource_kind
+namespace
+name
+```
+
+`id` is the §6 logical resource ID. `namespace` is the empty string only for a cluster-scoped
+resource. Namespace and ReplicaSet resources remain in the snapshot-bound resource/incarnation
+index for validation, context, and owner-chain evidence; I2 does not promote them to additional
+canonical entity kinds.
+
+Every source-owned entity contribution carries:
+
+```text
+entity_id
+source_instance_id
+evidence_mode
+resource_semantic_digest
+evidence_refs
+mapping_rule_id
+mapping_rule_version
+```
+
+`resource_semantic_digest` is the deterministic digest of the resource's allowlisted normalized
+semantic projection. It includes every allowlisted value that can affect an entity, claim, identity
+handoff, or limitation, including selectors, owner references, ports, Ingress backends, and the
+retained explicit Service-ID annotation. It excludes source pointers and capture-only UID,
+resourceVersion, capture time, and file-format differences. Those excluded values remain in
+evidence, provenance, or the snapshot-bound incarnation index as applicable.
+
+For one logical entity ID, equal semantic digests merge contributions and union evidence
+deterministically. Different evidence modes coexist as distinct contributions and never promote a
+declaration into an observation. Different semantic digests from simultaneously current sources are
+incompatible and reject the affected discovery run as `K8S_RESOURCE_CONFLICT`; no source wins by
+precedence. Two current captured contributions that bind the same logical resource to different UIDs
+are likewise incompatible incarnations. A resourceVersion-only difference for the same UID and
+semantic projection is capture/audit variation, not a semantic conflict.
+
+The exact Python classes, package layout, graph labels, and persistence encoding are implementation
+decisions. They MUST preserve these logical fields, contribution boundaries, and conflict outcomes.
+
+### 7.2 Claim schema
 
 All claims carry `kind`, `subject_id`, optional `object_id`, `evidence_refs`, and
 `mapping_rule_id/version`. Their internal logical schema version is `kubernetes-infrastructure/1`.
 Evidence references are non-empty, sorted, duplicate-free, and resolve within the selected snapshot.
 Claim identity is the hash of kind, subject, and object (empty for a unary claim). Evidence mode is
 retained per contribution; merging declarations and captures never turns all support into observation.
+
+`WORKLOAD_EXISTS` is a first-class unary claim whose `object_id` is null. Implementations MUST NOT
+invent a sentinel entity or self-edge to force it through a binary-relation representation. The
+other three claim kinds are binary and both referenced entity IDs must resolve in the canonical
+model. Claim contributions use the same source ownership, evidence-mode retention, deterministic
+evidence union, and incompatible-current-contribution rejection rules as entity contributions.
 
 | Kind | Subject → object | Exact bounded meaning |
 |---|---|---|
@@ -278,7 +393,7 @@ retained per contribution; merging declarations and captures never turns all sup
 | `NETWORK_SERVICE_SELECTS_WORKLOAD` | Kubernetes Service → Workload | The Service selector matches at least one captured Pod whose qualified controller chain resolves to this Workload. |
 | `INGRESS_ROUTES_TO_NETWORK_SERVICE` | Ingress → Kubernetes Service | An admitted Ingress backend explicitly references this Service and one of its declared ports; configuration only. |
 
-### 7.1 Workload owner chain
+### 7.3 Workload owner chain
 
 Accepted captured chains:
 - Pod → StatefulSet;
@@ -294,10 +409,10 @@ claim and a limitation diagnostic. Multiple controller owners, cyclic references
 conflicting UID assignments reject the source. A captured standalone Pod can remain as an internal
 resource with unresolved Workload; it does not imply a new Workload kind.
 
-### 7.2 Service selection
+### 7.4 Service selection
 
 For a non-empty `spec.selector` string map, all key/value pairs must match a captured Pod's labels
-in the Service's namespace. A matching Pod contributes only if §7.1 resolves its owner. The relation
+in the Service's namespace. A matching Pod contributes only if §7.3 resolves its owner. The relation
 contains evidence for the selector, matched Pod incarnation, and every owner-chain hop.
 
 Multiple Pods in one Workload yield one relation with unioned evidence; multiple resolved Workloads
@@ -309,7 +424,7 @@ templates are not substituted for captured Pods. No matching Pod means no relati
 `NO_QUALIFIED_POD_MATCH` limitation, not evidence that the Service has no backend.
 EndpointSlices, ready endpoints, actual traffic, and connectivity are outside this claim.
 
-### 7.3 Ingress backends
+### 7.5 Ingress backends
 
 Process service backends under defaultBackend and rules/http/paths. Resolve the exact backend
 service name within the Ingress namespace; the referenced numeric or named port must match exactly
@@ -326,6 +441,18 @@ are not interpreted. This predicate states routing configuration, never verified
 I2 has one logical Kubernetes source per registered source ID/cluster, not one source per file or
 resource. Resource reconciliation is owned by that source; whole-source removal follows I1.
 
+Every attempt, including failed acquisition, produces an inventory snapshot for reporting and audit.
+The current committed inventory state is keyed by discovery scope and retains at least the semantic
+inventory revision, scope-definition digest, and a reference to the last successful inventory
+capture. Capture identity and optional event-chain identity remain audit data and do not participate
+in semantic equality. Failed or partial snapshots may be retained as audit attempts but MUST NOT
+replace the current committed inventory.
+
+For a `COMPLETE` run, predecessor comparison, canonical reconciliation, current-inventory update,
+and authorized whole-source tombstones execute in one transaction. The predecessor is compared
+again inside that transaction even if it was checked during planning. Any change since planning
+rejects or retries the entire run without mutation.
+
 A verified COMPLETE successor with the same scope digest may remove that source's contribution for
 resources/claims it no longer emits. For declared manifests this withdraws a declaration; it does
 not prove API deletion. For captures it withdraws support from that bounded capture; it does not
@@ -339,8 +466,10 @@ expiration. Stale predecessors reject before commit, including retries racing a 
 I1 source tombstones retain their expected inventory revision and attributable reason. An identical
 replay without a tombstone is allowed only when its resource semantic digest, mapping context,
 scope, and mode also equal the last committed source state; an equal inventory revision alone
-does not establish resource equality. A stale destructive transition is not allowed. Concurrent plans must compare their expected committed state at commit
-and retry/reject if it changed. All source contributions in the discovery run commit atomically.
+does not establish resource equality. A stale destructive transition is not allowed. Explicit
+tombstones authorize whole-source removal or a reviewed scope transition; they do not replace the
+same-scope source-owned diff for resources omitted by a verified complete successor. All source
+contributions in the discovery run commit atomically.
 
 Changing capture incarnation invalidates old Pod-UID resolution. I3 must consume a snapshot-bound
 owner index and must not retain an association justified only by a removed incarnation.
@@ -397,6 +526,18 @@ and sanitized reasons. They expose no raw Secret/environment contents. Incomplet
 a run status, not a sixth source acceptance status. Source status for a rejected incomplete envelope
 is REJECTED_INVALID; acquisition failure before a source can be loaded is reported at run level.
 
+The exact source/run distinction is:
+
+| Situation | Source result | Run inventory status |
+|---|---|---|
+| A loaded envelope declares an incomplete capture | `REJECTED_INVALID` | `PARTIAL` |
+| A required listed file is missing, has the wrong digest, or cannot be parsed | `REJECTED_INVALID` | `PARTIAL` |
+| Acquisition fails before a stable source can be loaded and identified | no source result | `FAILED` |
+| An authorized, predecessor-valid complete envelope contains an explicit empty file list | no rejection | `COMPLETE` |
+
+If a run contains multiple configured sources, any source rejection prevents the whole run from
+committing, as required by I1; the table does not authorize partial canonical writes.
+
 ## 11. Deterministic qualification
 
 Freeze independently authored fixtures and expected claims before target execution. Each fixture
@@ -430,14 +571,19 @@ and whether the capture is temporally non-atomic. I5 still owns the two-system r
 
 ## 12. Suggested implementation slices
 
-1. Envelope validation, source registration, bounded sanitized loading, and identity.
-2. Canonical resource projection, incarnation index, and Workload existence.
-3. Owner-chain, selector, and Ingress mapping with evidence.
-4. I1 lifecycle integration, replay, conflict, and scope/removal qualification.
-5. Independent frozen-capture qualification, surface regression, and I3 handoff.
+1. Prerequisite I1 seam completion: source-neutral orchestration and commit entry, real inventory
+   snapshot production, committed inventory/predecessor persistence, atomic predecessor comparison,
+   and production tombstone authorization.
+2. Envelope validation, source registration, bounded sanitized loading, and identity.
+3. Canonical entity/contribution projection, incarnation index, and unary Workload existence.
+4. Owner-chain, selector, and Ingress mapping with evidence.
+5. Shared lifecycle replay, conflict, scope/removal, and semantic/audit report qualification.
+6. Independent frozen-capture qualification, surface regression, and I3 handoff.
 
 These slices do not authorize new source families or live discovery. Package layout and exact
 commands are recorded after the I1 integration gate; no second reconciliation engine is permitted.
+No Kubernetes mapping slice starts until slice 1 has executable acceptance evidence against the
+shared filesystem path as well as the new source-neutral path.
 
 ## 13. Definition of Done and release relationship
 
@@ -462,6 +608,15 @@ against parent blob `96df1cbef2f096f016369b129e93d69fae41362a` and I1 blob
 `3f3651353354c360952ab85dfc01d3ab4b17bea6`. These identify drafting inputs, not implementation
 candidates or qualification evidence.
 
+**Draft 0.2 integration amendment:** I1 was reviewed after merge at
+`ecc598a5ae57c614172cb1cfe4e76198f4b4a5e6` (PR #187), governed by I1 Draft 0.3. The review retained
+the original OFFLINE_ONLY, authority, identity, claim-meaning, exposure, and qualification decisions.
+It added the §3 prerequisite slice because production orchestration remained filesystem-specific and
+the normative I1 inventory snapshot/predecessor lifecycle was present only as disconnected models,
+calculations, and unit-level evidence. It also froze §7's logical infrastructure entity,
+contribution, unary-claim, and conflict contracts because the implemented Canonical Model could not
+yet represent them. Exact Python APIs and graph labels remain implementation decisions.
+
 Kubernetes reference semantics:
 - [Object names and IDs](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/):
   distinguish resource names from object incarnations.
@@ -474,4 +629,4 @@ Kubernetes reference semantics:
 
 Review must explicitly confirm OFFLINE_ONLY, the internal-only exposure boundary, the bounded
 ReplicaSet bridge, and the envelope's configured authority model. Implementation-specific wiring
-remains provisional until I1 qualification; semantic changes require a reviewed amendment.
+must satisfy the Draft 0.2 integration gate; further semantic changes require a reviewed amendment.
