@@ -103,7 +103,7 @@ def _base_document(**channel_overrides) -> dict:
     }
 
 
-def _shared_identity_index(*, schema_mappings=(), message_mappings=()):
+def _shared_identity_index(*, schema_mappings=(), message_mappings=(), queue_mappings=()):
     def _entries(mappings):
         return tuple(
             IdentityMappingEntry(
@@ -123,6 +123,7 @@ def _shared_identity_index(*, schema_mappings=(), message_mappings=()):
                 locator="migrations.yaml",
                 schema_mappings=_entries(schema_mappings),
                 message_mappings=_entries(message_mappings),
+                queue_mappings=_entries(queue_mappings),
             )
         ]
     )
@@ -217,11 +218,15 @@ def test_agreeing_kind_paths_are_accepted():
     assert len(outcome.model.queues) == 1
 
 
-def test_conflicting_kind_paths_channel_is_omitted():
+def test_conflicting_kind_paths_reject_the_whole_source():
+    """Disagreement among Queue-kind evidence paths is a materially worse case than no evidence at
+    all (an operator explicitly declared two contradictory things about the same channel) - it must
+    reject the whole source with QUEUE_KIND_CONFLICT, not silently omit the channel."""
     document = _base_document()
     document["channels"]["orders-q"]["bindings"] = {"amqp": {"is": "topic"}}
     outcome = _map(document)
-    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert outcome.result is IngestionResult.REJECTED_CONFLICT
+    assert any(d.code is DiagnosticCode.QUEUE_KIND_CONFLICT for d in outcome.diagnostics)
     assert outcome.model.queues == []
 
 
@@ -330,6 +335,57 @@ def test_dead_letters_to_relation_inherits_declaring_channel_broker():
     # The DLQ target's identity hash already incorporates the inherited namespace (§9); its node
     # property must agree, not just its id, or the two would silently disagree about ownership.
     assert dlq_queue.namespace == declaring_queue.namespace
+
+
+def test_explicit_queue_mapping_overrides_the_owner_scoped_default():
+    index = _shared_identity_index(queue_mappings=[("/channels/orders-q", "queue:orders-q")])
+    outcome = _map(_base_document(), shared_identity=index)
+
+    assert outcome.result is IngestionResult.ACCEPTED
+    [queue] = outcome.model.queues
+    assert queue.id == "queue:orders-q"
+
+
+def test_explicit_queue_mapping_agreeing_with_kind_evidence_is_accepted():
+    index = _shared_identity_index(queue_mappings=[("/channels/orders-q", "queue:orders-q")])
+    document = _base_document()
+    document["channels"]["orders-q"]["bindings"] = {"amqp": {"is": "queue"}}
+    outcome = _map(document, shared_identity=index)
+
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert outcome.model.queues[0].id == "queue:orders-q"
+
+
+def test_explicit_queue_mapping_conflicting_with_kind_evidence_rejects():
+    index = _shared_identity_index(queue_mappings=[("/channels/orders-q", "queue:orders-q")])
+    document = _base_document()
+    # An explicit mapping votes "queue"; an AMQP binding declaring "topic" disagrees.
+    document["channels"]["orders-q"]["bindings"] = {"amqp": {"is": "topic"}}
+    outcome = _map(document, shared_identity=index)
+
+    assert outcome.result is IngestionResult.REJECTED_CONFLICT
+    assert any(d.code is DiagnosticCode.QUEUE_KIND_CONFLICT for d in outcome.diagnostics)
+
+
+def test_explicit_dlq_target_mapping_is_used_when_declaring_channel_has_no_derived_broker():
+    """When the declaring channel resolves via an explicit Queue mapping (no derived broker/
+    namespace to inherit), the DLQ target can still resolve via its own explicit mapping, keyed at
+    the x-dead-letter-queue field's own pointer."""
+    index = _shared_identity_index(
+        queue_mappings=[
+            ("/channels/orders-q", "queue:orders-q"),
+            ("/channels/orders-q/x-dead-letter-queue", "queue:orders-dlq"),
+        ]
+    )
+    document = _base_document()
+    document["channels"]["orders-q"]["x-dead-letter-queue"] = "orders-dlq"
+    outcome = _map(document, shared_identity=index)
+
+    assert outcome.result is IngestionResult.ACCEPTED
+    dlq_queue = next(q for q in outcome.model.queues if q.name == "orders-dlq")
+    assert dlq_queue.id == "queue:orders-dlq"
+    dlq_relations = [r for r in outcome.model.relations if r.type == "DEAD_LETTERS_TO"]
+    assert dlq_relations[0].target_id == "queue:orders-dlq"
 
 
 def test_referenced_message_payload_uses_schema_owned_id():

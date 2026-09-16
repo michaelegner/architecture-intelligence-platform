@@ -169,19 +169,21 @@ def _resolve_broker_and_namespace(selected_servers: list[dict]) -> tuple[str, st
     return next(iter(candidates))
 
 
-def _resolve_queue_kind(channel_def: dict) -> bool | None:
-    """True/False = evidence agrees the channel is/isn't a Queue; None = no evidence at all."""
+def _resolve_queue_kind_votes(channel_def: dict) -> frozenset[bool]:
+    """Raw Queue-kind evidence votes from this channel's two built-in evidence paths (the
+    `x-aip-destination-kind` extension and an AMQP binding's `is`). Returns the raw vote set rather
+    than collapsing it, so the caller can combine it with a third vote (an explicit configured
+    Queue-identity mapping's mere presence also counts as "queue" evidence, per §9's "versioned
+    configured destination mapping declares kind = 'queue'" path) and apply one uniform no-evidence/
+    agreement/conflict decision across all three paths at once.
+    """
     votes: set[bool] = set()
     if "x-aip-destination-kind" in channel_def:
         votes.add(channel_def["x-aip-destination-kind"] == "queue")
     amqp_binding = ((channel_def.get("bindings") or {}).get("amqp")) or {}
     if "is" in amqp_binding:
         votes.add(amqp_binding["is"] == "queue")
-    if not votes:
-        return None
-    if len(votes) > 1:
-        return None
-    return next(iter(votes))
+    return frozenset(votes)
 
 
 class AsyncApiSourceAdapter:
@@ -408,51 +410,82 @@ class AsyncApiSourceAdapter:
             if not isinstance(channel_def, dict):
                 continue
 
-            kind = _resolve_queue_kind(channel_def)
-            if kind is None:
+            channel_pointer = encode_pointer_tokens(("channels", channel_name))
+            explicit_queue_id = shared_identity.queue_id_for(
+                source_instance_id=source_instance_id, pointer=channel_pointer
+            )
+
+            # §9: "versioned configured destination mapping declares kind = 'queue'" is a third
+            # Queue-kind evidence path, on equal footing with the extension/AMQP-binding paths - an
+            # explicit mapping's mere presence counts as a "queue" vote. All three paths are folded
+            # into one vote set so disagreement among ANY of them (not just the original two) is
+            # caught uniformly, distinct from no evidence at all.
+            kind_votes = _resolve_queue_kind_votes(channel_def)
+            if explicit_queue_id is not None:
+                kind_votes = kind_votes | {True}
+            if len(kind_votes) > 1:
+                return AdapterOutcome(
+                    result=IngestionResult.REJECTED_CONFLICT,
+                    model=ArchitectureModel(),
+                    diagnostics=(
+                        IngestionDiagnostic(
+                            code=DiagnosticCode.QUEUE_KIND_CONFLICT,
+                            message=(
+                                f"channel {channel_name!r}: Queue-kind evidence paths disagree"
+                            ),
+                            source_pointer=channel_pointer,
+                        ),
+                    ),
+                    semantic_input_digest=None,
+                )
+            if not kind_votes:
                 any_omission = True
                 diagnostics.append(
                     IngestionDiagnostic(
                         code=DiagnosticCode.QUEUE_EVIDENCE_MISSING,
                         message=f"channel {channel_name!r}: no Queue-kind evidence path succeeded",
-                        source_pointer=encode_pointer_tokens(("channels", channel_name)),
+                        source_pointer=channel_pointer,
                     )
                 )
                 continue
-            if kind is False:
+            if next(iter(kind_votes)) is False:
                 any_omission = True
                 diagnostics.append(
                     IngestionDiagnostic(
                         code=DiagnosticCode.QUEUE_EVIDENCE_MISSING,
                         message=f"channel {channel_name!r}: destination kind evidence is not 'queue'",
-                        source_pointer=encode_pointer_tokens(("channels", channel_name)),
+                        source_pointer=channel_pointer,
                     )
                 )
                 continue
 
-            selected_servers = _resolve_selected_servers(document, channel_def)
-            broker_and_namespace = _resolve_broker_and_namespace(selected_servers)
-            if broker_and_namespace is None:
-                any_omission = True
-                diagnostics.append(
-                    IngestionDiagnostic(
-                        code=DiagnosticCode.AMBIGUOUS,
-                        message=(
-                            f"channel {channel_name!r}: no single agreeing broker id/namespace "
-                            "across selected servers"
-                        ),
-                        source_pointer=encode_pointer_tokens(("channels", channel_name)),
+            if explicit_queue_id is not None:
+                queue_id_value = explicit_queue_id
+                stable_broker_id, namespace = None, None
+            else:
+                selected_servers = _resolve_selected_servers(document, channel_def)
+                broker_and_namespace = _resolve_broker_and_namespace(selected_servers)
+                if broker_and_namespace is None:
+                    any_omission = True
+                    diagnostics.append(
+                        IngestionDiagnostic(
+                            code=DiagnosticCode.AMBIGUOUS,
+                            message=(
+                                f"channel {channel_name!r}: no single agreeing broker id/namespace "
+                                "across selected servers"
+                            ),
+                            source_pointer=channel_pointer,
+                        )
                     )
+                    continue
+                stable_broker_id, namespace = broker_and_namespace
+                channel_address = unicode_nfc(channel_name)
+                queue_id_value = queue_owned_id(
+                    stable_broker_id=stable_broker_id,
+                    normalized_namespace_or_empty=namespace,
+                    exact_channel_address=channel_address,
                 )
-                continue
 
-            stable_broker_id, namespace = broker_and_namespace
-            channel_address = unicode_nfc(channel_name)
-            queue_id_value = queue_owned_id(
-                stable_broker_id=stable_broker_id,
-                normalized_namespace_or_empty=namespace,
-                exact_channel_address=channel_address,
-            )
             protocol = next(iter(channel_def.get("bindings") or {}), None)
             queues_by_id[queue_id_value] = Queue(
                 id=queue_id_value,
@@ -461,10 +494,14 @@ class AsyncApiSourceAdapter:
                 namespace=namespace or None,
             )
             channel_queue_id[channel_name] = queue_id_value
-            channel_broker_namespace[channel_name] = (stable_broker_id, namespace)
+            if stable_broker_id is not None:
+                channel_broker_namespace[channel_name] = (stable_broker_id, namespace)
 
-        # DLQ links inherit their declaring channel's resolved broker/namespace (§9 gives no
-        # separate evidence path for a DLQ target's own kind/identity).
+        # DLQ links inherit their declaring channel's resolved broker/namespace by default (§9 gives
+        # no separate built-in evidence path for a DLQ target's own kind/identity) - but the target
+        # can also have its own explicit shared-identity mapping, keyed at the
+        # `x-dead-letter-queue` field's own pointer, taking priority the same way a channel's own
+        # mapping does.
         for channel_name, channel_def in channels.items():
             if not isinstance(channel_def, dict):
                 continue
@@ -484,16 +521,44 @@ class AsyncApiSourceAdapter:
                     )
                 )
                 continue
-            stable_broker_id, namespace = channel_broker_namespace[channel_name]
-            target_address = unicode_nfc(dlq_target_name)
-            target_queue_id = queue_owned_id(
-                stable_broker_id=stable_broker_id,
-                normalized_namespace_or_empty=namespace,
-                exact_channel_address=target_address,
+
+            dlq_pointer = encode_pointer_tokens(("channels", channel_name, "x-dead-letter-queue"))
+            explicit_target_queue_id = shared_identity.queue_id_for(
+                source_instance_id=source_instance_id, pointer=dlq_pointer
             )
+            if explicit_target_queue_id is not None:
+                target_queue_id = explicit_target_queue_id
+                target_namespace = None
+            elif channel_name in channel_broker_namespace:
+                stable_broker_id, namespace = channel_broker_namespace[channel_name]
+                target_address = unicode_nfc(dlq_target_name)
+                target_queue_id = queue_owned_id(
+                    stable_broker_id=stable_broker_id,
+                    normalized_namespace_or_empty=namespace,
+                    exact_channel_address=target_address,
+                )
+                target_namespace = namespace
+            else:
+                # The declaring channel resolved via an explicit Queue mapping (no derived
+                # broker/namespace to inherit) and the DLQ target has no explicit mapping of its
+                # own - there is no evidence path left to establish its identity.
+                any_omission = True
+                diagnostics.append(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.QUEUE_EVIDENCE_MISSING,
+                        message=(
+                            f"channel {channel_name!r}: DEAD_LETTERS_TO target has no explicit "
+                            "mapping and its declaring channel has no derived broker/namespace "
+                            "to inherit"
+                        ),
+                        source_pointer=dlq_pointer,
+                    )
+                )
+                continue
+
             if target_queue_id not in queues_by_id:
                 queues_by_id[target_queue_id] = Queue(
-                    id=target_queue_id, name=dlq_target_name, namespace=namespace or None
+                    id=target_queue_id, name=dlq_target_name, namespace=target_namespace or None
                 )
             add_relation("DEAD_LETTERS_TO", channel_queue_id[channel_name], target_queue_id)
 
