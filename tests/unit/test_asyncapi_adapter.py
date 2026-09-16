@@ -19,6 +19,7 @@ from app.sources.model import (
     SourceDescriptor,
     SourceKind,
 )
+from app.sources.owner_ids import queue_owned_id
 from app.sources.service_identity import resolve_service_identity
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
@@ -101,6 +102,16 @@ def _base_document(**channel_overrides) -> dict:
             },
         },
     }
+
+
+def _no_broker_document(**channel_overrides) -> dict:
+    """A channel with real Queue-kind evidence but genuinely NO broker/namespace evidence at all
+    (no `x-aip-broker-id` anywhere) - the actual "unchanged v0.4.2 fixture, no modern broker
+    extension yet" scenario I1 spec §9's migration-mapping language describes, where a configured
+    Queue mapping has no derived id to possibly disagree with."""
+    document = _base_document(**channel_overrides)
+    document["servers"] = {}
+    return document
 
 
 def _shared_identity_index(*, schema_mappings=(), message_mappings=(), queue_mappings=()):
@@ -353,29 +364,51 @@ def test_dead_letters_to_relation_inherits_declaring_channel_broker():
     assert dlq_queue.namespace == declaring_queue.namespace
 
 
-def test_explicit_queue_mapping_overrides_the_owner_scoped_default():
+def test_explicit_queue_mapping_is_used_when_there_is_no_derived_broker_evidence_at_all():
+    """The real §9 use case: a channel with no broker/namespace evidence whatsoever (the genuine
+    "unchanged v0.4.2 fixture, no x-aip-broker-id yet" scenario) has no derived id to possibly
+    disagree with, so the configured mapping alone establishes identity."""
     index = _shared_identity_index(queue_mappings=[("/channels/orders-q", "queue:orders-q")])
-    outcome = _map(_base_document(), shared_identity=index)
+    outcome = _map(_no_broker_document(), shared_identity=index)
 
     assert outcome.result is IngestionResult.ACCEPTED
     [queue] = outcome.model.queues
     assert queue.id == "queue:orders-q"
 
 
-def test_explicit_queue_mapping_agreeing_with_kind_evidence_is_accepted():
-    index = _shared_identity_index(queue_mappings=[("/channels/orders-q", "queue:orders-q")])
-    document = _base_document()
-    document["channels"]["orders-q"]["bindings"] = {"amqp": {"is": "queue"}}
-    outcome = _map(document, shared_identity=index)
+def test_explicit_queue_mapping_agreeing_with_the_derived_id_is_accepted():
+    """When broker/namespace evidence IS available, an explicit mapping that happens to equal the
+    real derived id agrees rather than conflicts."""
+    derived_id = queue_owned_id(
+        stable_broker_id="asb",
+        normalized_namespace_or_empty="commerce",
+        exact_channel_address="orders-q",
+    )
+    index = _shared_identity_index(queue_mappings=[("/channels/orders-q", derived_id)])
+    outcome = _map(_base_document(), shared_identity=index)
 
     assert outcome.result is IngestionResult.ACCEPTED
-    assert outcome.model.queues[0].id == "queue:orders-q"
+    assert outcome.model.queues[0].id == derived_id
+
+
+def test_explicit_queue_mapping_disagreeing_with_the_derived_id_rejects():
+    """I1 spec §9: "a configured Queue ID that disagrees with the derived ID" is REJECTED_CONFLICT
+    - both identity paths must be computed and compared whenever broker/namespace evidence is
+    available, not just whichever path happens to be present."""
+    index = _shared_identity_index(queue_mappings=[("/channels/orders-q", "queue:orders-q")])
+    outcome = _map(_base_document(), shared_identity=index)
+
+    assert outcome.result is IngestionResult.REJECTED_CONFLICT
+    assert any(d.code is DiagnosticCode.QUEUE_IDENTITY_CONFLICT for d in outcome.diagnostics)
+    assert outcome.model.queues == []
 
 
 def test_explicit_queue_mapping_conflicting_with_kind_evidence_rejects():
     index = _shared_identity_index(queue_mappings=[("/channels/orders-q", "queue:orders-q")])
-    document = _base_document()
-    # An explicit mapping votes "queue"; an AMQP binding declaring "topic" disagrees.
+    document = _no_broker_document()
+    # An explicit mapping votes "queue"; an AMQP binding declaring "topic" disagrees. No broker
+    # evidence at all here, so this isolates the kind-conflict path from the identity-conflict path
+    # exercised by the tests above.
     document["channels"]["orders-q"]["bindings"] = {"amqp": {"is": "topic"}}
     outcome = _map(document, shared_identity=index)
 
@@ -384,16 +417,16 @@ def test_explicit_queue_mapping_conflicting_with_kind_evidence_rejects():
 
 
 def test_explicit_dlq_target_mapping_is_used_when_declaring_channel_has_no_derived_broker():
-    """When the declaring channel resolves via an explicit Queue mapping (no derived broker/
-    namespace to inherit), the DLQ target can still resolve via its own explicit mapping, keyed at
-    the x-dead-letter-queue field's own pointer."""
+    """When the declaring channel has no broker/namespace evidence at all (so no derived id to
+    inherit), the DLQ target can still resolve via its own explicit mapping, keyed at the
+    x-dead-letter-queue field's own pointer."""
     index = _shared_identity_index(
         queue_mappings=[
             ("/channels/orders-q", "queue:orders-q"),
             ("/channels/orders-q/x-dead-letter-queue", "queue:orders-dlq"),
         ]
     )
-    document = _base_document()
+    document = _no_broker_document()
     document["channels"]["orders-q"]["x-dead-letter-queue"] = "orders-dlq"
     outcome = _map(document, shared_identity=index)
 
@@ -402,6 +435,31 @@ def test_explicit_dlq_target_mapping_is_used_when_declaring_channel_has_no_deriv
     assert dlq_queue.id == "queue:orders-dlq"
     dlq_relations = [r for r in outcome.model.relations if r.type == "DEAD_LETTERS_TO"]
     assert dlq_relations[0].target_id == "queue:orders-dlq"
+
+
+def test_explicit_dlq_target_mapping_disagreeing_with_the_derived_id_rejects():
+    """The DLQ target's own explicit mapping is compared against ITS derived id the same way a
+    declaring channel's is, when the declaring channel does have broker/namespace evidence to
+    inherit."""
+    index = _shared_identity_index(
+        queue_mappings=[
+            (
+                "/channels/orders-q",
+                queue_owned_id(
+                    stable_broker_id="asb",
+                    normalized_namespace_or_empty="commerce",
+                    exact_channel_address="orders-q",
+                ),
+            ),
+            ("/channels/orders-q/x-dead-letter-queue", "queue:orders-dlq"),
+        ]
+    )
+    document = _base_document()
+    document["channels"]["orders-q"]["x-dead-letter-queue"] = "orders-dlq"
+    outcome = _map(document, shared_identity=index)
+
+    assert outcome.result is IngestionResult.REJECTED_CONFLICT
+    assert any(d.code is DiagnosticCode.QUEUE_IDENTITY_CONFLICT for d in outcome.diagnostics)
 
 
 def test_referenced_message_payload_uses_schema_owned_id():

@@ -17,6 +17,19 @@
 # without being applied by default, since applying it would revert the bundled examples' real,
 # already-shipped owner-scoped identity (PR3a/3b) back to these legacy ids for every default
 # consumer of the config file - see config.yaml's own comment at this key.
+#
+# Deliberately carries NO queueMappings: I1 spec §9 requires a configured Queue ID to be compared
+# against the ID derivable from broker/namespace/address evidence whenever that evidence is
+# available, rejecting REJECTED_CONFLICT + QUEUE_IDENTITY_CONFLICT on disagreement. The bundled
+# examples already declare real `x-aip-broker-id`/AMQP `virtualHost` evidence (added by PR3a/3b, not
+# present in a genuinely unchanged v0.4.2 fixture), so their real derived Queue ids always disagree
+# with these legacy, unscoped ones by construction - migrating Queue identity for these specific,
+# already-modernized fixtures is exactly the scenario that conflict check exists to catch, not a
+# legitimate target for this artifact. Queue identity is also, unlike Schema/Message identity,
+# already inherently source-independent (queue_owned_id has no SourceInstanceId component), so the
+# cross-source Queue merges (`payment-q`, `invoice-q`) happen automatically without any mapping at
+# all. A genuinely unchanged v0.4.2 AsyncAPI file (no `x-aip-broker-id` yet) would have no derived
+# id to conflict with and could safely carry a `queueMappings` entry of its own.
 apiVersion: aip.dev/v1
 kind: AipSharedIdentityMappings
 metadata:
@@ -85,28 +98,5 @@ messageMappings:
     pointer: /components/messages/InvoiceCreated
     messageId: "message:InvoiceCreated:v1"
 
-queueMappings:
-  # order-service/asyncapi.yaml
-  - sourceInstanceId: urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad
-    pointer: /channels/payment-q
-    queueId: "queue:payment-q"
-  - sourceInstanceId: urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad
-    pointer: /channels/unused-q
-    queueId: "queue:unused-q"
-  # payment-service/asyncapi.yaml
-  - sourceInstanceId: urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299
-    pointer: /channels/payment-q
-    queueId: "queue:payment-q"
-  - sourceInstanceId: urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299
-    pointer: /channels/invoice-q
-    queueId: "queue:invoice-q"
-  - sourceInstanceId: urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299
-    pointer: /channels/unknown-producer-q
-    queueId: "queue:unknown-producer-q"
-  - sourceInstanceId: urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299
-    pointer: /channels/payment-q/x-dead-letter-queue
-    queueId: "queue:payment-dlq"
-  # invoice-service/asyncapi.yaml
-  - sourceInstanceId: urn:aip:source:filesystem:679f611e8055bd5869723affbe177e73f49454415c1e7808ed34eec5633fe659
-    pointer: /channels/invoice-q
-    queueId: "queue:invoice-q"
+# See the header comment above for why this artifact carries no queueMappings.
+queueMappings: []

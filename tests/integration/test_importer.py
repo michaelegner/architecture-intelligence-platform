@@ -654,8 +654,12 @@ def test_import_all_sources_real_examples_end_to_end(driver):
 def test_import_all_sources_with_the_real_bundled_migration_mapping_lands_legacy_ids(driver):
     """The real config/migrations/v0.5.0-bundled-example-identities.yaml artifact (I1 spec §5.1.1),
     applied through the full import_all_sources -> Neo4j pipeline, must make the bundled examples'
-    Schema/Message/Queue nodes carry their exact pre-PR3a (v0.4.2-era) legacy ids - not just at the
+    Schema/Message nodes carry their exact pre-PR3a (v0.4.2-era) legacy ids - not just at the
     in-memory ArchitectureModel layer (already unit-tested), but as actually committed graph nodes.
+    Queue identity is deliberately NOT migrated by this artifact (see its own header comment: the
+    bundled examples already carry real broker/namespace evidence that would legitimately disagree
+    with a legacy Queue id, which I1 spec §9 requires to reject rather than silently override) - so
+    Queues keep their normal owner-scoped ids here, asserted only by count/prefix.
     Also proves the real cross-source merge: PaymentRequested's payload, independently declared by
     order-service and payment-service, becomes ONE shared Message node once the migration maps both
     to the same legacy id (contrast with test_import_all_sources_real_examples_end_to_end's
@@ -700,20 +704,16 @@ def test_import_all_sources_with_the_real_bundled_migration_mapping_lands_legacy
         "message:UnusedMessage",
         "message:UnknownProducerMessage",
     }
-    assert queue_ids == {
-        "queue:payment-q",
-        "queue:unused-q",
-        "queue:invoice-q",
-        "queue:unknown-producer-q",
-        "queue:payment-dlq",
-    }
+    assert len(queue_ids) == 5
+    assert all(qid.startswith("queue:owned:") for qid in queue_ids)
 
     # The real cross-source merge: PaymentRequested's CARRIES relation now has TWO evidence ids
     # (one per declaring source) on the ONE shared Message node - contrast with the unmigrated
-    # two-distinct-nodes case in test_import_all_sources_real_examples_end_to_end.
+    # two-distinct-nodes case in test_import_all_sources_real_examples_end_to_end. Matched by
+    # Queue *name* (still "payment-q"), not id, since Queue identity is unaffected by this artifact.
     with driver.session(database=DATABASE) as session:
         record = session.run(
-            "MATCH (:Queue {id: 'queue:payment-q'})-[r:CARRIES]->"
+            "MATCH (:Queue {name: 'payment-q'})-[r:CARRIES]->"
             "(m:Message {id: 'message:PaymentRequested:v2'}) RETURN r.evidence_ids AS evidence_ids"
         ).single()
     assert record is not None

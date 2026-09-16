@@ -463,32 +463,64 @@ class AsyncApiSourceAdapter:
                 )
                 continue
 
-            if explicit_queue_id is not None:
-                queue_id_value = explicit_queue_id
-                stable_broker_id, namespace = None, None
-            else:
-                selected_servers = _resolve_selected_servers(document, channel_def)
-                broker_and_namespace = _resolve_broker_and_namespace(selected_servers)
-                if broker_and_namespace is None:
-                    any_omission = True
-                    diagnostics.append(
-                        IngestionDiagnostic(
-                            code=DiagnosticCode.AMBIGUOUS,
-                            message=(
-                                f"channel {channel_name!r}: no single agreeing broker id/namespace "
-                                "across selected servers"
-                            ),
-                            source_pointer=channel_pointer,
-                        )
-                    )
-                    continue
+            # §9: "a configured Queue ID that disagrees with the derived ID" is REJECTED_CONFLICT -
+            # both identity paths are computed (whenever each has enough evidence to compute at
+            # all) and compared, not just whichever one happens to be present. A channel lacking
+            # broker/namespace evidence altogether (the genuine "unchanged v0.4.2 fixture, no
+            # x-aip-broker-id yet" case §9 actually describes) has no derived id to compare against,
+            # so the configured mapping alone establishes identity with nothing to conflict with.
+            selected_servers = _resolve_selected_servers(document, channel_def)
+            broker_and_namespace = _resolve_broker_and_namespace(selected_servers)
+            derived_queue_id: str | None = None
+            stable_broker_id, namespace = None, None
+            if broker_and_namespace is not None:
                 stable_broker_id, namespace = broker_and_namespace
                 channel_address = unicode_nfc(channel_name)
-                queue_id_value = queue_owned_id(
+                derived_queue_id = queue_owned_id(
                     stable_broker_id=stable_broker_id,
                     normalized_namespace_or_empty=namespace,
                     exact_channel_address=channel_address,
                 )
+
+            if (
+                explicit_queue_id is not None
+                and derived_queue_id is not None
+                and explicit_queue_id != derived_queue_id
+            ):
+                return AdapterOutcome(
+                    result=IngestionResult.REJECTED_CONFLICT,
+                    model=ArchitectureModel(),
+                    diagnostics=(
+                        IngestionDiagnostic(
+                            code=DiagnosticCode.QUEUE_IDENTITY_CONFLICT,
+                            message=(
+                                f"channel {channel_name!r}: configured Queue id "
+                                f"{explicit_queue_id!r} disagrees with the derived id "
+                                f"{derived_queue_id!r}"
+                            ),
+                            source_pointer=channel_pointer,
+                        ),
+                    ),
+                    semantic_input_digest=None,
+                )
+
+            if explicit_queue_id is not None:
+                queue_id_value = explicit_queue_id
+            elif derived_queue_id is not None:
+                queue_id_value = derived_queue_id
+            else:
+                any_omission = True
+                diagnostics.append(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.AMBIGUOUS,
+                        message=(
+                            f"channel {channel_name!r}: no single agreeing broker id/namespace "
+                            "across selected servers"
+                        ),
+                        source_pointer=channel_pointer,
+                    )
+                )
+                continue
 
             protocol = next(iter(channel_def.get("bindings") or {}), None)
             queues_by_id[queue_id_value] = Queue(
@@ -530,22 +562,48 @@ class AsyncApiSourceAdapter:
             explicit_target_queue_id = shared_identity.queue_id_for(
                 source_instance_id=source_instance_id, pointer=dlq_pointer
             )
-            if explicit_target_queue_id is not None:
-                target_queue_id = explicit_target_queue_id
-                target_namespace = None
-            elif channel_name in channel_broker_namespace:
+            derived_target_queue_id = None
+            target_namespace = None
+            if channel_name in channel_broker_namespace:
                 stable_broker_id, namespace = channel_broker_namespace[channel_name]
                 target_address = unicode_nfc(dlq_target_name)
-                target_queue_id = queue_owned_id(
+                derived_target_queue_id = queue_owned_id(
                     stable_broker_id=stable_broker_id,
                     normalized_namespace_or_empty=namespace,
                     exact_channel_address=target_address,
                 )
                 target_namespace = namespace
+
+            if (
+                explicit_target_queue_id is not None
+                and derived_target_queue_id is not None
+                and explicit_target_queue_id != derived_target_queue_id
+            ):
+                return AdapterOutcome(
+                    result=IngestionResult.REJECTED_CONFLICT,
+                    model=ArchitectureModel(),
+                    diagnostics=(
+                        IngestionDiagnostic(
+                            code=DiagnosticCode.QUEUE_IDENTITY_CONFLICT,
+                            message=(
+                                f"channel {channel_name!r}: configured DEAD_LETTERS_TO target id "
+                                f"{explicit_target_queue_id!r} disagrees with the derived id "
+                                f"{derived_target_queue_id!r}"
+                            ),
+                            source_pointer=dlq_pointer,
+                        ),
+                    ),
+                    semantic_input_digest=None,
+                )
+
+            if explicit_target_queue_id is not None:
+                target_queue_id = explicit_target_queue_id
+            elif derived_target_queue_id is not None:
+                target_queue_id = derived_target_queue_id
             else:
-                # The declaring channel resolved via an explicit Queue mapping (no derived
-                # broker/namespace to inherit) and the DLQ target has no explicit mapping of its
-                # own - there is no evidence path left to establish its identity.
+                # The declaring channel has no derived broker/namespace to inherit and the DLQ
+                # target has no explicit mapping of its own - there is no evidence path left to
+                # establish its identity.
                 any_omission = True
                 diagnostics.append(
                     IngestionDiagnostic(

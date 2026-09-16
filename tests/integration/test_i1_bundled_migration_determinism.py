@@ -127,13 +127,16 @@ def test_applying_the_real_migration_reproduces_the_exact_legacy_ids(tmp_path):
         "message:UnusedMessage",
         "message:UnknownProducerMessage",
     }
-    assert queue_ids == {
-        "queue:payment-q",
-        "queue:unused-q",
-        "queue:invoice-q",
-        "queue:unknown-producer-q",
-        "queue:payment-dlq",
-    }
+    # Queue identity is deliberately NOT migrated for these fixtures (see the artifact's own header
+    # comment): the bundled examples already carry real x-aip-broker-id/AMQP virtualHost evidence
+    # (added by PR3a/3b), so their derived owner-scoped Queue ids always disagree with the legacy,
+    # unscoped ones by construction - I1 spec §9 requires that disagreement to reject
+    # (QUEUE_IDENTITY_CONFLICT), not silently prefer the configured mapping. Queues keep their
+    # normal owner-scoped ids; five distinct queues, still correctly merged across sources (queue
+    # identity has no SourceInstanceId component at all, so payment-q/invoice-q already merge
+    # without any mapping).
+    assert len(queue_ids) == 5
+    assert all(qid.startswith("queue:owned:") for qid in queue_ids)
 
     # The real cross-source merges: PaymentRequested (order-service + payment-service) and
     # InvoiceCreated (payment-service + invoice-service) each collapse onto ONE shared legacy id,

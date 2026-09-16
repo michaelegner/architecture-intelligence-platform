@@ -99,9 +99,16 @@ class MigrationMappingsDocument:
 
 
 def _shape_errors(document: dict) -> list[str]:
+    # jsonschema error paths mix str (property names) and int (array indices) elements - two
+    # errors whose paths happen to disagree in type at the same position (e.g. one nested under an
+    # array index, another under a differently-shaped branch) would raise TypeError from plain
+    # `list` comparison. Stringifying each path element first keeps sorting deterministic without
+    # requiring every element to be pairwise comparable.
     return [
         error.message
-        for error in sorted(_VALIDATOR.iter_errors(document), key=lambda e: list(e.path))
+        for error in sorted(
+            _VALIDATOR.iter_errors(document), key=lambda e: [str(p) for p in e.path]
+        )
     ]
 
 

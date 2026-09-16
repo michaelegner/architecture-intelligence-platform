@@ -363,9 +363,9 @@ def test_maps_real_order_service_fixture_via_discoverer():
     assert {s.name for s in outcome.model.schemas} == {"OrderRequest", "Order"}
 
 
-def _shared_identity_index(*schema_mappings: tuple[str, str, str]):
-    """schema_mappings entries are (pointer, pointer_tokens_csv, target_id) - built against
-    SOURCE_INSTANCE_ID, the fixed default `_loaded()` source instance id used throughout this file.
+def _shared_identity_index(*schema_mappings: tuple[str, str]):
+    """schema_mappings entries are (pointer, target_id) - built against SOURCE_INSTANCE_ID, the
+    fixed default `_loaded()` source instance id used throughout this file.
     """
     index, diagnostics = build_shared_identity_index(
         [
