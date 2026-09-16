@@ -79,6 +79,47 @@ class KubernetesEnvelopeMalformedError(ValueError):
     """
 
 
+def _sanitize_validation_error(exc: ValidationError) -> str:
+    """§5: "Diagnostics never dump rejected resource payloads." / §10: "sanitized reasons... expose
+    no raw Secret/environment contents." Pydantic's own `str(ValidationError)` embeds each failing
+    field's raw `input_value` - e.g. an unrecognized field's actual value, verbatim - which is
+    exactly that leak (confirmed: an `extra_forbidden` error's `input` is the rejected field's own
+    value, not just its name). Rebuilds a stable message from only the field path and error
+    type/message, never `error["input"]`.
+    """
+    parts = []
+    for error in exc.errors(include_url=False):
+        location = ".".join(str(segment) for segment in error["loc"])
+        parts.append(f"{location}: {error['msg']}" if location else error["msg"])
+    return "; ".join(parts)
+
+
+def _sanitize_yaml_error(exc: yaml.YAMLError) -> str:
+    """Same leak, different shape: a `MarkedYAMLError`'s own `str()` embeds a literal source-line
+    snippet via its `Mark.get_snippet()` (confirmed against a real PyYAML error) - e.g. an
+    unsupported tag's actual value or a malformed line's raw content. Keeps only the problem
+    description and line/column position, both safe metadata."""
+    problem = getattr(exc, "problem", None) or exc.__class__.__name__
+    mark = getattr(exc, "problem_mark", None)
+    if mark is not None:
+        return f"{problem} (line {mark.line + 1}, column {mark.column + 1})"
+    return str(problem)
+
+
+def _sanitize_parse_error(exc: Exception) -> str:
+    """Single dispatch point for every parse-failure message this module builds, so no call site
+    can forget and fall back to a leaky `str(exc)`. `KubernetesEnvelopeLimitExceeded`/
+    `KubernetesEnvelopeMalformedError` are this module's own hand-written messages (already safe -
+    never interpolate raw field/document content, only field paths, type names, and counts) and
+    fall through to the plain `str(exc)` branch unchanged.
+    """
+    if isinstance(exc, ValidationError):
+        return _sanitize_validation_error(exc)
+    if isinstance(exc, yaml.YAMLError):
+        return _sanitize_yaml_error(exc)
+    return str(exc)
+
+
 class _BoundedSafeLoader(yaml.SafeLoader):
     def __init__(self, stream: Any) -> None:
         super().__init__(stream)
@@ -143,7 +184,9 @@ def load_bounded_yaml_documents(raw_bytes: bytes) -> list[Any]:
     try:
         return list(yaml.load_all(raw_bytes, Loader=_BoundedSafeLoader))
     except yaml.constructor.ConstructorError as exc:
-        raise KubernetesEnvelopeLimitExceeded(f"unsupported YAML tag: {exc}") from exc
+        raise KubernetesEnvelopeLimitExceeded(
+            f"unsupported YAML tag: {_sanitize_yaml_error(exc)}"
+        ) from exc
 
 
 # --------------------------------------------------------------------------------------------
@@ -335,6 +378,15 @@ def parse_kubernetes_envelope(raw_bytes: bytes) -> KubernetesSourceSnapshot:
 # --------------------------------------------------------------------------------------------
 
 
+def _is_list_container(document: dict) -> bool:
+    """§4.3 authorizes only `v1/List` as a container - `kind == "List"` alone is not enough
+    (a hypothetical `custom.io/v2` kind:List object is not this container, and treating it as one
+    would silently flatten/reinterpret an object this slice has no authority to reclassify).
+    A `kind: List` document with any other `apiVersion` instead falls through as an ordinary
+    (opaque, at this layer) resource object - admissibility of *that* is a later slice's job."""
+    return document.get("apiVersion") == "v1" and document.get("kind") == "List"
+
+
 def _expand_resource_documents(documents: list[Any], *, source_pointer: str) -> list[dict]:
     """§4.3: "v1/List is a container whose items are validated individually, not an architecture
     entity. Nested List containers are rejected." Flattens each resource file's own top-level
@@ -353,7 +405,7 @@ def _expand_resource_documents(documents: list[Any], *, source_pointer: str) -> 
             raise KubernetesEnvelopeMalformedError(
                 f"{source_pointer}: each document must be a mapping, got {type(document).__name__}"
             )
-        if document.get("kind") == "List":
+        if _is_list_container(document):
             items = document.get("items")
             if not isinstance(items, list):
                 raise KubernetesEnvelopeMalformedError(
@@ -364,7 +416,7 @@ def _expand_resource_documents(documents: list[Any], *, source_pointer: str) -> 
                     raise KubernetesEnvelopeMalformedError(
                         f"{source_pointer}: List item must be a mapping"
                     )
-                if item.get("kind") == "List":
+                if _is_list_container(item):
                     raise KubernetesEnvelopeLimitExceeded(
                         f"{source_pointer}: nested List containers are rejected"
                     )
@@ -440,6 +492,17 @@ def validate_kubernetes_snapshot(
             source_pointer=envelope_relative_path,
         )
 
+    envelope_size = envelope_path.stat().st_size
+    if envelope_size > MAX_TOTAL_BYTES:
+        # Checked via stat() before ever reading the envelope's bytes, so an oversized envelope is
+        # never fully materialized in memory just to be rejected a moment later.
+        return _rejected(
+            result=IngestionResult.REJECTED_UNSUPPORTED,
+            code=DiagnosticCode.K8S_LIMIT_EXCEEDED,
+            message=f"total input bytes exceeds the {MAX_TOTAL_BYTES}-byte limit",
+            source_pointer=envelope_relative_path,
+        )
+
     envelope_bytes = envelope_path.read_bytes()
     try:
         envelope = parse_kubernetes_envelope(envelope_bytes)
@@ -447,14 +510,14 @@ def validate_kubernetes_snapshot(
         return _rejected(
             result=IngestionResult.REJECTED_UNSUPPORTED,
             code=DiagnosticCode.K8S_LIMIT_EXCEEDED,
-            message=str(exc),
+            message=_sanitize_parse_error(exc),
             source_pointer=envelope_relative_path,
         )
     except (KubernetesEnvelopeMalformedError, yaml.YAMLError, ValidationError) as exc:
         return _rejected(
             result=IngestionResult.REJECTED_INVALID,
             code=DiagnosticCode.K8S_SNAPSHOT_INVALID,
-            message=str(exc),
+            message=_sanitize_parse_error(exc),
             source_pointer=envelope_relative_path,
         )
 
@@ -474,17 +537,7 @@ def validate_kubernetes_snapshot(
             source_pointer=envelope_relative_path,
         )
 
-    total_bytes = len(envelope_bytes)
-    if total_bytes > MAX_TOTAL_BYTES:
-        # The envelope alone can exceed the bound with an empty (or short) files list, in which
-        # case the loop below never runs at all - this check must not live only inside that loop.
-        return _rejected(
-            result=IngestionResult.REJECTED_UNSUPPORTED,
-            code=DiagnosticCode.K8S_LIMIT_EXCEEDED,
-            message=f"total input bytes exceeds the {MAX_TOTAL_BYTES}-byte limit",
-            source_pointer=envelope_relative_path,
-        )
-
+    total_bytes = envelope_size
     resources: list[dict] = []
     for file_entry in envelope.files:
         normalized_path = _normalize_relative_file_path(file_entry.path)
@@ -497,8 +550,9 @@ def validate_kubernetes_snapshot(
                 source_pointer=normalized_path,
             )
 
-        file_bytes = resolved.read_bytes()
-        total_bytes += len(file_bytes)
+        # Checked via stat() before this file is read, for the same reason as the envelope's own
+        # check above - a single oversized listed file must never be fully read into memory first.
+        total_bytes += resolved.stat().st_size
         if total_bytes > MAX_TOTAL_BYTES:
             return _rejected(
                 result=IngestionResult.REJECTED_UNSUPPORTED,
@@ -506,6 +560,7 @@ def validate_kubernetes_snapshot(
                 message=f"total input bytes exceeds the {MAX_TOTAL_BYTES}-byte limit",
                 source_pointer=normalized_path,
             )
+        file_bytes = resolved.read_bytes()
         if sha256_hex(file_bytes) != file_entry.sha256:
             return _rejected(
                 result=IngestionResult.REJECTED_INVALID,
@@ -521,14 +576,14 @@ def validate_kubernetes_snapshot(
             return _rejected(
                 result=IngestionResult.REJECTED_UNSUPPORTED,
                 code=DiagnosticCode.K8S_LIMIT_EXCEEDED,
-                message=str(exc),
+                message=_sanitize_parse_error(exc),
                 source_pointer=normalized_path,
             )
         except (KubernetesEnvelopeMalformedError, yaml.YAMLError) as exc:
             return _rejected(
                 result=IngestionResult.REJECTED_INVALID,
                 code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
-                message=f"file cannot be parsed: {file_entry.path!r}: {exc}",
+                message=f"file cannot be parsed: {file_entry.path!r}: {_sanitize_parse_error(exc)}",
                 source_pointer=normalized_path,
             )
 

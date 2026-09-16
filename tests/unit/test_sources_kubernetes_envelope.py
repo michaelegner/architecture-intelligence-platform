@@ -403,6 +403,34 @@ def test_envelope_hardening_violation_is_a_limit_exceeded_rejection(tmp_path):
     assert result.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED
 
 
+def test_malformed_envelope_diagnostic_does_not_leak_an_unknown_fields_raw_value(tmp_path):
+    # §5/§10: "Diagnostics never dump rejected resource payloads" / "sanitized reasons... expose no
+    # raw Secret/environment contents." Pydantic's own str(ValidationError) would otherwise embed
+    # an unrecognized field's actual value verbatim.
+    doc = _valid_envelope_dict()
+    doc["backdoor"] = "SENTINEL_SECRET_VALUE"
+    (tmp_path / "envelope.yaml").write_bytes(_dump(doc))
+    result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_SNAPSHOT_INVALID
+    assert "SENTINEL_SECRET_VALUE" not in result.diagnostics[0].message
+    assert "backdoor" in result.diagnostics[0].message
+
+
+def test_listed_file_diagnostic_does_not_leak_a_yaml_source_snippet(tmp_path):
+    # A MarkedYAMLError's own str() embeds a literal source-line snippet - here, a custom tag's
+    # value - which is the same "never dump rejected payloads" leak, in YAML-error shape.
+    content = b"a: !CustomTag SENTINEL_SECRET_VALUE\n"
+    doc = _valid_envelope_dict()
+    doc["files"] = [{"path": "resources.yaml", "sha256": hashlib.sha256(content).hexdigest()}]
+    (tmp_path / "envelope.yaml").write_bytes(_dump(doc))
+    (tmp_path / "resources.yaml").write_bytes(content)
+    result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
+    assert result.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED
+    assert "SENTINEL_SECRET_VALUE" not in result.diagnostics[0].message
+
+
 def test_incomplete_status_is_rejected(tmp_path):
     _write_bundle(
         tmp_path,
@@ -516,12 +544,47 @@ def test_total_bytes_at_the_boundary_is_accepted_and_one_over_is_rejected(tmp_pa
     assert rejected.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED
 
 
-def test_oversized_envelope_with_no_files_is_rejected(tmp_path):
+def test_oversized_envelope_is_rejected_without_reading_its_full_bytes(tmp_path, monkeypatch):
     # The envelope's own bytes alone can exceed the bound with an empty files list, in which case
     # the byte-total check inside the per-file loop never runs at all - it must also be checked
-    # once up front, immediately after the envelope itself is read.
-    huge_metadata = {**_valid_envelope_dict()["metadata"], "id": "x" * (MAX_TOTAL_BYTES + 1)}
-    _write_bundle(tmp_path, files={}, envelope_overrides={"metadata": huge_metadata})
+    # once up front, via stat(), *before* the envelope is ever read. A sparse file (no real content
+    # written) is enough to prove this: if the code read the file first, it wouldn't need to be
+    # valid YAML at all to reach the size check, but it also must never actually be read.
+    envelope_path = tmp_path / "envelope.yaml"
+    with open(envelope_path, "wb") as handle:
+        handle.seek(MAX_TOTAL_BYTES)
+        handle.write(b"\0")
+
+    original_read_bytes = Path.read_bytes
+
+    def _guarded_read_bytes(self: Path) -> bytes:
+        if self == envelope_path:
+            pytest.fail("oversized envelope was read despite exceeding the size bound")
+        return original_read_bytes(self)
+
+    monkeypatch.setattr(Path, "read_bytes", _guarded_read_bytes)
+    result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
+    assert result.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED
+
+
+def test_oversized_listed_file_is_rejected_without_reading_its_full_bytes(tmp_path, monkeypatch):
+    doc = _valid_envelope_dict()
+    doc["files"] = [{"path": "resources.yaml", "sha256": "a" * 64}]
+    (tmp_path / "envelope.yaml").write_bytes(_dump(doc))
+    resource_path = tmp_path / "resources.yaml"
+    with open(resource_path, "wb") as handle:
+        handle.seek(MAX_TOTAL_BYTES)
+        handle.write(b"\0")
+
+    original_read_bytes = Path.read_bytes
+
+    def _guarded_read_bytes(self: Path) -> bytes:
+        if self == resource_path:
+            pytest.fail("oversized listed file was read despite exceeding the size bound")
+        return original_read_bytes(self)
+
+    monkeypatch.setattr(Path, "read_bytes", _guarded_read_bytes)
     result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert result.result is IngestionResult.REJECTED_UNSUPPORTED
     assert result.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED
@@ -573,3 +636,34 @@ def test_nested_list_is_rejected(tmp_path):
     result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert result.result is IngestionResult.REJECTED_UNSUPPORTED
     assert result.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED
+
+
+def test_non_v1_list_kind_is_not_expanded_as_a_container(tmp_path):
+    # §4.3 authorizes only v1/List as a container - a kind:List object under a different
+    # apiVersion is not this container and must not be silently flattened/reinterpreted; it passes
+    # through as one opaque object instead (admissibility of that object is a later slice's job).
+    not_a_v1_list = {
+        "apiVersion": "custom.io/v2",
+        "kind": "List",
+        "items": [{"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": "a"}}],
+    }
+    _write_bundle(tmp_path, files={"resources.yaml": yaml.safe_dump(not_a_v1_list).encode()})
+    result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
+    assert result.result is IngestionResult.ACCEPTED
+    assert len(result.resources) == 1
+    assert result.resources[0] == not_a_v1_list
+
+
+def test_non_v1_list_kind_nested_inside_a_real_v1_list_is_not_rejected_as_nested(tmp_path):
+    # The nested-List rejection is specifically about a nested *v1/List*; a differently-versioned
+    # kind:List item inside a real v1/List is just an ordinary (opaque) item, not itself a
+    # container, so it must not trigger the nested-container rejection.
+    outer_list = {
+        "apiVersion": "v1",
+        "kind": "List",
+        "items": [{"apiVersion": "custom.io/v2", "kind": "List", "items": []}],
+    }
+    _write_bundle(tmp_path, files={"resources.yaml": yaml.safe_dump(outer_list).encode()})
+    result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
+    assert result.result is IngestionResult.ACCEPTED
+    assert result.resources == ({"apiVersion": "custom.io/v2", "kind": "List", "items": []},)
