@@ -235,10 +235,19 @@ participate in `DiscoveryScopeId`. Each bundled source's `SourceInstanceId` is d
 filesystem-source ID, source kind, and normalized root-document path relative to `examples/`.
 
 The migration artifact SHALL bind those portable SourceInstanceIds and exact source pointers to the
-authoritative Service IDs and prior qualified Schema, Message, and Queue IDs. A clean checkout in a
-different absolute directory MUST derive the same scope/source identities and apply the same
-mappings. Missing or modified migration configuration is diagnosed and MUST NOT fall back to a
-directory slug or name-derived identity.
+authoritative Service IDs and prior qualified Schema and Message IDs. Queue identity is
+source-independent by construction (§9: the derived owner-scoped Queue ID carries no
+SourceInstanceId component) and already merges across sources without an explicit mapping; the
+artifact additionally binds a prior qualified Queue ID only for a bundled channel that has no real
+broker/namespace evidence of its own from which an owner-scoped Queue ID could be derived, since
+§9's derived-vs-configured comparison has nothing to compare against in that case. Where every
+bundled channel already carries real derivable broker evidence — as is presently true for all of
+`examples/`, following PR3a/PR3b's owner-scoped identity work — `queueMappings` MAY be empty:
+binding a legacy Queue ID against a channel with real derivable evidence is exactly the
+disagreement §9 requires `REJECTED_CONFLICT` for, not a legitimate migration target. A clean
+checkout in a different absolute directory MUST derive the same scope/source identities and apply
+the same mappings. Missing or modified migration configuration is diagnosed and MUST NOT fall back
+to a directory slug or name-derived identity.
 
 ### 5.2 Revision and capture identity
 
@@ -892,6 +901,20 @@ the specification format itself). The amendment's conformance evidence is the re
 git-blob-SHA provenance test - these declare `openapi: 3.1.2` and would otherwise be rejected
 outright the moment exact-version enforcement (§8's own new requirement, also introduced in PR3b)
 went live, silently emptying the `quarkus-frozen-*` evaluation scenarios that depend on them.
+
+**Draft 0.3 amendment (PR4):** §5.1.1's migration-artifact binding requirement was narrowed from
+"Service IDs and prior qualified Schema, Message, and Queue IDs" to Service/Schema/Message only,
+with Queue bound solely for a bundled channel that has no derivable broker/namespace evidence of its
+own. This was forced by correctly implementing §9's own configured-vs-derived Queue identity
+conflict check (also PR4): every bundled `examples/` AsyncAPI channel already carries real
+`x-aip-broker-id`/AMQP `virtualHost` evidence from PR3a/PR3b's owner-scoped identity work, so a
+legacy Queue mapping for any of them now always disagrees with its real derived id -
+`REJECTED_CONFLICT` by §9's own rule, not a legitimate migration. Since Queue identity carries no
+SourceInstanceId component and already merges across sources without a mapping, requiring a
+`queueMappings` entry for a channel with real derivable evidence would only be forcing an artificial
+conflict to satisfy the letter of §5.1.1, not demonstrating a real migration. The bundled artifact's
+`queueMappings` is therefore legitimately empty until/unless a bundled channel exists with no
+derivable broker evidence.
 
 ## 13. Required evidence and handoff
 

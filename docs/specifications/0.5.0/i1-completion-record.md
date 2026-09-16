@@ -40,7 +40,11 @@ five root documents' `SourceInstanceId`s, independently reproducible via
 artifact id `aip-v0.5.0-bundled-example-identities-v1`, revision `v1` — exists and is proven correct
 (see below) but is deliberately not referenced by `config.yaml`/`config.demo.yaml`'s own default
 `sources.migrations` list, so the bundled examples' live default identity remains the owner-scoped
-one PR3a/3b shipped, not the legacy one this artifact restores on demand.
+one PR3a/3b shipped, not the legacy one this artifact restores on demand. Its `queueMappings` is
+empty per the **Draft 0.3 amendment (PR4)** in §12: every bundled channel already carries real
+derivable broker evidence (PR3a/3b), so a legacy Queue mapping for any of them would always disagree
+with its correctly-computed derived id — `REJECTED_CONFLICT` by §9's own rule, not a valid migration
+target. `schemaMappings`/`messageMappings` are unaffected and remain required/populated.
 
 ## Regression suite (full local run at PR4's tip, this branch)
 
