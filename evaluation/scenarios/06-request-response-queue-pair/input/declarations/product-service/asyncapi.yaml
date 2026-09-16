@@ -1,18 +1,20 @@
-asyncapi: '2.6.0'
+asyncapi: 2.6.0
 info:
   title: ProductService
-  version: "1.0.0"
+  version: 1.0.0
 channels:
   request-q:
     subscribe:
       operationId: receiveRequest
       message:
         $ref: '#/components/messages/RequestMessage'
+    x-aip-destination-kind: queue
   response-q:
     publish:
       operationId: sendResponse
       message:
         $ref: '#/components/messages/ResponseMessage'
+    x-aip-destination-kind: queue
 components:
   messages:
     RequestMessage:
@@ -23,3 +25,12 @@ components:
       name: ResponseMessage
       payload:
         type: object
+x-aip-service-id: service:product-service
+servers:
+  asb:
+    url: amqps://asb.example.com
+    protocol: amqp
+    x-aip-broker-id: asb
+    bindings:
+      amqp:
+        virtualHost: commerce

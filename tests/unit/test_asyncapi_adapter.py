@@ -1,301 +1,390 @@
-import hashlib
-import json
+import copy
 from pathlib import Path
 
-from app.canonical import ids
-from app.ingestion.asyncapi_adapter import load_asyncapi_document, parse_asyncapi
+from app.canonical.model import ArchitectureModel
+from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
+from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
+from app.sources.jcs import canonical_sha256_hex
+from app.sources.model import (
+    DiagnosticCode,
+    FilesystemSourceConfig,
+    IngestionResult,
+    LoadedSource,
+    SourceDescriptor,
+    SourceKind,
+)
+from app.sources.service_identity import resolve_service_identity
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
+SOURCE_INSTANCE_ID = "urn:aip:source:filesystem:" + "a" * 64
 
-# Matches the spec §7.1 target model exactly:
-# OrderService -SENDS-> payment-q -CARRIES-> PaymentRequested -CONFORMS_TO-> PaymentRequestedSchema:v2
-ORDER_SERVICE_DOC = {
-    "asyncapi": "2.6.0",
-    "info": {"title": "OrderService", "version": "1.0.0"},
-    "channels": {
-        "payment-q": {
-            "publish": {
-                "operationId": "sendPaymentRequested",
-                "message": {"$ref": "#/components/messages/PaymentRequested"},
-            }
-        }
-    },
-    "components": {
-        "messages": {
-            "PaymentRequested": {
-                "name": "PaymentRequested",
-                "x-version": "v2",
-                "payload": {"$ref": "#/components/schemas/PaymentRequestedPayload"},
-            }
-        },
-        "schemas": {
-            "PaymentRequestedPayload": {
-                "type": "object",
-                "properties": {"orderId": {"type": "string"}},
-                "required": ["orderId"],
-            }
-        },
-    },
-}
-
-# Matches spec §7.1: PaymentService -RECEIVES_FROM-> payment-q
-PAYMENT_SERVICE_DOC = {
-    "asyncapi": "2.6.0",
-    "info": {"title": "PaymentService", "version": "1.0.0"},
-    "channels": {
-        "payment-q": {
-            "x-dead-letter-queue": "payment-dlq",
-            "subscribe": {
-                "operationId": "receivePaymentRequested",
-                "message": {"$ref": "#/components/messages/PaymentRequested"},
-            },
-        }
-    },
-    "components": {
-        "messages": {
-            "PaymentRequested": {
-                "name": "PaymentRequested",
-                "x-version": "v2",
-                "payload": {"$ref": "#/components/schemas/PaymentRequestedPayload"},
-            }
-        },
-        "schemas": {
-            "PaymentRequestedPayload": {
-                "type": "object",
-                "properties": {"orderId": {"type": "string"}},
-                "required": ["orderId"],
-            }
-        },
-    },
+BASE_SERVER = {
+    "asb": {
+        "url": "amqps://asb.example.com",
+        "protocol": "amqp",
+        "x-aip-broker-id": "asb",
+        "bindings": {"amqp": {"virtualHost": "commerce"}},
+    }
 }
 
 
-def test_parses_service_metadata():
-    model = parse_asyncapi(
-        ORDER_SERVICE_DOC,
-        service_id="order-service",
-        source_file="examples/order-service/asyncapi.yaml",
+class _StubResolver:
+    def resolve(self, *, source_instance_id, construct_pointer, extension_value):
+        return resolve_service_identity(
+            source_instance_id=source_instance_id,
+            construct_pointer=construct_pointer,
+            extension_value=extension_value,
+            configured_mappings=[],
+            manifest_bindings=[],
+        )
+
+
+def _loaded(document: dict, *, source_instance_id: str = SOURCE_INSTANCE_ID):
+    descriptor = SourceDescriptor(
+        source_instance_id=source_instance_id,
+        source_kind=SourceKind.FILESYSTEM,
+        locator="test.yaml",
+        discovery_scope_id="urn:aip:discovery-scope:" + "b" * 64,
+        scope_definition_digest="c" * 64,
+        content_sha256="d" * 64,
+        semantic_input_digest="",
+        mapping_context_digest="",
+        adapter_identity="",
+        mapping_rule_id="",
+        mapping_rule_version="",
     )
-    [service] = model.services
-    assert service.id == ids.service_id("order-service")
-    assert service.name == "OrderService"
-    assert service.version == "1.0.0"
+    return LoadedSource(descriptor=descriptor, document=document)
 
 
-def test_publish_creates_sends_relation_and_queue():
-    model = parse_asyncapi(
-        ORDER_SERVICE_DOC,
-        service_id="order-service",
-        source_file="examples/order-service/asyncapi.yaml",
+def _map(document: dict):
+    return AsyncApiSourceAdapter().map(
+        _loaded(document),
+        service_identity=_StubResolver(),
+        upstream_model=ArchitectureModel(),
+        mapping_context_digest="e" * 64,
     )
-    [queue] = model.queues
-    assert queue.id == ids.queue_id("payment-q")
-    assert queue.name == "payment-q"
-
-    sends = [r for r in model.relations if r.type == "SENDS"]
-    assert len(sends) == 1
-    assert sends[0].source_id == ids.service_id("order-service")
-    assert sends[0].target_id == ids.queue_id("payment-q")
 
 
-def test_carries_and_conforms_to_relations_with_message_version():
-    model = parse_asyncapi(
-        ORDER_SERVICE_DOC,
-        service_id="order-service",
-        source_file="examples/order-service/asyncapi.yaml",
-    )
-    expected_message_id = ids.message_id("PaymentRequested", "v2")
-    expected_schema_id = ids.schema_id("PaymentRequested", "v2")
-
-    [message] = model.messages
-    assert message.id == expected_message_id
-    assert message.version == "v2"
-    assert message.schema_id == expected_schema_id
-
-    carries = [r for r in model.relations if r.type == "CARRIES"]
-    assert len(carries) == 1
-    assert carries[0].source_id == ids.queue_id("payment-q")
-    assert carries[0].target_id == expected_message_id
-
-    conforms_to = [r for r in model.relations if r.type == "CONFORMS_TO"]
-    assert len(conforms_to) == 1
-    assert conforms_to[0].source_id == expected_message_id
-    assert conforms_to[0].target_id == expected_schema_id
-
-
-def test_schema_canonical_hash_matches_payload_definition():
-    model = parse_asyncapi(
-        ORDER_SERVICE_DOC,
-        service_id="order-service",
-        source_file="examples/order-service/asyncapi.yaml",
-    )
-    [schema] = model.schemas
-    assert schema.id == ids.schema_id("PaymentRequested", "v2")
-    assert schema.format == "application/json"
-    expected_hash = hashlib.sha256(
-        json.dumps(
-            ORDER_SERVICE_DOC["components"]["schemas"]["PaymentRequestedPayload"], sort_keys=True
-        ).encode("utf-8")
-    ).hexdigest()
-    assert schema.canonical_hash == expected_hash
-
-
-def test_subscribe_creates_receives_from_relation():
-    model = parse_asyncapi(
-        PAYMENT_SERVICE_DOC,
-        service_id="payment-service",
-        source_file="examples/payment-service/asyncapi.yaml",
-    )
-    receives = [r for r in model.relations if r.type == "RECEIVES_FROM"]
-    assert len(receives) == 1
-    assert receives[0].source_id == ids.service_id("payment-service")
-    assert receives[0].target_id == ids.queue_id("payment-q")
-
-
-def test_dead_letters_to_relation_and_stub_queue_for_undeclared_dlq():
-    model = parse_asyncapi(
-        PAYMENT_SERVICE_DOC,
-        service_id="payment-service",
-        source_file="examples/payment-service/asyncapi.yaml",
-    )
-    dead_letters = [r for r in model.relations if r.type == "DEAD_LETTERS_TO"]
-    assert len(dead_letters) == 1
-    assert dead_letters[0].source_id == ids.queue_id("payment-q")
-    assert dead_letters[0].target_id == ids.queue_id("payment-dlq")
-
-    dlq_queue = next(q for q in model.queues if q.id == ids.queue_id("payment-dlq"))
-    assert dlq_queue.name == "payment-dlq"
-
-
-def test_protocol_extracted_from_bindings():
-    document = {
+def _base_document(**channel_overrides) -> dict:
+    return {
         "asyncapi": "2.6.0",
-        "info": {"title": "OrderService"},
+        "info": {"title": "Svc"},
+        "x-aip-service-id": "service:svc",
+        "servers": copy.deepcopy(BASE_SERVER),
         "channels": {
-            "payment-q": {
-                "bindings": {"amqp": {"is": "queue"}},
-                "publish": {"message": {"name": "PaymentRequested"}},
-            }
-        },
-    }
-    model = parse_asyncapi(
-        document, service_id="order-service", source_file="examples/order-service/asyncapi.yaml"
-    )
-    [queue] = model.queues
-    assert queue.protocol == "amqp"
-
-
-def test_namespace_matches_spec_example_id_format():
-    document = {
-        "asyncapi": "2.6.0",
-        "info": {"title": "OrderService"},
-        "channels": {
-            "payment-q": {
-                "x-namespace": "asb:commerce",
-                "publish": {"message": {"name": "PaymentRequested"}},
-            }
-        },
-    }
-    model = parse_asyncapi(
-        document, service_id="order-service", source_file="examples/order-service/asyncapi.yaml"
-    )
-    [queue] = model.queues
-    assert queue.id == "queue:asb:commerce:payment-q"
-    assert queue.namespace == "asb:commerce"
-
-
-def test_one_of_multiple_messages_on_one_operation():
-    document = {
-        "asyncapi": "2.6.0",
-        "info": {"title": "OrderService"},
-        "channels": {
-            "order-events-q": {
+            "orders-q": {
+                "x-aip-destination-kind": "queue",
                 "publish": {
-                    "message": {
-                        "oneOf": [
-                            {"$ref": "#/components/messages/OrderCreated"},
-                            {"$ref": "#/components/messages/OrderCancelled"},
-                        ]
-                    }
-                }
+                    "operationId": "sendOrder",
+                    "message": {"$ref": "#/components/messages/OrderPlaced"},
+                },
+                **channel_overrides,
             }
         },
         "components": {
             "messages": {
-                "OrderCreated": {"name": "OrderCreated"},
-                "OrderCancelled": {"name": "OrderCancelled"},
-            }
+                "OrderPlaced": {
+                    "name": "OrderPlaced",
+                    "x-version": "v1",
+                    "payload": {"$ref": "#/components/schemas/OrderPlacedPayload"},
+                }
+            },
+            "schemas": {
+                "OrderPlacedPayload": {"type": "object", "properties": {"id": {"type": "string"}}}
+            },
         },
     }
-    model = parse_asyncapi(
-        document, service_id="order-service", source_file="examples/order-service/asyncapi.yaml"
-    )
-    assert {m.name for m in model.messages} == {"OrderCreated", "OrderCancelled"}
-    carries = [r for r in model.relations if r.type == "CARRIES"]
-    assert len(carries) == 2
 
 
-def test_provenance_recorded():
-    model = parse_asyncapi(
-        ORDER_SERVICE_DOC,
-        service_id="order-service",
-        source_file="examples/order-service/asyncapi.yaml",
-        source_revision="abc123",
+def test_no_channels_is_accepted_as_service_only():
+    document = {"asyncapi": "2.6.0", "info": {"title": "Svc"}, "x-aip-service-id": "service:svc"}
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED
+    [service] = outcome.model.services
+    assert service.id == "service:svc"
+    assert outcome.model.queues == []
+
+
+def test_fully_supported_channel_is_accepted():
+    outcome = _map(_base_document())
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert outcome.diagnostics == ()
+    [queue] = outcome.model.queues
+    assert queue.name == "orders-q"
+    assert queue.id.startswith("queue:owned:")
+    [message] = outcome.model.messages
+    assert message.name == "OrderPlaced"
+    assert message.version == "v1"
+
+
+def test_queue_kind_from_amqp_binding_alone():
+    document = _base_document()
+    del document["channels"]["orders-q"]["x-aip-destination-kind"]
+    document["channels"]["orders-q"]["bindings"] = {"amqp": {"is": "queue"}}
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert len(outcome.model.queues) == 1
+
+
+def test_agreeing_kind_paths_are_accepted():
+    document = _base_document()
+    document["channels"]["orders-q"]["bindings"] = {"amqp": {"is": "queue"}}
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert len(outcome.model.queues) == 1
+
+
+def test_conflicting_kind_paths_channel_is_omitted():
+    document = _base_document()
+    document["channels"]["orders-q"]["bindings"] = {"amqp": {"is": "topic"}}
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert outcome.model.queues == []
+
+
+def test_missing_kind_evidence_channel_is_unsupported():
+    document = _base_document()
+    del document["channels"]["orders-q"]["x-aip-destination-kind"]
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert outcome.diagnostics[0].code is DiagnosticCode.QUEUE_EVIDENCE_MISSING
+
+
+def test_missing_broker_id_leaves_channel_unsupported():
+    document = _base_document()
+    del document["servers"]["asb"]["x-aip-broker-id"]
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert outcome.model.queues == []
+
+
+def test_multi_server_disagreement_is_ambiguous():
+    document = _base_document()
+    document["servers"]["other"] = {
+        "url": "amqps://other.example.com",
+        "protocol": "amqp",
+        "x-aip-broker-id": "other-broker",
+    }
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert any(d.code is DiagnosticCode.AMBIGUOUS for d in outcome.diagnostics)
+
+
+def test_multi_server_agreement_is_accepted():
+    document = _base_document()
+    document["servers"]["mirror"] = {
+        "url": "amqps://mirror.example.com",
+        "protocol": "amqp",
+        "x-aip-broker-id": "asb",
+        "bindings": {"amqp": {"virtualHost": "commerce"}},
+    }
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert len(outcome.model.queues) == 1
+
+
+def test_channel_scoped_servers_restriction_is_honored():
+    document = _base_document()
+    document["servers"]["other"] = {
+        "url": "amqps://other.example.com",
+        "protocol": "amqp",
+        "x-aip-broker-id": "other-broker",
+    }
+    document["channels"]["orders-q"]["servers"] = ["asb"]
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED
+
+
+def test_namespace_defaults_to_empty_without_virtual_host():
+    document = _base_document()
+    del document["servers"]["asb"]["bindings"]
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED
+    [queue] = outcome.model.queues
+    assert queue.namespace is None
+
+
+def test_channel_address_normalizes_to_unicode_nfc():
+    # A precomposed "e with acute accent" (U+00E9) vs. "e" + a combining acute accent (U+0065
+    # U+0301) must resolve to the same owner-scoped Queue id (I1 spec §9: "normalized to Unicode
+    # NFC without trimming or case folding"). Explicit \u escapes, not literal characters, so the
+    # decomposed form can't be silently re-normalized by an editor/formatter round-trip.
+    precomposed_name = "caf\u00e9-q"
+    decomposed_name = "cafe\u0301-q"
+    assert precomposed_name != decomposed_name  # sanity: genuinely different code point sequences
+
+    precomposed = _base_document()
+    precomposed["channels"][precomposed_name] = precomposed["channels"].pop("orders-q")
+
+    decomposed = _base_document()
+    decomposed["channels"][decomposed_name] = decomposed["channels"].pop("orders-q")
+
+    id_precomposed = _map(precomposed).model.queues[0].id
+    id_decomposed = _map(decomposed).model.queues[0].id
+    assert id_precomposed == id_decomposed
+
+
+def test_one_supported_one_omitted_channel_is_accepted_with_limitations():
+    document = _base_document()
+    document["channels"]["unsupported-q"] = {
+        "publish": {"operationId": "sendX", "message": {"payload": {"type": "object"}}}
+    }
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
+    assert len(outcome.model.queues) == 1
+
+
+def test_dead_letters_to_relation_inherits_declaring_channel_broker():
+    document = _base_document()
+    document["channels"]["orders-q"]["x-dead-letter-queue"] = "orders-dlq"
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED
+    dlq_relations = [r for r in outcome.model.relations if r.type == "DEAD_LETTERS_TO"]
+    assert len(dlq_relations) == 1
+    dlq_queue = next(q for q in outcome.model.queues if q.name == "orders-dlq")
+    assert dlq_relations[0].target_id == dlq_queue.id
+    declaring_queue = next(q for q in outcome.model.queues if q.name == "orders-q")
+    # The DLQ target's identity hash already incorporates the inherited namespace (§9); its node
+    # property must agree, not just its id, or the two would silently disagree about ownership.
+    assert dlq_queue.namespace == declaring_queue.namespace
+
+
+def test_referenced_message_payload_uses_schema_owned_id():
+    outcome = _map(_base_document())
+    [message] = outcome.model.messages
+    [schema] = outcome.model.schemas
+    assert message.schema_id == schema.id
+    assert schema.id.startswith("schema:owned:")
+    assert schema.canonical_hash == canonical_sha256_hex(
+        {"type": "object", "properties": {"id": {"type": "string"}}}
     )
-    [provenance] = model.provenance
-    assert provenance.id == ids.evidence_id("ASYNCAPI", "order-service", "abc123")
+
+
+def test_inline_message_payload_uses_inline_payload_schema_id():
+    document = _base_document()
+    document["channels"]["orders-q"]["publish"]["message"] = {
+        "name": "InlineMessage",
+        "payload": {"type": "object", "properties": {"x": {"type": "string"}}},
+    }
+    outcome = _map(document)
+    [message] = outcome.model.messages
+    assert message.name == "InlineMessage"
+    [schema] = outcome.model.schemas
+    assert schema.id == message.schema_id
+    assert schema.name == "InlineMessage payload"
+
+
+def test_two_channels_with_distinct_inline_messages_do_not_collide():
+    """A real bug found in PR review: an inline (non-`$ref`) message's pointer used to be the bare
+    `("message",)` (or `("message", "oneOf", index)`), with no channel/operation disambiguation -
+    two different channels each declaring their own inline message got the identical owner-scoped
+    message_owned_id, silently merging two distinct messages/payloads into one Message node with
+    the first channel's content, and both queues' CARRIES relations pointing at it."""
+    document = _base_document()
+    document["channels"]["orders-q"]["publish"]["message"] = {
+        "name": "OrderMessage",
+        "payload": {"type": "object", "properties": {"order_id": {"type": "string"}}},
+    }
+    document["channels"]["shipping-q"] = {
+        "x-aip-destination-kind": "queue",
+        "publish": {
+            "operationId": "sendShipping",
+            "message": {
+                "name": "ShippingMessage",
+                "payload": {"type": "object", "properties": {"tracking_id": {"type": "string"}}},
+            },
+        },
+    }
+    outcome = _map(document)
+
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert {m.name for m in outcome.model.messages} == {"OrderMessage", "ShippingMessage"}
+    assert len({m.id for m in outcome.model.messages}) == 2
+    assert len({s.id for s in outcome.model.schemas}) == 2
+
+    carries = {r.source_id: r.target_id for r in outcome.model.relations if r.type == "CARRIES"}
+    order_queue = next(q.id for q in outcome.model.queues if q.name == "orders-q")
+    shipping_queue = next(q.id for q in outcome.model.queues if q.name == "shipping-q")
+    assert carries[order_queue] != carries[shipping_queue]
+
+
+def test_message_with_no_name_or_title_gets_deterministic_fallback():
+    document = _base_document()
+    document["channels"]["orders-q"]["publish"]["message"] = {
+        "payload": {"type": "object"},
+    }
+    outcome = _map(document)
+    [message] = outcome.model.messages
+    assert message.name == "orders-q:publish"
+
+
+def test_explicit_null_x_version_is_rejected_invalid():
+    document = _base_document()
+    document["components"]["messages"]["OrderPlaced"]["x-version"] = None
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.REJECTED_INVALID
+
+
+def test_absent_x_version_participates_as_empty():
+    document = _base_document()
+    del document["components"]["messages"]["OrderPlaced"]["x-version"]
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED
+    [message] = outcome.model.messages
+    assert message.version is None
+
+
+def test_missing_service_identity_is_rejected_unsupported():
+    document = {"asyncapi": "2.6.0", "info": {"title": "X"}}
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert outcome.diagnostics[0].code is DiagnosticCode.SERVICE_IDENTITY_UNRESOLVED
+
+
+def test_invalid_document_structure_is_rejected_invalid():
+    document = {"asyncapi": "2.6.0"}  # missing required info/channels
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.REJECTED_INVALID
+    assert outcome.diagnostics[0].code is DiagnosticCode.DOCUMENT_PARSE_INVALID
+
+
+def test_supports_matches_only_asyncapi_documents():
+    adapter = AsyncApiSourceAdapter()
+    assert adapter.supports(_loaded(_base_document())) is True
+    assert adapter.supports(_loaded({"openapi": "3.1.0"})) is False
+
+
+def test_provenance_recorded_and_attached_to_relations():
+    outcome = _map(_base_document())
+    [provenance] = outcome.model.provenance
     assert provenance.source_type == "ASYNCAPI"
-    assert provenance.source_file == "examples/order-service/asyncapi.yaml"
-    assert provenance.source_revision == "abc123"
-
-    assert all(r.evidence_ids == [provenance.id] for r in model.relations)
+    assert provenance.evidence_type == "DECLARED"
+    assert all(r.evidence_ids == [provenance.id] for r in outcome.model.relations)
 
 
-def test_real_fixtures_produce_consistent_ids_across_producer_and_consumer():
-    order_model = parse_asyncapi(
-        load_asyncapi_document(EXAMPLES_DIR / "order-service" / "asyncapi.yaml"),
-        service_id="order-service",
-        source_file="examples/order-service/asyncapi.yaml",
+def test_maps_real_bundled_fixtures_with_matching_queue_ids_across_sources():
+    discoverer = FilesystemSourceDiscoverer(
+        FilesystemSourceConfig(id="aip-bundled-examples-v0.5", root=EXAMPLES_DIR)
     )
-    payment_model = parse_asyncapi(
-        load_asyncapi_document(EXAMPLES_DIR / "payment-service" / "asyncapi.yaml"),
-        service_id="payment-service",
-        source_file="examples/payment-service/asyncapi.yaml",
-    )
+    loaded_sources = [s for s in discoverer.discover().loaded_sources if "asyncapi" in s.document]
+    adapter = AsyncApiSourceAdapter()
 
-    order_payment_message = next(m for m in order_model.messages if m.name == "PaymentRequested")
-    payment_payment_message = next(
-        m for m in payment_model.messages if m.name == "PaymentRequested"
-    )
-    assert order_payment_message.id == payment_payment_message.id
-    assert order_payment_message.schema_id == payment_payment_message.schema_id
+    queue_ids_by_name: dict[str, set[str]] = {}
+    for loaded in loaded_sources:
+        outcome = adapter.map(
+            loaded,
+            service_identity=_StubResolver(),
+            upstream_model=ArchitectureModel(),
+            mapping_context_digest="e" * 64,
+        )
+        assert outcome.result is IngestionResult.ACCEPTED, (
+            loaded.descriptor.locator,
+            outcome.diagnostics,
+        )
+        for queue in outcome.model.queues:
+            queue_ids_by_name.setdefault(queue.name, set()).add(queue.id)
 
-    order_queue = next(q for q in order_model.queues if q.name == "payment-q")
-    payment_queue = next(q for q in payment_model.queues if q.name == "payment-q")
-    assert order_queue.id == payment_queue.id
-
-
-def test_real_invoice_service_fixture():
-    document = load_asyncapi_document(EXAMPLES_DIR / "invoice-service" / "asyncapi.yaml")
-    model = parse_asyncapi(
-        document, service_id="invoice-service", source_file="examples/invoice-service/asyncapi.yaml"
-    )
-    receives = [r for r in model.relations if r.type == "RECEIVES_FROM"]
-    assert len(receives) == 1
-    assert receives[0].target_id == ids.queue_id("invoice-q")
-    [message] = model.messages
-    assert message.id == ids.message_id("InvoiceCreated", "v1")
-
-
-def test_real_payment_service_fixture_has_all_three_channels():
-    document = load_asyncapi_document(EXAMPLES_DIR / "payment-service" / "asyncapi.yaml")
-    model = parse_asyncapi(
-        document, service_id="payment-service", source_file="examples/payment-service/asyncapi.yaml"
-    )
-    queue_names = {q.name for q in model.queues}
-    assert queue_names == {"payment-q", "invoice-q", "unknown-producer-q", "payment-dlq"}
-
-    sends = {r.target_id for r in model.relations if r.type == "SENDS"}
-    receives = {r.target_id for r in model.relations if r.type == "RECEIVES_FROM"}
-    assert sends == {ids.queue_id("invoice-q")}
-    assert receives == {ids.queue_id("payment-q"), ids.queue_id("unknown-producer-q")}
+    # payment-q and invoice-q are declared by two different services each; both must resolve to
+    # exactly one shared owner-scoped Queue id.
+    assert len(queue_ids_by_name["payment-q"]) == 1
+    assert len(queue_ids_by_name["invoice-q"]) == 1

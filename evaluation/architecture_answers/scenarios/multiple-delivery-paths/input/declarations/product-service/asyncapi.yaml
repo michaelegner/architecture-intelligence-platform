@@ -1,13 +1,14 @@
-asyncapi: '2.6.0'
+asyncapi: 2.6.0
 info:
   title: ProductService
-  version: "1.0.0"
+  version: 1.0.0
 channels:
   product-events-q:
     subscribe:
       operationId: receiveProductEvent
       message:
         $ref: '#/components/messages/ProductEvent'
+    x-aip-destination-kind: queue
 components:
   messages:
     ProductEvent:
@@ -20,4 +21,14 @@ components:
       properties:
         productId:
           type: string
-      required: [productId]
+      required:
+      - productId
+x-aip-service-id: service:product-service
+servers:
+  asb:
+    url: amqps://asb.example.com
+    protocol: amqp
+    x-aip-broker-id: asb
+    bindings:
+      amqp:
+        virtualHost: commerce

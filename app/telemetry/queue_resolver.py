@@ -30,11 +30,13 @@ def resolve_queue(
 ) -> QueueResolution:
     """Matches an observed messaging destination against declared AsyncAPI queues (spec §27/§28).
     Exact match only, mirroring resolve_service's tiering: messaging.system+destination_name is a
-    real match tier but is dormant against today's data (no declared Queue carries a namespace -
-    see app/ingestion/asyncapi_adapter.py's unused x-namespace extension); bare destination_name is
-    what actually unifies AsyncAPI-declared and OTel-observed queues today (spec §27's "must not
-    create two parallel nodes" goal), since real declared Queue.name values match OTel
-    messaging.destination.name values directly."""
+    real match tier, but stays dormant in practice against today's real fixtures - a declared
+    Queue's namespace comes from its AMQP `virtualHost` (app/ingestion/asyncapi_adapter.py), a
+    broker-routing concept, while OTel's `messaging.system` names a broker technology (e.g.
+    "rabbitmq"), so the two values don't coincide; bare destination_name is what actually unifies
+    AsyncAPI-declared and OTel-observed queues today (spec §27's "must not create two parallel
+    nodes" goal), since real declared Queue.name values match OTel messaging.destination.name
+    values directly."""
     if messaging_system is not None:
         system_matches = [
             c for c in candidates if c.namespace == messaging_system and c.name == destination_name

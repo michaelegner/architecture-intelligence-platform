@@ -27,6 +27,7 @@ from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.graph.revision_fence import read_revision
 from app.provenance.model import ObservedEvidence
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 
@@ -161,7 +162,13 @@ def _fingerprint(driver) -> tuple[str, str]:
 def test_independent_client_completes_the_real_dependency_to_evidence_golden_path(
     driver, real_app_client
 ):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-independent-client-golden-path-examples", root=EXAMPLES_DIR
+        ),
+    )
     _observe_order_service_calls_product_service(driver)
     real_app, client = real_app_client
 
@@ -247,7 +254,13 @@ def test_independent_client_completes_the_real_drift_to_evidence_golden_path(
     three-tool discovery, `get_architecture_drift` -> `get_evidence` drill-down, over real HTTP
     against the real production wiring (not the isolated `build_mcp_app` harness
     `test_mcp_architecture_drift_equivalence.py` uses)."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-independent-client-golden-path-examples", root=EXAMPLES_DIR
+        ),
+    )
     _observe_order_service_calls_product_service(driver)
     real_app, client = real_app_client
 
@@ -317,7 +330,13 @@ def test_independent_client_completes_the_real_drift_to_evidence_golden_path(
 def test_independent_client_refusal_through_the_real_app_leaves_graph_state_unchanged(
     driver, real_app_client
 ):
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-independent-client-golden-path-examples", root=EXAMPLES_DIR
+        ),
+    )
     _, client = real_app_client
 
     with driver.session(database=DATABASE) as session:

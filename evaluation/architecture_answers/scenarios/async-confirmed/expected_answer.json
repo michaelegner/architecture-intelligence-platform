@@ -1,16 +1,16 @@
 {
   "claims": [
     {
-      "claim_id": "aip:claim:v1:83a03363197034b1bccad483cceea9316c0d4c32b83f70f3b8f2bbbc63852650",
+      "claim_id": "aip:claim:v1:55a825535bd830bd6b688097c770fd6d0dd55b1045c86fb6229a59e855ccb5d4",
       "coverage": null,
       "delivery": {
         "kind": "ASYNC_MESSAGE",
         "relation_type": "SENDS",
         "via": {
-          "id": "queue:payment-q",
+          "id": "queue:owned:f4ab89257c232ec7ec1c2633f37e256ed4971181d896bd0a002d3586d3ae29db",
           "method": null,
           "name": "payment-q",
-          "namespace": null,
+          "namespace": "commerce",
           "path": null,
           "protocol": null,
           "type": "QUEUE"
@@ -18,8 +18,8 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:asyncapi:order-service",
-        "evidence:otel:test:2026-08-26:9c327dd69b1f"
+        "evidence:asyncapi:urn:aip:source:filesystem:5365d313fb8e16a08d4fb23cb50a0e1fc1fbe876ef55a146b717b1ec1faa8890",
+        "evidence:otel:test:2026-08-26:7ea959413689"
       ],
       "object": {
         "id": "service:payment-service",
@@ -33,8 +33,8 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "CONFIRMED",
       "resolution_evidence_refs": [
-        "evidence:asyncapi:payment-service",
-        "evidence:otel:test:2026-08-26:6f7642279871"
+        "evidence:asyncapi:urn:aip:source:filesystem:665421fc315a6be313168828873720079e0f380daaacfc7bc2d07e4ab8cc4d9a",
+        "evidence:otel:test:2026-08-26:5048304e5de4"
       ],
       "subject": {
         "id": "service:order-service",
@@ -49,7 +49,7 @@
   ],
   "data": {
     "dependency_claim_ids": [
-      "aip:claim:v1:83a03363197034b1bccad483cceea9316c0d4c32b83f70f3b8f2bbbc63852650"
+      "aip:claim:v1:55a825535bd830bd6b688097c770fd6d0dd55b1045c86fb6229a59e855ccb5d4"
     ],
     "service": {
       "id": "service:order-service",
@@ -62,10 +62,10 @@
     }
   },
   "evidence_refs": [
-    "evidence:asyncapi:order-service",
-    "evidence:asyncapi:payment-service",
-    "evidence:otel:test:2026-08-26:6f7642279871",
-    "evidence:otel:test:2026-08-26:9c327dd69b1f"
+    "evidence:asyncapi:urn:aip:source:filesystem:5365d313fb8e16a08d4fb23cb50a0e1fc1fbe876ef55a146b717b1ec1faa8890",
+    "evidence:asyncapi:urn:aip:source:filesystem:665421fc315a6be313168828873720079e0f380daaacfc7bc2d07e4ab8cc4d9a",
+    "evidence:otel:test:2026-08-26:5048304e5de4",
+    "evidence:otel:test:2026-08-26:7ea959413689"
   ],
   "limitations": [],
   "observation_context": {
@@ -82,8 +82,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:8d0c598034d956e592366cab265c0d672fc84f2ef167894fec3588a6880391b9",
-    "snapshot_id": "aip:snapshot:v1:8d0c598034d956e592366cab265c0d672fc84f2ef167894fec3588a6880391b9"
+    "model_revision": "sha256:b22b124325c33adda1fb73322ccd980b7cf2abdd6cafc296b3c95d03f4235c66",
+    "snapshot_id": "aip:snapshot:v1:b22b124325c33adda1fb73322ccd980b7cf2abdd6cafc296b3c95d03f4235c66"
   },
   "tool": "get_service_dependencies"
 }

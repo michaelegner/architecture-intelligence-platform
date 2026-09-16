@@ -1,15 +1,31 @@
-import hashlib
-import json
 from pathlib import Path
 
 from app.canonical import ids
-from app.ingestion.openapi_adapter import load_openapi_document, parse_openapi
+from app.canonical.model import ArchitectureModel
+from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
+from app.ingestion.openapi_adapter import OpenApiSourceAdapter
+from app.sources.jcs import canonical_sha256_hex
+from app.sources.model import (
+    DiagnosticCode,
+    FilesystemSourceConfig,
+    IngestionResult,
+    LoadedSource,
+    SourceDescriptor,
+    SourceKind,
+)
+from app.sources.service_identity import (
+    PointerBinding,
+    ServiceIdentityPath,
+    resolve_service_identity,
+)
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
+SOURCE_INSTANCE_ID = "urn:aip:source:filesystem:" + "a" * 64
 
 PRODUCT_SERVICE_DOC = {
     "openapi": "3.1.0",
     "info": {"title": "ProductService", "version": "1.0.0"},
+    "x-aip-service-id": "service:product-service",
     "paths": {
         "/products/{id}": {
             "get": {
@@ -36,104 +52,146 @@ PRODUCT_SERVICE_DOC = {
 }
 
 
-def test_parses_service_metadata():
-    model = parse_openapi(
-        PRODUCT_SERVICE_DOC,
-        service_id="product-service",
-        source_file="examples/product-service/openapi.yaml",
+class _StubResolver:
+    def __init__(self, *, configured_mappings=(), manifest_bindings=()):
+        self._configured_mappings = configured_mappings
+        self._manifest_bindings = manifest_bindings
+
+    def resolve(self, *, source_instance_id, construct_pointer, extension_value):
+        return resolve_service_identity(
+            source_instance_id=source_instance_id,
+            construct_pointer=construct_pointer,
+            extension_value=extension_value,
+            configured_mappings=self._configured_mappings,
+            manifest_bindings=self._manifest_bindings,
+        )
+
+
+def _loaded(
+    document: dict, *, source_instance_id: str = SOURCE_INSTANCE_ID, locator: str = "test.yaml"
+):
+    descriptor = SourceDescriptor(
+        source_instance_id=source_instance_id,
+        source_kind=SourceKind.FILESYSTEM,
+        locator=locator,
+        discovery_scope_id="urn:aip:discovery-scope:" + "b" * 64,
+        scope_definition_digest="c" * 64,
+        content_sha256="d" * 64,
+        semantic_input_digest="",
+        mapping_context_digest="",
+        adapter_identity="",
+        mapping_rule_id="",
+        mapping_rule_version="",
     )
-    [service] = model.services
-    assert service.id == ids.service_id("product-service")
+    return LoadedSource(descriptor=descriptor, document=document)
+
+
+def _map(document: dict, **resolver_kwargs):
+    adapter = OpenApiSourceAdapter()
+    return adapter.map(
+        _loaded(document),
+        service_identity=_StubResolver(**resolver_kwargs),
+        upstream_model=ArchitectureModel(),
+        mapping_context_digest="e" * 64,
+    )
+
+
+def test_parses_service_metadata():
+    outcome = _map(PRODUCT_SERVICE_DOC)
+    assert outcome.result is IngestionResult.ACCEPTED
+    [service] = outcome.model.services
+    assert service.id == "service:product-service"
     assert service.name == "ProductService"
     assert service.version == "1.0.0"
 
 
-def test_parses_operation_matching_spec_example():
-    model = parse_openapi(
-        PRODUCT_SERVICE_DOC,
-        service_id="product-service",
-        source_file="examples/product-service/openapi.yaml",
-    )
-    [operation] = model.operations
-    assert operation.id == ids.operation_id(
-        ids.service_id("product-service"), "GET", "/products/{id}"
-    )
+def test_parses_operation_with_owner_scoped_schema_id():
+    outcome = _map(PRODUCT_SERVICE_DOC)
+    [operation] = outcome.model.operations
+    assert operation.id == ids.operation_id("service:product-service", "GET", "/products/{id}")
     assert operation.operation_id == "getProduct"
     assert operation.method == "GET"
     assert operation.path == "/products/{id}"
-    assert operation.response_schema_ids == [ids.schema_id("Product")]
     assert operation.request_schema_ids == []
+    [schema_id] = operation.response_schema_ids
+    assert schema_id.startswith("schema:owned:")
 
 
 def test_provides_relation_created():
-    model = parse_openapi(
-        PRODUCT_SERVICE_DOC,
-        service_id="product-service",
-        source_file="examples/product-service/openapi.yaml",
-    )
-    provides = [r for r in model.relations if r.type == "PROVIDES"]
+    outcome = _map(PRODUCT_SERVICE_DOC)
+    provides = [r for r in outcome.model.relations if r.type == "PROVIDES"]
     assert len(provides) == 1
-    assert provides[0].source_id == ids.service_id("product-service")
+    assert provides[0].source_id == "service:product-service"
     assert provides[0].target_id == ids.operation_id(
-        ids.service_id("product-service"), "GET", "/products/{id}"
+        "service:product-service", "GET", "/products/{id}"
     )
 
 
-def test_response_schema_relation_and_canonical_hash():
-    model = parse_openapi(
-        PRODUCT_SERVICE_DOC,
-        service_id="product-service",
-        source_file="examples/product-service/openapi.yaml",
-    )
-    response_schema_relations = [r for r in model.relations if r.type == "RESPONSE_SCHEMA"]
+def test_response_schema_relation_and_rfc8785_canonical_hash():
+    outcome = _map(PRODUCT_SERVICE_DOC)
+    response_schema_relations = [r for r in outcome.model.relations if r.type == "RESPONSE_SCHEMA"]
     assert len(response_schema_relations) == 1
-    assert response_schema_relations[0].target_id == ids.schema_id("Product")
 
-    [schema] = model.schemas
-    assert schema.id == ids.schema_id("Product")
+    [schema] = outcome.model.schemas
+    assert schema.id == response_schema_relations[0].target_id
+    assert schema.id.startswith("schema:owned:")
     assert schema.name == "Product"
     assert schema.format == "application/json"
-    expected_hash = hashlib.sha256(
-        json.dumps(PRODUCT_SERVICE_DOC["components"]["schemas"]["Product"], sort_keys=True).encode(
-            "utf-8"
-        )
-    ).hexdigest()
-    assert schema.canonical_hash == expected_hash
+    assert schema.canonical_hash == canonical_sha256_hex(
+        PRODUCT_SERVICE_DOC["components"]["schemas"]["Product"]
+    )
+
+
+def test_schema_hash_excludes_description_and_examples():
+    document = {
+        **PRODUCT_SERVICE_DOC,
+        "components": {
+            "schemas": {
+                "Product": {
+                    **PRODUCT_SERVICE_DOC["components"]["schemas"]["Product"],
+                    "description": "A product.",
+                    "example": {"id": "1", "name": "Widget"},
+                }
+            }
+        },
+    }
+    outcome = _map(document)
+    [schema] = outcome.model.schemas
+    assert schema.canonical_hash == canonical_sha256_hex(
+        PRODUCT_SERVICE_DOC["components"]["schemas"]["Product"]
+    )
 
 
 def test_provenance_recorded():
-    model = parse_openapi(
-        PRODUCT_SERVICE_DOC,
-        service_id="product-service",
-        source_file="examples/product-service/openapi.yaml",
-        source_revision="abc123",
-    )
-    [provenance] = model.provenance
-    assert provenance.id == ids.evidence_id("OPENAPI", "product-service", "abc123")
+    outcome = _map(PRODUCT_SERVICE_DOC)
+    [provenance] = outcome.model.provenance
+    assert provenance.id == ids.evidence_id("OPENAPI", SOURCE_INSTANCE_ID, None)
     assert provenance.source_type == "OPENAPI"
-    assert provenance.source_file == "examples/product-service/openapi.yaml"
-    assert provenance.source_revision == "abc123"
     assert provenance.evidence_type == "DECLARED"
-
-    assert all(r.evidence_ids == [provenance.id] for r in model.relations)
+    assert all(r.evidence_ids == [provenance.id] for r in outcome.model.relations)
 
 
 def test_service_with_no_operations_still_produces_service_and_provenance():
-    document = {"openapi": "3.1.0", "info": {"title": "PaymentService"}, "paths": {}}
-    model = parse_openapi(
-        document, service_id="payment-service", source_file="examples/payment-service/openapi.yaml"
-    )
-    assert len(model.services) == 1
-    assert model.operations == []
-    assert model.schemas == []
-    assert model.relations == []
-    assert len(model.provenance) == 1
+    document = {
+        "openapi": "3.1.0",
+        "info": {"title": "PaymentService"},
+        "x-aip-service-id": "service:payment-service",
+        "paths": {},
+    }
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert len(outcome.model.services) == 1
+    assert outcome.model.operations == []
+    assert outcome.model.schemas == []
+    assert outcome.model.relations == []
+    assert len(outcome.model.provenance) == 1
 
 
 def test_request_body_and_schema_dedup_across_operations():
     document = {
         "openapi": "3.1.0",
         "info": {"title": "OrderService", "version": "1.0.0"},
+        "x-aip-service-id": "service:order-service",
         "paths": {
             "/orders": {
                 "post": {
@@ -172,46 +230,125 @@ def test_request_body_and_schema_dedup_across_operations():
             },
         },
         "components": {
-            "schemas": {
-                "OrderRequest": {"type": "object"},
-                "Order": {"type": "object"},
-            }
+            "schemas": {"OrderRequest": {"type": "object"}, "Order": {"type": "object"}}
         },
     }
-    model = parse_openapi(
-        document, service_id="order-service", source_file="examples/order-service/openapi.yaml"
-    )
+    outcome = _map(document)
 
-    assert len(model.operations) == 2
-    # Order is referenced by two different operations but must only be
-    # materialized once in the deduped schema list.
-    assert {s.name for s in model.schemas} == {"OrderRequest", "Order"}
+    assert len(outcome.model.operations) == 2
+    assert {s.name for s in outcome.model.schemas} == {"OrderRequest", "Order"}
 
-    create_order = next(op for op in model.operations if op.operation_id == "createOrder")
-    assert create_order.request_schema_ids == [ids.schema_id("OrderRequest")]
-    assert create_order.response_schema_ids == [ids.schema_id("Order")]
+    create_order = next(op for op in outcome.model.operations if op.operation_id == "createOrder")
+    get_order = next(op for op in outcome.model.operations if op.operation_id == "getOrder")
+    assert create_order.response_schema_ids == get_order.response_schema_ids  # same Order schema id
 
-    get_order = next(op for op in model.operations if op.operation_id == "getOrder")
-    assert get_order.response_schema_ids == [ids.schema_id("Order")]
-
-    provides = [r for r in model.relations if r.type == "PROVIDES"]
+    provides = [r for r in outcome.model.relations if r.type == "PROVIDES"]
     assert len(provides) == 2
 
 
-def test_loads_and_parses_real_product_service_fixture():
-    document = load_openapi_document(EXAMPLES_DIR / "product-service" / "openapi.yaml")
-    model = parse_openapi(
-        document, service_id="product-service", source_file="examples/product-service/openapi.yaml"
+def test_missing_service_identity_is_rejected_unsupported():
+    document = {"openapi": "3.1.0", "info": {"title": "X"}, "paths": {}}
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert outcome.model == ArchitectureModel()
+    assert outcome.diagnostics[0].code is DiagnosticCode.SERVICE_IDENTITY_UNRESOLVED
+
+
+def test_malformed_service_identity_is_rejected_invalid():
+    document = {
+        "openapi": "3.1.0",
+        "info": {"title": "X"},
+        "x-aip-service-id": "not-a-service-id",
+        "paths": {},
+    }
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.REJECTED_INVALID
+    assert outcome.diagnostics[0].code is DiagnosticCode.SERVICE_IDENTITY_INVALID
+
+
+def test_conflicting_service_identity_is_rejected_conflict():
+    document = {**PRODUCT_SERVICE_DOC}
+    conflicting_mapping = PointerBinding(
+        source_instance_id=SOURCE_INSTANCE_ID,
+        pointer_prefix="",
+        service_id="service:other-service",
+        path=ServiceIdentityPath.CONFIGURED_MAPPING,
     )
-    [operation] = model.operations
+    outcome = _map(document, configured_mappings=[conflicting_mapping])
+    assert outcome.result is IngestionResult.REJECTED_CONFLICT
+    assert outcome.diagnostics[0].code is DiagnosticCode.SERVICE_IDENTITY_CONFLICT
+
+
+def test_operation_level_extension_overrides_root_service_identity():
+    document = {
+        "openapi": "3.1.0",
+        "info": {"title": "Multi"},
+        "x-aip-service-id": "service:root-service",
+        "paths": {
+            "/x": {
+                "get": {
+                    "operationId": "getX",
+                    "x-aip-service-id": "service:other-service",
+                    "responses": {"200": {}},
+                }
+            }
+        },
+    }
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert {s.id for s in outcome.model.services} == {
+        "service:root-service",
+        "service:other-service",
+    }
+    [operation] = outcome.model.operations
+    assert operation.service_id == "service:other-service"
+
+
+def test_invalid_document_structure_is_rejected_invalid():
+    document = {"openapi": "3.1.0"}  # missing required "info"/"paths"
+    outcome = _map(document)
+    assert outcome.result is IngestionResult.REJECTED_INVALID
+    assert outcome.diagnostics[0].code is DiagnosticCode.DOCUMENT_PARSE_INVALID
+
+
+def test_supports_matches_only_openapi_documents():
+    adapter = OpenApiSourceAdapter()
+    assert adapter.supports(_loaded(PRODUCT_SERVICE_DOC)) is True
+    assert adapter.supports(_loaded({"asyncapi": "2.6.0"})) is False
+
+
+def test_maps_real_product_service_fixture_via_discoverer():
+    discoverer = FilesystemSourceDiscoverer(FilesystemSourceConfig(id="test", root=EXAMPLES_DIR))
+    loaded = next(
+        s
+        for s in discoverer.discover().loaded_sources
+        if Path(s.descriptor.locator) == EXAMPLES_DIR / "product-service" / "openapi.yaml"
+    )
+    outcome = OpenApiSourceAdapter().map(
+        loaded,
+        service_identity=_StubResolver(),
+        upstream_model=ArchitectureModel(),
+        mapping_context_digest="e" * 64,
+    )
+    assert outcome.result is IngestionResult.ACCEPTED
+    [operation] = outcome.model.operations
     assert operation.operation_id == "getProduct"
-    assert operation.response_schema_ids == [ids.schema_id("Product")]
+    assert operation.service_id == "service:product-service"
 
 
-def test_loads_and_parses_real_order_service_fixture():
-    document = load_openapi_document(EXAMPLES_DIR / "order-service" / "openapi.yaml")
-    model = parse_openapi(
-        document, service_id="order-service", source_file="examples/order-service/openapi.yaml"
+def test_maps_real_order_service_fixture_via_discoverer():
+    discoverer = FilesystemSourceDiscoverer(FilesystemSourceConfig(id="test", root=EXAMPLES_DIR))
+    loaded = next(
+        s
+        for s in discoverer.discover().loaded_sources
+        if Path(s.descriptor.locator) == EXAMPLES_DIR / "order-service" / "openapi.yaml"
     )
-    assert len(model.operations) == 2
-    assert {s.name for s in model.schemas} == {"OrderRequest", "Order"}
+    outcome = OpenApiSourceAdapter().map(
+        loaded,
+        service_identity=_StubResolver(),
+        upstream_model=ArchitectureModel(),
+        mapping_context_digest="e" * 64,
+    )
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert len(outcome.model.operations) == 2
+    assert {s.name for s in outcome.model.schemas} == {"OrderRequest", "Order"}

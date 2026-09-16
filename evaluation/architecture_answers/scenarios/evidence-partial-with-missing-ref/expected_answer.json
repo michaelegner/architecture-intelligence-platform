@@ -7,9 +7,9 @@
     "records": [
       {
         "evidence_type": "DECLARED",
-        "id": "evidence:manifest:order-service",
+        "id": "evidence:manifest:urn:aip:source:filesystem:9b9b14e604c5547d8e940a668f394cbbce3696c40bc6a93cda212f6c700df727",
         "observation": null,
-        "source_locator": "evaluation/architecture_answers/scenarios/evidence-partial-with-missing-ref/input/declarations/order-service/architecture.yaml",
+        "source_locator": "tmp/aip-evaluation-staging/evidence-partial-with-missing-ref/order-service/architecture.yaml",
         "source_revision": null,
         "source_type": "MANIFEST",
         "supports": [
@@ -23,7 +23,7 @@
     ],
     "requested_evidence_refs": [
       "evidence:declared:does-not-exist",
-      "evidence:manifest:order-service"
+      "evidence:manifest:urn:aip:source:filesystem:9b9b14e604c5547d8e940a668f394cbbce3696c40bc6a93cda212f6c700df727"
     ]
   },
   "evidence_refs": [],
@@ -43,8 +43,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:d3205b543aa479f38898533365aa09a805c72eaa6f5cffcdfb6dcab21275c68e",
-    "snapshot_id": "aip:snapshot:v1:d3205b543aa479f38898533365aa09a805c72eaa6f5cffcdfb6dcab21275c68e"
+    "model_revision": "sha256:c0fd16e319e2426308199b65556e942bea2b72d184989dfaf28ad47d06cff613",
+    "snapshot_id": "aip:snapshot:v1:c0fd16e319e2426308199b65556e942bea2b72d184989dfaf28ad47d06cff613"
   },
   "tool": "get_evidence"
 }

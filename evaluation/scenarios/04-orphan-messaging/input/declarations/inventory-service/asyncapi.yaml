@@ -1,16 +1,26 @@
-asyncapi: '2.6.0'
+asyncapi: 2.6.0
 info:
   title: InventoryService
-  version: "1.0.0"
+  version: 1.0.0
 channels:
   unknown-producer-q:
     subscribe:
       operationId: receiveUnknownProducer
       message:
         $ref: '#/components/messages/UnknownProducerMessage'
+    x-aip-destination-kind: queue
 components:
   messages:
     UnknownProducerMessage:
       name: UnknownProducerMessage
       payload:
         type: object
+x-aip-service-id: service:inventory-service
+servers:
+  asb:
+    url: amqps://asb.example.com
+    protocol: amqp
+    x-aip-broker-id: asb
+    bindings:
+      amqp:
+        virtualHost: commerce

@@ -1,16 +1,16 @@
 {
   "claims": [
     {
-      "claim_id": "aip:claim:v1:4bb537e88eb9c7aa65bdd6f68b942aebe5137cacbc26f6e30e38defc9a7d70c7",
+      "claim_id": "aip:claim:v1:fe77c5e16002f36e600870b5f874d34bfe44d4300d4855a3e27155ddaf39cc0d",
       "coverage": "NONE",
       "delivery": {
         "kind": "ASYNC_MESSAGE",
         "relation_type": "SENDS",
         "via": {
-          "id": "queue:product-events-q",
+          "id": "queue:owned:20765e2e9fd81a47811564d7f1cc4ab62aae936580f4dcb041887c0ddfc48e98",
           "method": null,
           "name": "product-events-q",
-          "namespace": null,
+          "namespace": "commerce",
           "path": null,
           "protocol": null,
           "type": "QUEUE"
@@ -18,7 +18,7 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:asyncapi:order-service"
+        "evidence:asyncapi:urn:aip:source:filesystem:0cef2743fdc61e4ce120d74e4d5463157c3068659501345a035633de54e04307"
       ],
       "object": {
         "id": "service:product-service",
@@ -32,7 +32,7 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "NOT_OBSERVED_IN_WINDOW",
       "resolution_evidence_refs": [
-        "evidence:asyncapi:product-service"
+        "evidence:asyncapi:urn:aip:source:filesystem:09057155d2daa6c76678d784e73cb4b9e61e19f440f0989ec9480acd3e50f508"
       ],
       "subject": {
         "id": "service:order-service",
@@ -62,7 +62,7 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:manifest:order-service"
+        "evidence:manifest:urn:aip:source:filesystem:499906692ada5040a94918e08880ace7e9ce6a334513c8cdd8911e31de45cd44"
       ],
       "object": {
         "id": "service:product-service",
@@ -76,7 +76,7 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "NOT_OBSERVED_IN_WINDOW",
       "resolution_evidence_refs": [
-        "evidence:openapi:product-service"
+        "evidence:openapi:urn:aip:source:filesystem:e8714b5cea03da68c8d7200391532f1441f886bfe301edfe0fbb05ad48b4a891"
       ],
       "subject": {
         "id": "service:order-service",
@@ -91,7 +91,7 @@
   ],
   "data": {
     "dependency_claim_ids": [
-      "aip:claim:v1:4bb537e88eb9c7aa65bdd6f68b942aebe5137cacbc26f6e30e38defc9a7d70c7",
+      "aip:claim:v1:fe77c5e16002f36e600870b5f874d34bfe44d4300d4855a3e27155ddaf39cc0d",
       "aip:claim:v1:c41d3611d0e93513439ec4859dbd96e741750b689c6a77267e68b5705b977bc9"
     ],
     "service": {
@@ -105,10 +105,10 @@
     }
   },
   "evidence_refs": [
-    "evidence:asyncapi:order-service",
-    "evidence:asyncapi:product-service",
-    "evidence:manifest:order-service",
-    "evidence:openapi:product-service"
+    "evidence:asyncapi:urn:aip:source:filesystem:09057155d2daa6c76678d784e73cb4b9e61e19f440f0989ec9480acd3e50f508",
+    "evidence:asyncapi:urn:aip:source:filesystem:0cef2743fdc61e4ce120d74e4d5463157c3068659501345a035633de54e04307",
+    "evidence:manifest:urn:aip:source:filesystem:499906692ada5040a94918e08880ace7e9ce6a334513c8cdd8911e31de45cd44",
+    "evidence:openapi:urn:aip:source:filesystem:e8714b5cea03da68c8d7200391532f1441f886bfe301edfe0fbb05ad48b4a891"
   ],
   "limitations": [],
   "observation_context": {
@@ -125,8 +125,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:b10919ededb7e783362d0d6376f84f863e0c5d0230150f84b2216dd14fef6a73",
-    "snapshot_id": "aip:snapshot:v1:b10919ededb7e783362d0d6376f84f863e0c5d0230150f84b2216dd14fef6a73"
+    "model_revision": "sha256:f36e00c3c8b11b10cd0a02cba7f6e218b6005026ef4734c18f4509a70b3bd3c6",
+    "snapshot_id": "aip:snapshot:v1:f36e00c3c8b11b10cd0a02cba7f6e218b6005026ef4734c18f4509a70b3bd3c6"
   },
   "tool": "get_service_dependencies"
 }

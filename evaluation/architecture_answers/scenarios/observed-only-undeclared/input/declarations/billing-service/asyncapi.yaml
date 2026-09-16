@@ -1,13 +1,14 @@
-asyncapi: '2.6.0'
+asyncapi: 2.6.0
 info:
   title: BillingService
-  version: "1.0.0"
+  version: 1.0.0
 channels:
   reporting-q:
     subscribe:
       operationId: receiveReportingEvent
       message:
         $ref: '#/components/messages/ReportingEvent'
+    x-aip-destination-kind: queue
 components:
   messages:
     ReportingEvent:
@@ -20,4 +21,14 @@ components:
       properties:
         eventId:
           type: string
-      required: [eventId]
+      required:
+      - eventId
+x-aip-service-id: service:billing-service
+servers:
+  asb:
+    url: amqps://asb.example.com
+    protocol: amqp
+    x-aip-broker-id: asb
+    bindings:
+      amqp:
+        virtualHost: commerce

@@ -43,6 +43,7 @@ from app.graph.importer import import_all_sources
 from app.graph.repository import open_session
 from app.graph.revision_fence import read_revision
 from app.provenance.model import ObservedEvidence
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate, ObservedOnlyEntity
 from app.version import package_version
@@ -219,7 +220,13 @@ def seed_target_subgraph(driver: neo4j.Driver) -> None:
     aggregation path (`app.telemetry.aggregator.persist_observation_batch`) - the same production
     pipeline `tests/integration/test_mcp_independent_client_golden_path.py` already proves yields a
     CONFIRMED SYNC_HTTP claim, so the target answer's qualification is known and stable."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-snapshot-read-cost-examples", root=EXAMPLES_DIR
+        ),
+    )
     trace_id = "b" * 32
     evidence = ObservedEvidence(
         id=ids.observed_evidence_id(
@@ -316,14 +323,19 @@ def measure_structural_counts(session: neo4j.Session) -> ActualCounts:
 # self-consistent delta (PR #119 review finding): a silent drift in `examples/` itself, or a bug in
 # `seed_target_subgraph`, must fail here rather than being silently absorbed into the "unrelated"
 # delta `verify_structural_counts` checks below.
+#
+# Re-frozen for v0.5.0 I1 PR3a: Message/Schema identity is now owner-scoped (I1 spec §9), so a
+# message independently declared by two services (e.g. "PaymentRequested" from both order-service
+# and payment-service) is two distinct nodes rather than one shared node - genuinely more Message/
+# Schema nodes and CARRIES/CONFORMS_TO relations than the pre-PR3a baseline, not a regression.
 _EXPECTED_TARGET_COUNTS = ActualCounts(
     service_count=4,
     operation_count=3,
     queue_count=5,
-    message_count=4,
-    schema_count=7,
+    message_count=6,
+    schema_count=9,
     evidence_count=7,
-    relation_count=23,
+    relation_count=27,
     calls_relation_count=1,
 )
 

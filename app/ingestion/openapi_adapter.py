@@ -1,130 +1,324 @@
-import hashlib
-import json
-from pathlib import Path
-
-import yaml
-
 from app.canonical import ids
 from app.canonical.model import ArchitectureModel, Operation, Relation, Schema, Service
+from app.ingestion._shared import (
+    build_resolution_cache,
+    enforce_reference_closure,
+    rejected_outcome_for_identity,
+    rejected_outcome_for_reference_error,
+    resolve_and_normalize_schema,
+    schema_display_name,
+    semantic_input_digest_bytes,
+)
 from app.provenance.model import Provenance
+from app.sources.identity import semantic_input_digest
+from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
+from app.sources.owner_ids import schema_owned_id
+from app.sources.pointers import encode_pointer_tokens
+from app.sources.reference_resolution import ReferenceResolutionError
+from app.sources.registry import AdapterOutcome, ServiceIdentityResolver
+from app.sources.service_identity import ServiceIdentityOutcome
+from app.validation.source_validation import (
+    SourceValidationError,
+    check_supported_dialect_version,
+    find_remote_reference,
+    validate_openapi_document,
+)
 
 HTTP_METHODS = {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
 
+# I1 spec §8: "accept exactly OpenAPI 3.0.3, 3.1.0, and 3.1.2" (3.1.2 added by the Draft 0.3
+# amendment - see docs/specifications/0.5.0/i1-source-ingestion-foundation.md §12).
+ACCEPTED_OPENAPI_VERSIONS = frozenset({"3.0.3", "3.1.0", "3.1.2"})
 
-def load_openapi_document(path: Path) -> dict:
-    return yaml.safe_load(path.read_text())
 
+class OpenApiSourceAdapter:
+    """I1 spec §8: migrates `parse_openapi` onto the registry seam. Owner-scoped RFC 8785 Schema
+    ids; Service identity resolved via `resolve_service_identity` (root + per-operation
+    `x-aip-service-id`); bounded multi-file `$ref` resolution, recursive inline/array/nested schema
+    normalization, and `allOf`/`oneOf`/`anyOf` composition (structurally preserved, not
+    interpreted) per §8.1 (PR3b).
+    """
 
-def parse_openapi(
-    document: dict,
-    *,
-    service_id: str,
-    source_file: str,
-    source_revision: str | None = None,
-) -> ArchitectureModel:
-    """Maps OpenAPI provider info (spec §6) to Service/Operation/Schema entities."""
-    full_service_id = ids.service_id(service_id)
-    info = document.get("info") or {}
-    service = Service(
-        id=full_service_id, name=info.get("title", service_id), version=info.get("version")
-    )
+    adapter_identity = "openapi-adapter@1"
+    mapping_rule_version = "v1"
+    dependency_phase = 0
 
-    components_schemas = ((document.get("components") or {}).get("schemas")) or {}
-    schemas_by_name: dict[str, Schema] = {}
+    def supports(self, loaded: LoadedSource) -> bool:
+        return "openapi" in loaded.document
 
-    def resolve_schema_ref(schema_obj: dict | None, media_type: str | None) -> str | None:
-        if not schema_obj:
-            return None
-        ref = schema_obj.get("$ref")
-        if not ref:
-            return None
-        name = ref.rsplit("/", 1)[-1]
-        if name not in schemas_by_name:
-            definition = components_schemas.get(name)
-            canonical_hash = (
-                hashlib.sha256(json.dumps(definition, sort_keys=True).encode("utf-8")).hexdigest()
-                if definition is not None
-                else None
+    def map(
+        self,
+        loaded: LoadedSource,
+        *,
+        service_identity: ServiceIdentityResolver,
+        upstream_model: ArchitectureModel,
+        mapping_context_digest: str,
+    ) -> AdapterOutcome:
+        document = loaded.document
+        locator = loaded.descriptor.locator
+        source_instance_id = loaded.descriptor.source_instance_id
+
+        try:
+            validate_openapi_document(document, source_file=locator)
+        except SourceValidationError as exc:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_INVALID,
+                model=ArchitectureModel(),
+                diagnostics=tuple(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.DOCUMENT_PARSE_INVALID,
+                        message=message,
+                        source_pointer=locator,
+                    )
+                    for message in exc.errors
+                ),
+                semantic_input_digest=None,
             )
-            schemas_by_name[name] = Schema(
-                id=ids.schema_id(name),
-                name=name,
-                format=media_type,
-                canonical_hash=canonical_hash,
+
+        remote_ref = find_remote_reference(document)
+        if remote_ref is not None:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_UNSUPPORTED,
+                model=ArchitectureModel(),
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.REMOTE_REFERENCE_UNSUPPORTED,
+                        message=f"remote/non-local reference is not supported: {remote_ref}",
+                        source_pointer=locator,
+                    ),
+                ),
+                semantic_input_digest=None,
             )
-        return schemas_by_name[name].id
 
-    operations: list[Operation] = []
-    relations: list[Relation] = []
+        version_error = check_supported_dialect_version(
+            document, dialect_key="openapi", accepted_versions=ACCEPTED_OPENAPI_VERSIONS
+        )
+        if version_error is not None:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_UNSUPPORTED,
+                model=ArchitectureModel(),
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.UNSUPPORTED_DIALECT_VERSION,
+                        message=version_error,
+                        source_pointer=locator,
+                    ),
+                ),
+                semantic_input_digest=None,
+            )
 
-    for path, path_item in (document.get("paths") or {}).items():
-        if not isinstance(path_item, dict):
-            continue
-        for method, op in path_item.items():
-            if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
+        root_resolution = service_identity.resolve(
+            source_instance_id=source_instance_id,
+            construct_pointer="",
+            extension_value=document.get("x-aip-service-id"),
+        )
+        if root_resolution.outcome is not ServiceIdentityOutcome.RESOLVED:
+            return rejected_outcome_for_identity(root_resolution)
+
+        info = document.get("info") or {}
+
+        cache, root_relative_path = build_resolution_cache(loaded)
+        closure_error = enforce_reference_closure(
+            document, root_relative_path=root_relative_path, cache=cache, source_pointer=locator
+        )
+        if closure_error is not None:
+            return closure_error
+
+        operations: list[Operation] = []
+        relations: list[Relation] = []
+        schemas_by_id: dict[str, Schema] = {}
+        resolved_service_ids: set[str] = {root_resolution.service_id}
+        any_uninterpreted_composition = False
+
+        def resolve_schema(
+            schema_obj: dict | None,
+            *,
+            canonical_service_id: str,
+            media_type: str | None,
+            own_pointer_tokens: tuple[str, ...],
+        ) -> tuple[str | None, AdapterOutcome | None]:
+            nonlocal any_uninterpreted_composition
+            if not schema_obj:
+                return None, None
+            try:
+                normalized = resolve_and_normalize_schema(
+                    schema_obj,
+                    own_document_relative_path=root_relative_path,
+                    own_pointer_tokens=own_pointer_tokens,
+                    cache=cache,
+                )
+            except ReferenceResolutionError as exc:
+                return None, rejected_outcome_for_reference_error(
+                    exc, source_pointer=encode_pointer_tokens(own_pointer_tokens)
+                )
+
+            if normalized.has_uninterpreted_composition:
+                any_uninterpreted_composition = True
+
+            schema_id_value = schema_owned_id(
+                canonical_service_id=canonical_service_id,
+                source_instance_id=source_instance_id,
+                normalized_definition_document_path=normalized.normalized_definition_document_path,
+                definition_pointer_tokens=normalized.definition_pointer_tokens,
+            )
+            if schema_id_value not in schemas_by_id:
+                schemas_by_id[schema_id_value] = Schema(
+                    id=schema_id_value,
+                    name=schema_display_name(normalized.definition_pointer_tokens),
+                    format=media_type,
+                    canonical_hash=normalized.canonical_hash,
+                )
+            return schema_id_value, None
+
+        for path, path_item in (document.get("paths") or {}).items():
+            if not isinstance(path_item, dict):
                 continue
-
-            # Full service id, not the bare slug - every other canonical id in this system is the
-            # full opaque form; this was the sole outlier, and the mismatch against
-            # operation_resolver.py's Fall-B minting (which always uses the full provider_service_id)
-            # silently broke observed<->declared operation reconciliation (11H-D/spec §8.4).
-            operation_id_value = ids.operation_id(full_service_id, method, path)
-
-            request_schema_ids: list[str] = []
-            request_content = ((op.get("requestBody") or {}).get("content")) or {}
-            for media_type, media_obj in request_content.items():
-                schema_id_value = resolve_schema_ref(media_obj.get("schema"), media_type)
-                if schema_id_value and schema_id_value not in request_schema_ids:
-                    request_schema_ids.append(schema_id_value)
-
-            response_schema_ids: list[str] = []
-            for response_obj in (op.get("responses") or {}).values():
-                if not isinstance(response_obj, dict):
+            for method, op in path_item.items():
+                if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
                     continue
-                for media_type, media_obj in (response_obj.get("content") or {}).items():
-                    schema_id_value = resolve_schema_ref(media_obj.get("schema"), media_type)
-                    if schema_id_value and schema_id_value not in response_schema_ids:
-                        response_schema_ids.append(schema_id_value)
 
-            operations.append(
-                Operation(
-                    id=operation_id_value,
-                    service_id=full_service_id,
-                    operation_id=op.get("operationId"),
-                    method=method.upper(),
-                    path=path,
-                    request_schema_ids=request_schema_ids,
-                    response_schema_ids=response_schema_ids,
+                op_extension = op.get("x-aip-service-id")
+                if op_extension is not None:
+                    resolution = service_identity.resolve(
+                        source_instance_id=source_instance_id,
+                        construct_pointer=encode_pointer_tokens(("paths", path, method)),
+                        extension_value=op_extension,
+                    )
+                    if resolution.outcome is not ServiceIdentityOutcome.RESOLVED:
+                        return rejected_outcome_for_identity(resolution)
+                    canonical_service_id = resolution.service_id
+                    resolved_service_ids.add(canonical_service_id)
+                else:
+                    canonical_service_id = root_resolution.service_id
+
+                operation_id_value = ids.operation_id(canonical_service_id, method, path)
+
+                request_schema_ids: list[str] = []
+                request_content = ((op.get("requestBody") or {}).get("content")) or {}
+                for media_type, media_obj in request_content.items():
+                    schema_id_value, error_outcome = resolve_schema(
+                        media_obj.get("schema"),
+                        canonical_service_id=canonical_service_id,
+                        media_type=media_type,
+                        own_pointer_tokens=(
+                            "paths",
+                            path,
+                            method,
+                            "requestBody",
+                            "content",
+                            media_type,
+                            "schema",
+                        ),
+                    )
+                    if error_outcome is not None:
+                        return error_outcome
+                    if schema_id_value and schema_id_value not in request_schema_ids:
+                        request_schema_ids.append(schema_id_value)
+
+                response_schema_ids: list[str] = []
+                for status, response_obj in (op.get("responses") or {}).items():
+                    if not isinstance(response_obj, dict):
+                        continue
+                    for media_type, media_obj in (response_obj.get("content") or {}).items():
+                        schema_id_value, error_outcome = resolve_schema(
+                            media_obj.get("schema"),
+                            canonical_service_id=canonical_service_id,
+                            media_type=media_type,
+                            own_pointer_tokens=(
+                                "paths",
+                                path,
+                                method,
+                                "responses",
+                                status,
+                                "content",
+                                media_type,
+                                "schema",
+                            ),
+                        )
+                        if error_outcome is not None:
+                            return error_outcome
+                        if schema_id_value and schema_id_value not in response_schema_ids:
+                            response_schema_ids.append(schema_id_value)
+
+                operations.append(
+                    Operation(
+                        id=operation_id_value,
+                        service_id=canonical_service_id,
+                        operation_id=op.get("operationId"),
+                        method=method.upper(),
+                        path=path,
+                        request_schema_ids=request_schema_ids,
+                        response_schema_ids=response_schema_ids,
+                    )
                 )
-            )
-            relations.append(
-                Relation(type="PROVIDES", source_id=full_service_id, target_id=operation_id_value)
-            )
-            relations.extend(
-                Relation(
-                    type="REQUEST_SCHEMA", source_id=operation_id_value, target_id=schema_id_value
+                relations.append(
+                    Relation(
+                        type="PROVIDES",
+                        source_id=canonical_service_id,
+                        target_id=operation_id_value,
+                    )
                 )
-                for schema_id_value in request_schema_ids
-            )
-            relations.extend(
-                Relation(
-                    type="RESPONSE_SCHEMA", source_id=operation_id_value, target_id=schema_id_value
+                relations.extend(
+                    Relation(
+                        type="REQUEST_SCHEMA",
+                        source_id=operation_id_value,
+                        target_id=schema_id_value,
+                    )
+                    for schema_id_value in request_schema_ids
                 )
-                for schema_id_value in response_schema_ids
+                relations.extend(
+                    Relation(
+                        type="RESPONSE_SCHEMA",
+                        source_id=operation_id_value,
+                        target_id=schema_id_value,
+                    )
+                    for schema_id_value in response_schema_ids
+                )
+
+        evidence = Provenance(
+            id=ids.evidence_id(
+                "OPENAPI", source_instance_id, loaded.descriptor.declared_provider_revision
+            ),
+            source_type="OPENAPI",
+            source_file=locator,
+            source_revision=loaded.descriptor.declared_provider_revision,
+        )
+        relations = [r.model_copy(update={"evidence_ids": [evidence.id]}) for r in relations]
+
+        services = [
+            Service(id=service_id, name=info.get("title", service_id), version=info.get("version"))
+            for service_id in sorted(resolved_service_ids)
+        ]
+
+        model = ArchitectureModel(
+            services=services,
+            operations=operations,
+            schemas=list(schemas_by_id.values()),
+            relations=relations,
+            provenance=[evidence],
+        )
+
+        digest = semantic_input_digest(
+            normalized_document_projection_bytes=semantic_input_digest_bytes(cache),
+            mapping_context_digest=mapping_context_digest,
+        )
+
+        diagnostics: tuple[IngestionDiagnostic, ...] = ()
+        result = IngestionResult.ACCEPTED
+        if any_uninterpreted_composition:
+            result = IngestionResult.ACCEPTED_WITH_LIMITATIONS
+            diagnostics = (
+                IngestionDiagnostic(
+                    code=DiagnosticCode.SCHEMA_COMPOSITION_UNINTERPRETED,
+                    message=(
+                        "one or more schemas contain an allOf/oneOf/anyOf composition, preserved "
+                        "structurally in the canonical hash but not interpreted as an effective "
+                        "object shape"
+                    ),
+                    source_pointer=locator,
+                ),
             )
 
-    evidence = Provenance(
-        id=ids.evidence_id("OPENAPI", service_id, source_revision),
-        source_type="OPENAPI",
-        source_file=source_file,
-        source_revision=source_revision,
-    )
-    relations = [r.model_copy(update={"evidence_ids": [evidence.id]}) for r in relations]
-
-    return ArchitectureModel(
-        services=[service],
-        operations=operations,
-        schemas=list(schemas_by_name.values()),
-        relations=relations,
-        provenance=[evidence],
-    )
+        return AdapterOutcome(
+            result=result, model=model, diagnostics=diagnostics, semantic_input_digest=digest
+        )

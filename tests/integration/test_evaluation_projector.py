@@ -17,6 +17,7 @@ from app.analysis.runtime import COVERAGE_PARTIAL, COVERAGE_SUFFICIENT, declared
 from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.provenance.model import ObservedEvidence
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 from evaluation.loader import load_scenario
@@ -39,6 +40,12 @@ SINCE = datetime(2026, 8, 1, 0, 0, tzinfo=UTC)
 def session(driver):
     with driver.session(database=DATABASE) as s:
         yield s
+
+
+def _queue_id(session, name: str) -> str:
+    record = session.run("MATCH (q:Queue {name: $name}) RETURN q.id AS id", name=name).single()
+    assert record is not None, f"no Queue node found with name {name!r}"
+    return record["id"]
 
 
 def _observed_fact(
@@ -126,7 +133,7 @@ def test_request_response_queue_pair_scenario_passes_end_to_end(driver):
     assert result.mismatches == ()
 
 
-def test_forbidding_a_fact_that_is_actually_present_fails_the_scenario(driver, tmp_path):
+def test_forbidding_a_fact_that_is_actually_present_fails_the_scenario(driver, session, tmp_path):
     """Sanity-break control for the forbidden-fact path: re-declaring one of the request/response
     scenario's real, present facts (SENDS order-service->request-q) as forbidden instead of
     expected must turn it into a reported FORBIDDEN_PRESENT FAIL, proving forbidden-fact
@@ -151,7 +158,7 @@ def test_forbidding_a_fact_that_is_actually_present_fails_the_scenario(driver, t
     assert not result.passed
     assert len(result.mismatches) == 1
     assert result.mismatches[0].kind == "forbidden_present"
-    assert result.mismatches[0].actual.target == "queue:request-q"
+    assert result.mismatches[0].actual.target == _queue_id(session, "request-q")
 
 
 # --- F1 regression: status must be classified per (type, source, target), not per (source, type) ---
@@ -164,22 +171,34 @@ def test_two_sends_edges_from_the_same_service_get_independent_status(driver, se
     (declarations / "asyncapi.yaml").write_text(
         "asyncapi: '2.6.0'\n"
         'info:\n  title: OrderService\n  version: "1.0.0"\n'
+        "x-aip-service-id: service:order-service\n"
+        "servers:\n"
+        "  asb:\n"
+        "    url: amqps://asb.example.com\n"
+        "    protocol: amqp\n"
+        "    x-aip-broker-id: asb\n"
         "channels:\n"
         "  queue-a:\n"
+        '    x-aip-destination-kind: "queue"\n'
         "    publish:\n      operationId: sendA\n      message:\n"
         "        $ref: '#/components/messages/MsgA'\n"
         "  queue-b:\n"
+        '    x-aip-destination-kind: "queue"\n'
         "    publish:\n      operationId: sendB\n      message:\n"
         "        $ref: '#/components/messages/MsgB'\n"
         "components:\n  messages:\n"
         "    MsgA:\n      name: MsgA\n      payload:\n        type: object\n"
         "    MsgB:\n      name: MsgB\n      payload:\n        type: object\n"
     )
-    import_all_sources(driver, database=DATABASE, root=tmp_path / "declarations")
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-f1-sends", root=tmp_path / "declarations"),
+    )
 
     subject_id = ids.service_id("order-service")
-    queue_a = ids.queue_id("queue-a")
-    queue_b = ids.queue_id("queue-b")
+    queue_a = _queue_id(session, "queue-a")
+    queue_b = _queue_id(session, "queue-b")
     environment = "f1-sends-env"
 
     # Only queue-a is observed -> CONFIRMED. queue-b stays declared-only (not classified by I1) -
@@ -220,22 +239,34 @@ def test_two_receives_from_edges_from_the_same_service_get_independent_status(
     (declarations / "asyncapi.yaml").write_text(
         "asyncapi: '2.6.0'\n"
         'info:\n  title: InventoryService\n  version: "1.0.0"\n'
+        "x-aip-service-id: service:inventory-service\n"
+        "servers:\n"
+        "  asb:\n"
+        "    url: amqps://asb.example.com\n"
+        "    protocol: amqp\n"
+        "    x-aip-broker-id: asb\n"
         "channels:\n"
         "  queue-c:\n"
+        '    x-aip-destination-kind: "queue"\n'
         "    subscribe:\n      operationId: receiveC\n      message:\n"
         "        $ref: '#/components/messages/MsgC'\n"
         "  queue-d:\n"
+        '    x-aip-destination-kind: "queue"\n'
         "    subscribe:\n      operationId: receiveD\n      message:\n"
         "        $ref: '#/components/messages/MsgD'\n"
         "components:\n  messages:\n"
         "    MsgC:\n      name: MsgC\n      payload:\n        type: object\n"
         "    MsgD:\n      name: MsgD\n      payload:\n        type: object\n"
     )
-    import_all_sources(driver, database=DATABASE, root=tmp_path / "declarations")
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-f1-receives", root=tmp_path / "declarations"),
+    )
 
     subject_id = ids.service_id("inventory-service")
-    queue_c = ids.queue_id("queue-c")
-    queue_d = ids.queue_id("queue-d")
+    queue_c = _queue_id(session, "queue-c")
+    queue_d = _queue_id(session, "queue-d")
     environment = "f1-receives-env"
 
     persist_observation_batch(
@@ -279,6 +310,7 @@ def test_a_caller_with_multiple_calls_targets_gets_independent_status_per_target
     (product_dir / "openapi.yaml").write_text(
         "openapi: 3.1.0\n"
         'info:\n  title: ProductService\n  version: "1.0.0"\n'
+        "x-aip-service-id: service:product-service\n"
         "paths:\n"
         "  /a:\n    get:\n      operationId: getA\n      responses:\n"
         '        "200":\n          description: ok\n'
@@ -286,15 +318,23 @@ def test_a_caller_with_multiple_calls_targets_gets_independent_status_per_target
         '        "200":\n          description: ok\n'
     )
     (order_dir / "openapi.yaml").write_text(
-        'openapi: 3.1.0\ninfo:\n  title: OrderService\n  version: "1.0.0"\npaths: {}\n'
+        "openapi: 3.1.0\n"
+        'info:\n  title: OrderService\n  version: "1.0.0"\n'
+        "x-aip-service-id: service:order-service\n"
+        "paths: {}\n"
     )
     (order_dir / "architecture.yaml").write_text(
         "service: order-service\n"
+        "x-aip-service-id: service:order-service\n"
         "calls:\n"
-        "  - service: product-service\n    operationId: getA\n"
-        "  - service: product-service\n    operationId: getB\n"
+        "  - service: service:product-service\n    operationId: getA\n"
+        "  - service: service:product-service\n    operationId: getB\n"
     )
-    import_all_sources(driver, database=DATABASE, root=root)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(id="test-f1-calls", root=root),
+    )
 
     subject_id = ids.service_id("order-service")
     provider_id = ids.service_id("product-service")

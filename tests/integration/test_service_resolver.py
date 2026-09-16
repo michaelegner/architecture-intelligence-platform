@@ -5,6 +5,7 @@ import pytest
 
 from app.canonical import ids
 from app.graph.importer import import_all_sources
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.model import DiscoveryStatus, RuntimeSpan
 from app.telemetry.service_resolver import fetch_candidates, resolve_runtime_span
 
@@ -16,7 +17,13 @@ DATABASE = "neo4j"
 def populated_graph(driver):
     with driver.session(database=DATABASE) as session:
         session.run("MATCH (n) DETACH DELETE n")
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-service-resolver-examples", root=EXAMPLES_DIR
+        ),
+    )
 
 
 @pytest.fixture

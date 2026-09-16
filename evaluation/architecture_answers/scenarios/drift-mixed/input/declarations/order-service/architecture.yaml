@@ -1,6 +1,7 @@
 service: order-service
 calls:
-  - service: product-service
-    operationId: getProduct
-  - service: legacy-pricing-service
-    operationId: getPricing
+- service: service:product-service
+  operationId: getProduct
+- service: service:legacy-pricing-service
+  operationId: getPricing
+x-aip-service-id: service:order-service

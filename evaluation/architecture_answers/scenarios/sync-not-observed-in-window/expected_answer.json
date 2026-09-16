@@ -18,7 +18,7 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:manifest:order-service"
+        "evidence:manifest:urn:aip:source:filesystem:5bd0ca7012fd30dc9d5403d54093d43dc352bd4c8ae9051b1233bcb9f22eb76a"
       ],
       "object": {
         "id": "service:product-service",
@@ -32,7 +32,7 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "NOT_OBSERVED_IN_WINDOW",
       "resolution_evidence_refs": [
-        "evidence:openapi:product-service"
+        "evidence:openapi:urn:aip:source:filesystem:be51682ded131831bcc727d8cd737283cae896337910a0c3844b3740261d6f11"
       ],
       "subject": {
         "id": "service:order-service",
@@ -60,8 +60,8 @@
     }
   },
   "evidence_refs": [
-    "evidence:manifest:order-service",
-    "evidence:openapi:product-service"
+    "evidence:manifest:urn:aip:source:filesystem:5bd0ca7012fd30dc9d5403d54093d43dc352bd4c8ae9051b1233bcb9f22eb76a",
+    "evidence:openapi:urn:aip:source:filesystem:be51682ded131831bcc727d8cd737283cae896337910a0c3844b3740261d6f11"
   ],
   "limitations": [],
   "observation_context": {
@@ -78,8 +78,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:b60ea1ea7b3cd2df1e2b126fd2943bb8e5d1e7ec73fdd354815526ddf3f7dc21",
-    "snapshot_id": "aip:snapshot:v1:b60ea1ea7b3cd2df1e2b126fd2943bb8e5d1e7ec73fdd354815526ddf3f7dc21"
+    "model_revision": "sha256:8d953629eb4f019825861496609224d7b5ce75f89d3d86fbce7a48c33f41a63f",
+    "snapshot_id": "aip:snapshot:v1:8d953629eb4f019825861496609224d7b5ce75f89d3d86fbce7a48c33f41a63f"
   },
   "tool": "get_service_dependencies"
 }

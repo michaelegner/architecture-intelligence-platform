@@ -5,6 +5,7 @@ import pytest
 from app.ai.question_service import ArchitectureQuestionService
 from app.canonical import ids
 from app.graph.importer import import_all_sources
+from app.sources.model import FilesystemSourceConfig
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
@@ -29,7 +30,13 @@ class FakeProvider:
 def populated_graph(driver):
     with driver.session(database=DATABASE) as session:
         session.run("MATCH (n) DETACH DELETE n")
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-question-service-examples", root=EXAMPLES_DIR
+        ),
+    )
 
 
 def test_ask_executes_generated_cypher_and_composes_answer(driver):

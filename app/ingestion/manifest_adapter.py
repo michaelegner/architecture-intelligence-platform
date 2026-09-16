@@ -1,61 +1,143 @@
-from pathlib import Path
-
-import yaml
-
 from app.canonical import ids
 from app.canonical.model import ArchitectureModel, Relation
+from app.ingestion._shared import rejected_outcome_for_identity
 from app.provenance.model import Provenance
+from app.sources.identity import semantic_input_digest
+from app.sources.jcs import canonical_json_bytes
+from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
+from app.sources.registry import AdapterOutcome, ServiceIdentityResolver
+from app.sources.service_identity import ServiceIdentityOutcome, is_valid_service_id
+from app.validation.source_validation import SourceValidationError, validate_manifest_document
 
 
-class ManifestResolutionError(ValueError):
-    """Raised when a manifest references an operationId unknown to the scanned OpenAPI sources."""
+class ManifestSourceAdapter:
+    """I1 spec §4/§7: migrates `parse_manifest` (the existing `architecture.yaml` CALLS-relation
+    format - distinct from PR #1's `ArchitectureIdentityBindings` binding-manifest format, which
+    isn't a `SourceAdapter` at all since it emits no canonical entities) onto the registry seam.
 
-    def __init__(self, *, source_file: str, service: str, operation_id: str):
-        self.source_file = source_file
-        self.service = service
-        self.operation_id = operation_id
-        super().__init__(
-            f"{source_file}: service '{service}' has no known operationId '{operation_id}' "
-            "among the scanned OpenAPI sources"
+    `dependency_phase=1` is the generic mechanism giving this adapter access to `upstream_model`
+    (the merged result of every phase-0 adapter across every discovered source), replacing
+    `pipeline.py`'s special-cased external `operation_index` construction - the mechanism now
+    generalizes to any future cross-referencing adapter, not just this one.
+    """
+
+    adapter_identity = "manifest-adapter@1"
+    mapping_rule_version = "v1"
+    dependency_phase = 1
+
+    def supports(self, loaded: LoadedSource) -> bool:
+        return (
+            "service" in loaded.document
+            and loaded.document.get("kind") != "ArchitectureIdentityBindings"
         )
 
+    def map(
+        self,
+        loaded: LoadedSource,
+        *,
+        service_identity: ServiceIdentityResolver,
+        upstream_model: ArchitectureModel,
+        mapping_context_digest: str,
+    ) -> AdapterOutcome:
+        document = loaded.document
+        locator = loaded.descriptor.locator
+        source_instance_id = loaded.descriptor.source_instance_id
 
-def load_manifest_document(path: Path) -> dict:
-    return yaml.safe_load(path.read_text())
-
-
-def parse_manifest(
-    document: dict,
-    *,
-    source_file: str,
-    operation_index: dict[tuple[str, str], str],
-    source_revision: str | None = None,
-) -> ArchitectureModel:
-    """Maps architecture.yaml calls (spec §8) to CALLS relations via operation_index."""
-    caller_service_id = ids.service_id(document["service"])
-
-    relations: list[Relation] = []
-    for entry in document.get("calls") or []:
-        target_service_slug = entry["service"]
-        operation_id_name = entry["operationId"]
-        target_operation_id = operation_index.get((target_service_slug, operation_id_name))
-        if target_operation_id is None:
-            raise ManifestResolutionError(
-                source_file=source_file, service=target_service_slug, operation_id=operation_id_name
+        try:
+            validate_manifest_document(document, source_file=locator)
+        except SourceValidationError as exc:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_INVALID,
+                model=ArchitectureModel(),
+                diagnostics=tuple(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.DOCUMENT_PARSE_INVALID,
+                        message=message,
+                        source_pointer=locator,
+                    )
+                    for message in exc.errors
+                ),
+                semantic_input_digest=None,
             )
-        relations.append(
-            Relation(type="CALLS", source_id=caller_service_id, target_id=target_operation_id)
+
+        root_resolution = service_identity.resolve(
+            source_instance_id=source_instance_id,
+            construct_pointer="",
+            extension_value=document.get("x-aip-service-id"),
+        )
+        if root_resolution.outcome is not ServiceIdentityOutcome.RESOLVED:
+            return rejected_outcome_for_identity(root_resolution)
+        caller_service_id = root_resolution.service_id
+
+        # (service, operationId) -> full canonical Operation id, built from the merged phase-0
+        # model instead of pipeline.py's separately-scanned index.
+        operation_index: dict[tuple[str, str], str] = {
+            (operation.service_id, operation.operation_id): operation.id
+            for operation in upstream_model.operations
+            if operation.operation_id
+        }
+
+        relations: list[Relation] = []
+        for index, entry in enumerate(document.get("calls") or []):
+            target_service_id = entry["service"]
+            operation_id_name = entry["operationId"]
+            call_pointer = f"/calls/{index}"
+
+            if not is_valid_service_id(target_service_id):
+                return AdapterOutcome(
+                    result=IngestionResult.REJECTED_INVALID,
+                    model=ArchitectureModel(),
+                    diagnostics=(
+                        IngestionDiagnostic(
+                            code=DiagnosticCode.SERVICE_IDENTITY_INVALID,
+                            message=f"malformed calls[].service: {target_service_id!r}",
+                            source_pointer=call_pointer,
+                        ),
+                    ),
+                    semantic_input_digest=None,
+                )
+
+            target_operation_id = operation_index.get((target_service_id, operation_id_name))
+            if target_operation_id is None:
+                return AdapterOutcome(
+                    result=IngestionResult.REJECTED_UNSUPPORTED,
+                    model=ArchitectureModel(),
+                    diagnostics=(
+                        IngestionDiagnostic(
+                            code=DiagnosticCode.MANIFEST_CALL_TARGET_UNRESOLVED,
+                            message=(
+                                f"service {target_service_id!r} has no known operationId "
+                                f"{operation_id_name!r} among the discovered sources"
+                            ),
+                            source_pointer=call_pointer,
+                        ),
+                    ),
+                    semantic_input_digest=None,
+                )
+
+            relations.append(
+                Relation(type="CALLS", source_id=caller_service_id, target_id=target_operation_id)
+            )
+
+        evidence = Provenance(
+            id=ids.evidence_id(
+                "MANIFEST", source_instance_id, loaded.descriptor.declared_provider_revision
+            ),
+            source_type="MANIFEST",
+            source_file=locator,
+            source_revision=loaded.descriptor.declared_provider_revision,
+        )
+        relations = [r.model_copy(update={"evidence_ids": [evidence.id]}) for r in relations]
+
+        model = ArchitectureModel(relations=relations, provenance=[evidence])
+        digest = semantic_input_digest(
+            normalized_document_projection_bytes=canonical_json_bytes(document),
+            mapping_context_digest=mapping_context_digest,
         )
 
-    evidence = Provenance(
-        id=ids.evidence_id("MANIFEST", document["service"], source_revision),
-        source_type="MANIFEST",
-        source_file=source_file,
-        source_revision=source_revision,
-    )
-    relations = [r.model_copy(update={"evidence_ids": [evidence.id]}) for r in relations]
-
-    return ArchitectureModel(
-        relations=relations,
-        provenance=[evidence],
-    )
+        return AdapterOutcome(
+            result=IngestionResult.ACCEPTED,
+            model=model,
+            diagnostics=(),
+            semantic_input_digest=digest,
+        )

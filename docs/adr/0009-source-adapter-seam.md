@@ -1,6 +1,8 @@
 # 9. Source adapters are a registered seam, not a pipeline convention
 
-Status: Proposed — see [`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md#f1--the-adapter-extension-point-is-a-convention-not-a-seam)
+Status: Accepted — implemented in v0.5.0 I1 (PR3a: `app/sources/registry.py`,
+`app/ingestion/orchestrator.py`, `app/ingestion/filesystem_discoverer.py`); see
+[`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md#f1--the-adapter-extension-point-is-a-convention-not-a-seam)
 
 ## Context
 
@@ -44,19 +46,26 @@ This ADR fixes the seam, not any particular adapter. No new source format is app
 
 ## Consequences
 
-- `app/ingestion/scanner.py`, `pipeline.py`, and the per-service loop in `graph/importer.py`
-  (`import_all_sources`, `import_service`) change shape; the three existing adapters keep their
-  current function signatures behind the new registry.
-- `POST /api/import/service/{service_id}` needs a decision of its own: its `service_id` is today a
-  source-layer directory slug. Either it keeps meaning "the source that declares this service" or it
-  is superseded by a source-scoped endpoint.
-- Existing graphs carry `.sources` values that are directory slugs. A full reimport rewrites them, so
-  no data migration is required, but the reconciliation invariant must be re-proven by test for the
-  many-services-per-source case — a source that stops declaring one of its services must expire
-  exactly that service's facts and nothing else.
-- [`adapter-development.md`](../adapter-development.md)'s "there's no plugin registry yet" section is
-  replaced by the real contract, and the worked example is rewritten against it.
-- The Adapter SPI that `v0.9` freezes becomes a designed interface rather than an inherited
-  convention.
+- `app/ingestion/pipeline.py` is deleted, replaced by `app/ingestion/orchestrator.py`, which wires
+  discover → per-source load/validate/map → merge → canonical-validate → reconciliation-plan →
+  atomic commit without branching on source kind. `app/ingestion/scanner.py` is replaced by
+  `app/ingestion/filesystem_discoverer.py` for source-adapter purposes (it survives only because
+  `evaluation/loader.py` still uses `scan_directory` for an unrelated directory check). The three
+  existing adapters became `SourceAdapter`-implementing classes
+  (`OpenApiSourceAdapter`/`AsyncApiSourceAdapter`/`ManifestSourceAdapter`), registered in
+  `app.ingestion.orchestrator.default_registry()`; the per-source loop in `graph/importer.py` is
+  `import_source()`/`import_all_sources()`.
+- `POST /api/import/service/{service_id}` was re-keyed to the canonical Service ID: it reimports
+  every configured source and confirms the requested service now exists, since under I1 a service
+  may be declared by more than one source and a single-source-scoped reimport is no longer a
+  meaningful unit.
+- `.sources` became `.owner_source_ids`, holding `SourceInstanceId` values instead of directory
+  slugs. A full reimport rewrites every value, so no data migration was required. The
+  many-services-per-source and many-sources-per-service reconciliation invariants are proven by
+  `tests/integration/test_importer.py`.
+- [`adapter-development.md`](../adapter-development.md) documents the real `SourceAdapter` contract
+  and registry, replacing its former "there's no plugin registry yet" section.
+- The Adapter SPI that `v0.9` freezes is now a designed interface (`app/sources/registry.py`)
+  rather than an inherited convention.
 - Deliberately *not* decided here: whether adapters may be loaded from outside the repository
-  (third-party plugins). This ADR keeps registration in-process and in-tree.
+  (third-party plugins). Registration stays in-process and in-tree.

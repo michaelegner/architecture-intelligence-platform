@@ -25,6 +25,7 @@ from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
+from app.sources.model import FilesystemSourceConfig
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
@@ -161,7 +162,13 @@ async def _call_negotiated(client: httpx.AsyncClient, name: str, arguments: dict
 async def test_mandatory_negotiated_flow_against_real_data(driver):
     """spec §14/§29: initialize -> tools/list -> get_architecture_drift -> get_evidence at the same
     snapshot -> disconnect -> fresh reconnect, all against real imported graph state."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-negotiated-transport-examples", root=EXAMPLES_DIR
+        ),
+    )
     server, app = _build_server_and_app(driver)
     async with mcp_session_manager_lifespan(server):
         transport = httpx.ASGITransport(app=app)
@@ -223,7 +230,13 @@ async def test_mandatory_negotiated_flow_against_real_data(driver):
 async def test_direct_and_negotiated_structured_content_are_semantically_equivalent(driver):
     """spec §17/§31: equivalent direct and negotiated calls return the same `ArchitectureAnswer` -
     zero semantic mismatches - for all three tools."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-negotiated-transport-examples", root=EXAMPLES_DIR
+        ),
+    )
     server, app = _build_server_and_app(driver)
     async with mcp_session_manager_lifespan(server):
         transport = httpx.ASGITransport(app=app)
@@ -257,7 +270,13 @@ async def test_cross_mode_snapshot_interoperability_both_directions(driver):
     """spec §11/§18/§32/§35: a claim/evidence pair obtained via one mode resolves successfully
     through `get_evidence` called via the *other* mode, at the same `snapshot_id`, in both
     directions - connection mode never creates a separate consistency domain."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-negotiated-transport-examples", root=EXAMPLES_DIR
+        ),
+    )
     server, app = _build_server_and_app(driver)
     async with mcp_session_manager_lifespan(server):
         transport = httpx.ASGITransport(app=app)
@@ -297,7 +316,13 @@ async def test_cross_mode_snapshot_interoperability_both_directions(driver):
 async def test_negotiated_origin_and_host_security_matches_direct_mode(driver):
     """spec §20/§33: existing Origin/Host protection applies to negotiated POST traffic exactly as
     it already does to direct traffic - the negotiated path introduces no bypass."""
-    import_all_sources(driver, database=DATABASE, root=EXAMPLES_DIR)
+    import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=FilesystemSourceConfig(
+            id="test-mcp-negotiated-transport-examples", root=EXAMPLES_DIR
+        ),
+    )
     server, app = _build_server_and_app(driver)
     async with mcp_session_manager_lifespan(server):
         transport = httpx.ASGITransport(app=app)

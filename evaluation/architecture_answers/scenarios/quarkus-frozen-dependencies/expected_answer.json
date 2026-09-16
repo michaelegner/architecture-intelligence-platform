@@ -18,7 +18,7 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:manifest:rest-fights",
+        "evidence:manifest:urn:aip:source:filesystem:45da4b7fd7b0d3d06f5abbfbc318d90f8679f281684f2fc54e4e16cc7144b83a",
         "evidence:otel:test:2026-08-26:4878531641e8"
       ],
       "object": {
@@ -33,7 +33,7 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "CONFIRMED",
       "resolution_evidence_refs": [
-        "evidence:openapi:rest-heroes"
+        "evidence:openapi:urn:aip:source:filesystem:588b2b4833ef14adce9f1bb74bbe68b454ac198a6b43c024dae8c333dd6dc7c2"
       ],
       "subject": {
         "id": "service:rest-fights",
@@ -63,7 +63,7 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:manifest:rest-fights",
+        "evidence:manifest:urn:aip:source:filesystem:45da4b7fd7b0d3d06f5abbfbc318d90f8679f281684f2fc54e4e16cc7144b83a",
         "evidence:otel:test:2026-08-26:908f6fc7d0b9"
       ],
       "object": {
@@ -78,7 +78,7 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "CONFIRMED",
       "resolution_evidence_refs": [
-        "evidence:openapi:rest-narration"
+        "evidence:openapi:urn:aip:source:filesystem:7dcafcfc1c973394cc3f2fd372d5662feb1a0e6a3b6a65aaa608718903e84703"
       ],
       "subject": {
         "id": "service:rest-fights",
@@ -108,7 +108,7 @@
       },
       "destination_resolution": "RESOLVED_SERVICE",
       "evidence_refs": [
-        "evidence:manifest:rest-fights",
+        "evidence:manifest:urn:aip:source:filesystem:45da4b7fd7b0d3d06f5abbfbc318d90f8679f281684f2fc54e4e16cc7144b83a",
         "evidence:otel:test:2026-08-26:30e26b9f3dc5"
       ],
       "object": {
@@ -123,7 +123,7 @@
       "predicate": "DIRECT_DEPENDENCY",
       "qualification": "CONFIRMED",
       "resolution_evidence_refs": [
-        "evidence:openapi:rest-villains"
+        "evidence:openapi:urn:aip:source:filesystem:0ec1f0c929d1cf3e8af610b85da924b92c0669b9104827706940602ee11b208e"
       ],
       "subject": {
         "id": "service:rest-fights",
@@ -153,10 +153,10 @@
     }
   },
   "evidence_refs": [
-    "evidence:manifest:rest-fights",
-    "evidence:openapi:rest-heroes",
-    "evidence:openapi:rest-narration",
-    "evidence:openapi:rest-villains",
+    "evidence:manifest:urn:aip:source:filesystem:45da4b7fd7b0d3d06f5abbfbc318d90f8679f281684f2fc54e4e16cc7144b83a",
+    "evidence:openapi:urn:aip:source:filesystem:0ec1f0c929d1cf3e8af610b85da924b92c0669b9104827706940602ee11b208e",
+    "evidence:openapi:urn:aip:source:filesystem:588b2b4833ef14adce9f1bb74bbe68b454ac198a6b43c024dae8c333dd6dc7c2",
+    "evidence:openapi:urn:aip:source:filesystem:7dcafcfc1c973394cc3f2fd372d5662feb1a0e6a3b6a65aaa608718903e84703",
     "evidence:otel:test:2026-08-26:30e26b9f3dc5",
     "evidence:otel:test:2026-08-26:4878531641e8",
     "evidence:otel:test:2026-08-26:908f6fc7d0b9"
@@ -176,8 +176,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:848046ee8e2bfa6fdb9d7cd1fee5e9a2acc408ca79f46b91f18003ca566a799f",
-    "snapshot_id": "aip:snapshot:v1:848046ee8e2bfa6fdb9d7cd1fee5e9a2acc408ca79f46b91f18003ca566a799f"
+    "model_revision": "sha256:e2c8ae02d34191a951b13f6b5b82a79d3bfc0077585fd3af4d5413fd116f2d3a",
+    "snapshot_id": "aip:snapshot:v1:e2c8ae02d34191a951b13f6b5b82a79d3bfc0077585fd3af4d5413fd116f2d3a"
   },
   "tool": "get_service_dependencies"
 }

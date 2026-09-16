@@ -1,16 +1,16 @@
 {
   "claims": [
     {
-      "claim_id": "aip:claim:v1:ca0dd73ba391552edd6d2cc06cddd919a8af97f362cdb47392e78325219fd612",
+      "claim_id": "aip:claim:v1:4a4cdc356935472576c8360fec756335195a0602243d7f6bcd8ded0e460e9006",
       "coverage": "NONE",
       "delivery": {
         "kind": "ASYNC_MESSAGE",
         "relation_type": "SENDS",
         "via": {
-          "id": "queue:unused-q",
+          "id": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2",
           "method": null,
           "name": "unused-q",
-          "namespace": null,
+          "namespace": "commerce",
           "path": null,
           "protocol": null,
           "type": "QUEUE"
@@ -18,13 +18,13 @@
       },
       "destination_resolution": "DIRECT_TARGET_FALLBACK",
       "evidence_refs": [
-        "evidence:asyncapi:order-service"
+        "evidence:asyncapi:urn:aip:source:filesystem:44e85641b22478fed4c18c67949166e48a0ca3cadebf4f1023df70d6fe44e697"
       ],
       "object": {
-        "id": "queue:unused-q",
+        "id": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2",
         "method": null,
         "name": "unused-q",
-        "namespace": null,
+        "namespace": "commerce",
         "path": null,
         "protocol": null,
         "type": "QUEUE"
@@ -45,7 +45,7 @@
   ],
   "data": {
     "dependency_claim_ids": [
-      "aip:claim:v1:ca0dd73ba391552edd6d2cc06cddd919a8af97f362cdb47392e78325219fd612"
+      "aip:claim:v1:4a4cdc356935472576c8360fec756335195a0602243d7f6bcd8ded0e460e9006"
     ],
     "service": {
       "id": "service:order-service",
@@ -58,15 +58,15 @@
     }
   },
   "evidence_refs": [
-    "evidence:asyncapi:order-service"
+    "evidence:asyncapi:urn:aip:source:filesystem:44e85641b22478fed4c18c67949166e48a0ca3cadebf4f1023df70d6fe44e697"
   ],
   "limitations": [
     {
       "claim_ids": [
-        "aip:claim:v1:ca0dd73ba391552edd6d2cc06cddd919a8af97f362cdb47392e78325219fd612"
+        "aip:claim:v1:4a4cdc356935472576c8360fec756335195a0602243d7f6bcd8ded0e460e9006"
       ],
       "code": "UNRESOLVED_IDENTITY",
-      "message": "queue:unused-q has no single evidenced consumer service; retained as the direct queue target rather than guessed."
+      "message": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2 has no single evidenced consumer service; retained as the direct queue target rather than guessed."
     }
   ],
   "observation_context": {
@@ -83,8 +83,8 @@
   },
   "schema_version": "0.4",
   "snapshot": {
-    "model_revision": "sha256:a46c4ca5f0e9776fa9dfcabb427dfa4c8ef54de6998c83b609aa7a1eae5e5c64",
-    "snapshot_id": "aip:snapshot:v1:a46c4ca5f0e9776fa9dfcabb427dfa4c8ef54de6998c83b609aa7a1eae5e5c64"
+    "model_revision": "sha256:664e1b57ce0bd024c24519132b297935dbc2f9459047a28218b2f22514491e86",
+    "snapshot_id": "aip:snapshot:v1:664e1b57ce0bd024c24519132b297935dbc2f9459047a28218b2f22514491e86"
   },
   "tool": "get_service_dependencies"
 }

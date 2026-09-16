@@ -2,19 +2,31 @@ asyncapi: '2.6.0'
 info:
   title: PaymentService
   version: "1.0.0"
+x-aip-service-id: service:payment-service
+servers:
+  asb:
+    url: amqps://asb.example.com
+    protocol: amqp
+    x-aip-broker-id: asb
+    bindings:
+      amqp:
+        virtualHost: commerce
 channels:
   payment-q:
+    x-aip-destination-kind: "queue"
     x-dead-letter-queue: payment-dlq
     subscribe:
       operationId: receivePaymentRequested
       message:
         $ref: '#/components/messages/PaymentRequested'
   invoice-q:
+    x-aip-destination-kind: "queue"
     publish:
       operationId: sendInvoiceCreated
       message:
         $ref: '#/components/messages/InvoiceCreated'
   unknown-producer-q:
+    x-aip-destination-kind: "queue"
     subscribe:
       operationId: receiveUnknownProducerMessage
       message:

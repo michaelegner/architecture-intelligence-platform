@@ -5,9 +5,13 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field
 
+from app.sources.model import FilesystemSourceConfig
+
 
 class SourcesConfig(BaseModel):
-    directories: list[Path] = Field(default_factory=lambda: [Path("./repositories")])
+    directories: list[FilesystemSourceConfig] = Field(
+        default_factory=lambda: [FilesystemSourceConfig(id="default", root=Path("./repositories"))]
+    )
 
 
 class GraphConfig(BaseModel):

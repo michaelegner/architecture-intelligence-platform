@@ -101,9 +101,9 @@ def canonical_snapshot_state(
 ) -> dict:
     """The complete queryable canonical model-and-evidence state, as an allowlisted (spec §18),
     canonically-ordered plain dict ready for `canonical_json_bytes`. Excludes Neo4j element ids,
-    read/insertion order, relation `.key`, reconciliation-only `.sources` arrays, and the internal
-    revision-fence value - none of those are ever selected by the queries above in the first
-    place, so there is nothing further to strip here."""
+    read/insertion order, relation `.key`, reconciliation-only `.owner_source_ids` arrays, and the
+    internal revision-fence value - none of those are ever selected by the queries above in the
+    first place, so there is nothing further to strip here."""
     return {
         "version": _CANONICALIZATION_VERSION,
         "services": _project_nodes(session, _SERVICE_QUERY),
