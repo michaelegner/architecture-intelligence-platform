@@ -1,4 +1,5 @@
 import shutil
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from app.canonical.model import (
     Schema,
     Service,
 )
-from app.graph.importer import import_all_sources, import_source
+from app.graph.importer import ImportRunStats, import_all_sources, import_source
 from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
 from app.provenance.model import ObservedEvidence, Provenance
@@ -917,6 +918,55 @@ def test_import_all_sources_rejects_a_stale_expected_predecessor_and_preserves_s
     assert still_committed_revision == first_revision
 
 
+def test_import_all_sources_serializes_concurrent_first_imports_of_the_same_scope(driver, tmp_path):
+    """A genuine TOCTOU race found in PR review: under Neo4j's default read-committed isolation, a
+    plain read-then-later-write predecessor check would let two concurrent transactions for the
+    same scope both read the same pre-image, both pass their own check, and both proceed to write -
+    silently corrupting the inventory-revision/event-id chain rather than rejecting the loser.
+    `_READ_CURRENT_INVENTORY_QUERY`'s MERGE acquires a real per-scope lock for the transaction's
+    duration, so of two concurrent first-imports of the same fresh scope (both expecting `None` -
+    "no prior committed inventory"), exactly one may commit; the other must observe the winner's
+    real committed state inside its own transaction and correctly detect the mismatch.
+
+    Schema constraints are ensured synchronously, up front, outside the timed race: two concurrent
+    *first-ever* `CREATE CONSTRAINT IF NOT EXISTS` calls against a brand-new database can themselves
+    deadlock inside Neo4j (`ensure_schema` uses plain autocommit `session.run`, not a retrying
+    managed transaction) - a real, pre-existing hazard independent of this PR's own `CurrentInventory`
+    locking, and out of this PR's scope to fix. Isolating it here keeps this test's failure signal
+    specific to the mechanism under review."""
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+
+    config = FilesystemSourceConfig(id="concurrency-test", root=tmp_path)
+    results: list[ImportRunStats | None] = [None, None]
+    barrier = threading.Barrier(2)
+
+    def _run(index: int) -> None:
+        barrier.wait()
+        results[index] = import_all_sources(
+            driver,
+            database=DATABASE,
+            source_config=config,
+            expected_prior_inventory_revision=None,
+        )
+
+    threads = [threading.Thread(target=_run, args=(i,)) for i in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    committed_flags = [r.committed for r in results if r is not None]
+    assert len(committed_flags) == 2
+    assert committed_flags.count(True) == 1
+    assert committed_flags.count(False) == 1
+
+    loser = next(r for r in results if r is not None and not r.committed)
+    assert any(d.code == DiagnosticCode.STALE_INVENTORY_PREDECESSOR for d in loser.diagnostics)
+
+    assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 1
+
+
 def test_import_all_sources_denies_removal_on_scope_mismatch_but_an_explicit_tombstone_authorizes_it(
     driver, tmp_path
 ):
@@ -971,7 +1021,14 @@ def test_import_all_sources_denies_removal_on_scope_mismatch_but_an_explicit_tom
     assert _count(driver, "MATCH (s:Service) RETURN count(s) AS c") == 0
 
 
-def test_import_all_sources_rejects_a_tombstone_with_a_stale_expected_predecessor(driver, tmp_path):
+def test_import_all_sources_denies_removal_via_a_tombstone_with_a_stale_expected_predecessor(
+    driver, tmp_path
+):
+    """Renamed from an earlier, misleading name (a PR review finding): the *run* still commits
+    (`committed is True`) - only the requested *removal* is denied, with the rejection surfaced as
+    a diagnostic rather than silently no-op'd (another PR review finding: `_import_all_sources_tx`
+    used to drop `validate_tombstone_against_committed_inventory`'s rejection diagnostic on the
+    floor)."""
     root_a = tmp_path / "root-a"
     shutil.copytree(EXAMPLES_DIR / "product-service", root_a / "product-service")
     root_b = tmp_path / "root-b"
@@ -1005,3 +1062,4 @@ def test_import_all_sources_rejects_a_tombstone_with_a_stale_expected_predecesso
     assert stats3.committed is True
     assert stats3.removed_source_instance_ids == ()
     assert _count(driver, "MATCH (s:Service) RETURN count(s) AS c") == 1
+    assert any(d.code == DiagnosticCode.TOMBSTONE_STALE for d in stats3.diagnostics)

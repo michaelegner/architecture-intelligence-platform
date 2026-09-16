@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
 
 import neo4j
 
@@ -21,14 +20,31 @@ from app.sources.model import (
 )
 from app.sources.removal_authority import authorize_source_removal
 from app.sources.replay import ReplayCase, classify_replay_case
-from app.sources.tombstones import Tombstone, validate_tombstone_against_committed_inventory
+from app.sources.tombstones import (
+    Tombstone,
+    TombstoneValidation,
+    validate_tombstone_against_committed_inventory,
+)
 from app.validation.canonical_validation import validate_canonical_model
 
-# I2 Draft 0.2 §3 prerequisite slice, item 4: distinguishes "caller supplied no expectation at all"
-# (every existing caller - preserves today's behavior exactly, no predecessor check performed) from
-# a legitimate explicit expectation of `None` (caller expects no prior committed inventory to exist
-# yet). A plain `None` default could not make that distinction.
-_NOT_SUPPLIED: Literal["_NOT_SUPPLIED"] = "_NOT_SUPPLIED"
+
+class _NotSupplied:
+    """A dedicated sentinel type, not a string constant, for the `expected_prior_inventory_revision`
+    default below - I2 Draft 0.2 §3 prerequisite slice, item 4. Distinguishes "caller supplied no
+    expectation at all" (every existing caller - preserves today's behavior exactly, no predecessor
+    check performed) from a legitimate explicit expectation of `None` (caller expects no prior
+    committed inventory to exist yet). A plain `None` default could not make that distinction, and a
+    string sentinel compared by identity (`is not`) would be fragile - string identity is a CPython
+    interning implementation detail, not a language guarantee (a real finding from PR review).
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "<not supplied>"
+
+
+_NOT_SUPPLIED = _NotSupplied()
 
 
 class StalePredecessorError(RuntimeError):
@@ -177,8 +193,18 @@ _DELETE_SOURCE_STATE_QUERY = (
 # This tracks per-*scope* inventory-revision/capture/event-id/audit-chain state, feeding the
 # transactional predecessor comparison and real (non-self-referential) values into
 # `authorize_source_removal`/`validate_tombstone_against_committed_inventory`.
+#
+# This is a MERGE, not a plain MATCH, even though it is only ever used as a read: under Neo4j's
+# default read-committed isolation, a plain MATCH takes no lock, so two concurrent transactions for
+# the same scope could both read the same pre-image, both pass their own predecessor check, and
+# both proceed to write - a real TOCTOU race found in PR review. MERGE acquires an exclusive lock
+# on the matched-or-created node for the rest of the transaction, so a second concurrent
+# transaction for the same scope blocks here until the first commits or rolls back, and then
+# correctly observes the first transaction's real, committed result rather than a stale snapshot.
+# A freshly created node's fields are all null, which this module already treats identically to "no
+# prior committed inventory" below.
 _READ_CURRENT_INVENTORY_QUERY = (
-    "MATCH (i:CurrentInventory {discovery_scope_id: $discovery_scope_id}) "
+    "MERGE (i:CurrentInventory {discovery_scope_id: $discovery_scope_id}) "
     "RETURN i.inventory_revision AS inventory_revision, "
     "i.inventory_capture_id AS inventory_capture_id, "
     "i.inventory_event_id AS inventory_event_id, "
@@ -528,8 +554,8 @@ def _import_all_sources_tx(
     tx: neo4j.ManagedTransaction,
     *,
     run_result: DiscoveryRunResult,
-    expected_prior_inventory_revision: str | None | Literal["_NOT_SUPPLIED"] = _NOT_SUPPLIED,
-) -> tuple[dict[str, SourceImportStats], tuple[str, ...]]:
+    expected_prior_inventory_revision: str | None | _NotSupplied = _NOT_SUPPLIED,
+) -> tuple[dict[str, SourceImportStats], tuple[str, ...], tuple[IngestionDiagnostic, ...]]:
     """Pre-merge, per-source reconciliation, and removal for one whole discovery run, all against
     the same transaction - a run either commits in full or (on any error, including a driver/
     infrastructure failure partway through) rolls back in full. Previously these were separate
@@ -546,14 +572,15 @@ def _import_all_sources_tx(
     persisted, raising `StalePredecessorError` (aborting the whole transaction, writing nothing) on
     a mismatch.
     """
+    # A MERGE, not a MATCH - see _READ_CURRENT_INVENTORY_QUERY's own comment: this acquires an
+    # exclusive per-scope lock for the rest of this transaction, so `.single()` always returns
+    # exactly one row (freshly created with all-null fields, or a real previously committed one).
     persisted_inventory = tx.run(
         _READ_CURRENT_INVENTORY_QUERY, discovery_scope_id=run_result.discovery_scope_id
     ).single()
 
     if expected_prior_inventory_revision is not _NOT_SUPPLIED:
-        actual_committed_revision = (
-            persisted_inventory["inventory_revision"] if persisted_inventory else None
-        )
+        actual_committed_revision = persisted_inventory["inventory_revision"]
         if actual_committed_revision != expected_prior_inventory_revision:
             raise StalePredecessorError(
                 f"expected prior inventory revision {expected_prior_inventory_revision!r} for "
@@ -567,21 +594,20 @@ def _import_all_sources_tx(
             f"(discovery_scope_id={run_result.discovery_scope_id!r})"
         )
 
-    tombstone_validations = {
-        tombstone.target_source_instance_id: validate_tombstone_against_committed_inventory(
+    tombstone_validations: dict[str, TombstoneValidation] = {}
+    tombstone_diagnostics: list[IngestionDiagnostic] = []
+    for tombstone in run_result.inventory_snapshot.tombstones:
+        validation = validate_tombstone_against_committed_inventory(
             tombstone=tombstone,
-            committed_discovery_scope_id=(
-                persisted_inventory["discovery_scope_id"] if persisted_inventory else None
-            ),
-            committed_scope_definition_digest=(
-                persisted_inventory["scope_definition_digest"] if persisted_inventory else None
-            ),
-            committed_inventory_revision=(
-                persisted_inventory["inventory_revision"] if persisted_inventory else None
-            ),
+            committed_discovery_scope_id=persisted_inventory["discovery_scope_id"],
+            committed_scope_definition_digest=persisted_inventory["scope_definition_digest"],
+            committed_inventory_revision=persisted_inventory["inventory_revision"],
         )
-        for tombstone in run_result.inventory_snapshot.tombstones
-    }
+        tombstone_validations[tombstone.target_source_instance_id] = validation
+        # A rejected tombstone must not silently no-op from the caller's perspective (no removal,
+        # no explanation) - a real finding from PR review.
+        if not validation.accepted and validation.diagnostic is not None:
+            tombstone_diagnostics.append(validation.diagnostic)
 
     # Snapshot every source's own emitted node/relation properties BEFORE the pre-merge pass below
     # touches anything - the pre-merge writes every source's nodes first (see its own comment), so
@@ -650,9 +676,7 @@ def _import_all_sources_tx(
                 removed_source_instance_ids.append(source_instance_id)
 
     new_event_id = compute_inventory_event_id(
-        previous_event_id=(
-            persisted_inventory["inventory_event_id"] if persisted_inventory else None
-        ),
+        previous_event_id=persisted_inventory["inventory_event_id"],
         inventory_capture_id=run_result.inventory_snapshot.inventory_capture_id,
     )
     tx.run(
@@ -664,7 +688,7 @@ def _import_all_sources_tx(
         scope_definition_digest=run_result.scope_definition_digest,
     )
 
-    return per_source, tuple(removed_source_instance_ids)
+    return per_source, tuple(removed_source_instance_ids), tuple(tombstone_diagnostics)
 
 
 def import_discovery_run(
@@ -672,7 +696,7 @@ def import_discovery_run(
     *,
     database: str,
     run_result: DiscoveryRunResult,
-    expected_prior_inventory_revision: str | None | Literal["_NOT_SUPPLIED"] = _NOT_SUPPLIED,
+    expected_prior_inventory_revision: str | None | _NotSupplied = _NOT_SUPPLIED,
 ) -> ImportRunStats:
     """I2 Draft 0.2 §3 prerequisite slice, items 2/4: the source-neutral commit entry point - takes
     an already-computed `DiscoveryRunResult` (from `run_discovery` or any source-neutral discovery
@@ -700,7 +724,7 @@ def import_discovery_run(
     with open_session(driver, database=database) as session:
         ensure_schema(session)
         try:
-            per_source, removed_source_instance_ids = session.execute_write(
+            per_source, removed_source_instance_ids, tombstone_diagnostics = session.execute_write(
                 _import_all_sources_tx,
                 run_result=run_result,
                 expected_prior_inventory_revision=expected_prior_inventory_revision,
@@ -725,7 +749,7 @@ def import_discovery_run(
             committed=True,
             per_source=per_source,
             removed_source_instance_ids=removed_source_instance_ids,
-            diagnostics=run_result.diagnostics,
+            diagnostics=(*run_result.diagnostics, *tombstone_diagnostics),
         )
 
 
@@ -736,7 +760,7 @@ def import_all_sources(
     source_config: FilesystemSourceConfig,
     migration_mappings: SharedIdentityMappingIndex | None = None,
     tombstones: Sequence[Tombstone] = (),
-    expected_prior_inventory_revision: str | None | Literal["_NOT_SUPPLIED"] = _NOT_SUPPLIED,
+    expected_prior_inventory_revision: str | None | _NotSupplied = _NOT_SUPPLIED,
 ) -> ImportRunStats:
     """Thin compatibility wrapper over `run_filesystem_discovery` + `import_discovery_run` for the
     filesystem source kind - every existing caller/test keeps working unchanged."""

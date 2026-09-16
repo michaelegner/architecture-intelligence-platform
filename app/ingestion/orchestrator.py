@@ -326,12 +326,21 @@ def _build_inventory_snapshot(
     if discovery_scope_id is None or scope_definition_digest is None:
         return None
 
+    # A caller (e.g. app.api.import_api, which loads every configured tombstone once and reuses
+    # the same list for every configured source) may pass tombstones targeting other discovery
+    # scopes. Only tombstones actually declared against THIS scope may affect its own inventory
+    # revision/event-id chain - otherwise an unrelated scope's tombstone would spuriously churn
+    # this scope's revision (a real bug found in review). `validate_tombstone_against_committed_
+    # inventory` would reject an out-of-scope tombstone anyway, but it must never be allowed to
+    # even enter this scope's semantic hash in the first place.
+    in_scope_tombstones = tuple(t for t in tombstones if t.discovery_scope_id == discovery_scope_id)
+
     discovered_source_ids = tuple(sorted(source_outcomes.keys()))
     revision = inventory_revision(
         discovery_scope_id=discovery_scope_id,
         scope_definition_digest=scope_definition_digest,
         source_instance_ids=discovered_source_ids,
-        tombstones=tombstones,
+        tombstones=in_scope_tombstones,
         status=status,
     )
     capture_time = datetime.now(UTC).isoformat()
@@ -355,7 +364,7 @@ def _build_inventory_snapshot(
         mapping_rule_identities=tuple(sorted(a.mapping_rule_version for a in registry.adapters)),
         status=status,
         discovered_source_ids=discovered_source_ids,
-        tombstones=tuple(tombstones),
+        tombstones=in_scope_tombstones,
         capture_time=capture_time,
         diagnostics=tuple(diagnostics),
     )

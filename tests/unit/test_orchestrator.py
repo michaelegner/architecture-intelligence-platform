@@ -30,6 +30,13 @@ def test_missing_root_is_failed_and_not_commit_eligible(tmp_path):
     assert result.inventory_status is InventoryStatus.FAILED
     assert result.commit_eligible is False
     assert result.source_outcomes == {}
+    # I2 Draft 0.2 §3/§8: a snapshot is required for every attempt, including a failed one - the
+    # scope id/digest are pure functions of configured values, computable even when the root
+    # doesn't exist (a real bug found in review: this used to emit no snapshot at all here).
+    assert result.inventory_snapshot is not None
+    assert result.inventory_snapshot.status is InventoryStatus.FAILED
+    assert result.discovery_scope_id is not None
+    assert result.inventory_snapshot.discovery_scope_id == result.discovery_scope_id
 
 
 def test_empty_directory_is_complete_and_commit_eligible(tmp_path):
@@ -725,21 +732,49 @@ def test_filesystem_discovery_produces_an_inventory_snapshot(tmp_path):
 
 
 def test_explicit_tombstones_are_carried_on_the_snapshot_and_affect_its_revision(tmp_path):
-    tombstone = Tombstone(
+    config = FilesystemSourceConfig(id="x", root=tmp_path)
+    real_scope_id = run_filesystem_discovery(config).discovery_scope_id
+    in_scope_tombstone = Tombstone(
         target_source_instance_id="urn:aip:source:filesystem:deadbeef",
-        discovery_scope_id="urn:aip:discovery-scope:whatever",
+        discovery_scope_id=real_scope_id,
         expected_prior_inventory_revision="urn:aip:inventory-revision:whatever",
         scope_definition_digest="whatever",
         actor="operator@example.com",
         reason="decommissioned",
         tombstone_revision="1",
     )
-    without = run_filesystem_discovery(FilesystemSourceConfig(id="x", root=tmp_path))
-    with_tombstone = run_filesystem_discovery(
-        FilesystemSourceConfig(id="x", root=tmp_path), tombstones=(tombstone,)
-    )
-    assert with_tombstone.inventory_snapshot.tombstones == (tombstone,)
+    without = run_filesystem_discovery(config)
+    with_tombstone = run_filesystem_discovery(config, tombstones=(in_scope_tombstone,))
+    assert with_tombstone.inventory_snapshot.tombstones == (in_scope_tombstone,)
     assert (
         with_tombstone.inventory_snapshot.inventory_revision
         != without.inventory_snapshot.inventory_revision
+    )
+
+
+def test_a_tombstone_for_a_different_scope_does_not_affect_this_scopes_snapshot_or_revision(
+    tmp_path,
+):
+    """A real bug found in PR review: `app.api.import_api` loads every configured tombstone once
+    and reuses the same list for every configured source's own discovery run - an out-of-scope
+    tombstone must never enter this scope's own inventory revision/event-id hash, or an unrelated
+    scope's tombstone would spuriously churn this one's revision."""
+    config = FilesystemSourceConfig(id="x", root=tmp_path)
+    out_of_scope_tombstone = Tombstone(
+        target_source_instance_id="urn:aip:source:filesystem:deadbeef",
+        discovery_scope_id="urn:aip:discovery-scope:some-other-scope-entirely",
+        expected_prior_inventory_revision="urn:aip:inventory-revision:whatever",
+        scope_definition_digest="whatever",
+        actor="operator@example.com",
+        reason="decommissioned",
+        tombstone_revision="1",
+    )
+    without = run_filesystem_discovery(config)
+    with_out_of_scope_tombstone = run_filesystem_discovery(
+        config, tombstones=(out_of_scope_tombstone,)
+    )
+    assert with_out_of_scope_tombstone.inventory_snapshot.tombstones == ()
+    assert (
+        with_out_of_scope_tombstone.inventory_snapshot.inventory_revision
+        == without.inventory_snapshot.inventory_revision
     )
