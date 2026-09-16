@@ -149,23 +149,43 @@ def _resolve_selected_servers(document: dict, channel_def: dict) -> list[dict]:
     return list(servers_map.values())
 
 
-def _resolve_broker_and_namespace(selected_servers: list[dict]) -> tuple[str, str] | None:
+class _AmbiguousBrokerNamespace:
+    """Sentinel distinguishing "selected servers exist but disagree (or only some of them carry
+    `x-aip-broker-id`)" from genuinely no selected server/no evidence at all (`None`). Collapsing
+    both into one `None` previously let an explicit Queue mapping silently paper over real
+    multi-server disagreement, since "no derived id to compare against" and "a derived id exists but
+    is unresolvable due to conflict" both looked like "no derived id" to the caller.
+    """
+
+
+_AMBIGUOUS_BROKER_NAMESPACE = _AmbiguousBrokerNamespace()
+
+
+def _resolve_broker_and_namespace(
+    selected_servers: list[dict],
+) -> tuple[str, str] | None | _AmbiguousBrokerNamespace:
     """I1 spec §9: broker id from an explicit `x-aip-broker-id` on the selected server(s); when a
     channel selects multiple servers, all must agree on both broker id and namespace or the result
-    is ambiguous (`None`). Namespace is the AMQP server binding `virtualHost`, else empty string -
-    §9's "configured destination namespace" path is deferred (no config surface ships in 3a).
+    is ambiguous (`_AMBIGUOUS_BROKER_NAMESPACE`) - distinct from `None`, which means no selected
+    server carries any broker evidence at all. Namespace is the AMQP server binding `virtualHost`,
+    else empty string - §9's "configured destination namespace" path is deferred (no config surface
+    ships in 3a).
     """
     if not selected_servers:
         return None
     candidates: set[tuple[str, str]] = set()
+    any_missing = False
     for server in selected_servers:
         broker_id = server.get("x-aip-broker-id")
         if not broker_id:
-            return None
+            any_missing = True
+            continue
         namespace = ((server.get("bindings") or {}).get("amqp") or {}).get("virtualHost") or ""
         candidates.add((broker_id, namespace))
-    if len(candidates) != 1:
+    if not candidates:
         return None
+    if any_missing or len(candidates) != 1:
+        return _AMBIGUOUS_BROKER_NAMESPACE
     return next(iter(candidates))
 
 
@@ -471,6 +491,27 @@ class AsyncApiSourceAdapter:
             # so the configured mapping alone establishes identity with nothing to conflict with.
             selected_servers = _resolve_selected_servers(document, channel_def)
             broker_and_namespace = _resolve_broker_and_namespace(selected_servers)
+
+            # §9: selected servers that disagree (or only partially carry `x-aip-broker-id`) leave
+            # this channel's Queue identity AMBIGUOUS regardless of an explicit mapping - a
+            # configured Queue ID does not resolve a real disagreement among the channel's own
+            # server declarations, it only supplies an id to compare a *resolved* derived id
+            # against. Checked before consulting `explicit_queue_id` at all so the ambiguity can't
+            # be silently papered over by treating it the same as "no derived id to compare".
+            if broker_and_namespace is _AMBIGUOUS_BROKER_NAMESPACE:
+                any_omission = True
+                diagnostics.append(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.AMBIGUOUS,
+                        message=(
+                            f"channel {channel_name!r}: no single agreeing broker id/namespace "
+                            "across selected servers"
+                        ),
+                        source_pointer=channel_pointer,
+                    )
+                )
+                continue
+
             derived_queue_id: str | None = None
             stable_broker_id, namespace = None, None
             if broker_and_namespace is not None:

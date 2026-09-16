@@ -285,6 +285,28 @@ def test_multi_server_disagreement_is_ambiguous():
     assert any(d.code is DiagnosticCode.AMBIGUOUS for d in outcome.diagnostics)
 
 
+def test_explicit_queue_mapping_does_not_override_multi_server_disagreement():
+    """§9: real disagreement among a channel's own selected servers must remain AMBIGUOUS with no
+    Queue emitted, even when an explicit Queue mapping is also configured. `_resolve_broker_and_
+    namespace` previously returned the same `None` for "genuinely no evidence" and "servers exist
+    but disagree", so the explicit-mapping branch treated a real disagreement as if there were
+    simply nothing to compare against and silently used the configured id - a configured id doesn't
+    resolve a disagreement among the channel's own server declarations, it only supplies something
+    to compare a *resolved* derived id against."""
+    document = _base_document()
+    document["servers"]["other"] = {
+        "url": "amqps://other.example.com",
+        "protocol": "amqp",
+        "x-aip-broker-id": "other-broker",
+    }
+    index = _shared_identity_index(queue_mappings=[("/channels/orders-q", "queue:orders-q")])
+    outcome = _map(document, shared_identity=index)
+
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert any(d.code is DiagnosticCode.AMBIGUOUS for d in outcome.diagnostics)
+    assert outcome.model.queues == []
+
+
 def test_multi_server_agreement_is_accepted():
     document = _base_document()
     document["servers"]["mirror"] = {
