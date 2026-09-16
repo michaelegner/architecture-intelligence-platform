@@ -19,6 +19,7 @@ from app.graph.importer import import_all_sources, import_source
 from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
 from app.provenance.model import ObservedEvidence, Provenance
+from app.sources.migration_mappings import load_migration_mappings
 from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
@@ -648,6 +649,75 @@ def test_import_all_sources_real_examples_end_to_end(driver):
         )
     assert len(records) == 2
     assert all(len(record["evidence_ids"]) == 1 for record in records)
+
+
+def test_import_all_sources_with_the_real_bundled_migration_mapping_lands_legacy_ids(driver):
+    """The real config/migrations/v0.5.0-bundled-example-identities.yaml artifact (I1 spec §5.1.1),
+    applied through the full import_all_sources -> Neo4j pipeline, must make the bundled examples'
+    Schema/Message/Queue nodes carry their exact pre-PR3a (v0.4.2-era) legacy ids - not just at the
+    in-memory ArchitectureModel layer (already unit-tested), but as actually committed graph nodes.
+    Also proves the real cross-source merge: PaymentRequested's payload, independently declared by
+    order-service and payment-service, becomes ONE shared Message node once the migration maps both
+    to the same legacy id (contrast with test_import_all_sources_real_examples_end_to_end's
+    unmigrated case, which asserts these stay two distinct nodes).
+    """
+    migrations_path = (
+        Path(__file__).resolve().parent.parent.parent
+        / "config"
+        / "migrations"
+        / "v0.5.0-bundled-example-identities.yaml"
+    )
+    index, diagnostics = load_migration_mappings([migrations_path])
+    assert diagnostics == ()
+
+    stats = import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=_bundled_examples_config(),
+        migration_mappings=index,
+    )
+    assert stats.committed is True
+
+    with driver.session(database=DATABASE) as session:
+        schema_ids = {record["id"] for record in session.run("MATCH (s:Schema) RETURN s.id AS id")}
+        message_ids = {
+            record["id"] for record in session.run("MATCH (m:Message) RETURN m.id AS id")
+        }
+        queue_ids = {record["id"] for record in session.run("MATCH (q:Queue) RETURN q.id AS id")}
+
+    assert schema_ids == {
+        "schema:OrderRequest",
+        "schema:Order",
+        "schema:Product",
+        "schema:PaymentRequested:v2",
+        "schema:InvoiceCreated:v1",
+        "schema:UnusedMessage",
+        "schema:UnknownProducerMessage",
+    }
+    assert message_ids == {
+        "message:PaymentRequested:v2",
+        "message:InvoiceCreated:v1",
+        "message:UnusedMessage",
+        "message:UnknownProducerMessage",
+    }
+    assert queue_ids == {
+        "queue:payment-q",
+        "queue:unused-q",
+        "queue:invoice-q",
+        "queue:unknown-producer-q",
+        "queue:payment-dlq",
+    }
+
+    # The real cross-source merge: PaymentRequested's CARRIES relation now has TWO evidence ids
+    # (one per declaring source) on the ONE shared Message node - contrast with the unmigrated
+    # two-distinct-nodes case in test_import_all_sources_real_examples_end_to_end.
+    with driver.session(database=DATABASE) as session:
+        record = session.run(
+            "MATCH (:Queue {id: 'queue:payment-q'})-[r:CARRIES]->"
+            "(m:Message {id: 'message:PaymentRequested:v2'}) RETURN r.evidence_ids AS evidence_ids"
+        ).single()
+    assert record is not None
+    assert len(record["evidence_ids"]) == 2
 
 
 def test_import_all_sources_is_idempotent(driver):
