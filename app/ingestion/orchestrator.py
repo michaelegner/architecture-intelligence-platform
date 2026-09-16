@@ -180,6 +180,12 @@ def _mapping_entry_context(
         "artifactId": document.artifact_id,
         "artifactRevision": document.artifact_revision,
         "sourceInstanceId": entry.source_instance_id,
+        # documentPath is part of this entry's own lookup identity (source_instance_id,
+        # document_path, pointer) - omitting it here would mean moving an otherwise identical
+        # mapping from one file to another (the same pointer, a different documentPath) changes
+        # which canonical entity actually receives the mapped id, without changing this digest, so
+        # the revision fence would never notice the resulting graph change.
+        "documentPath": entry.document_path,
         "pointer": entry.pointer,
         id_field: entry.target_id,
     }

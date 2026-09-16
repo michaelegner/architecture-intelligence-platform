@@ -64,7 +64,7 @@ surface anywhere in I1 — `configured_mappings` is always empty in
 |---|---|
 | `uv run ruff check .` | clean |
 | `uv run ruff format --check .` | clean |
-| `uv run pytest tests/unit` | 1368 passed |
+| `uv run pytest tests/unit` | 1369 passed |
 | `uv run pytest tests/integration` | 300 passed |
 
 ## §11 Definition of Done — evidence by area
@@ -92,7 +92,7 @@ record's own full regression run (unaffected by PR4's changes).
 | Cycles/duplicate identities/conflicts/invalid inputs fail without partial writes | `tests/integration/test_importer.py::test_import_all_sources_rolls_back_in_full_when_a_later_source_fails`; `tests/integration/test_i1_bundled_migration_determinism.py::test_a_genuine_cross_source_content_conflict_rejects_the_whole_run` |
 | Exact OpenAPI (`3.0.3`/`3.1.0`/`3.1.2`)/AsyncAPI (`2.6.0`) version enforcement | `tests/unit/test_openapi_adapter.py`, `test_asyncapi_adapter.py` (`check_supported_dialect_version` cases); real-world conformance evidence: `docs/real-world-validation/quarkus-super-heroes/` (declares `3.1.2`, pinned byte-identical to a real upstream commit) |
 | Reimport idempotence; semantic no-op does not advance graph revision; content/property changes do | `tests/integration/test_importer.py::test_import_all_sources_is_idempotent`, `::test_import_all_sources_property_change_advances_revision_through_the_real_pipeline`; `tests/integration/test_revision_fence.py` |
-| Mapping-context digest reflects real configured/manifest/shared/migration mappings and adapter versions; unrelated context change triggers reevaluation without spurious revision advance *(4 for shared/migration content)* | `tests/unit/test_orchestrator.py::test_a_real_migration_mapping_changes_the_mapping_context_digest` |
+| Mapping-context digest reflects real configured/manifest/shared/migration mappings (including each entry's own documentPath) and adapter versions; unrelated context change triggers reevaluation without spurious revision advance *(4 for shared/migration content)* | `tests/unit/test_orchestrator.py::test_a_real_migration_mapping_changes_the_mapping_context_digest`, `::test_a_document_path_only_change_still_changes_the_mapping_context_digest` |
 | Context/checkout-path independence (context entry ordering, physical paths) | `tests/unit/test_sources_identity.py`; `tests/integration/test_i1_bundled_migration_determinism.py::test_two_clean_checkouts_at_different_paths_produce_identical_results` |
 | DiscoveryScopeId stability under changed roots/filters; scope_definition_digest tracks the physical root | `tests/unit/test_sources_identity.py`; documented distinction re-confirmed in `test_i1_bundled_migration_determinism.py` |
 | Inventory revision/capture-id stability and distinction | `tests/unit/test_sources_inventory.py` |
@@ -139,6 +139,6 @@ any new source kind it adds.
 > shared-identity/migration mapping mechanism proving portable, deterministic restoration of prior
 > canonical meaning for the bundled examples, including two genuine cross-source merges
 > (PaymentRequested, InvoiceCreated) and a genuine cross-source content-conflict rejection (PR4).
-> `uv run pytest tests/unit` (1368) and `tests/integration` (300) both pass in full; lint/format are
+> `uv run pytest tests/unit` (1369) and `tests/integration` (300) both pass in full; lint/format are
 > clean. I1 blockers = 0. I2 may build its Kubernetes discovery vertical slice directly on this
 > seam and lifecycle contract.

@@ -312,6 +312,58 @@ def test_a_real_migration_mapping_changes_the_mapping_context_digest(tmp_path):
     assert outcome_with.outcome.model.schemas[0].id == "schema:X"
 
 
+def test_a_document_path_only_change_still_changes_the_mapping_context_digest(tmp_path):
+    """Regression proof that documentPath is included in the mapping-context digest projection:
+    two configured mappings that are byte-identical except for documentPath ("svc/openapi.yaml" vs.
+    "svc/other.yaml") must still produce different semantic_input_digest values, even though the
+    document under discovery hasn't changed at all. documentPath is part of each entry's own lookup
+    identity (source_instance_id, document_path, pointer) - moving an otherwise identical mapping to
+    a different file changes which canonical entity would receive its id, so the revision fence must
+    be able to notice that configuration change even when this particular document's own real
+    location happens to make it a no-op for the model it produces."""
+    _write(tmp_path / "svc" / "openapi.yaml", _single_schema_openapi_doc({"type": "object"}))
+    config = FilesystemSourceConfig(id="digest-path-test", root=tmp_path)
+
+    sid = source_instance_id(
+        configured_source_id="digest-path-test",
+        source_kind=SourceKind.FILESYSTEM,
+        normalized_root_document_path="svc/openapi.yaml",
+    )
+
+    def _index_for(document_path: str):
+        index, diagnostics = build_shared_identity_index(
+            [
+                MigrationMappingsDocument(
+                    artifact_id="aip-v0.5.0-bundled-example-identities-v1",
+                    artifact_revision="v1",
+                    locator="migrations.yaml",
+                    schema_mappings=(
+                        IdentityMappingEntry(
+                            source_instance_id=sid,
+                            document_path=document_path,
+                            pointer="/components/schemas/X",
+                            pointer_tokens=("components", "schemas", "X"),
+                            target_id="schema:X",
+                        ),
+                    ),
+                )
+            ]
+        )
+        assert diagnostics == []
+        return index
+
+    from_svc = run_filesystem_discovery(config, migration_mappings=_index_for("svc/openapi.yaml"))
+    from_other = run_filesystem_discovery(config, migration_mappings=_index_for("svc/other.yaml"))
+    [outcome_svc] = from_svc.source_outcomes.values()
+    [outcome_other] = from_other.source_outcomes.values()
+
+    assert outcome_svc.outcome.semantic_input_digest != outcome_other.outcome.semantic_input_digest
+    # The documentPath that actually matches this document's own real location is the one whose
+    # mapping takes effect - the other is configured for a file that doesn't exist here at all.
+    assert outcome_svc.outcome.model.schemas[0].id == "schema:X"
+    assert outcome_other.outcome.model.schemas[0].id != "schema:X"
+
+
 def test_cross_source_schema_content_conflict_blocks_the_whole_run(tmp_path):
     """Two sources whose schemas are explicitly mapped to the same id but disagree in content must
     reject the entire run as PARTIAL/not-commit-eligible with SCHEMA_CONTENT_CONFLICT, and commit
