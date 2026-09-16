@@ -200,11 +200,30 @@ def test_duplicate_file_paths_rejected():
         parse_kubernetes_envelope(_dump(doc))
 
 
-@pytest.mark.parametrize("bad_path", ["/etc/passwd", "../escape.yaml", ".."])
-def test_unsafe_file_path_rejected(bad_path):
+@pytest.mark.parametrize("bad_path", ["../escape.yaml", "..", "a/../../escape.yaml"])
+def test_unsafe_relative_file_path_rejected(bad_path):
     doc = _valid_envelope_dict()
     doc["files"] = [{"path": bad_path, "sha256": "a" * 64}]
     with pytest.raises(ValidationError, match="traversal"):
+        parse_kubernetes_envelope(_dump(doc))
+
+
+def test_absolute_file_path_rejected():
+    doc = _valid_envelope_dict()
+    doc["files"] = [{"path": "/etc/passwd", "sha256": "a" * 64}]
+    with pytest.raises(ValidationError, match="absolute path"):
+        parse_kubernetes_envelope(_dump(doc))
+
+
+def test_file_path_with_resolvable_dot_segments_is_treated_as_its_collapsed_form():
+    # "a/../b.yaml" collapses to "b.yaml" - listing both as separate entries must be caught by the
+    # uniqueness check, since they alias the same physical file once dot segments are resolved.
+    doc = _valid_envelope_dict()
+    doc["files"] = [
+        {"path": "b.yaml", "sha256": "a" * 64},
+        {"path": "a/../b.yaml", "sha256": "a" * 64},
+    ]
+    with pytest.raises(ValidationError, match="unique"):
         parse_kubernetes_envelope(_dump(doc))
 
 
@@ -258,6 +277,13 @@ def test_custom_tag_rejected():
 def test_duplicate_mapping_key_rejected():
     with pytest.raises(KubernetesEnvelopeMalformedError, match="duplicate mapping key"):
         load_bounded_yaml_documents(b"a: 1\na: 2\n")
+
+
+def test_unhashable_mapping_key_is_a_clean_rejection_not_a_crash():
+    # YAML permits a complex (e.g. sequence) mapping key - `? [a, b]\n: value` - which is
+    # unhashable. This must not leak a raw TypeError past the duplicate-key check.
+    with pytest.raises(KubernetesEnvelopeMalformedError, match="unhashable"):
+        load_bounded_yaml_documents(b"? [a, b]\n: value\n")
 
 
 def _nested_sequence(depth: int) -> bytes:
@@ -488,6 +514,17 @@ def test_total_bytes_at_the_boundary_is_accepted_and_one_over_is_rejected(tmp_pa
     rejected = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert rejected.result is IngestionResult.REJECTED_UNSUPPORTED
     assert rejected.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED
+
+
+def test_oversized_envelope_with_no_files_is_rejected(tmp_path):
+    # The envelope's own bytes alone can exceed the bound with an empty files list, in which case
+    # the byte-total check inside the per-file loop never runs at all - it must also be checked
+    # once up front, immediately after the envelope itself is read.
+    huge_metadata = {**_valid_envelope_dict()["metadata"], "id": "x" * (MAX_TOTAL_BYTES + 1)}
+    _write_bundle(tmp_path, files={}, envelope_overrides={"metadata": huge_metadata})
+    result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
+    assert result.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_LIMIT_EXCEEDED
 
 
 def test_resource_object_count_at_the_boundary_is_accepted_and_one_over_is_rejected(tmp_path):

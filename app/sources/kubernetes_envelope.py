@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field, ValidationError, model_validator
 from app.sources.encoding import sha256_hex
 from app.sources.identity import normalize_relative_posix_path
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult
+from app.sources.reference_resolution import normalize_dot_segments
 
 # I2 Draft 0.2 §4.3: "parser nesting is bounded to 64 levels."
 MAX_YAML_NESTING_DEPTH = 64
@@ -108,7 +109,18 @@ class _BoundedSafeLoader(yaml.SafeLoader):
         seen_keys: set[Any] = set()
         for key_node, _value_node in node.value:
             key = self.construct_object(key_node, deep=True)
-            if key in seen_keys:
+            # YAML permits complex mapping keys (e.g. a sequence), which are unhashable - `key in
+            # seen_keys` would otherwise raise a raw TypeError instead of a clean rejection.
+            # PyYAML's own base `construct_mapping` (which `super()` below would eventually reach)
+            # already guards this the same way, but only *after* this loop's own membership check
+            # would already have crashed first.
+            try:
+                is_duplicate = key in seen_keys
+            except TypeError as exc:
+                raise KubernetesEnvelopeMalformedError(
+                    f"unhashable YAML mapping key: {key!r}"
+                ) from exc
+            if is_duplicate:
                 raise KubernetesEnvelopeMalformedError(f"duplicate mapping key: {key!r}")
             seen_keys.add(key)
         return super().construct_mapping(node, deep=deep)
@@ -227,17 +239,35 @@ class KubernetesSourceSnapshotCompleteness(_StrictModel):
         return self
 
 
+def _normalize_relative_file_path(raw_path: str) -> str:
+    """Fully normalizes a `files[].path` entry - used for both the traversal-safety check and the
+    "unique paths" check, so both agree on what counts as "the same file". Absolute-path rejection
+    happens *before* dot-segment normalization (which would otherwise silently strip a leading "/"
+    and mask that the input was absolute at all), mirroring
+    `app.sources.reference_resolution.reject_absolute_decoded_path`'s own "ordering is itself
+    security-relevant" reasoning. Collapsing dot segments (via the same
+    `normalize_dot_segments` this codebase's `$ref` resolution already uses) before the traversal
+    check matters: a bare `normalize_relative_posix_path` never resolves `..` segments, so
+    `"a/../../etc/passwd"` would otherwise pass a naive `startswith("../")` check (it starts with
+    `"a/"`) despite escaping upward once collapsed, and `"a/../b.yaml"` would be wrongly treated as
+    distinct from `"b.yaml"` by the uniqueness check.
+    """
+    posix_path = normalize_relative_posix_path(raw_path)
+    if posix_path.startswith("/"):
+        raise ValueError(f"files[].path must not be an absolute path: {raw_path!r}")
+    normalized = normalize_dot_segments(posix_path)
+    if normalized.startswith("../") or normalized == "..":
+        raise ValueError(f"files[].path must be a relative path with no traversal: {raw_path!r}")
+    return normalized
+
+
 class KubernetesSourceSnapshotFileEntry(_StrictModel):
     path: str = Field(min_length=1)
     sha256: str = Field(min_length=1)
 
     @model_validator(mode="after")
     def _check_path_and_digest(self) -> KubernetesSourceSnapshotFileEntry:
-        normalized = normalize_relative_posix_path(self.path)
-        if normalized.startswith(("/", "../")) or normalized == "..":
-            raise ValueError(
-                f"files[].path must be a relative path with no traversal: {self.path!r}"
-            )
+        _normalize_relative_file_path(self.path)
         # §4.2: "lowercase-sha256-of-exact-file-bytes" - a hex digest is always lowercase hex, a
         # cheap structural check independent of verifying it against real file bytes later.
         if len(self.sha256) != 64 or any(c not in "0123456789abcdef" for c in self.sha256):
@@ -274,7 +304,7 @@ class KubernetesSourceSnapshot(_StrictModel):
         # legal only via an explicit empty list (§4.3: "A bundle with no resources can be complete
         # only through an explicit empty file list") - `files: []` satisfies that; `files` being
         # absent entirely is already rejected by Pydantic's own required-field check.
-        normalized_paths = [normalize_relative_posix_path(f.path) for f in self.files]
+        normalized_paths = [_normalize_relative_file_path(f.path) for f in self.files]
         if len(set(normalized_paths)) != len(normalized_paths):
             raise ValueError(f"files[].path must be unique: {normalized_paths!r}")
         return self
@@ -445,9 +475,19 @@ def validate_kubernetes_snapshot(
         )
 
     total_bytes = len(envelope_bytes)
+    if total_bytes > MAX_TOTAL_BYTES:
+        # The envelope alone can exceed the bound with an empty (or short) files list, in which
+        # case the loop below never runs at all - this check must not live only inside that loop.
+        return _rejected(
+            result=IngestionResult.REJECTED_UNSUPPORTED,
+            code=DiagnosticCode.K8S_LIMIT_EXCEEDED,
+            message=f"total input bytes exceeds the {MAX_TOTAL_BYTES}-byte limit",
+            source_pointer=envelope_relative_path,
+        )
+
     resources: list[dict] = []
     for file_entry in envelope.files:
-        normalized_path = normalize_relative_posix_path(file_entry.path)
+        normalized_path = _normalize_relative_file_path(file_entry.path)
         resolved = _resolve_contained_file(root, root_real, normalized_path)
         if resolved is None:
             return _rejected(
