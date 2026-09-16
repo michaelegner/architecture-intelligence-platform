@@ -574,10 +574,24 @@ def _import_all_sources_tx(
     """
     # A MERGE, not a MATCH - see _READ_CURRENT_INVENTORY_QUERY's own comment: this acquires an
     # exclusive per-scope lock for the rest of this transaction, so `.single()` always returns
-    # exactly one row (freshly created with all-null fields, or a real previously committed one).
+    # exactly one row. For a freshly created node, `discovery_scope_id` is set immediately (it's
+    # part of the MERGE's own matching pattern), but `inventory_revision`/`scope_definition_digest`/
+    # `inventory_event_id` remain null - there is no real committed inventory yet. Treat
+    # `inventory_revision is None` as the single source of truth for "nothing committed yet", and
+    # normalize `discovery_scope_id` to `None` alongside it wherever "committed state" is passed
+    # onward - passing the MERGE-created `discovery_scope_id` on its own would present a partially
+    # populated committed state (id set, revision/digest null) to
+    # `validate_tombstone_against_committed_inventory`, which raises
+    # `InconsistentCommittedInventoryStateError` on exactly that inconsistency (a real bug found in
+    # PR review: a tombstone submitted on a brand-new scope's very first run crashed instead of
+    # being classified `NO_COMMITTED_INVENTORY`).
     persisted_inventory = tx.run(
         _READ_CURRENT_INVENTORY_QUERY, discovery_scope_id=run_result.discovery_scope_id
     ).single()
+    has_committed_inventory = persisted_inventory["inventory_revision"] is not None
+    committed_discovery_scope_id = (
+        persisted_inventory["discovery_scope_id"] if has_committed_inventory else None
+    )
 
     if expected_prior_inventory_revision is not _NOT_SUPPLIED:
         actual_committed_revision = persisted_inventory["inventory_revision"]
@@ -599,7 +613,7 @@ def _import_all_sources_tx(
     for tombstone in run_result.inventory_snapshot.tombstones:
         validation = validate_tombstone_against_committed_inventory(
             tombstone=tombstone,
-            committed_discovery_scope_id=persisted_inventory["discovery_scope_id"],
+            committed_discovery_scope_id=committed_discovery_scope_id,
             committed_scope_definition_digest=persisted_inventory["scope_definition_digest"],
             committed_inventory_revision=persisted_inventory["inventory_revision"],
         )
@@ -661,13 +675,14 @@ def _import_all_sources_tx(
                 continue
             # `known_states` can only be non-empty if a prior COMPLETE run already persisted both
             # `SourceState` and `CurrentInventory` for this scope together (see the write below),
-            # so `persisted_inventory` is guaranteed set whenever this loop body runs.
+            # so `has_committed_inventory` (hence `committed_discovery_scope_id`) is guaranteed set
+            # whenever this loop body runs.
             decision = authorize_source_removal(
                 tombstone_validation=tombstone_validations.get(source_instance_id),
                 enumeration_status=run_result.inventory_status,
                 enumeration_discovery_scope_id=run_result.discovery_scope_id,
                 enumeration_scope_definition_digest=run_result.scope_definition_digest,
-                committed_discovery_scope_id=persisted_inventory["discovery_scope_id"],
+                committed_discovery_scope_id=committed_discovery_scope_id,
                 committed_scope_definition_digest=record["scope_definition_digest"],
                 source_absent_from_enumeration=True,
             )

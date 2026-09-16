@@ -19,6 +19,7 @@ from app.canonical.model import (
 from app.graph.importer import ImportRunStats, import_all_sources, import_source
 from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
+from app.ingestion.orchestrator import run_filesystem_discovery
 from app.provenance.model import ObservedEvidence, Provenance
 from app.sources.migration_mappings import load_migration_mappings
 from app.sources.model import DiagnosticCode, FilesystemSourceConfig
@@ -871,6 +872,36 @@ def test_import_all_sources_persists_current_inventory_state(driver, tmp_path):
     assert record["capture"] is not None
     assert record["event"] is not None
     assert record["digest"] is not None
+
+
+def test_import_all_sources_rejects_a_tombstone_on_a_brand_new_scope_without_crashing(
+    driver, tmp_path
+):
+    """A real bug found in PR re-review: `_READ_CURRENT_INVENTORY_QUERY`'s locking `MERGE` sets
+    `discovery_scope_id` on a freshly created `CurrentInventory` node (it's part of the MERGE's own
+    matching pattern) while `inventory_revision`/`scope_definition_digest` remain null - a
+    partially populated "committed" state that made `validate_tombstone_against_committed_inventory`
+    raise `InconsistentCommittedInventoryStateError` instead of correctly classifying a tombstone
+    submitted on a scope's very first run as `NO_COMMITTED_INVENTORY`."""
+    config = FilesystemSourceConfig(id="tomb-fresh-scope-test", root=tmp_path)
+    fresh_scope_id = run_filesystem_discovery(config).discovery_scope_id
+
+    tombstone = Tombstone(
+        target_source_instance_id="urn:aip:source:filesystem:doesnotexist",
+        discovery_scope_id=fresh_scope_id,
+        expected_prior_inventory_revision="urn:aip:inventory-revision:" + "0" * 64,
+        scope_definition_digest="whatever",
+        actor="operator@example.com",
+        reason="test",
+        tombstone_revision="1",
+    )
+
+    stats = import_all_sources(
+        driver, database=DATABASE, source_config=config, tombstones=(tombstone,)
+    )
+    assert stats.committed is True
+    assert stats.removed_source_instance_ids == ()
+    assert any(d.code == DiagnosticCode.TOMBSTONE_STALE for d in stats.diagnostics)
 
 
 def test_import_all_sources_accepts_a_matching_expected_predecessor(driver, tmp_path):
