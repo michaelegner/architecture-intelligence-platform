@@ -10,6 +10,7 @@ from app.graph.importer import ImportRunStats, SourceImportStats, import_all_sou
 from app.graph.repository import open_session
 from app.settings import Settings
 from app.sources.migration_mappings import load_migration_mappings
+from app.sources.tombstones import load_tombstones
 
 router = APIRouter(prefix="/api/import", tags=["import"])
 logger = logging.getLogger("architecture_intelligence.import")
@@ -59,6 +60,18 @@ def _run_all_configured_sources(settings: Settings, driver) -> tuple[str, list[I
             ),
         )
 
+    # I2 Draft 0.2 §3 prerequisite slice's minimal operator-facing tombstone surface - loaded once
+    # per request, mirroring the migration-mapping load above; a broken configured tombstone file is
+    # an operator configuration error, not a per-source data problem.
+    tombstones, tombstone_diagnostics = load_tombstones(settings.config.sources.tombstones)
+    if tombstone_diagnostics:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"tombstone configuration is invalid: {[d.message for d in tombstone_diagnostics]}"
+            ),
+        )
+
     import_id = uuid.uuid4().hex
     run_results = []
     for source_config in settings.config.sources.directories:
@@ -68,6 +81,7 @@ def _run_all_configured_sources(settings: Settings, driver) -> tuple[str, list[I
             database=settings.config.graph.database,
             source_config=source_config,
             migration_mappings=migration_index,
+            tombstones=tombstones,
         )
         duration_ms = int((time.perf_counter() - start) * 1000)
         _log_run(import_id, run_stats, duration_ms)

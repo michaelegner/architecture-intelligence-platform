@@ -1,4 +1,5 @@
 import shutil
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -15,12 +16,14 @@ from app.canonical.model import (
     Schema,
     Service,
 )
-from app.graph.importer import import_all_sources, import_source
+from app.graph.importer import ImportRunStats, import_all_sources, import_source
 from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
+from app.ingestion.orchestrator import run_filesystem_discovery
 from app.provenance.model import ObservedEvidence, Provenance
 from app.sources.migration_mappings import load_migration_mappings
-from app.sources.model import FilesystemSourceConfig
+from app.sources.model import DiagnosticCode, FilesystemSourceConfig
+from app.sources.tombstones import Tombstone
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 
@@ -845,3 +848,249 @@ def test_import_all_sources_rolls_back_in_full_when_a_later_source_fails(
         _count(driver, "MATCH (s:Service {id: 'service:product-service'}) RETURN s.name AS c")
         == "ProductService"
     )
+
+
+# I2 Draft 0.2 §3 prerequisite slice, items 3/4/5: real persisted `CurrentInventory` state,
+# transactional predecessor comparison, and explicit-tombstone removal authorization, all through
+# the real `import_all_sources` -> Neo4j pipeline (not just the pure calculations already unit-
+# tested in test_sources_inventory.py/test_sources_tombstones.py/test_sources_removal_authority.py).
+
+
+def test_import_all_sources_persists_current_inventory_state(driver, tmp_path):
+    config = FilesystemSourceConfig(id="inv-persist-test", root=tmp_path)
+    stats = import_all_sources(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    with driver.session(database=DATABASE) as session:
+        record = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS revision, "
+            "i.inventory_capture_id AS capture, i.inventory_event_id AS event, "
+            "i.scope_definition_digest AS digest"
+        ).single()
+    assert record is not None
+    assert record["revision"] is not None
+    assert record["capture"] is not None
+    assert record["event"] is not None
+    assert record["digest"] is not None
+
+
+def test_import_all_sources_rejects_a_tombstone_on_a_brand_new_scope_without_crashing(
+    driver, tmp_path
+):
+    """A real bug found in PR re-review: `_READ_CURRENT_INVENTORY_QUERY`'s locking `MERGE` sets
+    `discovery_scope_id` on a freshly created `CurrentInventory` node (it's part of the MERGE's own
+    matching pattern) while `inventory_revision`/`scope_definition_digest` remain null - a
+    partially populated "committed" state that made `validate_tombstone_against_committed_inventory`
+    raise `InconsistentCommittedInventoryStateError` instead of correctly classifying a tombstone
+    submitted on a scope's very first run as `NO_COMMITTED_INVENTORY`."""
+    config = FilesystemSourceConfig(id="tomb-fresh-scope-test", root=tmp_path)
+    fresh_scope_id = run_filesystem_discovery(config).discovery_scope_id
+
+    tombstone = Tombstone(
+        target_source_instance_id="urn:aip:source:filesystem:doesnotexist",
+        discovery_scope_id=fresh_scope_id,
+        expected_prior_inventory_revision="urn:aip:inventory-revision:" + "0" * 64,
+        scope_definition_digest="whatever",
+        actor="operator@example.com",
+        reason="test",
+        tombstone_revision="1",
+    )
+
+    stats = import_all_sources(
+        driver, database=DATABASE, source_config=config, tombstones=(tombstone,)
+    )
+    assert stats.committed is True
+    assert stats.removed_source_instance_ids == ()
+    assert any(d.code == DiagnosticCode.TOMBSTONE_STALE for d in stats.diagnostics)
+
+
+def test_import_all_sources_accepts_a_matching_expected_predecessor(driver, tmp_path):
+    config = FilesystemSourceConfig(id="inv-predecessor-test", root=tmp_path)
+    first = import_all_sources(driver, database=DATABASE, source_config=config)
+    assert first.committed is True
+    with driver.session(database=DATABASE) as session:
+        first_revision = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS r"
+        ).single()["r"]
+
+    second = import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=config,
+        expected_prior_inventory_revision=first_revision,
+    )
+    assert second.committed is True
+
+
+def test_import_all_sources_rejects_a_stale_expected_predecessor_and_preserves_state(
+    driver, tmp_path
+):
+    config = FilesystemSourceConfig(id="inv-stale-test", root=tmp_path)
+    first = import_all_sources(driver, database=DATABASE, source_config=config)
+    assert first.committed is True
+    with driver.session(database=DATABASE) as session:
+        first_revision = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS r"
+        ).single()["r"]
+
+    stale = import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=config,
+        expected_prior_inventory_revision="urn:aip:inventory-revision:" + "0" * 64,
+    )
+    assert stale.committed is False
+    assert any(d.code == DiagnosticCode.STALE_INVENTORY_PREDECESSOR for d in stale.diagnostics)
+
+    with driver.session(database=DATABASE) as session:
+        still_committed_revision = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS r"
+        ).single()["r"]
+    assert still_committed_revision == first_revision
+
+
+def test_import_all_sources_serializes_concurrent_first_imports_of_the_same_scope(driver, tmp_path):
+    """A genuine TOCTOU race found in PR review: under Neo4j's default read-committed isolation, a
+    plain read-then-later-write predecessor check would let two concurrent transactions for the
+    same scope both read the same pre-image, both pass their own check, and both proceed to write -
+    silently corrupting the inventory-revision/event-id chain rather than rejecting the loser.
+    `_READ_CURRENT_INVENTORY_QUERY`'s MERGE acquires a real per-scope lock for the transaction's
+    duration, so of two concurrent first-imports of the same fresh scope (both expecting `None` -
+    "no prior committed inventory"), exactly one may commit; the other must observe the winner's
+    real committed state inside its own transaction and correctly detect the mismatch.
+
+    Schema constraints are ensured synchronously, up front, outside the timed race: two concurrent
+    *first-ever* `CREATE CONSTRAINT IF NOT EXISTS` calls against a brand-new database can themselves
+    deadlock inside Neo4j (`ensure_schema` uses plain autocommit `session.run`, not a retrying
+    managed transaction) - a real, pre-existing hazard independent of this PR's own `CurrentInventory`
+    locking, and out of this PR's scope to fix. Isolating it here keeps this test's failure signal
+    specific to the mechanism under review."""
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+
+    config = FilesystemSourceConfig(id="concurrency-test", root=tmp_path)
+    results: list[ImportRunStats | None] = [None, None]
+    barrier = threading.Barrier(2)
+
+    def _run(index: int) -> None:
+        barrier.wait()
+        results[index] = import_all_sources(
+            driver,
+            database=DATABASE,
+            source_config=config,
+            expected_prior_inventory_revision=None,
+        )
+
+    threads = [threading.Thread(target=_run, args=(i,)) for i in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    committed_flags = [r.committed for r in results if r is not None]
+    assert len(committed_flags) == 2
+    assert committed_flags.count(True) == 1
+    assert committed_flags.count(False) == 1
+
+    loser = next(r for r in results if r is not None and not r.committed)
+    assert any(d.code == DiagnosticCode.STALE_INVENTORY_PREDECESSOR for d in loser.diagnostics)
+
+    assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 1
+
+
+def test_import_all_sources_denies_removal_on_scope_mismatch_but_an_explicit_tombstone_authorizes_it(
+    driver, tmp_path
+):
+    """I2 Draft 0.2 §3 prerequisite slice, item 5: an explicit tombstone is the only way to
+    authorize removal once the enumeration's own scope no longer matches what a source last
+    committed under (I1 spec §6's SCOPE_CHANGED_PRESERVE_PENDING_TOMBSTONE case) - ordinary
+    same-root absence (test_import_all_sources_removes_source_no_longer_discovered, above) already
+    authorizes removal without one; this proves the tombstone path is real and independently wired,
+    not a no-op that happens to always agree with the enumeration-absence path. Two physically
+    different roots under the SAME configured id give the same `discovery_scope_id` (derived from
+    `id`, not the physical root) but a different `scope_definition_digest` (which does include the
+    root path) - a real scope change, not merely "the file disappeared"."""
+    root_a = tmp_path / "root-a"
+    shutil.copytree(EXAMPLES_DIR / "product-service", root_a / "product-service")
+    root_b = tmp_path / "root-b"
+    root_b.mkdir()
+
+    config_a = FilesystemSourceConfig(id="tomb-test", root=root_a)
+    stats1 = import_all_sources(driver, database=DATABASE, source_config=config_a)
+    assert stats1.committed is True
+    [source_instance_id] = list(stats1.per_source.keys())
+    assert _count(driver, "MATCH (s:Service) RETURN count(s) AS c") == 1
+
+    config_b = FilesystemSourceConfig(id="tomb-test", root=root_b)
+    stats2 = import_all_sources(driver, database=DATABASE, source_config=config_b)
+    assert stats2.committed is True
+    assert stats2.removed_source_instance_ids == ()
+    # Scope mismatch denied removal via the enumeration path - the old service's node is retained.
+    assert _count(driver, "MATCH (s:Service) RETURN count(s) AS c") == 1
+
+    with driver.session(database=DATABASE) as session:
+        record = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS revision, "
+            "i.discovery_scope_id AS scope, i.scope_definition_digest AS digest"
+        ).single()
+
+    tombstone = Tombstone(
+        target_source_instance_id=source_instance_id,
+        discovery_scope_id=record["scope"],
+        expected_prior_inventory_revision=record["revision"],
+        scope_definition_digest=record["digest"],
+        actor="operator@example.com",
+        reason="root relocated, product-service decommissioned",
+        tombstone_revision="1",
+    )
+
+    stats3 = import_all_sources(
+        driver, database=DATABASE, source_config=config_b, tombstones=(tombstone,)
+    )
+    assert stats3.committed is True
+    assert stats3.removed_source_instance_ids == (source_instance_id,)
+    assert _count(driver, "MATCH (s:Service) RETURN count(s) AS c") == 0
+
+
+def test_import_all_sources_denies_removal_via_a_tombstone_with_a_stale_expected_predecessor(
+    driver, tmp_path
+):
+    """Renamed from an earlier, misleading name (a PR review finding): the *run* still commits
+    (`committed is True`) - only the requested *removal* is denied, with the rejection surfaced as
+    a diagnostic rather than silently no-op'd (another PR review finding: `_import_all_sources_tx`
+    used to drop `validate_tombstone_against_committed_inventory`'s rejection diagnostic on the
+    floor)."""
+    root_a = tmp_path / "root-a"
+    shutil.copytree(EXAMPLES_DIR / "product-service", root_a / "product-service")
+    root_b = tmp_path / "root-b"
+    root_b.mkdir()
+
+    config_a = FilesystemSourceConfig(id="tomb-stale-test", root=root_a)
+    stats1 = import_all_sources(driver, database=DATABASE, source_config=config_a)
+    [source_instance_id] = list(stats1.per_source.keys())
+
+    config_b = FilesystemSourceConfig(id="tomb-stale-test", root=root_b)
+    import_all_sources(driver, database=DATABASE, source_config=config_b)
+    with driver.session(database=DATABASE) as session:
+        record = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.discovery_scope_id AS scope, "
+            "i.scope_definition_digest AS digest"
+        ).single()
+
+    stale_tombstone = Tombstone(
+        target_source_instance_id=source_instance_id,
+        discovery_scope_id=record["scope"],
+        expected_prior_inventory_revision="urn:aip:inventory-revision:" + "0" * 64,
+        scope_definition_digest=record["digest"],
+        actor="operator@example.com",
+        reason="stale tombstone",
+        tombstone_revision="1",
+    )
+
+    stats3 = import_all_sources(
+        driver, database=DATABASE, source_config=config_b, tombstones=(stale_tombstone,)
+    )
+    assert stats3.committed is True
+    assert stats3.removed_source_instance_ids == ()
+    assert _count(driver, "MATCH (s:Service) RETURN count(s) AS c") == 1
+    assert any(d.code == DiagnosticCode.TOMBSTONE_STALE for d in stats3.diagnostics)

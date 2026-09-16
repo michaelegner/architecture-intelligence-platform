@@ -13,8 +13,9 @@ responsibilities - `merge_models` (kept, moved here) and hard-coded per-source-k
 (replaced by the registry) - are both superseded.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.canonical.model import ArchitectureModel, Message, Operation, Queue, Schema, Service
@@ -26,7 +27,12 @@ from app.provenance.model import Provenance
 from app.sources.claim_conflicts import detect_shared_claim_content_conflicts
 from app.sources.commit_gate import classify_inventory_status, run_is_eligible_to_commit
 from app.sources.identity import mapping_context_digest as compute_mapping_context_digest
-from app.sources.inventory import InventoryStatus
+from app.sources.inventory import (
+    InventoryStatus,
+    SourceInventorySnapshot,
+    inventory_capture_id,
+    inventory_revision,
+)
 from app.sources.jcs import sort_entries_by_canonical_bytes
 from app.sources.manifest_bindings import (
     BindingIndex,
@@ -45,12 +51,13 @@ from app.sources.model import (
     IngestionDiagnostic,
     IngestionResult,
 )
-from app.sources.registry import AdapterOutcome, SourceAdapterRegistry
+from app.sources.registry import AdapterOutcome, SourceAdapterRegistry, SourceDiscoverer
 from app.sources.service_identity import (
     PointerBinding,
     ServiceIdentityPath,
     resolve_service_identity,
 )
+from app.sources.tombstones import Tombstone
 
 _DEFAULT_ADAPTERS = (OpenApiSourceAdapter(), AsyncApiSourceAdapter(), ManifestSourceAdapter())
 
@@ -297,17 +304,87 @@ class DiscoveryRunResult:
     merged_model: ArchitectureModel
     source_outcomes: dict[str, SourceRunOutcome]
     diagnostics: tuple[IngestionDiagnostic, ...]
+    # I2 Draft 0.2 §3 prerequisite slice, item 3: "every discovery attempt constructs a real
+    # SourceInventorySnapshot." `None` only when `discovery_scope_id`/`scope_definition_digest`
+    # themselves could not be computed (the configured root doesn't exist at all) - a snapshot
+    # cannot meaningfully identify the inventory it describes without a scope id, mirroring
+    # `DiscoveryOutcome.discovery_scope_id`'s own documented "scope itself unknown" meaning.
+    inventory_snapshot: SourceInventorySnapshot | None = None
 
 
-def run_filesystem_discovery(
-    config: FilesystemSourceConfig,
+def _build_inventory_snapshot(
+    *,
+    discoverer_identity: str,
+    registry: SourceAdapterRegistry,
+    discovery_scope_id: str | None,
+    scope_definition_digest: str | None,
+    status: InventoryStatus,
+    source_outcomes: Mapping[str, SourceRunOutcome],
+    diagnostics: Sequence[IngestionDiagnostic],
+    tombstones: Sequence[Tombstone],
+) -> SourceInventorySnapshot | None:
+    if discovery_scope_id is None or scope_definition_digest is None:
+        return None
+
+    # A caller (e.g. app.api.import_api, which loads every configured tombstone once and reuses
+    # the same list for every configured source) may pass tombstones targeting other discovery
+    # scopes. Only tombstones actually declared against THIS scope may affect its own inventory
+    # revision/event-id chain - otherwise an unrelated scope's tombstone would spuriously churn
+    # this scope's revision (a real bug found in review). `validate_tombstone_against_committed_
+    # inventory` would reject an out-of-scope tombstone anyway, but it must never be allowed to
+    # even enter this scope's semantic hash in the first place.
+    in_scope_tombstones = tuple(t for t in tombstones if t.discovery_scope_id == discovery_scope_id)
+
+    discovered_source_ids = tuple(sorted(source_outcomes.keys()))
+    revision = inventory_revision(
+        discovery_scope_id=discovery_scope_id,
+        scope_definition_digest=scope_definition_digest,
+        source_instance_ids=discovered_source_ids,
+        tombstones=in_scope_tombstones,
+        status=status,
+    )
+    capture_time = datetime.now(UTC).isoformat()
+    capture_id = inventory_capture_id(
+        inventory_revision=revision,
+        # No single "provider revision" exists at the multi-source run level - each source's own
+        # `declared_provider_revision` already lives on its `SourceDescriptor`.
+        normalized_provider_revision=None,
+        capture_time=capture_time,
+    )
+    return SourceInventorySnapshot(
+        inventory_revision=revision,
+        inventory_capture_id=capture_id,
+        # inventory_event_id is left unset here: chaining it requires the previously persisted
+        # event id, which this module never reads (I1 spec discipline: "entirely in memory, with
+        # zero Neo4j I/O"). `app.graph.importer` completes the chain at commit time.
+        discovery_scope_id=discovery_scope_id,
+        scope_definition_digest=scope_definition_digest,
+        discoverer_identity=discoverer_identity,
+        adapter_identities=tuple(sorted(a.adapter_identity for a in registry.adapters)),
+        mapping_rule_identities=tuple(sorted(a.mapping_rule_version for a in registry.adapters)),
+        status=status,
+        discovered_source_ids=discovered_source_ids,
+        tombstones=in_scope_tombstones,
+        capture_time=capture_time,
+        diagnostics=tuple(diagnostics),
+    )
+
+
+def run_discovery(
+    discoverer: SourceDiscoverer,
     *,
     registry: SourceAdapterRegistry | None = None,
     migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
 ) -> DiscoveryRunResult:
+    """I2 Draft 0.2 §3 prerequisite slice, items 1/3: the source-neutral discovery entry point -
+    accepts any configured `SourceDiscoverer`, with no source-kind branch inside this function.
+    `run_filesystem_discovery` below is now a thin compatibility wrapper over this function so every
+    existing filesystem caller/test keeps working unchanged.
+    """
     registry = registry or default_registry()
     shared_identity_index = migration_mappings or EMPTY_SHARED_IDENTITY_INDEX
-    discovery_outcome = FilesystemSourceDiscoverer(config).discover()
+    discovery_outcome = discoverer.discover()
 
     if not discovery_outcome.enumeration_complete:
         status = classify_inventory_status(source_results=(), discoverer_enumeration_complete=False)
@@ -319,6 +396,16 @@ def run_filesystem_discovery(
             merged_model=ArchitectureModel(),
             source_outcomes={},
             diagnostics=discovery_outcome.diagnostics,
+            inventory_snapshot=_build_inventory_snapshot(
+                discoverer_identity=discoverer.discoverer_identity,
+                registry=registry,
+                discovery_scope_id=discovery_outcome.discovery_scope_id,
+                scope_definition_digest=discovery_outcome.scope_definition_digest,
+                status=status,
+                source_outcomes={},
+                diagnostics=discovery_outcome.diagnostics,
+                tombstones=tombstones,
+            ),
         )
 
     # Canonical order (by source_instance_id) so permuting discovery order can never change the
@@ -366,6 +453,16 @@ def run_filesystem_discovery(
             merged_model=ArchitectureModel(),
             source_outcomes={},
             diagnostics=tuple(run_diagnostics),
+            inventory_snapshot=_build_inventory_snapshot(
+                discoverer_identity=discoverer.discoverer_identity,
+                registry=registry,
+                discovery_scope_id=discovery_outcome.discovery_scope_id,
+                scope_definition_digest=discovery_outcome.scope_definition_digest,
+                status=status,
+                source_outcomes={},
+                diagnostics=run_diagnostics,
+                tombstones=tombstones,
+            ),
         )
 
     resolver = _RunServiceIdentityResolver(_binding_index_to_pointer_bindings(binding_index))
@@ -459,6 +556,16 @@ def run_filesystem_discovery(
             merged_model=ArchitectureModel(),
             source_outcomes=source_outcomes,
             diagnostics=tuple(run_diagnostics),
+            inventory_snapshot=_build_inventory_snapshot(
+                discoverer_identity=discoverer.discoverer_identity,
+                registry=registry,
+                discovery_scope_id=discovery_outcome.discovery_scope_id,
+                scope_definition_digest=discovery_outcome.scope_definition_digest,
+                status=InventoryStatus.PARTIAL,
+                source_outcomes=source_outcomes,
+                diagnostics=run_diagnostics,
+                tombstones=tombstones,
+            ),
         )
 
     merged_model = merge_models(source_models)
@@ -475,4 +582,31 @@ def run_filesystem_discovery(
         merged_model=merged_model,
         source_outcomes=source_outcomes,
         diagnostics=tuple(run_diagnostics),
+        inventory_snapshot=_build_inventory_snapshot(
+            discoverer_identity=discoverer.discoverer_identity,
+            registry=registry,
+            discovery_scope_id=discovery_outcome.discovery_scope_id,
+            scope_definition_digest=discovery_outcome.scope_definition_digest,
+            status=status,
+            source_outcomes=source_outcomes,
+            diagnostics=run_diagnostics,
+            tombstones=tombstones,
+        ),
+    )
+
+
+def run_filesystem_discovery(
+    config: FilesystemSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+) -> DiscoveryRunResult:
+    """Thin compatibility wrapper over `run_discovery` for the filesystem source kind - every
+    existing caller/test keeps working unchanged."""
+    return run_discovery(
+        FilesystemSourceDiscoverer(config),
+        registry=registry,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
     )

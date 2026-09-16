@@ -15,6 +15,13 @@ CONSTRAINTS = [
         "CREATE CONSTRAINT source_state_source_instance_id IF NOT EXISTS "
         "FOR (s:SourceState) REQUIRE s.source_instance_id IS UNIQUE"
     ),
+    # I2 Draft 0.2 §3 prerequisite slice: one persisted "current committed inventory" node per
+    # discovery scope, read/written by app.graph.importer to feed the transactional predecessor
+    # comparison and the inventory_event_id audit chain.
+    (
+        "CREATE CONSTRAINT current_inventory_discovery_scope_id IF NOT EXISTS "
+        "FOR (i:CurrentInventory) REQUIRE i.discovery_scope_id IS UNIQUE"
+    ),
     # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.

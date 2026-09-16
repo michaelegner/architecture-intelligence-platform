@@ -553,7 +553,7 @@
   "manifest_version": 1,
   "seed_timestamp": "2026-08-26T12:00:00.000000Z",
   "service_id": "service:order-service",
-  "total_node_count": 45,
+  "total_node_count": 46,
   "total_relationship_count": 29,
   "window_end": "2026-08-27T00:00:00.000000Z",
   "window_start": "2026-08-26T00:00:00.000000Z"

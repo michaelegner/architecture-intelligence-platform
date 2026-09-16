@@ -93,18 +93,12 @@ class FilesystemSourceDiscoverer:
 
     def discover(self) -> DiscoveryOutcome:
         root = self._config.root
-        if not root.is_dir():
-            return DiscoveryOutcome(
-                loaded_sources=(),
-                enumeration_complete=False,
-                diagnostics=(
-                    IngestionDiagnostic(
-                        code=DiagnosticCode.SOURCE_ROOT_UNAVAILABLE,
-                        message=f"configured source root does not exist or is not a directory: {root}",
-                    ),
-                ),
-            )
-
+        # I2 Draft 0.2 §3/§8: a snapshot is required for every discovery attempt, including a
+        # failed one - and the scope identity/digest are pure functions of *configured* values
+        # (id, stable target identity, normalized root path string), never of the filesystem
+        # itself, so they are always computable even when `root` doesn't exist. Compute them
+        # before the existence check (a real bug found in review: this used to bail out with
+        # `discovery_scope_id=None` for a missing root, silently discarding a computable scope).
         scope_id = discovery_scope_id(
             configured_scope_id=self._config.resolved_scope_id,
             stable_target_identity=self._config.resolved_stable_target_identity,
@@ -115,6 +109,20 @@ class FilesystemSourceDiscoverer:
             filters=[],
             inclusion_rules=[],
         )
+
+        if not root.is_dir():
+            return DiscoveryOutcome(
+                loaded_sources=(),
+                enumeration_complete=False,
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.SOURCE_ROOT_UNAVAILABLE,
+                        message=f"configured source root does not exist or is not a directory: {root}",
+                    ),
+                ),
+                discovery_scope_id=scope_id,
+                scope_definition_digest=scope_digest,
+            )
 
         loaded_sources: list[LoadedSource] = []
         diagnostics: list[IngestionDiagnostic] = []

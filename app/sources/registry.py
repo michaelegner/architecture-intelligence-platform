@@ -96,8 +96,14 @@ class DiscoveryOutcome:
     `discovery_scope_id`/`scope_definition_digest` are carried at this level (not only inside each
     `LoadedSource.descriptor`) so a caller can still identify the scope when zero sources were
     found - a legitimately empty scope must be distinguishable from "we don't know what scope this
-    was."  `None` only when `enumeration_complete` is `False` and the scope itself could not be
-    computed (e.g. the configured root doesn't exist).
+    was." I2 Draft 0.2 §3/§8 requires a snapshot for every discovery attempt, including a failed
+    one, so a discoverer SHOULD compute and return both fields whenever they are pure functions of
+    its own *configured* values (never requiring the underlying source to actually be reachable) -
+    `FilesystemSourceDiscoverer` does this even for a missing root, since both formulas are
+    computed only from configured id/path strings (a real bug found in review: it used to return
+    `None` for exactly this case, discarding a computable scope). `None` remains legitimate only for
+    a discoverer kind whose scope identity genuinely cannot be established without successful
+    acquisition.
     """
 
     loaded_sources: tuple[LoadedSource, ...]

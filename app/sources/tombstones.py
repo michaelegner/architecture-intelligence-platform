@@ -1,7 +1,10 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
 
-from pydantic import BaseModel
+import yaml
+from pydantic import BaseModel, ValidationError
 
 from app.sources.model import DiagnosticCode, IngestionDiagnostic
 
@@ -121,3 +124,69 @@ def validate_tombstone_against_committed_inventory(
         )
 
     return TombstoneValidation(accepted=True, rejection_reason=None, diagnostic=None)
+
+
+def load_tombstones(
+    paths: Sequence[Path],
+) -> tuple[tuple[Tombstone, ...], tuple[IngestionDiagnostic, ...]]:
+    """Reads and parses every configured tombstone file (`app.settings.SourcesConfig.tombstones`),
+    the I2 Draft 0.2 §3 prerequisite slice's minimal operator-facing surface for submitting an
+    explicit whole-source/scope-transition tombstone (I1 spec §6). Mirrors
+    `app.sources.migration_mappings.load_migration_mappings`'s "diagnose, never silently skip or
+    fall back" discipline: a missing/unreadable file or one that isn't well-formed YAML containing a
+    `tombstones:` list of valid `Tombstone` shapes is diagnosed rather than raised or ignored.
+
+    Each file's top-level shape is `{"tombstones": [<Tombstone fields>, ...]}` - a list rather than
+    a single object, since one file may declare tombstones for more than one configured source.
+    """
+    diagnostics: list[IngestionDiagnostic] = []
+    tombstones: list[Tombstone] = []
+
+    for path in paths:
+        locator = str(path)
+        try:
+            raw_bytes = path.read_bytes()
+        except OSError as exc:
+            diagnostics.append(
+                IngestionDiagnostic(
+                    code=DiagnosticCode.TOMBSTONE_FILE_UNAVAILABLE,
+                    message=f"{locator}: {exc}",
+                    source_pointer=locator,
+                )
+            )
+            continue
+
+        try:
+            parsed_yaml = yaml.safe_load(raw_bytes)
+        except yaml.YAMLError as exc:
+            diagnostics.append(
+                IngestionDiagnostic(
+                    code=DiagnosticCode.TOMBSTONE_SHAPE_INVALID,
+                    message=f"{locator}: {exc}",
+                    source_pointer=locator,
+                )
+            )
+            continue
+        if not isinstance(parsed_yaml, dict) or not isinstance(parsed_yaml.get("tombstones"), list):
+            diagnostics.append(
+                IngestionDiagnostic(
+                    code=DiagnosticCode.TOMBSTONE_SHAPE_INVALID,
+                    message=f"{locator}: expected a mapping with a top-level 'tombstones' list",
+                    source_pointer=locator,
+                )
+            )
+            continue
+
+        for index, entry in enumerate(parsed_yaml["tombstones"]):
+            try:
+                tombstones.append(Tombstone.model_validate(entry))
+            except ValidationError as exc:
+                diagnostics.append(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.TOMBSTONE_SHAPE_INVALID,
+                        message=f"{locator}: tombstones[{index}]: {exc}",
+                        source_pointer=locator,
+                    )
+                )
+
+    return tuple(tombstones), tuple(diagnostics)
