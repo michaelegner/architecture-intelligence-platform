@@ -222,6 +222,12 @@ class NormalizedSchema:
     definition_pointer_tokens: tuple[str, ...]
     canonical_hash: str
     has_uninterpreted_composition: bool
+    # The already-computed normalized JSON value `canonical_hash` was hashed from - exposed so a
+    # caller (AsyncAPI's message_contract_digest) can build a further projection from the fully
+    # *resolved* shape (with every $ref expanded) rather than a raw, possibly-still-`{"$ref": ...}`
+    # node, so two sources whose payload $ref differs syntactically but resolves identically
+    # correctly compare as equal contracts.
+    normalized_value: Any
 
 
 # `Schema.name`/`Message.name` (app.canonical.model) are required strings - a label only, never
@@ -287,6 +293,7 @@ def resolve_and_normalize_schema(
         definition_pointer_tokens=definition_pointer_tokens,
         canonical_hash=canonical_sha256_hex(normalized),
         has_uninterpreted_composition=bool(composition_seen),
+        normalized_value=normalized,
     )
 
 

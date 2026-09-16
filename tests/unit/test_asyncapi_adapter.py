@@ -5,7 +5,12 @@ from app.canonical.model import ArchitectureModel
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.sources.jcs import canonical_sha256_hex
-from app.sources.migration_mappings import EMPTY_SHARED_IDENTITY_INDEX
+from app.sources.migration_mappings import (
+    EMPTY_SHARED_IDENTITY_INDEX,
+    IdentityMappingEntry,
+    MigrationMappingsDocument,
+    build_shared_identity_index,
+)
 from app.sources.model import (
     DiagnosticCode,
     FilesystemSourceConfig,
@@ -57,11 +62,11 @@ def _loaded(document: dict, *, source_instance_id: str = SOURCE_INSTANCE_ID):
     return LoadedSource(descriptor=descriptor, document=document)
 
 
-def _map(document: dict):
+def _map(document: dict, *, shared_identity=EMPTY_SHARED_IDENTITY_INDEX):
     return AsyncApiSourceAdapter().map(
         _loaded(document),
         service_identity=_StubResolver(),
-        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
+        shared_identity=shared_identity,
         upstream_model=ArchitectureModel(),
         mapping_context_digest="e" * 64,
     )
@@ -96,6 +101,82 @@ def _base_document(**channel_overrides) -> dict:
             },
         },
     }
+
+
+def _shared_identity_index(*, schema_mappings=(), message_mappings=()):
+    def _entries(mappings):
+        return tuple(
+            IdentityMappingEntry(
+                source_instance_id=SOURCE_INSTANCE_ID,
+                pointer=pointer,
+                pointer_tokens=tuple(pointer.strip("/").split("/")),
+                target_id=target_id,
+            )
+            for pointer, target_id in mappings
+        )
+
+    index, diagnostics = build_shared_identity_index(
+        [
+            MigrationMappingsDocument(
+                artifact_id="test-artifact",
+                artifact_revision="v1",
+                locator="migrations.yaml",
+                schema_mappings=_entries(schema_mappings),
+                message_mappings=_entries(message_mappings),
+            )
+        ]
+    )
+    assert diagnostics == []
+    return index
+
+
+def test_explicit_shared_message_mapping_overrides_the_owner_scoped_default():
+    index = _shared_identity_index(
+        message_mappings=[("/components/messages/OrderPlaced", "message:OrderPlaced:v2")]
+    )
+    outcome = _map(_base_document(), shared_identity=index)
+
+    assert outcome.result is IngestionResult.ACCEPTED
+    [message] = outcome.model.messages
+    assert message.id == "message:OrderPlaced:v2"
+
+
+def test_explicit_shared_payload_schema_mapping_overrides_the_owner_scoped_default():
+    index = _shared_identity_index(
+        schema_mappings=[("/components/schemas/OrderPlacedPayload", "schema:OrderPlaced:v2")]
+    )
+    outcome = _map(_base_document(), shared_identity=index)
+
+    assert outcome.result is IngestionResult.ACCEPTED
+    [schema] = outcome.model.schemas
+    assert schema.id == "schema:OrderPlaced:v2"
+
+
+def test_explicit_message_mapping_to_the_same_id_with_disagreeing_content_conflicts():
+    document = _base_document()
+    document["channels"]["invoices-q"] = {
+        "x-aip-destination-kind": "queue",
+        "publish": {
+            "operationId": "sendInvoice",
+            "message": {"$ref": "#/components/messages/InvoiceCreated"},
+        },
+    }
+    document["components"]["messages"]["InvoiceCreated"] = {
+        "name": "InvoiceCreated",
+        "x-version": "v1",
+        "payload": {"type": "object", "properties": {"totally": {"type": "different"}}},
+    }
+    index = _shared_identity_index(
+        message_mappings=[
+            ("/components/messages/OrderPlaced", "message:Shared"),
+            ("/components/messages/InvoiceCreated", "message:Shared"),
+        ]
+    )
+    outcome = _map(document, shared_identity=index)
+
+    assert outcome.result is IngestionResult.REJECTED_CONFLICT
+    assert any(d.code is DiagnosticCode.MESSAGE_CONTENT_CONFLICT for d in outcome.diagnostics)
+    assert outcome.model.messages == []
 
 
 def test_no_channels_is_accepted_as_service_only():

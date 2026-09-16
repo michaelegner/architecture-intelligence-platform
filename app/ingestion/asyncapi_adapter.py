@@ -16,10 +16,14 @@ from app.ingestion._shared import (
     resolve_and_normalize_schema,
     schema_display_name,
     semantic_input_digest_bytes,
+    upsert_message_or_conflict,
+    upsert_schema_or_conflict,
 )
 from app.provenance.model import Provenance
 from app.sources.encoding import unicode_nfc
 from app.sources.identity import semantic_input_digest
+from app.sources.jcs import JSONValue
+from app.sources.message_contract import message_contract_digest, message_document_digest
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
 from app.sources.owner_ids import (
     MISSING,
@@ -299,18 +303,19 @@ class AsyncApiSourceAdapter:
             message_name: str,
             message_document_path: str,
             message_pointer_tokens: tuple[str, ...],
-        ) -> tuple[str | None, AdapterOutcome | None]:
+        ) -> tuple[str | None, JSONValue | None, AdapterOutcome | None]:
             """I1 spec §9.1: "A payload $ref always uses the resolved definition's §8.1 Schema ID;
             only a payload defined inline uses the message-owned inline payload ID". The payload
             lives inside the message's OWN document, not necessarily the root - a relative $ref
             (or an inline payload's own identity pointer) must resolve against
             `message_document_path`, never unconditionally against the root's own path, or a
             payload declared inside an externally-referenced message document resolves relative to
-            the wrong directory.
+            the wrong directory. Returns (schema_id, normalized_payload_value, error_outcome) - the
+            middle value feeds `message_contract_digest`'s payload projection.
             """
             nonlocal any_uninterpreted_composition
             if not payload:
-                return None, None
+                return None, None, None
             if "$ref" in payload:
                 try:
                     normalized = resolve_and_normalize_schema(
@@ -320,10 +325,18 @@ class AsyncApiSourceAdapter:
                         cache=cache,
                     )
                 except ReferenceResolutionError as exc:
-                    return None, rejected_outcome_for_reference_error(
-                        exc, source_pointer=encode_pointer_tokens(message_pointer_tokens)
+                    return (
+                        None,
+                        None,
+                        rejected_outcome_for_reference_error(
+                            exc, source_pointer=encode_pointer_tokens(message_pointer_tokens)
+                        ),
                     )
-                schema_id_value = schema_owned_id(
+                explicit_schema_id = shared_identity.schema_id_for(
+                    source_instance_id=source_instance_id,
+                    pointer=encode_pointer_tokens(normalized.definition_pointer_tokens),
+                )
+                schema_id_value = explicit_schema_id or schema_owned_id(
                     canonical_service_id=canonical_service_id,
                     source_instance_id=source_instance_id,
                     normalized_definition_document_path=normalized.normalized_definition_document_path,
@@ -339,9 +352,15 @@ class AsyncApiSourceAdapter:
                         cache=cache,
                     )
                 except ReferenceResolutionError as exc:
-                    return None, rejected_outcome_for_reference_error(
-                        exc,
-                        source_pointer=encode_pointer_tokens((*message_pointer_tokens, "payload")),
+                    return (
+                        None,
+                        None,
+                        rejected_outcome_for_reference_error(
+                            exc,
+                            source_pointer=encode_pointer_tokens(
+                                (*message_pointer_tokens, "payload")
+                            ),
+                        ),
                     )
                 schema_id_value = inline_payload_schema_id(
                     message_id=message_id,
@@ -356,14 +375,28 @@ class AsyncApiSourceAdapter:
             if normalized.has_uninterpreted_composition:
                 any_uninterpreted_composition = True
 
-            if schema_id_value not in schemas_by_id:
-                schemas_by_id[schema_id_value] = Schema(
+            conflict = upsert_schema_or_conflict(
+                schemas_by_id,
+                schema_id_value,
+                Schema(
                     id=schema_id_value,
                     name=schema_name,
                     format="application/json",
                     canonical_hash=normalized.canonical_hash,
+                ),
+            )
+            if conflict is not None:
+                return (
+                    None,
+                    None,
+                    AdapterOutcome(
+                        result=IngestionResult.REJECTED_CONFLICT,
+                        model=ArchitectureModel(),
+                        diagnostics=(conflict,),
+                        semantic_input_digest=None,
+                    ),
                 )
-            return schema_id_value, None
+            return schema_id_value, normalized.normalized_value, None
 
         channel_queue_id: dict[str, str] = {}
         channel_broker_namespace: dict[str, tuple[str, str]] = {}
@@ -518,7 +551,11 @@ class AsyncApiSourceAdapter:
                             semantic_input_digest=None,
                         )
 
-                    message_id_value = message_owned_id(
+                    explicit_message_id = shared_identity.message_id_for(
+                        source_instance_id=source_instance_id,
+                        pointer=encode_pointer_tokens(message_pointer_tokens),
+                    )
+                    message_id_value = explicit_message_id or message_owned_id(
                         canonical_service_id=canonical_service_id,
                         source_instance_id=source_instance_id,
                         normalized_definition_document_path=message_def.document_path,
@@ -530,25 +567,42 @@ class AsyncApiSourceAdapter:
                         or message_document.get("title")
                         or f"{channel_name}:{operation_key}"
                     )
-                    if message_id_value not in messages_by_id:
-                        payload = message_document.get("payload")
-                        schema_id_value, error_outcome = resolve_payload_schema_id(
+                    payload = message_document.get("payload")
+                    schema_id_value, normalized_payload_value, error_outcome = (
+                        resolve_payload_schema_id(
                             payload,
                             message_id=message_id_value,
                             message_name=message_name,
                             message_document_path=message_def.document_path,
                             message_pointer_tokens=message_pointer_tokens,
                         )
-                        if error_outcome is not None:
-                            return error_outcome
-                        messages_by_id[message_id_value] = Message(
+                    )
+                    if error_outcome is not None:
+                        return error_outcome
+
+                    conflict = upsert_message_or_conflict(
+                        messages_by_id,
+                        message_id_value,
+                        Message(
                             id=message_id_value,
                             name=message_name,
                             version=normalized_x_version or None,
                             schema_id=schema_id_value,
+                            contract_digest=message_contract_digest(
+                                message_document, normalized_payload=normalized_payload_value
+                            ),
+                            document_digest=message_document_digest(message_document),
+                        ),
+                    )
+                    if conflict is not None:
+                        return AdapterOutcome(
+                            result=IngestionResult.REJECTED_CONFLICT,
+                            model=ArchitectureModel(),
+                            diagnostics=(conflict,),
+                            semantic_input_digest=None,
                         )
-                        if schema_id_value:
-                            add_relation("CONFORMS_TO", message_id_value, schema_id_value)
+                    if schema_id_value:
+                        add_relation("CONFORMS_TO", message_id_value, schema_id_value)
                     add_relation("CARRIES", queue_id_value, message_id_value)
 
         if not channels:
