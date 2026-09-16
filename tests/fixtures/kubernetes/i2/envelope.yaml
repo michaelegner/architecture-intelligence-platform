@@ -1,0 +1,32 @@
+apiVersion: aip.dev/v1
+kind: KubernetesSourceSnapshot
+metadata:
+  id: checkout-cluster-snapshot-2026-09-15
+  revision: 2026-09-15T10-00-00Z
+  producer: aip-kubernetes-capture-agent
+  capturedAt: '2026-09-15T10:00:00Z'
+source:
+  configuredSourceId: checkout-cluster
+  configuredScopeId: checkout-cluster-namespaces
+  clusterUid: d3adbeef-0000-4000-8000-000000000001
+  clusterIdentityEvidenceRef: kube-system-namespace-uid
+  mode: CAPTURED_RESOURCE
+scope:
+  namespaces:
+  - checkout
+  resourceTypes:
+  - apps/v1/DaemonSet
+  - apps/v1/Deployment
+  - apps/v1/ReplicaSet
+  - apps/v1/StatefulSet
+  - networking.k8s.io/v1/Ingress
+  - v1/Namespace
+  - v1/Pod
+  - v1/Service
+completeness:
+  status: COMPLETE
+  authorityRef: checkout-cluster-capture-authority
+  expectedPriorInventoryRevision: null
+files:
+- path: resources.yaml
+  sha256: 7136fec86daf989e076e5a72e3b34a52b712975117d0f19e518ed54043180ad4

@@ -3,9 +3,12 @@ import hashlib
 from app.sources.identity import (
     EMPTY_CLOSURE_DIGEST,
     ClosureEntry,
+    KubernetesResourceIncarnation,
     content_sha256,
     dependency_closure_digest,
     discovery_scope_id,
+    kubernetes_logical_resource_id,
+    kubernetes_source_instance_id,
     mapping_context_digest,
     normalize_relative_posix_path,
     scope_definition_digest,
@@ -223,6 +226,99 @@ def test_scope_definition_digest_changes_with_roots_but_not_scope_id():
     assert scope_id == discovery_scope_id(
         configured_scope_id="scope-a", stable_target_identity="urn:aip:logical-root:a"
     )
+
+
+def test_kubernetes_source_instance_id_is_stable_for_identical_inputs():
+    first = kubernetes_source_instance_id(
+        configured_kubernetes_source_id="cluster-a", cluster_uid="uid-a"
+    )
+    second = kubernetes_source_instance_id(
+        configured_kubernetes_source_id="cluster-a", cluster_uid="uid-a"
+    )
+    assert first == second
+    assert first.startswith("urn:aip:source:kubernetes:")
+
+
+def test_kubernetes_source_instance_id_changes_with_cluster_uid():
+    a = kubernetes_source_instance_id(
+        configured_kubernetes_source_id="cluster-a", cluster_uid="uid-a"
+    )
+    b = kubernetes_source_instance_id(
+        configured_kubernetes_source_id="cluster-a", cluster_uid="uid-b"
+    )
+    assert a != b
+
+
+def test_kubernetes_source_instance_id_changes_with_configured_source_id():
+    a = kubernetes_source_instance_id(
+        configured_kubernetes_source_id="cluster-a", cluster_uid="uid-a"
+    )
+    b = kubernetes_source_instance_id(
+        configured_kubernetes_source_id="cluster-b", cluster_uid="uid-a"
+    )
+    assert a != b
+
+
+def test_kubernetes_logical_resource_id_is_stable_for_identical_inputs():
+    first = kubernetes_logical_resource_id(
+        cluster_uid="uid-a", api_group="apps", kind="Deployment", namespace="ns-a", name="web"
+    )
+    second = kubernetes_logical_resource_id(
+        cluster_uid="uid-a", api_group="apps", kind="Deployment", namespace="ns-a", name="web"
+    )
+    assert first == second
+    assert first.startswith("urn:aip:k8s-resource:")
+
+
+def test_kubernetes_logical_resource_id_core_api_group_is_the_empty_string():
+    # I2 Draft 0.2 §6: "The core API group is the empty string" - a v1 Pod's logical resource id
+    # must be derived with api_group="" directly, not some sentinel like "core" or "v1".
+    core_group = kubernetes_logical_resource_id(
+        cluster_uid="uid-a", api_group="", kind="Pod", namespace="ns-a", name="web-0"
+    )
+    named_group = kubernetes_logical_resource_id(
+        cluster_uid="uid-a", api_group="core", kind="Pod", namespace="ns-a", name="web-0"
+    )
+    assert core_group != named_group
+
+
+def test_kubernetes_logical_resource_id_namespace_object_uses_empty_namespace():
+    # I2 Draft 0.2 §6: "Namespace objects have an empty namespace component."
+    cluster_scoped = kubernetes_logical_resource_id(
+        cluster_uid="uid-a", api_group="", kind="Namespace", namespace="", name="ns-a"
+    )
+    namespaced_same_name = kubernetes_logical_resource_id(
+        cluster_uid="uid-a", api_group="", kind="Namespace", namespace="ns-a", name="ns-a"
+    )
+    assert cluster_scoped != namespaced_same_name
+
+
+def test_kubernetes_logical_resource_id_performs_no_case_folding_or_slug_conversion():
+    # I2 Draft 0.2 §6: "no case folding, slug conversion, or name equivalence with application
+    # Services is permitted" - this function must treat differently-cased/spelled names as distinct.
+    lower = kubernetes_logical_resource_id(
+        cluster_uid="uid-a", api_group="", kind="Service", namespace="ns-a", name="web-app"
+    )
+    upper = kubernetes_logical_resource_id(
+        cluster_uid="uid-a", api_group="", kind="Service", namespace="ns-a", name="Web-App"
+    )
+    assert lower != upper
+
+
+def test_kubernetes_resource_incarnation_replacement_preserves_logical_identity():
+    # I2 Draft 0.2 §6: "A replacement resource with the same name and a new UID preserves logical
+    # identity while changing incarnation evidence. Old UID links must not resolve against the
+    # replacement."
+    logical_id = kubernetes_logical_resource_id(
+        cluster_uid="uid-a", api_group="", kind="Pod", namespace="ns-a", name="web-0"
+    )
+    original = KubernetesResourceIncarnation(logical_resource_id=logical_id, captured_uid="uid-1")
+    replacement = KubernetesResourceIncarnation(
+        logical_resource_id=logical_id, captured_uid="uid-2"
+    )
+    assert original.logical_resource_id == replacement.logical_resource_id
+    assert original.captured_uid != replacement.captured_uid
+    assert original != replacement
 
 
 def test_scope_definition_digest_does_not_confuse_group_boundaries():

@@ -144,6 +144,20 @@ class DiagnosticCode(StrEnum):
     # generalized/renamed variant - the entity kinds this guards are themselves Kubernetes-specific
     # (KUBERNETES_WORKLOAD/POD/NETWORK_SERVICE/INGRESS), so the spec's own name is the honest one.
     K8S_RESOURCE_CONFLICT = "K8S_RESOURCE_CONFLICT"
+    # I2 Draft 0.2 §10's own named codes, for this increment's slice 2a (envelope validation,
+    # bounds/security, identity) - the remaining §10 codes (K8S_STALE_INVENTORY, K8S_RESOURCE_*,
+    # K8S_OWNER_*, NO_QUALIFIED_POD_MATCH, K8S_BACKEND_UNRESOLVED) depend on source registration,
+    # resource projection, or owner-chain resolution this slice doesn't implement yet.
+    #
+    # K8S_CLUSTER_IDENTITY_UNRESOLVED is defined here but not yet reachable: firing it requires
+    # comparing the envelope's cluster UID against a configured KubernetesSourceConfig, and that
+    # registration binding is slice 2b's job (mirroring SourceKind.KUBERNETES itself, reserved
+    # below with no member yet for the same reason). A missing/empty clusterUid in this slice's
+    # own validation surfaces as the generic K8S_SNAPSHOT_INVALID instead.
+    K8S_CLUSTER_IDENTITY_UNRESOLVED = "K8S_CLUSTER_IDENTITY_UNRESOLVED"
+    K8S_SNAPSHOT_INVALID = "K8S_SNAPSHOT_INVALID"
+    K8S_SNAPSHOT_INCOMPLETE = "K8S_SNAPSHOT_INCOMPLETE"
+    K8S_LIMIT_EXCEEDED = "K8S_LIMIT_EXCEEDED"
 
 
 class IngestionDiagnostic(BaseModel):

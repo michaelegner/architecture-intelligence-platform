@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: checkout
+  uid: ns-uid-1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-api
+  namespace: checkout
+  uid: deploy-uid-1
+spec:
+  replicas: 2
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: checkout-api-abcde
+  namespace: checkout
+  uid: pod-uid-1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkout-api
+  namespace: checkout
+  uid: svc-uid-1
+spec:
+  selector:
+    app: checkout-api
