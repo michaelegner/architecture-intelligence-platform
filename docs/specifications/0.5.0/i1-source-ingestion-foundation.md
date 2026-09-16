@@ -234,8 +234,15 @@ Only the physical `examples/` root participates in `scope_definition_digest`; it
 participate in `DiscoveryScopeId`. Each bundled source's `SourceInstanceId` is derived from the fixed
 filesystem-source ID, source kind, and normalized root-document path relative to `examples/`.
 
-The migration artifact SHALL bind those portable SourceInstanceIds and exact source pointers to the
-authoritative Service IDs and prior qualified Schema and Message IDs. Queue identity is
+The migration artifact SHALL bind those portable SourceInstanceIds and exact source pointers to
+prior qualified Schema and Message IDs. Service identity for the bundled examples is established by
+each root document's own `x-aip-service-id` extension (§4.1 resolution path 1), not by this
+artifact: every bundled root document's extension value already equals the Service ID the pre-PR3a
+directory-derived formula would have produced (`service:<example-directory-name>`), so Service
+continuity holds by construction of the fixtures themselves and this artifact's schema has no
+Service-mapping section. §4.1 resolution path 2 (versioned configured source-to-Service mapping)
+has no config surface anywhere in I1 - `configured_mappings` is always empty in the orchestrator's
+service-identity resolver - so it is not in play for the bundled examples either. Queue identity is
 source-independent by construction (§9: the derived owner-scoped Queue ID carries no
 SourceInstanceId component) and already merges across sources without an explicit mapping; the
 artifact additionally binds a prior qualified Queue ID only for a bundled channel that has no real
@@ -903,10 +910,13 @@ outright the moment exact-version enforcement (§8's own new requirement, also i
 went live, silently emptying the `quarkus-frozen-*` evaluation scenarios that depend on them.
 
 **Draft 0.3 amendment (PR4):** §5.1.1's migration-artifact binding requirement was narrowed from
-"Service IDs and prior qualified Schema, Message, and Queue IDs" to Service/Schema/Message only,
-with Queue bound solely for a bundled channel that has no derivable broker/namespace evidence of its
-own. This was forced by correctly implementing §9's own configured-vs-derived Queue identity
-conflict check (also PR4): every bundled `examples/` AsyncAPI channel already carries real
+"Service IDs and prior qualified Schema, Message, and Queue IDs" to prior qualified Schema and
+Message IDs only, with Queue bound solely for a bundled channel that has no derivable
+broker/namespace evidence of its own, and Service identity clarified as resolved by a mechanism
+outside the artifact entirely. Two separate corrections drove this:
+
+Queue: correctly implementing §9's own configured-vs-derived Queue identity conflict check (also
+PR4) showed every bundled `examples/` AsyncAPI channel already carries real
 `x-aip-broker-id`/AMQP `virtualHost` evidence from PR3a/PR3b's owner-scoped identity work, so a
 legacy Queue mapping for any of them now always disagrees with its real derived id -
 `REJECTED_CONFLICT` by §9's own rule, not a legitimate migration. Since Queue identity carries no
@@ -915,6 +925,17 @@ SourceInstanceId component and already merges across sources without a mapping, 
 conflict to satisfy the letter of §5.1.1, not demonstrating a real migration. The bundled artifact's
 `queueMappings` is therefore legitimately empty until/unless a bundled channel exists with no
 derivable broker evidence.
+
+Service: the original text's claim that the artifact binds "authoritative Service IDs" did not
+match the implementation and was never buildable as written, since Service/Operation ID formulas
+are unchanged between v0.4.2 and PR3a/PR3b (no migration is possible or needed for a value that
+never changed). The bundled examples' Service continuity instead holds because each root document's
+own `x-aip-service-id` extension (§4.1 resolution path 1) was set to the same value the pre-PR3a
+directory-derived formula produced (`service:<example-directory-name>`) - a property of the
+fixtures themselves, not of this artifact. §4.1 resolution path 2 (versioned configured
+source-to-Service mapping) has no config surface anywhere in I1 (`configured_mappings` is always
+empty in the orchestrator's service-identity resolver), so it is not the mechanism either. The
+artifact's schema accordingly has no Service-mapping section.
 
 ## 13. Required evidence and handoff
 

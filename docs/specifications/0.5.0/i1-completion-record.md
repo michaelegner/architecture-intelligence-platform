@@ -46,6 +46,14 @@ derivable broker evidence (PR3a/3b), so a legacy Queue mapping for any of them w
 with its correctly-computed derived id — `REJECTED_CONFLICT` by §9's own rule, not a valid migration
 target. `schemaMappings`/`messageMappings` are unaffected and remain required/populated.
 
+Service identity is out of scope of this artifact entirely (also per the §12 amendment): each
+bundled root document's own `x-aip-service-id` extension (§4.1 resolution path 1) already carries
+the same value the pre-PR3a directory-derived formula produced (`service:<example-directory-name>`),
+so Service continuity holds by construction of the fixtures, and the artifact's schema has no
+service-mapping section. §4.1 path 2 (versioned configured source-to-Service mapping) has no config
+surface anywhere in I1 — `configured_mappings` is always empty in
+`app/ingestion/orchestrator.py::_RunServiceIdentityResolver` — so it plays no role here either.
+
 ## Regression suite (full local run at PR4's tip, this branch)
 
 | Suite | Result |
