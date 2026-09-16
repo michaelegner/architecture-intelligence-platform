@@ -241,8 +241,13 @@ def _referenced_evidence_ids(*row_groups: list[dict]) -> list[str]:
 # same stable-read attempt - and therefore observes the same committed state - as the fingerprinted
 # state used to compute snapshot_id/model_revision (spec §13).
 
+# I2 Draft 0.2 §9 (amended): unlike `_EVIDENCE_QUERY` above, this lookup is keyed by caller-supplied
+# ids (`EvidenceRequest.evidence_refs`, spec §11.1) - a client can name *any* id string, not only
+# one it already learned from a public answer. Without this filter, a client that merely guessed or
+# otherwise obtained a Kubernetes evidence id could read its full internal record back through
+# `get_evidence`, even though every other public surface hides it (a real gap found in PR review).
 _EVIDENCE_BY_ID_QUERY = (
-    "MATCH (e:Evidence) WHERE e.id IN $evidence_ids "
+    f"MATCH (e:Evidence) WHERE e.id IN $evidence_ids AND e.source_type <> '{KUBERNETES_SOURCE_TYPE}' "
     "RETURN e.id AS id, e.source_type AS source_type, e.source_file AS source_file, "
     "e.source_revision AS source_revision, e.evidence_type AS evidence_type, "
     "e.environment AS environment, e.bucket_start AS bucket_start, e.bucket_end AS bucket_end, "

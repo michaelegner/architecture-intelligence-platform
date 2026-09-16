@@ -193,13 +193,22 @@ _REMOVE_NODE_OWNERSHIP_QUERY = (
 # only refs that are (a) DECLARED and (b) actually attributed to this source via that Evidence node's
 # own `owner_source_ids`, and delete the claim only once no evidence supports it at all. Correct for
 # both the expired and ownership-removed cases: a surviving co-owner's evidence keeps it alive.
+# A ref is kept only if some REMAINING owner still attributes to its Evidence node - not merely
+# "the departing source doesn't own it" (a real bug found in PR review: if that Evidence node is
+# co-owned by the departing source AND a surviving claim owner, checking only the departing source
+# wrongly stripped the ref anyway, since it never asked whether a remaining owner still supports
+# it). `_EXPIRE_RELATIONS_QUERY` below doesn't need this distinction: an application Evidence id
+# already embeds its own source_instance_id (`app.canonical.ids.evidence_id`), so it is never
+# actually co-owned by two sources in practice - a claim's evidence has no equivalent guarantee.
 _EXPIRE_INFRASTRUCTURE_CLAIMS_QUERY = (
     "UNWIND $ids AS nid "
     "MATCH (n:InfrastructureClaim {id: nid}) "
-    "SET n.owner_source_ids = [x IN n.owner_source_ids WHERE x <> $source_instance_id] "
-    "WITH n, [eid IN n.evidence_refs WHERE NOT EXISTS { "
+    "WITH n, [x IN n.owner_source_ids WHERE x <> $source_instance_id] AS remaining_owners "
+    "SET n.owner_source_ids = remaining_owners "
+    "WITH n, remaining_owners, [eid IN n.evidence_refs WHERE EXISTS { "
     "MATCH (e:Evidence {id: eid}) "
-    "WHERE e.evidence_type = 'DECLARED' AND $source_instance_id IN coalesce(e.owner_source_ids, []) "
+    "WHERE e.evidence_type = 'DECLARED' "
+    "AND any(owner IN remaining_owners WHERE owner IN coalesce(e.owner_source_ids, [])) "
     "} ] AS remaining_evidence_refs "
     "SET n.evidence_refs = remaining_evidence_refs "
     "WITH n WHERE size(n.evidence_refs) = 0 "
@@ -338,13 +347,15 @@ def _infrastructure_entity_props(entity) -> dict:
 def _expire_infrastructure_claims(tx, node_plan, *, source_instance_id: str) -> None:
     """Retires this source's stake in every infrastructure claim it no longer emits - whether it was
     the claim's sole owner (`expired_claim_keys`) or one of several (`ownership_removed_claim_keys`).
-    The same query serves both: it removes only this source's own evidence, and deletes the claim
-    only once nothing supports it, so a co-owner's evidence keeps the claim alive by construction.
+    The same query serves both: a ref survives only while some remaining claim owner still
+    attributes to its Evidence node, and the claim is deleted only once nothing supports it at all,
+    so a co-owner's evidence keeps both the ref and the claim alive by construction.
 
-    MUST run before `_EXPIRE_NODES_QUERY` deletes this source's `Evidence` nodes - the query decides
-    which refs to drop by looking those nodes up, so a deleted one would read as "not this source's"
-    and be wrongly retained. `_EXPIRE_RELATIONS_QUERY` is sequenced ahead of the same deletion for
-    exactly this reason.
+    MUST run before `_EXPIRE_NODES_QUERY` deletes this source's own now-unowned `Evidence` nodes:
+    the query decides which refs survive by looking those nodes up, so one already deleted would
+    read as "no remaining owner attributes to this" and be wrongly stripped even if a genuine
+    co-owner still supported it moments earlier. `_EXPIRE_RELATIONS_QUERY` is sequenced ahead of the
+    same deletion for the analogous reason.
     """
     claim_keys = sorted(node_plan.expired_claim_keys | node_plan.ownership_removed_claim_keys)
     if claim_keys:

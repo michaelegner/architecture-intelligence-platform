@@ -345,3 +345,28 @@ def test_duplicate_infrastructure_entity_ids_are_rejected():
     model = ArchitectureModel(infrastructure_entities=[_infra_entity(), _infra_entity()])
     with pytest.raises(CanonicalValidationError, match="Infrastructure entity id is not unique"):
         validate_canonical_model(model)
+
+
+def test_infrastructure_evidence_must_be_stamped_with_the_kubernetes_source_type():
+    """§9 (as amended): infrastructure evidence must be internal-only. If an adapter ever stamped
+    it with a public source_type, the exposure filters that key on source_type - not on what
+    references the evidence - would have nothing to hide it by."""
+    entity = _infra_entity()
+    mis_stamped_evidence = Provenance(
+        id="evidence:kubernetes:1", source_type="MANIFEST", source_file="snapshot.yaml"
+    )
+    model = ArchitectureModel(
+        provenance=[mis_stamped_evidence],
+        infrastructure_entities=[entity],
+        infrastructure_claims=[
+            InfrastructureClaim(
+                kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+                subject_id=entity.id,
+                evidence_refs=[mis_stamped_evidence.id],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+    )
+    with pytest.raises(CanonicalValidationError, match="expected 'KUBERNETES'"):
+        validate_canonical_model(model)

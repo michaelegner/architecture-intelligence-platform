@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from app.canonical.infrastructure import UNARY_CLAIM_KINDS
+from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE, UNARY_CLAIM_KINDS
 from app.canonical.model import ArchitectureModel
 
 SCHEMA_RELATION_TYPES = {"REQUEST_SCHEMA", "RESPONSE_SCHEMA", "CONFORMS_TO"}
@@ -96,21 +96,43 @@ def validate_canonical_model(model: ArchitectureModel) -> None:
                     f"references unknown evidence {evidence_id}"
                 )
 
-    _validate_infrastructure(model, evidence_ids=evidence_ids, errors=errors)
+    provenance_by_id = {p.id: p for p in model.provenance}
+    _validate_infrastructure(model, provenance_by_id=provenance_by_id, errors=errors)
 
     if errors:
         raise CanonicalValidationError(errors)
 
 
+def _check_infrastructure_evidence_ref(
+    evidence_ref: str, *, provenance_by_id: dict, owner_description: str, errors: list[str]
+) -> None:
+    """§7.2: "resolve within the selected snapshot." §9 (as amended): a Kubernetes source's
+    evidence is internal-only, exactly like the facts it supports - if it were ever stamped with a
+    public `source_type`, the exposure filters in `app.architecture_intelligence.repository`/
+    `app.api.evidence` (which key on `source_type`, not on what references the evidence) would not
+    know to hide it. Checked here so a mis-stamped adapter fails loudly in validation rather than
+    silently leaking through a query filter no code path re-derives this from.
+    """
+    provenance = provenance_by_id.get(evidence_ref)
+    if provenance is None:
+        errors.append(f"{owner_description} references unknown evidence {evidence_ref}")
+    elif provenance.source_type != KUBERNETES_SOURCE_TYPE:
+        errors.append(
+            f"{owner_description} references evidence {evidence_ref} stamped source_type "
+            f"{provenance.source_type!r}, expected {KUBERNETES_SOURCE_TYPE!r} (§9: infrastructure "
+            "evidence must be internal-only)"
+        )
+
+
 def _validate_infrastructure(
-    model: ArchitectureModel, *, evidence_ids: set[str], errors: list[str]
+    model: ArchitectureModel, *, provenance_by_id: dict, errors: list[str]
 ) -> None:
     """I2 Draft 0.2 §3 item 6: infrastructure facts pass through the same *validation* path as every
     other canonical fact. The per-object §7 invariants (arity, sortedness, kind-specific fields) are
     already enforced by `app.canonical.infrastructure`'s own Pydantic validators; what only a whole
     merged model can check is whether the ids those objects reference actually resolve - §7.2's
     "resolve within the selected snapshot" and "both referenced entity IDs must resolve in the
-    canonical model".
+    canonical model" - and, per §9, that the evidence they resolve to is genuinely internal-only.
     """
     entity_ids = {entity.id for entity in model.infrastructure_entities}
     _check_unique(
@@ -124,11 +146,12 @@ def _validate_infrastructure(
                 f"unknown entity {contribution.entity_id}"
             )
         for evidence_ref in contribution.evidence_refs:
-            if evidence_ref not in evidence_ids:
-                errors.append(
-                    f"Infrastructure contribution for {contribution.entity_id} references unknown "
-                    f"evidence {evidence_ref}"
-                )
+            _check_infrastructure_evidence_ref(
+                evidence_ref,
+                provenance_by_id=provenance_by_id,
+                owner_description=f"Infrastructure contribution for {contribution.entity_id}",
+                errors=errors,
+            )
 
     for claim in model.infrastructure_claims:
         if claim.subject_id not in entity_ids:
@@ -145,8 +168,11 @@ def _validate_infrastructure(
                 f"{claim.object_id}"
             )
         for evidence_ref in claim.evidence_refs:
-            if evidence_ref not in evidence_ids:
-                errors.append(
-                    f"Infrastructure claim {claim.kind.value} on {claim.subject_id} references "
-                    f"unknown evidence {evidence_ref}"
-                )
+            _check_infrastructure_evidence_ref(
+                evidence_ref,
+                provenance_by_id=provenance_by_id,
+                owner_description=(
+                    f"Infrastructure claim {claim.kind.value} on {claim.subject_id}"
+                ),
+                errors=errors,
+            )

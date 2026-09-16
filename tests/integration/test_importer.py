@@ -1432,3 +1432,73 @@ def test_a_shared_claim_unions_evidence_from_both_sources_and_drops_only_the_dep
 
     assert _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == 0
     assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 0
+
+
+def test_a_shared_claim_survives_when_its_evidence_id_is_co_owned_by_the_remaining_source(driver):
+    """A real bug found in PR re-review: the original `_EXPIRE_INFRASTRUCTURE_CLAIMS_QUERY` decided
+    whether to strip a ref by checking only whether the DEPARTING source owned its Evidence node -
+    not whether a REMAINING claim owner also did. When the same evidence id is genuinely co-owned by
+    two sources (not just two distinct ids, as in the test above), that stripped a ref the surviving
+    owner still supported, and could have deleted the claim entirely despite a remaining owner."""
+    shared_evidence_id = "evidence:kubernetes:shared"
+    entity = _infra_entity()
+
+    def _model_with_shared_evidence(source_instance_id: str) -> ArchitectureModel:
+        return ArchitectureModel(
+            provenance=[
+                Provenance(
+                    id=shared_evidence_id, source_type="KUBERNETES", source_file="shared.yaml"
+                )
+            ],
+            infrastructure_entities=[entity],
+            infrastructure_contributions=[
+                InfrastructureContribution(
+                    entity_id=entity.id,
+                    source_instance_id=source_instance_id,
+                    evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+                    resource_semantic_digest="digest-1",
+                    evidence_refs=[shared_evidence_id],
+                    mapping_rule_id="kubernetes-adapter@1",
+                    mapping_rule_version="v1",
+                )
+            ],
+            infrastructure_claims=[
+                InfrastructureClaim(
+                    kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+                    subject_id=entity.id,
+                    evidence_refs=[shared_evidence_id],
+                    mapping_rule_id="kubernetes-adapter@1",
+                    mapping_rule_version="v1",
+                )
+            ],
+        )
+
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, "src:k8s-1", _model_with_shared_evidence("src:k8s-1"))
+        _import(session, "src:k8s-2", _model_with_shared_evidence("src:k8s-2"))
+
+        evidence_owners = session.run(
+            "MATCH (e:Evidence {id: $id}) RETURN e.owner_source_ids AS owners",
+            id=shared_evidence_id,
+        ).single()["owners"]
+        assert sorted(evidence_owners) == ["src:k8s-1", "src:k8s-2"]
+
+        # src:k8s-1 stops emitting anything at all - src:k8s-2 still emits the same claim,
+        # referencing the SAME shared evidence id.
+        _import(session, "src:k8s-1", ArchitectureModel(), digest=DIGEST_2)
+
+        claim = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.evidence_refs AS refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+
+    # The claim survives with its evidence ref intact - the departing source's co-ownership of that
+    # SAME evidence node must not strip a ref the surviving source still genuinely supports.
+    assert claim is not None
+    assert claim["refs"] == [shared_evidence_id]
+    assert claim["owners"] == ["src:k8s-2"]
+    assert (
+        _count(driver, "MATCH (e:Evidence {id: $id}) RETURN count(e) AS c", id=shared_evidence_id)
+        == 1
+    )
