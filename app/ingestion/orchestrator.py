@@ -14,7 +14,7 @@ responsibilities - `merge_models` (kept, moved here) and hard-coded per-source-k
 """
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -324,6 +324,17 @@ class SourceRunOutcome:
     outcome: AdapterOutcome
 
 
+def _rejected_conflict(run_outcome: SourceRunOutcome) -> SourceRunOutcome:
+    """I2 Draft 0.2 §10: `K8S_RESOURCE_CONFLICT` -> "REJECTED_CONFLICT; no commit". Rewrites one
+    source's own result while preserving everything else it produced (diagnostics, digest, and the
+    model it mapped - none of which commits, since the run is not commit-eligible).
+    """
+    return replace(
+        run_outcome,
+        outcome=replace(run_outcome.outcome, result=IngestionResult.REJECTED_CONFLICT),
+    )
+
+
 @dataclass(frozen=True)
 class DiscoveryRunResult:
     inventory_status: InventoryStatus
@@ -576,15 +587,27 @@ def run_discovery(
     # list, before merge_models' own first-wins dedup could discard the disagreement. I2 Draft 0.2
     # §7.1's equivalent rule for infrastructure entity contributions is checked the same way, at the
     # same point, even though nothing populates infrastructure_contributions yet.
+    infrastructure_conflicts = detect_infrastructure_entity_content_conflicts(source_models)
     content_conflicts = tuple(
         sorted(
             detect_shared_claim_content_conflicts(source_models)
-            + detect_infrastructure_entity_content_conflicts(source_models),
+            + infrastructure_conflicts.diagnostics,
             key=lambda d: (d.code, d.source_pointer or ""),
         )
     )
     if content_conflicts:
         run_diagnostics.extend(content_conflicts)
+        # §10: `K8S_RESOURCE_CONFLICT`'s outcome is "REJECTED_CONFLICT; no commit" - a source
+        # result, not only a run-level status. Every source whose contribution disagreed carries
+        # that result, rather than staying reported as ACCEPTED in a run it caused to reject.
+        source_outcomes = {
+            source_instance_id: (
+                _rejected_conflict(run_outcome)
+                if source_instance_id in infrastructure_conflicts.conflicted_source_instance_ids
+                else run_outcome
+            )
+            for source_instance_id, run_outcome in source_outcomes.items()
+        }
         return DiscoveryRunResult(
             inventory_status=InventoryStatus.PARTIAL,
             commit_eligible=False,

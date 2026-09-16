@@ -22,6 +22,21 @@ CONSTRAINTS = [
         "CREATE CONSTRAINT current_inventory_discovery_scope_id IF NOT EXISTS "
         "FOR (i:CurrentInventory) REQUIRE i.discovery_scope_id IS UNIQUE"
     ),
+    # I2 Draft 0.2 §3 item 6 / §7: internal-only infrastructure facts, owned and reconciled through
+    # the same per-source machinery as every other canonical node - so they need the same stable-id
+    # uniqueness guarantee.
+    (
+        "CREATE CONSTRAINT infrastructure_entity_id IF NOT EXISTS "
+        "FOR (e:InfrastructureEntity) REQUIRE e.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT infrastructure_contribution_id IF NOT EXISTS "
+        "FOR (c:InfrastructureContribution) REQUIRE c.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT infrastructure_claim_id IF NOT EXISTS "
+        "FOR (c:InfrastructureClaim) REQUIRE c.id IS UNIQUE"
+    ),
     # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.

@@ -21,8 +21,15 @@ from app.sources.migration_mappings import (
     build_shared_identity_index,
     load_migration_mappings,
 )
-from app.sources.model import DiagnosticCode, FilesystemSourceConfig, IngestionResult, SourceKind
-from app.sources.registry import DiscoveryOutcome
+from app.sources.model import (
+    DiagnosticCode,
+    FilesystemSourceConfig,
+    IngestionResult,
+    LoadedSource,
+    SourceDescriptor,
+    SourceKind,
+)
+from app.sources.registry import AdapterOutcome, DiscoveryOutcome, SourceAdapterRegistry
 from app.sources.tombstones import Tombstone
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
@@ -883,3 +890,110 @@ def test_merge_models_keeps_distinct_claims_with_different_subjects():
         ]
     )
     assert len(merged.infrastructure_claims) == 2
+
+
+# I2 Draft 0.2 §7.1/§10: a cross-source infrastructure-entity digest disagreement rejects the run
+# AND marks the disagreeing sources' own results REJECTED_CONFLICT - driven through the real
+# `run_discovery` path with a test-double discoverer/adapter, since no Kubernetes adapter exists yet.
+
+
+def _loaded_source(source_instance_id: str):
+    descriptor = SourceDescriptor(
+        source_instance_id=source_instance_id,
+        source_kind=SourceKind.FILESYSTEM,
+        locator=f"{source_instance_id}.yaml",
+        discovery_scope_id="urn:aip:discovery-scope:fake",
+        scope_definition_digest="fake-scope-digest",
+        content_sha256="a" * 64,
+        semantic_input_digest="b" * 64,
+        mapping_context_digest="c" * 64,
+        adapter_identity="",
+        mapping_rule_id="",
+        mapping_rule_version="",
+    )
+    return LoadedSource(descriptor=descriptor, document={"fakeInfrastructureSource": True})
+
+
+class _FakeInfrastructureAdapter:
+    """Emits one infrastructure entity plus a per-source contribution whose semantic digest is
+    controlled by the test - the minimum needed to exercise §7.1's cross-source conflict rule
+    without a real Kubernetes adapter."""
+
+    adapter_identity = "fake-infrastructure-adapter@1"
+    mapping_rule_version = "v1"
+    dependency_phase = 0
+
+    def __init__(self, digests_by_source: dict[str, str]):
+        self._digests_by_source = digests_by_source
+
+    def supports(self, loaded) -> bool:
+        return "fakeInfrastructureSource" in loaded.document
+
+    def map(self, loaded, **_kwargs):
+        source_instance_id = loaded.descriptor.source_instance_id
+        entity = InfrastructureEntity(
+            id="urn:aip:k8s-resource:shared",
+            entity_kind=InfrastructureEntityKind.KUBERNETES_WORKLOAD,
+            cluster_uid="cluster-1",
+            api_group="apps",
+            resource_kind="Deployment",
+            namespace="default",
+            name="order-service",
+        )
+        contribution = InfrastructureContribution(
+            entity_id=entity.id,
+            source_instance_id=source_instance_id,
+            evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+            resource_semantic_digest=self._digests_by_source[source_instance_id],
+            evidence_refs=["evidence:kubernetes:1"],
+            mapping_rule_id=self.adapter_identity,
+            mapping_rule_version=self.mapping_rule_version,
+        )
+        return AdapterOutcome(
+            result=IngestionResult.ACCEPTED,
+            model=ArchitectureModel(
+                infrastructure_entities=[entity], infrastructure_contributions=[contribution]
+            ),
+            diagnostics=(),
+            semantic_input_digest=loaded.descriptor.semantic_input_digest,
+        )
+
+
+def _run_with_infrastructure_digests(digests_by_source: dict[str, str]):
+    outcome = DiscoveryOutcome(
+        loaded_sources=tuple(_loaded_source(sid) for sid in digests_by_source),
+        enumeration_complete=True,
+        diagnostics=(),
+        discovery_scope_id="urn:aip:discovery-scope:fake",
+        scope_definition_digest="fake-scope-digest",
+    )
+    registry = SourceAdapterRegistry([_FakeInfrastructureAdapter(digests_by_source)])
+    return run_discovery(_FakeDiscoverer(outcome), registry=registry)
+
+
+def test_agreeing_infrastructure_digests_across_sources_commit_normally():
+    result = _run_with_infrastructure_digests(
+        {"urn:aip:source:kubernetes:1": "digest-1", "urn:aip:source:kubernetes:2": "digest-1"}
+    )
+    assert result.commit_eligible is True
+    assert all(
+        o.outcome.result is IngestionResult.ACCEPTED for o in result.source_outcomes.values()
+    )
+    # Equal digests merge into a single entity/contribution pair per source, not a conflict.
+    assert len(result.merged_model.infrastructure_entities) == 1
+    assert len(result.merged_model.infrastructure_contributions) == 2
+
+
+def test_disagreeing_infrastructure_digests_reject_the_run_and_both_sources():
+    result = _run_with_infrastructure_digests(
+        {"urn:aip:source:kubernetes:1": "digest-1", "urn:aip:source:kubernetes:2": "digest-2"}
+    )
+    assert result.commit_eligible is False
+    assert result.inventory_status is InventoryStatus.PARTIAL
+    assert any(d.code is DiagnosticCode.K8S_RESOURCE_CONFLICT for d in result.diagnostics)
+    # §10: "REJECTED_CONFLICT; no commit" is a source result, not only a run status - and §7.1's
+    # "no source wins by precedence" means both disagreeing sources carry it.
+    assert [o.outcome.result for o in result.source_outcomes.values()] == [
+        IngestionResult.REJECTED_CONFLICT,
+        IngestionResult.REJECTED_CONFLICT,
+    ]

@@ -15,10 +15,12 @@ def _model(*, schemas=(), messages=(), infrastructure_contributions=()) -> Archi
     )
 
 
-def _contribution(*, entity_id: str, digest: str) -> InfrastructureContribution:
+def _contribution(
+    *, entity_id: str, digest: str, source: str = "urn:aip:source:kubernetes:1"
+) -> InfrastructureContribution:
     return InfrastructureContribution(
         entity_id=entity_id,
-        source_instance_id="urn:aip:source:kubernetes:1",
+        source_instance_id=source,
         evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
         resource_semantic_digest=digest,
         evidence_refs=["evidence:kubernetes:1"],
@@ -91,7 +93,7 @@ def test_no_conflict_when_only_one_source_claims_an_infrastructure_entity():
             _contribution(entity_id="urn:aip:k8s-resource:x", digest="d1")
         ]
     )
-    assert detect_infrastructure_entity_content_conflicts([model]) == ()
+    assert detect_infrastructure_entity_content_conflicts([model]).diagnostics == ()
 
 
 def test_identical_semantic_digests_across_sources_merge_silently():
@@ -105,24 +107,38 @@ def test_identical_semantic_digests_across_sources_merge_silently():
             _contribution(entity_id="urn:aip:k8s-resource:x", digest="d1")
         ]
     )
-    assert detect_infrastructure_entity_content_conflicts([a, b]) == ()
+    assert detect_infrastructure_entity_content_conflicts([a, b]).diagnostics == ()
 
 
 def test_different_semantic_digests_across_sources_conflict():
     a = _model(
         infrastructure_contributions=[
-            _contribution(entity_id="urn:aip:k8s-resource:x", digest="d1")
+            _contribution(
+                entity_id="urn:aip:k8s-resource:x",
+                digest="d1",
+                source="urn:aip:source:kubernetes:1",
+            )
         ]
     )
     b = _model(
         infrastructure_contributions=[
-            _contribution(entity_id="urn:aip:k8s-resource:x", digest="d2")
+            _contribution(
+                entity_id="urn:aip:k8s-resource:x",
+                digest="d2",
+                source="urn:aip:source:kubernetes:2",
+            )
         ]
     )
-    diagnostics = detect_infrastructure_entity_content_conflicts([a, b])
+    conflicts = detect_infrastructure_entity_content_conflicts([a, b])
+    diagnostics = conflicts.diagnostics
     assert len(diagnostics) == 1
-    assert diagnostics[0].code is DiagnosticCode.INFRASTRUCTURE_ENTITY_CONTENT_CONFLICT
+    assert diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_CONFLICT
     assert diagnostics[0].source_pointer == "urn:aip:k8s-resource:x"
+    # §10: the outcome is REJECTED_CONFLICT for the *sources* that disagreed - "no source wins by
+    # precedence" (§7.1), so both are named, not just the second one seen.
+    assert conflicts.conflicted_source_instance_ids == frozenset(
+        {"urn:aip:source:kubernetes:1", "urn:aip:source:kubernetes:2"}
+    )
 
 
 def test_infrastructure_conflict_result_order_is_independent_of_input_model_order():
@@ -136,8 +152,8 @@ def test_infrastructure_conflict_result_order_is_independent_of_input_model_orde
             _contribution(entity_id="urn:aip:k8s-resource:x", digest="d2")
         ]
     )
-    forward = detect_infrastructure_entity_content_conflicts([a, b])
-    backward = detect_infrastructure_entity_content_conflicts([b, a])
+    forward = detect_infrastructure_entity_content_conflicts([a, b]).diagnostics
+    backward = detect_infrastructure_entity_content_conflicts([b, a]).diagnostics
     assert forward == backward
 
 
@@ -152,4 +168,4 @@ def test_unrelated_infrastructure_entities_do_not_cross_contaminate():
             _contribution(entity_id="urn:aip:k8s-resource:y", digest="d2")
         ]
     )
-    assert detect_infrastructure_entity_content_conflicts([a, b]) == ()
+    assert detect_infrastructure_entity_content_conflicts([a, b]).diagnostics == ()

@@ -11,6 +11,7 @@ from app.ingestion.orchestrator import DiscoveryRunResult, run_filesystem_discov
 from app.sources.claim_reconciliation import plan_source_claim_reconciliation
 from app.sources.inventory import InventoryStatus
 from app.sources.inventory import inventory_event_id as compute_inventory_event_id
+from app.sources.jcs import canonical_json_bytes
 from app.sources.migration_mappings import SharedIdentityMappingIndex
 from app.sources.model import (
     DiagnosticCode,
@@ -64,6 +65,15 @@ NODE_LABELS = {
     "provenance": "Evidence",
 }
 
+# I2 Draft 0.2 §3 item 6 / §7: internal-only infrastructure labels, deliberately NOT in
+# `NODE_LABELS` above - that mapping is keyed by `ArchitectureModel` field name and assumes
+# `model_dump(exclude={"id"})` yields Neo4j-storable primitives, which is not true for an entity's
+# nested `ports` nor for contributions/claims whose `id` is a computed property rather than a field.
+# `_write_infrastructure_nodes` handles them explicitly, using the same MERGE template.
+INFRASTRUCTURE_ENTITY_LABEL = "InfrastructureEntity"
+INFRASTRUCTURE_CONTRIBUTION_LABEL = "InfrastructureContribution"
+INFRASTRUCTURE_CLAIM_LABEL = "InfrastructureClaim"
+
 # I1 spec §4/§7: this is the source-adapter seam's own frozen relation vocabulary, unchanged from
 # the PoC-era value in the now-deleted app.graph.reconciliation - relocated here since that module
 # is deleted (its node/relation-id set diffing is superseded by source-instance-scoped,
@@ -93,6 +103,14 @@ def _model_node_ids(model: ArchitectureModel) -> set[str]:
         *(m.id for m in model.messages),
         *(sc.id for sc in model.schemas),
         *(p.id for p in model.provenance),
+        # I2 Draft 0.2 §3 item 6: infrastructure facts go through the *same* ownership and
+        # reconciliation path as every other canonical fact - including them here is what makes
+        # `plan_source_claim_reconciliation`'s claim-key diff, `_EXPIRE_NODES_QUERY`'s
+        # last-owner-wins deletion, and `_REMOVE_NODE_OWNERSHIP_QUERY`'s shared-ownership retirement
+        # apply to them unchanged.
+        *(e.id for e in model.infrastructure_entities),
+        *(c.id for c in model.infrastructure_contributions),
+        *(c.id for c in model.infrastructure_claims),
     }
 
 
@@ -255,6 +273,69 @@ def _write_nodes(
                 source_instance_id=source_instance_id,
             )
             count += 1
+    return count + _write_infrastructure_nodes(tx, source_instance_id, model)
+
+
+def _infrastructure_entity_props(entity) -> dict:
+    """I2 Draft 0.2 §7.1 delegates "persistence encoding" to the implementation. Everything except
+    `ports` is already a Neo4j-storable primitive; `ports` is the Canonical Model's only nested
+    object, and Neo4j properties cannot hold nested maps - so each port is stored as one RFC 8785
+    canonical-JSON string, reusing `app.sources.jcs` rather than inventing a second canonicalization.
+    The list stays in the entity's own §7.1 sorted order, so the stored value is deterministic and
+    the before/after property snapshot that drives the revision fence stays meaningful.
+    """
+    props = entity.model_dump(exclude={"id", "ports"})
+    props["ports"] = [
+        canonical_json_bytes(port.model_dump()).decode("utf-8") for port in entity.ports
+    ]
+    return props
+
+
+def _write_infrastructure_nodes(
+    tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
+) -> int:
+    """I2 Draft 0.2 §3 item 6: infrastructure entities, contributions, and claims are written
+    through the same MERGE-with-`owner_source_ids` template as every other canonical node, so they
+    inherit the identical ownership, shared-ownership, reconciliation, and expiry semantics without
+    a second mechanism (§12: "no second reconciliation engine is permitted").
+
+    Contributions and claims are nodes rather than graph relationships on purpose: `WORKLOAD_EXISTS`
+    is a first-class *unary* claim, and §7.2 forbids inventing "a sentinel entity or self-edge to
+    force it through a binary-relation representation" - modelling all four claim kinds uniformly as
+    owned claim nodes honors that, and keeps these internal-only facts out of every existing
+    untyped relationship traversal (§9: they "MUST NOT leak through generic serialization, existing
+    dependency answers, or a graph tool").
+    """
+    count = 0
+    entity_query = _MERGE_NODE_TEMPLATE.format(label=INFRASTRUCTURE_ENTITY_LABEL)
+    for entity in model.infrastructure_entities:
+        tx.run(
+            entity_query,
+            id=entity.id,
+            props=_infrastructure_entity_props(entity),
+            source_instance_id=source_instance_id,
+        )
+        count += 1
+
+    contribution_query = _MERGE_NODE_TEMPLATE.format(label=INFRASTRUCTURE_CONTRIBUTION_LABEL)
+    for contribution in model.infrastructure_contributions:
+        tx.run(
+            contribution_query,
+            id=contribution.id,
+            props=contribution.model_dump(),
+            source_instance_id=source_instance_id,
+        )
+        count += 1
+
+    claim_query = _MERGE_NODE_TEMPLATE.format(label=INFRASTRUCTURE_CLAIM_LABEL)
+    for claim in model.infrastructure_claims:
+        tx.run(
+            claim_query,
+            id=claim.id,
+            props=claim.model_dump(),
+            source_instance_id=source_instance_id,
+        )
+        count += 1
     return count
 
 
