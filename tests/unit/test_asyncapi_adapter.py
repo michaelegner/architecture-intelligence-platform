@@ -137,6 +137,7 @@ def _shared_identity_index(*, schema_mappings=(), message_mappings=(), queue_map
                 artifact_id="test-artifact",
                 artifact_revision="v1",
                 locator="migrations.yaml",
+                content_digest="test-content-digest",
                 schema_mappings=_entries(schema_mappings),
                 message_mappings=_entries(message_mappings),
                 queue_mappings=_entries(queue_mappings),

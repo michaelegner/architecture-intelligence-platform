@@ -24,6 +24,7 @@ from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator
 
+from app.sources.encoding import sha256_hex
 from app.sources.identity import normalize_relative_posix_path
 from app.sources.model import DiagnosticCode, IngestionDiagnostic
 from app.sources.pointers import decode_pointer_tokens, is_well_formed_pointer
@@ -102,6 +103,15 @@ class MigrationMappingsDocument:
     artifact_id: str
     artifact_revision: str
     locator: str
+    # §5.3: "Each mapping entry retains its stable artifact identity, revision, content digest,
+    # attribution, normalized source pointers, targets, and semantic options." `content_digest` is
+    # the SHA-256 of this artifact file's own exact raw bytes (mirroring §5.2's `content_sha256`
+    # convention for source documents); `locator` above already serves as this artifact's
+    # attribution (which configured file declared it) - both are threaded into the mapping-context
+    # digest projection by `app.ingestion.orchestrator._mapping_entry_context`, not just carried
+    # here inertly. There are no per-artifact "semantic options" this mechanism exposes (no
+    # case-folding/wildcard/etc. configuration), so that part of §5.3's list has nothing to project.
+    content_digest: str
     schema_mappings: tuple[IdentityMappingEntry, ...] = field(default_factory=tuple)
     message_mappings: tuple[IdentityMappingEntry, ...] = field(default_factory=tuple)
     queue_mappings: tuple[IdentityMappingEntry, ...] = field(default_factory=tuple)
@@ -165,13 +175,16 @@ def _parse_entries(
 
 
 def parse_migration_mappings(
-    document: dict, *, locator: str
+    document: dict, *, locator: str, content_digest: str
 ) -> tuple[MigrationMappingsDocument | None, list[IngestionDiagnostic]]:
     """Parses and validates one migration-mappings document - shape conformance, RFC 6901
     well-formedness of each `pointer`, and each target id's kind-specific grammar. Does not check
     cross-document/cross-entry duplicates or conflicts (that's `build_shared_identity_index`'s job,
     run across every configured document at once) or whether `sourceInstanceId` exists in a real
-    inventory (mirroring `parse_architecture_identity_bindings`'s own scope split).
+    inventory (mirroring `parse_architecture_identity_bindings`'s own scope split). `content_digest`
+    is opaque to this function (§5.3's SHA-256-of-exact-bytes convention is `load_migration_
+    mappings`'s responsibility, since only it has the raw bytes) - it is carried straight through
+    onto the returned `MigrationMappingsDocument` unchanged.
     """
     shape_errors = _shape_errors(document)
     if shape_errors:
@@ -216,6 +229,7 @@ def parse_migration_mappings(
         artifact_id=document["metadata"]["id"],
         artifact_revision=document["metadata"]["revision"],
         locator=locator,
+        content_digest=content_digest,
         schema_mappings=schema_mappings,
         message_mappings=message_mappings,
         queue_mappings=queue_mappings,
@@ -379,7 +393,10 @@ def load_migration_mappings(
             )
             continue
 
-        document, parse_diagnostics = parse_migration_mappings(parsed_yaml, locator=locator)
+        content_digest = sha256_hex(raw_bytes)
+        document, parse_diagnostics = parse_migration_mappings(
+            parsed_yaml, locator=locator, content_digest=content_digest
+        )
         diagnostics.extend(parse_diagnostics)
         if document is not None:
             documents.append(document)

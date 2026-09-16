@@ -48,7 +48,9 @@ def _document(**overrides):
 
 
 def test_parse_valid_document():
-    parsed, diagnostics = parse_migration_mappings(_document(), locator="migrations.yaml")
+    parsed, diagnostics = parse_migration_mappings(
+        _document(), locator="migrations.yaml", content_digest="test-content-digest"
+    )
     assert diagnostics == []
     assert parsed is not None
     assert parsed.artifact_id == "aip-v0.5.0-bundled-example-identities-v1"
@@ -66,7 +68,9 @@ def test_parse_accepts_a_document_with_no_mapping_arrays_at_all():
         "kind": "AipSharedIdentityMappings",
         "metadata": {"id": "empty", "revision": "v1"},
     }
-    parsed, diagnostics = parse_migration_mappings(document, locator="migrations.yaml")
+    parsed, diagnostics = parse_migration_mappings(
+        document, locator="migrations.yaml", content_digest="test-content-digest"
+    )
     assert diagnostics == []
     assert parsed.schema_mappings == ()
     assert parsed.message_mappings == ()
@@ -76,7 +80,9 @@ def test_parse_accepts_a_document_with_no_mapping_arrays_at_all():
 def test_parse_rejects_additional_top_level_field():
     document = _document()
     document["extra"] = "not allowed"
-    parsed, diagnostics = parse_migration_mappings(document, locator="migrations.yaml")
+    parsed, diagnostics = parse_migration_mappings(
+        document, locator="migrations.yaml", content_digest="test-content-digest"
+    )
     assert parsed is None
     assert diagnostics[0].code is DiagnosticCode.MIGRATION_MAPPING_SHAPE_INVALID
 
@@ -84,7 +90,9 @@ def test_parse_rejects_additional_top_level_field():
 def test_parse_rejects_wrong_kind():
     document = _document()
     document["kind"] = "SomethingElse"
-    parsed, diagnostics = parse_migration_mappings(document, locator="migrations.yaml")
+    parsed, diagnostics = parse_migration_mappings(
+        document, locator="migrations.yaml", content_digest="test-content-digest"
+    )
     assert parsed is None
     assert diagnostics[0].code is DiagnosticCode.MIGRATION_MAPPING_SHAPE_INVALID
 
@@ -92,7 +100,9 @@ def test_parse_rejects_wrong_kind():
 def test_parse_rejects_entry_missing_document_path():
     document = _document()
     del document["schemaMappings"][0]["documentPath"]
-    parsed, diagnostics = parse_migration_mappings(document, locator="migrations.yaml")
+    parsed, diagnostics = parse_migration_mappings(
+        document, locator="migrations.yaml", content_digest="test-content-digest"
+    )
     assert parsed is None
     assert diagnostics[0].code is DiagnosticCode.MIGRATION_MAPPING_SHAPE_INVALID
 
@@ -100,7 +110,9 @@ def test_parse_rejects_entry_missing_document_path():
 def test_parse_rejects_malformed_pointer():
     document = _document()
     document["schemaMappings"][0]["pointer"] = "no-leading-slash"
-    parsed, diagnostics = parse_migration_mappings(document, locator="migrations.yaml")
+    parsed, diagnostics = parse_migration_mappings(
+        document, locator="migrations.yaml", content_digest="test-content-digest"
+    )
     assert parsed is None
     assert diagnostics[0].code is DiagnosticCode.MIGRATION_MAPPING_SHAPE_INVALID
 
@@ -108,7 +120,9 @@ def test_parse_rejects_malformed_pointer():
 def test_parse_rejects_target_id_with_wrong_prefix():
     document = _document()
     document["schemaMappings"][0]["schemaId"] = "message:WrongKind"
-    parsed, diagnostics = parse_migration_mappings(document, locator="migrations.yaml")
+    parsed, diagnostics = parse_migration_mappings(
+        document, locator="migrations.yaml", content_digest="test-content-digest"
+    )
     assert parsed is None
     assert diagnostics[0].code is DiagnosticCode.MIGRATION_MAPPING_TARGET_INVALID
 
@@ -116,7 +130,9 @@ def test_parse_rejects_target_id_with_wrong_prefix():
 def test_parse_rejects_target_id_with_whitespace():
     document = _document()
     document["queueMappings"][0]["queueId"] = "queue: has space"
-    parsed, diagnostics = parse_migration_mappings(document, locator="migrations.yaml")
+    parsed, diagnostics = parse_migration_mappings(
+        document, locator="migrations.yaml", content_digest="test-content-digest"
+    )
     assert parsed is None
     assert diagnostics[0].code is DiagnosticCode.MIGRATION_MAPPING_TARGET_INVALID
 
@@ -140,6 +156,7 @@ def _index_document(artifact_id: str, *, schema=(), message=(), queue=()):
         artifact_id=artifact_id,
         artifact_revision="v1",
         locator=f"{artifact_id}.yaml",
+        content_digest="test-content-digest",
         schema_mappings=tuple(schema),
         message_mappings=tuple(message),
         queue_mappings=tuple(queue),

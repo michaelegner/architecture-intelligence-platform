@@ -374,6 +374,7 @@ def _shared_identity_index(*schema_mappings: tuple[str, str]):
                 artifact_id="test-artifact",
                 artifact_revision="v1",
                 locator="migrations.yaml",
+                content_digest="test-content-digest",
                 schema_mappings=tuple(
                     IdentityMappingEntry(
                         source_instance_id=SOURCE_INSTANCE_ID,

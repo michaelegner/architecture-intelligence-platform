@@ -179,6 +179,19 @@ def _mapping_entry_context(
     return {
         "artifactId": document.artifact_id,
         "artifactRevision": document.artifact_revision,
+        # §5.3: "Each mapping entry retains its stable artifact identity, revision, content digest,
+        # attribution, normalized source pointers, targets, and semantic options." contentDigest is
+        # the SHA-256 of this artifact file's own exact raw bytes (MigrationMappingsDocument.
+        # content_digest, computed once per file by load_migration_mappings); attribution is which
+        # configured file declared the mapping (MigrationMappingsDocument.locator) - both were
+        # previously carried on the document but never projected into this digest, so an edit to
+        # the artifact's own content/attribution that didn't also change any entry's pointer/target
+        # would have gone completely unnoticed by the revision fence. There is no per-artifact
+        # "semantic options" concept this mechanism exposes, so that part of §5.3's list has nothing
+        # to project (mirroring configuredServiceMappings/destinationBrokerMappings staying explicit
+        # empty arrays for categories with no configured instance).
+        "contentDigest": document.content_digest,
+        "attribution": document.locator,
         "sourceInstanceId": entry.source_instance_id,
         # documentPath is part of this entry's own lookup identity (source_instance_id,
         # document_path, pointer) - omitting it here would mean moving an otherwise identical

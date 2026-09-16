@@ -10,6 +10,7 @@ from app.sources.migration_mappings import (
     IdentityMappingEntry,
     MigrationMappingsDocument,
     build_shared_identity_index,
+    load_migration_mappings,
 )
 from app.sources.model import DiagnosticCode, FilesystemSourceConfig, IngestionResult, SourceKind
 
@@ -222,6 +223,7 @@ def test_migration_mappings_parameter_is_accepted_and_defaults_to_a_no_op(tmp_pa
                 artifact_id="unrelated-artifact",
                 artifact_revision="v1",
                 locator="migrations.yaml",
+                content_digest="test-content-digest",
                 schema_mappings=(
                     IdentityMappingEntry(
                         source_instance_id=sid,
@@ -289,6 +291,7 @@ def test_a_real_migration_mapping_changes_the_mapping_context_digest(tmp_path):
                 artifact_id="aip-v0.5.0-bundled-example-identities-v1",
                 artifact_revision="v1",
                 locator="migrations.yaml",
+                content_digest="test-content-digest",
                 schema_mappings=(
                     IdentityMappingEntry(
                         source_instance_id=sid,
@@ -337,6 +340,7 @@ def test_a_document_path_only_change_still_changes_the_mapping_context_digest(tm
                     artifact_id="aip-v0.5.0-bundled-example-identities-v1",
                     artifact_revision="v1",
                     locator="migrations.yaml",
+                    content_digest="test-content-digest",
                     schema_mappings=(
                         IdentityMappingEntry(
                             source_instance_id=sid,
@@ -364,6 +368,95 @@ def test_a_document_path_only_change_still_changes_the_mapping_context_digest(tm
     assert outcome_other.outcome.model.schemas[0].id != "schema:X"
 
 
+def _bundled_mapping_document(sid: str) -> dict:
+    return {
+        "apiVersion": "aip.dev/v1",
+        "kind": "AipSharedIdentityMappings",
+        "metadata": {"id": "aip-v0.5.0-bundled-example-identities-v1", "revision": "v1"},
+        "schemaMappings": [
+            {
+                "sourceInstanceId": sid,
+                "documentPath": "svc/openapi.yaml",
+                "pointer": "/components/schemas/X",
+                "schemaId": "schema:X",
+            }
+        ],
+    }
+
+
+def test_a_content_digest_only_change_still_changes_the_mapping_context_digest(tmp_path):
+    """I1 §5.3: "Each mapping entry retains its ... content digest ..." - a migration-mapping file
+    edited to byte-different-but-semantically-identical content (same entries, same artifact id/
+    revision, only an added trailing comment) must still produce a different `content_digest` and,
+    in turn, a different `semantic_input_digest` - proving content_digest (not just the parsed
+    entries) is genuinely part of the digested context, the same way §5.2's `content_sha256` is
+    tracked separately from a source document's own semantic normalization."""
+    _write(tmp_path / "svc" / "openapi.yaml", _single_schema_openapi_doc({"type": "object"}))
+    config = FilesystemSourceConfig(id="digest-content-test", root=tmp_path)
+    sid = source_instance_id(
+        configured_source_id="digest-content-test",
+        source_kind=SourceKind.FILESYSTEM,
+        normalized_root_document_path="svc/openapi.yaml",
+    )
+    migration_path = tmp_path / "migrations.yaml"
+    document_yaml = _bundled_mapping_document(sid)
+
+    migration_path.write_text(yaml.safe_dump(document_yaml))
+    index_one, diagnostics_one = load_migration_mappings([migration_path])
+    assert diagnostics_one == ()
+
+    migration_path.write_text(
+        yaml.safe_dump(document_yaml) + "\n# an incidental trailing comment\n"
+    )
+    index_two, diagnostics_two = load_migration_mappings([migration_path])
+    assert diagnostics_two == ()
+
+    # Sanity: identical semantic mapping content (same entries) - only the raw bytes differ.
+    assert index_one.documents[0].schema_mappings == index_two.documents[0].schema_mappings
+    assert index_one.documents[0].content_digest != index_two.documents[0].content_digest
+
+    with_one = run_filesystem_discovery(config, migration_mappings=index_one)
+    with_two = run_filesystem_discovery(config, migration_mappings=index_two)
+    [outcome_one] = with_one.source_outcomes.values()
+    [outcome_two] = with_two.source_outcomes.values()
+    assert outcome_one.outcome.semantic_input_digest != outcome_two.outcome.semantic_input_digest
+
+
+def test_an_attribution_only_change_still_changes_the_mapping_context_digest(tmp_path):
+    """I1 §5.3: "Each mapping entry retains its ... attribution ..." - the same byte-identical
+    migration-mapping content, configured from two different file paths, must still produce a
+    different `semantic_input_digest`, since attribution (which configured file declared the
+    mapping) is part of what a change in configuration must be able to invalidate replay for."""
+    _write(tmp_path / "svc" / "openapi.yaml", _single_schema_openapi_doc({"type": "object"}))
+    config = FilesystemSourceConfig(id="digest-attribution-test", root=tmp_path)
+    sid = source_instance_id(
+        configured_source_id="digest-attribution-test",
+        source_kind=SourceKind.FILESYSTEM,
+        normalized_root_document_path="svc/openapi.yaml",
+    )
+    document_yaml = _bundled_mapping_document(sid)
+    raw_bytes = yaml.safe_dump(document_yaml)
+
+    path_one = tmp_path / "migrations-one.yaml"
+    path_two = tmp_path / "migrations-two.yaml"
+    path_one.write_text(raw_bytes)
+    path_two.write_text(raw_bytes)
+
+    index_one, diagnostics_one = load_migration_mappings([path_one])
+    index_two, diagnostics_two = load_migration_mappings([path_two])
+    assert diagnostics_one == ()
+    assert diagnostics_two == ()
+    # Sanity: byte-identical content - only locator (attribution) differs.
+    assert index_one.documents[0].content_digest == index_two.documents[0].content_digest
+    assert index_one.documents[0].locator != index_two.documents[0].locator
+
+    with_one = run_filesystem_discovery(config, migration_mappings=index_one)
+    with_two = run_filesystem_discovery(config, migration_mappings=index_two)
+    [outcome_one] = with_one.source_outcomes.values()
+    [outcome_two] = with_two.source_outcomes.values()
+    assert outcome_one.outcome.semantic_input_digest != outcome_two.outcome.semantic_input_digest
+
+
 def test_cross_source_schema_content_conflict_blocks_the_whole_run(tmp_path):
     """Two sources whose schemas are explicitly mapped to the same id but disagree in content must
     reject the entire run as PARTIAL/not-commit-eligible with SCHEMA_CONTENT_CONFLICT, and commit
@@ -386,6 +479,7 @@ def test_cross_source_schema_content_conflict_blocks_the_whole_run(tmp_path):
                 artifact_id="aip-v0.5.0-bundled-example-identities-v1",
                 artifact_revision="v1",
                 locator="migrations.yaml",
+                content_digest="test-content-digest",
                 schema_mappings=(
                     IdentityMappingEntry(
                         source_instance_id=_sid("svc-a"),
@@ -473,6 +567,7 @@ def test_shared_identity_mapping_disambiguates_the_same_pointer_in_two_files(tmp
                 artifact_id="aip-v0.5.0-bundled-example-identities-v1",
                 artifact_revision="v1",
                 locator="migrations.yaml",
+                content_digest="test-content-digest",
                 schema_mappings=(
                     IdentityMappingEntry(
                         source_instance_id=sid,
