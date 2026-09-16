@@ -158,15 +158,14 @@ class OpenApiSourceAdapter:
                 any_uninterpreted_composition = True
 
             # §8.1/§5.1.1: an explicit shared-identity/migration mapping, keyed by
-            # (SourceInstanceId, resolved definition pointer), is authoritative when present -
-            # checked before falling back to the owner-scoped default formula. Keyed on the
-            # decoded pointer tokens alone (not also normalized_definition_document_path): every
-            # bundled/migrated fixture resolves within its own root document, so SourceInstanceId
-            # (itself tied to that one root document) already disambiguates any cross-source
-            # collision - flagged for review as a deliberate simplification, not a general
-            # cross-file-target mapping mechanism.
+            # (SourceInstanceId, normalized definition document path, resolved definition pointer),
+            # is authoritative when present - checked before falling back to the owner-scoped
+            # default formula. The document path is required alongside the pointer because a single
+            # SourceInstanceId's own bounded multi-file $ref closure (PR3b) can resolve the same
+            # relative pointer inside two different files.
             explicit_schema_id = shared_identity.schema_id_for(
                 source_instance_id=source_instance_id,
+                document_path=normalized.normalized_definition_document_path,
                 pointer=encode_pointer_tokens(normalized.definition_pointer_tokens),
             )
             schema_id_value = explicit_schema_id or schema_owned_id(

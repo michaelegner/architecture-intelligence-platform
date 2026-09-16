@@ -133,14 +133,26 @@ class _RunSharedIdentityResolver:
     def __init__(self, index: SharedIdentityMappingIndex):
         self._index = index
 
-    def schema_id_for(self, *, source_instance_id: str, pointer: str) -> str | None:
-        return self._index.schema_id_for(source_instance_id=source_instance_id, pointer=pointer)
+    def schema_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self._index.schema_id_for(
+            source_instance_id=source_instance_id, document_path=document_path, pointer=pointer
+        )
 
-    def message_id_for(self, *, source_instance_id: str, pointer: str) -> str | None:
-        return self._index.message_id_for(source_instance_id=source_instance_id, pointer=pointer)
+    def message_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self._index.message_id_for(
+            source_instance_id=source_instance_id, document_path=document_path, pointer=pointer
+        )
 
-    def queue_id_for(self, *, source_instance_id: str, pointer: str) -> str | None:
-        return self._index.queue_id_for(source_instance_id=source_instance_id, pointer=pointer)
+    def queue_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self._index.queue_id_for(
+            source_instance_id=source_instance_id, document_path=document_path, pointer=pointer
+        )
 
 
 def _binding_index_to_pointer_bindings(binding_index: BindingIndex) -> tuple[PointerBinding, ...]:

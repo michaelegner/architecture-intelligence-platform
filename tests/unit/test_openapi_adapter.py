@@ -364,8 +364,9 @@ def test_maps_real_order_service_fixture_via_discoverer():
 
 
 def _shared_identity_index(*schema_mappings: tuple[str, str]):
-    """schema_mappings entries are (pointer, target_id) - built against SOURCE_INSTANCE_ID, the
-    fixed default `_loaded()` source instance id used throughout this file.
+    """schema_mappings entries are (pointer, target_id) - built against SOURCE_INSTANCE_ID and
+    "test.yaml", the fixed default `_loaded()` source instance id/locator used throughout this file
+    (root_relative_path == the locator itself, since these LoadedSources have no source_root).
     """
     index, diagnostics = build_shared_identity_index(
         [
@@ -376,6 +377,7 @@ def _shared_identity_index(*schema_mappings: tuple[str, str]):
                 schema_mappings=tuple(
                     IdentityMappingEntry(
                         source_instance_id=SOURCE_INSTANCE_ID,
+                        document_path="test.yaml",
                         pointer=pointer,
                         pointer_tokens=tuple(pointer.strip("/").split("/")),
                         target_id=target_id,

@@ -1,17 +1,19 @@
 """I1 spec §5.1.1/§8.1/§9/§9.1's explicit shared-identity mapping mechanism: a versioned artifact
-binding exact `(SourceInstanceId, source pointer)` pairs to a full canonical Schema/Message/Queue
-ID, so a source's owner-scoped default identity can be deliberately overridden to preserve a prior
-(e.g. v0.4.2, pre-owner-scoped) canonical meaning, or to merge two independent sources' claims onto
-one shared entity.
+binding exact `(SourceInstanceId, normalized definition document path, source pointer)` triples to
+a full canonical Schema/Message/Queue ID, so a source's owner-scoped default identity can be
+deliberately overridden to preserve a prior (e.g. v0.4.2, pre-owner-scoped) canonical meaning, or to
+merge two independent sources' claims onto one shared entity. The document path is part of the
+lookup key, not folded into the pointer, because one SourceInstanceId's own bounded multi-file
+`$ref` closure (PR3b) can resolve the identical relative pointer inside two different files.
 
 Structurally mirrors `app.sources.manifest_bindings` (shape validation via `Draft202012Validator`,
 frozen dataclasses, then a sorted-dedup-then-conflict-detection index build) - the same "shape, then
 pointer/target validity, then cross-entry conflict" pipeline. The one deliberate difference: Service
 bindings match by *pointer prefix* (`app.sources.pointers.pointer_prefix_matches`, since one binding
 can cover a whole subtree of an operation's constructs); a Schema/Message/Queue migration mapping
-matches by *exact* pointer only (§8.1: "bind one or more *exact* `(SourceInstanceId, source
-pointer)` pairs") - a schema/message/queue's own resolved definition pointer is always a single,
-fully-resolved location, never a subtree.
+matches by *exact* document path plus pointer (§8.1: "bind one or more *exact* `(SourceInstanceId,
+source pointer)` pairs") - a schema/message/queue's own resolved definition location is always a
+single, fully-resolved document+pointer pair, never a subtree.
 """
 
 import re
@@ -22,15 +24,21 @@ from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator
 
+from app.sources.identity import normalize_relative_posix_path
 from app.sources.model import DiagnosticCode, IngestionDiagnostic
 from app.sources.pointers import decode_pointer_tokens, is_well_formed_pointer
 
 _MAPPING_ENTRY_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["sourceInstanceId", "pointer"],
+    "required": ["sourceInstanceId", "documentPath", "pointer"],
     "properties": {
         "sourceInstanceId": {"type": "string", "minLength": 1},
+        # §8.1/§9.1: "the normalized definition source pointer is the normalized relative document
+        # path plus decoded RFC 6901 pointer" - required alongside `pointer`, not folded into it,
+        # since a single SourceInstanceId's own bounded multi-file `$ref` closure (PR3b) can resolve
+        # the same relative pointer inside two different files.
+        "documentPath": {"type": "string", "minLength": 1},
         "pointer": {"type": "string"},
     },
 }
@@ -83,6 +91,7 @@ _TARGET_ID_RE = {
 @dataclass(frozen=True)
 class IdentityMappingEntry:
     source_instance_id: str
+    document_path: str
     pointer: str
     pointer_tokens: tuple[str, ...]
     target_id: str
@@ -146,6 +155,7 @@ def _parse_entries(
         entries.append(
             IdentityMappingEntry(
                 source_instance_id=raw["sourceInstanceId"],
+                document_path=normalize_relative_posix_path(raw["documentPath"]),
                 pointer=pointer,
                 pointer_tokens=decode_pointer_tokens(pointer),
                 target_id=target_id,
@@ -224,37 +234,42 @@ def _kind_entries(
 
 
 def _entry_sort_key(entry: IdentityMappingEntry) -> tuple:
-    return (entry.source_instance_id, entry.pointer_tokens, entry.target_id)
+    return (entry.source_instance_id, entry.document_path, entry.pointer_tokens, entry.target_id)
 
 
 def _build_kind_index(
     documents: Sequence[MigrationMappingsDocument], *, kind: str
-) -> tuple[dict[tuple[str, str], str], list[IngestionDiagnostic]]:
+) -> tuple[dict[tuple[str, str, str], str], list[IngestionDiagnostic]]:
     """Sorted-dedup-then-conflict, mirroring `manifest_bindings.build_binding_index`: an identical
-    (source_instance_id, pointer, target_id) triple repeated across files collapses silently
-    (permutation-independent by construction); the same (source_instance_id, pointer) bound to two
-    *different* target ids is `MIGRATION_MAPPING_CONFLICT`.
+    (source_instance_id, document_path, pointer, target_id) quadruple repeated across files
+    collapses silently (permutation-independent by construction); the same (source_instance_id,
+    document_path, pointer) bound to two *different* target ids is `MIGRATION_MAPPING_CONFLICT`.
+    `document_path` is part of the key (not folded into `pointer`) because a single
+    SourceInstanceId's own bounded multi-file `$ref` closure (PR3b) can resolve the same relative
+    pointer inside two different files - §8.1/§9.1's "normalized definition source pointer" is
+    document path plus RFC 6901 pointer together, never the pointer alone.
     """
     raw_entries = [entry for document in documents for entry in _kind_entries(document, kind=kind)]
     sorted_entries = sorted(raw_entries, key=_entry_sort_key)
 
-    index: dict[tuple[str, str], str] = {}
+    index: dict[tuple[str, str, str], str] = {}
     diagnostics: list[IngestionDiagnostic] = []
-    seen_triples: set[tuple[str, str, str]] = set()
+    seen_quadruples: set[tuple[str, str, str, str]] = set()
     for entry in sorted_entries:
-        triple = (entry.source_instance_id, entry.pointer, entry.target_id)
-        if triple in seen_triples:
+        quadruple = (entry.source_instance_id, entry.document_path, entry.pointer, entry.target_id)
+        if quadruple in seen_quadruples:
             continue
-        seen_triples.add(triple)
+        seen_quadruples.add(quadruple)
 
-        key = (entry.source_instance_id, entry.pointer)
+        key = (entry.source_instance_id, entry.document_path, entry.pointer)
         if key in index and index[key] != entry.target_id:
             diagnostics.append(
                 IngestionDiagnostic(
                     code=DiagnosticCode.MIGRATION_MAPPING_CONFLICT,
                     message=(
                         f"conflicting {kind} migration mapping for {entry.source_instance_id!r} "
-                        f"at {entry.pointer!r}: {index[key]!r} vs {entry.target_id!r}"
+                        f"at {entry.document_path!r}{entry.pointer!r}: {index[key]!r} vs "
+                        f"{entry.target_id!r}"
                     ),
                     source_pointer=entry.pointer,
                     source_instance_id=entry.source_instance_id,
@@ -268,19 +283,25 @@ def _build_kind_index(
 
 @dataclass(frozen=True)
 class SharedIdentityMappingIndex:
-    schema_index: dict[tuple[str, str], str] = field(default_factory=dict)
-    message_index: dict[tuple[str, str], str] = field(default_factory=dict)
-    queue_index: dict[tuple[str, str], str] = field(default_factory=dict)
+    schema_index: dict[tuple[str, str, str], str] = field(default_factory=dict)
+    message_index: dict[tuple[str, str, str], str] = field(default_factory=dict)
+    queue_index: dict[tuple[str, str, str], str] = field(default_factory=dict)
     documents: tuple[MigrationMappingsDocument, ...] = field(default_factory=tuple)
 
-    def schema_id_for(self, *, source_instance_id: str, pointer: str) -> str | None:
-        return self.schema_index.get((source_instance_id, pointer))
+    def schema_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self.schema_index.get((source_instance_id, document_path, pointer))
 
-    def message_id_for(self, *, source_instance_id: str, pointer: str) -> str | None:
-        return self.message_index.get((source_instance_id, pointer))
+    def message_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self.message_index.get((source_instance_id, document_path, pointer))
 
-    def queue_id_for(self, *, source_instance_id: str, pointer: str) -> str | None:
-        return self.queue_index.get((source_instance_id, pointer))
+    def queue_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self.queue_index.get((source_instance_id, document_path, pointer))
 
 
 EMPTY_SHARED_IDENTITY_INDEX = SharedIdentityMappingIndex()

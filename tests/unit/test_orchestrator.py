@@ -225,6 +225,7 @@ def test_migration_mappings_parameter_is_accepted_and_defaults_to_a_no_op(tmp_pa
                 schema_mappings=(
                     IdentityMappingEntry(
                         source_instance_id=sid,
+                        document_path="svc/openapi.yaml",
                         pointer="/components/schemas/Nonexistent",
                         pointer_tokens=("components", "schemas", "Nonexistent"),
                         target_id="schema:Nonexistent",
@@ -291,6 +292,7 @@ def test_a_real_migration_mapping_changes_the_mapping_context_digest(tmp_path):
                 schema_mappings=(
                     IdentityMappingEntry(
                         source_instance_id=sid,
+                        document_path="svc/openapi.yaml",
                         pointer="/components/schemas/X",
                         pointer_tokens=("components", "schemas", "X"),
                         target_id="schema:X",
@@ -335,12 +337,14 @@ def test_cross_source_schema_content_conflict_blocks_the_whole_run(tmp_path):
                 schema_mappings=(
                     IdentityMappingEntry(
                         source_instance_id=_sid("svc-a"),
+                        document_path="svc-a/openapi.yaml",
                         pointer="/components/schemas/X",
                         pointer_tokens=("components", "schemas", "X"),
                         target_id="schema:Shared",
                     ),
                     IdentityMappingEntry(
                         source_instance_id=_sid("svc-b"),
+                        document_path="svc-b/openapi.yaml",
                         pointer="/components/schemas/X",
                         pointer_tokens=("components", "schemas", "X"),
                         target_id="schema:Shared",
@@ -360,3 +364,87 @@ def test_cross_source_schema_content_conflict_blocks_the_whole_run(tmp_path):
     # Both sources' own individual outcomes are still recorded (each independently succeeded) -
     # only the cross-source combination is rejected.
     assert len(result.source_outcomes) == 2
+
+
+def test_shared_identity_mapping_disambiguates_the_same_pointer_in_two_files(tmp_path):
+    """I1 §8.1/§9.1's "normalized definition source pointer" is the document path plus the RFC 6901
+    pointer together, not the pointer alone - one root document's own bounded multi-file $ref
+    closure (PR3b) can resolve the identical relative pointer (`/X`) inside two different files.
+    Real end-to-end regression: a mapping targeting only `schemas/a.yaml#/X` must not also apply to
+    `schemas/b.yaml#/X`, even though both resolve to the exact same pointer_tokens and share the
+    same SourceInstanceId (both are $ref'd from the same root document)."""
+    _write(tmp_path / "svc" / "schemas" / "a.yaml", {"X": {"type": "object", "title": "FromA"}})
+    _write(tmp_path / "svc" / "schemas" / "b.yaml", {"X": {"type": "object", "title": "FromB"}})
+    _write(
+        tmp_path / "svc" / "openapi.yaml",
+        {
+            "openapi": "3.1.0",
+            "info": {"title": "Svc"},
+            "x-aip-service-id": "service:svc",
+            "paths": {
+                "/a": {
+                    "get": {
+                        "operationId": "getA",
+                        "responses": {
+                            "200": {
+                                "content": {
+                                    "application/json": {"schema": {"$ref": "schemas/a.yaml#/X"}}
+                                }
+                            }
+                        },
+                    }
+                },
+                "/b": {
+                    "get": {
+                        "operationId": "getB",
+                        "responses": {
+                            "200": {
+                                "content": {
+                                    "application/json": {"schema": {"$ref": "schemas/b.yaml#/X"}}
+                                }
+                            }
+                        },
+                    }
+                },
+            },
+        },
+    )
+    config = FilesystemSourceConfig(id="disambiguate-test", root=tmp_path)
+    sid = source_instance_id(
+        configured_source_id="disambiguate-test",
+        source_kind=SourceKind.FILESYSTEM,
+        normalized_root_document_path="svc/openapi.yaml",
+    )
+    index, diagnostics = build_shared_identity_index(
+        [
+            MigrationMappingsDocument(
+                artifact_id="aip-v0.5.0-bundled-example-identities-v1",
+                artifact_revision="v1",
+                locator="migrations.yaml",
+                schema_mappings=(
+                    IdentityMappingEntry(
+                        source_instance_id=sid,
+                        document_path="svc/schemas/a.yaml",
+                        pointer="/X",
+                        pointer_tokens=("X",),
+                        target_id="schema:OnlyFromA",
+                    ),
+                ),
+            )
+        ]
+    )
+    assert diagnostics == []
+
+    result = run_filesystem_discovery(config, migration_mappings=index)
+    [outcome] = result.source_outcomes.values()
+    assert outcome.outcome.result is IngestionResult.ACCEPTED
+
+    schema_ids = [s.id for s in outcome.outcome.model.schemas]
+    # Exactly two distinct schemas: the explicitly-mapped one from a.yaml, and b.yaml's own,
+    # unaffected owner-scoped default - proves document_path, not pointer alone, is the key, or
+    # both files' identical `/X` pointer would have collided onto one shared id (or a spurious
+    # conflict) instead of resolving independently.
+    assert len(schema_ids) == 2
+    assert schema_ids.count("schema:OnlyFromA") == 1
+    other_id = next(sid_value for sid_value in schema_ids if sid_value != "schema:OnlyFromA")
+    assert other_id != "schema:OnlyFromA"

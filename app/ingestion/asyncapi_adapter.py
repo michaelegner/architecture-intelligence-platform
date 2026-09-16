@@ -356,6 +356,7 @@ class AsyncApiSourceAdapter:
                     )
                 explicit_schema_id = shared_identity.schema_id_for(
                     source_instance_id=source_instance_id,
+                    document_path=normalized.normalized_definition_document_path,
                     pointer=encode_pointer_tokens(normalized.definition_pointer_tokens),
                 )
                 schema_id_value = explicit_schema_id or schema_owned_id(
@@ -386,6 +387,7 @@ class AsyncApiSourceAdapter:
                     )
                 explicit_schema_id = shared_identity.schema_id_for(
                     source_instance_id=source_instance_id,
+                    document_path=normalized.normalized_definition_document_path,
                     pointer=encode_pointer_tokens(normalized.definition_pointer_tokens),
                 )
                 schema_id_value = explicit_schema_id or inline_payload_schema_id(
@@ -436,7 +438,9 @@ class AsyncApiSourceAdapter:
 
             channel_pointer = encode_pointer_tokens(("channels", channel_name))
             explicit_queue_id = shared_identity.queue_id_for(
-                source_instance_id=source_instance_id, pointer=channel_pointer
+                source_instance_id=source_instance_id,
+                document_path=root_relative_path,
+                pointer=channel_pointer,
             )
 
             # §9: "versioned configured destination mapping declares kind = 'queue'" is a third
@@ -601,7 +605,9 @@ class AsyncApiSourceAdapter:
 
             dlq_pointer = encode_pointer_tokens(("channels", channel_name, "x-dead-letter-queue"))
             explicit_target_queue_id = shared_identity.queue_id_for(
-                source_instance_id=source_instance_id, pointer=dlq_pointer
+                source_instance_id=source_instance_id,
+                document_path=root_relative_path,
+                pointer=dlq_pointer,
             )
             derived_target_queue_id = None
             target_namespace = None
@@ -721,6 +727,7 @@ class AsyncApiSourceAdapter:
 
                     explicit_message_id = shared_identity.message_id_for(
                         source_instance_id=source_instance_id,
+                        document_path=message_def.document_path,
                         pointer=encode_pointer_tokens(message_pointer_tokens),
                     )
                     message_id_value = explicit_message_id or message_owned_id(

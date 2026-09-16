@@ -115,10 +115,15 @@ def _no_broker_document(**channel_overrides) -> dict:
 
 
 def _shared_identity_index(*, schema_mappings=(), message_mappings=(), queue_mappings=()):
+    """Mapping entries are (pointer, target_id) - built against SOURCE_INSTANCE_ID and "test.yaml",
+    the fixed default `_loaded()` source instance id/locator used throughout this file
+    (root_relative_path == the locator itself, since these LoadedSources have no source_root)."""
+
     def _entries(mappings):
         return tuple(
             IdentityMappingEntry(
                 source_instance_id=SOURCE_INSTANCE_ID,
+                document_path="test.yaml",
                 pointer=pointer,
                 pointer_tokens=tuple(pointer.strip("/").split("/")),
                 target_id=target_id,

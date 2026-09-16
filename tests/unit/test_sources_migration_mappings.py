@@ -21,6 +21,7 @@ def _document(**overrides):
         "schemaMappings": [
             {
                 "sourceInstanceId": SOURCE_A,
+                "documentPath": "root.yaml",
                 "pointer": "/components/schemas/OrderRequest",
                 "schemaId": "schema:OrderRequest",
             }
@@ -28,6 +29,7 @@ def _document(**overrides):
         "messageMappings": [
             {
                 "sourceInstanceId": SOURCE_A,
+                "documentPath": "root.yaml",
                 "pointer": "/components/messages/PaymentRequested",
                 "messageId": "message:PaymentRequested:v2",
             }
@@ -35,6 +37,7 @@ def _document(**overrides):
         "queueMappings": [
             {
                 "sourceInstanceId": SOURCE_A,
+                "documentPath": "root.yaml",
                 "pointer": "/channels/payment-q",
                 "queueId": "queue:payment-q",
             }
@@ -86,6 +89,14 @@ def test_parse_rejects_wrong_kind():
     assert diagnostics[0].code is DiagnosticCode.MIGRATION_MAPPING_SHAPE_INVALID
 
 
+def test_parse_rejects_entry_missing_document_path():
+    document = _document()
+    del document["schemaMappings"][0]["documentPath"]
+    parsed, diagnostics = parse_migration_mappings(document, locator="migrations.yaml")
+    assert parsed is None
+    assert diagnostics[0].code is DiagnosticCode.MIGRATION_MAPPING_SHAPE_INVALID
+
+
 def test_parse_rejects_malformed_pointer():
     document = _document()
     document["schemaMappings"][0]["pointer"] = "no-leading-slash"
@@ -110,11 +121,14 @@ def test_parse_rejects_target_id_with_whitespace():
     assert diagnostics[0].code is DiagnosticCode.MIGRATION_MAPPING_TARGET_INVALID
 
 
-def _entry(source_instance_id: str, pointer: str, target_id: str) -> IdentityMappingEntry:
+def _entry(
+    source_instance_id: str, pointer: str, target_id: str, *, document_path: str = "root.yaml"
+) -> IdentityMappingEntry:
     from app.sources.pointers import decode_pointer_tokens
 
     return IdentityMappingEntry(
         source_instance_id=source_instance_id,
+        document_path=document_path,
         pointer=pointer,
         pointer_tokens=decode_pointer_tokens(pointer),
         target_id=target_id,
@@ -143,19 +157,31 @@ def test_build_index_resolves_configured_mappings():
 
     assert diagnostics == []
     assert (
-        index.schema_id_for(source_instance_id=SOURCE_A, pointer="/components/schemas/OrderRequest")
+        index.schema_id_for(
+            source_instance_id=SOURCE_A,
+            document_path="root.yaml",
+            pointer="/components/schemas/OrderRequest",
+        )
         == "schema:OrderRequest"
     )
     assert (
-        index.message_id_for(source_instance_id=SOURCE_A, pointer="/components/messages/X")
+        index.message_id_for(
+            source_instance_id=SOURCE_A, document_path="root.yaml", pointer="/components/messages/X"
+        )
         == "message:X:v1"
     )
     assert (
-        index.queue_id_for(source_instance_id=SOURCE_A, pointer="/channels/payment-q")
+        index.queue_id_for(
+            source_instance_id=SOURCE_A, document_path="root.yaml", pointer="/channels/payment-q"
+        )
         == "queue:payment-q"
     )
     assert (
-        index.schema_id_for(source_instance_id=SOURCE_B, pointer="/components/schemas/OrderRequest")
+        index.schema_id_for(
+            source_instance_id=SOURCE_B,
+            document_path="root.yaml",
+            pointer="/components/schemas/OrderRequest",
+        )
         is None
     )
 
@@ -179,7 +205,9 @@ def test_build_index_deduplicates_identical_entries_across_documents():
     index, diagnostics = build_shared_identity_index([doc_one, doc_two])
     assert diagnostics == []
     assert (
-        index.schema_id_for(source_instance_id=SOURCE_A, pointer="/components/schemas/X")
+        index.schema_id_for(
+            source_instance_id=SOURCE_A, document_path="root.yaml", pointer="/components/schemas/X"
+        )
         == "schema:X"
     )
 
@@ -191,9 +219,45 @@ def test_build_index_flags_conflicting_target_for_same_pointer():
 
     assert any(d.code is DiagnosticCode.MIGRATION_MAPPING_CONFLICT for d in diagnostics)
     # exactly one of the two disagreeing targets wins deterministically (sorted-first)
-    assert index.schema_id_for(source_instance_id=SOURCE_A, pointer="/components/schemas/X") in (
+    assert index.schema_id_for(
+        source_instance_id=SOURCE_A, document_path="root.yaml", pointer="/components/schemas/X"
+    ) in (
         "schema:X",
         "schema:DifferentX",
+    )
+
+
+def test_build_index_keeps_same_pointer_in_different_documents_independent():
+    """I1 §8.1/§9.1: "the normalized definition source pointer is the normalized relative document
+    path plus decoded RFC 6901 pointer" - one SourceInstanceId's own bounded multi-file $ref closure
+    (PR3b) can resolve the identical relative pointer inside two different files, and each file's
+    mapping must resolve independently rather than colliding or spuriously conflicting."""
+    entry_a = _entry(SOURCE_A, "/components/schemas/X", "schema:FromA", document_path="a.yaml")
+    entry_b = _entry(SOURCE_A, "/components/schemas/X", "schema:FromB", document_path="b.yaml")
+    index, diagnostics = build_shared_identity_index(
+        [_index_document("both", schema=[entry_a, entry_b])]
+    )
+
+    assert diagnostics == []
+    assert (
+        index.schema_id_for(
+            source_instance_id=SOURCE_A, document_path="a.yaml", pointer="/components/schemas/X"
+        )
+        == "schema:FromA"
+    )
+    assert (
+        index.schema_id_for(
+            source_instance_id=SOURCE_A, document_path="b.yaml", pointer="/components/schemas/X"
+        )
+        == "schema:FromB"
+    )
+    # A lookup for a document path that was never mapped for this pointer must not fall through to
+    # either real entry - the two documents' identical pointers must never cross-contaminate.
+    assert (
+        index.schema_id_for(
+            source_instance_id=SOURCE_A, document_path="c.yaml", pointer="/components/schemas/X"
+        )
+        is None
     )
 
 
@@ -207,9 +271,18 @@ def test_build_index_keeps_schema_message_queue_namespaces_independent():
     )
     index, diagnostics = build_shared_identity_index([doc])
     assert diagnostics == []
-    assert index.schema_id_for(source_instance_id=SOURCE_A, pointer="/x") == "schema:X"
-    assert index.message_id_for(source_instance_id=SOURCE_A, pointer="/x") == "message:X"
-    assert index.queue_id_for(source_instance_id=SOURCE_A, pointer="/x") == "queue:X"
+    assert (
+        index.schema_id_for(source_instance_id=SOURCE_A, document_path="root.yaml", pointer="/x")
+        == "schema:X"
+    )
+    assert (
+        index.message_id_for(source_instance_id=SOURCE_A, document_path="root.yaml", pointer="/x")
+        == "message:X"
+    )
+    assert (
+        index.queue_id_for(source_instance_id=SOURCE_A, document_path="root.yaml", pointer="/x")
+        == "queue:X"
+    )
 
 
 def test_load_migration_mappings_from_real_files(tmp_path):
@@ -219,7 +292,11 @@ def test_load_migration_mappings_from_real_files(tmp_path):
     index, diagnostics = load_migration_mappings([path])
     assert diagnostics == ()
     assert (
-        index.schema_id_for(source_instance_id=SOURCE_A, pointer="/components/schemas/OrderRequest")
+        index.schema_id_for(
+            source_instance_id=SOURCE_A,
+            document_path="root.yaml",
+            pointer="/components/schemas/OrderRequest",
+        )
         == "schema:OrderRequest"
     )
     assert len(index.documents) == 1
@@ -261,10 +338,18 @@ def test_load_migration_mappings_merges_multiple_files(tmp_path):
     assert diagnostics == ()
     assert len(index.documents) == 2
     assert (
-        index.schema_id_for(source_instance_id=SOURCE_A, pointer="/components/schemas/OrderRequest")
+        index.schema_id_for(
+            source_instance_id=SOURCE_A,
+            document_path="root.yaml",
+            pointer="/components/schemas/OrderRequest",
+        )
         == "schema:OrderRequest"
     )
     assert (
-        index.schema_id_for(source_instance_id=SOURCE_A, pointer="/components/schemas/Other")
+        index.schema_id_for(
+            source_instance_id=SOURCE_A,
+            document_path="root.yaml",
+            pointer="/components/schemas/Other",
+        )
         == "schema:Other"
     )
