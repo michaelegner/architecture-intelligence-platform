@@ -22,6 +22,7 @@ from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.manifest_adapter import ManifestSourceAdapter
 from app.ingestion.openapi_adapter import OpenApiSourceAdapter
 from app.provenance.model import Provenance
+from app.sources.claim_conflicts import detect_shared_claim_content_conflicts
 from app.sources.commit_gate import classify_inventory_status, run_is_eligible_to_commit
 from app.sources.identity import mapping_context_digest as compute_mapping_context_digest
 from app.sources.inventory import InventoryStatus
@@ -33,6 +34,8 @@ from app.sources.manifest_bindings import (
 )
 from app.sources.migration_mappings import (
     EMPTY_SHARED_IDENTITY_INDEX,
+    IdentityMappingEntry,
+    MigrationMappingsDocument,
     SharedIdentityMappingIndex,
 )
 from app.sources.model import (
@@ -152,6 +155,54 @@ def _binding_index_to_pointer_bindings(binding_index: BindingIndex) -> tuple[Poi
     )
 
 
+# I1 spec §5.1.1's fixed artifact id for the bundled examples/ migration file - any *other*
+# configured migration document is a general shared-identity mapping instead, per the
+# classification rule in `_classify_shared_identity_entries`'s docstring below.
+BUNDLED_MIGRATION_ARTIFACT_ID = "aip-v0.5.0-bundled-example-identities-v1"
+
+
+def _mapping_entry_context(
+    document: MigrationMappingsDocument, entry: IdentityMappingEntry, *, id_field: str
+) -> dict[str, str]:
+    return {
+        "artifactId": document.artifact_id,
+        "artifactRevision": document.artifact_revision,
+        "sourceInstanceId": entry.source_instance_id,
+        "pointer": entry.pointer,
+        id_field: entry.target_id,
+    }
+
+
+def _classify_shared_identity_entries(
+    shared_identity_index: SharedIdentityMappingIndex,
+) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
+    """§5.3 names `bundledMigrationMappings` as one context category and `sharedSchemaMappings`/
+    `sharedMessageMappings`/`sharedQueueMappings` as three separate ones - a distinction the spec
+    text doesn't otherwise define, so this module draws it explicitly (flagged for review): any
+    loaded migration document whose artifact id is the fixed §5.1.1 bundled-example constant
+    contributes all of its entries (schema, message, and queue alike) to the one
+    `bundledMigrationMappings` list; every other configured document's entries are split by kind
+    into the three `shared*Mappings` categories instead, since that general mechanism has no
+    single-artifact identity to fold entries under.
+    """
+    bundled: list[dict] = []
+    shared_schema: list[dict] = []
+    shared_message: list[dict] = []
+    shared_queue: list[dict] = []
+    for document in shared_identity_index.documents:
+        is_bundled = document.artifact_id == BUNDLED_MIGRATION_ARTIFACT_ID
+        for entry in document.schema_mappings:
+            item = _mapping_entry_context(document, entry, id_field="schemaId")
+            (bundled if is_bundled else shared_schema).append(item)
+        for entry in document.message_mappings:
+            item = _mapping_entry_context(document, entry, id_field="messageId")
+            (bundled if is_bundled else shared_message).append(item)
+        for entry in document.queue_mappings:
+            item = _mapping_entry_context(document, entry, id_field="queueId")
+            (bundled if is_bundled else shared_queue).append(item)
+    return bundled, shared_schema, shared_message, shared_queue
+
+
 def _compute_mapping_context_digest(
     binding_index: BindingIndex,
     registry: SourceAdapterRegistry,
@@ -160,14 +211,13 @@ def _compute_mapping_context_digest(
     """I1 spec §5.3: the context's input is "the complete canonical index of configured and
     manifest Service bindings, shared Schema/Message mappings, Queue/destination and broker/server/
     namespace mappings, bundled migration mappings, and all active adapter, normalization, and
-    mapping-rule identities/versions." `shared_identity_index` is accepted here starting in PR4 but
-    not yet folded into the context (still explicit empty arrays below) - wiring its real content
-    into `sharedSchemaMappings`/`sharedMessageMappings`/`sharedQueueMappings`/
-    `bundledMigrationMappings` per the classification rule is a later commit in this same PR, kept
-    separate so this plumbing-only change has zero behavior difference from before it landed.
-    "Explicit empty arrays represent absent mapping categories" - §5.3.
+    mapping-rule identities/versions." `configuredServiceMappings`/`destinationBrokerMappings`
+    remain explicit empty arrays - no configured instance of either exists or is needed yet
+    ("Explicit empty arrays represent absent mapping categories" - §5.3).
     """
-    del shared_identity_index  # not yet consumed - see docstring
+    bundled, shared_schema, shared_message, shared_queue = _classify_shared_identity_entries(
+        shared_identity_index
+    )
     context = {
         "manifestBindings": sort_entries_by_canonical_bytes(
             [
@@ -180,11 +230,11 @@ def _compute_mapping_context_digest(
             ]
         ),
         "configuredServiceMappings": [],
-        "sharedSchemaMappings": [],
-        "sharedMessageMappings": [],
-        "sharedQueueMappings": [],
+        "sharedSchemaMappings": sort_entries_by_canonical_bytes(shared_schema),
+        "sharedMessageMappings": sort_entries_by_canonical_bytes(shared_message),
+        "sharedQueueMappings": sort_entries_by_canonical_bytes(shared_queue),
         "destinationBrokerMappings": [],
-        "bundledMigrationMappings": [],
+        "bundledMigrationMappings": sort_entries_by_canonical_bytes(bundled),
         "adapters": sort_entries_by_canonical_bytes(
             [
                 {
@@ -358,7 +408,26 @@ def run_filesystem_discovery(
         )
     run_diagnostics.extend(unmatched_diagnostics)
 
-    merged_model = merge_models([outcome.outcome.model for outcome in source_outcomes.values()])
+    source_models = [outcome.outcome.model for outcome in source_outcomes.values()]
+
+    # §8.1/§9.1: "Two current owners explicitly mapped to one shared Schema ID with different
+    # canonical hashes are REJECTED_CONFLICT" (and the Message equivalent) - only visible once every
+    # source's own claims are collected together, so this runs on the pre-merge per-source model
+    # list, before merge_models' own first-wins dedup could discard the disagreement.
+    content_conflicts = detect_shared_claim_content_conflicts(source_models)
+    if content_conflicts:
+        run_diagnostics.extend(content_conflicts)
+        return DiscoveryRunResult(
+            inventory_status=InventoryStatus.PARTIAL,
+            commit_eligible=False,
+            discovery_scope_id=discovery_outcome.discovery_scope_id,
+            scope_definition_digest=discovery_outcome.scope_definition_digest,
+            merged_model=ArchitectureModel(),
+            source_outcomes=source_outcomes,
+            diagnostics=tuple(run_diagnostics),
+        )
+
+    merged_model = merge_models(source_models)
     status = classify_inventory_status(
         source_results=[o.outcome.result for o in source_outcomes.values()],
         discoverer_enumeration_complete=True,

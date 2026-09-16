@@ -11,7 +11,7 @@ from app.sources.migration_mappings import (
     MigrationMappingsDocument,
     build_shared_identity_index,
 )
-from app.sources.model import FilesystemSourceConfig, IngestionResult, SourceKind
+from app.sources.model import DiagnosticCode, FilesystemSourceConfig, IngestionResult, SourceKind
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 
@@ -195,9 +195,9 @@ def test_maps_real_bundled_examples_end_to_end():
 
 
 def test_migration_mappings_parameter_is_accepted_and_defaults_to_a_no_op(tmp_path):
-    """The SharedIdentityResolver seam is wired end to end in this PR's commit 4, but no adapter
-    consults it yet (that lands in a later commit) - passing a real, non-empty index today must be
-    accepted without error and must not change the result, proving the plumbing alone is inert."""
+    """A migration mapping whose pointer matches nothing in this document must not change the
+    result at all - proves the resolver seam is a true no-op for a source it doesn't apply to,
+    not just "doesn't crash"."""
     _write(
         tmp_path / "svc" / "openapi.yaml",
         {
@@ -240,3 +240,123 @@ def test_migration_mappings_parameter_is_accepted_and_defaults_to_a_no_op(tmp_pa
 
     assert with_mappings.inventory_status == without_mappings.inventory_status
     assert with_mappings.merged_model == without_mappings.merged_model
+
+
+def _single_schema_openapi_doc(schema_body: dict) -> dict:
+    return {
+        "openapi": "3.1.0",
+        "info": {"title": "Svc"},
+        "x-aip-service-id": "service:svc",
+        "paths": {
+            "/x": {
+                "get": {
+                    "operationId": "getX",
+                    "responses": {
+                        "200": {
+                            "content": {
+                                "application/json": {"schema": {"$ref": "#/components/schemas/X"}}
+                            }
+                        }
+                    },
+                }
+            }
+        },
+        "components": {"schemas": {"X": schema_body}},
+    }
+
+
+def test_a_real_migration_mapping_changes_the_mapping_context_digest(tmp_path):
+    """Regression proof that _compute_mapping_context_digest now has real, non-empty content to
+    hash: two runs of the byte-identical document, differing only in whether a migration mapping
+    file is configured, must produce different semantic_input_digest values (the mapping context is
+    part of that digest's own input), even though the mapping's target pointer matches this
+    document's own schema and produces no merge/identity error."""
+    _write(tmp_path / "svc" / "openapi.yaml", _single_schema_openapi_doc({"type": "object"}))
+    config = FilesystemSourceConfig(id="digest-test", root=tmp_path)
+
+    without_mappings = run_filesystem_discovery(config)
+    [outcome_without] = without_mappings.source_outcomes.values()
+
+    sid = source_instance_id(
+        configured_source_id="digest-test",
+        source_kind=SourceKind.FILESYSTEM,
+        normalized_root_document_path="svc/openapi.yaml",
+    )
+    index, diagnostics = build_shared_identity_index(
+        [
+            MigrationMappingsDocument(
+                artifact_id="aip-v0.5.0-bundled-example-identities-v1",
+                artifact_revision="v1",
+                locator="migrations.yaml",
+                schema_mappings=(
+                    IdentityMappingEntry(
+                        source_instance_id=sid,
+                        pointer="/components/schemas/X",
+                        pointer_tokens=("components", "schemas", "X"),
+                        target_id="schema:X",
+                    ),
+                ),
+            )
+        ]
+    )
+    assert diagnostics == []
+
+    with_mappings = run_filesystem_discovery(config, migration_mappings=index)
+    [outcome_with] = with_mappings.source_outcomes.values()
+
+    assert (
+        outcome_without.outcome.semantic_input_digest != outcome_with.outcome.semantic_input_digest
+    )
+    assert outcome_with.outcome.model.schemas[0].id == "schema:X"
+
+
+def test_cross_source_schema_content_conflict_blocks_the_whole_run(tmp_path):
+    """Two sources whose schemas are explicitly mapped to the same id but disagree in content must
+    reject the entire run as PARTIAL/not-commit-eligible with SCHEMA_CONTENT_CONFLICT, and commit
+    nothing - the real end-to-end proof that app.sources.claim_conflicts is actually wired in, not
+    just unit-tested in isolation."""
+    _write(tmp_path / "svc-a" / "openapi.yaml", _single_schema_openapi_doc({"type": "object"}))
+    _write(tmp_path / "svc-b" / "openapi.yaml", _single_schema_openapi_doc({"type": "string"}))
+    config = FilesystemSourceConfig(id="conflict-test", root=tmp_path)
+
+    def _sid(service_dir: str) -> str:
+        return source_instance_id(
+            configured_source_id="conflict-test",
+            source_kind=SourceKind.FILESYSTEM,
+            normalized_root_document_path=f"{service_dir}/openapi.yaml",
+        )
+
+    index, diagnostics = build_shared_identity_index(
+        [
+            MigrationMappingsDocument(
+                artifact_id="aip-v0.5.0-bundled-example-identities-v1",
+                artifact_revision="v1",
+                locator="migrations.yaml",
+                schema_mappings=(
+                    IdentityMappingEntry(
+                        source_instance_id=_sid("svc-a"),
+                        pointer="/components/schemas/X",
+                        pointer_tokens=("components", "schemas", "X"),
+                        target_id="schema:Shared",
+                    ),
+                    IdentityMappingEntry(
+                        source_instance_id=_sid("svc-b"),
+                        pointer="/components/schemas/X",
+                        pointer_tokens=("components", "schemas", "X"),
+                        target_id="schema:Shared",
+                    ),
+                ),
+            )
+        ]
+    )
+    assert diagnostics == []
+
+    result = run_filesystem_discovery(config, migration_mappings=index)
+
+    assert result.inventory_status is InventoryStatus.PARTIAL
+    assert result.commit_eligible is False
+    assert result.merged_model.schemas == []
+    assert any(d.code is DiagnosticCode.SCHEMA_CONTENT_CONFLICT for d in result.diagnostics)
+    # Both sources' own individual outcomes are still recorded (each independently succeeded) -
+    # only the cross-source combination is rejected.
+    assert len(result.source_outcomes) == 2
