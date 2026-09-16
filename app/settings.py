@@ -17,6 +17,11 @@ class SourcesConfig(BaseModel):
     # supply one); the bundled examples/ migration artifact is simply its first real instance.
     # Defaults to empty: "Explicit empty arrays represent absent mapping categories" (§5.3).
     migrations: list[Path] = Field(default_factory=list)
+    # I2 Draft 0.2 §3 prerequisite slice's minimal operator-facing surface for submitting an
+    # explicit whole-source/scope-transition tombstone (I1 spec §6) - see
+    # app.sources.tombstones.load_tombstones. Defaults to empty: no tombstone is declared unless an
+    # operator configures one.
+    tombstones: list[Path] = Field(default_factory=list)
 
 
 class GraphConfig(BaseModel):

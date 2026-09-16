@@ -1,4 +1,6 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 import neo4j
 
@@ -9,11 +11,33 @@ from app.graph.schema import ensure_schema
 from app.ingestion.orchestrator import DiscoveryRunResult, run_filesystem_discovery
 from app.sources.claim_reconciliation import plan_source_claim_reconciliation
 from app.sources.inventory import InventoryStatus
+from app.sources.inventory import inventory_event_id as compute_inventory_event_id
 from app.sources.migration_mappings import SharedIdentityMappingIndex
-from app.sources.model import FilesystemSourceConfig, IngestionDiagnostic, IngestionResult
+from app.sources.model import (
+    DiagnosticCode,
+    FilesystemSourceConfig,
+    IngestionDiagnostic,
+    IngestionResult,
+)
 from app.sources.removal_authority import authorize_source_removal
 from app.sources.replay import ReplayCase, classify_replay_case
+from app.sources.tombstones import Tombstone, validate_tombstone_against_committed_inventory
 from app.validation.canonical_validation import validate_canonical_model
+
+# I2 Draft 0.2 §3 prerequisite slice, item 4: distinguishes "caller supplied no expectation at all"
+# (every existing caller - preserves today's behavior exactly, no predecessor check performed) from
+# a legitimate explicit expectation of `None` (caller expects no prior committed inventory to exist
+# yet). A plain `None` default could not make that distinction.
+_NOT_SUPPLIED: Literal["_NOT_SUPPLIED"] = "_NOT_SUPPLIED"
+
+
+class StalePredecessorError(RuntimeError):
+    """Raised inside `_import_all_sources_tx` when a caller-supplied expected predecessor
+    inventory revision does not match what is actually committed for the scope - I2 Draft 0.2 §3
+    prerequisite slice, item 4. Raising aborts the whole transaction before any write, so prior
+    committed state is left untouched; `import_discovery_run` catches this and reports the run as
+    not committed."""
+
 
 NODE_LABELS = {
     "services": "Service",
@@ -146,6 +170,27 @@ _READ_SOURCE_STATES_FOR_SCOPE_QUERY = (
 )
 _DELETE_SOURCE_STATE_QUERY = (
     "MATCH (s:SourceState {source_instance_id: $source_instance_id}) DELETE s"
+)
+
+# I2 Draft 0.2 §3 prerequisite slice, items 3/4/5: one persisted "current committed inventory" node
+# per discovery scope - sibling to `SourceState` above, which tracks per-*source* replay state.
+# This tracks per-*scope* inventory-revision/capture/event-id/audit-chain state, feeding the
+# transactional predecessor comparison and real (non-self-referential) values into
+# `authorize_source_removal`/`validate_tombstone_against_committed_inventory`.
+_READ_CURRENT_INVENTORY_QUERY = (
+    "MATCH (i:CurrentInventory {discovery_scope_id: $discovery_scope_id}) "
+    "RETURN i.inventory_revision AS inventory_revision, "
+    "i.inventory_capture_id AS inventory_capture_id, "
+    "i.inventory_event_id AS inventory_event_id, "
+    "i.scope_definition_digest AS scope_definition_digest, "
+    "i.discovery_scope_id AS discovery_scope_id"
+)
+_WRITE_CURRENT_INVENTORY_QUERY = (
+    "MERGE (i:CurrentInventory {discovery_scope_id: $discovery_scope_id}) "
+    "SET i.inventory_revision = $inventory_revision, "
+    "i.inventory_capture_id = $inventory_capture_id, "
+    "i.inventory_event_id = $inventory_event_id, "
+    "i.scope_definition_digest = $scope_definition_digest"
 )
 
 
@@ -480,7 +525,10 @@ def _remove_source_tx(
 
 
 def _import_all_sources_tx(
-    tx: neo4j.ManagedTransaction, *, run_result: DiscoveryRunResult
+    tx: neo4j.ManagedTransaction,
+    *,
+    run_result: DiscoveryRunResult,
+    expected_prior_inventory_revision: str | None | Literal["_NOT_SUPPLIED"] = _NOT_SUPPLIED,
 ) -> tuple[dict[str, SourceImportStats], tuple[str, ...]]:
     """Pre-merge, per-source reconciliation, and removal for one whole discovery run, all against
     the same transaction - a run either commits in full or (on any error, including a driver/
@@ -489,7 +537,52 @@ def _import_all_sources_tx(
     writes committed even though the run as a whole never reached `ImportRunStats(committed=True)`
     - contradicting this module's own "nothing is written unless the whole run is COMPLETE"
     contract (I1 spec §6), a real bug found in PR review.
+
+    I2 Draft 0.2 §3 prerequisite slice, items 3/4/5: also reads and (on success) rewrites the
+    scope's `CurrentInventory` state in this same transaction. `expected_prior_inventory_revision`
+    defaults to `_NOT_SUPPLIED` (skip the check entirely - every existing caller's behavior is
+    unchanged); a caller that opts in (including with an explicit `None`, meaning "expect no prior
+    committed inventory") gets a real transactional predecessor comparison against what is actually
+    persisted, raising `StalePredecessorError` (aborting the whole transaction, writing nothing) on
+    a mismatch.
     """
+    persisted_inventory = tx.run(
+        _READ_CURRENT_INVENTORY_QUERY, discovery_scope_id=run_result.discovery_scope_id
+    ).single()
+
+    if expected_prior_inventory_revision is not _NOT_SUPPLIED:
+        actual_committed_revision = (
+            persisted_inventory["inventory_revision"] if persisted_inventory else None
+        )
+        if actual_committed_revision != expected_prior_inventory_revision:
+            raise StalePredecessorError(
+                f"expected prior inventory revision {expected_prior_inventory_revision!r} for "
+                f"scope {run_result.discovery_scope_id!r}, but the currently committed revision "
+                f"is {actual_committed_revision!r}"
+            )
+
+    if run_result.inventory_snapshot is None:
+        raise ValueError(
+            "a commit-eligible discovery run must carry a real inventory_snapshot "
+            f"(discovery_scope_id={run_result.discovery_scope_id!r})"
+        )
+
+    tombstone_validations = {
+        tombstone.target_source_instance_id: validate_tombstone_against_committed_inventory(
+            tombstone=tombstone,
+            committed_discovery_scope_id=(
+                persisted_inventory["discovery_scope_id"] if persisted_inventory else None
+            ),
+            committed_scope_definition_digest=(
+                persisted_inventory["scope_definition_digest"] if persisted_inventory else None
+            ),
+            committed_inventory_revision=(
+                persisted_inventory["inventory_revision"] if persisted_inventory else None
+            ),
+        )
+        for tombstone in run_result.inventory_snapshot.tombstones
+    }
+
     # Snapshot every source's own emitted node/relation properties BEFORE the pre-merge pass below
     # touches anything - the pre-merge writes every source's nodes first (see its own comment), so
     # by the time a given source's own `_import_source_tx` ran, its own PRE-MERGE write had already
@@ -540,12 +633,15 @@ def _import_all_sources_tx(
             source_instance_id = record["source_instance_id"]
             if source_instance_id in run_result.source_outcomes:
                 continue
+            # `known_states` can only be non-empty if a prior COMPLETE run already persisted both
+            # `SourceState` and `CurrentInventory` for this scope together (see the write below),
+            # so `persisted_inventory` is guaranteed set whenever this loop body runs.
             decision = authorize_source_removal(
-                tombstone_validation=None,
+                tombstone_validation=tombstone_validations.get(source_instance_id),
                 enumeration_status=run_result.inventory_status,
                 enumeration_discovery_scope_id=run_result.discovery_scope_id,
                 enumeration_scope_definition_digest=run_result.scope_definition_digest,
-                committed_discovery_scope_id=run_result.discovery_scope_id,
+                committed_discovery_scope_id=persisted_inventory["discovery_scope_id"],
                 committed_scope_definition_digest=record["scope_definition_digest"],
                 source_absent_from_enumeration=True,
             )
@@ -553,24 +649,43 @@ def _import_all_sources_tx(
                 _remove_source_tx(tx, source_instance_id=source_instance_id)
                 removed_source_instance_ids.append(source_instance_id)
 
+    new_event_id = compute_inventory_event_id(
+        previous_event_id=(
+            persisted_inventory["inventory_event_id"] if persisted_inventory else None
+        ),
+        inventory_capture_id=run_result.inventory_snapshot.inventory_capture_id,
+    )
+    tx.run(
+        _WRITE_CURRENT_INVENTORY_QUERY,
+        discovery_scope_id=run_result.discovery_scope_id,
+        inventory_revision=run_result.inventory_snapshot.inventory_revision,
+        inventory_capture_id=run_result.inventory_snapshot.inventory_capture_id,
+        inventory_event_id=new_event_id,
+        scope_definition_digest=run_result.scope_definition_digest,
+    )
+
     return per_source, tuple(removed_source_instance_ids)
 
 
-def import_all_sources(
+def import_discovery_run(
     driver: neo4j.Driver,
     *,
     database: str,
-    source_config: FilesystemSourceConfig,
-    migration_mappings: SharedIdentityMappingIndex | None = None,
+    run_result: DiscoveryRunResult,
+    expected_prior_inventory_revision: str | None | Literal["_NOT_SUPPLIED"] = _NOT_SUPPLIED,
 ) -> ImportRunStats:
-    """Runs the I1 orchestrator for one configured filesystem source, then atomically commits the
-    result: nothing is written to Neo4j unless the whole discovery run is COMPLETE (I1 spec §6 - a
+    """I2 Draft 0.2 §3 prerequisite slice, items 2/4: the source-neutral commit entry point - takes
+    an already-computed `DiscoveryRunResult` (from `run_discovery` or any source-neutral discovery
+    path) rather than constructing discovery itself, and does not branch on source kind.
+    `import_all_sources` below is now a thin compatibility wrapper over this function for the
+    filesystem source kind.
+
+    Nothing is written to Neo4j unless the whole discovery run is COMPLETE (I1 spec §6 - a
     PARTIAL/FAILED run must preserve prior state, never a partial write), and pre-merge/
     reconciliation/removal for every source in the run share one transaction (see
-    `_import_all_sources_tx`), so a failure partway through the run leaves nothing committed.
+    `_import_all_sources_tx`), so a failure partway through the run - including a stale
+    `expected_prior_inventory_revision` - leaves nothing committed.
     """
-    run_result = run_filesystem_discovery(source_config, migration_mappings=migration_mappings)
-
     if not run_result.commit_eligible:
         return ImportRunStats(
             inventory_status=run_result.inventory_status,
@@ -584,9 +699,26 @@ def import_all_sources(
 
     with open_session(driver, database=database) as session:
         ensure_schema(session)
-        per_source, removed_source_instance_ids = session.execute_write(
-            _import_all_sources_tx, run_result=run_result
-        )
+        try:
+            per_source, removed_source_instance_ids = session.execute_write(
+                _import_all_sources_tx,
+                run_result=run_result,
+                expected_prior_inventory_revision=expected_prior_inventory_revision,
+            )
+        except StalePredecessorError as exc:
+            return ImportRunStats(
+                inventory_status=run_result.inventory_status,
+                committed=False,
+                per_source={},
+                removed_source_instance_ids=(),
+                diagnostics=(
+                    *run_result.diagnostics,
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.STALE_INVENTORY_PREDECESSOR,
+                        message=str(exc),
+                    ),
+                ),
+            )
 
         return ImportRunStats(
             inventory_status=run_result.inventory_status,
@@ -595,3 +727,25 @@ def import_all_sources(
             removed_source_instance_ids=removed_source_instance_ids,
             diagnostics=run_result.diagnostics,
         )
+
+
+def import_all_sources(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    source_config: FilesystemSourceConfig,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    expected_prior_inventory_revision: str | None | Literal["_NOT_SUPPLIED"] = _NOT_SUPPLIED,
+) -> ImportRunStats:
+    """Thin compatibility wrapper over `run_filesystem_discovery` + `import_discovery_run` for the
+    filesystem source kind - every existing caller/test keeps working unchanged."""
+    run_result = run_filesystem_discovery(
+        source_config, migration_mappings=migration_mappings, tombstones=tombstones
+    )
+    return import_discovery_run(
+        driver,
+        database=database,
+        run_result=run_result,
+        expected_prior_inventory_revision=expected_prior_inventory_revision,
+    )

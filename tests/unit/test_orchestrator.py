@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from app.ingestion.orchestrator import run_filesystem_discovery
+from app.ingestion.orchestrator import run_discovery, run_filesystem_discovery
 from app.sources.identity import source_instance_id
 from app.sources.inventory import InventoryStatus
 from app.sources.migration_mappings import (
@@ -13,6 +13,8 @@ from app.sources.migration_mappings import (
     load_migration_mappings,
 )
 from app.sources.model import DiagnosticCode, FilesystemSourceConfig, IngestionResult, SourceKind
+from app.sources.registry import DiscoveryOutcome
+from app.sources.tombstones import Tombstone
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 
@@ -641,3 +643,103 @@ def test_shared_identity_mapping_disambiguates_the_same_pointer_in_two_files(tmp
     assert schema_ids.count("schema:OnlyFromA") == 1
     other_id = next(sid_value for sid_value in schema_ids if sid_value != "schema:OnlyFromA")
     assert other_id != "schema:OnlyFromA"
+
+
+# I2 Draft 0.2 §3 prerequisite slice, items 1/3: `run_discovery` is the source-neutral discovery
+# entry point, and every discovery attempt constructs a real `SourceInventorySnapshot`.
+
+
+class _FakeDiscoverer:
+    """A minimal non-filesystem `SourceDiscoverer` test double, proving `run_discovery` contains no
+    source-kind branch - it never inspects `source_kind` or otherwise special-cases this discoverer.
+    `source_kind` is set to the only `SourceKind` member that exists today (a second member is
+    deliberately not introduced by this PR - see app.sources.model's own reservation comment); this
+    double's whole point is that `run_discovery` never looks at it.
+    """
+
+    source_kind = SourceKind.FILESYSTEM
+
+    def __init__(self, outcome: DiscoveryOutcome):
+        self.discoverer_identity = "fake-discoverer@1"
+        self._outcome = outcome
+
+    def discover(self) -> DiscoveryOutcome:
+        return self._outcome
+
+
+def test_run_discovery_drives_a_non_filesystem_discoverer_with_no_special_casing():
+    outcome = DiscoveryOutcome(
+        loaded_sources=(),
+        enumeration_complete=True,
+        diagnostics=(),
+        discovery_scope_id="urn:aip:discovery-scope:fake",
+        scope_definition_digest="fake-scope-digest",
+    )
+    result = run_discovery(_FakeDiscoverer(outcome))
+    assert result.inventory_status is InventoryStatus.COMPLETE
+    assert result.commit_eligible is True
+    assert result.merged_model.services == []
+    assert result.inventory_snapshot is not None
+    assert result.inventory_snapshot.discoverer_identity == "fake-discoverer@1"
+    assert result.inventory_snapshot.discovery_scope_id == "urn:aip:discovery-scope:fake"
+    assert result.inventory_snapshot.status is InventoryStatus.COMPLETE
+    assert result.inventory_snapshot.discovered_source_ids == ()
+
+
+def test_inventory_snapshot_is_none_when_the_scope_itself_could_not_be_determined():
+    """Mirrors `DiscoveryOutcome.discovery_scope_id`'s own documented meaning: `None` only when
+    enumeration failed AND the scope itself could not be computed. A snapshot cannot meaningfully
+    identify an inventory it can't name the scope of."""
+    outcome = DiscoveryOutcome(
+        loaded_sources=(),
+        enumeration_complete=False,
+        diagnostics=(),
+        discovery_scope_id=None,
+        scope_definition_digest=None,
+    )
+    result = run_discovery(_FakeDiscoverer(outcome))
+    assert result.inventory_status is InventoryStatus.FAILED
+    assert result.inventory_snapshot is None
+
+
+def test_inventory_snapshot_is_built_even_on_failed_enumeration_when_scope_is_known():
+    outcome = DiscoveryOutcome(
+        loaded_sources=(),
+        enumeration_complete=False,
+        diagnostics=(),
+        discovery_scope_id="urn:aip:discovery-scope:fake",
+        scope_definition_digest="fake-scope-digest",
+    )
+    result = run_discovery(_FakeDiscoverer(outcome))
+    assert result.inventory_status is InventoryStatus.FAILED
+    assert result.inventory_snapshot is not None
+    assert result.inventory_snapshot.status is InventoryStatus.FAILED
+
+
+def test_filesystem_discovery_produces_an_inventory_snapshot(tmp_path):
+    result = run_filesystem_discovery(FilesystemSourceConfig(id="x", root=tmp_path))
+    assert result.inventory_status is InventoryStatus.COMPLETE
+    assert result.inventory_snapshot is not None
+    assert result.inventory_snapshot.discoverer_identity == "filesystem-discoverer@1"
+    assert result.inventory_snapshot.discovery_scope_id == result.discovery_scope_id
+
+
+def test_explicit_tombstones_are_carried_on_the_snapshot_and_affect_its_revision(tmp_path):
+    tombstone = Tombstone(
+        target_source_instance_id="urn:aip:source:filesystem:deadbeef",
+        discovery_scope_id="urn:aip:discovery-scope:whatever",
+        expected_prior_inventory_revision="urn:aip:inventory-revision:whatever",
+        scope_definition_digest="whatever",
+        actor="operator@example.com",
+        reason="decommissioned",
+        tombstone_revision="1",
+    )
+    without = run_filesystem_discovery(FilesystemSourceConfig(id="x", root=tmp_path))
+    with_tombstone = run_filesystem_discovery(
+        FilesystemSourceConfig(id="x", root=tmp_path), tombstones=(tombstone,)
+    )
+    assert with_tombstone.inventory_snapshot.tombstones == (tombstone,)
+    assert (
+        with_tombstone.inventory_snapshot.inventory_revision
+        != without.inventory_snapshot.inventory_revision
+    )

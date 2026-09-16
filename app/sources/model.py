@@ -128,6 +128,15 @@ class DiagnosticCode(StrEnum):
     # Schema/Message id with disagreeing canonical content.
     SCHEMA_CONTENT_CONFLICT = "SCHEMA_CONTENT_CONFLICT"
     MESSAGE_CONTENT_CONFLICT = "MESSAGE_CONTENT_CONFLICT"
+    # Not named by the spec text; introduced here for the I2 Draft 0.2 §3 prerequisite slice's
+    # tombstone-file loading (app.sources.tombstones.load_tombstones), mirroring the
+    # MIGRATION_MAPPING_FILE_UNAVAILABLE/MIGRATION_MAPPING_SHAPE_INVALID split above.
+    TOMBSTONE_FILE_UNAVAILABLE = "TOMBSTONE_FILE_UNAVAILABLE"
+    TOMBSTONE_SHAPE_INVALID = "TOMBSTONE_SHAPE_INVALID"
+    # Not named by the spec text; introduced here for the I2 Draft 0.2 §3 prerequisite slice's
+    # general (source-kind-neutral) transactional predecessor check - the general mechanism the
+    # Kubernetes-specific K8S_STALE_INVENTORY code (a later, K8s-specific slice) will layer on.
+    STALE_INVENTORY_PREDECESSOR = "STALE_INVENTORY_PREDECESSOR"
 
 
 class IngestionDiagnostic(BaseModel):
