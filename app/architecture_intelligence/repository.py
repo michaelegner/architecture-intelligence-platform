@@ -18,6 +18,7 @@ import neo4j
 
 from app.analysis.runtime import telemetry_coverage
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
+from app.architecture_intelligence.contracts import MODEL_REVISION_PREFIX, SNAPSHOT_ID_PREFIX
 from app.graph.revision_fence import read_revision
 
 # Bumping this - or changing any query/rule below - is a snapshot-fingerprint contract change and
@@ -121,7 +122,7 @@ def snapshot_fingerprint(state: dict) -> tuple[str, str]:
     """`(snapshot_id, model_revision)` sharing one digest under different public prefixes (spec
     §17) - this is what guarantees `SnapshotRef`'s digest-consistency check always holds."""
     digest = hashlib.sha256(canonical_json_bytes(state)).hexdigest()
-    return f"aip:snapshot:v1:{digest}", f"sha256:{digest}"
+    return f"{SNAPSHOT_ID_PREFIX}{digest}", f"{MODEL_REVISION_PREFIX}{digest}"
 
 
 class SnapshotUnstable(RuntimeError):

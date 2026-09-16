@@ -1219,3 +1219,46 @@ def test_drift_answer_rejects_an_evidence_union_that_is_not_exact():
         DRIFT_ANSWER_TYPE.model_validate(
             _valid_drift_answer_dict(evidence_refs=sorted(claim.evidence_refs))
         )
+
+
+def test_id_prefixes_and_construction_roundtrip():
+    import re
+    from datetime import UTC, datetime
+    from app.architecture_intelligence.contracts import (
+        _CLAIM_ID_PATTERN,
+        _CONTEXT_ID_PATTERN,
+        _MODEL_REVISION_PATTERN,
+        _SNAPSHOT_ID_PATTERN,
+        CLAIM_ID_PREFIX,
+        CONTEXT_ID_PREFIX,
+        MODEL_REVISION_PREFIX,
+        SNAPSHOT_ID_PREFIX,
+    )
+    from app.architecture_intelligence.dependency_projection import compute_claim_id
+    from app.architecture_intelligence.observation_context import compute_context_id
+    from app.architecture_intelligence.repository import snapshot_fingerprint
+
+    # 1. Snapshot ID & Model Revision
+    snap_id, model_rev = snapshot_fingerprint({"service": "order-service"})
+    assert snap_id.startswith(SNAPSHOT_ID_PREFIX)
+    assert model_rev.startswith(MODEL_REVISION_PREFIX)
+    assert re.match(_SNAPSHOT_ID_PATTERN, snap_id)
+    assert re.match(_MODEL_REVISION_PATTERN, model_rev)
+
+    # 2. Context ID
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+    ctx_id = compute_context_id("production", now, now)
+    assert ctx_id.startswith(CONTEXT_ID_PREFIX)
+    assert re.match(_CONTEXT_ID_PATTERN, ctx_id)
+
+    # 3. Claim ID
+    claim_id = compute_claim_id(
+        subject_id="s1",
+        predicate="CALLS",
+        object_id="s2",
+        delivery_kind="SYNC_RPC",
+        delivery_via_id="op1",
+    )
+    assert claim_id.startswith(CLAIM_ID_PREFIX)
+    assert re.match(_CLAIM_ID_PATTERN, claim_id)
+
