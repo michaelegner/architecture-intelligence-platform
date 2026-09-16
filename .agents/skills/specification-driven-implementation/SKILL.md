@@ -1,6 +1,6 @@
 ---
 name: specification-driven-implementation
-description: Use when implementing substantial work against an AIP release or increment specification (docs/specifications/<release>/specification.md or its iN-*.md increment specs) - producing a reviewed plan before changing production code, persisting it, implementing without altering normative semantics, and reconciling the result against the retained plan. Not needed for small maintenance changes that don't touch public contracts, identity, evidence, qualification, reconciliation, or release semantics.
+description: Use when implementing or reviewing substantial work against an AIP release or increment specification (the release specification or its iN-*.md increment specs) - producing a reviewed plan before changing production code, persisting it, implementing without altering normative semantics, reconciling the result against the retained plan, and driving PR reviews to a clear approval decision. Not needed for small maintenance changes that don't touch public contracts, identity, evidence, qualification, reconciliation, or release semantics.
 ---
 
 # Specification-driven implementation
@@ -67,6 +67,52 @@ treat it as substantial and run the full workflow anyway.
 9. **Reconcile the final implementation against the *retained* original plan**, using the
    reconciliation template below. This is a diff against what was promised, not a fresh
    retrospective that quietly replaces the plan — both documents should remain visible together.
+
+## Checking for review feedback
+
+Before treating a "findings check" as complete — whether re-reviewing a PR or responding to
+feedback on one you implemented — enumerate every comment surface, not just the first one found:
+top-level PR review submissions (each reviewer's own review body, including bot reviewers like
+Copilot), inline/line-level review comments, and plain issue-level PR comments. These are separate
+API surfaces and separate UI sections; checking one does not surface the others. A comment from a
+second reviewer (human or automated) can arrive close in time to a bot's and raise different
+findings that don't overlap at all — cross-reference the full list before concluding the fixes
+already made cover everything raised, not just the first source checked.
+
+## PR review convergence
+
+For a specification-governed PR review, make the first substantive review as complete and
+acceptance-oriented as the available evidence permits. Include the reviewed head SHA and consolidate
+all known material blockers in one comment. For each blocker, cite the governing requirement, point
+to concrete implementation evidence, state the required outcome without unnecessarily prescribing
+the implementation, and identify the regression test or qualification evidence needed. End with an
+explicit approval condition.
+
+Re-reviews are limited to:
+
+- resolving the recorded blockers;
+- checking the requested evidence and CI; and
+- identifying material correctness, security, interoperability, release-validity, or explicit-gate
+  regressions introduced by the fixes.
+
+Maintain a clear disposition of prior blockers, distinguish genuinely new blockers from unresolved
+ones, and explain why any new blocker was not reasonably identifiable earlier. Do not extend the
+review with cosmetic, procedural, or merely preferable changes; record worthwhile out-of-scope work
+separately. Once the blocker list is empty and required evidence is green, approve or explicitly
+report no blocking findings.
+
+Use this compact comment shape when useful:
+
+```markdown
+**Review of head `<sha>`**
+
+Previous blockers: <resolved/remaining summary>.
+New blockers: <none, or material findings with governing requirement and evidence>.
+Required evidence: <tests, qualification, and CI>.
+
+**Exit condition:** <specific conditions after which the PR will be approved, unless their fixes
+introduce a material regression>.
+```
 
 ## Plan template
 
