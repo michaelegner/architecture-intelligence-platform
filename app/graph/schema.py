@@ -37,6 +37,13 @@ CONSTRAINTS = [
         "CREATE CONSTRAINT infrastructure_claim_id IF NOT EXISTS "
         "FOR (c:InfrastructureClaim) REQUIRE c.id IS UNIQUE"
     ),
+    # I2 Draft 0.2 §7.2: one per-source claim-support row, id-scoped per (claim, source) exactly
+    # like InfrastructureContribution - see app.graph.importer's own module docstring on why a
+    # claim's shared evidence_refs is derived from these rather than written to directly.
+    (
+        "CREATE CONSTRAINT infrastructure_claim_contribution_id IF NOT EXISTS "
+        "FOR (c:InfrastructureClaimContribution) REQUIRE c.id IS UNIQUE"
+    ),
     # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.

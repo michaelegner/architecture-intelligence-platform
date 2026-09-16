@@ -91,6 +91,7 @@ def test_ensure_schema_creates_constraints(driver):
         "infrastructure_entity_id",
         "infrastructure_contribution_id",
         "infrastructure_claim_id",
+        "infrastructure_claim_contribution_id",
     } <= names
 
 
@@ -1502,3 +1503,53 @@ def test_a_shared_claim_survives_when_its_evidence_id_is_co_owned_by_the_remaini
         _count(driver, "MATCH (e:Evidence {id: $id}) RETURN count(e) AS c", id=shared_evidence_id)
         == 1
     )
+
+
+def test_a_retained_claim_that_changes_evidence_reflects_only_the_new_refs(driver):
+    """A real bug found in PR re-review, distinct from the co-owned-evidence one above: a single
+    source that RETAINS the same claim (same kind/subject/object, hence the same claim identity)
+    across a reimport, but replaces its own evidence, must end up with only the NEW refs - not the
+    old ones still accumulated (a plain evidence union never subtracts), and not a dangling
+    reference to the now-deleted old Evidence node (a plain overwrite-on-write was order-dependent
+    and raced with which write happened last). Ownership of the claim never changes here at all -
+    the earlier fixes for cross-source ownership changes never even ran for this case."""
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(
+            session,
+            "src:k8s-1",
+            _infra_claim_model(
+                source_instance_id="src:k8s-1", evidence_id="evidence:kubernetes:old"
+            ),
+        )
+        first = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.evidence_refs AS refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+        assert first["refs"] == ["evidence:kubernetes:old"]
+        assert first["owners"] == ["src:k8s-1"]
+
+        # Same source, same claim identity, reimported with a DIFFERENT evidence ref - the old
+        # Evidence node is no longer emitted at all, so it is expired in this same reimport.
+        _import(
+            session,
+            "src:k8s-1",
+            _infra_claim_model(
+                source_instance_id="src:k8s-1", evidence_id="evidence:kubernetes:new"
+            ),
+            digest=DIGEST_2,
+        )
+        second = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.evidence_refs AS refs, "
+            "c.owner_source_ids AS owners"
+        ).single()
+
+    assert second is not None
+    assert second["refs"] == ["evidence:kubernetes:new"]
+    assert second["owners"] == ["src:k8s-1"]
+    assert (
+        _count(driver, "MATCH (e:Evidence {id: 'evidence:kubernetes:old'}) RETURN count(e) AS c")
+        == 0
+    )
+    # Exactly one claim-support row for this source (overwritten, not accumulated).
+    assert _count(driver, "MATCH (c:InfrastructureClaimContribution) RETURN count(c) AS c") == 1
