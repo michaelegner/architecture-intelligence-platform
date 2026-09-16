@@ -84,7 +84,7 @@ production path:
 
 The resulting integration disposition is:
 
-| Dependency | Draft 0.2 integration finding | Required closure before Kubernetes mapping |
+| Dependency | Draft 0.2 integration finding | Required I2 closure |
 |---|---|---|
 | Registration | `SourceDiscoverer` and `SourceAdapterRegistry` are generic; production orchestration constructs filesystem discovery directly. | A source-neutral orchestration path accepts a configured discoverer and registered adapters without a source-kind branch. |
 | Identity/replay | Common mapping-context and semantic-digest primitives exist. | Kubernetes registration semantics and adapter/rule versions participate in those existing digests. |
@@ -92,6 +92,10 @@ The resulting integration disposition is:
 | Merge | Existing source ownership and conflict primitives are reusable. | Infrastructure entity/claim contributions use those primitives and the Draft 0.2 conflict rules in §7. |
 | Evidence | Existing provenance can retain source pointers, but infrastructure entity and unary-claim shapes are absent. | The logical schemas in §7 are implemented without widening a public response. |
 | Qualification | Initial-state fixtures exist, while the semantic/audit inventory report path remains incomplete. | Qualification includes committed inventory state and distinct semantic versus capture-specific projections. |
+
+The table records all closures required during I2. Only the closures encoded in the following
+`SHALL` list are prerequisites before Kubernetes mapping begins; identity/replay integration and
+qualification are completed in their later §12 slices.
 
 Before any Kubernetes mapping slice begins, the implementation SHALL complete one shared I1
 integration slice with these properties:
