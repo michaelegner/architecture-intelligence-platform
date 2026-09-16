@@ -153,6 +153,22 @@ def test_explicit_shared_payload_schema_mapping_overrides_the_owner_scoped_defau
     assert schema.id == "schema:OrderPlaced:v2"
 
 
+def test_explicit_shared_mapping_for_an_inline_payload_overrides_the_owner_scoped_default():
+    """Regression: the explicit-mapping check was only wired into the $ref payload branch of
+    resolve_payload_schema_id, not the inline branch - an inline payload's explicit mapping was
+    silently ignored, always falling back to inline_payload_schema_id."""
+    document = _base_document()
+    document["components"]["messages"]["OrderPlaced"]["payload"] = {"type": "object"}
+    index = _shared_identity_index(
+        schema_mappings=[("/components/messages/OrderPlaced/payload", "schema:OrderPlaced:legacy")]
+    )
+    outcome = _map(document, shared_identity=index)
+
+    assert outcome.result is IngestionResult.ACCEPTED
+    [schema] = outcome.model.schemas
+    assert schema.id == "schema:OrderPlaced:legacy"
+
+
 def test_explicit_message_mapping_to_the_same_id_with_disagreeing_content_conflicts():
     document = _base_document()
     document["channels"]["invoices-q"] = {

@@ -12,6 +12,11 @@ class SourcesConfig(BaseModel):
     directories: list[FilesystemSourceConfig] = Field(
         default_factory=lambda: [FilesystemSourceConfig(id="default", root=Path("./repositories"))]
     )
+    # I1 spec §5.1.1/§8.1/§9/§9.1's explicit shared-identity/migration mapping mechanism (PR4) - a
+    # list, not a single fixed path, since the mechanism is general (any configured source may
+    # supply one); the bundled examples/ migration artifact is simply its first real instance.
+    # Defaults to empty: "Explicit empty arrays represent absent mapping categories" (§5.3).
+    migrations: list[Path] = Field(default_factory=list)
 
 
 class GraphConfig(BaseModel):

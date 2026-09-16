@@ -9,6 +9,7 @@ from app.graph.schema import ensure_schema
 from app.ingestion.orchestrator import DiscoveryRunResult, run_filesystem_discovery
 from app.sources.claim_reconciliation import plan_source_claim_reconciliation
 from app.sources.inventory import InventoryStatus
+from app.sources.migration_mappings import SharedIdentityMappingIndex
 from app.sources.model import FilesystemSourceConfig, IngestionDiagnostic, IngestionResult
 from app.sources.removal_authority import authorize_source_removal
 from app.sources.replay import ReplayCase, classify_replay_case
@@ -556,7 +557,11 @@ def _import_all_sources_tx(
 
 
 def import_all_sources(
-    driver: neo4j.Driver, *, database: str, source_config: FilesystemSourceConfig
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    source_config: FilesystemSourceConfig,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
 ) -> ImportRunStats:
     """Runs the I1 orchestrator for one configured filesystem source, then atomically commits the
     result: nothing is written to Neo4j unless the whole discovery run is COMPLETE (I1 spec §6 - a
@@ -564,7 +569,7 @@ def import_all_sources(
     reconciliation/removal for every source in the run share one transaction (see
     `_import_all_sources_tx`), so a failure partway through the run leaves nothing committed.
     """
-    run_result = run_filesystem_discovery(source_config)
+    run_result = run_filesystem_discovery(source_config, migration_mappings=migration_mappings)
 
     if not run_result.commit_eligible:
         return ImportRunStats(

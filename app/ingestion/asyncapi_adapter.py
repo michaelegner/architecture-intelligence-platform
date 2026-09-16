@@ -364,7 +364,11 @@ class AsyncApiSourceAdapter:
                             ),
                         ),
                     )
-                schema_id_value = inline_payload_schema_id(
+                explicit_schema_id = shared_identity.schema_id_for(
+                    source_instance_id=source_instance_id,
+                    pointer=encode_pointer_tokens(normalized.definition_pointer_tokens),
+                )
+                schema_id_value = explicit_schema_id or inline_payload_schema_id(
                     message_id=message_id,
                     normalized_inline_payload_document_path=normalized.normalized_definition_document_path,
                     inline_payload_pointer_tokens=normalized.definition_pointer_tokens,
