@@ -8,6 +8,7 @@ from app.ingestion._shared import (
     resolve_and_normalize_schema,
     schema_display_name,
     semantic_input_digest_bytes,
+    upsert_schema_or_conflict,
 )
 from app.provenance.model import Provenance
 from app.sources.identity import semantic_input_digest
@@ -15,7 +16,7 @@ from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResu
 from app.sources.owner_ids import schema_owned_id
 from app.sources.pointers import encode_pointer_tokens
 from app.sources.reference_resolution import ReferenceResolutionError
-from app.sources.registry import AdapterOutcome, ServiceIdentityResolver
+from app.sources.registry import AdapterOutcome, ServiceIdentityResolver, SharedIdentityResolver
 from app.sources.service_identity import ServiceIdentityOutcome
 from app.validation.source_validation import (
     SourceValidationError,
@@ -51,6 +52,7 @@ class OpenApiSourceAdapter:
         loaded: LoadedSource,
         *,
         service_identity: ServiceIdentityResolver,
+        shared_identity: SharedIdentityResolver,
         upstream_model: ArchitectureModel,
         mapping_context_digest: str,
     ) -> AdapterOutcome:
@@ -155,18 +157,39 @@ class OpenApiSourceAdapter:
             if normalized.has_uninterpreted_composition:
                 any_uninterpreted_composition = True
 
-            schema_id_value = schema_owned_id(
+            # §8.1/§5.1.1: an explicit shared-identity/migration mapping, keyed by
+            # (SourceInstanceId, normalized definition document path, resolved definition pointer),
+            # is authoritative when present - checked before falling back to the owner-scoped
+            # default formula. The document path is required alongside the pointer because a single
+            # SourceInstanceId's own bounded multi-file $ref closure (PR3b) can resolve the same
+            # relative pointer inside two different files.
+            explicit_schema_id = shared_identity.schema_id_for(
+                source_instance_id=source_instance_id,
+                document_path=normalized.normalized_definition_document_path,
+                pointer=encode_pointer_tokens(normalized.definition_pointer_tokens),
+            )
+            schema_id_value = explicit_schema_id or schema_owned_id(
                 canonical_service_id=canonical_service_id,
                 source_instance_id=source_instance_id,
                 normalized_definition_document_path=normalized.normalized_definition_document_path,
                 definition_pointer_tokens=normalized.definition_pointer_tokens,
             )
-            if schema_id_value not in schemas_by_id:
-                schemas_by_id[schema_id_value] = Schema(
+            conflict = upsert_schema_or_conflict(
+                schemas_by_id,
+                schema_id_value,
+                Schema(
                     id=schema_id_value,
                     name=schema_display_name(normalized.definition_pointer_tokens),
                     format=media_type,
                     canonical_hash=normalized.canonical_hash,
+                ),
+            )
+            if conflict is not None:
+                return None, AdapterOutcome(
+                    result=IngestionResult.REJECTED_CONFLICT,
+                    model=ArchitectureModel(),
+                    diagnostics=(conflict,),
+                    semantic_input_digest=None,
                 )
             return schema_id_value, None
 

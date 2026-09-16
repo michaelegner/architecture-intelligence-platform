@@ -5,7 +5,7 @@ from app.provenance.model import Provenance
 from app.sources.identity import semantic_input_digest
 from app.sources.jcs import canonical_json_bytes
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
-from app.sources.registry import AdapterOutcome, ServiceIdentityResolver
+from app.sources.registry import AdapterOutcome, ServiceIdentityResolver, SharedIdentityResolver
 from app.sources.service_identity import ServiceIdentityOutcome, is_valid_service_id
 from app.validation.source_validation import SourceValidationError, validate_manifest_document
 
@@ -36,9 +36,13 @@ class ManifestSourceAdapter:
         loaded: LoadedSource,
         *,
         service_identity: ServiceIdentityResolver,
+        shared_identity: SharedIdentityResolver,
         upstream_model: ArchitectureModel,
         mapping_context_digest: str,
     ) -> AdapterOutcome:
+        # This adapter emits only Service/Operation/CALLS-Relation entities (no Schema/Message/
+        # Queue of its own to look up a shared/migration-mapped id for) - shared_identity is
+        # accepted for interface uniformity across every registered SourceAdapter and unused here.
         document = loaded.document
         locator = loaded.descriptor.locator
         source_instance_id = loaded.descriptor.source_instance_id

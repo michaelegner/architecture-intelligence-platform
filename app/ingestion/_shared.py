@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from app.canonical.model import ArchitectureModel
+from app.canonical.model import ArchitectureModel, Message, Schema
 from app.sources.identity import (
     normalize_relative_posix_path,
     normalized_document_and_reference_projection_bytes,
@@ -222,6 +222,12 @@ class NormalizedSchema:
     definition_pointer_tokens: tuple[str, ...]
     canonical_hash: str
     has_uninterpreted_composition: bool
+    # The already-computed normalized JSON value `canonical_hash` was hashed from - exposed so a
+    # caller (AsyncAPI's message_contract_digest) can build a further projection from the fully
+    # *resolved* shape (with every $ref expanded) rather than a raw, possibly-still-`{"$ref": ...}`
+    # node, so two sources whose payload $ref differs syntactically but resolves identically
+    # correctly compare as equal contracts.
+    normalized_value: Any
 
 
 # `Schema.name`/`Message.name` (app.canonical.model) are required strings - a label only, never
@@ -287,6 +293,7 @@ def resolve_and_normalize_schema(
         definition_pointer_tokens=definition_pointer_tokens,
         canonical_hash=canonical_sha256_hex(normalized),
         has_uninterpreted_composition=bool(composition_seen),
+        normalized_value=normalized,
     )
 
 
@@ -343,3 +350,55 @@ def semantic_input_digest_bytes(cache: ResolutionCache) -> bytes:
     be invisible to the resulting `semantic_input_digest` and the revision fence would never see it.
     """
     return normalized_document_and_reference_projection_bytes(cache.documents)
+
+
+def upsert_schema_or_conflict(
+    schemas_by_id: dict[str, Schema], schema_id_value: str, candidate: Schema
+) -> IngestionDiagnostic | None:
+    """I1 spec §8.1: "Two current owners explicitly mapped to one shared Schema ID with different
+    canonical hashes are REJECTED_CONFLICT." Two different pointers within one source's own single
+    `map()` call can converge on the same id only via an explicit shared-identity mapping (owner-
+    scoped default ids are collision-free by construction) - this is the within-source half of
+    conflict detection; the cross-source half runs later, over every source's already-returned
+    model, in `app.sources.claim_conflicts`. Returns `None` and performs the upsert when there is no
+    existing entry, or the existing entry's content agrees (silent merge - identical content under
+    a shared id is fine); returns a diagnostic instead of upserting when it disagrees, leaving the
+    first-seen entry in place so the caller's own model stays a valid (if soon-to-be-rejected)
+    snapshot.
+    """
+    existing = schemas_by_id.get(schema_id_value)
+    if existing is None:
+        schemas_by_id[schema_id_value] = candidate
+        return None
+    if existing.canonical_hash == candidate.canonical_hash:
+        return None
+    return IngestionDiagnostic(
+        code=DiagnosticCode.SCHEMA_CONTENT_CONFLICT,
+        message=(
+            f"schema {schema_id_value!r} has disagreeing canonical hashes within one source: "
+            f"{existing.canonical_hash!r} vs {candidate.canonical_hash!r}"
+        ),
+        source_pointer=schema_id_value,
+    )
+
+
+def upsert_message_or_conflict(
+    messages_by_id: dict[str, Message], message_id_value: str, candidate: Message
+) -> IngestionDiagnostic | None:
+    """The message equivalent of `upsert_schema_or_conflict`, comparing `contract_digest` (I1 spec
+    §9.1's semantic-comparison digest) rather than `canonical_hash`.
+    """
+    existing = messages_by_id.get(message_id_value)
+    if existing is None:
+        messages_by_id[message_id_value] = candidate
+        return None
+    if existing.contract_digest == candidate.contract_digest:
+        return None
+    return IngestionDiagnostic(
+        code=DiagnosticCode.MESSAGE_CONTENT_CONFLICT,
+        message=(
+            f"message {message_id_value!r} has disagreeing contract digests within one source: "
+            f"{existing.contract_digest!r} vs {candidate.contract_digest!r}"
+        ),
+        source_pointer=message_id_value,
+    )

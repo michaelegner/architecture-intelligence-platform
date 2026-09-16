@@ -5,6 +5,12 @@ from app.canonical.model import ArchitectureModel
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.openapi_adapter import OpenApiSourceAdapter
 from app.sources.jcs import canonical_sha256_hex
+from app.sources.migration_mappings import (
+    EMPTY_SHARED_IDENTITY_INDEX,
+    IdentityMappingEntry,
+    MigrationMappingsDocument,
+    build_shared_identity_index,
+)
 from app.sources.model import (
     DiagnosticCode,
     FilesystemSourceConfig,
@@ -86,11 +92,12 @@ def _loaded(
     return LoadedSource(descriptor=descriptor, document=document)
 
 
-def _map(document: dict, **resolver_kwargs):
+def _map(document: dict, *, shared_identity=EMPTY_SHARED_IDENTITY_INDEX, **resolver_kwargs):
     adapter = OpenApiSourceAdapter()
     return adapter.map(
         _loaded(document),
         service_identity=_StubResolver(**resolver_kwargs),
+        shared_identity=shared_identity,
         upstream_model=ArchitectureModel(),
         mapping_context_digest="e" * 64,
     )
@@ -327,6 +334,7 @@ def test_maps_real_product_service_fixture_via_discoverer():
     outcome = OpenApiSourceAdapter().map(
         loaded,
         service_identity=_StubResolver(),
+        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
         upstream_model=ArchitectureModel(),
         mapping_context_digest="e" * 64,
     )
@@ -346,9 +354,91 @@ def test_maps_real_order_service_fixture_via_discoverer():
     outcome = OpenApiSourceAdapter().map(
         loaded,
         service_identity=_StubResolver(),
+        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
         upstream_model=ArchitectureModel(),
         mapping_context_digest="e" * 64,
     )
     assert outcome.result is IngestionResult.ACCEPTED
     assert len(outcome.model.operations) == 2
     assert {s.name for s in outcome.model.schemas} == {"OrderRequest", "Order"}
+
+
+def _shared_identity_index(*schema_mappings: tuple[str, str]):
+    """schema_mappings entries are (pointer, target_id) - built against SOURCE_INSTANCE_ID and
+    "test.yaml", the fixed default `_loaded()` source instance id/locator used throughout this file
+    (root_relative_path == the locator itself, since these LoadedSources have no source_root).
+    """
+    index, diagnostics = build_shared_identity_index(
+        [
+            MigrationMappingsDocument(
+                artifact_id="test-artifact",
+                artifact_revision="v1",
+                locator="migrations.yaml",
+                content_digest="test-content-digest",
+                schema_mappings=tuple(
+                    IdentityMappingEntry(
+                        source_instance_id=SOURCE_INSTANCE_ID,
+                        document_path="test.yaml",
+                        pointer=pointer,
+                        pointer_tokens=tuple(pointer.strip("/").split("/")),
+                        target_id=target_id,
+                    )
+                    for pointer, target_id in schema_mappings
+                ),
+            )
+        ]
+    )
+    assert diagnostics == []
+    return index
+
+
+def test_explicit_shared_schema_mapping_overrides_the_owner_scoped_default():
+    index = _shared_identity_index(("/components/schemas/Product", "schema:Product"))
+    outcome = _map(PRODUCT_SERVICE_DOC, shared_identity=index)
+
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert outcome.model.schemas[0].id == "schema:Product"
+
+
+def test_explicit_mapping_to_the_same_id_with_disagreeing_content_conflicts():
+    doc = {
+        "openapi": "3.1.0",
+        "info": {"title": "ConflictService"},
+        "x-aip-service-id": "service:conflict",
+        "paths": {
+            "/a": {
+                "get": {
+                    "operationId": "getA",
+                    "responses": {
+                        "200": {
+                            "content": {
+                                "application/json": {"schema": {"$ref": "#/components/schemas/A"}}
+                            }
+                        }
+                    },
+                }
+            },
+            "/b": {
+                "get": {
+                    "operationId": "getB",
+                    "responses": {
+                        "200": {
+                            "content": {
+                                "application/json": {"schema": {"$ref": "#/components/schemas/B"}}
+                            }
+                        }
+                    },
+                }
+            },
+        },
+        "components": {"schemas": {"A": {"type": "object"}, "B": {"type": "string"}}},
+    }
+    index = _shared_identity_index(
+        ("/components/schemas/A", "schema:Shared"),
+        ("/components/schemas/B", "schema:Shared"),
+    )
+    outcome = _map(doc, shared_identity=index)
+
+    assert outcome.result is IngestionResult.REJECTED_CONFLICT
+    assert any(d.code is DiagnosticCode.SCHEMA_CONTENT_CONFLICT for d in outcome.diagnostics)
+    assert outcome.model.schemas == []

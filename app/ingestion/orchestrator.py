@@ -15,6 +15,7 @@ responsibilities - `merge_models` (kept, moved here) and hard-coded per-source-k
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 from app.canonical.model import ArchitectureModel, Message, Operation, Queue, Schema, Service
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
@@ -22,6 +23,7 @@ from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.manifest_adapter import ManifestSourceAdapter
 from app.ingestion.openapi_adapter import OpenApiSourceAdapter
 from app.provenance.model import Provenance
+from app.sources.claim_conflicts import detect_shared_claim_content_conflicts
 from app.sources.commit_gate import classify_inventory_status, run_is_eligible_to_commit
 from app.sources.identity import mapping_context_digest as compute_mapping_context_digest
 from app.sources.inventory import InventoryStatus
@@ -30,6 +32,12 @@ from app.sources.manifest_bindings import (
     BindingIndex,
     build_binding_index,
     parse_architecture_identity_bindings,
+)
+from app.sources.migration_mappings import (
+    EMPTY_SHARED_IDENTITY_INDEX,
+    IdentityMappingEntry,
+    MigrationMappingsDocument,
+    SharedIdentityMappingIndex,
 )
 from app.sources.model import (
     DiagnosticCode,
@@ -117,6 +125,37 @@ class _RunServiceIdentityResolver:
         )
 
 
+class _RunSharedIdentityResolver:
+    """One instance built per discovery run, closing over every configured migration-mapping file's
+    merged `SharedIdentityMappingIndex`. Handed to every adapter the same way
+    `_RunServiceIdentityResolver` is - adapters never see the index or its source files directly.
+    """
+
+    def __init__(self, index: SharedIdentityMappingIndex):
+        self._index = index
+
+    def schema_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self._index.schema_id_for(
+            source_instance_id=source_instance_id, document_path=document_path, pointer=pointer
+        )
+
+    def message_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self._index.message_id_for(
+            source_instance_id=source_instance_id, document_path=document_path, pointer=pointer
+        )
+
+    def queue_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self._index.queue_id_for(
+            source_instance_id=source_instance_id, document_path=document_path, pointer=pointer
+        )
+
+
 def _binding_index_to_pointer_bindings(binding_index: BindingIndex) -> tuple[PointerBinding, ...]:
     return tuple(
         PointerBinding(
@@ -129,17 +168,90 @@ def _binding_index_to_pointer_bindings(binding_index: BindingIndex) -> tuple[Poi
     )
 
 
+# I1 spec §5.1.1's fixed artifact id for the bundled examples/ migration file - any *other*
+# configured migration document is a general shared-identity mapping instead, per the
+# classification rule in `_classify_shared_identity_entries`'s docstring below.
+BUNDLED_MIGRATION_ARTIFACT_ID = "aip-v0.5.0-bundled-example-identities-v1"
+
+
+def _mapping_entry_context(
+    document: MigrationMappingsDocument, entry: IdentityMappingEntry, *, id_field: str
+) -> dict[str, str]:
+    return {
+        "artifactId": document.artifact_id,
+        "artifactRevision": document.artifact_revision,
+        # §5.3: "Each mapping entry retains its stable artifact identity, revision, content digest,
+        # attribution, normalized source pointers, targets, and semantic options." contentDigest is
+        # the SHA-256 of this artifact file's own exact raw bytes (MigrationMappingsDocument.
+        # content_digest, computed once per file by load_migration_mappings). attribution is the
+        # configured file's own *basename*, not document.locator's full path - §5.3 elsewhere
+        # requires "Capture times and physical checkout paths are excluded", and load_migration_
+        # mappings sets locator to str(path) verbatim, which is the exact absolute (or otherwise
+        # checkout-root-dependent) path when the caller configures one, exactly the kind of physical
+        # path that MUST NOT enter a portable digest. The basename is still real attribution (which
+        # configured file declared the mapping) without being checkout-root-dependent. There is no
+        # per-artifact "semantic options" concept this mechanism exposes, so that part of §5.3's
+        # list has nothing to project (mirroring configuredServiceMappings/destinationBrokerMappings
+        # staying explicit empty arrays for categories with no configured instance).
+        "contentDigest": document.content_digest,
+        "attribution": Path(document.locator).name,
+        "sourceInstanceId": entry.source_instance_id,
+        # documentPath is part of this entry's own lookup identity (source_instance_id,
+        # document_path, pointer) - omitting it here would mean moving an otherwise identical
+        # mapping from one file to another (the same pointer, a different documentPath) changes
+        # which canonical entity actually receives the mapped id, without changing this digest, so
+        # the revision fence would never notice the resulting graph change.
+        "documentPath": entry.document_path,
+        "pointer": entry.pointer,
+        id_field: entry.target_id,
+    }
+
+
+def _classify_shared_identity_entries(
+    shared_identity_index: SharedIdentityMappingIndex,
+) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
+    """§5.3 names `bundledMigrationMappings` as one context category and `sharedSchemaMappings`/
+    `sharedMessageMappings`/`sharedQueueMappings` as three separate ones - a distinction the spec
+    text doesn't otherwise define, so this module draws it explicitly (flagged for review): any
+    loaded migration document whose artifact id is the fixed §5.1.1 bundled-example constant
+    contributes all of its entries (schema, message, and queue alike) to the one
+    `bundledMigrationMappings` list; every other configured document's entries are split by kind
+    into the three `shared*Mappings` categories instead, since that general mechanism has no
+    single-artifact identity to fold entries under.
+    """
+    bundled: list[dict] = []
+    shared_schema: list[dict] = []
+    shared_message: list[dict] = []
+    shared_queue: list[dict] = []
+    for document in shared_identity_index.documents:
+        is_bundled = document.artifact_id == BUNDLED_MIGRATION_ARTIFACT_ID
+        for entry in document.schema_mappings:
+            item = _mapping_entry_context(document, entry, id_field="schemaId")
+            (bundled if is_bundled else shared_schema).append(item)
+        for entry in document.message_mappings:
+            item = _mapping_entry_context(document, entry, id_field="messageId")
+            (bundled if is_bundled else shared_message).append(item)
+        for entry in document.queue_mappings:
+            item = _mapping_entry_context(document, entry, id_field="queueId")
+            (bundled if is_bundled else shared_queue).append(item)
+    return bundled, shared_schema, shared_message, shared_queue
+
+
 def _compute_mapping_context_digest(
-    binding_index: BindingIndex, registry: SourceAdapterRegistry
+    binding_index: BindingIndex,
+    registry: SourceAdapterRegistry,
+    shared_identity_index: SharedIdentityMappingIndex,
 ) -> str:
     """I1 spec §5.3: the context's input is "the complete canonical index of configured and
     manifest Service bindings, shared Schema/Message mappings, Queue/destination and broker/server/
     namespace mappings, bundled migration mappings, and all active adapter, normalization, and
-    mapping-rule identities/versions." 3a's context is honestly small: only the manifest-binding
-    index and the registered adapters' own identities are populated; every other mapping category
-    not yet wired in 3a is an explicit empty array ("Explicit empty arrays represent absent mapping
-    categories" - §5.3).
+    mapping-rule identities/versions." `configuredServiceMappings`/`destinationBrokerMappings`
+    remain explicit empty arrays - no configured instance of either exists or is needed yet
+    ("Explicit empty arrays represent absent mapping categories" - §5.3).
     """
+    bundled, shared_schema, shared_message, shared_queue = _classify_shared_identity_entries(
+        shared_identity_index
+    )
     context = {
         "manifestBindings": sort_entries_by_canonical_bytes(
             [
@@ -152,11 +264,11 @@ def _compute_mapping_context_digest(
             ]
         ),
         "configuredServiceMappings": [],
-        "sharedSchemaMappings": [],
-        "sharedMessageMappings": [],
-        "sharedQueueMappings": [],
+        "sharedSchemaMappings": sort_entries_by_canonical_bytes(shared_schema),
+        "sharedMessageMappings": sort_entries_by_canonical_bytes(shared_message),
+        "sharedQueueMappings": sort_entries_by_canonical_bytes(shared_queue),
         "destinationBrokerMappings": [],
-        "bundledMigrationMappings": [],
+        "bundledMigrationMappings": sort_entries_by_canonical_bytes(bundled),
         "adapters": sort_entries_by_canonical_bytes(
             [
                 {
@@ -188,9 +300,13 @@ class DiscoveryRunResult:
 
 
 def run_filesystem_discovery(
-    config: FilesystemSourceConfig, *, registry: SourceAdapterRegistry | None = None
+    config: FilesystemSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
 ) -> DiscoveryRunResult:
     registry = registry or default_registry()
+    shared_identity_index = migration_mappings or EMPTY_SHARED_IDENTITY_INDEX
     discovery_outcome = FilesystemSourceDiscoverer(config).discover()
 
     if not discovery_outcome.enumeration_complete:
@@ -253,7 +369,10 @@ def run_filesystem_discovery(
         )
 
     resolver = _RunServiceIdentityResolver(_binding_index_to_pointer_bindings(binding_index))
-    run_mapping_context_digest = _compute_mapping_context_digest(binding_index, registry)
+    shared_identity_resolver = _RunSharedIdentityResolver(shared_identity_index)
+    run_mapping_context_digest = _compute_mapping_context_digest(
+        binding_index, registry, shared_identity_index
+    )
 
     mappable_sources = [
         loaded for loaded in loaded_sources if not _is_identity_bindings_document(loaded.document)
@@ -289,6 +408,7 @@ def run_filesystem_discovery(
             outcome = adapter.map(
                 enriched,
                 service_identity=resolver,
+                shared_identity=shared_identity_resolver,
                 upstream_model=phase_upstream_model,
                 mapping_context_digest=run_mapping_context_digest,
             )
@@ -322,7 +442,26 @@ def run_filesystem_discovery(
         )
     run_diagnostics.extend(unmatched_diagnostics)
 
-    merged_model = merge_models([outcome.outcome.model for outcome in source_outcomes.values()])
+    source_models = [outcome.outcome.model for outcome in source_outcomes.values()]
+
+    # §8.1/§9.1: "Two current owners explicitly mapped to one shared Schema ID with different
+    # canonical hashes are REJECTED_CONFLICT" (and the Message equivalent) - only visible once every
+    # source's own claims are collected together, so this runs on the pre-merge per-source model
+    # list, before merge_models' own first-wins dedup could discard the disagreement.
+    content_conflicts = detect_shared_claim_content_conflicts(source_models)
+    if content_conflicts:
+        run_diagnostics.extend(content_conflicts)
+        return DiscoveryRunResult(
+            inventory_status=InventoryStatus.PARTIAL,
+            commit_eligible=False,
+            discovery_scope_id=discovery_outcome.discovery_scope_id,
+            scope_definition_digest=discovery_outcome.scope_definition_digest,
+            merged_model=ArchitectureModel(),
+            source_outcomes=source_outcomes,
+            diagnostics=tuple(run_diagnostics),
+        )
+
+    merged_model = merge_models(source_models)
     status = classify_inventory_status(
         source_results=[o.outcome.result for o in source_outcomes.values()],
         discoverer_enumeration_complete=True,

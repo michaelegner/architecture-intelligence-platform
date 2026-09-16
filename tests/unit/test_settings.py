@@ -75,6 +75,34 @@ def test_sources_directories_defaults_scope_id_and_target_identity_from_id(tmp_p
     assert source.resolved_stable_target_identity == "urn:aip:logical-root:my-repos"
 
 
+def test_sources_migrations_defaults_to_empty_list(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(CONFIG_YAML)
+
+    config = load_config(config_path)
+
+    assert config.sources.migrations == []
+
+
+def test_sources_migrations_parses_configured_paths(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "architecture_intelligence:\n"
+        "  sources:\n"
+        "    directories:\n"
+        "      - id: my-repos\n"
+        "        root: ./repositories\n"
+        "    migrations:\n"
+        "      - config/migrations/v0.5.0-bundled-example-identities.yaml\n"
+    )
+
+    config = load_config(config_path)
+
+    assert config.sources.migrations == [
+        Path("config/migrations/v0.5.0-bundled-example-identities.yaml")
+    ]
+
+
 def test_load_config_defaults_on_empty_file(tmp_path):
     config_path = tmp_path / "config.yaml"
     config_path.write_text("architecture_intelligence: {}\n")

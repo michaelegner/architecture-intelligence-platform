@@ -4,6 +4,7 @@ from app.canonical.model import ArchitectureModel, Operation
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.manifest_adapter import ManifestSourceAdapter
 from app.ingestion.openapi_adapter import OpenApiSourceAdapter
+from app.sources.migration_mappings import EMPTY_SHARED_IDENTITY_INDEX
 from app.sources.model import (
     DiagnosticCode,
     FilesystemSourceConfig,
@@ -50,6 +51,7 @@ def _map(document: dict, upstream_model: ArchitectureModel | None = None):
     return ManifestSourceAdapter().map(
         _loaded(document),
         service_identity=_StubResolver(),
+        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
         upstream_model=upstream_model if upstream_model is not None else ArchitectureModel(),
         mapping_context_digest="e" * 64,
     )
@@ -155,6 +157,7 @@ def test_real_manifest_fixture_resolves_against_real_openapi_fixture():
     openapi_outcome = OpenApiSourceAdapter().map(
         product_openapi,
         service_identity=_StubResolver(),
+        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
         upstream_model=ArchitectureModel(),
         mapping_context_digest="e" * 64,
     )
@@ -168,6 +171,7 @@ def test_real_manifest_fixture_resolves_against_real_openapi_fixture():
     outcome = ManifestSourceAdapter().map(
         manifest_source,
         service_identity=_StubResolver(),
+        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
         upstream_model=openapi_outcome.model,
         mapping_context_digest="e" * 64,
     )

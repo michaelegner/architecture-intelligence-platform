@@ -39,6 +39,11 @@ class Message(BaseModel):
     name: str
     version: str | None = None
     schema_id: str | None = None
+    # I1 spec §9.1: document_digest is the full normalized message document (provenance only);
+    # contract_digest excludes presentation/identity metadata and is used for semantic comparison/
+    # conflict detection - see app.sources.message_contract.
+    contract_digest: str | None = None
+    document_digest: str | None = None
 
 
 class Schema(BaseModel):

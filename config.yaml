@@ -7,6 +7,12 @@ architecture_intelligence:
       - id: aip-bundled-examples-v0.5
         root: examples
         stable_target_identity: urn:aip:logical-root:bundled-examples
+    # I1 spec §5.1.1's config/migrations/v0.5.0-bundled-example-identities.yaml artifact exists as a
+    # real, tested migration artifact (see tests/integration/test_i1_bundled_migration_determinism.py)
+    # but is deliberately NOT listed here: applying it would revert the bundled examples' real,
+    # already-shipped owner-scoped identity (PR3a/3b) back to their legacy v0.4.2-era ids for every
+    # default consumer of this file, undoing that migration rather than merely proving it exists.
+    # migrations: []
   graph:
     uri: bolt://localhost:7687
     database: neo4j

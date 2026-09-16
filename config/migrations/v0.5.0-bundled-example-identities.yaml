@@ -1,0 +1,125 @@
+# I1 spec §5.1.1: "The v0.5.0 migration configuration for repository-owned examples SHALL use
+# these fixed logical identities" - migration mapping artifact id
+# aip-v0.5.0-bundled-example-identities-v1, binding the bundled examples/ fixtures' constructs to
+# their prior (pre-PR3a, v0.4.2-era) canonical Schema/Message/Queue IDs, per §8.1/§9/§9.1's
+# explicit shared-identity mapping mechanism.
+#
+# `sourceInstanceId` values are independently reproducible from
+# `app.sources.identity.source_instance_id(configured_source_id="aip-bundled-examples-v0.5",
+# source_kind=filesystem, normalized_root_document_path=<path below>)` - never hand-derived.
+#
+# `documentPath` is each construct's own normalized definition document path, relative to the
+# `examples/` root (§8.1/§9.1: "the normalized definition source pointer is the normalized relative
+# document path plus decoded RFC 6901 pointer") - required alongside `pointer` because one
+# SourceInstanceId's own bounded multi-file $ref closure could otherwise resolve the same relative
+# pointer inside two different files. Every construct here is defined in its own root document (no
+# bundled fixture currently $refs across files), so each entry's documentPath equals its own root
+# document's path.
+#
+# Legacy target ids are the exact output of the pre-PR3a `app.canonical.ids.schema_id`/
+# `message_id`/`queue_id` functions (see `git show 7492bd2^:app/canonical/ids.py`, `7492bd2` being
+# PR3a's merge commit) applied to each construct's pre-existing name/version - not invented values.
+#
+# Deliberately NOT referenced by config.yaml/config.demo.yaml's own `sources.migrations` list: this
+# artifact exists and is proven correct (tests/integration/test_i1_bundled_migration_determinism.py)
+# without being applied by default, since applying it would revert the bundled examples' real,
+# already-shipped owner-scoped identity (PR3a/3b) back to these legacy ids for every default
+# consumer of the config file - see config.yaml's own comment at this key.
+#
+# Deliberately carries NO queueMappings: I1 spec §9 requires a configured Queue ID to be compared
+# against the ID derivable from broker/namespace/address evidence whenever that evidence is
+# available, rejecting REJECTED_CONFLICT + QUEUE_IDENTITY_CONFLICT on disagreement. The bundled
+# examples already declare real `x-aip-broker-id`/AMQP `virtualHost` evidence (added by PR3a/3b, not
+# present in a genuinely unchanged v0.4.2 fixture), so their real derived Queue ids always disagree
+# with these legacy, unscoped ones by construction - migrating Queue identity for these specific,
+# already-modernized fixtures is exactly the scenario that conflict check exists to catch, not a
+# legitimate target for this artifact. Queue identity is also, unlike Schema/Message identity,
+# already inherently source-independent (queue_owned_id has no SourceInstanceId component), so the
+# cross-source Queue merges (`payment-q`, `invoice-q`) happen automatically without any mapping at
+# all. A genuinely unchanged v0.4.2 AsyncAPI file (no `x-aip-broker-id` yet) would have no derived
+# id to conflict with and could safely carry a `queueMappings` entry of its own.
+apiVersion: aip.dev/v1
+kind: AipSharedIdentityMappings
+metadata:
+  id: aip-v0.5.0-bundled-example-identities-v1
+  revision: v1
+
+schemaMappings:
+  # order-service/openapi.yaml
+  - sourceInstanceId: urn:aip:source:filesystem:a302361f5e4b2b86839e1b2da03c9691ddba8a7bcc22a21c0270ef80ece247bf
+    documentPath: order-service/openapi.yaml
+    pointer: /components/schemas/OrderRequest
+    schemaId: "schema:OrderRequest"
+  - sourceInstanceId: urn:aip:source:filesystem:a302361f5e4b2b86839e1b2da03c9691ddba8a7bcc22a21c0270ef80ece247bf
+    documentPath: order-service/openapi.yaml
+    pointer: /components/schemas/Order
+    schemaId: "schema:Order"
+  # product-service/openapi.yaml
+  - sourceInstanceId: urn:aip:source:filesystem:6e78c4f7625f06e968b1b409ded73b234bfc40382dc4b4566fc58e04ba7b1562
+    documentPath: product-service/openapi.yaml
+    pointer: /components/schemas/Product
+    schemaId: "schema:Product"
+  # order-service/asyncapi.yaml - PaymentRequested payload ($ref'd schema)
+  - sourceInstanceId: urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad
+    documentPath: order-service/asyncapi.yaml
+    pointer: /components/schemas/PaymentRequestedPayload
+    schemaId: "schema:PaymentRequested:v2"
+  # order-service/asyncapi.yaml - UnusedMessage payload (inline, no separate component)
+  - sourceInstanceId: urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad
+    documentPath: order-service/asyncapi.yaml
+    pointer: /components/messages/UnusedMessage/payload
+    schemaId: "schema:UnusedMessage"
+  # payment-service/asyncapi.yaml - PaymentRequested payload (same legacy shared id as
+  # order-service's: both declared the byte-identical payload shape under the old, unscoped scheme)
+  - sourceInstanceId: urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299
+    documentPath: payment-service/asyncapi.yaml
+    pointer: /components/schemas/PaymentRequestedPayload
+    schemaId: "schema:PaymentRequested:v2"
+  # payment-service/asyncapi.yaml - InvoiceCreated payload
+  - sourceInstanceId: urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299
+    documentPath: payment-service/asyncapi.yaml
+    pointer: /components/schemas/InvoiceCreatedPayload
+    schemaId: "schema:InvoiceCreated:v1"
+  # payment-service/asyncapi.yaml - UnknownProducerMessage payload (inline)
+  - sourceInstanceId: urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299
+    documentPath: payment-service/asyncapi.yaml
+    pointer: /components/messages/UnknownProducerMessage/payload
+    schemaId: "schema:UnknownProducerMessage"
+  # invoice-service/asyncapi.yaml - InvoiceCreated payload (same legacy shared id as
+  # payment-service's: both declared the byte-identical payload shape)
+  - sourceInstanceId: urn:aip:source:filesystem:679f611e8055bd5869723affbe177e73f49454415c1e7808ed34eec5633fe659
+    documentPath: invoice-service/asyncapi.yaml
+    pointer: /components/schemas/InvoiceCreatedPayload
+    schemaId: "schema:InvoiceCreated:v1"
+
+messageMappings:
+  # order-service/asyncapi.yaml
+  - sourceInstanceId: urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad
+    documentPath: order-service/asyncapi.yaml
+    pointer: /components/messages/PaymentRequested
+    messageId: "message:PaymentRequested:v2"
+  - sourceInstanceId: urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad
+    documentPath: order-service/asyncapi.yaml
+    pointer: /components/messages/UnusedMessage
+    messageId: "message:UnusedMessage"
+  # payment-service/asyncapi.yaml
+  - sourceInstanceId: urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299
+    documentPath: payment-service/asyncapi.yaml
+    pointer: /components/messages/PaymentRequested
+    messageId: "message:PaymentRequested:v2"
+  - sourceInstanceId: urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299
+    documentPath: payment-service/asyncapi.yaml
+    pointer: /components/messages/InvoiceCreated
+    messageId: "message:InvoiceCreated:v1"
+  - sourceInstanceId: urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299
+    documentPath: payment-service/asyncapi.yaml
+    pointer: /components/messages/UnknownProducerMessage
+    messageId: "message:UnknownProducerMessage"
+  # invoice-service/asyncapi.yaml
+  - sourceInstanceId: urn:aip:source:filesystem:679f611e8055bd5869723affbe177e73f49454415c1e7808ed34eec5633fe659
+    documentPath: invoice-service/asyncapi.yaml
+    pointer: /components/messages/InvoiceCreated
+    messageId: "message:InvoiceCreated:v1"
+
+# See the header comment above for why this artifact carries no queueMappings.
+queueMappings: []

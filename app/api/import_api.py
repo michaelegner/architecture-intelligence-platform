@@ -9,6 +9,7 @@ from app.deps import get_driver, get_settings
 from app.graph.importer import ImportRunStats, SourceImportStats, import_all_sources
 from app.graph.repository import open_session
 from app.settings import Settings
+from app.sources.migration_mappings import load_migration_mappings
 
 router = APIRouter(prefix="/api/import", tags=["import"])
 logger = logging.getLogger("architecture_intelligence.import")
@@ -40,12 +41,33 @@ def _log_run(import_id: str, run_stats: ImportRunStats, duration_ms: int) -> Non
 
 
 def _run_all_configured_sources(settings: Settings, driver) -> tuple[str, list[ImportRunStats]]:
+    # I1 spec §5.1.1: "Missing or modified migration configuration is diagnosed and MUST NOT fall
+    # back to a directory slug or name-derived identity" - loaded once per request (not once per
+    # configured source directory) since the same shared-identity index applies uniformly across
+    # every directory's own discovery run. A broken configured migration file is an operator
+    # configuration error, not a per-source data problem, so it fails the whole request loudly
+    # rather than silently importing with a partial/empty index.
+    migration_index, migration_diagnostics = load_migration_mappings(
+        settings.config.sources.migrations
+    )
+    if migration_diagnostics:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "migration mapping configuration is invalid: "
+                f"{[d.message for d in migration_diagnostics]}"
+            ),
+        )
+
     import_id = uuid.uuid4().hex
     run_results = []
     for source_config in settings.config.sources.directories:
         start = time.perf_counter()
         run_stats = import_all_sources(
-            driver, database=settings.config.graph.database, source_config=source_config
+            driver,
+            database=settings.config.graph.database,
+            source_config=source_config,
+            migration_mappings=migration_index,
         )
         duration_ms = int((time.perf_counter() - start) * 1000)
         _log_run(import_id, run_stats, duration_ms)

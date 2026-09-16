@@ -21,6 +21,30 @@ class ServiceIdentityResolver(Protocol):
     ) -> ServiceIdentityResolution: ...
 
 
+class SharedIdentityResolver(Protocol):
+    """I1 spec §5.1.1/§8.1/§9/§9.1's explicit shared-identity/migration mapping mechanism, exposed
+    to adapters the same way `ServiceIdentityResolver` is: an injected lookup, not a pre-resolved
+    value, since only the adapter walking its own document knows a construct's exact resolved
+    location. `None` means no configured mapping applies to that exact `(source_instance_id,
+    document_path, pointer)` triple - the adapter falls back to its own owner-scoped default
+    identity formula. `document_path` is the normalized relative path of the document the pointer
+    resolved into (§8.1/§9.1: "the normalized definition source pointer is the normalized relative
+    document path plus decoded RFC 6901 pointer") - required alongside `pointer` because one
+    SourceInstanceId's own bounded multi-file `$ref` closure can resolve the same relative pointer
+    inside two different files.
+    """
+
+    def schema_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None: ...
+    def message_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None: ...
+    def queue_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None: ...
+
+
 @dataclass(frozen=True)
 class AdapterOutcome:
     """I1 spec §10: "Each source receives exactly one result." Adapters return this instead of
@@ -55,6 +79,7 @@ class SourceAdapter(Protocol):
         loaded: LoadedSource,
         *,
         service_identity: ServiceIdentityResolver,
+        shared_identity: SharedIdentityResolver,
         upstream_model: ArchitectureModel,
         mapping_context_digest: str,
     ) -> AdapterOutcome: ...
