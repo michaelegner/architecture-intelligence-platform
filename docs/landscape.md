@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-10_
+_Last reviewed: 2026-09-16_
 
 ## AIP anchor
 
@@ -25,6 +25,83 @@ Future: Intent / Governance / Transformation
 ```
 
 The landscape is organized by the architectural question each source helps answer.
+
+## Landscape map
+
+This map is the navigation layer for the detailed research notes below. Each group names the
+architectural question it helps AIP examine; inclusion remains research input rather than
+endorsement, dependency, or roadmap commitment.
+
+### Foundations and system semantics
+
+[Bigraphs](#robin-milner--bigraphs--bigraphical-reactive-systems) ·
+[Promise Theory](#mark-burgess--promise-theory) ·
+[Semantic Spacetime](#mark-burgess--semantic-spacetime) ·
+[Strategic DDD](#domain-driven-design--strategic-patterns) ·
+[SysML v2](#omg--sysml-v2)
+
+**Core question:** How should AIP represent locality, connectivity, semantic boundaries, autonomous
+promises, temporal context, and explicit system intent without collapsing them into one model?
+
+### Evidence, discovery, and architecture products
+
+[OpenTelemetry](#opentelemetry-semantic-conventions) ·
+[OpenAPI as deterministic evidence](#kin-lane--openapi-as-a-deterministic-artifact-in-an-ai-generated-world) ·
+[Backstage](#backstage-software-catalog) ·
+[Cartography](#cartography--infrastructure-and-security-graph-discovery) ·
+[EventCatalog](#eventcatalog--connected-architecture-catalog-for-humans-and-agents) ·
+[ProvenMap](#provenmap--architecture-intelligence-intent-and-provenance) ·
+[Logorythm](#logorythm--architecture-intelligence-from-static-analysis) ·
+[Premise quality](#praveen-kasam--why-your-ai-agent-fails-the-answer-is-almost-never-the-model) ·
+[Typed trace matrices](#spark-tsai--from-trace-ids-to-trace-matrix-what-does-a-change-actually-affect)
+
+**Core question:** What can each source safely establish, how should conflicting evidence remain
+visible, and where does qualified architecture knowledge differ from inventory, catalogs,
+visualization, provenance, or retrieval?
+
+### Agent context and machine consumption
+
+[MCP](#model-context-protocol-mcp) ·
+[Agent-ready bounded context](#daniel-kocot--agent-ready-apis-and-bounded-context) ·
+[BootUI](#bootui--runtime-context-for-coding-agents) ·
+[Deterministic integration](#kin-lane--agents-should-write-code-to-integrate-not-infer-it-at-runtime) ·
+[UI Atlas](#ui-atlas--ai-successors) ·
+[Thoughtworks AI/works](#thoughtworks-aiworks) ·
+[AI Agents — The Definitive Guide](#nicole-königstein--ai-agents-the-definitive-guide) ·
+[Open source and protocols](#tim-oreilly--why-open-source-matters-for-ai) ·
+[Gemini Enterprise](#google-cloud--gemini-enterprise-for-financial-services)
+
+**Core question:** How should agents consume the smallest useful, bounded, portable, and
+evidence-qualified architecture context without becoming the source of architectural truth?
+
+### Intent, authority, and governance
+
+[Confirmed versus inferred intent](#andreas-toth--ai-shouldnt-guess-what-we-mean-it-should-ask) ·
+[Mneme](#mneme-hq) ·
+[Architecture guardrails](#oreilly--architectural-guardrails-for-ai-generated-code) ·
+[AI-accelerated drift](#ankur-agnihotri--architecture-drift-reduction-with-llms) ·
+[Design versus implementation](#alireza-rahmani-khalili--ai-did-not-eliminate-software-design) ·
+[Architectural fitness](#raghunandan-e-srinivasan--from-architectural-debt-to-architectural-fitness) ·
+[Bounded agency](#matthew-skelton--bounded-agency-and-the-ai-native-operating-model) ·
+[Stewardship boundaries](#matthew-skelton--reframing-the-ai-native-sdlc-in-terms-of-stewardship-boundaries) ·
+[AI-heavy code review](#rachel-laycock--martin-fowler--code-review-in-an-ai-heavy-sdlc)
+
+**Core question:** How should explicit intent, assumptions, fitness criteria, authority, and
+organizational responsibility constrain agent action without being inferred from Current State?
+
+### Verification, reliability, and observability
+
+[Reliable AI systems](#rush-shahani--building-reliable-ai-systems) ·
+[Agent trajectory evaluation](#google--agent-evaluation-and-trajectory-metrics) ·
+[Failure as a process](#zhao-et-al--failure-as-a-process) ·
+[Long-running context drift](#agentic-software-how-ai-agents-are-restructuring-the-software-paradigm) ·
+[ADMET-EvO](#zhou-et-al--admet-evo-and-evidence-gated-self-evolution) ·
+[The Light Factory](#martien-de-jong--the-light-factory) ·
+[Deterministic backpressure](#lucas-f-costa--backpressure-is-all-you-need) ·
+[Agent observability](#agent-observability)
+
+**Core question:** How should AIP keep proposal, evidence judgment, deterministic verification,
+agent behavior, delivery lineage, and release qualification independently inspectable?
 
 ---
 
@@ -160,6 +237,45 @@ Strategic DDD can therefore inform a future split between evidence-backed Curren
 
 ---
 
+### OMG — SysML v2
+
+**Sources**
+
+- [OMG Systems Modeling Language](https://www.omg.org/sysml/)
+- [SysML v2 release repository](https://github.com/Systems-Modeling/SysML-v2-Release)
+
+**Core idea**
+
+SysML v2 is a standardized language and API for specifying, analyzing, designing, and verifying
+complex systems. Its textual notation, explicit semantics, relationships, requirements, constraints,
+and verification concepts make it a plausible machine-readable source of architectural intent.
+
+**Why this matters to AIP**
+
+SysML v2 could eventually provide explicit intent evidence against which qualified Current State is
+assessed. It complements rather than replaces Promise Theory:
+
+```text
+SysML v2
+explicit model / requirement / constraint
+        ↓
+versioned intent evidence
+
+Promise Theory
+local promises by autonomous agents
+        ↓
+reasoning model for intended cooperation
+```
+
+A SysML model is not automatically authoritative, applicable, current, or satisfied. AIP would still
+need provenance, model and element identity, version, scope, authority, applicability, and explicit
+mapping into its Intent Model. Runtime evidence remains separate.
+
+**AIP stance**
+
+Research input for the post-Current-State Intent line. SysML v2 is not a v0.5 discovery source and
+its presence in the landscape does not commit AIP to general-purpose MBSE support.
+
 ## 2. Evidence and Current State
 
 ### OpenTelemetry Semantic Conventions
@@ -187,6 +303,41 @@ weak telemetry
 plausible-looking architecture fact
 ```
 
+### Kin Lane — OpenAPI as a Deterministic Artifact in an AI-Generated World
+
+**Source**
+
+- [Is OpenAPI Still Relevant When You Tell Claude "Make Me an API"?](https://apievangelist.com/2026/09/15/is-openapi-still-relevant-when-you-tell-claude-make-me-an-api/)
+
+**Core idea**
+
+AI may generate an API, but its durable contract should land as an independently owned,
+machine-readable artifact. OpenAPI, AsyncAPI, JSON Schema, Arazzo, overlays, and deterministic
+rules can then be versioned, diffed, validated, governed, and consumed without repeatedly asking a
+model to reconstruct the contract.
+
+**Why this matters to AIP**
+
+This reinforces the role of OpenAPI and AsyncAPI as declared evidence:
+
+```text
+probabilistic generation
+        ↓
+versioned deterministic contract
+        ↓
+AIP ingestion
+        ↓
+declared architecture claim
+```
+
+The deterministic artifact stabilizes what was declared; it does not establish that the deployed
+system implements the contract or that the interaction occurred. AIP must continue to distinguish
+declared, configured, and observed evidence and surface conflicts rather than selecting a winner
+silently.
+
+> **AI generation increases the value of durable contracts; it does not turn contracts into
+> runtime truth.**
+
 ### Backstage Software Catalog
 
 **Sources**
@@ -206,6 +357,66 @@ AIP
 evidence-backed, qualified architecture knowledge
 derived from declared and observed signals
 ```
+
+### Cartography — Infrastructure and Security Graph Discovery
+
+**Sources**
+
+- [Cartography](https://github.com/cartography-cncf/cartography)
+- [Kubernetes module](https://github.com/cartography-cncf/cartography/tree/master/docs/root/modules/kubernetes)
+
+**Core idea**
+
+Cartography ingests infrastructure assets and their relationships from Kubernetes, cloud platforms,
+identity systems, source-control systems, and other operational sources into Neo4j. Its graph is
+primarily designed for infrastructure inventory, security analysis, exposure paths, and
+cross-provider queries.
+
+Its Kubernetes ingestion is especially relevant to AIP v0.5. It models clusters, namespaces,
+workload controllers, pods, services, ingress, storage, RBAC, and related infrastructure. It also
+resolves controller ownership such as `Pod -> ReplicaSet -> Deployment` and protects previously
+ingested state when a required discovery scope cannot be completed.
+
+**Why this matters to AIP**
+
+Cartography is a strong reference implementation for source adapters, Kubernetes discovery,
+cross-provider graph modeling, and failure-aware reconciliation:
+
+```text
+Cartography
+live infrastructure APIs
+        ↓
+asset and security graph
+        ↓
+inventory / path / exposure queries
+
+AIP
+source-bound observations
+        ↓
+typed evidence and claims
+        ↓
+qualification
+        ↓
+snapshot-bound architecture context
+```
+
+The overlap is strongest in discovery mechanics, not in epistemic semantics. A directly ingested
+asset or relationship is not automatically a qualified AIP architecture claim. In particular, AIP
+must not infer that a Kubernetes workload is an application service, that a selector establishes a
+service dependency, or that co-location establishes communication.
+
+Cartography's handling of incomplete discovery is a useful design comparison: failed or
+unauthorized collection can preserve the last committed graph rather than treating missing results
+as confirmed removal. AIP requires the stronger, source-explicit form of this rule through
+successful-scope markers or tombstones, stable source identity, evidence continuity, and
+deterministic reconciliation.
+
+**AIP stance**
+
+Use Cartography as a comparison implementation and possible future source-adapter boundary, not as
+a dependency or authority for v0.5 semantics. A future adapter could import Cartography output as
+source-bound evidence, but would still require separately approved mappings and deterministic
+conformance tests before any relation entered an AIP Current-State projection.
 
 ### EventCatalog — Connected Architecture Catalog for Humans and Agents
 
@@ -251,21 +462,25 @@ boundary. Integration may be more valuable than duplicating catalog capabilities
 > **EventCatalog makes architecture connected and queryable. AIP makes architecture claims
 > evidence-qualified and independently inspectable.**
 
-### ProvenMap — Architecture Intelligence
+### ProvenMap — Architecture Intelligence, Intent, and Provenance
 
 **Sources**
 
 - [Why Architecture Intelligence, Not Visualization](https://provenmap.com/blog/why-architecture-intelligence-not-visualization)
+- [ProvenMap](https://provenmap.com/)
 - [ProvenMap Documentation](https://provenmap.com/docs)
 - [ProvenMap Intents](https://provenmap.com/docs/platform-features/intents)
 
 **Core idea**
 
-ProvenMap positions itself as an Architecture Intelligence platform rather than a diagramming tool: AI-assisted development changes systems faster than architects can maintain diagrams by hand, so tooling has to move from "help me illustrate what I know" toward "help me understand what I don't." Its documentation describes real sources populating an architecture model with provenance-carrying relationships, and **Intents** — living specifications of a desired change, anchored to existing architecture, that can come back **verified rather than merely reported**.
+ProvenMap positions itself as an Architecture Intelligence platform rather than a diagramming tool.
+Its sources populate an architecture model with provenance-carrying relationships, while
+**Intents** act as living specifications of desired change anchored to existing architecture and
+capable of returning verified rather than merely reported.
 
 **Why this matters to AIP**
 
-This is currently AIP's closest strategic product neighbor:
+ProvenMap is currently AIP's closest strategic product neighbor:
 
 ```text
 ProvenMap
@@ -275,30 +490,7 @@ AIP
 evidence → qualified Current State → Architecture Intelligence → trusted context for agents
 ```
 
-`IS vs. OUGHT` is a useful reference point for AIP's own future Current State vs. Intent split (Section 4), and `Finding → Intent → implementation → verification` is a plausible model for a future Transformation Lineage.
-
-**AIP distinction**
-
-Having provenance does not by itself answer AIP's sharper epistemic question:
-
-> **What does the available evidence actually entitle us to claim?**
-
-That is what drives AIP's explicit qualification (`CONFIRMED`, `OBSERVED_ONLY`, `NOT_OBSERVED_IN_WINDOW`) and its binding of every answer to an observation context and snapshot — a distinction that survives even where ProvenMap's provenance model overlaps with AIP's own.
-
-### ProvenMap — Evidence, Provenance, and Architecture Context
-
-**Sources**
-
-- [ProvenMap Documentation](https://provenmap.com/docs)
-- [ProvenMap](https://provenmap.com/)
-
-**Core idea**
-
-ProvenMap connects source material, architecture knowledge, provenance, and verified context. Its
-proximity to AIP sharpens an important distinction between locating a claim's origin and deciding
-what the originating evidence can legitimately establish.
-
-**Why this matters to AIP**
+Its proximity sharpens two related but distinct questions:
 
 ```text
 Provenance
@@ -308,8 +500,18 @@ Qualification
   what does that evidence actually entitle us to claim?
 ```
 
-AIP should retain both. Future derivation lineage should let an agent reproduce how evidence,
-mapping rules, applicability, observation context, and qualification combined to produce a claim.
+AIP should retain both. Future derivation lineage should make reproducible how evidence, mapping
+rules, applicability, observation context, and qualification combined to produce a claim.
+`IS vs. OUGHT` also provides a useful comparison for AIP's future Current-State-to-Intent split,
+while `Finding → Intent → implementation → verification` is a plausible reference for future
+Transformation Lineage.
+
+**AIP distinction**
+
+Provenance does not by itself determine what a source legitimately establishes. AIP binds its
+qualified answers to an observation context and snapshot and preserves unsupported or inconclusive
+outcomes rather than promoting provenance-carrying data directly into authoritative architecture
+knowledge.
 
 > **Provenance tells you where a claim came from. Qualification tells you what that evidence is
 > allowed to mean.**
@@ -428,31 +630,35 @@ MCP / agent
 
 An agent must remain downstream of the deterministic architecture model and must not become the source of canonical architectural truth.
 
-### Daniel Kocot — Agent-Ready APIs Start Before an Agent Sees the API
+### Daniel Kocot — Agent-Ready APIs and Bounded Context
 
-**Source**
+**Sources**
 
 - [Agent-Ready APIs Start Before an Agent Sees the API](https://www.linkedin.com/pulse/agent-ready-apis-start-before-agent-sees-api-daniel-kocot-twnbe/)
+- [Context Is Not More Information. It Shapes the Conditions for Interpretation and Action](https://www.linkedin.com/pulse/context-more-information-shapes-conditions-action-daniel-kocot-z55ze/)
 
 **Core idea**
 
 Kocot argues that agent-readiness begins before OpenAPI, MCP, retrieval, or the context window.
-Machine-readable interfaces are not sufficient by themselves: purpose, semantics, boundaries,
-constraints, and relationships must already be captured and reliably traceable.
+Machine-readable artifacts describe parts of a system, but useful context also depends on purpose,
+semantics, boundaries, relationships, authority, and relevance. A knowledge graph is therefore
+infrastructure from which context can be assembled, not context by itself.
 
 **Why this matters to AIP**
 
-A graph can connect artifacts without making every inferred relationship authoritative. AIP's
-agent-facing value lies in assembling the smallest useful, bounded context while preserving
-qualification, evidence, provenance, observation context, and limitations.
-
 ```text
-Graph
-  = infrastructure for connecting architecture knowledge
-
-Qualified ArchitectureAnswer
-  = bounded context an agent can actually reason from
+complete architecture graph
+        ≠
+bounded architecture context needed for this question
 ```
+
+AIP's agent-facing value lies in returning the smallest useful qualified answer while preserving
+evidence, provenance, observation context, conflicts, and limitations. Its narrow per-question MCP
+tools support that boundary by avoiding generic graph dumps or unrestricted Cypher access.
+
+Kocot's distinction between what exists, what it means, why it should exist, and what is permitted
+also protects AIP's scope: evidence-backed Current State primarily establishes the first; the other
+questions require explicit semantics, intent, and authority.
 
 > **The graph is infrastructure. The qualified answer is the context.**
 
@@ -704,32 +910,6 @@ Confidence scores or standardized skills should also not be confused with determ
 
 ## 4. Architectural Intent and Governance
 
-### Daniel Kocot — Context Is Not More Information
-
-**Source**
-
-- [Context Is Not More Information. It Shapes the Conditions for Interpretation and Action](https://www.linkedin.com/pulse/context-more-information-shapes-conditions-action-daniel-kocot-z55ze/)
-
-**Core idea**
-
-Kocot argues that context is not the amount of information supplied to a system — its usefulness depends on boundaries, relationships, authority, purpose, and relevance. Architecture artifacts (OpenAPI documents, code, diagrams) describe parts of a system but do not necessarily preserve why a boundary exists, which policy applies, or which domain gives a concept meaning. Critically: **a knowledge graph itself is not context** — it is infrastructure from which the information relevant to a particular interpretation or action can be assembled.
-
-**Why this matters to AIP**
-
-This sharpens AIP's own positioning:
-
-```text
-complete architecture graph
-        ≠
-architecture context needed for this question
-```
-
-AIP's narrow, per-question MCP tools (Section 3) are already a move in this direction — an agent receives a bounded, qualified answer, not generic Cypher access or a full graph dump:
-
-> **The graph is infrastructure. The qualified answer is the context.**
-
-Kocot's separation of "what exists / what does it mean / why should it exist / what is permitted" is also a useful frame for scoping this section: AIP currently answers mainly the first question and should not infer the remaining three from Current State alone.
-
 ### Andreas Toth — AI Shouldn't Guess What We Mean. It Should Ask.
 
 **Source**
@@ -886,6 +1066,77 @@ The article's distinction between intelligence and authority mirrors AIP's own s
 
 The article reaches into future concepts — architectural intent, domain authority, enforceable constraints — that should stay separate from AIP's present evidence-backed Current State rather than being folded prematurely into the Canonical Model.
 
+### Raghunandan E. Srinivasan — From Architectural Debt to Architectural Fitness
+
+**Source**
+
+- [From Architectural Debt to Architectural Fitness: Making Enterprise Architecture Observable](https://www.linkedin.com/pulse/from-architectural-debt-fitness-making-enterprise-srinivasan-zmxvc/)
+
+**Core idea**
+
+Architecture debt should not be inferred from technology age or deviation alone. The relevant
+question is whether an architecture still satisfies the NFRs, assumptions, and constraints that
+justify it. Decisions can therefore be connected to explicit fitness criteria and reassessed against
+operational evidence as their context changes.
+
+**Why this matters to AIP**
+
+This provides a concrete framing for the future Current-State-to-Intent assessment:
+
+```text
+architectural promise / decision
+        + assumptions and NFRs
+        + applicability context
+        ↓
+fitness criteria
+        + qualified current evidence
+        ↓
+supported / violated / inconclusive assessment
+```
+
+A changed system is not automatically in debt, and a non-observation is not proof that a fitness
+criterion failed. AIP would need versioned intent, bounded observation windows, qualification rules,
+and explicit decision authority before producing such an assessment.
+
+**AIP stance**
+
+Strong input for the later Intent and Assessment releases, not for v0.5 Current-State discovery.
+Fitness results should remain contextual assessments rather than timeless properties of a system.
+
+### Matthew Skelton — Bounded Agency and the AI-native Operating Model
+
+**Source**
+
+- [Bounded — AI-native operating model](https://matthewskelton.com/bounded-ai-native-operating-model)
+
+**Core idea**
+
+Bounded treats deliberate limits to agency, auditability, traceability, curated context, and
+high-fidelity feedback from live systems as foundations for AI-native work. Autonomy is enabled
+inside designed boundaries rather than treated as unrestricted delegation.
+
+**Why this matters to AIP**
+
+AIP can supply one part of that operating environment: qualified architecture context with explicit
+evidence, identity, observation scope, conflicts, and unsupported cases.
+
+```text
+Bounded
+who or what may act, within which boundary and authority
+
+AIP
+what the available architecture evidence supports in that context
+```
+
+These responsibilities should not collapse. AIP does not grant authority, enforce organizational
+policy, or infer accountability from technical topology. Conversely, an authorization boundary does
+not establish that the architecture context supplied to an agent is correct.
+
+**AIP stance**
+
+A strategic neighbor and potential integration context. Bounded sharpens the consumer-side need for
+AIP without expanding AIP into a general agent-governance or operating-model product.
+
 ### Matthew Skelton — Reframing the AI-native SDLC in Terms of Stewardship Boundaries
 
 **Source**
@@ -941,6 +1192,21 @@ A concise AIP connection is:
 ---
 
 ## 5. Verification, reliability, and observability
+
+**AIP verification boundary**
+
+AIP should preserve an important distinction as agent-facing features grow:
+
+```text
+AI judgment
+     ≠
+deterministic verification
+```
+
+Probabilistic reasoning may help formulate or interpret a question, while supported architecture claims should remain independently traceable to deterministic model state and evidence.
+
+Mneme's benchmark methodology is relevant here because it similarly emphasizes structured outputs, reproducibility, explicit scope, and avoiding subjective LLM-as-judge grading where deterministic checks are possible.
+
 
 ### Rush Shahani — Building Reliable AI Systems
 
@@ -1081,19 +1347,74 @@ rather than accumulated in any one agent's session state
 
 AIP's graph is a candidate for exactly this durable, shared context layer: a system whose state does not drift with conversation history, because it is re-derived from declared and observed evidence on each import rather than carried forward as accumulated agent memory.
 
-### Deterministic verification
+### Zhou et al. — ADMET-EvO and Evidence-Gated Self-Evolution
 
-AIP should preserve an important distinction as agent-facing features grow:
+**Source**
+
+- [ADMET-EvO: a self-evolving scientific agent for sustained research across heterogeneous tasks](https://arxiv.org/abs/2609.10121)
+
+**Core idea**
+
+ADMET-EvO formalizes endpoints, generates falsifiable hypotheses, tests interventions, and carries
+supported, rejected, and inconclusive outcomes into later cycles. The agent can adapt what it
+investigates while evidence gates constrain what is retained as an established result.
+
+**Why this matters to AIP**
+
+The domain is different, but the separation of proposal from judgment closely matches AIP's
+epistemic boundary:
 
 ```text
-AI judgment
-     ≠
-deterministic verification
+agent proposes or investigates
+        ↓
+independent evidence gate
+        ↓
+supported / rejected / inconclusive
 ```
 
-Probabilistic reasoning may help formulate or interpret a question, while supported architecture claims should remain independently traceable to deterministic model state and evidence.
+For AIP, an agent may formulate architecture questions or candidate interpretations, but it must not
+promote its own inference into canonical architecture truth. Qualification needs fixed contracts,
+declared evidence classes, reproducible evaluation, and a frozen candidate before certification.
 
-Mneme's benchmark methodology is relevant here because it similarly emphasizes structured outputs, reproducibility, explicit scope, and avoiding subjective LLM-as-judge grading where deterministic checks are possible.
+**AIP stance**
+
+A verification-pattern reference, not a proposal for self-modifying AIP semantics. Qualification
+rules and release evidence remain independently reviewable and must not evolve during certification.
+
+### Martien de Jong — The Light Factory
+
+**Source**
+
+- [The Light Factory: Autonomous Software Development With the Lights On](https://martiendejong.nl/light-factory-autonomous-software-development/)
+
+**Core idea**
+
+Autonomy and transparency are independent. An autonomous delivery system remains governable when
+requirements, tasks, agents, branches, commits, pull requests, tests, reviews, approvals, and
+deployments form a traceable chain. Consequential actions are gated by risk, and review shifts from
+reading every line toward verifying decisions, boundaries, evidence, and authority.
+
+**Why this matters to AIP**
+
+The article describes a transformation chain complementary to AIP's architecture evidence chain:
+
+```text
+intent → task → change → validation → approval → deployment
+                                      ↓
+                    resulting architecture evidence
+                                      ↓
+                  qualified Current-State projection
+```
+
+AIP currently explains what architecture claims the available evidence supports. A future
+Transformation Lineage could connect those claims to why a change existed, how it was validated,
+and under whose authority it shipped without making the agent or an audit log the source of
+architectural truth.
+
+**AIP stance**
+
+Strong future reference for transformation lineage and decision review. It does not add autonomous
+delivery, approval workflows, or agent-memory features to the present roadmap.
 
 ### Lucas F. Costa — Backpressure Is All You Need
 
@@ -1132,48 +1453,7 @@ and what evidence supports that conclusion?
 
 ---
 
-## 6. Landscape summary
-
-| Area | Representative sources | Main question for AIP |
-|---|---|---|
-| Formal structure & dynamics | Milner / Bigraphs | How should locality, connectivity, and change be modeled? |
-| Strategic domain boundaries | DDD strategic patterns | How should semantic boundaries and intended context relationships be represented independently from technical topology? |
-| Intent & autonomous cooperation | Burgess / Promise Theory | How should architectural intent relate to observed outcome? |
-| Temporal / contextual knowledge | Burgess / Semantic Spacetime | How should architecture knowledge evolve across time and observation contexts? |
-| Runtime evidence | OpenTelemetry | What can runtime signals safely prove? |
-| Software catalogs | Backstage | How does evidence-backed architecture intelligence differ from maintained catalog metadata? |
-| Agent-queryable architecture catalogs | EventCatalog | Where should AIP remain narrower than a broad catalog, and where is integration preferable to duplication? |
-| Architecture intelligence product neighbor | ProvenMap | How does epistemic qualification (what evidence entitles us to claim) differ from provenance-tracked current-state modeling and Intents? |
-| Provenance and qualification | ProvenMap | How should evidence origin, derivation, applicability, and qualification combine into a reproducible claim? |
-| Static architecture discovery | Logorythm | What architectural structure can code reveal before or without runtime observation, and how should that evidence be qualified? |
-| Premise quality for agent reasoning | Praveen Kasam | How much of an agent's failure traces back to stale, ambiguous, or incomplete premises rather than model capability? |
-| Typed relationships & impact analysis | Spark Tsai / Trace Matrix | How should typed relationships support impact analysis without re-inferring them via an LLM each time? |
-| Agent context | MCP | How should architecture facts be exposed safely to agents? |
-| Agent-ready API context | Daniel Kocot | What context must be established before an agent consumes an API or architecture answer? |
-| Application-local runtime context | BootUI | Which runtime diagnostics belong in AIP's cross-system model, and which should remain application-local? |
-| Deterministic vs. inferred integration | Kin Lane | Where should agent inference stop and deterministic, reviewable implementation begin for repeated tool/API operations? |
-| Persistent evidenced agent representations | UI Atlas | How should raw observations be deterministically transformed into a persistent, evidence-linked knowledge layer without inventing plausible relationships? |
-| Agentic development platforms | Thoughtworks AI/works | How are as-is state, enterprise context, transformation, and reverse propagation connected? |
-| Production agent engineering | AI Agents — The Definitive Guide | What contracts, governance, and evaluation does the agent side need when consuming architecture context? |
-| Composable AI architecture | Tim O'Reilly / open source and protocols | How can architecture context remain portable across models, agent harnesses, tools, and protocol evolution? |
-| Governed domain context for agents | Google Gemini Enterprise for Financial Services | How should agents consume secure, auditable context with lineage, snapshots, citations, and governance? |
-| Definition of context | Daniel Kocot | What separates a knowledge graph (infrastructure) from context (boundaries, relevance, authority, meaning)? |
-| Confirmed versus inferred intent | Andreas Toth | How should explicit architectural intent remain distinct from plausible but unconfirmed interpretation? |
-| Pre-generation governance | Mneme HQ | How should machine-readable intent constrain coding agents? |
-| Architecture guardrails | O'Reilly | How can decisions become enforceable without making an LLM the authority? |
-| AI-accelerated architecture drift | Ankur Agnihotri / Thoughtworks | How can drift be detected and re-verified without making an LLM authoritative for architectural intent? |
-| Design vs. implementation under AI | Alireza Rahmani Khalili | As implementation cost falls, how does architecture shift toward constraints, authority, and verification? |
-| Stewardship boundaries | Matthew Skelton | How should long-lived accountability boundaries and bounded agent context relate to architecture ownership? |
-| AI-era engineering workflow | Rachel Laycock / Martin Fowler | Which assurance work should move before or beyond human code review? |
-| AI-system reliability | Shahani / Building Reliable AI Systems | Which reliability concerns belong to agents and operations, and which require independently verifiable context? |
-| Agent trajectory evaluation | Google agent evaluation metrics | How should agent behavior be evaluated independently from the truth and provenance of the architecture context it consumes? |
-| Early coding-agent failure | Zhao et al. | How much agent failure can be prevented by establishing architecture premises before implementation? |
-| Long-running agentic context drift | Agentic Software paradigm paper | How should shared, observable context stay stable across long-running, drifting agent sessions? |
-| Deterministic backpressure on agents | Lucas F. Costa / Backpressure | Where should deterministic checks be applied to backpressure agents before problems compound? |
-
----
-
-## 7. AIP's emerging position
+## 6. AIP's emerging position
 
 The sources above suggest several adjacent layers, but AIP should retain a narrow semantic center:
 
@@ -1215,7 +1495,7 @@ This leads to four durable principles:
 
 ---
 
-## 8. How to use this document
+## 7. How to use this document
 
 When a source appears relevant to AIP:
 
