@@ -145,8 +145,23 @@ class KubernetesSourceAdapter:
         # for example, must still invalidate replay even though no entity's own projection changed.
         # `logical_id` IS that logical key, so this reuses I1's existing path-ordered projection
         # hash rather than inventing a parallel ordering rule for Kubernetes.
+        #
+        # `capturedResourceUid` is folded in here, separately from `resource.projection` itself:
+        # §7.1's `resource_semantic_digest` (the per-resource digest used for cross-source/
+        # within-source conflict comparison) deliberately excludes capture-only UID, but §6 also
+        # requires "any changed UID... MUST trigger owner-chain reevaluation" at the SOURCE level -
+        # a same-source UID replacement with an unchanged allowlisted projection must still change
+        # this overall `semantic_input_digest` (review round, PR #200: without this, a UID-only
+        # replacement was classified REPLAY_NO_OP, silently rewriting the contribution's captured
+        # UID without advancing the graph revision fence).
         projection_bytes = normalized_document_and_reference_projection_bytes(
-            {resource.logical_id: resource.projection for resource in mapping_result.resources}
+            {
+                resource.logical_id: {
+                    **resource.projection,
+                    "capturedResourceUid": resource.captured_uid,
+                }
+                for resource in mapping_result.resources
+            }
         )
         digest = semantic_input_digest(
             normalized_document_projection_bytes=projection_bytes,

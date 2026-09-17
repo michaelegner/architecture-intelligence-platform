@@ -301,7 +301,11 @@ def _needed_pod_label_keys(resources: tuple[KubernetesResourceEntry, ...]) -> fr
         document = entry.document
         if _resource_type_key(document) != f"v1/{_SERVICE_RESOURCE_KIND}":
             continue
-        selector = document.get("spec", {}).get("selector")
+        # Review round (PR #200): this prepass runs before `_project_or_error` validates `spec`'s
+        # own shape, so a malformed `spec` (e.g. a list instead of a mapping) must not raise here -
+        # it still rejects the source once `_project_or_error` reaches this resource.
+        spec = document.get("spec")
+        selector = spec.get("selector") if isinstance(spec, dict) else None
         if isinstance(selector, dict):
             keys.update(k for k in selector if isinstance(k, str))
     return frozenset(keys)
@@ -311,10 +315,16 @@ def _validation_error(
     entry: KubernetesResourceEntry, *, code: DiagnosticCode, message: str
 ) -> IngestionDiagnostic:
     document = entry.document
+    # Review round (PR #200): called from the branch that rejects a resource whose `metadata`
+    # itself is not a mapping - re-reading it with a bare `.get()` would raise on exactly that
+    # input (e.g. `metadata: []`), so this falls back to an empty mapping instead of trusting the
+    # shape being reported as invalid.
+    metadata = document.get("metadata")
+    metadata = metadata if isinstance(metadata, dict) else {}
     pointer = (
         f"{entry.source_pointer}:{document.get('apiVersion')}/{document.get('kind')}"
-        f"/{document.get('metadata', {}).get('namespace', '')}"
-        f"/{document.get('metadata', {}).get('name', '<missing>')}"
+        f"/{metadata.get('namespace', '')}"
+        f"/{metadata.get('name', '<missing>')}"
     )
     return IngestionDiagnostic(code=code, message=message, source_pointer=pointer)
 

@@ -454,3 +454,41 @@ def test_non_mapping_pod_labels_rejects_the_source():
     result = _map([_entry(pod)])
     assert result.result is IngestionResult.REJECTED_INVALID
     assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+
+
+# --- review round (2nd pass): malformed shapes must reject deterministically, never raise -------
+
+
+def test_service_with_a_non_mapping_spec_rejects_the_source_without_raising():
+    service = _service(selector={"app": "checkout-api"})
+    service["spec"] = ["not", "a", "mapping"]
+    result = _map([_entry(service)])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+
+
+def test_non_mapping_metadata_rejects_the_source_without_raising():
+    document = {"apiVersion": "v1", "kind": "Pod", "metadata": ["not", "a", "mapping"]}
+    result = _map([_entry(document, source_pointer="a.yaml")])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+    assert result.diagnostics[0].source_pointer == "a.yaml:v1/Pod//<missing>"
+
+
+# --- review round (2nd pass): captured UID replacement must invalidate source-level replay -----
+
+
+def test_captured_uid_replacement_changes_the_resource_semantic_digest_input():
+    """`resource_semantic_digest` itself stays UID-free (§7.1) - the digest INPUT the adapter
+    folds `captured_uid` into is a separate, adapter-level concern, not this module's job. This
+    test only pins `MappedResource.captured_uid` itself changing, which is what the adapter reads.
+    """
+    first = _map([_entry(_pod(uid="uid-a", resource_version="1"))], requires_capture_identity=True)
+    second = _map([_entry(_pod(uid="uid-b", resource_version="1"))], requires_capture_identity=True)
+    assert first.resources[0].captured_uid == "uid-a"
+    assert second.resources[0].captured_uid == "uid-b"
+    # The allowlisted projection - and therefore resource_semantic_digest - is unaffected by a
+    # UID-only change, exactly as §7.1 requires.
+    assert (
+        first.resources[0].resource_semantic_digest == second.resources[0].resource_semantic_digest
+    )

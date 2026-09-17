@@ -195,7 +195,7 @@ def test_semantic_digest_changes_when_a_non_promoted_service_selector_value_chan
     assert baseline_entities.keys() == changed_entities.keys()
 
 
-def test_captured_resource_uid_is_carried_onto_the_contribution(tmp_path):
+def _captured_deployment_outcome(tmp_path, *, uid: str, resource_version: str):
     documents = [
         {
             "apiVersion": "apps/v1",
@@ -203,8 +203,8 @@ def test_captured_resource_uid_is_carried_onto_the_contribution(tmp_path):
             "metadata": {
                 "name": "checkout-api",
                 "namespace": _NAMESPACE,
-                "uid": "deploy-uid-1",
-                "resourceVersion": "1",
+                "uid": uid,
+                "resourceVersion": resource_version,
             },
         },
     ]
@@ -221,13 +221,39 @@ def test_captured_resource_uid_is_carried_onto_the_contribution(tmp_path):
     outcome = KubernetesSourceDiscoverer(config).discover()
     loaded = outcome.loaded_sources[0]
     assert loaded.diagnostics == []
-    result = KubernetesSourceAdapter().map(
+    return KubernetesSourceAdapter().map(
         loaded,
         service_identity=None,
         shared_identity=None,
         upstream_model=None,
         mapping_context_digest="a" * 64,
     )
+
+
+def test_captured_resource_uid_is_carried_onto_the_contribution(tmp_path):
+    result = _captured_deployment_outcome(tmp_path, uid="deploy-uid-1", resource_version="1")
     assert result.result is IngestionResult.ACCEPTED
     [contribution] = result.model.infrastructure_contributions
     assert contribution.captured_resource_uid == "deploy-uid-1"
+
+
+def test_captured_uid_replacement_changes_the_semantic_digest(tmp_path):
+    """Review round (PR #200): `resource_semantic_digest` deliberately excludes capture-only UID
+    (§7.1), but the SOURCE-level `semantic_input_digest` must still react to a same-source UID
+    replacement (§6: "any changed UID... MUST trigger owner-chain reevaluation") - otherwise a
+    same-source capture of a new physical resource under the same logical name would be classified
+    a no-op replay, silently rewriting the contribution's captured UID without advancing the graph
+    revision fence.
+    """
+    first = _captured_deployment_outcome(tmp_path, uid="uid-a", resource_version="1")
+    second = _captured_deployment_outcome(tmp_path, uid="uid-b", resource_version="1")
+    assert first.semantic_input_digest != second.semantic_input_digest
+
+
+def test_resource_version_only_change_does_not_change_the_semantic_digest(tmp_path):
+    """§6: "A resourceVersion-only change with identical semantic structure/incarnations is an
+    audit capture change, not a graph-revision change" - unlike a UID change, this must NOT move
+    the digest."""
+    first = _captured_deployment_outcome(tmp_path, uid="uid-a", resource_version="1")
+    second = _captured_deployment_outcome(tmp_path, uid="uid-a", resource_version="2")
+    assert first.semantic_input_digest == second.semantic_input_digest

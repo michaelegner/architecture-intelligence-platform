@@ -42,6 +42,7 @@ from app.graph.importer import (
 )
 from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
+from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
 from app.ingestion.kubernetes_discoverer import KubernetesSourceDiscoverer
 from app.ingestion.orchestrator import run_discovery, run_filesystem_discovery
 from app.provenance.model import ObservedEvidence, Provenance
@@ -1454,6 +1455,108 @@ def test_two_kubernetes_sources_with_conflicting_content_for_one_logical_resourc
     assert stats.per_source == {}
     assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 0
     assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 0
+
+
+# Review round (PR #200): a same-source captured-UID replacement must move the SOURCE-level
+# semantic_input_digest (I2 Draft 0.2 §6), even though the per-entity resource_semantic_digest
+# stays UID-free (§7.1) - driven through the real discoverer+adapter (not a hand-built model) to
+# prove the actual digest computation, then fed into the real replay/revision-fence machinery via
+# `_import` with the adapter's own real digests.
+
+
+def _captured_deployment_outcome(root: Path, *, uid: str, resource_version: str):
+    root.mkdir(parents=True, exist_ok=True)
+    resource_bytes = yaml.safe_dump(
+        {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "metadata": {
+                "name": "checkout-api",
+                "namespace": "checkout",
+                "uid": uid,
+                "resourceVersion": resource_version,
+            },
+        }
+    ).encode()
+    (root / "resources.yaml").write_bytes(resource_bytes)
+    envelope = {
+        "apiVersion": "aip.dev/v1",
+        "kind": "KubernetesSourceSnapshot",
+        "metadata": {
+            "id": "captured-uid-replay-snapshot",
+            "revision": "revision-1",
+            "producer": "aip-kubernetes-capture-agent",
+            "capturedAt": "2026-09-17T10:00:00Z",
+        },
+        "source": {
+            "configuredSourceId": "captured-uid-replay-source",
+            "configuredScopeId": "captured-uid-replay-scope",
+            "clusterUid": "captured-uid-replay-cluster",
+            "clusterIdentityEvidenceRef": "kube-system-namespace-uid",
+            "mode": "CAPTURED_RESOURCE",
+        },
+        "scope": {"namespaces": ["checkout"], "resourceTypes": sorted(EXPECTED_RESOURCE_TYPES)},
+        "completeness": {
+            "status": "COMPLETE",
+            "authorityRef": "captured-uid-replay-authority",
+            "expectedPriorInventoryRevision": None,
+        },
+        "files": [{"path": "resources.yaml", "sha256": hashlib.sha256(resource_bytes).hexdigest()}],
+    }
+    (root / "envelope.yaml").write_bytes(yaml.safe_dump(envelope).encode())
+    config = KubernetesSourceConfig(
+        id="captured-uid-replay-source",
+        root=root,
+        envelope_relative_path="envelope.yaml",
+        configured_scope_id="captured-uid-replay-scope",
+        cluster_uid="captured-uid-replay-cluster",
+        evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+        authorized_producer="aip-kubernetes-capture-agent",
+        authority_record="captured-uid-replay-authority",
+    )
+    outcome = KubernetesSourceDiscoverer(config).discover()
+    loaded = outcome.loaded_sources[0]
+    assert loaded.diagnostics == []
+    adapter_outcome = KubernetesSourceAdapter().map(
+        loaded,
+        service_identity=None,
+        shared_identity=None,
+        upstream_model=None,
+        mapping_context_digest="a" * 64,
+    )
+    return adapter_outcome, loaded.descriptor.source_instance_id
+
+
+def test_captured_uid_replacement_advances_the_graph_revision(driver, tmp_path):
+    first, source_instance_id = _captured_deployment_outcome(
+        tmp_path / "a", uid="uid-a", resource_version="1"
+    )
+    second, _ = _captured_deployment_outcome(tmp_path / "b", uid="uid-b", resource_version="1")
+    assert first.semantic_input_digest != second.semantic_input_digest
+
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, source_instance_id, first.model, digest=first.semantic_input_digest)
+        stats = _import(
+            session, source_instance_id, second.model, digest=second.semantic_input_digest
+        )
+    assert stats.graph_revision_advanced is True
+
+
+def test_resource_version_only_change_does_not_advance_the_graph_revision(driver, tmp_path):
+    first, source_instance_id = _captured_deployment_outcome(
+        tmp_path / "a", uid="uid-a", resource_version="1"
+    )
+    second, _ = _captured_deployment_outcome(tmp_path / "b", uid="uid-a", resource_version="2")
+    assert first.semantic_input_digest == second.semantic_input_digest
+
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, source_instance_id, first.model, digest=first.semantic_input_digest)
+        stats = _import(
+            session, source_instance_id, second.model, digest=second.semantic_input_digest
+        )
+    assert stats.graph_revision_advanced is False
 
 
 # I2 Draft 0.2 §3 item 6: infrastructure facts go through the SAME write/ownership/reconciliation/
