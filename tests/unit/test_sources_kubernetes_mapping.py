@@ -265,3 +265,192 @@ def test_entities_are_ordered_by_logical_resource_id_deterministically():
     forward_ids = [e.entity.id for e in result_forward.entities]
     reversed_ids = [e.entity.id for e in result_reversed.entities]
     assert forward_ids == reversed_ids
+
+
+# --- review round: all admitted resources participate in digest/duplicate coverage, not just
+# entity-promoted kinds (I2 §6/§5, PR #200 review) --------------------------------------------
+
+
+def test_non_entity_admitted_kinds_are_included_in_resources_with_no_entity():
+    namespace_doc = {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": _NAMESPACE}}
+    service = _service(selector={"app": "checkout-api"})
+    result = _map([_entry(namespace_doc), _entry(service)])
+    assert result.result is IngestionResult.ACCEPTED
+    assert result.entities == ()
+    assert len(result.resources) == 2
+    assert all(resource.entity is None for resource in result.resources)
+
+
+def test_service_selector_value_change_changes_the_resource_semantic_digest():
+    first = _map([_entry(_service(selector={"app": "checkout-api"}))])
+    second = _map([_entry(_service(selector={"app": "different-value"}))])
+    [service_a] = first.resources
+    [service_b] = second.resources
+    assert service_a.resource_semantic_digest != service_b.resource_semantic_digest
+
+
+def test_service_projection_retains_selector_values_type_and_sorted_ports():
+    service = _service(selector={"app": "checkout-api", "tier": "backend"})
+    service["spec"]["type"] = "ClusterIP"
+    service["spec"]["ports"] = [
+        {"protocol": "UDP", "port": 9090},
+        {"name": "http", "port": 8080},
+    ]
+    result = _map([_entry(service)])
+    projection = result.resources[0].projection
+    assert projection["selector"] == {"app": "checkout-api", "tier": "backend"}
+    assert projection["serviceType"] == "ClusterIP"
+    assert projection["ports"] == [
+        {"name": None, "protocol": "UDP", "port": 9090},
+        {"name": "http", "protocol": "TCP", "port": 8080},
+    ]
+
+
+def test_ingress_projection_retains_rules_and_backend_service_refs():
+    ingress = {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "Ingress",
+        "metadata": {"name": "checkout-ingress", "namespace": _NAMESPACE},
+        "spec": {
+            "rules": [
+                {
+                    "host": "checkout.example.com",
+                    "http": {
+                        "paths": [
+                            {
+                                "path": "/api",
+                                "pathType": "Prefix",
+                                "backend": {
+                                    "service": {"name": "checkout-svc", "port": {"number": 80}}
+                                },
+                            }
+                        ]
+                    },
+                }
+            ]
+        },
+    }
+    result = _map([_entry(ingress)])
+    assert result.result is IngestionResult.ACCEPTED
+    projection = result.resources[0].projection
+    assert projection["rules"] == [
+        {
+            "host": "checkout.example.com",
+            "paths": [
+                {
+                    "path": "/api",
+                    "pathType": "Prefix",
+                    "backend": {
+                        "serviceName": "checkout-svc",
+                        "servicePortName": None,
+                        "servicePortNumber": 80,
+                    },
+                }
+            ],
+        }
+    ]
+
+
+def test_malformed_ingress_backend_rejects_the_source():
+    ingress = {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "Ingress",
+        "metadata": {"name": "checkout-ingress", "namespace": _NAMESPACE},
+        "spec": {"defaultBackend": {"service": {"name": "checkout-svc"}}},
+    }
+    result = _map([_entry(ingress)])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+
+
+def test_duplicate_service_with_conflicting_selector_rejects_the_source():
+    first = _service(selector={"app": "checkout-api"})
+    second = _service(selector={"app": "different"})
+    result = _map([_entry(first, source_pointer="a.yaml"), _entry(second, source_pointer="b.yaml")])
+    assert result.result is IngestionResult.REJECTED_CONFLICT
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_CONFLICT
+
+
+def test_identical_duplicate_namespace_across_files_merges_source_pointers():
+    namespace_doc = {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": _NAMESPACE}}
+    result = _map(
+        [
+            _entry(dict(namespace_doc), source_pointer="a.yaml"),
+            _entry(dict(namespace_doc), source_pointer="b.yaml"),
+        ]
+    )
+    assert result.result is IngestionResult.ACCEPTED
+    assert len(result.resources) == 1
+    assert result.resources[0].source_pointers == ("a.yaml", "b.yaml")
+
+
+def test_captured_resources_with_differing_uid_under_one_logical_id_conflict():
+    first = _pod(uid="uid-a", resource_version="1")
+    second = _pod(uid="uid-b", resource_version="1")
+    result = _map(
+        [_entry(first, source_pointer="a.yaml"), _entry(second, source_pointer="b.yaml")],
+        requires_capture_identity=True,
+    )
+    assert result.result is IngestionResult.REJECTED_CONFLICT
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_CONFLICT
+
+
+def test_captured_resources_with_same_uid_and_differing_resource_version_merge():
+    first = _pod(uid="uid-a", resource_version="1")
+    second = _pod(uid="uid-a", resource_version="2")
+    result = _map(
+        [_entry(first, source_pointer="a.yaml"), _entry(second, source_pointer="b.yaml")],
+        requires_capture_identity=True,
+    )
+    assert result.result is IngestionResult.ACCEPTED
+    assert len(result.resources) == 1
+    assert result.resources[0].captured_uid == "uid-a"
+
+
+def test_declared_manifest_mode_never_sets_captured_uid():
+    result = _map([_entry(_pod())])
+    assert result.resources[0].captured_uid is None
+
+
+def test_owner_reference_with_non_boolean_controller_flag_rejects_the_source():
+    owner_refs = [
+        {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "rs",
+            "uid": "rs-uid",
+            "controller": "false",
+        }
+    ]
+    result = _map([_entry(_deployment(owner_references=owner_refs))])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+
+
+def test_owner_reference_with_a_non_object_entry_rejects_the_source():
+    result = _map([_entry(_deployment(owner_references=[42]))])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+
+
+def test_owner_reference_missing_a_required_field_rejects_the_source():
+    owner_refs = [{"apiVersion": "apps/v1", "kind": "ReplicaSet", "name": "rs"}]  # no uid
+    result = _map([_entry(_deployment(owner_references=owner_refs))])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+
+
+def test_non_mapping_service_selector_rejects_the_source():
+    service = _service(selector={"app": "checkout-api"})
+    service["spec"]["selector"] = ["not", "a", "mapping"]
+    result = _map([_entry(service)])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+
+
+def test_non_mapping_pod_labels_rejects_the_source():
+    pod = _pod()
+    pod["metadata"]["labels"] = ["not", "a", "mapping"]
+    result = _map([_entry(pod)])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID

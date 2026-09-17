@@ -64,7 +64,9 @@ def _envelope_dict(*, revision: str = "snapshot-revision") -> dict:
     }
 
 
-def _deployment_and_pod_yaml(*, service_id_annotation: str | None = None) -> bytes:
+def _deployment_and_pod_yaml(
+    *, service_id_annotation: str | None = None, service_selector_value: str = "checkout-api"
+) -> bytes:
     labels = {"app": "checkout-api"}
     deployment_metadata = {"name": "checkout-api", "namespace": _NAMESPACE}
     if service_id_annotation is not None:
@@ -90,7 +92,7 @@ def _deployment_and_pod_yaml(*, service_id_annotation: str | None = None) -> byt
             "apiVersion": "v1",
             "kind": "Service",
             "metadata": {"name": "checkout-svc", "namespace": _NAMESPACE},
-            "spec": {"selector": {"app": "checkout-api"}},
+            "spec": {"selector": {"app": service_selector_value}},
         },
     ]
     return yaml.safe_dump_all(documents).encode()
@@ -175,3 +177,57 @@ def test_semantic_digest_is_stable_across_yaml_document_order(tmp_path):
     forward = _map_bundle(tmp_path, resource_bytes=_deployment_and_pod_yaml())
     reordered = _map_bundle(tmp_path, resource_bytes=reordered_bytes)
     assert forward.semantic_input_digest == reordered.semantic_input_digest
+
+
+def test_semantic_digest_changes_when_a_non_promoted_service_selector_value_changes(tmp_path):
+    """Review round (PR #200): a Service is never promoted to an entity by this slice, but its
+    selector VALUE (not just its keys, which already drive Pod label retention) must still
+    invalidate replay per I2 Draft 0.2 §6/§7.1 - no entity's own projection changes here."""
+    baseline = _map_bundle(tmp_path, resource_bytes=_deployment_and_pod_yaml())
+    changed = _map_bundle(
+        tmp_path,
+        resource_bytes=_deployment_and_pod_yaml(service_selector_value="a-different-value"),
+    )
+    assert baseline.semantic_input_digest != changed.semantic_input_digest
+    # Neither promoted entity's own projection changed - only the untouched Service resource's did.
+    baseline_entities = {e.entity_kind: e for e in baseline.model.infrastructure_entities}
+    changed_entities = {e.entity_kind: e for e in changed.model.infrastructure_entities}
+    assert baseline_entities.keys() == changed_entities.keys()
+
+
+def test_captured_resource_uid_is_carried_onto_the_contribution(tmp_path):
+    documents = [
+        {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "metadata": {
+                "name": "checkout-api",
+                "namespace": _NAMESPACE,
+                "uid": "deploy-uid-1",
+                "resourceVersion": "1",
+            },
+        },
+    ]
+    resource_bytes = yaml.safe_dump_all(documents).encode()
+    doc = _envelope_dict()
+    doc["source"]["mode"] = "CAPTURED_RESOURCE"
+    doc["files"] = [
+        {"path": "resources.yaml", "sha256": hashlib.sha256(resource_bytes).hexdigest()}
+    ]
+    (tmp_path / "envelope.yaml").write_bytes(yaml.safe_dump(doc).encode())
+    (tmp_path / "resources.yaml").write_bytes(resource_bytes)
+
+    config = _config(tmp_path, evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE)
+    outcome = KubernetesSourceDiscoverer(config).discover()
+    loaded = outcome.loaded_sources[0]
+    assert loaded.diagnostics == []
+    result = KubernetesSourceAdapter().map(
+        loaded,
+        service_identity=None,
+        shared_identity=None,
+        upstream_model=None,
+        mapping_context_digest="a" * 64,
+    )
+    assert result.result is IngestionResult.ACCEPTED
+    [contribution] = result.model.infrastructure_contributions
+    assert contribution.captured_resource_uid == "deploy-uid-1"

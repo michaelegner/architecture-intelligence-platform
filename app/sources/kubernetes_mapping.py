@@ -3,13 +3,20 @@ replay"), and §7.1 ("Entity and contribution schema") - v0.5.0 I2 §12 slice 3a
 classification, validation, and allowlisted-projection building. Pure logic, no Neo4j and no
 `Provenance`/evidence-id construction - mirrors `app.sources.kubernetes_envelope`'s own "sources
 layer = pure" discipline. `app.ingestion.kubernetes_adapter` is the caller: it turns this module's
-`MappedEntity` results into `InfrastructureContribution`/`Provenance`/`WORKLOAD_EXISTS` claims (all
-of which need evidence ids and are therefore that layer's job, not this one's).
+`MappedResource` results into `InfrastructureContribution`/`Provenance`/`WORKLOAD_EXISTS` claims
+(all of which need evidence ids and are therefore that layer's job, not this one's).
 
-Shared by this slice (`KUBERNETES_WORKLOAD`/`KUBERNETES_POD`) and slice 3b
-(`KUBERNETES_NETWORK_SERVICE`/`KUBERNETES_INGRESS`, not yet implemented) - the classification/
-validation/needed-label-key pipeline below already sees every admitted resource kind, since §5's
-validation rules apply uniformly regardless of which kinds a given slice promotes to entities.
+Every admitted resource kind is classified, validated, and projected here - not only the two kinds
+(`KUBERNETES_WORKLOAD`/`KUBERNETES_POD`) this slice promotes to canonical entities. §6's
+normalization/replay rule ("Normalize the allowlisted resource projection, ordering resources by
+logical key") and §5's "malformed used fields[...] or conflicting duplicate resources reject the
+source" both apply to every admitted resource, independent of which slice promotes its kind to an
+entity - deferring Namespace/ReplicaSet/Service/Ingress coverage to slice 3b/4 would leave the
+overall `semantic_input_digest` blind to their content (a real replay-correctness gap, found in
+`app.ingestion.kubernetes_adapter`'s own review) and would let a conflicting duplicate Service or
+Ingress silently pass through unchecked. `MappedResource.entity` is `None` for every kind slice 3a
+doesn't promote (Namespace, ReplicaSet, Service, Ingress); slice 3b sets it for Service/Ingress
+without touching this module's classification/validation/projection pipeline.
 """
 
 from __future__ import annotations
@@ -33,6 +40,7 @@ _WORKLOAD_RESOURCE_KINDS = frozenset({"Deployment", "StatefulSet", "DaemonSet"})
 _POD_RESOURCE_KIND = "Pod"
 _SERVICE_RESOURCE_KIND = "Service"
 _NAMESPACE_RESOURCE_KIND = "Namespace"
+_INGRESS_RESOURCE_KIND = "Ingress"
 
 # I2 Draft 0.2 §5: "architecture-intelligence.io/service-id on supported Workloads, retained for I3
 # only" - retained unqualified; I2 never evaluates it into an AIP Service identity (§9).
@@ -61,14 +69,20 @@ def _is_namespaced(resource_kind: str) -> bool:
 
 
 @dataclass(frozen=True)
-class MappedEntity:
-    """One admitted, validated, logically-unique resource this slice promotes to a canonical
-    entity - everything `app.ingestion.kubernetes_adapter` needs to build the
-    `InfrastructureContribution`/`Provenance`/`WORKLOAD_EXISTS` claim around it, without
-    re-deriving any of this module's own classification/validation/projection logic.
+class MappedResource:
+    """Every admitted, validated, logically-unique resource in the bundle - not only the ones this
+    slice promotes to a canonical entity. `app.ingestion.kubernetes_adapter` uses `entity` (when not
+    `None`) to build the `InfrastructureContribution`/`Provenance`/`WORKLOAD_EXISTS` claim around
+    it, and uses `projection` from *every* `MappedResource` (regardless of `entity`) to compute the
+    overall `semantic_input_digest` - §6's normalization/replay rule covers all admitted resources,
+    not only promoted ones.
     """
 
-    entity: InfrastructureEntity
+    logical_id: str
+    resource_kind: str
+    entity: InfrastructureEntity | None
+    """`None` for a resource kind this slice does not promote (Namespace, ReplicaSet, Service,
+    Ingress) - still participates in digest/duplicate-conflict handling."""
     resource_semantic_digest: str
     """§7.1: the deterministic digest of `projection` alone - used for cross-source/within-source
     equal-vs-conflicting-contribution comparison. Deliberately not folded with mapping_context_
@@ -83,48 +97,194 @@ class MappedEntity:
     list `app.ingestion.kubernetes_adapter` canonicalizes into the adapter's overall
     `semantic_input_digest` (§6: "normalize the allowlisted resource projection, ordering resources
     by logical key")."""
+    captured_uid: str | None
+    """§6: "resource incarnation = (logical resource id, captured resource UID)." Set only when
+    the source's evidence mode is `CAPTURED_RESOURCE`; `None` for `DECLARED_MANIFEST` (§5:
+    "Declarations may omit them and never gain fabricated values"). Kept separate from `projection`
+    - §7.1 explicitly excludes capture-only UID from the semantic digest - so
+    `app.ingestion.kubernetes_adapter` can carry it into `InfrastructureContribution.
+    captured_resource_uid` for §7.1's own independent incarnation-conflict rule."""
 
 
 @dataclass(frozen=True)
 class KubernetesMappingResult:
     result: IngestionResult
-    entities: tuple[MappedEntity, ...]
-    """Ordered by logical resource id (§6) - empty whenever `result` is not `ACCEPTED` or
-    `ACCEPTED_WITH_LIMITATIONS`, matching this codebase's "a source either fully succeeds or is
-    entirely discarded" discipline for a hard rejection."""
+    resources: tuple[MappedResource, ...]
+    """Every admitted, deduplicated resource in the bundle, ordered by logical resource id (§6) -
+    empty whenever `result` is not `ACCEPTED` or `ACCEPTED_WITH_LIMITATIONS`, matching this
+    codebase's "a source either fully succeeds or is entirely discarded" discipline for a hard
+    rejection."""
     diagnostics: tuple[IngestionDiagnostic, ...]
 
+    @property
+    def entities(self) -> tuple[MappedResource, ...]:
+        """The subset of `resources` this slice promotes to a canonical entity - a convenience view
+        for `app.ingestion.kubernetes_adapter`'s own entity/contribution/claim construction, which
+        never needs to see the non-promoted resources individually."""
+        return tuple(resource for resource in self.resources if resource.entity is not None)
 
-def _owner_references(document: dict) -> list[dict]:
+
+def _entity_kind_for(resource_kind: str) -> InfrastructureEntityKind | None:
+    if resource_kind in _WORKLOAD_RESOURCE_KINDS:
+        return InfrastructureEntityKind.KUBERNETES_WORKLOAD
+    if resource_kind == _POD_RESOURCE_KIND:
+        return InfrastructureEntityKind.KUBERNETES_POD
+    return None
+
+
+def _owner_references_or_error(raw: object) -> tuple[list[dict], str | None]:
     """I2 Draft 0.2 §5's allowlisted "controller owner references: API version, kind, name, UID,
-    and controller flag" - retained regardless of the `controller` flag's value here (owner-chain
-    *interpretation*, which only cares about `controller: true` hops, is slice 4's job; this is
-    only the allowlisted-projection extraction §7.1 requires for the digest). Sorted deterministically
-    so map/list ordering in the source document never affects the projection.
+    and controller flag." §5 also requires "malformed used fields[...] reject the source" - so an
+    owner reference with a non-dict entry, a missing/wrongly-typed identifying field, or a
+    non-boolean `controller` flag rejects rather than silently coercing (a prior version used
+    `bool(...)`, which treats any truthy non-bool - e.g. the string `"false"` - as `True`).
     """
-    raw = document.get("metadata", {}).get("ownerReferences")
+    if raw is None:
+        return [], None
     if not isinstance(raw, list):
-        return []
-    refs = [
-        {
-            "apiVersion": ref.get("apiVersion"),
-            "kind": ref.get("kind"),
-            "name": ref.get("name"),
-            "uid": ref.get("uid"),
-            "controller": bool(ref.get("controller", False)),
-        }
-        for ref in raw
-        if isinstance(ref, dict)
-    ]
+        return [], "metadata.ownerReferences must be a list"
+    refs = []
+    for ref in raw:
+        if not isinstance(ref, dict):
+            return [], "metadata.ownerReferences entries must be objects"
+        api_version, kind, name, uid = (
+            ref.get("apiVersion"),
+            ref.get("kind"),
+            ref.get("name"),
+            ref.get("uid"),
+        )
+        if not all(isinstance(value, str) and value for value in (api_version, kind, name, uid)):
+            message = (
+                "metadata.ownerReferences entries require non-empty string apiVersion/kind/name/uid"
+            )
+            return [], message
+        controller = ref.get("controller", False)
+        if not isinstance(controller, bool):
+            return [], "metadata.ownerReferences[].controller must be a boolean"
+        refs.append(
+            {
+                "apiVersion": api_version,
+                "kind": kind,
+                "name": name,
+                "uid": uid,
+                "controller": controller,
+            }
+        )
     return sorted(
-        refs,
-        key=lambda ref: (
-            ref["apiVersion"] or "",
-            ref["kind"] or "",
-            ref["name"] or "",
-            ref["uid"] or "",
-        ),
-    )
+        refs, key=lambda ref: (ref["apiVersion"], ref["kind"], ref["name"], ref["uid"])
+    ), None
+
+
+def _string_map_or_error(raw: object, *, field: str) -> tuple[dict[str, str], str | None]:
+    if raw is None:
+        return {}, None
+    if not isinstance(raw, dict):
+        return {}, f"{field} must be a mapping"
+    for key, value in raw.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            return {}, f"{field} keys/values must be strings"
+    return dict(raw), None
+
+
+def _service_ports_or_error(raw: object) -> tuple[list[dict], str | None]:
+    """§5: "Service type and declared ports" - §7.1's `(name-or-null, protocol, port)` shape,
+    validated and sorted the same way `InfrastructurePort.sort_key` orders them.
+    """
+    if raw is None:
+        return [], None
+    if not isinstance(raw, list):
+        return [], "spec.ports must be a list"
+    ports = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            return [], "spec.ports entries must be objects"
+        name = entry.get("name")
+        if name is not None and not isinstance(name, str):
+            return [], "spec.ports[].name must be a string"
+        protocol = entry.get("protocol", "TCP")
+        if not isinstance(protocol, str) or not protocol:
+            return [], "spec.ports[].protocol must be a non-empty string"
+        port = entry.get("port")
+        if not isinstance(port, int) or isinstance(port, bool):
+            return [], "spec.ports[].port must be an integer"
+        ports.append({"name": name, "protocol": protocol, "port": port})
+    ports.sort(key=lambda p: (p["name"] or "", p["protocol"], p["port"]))
+    return ports, None
+
+
+def _ingress_backend_or_error(raw: object) -> tuple[dict | None, str | None]:
+    """§5: "Ingress service backend references." A backend always names a target Service and one
+    of a port name or number - both absent is malformed, not merely incomplete.
+    """
+    if raw is None:
+        return None, None
+    if not isinstance(raw, dict):
+        return None, "ingress backend must be an object"
+    service = raw.get("service")
+    if not isinstance(service, dict):
+        return None, "ingress backend.service must be an object"
+    name = service.get("name")
+    if not isinstance(name, str) or not name:
+        return None, "ingress backend.service.name must be a non-empty string"
+    port = service.get("port")
+    if not isinstance(port, dict):
+        return None, "ingress backend.service.port must be an object"
+    port_name = port.get("name")
+    port_number = port.get("number")
+    if port_name is not None and not isinstance(port_name, str):
+        return None, "ingress backend.service.port.name must be a string"
+    if port_number is not None and (
+        not isinstance(port_number, int) or isinstance(port_number, bool)
+    ):
+        return None, "ingress backend.service.port.number must be an integer"
+    if port_name is None and port_number is None:
+        return None, "ingress backend.service.port must set name or number"
+    return {
+        "serviceName": name,
+        "servicePortName": port_name,
+        "servicePortNumber": port_number,
+    }, None
+
+
+def _ingress_rules_or_error(raw: object) -> tuple[list[dict], str | None]:
+    """§5: "host/path/pathType" alongside each rule's own backend reference."""
+    if raw is None:
+        return [], None
+    if not isinstance(raw, list):
+        return [], "spec.rules must be a list"
+    rules = []
+    for rule in raw:
+        if not isinstance(rule, dict):
+            return [], "spec.rules entries must be objects"
+        host = rule.get("host")
+        if host is not None and not isinstance(host, str):
+            return [], "spec.rules[].host must be a string"
+        http = rule.get("http")
+        paths: list[dict] = []
+        if http is not None:
+            if not isinstance(http, dict):
+                return [], "spec.rules[].http must be an object"
+            raw_paths = http.get("paths")
+            if raw_paths is not None:
+                if not isinstance(raw_paths, list):
+                    return [], "spec.rules[].http.paths must be a list"
+                for path_entry in raw_paths:
+                    if not isinstance(path_entry, dict):
+                        return [], "spec.rules[].http.paths entries must be objects"
+                    path = path_entry.get("path")
+                    if path is not None and not isinstance(path, str):
+                        return [], "spec.rules[].http.paths[].path must be a string"
+                    path_type = path_entry.get("pathType")
+                    if path_type is not None and not isinstance(path_type, str):
+                        return [], "spec.rules[].http.paths[].pathType must be a string"
+                    backend, error = _ingress_backend_or_error(path_entry.get("backend"))
+                    if error is not None:
+                        return [], error
+                    paths.append({"path": path, "pathType": path_type, "backend": backend})
+        paths.sort(key=lambda p: (p["path"] or "", p["pathType"] or ""))
+        rules.append({"host": host, "paths": paths})
+    rules.sort(key=lambda r: (r["host"] or "", canonical_json_bytes(r["paths"])))
+    return rules, None
 
 
 def _needed_pod_label_keys(resources: tuple[KubernetesResourceEntry, ...]) -> frozenset[str]:
@@ -133,7 +293,8 @@ def _needed_pod_label_keys(resources: tuple[KubernetesResourceEntry, ...]) -> fr
     `v1/Service`'s own `spec.selector` keys without promoting any Service to an entity - deferring
     this to slice 3b (when `KUBERNETES_NETWORK_SERVICE` entities are added) would silently change
     every existing Pod's `resource_semantic_digest` the moment that slice ships, a real and
-    avoidable revision-churn regression.
+    avoidable revision-churn regression. A malformed selector is caught by `_project_or_error`
+    (rejects the whole source), not here - this best-effort pass only needs the well-typed keys.
     """
     keys: set[str] = set()
     for entry in resources:
@@ -164,9 +325,13 @@ def _validate_resource(
     scope_namespaces: frozenset[str],
     requires_capture_identity: bool,
 ) -> IngestionDiagnostic | None:
-    """I2 Draft 0.2 §5/§4.3's per-resource validation rules, checked uniformly for every admitted
-    resource regardless of whether this slice promotes its kind to an entity. Returns the single
-    diagnostic that rejects the whole source, or `None` if this resource is valid.
+    """I2 Draft 0.2 §5/§4.3's per-resource shape/scope validation rules, checked uniformly for
+    every admitted resource. Field-shape ("malformed used fields") validation for the fields this
+    module actually consumes for projection is `_project_or_error`'s job, run per logical-resource
+    group once duplicates are known - kept separate so a within-group projection difference is
+    still comparable even when one copy is well-formed and the shape check hasn't run on it yet.
+    Returns the single diagnostic that rejects the whole source, or `None` if this resource is
+    valid.
     """
     document = entry.document
     kind = document.get("kind")
@@ -229,45 +394,96 @@ def _validate_resource(
     return None
 
 
-def _build_projection(document: dict, *, needed_label_keys: frozenset[str]) -> dict:
+def _project_or_error(
+    document: dict, *, needed_label_keys: frozenset[str]
+) -> tuple[dict | None, str | None]:
     """§7.1: "includes every allowlisted value that can affect an entity, claim, identity handoff,
     or limitation... excludes... capture-only UID, resourceVersion." Resource UID/resourceVersion
-    are the resource's *own* capture identity (excluded); an owner *reference*'s UID is
-    relationship-defining, not this object's own identity, and is retained (§6: "any changed UID or
-    controller-reference UID MUST trigger owner-chain reevaluation").
+    are the resource's *own* capture identity (excluded, tracked separately as `MappedResource.
+    captured_uid`); an owner *reference*'s UID is relationship-defining, not this object's own
+    identity, and is retained (§6: "any changed UID or controller-reference UID MUST trigger
+    owner-chain reevaluation").
+
+    §5: "malformed used fields[...] reject the source" - every field this function reads is
+    type-checked before use; returns `(None, error_message)` instead of silently coercing or
+    dropping malformed data (a prior version's `bool(ref.get("controller", False))` masked this).
     """
     metadata = document.get("metadata", {})
     kind = document["kind"]
+
+    owner_refs, error = _owner_references_or_error(metadata.get("ownerReferences"))
+    if error is not None:
+        return None, error
+
     projection: dict = {
         "apiVersion": document["apiVersion"],
         "kind": kind,
         "namespace": metadata.get("namespace") or "",
         "name": metadata["name"],
-        "ownerReferences": _owner_references(document),
+        "ownerReferences": owner_refs,
     }
+
     if kind in _WORKLOAD_RESOURCE_KINDS:
         annotations = metadata.get("annotations")
+        if annotations is not None and not isinstance(annotations, dict):
+            return None, "metadata.annotations must be a mapping"
         service_id = (
             annotations.get(SERVICE_ID_ANNOTATION) if isinstance(annotations, dict) else None
         )
+        if service_id is not None and not isinstance(service_id, str):
+            return None, f"{SERVICE_ID_ANNOTATION} annotation must be a string"
         projection["serviceIdAnnotation"] = service_id
+
     elif kind == _POD_RESOURCE_KIND:
-        labels = metadata.get("labels")
-        retained_labels = (
-            {k: v for k, v in labels.items() if k in needed_label_keys}
-            if isinstance(labels, dict)
-            else {}
-        )
+        labels, error = _string_map_or_error(metadata.get("labels"), field="metadata.labels")
+        if error is not None:
+            return None, error
+        retained_labels = {k: v for k, v in labels.items() if k in needed_label_keys}
         projection["labels"] = dict(sorted(retained_labels.items()))
-    return projection
+
+    elif kind == _SERVICE_RESOURCE_KIND:
+        spec = document.get("spec")
+        if spec is not None and not isinstance(spec, dict):
+            return None, "spec must be a mapping"
+        spec = spec or {}
+        selector, error = _string_map_or_error(spec.get("selector"), field="spec.selector")
+        if error is not None:
+            return None, error
+        projection["selector"] = dict(sorted(selector.items()))
+        service_type = spec.get("type")
+        if service_type is not None and not isinstance(service_type, str):
+            return None, "spec.type must be a string"
+        projection["serviceType"] = service_type
+        ports, error = _service_ports_or_error(spec.get("ports"))
+        if error is not None:
+            return None, error
+        projection["ports"] = ports
+
+    elif kind == _INGRESS_RESOURCE_KIND:
+        spec = document.get("spec")
+        if spec is not None and not isinstance(spec, dict):
+            return None, "spec must be a mapping"
+        spec = spec or {}
+        default_backend, error = _ingress_backend_or_error(spec.get("defaultBackend"))
+        if error is not None:
+            return None, error
+        rules, error = _ingress_rules_or_error(spec.get("rules"))
+        if error is not None:
+            return None, error
+        projection["defaultBackend"] = default_backend
+        projection["rules"] = rules
+
+    return projection, None
 
 
-def _entity_kind_for(resource_kind: str) -> InfrastructureEntityKind | None:
-    if resource_kind in _WORKLOAD_RESOURCE_KINDS:
-        return InfrastructureEntityKind.KUBERNETES_WORKLOAD
-    if resource_kind == _POD_RESOURCE_KIND:
-        return InfrastructureEntityKind.KUBERNETES_POD
-    return None
+def _captured_uid(document: dict, *, requires_capture_identity: bool) -> str | None:
+    """§6: "resource incarnation = (logical resource id, captured resource UID)." Only meaningful
+    under `CAPTURED_RESOURCE` evidence mode - `_validate_resource` already guarantees a non-empty
+    string `metadata.uid` on that path, so this is a plain lookup, not a re-validation.
+    """
+    if not requires_capture_identity:
+        return None
+    return document["metadata"]["uid"]
 
 
 def map_kubernetes_resources(
@@ -308,21 +524,19 @@ def map_kubernetes_resources(
             # Both K8S_RESOURCE_INVALID (this module's own rejection reasons) and the reused
             # K8S_SNAPSHOT_INVALID (out-of-scope namespace) share the same REJECTED_INVALID outcome.
             return KubernetesMappingResult(
-                result=IngestionResult.REJECTED_INVALID, entities=(), diagnostics=(error,)
+                result=IngestionResult.REJECTED_INVALID, resources=(), diagnostics=(error,)
             )
 
     needed_label_keys = _needed_pod_label_keys(resources)
 
-    # Group admitted, mapped-kind resources by their §6 logical resource id.
+    # Group EVERY admitted resource (not only entity-promoted kinds) by its §6 logical resource id
+    # - §6's normalization/replay rule and §5's duplicate-conflict rule both apply uniformly.
     groups: dict[str, list[KubernetesResourceEntry]] = {}
-    order: list[str] = []
     for entry in resources:
         document = entry.document
         if not is_admitted(document):
             continue
         resource_kind = document["kind"]
-        if _entity_kind_for(resource_kind) is None:
-            continue
         metadata = document.get("metadata", {})
         logical_id = kubernetes_logical_resource_id(
             cluster_uid=cluster_uid,
@@ -331,23 +545,33 @@ def map_kubernetes_resources(
             namespace=metadata.get("namespace") or "",
             name=metadata["name"],
         )
-        if logical_id not in groups:
-            groups[logical_id] = []
-            order.append(logical_id)
-        groups[logical_id].append(entry)
+        groups.setdefault(logical_id, []).append(entry)
 
-    mapped_entities: list[MappedEntity] = []
-    for logical_id in sorted(order):
+    mapped_resources: list[MappedResource] = []
+    for logical_id in sorted(groups):
         group = groups[logical_id]
-        projections = [
-            _build_projection(entry.document, needed_label_keys=needed_label_keys)
-            for entry in group
-        ]
+        projections = []
+        for entry in group:
+            projection, error = _project_or_error(
+                entry.document, needed_label_keys=needed_label_keys
+            )
+            if error is not None:
+                return KubernetesMappingResult(
+                    result=IngestionResult.REJECTED_INVALID,
+                    resources=(),
+                    diagnostics=(
+                        _validation_error(
+                            entry, code=DiagnosticCode.K8S_RESOURCE_INVALID, message=error
+                        ),
+                    ),
+                )
+            projections.append(projection)
+
         first_projection = projections[0]
         if any(projection != first_projection for projection in projections[1:]):
             return KubernetesMappingResult(
                 result=IngestionResult.REJECTED_CONFLICT,
-                entities=(),
+                resources=(),
                 diagnostics=(
                     IngestionDiagnostic(
                         code=DiagnosticCode.K8S_RESOURCE_CONFLICT,
@@ -357,25 +581,62 @@ def map_kubernetes_resources(
                 ),
             )
 
+        captured_uids = {
+            uid
+            for entry in group
+            if (
+                uid := _captured_uid(
+                    entry.document, requires_capture_identity=requires_capture_identity
+                )
+            )
+            is not None
+        }
+        if len(captured_uids) > 1:
+            # §7.1: "Two current captured contributions that bind the same logical resource to
+            # different UIDs are likewise incompatible incarnations" - checked within-bundle here;
+            # app.sources.claim_conflicts.detect_infrastructure_entity_content_conflicts checks the
+            # cross-source case via InfrastructureContribution.captured_resource_uid.
+            return KubernetesMappingResult(
+                result=IngestionResult.REJECTED_CONFLICT,
+                resources=(),
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.K8S_RESOURCE_CONFLICT,
+                        message="conflicting captured UIDs under one logical resource id",
+                        source_pointer=logical_id,
+                    ),
+                ),
+            )
+
         document = group[0].document
+        resource_kind = document["kind"]
         metadata = document.get("metadata", {})
-        entity = InfrastructureEntity(
-            id=logical_id,
-            entity_kind=_entity_kind_for(document["kind"]),
-            cluster_uid=cluster_uid,
-            api_group=_api_group(document["apiVersion"]),
-            resource_kind=document["kind"],
-            namespace=metadata.get("namespace") or "",
-            name=metadata["name"],
+        entity_kind = _entity_kind_for(resource_kind)
+        entity = (
+            InfrastructureEntity(
+                id=logical_id,
+                entity_kind=entity_kind,
+                cluster_uid=cluster_uid,
+                api_group=_api_group(document["apiVersion"]),
+                resource_kind=resource_kind,
+                namespace=metadata.get("namespace") or "",
+                name=metadata["name"],
+            )
+            if entity_kind is not None
+            else None
         )
         digest = sha256_hex(canonical_json_bytes(first_projection))
         source_pointers = tuple(sorted({entry.source_pointer for entry in group}))
-        mapped_entities.append(
-            MappedEntity(
+        captured_uid = next(iter(captured_uids), None)
+        mapped_resources.append(
+            MappedResource(
+                logical_id=logical_id,
+                resource_kind=resource_kind,
                 entity=entity,
                 resource_semantic_digest=digest,
                 source_pointers=source_pointers,
                 projection=first_projection,
+                captured_uid=captured_uid,
             )
         )
 
@@ -383,5 +644,5 @@ def map_kubernetes_resources(
         IngestionResult.ACCEPTED_WITH_LIMITATIONS if has_limitation else IngestionResult.ACCEPTED
     )
     return KubernetesMappingResult(
-        result=result, entities=tuple(mapped_entities), diagnostics=tuple(diagnostics)
+        result=result, resources=tuple(mapped_resources), diagnostics=tuple(diagnostics)
     )

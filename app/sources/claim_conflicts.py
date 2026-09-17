@@ -92,36 +92,59 @@ def detect_infrastructure_entity_content_conflicts(
     across the whole set of models about to be merged, called with the same pre-merge per-source
     model list before `merge_models`'s own first-wins dedup could discard the disagreement.
 
-    Nothing populates `infrastructure_contributions` yet (I2 Draft 0.2 §3 prerequisite slice, PR B) -
-    this becomes load-bearing once I2 §12 slice 3's Kubernetes adapter exists.
+    Nothing populated `infrastructure_contributions` until I2 §12 slice 3a's real Kubernetes
+    adapter existed (PR B built this dormant). §7.1 also states a second, independent conflict
+    rule: "Two current captured contributions that bind the same logical resource to different
+    UIDs are likewise incompatible incarnations" - checked here via `captured_resource_uid`,
+    separately from `resource_semantic_digest` equality, since the digest's own definition
+    explicitly excludes capture-only UID (a UID-only difference would otherwise never surface).
     """
     digests_by_entity: dict[str, set[str]] = {}
+    captured_uids_by_entity: dict[str, set[str]] = {}
     sources_by_entity: dict[str, set[str]] = {}
     for model in models:
         for contribution in model.infrastructure_contributions:
             digests_by_entity.setdefault(contribution.entity_id, set()).add(
                 contribution.resource_semantic_digest
             )
+            if contribution.captured_resource_uid is not None:
+                captured_uids_by_entity.setdefault(contribution.entity_id, set()).add(
+                    contribution.captured_resource_uid
+                )
             sources_by_entity.setdefault(contribution.entity_id, set()).add(
                 contribution.source_instance_id
             )
 
     conflicted_entity_ids = [
-        entity_id for entity_id, digests in digests_by_entity.items() if len(digests) > 1
+        entity_id
+        for entity_id in digests_by_entity
+        if len(digests_by_entity[entity_id]) > 1
+        or len(captured_uids_by_entity.get(entity_id, ())) > 1
     ]
-    diagnostics = [
-        IngestionDiagnostic(
-            code=DiagnosticCode.K8S_RESOURCE_CONFLICT,
-            message=(
-                f"infrastructure entity {entity_id!r} has "
-                f"{len(digests_by_entity[entity_id])} disagreeing semantic digests across sources "
-                f"{sorted(sources_by_entity[entity_id])!r}: "
+    diagnostics = []
+    for entity_id in conflicted_entity_ids:
+        reasons = []
+        if len(digests_by_entity[entity_id]) > 1:
+            reasons.append(
+                f"{len(digests_by_entity[entity_id])} disagreeing semantic digests: "
                 f"{sorted(digests_by_entity[entity_id])!r}"
-            ),
-            source_pointer=entity_id,
+            )
+        if len(captured_uids_by_entity.get(entity_id, ())) > 1:
+            reasons.append(
+                f"{len(captured_uids_by_entity[entity_id])} disagreeing captured UIDs: "
+                f"{sorted(captured_uids_by_entity[entity_id])!r}"
+            )
+        diagnostics.append(
+            IngestionDiagnostic(
+                code=DiagnosticCode.K8S_RESOURCE_CONFLICT,
+                message=(
+                    f"infrastructure entity {entity_id!r} has "
+                    + " and ".join(reasons)
+                    + f" across sources {sorted(sources_by_entity[entity_id])!r}"
+                ),
+                source_pointer=entity_id,
+            )
         )
-        for entity_id in conflicted_entity_ids
-    ]
     conflicted_sources: set[str] = set()
     for entity_id in conflicted_entity_ids:
         conflicted_sources |= sources_by_entity[entity_id]

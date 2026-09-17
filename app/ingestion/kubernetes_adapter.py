@@ -121,6 +121,7 @@ class KubernetesSourceAdapter:
                     source_instance_id=loaded.descriptor.source_instance_id,
                     evidence_mode=evidence_mode,
                     resource_semantic_digest=mapped.resource_semantic_digest,
+                    captured_resource_uid=mapped.captured_uid,
                     evidence_refs=entity_evidence_refs,
                     mapping_rule_id=self.adapter_identity,
                     mapping_rule_version=self.mapping_rule_version,
@@ -139,10 +140,13 @@ class KubernetesSourceAdapter:
                 )
 
         # §6: "normalize the allowlisted resource projection, ordering resources by logical key" -
-        # `entity.id` IS that logical key, so this reuses I1's existing path-ordered projection
+        # covers every admitted resource (Namespace/ReplicaSet/Service/Ingress included), not only
+        # the Workload/Pod kinds this slice promotes to entities - a Service selector value change,
+        # for example, must still invalidate replay even though no entity's own projection changed.
+        # `logical_id` IS that logical key, so this reuses I1's existing path-ordered projection
         # hash rather than inventing a parallel ordering rule for Kubernetes.
         projection_bytes = normalized_document_and_reference_projection_bytes(
-            {mapped.entity.id: mapped.projection for mapped in mapping_result.entities}
+            {resource.logical_id: resource.projection for resource in mapping_result.resources}
         )
         digest = semantic_input_digest(
             normalized_document_projection_bytes=projection_bytes,
