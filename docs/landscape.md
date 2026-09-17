@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-16_
+_Last reviewed: 2026-09-17_
 
 ## AIP anchor
 
@@ -84,7 +84,7 @@ evidence-qualified architecture context without becoming the source of architect
 [Architectural fitness](#raghunandan-e-srinivasan--from-architectural-debt-to-architectural-fitness) ·
 [Bounded agency](#matthew-skelton--bounded-agency-and-the-ai-native-operating-model) ·
 [Stewardship boundaries](#matthew-skelton--reframing-the-ai-native-sdlc-in-terms-of-stewardship-boundaries) ·
-[AI-heavy code review](#rachel-laycock--martin-fowler--code-review-in-an-ai-heavy-sdlc)
+[Expert governance and code review](#rachel-laycock--expert-governance-and-code-review-in-an-ai-heavy-sdlc)
 
 **Core question:** How should explicit intent, assumptions, fitness criteria, authority, and
 organizational responsibility constrain agent action without being inferred from Current State?
@@ -1175,19 +1175,50 @@ architecture relationship + ownership/responsibility + constraints
 
 Organizational accountability must not be inferred from runtime connectivity. `Service`, Bounded Context, deployment unit, team, and stewardship boundary are distinct concepts; any future relationship between them needs explicit evidence or intent, echoing the same caution already stated for Strategic DDD (Section 1).
 
-### Rachel Laycock / Martin Fowler — Code Review in an AI-heavy SDLC
+### Rachel Laycock — Expert Governance and Code Review in an AI-heavy SDLC
 
-**Source**
+**Sources**
 
+- [Citizens Build, Agents Execute, Experts Govern](https://martinfowler.com/rachels-ramblings/citizens-agents-experts.html)
 - [Maybe We Shouldn't Be Reviewing All This Code](https://martinfowler.com/rachels-ramblings/code-review.html)
+
+**Core idea**
+
+As agents make implementation abundant, experienced engineering judgment becomes more rather than
+less valuable. Citizens can express needs and create useful software, agents can execute at high
+speed, and experts define what production-worthy means through architecture, security, resilience,
+operability, compliance, cost, guardrails, platforms, and feedback loops. At the same time, human
+line-by-line review cannot remain the universal assurance mechanism when generated code volume
+grows.
 
 **Why this matters to AIP**
 
-As AI increases code volume, human review cannot remain the universal mechanism for knowledge sharing, architecture alignment, verification, and confidence. More decisions and checks need to move earlier or become automated, preserving human attention for judgment.
+```text
+citizens express needs
+        ↓
+experts define intent, boundaries, and fitness criteria
+        ↓
+AIP supplies qualified architecture context
+        ↓
+agents plan and execute
+        ↓
+evidence qualifies the resulting Current State
+```
 
-A concise AIP connection is:
+AIP can make expert knowledge more reusable by exposing evidence-backed context, explicit
+limitations, and deterministic checks before and after implementation. It does not replace expert
+judgment or grant decision authority to an agent.
 
-> Agents need architectural constraints before they write code — and evidence afterwards that the system still follows them.
+**AIP distinction**
+
+`Experts govern` must not imply a centralized architecture approval queue. AIP's bottom-up
+direction is better expressed through qualified local promises, explicit decision boundaries, and
+context-specific authority. Agents execute within those boundaries; evidence shows whether the
+resulting system still keeps its promises.
+
+> **Agents need qualified architectural constraints before execution and evidence afterwards that
+> the resulting system still satisfies them.**
+
 
 ---
 
