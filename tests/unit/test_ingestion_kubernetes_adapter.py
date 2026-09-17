@@ -390,3 +390,50 @@ def test_a_resolved_owner_chain_and_service_selection_produce_both_relational_cl
     assert set(selection.evidence_refs) >= set(ownership.evidence_refs)
     contributions_by_entity = {c.entity_id: c for c in result.model.infrastructure_contributions}
     assert set(contributions_by_entity[service.id].evidence_refs) <= set(selection.evidence_refs)
+
+
+def test_a_resolved_ingress_backend_produces_the_routing_claim(tmp_path):
+    """I2 §12 slice 4c, end-to-end: a real Ingress backending to a real Service's declared port
+    produces a real INGRESS_ROUTES_TO_NETWORK_SERVICE claim from the same real adapter run."""
+    documents = [
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "name": "checkout-svc",
+                "namespace": _NAMESPACE,
+                "uid": "svc-uid-1",
+                "resourceVersion": "1",
+            },
+            "spec": {"ports": [{"name": "http", "port": 80}]},
+        },
+        {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": {
+                "name": "checkout-ingress",
+                "namespace": _NAMESPACE,
+                "uid": "ingress-uid-1",
+                "resourceVersion": "1",
+            },
+            "spec": {
+                "defaultBackend": {"service": {"name": "checkout-svc", "port": {"name": "http"}}}
+            },
+        },
+    ]
+    result = _captured_resources_outcome(tmp_path, documents)
+    assert result.result is IngestionResult.ACCEPTED
+
+    entities_by_kind = {e.entity_kind: e for e in result.model.infrastructure_entities}
+    service = entities_by_kind[InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE]
+    ingress = entities_by_kind[InfrastructureEntityKind.KUBERNETES_INGRESS]
+
+    [claim] = result.model.infrastructure_claims
+    assert claim.kind is InfrastructureClaimKind.INGRESS_ROUTES_TO_NETWORK_SERVICE
+    assert claim.subject_id == ingress.id
+    assert claim.object_id == service.id
+    provenance_ids = {p.id for p in result.model.provenance}
+    assert set(claim.evidence_refs) <= provenance_ids
+    contributions_by_entity = {c.entity_id: c for c in result.model.infrastructure_contributions}
+    assert set(contributions_by_entity[service.id].evidence_refs) <= set(claim.evidence_refs)
+    assert set(contributions_by_entity[ingress.id].evidence_refs) <= set(claim.evidence_refs)

@@ -1178,14 +1178,16 @@ def _matching_kubernetes_config(**overrides) -> KubernetesSourceConfig:
 
 
 def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(driver):
-    """I2 §12 slices 3a/3b/4a/4b: the fixture bundle (Namespace/Deployment/ReplicaSet/Pod/Service/
-    Ingress) flows all the way through the real `KubernetesSourceAdapter`/`kubernetes_mapping`/
-    `kubernetes_owner_chain`/`kubernetes_service_selection` into committed
-    `InfrastructureEntity`/`Contribution` nodes for all four §7.1 entity kinds, plus all three
-    implemented claims (`WORKLOAD_EXISTS`, `WORKLOAD_OWNS_POD`, `NETWORK_SERVICE_SELECTS_WORKLOAD`)
-    - this is PR B's conflict/write machinery going live against a real adapter's output across
-    every promoted kind, a real resolved owner chain (Pod -> ReplicaSet -> Deployment), and the
-    fixture's Service selector matching that same Pod's labels.
+    """I2 §12 slices 3a/3b/4a/4b/4c: the fixture bundle (Namespace/Deployment/ReplicaSet/Pod/
+    Service/Ingress) flows all the way through the real `KubernetesSourceAdapter`/
+    `kubernetes_mapping`/`kubernetes_owner_chain`/`kubernetes_service_selection`/
+    `kubernetes_ingress_backend` into committed `InfrastructureEntity`/`Contribution` nodes for all
+    four §7.1 entity kinds, plus all four implemented claims (`WORKLOAD_EXISTS`, `WORKLOAD_OWNS_POD`,
+    `NETWORK_SERVICE_SELECTS_WORKLOAD`, `INGRESS_ROUTES_TO_NETWORK_SERVICE`) - this is PR B's
+    conflict/write machinery going live against a real adapter's output across every promoted kind,
+    a real resolved owner chain (Pod -> ReplicaSet -> Deployment), the fixture's Service selector
+    matching that same Pod's labels, and its Ingress backending to that same Service's declared
+    port.
     """
     config = _matching_kubernetes_config()
     stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
@@ -1232,6 +1234,14 @@ def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(d
             "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_NETWORK_SERVICE'}) "
             "RETURN e.id AS id"
         ).single()["id"]
+        ingress_id = session.run(
+            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_INGRESS'}) RETURN e.id AS id"
+        ).single()["id"]
+        routing = session.run(
+            "MATCH (c:InfrastructureClaim {kind: 'INGRESS_ROUTES_TO_NETWORK_SERVICE'}) "
+            "RETURN c.subject_id AS subject_id, c.object_id AS object_id, "
+            "c.evidence_refs AS evidence_refs"
+        ).single()
     assert record is not None
     assert record["revision"] is not None
     assert record["scope"] is not None
@@ -1243,13 +1253,15 @@ def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(d
         {"kind": "KUBERNETES_WORKLOAD", "name": "checkout-api"},
     ]
     assert claims == [
+        {"kind": "INGRESS_ROUTES_TO_NETWORK_SERVICE", "object_id": service_id},
         {"kind": "NETWORK_SERVICE_SELECTS_WORKLOAD", "object_id": workload_id},
         {"kind": "WORKLOAD_EXISTS", "object_id": None},
         {"kind": "WORKLOAD_OWNS_POD", "object_id": pod_id},
     ]
-    # The fixture's Service declares no spec.type/spec.ports - no fabricated defaults (§5).
+    # The fixture's Service declares a bare port (no name/no declared type) - I2 §12 slice 4c
+    # needed a real declared port for its Ingress backend to resolve against.
     assert service["service_type"] is None
-    assert service["ports"] == []
+    assert service["ports"] == ['{"name":null,"port":80,"protocol":"TCP"}']
     # The resolved 2-hop chain (Pod -> ReplicaSet -> Deployment): the claim relates the real
     # Workload/Pod entities, and its evidence includes a real id for the bridging ReplicaSet, which
     # has no InfrastructureContribution of its own (§7.1 keeps ReplicaSet permanently unpromoted).
@@ -1262,6 +1274,11 @@ def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(d
     assert selection["subject_id"] == service_id
     assert selection["object_id"] == workload_id
     assert set(selection["evidence_refs"]) >= set(ownership["evidence_refs"])
+    # The fixture's Ingress backends to the Service's own declared port 80 - the routing claim
+    # relates the real Ingress/Service entities, with evidence covering both.
+    assert routing["subject_id"] == ingress_id
+    assert routing["object_id"] == service_id
+    assert len(routing["evidence_refs"]) == 2
     assert len(selection["evidence_refs"]) == 4
 
 

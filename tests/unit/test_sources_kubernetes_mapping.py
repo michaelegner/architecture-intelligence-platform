@@ -364,6 +364,37 @@ def test_malformed_ingress_backend_rejects_the_source():
     assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
 
 
+def test_a_resource_backend_accepts_with_a_distinct_projection_marker():
+    """Review-of-§7.5 prerequisite fix (slice 4c): a backend naming `resource` instead of
+    `service` is "unsupported", not malformed - it must not reject the source."""
+    ingress = {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "Ingress",
+        "metadata": {"name": "checkout-ingress", "namespace": _NAMESPACE},
+        "spec": {
+            "defaultBackend": {
+                "resource": {"apiGroup": "k8s.example.com", "kind": "StorageBucket", "name": "x"}
+            }
+        },
+    }
+    result = _map([_entry(ingress)])
+    assert result.result is IngestionResult.ACCEPTED
+    [mapped] = result.entities
+    assert mapped.projection["defaultBackend"] == {"resourceBackend": True}
+
+
+def test_a_backend_with_neither_service_nor_resource_still_rejects_the_source():
+    ingress = {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "Ingress",
+        "metadata": {"name": "checkout-ingress", "namespace": _NAMESPACE},
+        "spec": {"defaultBackend": {}},
+    }
+    result = _map([_entry(ingress)])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+
+
 def test_duplicate_service_with_conflicting_selector_rejects_the_source():
     first = _service(selector={"app": "checkout-api"})
     second = _service(selector={"app": "different"})

@@ -13,6 +13,7 @@ from app.sources.identity import (
     normalized_document_and_reference_projection_bytes,
     semantic_input_digest,
 )
+from app.sources.kubernetes_ingress_backend import resolve_ingress_backends
 from app.sources.kubernetes_mapping import map_kubernetes_resources
 from app.sources.kubernetes_owner_chain import resolve_owner_chains
 from app.sources.kubernetes_service_selection import resolve_service_selections
@@ -218,16 +219,42 @@ class KubernetesSourceAdapter:
                 )
             )
 
+        # I2 Draft 0.2 §7.5/§7.2 (slice 4c): resolve each Ingress's defaultBackend/rule backends
+        # against admitted Service names/ports and build the INGRESS_ROUTES_TO_NETWORK_SERVICE
+        # claim. Independent of owner-chain/service-selection above - only needs the Ingress/
+        # Service participants, both already evidenced (direct lookup, same reasoning as above).
+        ingress_backend_result = resolve_ingress_backends(mapping_result.resources)
+        for route in ingress_backend_result.resolved_routes:
+            evidence_refs: set[str] = set()
+            for logical_id in route.evidence_resource_logical_ids:
+                evidence_refs.update(evidence_refs_by_logical_id[logical_id])
+            claims.append(
+                InfrastructureClaim(
+                    kind=InfrastructureClaimKind.INGRESS_ROUTES_TO_NETWORK_SERVICE,
+                    subject_id=route.ingress_logical_id,
+                    object_id=route.service_logical_id,
+                    evidence_refs=sorted(evidence_refs),
+                    mapping_rule_id=self.adapter_identity,
+                    mapping_rule_version=self.mapping_rule_version,
+                )
+            )
+
         combined_result = (
             IngestionResult.ACCEPTED_WITH_LIMITATIONS
             if IngestionResult.ACCEPTED_WITH_LIMITATIONS
-            in (mapping_result.result, owner_chain_result.result, service_selection_result.result)
+            in (
+                mapping_result.result,
+                owner_chain_result.result,
+                service_selection_result.result,
+                ingress_backend_result.result,
+            )
             else IngestionResult.ACCEPTED
         )
         combined_diagnostics = (
             mapping_result.diagnostics
             + owner_chain_result.diagnostics
             + service_selection_result.diagnostics
+            + ingress_backend_result.diagnostics
         )
 
         # §6: "normalize the allowlisted resource projection, ordering resources by logical key" -

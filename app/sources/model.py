@@ -248,6 +248,11 @@ class DiagnosticCode(StrEnum):
     # no backend" - also reused for "unresolved matching Pods remain explicit limitations without
     # suppressing separately proven matches" (a matching Pod whose owner chain didn't resolve).
     NO_QUALIFIED_POD_MATCH = "NO_QUALIFIED_POD_MATCH"
+    # I2 Draft 0.2 §10's own named code (slice 4c), for §7.5's Ingress backend resolution: "Missing
+    # Service/port produces an unresolved diagnostic and no relation for that backend... Other
+    # resolved backends may still emit claims" - also reused for a resource backend ("Resource
+    # backends are unsupported") and an ambiguous (more than one matching) Service port.
+    K8S_BACKEND_UNRESOLVED = "K8S_BACKEND_UNRESOLVED"
 
 
 class IngestionDiagnostic(BaseModel):

@@ -227,12 +227,25 @@ def _service_ports_or_error(raw: object) -> tuple[list[dict], str | None]:
 def _ingress_backend_or_error(raw: object) -> tuple[dict | None, str | None]:
     """§5: "Ingress service backend references." A backend always names a target Service and one
     of a port name or number - both absent is malformed, not merely incomplete.
+
+    Real Kubernetes `IngressBackend` objects support a `resource` reference (a non-Service target
+    via an API group extension) as an alternative to `service` - §7.5: "Resource backends are
+    unsupported... Other resolved backends may still emit claims", distinct from a genuinely
+    malformed backend that names neither. Slice 4c review of §7.5 found this branch previously
+    absent: a backend without `service` fell straight into the "must be an object" error below and
+    rejected the whole source, contradicting "unsupported" (limitation, other backends unaffected).
+    A resource backend still returns a projection (not `None`) so adding/removing/changing one
+    still moves the digest, without needing to track its own uninterpreted content in detail -
+    `kubernetes_ingress_backend.py` (slice 4c) reads this marker to emit a limitation rather than
+    attempting Service resolution.
     """
     if raw is None:
         return None, None
     if not isinstance(raw, dict):
         return None, "ingress backend must be an object"
     service = raw.get("service")
+    if service is None and raw.get("resource") is not None:
+        return {"resourceBackend": True}, None
     if not isinstance(service, dict):
         return None, "ingress backend.service must be an object"
     name = service.get("name")
