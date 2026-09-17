@@ -15,6 +15,20 @@ metadata:
 spec:
   replicas: 2
 ---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: checkout-api-7f8b9c
+  namespace: checkout
+  uid: rs-uid-1
+  resourceVersion: "1"
+  ownerReferences:
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: checkout-api
+    uid: deploy-uid-1
+    controller: true
+---
 apiVersion: v1
 kind: Pod
 metadata:
@@ -24,6 +38,12 @@ metadata:
   resourceVersion: "1"
   labels:
     app: checkout-api
+  ownerReferences:
+  - apiVersion: apps/v1
+    kind: ReplicaSet
+    name: checkout-api-7f8b9c
+    uid: rs-uid-1
+    controller: true
 ---
 apiVersion: v1
 kind: Service

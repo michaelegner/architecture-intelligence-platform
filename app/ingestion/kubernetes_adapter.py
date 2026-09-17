@@ -14,6 +14,7 @@ from app.sources.identity import (
     semantic_input_digest,
 )
 from app.sources.kubernetes_mapping import map_kubernetes_resources
+from app.sources.kubernetes_owner_chain import resolve_owner_chains
 from app.sources.model import DiagnosticCode, IngestionResult, LoadedSource, SourceKind
 from app.sources.registry import AdapterOutcome, ServiceIdentityResolver, SharedIdentityResolver
 
@@ -96,25 +97,35 @@ class KubernetesSourceAdapter:
         contributions = []
         claims = []
         provenance_records = []
-        for mapped in mapping_result.entities:
-            entities.append(mapped.entity)
-            # One evidence id per (entity, contributing file) - §6: "source pointers remain
-            # provenance and are sorted when multiple files represent one object."
-            entity_evidence_refs = sorted(
-                ids.evidence_id(KUBERNETES_SOURCE_TYPE, f"{mapped.entity.id}#{pointer}", revision)
-                for pointer in mapped.source_pointers
+        # Tracks every resource's own minted evidence ids by logical id, promoted or not - slice 4a
+        # reuses this to union evidence for a WORKLOAD_OWNS_POD claim without re-minting evidence
+        # for a Pod/Workload that already has some from its own contribution.
+        evidence_refs_by_logical_id: dict[str, list[str]] = {}
+
+        def _mint_evidence(logical_id: str, source_pointers: tuple[str, ...]) -> list[str]:
+            refs = sorted(
+                ids.evidence_id(KUBERNETES_SOURCE_TYPE, f"{logical_id}#{pointer}", revision)
+                for pointer in source_pointers
             )
-            for pointer in mapped.source_pointers:
+            for pointer in source_pointers:
                 provenance_records.append(
                     Provenance(
                         id=ids.evidence_id(
-                            KUBERNETES_SOURCE_TYPE, f"{mapped.entity.id}#{pointer}", revision
+                            KUBERNETES_SOURCE_TYPE, f"{logical_id}#{pointer}", revision
                         ),
                         source_type=KUBERNETES_SOURCE_TYPE,
                         source_file=pointer,
                         source_revision=revision,
                     )
                 )
+            evidence_refs_by_logical_id[logical_id] = refs
+            return refs
+
+        for mapped in mapping_result.entities:
+            entities.append(mapped.entity)
+            # One evidence id per (entity, contributing file) - §6: "source pointers remain
+            # provenance and are sorted when multiple files represent one object."
+            entity_evidence_refs = _mint_evidence(mapped.entity.id, mapped.source_pointers)
             contributions.append(
                 InfrastructureContribution(
                     entity_id=mapped.entity.id,
@@ -138,6 +149,54 @@ class KubernetesSourceAdapter:
                         mapping_rule_version=self.mapping_rule_version,
                     )
                 )
+
+        # I2 Draft 0.2 §7.3/§7.2 (slice 4a): resolve each Pod's controller-owner chain to a
+        # supported Workload and build the WORKLOAD_OWNS_POD claim. A K8S_OWNER_INVALID finding
+        # (multiple controllers or a cycle) discards this source's entire output, exactly like a
+        # kubernetes_mapping rejection above.
+        owner_chain_result = resolve_owner_chains(
+            mapping_result.resources,
+            cluster_uid=envelope_source["clusterUid"],
+            requires_capture_identity=(
+                envelope_source["mode"] == KubernetesEvidenceMode.CAPTURED_RESOURCE
+            ),
+        )
+        if owner_chain_result.result is IngestionResult.REJECTED_INVALID:
+            return AdapterOutcome(
+                result=owner_chain_result.result,
+                model=ArchitectureModel(),
+                diagnostics=owner_chain_result.diagnostics,
+                semantic_input_digest=None,
+            )
+
+        resources_by_logical_id = {
+            resource.logical_id: resource for resource in mapping_result.resources
+        }
+        for chain in owner_chain_result.resolved_chains:
+            evidence_refs: set[str] = set()
+            for logical_id in chain.evidence_resource_logical_ids:
+                if logical_id not in evidence_refs_by_logical_id:
+                    resource = resources_by_logical_id[logical_id]
+                    _mint_evidence(logical_id, resource.source_pointers)
+                evidence_refs.update(evidence_refs_by_logical_id[logical_id])
+            claims.append(
+                InfrastructureClaim(
+                    kind=InfrastructureClaimKind.WORKLOAD_OWNS_POD,
+                    subject_id=chain.workload_logical_id,
+                    object_id=chain.pod_logical_id,
+                    evidence_refs=sorted(evidence_refs),
+                    mapping_rule_id=self.adapter_identity,
+                    mapping_rule_version=self.mapping_rule_version,
+                )
+            )
+
+        combined_result = (
+            IngestionResult.ACCEPTED_WITH_LIMITATIONS
+            if IngestionResult.ACCEPTED_WITH_LIMITATIONS
+            in (mapping_result.result, owner_chain_result.result)
+            else IngestionResult.ACCEPTED
+        )
+        combined_diagnostics = mapping_result.diagnostics + owner_chain_result.diagnostics
 
         # §6: "normalize the allowlisted resource projection, ordering resources by logical key" -
         # covers every admitted resource (Namespace/ReplicaSet/Service/Ingress included), not only
@@ -175,8 +234,8 @@ class KubernetesSourceAdapter:
             provenance=provenance_records,
         )
         return AdapterOutcome(
-            result=mapping_result.result,
+            result=combined_result,
             model=model,
-            diagnostics=mapping_result.diagnostics,
+            diagnostics=combined_diagnostics,
             semantic_input_digest=digest,
         )

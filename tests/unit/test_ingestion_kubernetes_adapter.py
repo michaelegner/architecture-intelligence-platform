@@ -10,7 +10,7 @@ from app.canonical.infrastructure import (
 )
 from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
 from app.ingestion.kubernetes_discoverer import KubernetesSourceDiscoverer
-from app.sources.model import IngestionResult, KubernetesSourceConfig
+from app.sources.model import DiagnosticCode, IngestionResult, KubernetesSourceConfig
 
 _MATCHING_CONFIG_KWARGS = {
     "id": "configured-kubernetes-source",
@@ -131,7 +131,11 @@ def _map_bundle(tmp_path, *, resource_bytes: bytes, revision: str = "snapshot-re
 def test_a_deployment_and_pod_bundle_produces_the_expected_canonical_facts(tmp_path):
     result = _map_bundle(tmp_path, resource_bytes=_deployment_and_pod_yaml())
 
-    assert result.result is IngestionResult.ACCEPTED
+    # I2 §12 slice 4a: this bundle is DECLARED_MANIFEST mode and its Pod has no owner reference,
+    # so owner-chain resolution can never apply (§7.3's "declaration-only input" case) - one
+    # K8S_OWNER_UNRESOLVED limitation, no WORKLOAD_OWNS_POD claim, but no rejection.
+    assert result.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
+    assert any(d.code is DiagnosticCode.K8S_OWNER_UNRESOLVED for d in result.diagnostics)
     assert result.semantic_input_digest is not None
 
     entities_by_kind = {e.entity_kind: e for e in result.model.infrastructure_entities}

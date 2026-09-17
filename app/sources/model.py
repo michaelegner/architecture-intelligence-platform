@@ -236,6 +236,13 @@ class DiagnosticCode(StrEnum):
     # instead reuses K8S_SNAPSHOT_INVALID (its own definition already names "scope mismatch");
     # conflicting duplicate resources reuse K8S_RESOURCE_CONFLICT (below, already spec-named).
     K8S_RESOURCE_INVALID = "K8S_RESOURCE_INVALID"
+    # I2 Draft 0.2 §10's own named codes (slice 4a), for §7.3's owner-chain resolution: "Missing
+    # owner, missing UID match, unsupported chain, or declaration-only input emits no ownership
+    # claim and a limitation diagnostic" (K8S_OWNER_UNRESOLVED, ACCEPTED_WITH_LIMITATIONS); "Multiple
+    # controller owners, cyclic references, or internally conflicting UID assignments reject the
+    # source" (K8S_OWNER_INVALID, REJECTED_INVALID).
+    K8S_OWNER_UNRESOLVED = "K8S_OWNER_UNRESOLVED"
+    K8S_OWNER_INVALID = "K8S_OWNER_INVALID"
 
 
 class IngestionDiagnostic(BaseModel):
