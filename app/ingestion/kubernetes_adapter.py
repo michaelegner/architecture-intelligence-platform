@@ -1,7 +1,25 @@
+from app.canonical import ids
+from app.canonical.infrastructure import (
+    KUBERNETES_SOURCE_TYPE,
+    InfrastructureClaim,
+    InfrastructureClaimKind,
+    InfrastructureContribution,
+    InfrastructureEntityKind,
+    KubernetesEvidenceMode,
+)
 from app.canonical.model import ArchitectureModel
-from app.sources.identity import semantic_input_digest
+from app.provenance.model import Provenance
+from app.sources.identity import (
+    normalized_document_and_reference_projection_bytes,
+    semantic_input_digest,
+)
+from app.sources.kubernetes_mapping import map_kubernetes_resources
 from app.sources.model import DiagnosticCode, IngestionResult, LoadedSource, SourceKind
 from app.sources.registry import AdapterOutcome, ServiceIdentityResolver, SharedIdentityResolver
+
+_MAPPING_REJECTIONS = frozenset(
+    {IngestionResult.REJECTED_INVALID, IngestionResult.REJECTED_CONFLICT}
+)
 
 # I2 Draft 0.2 §10: the exact outcome each discovery-time diagnostic this slice's discoverer can
 # attach maps to. K8S_SNAPSHOT_INCOMPLETE's REJECTED_INVALID matches the "exact source/run
@@ -15,13 +33,12 @@ _RESULT_BY_DIAGNOSTIC_CODE = {
 
 
 class KubernetesSourceAdapter:
-    """I2 Draft 0.2 slice 2b-i: the minimal adapter that turns a Kubernetes `LoadedSource`'s
-    discovery-time diagnostics into the correct `AdapterOutcome`, and a clean one into an
-    `ACCEPTED` outcome with an empty `ArchitectureModel`. Without a registered adapter, every
+    """I2 Draft 0.2: turns a Kubernetes `LoadedSource`'s discovery-time diagnostics into the
+    correct `AdapterOutcome` (slice 2b-i), and on a clean source, calls `kubernetes_mapping` (slice
+    3a) to build the real `InfrastructureEntity`/`Contribution`/`WORKLOAD_EXISTS`-`Claim`/
+    `Provenance` set for every admitted Workload/Pod resource. Without a registered adapter, every
     Kubernetes source would instead be rejected by the orchestrator's generic unmatched-adapter
-    fallback (`DiagnosticCode.DOCUMENT_PARSE_INVALID`), masking this slice's own diagnostics -
-    real canonical projection (`InfrastructureEntity`/`Contribution`/`Claim` population) is slice
-    3's job; this adapter deliberately emits nothing semantic yet.
+    fallback (`DiagnosticCode.DOCUMENT_PARSE_INVALID`), masking this slice's own diagnostics.
     """
 
     adapter_identity = "kubernetes-adapter@1"
@@ -54,18 +71,93 @@ class KubernetesSourceAdapter:
                 semantic_input_digest=None,
             )
 
-        # Deliberately interim: the real §6 "normalized allowlisted resource projection ordered by
-        # logical key" digest doesn't exist until slice 3's real mapping logic does. Using the
-        # envelope's own content_sha256 as a stand-in is over-eager (any byte-level envelope change
-        # looks like a semantic change) but never under-eager, and is replaced wholesale once slice
-        # 3 lands - disclosed here rather than silently narrowed.
+        envelope_source = loaded.document["source"]
+        envelope_scope = loaded.document["scope"]
+        mapping_result = map_kubernetes_resources(
+            loaded.kubernetes_resources,
+            cluster_uid=envelope_source["clusterUid"],
+            requires_capture_identity=(
+                envelope_source["mode"] == KubernetesEvidenceMode.CAPTURED_RESOURCE
+            ),
+            scope_namespaces=tuple(envelope_scope["namespaces"]),
+        )
+        if mapping_result.result in _MAPPING_REJECTIONS:
+            return AdapterOutcome(
+                result=mapping_result.result,
+                model=ArchitectureModel(),
+                diagnostics=mapping_result.diagnostics,
+                semantic_input_digest=None,
+            )
+
+        evidence_mode = KubernetesEvidenceMode(envelope_source["mode"])
+        revision = loaded.descriptor.declared_provider_revision
+
+        entities = []
+        contributions = []
+        claims = []
+        provenance_records = []
+        for mapped in mapping_result.entities:
+            entities.append(mapped.entity)
+            # One evidence id per (entity, contributing file) - §6: "source pointers remain
+            # provenance and are sorted when multiple files represent one object."
+            entity_evidence_refs = sorted(
+                ids.evidence_id(KUBERNETES_SOURCE_TYPE, f"{mapped.entity.id}#{pointer}", revision)
+                for pointer in mapped.source_pointers
+            )
+            for pointer in mapped.source_pointers:
+                provenance_records.append(
+                    Provenance(
+                        id=ids.evidence_id(
+                            KUBERNETES_SOURCE_TYPE, f"{mapped.entity.id}#{pointer}", revision
+                        ),
+                        source_type=KUBERNETES_SOURCE_TYPE,
+                        source_file=pointer,
+                        source_revision=revision,
+                    )
+                )
+            contributions.append(
+                InfrastructureContribution(
+                    entity_id=mapped.entity.id,
+                    source_instance_id=loaded.descriptor.source_instance_id,
+                    evidence_mode=evidence_mode,
+                    resource_semantic_digest=mapped.resource_semantic_digest,
+                    evidence_refs=entity_evidence_refs,
+                    mapping_rule_id=self.adapter_identity,
+                    mapping_rule_version=self.mapping_rule_version,
+                )
+            )
+            if mapped.entity.entity_kind is InfrastructureEntityKind.KUBERNETES_WORKLOAD:
+                claims.append(
+                    InfrastructureClaim(
+                        kind=InfrastructureClaimKind.WORKLOAD_EXISTS,
+                        subject_id=mapped.entity.id,
+                        object_id=None,
+                        evidence_refs=entity_evidence_refs,
+                        mapping_rule_id=self.adapter_identity,
+                        mapping_rule_version=self.mapping_rule_version,
+                    )
+                )
+
+        # §6: "normalize the allowlisted resource projection, ordering resources by logical key" -
+        # `entity.id` IS that logical key, so this reuses I1's existing path-ordered projection
+        # hash rather than inventing a parallel ordering rule for Kubernetes.
+        projection_bytes = normalized_document_and_reference_projection_bytes(
+            {mapped.entity.id: mapped.projection for mapped in mapping_result.entities}
+        )
         digest = semantic_input_digest(
-            normalized_document_projection_bytes=loaded.descriptor.content_sha256.encode("utf-8"),
+            normalized_document_projection_bytes=projection_bytes,
             mapping_context_digest=mapping_context_digest,
         )
+
+        model = ArchitectureModel(
+            infrastructure_entities=entities,
+            infrastructure_contributions=contributions,
+            infrastructure_claims=claims,
+            provenance=provenance_records,
+        )
         return AdapterOutcome(
-            result=IngestionResult.ACCEPTED,
-            model=ArchitectureModel(),
-            diagnostics=(),
+            result=mapping_result.result,
+            model=model,
+            diagnostics=mapping_result.diagnostics,
             semantic_input_digest=digest,
         )

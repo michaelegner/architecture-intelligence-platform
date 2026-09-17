@@ -2,6 +2,7 @@ import hashlib
 import json
 import shutil
 import threading
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -35,12 +36,14 @@ from app.canonical.model import (
 from app.graph.importer import (
     ImportRunStats,
     import_all_sources,
+    import_discovery_run,
     import_kubernetes_source,
     import_source,
 )
 from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
-from app.ingestion.orchestrator import run_filesystem_discovery
+from app.ingestion.kubernetes_discoverer import KubernetesSourceDiscoverer
+from app.ingestion.orchestrator import run_discovery, run_filesystem_discovery
 from app.provenance.model import ObservedEvidence, Provenance
 from app.sources.kubernetes_envelope import EXPECTED_RESOURCE_TYPES
 from app.sources.migration_mappings import load_migration_mappings
@@ -49,7 +52,9 @@ from app.sources.model import (
     FilesystemSourceConfig,
     KubernetesSourceConfig,
     NotSupplied,
+    SourceKind,
 )
+from app.sources.registry import DiscoveryOutcome
 from app.sources.tombstones import Tombstone
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
@@ -1171,25 +1176,45 @@ def _matching_kubernetes_config(**overrides) -> KubernetesSourceConfig:
     return KubernetesSourceConfig(**kwargs)
 
 
-def test_import_kubernetes_source_commits_an_empty_model_and_persists_current_inventory(driver):
+def test_import_kubernetes_source_commits_real_workload_and_pod_facts(driver):
+    """I2 §12 slice 3a: the fixture bundle (Namespace/Deployment/Pod/Service) now flows all the way
+    through the real `KubernetesSourceAdapter`/`kubernetes_mapping` into committed
+    `InfrastructureEntity`/`Contribution`/`WORKLOAD_EXISTS`-`Claim` nodes - this is PR B's
+    conflict/write machinery going live for the first time against a real adapter's output.
+    """
     config = _matching_kubernetes_config()
     stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
 
     assert stats.committed is True
     [source_stats] = list(stats.per_source.values())
     assert source_stats.result == "ACCEPTED"
-    # No real canonical mapping exists yet (slice 3) - the adapter emits an empty model.
-    assert source_stats.nodes_written == 0
-    assert source_stats.relations_written == 0
+    assert source_stats.nodes_written > 0
 
     with driver.session(database=DATABASE) as session:
         record = session.run(
             "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS revision, "
             "i.discovery_scope_id AS scope"
         ).single()
+        entities = session.run(
+            "MATCH (e:InfrastructureEntity) RETURN e.entity_kind AS kind, e.name AS name "
+            "ORDER BY e.entity_kind"
+        ).data()
+        claims = session.run(
+            "MATCH (c:InfrastructureClaim) RETURN c.kind AS kind, c.object_id AS object_id"
+        ).data()
+        pod = session.run(
+            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_POD'}) RETURN e.name AS name"
+        ).single()
     assert record is not None
     assert record["revision"] is not None
     assert record["scope"] is not None
+
+    assert entities == [
+        {"kind": "KUBERNETES_POD", "name": "checkout-api-abcde"},
+        {"kind": "KUBERNETES_WORKLOAD", "name": "checkout-api"},
+    ]
+    assert claims == [{"kind": "WORKLOAD_EXISTS", "object_id": None}]
+    assert pod["name"] == "checkout-api-abcde"
 
 
 def test_import_kubernetes_source_registration_mismatch_prevents_commit(driver):
@@ -1220,8 +1245,14 @@ _DYNAMIC_KUBERNETES_CONFIG_KWARGS = {
 def _write_dynamic_kubernetes_bundle(
     root: Path, *, expected_prior_inventory_revision: str | None
 ) -> KubernetesSourceConfig:
+    # CAPTURED_RESOURCE mode (_DYNAMIC_KUBERNETES_CONFIG_KWARGS) needs a capture-identity-valid
+    # resource for the real adapter's kubernetes_mapping validation (I2 §12 slice 3a) to accept it.
     resource_bytes = yaml.safe_dump(
-        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": "checkout"}}
+        {
+            "apiVersion": "v1",
+            "kind": "Namespace",
+            "metadata": {"name": "checkout", "uid": "namespace-uid", "resourceVersion": "1"},
+        }
     ).encode()
     (root / "resources.yaml").write_bytes(resource_bytes)
     envelope = {
@@ -1318,6 +1349,110 @@ def test_import_kubernetes_source_rejects_a_nonnull_predecessor_on_first_import(
     assert any(d.code == DiagnosticCode.K8S_STALE_INVENTORY for d in stats.diagnostics)
     [source_stats] = list(stats.per_source.values())
     assert source_stats.result == "REJECTED_CONFLICT"
+    assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 0
+
+
+@dataclass
+class _CompositeDiscoverer:
+    """Test-only `SourceDiscoverer`: unions two real `KubernetesSourceDiscoverer` enumerations into
+    one run, so `run_discovery`'s cross-source `detect_infrastructure_entity_content_conflicts`
+    check (I2 Draft 0.2 §7.1/§10, wired since PR B) sees both sources' real, adapter-mapped
+    contributions together - the only way to exercise it end-to-end, since each
+    `KubernetesSourceConfig`/`import_kubernetes_source` call is otherwise its own independent run.
+    """
+
+    source_kind: SourceKind
+    discoverer_identity: str
+    outcomes: tuple[DiscoveryOutcome, ...]
+
+    def discover(self) -> DiscoveryOutcome:
+        first = self.outcomes[0]
+        return DiscoveryOutcome(
+            loaded_sources=tuple(
+                loaded for outcome in self.outcomes for loaded in outcome.loaded_sources
+            ),
+            enumeration_complete=all(outcome.enumeration_complete for outcome in self.outcomes),
+            diagnostics=tuple(d for outcome in self.outcomes for d in outcome.diagnostics),
+            discovery_scope_id=first.discovery_scope_id,
+            scope_definition_digest=first.scope_definition_digest,
+        )
+
+
+def _write_conflicting_kubernetes_bundle(
+    root: Path, *, configured_source_id: str, service_id_annotation: str | None
+) -> KubernetesSourceConfig:
+    root.mkdir(parents=True, exist_ok=True)
+    metadata = {"name": "checkout-api", "namespace": "checkout"}
+    if service_id_annotation is not None:
+        metadata["annotations"] = {"architecture-intelligence.io/service-id": service_id_annotation}
+    resource_bytes = yaml.safe_dump(
+        {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": metadata}
+    ).encode()
+    (root / "resources.yaml").write_bytes(resource_bytes)
+    envelope = {
+        "apiVersion": "aip.dev/v1",
+        "kind": "KubernetesSourceSnapshot",
+        "metadata": {
+            "id": f"{configured_source_id}-snapshot",
+            "revision": "revision-1",
+            "producer": "aip-kubernetes-capture-agent",
+            "capturedAt": "2026-09-17T10:00:00Z",
+        },
+        "source": {
+            "configuredSourceId": configured_source_id,
+            "configuredScopeId": f"{configured_source_id}-scope",
+            "clusterUid": "conflict-cluster",
+            "clusterIdentityEvidenceRef": "kube-system-namespace-uid",
+            "mode": "DECLARED_MANIFEST",
+        },
+        "scope": {"namespaces": ["checkout"], "resourceTypes": sorted(EXPECTED_RESOURCE_TYPES)},
+        "completeness": {
+            "status": "COMPLETE",
+            "authorityRef": f"{configured_source_id}-authority",
+            "expectedPriorInventoryRevision": None,
+        },
+        "files": [{"path": "resources.yaml", "sha256": hashlib.sha256(resource_bytes).hexdigest()}],
+    }
+    (root / "envelope.yaml").write_bytes(yaml.safe_dump(envelope).encode())
+    return KubernetesSourceConfig(
+        id=configured_source_id,
+        root=root,
+        envelope_relative_path="envelope.yaml",
+        configured_scope_id=f"{configured_source_id}-scope",
+        cluster_uid="conflict-cluster",
+        evidence_mode=KubernetesEvidenceMode.DECLARED_MANIFEST,
+        authorized_producer="aip-kubernetes-capture-agent",
+        authority_record=f"{configured_source_id}-authority",
+    )
+
+
+def test_two_kubernetes_sources_with_conflicting_content_for_one_logical_resource_commit_nothing(
+    driver, tmp_path
+):
+    config_a = _write_conflicting_kubernetes_bundle(
+        tmp_path / "a", configured_source_id="cluster-source-a", service_id_annotation=None
+    )
+    config_b = _write_conflicting_kubernetes_bundle(
+        tmp_path / "b",
+        configured_source_id="cluster-source-b",
+        service_id_annotation="service:checkout",
+    )
+    outcome_a = KubernetesSourceDiscoverer(config_a).discover()
+    outcome_b = KubernetesSourceDiscoverer(config_b).discover()
+    composite = _CompositeDiscoverer(
+        source_kind=SourceKind.KUBERNETES,
+        discoverer_identity="test-composite-kubernetes-discoverer@1",
+        outcomes=(outcome_a, outcome_b),
+    )
+
+    run_result = run_discovery(composite)
+    assert any(d.code == DiagnosticCode.K8S_RESOURCE_CONFLICT for d in run_result.diagnostics)
+    assert run_result.commit_eligible is False
+
+    stats = import_discovery_run(driver, database=DATABASE, run_result=run_result)
+    assert stats.committed is False
+    assert stats.per_source == {}
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 0
     assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 0
 
 

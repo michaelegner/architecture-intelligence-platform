@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import NewType
@@ -224,6 +225,17 @@ class DiagnosticCode(StrEnum):
     # by `import_kubernetes_source`, not raised by `_import_all_sources_tx` itself - that shared
     # transaction stays source-kind-neutral.
     K8S_STALE_INVENTORY = "K8S_STALE_INVENTORY"
+    # I2 Draft 0.2 §10's own named code ("Omit object; ACCEPTED_WITH_LIMITATIONS"), for §5: "Other
+    # controller kinds and API versions require an amendment; unsupported objects are omitted with
+    # pointer diagnostics and ACCEPTED_WITH_LIMITATIONS" (slice 3a).
+    K8S_RESOURCE_UNSUPPORTED = "K8S_RESOURCE_UNSUPPORTED"
+    # Not named by the spec text; introduced here (slice 3a) for §5's remaining resource-shape
+    # rejection reasons that don't already have a home: "Missing name, missing namespace for a
+    # namespaced kind, malformed used fields... reject the source" and "a captured resource
+    # requires UID and resourceVersion; absence rejects the capture." An out-of-scope namespace
+    # instead reuses K8S_SNAPSHOT_INVALID (its own definition already names "scope mismatch");
+    # conflicting duplicate resources reuse K8S_RESOURCE_CONFLICT (below, already spec-named).
+    K8S_RESOURCE_INVALID = "K8S_RESOURCE_INVALID"
 
 
 class IngestionDiagnostic(BaseModel):
@@ -259,6 +271,21 @@ class SourceDescriptor(BaseModel):
     mapping_rule_version: str
 
 
+@dataclass(frozen=True)
+class KubernetesResourceEntry:
+    """I2 Draft 0.2 §6: "source pointers remain provenance and are sorted when multiple files
+    represent one object." Pairs a resource's own parsed content with the listed file it came
+    from - a bare `dict` alone loses this, and a per-entity `Provenance.source_file` (slice 3) needs
+    the *resource's own* pointer, not one shared envelope-wide locator. Lives here (not in
+    `app.sources.kubernetes_envelope`, which constructs it) so `LoadedSource` below - a shared
+    vocabulary type every source-kind's discoverer imports - can reference it without that module
+    needing to import from `kubernetes_envelope` in the other direction.
+    """
+
+    source_pointer: str
+    document: dict
+
+
 class LoadedSource(BaseModel):
     descriptor: SourceDescriptor
     document: dict
@@ -269,8 +296,9 @@ class LoadedSource(BaseModel):
     discoverer (the only component that knows the configured root); empty only for a `LoadedSource`
     built directly by a test with no real filesystem backing, since none of PR3b's cross-file
     resolution paths apply to it."""
-    kubernetes_resources: tuple[dict, ...] = ()
+    kubernetes_resources: tuple[KubernetesResourceEntry, ...] = ()
     """I2 Draft 0.2 §4.3's already-validated, flattened resource-object list (from
-    `app.sources.kubernetes_envelope.validate_kubernetes_snapshot`) - carried forward so a later
-    Kubernetes adapter never needs to re-run bounded sanitized loading. Empty for every non-
-    Kubernetes source, and for a Kubernetes source whose envelope itself failed validation."""
+    `app.sources.kubernetes_envelope.validate_kubernetes_snapshot`), each paired with its own
+    source file pointer - carried forward so a later Kubernetes adapter never needs to re-run
+    bounded sanitized loading. Empty for every non-Kubernetes source, and for a Kubernetes source
+    whose envelope itself failed validation."""
