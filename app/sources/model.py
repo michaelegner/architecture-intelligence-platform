@@ -4,14 +4,18 @@ from typing import NewType
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.canonical.infrastructure import KubernetesEvidenceMode
+
 SourceInstanceId = NewType("SourceInstanceId", str)
 DiscoveryScopeId = NewType("DiscoveryScopeId", str)
 
 
 class SourceKind(StrEnum):
     FILESYSTEM = "filesystem"
-    # Kubernetes stable-source-key is reserved for I2 (I1 spec §5.1) - deliberately no member here
-    # yet: "unsupported > falsely supported".
+    # I2 Draft 0.2 §6: "source_kind = kubernetes". Registration binding (comparing an envelope's
+    # declared identity against a configured KubernetesSourceConfig) now exists (slice 2b-i), which
+    # is the "unsupported > falsely supported" prerequisite the original reserved-comment here named.
+    KUBERNETES = "kubernetes"
 
 
 class FilesystemSourceConfig(BaseModel):
@@ -56,6 +60,37 @@ class FilesystemSourceConfig(BaseModel):
     @property
     def resolved_stable_target_identity(self) -> str:
         return self.stable_target_identity or f"urn:aip:logical-root:{self.id}"
+
+
+class KubernetesSourceConfig(BaseModel):
+    """I2 Draft 0.2 §4.2's configured source registration: "binds the source/scope IDs, cluster
+    UID, evidence mode, authorized snapshot producer, and authority record. Envelope values must
+    match it." `root`/`envelope_relative_path` locate the frozen bundle on the local filesystem
+    (§2's `OFFLINE_ONLY` scope - no live cluster access). Mirrors `FilesystemSourceConfig`'s own
+    `scope_id`/`stable_target_identity` defaulting shape exactly.
+
+    `cluster_uid` is the natural stable identity anchor for a Kubernetes source (§6: "an
+    independently established cluster identity") - the same role `id` plays for
+    `FilesystemSourceConfig.resolved_stable_target_identity`.
+    """
+
+    id: str
+    root: Path
+    envelope_relative_path: str
+    configured_scope_id: str | None = None
+    cluster_uid: str
+    evidence_mode: KubernetesEvidenceMode
+    authorized_producer: str
+    authority_record: str
+    stable_target_identity: str | None = None
+
+    @property
+    def resolved_scope_id(self) -> str:
+        return self.configured_scope_id or self.id
+
+    @property
+    def resolved_stable_target_identity(self) -> str:
+        return self.stable_target_identity or f"urn:aip:k8s-cluster:{self.cluster_uid}"
 
 
 class IngestionResult(StrEnum):
@@ -144,16 +179,16 @@ class DiagnosticCode(StrEnum):
     # generalized/renamed variant - the entity kinds this guards are themselves Kubernetes-specific
     # (KUBERNETES_WORKLOAD/POD/NETWORK_SERVICE/INGRESS), so the spec's own name is the honest one.
     K8S_RESOURCE_CONFLICT = "K8S_RESOURCE_CONFLICT"
-    # I2 Draft 0.2 §10's own named codes, for this increment's slice 2a (envelope validation,
-    # bounds/security, identity) - the remaining §10 codes (K8S_STALE_INVENTORY, K8S_RESOURCE_*,
-    # K8S_OWNER_*, NO_QUALIFIED_POD_MATCH, K8S_BACKEND_UNRESOLVED) depend on source registration,
-    # resource projection, or owner-chain resolution this slice doesn't implement yet.
+    # I2 Draft 0.2 §10's own named codes, for slice 2a (envelope validation, bounds/security,
+    # identity) - the remaining §10 codes (K8S_STALE_INVENTORY, K8S_RESOURCE_*, K8S_OWNER_*,
+    # NO_QUALIFIED_POD_MATCH, K8S_BACKEND_UNRESOLVED) depend on predecessor-revision threading,
+    # resource projection, or owner-chain resolution later slices implement.
     #
-    # K8S_CLUSTER_IDENTITY_UNRESOLVED is defined here but not yet reachable: firing it requires
-    # comparing the envelope's cluster UID against a configured KubernetesSourceConfig, and that
-    # registration binding is slice 2b's job (mirroring SourceKind.KUBERNETES itself, reserved
-    # below with no member yet for the same reason). A missing/empty clusterUid in this slice's
-    # own validation surfaces as the generic K8S_SNAPSHOT_INVALID instead.
+    # K8S_CLUSTER_IDENTITY_UNRESOLVED is now reachable (slice 2b-i):
+    # KubernetesSourceDiscoverer's registration-binding check fires it for a cluster_uid mismatch
+    # against the configured KubernetesSourceConfig specifically - every other registration-binding
+    # mismatch (source/scope id, mode, producer, authority) is K8S_SNAPSHOT_INVALID instead (§10:
+    # "shape, digest, or scope mismatch").
     K8S_CLUSTER_IDENTITY_UNRESOLVED = "K8S_CLUSTER_IDENTITY_UNRESOLVED"
     K8S_SNAPSHOT_INVALID = "K8S_SNAPSHOT_INVALID"
     K8S_SNAPSHOT_INCOMPLETE = "K8S_SNAPSHOT_INCOMPLETE"
@@ -203,3 +238,8 @@ class LoadedSource(BaseModel):
     discoverer (the only component that knows the configured root); empty only for a `LoadedSource`
     built directly by a test with no real filesystem backing, since none of PR3b's cross-file
     resolution paths apply to it."""
+    kubernetes_resources: tuple[dict, ...] = ()
+    """I2 Draft 0.2 §4.3's already-validated, flattened resource-object list (from
+    `app.sources.kubernetes_envelope.validate_kubernetes_snapshot`) - carried forward so a later
+    Kubernetes adapter never needs to re-run bounded sanitized loading. Empty for every non-
+    Kubernetes source, and for a Kubernetes source whose envelope itself failed validation."""

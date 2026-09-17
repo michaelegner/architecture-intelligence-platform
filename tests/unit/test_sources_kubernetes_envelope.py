@@ -1,5 +1,6 @@
 import hashlib
 import io
+import os
 from pathlib import Path
 from typing import Self
 
@@ -378,6 +379,46 @@ def test_missing_envelope_file_is_rejected(tmp_path):
     result = validate_kubernetes_snapshot(
         root=tmp_path, envelope_relative_path="does-not-exist.yaml"
     )
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root bypasses permission bits, chmod is a no-op")
+def test_unreadable_envelope_file_is_rejected(tmp_path):
+    envelope_path = tmp_path / "envelope.yaml"
+    envelope_path.write_bytes(_valid_envelope_bytes())
+    envelope_path.chmod(0o000)
+    try:
+        result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
+    finally:
+        envelope_path.chmod(0o644)
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root bypasses permission bits, chmod is a no-op")
+def test_unreadable_listed_file_is_rejected(tmp_path):
+    content = _resource_yaml()
+    doc = _valid_envelope_dict()
+    doc["files"] = [{"path": "resources.yaml", "sha256": hashlib.sha256(content).hexdigest()}]
+    (tmp_path / "envelope.yaml").write_bytes(_dump(doc))
+    resource_path = tmp_path / "resources.yaml"
+    resource_path.write_bytes(content)
+    resource_path.chmod(0o000)
+    try:
+        result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
+    finally:
+        resource_path.chmod(0o644)
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE
+
+
+def test_circular_symlink_envelope_is_rejected(tmp_path):
+    envelope_path = tmp_path / "envelope.yaml"
+    other = tmp_path / "other.yaml"
+    envelope_path.symlink_to(other)
+    other.symlink_to(envelope_path)
+    result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert result.result is IngestionResult.REJECTED_INVALID
     assert result.diagnostics[0].code is DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE
 

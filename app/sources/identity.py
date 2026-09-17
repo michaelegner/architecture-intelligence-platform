@@ -199,9 +199,8 @@ def kubernetes_source_instance_id(
           = urn:aip:source:kubernetes:<sha256(configured Kubernetes-source id, cluster UID)>
 
     Takes the literal `"kubernetes"` source-kind string directly rather than `SourceKind.KUBERNETES`
-    - that enum member is deliberately not added until a later slice wires a real
-    `KubernetesSourceDiscoverer` into the registry (I2 §12 slice 2b); this formula stands on its own,
-    exactly as §6 states it, and does not depend on that wiring existing yet.
+    (added in slice 2b-i, alongside `KubernetesSourceDiscoverer`) - this formula stands on its own,
+    exactly as §6 states it, independent of that registry wiring.
     """
     stable_source_key = length_delimited(_utf8(configured_kubernetes_source_id), _utf8(cluster_uid))
     return SourceInstanceId(f"urn:aip:source:kubernetes:{sha256_hex(stable_source_key)}")

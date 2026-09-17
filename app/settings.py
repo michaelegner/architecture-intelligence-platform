@@ -5,13 +5,16 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field
 
-from app.sources.model import FilesystemSourceConfig
+from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
 
 
 class SourcesConfig(BaseModel):
     directories: list[FilesystemSourceConfig] = Field(
         default_factory=lambda: [FilesystemSourceConfig(id="default", root=Path("./repositories"))]
     )
+    # I2 Draft 0.2 slice 2b-i's second source kind - unlike `directories`, there is no sensible
+    # bundled-example default for a Kubernetes cluster registration, so this defaults to empty.
+    clusters: list[KubernetesSourceConfig] = Field(default_factory=list)
     # I1 spec §5.1.1/§8.1/§9/§9.1's explicit shared-identity/migration mapping mechanism (PR4) - a
     # list, not a single fixed path, since the mechanism is general (any configured source may
     # supply one); the bundled examples/ migration artifact is simply its first real instance.

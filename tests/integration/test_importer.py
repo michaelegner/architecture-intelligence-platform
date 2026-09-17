@@ -30,18 +30,24 @@ from app.canonical.model import (
     Schema,
     Service,
 )
-from app.graph.importer import ImportRunStats, import_all_sources, import_source
+from app.graph.importer import (
+    ImportRunStats,
+    import_all_sources,
+    import_kubernetes_source,
+    import_source,
+)
 from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
 from app.ingestion.orchestrator import run_filesystem_discovery
 from app.provenance.model import ObservedEvidence, Provenance
 from app.sources.migration_mappings import load_migration_mappings
-from app.sources.model import DiagnosticCode, FilesystemSourceConfig
+from app.sources.model import DiagnosticCode, FilesystemSourceConfig, KubernetesSourceConfig
 from app.sources.tombstones import Tombstone
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
+KUBERNETES_FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "kubernetes" / "i2"
 DATABASE = "neo4j"
 
 SCOPE_ID = "urn:aip:discovery-scope:test"
@@ -1114,10 +1120,61 @@ def test_import_all_sources_denies_removal_via_a_tombstone_with_a_stale_expected
     assert any(d.code == DiagnosticCode.TOMBSTONE_STALE for d in stats3.diagnostics)
 
 
+# I2 Draft 0.2 slice 2b-i: KubernetesSourceConfig/KubernetesSourceDiscoverer/KubernetesSourceAdapter
+# wired all the way through the real import_kubernetes_source -> Neo4j path, against the real
+# checked-in fixture bundle (tests/fixtures/kubernetes/i2/, from slice 2a).
+
+
+def _matching_kubernetes_config(**overrides) -> KubernetesSourceConfig:
+    kwargs = {
+        "id": "checkout-cluster",
+        "root": KUBERNETES_FIXTURE_DIR,
+        "envelope_relative_path": "envelope.yaml",
+        "configured_scope_id": "checkout-cluster-namespaces",
+        "cluster_uid": "d3adbeef-0000-4000-8000-000000000001",
+        "evidence_mode": KubernetesEvidenceMode.CAPTURED_RESOURCE,
+        "authorized_producer": "aip-kubernetes-capture-agent",
+        "authority_record": "checkout-cluster-capture-authority",
+        **overrides,
+    }
+    return KubernetesSourceConfig(**kwargs)
+
+
+def test_import_kubernetes_source_commits_an_empty_model_and_persists_current_inventory(driver):
+    config = _matching_kubernetes_config()
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+
+    assert stats.committed is True
+    [source_stats] = list(stats.per_source.values())
+    assert source_stats.result == "ACCEPTED"
+    # No real canonical mapping exists yet (slice 3) - the adapter emits an empty model.
+    assert source_stats.nodes_written == 0
+    assert source_stats.relations_written == 0
+
+    with driver.session(database=DATABASE) as session:
+        record = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS revision, "
+            "i.discovery_scope_id AS scope"
+        ).single()
+    assert record is not None
+    assert record["revision"] is not None
+    assert record["scope"] is not None
+
+
+def test_import_kubernetes_source_registration_mismatch_prevents_commit(driver):
+    config = _matching_kubernetes_config(cluster_uid="a-different-cluster")
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+
+    assert stats.committed is False
+    assert any(d.code == DiagnosticCode.K8S_CLUSTER_IDENTITY_UNRESOLVED for d in stats.diagnostics)
+    assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 0
+
+
 # I2 Draft 0.2 §3 item 6: infrastructure facts go through the SAME write/ownership/reconciliation/
 # expiry path as every other canonical fact. Driven through the real `import_source` -> Neo4j path
-# with hand-built models, since no Kubernetes adapter exists yet - without this, a later adapter
-# could commit its inventory while its facts were silently dropped.
+# with hand-built models, since the real `KubernetesSourceAdapter` (slice 2b-i) still emits only an
+# empty `ArchitectureModel` - real canonical projection is slice 3's job - without this, a later
+# adapter could commit its inventory while its facts were silently dropped.
 
 INFRA_ENTITY_ID = "urn:aip:k8s-resource:workload-1"
 INFRA_EVIDENCE = Provenance(

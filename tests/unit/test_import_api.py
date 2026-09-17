@@ -1,10 +1,15 @@
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from fastapi import HTTPException
 
 from app.api.import_api import _run_all_configured_sources
+from app.canonical.infrastructure import KubernetesEvidenceMode
+from app.graph.importer import ImportRunStats
 from app.settings import AppConfig, Secrets, Settings, SourcesConfig
+from app.sources.inventory import InventoryStatus
+from app.sources.model import KubernetesSourceConfig
 
 
 def _settings(*, migrations: list[Path]) -> Settings:
@@ -30,3 +35,37 @@ def test_a_missing_configured_migration_file_raises_before_touching_the_driver(t
         _run_all_configured_sources(settings, driver=None)
     assert exc_info.value.status_code == 500
     assert "migration mapping configuration is invalid" in exc_info.value.detail
+
+
+def test_configured_clusters_are_imported_alongside_configured_directories(tmp_path):
+    # I2 Draft 0.2 slice 2b-i: sources.clusters is a second, source-kind-neutral loop alongside
+    # sources.directories - mocked here (a unit test, no real Neo4j) to confirm the wiring calls
+    # import_kubernetes_source once per configured cluster with the right config object.
+    cluster_config = KubernetesSourceConfig(
+        id="checkout-cluster",
+        root=tmp_path,
+        envelope_relative_path="envelope.yaml",
+        cluster_uid="cluster-uid",
+        evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+        authorized_producer="producer",
+        authority_record="authority",
+    )
+    config = AppConfig(sources=SourcesConfig(directories=[], clusters=[cluster_config]))
+    settings = Settings(config=config, secrets=Secrets(neo4j_user="neo4j", neo4j_password="test"))
+
+    stub_stats = ImportRunStats(
+        inventory_status=InventoryStatus.COMPLETE,
+        committed=True,
+        per_source={},
+        removed_source_instance_ids=(),
+        diagnostics=(),
+    )
+    with patch("app.api.import_api.import_kubernetes_source") as mock_import_kubernetes_source:
+        mock_import_kubernetes_source.return_value = stub_stats
+        import_id, run_results = _run_all_configured_sources(settings, driver="fake-driver")
+
+    assert import_id
+    mock_import_kubernetes_source.assert_called_once()
+    call_kwargs = mock_import_kubernetes_source.call_args.kwargs
+    assert call_kwargs["source_config"] is cluster_config
+    assert run_results == [stub_stats]
