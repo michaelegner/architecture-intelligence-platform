@@ -1177,11 +1177,12 @@ def _matching_kubernetes_config(**overrides) -> KubernetesSourceConfig:
     return KubernetesSourceConfig(**kwargs)
 
 
-def test_import_kubernetes_source_commits_real_workload_and_pod_facts(driver):
-    """I2 §12 slice 3a: the fixture bundle (Namespace/Deployment/Pod/Service) now flows all the way
-    through the real `KubernetesSourceAdapter`/`kubernetes_mapping` into committed
-    `InfrastructureEntity`/`Contribution`/`WORKLOAD_EXISTS`-`Claim` nodes - this is PR B's
-    conflict/write machinery going live for the first time against a real adapter's output.
+def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(driver):
+    """I2 §12 slices 3a/3b: the fixture bundle (Namespace/Deployment/Pod/Service/Ingress) flows all
+    the way through the real `KubernetesSourceAdapter`/`kubernetes_mapping` into committed
+    `InfrastructureEntity`/`Contribution` nodes for all four §7.1 entity kinds, plus the one
+    `WORKLOAD_EXISTS` claim - this is PR B's conflict/write machinery going live against a real
+    adapter's output across every promoted kind, not only Workload/Pod (slice 3a's own scope).
     """
     config = _matching_kubernetes_config()
     stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
@@ -1203,19 +1204,24 @@ def test_import_kubernetes_source_commits_real_workload_and_pod_facts(driver):
         claims = session.run(
             "MATCH (c:InfrastructureClaim) RETURN c.kind AS kind, c.object_id AS object_id"
         ).data()
-        pod = session.run(
-            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_POD'}) RETURN e.name AS name"
+        service = session.run(
+            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_NETWORK_SERVICE'}) "
+            "RETURN e.service_type AS service_type, e.ports AS ports"
         ).single()
     assert record is not None
     assert record["revision"] is not None
     assert record["scope"] is not None
 
     assert entities == [
+        {"kind": "KUBERNETES_INGRESS", "name": "checkout-ingress"},
+        {"kind": "KUBERNETES_NETWORK_SERVICE", "name": "checkout-api"},
         {"kind": "KUBERNETES_POD", "name": "checkout-api-abcde"},
         {"kind": "KUBERNETES_WORKLOAD", "name": "checkout-api"},
     ]
     assert claims == [{"kind": "WORKLOAD_EXISTS", "object_id": None}]
-    assert pod["name"] == "checkout-api-abcde"
+    # The fixture's Service declares no spec.type/spec.ports - no fabricated defaults (§5).
+    assert service["service_type"] is None
+    assert service["ports"] == []
 
 
 def test_import_kubernetes_source_registration_mismatch_prevents_commit(driver):

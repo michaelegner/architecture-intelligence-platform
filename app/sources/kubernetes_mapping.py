@@ -1,29 +1,34 @@
 """I2 Draft 0.2 §5 ("Admitted resources and retained fields"), §6 ("Identity, normalization, and
-replay"), and §7.1 ("Entity and contribution schema") - v0.5.0 I2 §12 slice 3a: resource
+replay"), and §7.1 ("Entity and contribution schema") - v0.5.0 I2 §12 slices 3a/3b: resource
 classification, validation, and allowlisted-projection building. Pure logic, no Neo4j and no
 `Provenance`/evidence-id construction - mirrors `app.sources.kubernetes_envelope`'s own "sources
 layer = pure" discipline. `app.ingestion.kubernetes_adapter` is the caller: it turns this module's
 `MappedResource` results into `InfrastructureContribution`/`Provenance`/`WORKLOAD_EXISTS` claims
 (all of which need evidence ids and are therefore that layer's job, not this one's).
 
-Every admitted resource kind is classified, validated, and projected here - not only the two kinds
-(`KUBERNETES_WORKLOAD`/`KUBERNETES_POD`) this slice promotes to canonical entities. §6's
-normalization/replay rule ("Normalize the allowlisted resource projection, ordering resources by
-logical key") and §5's "malformed used fields[...] or conflicting duplicate resources reject the
-source" both apply to every admitted resource, independent of which slice promotes its kind to an
-entity - deferring Namespace/ReplicaSet/Service/Ingress coverage to slice 3b/4 would leave the
-overall `semantic_input_digest` blind to their content (a real replay-correctness gap, found in
-`app.ingestion.kubernetes_adapter`'s own review) and would let a conflicting duplicate Service or
-Ingress silently pass through unchecked. `MappedResource.entity` is `None` for every kind slice 3a
-doesn't promote (Namespace, ReplicaSet, Service, Ingress); slice 3b sets it for Service/Ingress
-without touching this module's classification/validation/projection pipeline.
+Every admitted resource kind is classified, validated, and projected here, regardless of whether
+its kind is promoted to a canonical entity. §6's normalization/replay rule ("Normalize the
+allowlisted resource projection, ordering resources by logical key") and §5's "malformed used
+fields[...] or conflicting duplicate resources reject the source" both apply to every admitted
+resource - slice 3a's own review found that deferring Namespace/ReplicaSet/Service/Ingress coverage
+left the overall `semantic_input_digest` blind to their content and let a conflicting duplicate
+Service or Ingress silently pass unchecked, so this pipeline was generalized to all eight admitted
+kinds from slice 3a onward. `MappedResource.entity` is `None` only for `Namespace`/`ReplicaSet`
+(§7.1: "remain in the snapshot-bound resource/incarnation index... I2 does not promote them to
+additional canonical entity kinds", permanently for this increment) - slice 3b promotes
+`KUBERNETES_NETWORK_SERVICE`/`KUBERNETES_INGRESS` here too, reusing the same already-validated
+projections without touching the classification/validation/projection pipeline itself.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.canonical.infrastructure import InfrastructureEntity, InfrastructureEntityKind
+from app.canonical.infrastructure import (
+    InfrastructureEntity,
+    InfrastructureEntityKind,
+    InfrastructurePort,
+)
 from app.sources.encoding import sha256_hex
 from app.sources.identity import kubernetes_logical_resource_id
 from app.sources.jcs import canonical_json_bytes
@@ -125,10 +130,17 @@ class KubernetesMappingResult:
 
 
 def _entity_kind_for(resource_kind: str) -> InfrastructureEntityKind | None:
+    """§7.1's four admitted-to-entity-kind mappings. `None` for `Namespace`/`ReplicaSet`, which
+    §7.1 keeps permanently in the snapshot-bound resource/incarnation index only.
+    """
     if resource_kind in _WORKLOAD_RESOURCE_KINDS:
         return InfrastructureEntityKind.KUBERNETES_WORKLOAD
     if resource_kind == _POD_RESOURCE_KIND:
         return InfrastructureEntityKind.KUBERNETES_POD
+    if resource_kind == _SERVICE_RESOURCE_KIND:
+        return InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE
+    if resource_kind == _INGRESS_RESOURCE_KIND:
+        return InfrastructureEntityKind.KUBERNETES_INGRESS
     return None
 
 
@@ -622,6 +634,18 @@ def map_kubernetes_resources(
         resource_kind = document["kind"]
         metadata = document.get("metadata", {})
         entity_kind = _entity_kind_for(resource_kind)
+        # §7.1: "Additional semantic fields" apply only to KUBERNETES_NETWORK_SERVICE. Sourced
+        # directly from `first_projection` (already validated/sorted by `_project_or_error`) rather
+        # than re-derived from the raw document, so the entity's own persisted fields and the
+        # hashed digest input can never disagree.
+        service_fields = (
+            {
+                "service_type": first_projection["serviceType"],
+                "ports": [InfrastructurePort(**port) for port in first_projection["ports"]],
+            }
+            if entity_kind is InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE
+            else {}
+        )
         entity = (
             InfrastructureEntity(
                 id=logical_id,
@@ -631,6 +655,7 @@ def map_kubernetes_resources(
                 resource_kind=resource_kind,
                 namespace=metadata.get("namespace") or "",
                 name=metadata["name"],
+                **service_fields,
             )
             if entity_kind is not None
             else None
