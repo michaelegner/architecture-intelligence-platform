@@ -76,15 +76,14 @@ def _replica_set(
     return {"apiVersion": "apps/v1", "kind": "ReplicaSet", "metadata": metadata}
 
 
-def _map(
-    documents,
+def _map_with_entries(
+    entries,
     *,
     requires_capture_identity: bool = True,
     scope_namespaces=(_NAMESPACE, _OTHER_NAMESPACE),
 ):
-    entries = tuple(_entry(doc) for doc in documents)
     result = map_kubernetes_resources(
-        entries,
+        tuple(entries),
         cluster_uid=_CLUSTER_UID,
         requires_capture_identity=requires_capture_identity,
         scope_namespaces=tuple(scope_namespaces),
@@ -93,6 +92,19 @@ def _map(
         result.diagnostics
     )
     return result.resources
+
+
+def _map(
+    documents,
+    *,
+    requires_capture_identity: bool = True,
+    scope_namespaces=(_NAMESPACE, _OTHER_NAMESPACE),
+):
+    return _map_with_entries(
+        (_entry(doc) for doc in documents),
+        requires_capture_identity=requires_capture_identity,
+        scope_namespaces=scope_namespaces,
+    )
 
 
 def _resolve(resources, *, requires_capture_identity: bool = True):
@@ -337,3 +349,59 @@ def test_self_referencing_replica_set_is_a_cycle_and_rejects_the_source():
     assert result.result is IngestionResult.REJECTED_INVALID
     assert result.resolved_chains == ()
     assert result.diagnostics[0].code is DiagnosticCode.K8S_OWNER_INVALID
+
+
+def test_a_multi_resource_cycle_beyond_two_hops_rejects_the_source():
+    """Review round (PR #202): Pod -> ReplicaSet A -> ReplicaSet B -> ReplicaSet A is a real cycle
+    that only manifests on the *third* hop - an earlier version of this module stopped following
+    references after two hops and misclassified this as an ordinary "unsupported chain" limitation
+    instead of rejecting per §7.3's own distinct "cyclic references" outcome.
+    """
+    rs_a = _replica_set(
+        name="rs-a",
+        uid="rs-uid-a",
+        owner_references=[
+            _owner_ref(api_version="apps/v1", kind="ReplicaSet", name="rs-b", uid="rs-uid-b")
+        ],
+    )
+    rs_b = _replica_set(
+        name="rs-b",
+        uid="rs-uid-b",
+        owner_references=[
+            _owner_ref(api_version="apps/v1", kind="ReplicaSet", name="rs-a", uid="rs-uid-a")
+        ],
+    )
+    pod = _pod(
+        owner_references=[
+            _owner_ref(api_version="apps/v1", kind="ReplicaSet", name="rs-a", uid="rs-uid-a")
+        ]
+    )
+    resources = _map([rs_a, rs_b, pod])
+    result = _resolve(resources)
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.resolved_chains == ()
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_OWNER_INVALID
+
+
+def test_diagnostics_carry_a_real_file_source_pointer_not_the_logical_id_hash():
+    """Review round (PR #202): §10 requires diagnostics to carry source pointers, not only a
+    resource id hash an operator can't trace back to a YAML file."""
+    pod = _pod()
+    resources = _map_with_entries([_entry(pod, source_pointer="pods.yaml")])
+    result = _resolve(resources)
+    assert result.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
+    pointer = result.diagnostics[0].source_pointer
+    assert pointer.startswith("pods.yaml:")
+    assert "urn:aip:k8s-resource:" not in pointer
+
+
+def test_multiple_duplicate_source_pointers_are_all_preserved_in_the_diagnostic():
+    """An identical-duplicate Pod merged across two files (I2 §5/§6) must not lose either
+    contributing file's pointer when its ownership diagnostic is built."""
+    pod = _pod()
+    resources = _map_with_entries(
+        [_entry(pod, source_pointer="a.yaml"), _entry(pod, source_pointer="b.yaml")]
+    )
+    result = _resolve(resources)
+    pointer = result.diagnostics[0].source_pointer
+    assert pointer.startswith("a.yaml,b.yaml:")

@@ -103,21 +103,24 @@ class KubernetesSourceAdapter:
         evidence_refs_by_logical_id: dict[str, list[str]] = {}
 
         def _mint_evidence(logical_id: str, source_pointers: tuple[str, ...]) -> list[str]:
-            refs = sorted(
-                ids.evidence_id(KUBERNETES_SOURCE_TYPE, f"{logical_id}#{pointer}", revision)
-                for pointer in source_pointers
-            )
+            # Each pointer's evidence id is computed once and reused for both the Provenance
+            # record and the returned ref list (review round, PR #202: an earlier version
+            # recomputed it twice per pointer).
+            refs = []
             for pointer in source_pointers:
+                evidence_ref = ids.evidence_id(
+                    KUBERNETES_SOURCE_TYPE, f"{logical_id}#{pointer}", revision
+                )
                 provenance_records.append(
                     Provenance(
-                        id=ids.evidence_id(
-                            KUBERNETES_SOURCE_TYPE, f"{logical_id}#{pointer}", revision
-                        ),
+                        id=evidence_ref,
                         source_type=KUBERNETES_SOURCE_TYPE,
                         source_file=pointer,
                         source_revision=revision,
                     )
                 )
+                refs.append(evidence_ref)
+            refs.sort()
             evidence_refs_by_logical_id[logical_id] = refs
             return refs
 

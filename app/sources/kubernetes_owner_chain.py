@@ -5,13 +5,15 @@ own "sources layer = pure" discipline. `app.ingestion.kubernetes_adapter` is the
 `ResolvedOwnership` results into `InfrastructureClaim`/evidence, minting any evidence a resolved
 chain's own participants still need.
 
-§7.3's three accepted chains are Pod->StatefulSet, Pod->DaemonSet, and Pod->ReplicaSet->Deployment -
-at most two hops. This module walks exactly that bound rather than an unbounded reference-chasing
-loop: anything requiring a third hop is already "unsupported chain shape" under §7.3's own accepted-
-chain list, so a hard two-hop bound can never under- or over-accept relative to the spec, and cannot
-itself infinite-loop. A genuine cycle *within* that bound - a resource whose own controller reference
-points back at itself or at the resource that named it - is checked explicitly (see `_find_owner`'s
-callers) and rejects the source, distinct from an ordinary unsupported-shape limitation.
+§7.3's three accepted chains are Pod->StatefulSet, Pod->DaemonSet, and Pod->ReplicaSet->Deployment,
+but §7.3 also separately requires detecting "cyclic references" as a *distinct*, source-rejecting
+outcome from an ordinary "unsupported chain" limitation (review round, PR #202: an earlier version
+of this module stopped following references after two hops, so a longer cycle - e.g.
+Pod->ReplicaSet A->ReplicaSet B->ReplicaSet A - was misclassified as merely unsupported). This
+module therefore follows the *whole* reachable controller-reference chain with a visited-set,
+independent of hop count, and only classifies the terminal shape once it is certain no cycle exists
+- termination is guaranteed by the visited-set itself (a bundle has finitely many resources), not by
+an artificial hop bound.
 """
 
 from __future__ import annotations
@@ -54,10 +56,11 @@ class ResolvedOwnership:
 @dataclass(frozen=True)
 class OwnerChainResolutionResult:
     result: IngestionResult
-    """`REJECTED_INVALID` on the first `K8S_OWNER_INVALID` finding (multiple controllers or a
-    cycle) - discards everything per this codebase's "a source either fully succeeds or is
-    entirely discarded" precedent, already used throughout `kubernetes_mapping.py`.
-    `ACCEPTED_WITH_LIMITATIONS` if any Pod's chain didn't resolve; `ACCEPTED` otherwise."""
+    """`REJECTED_INVALID` on the first `K8S_OWNER_INVALID` finding (multiple controllers anywhere
+    in a reachable chain, or a cycle) - discards everything per this codebase's "a source either
+    fully succeeds or is entirely discarded" precedent, already used throughout
+    `kubernetes_mapping.py`. `ACCEPTED_WITH_LIMITATIONS` if any Pod's chain didn't resolve;
+    `ACCEPTED` otherwise."""
     resolved_chains: tuple[ResolvedOwnership, ...]
     diagnostics: tuple[IngestionDiagnostic, ...]
 
@@ -93,17 +96,33 @@ def _find_owner(
     return candidate
 
 
+def _resource_pointer(resource: MappedResource) -> str:
+    """§10: diagnostics carry "source/resource IDs where safely known, source pointers[...]" - not
+    the resource's own logical id hash alone (a real gap found in review: an operator couldn't trace
+    an unresolved/invalid owner-chain finding back to its contributing YAML file). Mirrors
+    `kubernetes_mapping._validation_error`'s own pointer shape, joining every contributing file (a
+    resource can have more than one after an identical-duplicate merge) so none are lost.
+    """
+    projection = resource.projection
+    return (
+        f"{','.join(resource.source_pointers)}:{projection['apiVersion']}/{resource.resource_kind}"
+        f"/{projection['namespace']}/{projection['name']}"
+    )
+
+
 def _limitation(resource: MappedResource, message: str) -> IngestionDiagnostic:
     return IngestionDiagnostic(
         code=DiagnosticCode.K8S_OWNER_UNRESOLVED,
         message=message,
-        source_pointer=resource.logical_id,
+        source_pointer=_resource_pointer(resource),
     )
 
 
 def _invalid(resource: MappedResource, message: str) -> IngestionDiagnostic:
     return IngestionDiagnostic(
-        code=DiagnosticCode.K8S_OWNER_INVALID, message=message, source_pointer=resource.logical_id
+        code=DiagnosticCode.K8S_OWNER_INVALID,
+        message=message,
+        source_pointer=_resource_pointer(resource),
     )
 
 
@@ -111,6 +130,57 @@ def _rejected(diagnostic: IngestionDiagnostic) -> OwnerChainResolutionResult:
     return OwnerChainResolutionResult(
         result=IngestionResult.REJECTED_INVALID, resolved_chains=(), diagnostics=(diagnostic,)
     )
+
+
+@dataclass(frozen=True)
+class _MultipleControllers:
+    offender: MappedResource
+
+
+@dataclass(frozen=True)
+class _Cycle:
+    pass
+
+
+@dataclass(frozen=True)
+class _Path:
+    resources: tuple[MappedResource, ...]
+    """The pod (`resources[0]`) followed by every resource its controller-reference chain reaches,
+    in order, up to (but not including) the point where it can no longer continue - either no
+    further controller reference exists, or the next one doesn't resolve to a real resource with a
+    matching captured UID. Never contains a cycle - `_walk_owner_chain` returns `_Cycle` instead."""
+
+
+def _walk_owner_chain(
+    pod: MappedResource, *, cluster_uid: str, by_logical_id: dict[str, MappedResource]
+) -> _MultipleControllers | _Cycle | _Path:
+    """Follows the pod's controller-reference chain as far as it reaches, checking every visited
+    resource - not only the first two hops - for multiple controllers or a repeat visit (a cycle).
+    Termination is guaranteed by the visited-set: each iteration either stops or adds one new
+    resource to it, and a bundle has finitely many resources.
+    """
+    visited_ids = {pod.logical_id}
+    path = [pod]
+    current = pod
+    while True:
+        owner_refs = _controller_references(current.projection["ownerReferences"])
+        if len(owner_refs) > 1:
+            return _MultipleControllers(current)
+        if not owner_refs:
+            return _Path(tuple(path))
+        candidate = _find_owner(
+            owner_refs[0],
+            namespace=current.projection["namespace"],
+            cluster_uid=cluster_uid,
+            by_logical_id=by_logical_id,
+        )
+        if candidate is None:
+            return _Path(tuple(path))
+        if candidate.logical_id in visited_ids:
+            return _Cycle()
+        visited_ids.add(candidate.logical_id)
+        path.append(candidate)
+        current = candidate
 
 
 def resolve_owner_chains(
@@ -132,90 +202,49 @@ def resolve_owner_chains(
     resolved: list[ResolvedOwnership] = []
 
     for pod in pods:
-        owner_refs = _controller_references(pod.projection["ownerReferences"])
-        if len(owner_refs) > 1:
-            return _rejected(_invalid(pod, "Pod has more than one controller owner reference"))
-        if not requires_capture_identity or not owner_refs:
-            diagnostics.append(_limitation(pod, "no resolvable controller owner reference"))
+        if not requires_capture_identity:
+            diagnostics.append(_limitation(pod, "declaration-only input cannot resolve ownership"))
             continue
 
-        hop1 = _find_owner(
-            owner_refs[0],
-            namespace=pod.projection["namespace"],
-            cluster_uid=cluster_uid,
-            by_logical_id=by_logical_id,
-        )
-        if hop1 is None:
-            diagnostics.append(
-                _limitation(
-                    pod,
-                    "controller owner reference does not resolve to a captured resource "
-                    "with a matching UID",
-                )
+        walked = _walk_owner_chain(pod, cluster_uid=cluster_uid, by_logical_id=by_logical_id)
+        if isinstance(walked, _MultipleControllers):
+            return _rejected(
+                _invalid(walked.offender, "resource has more than one controller owner reference")
             )
-            continue
-        if hop1.logical_id == pod.logical_id:
-            return _rejected(_invalid(pod, "cyclic owner reference chain (self-reference)"))
+        if isinstance(walked, _Cycle):
+            return _rejected(_invalid(pod, "cyclic owner reference chain"))
 
-        if hop1.resource_kind in _DIRECT_WORKLOAD_KINDS:
+        path = walked.resources
+        if len(path) == 2 and path[1].resource_kind in _DIRECT_WORKLOAD_KINDS:
             resolved.append(
                 ResolvedOwnership(
-                    workload_logical_id=hop1.logical_id,
+                    workload_logical_id=path[1].logical_id,
                     pod_logical_id=pod.logical_id,
-                    evidence_resource_logical_ids=tuple(sorted({pod.logical_id, hop1.logical_id})),
+                    evidence_resource_logical_ids=tuple(
+                        sorted(resource.logical_id for resource in path)
+                    ),
                 )
             )
-            continue
-
-        if hop1.resource_kind != _REPLICASET_KIND:
+        elif (
+            len(path) == 3
+            and path[1].resource_kind == _REPLICASET_KIND
+            and path[2].resource_kind == _DEPLOYMENT_KIND
+        ):
+            resolved.append(
+                ResolvedOwnership(
+                    workload_logical_id=path[2].logical_id,
+                    pod_logical_id=pod.logical_id,
+                    evidence_resource_logical_ids=tuple(
+                        sorted(resource.logical_id for resource in path)
+                    ),
+                )
+            )
+        else:
             diagnostics.append(
                 _limitation(
-                    pod, "controller owner reference resolves to an unsupported chain shape"
+                    pod, "controller owner reference chain does not resolve to a supported Workload"
                 )
             )
-            continue
-
-        # Second hop: ReplicaSet -> Deployment (§7.3's own bridge case). Never walked a third hop -
-        # anything a ReplicaSet's own controller reference resolves to that isn't a Deployment is
-        # already an unsupported chain shape under §7.3's own accepted-chain list.
-        bridge_owner_refs = _controller_references(hop1.projection["ownerReferences"])
-        if len(bridge_owner_refs) > 1:
-            return _rejected(
-                _invalid(hop1, "bridging ReplicaSet has more than one controller owner reference")
-            )
-        if not bridge_owner_refs:
-            diagnostics.append(
-                _limitation(pod, "bridging ReplicaSet has no controller owner reference")
-            )
-            continue
-
-        hop2 = _find_owner(
-            bridge_owner_refs[0],
-            namespace=hop1.projection["namespace"],
-            cluster_uid=cluster_uid,
-            by_logical_id=by_logical_id,
-        )
-        if hop2 is not None and hop2.logical_id in (pod.logical_id, hop1.logical_id):
-            return _rejected(_invalid(pod, "cyclic owner reference chain"))
-        if hop2 is None or hop2.resource_kind != _DEPLOYMENT_KIND:
-            diagnostics.append(
-                _limitation(
-                    pod,
-                    "bridging ReplicaSet's controller owner reference does not resolve to a "
-                    "Deployment",
-                )
-            )
-            continue
-
-        resolved.append(
-            ResolvedOwnership(
-                workload_logical_id=hop2.logical_id,
-                pod_logical_id=pod.logical_id,
-                evidence_resource_logical_ids=tuple(
-                    sorted({pod.logical_id, hop1.logical_id, hop2.logical_id})
-                ),
-            )
-        )
 
     result = IngestionResult.ACCEPTED_WITH_LIMITATIONS if diagnostics else IngestionResult.ACCEPTED
     return OwnerChainResolutionResult(
