@@ -186,15 +186,41 @@ def test_valid_matching_envelope_produces_a_correct_loaded_source(tmp_path):
     assert loaded.document.get("kind") == "KubernetesSourceSnapshot"
     assert len(loaded.kubernetes_resources) == 1
     assert loaded.kubernetes_resources[0]["metadata"]["name"] == "example"
+    # I1 spec §7.2: "Every successful load SHALL record... declared/provider revision, where
+    # available" - the envelope's own metadata.revision.
+    assert loaded.descriptor.declared_provider_revision == "snapshot-revision"
 
 
 def test_discovery_scope_id_is_identical_regardless_of_envelope_validity(tmp_path):
+    # discovery_scope_id (§6/I1's own DiscoveryScopeId formula) depends only on configured values
+    # and must never move. scope_definition_digest is different: once an envelope is accepted, its
+    # own declared namespaces participate (§8), so the digest legitimately differs from the
+    # config-only fallback used while no valid envelope has been read yet.
     config = _config(tmp_path)
     without_envelope = KubernetesSourceDiscoverer(config).discover()
     _write_bundle(tmp_path, files={"resources.yaml": _resource_yaml()})
     with_envelope = KubernetesSourceDiscoverer(config).discover()
     assert without_envelope.discovery_scope_id == with_envelope.discovery_scope_id
-    assert without_envelope.scope_definition_digest == with_envelope.scope_definition_digest
+    assert without_envelope.scope_definition_digest != with_envelope.scope_definition_digest
+
+
+def test_scope_definition_digest_changes_with_accepted_envelope_namespaces(tmp_path):
+    config = _config(tmp_path)
+    _write_bundle(tmp_path, files={"resources.yaml": _resource_yaml()})
+    first = KubernetesSourceDiscoverer(config).discover()
+
+    _write_bundle(
+        tmp_path,
+        envelope_overrides={"scope": {**_valid_envelope_dict()["scope"], "namespaces": ["other"]}},
+        files={"resources.yaml": _resource_yaml()},
+    )
+    second = KubernetesSourceDiscoverer(config).discover()
+
+    assert first.discovery_scope_id == second.discovery_scope_id
+    assert first.scope_definition_digest != second.scope_definition_digest
+    assert (
+        first.loaded_sources[0].descriptor.scope_definition_digest == first.scope_definition_digest
+    )
 
 
 # --- KubernetesSourceAdapter -------------------------------------------------------------------

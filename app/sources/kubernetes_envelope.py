@@ -460,7 +460,12 @@ def _resolve_contained_file(root: Path, root_real: Path, relative_path: str) -> 
     (missing/incomplete vs. a genuine security violation).
     """
     candidate = root / relative_path
-    real_path = candidate.resolve(strict=False)
+    try:
+        real_path = candidate.resolve(strict=False)
+    except RuntimeError:
+        # A circular symlink chain - Path.resolve() raises RuntimeError for this specific case
+        # (not OSError), and it is no more a valid, resolvable target than a missing one.
+        return None
     if not real_path.is_relative_to(root_real) or not real_path.is_file():
         return None
     return real_path
@@ -491,7 +496,17 @@ def validate_kubernetes_snapshot(
     is converted to a `KubernetesSnapshotValidationResult`, mirroring `AdapterOutcome`'s own
     "adapters MUST NOT raise" discipline (I1 spec §10) even though this runs before any adapter.
     """
-    root_real = root.resolve(strict=False)
+    try:
+        root_real = root.resolve(strict=False)
+    except RuntimeError:
+        # A circular symlink chain in the configured root itself - not an OSError (see
+        # _resolve_contained_file's own handling of the same case for a listed file).
+        return _rejected(
+            result=IngestionResult.REJECTED_INVALID,
+            code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
+            message="configured root could not be resolved",
+            source_pointer=envelope_relative_path,
+        )
     envelope_path = _resolve_contained_file(root, root_real, envelope_relative_path)
     if envelope_path is None:
         return _rejected(
@@ -502,8 +517,20 @@ def validate_kubernetes_snapshot(
         )
 
     # A bounded read, not stat()-then-read_bytes(): the latter is a TOCTOU race (the file can grow
-    # between the two calls), so the byte-total bound is enforced by the read itself.
-    envelope_bytes = _read_at_most(envelope_path, MAX_TOTAL_BYTES)
+    # between the two calls), so the byte-total bound is enforced by the read itself. A permission
+    # error or other I/O failure while opening/reading a file this codebase already confirmed
+    # exists (via _resolve_contained_file's own is_file() check) must not raise past this function's
+    # own "never raises for a source/construct-level problem" contract - it is exactly the kind of
+    # acquisition failure §10's REJECTED_INVALID/PARTIAL outcome for a required file exists for.
+    try:
+        envelope_bytes = _read_at_most(envelope_path, MAX_TOTAL_BYTES)
+    except OSError:
+        return _rejected(
+            result=IngestionResult.REJECTED_INVALID,
+            code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
+            message="envelope file could not be read",
+            source_pointer=envelope_relative_path,
+        )
     if envelope_bytes is None:
         return _rejected(
             result=IngestionResult.REJECTED_UNSUPPORTED,
@@ -559,8 +586,18 @@ def validate_kubernetes_snapshot(
             )
 
         # Bounded by the *remaining* budget, not stat()-then-read_bytes() - see _read_at_most's own
-        # docstring for why a separate size measurement before the read is a TOCTOU race.
-        file_bytes = _read_at_most(resolved, MAX_TOTAL_BYTES - total_bytes)
+        # docstring for why a separate size measurement before the read is a TOCTOU race. A
+        # permission error or other I/O failure is a required-file acquisition failure (§10), not a
+        # limit violation - it must not raise past this function's "never raises" contract.
+        try:
+            file_bytes = _read_at_most(resolved, MAX_TOTAL_BYTES - total_bytes)
+        except OSError:
+            return _rejected(
+                result=IngestionResult.REJECTED_INVALID,
+                code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
+                message="listed file could not be read",
+                source_pointer=normalized_path,
+            )
         if file_bytes is None:
             return _rejected(
                 result=IngestionResult.REJECTED_UNSUPPORTED,

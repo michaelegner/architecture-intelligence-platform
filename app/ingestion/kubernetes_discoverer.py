@@ -68,7 +68,10 @@ class KubernetesSourceDiscoverer:
                 diagnostics=(
                     IngestionDiagnostic(
                         code=DiagnosticCode.SOURCE_ROOT_UNAVAILABLE,
-                        message="configured source root does not exist or is not a directory",
+                        message=(
+                            f"configured source root does not exist or is not a directory: "
+                            f"{config.root}"
+                        ),
                         source_pointer=str(config.root),
                     ),
                 ),
@@ -160,15 +163,32 @@ class KubernetesSourceDiscoverer:
                 scope_definition_digest=scope_digest,
             )
 
+        # I2 Draft 0.2 §8: "Changing namespace filters changes the scope digest." The upfront
+        # scope_digest (config-only) is a safe non-committing fallback for the failed/mismatched
+        # cases above, which never reach a commit anyway - but an ACCEPTED envelope's own declared
+        # namespaces must participate in the persisted digest, or two accepted envelopes at the same
+        # root with different scope.namespaces would collide onto one digest, letting a later
+        # scope-narrowing be misclassified as same-scope and authorize unsafe expiry (§8).
+        accepted_scope_digest = scope_definition_digest(
+            discovery_scope_id=scope_id,
+            normalized_roots=[normalize_relative_posix_path(str(config.root))],
+            filters=sorted(envelope.scope.namespaces),
+            inclusion_rules=[],
+        )
+
         # Adapter-specific fields (semantic_input_digest, mapping_context_digest, adapter_identity,
         # mapping_rule_id, mapping_rule_version) are enriched by the orchestrator once an adapter is
         # matched, mirroring FilesystemSourceDiscoverer's own discovery-time placeholders.
+        # I1 spec §7.2: "Every successful load SHALL record... declared/provider revision, where
+        # available." The envelope's own metadata.revision is exactly that - it was previously left
+        # unset, discarding it after this function returns despite being read here.
         descriptor = SourceDescriptor(
             source_instance_id=instance_id,
             source_kind=SourceKind.KUBERNETES,
             locator=str(config.root / config.envelope_relative_path),
             discovery_scope_id=scope_id,
-            scope_definition_digest=scope_digest,
+            scope_definition_digest=accepted_scope_digest,
+            declared_provider_revision=envelope.metadata.revision,
             content_sha256=validation.envelope_content_sha256 or _EMPTY_CONTENT_SHA256,
             semantic_input_digest="",
             mapping_context_digest="",
@@ -187,7 +207,7 @@ class KubernetesSourceDiscoverer:
             enumeration_complete=True,
             diagnostics=(),
             discovery_scope_id=scope_id,
-            scope_definition_digest=scope_digest,
+            scope_definition_digest=accepted_scope_digest,
         )
 
     def _registration_binding_mismatch(
