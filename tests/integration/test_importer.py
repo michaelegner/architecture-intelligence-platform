@@ -1295,6 +1295,11 @@ def test_import_kubernetes_source_rejects_a_stale_expected_predecessor_and_prese
     assert stale.committed is False
     assert any(d.code == DiagnosticCode.STALE_INVENTORY_PREDECESSOR for d in stale.diagnostics)
     assert any(d.code == DiagnosticCode.K8S_STALE_INVENTORY for d in stale.diagnostics)
+    # §10: "K8S_STALE_INVENTORY | REJECTED_CONFLICT; no commit" - the classification must be
+    # observable on the result, not just implied by committed=False + a diagnostic code.
+    [source_stats] = list(stale.per_source.values())
+    assert source_stats.result == "REJECTED_CONFLICT"
+    assert source_stats.nodes_written == 0
 
     with driver.session(database=DATABASE) as session:
         preserved_revision = session.run(
@@ -1311,6 +1316,8 @@ def test_import_kubernetes_source_rejects_a_nonnull_predecessor_on_first_import(
     assert stats.committed is False
     assert any(d.code == DiagnosticCode.STALE_INVENTORY_PREDECESSOR for d in stats.diagnostics)
     assert any(d.code == DiagnosticCode.K8S_STALE_INVENTORY for d in stats.diagnostics)
+    [source_stats] = list(stats.per_source.values())
+    assert source_stats.result == "REJECTED_CONFLICT"
     assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 0
 
 

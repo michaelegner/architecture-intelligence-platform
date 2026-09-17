@@ -1040,8 +1040,32 @@ def import_kubernetes_source(
     # was actually checked - i.e. only for a fully-accepted Kubernetes envelope - so this never
     # spuriously fires for a rejected source or bleeds into a filesystem source's own diagnostics.
     if any(d.code == DiagnosticCode.STALE_INVENTORY_PREDECESSOR for d in stats.diagnostics):
+        # §10: "K8S_STALE_INVENTORY | REJECTED_CONFLICT; no commit." `committed=False` alone
+        # satisfies "no commit" but not the REJECTED_CONFLICT classification itself -
+        # import_discovery_run's stale-predecessor path returns per_source={} (the transaction
+        # aborted before any write), so there is nothing to rewrite there. `run_result.
+        # source_outcomes` still holds the pre-transaction (accepted-at-discovery-time) outcome for
+        # exactly this reason: staleness is a commit-time-only check (§4.2), undetectable at
+        # discovery time. Mirrors K8S_RESOURCE_CONFLICT's own precedent (`_rejected_conflict`
+        # rewriting the affected source's own result) - reconstructed here, not inside the
+        # transaction, since that is source-kind-neutral and must not classify a Kubernetes-
+        # specific outcome.
+        stale_per_source = {
+            source_instance_id: SourceImportStats(
+                source_instance_id=source_instance_id,
+                locator=run_outcome.descriptor_locator,
+                result=IngestionResult.REJECTED_CONFLICT,
+                nodes_written=0,
+                relations_written=0,
+                nodes_expired=0,
+                relations_expired=0,
+                graph_revision_advanced=False,
+            )
+            for source_instance_id, run_outcome in run_result.source_outcomes.items()
+        }
         stats = replace(
             stats,
+            per_source=stale_per_source,
             diagnostics=(
                 *stats.diagnostics,
                 IngestionDiagnostic(
