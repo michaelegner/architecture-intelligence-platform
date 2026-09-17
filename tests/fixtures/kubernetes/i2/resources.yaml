@@ -35,3 +35,23 @@ metadata:
 spec:
   selector:
     app: checkout-api
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: checkout-ingress
+  namespace: checkout
+  uid: ingress-uid-1
+  resourceVersion: "1"
+spec:
+  rules:
+  - host: checkout.example.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: checkout-api
+            port:
+              number: 80

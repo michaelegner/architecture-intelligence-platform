@@ -1,4 +1,4 @@
-from app.canonical.infrastructure import InfrastructureEntityKind
+from app.canonical.infrastructure import InfrastructureEntityKind, InfrastructurePort
 from app.sources.kubernetes_mapping import (
     SERVICE_ID_ANNOTATION,
     map_kubernetes_resources,
@@ -192,11 +192,6 @@ def test_pod_labels_are_filtered_to_only_service_selector_needed_keys():
         if e.entity.entity_kind is InfrastructureEntityKind.KUBERNETES_POD
     )
     assert pod_entity.projection["labels"] == {"app": "checkout-api"}
-    # No Service entity is emitted by this slice - only its selector keys are read.
-    assert all(
-        e.entity.entity_kind is not InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE
-        for e in result.entities
-    )
 
 
 def test_pod_with_no_matching_service_selector_retains_no_labels():
@@ -272,9 +267,15 @@ def test_entities_are_ordered_by_logical_resource_id_deterministically():
 
 
 def test_non_entity_admitted_kinds_are_included_in_resources_with_no_entity():
+    """Namespace and ReplicaSet are the two admitted kinds §7.1 keeps permanently unpromoted -
+    Service/Ingress moved out of this test once slice 3b promoted them (I2 §12 slice 3b)."""
     namespace_doc = {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": _NAMESPACE}}
-    service = _service(selector={"app": "checkout-api"})
-    result = _map([_entry(namespace_doc), _entry(service)])
+    replica_set_doc = {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "metadata": {"name": "checkout-api-1", "namespace": _NAMESPACE},
+    }
+    result = _map([_entry(namespace_doc), _entry(replica_set_doc)])
     assert result.result is IngestionResult.ACCEPTED
     assert result.entities == ()
     assert len(result.resources) == 2
@@ -492,3 +493,65 @@ def test_captured_uid_replacement_changes_the_resource_semantic_digest_input():
     assert (
         first.resources[0].resource_semantic_digest == second.resources[0].resource_semantic_digest
     )
+
+
+# --- slice 3b: Service/Ingress entity promotion --------------------------------------------
+
+
+def test_service_is_promoted_with_service_type_and_sorted_ports():
+    service = _service(selector={"app": "checkout-api"})
+    service["spec"]["type"] = "ClusterIP"
+    service["spec"]["ports"] = [
+        {"protocol": "UDP", "port": 9090},
+        {"name": "http", "port": 8080},
+    ]
+    result = _map([_entry(service)])
+    assert result.result is IngestionResult.ACCEPTED
+    [mapped] = result.entities
+    assert mapped.entity.entity_kind is InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE
+    assert mapped.entity.service_type == "ClusterIP"
+    assert mapped.entity.ports == [
+        InfrastructurePort(name=None, protocol="UDP", port=9090),
+        InfrastructurePort(name="http", protocol="TCP", port=8080),
+    ]
+    # The entity's own fields are exactly the hashed projection's own values - never re-derived.
+    assert mapped.entity.service_type == mapped.projection["serviceType"]
+    assert [p.model_dump() for p in mapped.entity.ports] == mapped.projection["ports"]
+
+
+def test_service_with_no_declared_type_or_ports_promotes_without_fabricated_defaults():
+    service = _service(selector={"app": "checkout-api"})
+    result = _map([_entry(service)])
+    [mapped] = result.entities
+    assert mapped.entity.service_type is None
+    assert mapped.entity.ports == []
+
+
+def test_ingress_is_promoted_with_no_additional_fields():
+    ingress = {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "Ingress",
+        "metadata": {"name": "checkout-ingress", "namespace": _NAMESPACE},
+    }
+    result = _map([_entry(ingress)])
+    assert result.result is IngestionResult.ACCEPTED
+    [mapped] = result.entities
+    assert mapped.entity.entity_kind is InfrastructureEntityKind.KUBERNETES_INGRESS
+    assert mapped.entity.service_type is None
+    assert mapped.entity.ports == []
+
+
+def test_namespace_and_replica_set_remain_unpromoted_alongside_promoted_kinds():
+    namespace_doc = {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": _NAMESPACE}}
+    replica_set_doc = {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "metadata": {"name": "checkout-api-1", "namespace": _NAMESPACE},
+    }
+    result = _map(
+        [_entry(_deployment()), _entry(namespace_doc), _entry(replica_set_doc)],
+    )
+    assert result.result is IngestionResult.ACCEPTED
+    entity_kinds = {e.entity.entity_kind for e in result.entities}
+    assert entity_kinds == {InfrastructureEntityKind.KUBERNETES_WORKLOAD}
+    assert len(result.resources) == 3

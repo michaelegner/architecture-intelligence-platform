@@ -138,13 +138,19 @@ def test_a_deployment_and_pod_bundle_produces_the_expected_canonical_facts(tmp_p
     assert set(entities_by_kind) == {
         InfrastructureEntityKind.KUBERNETES_WORKLOAD,
         InfrastructureEntityKind.KUBERNETES_POD,
+        InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE,
     }
     workload = entities_by_kind[InfrastructureEntityKind.KUBERNETES_WORKLOAD]
     pod = entities_by_kind[InfrastructureEntityKind.KUBERNETES_POD]
+    service = entities_by_kind[InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE]
+    # I2 §12 slice 3b: promoted with no fabricated defaults - the bundle declares no
+    # spec.type/spec.ports for its Service.
+    assert service.service_type is None
+    assert service.ports == []
 
     # One contribution per entity, evidence stamped KUBERNETES_SOURCE_TYPE and resolvable.
     contributions_by_entity = {c.entity_id: c for c in result.model.infrastructure_contributions}
-    assert set(contributions_by_entity) == {workload.id, pod.id}
+    assert set(contributions_by_entity) == {workload.id, pod.id, service.id}
     provenance_ids = {p.id for p in result.model.provenance}
     for contribution in result.model.infrastructure_contributions:
         assert contribution.evidence_refs
@@ -153,7 +159,8 @@ def test_a_deployment_and_pod_bundle_produces_the_expected_canonical_facts(tmp_p
     assert all(p.source_file == "resources.yaml" for p in result.model.provenance)
     assert all(p.source_revision == "snapshot-revision" for p in result.model.provenance)
 
-    # Exactly one WORKLOAD_EXISTS claim, for the Workload only.
+    # Exactly one WORKLOAD_EXISTS claim, for the Workload only - §7.2 defines no existence claim
+    # for KUBERNETES_NETWORK_SERVICE (or any other promoted kind).
     assert len(result.model.infrastructure_claims) == 1
     claim = result.model.infrastructure_claims[0]
     assert claim.kind is InfrastructureClaimKind.WORKLOAD_EXISTS
@@ -179,17 +186,18 @@ def test_semantic_digest_is_stable_across_yaml_document_order(tmp_path):
     assert forward.semantic_input_digest == reordered.semantic_input_digest
 
 
-def test_semantic_digest_changes_when_a_non_promoted_service_selector_value_changes(tmp_path):
-    """Review round (PR #200): a Service is never promoted to an entity by this slice, but its
-    selector VALUE (not just its keys, which already drive Pod label retention) must still
-    invalidate replay per I2 Draft 0.2 §6/§7.1 - no entity's own projection changes here."""
+def test_semantic_digest_changes_when_a_service_selector_value_changes(tmp_path):
+    """I2 Draft 0.2 §6/§7.1: a Service selector VALUE change (not just its keys, which already
+    drive Pod label retention) must invalidate replay. `selector` is part of the Service's own
+    `resource_semantic_digest`/replay input (`MappedResource.projection`), not one of
+    `InfrastructureEntity`'s own common persisted fields - so the promoted entity set itself stays
+    unchanged even though the source-level digest moves."""
     baseline = _map_bundle(tmp_path, resource_bytes=_deployment_and_pod_yaml())
     changed = _map_bundle(
         tmp_path,
         resource_bytes=_deployment_and_pod_yaml(service_selector_value="a-different-value"),
     )
     assert baseline.semantic_input_digest != changed.semantic_input_digest
-    # Neither promoted entity's own projection changed - only the untouched Service resource's did.
     baseline_entities = {e.entity_kind: e for e in baseline.model.infrastructure_entities}
     changed_entities = {e.entity_kind: e for e in changed.model.infrastructure_entities}
     assert baseline_entities.keys() == changed_entities.keys()
