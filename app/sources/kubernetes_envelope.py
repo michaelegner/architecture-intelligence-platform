@@ -20,7 +20,12 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from app.sources.encoding import sha256_hex
-from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult
+from app.sources.model import (
+    DiagnosticCode,
+    IngestionDiagnostic,
+    IngestionResult,
+    KubernetesResourceEntry,
+)
 
 # I2 Draft 0.2 §4.3: "parser nesting is bounded to 64 levels."
 MAX_YAML_NESTING_DEPTH = 64
@@ -381,7 +386,9 @@ def _is_list_container(document: dict) -> bool:
     return document.get("apiVersion") == "v1" and document.get("kind") == "List"
 
 
-def _expand_resource_documents(documents: list[Any], *, source_pointer: str) -> list[dict]:
+def _expand_resource_documents(
+    documents: list[Any], *, source_pointer: str
+) -> list[KubernetesResourceEntry]:
     """§4.3: "v1/List is a container whose items are validated individually, not an architecture
     entity. Nested List containers are rejected." Flattens each resource file's own top-level
     document list so every caller downstream sees a flat resource-object list, with each List's own
@@ -393,7 +400,7 @@ def _expand_resource_documents(documents: list[Any], *, source_pointer: str) -> 
     paragraph - file-count/byte-size/object-count bounds, List nesting, and the alias/tag/nesting-
     depth trio together - not only the sentence immediately preceding it.
     """
-    expanded: list[dict] = []
+    expanded: list[KubernetesResourceEntry] = []
     for document in documents:
         if not isinstance(document, dict):
             raise KubernetesEnvelopeMalformedError(
@@ -414,9 +421,13 @@ def _expand_resource_documents(documents: list[Any], *, source_pointer: str) -> 
                     raise KubernetesEnvelopeLimitExceeded(
                         f"{source_pointer}: nested List containers are rejected"
                     )
-                expanded.append(item)
+                expanded.append(
+                    KubernetesResourceEntry(source_pointer=source_pointer, document=item)
+                )
         else:
-            expanded.append(document)
+            expanded.append(
+                KubernetesResourceEntry(source_pointer=source_pointer, document=document)
+            )
     return expanded
 
 
@@ -432,7 +443,7 @@ class KubernetesSnapshotValidationResult:
 
     result: IngestionResult
     envelope: KubernetesSourceSnapshot | None
-    resources: tuple[dict, ...]
+    resources: tuple[KubernetesResourceEntry, ...]
     envelope_content_sha256: str | None
     diagnostics: tuple[IngestionDiagnostic, ...]
 
@@ -580,7 +591,7 @@ def validate_kubernetes_snapshot(
         )
 
     total_bytes = len(envelope_bytes)
-    resources: list[dict] = []
+    resources: list[KubernetesResourceEntry] = []
     for file_entry in envelope.files:
         normalized_path = _normalize_relative_file_path(file_entry.path)
         resolved = _resolve_contained_file(root, root_real, normalized_path)

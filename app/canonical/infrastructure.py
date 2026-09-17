@@ -155,12 +155,19 @@ class InfrastructureContribution(BaseModel):
     mapping_rule_version." `resource_semantic_digest` is an opaque, already-computed digest string
     here - computing it from real Kubernetes resource content is the adapter's job (I2 §12 slice 3),
     not this Canonical Model layer's.
+
+    `captured_resource_uid` is additive (I2 §12 slice 3a review round): §7.1 also states "Two
+    current captured contributions that bind the same logical resource to different UIDs are
+    likewise incompatible incarnations" - a conflict rule independent of `resource_semantic_digest`
+    equality, since §7.1's own digest definition explicitly excludes capture-only UID. `None` for a
+    `DECLARED_MANIFEST` contribution, or a `CAPTURED_RESOURCE` one this adapter version predates.
     """
 
     entity_id: str = Field(min_length=1)
     source_instance_id: str = Field(min_length=1)
     evidence_mode: KubernetesEvidenceMode
     resource_semantic_digest: str = Field(min_length=1)
+    captured_resource_uid: str | None = None
     evidence_refs: list[str] = Field(default_factory=list)
     mapping_rule_id: str = Field(min_length=1)
     mapping_rule_version: str = Field(min_length=1)

@@ -71,10 +71,15 @@ def _valid_envelope_dict() -> dict:
     }
 
 
-def _resource_yaml(name: str = "example") -> bytes:
-    return yaml.safe_dump(
-        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": name}}
-    ).encode()
+def _resource_yaml(
+    name: str = "example", *, uid: str | None = None, resource_version: str | None = None
+) -> bytes:
+    metadata = {"name": name}
+    if uid is not None:
+        metadata["uid"] = uid
+    if resource_version is not None:
+        metadata["resourceVersion"] = resource_version
+    return yaml.safe_dump({"apiVersion": "v1", "kind": "Namespace", "metadata": metadata}).encode()
 
 
 def _write_bundle(
@@ -190,7 +195,8 @@ def test_valid_matching_envelope_produces_a_correct_loaded_source(tmp_path):
     assert loaded.descriptor.source_instance_id.startswith("urn:aip:source:kubernetes:")
     assert loaded.document.get("kind") == "KubernetesSourceSnapshot"
     assert len(loaded.kubernetes_resources) == 1
-    assert loaded.kubernetes_resources[0]["metadata"]["name"] == "example"
+    assert loaded.kubernetes_resources[0].document["metadata"]["name"] == "example"
+    assert loaded.kubernetes_resources[0].source_pointer == "resources.yaml"
     # I1 spec §7.2: "Every successful load SHALL record... declared/provider revision, where
     # available" - the envelope's own metadata.revision.
     assert loaded.descriptor.declared_provider_revision == "snapshot-revision"
@@ -308,7 +314,13 @@ def test_unreadable_root_classifies_the_run_as_partial_not_failed(tmp_path):
 
 
 def test_valid_matching_envelope_classifies_the_run_as_complete(tmp_path):
-    _write_bundle(tmp_path, files={"resources.yaml": _resource_yaml()})
+    # CAPTURED_RESOURCE mode (_MATCHING_CONFIG_KWARGS) needs a capture-identity-valid resource for
+    # the adapter's own kubernetes_mapping validation to accept the source (see the adapter test
+    # above for why a bare Namespace still maps to an empty model).
+    _write_bundle(
+        tmp_path,
+        files={"resources.yaml": _resource_yaml(uid="namespace-uid", resource_version="1")},
+    )
     config = _config(tmp_path)
     result = run_kubernetes_discovery(config)
     assert result.inventory_status is InventoryStatus.COMPLETE
@@ -383,7 +395,14 @@ def test_adapter_maps_each_diagnostic_code_to_the_correct_result():
 
 
 def test_adapter_accepts_a_clean_loaded_source_with_an_empty_model(tmp_path):
-    _write_bundle(tmp_path, files={"resources.yaml": _resource_yaml()})
+    # _MATCHING_CONFIG_KWARGS declares CAPTURED_RESOURCE evidence mode, so the one bundled
+    # resource needs metadata.uid/resourceVersion to pass kubernetes_mapping's own per-resource
+    # validation - a bare Namespace is never promoted to an entity either way (I2 §7.1 only
+    # promotes Workload/Pod kinds), so the model stays empty.
+    _write_bundle(
+        tmp_path,
+        files={"resources.yaml": _resource_yaml(uid="namespace-uid", resource_version="1")},
+    )
     config = _config(tmp_path)
     outcome = KubernetesSourceDiscoverer(config).discover()
     loaded = outcome.loaded_sources[0]
@@ -394,4 +413,7 @@ def test_adapter_accepts_a_clean_loaded_source_with_an_empty_model(tmp_path):
     assert result.diagnostics == ()
     assert result.semantic_input_digest is not None
     assert result.model.infrastructure_entities == []
+    assert result.model.infrastructure_contributions == []
+    assert result.model.infrastructure_claims == []
+    assert result.model.provenance == []
     assert result.model.services == []
