@@ -6,7 +6,12 @@ from dataclasses import asdict
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.deps import get_driver, get_settings
-from app.graph.importer import ImportRunStats, SourceImportStats, import_all_sources
+from app.graph.importer import (
+    ImportRunStats,
+    SourceImportStats,
+    import_all_sources,
+    import_kubernetes_source,
+)
 from app.graph.repository import open_session
 from app.settings import Settings
 from app.sources.migration_mappings import load_migration_mappings
@@ -80,6 +85,18 @@ def _run_all_configured_sources(settings: Settings, driver) -> tuple[str, list[I
             driver,
             database=settings.config.graph.database,
             source_config=source_config,
+            migration_mappings=migration_index,
+            tombstones=tombstones,
+        )
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        _log_run(import_id, run_stats, duration_ms)
+        run_results.append(run_stats)
+    for cluster_config in settings.config.sources.clusters:
+        start = time.perf_counter()
+        run_stats = import_kubernetes_source(
+            driver,
+            database=settings.config.graph.database,
+            source_config=cluster_config,
             migration_mappings=migration_index,
             tombstones=tombstones,
         )

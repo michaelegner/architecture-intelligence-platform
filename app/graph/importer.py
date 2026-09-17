@@ -7,7 +7,11 @@ from app.canonical.model import ArchitectureModel
 from app.graph.repository import open_session
 from app.graph.revision_fence import bump_revision
 from app.graph.schema import ensure_schema
-from app.ingestion.orchestrator import DiscoveryRunResult, run_filesystem_discovery
+from app.ingestion.orchestrator import (
+    DiscoveryRunResult,
+    run_filesystem_discovery,
+    run_kubernetes_discovery,
+)
 from app.sources.claim_reconciliation import plan_source_claim_reconciliation
 from app.sources.encoding import length_delimited, sha256_hex
 from app.sources.inventory import InventoryStatus
@@ -19,6 +23,7 @@ from app.sources.model import (
     FilesystemSourceConfig,
     IngestionDiagnostic,
     IngestionResult,
+    KubernetesSourceConfig,
 )
 from app.sources.removal_authority import authorize_source_removal
 from app.sources.replay import ReplayCase, classify_replay_case
@@ -1010,3 +1015,23 @@ def import_all_sources(
         run_result=run_result,
         expected_prior_inventory_revision=expected_prior_inventory_revision,
     )
+
+
+def import_kubernetes_source(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    source_config: KubernetesSourceConfig,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+) -> ImportRunStats:
+    """Thin wrapper over `run_kubernetes_discovery` + `import_discovery_run` for the Kubernetes
+    source kind, mirroring `import_all_sources`'s exact shape (I2 Draft 0.2 slice 2b-i). No
+    `expected_prior_inventory_revision` parameter yet - threading the envelope's own
+    `completeness.expectedPriorInventoryRevision` into the predecessor-check transaction is slice
+    2b-ii's job.
+    """
+    run_result = run_kubernetes_discovery(
+        source_config, migration_mappings=migration_mappings, tombstones=tombstones
+    )
+    return import_discovery_run(driver, database=database, run_result=run_result)

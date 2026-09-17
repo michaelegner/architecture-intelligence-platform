@@ -75,6 +75,44 @@ def test_sources_directories_defaults_scope_id_and_target_identity_from_id(tmp_p
     assert source.resolved_stable_target_identity == "urn:aip:logical-root:my-repos"
 
 
+def test_sources_clusters_defaults_to_empty_list(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(CONFIG_YAML)
+
+    config = load_config(config_path)
+
+    assert config.sources.clusters == []
+
+
+def test_sources_clusters_parses_a_configured_kubernetes_source(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "architecture_intelligence:\n"
+        "  sources:\n"
+        "    clusters:\n"
+        "      - id: checkout-cluster\n"
+        "        root: tests/fixtures/kubernetes/i2\n"
+        "        envelope_relative_path: envelope.yaml\n"
+        "        configured_scope_id: checkout-cluster-namespaces\n"
+        "        cluster_uid: d3adbeef-0000-4000-8000-000000000001\n"
+        "        evidence_mode: CAPTURED_RESOURCE\n"
+        "        authorized_producer: aip-kubernetes-capture-agent\n"
+        "        authority_record: checkout-cluster-capture-authority\n"
+    )
+
+    config = load_config(config_path)
+
+    assert len(config.sources.clusters) == 1
+    cluster = config.sources.clusters[0]
+    assert cluster.id == "checkout-cluster"
+    assert cluster.root == Path("tests/fixtures/kubernetes/i2")
+    assert cluster.resolved_scope_id == "checkout-cluster-namespaces"
+    assert (
+        cluster.resolved_stable_target_identity
+        == "urn:aip:k8s-cluster:d3adbeef-0000-4000-8000-000000000001"
+    )
+
+
 def test_sources_migrations_defaults_to_empty_list(tmp_path):
     config_path = tmp_path / "config.yaml"
     config_path.write_text(CONFIG_YAML)
