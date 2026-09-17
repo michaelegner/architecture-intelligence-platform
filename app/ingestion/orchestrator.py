@@ -26,6 +26,8 @@ from app.canonical.infrastructure import (
 from app.canonical.model import ArchitectureModel, Message, Operation, Queue, Schema, Service
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
+from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
+from app.ingestion.kubernetes_discoverer import KubernetesSourceDiscoverer
 from app.ingestion.manifest_adapter import ManifestSourceAdapter
 from app.ingestion.openapi_adapter import OpenApiSourceAdapter
 from app.provenance.model import Provenance
@@ -54,10 +56,13 @@ from app.sources.migration_mappings import (
     SharedIdentityMappingIndex,
 )
 from app.sources.model import (
+    NOT_SUPPLIED,
     DiagnosticCode,
     FilesystemSourceConfig,
     IngestionDiagnostic,
     IngestionResult,
+    KubernetesSourceConfig,
+    NotSupplied,
 )
 from app.sources.registry import AdapterOutcome, SourceAdapterRegistry, SourceDiscoverer
 from app.sources.service_identity import (
@@ -67,7 +72,12 @@ from app.sources.service_identity import (
 )
 from app.sources.tombstones import Tombstone
 
-_DEFAULT_ADAPTERS = (OpenApiSourceAdapter(), AsyncApiSourceAdapter(), ManifestSourceAdapter())
+_DEFAULT_ADAPTERS = (
+    OpenApiSourceAdapter(),
+    AsyncApiSourceAdapter(),
+    ManifestSourceAdapter(),
+    KubernetesSourceAdapter(),
+)
 
 
 def default_registry() -> SourceAdapterRegistry:
@@ -366,6 +376,10 @@ class DiscoveryRunResult:
     # cannot meaningfully identify the inventory it describes without a scope id, mirroring
     # `DiscoveryOutcome.discovery_scope_id`'s own documented "scope itself unknown" meaning.
     inventory_snapshot: SourceInventorySnapshot | None = None
+    # I2 Draft 0.2 §4.2 (slice 2b-ii): a pure pass-through of `DiscoveryOutcome`'s own field of the
+    # same name - see that field's own docstring. `run_discovery()` never inspects or modifies this
+    # value itself, only forwards it to whatever calls `import_discovery_run`.
+    expected_prior_inventory_revision: str | None | NotSupplied = NOT_SUPPLIED
 
 
 def _build_inventory_snapshot(
@@ -462,6 +476,7 @@ def run_discovery(
                 diagnostics=discovery_outcome.diagnostics,
                 tombstones=tombstones,
             ),
+            expected_prior_inventory_revision=discovery_outcome.expected_prior_inventory_revision,
         )
 
     # Canonical order (by source_instance_id) so permuting discovery order can never change the
@@ -519,6 +534,7 @@ def run_discovery(
                 diagnostics=run_diagnostics,
                 tombstones=tombstones,
             ),
+            expected_prior_inventory_revision=discovery_outcome.expected_prior_inventory_revision,
         )
 
     resolver = _RunServiceIdentityResolver(_binding_index_to_pointer_bindings(binding_index))
@@ -568,6 +584,13 @@ def run_discovery(
             source_outcomes[source_instance_id] = SourceRunOutcome(
                 descriptor_locator=loaded.descriptor.locator, outcome=outcome
             )
+            # A matched adapter's own diagnostics (e.g. why it rejected this source) must be
+            # visible at the run level too - `import_discovery_run`'s not-commit-eligible early
+            # return discards `source_outcomes` entirely, so without this, a rejected source's own
+            # reason would be invisible past discovery. A real gap found while wiring the
+            # Kubernetes discoverer/adapter (I2 Draft 0.2 slice 2b-i): no prior source kind's tests
+            # exercised a matched-but-rejected source through the full import pipeline.
+            run_diagnostics.extend(outcome.diagnostics)
             phase_models.append(outcome.model)
 
         phase_upstream_model = merge_models([phase_upstream_model, *phase_models])
@@ -642,6 +665,7 @@ def run_discovery(
                 diagnostics=run_diagnostics,
                 tombstones=tombstones,
             ),
+            expected_prior_inventory_revision=discovery_outcome.expected_prior_inventory_revision,
         )
 
     merged_model = merge_models(source_models)
@@ -668,6 +692,7 @@ def run_discovery(
             diagnostics=run_diagnostics,
             tombstones=tombstones,
         ),
+        expected_prior_inventory_revision=discovery_outcome.expected_prior_inventory_revision,
     )
 
 
@@ -682,6 +707,23 @@ def run_filesystem_discovery(
     existing caller/test keeps working unchanged."""
     return run_discovery(
         FilesystemSourceDiscoverer(config),
+        registry=registry,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+    )
+
+
+def run_kubernetes_discovery(
+    config: KubernetesSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+) -> DiscoveryRunResult:
+    """Thin wrapper over `run_discovery` for the Kubernetes source kind, mirroring
+    `run_filesystem_discovery`'s exact shape (I2 Draft 0.2 slice 2b-i)."""
+    return run_discovery(
+        KubernetesSourceDiscoverer(config),
         registry=registry,
         migration_mappings=migration_mappings,
         tombstones=tombstones,

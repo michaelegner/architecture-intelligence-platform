@@ -20,7 +20,12 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from app.sources.encoding import sha256_hex
-from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult
+from app.sources.model import (
+    DiagnosticCode,
+    IngestionDiagnostic,
+    IngestionResult,
+    KubernetesResourceEntry,
+)
 
 # I2 Draft 0.2 §4.3: "parser nesting is bounded to 64 levels."
 MAX_YAML_NESTING_DEPTH = 64
@@ -381,7 +386,9 @@ def _is_list_container(document: dict) -> bool:
     return document.get("apiVersion") == "v1" and document.get("kind") == "List"
 
 
-def _expand_resource_documents(documents: list[Any], *, source_pointer: str) -> list[dict]:
+def _expand_resource_documents(
+    documents: list[Any], *, source_pointer: str
+) -> list[KubernetesResourceEntry]:
     """§4.3: "v1/List is a container whose items are validated individually, not an architecture
     entity. Nested List containers are rejected." Flattens each resource file's own top-level
     document list so every caller downstream sees a flat resource-object list, with each List's own
@@ -393,7 +400,7 @@ def _expand_resource_documents(documents: list[Any], *, source_pointer: str) -> 
     paragraph - file-count/byte-size/object-count bounds, List nesting, and the alias/tag/nesting-
     depth trio together - not only the sentence immediately preceding it.
     """
-    expanded: list[dict] = []
+    expanded: list[KubernetesResourceEntry] = []
     for document in documents:
         if not isinstance(document, dict):
             raise KubernetesEnvelopeMalformedError(
@@ -414,9 +421,13 @@ def _expand_resource_documents(documents: list[Any], *, source_pointer: str) -> 
                     raise KubernetesEnvelopeLimitExceeded(
                         f"{source_pointer}: nested List containers are rejected"
                     )
-                expanded.append(item)
+                expanded.append(
+                    KubernetesResourceEntry(source_pointer=source_pointer, document=item)
+                )
         else:
-            expanded.append(document)
+            expanded.append(
+                KubernetesResourceEntry(source_pointer=source_pointer, document=document)
+            )
     return expanded
 
 
@@ -432,7 +443,7 @@ class KubernetesSnapshotValidationResult:
 
     result: IngestionResult
     envelope: KubernetesSourceSnapshot | None
-    resources: tuple[dict, ...]
+    resources: tuple[KubernetesResourceEntry, ...]
     envelope_content_sha256: str | None
     diagnostics: tuple[IngestionDiagnostic, ...]
 
@@ -460,8 +471,19 @@ def _resolve_contained_file(root: Path, root_real: Path, relative_path: str) -> 
     (missing/incomplete vs. a genuine security violation).
     """
     candidate = root / relative_path
-    real_path = candidate.resolve(strict=False)
-    if not real_path.is_relative_to(root_real) or not real_path.is_file():
+    try:
+        real_path = candidate.resolve(strict=False)
+        is_contained_file = real_path.is_relative_to(root_real) and real_path.is_file()
+    except RuntimeError:
+        # A circular symlink chain - Path.resolve() raises RuntimeError for this specific case
+        # (not OSError), and it is no more a valid, resolvable target than a missing one.
+        return None
+    except OSError:
+        # A permission error resolving or stat()-ing the path (e.g. a non-traversable intermediate
+        # directory) - is_file() does not uniformly swallow this the way it does a plain "doesn't
+        # exist", so it must be caught explicitly here too.
+        return None
+    if not is_contained_file:
         return None
     return real_path
 
@@ -491,7 +513,18 @@ def validate_kubernetes_snapshot(
     is converted to a `KubernetesSnapshotValidationResult`, mirroring `AdapterOutcome`'s own
     "adapters MUST NOT raise" discipline (I1 spec §10) even though this runs before any adapter.
     """
-    root_real = root.resolve(strict=False)
+    try:
+        root_real = root.resolve(strict=False)
+    except (RuntimeError, OSError):
+        # RuntimeError: a circular symlink chain in the configured root itself. OSError: a
+        # permission error resolving it (e.g. a non-traversable intermediate directory) - see
+        # _resolve_contained_file's own handling of the same two cases for a listed file.
+        return _rejected(
+            result=IngestionResult.REJECTED_INVALID,
+            code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
+            message="configured root could not be resolved",
+            source_pointer=envelope_relative_path,
+        )
     envelope_path = _resolve_contained_file(root, root_real, envelope_relative_path)
     if envelope_path is None:
         return _rejected(
@@ -502,8 +535,20 @@ def validate_kubernetes_snapshot(
         )
 
     # A bounded read, not stat()-then-read_bytes(): the latter is a TOCTOU race (the file can grow
-    # between the two calls), so the byte-total bound is enforced by the read itself.
-    envelope_bytes = _read_at_most(envelope_path, MAX_TOTAL_BYTES)
+    # between the two calls), so the byte-total bound is enforced by the read itself. A permission
+    # error or other I/O failure while opening/reading a file this codebase already confirmed
+    # exists (via _resolve_contained_file's own is_file() check) must not raise past this function's
+    # own "never raises for a source/construct-level problem" contract - it is exactly the kind of
+    # acquisition failure §10's REJECTED_INVALID/PARTIAL outcome for a required file exists for.
+    try:
+        envelope_bytes = _read_at_most(envelope_path, MAX_TOTAL_BYTES)
+    except OSError:
+        return _rejected(
+            result=IngestionResult.REJECTED_INVALID,
+            code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
+            message="envelope file could not be read",
+            source_pointer=envelope_relative_path,
+        )
     if envelope_bytes is None:
         return _rejected(
             result=IngestionResult.REJECTED_UNSUPPORTED,
@@ -546,7 +591,7 @@ def validate_kubernetes_snapshot(
         )
 
     total_bytes = len(envelope_bytes)
-    resources: list[dict] = []
+    resources: list[KubernetesResourceEntry] = []
     for file_entry in envelope.files:
         normalized_path = _normalize_relative_file_path(file_entry.path)
         resolved = _resolve_contained_file(root, root_real, normalized_path)
@@ -559,8 +604,18 @@ def validate_kubernetes_snapshot(
             )
 
         # Bounded by the *remaining* budget, not stat()-then-read_bytes() - see _read_at_most's own
-        # docstring for why a separate size measurement before the read is a TOCTOU race.
-        file_bytes = _read_at_most(resolved, MAX_TOTAL_BYTES - total_bytes)
+        # docstring for why a separate size measurement before the read is a TOCTOU race. A
+        # permission error or other I/O failure is a required-file acquisition failure (§10), not a
+        # limit violation - it must not raise past this function's "never raises" contract.
+        try:
+            file_bytes = _read_at_most(resolved, MAX_TOTAL_BYTES - total_bytes)
+        except OSError:
+            return _rejected(
+                result=IngestionResult.REJECTED_INVALID,
+                code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
+                message="listed file could not be read",
+                source_pointer=normalized_path,
+            )
         if file_bytes is None:
             return _rejected(
                 result=IngestionResult.REJECTED_UNSUPPORTED,

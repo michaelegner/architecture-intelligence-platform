@@ -1,5 +1,6 @@
 import hashlib
 import io
+import os
 from pathlib import Path
 from typing import Self
 
@@ -351,8 +352,9 @@ def test_validate_kubernetes_snapshot_accepts_the_checked_in_real_fixture_bundle
     assert result.result is IngestionResult.ACCEPTED
     assert result.envelope is not None
     assert result.envelope.source.cluster_uid == "d3adbeef-0000-4000-8000-000000000001"
-    resource_kinds = sorted(resource["kind"] for resource in result.resources)
-    assert resource_kinds == ["Deployment", "Namespace", "Pod", "Service"]
+    resource_kinds = sorted(entry.document["kind"] for entry in result.resources)
+    assert resource_kinds == ["Deployment", "Ingress", "Namespace", "Pod", "Service"]
+    assert all(entry.source_pointer == "resources.yaml" for entry in result.resources)
 
 
 def test_validate_kubernetes_snapshot_accepts_a_well_formed_bundle(tmp_path):
@@ -360,9 +362,13 @@ def test_validate_kubernetes_snapshot_accepts_a_well_formed_bundle(tmp_path):
     result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert result.result is IngestionResult.ACCEPTED
     assert result.diagnostics == ()
-    assert result.resources == (
-        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": "example"}},
-    )
+    assert len(result.resources) == 1
+    assert result.resources[0].source_pointer == "resources.yaml"
+    assert result.resources[0].document == {
+        "apiVersion": "v1",
+        "kind": "Namespace",
+        "metadata": {"name": "example"},
+    }
     assert result.envelope_content_sha256 is not None
     assert isinstance(result.envelope, KubernetesSourceSnapshot)
 
@@ -378,6 +384,46 @@ def test_missing_envelope_file_is_rejected(tmp_path):
     result = validate_kubernetes_snapshot(
         root=tmp_path, envelope_relative_path="does-not-exist.yaml"
     )
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root bypasses permission bits, chmod is a no-op")
+def test_unreadable_envelope_file_is_rejected(tmp_path):
+    envelope_path = tmp_path / "envelope.yaml"
+    envelope_path.write_bytes(_valid_envelope_bytes())
+    envelope_path.chmod(0o000)
+    try:
+        result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
+    finally:
+        envelope_path.chmod(0o644)
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root bypasses permission bits, chmod is a no-op")
+def test_unreadable_listed_file_is_rejected(tmp_path):
+    content = _resource_yaml()
+    doc = _valid_envelope_dict()
+    doc["files"] = [{"path": "resources.yaml", "sha256": hashlib.sha256(content).hexdigest()}]
+    (tmp_path / "envelope.yaml").write_bytes(_dump(doc))
+    resource_path = tmp_path / "resources.yaml"
+    resource_path.write_bytes(content)
+    resource_path.chmod(0o000)
+    try:
+        result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
+    finally:
+        resource_path.chmod(0o644)
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE
+
+
+def test_circular_symlink_envelope_is_rejected(tmp_path):
+    envelope_path = tmp_path / "envelope.yaml"
+    other = tmp_path / "other.yaml"
+    envelope_path.symlink_to(other)
+    other.symlink_to(envelope_path)
+    result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert result.result is IngestionResult.REJECTED_INVALID
     assert result.diagnostics[0].code is DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE
 
@@ -662,7 +708,8 @@ def test_v1_list_is_expanded_into_individual_items(tmp_path):
     result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert result.result is IngestionResult.ACCEPTED
     assert len(result.resources) == 2
-    assert {r["metadata"]["name"] for r in result.resources} == {"a", "b"}
+    assert {entry.document["metadata"]["name"] for entry in result.resources} == {"a", "b"}
+    assert all(entry.source_pointer == "resources.yaml" for entry in result.resources)
 
 
 def test_nested_list_is_rejected(tmp_path):
@@ -690,7 +737,8 @@ def test_non_v1_list_kind_is_not_expanded_as_a_container(tmp_path):
     result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert result.result is IngestionResult.ACCEPTED
     assert len(result.resources) == 1
-    assert result.resources[0] == not_a_v1_list
+    assert result.resources[0].document == not_a_v1_list
+    assert result.resources[0].source_pointer == "resources.yaml"
 
 
 def test_non_v1_list_kind_nested_inside_a_real_v1_list_is_not_rejected_as_nested(tmp_path):
@@ -705,4 +753,9 @@ def test_non_v1_list_kind_nested_inside_a_real_v1_list_is_not_rejected_as_nested
     _write_bundle(tmp_path, files={"resources.yaml": yaml.safe_dump(outer_list).encode()})
     result = validate_kubernetes_snapshot(root=tmp_path, envelope_relative_path="envelope.yaml")
     assert result.result is IngestionResult.ACCEPTED
-    assert result.resources == ({"apiVersion": "custom.io/v2", "kind": "List", "items": []},)
+    assert len(result.resources) == 1
+    assert result.resources[0].document == {
+        "apiVersion": "custom.io/v2",
+        "kind": "List",
+        "items": [],
+    }
