@@ -29,4 +29,4 @@ completeness:
   expectedPriorInventoryRevision: null
 files:
 - path: resources.yaml
-  sha256: 5705a75914af6bc9c1554b219653dc23da429acc19e500df90aa34007f4f4927
+  sha256: 7ee1483aa88357b513498266ad6e4f352b6c3cd3f8550672c3f9dcd6b3e7a47f

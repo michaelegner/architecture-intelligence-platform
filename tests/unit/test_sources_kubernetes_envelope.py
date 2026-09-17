@@ -353,7 +353,7 @@ def test_validate_kubernetes_snapshot_accepts_the_checked_in_real_fixture_bundle
     assert result.envelope is not None
     assert result.envelope.source.cluster_uid == "d3adbeef-0000-4000-8000-000000000001"
     resource_kinds = sorted(entry.document["kind"] for entry in result.resources)
-    assert resource_kinds == ["Deployment", "Ingress", "Namespace", "Pod", "Service"]
+    assert resource_kinds == ["Deployment", "Ingress", "Namespace", "Pod", "ReplicaSet", "Service"]
     assert all(entry.source_pointer == "resources.yaml" for entry in result.resources)
 
 

@@ -1178,11 +1178,13 @@ def _matching_kubernetes_config(**overrides) -> KubernetesSourceConfig:
 
 
 def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(driver):
-    """I2 §12 slices 3a/3b: the fixture bundle (Namespace/Deployment/Pod/Service/Ingress) flows all
-    the way through the real `KubernetesSourceAdapter`/`kubernetes_mapping` into committed
-    `InfrastructureEntity`/`Contribution` nodes for all four §7.1 entity kinds, plus the one
-    `WORKLOAD_EXISTS` claim - this is PR B's conflict/write machinery going live against a real
-    adapter's output across every promoted kind, not only Workload/Pod (slice 3a's own scope).
+    """I2 §12 slices 3a/3b/4a: the fixture bundle (Namespace/Deployment/ReplicaSet/Pod/Service/
+    Ingress) flows all the way through the real `KubernetesSourceAdapter`/`kubernetes_mapping`/
+    `kubernetes_owner_chain` into committed `InfrastructureEntity`/`Contribution` nodes for all
+    four §7.1 entity kinds, plus the `WORKLOAD_EXISTS` and `WORKLOAD_OWNS_POD` claims - this is PR
+    B's conflict/write machinery going live against a real adapter's output across every promoted
+    kind and a real resolved owner chain (Pod -> ReplicaSet -> Deployment), not only Workload/Pod
+    entity creation (slice 3a's own scope).
     """
     config = _matching_kubernetes_config()
     stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
@@ -1202,12 +1204,24 @@ def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(d
             "ORDER BY e.entity_kind"
         ).data()
         claims = session.run(
-            "MATCH (c:InfrastructureClaim) RETURN c.kind AS kind, c.object_id AS object_id"
+            "MATCH (c:InfrastructureClaim) RETURN c.kind AS kind, c.object_id AS object_id "
+            "ORDER BY c.kind"
         ).data()
         service = session.run(
             "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_NETWORK_SERVICE'}) "
             "RETURN e.service_type AS service_type, e.ports AS ports"
         ).single()
+        ownership = session.run(
+            "MATCH (c:InfrastructureClaim {kind: 'WORKLOAD_OWNS_POD'}) "
+            "RETURN c.subject_id AS subject_id, c.object_id AS object_id, "
+            "c.evidence_refs AS evidence_refs"
+        ).single()
+        workload_id = session.run(
+            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_WORKLOAD'}) RETURN e.id AS id"
+        ).single()["id"]
+        pod_id = session.run(
+            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_POD'}) RETURN e.id AS id"
+        ).single()["id"]
     assert record is not None
     assert record["revision"] is not None
     assert record["scope"] is not None
@@ -1218,10 +1232,19 @@ def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(d
         {"kind": "KUBERNETES_POD", "name": "checkout-api-abcde"},
         {"kind": "KUBERNETES_WORKLOAD", "name": "checkout-api"},
     ]
-    assert claims == [{"kind": "WORKLOAD_EXISTS", "object_id": None}]
+    assert claims == [
+        {"kind": "WORKLOAD_EXISTS", "object_id": None},
+        {"kind": "WORKLOAD_OWNS_POD", "object_id": pod_id},
+    ]
     # The fixture's Service declares no spec.type/spec.ports - no fabricated defaults (§5).
     assert service["service_type"] is None
     assert service["ports"] == []
+    # The resolved 2-hop chain (Pod -> ReplicaSet -> Deployment): the claim relates the real
+    # Workload/Pod entities, and its evidence includes a real id for the bridging ReplicaSet, which
+    # has no InfrastructureContribution of its own (§7.1 keeps ReplicaSet permanently unpromoted).
+    assert ownership["subject_id"] == workload_id
+    assert ownership["object_id"] == pod_id
+    assert len(ownership["evidence_refs"]) == 3
 
 
 def test_import_kubernetes_source_registration_mismatch_prevents_commit(driver):
@@ -1459,6 +1482,112 @@ def test_two_kubernetes_sources_with_conflicting_content_for_one_logical_resourc
     stats = import_discovery_run(driver, database=DATABASE, run_result=run_result)
     assert stats.committed is False
     assert stats.per_source == {}
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 0
+    assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 0
+
+
+# I2 Draft 0.2 §7.3 (slice 4a): a Pod with more than one controller owner reference rejects the
+# whole source (K8S_OWNER_INVALID) - driven through the real discoverer/adapter so the rejection
+# is proven against real owner-chain resolution, not a hand-built model.
+
+
+def _write_multiple_controllers_kubernetes_bundle(root: Path) -> KubernetesSourceConfig:
+    root.mkdir(parents=True, exist_ok=True)
+    documents = [
+        {
+            "apiVersion": "apps/v1",
+            "kind": "StatefulSet",
+            "metadata": {
+                "name": "sts-1",
+                "namespace": "checkout",
+                "uid": "sts-uid-1",
+                "resourceVersion": "1",
+            },
+        },
+        {
+            "apiVersion": "apps/v1",
+            "kind": "DaemonSet",
+            "metadata": {
+                "name": "ds-1",
+                "namespace": "checkout",
+                "uid": "ds-uid-1",
+                "resourceVersion": "1",
+            },
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "pod-1",
+                "namespace": "checkout",
+                "uid": "pod-uid-1",
+                "resourceVersion": "1",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "StatefulSet",
+                        "name": "sts-1",
+                        "uid": "sts-uid-1",
+                        "controller": True,
+                    },
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "DaemonSet",
+                        "name": "ds-1",
+                        "uid": "ds-uid-1",
+                        "controller": True,
+                    },
+                ],
+            },
+        },
+    ]
+    resource_bytes = yaml.safe_dump_all(documents).encode()
+    (root / "resources.yaml").write_bytes(resource_bytes)
+    envelope = {
+        "apiVersion": "aip.dev/v1",
+        "kind": "KubernetesSourceSnapshot",
+        "metadata": {
+            "id": "multiple-controllers-snapshot",
+            "revision": "revision-1",
+            "producer": "aip-kubernetes-capture-agent",
+            "capturedAt": "2026-09-17T10:00:00Z",
+        },
+        "source": {
+            "configuredSourceId": "multiple-controllers-source",
+            "configuredScopeId": "multiple-controllers-scope",
+            "clusterUid": "multiple-controllers-cluster",
+            "clusterIdentityEvidenceRef": "kube-system-namespace-uid",
+            "mode": "CAPTURED_RESOURCE",
+        },
+        "scope": {"namespaces": ["checkout"], "resourceTypes": sorted(EXPECTED_RESOURCE_TYPES)},
+        "completeness": {
+            "status": "COMPLETE",
+            "authorityRef": "multiple-controllers-authority",
+            "expectedPriorInventoryRevision": None,
+        },
+        "files": [{"path": "resources.yaml", "sha256": hashlib.sha256(resource_bytes).hexdigest()}],
+    }
+    (root / "envelope.yaml").write_bytes(yaml.safe_dump(envelope).encode())
+    return KubernetesSourceConfig(
+        id="multiple-controllers-source",
+        root=root,
+        envelope_relative_path="envelope.yaml",
+        configured_scope_id="multiple-controllers-scope",
+        cluster_uid="multiple-controllers-cluster",
+        evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+        authorized_producer="aip-kubernetes-capture-agent",
+        authority_record="multiple-controllers-authority",
+    )
+
+
+def test_pod_with_multiple_controller_owners_rejects_the_source_and_commits_nothing(
+    driver, tmp_path
+):
+    config = _write_multiple_controllers_kubernetes_bundle(tmp_path)
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+
+    assert stats.committed is False
+    assert any(d.code == DiagnosticCode.K8S_OWNER_INVALID for d in stats.diagnostics)
     assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 0
     assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 0
 
