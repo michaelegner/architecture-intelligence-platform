@@ -3,7 +3,14 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from app.canonical.model import ArchitectureModel
-from app.sources.model import IngestionDiagnostic, IngestionResult, LoadedSource, SourceKind
+from app.sources.model import (
+    NOT_SUPPLIED,
+    IngestionDiagnostic,
+    IngestionResult,
+    LoadedSource,
+    NotSupplied,
+    SourceKind,
+)
 from app.sources.service_identity import ServiceIdentityResolution
 
 
@@ -111,6 +118,12 @@ class DiscoveryOutcome:
     diagnostics: tuple[IngestionDiagnostic, ...]
     discovery_scope_id: str | None = None
     scope_definition_digest: str | None = None
+    expected_prior_inventory_revision: str | None | NotSupplied = NOT_SUPPLIED
+    """I2 Draft 0.2 §4.2 (slice 2b-ii): a discoverer that can extract a declared predecessor
+    expectation from its own trusted, accepted input sets this to that value (`None` legitimately
+    means "expect no prior committed inventory"); `NOT_SUPPLIED` (the default) means no predecessor
+    check should be performed - every discoverer kind's behavior before this field existed, and
+    still `FilesystemSourceDiscoverer`'s only behavior."""
 
 
 class SourceDiscoverer(Protocol):

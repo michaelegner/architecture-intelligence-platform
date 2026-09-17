@@ -10,6 +10,7 @@ from app.ingestion.kubernetes_discoverer import KubernetesSourceDiscoverer
 from app.ingestion.orchestrator import run_kubernetes_discovery
 from app.sources.inventory import InventoryStatus
 from app.sources.model import (
+    NOT_SUPPLIED,
     DiagnosticCode,
     IngestionDiagnostic,
     IngestionResult,
@@ -193,6 +194,53 @@ def test_valid_matching_envelope_produces_a_correct_loaded_source(tmp_path):
     # I1 spec §7.2: "Every successful load SHALL record... declared/provider revision, where
     # available" - the envelope's own metadata.revision.
     assert loaded.descriptor.declared_provider_revision == "snapshot-revision"
+    # I2 Draft 0.2 §4.2 (slice 2b-ii): expectedPriorInventoryRevision: null (the default in
+    # _valid_envelope_dict) means "expect no prior committed inventory", not "no check requested".
+    assert outcome.expected_prior_inventory_revision is None
+
+
+def test_accepted_envelope_with_an_explicit_expected_prior_inventory_revision(tmp_path):
+    _write_bundle(
+        tmp_path,
+        envelope_overrides={
+            "completeness": {
+                **_valid_envelope_dict()["completeness"],
+                "expectedPriorInventoryRevision": "urn:aip:inventory-revision:" + "a" * 64,
+            }
+        },
+        files={"resources.yaml": _resource_yaml()},
+    )
+    config = _config(tmp_path)
+    outcome = KubernetesSourceDiscoverer(config).discover()
+    assert outcome.expected_prior_inventory_revision == "urn:aip:inventory-revision:" + "a" * 64
+
+
+# A safe non-committing fallback (NOT_SUPPLIED) on every rejection path, matching the same
+# reasoning already applied to scope_definition_digest: an envelope that hasn't been fully accepted
+# doesn't get its declared predecessor claim honored either. Asserted by identity (`is NOT_SUPPLIED`,
+# not merely `isinstance`) since this discoverer never constructs its own NotSupplied() - it only
+# ever relies on the dataclass field's own default, so the canonical singleton is the only value
+# that should ever appear here; `isinstance` alone couldn't catch a regression that accidentally
+# constructed a fresh instance instead of using the default.
+
+
+def test_missing_root_never_reports_an_expected_prior_inventory_revision(tmp_path):
+    config = _config(tmp_path / "does-not-exist")
+    outcome = KubernetesSourceDiscoverer(config).discover()
+    assert outcome.expected_prior_inventory_revision is NOT_SUPPLIED
+
+
+def test_missing_envelope_never_reports_an_expected_prior_inventory_revision(tmp_path):
+    config = _config(tmp_path)
+    outcome = KubernetesSourceDiscoverer(config).discover()
+    assert outcome.expected_prior_inventory_revision is NOT_SUPPLIED
+
+
+def test_registration_mismatch_never_reports_an_expected_prior_inventory_revision(tmp_path):
+    _write_bundle(tmp_path)
+    config = _config(tmp_path, cluster_uid="a-different-cluster")
+    outcome = KubernetesSourceDiscoverer(config).discover()
+    assert outcome.expected_prior_inventory_revision is NOT_SUPPLIED
 
 
 def test_discovery_scope_id_is_identical_regardless_of_envelope_validity(tmp_path):

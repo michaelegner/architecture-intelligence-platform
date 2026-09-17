@@ -56,11 +56,13 @@ from app.sources.migration_mappings import (
     SharedIdentityMappingIndex,
 )
 from app.sources.model import (
+    NOT_SUPPLIED,
     DiagnosticCode,
     FilesystemSourceConfig,
     IngestionDiagnostic,
     IngestionResult,
     KubernetesSourceConfig,
+    NotSupplied,
 )
 from app.sources.registry import AdapterOutcome, SourceAdapterRegistry, SourceDiscoverer
 from app.sources.service_identity import (
@@ -374,6 +376,10 @@ class DiscoveryRunResult:
     # cannot meaningfully identify the inventory it describes without a scope id, mirroring
     # `DiscoveryOutcome.discovery_scope_id`'s own documented "scope itself unknown" meaning.
     inventory_snapshot: SourceInventorySnapshot | None = None
+    # I2 Draft 0.2 §4.2 (slice 2b-ii): a pure pass-through of `DiscoveryOutcome`'s own field of the
+    # same name - see that field's own docstring. `run_discovery()` never inspects or modifies this
+    # value itself, only forwards it to whatever calls `import_discovery_run`.
+    expected_prior_inventory_revision: str | None | NotSupplied = NOT_SUPPLIED
 
 
 def _build_inventory_snapshot(
@@ -470,6 +476,7 @@ def run_discovery(
                 diagnostics=discovery_outcome.diagnostics,
                 tombstones=tombstones,
             ),
+            expected_prior_inventory_revision=discovery_outcome.expected_prior_inventory_revision,
         )
 
     # Canonical order (by source_instance_id) so permuting discovery order can never change the
@@ -527,6 +534,7 @@ def run_discovery(
                 diagnostics=run_diagnostics,
                 tombstones=tombstones,
             ),
+            expected_prior_inventory_revision=discovery_outcome.expected_prior_inventory_revision,
         )
 
     resolver = _RunServiceIdentityResolver(_binding_index_to_pointer_bindings(binding_index))
@@ -657,6 +665,7 @@ def run_discovery(
                 diagnostics=run_diagnostics,
                 tombstones=tombstones,
             ),
+            expected_prior_inventory_revision=discovery_outcome.expected_prior_inventory_revision,
         )
 
     merged_model = merge_models(source_models)
@@ -683,6 +692,7 @@ def run_discovery(
             diagnostics=run_diagnostics,
             tombstones=tombstones,
         ),
+        expected_prior_inventory_revision=discovery_outcome.expected_prior_inventory_revision,
     )
 
 

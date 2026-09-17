@@ -1,3 +1,4 @@
+import hashlib
 import json
 import shutil
 import threading
@@ -5,6 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+import yaml
 
 from app.analysis.runtime import confirmed_relations, observed_only_relations
 from app.architecture_intelligence.repository import (
@@ -40,8 +42,14 @@ from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
 from app.ingestion.orchestrator import run_filesystem_discovery
 from app.provenance.model import ObservedEvidence, Provenance
+from app.sources.kubernetes_envelope import EXPECTED_RESOURCE_TYPES
 from app.sources.migration_mappings import load_migration_mappings
-from app.sources.model import DiagnosticCode, FilesystemSourceConfig, KubernetesSourceConfig
+from app.sources.model import (
+    DiagnosticCode,
+    FilesystemSourceConfig,
+    KubernetesSourceConfig,
+    NotSupplied,
+)
 from app.sources.tombstones import Tombstone
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
@@ -946,6 +954,29 @@ def test_import_all_sources_accepts_a_matching_expected_predecessor(driver, tmp_
     assert second.committed is True
 
 
+def test_a_freshly_constructed_not_supplied_instance_still_skips_the_predecessor_check(
+    driver, tmp_path
+):
+    """A real finding from PR review: `NotSupplied` is now a public type (I2 Draft 0.2 slice
+    2b-ii), so a caller can legally construct its own instance rather than importing the canonical
+    `NOT_SUPPLIED` singleton. `_import_all_sources_tx`'s gate must treat *any* `NotSupplied`
+    instance as "skip the check", not only the one singleton by identity - an identity-based check
+    would treat a fresh instance as a real (mismatching) expected value and wrongly reject every
+    such run as stale.
+    """
+    config = FilesystemSourceConfig(id="inv-not-supplied-type-test", root=tmp_path)
+    first = import_all_sources(driver, database=DATABASE, source_config=config)
+    assert first.committed is True
+
+    second = import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=config,
+        expected_prior_inventory_revision=NotSupplied(),
+    )
+    assert second.committed is True
+
+
 def test_import_all_sources_rejects_a_stale_expected_predecessor_and_preserves_state(
     driver, tmp_path
 ):
@@ -1167,6 +1198,126 @@ def test_import_kubernetes_source_registration_mismatch_prevents_commit(driver):
 
     assert stats.committed is False
     assert any(d.code == DiagnosticCode.K8S_CLUSTER_IDENTITY_UNRESOLVED for d in stats.diagnostics)
+    assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 0
+
+
+# I2 Draft 0.2 slice 2b-ii: threading completeness.expectedPriorInventoryRevision into PR A's
+# predecessor-check transaction, and layering K8S_STALE_INVENTORY. Unlike the tests above, these
+# need a dynamically-*rewritable* bundle (not the static checked-in fixture) to exercise successive
+# imports of "the same" logical source with a changing predecessor claim.
+
+_DYNAMIC_KUBERNETES_CONFIG_KWARGS = {
+    "id": "checkout-cluster-predecessor-test",
+    "envelope_relative_path": "envelope.yaml",
+    "configured_scope_id": "checkout-cluster-predecessor-test-namespaces",
+    "cluster_uid": "d3adbeef-0000-4000-8000-000000000099",
+    "evidence_mode": KubernetesEvidenceMode.CAPTURED_RESOURCE,
+    "authorized_producer": "aip-kubernetes-capture-agent",
+    "authority_record": "checkout-cluster-predecessor-test-authority",
+}
+
+
+def _write_dynamic_kubernetes_bundle(
+    root: Path, *, expected_prior_inventory_revision: str | None
+) -> KubernetesSourceConfig:
+    resource_bytes = yaml.safe_dump(
+        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": "checkout"}}
+    ).encode()
+    (root / "resources.yaml").write_bytes(resource_bytes)
+    envelope = {
+        "apiVersion": "aip.dev/v1",
+        "kind": "KubernetesSourceSnapshot",
+        "metadata": {
+            "id": "checkout-cluster-predecessor-snapshot",
+            "revision": "revision-1",
+            "producer": "aip-kubernetes-capture-agent",
+            "capturedAt": "2026-09-17T10:00:00Z",
+        },
+        "source": {
+            "configuredSourceId": _DYNAMIC_KUBERNETES_CONFIG_KWARGS["id"],
+            "configuredScopeId": _DYNAMIC_KUBERNETES_CONFIG_KWARGS["configured_scope_id"],
+            "clusterUid": _DYNAMIC_KUBERNETES_CONFIG_KWARGS["cluster_uid"],
+            "clusterIdentityEvidenceRef": "kube-system-namespace-uid",
+            "mode": "CAPTURED_RESOURCE",
+        },
+        "scope": {
+            "namespaces": ["checkout"],
+            "resourceTypes": sorted(EXPECTED_RESOURCE_TYPES),
+        },
+        "completeness": {
+            "status": "COMPLETE",
+            "authorityRef": _DYNAMIC_KUBERNETES_CONFIG_KWARGS["authority_record"],
+            "expectedPriorInventoryRevision": expected_prior_inventory_revision,
+        },
+        "files": [{"path": "resources.yaml", "sha256": hashlib.sha256(resource_bytes).hexdigest()}],
+    }
+    (root / "envelope.yaml").write_bytes(yaml.safe_dump(envelope).encode())
+    return KubernetesSourceConfig(root=root, **_DYNAMIC_KUBERNETES_CONFIG_KWARGS)
+
+
+def test_import_kubernetes_source_first_import_with_null_predecessor_commits(driver, tmp_path):
+    config = _write_dynamic_kubernetes_bundle(tmp_path, expected_prior_inventory_revision=None)
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+
+def test_import_kubernetes_source_accepts_a_matching_expected_predecessor(driver, tmp_path):
+    config = _write_dynamic_kubernetes_bundle(tmp_path, expected_prior_inventory_revision=None)
+    first = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert first.committed is True
+    with driver.session(database=DATABASE) as session:
+        first_revision = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS r"
+        ).single()["r"]
+
+    config = _write_dynamic_kubernetes_bundle(
+        tmp_path, expected_prior_inventory_revision=first_revision
+    )
+    second = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert second.committed is True
+
+
+def test_import_kubernetes_source_rejects_a_stale_expected_predecessor_and_preserves_state(
+    driver, tmp_path
+):
+    config = _write_dynamic_kubernetes_bundle(tmp_path, expected_prior_inventory_revision=None)
+    first = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert first.committed is True
+    with driver.session(database=DATABASE) as session:
+        first_revision = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS r"
+        ).single()["r"]
+
+    stale_config = _write_dynamic_kubernetes_bundle(
+        tmp_path, expected_prior_inventory_revision="urn:aip:inventory-revision:" + "0" * 64
+    )
+    stale = import_kubernetes_source(driver, database=DATABASE, source_config=stale_config)
+    assert stale.committed is False
+    assert any(d.code == DiagnosticCode.STALE_INVENTORY_PREDECESSOR for d in stale.diagnostics)
+    assert any(d.code == DiagnosticCode.K8S_STALE_INVENTORY for d in stale.diagnostics)
+    # §10: "K8S_STALE_INVENTORY | REJECTED_CONFLICT; no commit" - the classification must be
+    # observable on the result, not just implied by committed=False + a diagnostic code.
+    [source_stats] = list(stale.per_source.values())
+    assert source_stats.result == "REJECTED_CONFLICT"
+    assert source_stats.nodes_written == 0
+
+    with driver.session(database=DATABASE) as session:
+        preserved_revision = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS r"
+        ).single()["r"]
+    assert preserved_revision == first_revision
+
+
+def test_import_kubernetes_source_rejects_a_nonnull_predecessor_on_first_import(driver, tmp_path):
+    config = _write_dynamic_kubernetes_bundle(
+        tmp_path, expected_prior_inventory_revision="urn:aip:inventory-revision:" + "0" * 64
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is False
+    assert any(d.code == DiagnosticCode.STALE_INVENTORY_PREDECESSOR for d in stats.diagnostics)
+    assert any(d.code == DiagnosticCode.K8S_STALE_INVENTORY for d in stats.diagnostics)
+    [source_stats] = list(stats.per_source.values())
+    assert source_stats.result == "REJECTED_CONFLICT"
     assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 0
 
 

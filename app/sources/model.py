@@ -10,6 +10,32 @@ SourceInstanceId = NewType("SourceInstanceId", str)
 DiscoveryScopeId = NewType("DiscoveryScopeId", str)
 
 
+class NotSupplied:
+    """A dedicated sentinel type, not a string constant, for an `expected_prior_inventory_revision`
+    default - I2 Draft 0.2 §3 prerequisite slice, item 4. Distinguishes "caller supplied no
+    expectation at all" (preserves prior behavior exactly - no predecessor check performed) from a
+    legitimate explicit expectation of `None` (caller expects no prior committed inventory to exist
+    yet). A plain `None` default could not make that distinction, and a string sentinel compared by
+    identity (`is not`) would be fragile - string identity is a CPython interning implementation
+    detail, not a language guarantee (a real finding from PR review).
+
+    Originally file-private to `app.graph.importer` (where the predecessor-check transaction lives);
+    relocated here (I2 Draft 0.2 slice 2b-ii) and made public because `app.sources.registry`'s
+    `DiscoveryOutcome` and `app.ingestion.orchestrator`'s `DiscoveryRunResult` - both lower layers
+    `app.graph.importer` already imports from - also need this type for their own
+    `expected_prior_inventory_revision` fields; either importing it from `app.graph.importer` would
+    reverse that dependency direction.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "<not supplied>"
+
+
+NOT_SUPPLIED = NotSupplied()
+
+
 class SourceKind(StrEnum):
     FILESYSTEM = "filesystem"
     # I2 Draft 0.2 §6: "source_kind = kubernetes". Registration binding (comparing an envelope's
@@ -169,8 +195,8 @@ class DiagnosticCode(StrEnum):
     TOMBSTONE_FILE_UNAVAILABLE = "TOMBSTONE_FILE_UNAVAILABLE"
     TOMBSTONE_SHAPE_INVALID = "TOMBSTONE_SHAPE_INVALID"
     # Not named by the spec text; introduced here for the I2 Draft 0.2 §3 prerequisite slice's
-    # general (source-kind-neutral) transactional predecessor check - the general mechanism the
-    # Kubernetes-specific K8S_STALE_INVENTORY code (a later, K8s-specific slice) will layer on.
+    # general (source-kind-neutral) transactional predecessor check - the mechanism
+    # K8S_STALE_INVENTORY (below, slice 2b-ii) now layers onto rather than replaces.
     STALE_INVENTORY_PREDECESSOR = "STALE_INVENTORY_PREDECESSOR"
     # I2 Draft 0.2 §10's own named code, with its specified outcome ("REJECTED_CONFLICT for
     # incompatible duplicate identity/incarnation"), for §7.1's cross-source rule: "Different
@@ -193,6 +219,11 @@ class DiagnosticCode(StrEnum):
     K8S_SNAPSHOT_INVALID = "K8S_SNAPSHOT_INVALID"
     K8S_SNAPSHOT_INCOMPLETE = "K8S_SNAPSHOT_INCOMPLETE"
     K8S_LIMIT_EXCEEDED = "K8S_LIMIT_EXCEEDED"
+    # I2 Draft 0.2 §10's own named code ("REJECTED_CONFLICT; no commit"), for §4.2's predecessor
+    # comparison (slice 2b-ii). Layered alongside the generic STALE_INVENTORY_PREDECESSOR (above)
+    # by `import_kubernetes_source`, not raised by `_import_all_sources_tx` itself - that shared
+    # transaction stays source-kind-neutral.
+    K8S_STALE_INVENTORY = "K8S_STALE_INVENTORY"
 
 
 class IngestionDiagnostic(BaseModel):
