@@ -24,6 +24,48 @@ from a relation to the `Evidence` node(s) that back it — every relation instea
 `MATCH (e:Evidence) WHERE e.id IN r.evidence_ids`. This is what makes provenance fully traceable
 end-to-end, not just produced in-memory during ingestion and discarded.
 
+## Worked fixture example
+
+After importing the bundled `examples/` fixtures, the declared `CALLS` relation from
+`service:order-service` to ProductService's `GET /products/{id}` operation carries this concrete
+provenance reference:
+
+```json
+{
+  "evidence_ids": ["evidence:manifest:order-service"]
+}
+```
+
+That id can be resolved through the evidence API:
+
+```bash
+curl -s http://localhost:8000/api/evidence/evidence:manifest:order-service
+```
+
+For the repository's default fixture import, the response is:
+
+```json
+{
+  "id": "evidence:manifest:order-service",
+  "source_type": "MANIFEST",
+  "source_file": "examples/order-service/architecture.yaml",
+  "source_revision": null,
+  "evidence_type": "DECLARED"
+}
+```
+
+The same relation-to-evidence lookup can be performed directly in Neo4j. This follows the
+`evidence_ids` property rather than a graph edge to `Evidence`:
+
+```cypher
+MATCH (:Service {id: 'service:order-service'})-[r:CALLS]->(:Operation) MATCH (e:Evidence) WHERE e.id IN r.evidence_ids RETURN r.evidence_ids AS evidence_ids, e.id AS id, e.source_type AS source_type, e.source_file AS source_file, e.evidence_type AS evidence_type;
+```
+
+For this fixture, `r.evidence_ids` is `["evidence:manifest:order-service"]`, so the query resolves the
+same manifest-backed `Evidence` node returned by the API. `GET /api/services/service:order-service/evidence`
+can be used when you want all evidence backing relations incident to OrderService rather than one
+specific evidence id.
+
 ## `correlation_mode`
 
 For `OBSERVED` evidence produced by the OpenTelemetry pipeline, `correlation_mode` records *how*
