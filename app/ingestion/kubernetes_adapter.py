@@ -15,6 +15,7 @@ from app.sources.identity import (
 )
 from app.sources.kubernetes_mapping import map_kubernetes_resources
 from app.sources.kubernetes_owner_chain import resolve_owner_chains
+from app.sources.kubernetes_service_selection import resolve_service_selections
 from app.sources.model import DiagnosticCode, IngestionResult, LoadedSource, SourceKind
 from app.sources.registry import AdapterOutcome, ServiceIdentityResolver, SharedIdentityResolver
 
@@ -193,13 +194,41 @@ class KubernetesSourceAdapter:
                 )
             )
 
+        # I2 Draft 0.2 §7.4/§7.2 (slice 4b): match each Service's selector against captured Pod
+        # labels and build the NETWORK_SERVICE_SELECTS_WORKLOAD claim, grouped by resolved
+        # Workload. Every participant (Service, Pod, Workload, any bridging ReplicaSet) already has
+        # evidence minted above - direct lookup, not `_mint_evidence`, so a resource this module
+        # references without prior evidence surfaces as a hard KeyError rather than silently
+        # minting evidence a second, different way here.
+        service_selection_result = resolve_service_selections(
+            mapping_result.resources, owner_chain_result.resolved_chains
+        )
+        for selection in service_selection_result.resolved_selections:
+            evidence_refs: set[str] = set()
+            for logical_id in selection.evidence_resource_logical_ids:
+                evidence_refs.update(evidence_refs_by_logical_id[logical_id])
+            claims.append(
+                InfrastructureClaim(
+                    kind=InfrastructureClaimKind.NETWORK_SERVICE_SELECTS_WORKLOAD,
+                    subject_id=selection.service_logical_id,
+                    object_id=selection.workload_logical_id,
+                    evidence_refs=sorted(evidence_refs),
+                    mapping_rule_id=self.adapter_identity,
+                    mapping_rule_version=self.mapping_rule_version,
+                )
+            )
+
         combined_result = (
             IngestionResult.ACCEPTED_WITH_LIMITATIONS
             if IngestionResult.ACCEPTED_WITH_LIMITATIONS
-            in (mapping_result.result, owner_chain_result.result)
+            in (mapping_result.result, owner_chain_result.result, service_selection_result.result)
             else IngestionResult.ACCEPTED
         )
-        combined_diagnostics = mapping_result.diagnostics + owner_chain_result.diagnostics
+        combined_diagnostics = (
+            mapping_result.diagnostics
+            + owner_chain_result.diagnostics
+            + service_selection_result.diagnostics
+        )
 
         # §6: "normalize the allowlisted resource projection, ordering resources by logical key" -
         # covers every admitted resource (Namespace/ReplicaSet/Service/Ingress included), not only

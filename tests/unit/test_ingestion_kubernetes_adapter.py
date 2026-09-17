@@ -269,3 +269,124 @@ def test_resource_version_only_change_does_not_change_the_semantic_digest(tmp_pa
     first = _captured_deployment_outcome(tmp_path, uid="uid-a", resource_version="1")
     second = _captured_deployment_outcome(tmp_path, uid="uid-a", resource_version="2")
     assert first.semantic_input_digest == second.semantic_input_digest
+
+
+def _captured_resources_outcome(tmp_path, documents: list[dict]):
+    resource_bytes = yaml.safe_dump_all(documents).encode()
+    doc = _envelope_dict()
+    doc["source"]["mode"] = "CAPTURED_RESOURCE"
+    doc["files"] = [
+        {"path": "resources.yaml", "sha256": hashlib.sha256(resource_bytes).hexdigest()}
+    ]
+    (tmp_path / "envelope.yaml").write_bytes(yaml.safe_dump(doc).encode())
+    (tmp_path / "resources.yaml").write_bytes(resource_bytes)
+
+    config = _config(tmp_path, evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE)
+    outcome = KubernetesSourceDiscoverer(config).discover()
+    loaded = outcome.loaded_sources[0]
+    assert loaded.diagnostics == []
+    return KubernetesSourceAdapter().map(
+        loaded,
+        service_identity=None,
+        shared_identity=None,
+        upstream_model=None,
+        mapping_context_digest="a" * 64,
+    )
+
+
+def test_a_resolved_owner_chain_and_service_selection_produce_both_relational_claims(tmp_path):
+    """I2 §12 slice 4b, end-to-end: a real Deployment -> ReplicaSet -> Pod chain plus a matching
+    Service selector produce both WORKLOAD_OWNS_POD and NETWORK_SERVICE_SELECTS_WORKLOAD claims
+    from the same real adapter run, with the selection's evidence unioning the Service, Pod,
+    Workload, and bridging ReplicaSet."""
+    documents = [
+        {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "metadata": {
+                "name": "checkout-api",
+                "namespace": _NAMESPACE,
+                "uid": "deploy-uid-1",
+                "resourceVersion": "1",
+            },
+        },
+        {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "metadata": {
+                "name": "checkout-api-rs",
+                "namespace": _NAMESPACE,
+                "uid": "rs-uid-1",
+                "resourceVersion": "1",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "Deployment",
+                        "name": "checkout-api",
+                        "uid": "deploy-uid-1",
+                        "controller": True,
+                    }
+                ],
+            },
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "checkout-api-abc123",
+                "namespace": _NAMESPACE,
+                "uid": "pod-uid-1",
+                "resourceVersion": "1",
+                "labels": {"app": "checkout-api"},
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "ReplicaSet",
+                        "name": "checkout-api-rs",
+                        "uid": "rs-uid-1",
+                        "controller": True,
+                    }
+                ],
+            },
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "name": "checkout-svc",
+                "namespace": _NAMESPACE,
+                "uid": "svc-uid-1",
+                "resourceVersion": "1",
+            },
+            "spec": {"selector": {"app": "checkout-api"}},
+        },
+    ]
+    result = _captured_resources_outcome(tmp_path, documents)
+    assert result.result is IngestionResult.ACCEPTED
+
+    entities_by_kind = {e.entity_kind: e for e in result.model.infrastructure_entities}
+    workload = entities_by_kind[InfrastructureEntityKind.KUBERNETES_WORKLOAD]
+    pod = entities_by_kind[InfrastructureEntityKind.KUBERNETES_POD]
+    service = entities_by_kind[InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE]
+
+    claims_by_kind = {c.kind: c for c in result.model.infrastructure_claims}
+    assert set(claims_by_kind) == {
+        InfrastructureClaimKind.WORKLOAD_EXISTS,
+        InfrastructureClaimKind.WORKLOAD_OWNS_POD,
+        InfrastructureClaimKind.NETWORK_SERVICE_SELECTS_WORKLOAD,
+    }
+
+    ownership = claims_by_kind[InfrastructureClaimKind.WORKLOAD_OWNS_POD]
+    assert ownership.subject_id == workload.id
+    assert ownership.object_id == pod.id
+
+    selection = claims_by_kind[InfrastructureClaimKind.NETWORK_SERVICE_SELECTS_WORKLOAD]
+    assert selection.subject_id == service.id
+    assert selection.object_id == workload.id
+    # Evidence unions the Service, the Pod, the Workload, and the bridging ReplicaSet (which has
+    # no InfrastructureContribution of its own - §7.1 keeps ReplicaSet permanently unpromoted).
+    provenance_ids = {p.id for p in result.model.provenance}
+    assert set(selection.evidence_refs) <= provenance_ids
+    assert set(selection.evidence_refs) >= set(ownership.evidence_refs)
+    contributions_by_entity = {c.entity_id: c for c in result.model.infrastructure_contributions}
+    assert set(contributions_by_entity[service.id].evidence_refs) <= set(selection.evidence_refs)

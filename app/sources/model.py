@@ -243,6 +243,11 @@ class DiagnosticCode(StrEnum):
     # source" (K8S_OWNER_INVALID, REJECTED_INVALID).
     K8S_OWNER_UNRESOLVED = "K8S_OWNER_UNRESOLVED"
     K8S_OWNER_INVALID = "K8S_OWNER_INVALID"
+    # I2 Draft 0.2 §10's own named code (slice 4b), for §7.4's Service selection: "No matching Pod
+    # means no relation with a NO_QUALIFIED_POD_MATCH limitation, not evidence that the Service has
+    # no backend" - also reused for "unresolved matching Pods remain explicit limitations without
+    # suppressing separately proven matches" (a matching Pod whose owner chain didn't resolve).
+    NO_QUALIFIED_POD_MATCH = "NO_QUALIFIED_POD_MATCH"
 
 
 class IngestionDiagnostic(BaseModel):
