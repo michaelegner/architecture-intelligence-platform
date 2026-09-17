@@ -44,7 +44,12 @@ from app.ingestion.orchestrator import run_filesystem_discovery
 from app.provenance.model import ObservedEvidence, Provenance
 from app.sources.kubernetes_envelope import EXPECTED_RESOURCE_TYPES
 from app.sources.migration_mappings import load_migration_mappings
-from app.sources.model import DiagnosticCode, FilesystemSourceConfig, KubernetesSourceConfig
+from app.sources.model import (
+    DiagnosticCode,
+    FilesystemSourceConfig,
+    KubernetesSourceConfig,
+    NotSupplied,
+)
 from app.sources.tombstones import Tombstone
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
@@ -945,6 +950,29 @@ def test_import_all_sources_accepts_a_matching_expected_predecessor(driver, tmp_
         database=DATABASE,
         source_config=config,
         expected_prior_inventory_revision=first_revision,
+    )
+    assert second.committed is True
+
+
+def test_a_freshly_constructed_not_supplied_instance_still_skips_the_predecessor_check(
+    driver, tmp_path
+):
+    """A real finding from PR review: `NotSupplied` is now a public type (I2 Draft 0.2 slice
+    2b-ii), so a caller can legally construct its own instance rather than importing the canonical
+    `NOT_SUPPLIED` singleton. `_import_all_sources_tx`'s gate must treat *any* `NotSupplied`
+    instance as "skip the check", not only the one singleton by identity - an identity-based check
+    would treat a fresh instance as a real (mismatching) expected value and wrongly reject every
+    such run as stale.
+    """
+    config = FilesystemSourceConfig(id="inv-not-supplied-type-test", root=tmp_path)
+    first = import_all_sources(driver, database=DATABASE, source_config=config)
+    assert first.committed is True
+
+    second = import_all_sources(
+        driver,
+        database=DATABASE,
+        source_config=config,
+        expected_prior_inventory_revision=NotSupplied(),
     )
     assert second.committed is True
 

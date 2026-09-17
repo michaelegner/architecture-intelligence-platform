@@ -806,7 +806,13 @@ def _import_all_sources_tx(
         persisted_inventory["discovery_scope_id"] if has_committed_inventory else None
     )
 
-    if expected_prior_inventory_revision is not NOT_SUPPLIED:
+    # Type-based, not identity-based: NotSupplied is a public type (relocated here from a
+    # file-private sentinel in I2 Draft 0.2 slice 2b-ii specifically so lower layers could also use
+    # it), so a caller can legally construct its own NotSupplied() instance - `is not NOT_SUPPLIED`
+    # would treat that as a real predecessor value and incorrectly reject the run as stale. Any
+    # NotSupplied instance, not only the canonical singleton, must mean "skip the check" (a real
+    # finding from PR review).
+    if not isinstance(expected_prior_inventory_revision, NotSupplied):
         actual_committed_revision = persisted_inventory["inventory_revision"]
         if actual_committed_revision != expected_prior_inventory_revision:
             raise StalePredecessorError(
