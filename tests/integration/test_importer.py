@@ -1178,13 +1178,14 @@ def _matching_kubernetes_config(**overrides) -> KubernetesSourceConfig:
 
 
 def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(driver):
-    """I2 §12 slices 3a/3b/4a: the fixture bundle (Namespace/Deployment/ReplicaSet/Pod/Service/
+    """I2 §12 slices 3a/3b/4a/4b: the fixture bundle (Namespace/Deployment/ReplicaSet/Pod/Service/
     Ingress) flows all the way through the real `KubernetesSourceAdapter`/`kubernetes_mapping`/
-    `kubernetes_owner_chain` into committed `InfrastructureEntity`/`Contribution` nodes for all
-    four §7.1 entity kinds, plus the `WORKLOAD_EXISTS` and `WORKLOAD_OWNS_POD` claims - this is PR
-    B's conflict/write machinery going live against a real adapter's output across every promoted
-    kind and a real resolved owner chain (Pod -> ReplicaSet -> Deployment), not only Workload/Pod
-    entity creation (slice 3a's own scope).
+    `kubernetes_owner_chain`/`kubernetes_service_selection` into committed
+    `InfrastructureEntity`/`Contribution` nodes for all four §7.1 entity kinds, plus all three
+    implemented claims (`WORKLOAD_EXISTS`, `WORKLOAD_OWNS_POD`, `NETWORK_SERVICE_SELECTS_WORKLOAD`)
+    - this is PR B's conflict/write machinery going live against a real adapter's output across
+    every promoted kind, a real resolved owner chain (Pod -> ReplicaSet -> Deployment), and the
+    fixture's Service selector matching that same Pod's labels.
     """
     config = _matching_kubernetes_config()
     stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
@@ -1216,11 +1217,20 @@ def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(d
             "RETURN c.subject_id AS subject_id, c.object_id AS object_id, "
             "c.evidence_refs AS evidence_refs"
         ).single()
+        selection = session.run(
+            "MATCH (c:InfrastructureClaim {kind: 'NETWORK_SERVICE_SELECTS_WORKLOAD'}) "
+            "RETURN c.subject_id AS subject_id, c.object_id AS object_id, "
+            "c.evidence_refs AS evidence_refs"
+        ).single()
         workload_id = session.run(
             "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_WORKLOAD'}) RETURN e.id AS id"
         ).single()["id"]
         pod_id = session.run(
             "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_POD'}) RETURN e.id AS id"
+        ).single()["id"]
+        service_id = session.run(
+            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_NETWORK_SERVICE'}) "
+            "RETURN e.id AS id"
         ).single()["id"]
     assert record is not None
     assert record["revision"] is not None
@@ -1233,6 +1243,7 @@ def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(d
         {"kind": "KUBERNETES_WORKLOAD", "name": "checkout-api"},
     ]
     assert claims == [
+        {"kind": "NETWORK_SERVICE_SELECTS_WORKLOAD", "object_id": workload_id},
         {"kind": "WORKLOAD_EXISTS", "object_id": None},
         {"kind": "WORKLOAD_OWNS_POD", "object_id": pod_id},
     ]
@@ -1245,6 +1256,13 @@ def test_import_kubernetes_source_commits_real_facts_for_all_four_entity_kinds(d
     assert ownership["subject_id"] == workload_id
     assert ownership["object_id"] == pod_id
     assert len(ownership["evidence_refs"]) == 3
+    # The fixture's Service selects on the same Pod's retained label - the selection claim relates
+    # the Service to the resolved Workload, with evidence unioning the Service's own plus the
+    # WORKLOAD_OWNS_POD chain's evidence (Pod, Workload, bridging ReplicaSet).
+    assert selection["subject_id"] == service_id
+    assert selection["object_id"] == workload_id
+    assert set(selection["evidence_refs"]) >= set(ownership["evidence_refs"])
+    assert len(selection["evidence_refs"]) == 4
 
 
 def test_import_kubernetes_source_registration_mismatch_prevents_commit(driver):
