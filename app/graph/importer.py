@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import neo4j
 
@@ -19,11 +19,13 @@ from app.sources.inventory import inventory_event_id as compute_inventory_event_
 from app.sources.jcs import canonical_json_bytes
 from app.sources.migration_mappings import SharedIdentityMappingIndex
 from app.sources.model import (
+    NOT_SUPPLIED,
     DiagnosticCode,
     FilesystemSourceConfig,
     IngestionDiagnostic,
     IngestionResult,
     KubernetesSourceConfig,
+    NotSupplied,
 )
 from app.sources.removal_authority import authorize_source_removal
 from app.sources.replay import ReplayCase, classify_replay_case
@@ -34,24 +36,10 @@ from app.sources.tombstones import (
 )
 from app.validation.canonical_validation import validate_canonical_model
 
-
-class _NotSupplied:
-    """A dedicated sentinel type, not a string constant, for the `expected_prior_inventory_revision`
-    default below - I2 Draft 0.2 §3 prerequisite slice, item 4. Distinguishes "caller supplied no
-    expectation at all" (every existing caller - preserves today's behavior exactly, no predecessor
-    check performed) from a legitimate explicit expectation of `None` (caller expects no prior
-    committed inventory to exist yet). A plain `None` default could not make that distinction, and a
-    string sentinel compared by identity (`is not`) would be fragile - string identity is a CPython
-    interning implementation detail, not a language guarantee (a real finding from PR review).
-    """
-
-    __slots__ = ()
-
-    def __repr__(self) -> str:
-        return "<not supplied>"
-
-
-_NOT_SUPPLIED = _NotSupplied()
+# NotSupplied/NOT_SUPPLIED were relocated to app.sources.model in I2 Draft 0.2 slice 2b-ii - see
+# that module's own docstring for why (app.sources.registry/app.ingestion.orchestrator, both lower
+# layers this module already imports from, also need the type for their own
+# `expected_prior_inventory_revision` fields).
 
 
 class StalePredecessorError(RuntimeError):
@@ -779,7 +767,7 @@ def _import_all_sources_tx(
     tx: neo4j.ManagedTransaction,
     *,
     run_result: DiscoveryRunResult,
-    expected_prior_inventory_revision: str | None | _NotSupplied = _NOT_SUPPLIED,
+    expected_prior_inventory_revision: str | None | NotSupplied = NOT_SUPPLIED,
 ) -> tuple[dict[str, SourceImportStats], tuple[str, ...], tuple[IngestionDiagnostic, ...]]:
     """Pre-merge, per-source reconciliation, and removal for one whole discovery run, all against
     the same transaction - a run either commits in full or (on any error, including a driver/
@@ -791,7 +779,7 @@ def _import_all_sources_tx(
 
     I2 Draft 0.2 §3 prerequisite slice, items 3/4/5: also reads and (on success) rewrites the
     scope's `CurrentInventory` state in this same transaction. `expected_prior_inventory_revision`
-    defaults to `_NOT_SUPPLIED` (skip the check entirely - every existing caller's behavior is
+    defaults to `NOT_SUPPLIED` (skip the check entirely - every existing caller's behavior is
     unchanged); a caller that opts in (including with an explicit `None`, meaning "expect no prior
     committed inventory") gets a real transactional predecessor comparison against what is actually
     persisted, raising `StalePredecessorError` (aborting the whole transaction, writing nothing) on
@@ -818,7 +806,7 @@ def _import_all_sources_tx(
         persisted_inventory["discovery_scope_id"] if has_committed_inventory else None
     )
 
-    if expected_prior_inventory_revision is not _NOT_SUPPLIED:
+    if expected_prior_inventory_revision is not NOT_SUPPLIED:
         actual_committed_revision = persisted_inventory["inventory_revision"]
         if actual_committed_revision != expected_prior_inventory_revision:
             raise StalePredecessorError(
@@ -938,7 +926,7 @@ def import_discovery_run(
     *,
     database: str,
     run_result: DiscoveryRunResult,
-    expected_prior_inventory_revision: str | None | _NotSupplied = _NOT_SUPPLIED,
+    expected_prior_inventory_revision: str | None | NotSupplied = NOT_SUPPLIED,
 ) -> ImportRunStats:
     """I2 Draft 0.2 §3 prerequisite slice, items 2/4: the source-neutral commit entry point - takes
     an already-computed `DiscoveryRunResult` (from `run_discovery` or any source-neutral discovery
@@ -1002,7 +990,7 @@ def import_all_sources(
     source_config: FilesystemSourceConfig,
     migration_mappings: SharedIdentityMappingIndex | None = None,
     tombstones: Sequence[Tombstone] = (),
-    expected_prior_inventory_revision: str | None | _NotSupplied = _NOT_SUPPLIED,
+    expected_prior_inventory_revision: str | None | NotSupplied = NOT_SUPPLIED,
 ) -> ImportRunStats:
     """Thin compatibility wrapper over `run_filesystem_discovery` + `import_discovery_run` for the
     filesystem source kind - every existing caller/test keeps working unchanged."""
@@ -1026,12 +1014,35 @@ def import_kubernetes_source(
     tombstones: Sequence[Tombstone] = (),
 ) -> ImportRunStats:
     """Thin wrapper over `run_kubernetes_discovery` + `import_discovery_run` for the Kubernetes
-    source kind, mirroring `import_all_sources`'s exact shape (I2 Draft 0.2 slice 2b-i). No
-    `expected_prior_inventory_revision` parameter yet - threading the envelope's own
-    `completeness.expectedPriorInventoryRevision` into the predecessor-check transaction is slice
-    2b-ii's job.
+    source kind, mirroring `import_all_sources`'s exact shape (I2 Draft 0.2 slice 2b-i). Threads the
+    envelope's own `completeness.expectedPriorInventoryRevision` (carried on `run_result` by
+    `KubernetesSourceDiscoverer`) into the predecessor-check transaction, and layers the
+    Kubernetes-specific `K8S_STALE_INVENTORY` diagnostic alongside the generic
+    `STALE_INVENTORY_PREDECESSOR` one on a stale predecessor (I2 Draft 0.2 §4.2/§10, slice 2b-ii) -
+    at this wrapper level, not inside `_import_all_sources_tx`, which stays source-kind-neutral.
     """
     run_result = run_kubernetes_discovery(
         source_config, migration_mappings=migration_mappings, tombstones=tombstones
     )
-    return import_discovery_run(driver, database=database, run_result=run_result)
+    stats = import_discovery_run(
+        driver,
+        database=database,
+        run_result=run_result,
+        expected_prior_inventory_revision=run_result.expected_prior_inventory_revision,
+    )
+    # STALE_INVENTORY_PREDECESSOR can only appear here when a real (non-NOT_SUPPLIED) expectation
+    # was actually checked - i.e. only for a fully-accepted Kubernetes envelope - so this never
+    # spuriously fires for a rejected source or bleeds into a filesystem source's own diagnostics.
+    if any(d.code == DiagnosticCode.STALE_INVENTORY_PREDECESSOR for d in stats.diagnostics):
+        stats = replace(
+            stats,
+            diagnostics=(
+                *stats.diagnostics,
+                IngestionDiagnostic(
+                    code=DiagnosticCode.K8S_STALE_INVENTORY,
+                    message="stale or racing predecessor: expectedPriorInventoryRevision did not "
+                    "match the currently committed inventory revision",
+                ),
+            ),
+        )
+    return stats

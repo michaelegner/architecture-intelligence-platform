@@ -208,6 +208,14 @@ class KubernetesSourceDiscoverer:
             diagnostics=(),
             discovery_scope_id=scope_id,
             scope_definition_digest=accepted_scope_digest,
+            # I2 Draft 0.2 §4.2 (slice 2b-ii): the envelope's own declared predecessor claim -
+            # `None` legitimately means "expect no prior committed inventory" (first import), not
+            # "no predecessor check requested". Only set on this fully-accepted path: an envelope
+            # that failed validation or registration binding is untrusted, so its declared claim
+            # isn't honored either (the same "safe non-committing fallback" reasoning already
+            # applied to scope_definition_digest above) - inert either way, since a rejected source
+            # already blocks commit before any predecessor check would run.
+            expected_prior_inventory_revision=envelope.completeness.expected_prior_inventory_revision,
         )
 
     def _registration_binding_mismatch(
