@@ -443,3 +443,36 @@ def test_a_resolved_ingress_backend_produces_the_routing_claim(tmp_path):
     contributions_by_entity = {c.entity_id: c for c in result.model.infrastructure_contributions}
     assert set(contributions_by_entity[service.id].evidence_refs) <= set(claim.evidence_refs)
     assert set(contributions_by_entity[ingress.id].evidence_refs) <= set(claim.evidence_refs)
+
+
+def test_an_unresolved_ingress_backend_carries_the_complete_diagnostic_payload(tmp_path):
+    """Review round (PR #204, 2nd pass): a real K8S_BACKEND_UNRESOLVED diagnostic from a real
+    adapter run must carry the source instance ID (adapter-backfilled), the logical Ingress
+    resource ID, a real file source pointer, and the affected claim kind - not just some of them."""
+    documents = [
+        {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": {
+                "name": "checkout-ingress",
+                "namespace": _NAMESPACE,
+                "uid": "ingress-uid-1",
+                "resourceVersion": "1",
+            },
+            "spec": {
+                "defaultBackend": {"service": {"name": "nonexistent-svc", "port": {"number": 80}}}
+            },
+        },
+    ]
+    result = _captured_resources_outcome(tmp_path, documents)
+    assert result.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
+    assert result.model.infrastructure_claims == []
+
+    [ingress] = result.model.infrastructure_entities
+    [diagnostic] = [
+        d for d in result.diagnostics if d.code is DiagnosticCode.K8S_BACKEND_UNRESOLVED
+    ]
+    assert diagnostic.source_instance_id is not None
+    assert ingress.id in diagnostic.message
+    assert "INGRESS_ROUTES_TO_NETWORK_SERVICE" in diagnostic.message
+    assert "checkout-ingress" in diagnostic.source_pointer

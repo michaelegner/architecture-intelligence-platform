@@ -58,13 +58,15 @@ def _resource_pointer(resource: MappedResource) -> str:
 
 
 def _backend_unresolved(resource: MappedResource, message: str) -> IngestionDiagnostic:
-    # Review round (PR #204): §10 requires diagnostics to name "the affected claim kind" -
-    # `IngestionDiagnostic` has no dedicated field for it, so it's carried in the message text
-    # itself, the same way every diagnostic in this codebase already communicates context beyond
-    # its own typed fields.
+    # Review round (PR #204, 2nd pass): §10 requires diagnostics to name "the affected claim kind"
+    # and "source/resource IDs where safely known" - `IngestionDiagnostic` has no dedicated field
+    # for either, so both are carried in the message text, the same way every diagnostic in this
+    # codebase already communicates context beyond its own typed fields. `source_pointer` keeps its
+    # established file-attribution shape (matching `kubernetes_owner_chain`/`kubernetes_service_
+    # selection`'s own sibling helpers) rather than being repurposed to also carry the resource id.
     return IngestionDiagnostic(
         code=DiagnosticCode.K8S_BACKEND_UNRESOLVED,
-        message=f"INGRESS_ROUTES_TO_NETWORK_SERVICE: {message}",
+        message=(f"INGRESS_ROUTES_TO_NETWORK_SERVICE ({resource.logical_id}): {message}"),
         source_pointer=_resource_pointer(resource),
     )
 

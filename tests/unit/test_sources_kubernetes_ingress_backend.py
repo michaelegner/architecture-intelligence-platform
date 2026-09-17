@@ -144,14 +144,17 @@ def test_routes_to_distinct_services_yield_distinct_relations():
 
 
 def test_missing_service_is_a_limitation():
-    ing = _ingress(default_backend=_backend("nonexistent", port_number=80))
-    result = _resolve(_map([ing]))
+    ing_documents = _map([_ingress(default_backend=_backend("nonexistent", port_number=80))])
+    [ingress] = ing_documents
+    result = _resolve(ing_documents)
     assert result.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
     assert result.resolved_routes == ()
     diagnostic = result.diagnostics[0]
     assert diagnostic.code is DiagnosticCode.K8S_BACKEND_UNRESOLVED
-    # Review round (PR #204): §10 requires the affected claim kind and a real source pointer.
+    # Review round (PR #204, 2nd pass): §10 requires the affected claim kind and source/resource
+    # IDs where safely known - both the logical resource id and a real file source pointer.
     assert "INGRESS_ROUTES_TO_NETWORK_SERVICE" in diagnostic.message
+    assert ingress.logical_id in diagnostic.message
     assert "ing-1" in diagnostic.source_pointer
 
 
