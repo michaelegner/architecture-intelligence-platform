@@ -1,10 +1,14 @@
 import hashlib
+import os
 
+import pytest
 import yaml
 
 from app.canonical.infrastructure import KubernetesEvidenceMode
 from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
 from app.ingestion.kubernetes_discoverer import KubernetesSourceDiscoverer
+from app.ingestion.orchestrator import run_kubernetes_discovery
+from app.sources.inventory import InventoryStatus
 from app.sources.model import (
     DiagnosticCode,
     IngestionDiagnostic,
@@ -221,6 +225,45 @@ def test_scope_definition_digest_changes_with_accepted_envelope_namespaces(tmp_p
     assert (
         first.loaded_sources[0].descriptor.scope_definition_digest == first.scope_definition_digest
     )
+
+
+# --- run_kubernetes_discovery: inventory_status classification -------------------------------
+
+
+def test_missing_root_classifies_the_run_as_failed(tmp_path):
+    config = _config(tmp_path / "does-not-exist")
+    result = run_kubernetes_discovery(config)
+    assert result.inventory_status is InventoryStatus.FAILED
+
+
+def test_missing_envelope_classifies_the_run_as_partial_not_failed(tmp_path):
+    config = _config(tmp_path)
+    result = run_kubernetes_discovery(config)
+    assert result.inventory_status is InventoryStatus.PARTIAL
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root bypasses permission bits, chmod is a no-op")
+def test_unreadable_root_classifies_the_run_as_partial_not_failed(tmp_path):
+    # A root that exists but cannot be traversed (e.g. chmod 0o000) is NOT "acquisition fails
+    # before a stable source can be identified" - a Kubernetes source's identity is computable
+    # from configured values alone (§6), regardless of whether its root is readable. is_dir()
+    # itself still returns True here (it only requires the *parent* to be traversable), so this
+    # falls through to validate_kubernetes_snapshot, which now converts the resulting permission
+    # error into a per-source rejection - PARTIAL, matching an unreadable/missing envelope exactly.
+    config = _config(tmp_path)
+    tmp_path.chmod(0o000)
+    try:
+        result = run_kubernetes_discovery(config)
+    finally:
+        tmp_path.chmod(0o755)
+    assert result.inventory_status is InventoryStatus.PARTIAL
+
+
+def test_valid_matching_envelope_classifies_the_run_as_complete(tmp_path):
+    _write_bundle(tmp_path, files={"resources.yaml": _resource_yaml()})
+    config = _config(tmp_path)
+    result = run_kubernetes_discovery(config)
+    assert result.inventory_status is InventoryStatus.COMPLETE
 
 
 # --- KubernetesSourceAdapter -------------------------------------------------------------------

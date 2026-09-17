@@ -462,11 +462,17 @@ def _resolve_contained_file(root: Path, root_real: Path, relative_path: str) -> 
     candidate = root / relative_path
     try:
         real_path = candidate.resolve(strict=False)
+        is_contained_file = real_path.is_relative_to(root_real) and real_path.is_file()
     except RuntimeError:
         # A circular symlink chain - Path.resolve() raises RuntimeError for this specific case
         # (not OSError), and it is no more a valid, resolvable target than a missing one.
         return None
-    if not real_path.is_relative_to(root_real) or not real_path.is_file():
+    except OSError:
+        # A permission error resolving or stat()-ing the path (e.g. a non-traversable intermediate
+        # directory) - is_file() does not uniformly swallow this the way it does a plain "doesn't
+        # exist", so it must be caught explicitly here too.
+        return None
+    if not is_contained_file:
         return None
     return real_path
 
@@ -498,9 +504,10 @@ def validate_kubernetes_snapshot(
     """
     try:
         root_real = root.resolve(strict=False)
-    except RuntimeError:
-        # A circular symlink chain in the configured root itself - not an OSError (see
-        # _resolve_contained_file's own handling of the same case for a listed file).
+    except (RuntimeError, OSError):
+        # RuntimeError: a circular symlink chain in the configured root itself. OSError: a
+        # permission error resolving it (e.g. a non-traversable intermediate directory) - see
+        # _resolve_contained_file's own handling of the same two cases for a listed file.
         return _rejected(
             result=IngestionResult.REJECTED_INVALID,
             code=DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE,
