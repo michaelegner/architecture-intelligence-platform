@@ -285,6 +285,25 @@ def test_declared_manifest_source_never_resolves_ownership():
     assert result.diagnostics[0].code is DiagnosticCode.K8S_OWNER_UNRESOLVED
 
 
+def test_declared_manifest_pod_with_multiple_controllers_still_rejects_the_source():
+    """Review round (PR #202): the multiple-controllers check must run before the
+    declaration-only gate - an earlier fix reordered these and silently downgraded this case to
+    an ACCEPTED_WITH_LIMITATIONS/K8S_OWNER_UNRESOLVED limitation instead of rejecting."""
+    sts = _workload("StatefulSet", "sts-1", uid="sts-uid-1")
+    ds = _workload("DaemonSet", "ds-1", uid="ds-uid-1")
+    pod = _pod(
+        owner_references=[
+            _owner_ref(api_version="apps/v1", kind="StatefulSet", name="sts-1", uid="sts-uid-1"),
+            _owner_ref(api_version="apps/v1", kind="DaemonSet", name="ds-1", uid="ds-uid-1"),
+        ]
+    )
+    resources = _map([sts, ds, pod], requires_capture_identity=False)
+    result = _resolve(resources, requires_capture_identity=False)
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.resolved_chains == ()
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_OWNER_INVALID
+
+
 def test_standalone_captured_pod_with_no_owner_is_a_limitation_not_a_new_workload():
     pod = _pod()
     resources = _map([pod])

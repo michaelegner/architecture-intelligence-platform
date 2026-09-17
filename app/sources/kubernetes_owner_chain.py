@@ -202,6 +202,14 @@ def resolve_owner_chains(
     resolved: list[ResolvedOwnership] = []
 
     for pod in pods:
+        # §7.3: "Multiple controller owners... reject the source" is unconditional - checked
+        # before the declaration-only gate below, since a malformed Pod doesn't stop being
+        # malformed just because its source can't otherwise resolve ownership (review round,
+        # PR #202: an earlier fix reordered these and silently downgraded this case to a
+        # limitation for DECLARED_MANIFEST sources specifically).
+        if len(_controller_references(pod.projection["ownerReferences"])) > 1:
+            return _rejected(_invalid(pod, "resource has more than one controller owner reference"))
+
         if not requires_capture_identity:
             diagnostics.append(_limitation(pod, "declaration-only input cannot resolve ownership"))
             continue
