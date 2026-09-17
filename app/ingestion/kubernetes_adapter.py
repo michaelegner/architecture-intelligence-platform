@@ -250,11 +250,23 @@ class KubernetesSourceAdapter:
             )
             else IngestionResult.ACCEPTED
         )
-        combined_diagnostics = (
-            mapping_result.diagnostics
-            + owner_chain_result.diagnostics
-            + service_selection_result.diagnostics
-            + ingress_backend_result.diagnostics
+        # §10: "Diagnostics contain source/resource IDs where safely known" - the pure
+        # kubernetes_mapping/kubernetes_owner_chain/kubernetes_service_selection/
+        # kubernetes_ingress_backend modules never see `loaded.descriptor` at all (kept
+        # source-instance-independent on purpose), so this is the one place that can backfill it
+        # (review round, PR #204: every one of their diagnostics previously left this `None`).
+        combined_diagnostics = tuple(
+            diagnostic
+            if diagnostic.source_instance_id is not None
+            else diagnostic.model_copy(
+                update={"source_instance_id": loaded.descriptor.source_instance_id}
+            )
+            for diagnostic in (
+                mapping_result.diagnostics
+                + owner_chain_result.diagnostics
+                + service_selection_result.diagnostics
+                + ingress_backend_result.diagnostics
+            )
         )
 
         # §6: "normalize the allowlisted resource projection, ordering resources by logical key" -

@@ -148,7 +148,11 @@ def test_missing_service_is_a_limitation():
     result = _resolve(_map([ing]))
     assert result.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
     assert result.resolved_routes == ()
-    assert result.diagnostics[0].code is DiagnosticCode.K8S_BACKEND_UNRESOLVED
+    diagnostic = result.diagnostics[0]
+    assert diagnostic.code is DiagnosticCode.K8S_BACKEND_UNRESOLVED
+    # Review round (PR #204): §10 requires the affected claim kind and a real source pointer.
+    assert "INGRESS_ROUTES_TO_NETWORK_SERVICE" in diagnostic.message
+    assert "ing-1" in diagnostic.source_pointer
 
 
 def test_missing_port_is_a_limitation():
@@ -157,7 +161,10 @@ def test_missing_port_is_a_limitation():
     result = _resolve(_map([svc, ing]))
     assert result.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
     assert result.resolved_routes == ()
-    assert result.diagnostics[0].code is DiagnosticCode.K8S_BACKEND_UNRESOLVED
+    diagnostic = result.diagnostics[0]
+    assert diagnostic.code is DiagnosticCode.K8S_BACKEND_UNRESOLVED
+    assert "INGRESS_ROUTES_TO_NETWORK_SERVICE" in diagnostic.message
+    assert "ing-1" in diagnostic.source_pointer
 
 
 def test_ambiguous_port_match_is_a_limitation():
@@ -188,4 +195,18 @@ def test_resource_backend_is_a_limitation_but_does_not_block_other_backends():
     result = _resolve(_map([svc, ing]))
     assert result.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
     assert len(result.resolved_routes) == 1
-    assert any(d.code is DiagnosticCode.K8S_BACKEND_UNRESOLVED for d in result.diagnostics)
+    [diagnostic] = [
+        d for d in result.diagnostics if d.code is DiagnosticCode.K8S_BACKEND_UNRESOLVED
+    ]
+    assert "INGRESS_ROUTES_TO_NETWORK_SERVICE" in diagnostic.message
+    assert "ing-1" in diagnostic.source_pointer
+
+
+def test_ambiguous_port_match_diagnostic_names_the_claim_kind_and_a_source_pointer():
+    svc = _service("svc-1", ports=[{"name": "a", "port": 80}, {"name": "b", "port": 80}])
+    ing = _ingress(default_backend=_backend("svc-1", port_number=80))
+    result = _resolve(_map([svc, ing]))
+    diagnostic = result.diagnostics[0]
+    assert diagnostic.code is DiagnosticCode.K8S_BACKEND_UNRESOLVED
+    assert "INGRESS_ROUTES_TO_NETWORK_SERVICE" in diagnostic.message
+    assert "ing-1" in diagnostic.source_pointer

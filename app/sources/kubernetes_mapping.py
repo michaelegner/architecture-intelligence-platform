@@ -244,7 +244,14 @@ def _ingress_backend_or_error(raw: object) -> tuple[dict | None, str | None]:
     if not isinstance(raw, dict):
         return None, "ingress backend must be an object"
     service = raw.get("service")
-    if service is None and raw.get("resource") is not None:
+    resource = raw.get("resource")
+    # Review round (PR #204): a backend naming *both* service and resource is ambiguous, not a
+    # "service wins" or "resource wins" case either §5 or §7.5 authorizes - §5's "malformed used
+    # fields... reject the source" applies, exactly like both a port name and number being set
+    # below.
+    if service is not None and resource is not None:
+        return None, "ingress backend must not set both service and resource"
+    if service is None and resource is not None:
         return {"resourceBackend": True}, None
     if not isinstance(service, dict):
         return None, "ingress backend.service must be an object"
@@ -264,6 +271,13 @@ def _ingress_backend_or_error(raw: object) -> tuple[dict | None, str | None]:
         return None, "ingress backend.service.port.number must be an integer"
     if port_name is None and port_number is None:
         return None, "ingress backend.service.port must set name or number"
+    # Review round (PR #204): real Kubernetes `ServiceBackendPort` sets exactly one of name/number;
+    # neither §5 nor §7.5 authorizes a precedence rule for a backend that names both, so this
+    # rejects rather than silently preferring one (an earlier version left this to
+    # `kubernetes_ingress_backend._matching_ports`, an unstated tie-break outside this module's own
+    # validation).
+    if port_name is not None and port_number is not None:
+        return None, "ingress backend.service.port must not set both name and number"
     return {
         "serviceName": name,
         "servicePortName": port_name,

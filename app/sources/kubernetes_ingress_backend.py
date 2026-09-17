@@ -58,9 +58,13 @@ def _resource_pointer(resource: MappedResource) -> str:
 
 
 def _backend_unresolved(resource: MappedResource, message: str) -> IngestionDiagnostic:
+    # Review round (PR #204): §10 requires diagnostics to name "the affected claim kind" -
+    # `IngestionDiagnostic` has no dedicated field for it, so it's carried in the message text
+    # itself, the same way every diagnostic in this codebase already communicates context beyond
+    # its own typed fields.
     return IngestionDiagnostic(
         code=DiagnosticCode.K8S_BACKEND_UNRESOLVED,
-        message=message,
+        message=f"INGRESS_ROUTES_TO_NETWORK_SERVICE: {message}",
         source_pointer=_resource_pointer(resource),
     )
 
@@ -78,6 +82,10 @@ def _iter_backends(ingress: MappedResource) -> list[dict]:
 
 
 def _matching_ports(ports: list[dict], backend: dict) -> list[dict]:
+    """`kubernetes_mapping._ingress_backend_or_error` already rejects a backend port that sets
+    both `name` and `number` (§5: "malformed used fields... reject the source") - by construction,
+    exactly one of these is set here, never a tie-break between the two.
+    """
     port_number = backend["servicePortNumber"]
     if port_number is not None:
         return [p for p in ports if p["port"] == port_number]

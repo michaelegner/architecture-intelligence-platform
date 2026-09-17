@@ -395,6 +395,43 @@ def test_a_backend_with_neither_service_nor_resource_still_rejects_the_source():
     assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
 
 
+def test_a_backend_with_both_service_and_resource_rejects_the_source():
+    """Review round (PR #204): neither §5 nor §7.5 authorizes a precedence rule between service
+    and resource on one backend - this is a malformed shape, not an implicit "service wins"."""
+    ingress = {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "Ingress",
+        "metadata": {"name": "checkout-ingress", "namespace": _NAMESPACE},
+        "spec": {
+            "defaultBackend": {
+                "service": {"name": "checkout-svc", "port": {"number": 80}},
+                "resource": {"apiGroup": "k8s.example.com", "kind": "StorageBucket", "name": "x"},
+            }
+        },
+    }
+    result = _map([_entry(ingress)])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+
+
+def test_a_backend_port_with_both_name_and_number_rejects_the_source():
+    """Review round (PR #204): real Kubernetes `ServiceBackendPort` sets exactly one of name/
+    number - a backend setting both is malformed, not an implicit "number wins" tie-break."""
+    ingress = {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "Ingress",
+        "metadata": {"name": "checkout-ingress", "namespace": _NAMESPACE},
+        "spec": {
+            "defaultBackend": {
+                "service": {"name": "checkout-svc", "port": {"number": 80, "name": "http"}}
+            }
+        },
+    }
+    result = _map([_entry(ingress)])
+    assert result.result is IngestionResult.REJECTED_INVALID
+    assert result.diagnostics[0].code is DiagnosticCode.K8S_RESOURCE_INVALID
+
+
 def test_duplicate_service_with_conflicting_selector_rejects_the_source():
     first = _service(selector={"app": "checkout-api"})
     second = _service(selector={"app": "different"})

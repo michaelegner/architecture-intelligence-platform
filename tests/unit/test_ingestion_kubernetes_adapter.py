@@ -135,7 +135,13 @@ def test_a_deployment_and_pod_bundle_produces_the_expected_canonical_facts(tmp_p
     # so owner-chain resolution can never apply (§7.3's "declaration-only input" case) - one
     # K8S_OWNER_UNRESOLVED limitation, no WORKLOAD_OWNS_POD claim, but no rejection.
     assert result.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
-    assert any(d.code is DiagnosticCode.K8S_OWNER_UNRESOLVED for d in result.diagnostics)
+    owner_diagnostic = next(
+        d for d in result.diagnostics if d.code is DiagnosticCode.K8S_OWNER_UNRESOLVED
+    )
+    # Review round (PR #204): kubernetes_owner_chain.py (like kubernetes_mapping.py/
+    # kubernetes_service_selection.py/kubernetes_ingress_backend.py) never sees `loaded.
+    # descriptor` and so never sets source_instance_id itself - the adapter backfills it.
+    assert owner_diagnostic.source_instance_id is not None
     assert result.semantic_input_digest is not None
 
     entities_by_kind = {e.entity_kind: e for e in result.model.infrastructure_entities}
