@@ -1,8 +1,9 @@
 # I2 Completion Record — v0.5.0 Kubernetes Discovery Vertical Slice
 
-**Status:** COMPLETE at the merge revision recorded below. I2 completion is not release publication
-or `SHIPPED_VERIFIED` — I3/I4 disposition, I5 independent qualification, and I6 exact-artifact
-release/post-release gates remain required by the parent specification (§13).
+**Status:** COMPLETE, pending the immutable candidate-revision pin below (a required follow-up
+record-only commit after this PR merges — see "Immutable qualification identity"). I2 completion is
+not release publication or `SHIPPED_VERIFIED` — I3/I4 disposition, I5 independent qualification, and
+I6 exact-artifact release/post-release gates remain required by the parent specification (§13).
 
 Governing spec: `docs/specifications/0.5.0/i2-kubernetes-discovery-vertical-slice.md` (Draft 0.2,
 post-I1 integration amendment). Per §13: I2 is complete only when its scope/claim/exposure decisions
@@ -50,6 +51,21 @@ Two distinct Kubernetes fixture bundles, qualifying two distinct claims:
 Both fixtures use `CAPTURED_RESOURCE` evidence mode; `tests/integration/test_importer.py` also
 exercises `DECLARED_MANIFEST` via dynamically-written inline bundles (slices 2b-4c/5's own dynamic
 test helpers).
+
+## Immutable qualification identity
+
+§13: "candidate, rule/schema, fixture, report, and evidence revisions are recorded" — pinned here by
+exact content digest/SHA, not by path alone, so this record identifies exactly which artifact set was
+qualified.
+
+| Artifact | Revision |
+|---|---|
+| Governing spec (`docs/specifications/0.5.0/i2-kubernetes-discovery-vertical-slice.md`) | git blob `c538661e50d589aa61b8ac00fa6aba967cb61470` |
+| Adapter/discoverer rule versions | `kubernetes-adapter@1`, `kubernetes-discoverer@1` (`app/ingestion/kubernetes_adapter.py`/`kubernetes_discoverer.py`) |
+| Authored fixture content (`tests/fixtures/kubernetes/i2/resources.yaml`) | sha256 `fa987f007a4e667644c43fded0eb698b2150259f13f408a7b9e6bbd1246fba07` (its own `envelope.yaml`'s pinned digest) |
+| Independently captured fixture content (`tests/fixtures/kubernetes/i2-independent-capture/resources.yaml`) | sha256 `de2fc2015dcbe33e7cbe0d1768b67cdfa001b696a3f239899e2baa7a3dc2ee14` (its own `envelope.yaml`'s pinned digest); full capture provenance in that directory's `PROVENANCE.md` |
+| Candidate revision (the exact commit this record's regression suite/report below was run against) | **pinned in a follow-up record-only commit once this PR's merge SHA is known** — a commit cannot correctly cite its own not-yet-created SHA; see this repo's own established two-step pattern for exactly this self-reference problem, already used for v0.4.0/v0.4.1's release-note link closure |
+| Report (the regression suite result below) | tied to the candidate revision above once pinned — re-run at that exact SHA, not assumed unchanged from an earlier commit on this branch |
 
 ## Regression suite (full local run at this PR's tip)
 
@@ -132,12 +148,14 @@ remain explicit I3 design decisions, not inherited defaults.
 
 ## Corrected I2 exit statement
 
-> **COMPLETE** — At this PR's merge revision, all twelve I2 slices are present and re-verified
-> together: the shared I1 lifecycle seam (prerequisite A/B), envelope validation and identity (2a),
-> registration and predecessor/stale-inventory handling (2b-i/2b-ii), all four §7.1 canonical
-> infrastructure entity kinds and all four §7.2 claim kinds (3a/3b/4a/4b/4c), shared lifecycle
-> replay/conflict/scope/removal qualification against real Kubernetes bundles (5), and independent
-> frozen-capture qualification, real-transport surface regression, and a closed I3 handoff (6).
+> **COMPLETE** — At this PR's merge revision, all six of §12's suggested implementation slices are
+> present and re-verified together, several further split into their own reviewed delivery PRs
+> where their own scope warranted it (the twelve PRs in "Run identity" above): the shared I1
+> lifecycle seam and Canonical Model generalization (prerequisite A/B), envelope validation and
+> identity (slice 2, split 2a/2b-i/2b-ii), all four §7.1 canonical infrastructure entity kinds and
+> all four §7.2 claim kinds (slices 3-4, split 3a/3b/4a/4b/4c), shared lifecycle replay/conflict/
+> scope/removal qualification against real Kubernetes bundles (slice 5), and independent
+> frozen-capture qualification, real-transport surface regression, and a closed I3 handoff (slice 6).
 > `uv run pytest tests/unit` (1621) and `tests/integration` (347) both pass in
 > full; lint/format are clean. No production regression was found in any pre-existing I1/OTel/MCP
 > suite. I2 completion is not release publication or `SHIPPED_VERIFIED` — I3/I4 disposition, I5

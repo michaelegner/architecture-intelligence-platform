@@ -42,9 +42,9 @@ no claim of API presence) and `CAPTURED_RESOURCE` (presence in a bounded capture
 to its own entity — `Service`, `Ingress`) and produces four entity kinds and four claim kinds:
 `WORKLOAD_EXISTS`, `WORKLOAD_OWNS_POD`, `NETWORK_SERVICE_SELECTS_WORKLOAD`,
 `INGRESS_ROUTES_TO_NETWORK_SERVICE`. It never establishes application interaction (no `CALLS`/
-`SENDS`/`RECEIVES_FROM`/`DEPLOYED_AS`) and never evaluates the `architecture-intelligence.io/
-service-id` annotation into an AIP Service identity — that annotation is retained verbatim as
-unqualified input for I3. See the governing spec
+`SENDS`/`RECEIVES_FROM`/`DEPLOYED_AS`) and never evaluates the
+`architecture-intelligence.io/service-id` annotation into an AIP Service identity — that annotation
+is retained verbatim as unqualified input for I3. See the governing spec
 (`docs/specifications/0.5.0/i2-kubernetes-discovery-vertical-slice.md`) and
 [`canonical-model.md`](canonical-model.md#infrastructure-entities-and-claims-appcanonicalinfrastructurepy--internal-only)
 for the full contract, limitations, and internal-only exposure boundary.

@@ -74,6 +74,11 @@ _INTERNAL_MARKERS = (
     "NETWORK_SERVICE_SELECTS_WORKLOAD",
     "INGRESS_ROUTES_TO_NETWORK_SERVICE",
     "urn:aip:k8s-resource:",
+    # ids.evidence_id() lowercases source_type - a Kubernetes evidence id is
+    # "evidence:kubernetes:...", not "evidence:KUBERNETES:..." (PR #209 review finding: the
+    # original denylist only had the entity/claim-id prefix, missing this lowercase evidence-id
+    # form the module's own docstring claims to cover).
+    "evidence:kubernetes:",
 )
 
 
