@@ -1,6 +1,6 @@
 # AIP v0.5.0 I3 — Runtime Identity Reconciliation and `DEPLOYED_AS`
 
-**Status:** Draft 0.2 — semantic ambiguities closed after review  
+**Status:** Draft 0.3 — mapping group identity made injective after review  
 **Target release:** `v0.5.0`  
 **Release increment:** I3 — Deeper Runtime Discovery and Cross-Source Reconciliation  
 **Target repository path:** `docs/specifications/0.5.0/i3-runtime-identity-reconciliation.md`  
@@ -846,11 +846,11 @@ existing Workload resolved by one or more applicable paths:
 configured mapping whose exact Workload target is absent:
   group_key =
     "mapping:"
-    + mapping artifact id
-    + ":"
-    + mapping artifact revision
-    + ":"
-    + mappingId
+    + canonical-json({
+        "artifact_id": mapping artifact id,
+        "artifact_revision": mapping artifact revision,
+        "mapping_id": mappingId
+      })
 
 OTel runtime identity observation whose Pod UID cannot resolve to exactly one current Workload:
   group_key = "otel:" + OTel runtime-identity evidence id
@@ -861,6 +861,14 @@ group rather than creating a separate OTel group.
 
 Annotation evidence always belongs to an existing Workload group because the annotation is retained
 on an I2 Workload contribution.
+
+The mapping form SHALL use AIP's existing deterministic canonical-JSON utility. Its structured
+object encoding, not delimiter concatenation, is normative. Therefore delimiter-bearing values such
+as `:`, `/`, `|`, or Unicode characters in any mapping identity field cannot change tuple
+boundaries or collide with a different `(artifact_id, artifact_revision, mapping_id)` tuple.
+
+No implementation may replace this with separator-based string concatenation unless a future reviewed
+specification proves an injective escaping scheme.
 
 Identical group keys are reduced exactly once. Input/source ordering cannot create additional public
 resolutions.
@@ -1401,6 +1409,8 @@ identical duplicate mapping
 two mappings -> same Workload, different Services
 mapping file unknown field
 mapping file duplicate key/id
+delimiter-bearing artifact id/revision/mappingId values preserve distinct group keys
+distinct tuples ("a", "b:c", "d") and ("a:b", "c", "d") produce distinct group keys
 mapping-content change changes reconciliation context/snapshot
 ```
 
