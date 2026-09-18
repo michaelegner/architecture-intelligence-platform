@@ -254,7 +254,11 @@ class WorkloadRef(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: str
-    type: Literal[EntityType.WORKLOAD] = EntityType.WORKLOAD
+    # No default (PR #212 review finding): a Pydantic field default is omitted from the generated
+    # JSON Schema's `required` list, so a defaulted discriminator/identity field is NOT actually
+    # required for a non-Pydantic client validating against the committed schema - required here so
+    # `type` is a real, always-present field, not a silently-fillable one.
+    type: Literal[EntityType.WORKLOAD]
     name: str
     workload_kind: WorkloadKind
     namespace: str
@@ -352,9 +356,9 @@ class DependencyClaim(BaseModel):
 
     claim_id: str = Field(pattern=_CLAIM_ID_PATTERN)
     subject: EntityRef
-    predicate: Literal[DependencyPredicate.DIRECT_DEPENDENCY] = (
-        DependencyPredicate.DIRECT_DEPENDENCY
-    )
+    # No default (PR #212 review finding) - see WorkloadRef.type's own comment on why a
+    # discriminator field must never be defaulted.
+    predicate: Literal[DependencyPredicate.DIRECT_DEPENDENCY]
     object: EntityRef
     destination_resolution: DestinationResolution
     delivery: DeliveryRef
@@ -476,14 +480,19 @@ class DeploymentClaim(BaseModel):
 
     claim_id: str = Field(pattern=_CLAIM_ID_PATTERN)
     subject: EntityRef
-    predicate: Literal[DeploymentPredicate.DEPLOYED_AS] = DeploymentPredicate.DEPLOYED_AS
+    # No default (PR #212 review finding) - see WorkloadRef.type's own comment: a defaulted
+    # discriminator/identity field is silently omitted from the generated JSON Schema's `required`
+    # list, so it is NOT actually required for a non-Pydantic client. Applies to `predicate` (the
+    # union discriminator) and both `reconciliation_rule_*` fields (frozen identity, not
+    # convenience) below.
+    predicate: Literal[DeploymentPredicate.DEPLOYED_AS]
     object: WorkloadRef
     resolution_method: DeploymentResolutionMethod
     supporting_methods: list[DeploymentResolutionMethod] = Field(
         min_length=1, json_schema_extra={"uniqueItems": True}
     )
-    reconciliation_rule_id: DeploymentReconciliationRuleId = DEPLOYMENT_RECONCILIATION_RULE_ID
-    reconciliation_rule_version: Literal[1] = 1
+    reconciliation_rule_id: DeploymentReconciliationRuleId
+    reconciliation_rule_version: Literal[1]
     evidence_refs: list[str] = Field(min_length=1, json_schema_extra={"uniqueItems": True})
 
     @field_validator("evidence_refs")
@@ -573,8 +582,9 @@ class DeploymentResolution(BaseModel):
     conflicting_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
     limitation_codes: list[LimitationCode] = Field(json_schema_extra={"uniqueItems": True})
     claim_id: str | None
-    reconciliation_rule_id: DeploymentReconciliationRuleId = DEPLOYMENT_RECONCILIATION_RULE_ID
-    reconciliation_rule_version: Literal[1] = 1
+    # No default (PR #212 review finding) - see WorkloadRef.type's own comment.
+    reconciliation_rule_id: DeploymentReconciliationRuleId
+    reconciliation_rule_version: Literal[1]
 
     @field_validator(
         "candidate_service_ids", "supporting_evidence_refs", "conflicting_evidence_refs"
@@ -645,17 +655,42 @@ class Limitation(BaseModel):
         return value
 
 
+def _check_service_field_is_service_typed(value: EntityRef) -> EntityRef:
+    # PR #212 review finding: EntityType.WORKLOAD (added this slice) otherwise lets a
+    # Workload-shaped EntityRef slip into a `service` field that identifies the requested AIP
+    # Service - the same "DEPLOYED_AS != CALLS" / entity-equivalence boundary the DependencyClaim
+    # subject/object guard already enforces, applied here to the answer-level `service` identity.
+    if value.type != EntityType.SERVICE:
+        raise ValueError("service.type must be SERVICE")
+    return value
+
+
+def _service_field_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
+    """Mirrors `_check_service_field_is_service_typed` for external (non-Pydantic) validators."""
+    schema["allOf"] = [
+        *schema.get("allOf", []),
+        {"properties": {"service": {"properties": {"type": {"const": "SERVICE"}}}}},
+    ]
+
+
 class ServiceDependenciesData(BaseModel):
     """v0.5.0 I3 spec §14.2: deployment is a separate sibling projection, never a dependency -
     `deployment_claim_ids`/`deployment_resolutions` are additive fields alongside the original
     dependency-only shape, not a replacement of it."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", json_schema_extra=_service_field_schema_extra
+    )
 
     service: EntityRef
     dependency_claim_ids: list[str]
     deployment_claim_ids: list[str]
     deployment_resolutions: list[DeploymentResolution]
+
+    @field_validator("service")
+    @classmethod
+    def _check_service_type(cls, value: EntityRef) -> EntityRef:
+        return _check_service_field_is_service_typed(value)
 
     @field_validator("deployment_resolutions")
     @classmethod
@@ -678,10 +713,17 @@ class ArchitectureDriftData(BaseModel):
     authoritative `qualification` that made it drift. The claims themselves stay on the enclosing
     `ArchitectureAnswer.claims` - this data payload only names them, in the same order."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", json_schema_extra=_service_field_schema_extra
+    )
 
     service: EntityRef
     drift_claim_ids: list[str]
+
+    @field_validator("service")
+    @classmethod
+    def _check_service_type(cls, value: EntityRef) -> EntityRef:
+        return _check_service_field_is_service_typed(value)
 
 
 class SupportedFact(BaseModel):

@@ -2,6 +2,19 @@
   "$defs": {
     "ArchitectureDriftData": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "properties": {
+            "service": {
+              "properties": {
+                "type": {
+                  "const": "SERVICE"
+                }
+              }
+            }
+          }
+        }
+      ],
       "description": "v0.4.0 I3.1 - spec \u00a710. Deliberately only the service and the drift claim ids: no\n`observed_only[]`/`not_observed[]` buckets, no `severity`/`score`/`summary_text` (spec \u00a710 names\neach of those as prohibited), because every returned `DependencyClaim` already carries the\nauthoritative `qualification` that made it drift. The claims themselves stay on the enclosing\n`ArchitectureAnswer.claims` - this data payload only names them, in the same order.",
       "properties": {
         "drift_claim_ids": {
@@ -251,7 +264,6 @@
         },
         "predicate": {
           "const": "DIRECT_DEPENDENCY",
-          "default": "DIRECT_DEPENDENCY",
           "title": "Predicate",
           "type": "string"
         },
@@ -273,6 +285,7 @@
       "required": [
         "claim_id",
         "subject",
+        "predicate",
         "object",
         "destination_resolution",
         "delivery",
@@ -378,19 +391,16 @@
         },
         "predicate": {
           "const": "DEPLOYED_AS",
-          "default": "DEPLOYED_AS",
           "title": "Predicate",
           "type": "string"
         },
         "reconciliation_rule_id": {
           "const": "service-workload-reconciliation",
-          "default": "service-workload-reconciliation",
           "title": "Reconciliation Rule Id",
           "type": "string"
         },
         "reconciliation_rule_version": {
           "const": 1,
-          "default": 1,
           "title": "Reconciliation Rule Version",
           "type": "integer"
         },
@@ -413,9 +423,12 @@
       "required": [
         "claim_id",
         "subject",
+        "predicate",
         "object",
         "resolution_method",
         "supporting_methods",
+        "reconciliation_rule_id",
+        "reconciliation_rule_version",
         "evidence_refs"
       ],
       "title": "DeploymentClaim",
@@ -738,7 +751,6 @@
         },
         "type": {
           "const": "WORKLOAD",
-          "default": "WORKLOAD",
           "title": "Type",
           "type": "string"
         },
@@ -748,6 +760,7 @@
       },
       "required": [
         "id",
+        "type",
         "name",
         "workload_kind",
         "namespace"

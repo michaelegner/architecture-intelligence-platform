@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from app.architecture_intelligence.contracts import (
+    DEPLOYMENT_RECONCILIATION_RULE_ID,
     ArchitectureAnswer,
     ArchitectureDriftData,
     Coverage,
@@ -204,6 +205,7 @@ def _valid_claim(**overrides) -> DependencyClaim:
 def _valid_workload(**overrides) -> WorkloadRef:
     fields = {
         "id": "urn:aip:k8s-resource:" + "1" * 64,
+        "type": EntityType.WORKLOAD,
         "name": "checkout",
         "workload_kind": WorkloadKind.DEPLOYMENT,
         "namespace": "checkout",
@@ -216,9 +218,12 @@ def _valid_deployment_claim(**overrides) -> DeploymentClaim:
     fields = {
         "claim_id": "aip:claim:v1:" + "9" * 64,
         "subject": _valid_service_entity(),
+        "predicate": DeploymentPredicate.DEPLOYED_AS,
         "object": _valid_workload(),
         "resolution_method": DeploymentResolutionMethod.RESOLVED_EXPLICIT,
         "supporting_methods": [DeploymentResolutionMethod.RESOLVED_EXPLICIT],
+        "reconciliation_rule_id": DEPLOYMENT_RECONCILIATION_RULE_ID,
+        "reconciliation_rule_version": 1,
         "evidence_refs": ["evidence:kubernetes:" + "a" * 64],
     }
     fields.update(overrides)
@@ -237,6 +242,8 @@ def _valid_deployment_resolution(**overrides) -> DeploymentResolution:
         "conflicting_evidence_refs": [],
         "limitation_codes": [],
         "claim_id": "aip:claim:v1:" + "9" * 64,
+        "reconciliation_rule_id": DEPLOYMENT_RECONCILIATION_RULE_ID,
+        "reconciliation_rule_version": 1,
     }
     fields.update(overrides)
     return DeploymentResolution(**fields)
@@ -1640,3 +1647,127 @@ def test_architecture_answer_schema_defines_a_discriminated_claims_union():
     schema = load_schema()
     claims_schema = schema["properties"]["claims"]["items"]
     assert "discriminator" in claims_schema or "oneOf" in claims_schema or "$ref" in claims_schema
+
+
+# --- PR #212 review round: a Pydantic field default is silently omitted from the generated JSON  --
+# --- Schema's `required` list, so a defaulted discriminator/identity field was NOT actually       --
+# --- required for a non-Pydantic client even though Pydantic itself always filled it in - fixed    --
+# --- by removing every such default; these prove both layers now reject the omission (spec         --
+# --- §11-§14.2), and that a WORKLOAD-typed `service` field can no longer slip past either layer.    --
+
+
+def test_workload_ref_omitting_type_fails_both_pydantic_and_schema():
+    deployment_claim = _valid_deployment_claim().model_dump(mode="json")
+    payload = _service_dependencies_answer_dict(claims=[deployment_claim])
+    del payload["claims"][0]["object"]["type"]
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_dependency_claim_omitting_predicate_fails_both_pydantic_and_schema():
+    claim = _valid_claim().model_dump(mode="json")
+    payload = _service_dependencies_answer_dict(claims=[claim])
+    del payload["claims"][0]["predicate"]
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_deployment_claim_omitting_predicate_fails_both_pydantic_and_schema():
+    claim = _valid_deployment_claim().model_dump(mode="json")
+    payload = _service_dependencies_answer_dict(claims=[claim])
+    del payload["claims"][0]["predicate"]
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+@pytest.mark.parametrize("field", ["reconciliation_rule_id", "reconciliation_rule_version"])
+def test_deployment_claim_omitting_reconciliation_rule_field_fails_both_pydantic_and_schema(field):
+    claim = _valid_deployment_claim().model_dump(mode="json")
+    payload = _service_dependencies_answer_dict(claims=[claim])
+    del payload["claims"][0][field]
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+@pytest.mark.parametrize("field", ["reconciliation_rule_id", "reconciliation_rule_version"])
+def test_deployment_resolution_omitting_reconciliation_rule_field_fails_both_pydantic_and_schema(
+    field,
+):
+    deployment_claim = _valid_deployment_claim()
+    resolution = _valid_deployment_resolution(claim_id=deployment_claim.claim_id)
+    resolution_dict = resolution.model_dump(mode="json")
+    del resolution_dict[field]
+    payload = _service_dependencies_answer_dict(
+        claims=[deployment_claim.model_dump(mode="json")],
+        data_overrides={"deployment_resolutions": [resolution_dict]},
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_service_dependencies_data_rejects_a_workload_typed_service_both_pydantic_and_schema():
+    payload = _valid_answer_dict()
+    payload["data"]["service"]["type"] = "WORKLOAD"
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_drift_data_rejects_a_workload_typed_service_both_pydantic_and_schema():
+    payload = _valid_drift_answer_dict()
+    payload["data"]["service"]["type"] = "WORKLOAD"
+    with pytest.raises(ValidationError):
+        DRIFT_ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_drift_schema())
+
+
+def test_workload_ref_schema_marks_type_required():
+    schema = load_schema()
+    assert "type" in schema["$defs"]["WorkloadRef"]["required"]
+
+
+def test_dependency_claim_schema_marks_predicate_required():
+    schema = load_schema()
+    assert "predicate" in schema["$defs"]["DependencyClaim"]["required"]
+
+
+def test_deployment_claim_schema_marks_predicate_and_rule_fields_required():
+    schema = load_schema()
+    required = schema["$defs"]["DeploymentClaim"]["required"]
+    for field in ("predicate", "reconciliation_rule_id", "reconciliation_rule_version"):
+        assert field in required
+
+
+def test_deployment_resolution_schema_marks_rule_fields_required():
+    schema = load_schema()
+    required = schema["$defs"]["DeploymentResolution"]["required"]
+    for field in ("reconciliation_rule_id", "reconciliation_rule_version"):
+        assert field in required
+
+
+def test_service_dependencies_data_schema_requires_service_typed_service():
+    schema = load_schema()
+    data_schema = schema["$defs"]["ServiceDependenciesData"]
+    assert data_schema["allOf"][0]["properties"]["service"]["properties"]["type"]["const"] == (
+        "SERVICE"
+    )
+
+
+def test_drift_data_schema_requires_service_typed_service():
+    schema = load_drift_schema()
+    data_schema = schema["$defs"]["ArchitectureDriftData"]
+    assert data_schema["allOf"][0]["properties"]["service"]["properties"]["type"]["const"] == (
+        "SERVICE"
+    )
