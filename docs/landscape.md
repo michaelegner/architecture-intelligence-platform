@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-17_
+_Last reviewed: 2026-09-18_
 
 ## AIP anchor
 
@@ -37,6 +37,7 @@ endorsement, dependency, or roadmap commitment.
 [Bigraphs](#robin-milner--bigraphs--bigraphical-reactive-systems) ·
 [Promise Theory](#mark-burgess--promise-theory) ·
 [Semantic Spacetime](#mark-burgess--semantic-spacetime) ·
+[SSTorytime](#mark-burgess--sstorytime-and-context-investment) ·
 [Strategic DDD](#domain-driven-design--strategic-patterns) ·
 [SysML v2](#omg--sysml-v2)
 
@@ -47,6 +48,8 @@ promises, temporal context, and explicit system intent without collapsing them i
 
 [OpenTelemetry](#opentelemetry-semantic-conventions) ·
 [OpenAPI as deterministic evidence](#kin-lane--openapi-as-a-deterministic-artifact-in-an-ai-generated-world) ·
+[Structurizr/C4](#structurizrc4--declared-architecture-models-and-views) ·
+[Executable architecture rules](#archunit-and-jqassistant--executable-architecture-rules) ·
 [Backstage](#backstage-software-catalog) ·
 [Cartography](#cartography--infrastructure-and-security-graph-discovery) ·
 [EventCatalog](#eventcatalog--connected-architecture-catalog-for-humans-and-agents) ·
@@ -62,6 +65,7 @@ visualization, provenance, or retrieval?
 ### Agent context and machine consumption
 
 [MCP](#model-context-protocol-mcp) ·
+[Procedural Graphs](#lu-et-al--procedural-graphs) ·
 [Agent-ready bounded context](#daniel-kocot--agent-ready-apis-and-bounded-context) ·
 [BootUI](#bootui--runtime-context-for-coding-agents) ·
 [Deterministic integration](#kin-lane--agents-should-write-code-to-integrate-not-infer-it-at-runtime) ·
@@ -77,6 +81,7 @@ evidence-qualified architecture context without becoming the source of architect
 ### Intent, authority, and governance
 
 [Confirmed versus inferred intent](#andreas-toth--ai-shouldnt-guess-what-we-mean-it-should-ask) ·
+[ArchiMate and intent interchange](#archimate-and-intent-interchange) ·
 [Mneme](#mneme-hq) ·
 [Architecture guardrails](#oreilly--architectural-guardrails-for-ai-generated-code) ·
 [AI-accelerated drift](#ankur-agnihotri--architecture-drift-reduction-with-llms) ·
@@ -97,6 +102,7 @@ organizational responsibility constrain agent action without being inferred from
 [Long-running context drift](#agentic-software-how-ai-agents-are-restructuring-the-software-paradigm) ·
 [ADMET-EvO](#zhou-et-al--admet-evo-and-evidence-gated-self-evolution) ·
 [The Light Factory](#martien-de-jong--the-light-factory) ·
+[OrcaReplay](#orcareplay--record-replay-and-fork-agent-runs) ·
 [Deterministic backpressure](#lucas-f-costa--backpressure-is-all-you-need) ·
 [Agent observability](#agent-observability)
 
@@ -199,6 +205,46 @@ Architecture(t2)
 ```
 
 This is a natural theoretical reference for future **Architecture Trajectories**, but not a reason to expand v0.4 scope.
+
+### Mark Burgess — SSTorytime and Context Investment
+
+**Sources**
+
+- [SSTorytime](https://github.com/markburgess/SSTorytime)
+- [Describe the Scene! The Investment in Context](https://mark-burgess-oslo-mb.medium.com/describe-the-scene-the-investment-in-context-776c6a3d9125)
+
+**Core idea**
+
+SSTorytime is a concrete knowledge-graph implementation based on Semantic Spacetime. Burgess argues
+that useful knowledge capture begins with describing events and their context, then progressively
+organizing those descriptions rather than fixing a complete ontology in advance. SSTorytime groups
+relations into four broad semantic families: `LEADSTO`, `CONTAINS`, `EXPRESSES-PROPERTY`, and
+`SIMILARTO`.
+
+**Why this matters to AIP**
+
+The approach sharpens why an architectural edge is not meaningful without its frame:
+
+```text
+subject + relation + object
+        +
+source + time + scope + observer + intent
+        ↓
+interpretable architectural assertion
+```
+
+It also supports AIP's separation between retained source evidence and a projection that may be
+recomputed as qualification rules or context change. A note or interpretation may evolve without
+rewriting the evidence from which it was derived.
+
+**AIP distinction**
+
+AIP cannot defer all relation semantics until later. Public architecture answers require stable,
+qualified meanings. Kubernetes selection, an observed OpenTelemetry call, an OpenAPI operation, and
+an ADR constraint must not collapse into an undifferentiated `A -> B`.
+
+SSTorytime is therefore most useful as an interoperability and contextual-projection reference, not
+as a replacement for AIP's Canonical Model or as additional v0.5 scope.
 
 ### Domain-Driven Design — Strategic Patterns
 
@@ -305,9 +351,10 @@ plausible-looking architecture fact
 
 ### Kin Lane — OpenAPI as a Deterministic Artifact in an AI-Generated World
 
-**Source**
+**Sources**
 
 - [Is OpenAPI Still Relevant When You Tell Claude "Make Me an API"?](https://apievangelist.com/2026/09/15/is-openapi-still-relevant-when-you-tell-claude-make-me-an-api/)
+- [OpenAPI Overlay Specification](https://spec.openapis.org/overlay/latest.html)
 
 **Core idea**
 
@@ -337,6 +384,72 @@ silently.
 
 > **AI generation increases the value of durable contracts; it does not turn contracts into
 > runtime truth.**
+
+OpenAPI Overlay is relevant because it can keep policy, enrichment, or consumer-specific metadata
+separate from the base description. A future AIP importer would need to retain the base document and
+each overlay as independently identifiable sources, record their digests and application order, and
+make failed targets or conflicting changes explicit. The effective overlaid document would still be
+declared evidence, not observed behavior or automatically authoritative intent.
+
+### Structurizr/C4 — Declared Architecture Models and Views
+
+**Sources**
+
+- [C4 model](https://c4model.com/)
+- [Structurizr DSL](https://docs.structurizr.com/dsl)
+
+**Core idea**
+
+The C4 model describes software at several structural levels, while Structurizr provides a
+model-as-code representation and derives multiple views from a shared model. This makes the
+underlying elements and relationships more useful to AIP than rendered diagrams alone.
+
+**Why this matters to AIP**
+
+A Structurizr workspace could become a future declared architecture source, provided that AIP keeps
+three distinctions explicit:
+
+```text
+authored model relationship  != observed interaction
+diagram membership           != system membership
+C4 identifier                != AIP identity without a qualified mapping
+```
+
+A relationship omitted from a view may still exist in the model, so view omission cannot establish
+absence. Conversely, an authored relationship is evidence of what the model declares, not proof that
+the deployed system behaves that way.
+
+This is a source-adapter research candidate, not a v0.5 commitment.
+
+### ArchUnit and jQAssistant — Executable Architecture Rules
+
+**Sources**
+
+- [ArchUnit](https://www.archunit.org/)
+- [jQAssistant](https://github.com/jqassistant)
+
+**Core idea**
+
+ArchUnit evaluates architecture and coding rules against Java bytecode. jQAssistant scans software
+artifacts into a graph and evaluates project-specific concepts and constraints over that graph. Both
+turn selected architecture expectations into repeatable checks close to the implementation.
+
+**Why this matters to AIP**
+
+These tools expose three artifacts that AIP must not collapse:
+
+```text
+rule or constraint       = explicit intent
+scanned code structure   = implementation evidence
+rule evaluation result   = scope-bound assessment
+```
+
+A violation may provide strong evidence of drift from a stated rule. A passing check proves only
+that the encoded rule held for the scanned scope and tool version; it does not establish global
+architectural correctness.
+
+They are useful references for future fitness criteria and code-discovery adapters, while their
+language-specific findings remain outside v0.5.
 
 ### Backstage Software Catalog
 
@@ -629,6 +742,35 @@ MCP / agent
 ```
 
 An agent must remain downstream of the deterministic architecture model and must not become the source of canonical architectural truth.
+
+### Lu et al. — Procedural Graphs
+
+**Source**
+
+- [Procedural Graphs: Self-Evolving Execution Structures for LLM Agents](https://arxiv.org/abs/2609.09153)
+
+**Core idea**
+
+A knowledge graph organizes facts for *what-is* questions; a Procedural Graph organizes steps,
+conditions, guidance, and pitfalls for *what-to-do* questions. The proposed graph is frozen during
+inference, while later edits are accepted only when they preserve or improve held-out evaluation.
+
+**Why this matters to AIP**
+
+This defines a useful boundary for agent-facing architecture context:
+
+```text
+AIP knowledge projection
+answers what the evidence supports
+        ↓
+procedural or coding agent
+decides what to do next
+```
+
+AIP may supply qualified context to a procedure, but procedural guidance, successful trajectories,
+or an agent's chosen action must not become canonical architecture truth. If procedural knowledge is
+ever linked to AIP, its evidence, validation state, version, and authority need to remain distinct
+from the Current-State graph.
 
 ### Daniel Kocot — Agent-Ready APIs and Bounded Context
 
@@ -935,6 +1077,46 @@ runtime behavior, code structure, naming, or an LLM's interpretation. Inference 
 interpretation for confirmation; only explicit evidence can establish architectural intent.
 
 > **Inference may propose architectural intent; only explicit evidence may establish it.**
+
+### ArchiMate and Intent Interchange
+
+**Sources**
+
+- [ArchiMate](https://www.opengroup.org/archimate-forum/archimate-overview)
+- [Requirements Interchange Format (ReqIF)](https://www.omg.org/spec/ReqIF/1.2)
+- [Open Services for Lifecycle Collaboration (OSLC)](https://open-services.net/specifications/)
+- [Capella](https://eclipse.dev/capella/)
+
+**Core idea**
+
+ArchiMate provides an enterprise-architecture language spanning motivation, strategy, business,
+application, technology, and implementation views. ReqIF exchanges requirements, OSLC links
+lifecycle resources across tools, and Capella/Arcadia provides model-based system-architecture
+artifacts. Together they form a useful research cluster for explicit architectural intent and its
+links to requirements and engineering models.
+
+**Why this matters to AIP**
+
+These artifacts could eventually supply authored intent, assumptions, constraints, and trace links.
+They do not by themselves establish Current State:
+
+```text
+ArchiMate relationship
+ReqIF requirement
+OSLC lifecycle link
+Capella model element
+        ↓
+versioned, source-bound intent evidence
+        !=
+observed architecture relation
+```
+
+Any future adapter must preserve source authority, version, context, native identifiers, and mapping
+loss. AIP should support an explicitly qualified semantic subset rather than claim generic,
+lossless import of each metamodel.
+
+This is a bundled post-v0.5 research direction, not four immediate adapters and not a roadmap
+commitment.
 
 ### Mneme HQ
 
@@ -1446,6 +1628,34 @@ architectural truth.
 
 Strong future reference for transformation lineage and decision review. It does not add autonomous
 delivery, approval workflows, or agent-memory features to the present roadmap.
+
+### OrcaReplay — Record, Replay, and Fork Agent Runs
+
+**Source**
+
+- [OrcaReplay](https://github.com/Continuum-AI-Corp/OrcaReplay)
+
+**Core idea**
+
+OrcaReplay records interactions between agents and model APIs so a run can be inspected, replayed
+offline, or forked from an earlier point. It treats the execution trajectory as a reproducible
+debugging artifact rather than leaving it only in transient terminal output.
+
+**Why this matters to AIP**
+
+Recorded agent runs could strengthen qualification of AIP's downstream consumption:
+
+- preserve which AIP tool result and snapshot an agent received;
+- reproduce transport, parsing, and reconnect behavior without spending new model tokens;
+- compare agent behavior after changing the model, prompt, or client;
+- inspect whether evidence references and snapshot identity remain continuous through the run.
+
+**AIP distinction**
+
+A replay establishes what a recorded agent execution consumed and did. It does not prove that the
+recorded architecture answer is still current, that the original evidence was sufficient, or that a
+forked trajectory is semantically correct. AIP's own deterministic qualification remains the
+authority for supported architecture claims.
 
 ### Lucas F. Costa — Backpressure Is All You Need
 
