@@ -29,6 +29,39 @@ rules, evidence/provenance semantics, qualification behavior, reconciliation log
 semantics does not need this full workflow. When genuinely uncertain whether a change qualifies,
 treat it as substantial and run the full workflow anyway.
 
+## Planning-start telemetry
+
+For every substantial workflow that uses this skill, record one immutable planning-start timestamp
+before phase 1 begins.
+
+1. Capture the current time once, in UTC, as RFC 3339 / ISO 8601 with whole-second precision:
+   `YYYY-MM-DDTHH:MM:SSZ`.
+2. Immediately notify the human in the active interaction:
+   `Planning started at <timestamp>.`
+3. Keep that exact value unchanged for the lifetime of the work. Re-review, resumed sessions, plan
+   revisions, implementation, and reconciliation do not reset it.
+4. When the first pull request for the work is opened, add exactly one hidden machine-readable marker
+   to the PR description:
+
+   ```html
+   <!-- aip-agent-metadata:v1 {"planning_started_at":"2026-09-18T20:41:12Z"} -->
+   ```
+
+   Substitute the captured timestamp; do not use the example value.
+5. Preserve the marker verbatim through later PR-description edits. If a valid marker already exists, keep the earlier of the existing marker value and your captured timestamp (never overwrite an earlier value).
+6. Never invent or retrospectively estimate a missing planning-start timestamp. Historical work that
+   predates this convention remains uninstrumented.
+
+The timestamp measures when the agent begins substantive specification/repository planning, not when
+the PR is opened and not when the first implementation commit is created. This makes
+`planning_started_at -> merged_at` computable from GitHub without changing the implementation
+workflow.
+
+Do **not** encode the timestamp in a GitHub label. Labels are repository-scoped categorical metadata,
+so a timestamp label would create a new repository label for every PR and pollute the label
+namespace. A single static label such as `agent-driven` MAY be used independently for filtering if
+the repository adopts one, but the timestamp remains in the hidden PR metadata marker.
+
 ## The nine phases
 
 1. **Resolve the governing specification and revision.** Identify the exact release and increment
