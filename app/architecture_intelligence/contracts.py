@@ -10,7 +10,6 @@ import, so this public contract doesn't couple to internal analysis-module churn
 
 from __future__ import annotations
 
-import re
 from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Annotated, Literal, get_args
@@ -449,8 +448,10 @@ def _check_supporting_methods_canonical_order(
 
 def _deployment_claim_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
     """Encode "resolution_method == the strongest (canonically-first) entry of supporting_methods"
-    (spec §10.1/§12) as JSON Schema if/then so external validators reject the same invalid shapes.
-    The Python model_validator below is still authoritative at runtime."""
+    (spec §10.1/§12) and "subject.type == SERVICE" as JSON Schema if/then/const so external
+    validators reject the same invalid shapes the Python model_validators below enforce at runtime.
+    Mirrors `_dependency_claim_schema_extra`'s own `subject.type` constraint (PR #212 re-review
+    finding: the runtime-only version left the committed schema accepting an invalid subject)."""
     schema["allOf"] = [
         *schema.get("allOf", []),
         *(
@@ -465,6 +466,7 @@ def _deployment_claim_schema_extra(schema: dict, _model: type[BaseModel]) -> Non
             }
             for method in DeploymentResolutionMethod
         ),
+        {"properties": {"subject": {"properties": {"type": {"const": "SERVICE"}}}}},
     ]
 
 
@@ -581,7 +583,11 @@ class DeploymentResolution(BaseModel):
     supporting_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
     conflicting_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
     limitation_codes: list[LimitationCode] = Field(json_schema_extra={"uniqueItems": True})
-    claim_id: str | None
+    # PR #212 re-review finding: `Field(pattern=...)` works directly on `str | None` in this
+    # Pydantic version (verified live - it generates `anyOf: [{type: string, pattern: ...},
+    # {type: null}]` and enforces the pattern only on the non-null branch), so this needs no
+    # separate field_validator/schema mirror - both layers get the same constraint from one place.
+    claim_id: str | None = Field(pattern=_CLAIM_ID_PATTERN)
     # No default (PR #212 review finding) - see WorkloadRef.type's own comment.
     reconciliation_rule_id: DeploymentReconciliationRuleId
     reconciliation_rule_version: Literal[1]
@@ -610,13 +616,6 @@ class DeploymentResolution(BaseModel):
         cls, value: list[DeploymentResolutionMethod]
     ) -> list[DeploymentResolutionMethod]:
         return _check_supporting_methods_canonical_order(value)
-
-    @field_validator("claim_id")
-    @classmethod
-    def _check_claim_id_pattern(cls, value: str | None) -> str | None:
-        if value is not None and not re.match(_CLAIM_ID_PATTERN, value):
-            raise ValueError(f"claim_id must match {_CLAIM_ID_PATTERN!r}")
-        return value
 
     @model_validator(mode="after")
     def _check_resolved_and_non_resolved_invariants(self) -> DeploymentResolution:

@@ -1644,9 +1644,20 @@ def test_deployment_claim_schema_marks_fields_required():
 
 
 def test_architecture_answer_schema_defines_a_discriminated_claims_union():
+    # PR #212 re-review finding: the original `or "$ref"` branch passed even for a single,
+    # non-union `$ref` (a real regression - dropping one claim arm - would have gone undetected).
+    # Assert the exact discriminator mapping and both oneOf arms instead.
     schema = load_schema()
     claims_schema = schema["properties"]["claims"]["items"]
-    assert "discriminator" in claims_schema or "oneOf" in claims_schema or "$ref" in claims_schema
+    assert claims_schema["discriminator"]["propertyName"] == "predicate"
+    assert claims_schema["discriminator"]["mapping"] == {
+        "DIRECT_DEPENDENCY": "#/$defs/DependencyClaim",
+        "DEPLOYED_AS": "#/$defs/DeploymentClaim",
+    }
+    assert {entry["$ref"] for entry in claims_schema["oneOf"]} == {
+        "#/$defs/DependencyClaim",
+        "#/$defs/DeploymentClaim",
+    }
 
 
 # --- PR #212 review round: a Pydantic field default is silently omitted from the generated JSON  --
@@ -1705,6 +1716,36 @@ def test_deployment_resolution_omitting_reconciliation_rule_field_fails_both_pyd
     resolution = _valid_deployment_resolution(claim_id=deployment_claim.claim_id)
     resolution_dict = resolution.model_dump(mode="json")
     del resolution_dict[field]
+    payload = _service_dependencies_answer_dict(
+        claims=[deployment_claim.model_dump(mode="json")],
+        data_overrides={"deployment_resolutions": [resolution_dict]},
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_deployment_claim_rejects_a_non_service_subject_both_pydantic_and_schema():
+    # _valid_deployment_claim's own model_validator already rejects an invalid subject before it
+    # can be constructed - build the invalid shape as a raw dict instead, mirroring every other
+    # "_and_schema" test in this file.
+    claim = _valid_deployment_claim().model_dump(mode="json")
+    claim["subject"] = _valid_operation_entity().model_dump(mode="json")
+    payload = _service_dependencies_answer_dict(
+        claims=[claim], data_overrides={"deployment_claim_ids": [claim["claim_id"]]}
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_deployment_resolution_rejects_a_malformed_claim_id_both_pydantic_and_schema():
+    deployment_claim = _valid_deployment_claim()
+    resolution = _valid_deployment_resolution(claim_id=deployment_claim.claim_id)
+    resolution_dict = resolution.model_dump(mode="json")
+    resolution_dict["claim_id"] = "not-a-claim-id"
     payload = _service_dependencies_answer_dict(
         claims=[deployment_claim.model_dump(mode="json")],
         data_overrides={"deployment_resolutions": [resolution_dict]},

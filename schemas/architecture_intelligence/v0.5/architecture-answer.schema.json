@@ -333,6 +333,17 @@
               }
             }
           }
+        },
+        {
+          "properties": {
+            "subject": {
+              "properties": {
+                "type": {
+                  "const": "SERVICE"
+                }
+              }
+            }
+          }
         }
       ],
       "description": "I3 spec \u00a712: the public `Service -[DEPLOYED_AS]-> Workload` claim. Deliberately has no\n`delivery`/`qualification`/`coverage`/`destination_resolution` fields - those are\n`DependencyClaim`-only concepts describing a CALLS/SENDS interaction, and `DEPLOYED_AS` is never\nan interaction (spec \u00a71: \"DEPLOYED_AS != CALLS != SENDS != RECEIVES_FROM\").",
@@ -457,6 +468,7 @@
         "claim_id": {
           "anyOf": [
             {
+              "pattern": "^aip:claim:v1:[0-9a-f]{64}$",
               "type": "string"
             },
             {
