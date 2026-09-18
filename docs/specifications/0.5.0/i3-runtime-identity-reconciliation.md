@@ -1,6 +1,6 @@
 # AIP v0.5.0 I3 — Runtime Identity Reconciliation and `DEPLOYED_AS`
 
-**Status:** Draft 0.1 — implementation contract  
+**Status:** Draft 0.2 — semantic ambiguities closed after review  
 **Target release:** `v0.5.0`  
 **Release increment:** I3 — Deeper Runtime Discovery and Cross-Source Reconciliation  
 **Target repository path:** `docs/specifications/0.5.0/i3-runtime-identity-reconciliation.md`  
@@ -477,7 +477,7 @@ It contains only what I3 needs:
 service.name
 service.namespace
 service.version
-environment
+environment  # normalized from deployment.environment.name
 
 k8s.pod.uid
 optional §9.3 consistency attributes
@@ -565,44 +565,63 @@ ignored.
 
 A missing optional consistency attribute is not a limitation by itself.
 
-### 9.7 Temporal compatibility
+### 9.7 Observation-context compatibility
 
-Path C may compare OTel and Kubernetes evidence only when their selected observation contexts are
-temporally compatible.
+Path C SHALL evaluate the persisted bounded runtime identity observation with the same exact
+environment/window semantics on every implementation path. It SHALL NOT use an undefined synthetic
+"observation timestamp" or treat the daily bucket as a continuous interval.
 
-The rule is deliberately explicit and threshold-free:
-
-```text
-OTel resource identity observation timestamp
-    is inside requested observation_context
-
-AND
-
-current I2 CAPTURED_RESOURCE envelope capturedAt
-    is inside the same requested observation_context
-```
-
-Bounds are inclusive.
-
-Therefore:
+For one persisted runtime identity observation, Path C applicability is:
 
 ```text
-window_start <= OTel observation <= window_end
-window_start <= kubernetes capturedAt <= window_end
+environment is present
+AND environment == observation_context.environment       # exact equality
+
+AND last_seen is present
+AND window_start <= last_seen <= window_end              # inclusive bounds
+
+AND current I2 CAPTURED_RESOURCE envelope capturedAt is present
+AND window_start <= capturedAt <= window_end             # inclusive bounds
 ```
 
-If the current Kubernetes capture lies outside the requested OTel window:
+The OTel receiver's retained `environment` value is the normalized
+`deployment.environment.name` Resource attribute required by parent §15.3. No alternate
+environment attribute, wildcard, case folding, or alias is admitted.
+
+`last_seen` is the **decisive runtime timestamp** for I3 window applicability. This intentionally
+matches AIP's existing declared-versus-observed qualification rule. `first_seen` and
+`observation_count` remain evidence metadata but SHALL NOT independently make an observation match
+a requested window.
+
+The outcomes are frozen as:
 
 ```text
-Path C = UNRESOLVED
-limitation = DEPLOYMENT_TEMPORAL_MISMATCH
+deployment.environment.name absent
+  -> UNRESOLVED
+  -> DEPLOYMENT_EVIDENCE_INCOMPLETE
+
+environment != observation_context.environment
+  -> UNRESOLVED
+  -> DEPLOYMENT_ENVIRONMENT_MISMATCH
+
+last_seen absent or outside [window_start, window_end]
+  -> UNRESOLVED
+  -> DEPLOYMENT_TEMPORAL_MISMATCH
+
+capturedAt absent or outside [window_start, window_end]
+  -> UNRESOLVED
+  -> DEPLOYMENT_TEMPORAL_MISMATCH
 ```
+
+An environment mismatch is not a contradictory Service↔Workload identity claim; it means that the
+runtime observation is not applicable to the requested observation context.
 
 Path A and Path B remain independently evaluable because they do not claim runtime observation.
+However, the public deployment view still requires Observation Context so an applicable Path C can
+agree with or contradict them.
 
-This rule deliberately avoids an arbitrary "N hours of skew" constant.
-
-A future historical/locality release may introduce richer temporal continuity. I3 does not.
+This rule deliberately avoids an arbitrary "N hours of skew" constant. A future historical/locality
+release may introduce richer temporal continuity. I3 does not.
 
 ---
 
@@ -701,13 +720,30 @@ UNRESOLVED
 no DEPLOYED_AS claim
 ```
 
-### 10.5 Multi-Service Workload boundary
+### 10.5 Same-path multiplicity and multi-Service Workloads
 
 I3 does not introduce a container/sidecar submodel.
 
-If applicable evidence for one current logical Workload establishes more than one distinct declared
-AIP Service identity, I3 reports `CONFLICT` or `AMBIGUOUS` as applicable and emits no
-`DEPLOYED_AS`.
+The outcome taxonomy is frozen:
+
+```text
+more than one Service or Workload satisfies one identity path
+  -> AMBIGUOUS
+
+two or more distinct successful identity paths resolve contradictory identities
+  -> CONFLICT
+
+one Path C consistency attribute directly contradicts the already-resolved Service/Workload
+  -> CONFLICT
+```
+
+Therefore, multiple distinct declared Services satisfying one Path C runtime identity is always
+`AMBIGUOUS`, never `CONFLICT`.
+
+If one current logical Workload receives contradictory identities from distinct paths — for example
+Path A resolves Service A while Path C resolves Service B — the cross-path result is `CONFLICT`.
+
+No `DEPLOYED_AS` claim is emitted for either outcome.
 
 Supporting multiple application Services intentionally sharing one Workload requires a later reviewed
 model amendment.
@@ -797,6 +833,63 @@ Intent-compliant
 
 Resolved and non-resolved outcomes SHALL be inspectable without fabricating a claim.
 
+### 13.1 Reconciliation candidate groups
+
+I3 produces exactly one `DeploymentResolution` per canonical **reconciliation candidate group**.
+
+The group key is chosen deterministically:
+
+```text
+existing Workload resolved by one or more applicable paths:
+  group_key = "workload:" + Workload.id
+
+configured mapping whose exact Workload target is absent:
+  group_key =
+    "mapping:"
+    + mapping artifact id
+    + ":"
+    + mapping artifact revision
+    + ":"
+    + mappingId
+
+OTel runtime identity observation whose Pod UID cannot resolve to exactly one current Workload:
+  group_key = "otel:" + OTel runtime-identity evidence id
+```
+
+If an OTel observation resolves to a current Workload, it joins that Workload's `workload:<id>`
+group rather than creating a separate OTel group.
+
+Annotation evidence always belongs to an existing Workload group because the annotation is retained
+on an I2 Workload contribution.
+
+Identical group keys are reduced exactly once. Input/source ordering cannot create additional public
+resolutions.
+
+### 13.2 Resolution identity
+
+`resolution_id` identifies one exact snapshot-bound evaluation:
+
+```text
+resolution_id
+  = aip:deployment-resolution:v1:
+    sha256(
+      canonical-json({
+        snapshot_id,
+        observation_context.context_id,
+        group_key,
+        reconciliation_rule_id,
+        reconciliation_rule_version
+      })
+    )
+```
+
+The exact canonical-JSON rules SHALL reuse AIP's existing deterministic canonical-JSON utility.
+
+A changed snapshot or Observation Context therefore produces a different resolution id. Reordering
+the same inputs does not.
+
+### 13.3 Public shape
+
 Public shape equivalent to:
 
 ```text
@@ -822,10 +915,16 @@ DeploymentResolution
   reconciliation_rule_version
 ```
 
+`candidate_service_ids` contains the sorted, deduplicated canonical Service ids named or exactly
+resolved by applicable paths in that group. It may contain an id that is not present as a current
+declared Service when an explicit annotation/configured mapping names such an id; this does not make
+that id resolved.
+
 Resolved invariants:
 
 ```text
 status starts with RESOLVED_
+workload != null
 service_id != null
 candidate_service_ids == [service_id]
 claim_id != null
@@ -839,7 +938,37 @@ claim_id == null
 no DEPLOYED_AS claim is emitted for that resolution
 ```
 
-All lists are sorted and deduplicated.
+A mapping-target or unresolved-OTel group MAY have `workload = null`.
+
+### 13.4 Service-scoped projection cardinality
+
+For a request scoped to Service `S`, return a resolution if and only if at least one condition is
+true:
+
+```text
+resolution.service_id == S
+OR S is present in resolution.candidate_service_ids
+```
+
+Consequences:
+
+- a conflict between Service A and Service B is visible from both A and B;
+- a Workload resolution unrelated to the requested Service is not returned;
+- an unresolved mapping explicitly naming the requested Service remains visible even if its Workload
+  target is absent;
+- an unresolved OTel observation that resolves to no declared Service is not injected into an
+  unrelated Service response.
+
+Exactly one public resolution is returned per included `group_key`.
+
+### 13.5 Canonical ordering and evidence retention
+
+`DeploymentResolution[]` is sorted lexicographically by `resolution_id`.
+
+All list-valued fields are sorted and deduplicated.
+
+For non-resolved outcomes, supporting/conflicting evidence is retained and publicly drillable under
+§16 even though no `DEPLOYED_AS` claim exists.
 
 No diagnostic message may contain raw OTLP Resource data, arbitrary Kubernetes annotations, Secrets,
 or environment contents.
@@ -856,7 +985,7 @@ I3 freezes the §28 exposure decision as follows.
 | `WorkloadRef` needed by `DEPLOYED_AS` | bounded public projection | `/api/services/{service_id}/deployments` | `get_service_dependencies` | `0.5` |
 | `DeploymentClaim(DEPLOYED_AS)` | public | `/api/services/{service_id}/deployments` | `get_service_dependencies` | `0.5` |
 | `DeploymentResolution` including conflict/ambiguity/unresolved | public | same endpoint | `get_service_dependencies.data.deployment_resolutions` | `0.5` |
-| Public evidence supporting `DEPLOYED_AS` | public only when reachable from a public deployment claim | `/api/evidence` and `/api/evidence/{id}` | `get_evidence` | `0.5` |
+| Deployment-reconciliation evidence | public only when reachable from a public deployment claim or returned DeploymentResolution | snapshot-bound `/api/evidence` and `/api/evidence/{id}` | `get_evidence` | `0.5` |
 | `get_architecture_drift` | dependency-drift only | unchanged | unchanged meaning | `0.5` envelope/schema version |
 
 ### 14.1 MCP tool budget
@@ -987,8 +1116,13 @@ infrastructure facts.
 
 I3 changes that boundary narrowly:
 
-> **A Kubernetes evidence record may become publicly resolvable only when the current snapshot uses
-> it to support a public `DEPLOYED_AS` claim.**
+> **An otherwise-internal Kubernetes/configuration/runtime-identity evidence record may become
+> publicly resolvable only when the current snapshot makes it reachable from a public
+> `DEPLOYED_AS` claim or from a public `DeploymentResolution`.**
+
+This includes non-resolved `CONFLICT`, `AMBIGUOUS`, and `UNRESOLVED` resolutions: evidence refs
+returned to a client MUST NOT become dead/non-drillable references merely because no claim was
+established.
 
 All other Kubernetes evidence remains hidden exactly as in I2.
 
@@ -1010,7 +1144,7 @@ supports.relation_type:
   DEPLOYED_AS
 ```
 
-A public deployment-evidence record SHALL preserve, where applicable:
+A public deployment-reconciliation evidence record SHALL preserve, where applicable:
 
 ```text
 source locator
@@ -1024,17 +1158,78 @@ OTel observation context
 bounded OTel Kubernetes resource identity attributes
 ```
 
-### 16.2 Selective Kubernetes visibility
+Evidence reachable only from a non-resolved `DeploymentResolution` MUST NOT falsely advertise
+`DEPLOYED_AS` in `supports`. `supports` continues to describe established facts only; public
+reachability from a resolution is sufficient for drill-down.
 
-`GET /api/evidence` SHALL list only Kubernetes evidence that is currently reachable from at least one
-public `DEPLOYED_AS` claim.
+### 16.2 Selective visibility
 
-`GET /api/evidence/{id}` and MCP `get_evidence` SHALL return a Kubernetes evidence id only when:
+For a given snapshot, Kubernetes/configuration/runtime-identity evidence is public if and only if at
+least one of these is true:
 
-1. the requested snapshot is current and valid; and
-2. that evidence id supports a public `DEPLOYED_AS` claim in that snapshot.
+```text
+its id occurs in evidence_refs of a public DeploymentClaim
 
-Otherwise it behaves exactly like a missing public evidence id.
+OR
+
+its id occurs in supporting_evidence_refs or conflicting_evidence_refs
+of a public DeploymentResolution
+```
+
+"Public DeploymentResolution" means one that can be returned by §13.4 for at least one current
+declared Service.
+
+Existing pre-I3 public evidence remains public under its existing rules.
+
+Every evidence ref emitted in a `DeploymentClaim` or `DeploymentResolution` SHALL resolve through
+both REST and MCP `get_evidence` at the exact same snapshot.
+
+Evidence not reachable under these rules behaves as a missing **public** evidence id even if an
+internal Evidence node exists.
+
+### 16.3 Snapshot-aware REST evidence contract
+
+I3 changes the REST evidence request shape so evidence drill-down preserves the same snapshot
+continuity as Architecture Intelligence/MCP.
+
+The v0.5 REST forms are:
+
+```text
+GET /api/evidence?snapshot_id=<aip:snapshot:v1:...>
+
+GET /api/evidence/{evidence_id}?snapshot_id=<aip:snapshot:v1:...>
+```
+
+`snapshot_id` is REQUIRED for both listing and lookup.
+
+Behavior is frozen:
+
+```text
+missing or malformed snapshot_id
+  -> HTTP 422
+
+stable current snapshot cannot be acquired under the revision fence
+  -> HTTP 503
+  -> code SNAPSHOT_NOT_AVAILABLE
+
+supplied snapshot_id != current stable snapshot id
+  -> HTTP 409
+  -> code SNAPSHOT_NOT_AVAILABLE
+
+valid current snapshot + evidence is publicly reachable at that snapshot
+  -> HTTP 200
+
+valid current snapshot + evidence is not publicly reachable / does not exist
+  -> HTTP 404
+```
+
+The list endpoint SHALL compute public evidence visibility from the same stable snapshot used to
+validate `snapshot_id`; it MUST NOT validate the snapshot and then run an unfenced second read.
+
+MCP `get_evidence` already requires `snapshot_id`; its snapshot semantics remain unchanged.
+
+The deployment REST/MCP response supplies the snapshot id clients SHALL pass to subsequent REST or
+MCP evidence drill-down.
 
 No public evidence response exposes:
 
@@ -1135,6 +1330,7 @@ At minimum I3 SHALL define public limitation codes equivalent to:
 DEPLOYMENT_IDENTITY_UNRESOLVED
 DEPLOYMENT_IDENTITY_AMBIGUOUS
 DEPLOYMENT_IDENTITY_CONFLICT
+DEPLOYMENT_ENVIRONMENT_MISMATCH
 DEPLOYMENT_TEMPORAL_MISMATCH
 DEPLOYMENT_EVIDENCE_INCOMPLETE
 DEPLOYMENT_RESULT_LIMIT_EXCEEDED
@@ -1236,9 +1432,15 @@ k8s.pod.name agrees/disagrees
 workload-name consistency attribute agrees/disagrees
 service.version agrees/disagrees when both values exist
 
-capture inside observation window
-capture outside observation window
-wrong environment
+last_seen inside observation window
+last_seen before observation window
+last_seen after observation window
+capturedAt inside observation window
+capturedAt before observation window
+capturedAt after observation window
+deployment.environment.name absent
+deployment.environment.name exact match
+deployment.environment.name mismatch -> UNRESOLVED + DEPLOYMENT_ENVIRONMENT_MISMATCH
 ```
 
 ### 21.4 Cross-path reduction
@@ -1258,7 +1460,7 @@ A+B+C agree -> one claim, explicit strongest, union all evidence
 A vs B disagree -> CONFLICT, no claim
 A vs C disagree -> CONFLICT, no claim
 B vs C disagree -> CONFLICT, no claim
-multiple observed Services for one Workload -> conflict/ambiguous, no claim
+multiple Services satisfying Path C for one Workload -> AMBIGUOUS, no claim
 
 similarity only -> UNRESOLVED
 ```
@@ -1313,6 +1515,17 @@ evidence-ref ordering is canonical
 resolution ordering is canonical
 two clean runs from identical state are byte-identical
 same snapshot + same context returns identical deployment semantics
+
+resolution_id is identical for reordered equivalent inputs
+resolution_id changes when snapshot_id changes
+resolution_id changes when observation_context.context_id changes
+one resolution per canonical group_key
+service-scoped filtering follows §13.4 exactly
+
+REST evidence lookup/list require snapshot_id
+stale REST snapshot -> 409 SNAPSHOT_NOT_AVAILABLE
+non-resolved resolution evidence is drillable at the same snapshot
+unreferenced internal Kubernetes evidence remains non-public
 ```
 
 ---
@@ -1463,7 +1676,10 @@ I3 is complete only when:
 - all three parent-spec identity paths are implemented exactly;
 - Path C uses Pod UID + current I2 owner chain and never service/workload name similarity;
 - the exact OTel Resource allowlist is executable;
+- Path C uses persisted `last_seen` and exact environment equality under one executable
+  Observation Context predicate;
 - temporal compatibility is executable;
+- same-path multiplicity produces `AMBIGUOUS` deterministically;
 - observed-only Service minting cannot qualify `DEPLOYED_AS`;
 - agreement unions evidence and reports the strongest agreed method;
 - contradiction always wins over precedence;
@@ -1473,7 +1689,10 @@ I3 is complete only when:
 - `DEPLOYED_AS` is exposed as its own public claim and never relabeled as a dependency;
 - REST and direct/negotiated MCP semantics are equivalent;
 - `get_architecture_drift` remains deployment-agnostic;
-- every public deployment evidence ref is drillable at the same snapshot;
+- every public deployment claim **and non-resolved resolution** evidence ref is drillable at the
+  same snapshot;
+- REST evidence listing and lookup require and enforce the same snapshot id;
+- DeploymentResolution grouping/id/cardinality/filtering/ordering are executable and deterministic;
 - unreferenced Kubernetes infrastructure/evidence remains internal;
 - `schema_version = "0.5"` and committed v0.5 schemas validate all new/old answer cases;
 - MCP exposes exactly three read-only tools and causes zero graph writes;
@@ -1565,13 +1784,20 @@ Review SHALL explicitly confirm:
 - [ ] `OBSERVED_ONLY` Services cannot qualify deployment identity.
 - [ ] `k8s.pod.uid` is required for Path C.
 - [ ] Path C requires `CAPTURED_RESOURCE`.
+- [ ] Path C window applicability uses persisted `last_seen` with inclusive bounds.
+- [ ] `deployment.environment.name` matches Observation Context environment by exact equality.
 - [ ] Temporal compatibility uses the same explicit observation window; no arbitrary skew.
+- [ ] Same-path multiplicity is always `AMBIGUOUS`.
+- [ ] Contradiction between distinct paths or consistency evidence is `CONFLICT`.
 - [ ] Contradiction wins over precedence.
 - [ ] Multi-Service-per-Workload is not modeled in v0.5.
 - [ ] `DEPLOYED_AS` is not a dependency or locality claim.
 - [ ] `get_service_dependencies` exposes deployment as a separate sibling projection.
 - [ ] `get_architecture_drift` remains unchanged in meaning.
-- [ ] Selective Kubernetes evidence exposure is limited to evidence supporting public `DEPLOYED_AS`.
+- [ ] Evidence referenced by non-resolved public resolutions remains snapshot-drillable.
+- [ ] REST evidence listing/lookup require `snapshot_id` and define stale-snapshot behavior.
+- [ ] `DeploymentResolution` grouping, identity, service filtering, and ordering are deterministic.
+- [ ] Selective Kubernetes evidence exposure is limited to public claim/resolution reachability.
 - [ ] Public schema version changes to `0.5`.
 - [ ] MCP tool count remains three.
 - [ ] No agent/LLM becomes a source of identity truth.
