@@ -48,8 +48,7 @@ before phase 1 begins.
    ```
 
    Substitute the captured timestamp; do not use the example value.
-5. Preserve the marker verbatim through later PR-description edits. If a valid marker already exists,
-   retain the earliest recorded value rather than replacing it.
+5. Preserve the marker verbatim through later PR-description edits. If a valid marker already exists, keep the earlier of the existing marker value and your captured timestamp (never overwrite an earlier value).
 6. Never invent or retrospectively estimate a missing planning-start timestamp. Historical work that
    predates this convention remains uninstrumented.
 
