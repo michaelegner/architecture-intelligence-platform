@@ -997,7 +997,8 @@ All other Kubernetes evidence remains hidden exactly as in I2.
 The `0.5` evidence schema SHALL admit:
 
 ```text
-source_type:  OPENAPI
+source_type:
+  OPENAPI
   ASYNCAPI
   MANIFEST
   OPENTELEMETRY
