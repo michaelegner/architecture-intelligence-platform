@@ -6,7 +6,10 @@ from pathlib import Path
 import pytest
 import yaml
 from fastapi.testclient import TestClient
-from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
+from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
+    ExportTraceServiceRequest,
+    ExportTraceServiceResponse,
+)
 from opentelemetry.proto.common.v1.common_pb2 import AnyValue, KeyValue
 from opentelemetry.proto.resource.v1.resource_pb2 import Resource
 from opentelemetry.proto.trace.v1.trace_pb2 import ResourceSpans, ScopeSpans, Span
@@ -161,6 +164,69 @@ def test_valid_payload_persists_an_observed_call_and_returns_200(client, session
     assert evidence["source_type"] == "OPENTELEMETRY"
     assert evidence["evidence_type"] == "OBSERVED"
     assert evidence["environment"] == "production"
+
+
+# --- I3 §9.4/§23 slice 2: runtime identity evidence survives OTLP -> persistence -------------------
+
+
+def _server_resource_spans_with_k8s_identity(
+    *, server_service: str, method: str, route: str, k8s_pod_uid: str
+) -> ResourceSpans:
+    resource = Resource(
+        attributes=[
+            KeyValue(key="service.name", value=AnyValue(string_value=server_service)),
+            KeyValue(key="deployment.environment.name", value=AnyValue(string_value="production")),
+            KeyValue(key="k8s.pod.uid", value=AnyValue(string_value=k8s_pod_uid)),
+            KeyValue(
+                key="k8s.pod.name", value=AnyValue(string_value=f"{server_service.lower()}-abcde")
+            ),
+        ]
+    )
+    span = Span(
+        trace_id=_TRACE_ID,
+        span_id=_SERVER_SPAN_ID,
+        parent_span_id=_CLIENT_SPAN_ID,
+        name=f"{method} {route}",
+        kind=Span.SPAN_KIND_SERVER,
+        start_time_unix_nano=1_700_000_000_010_000_000,
+        end_time_unix_nano=1_700_000_000_040_000_000,
+        attributes=[
+            KeyValue(key="http.request.method", value=AnyValue(string_value=method)),
+            KeyValue(key="http.route", value=AnyValue(string_value=route)),
+        ],
+    )
+    return ResourceSpans(resource=resource, scope_spans=[ScopeSpans(spans=[span])])
+
+
+def test_a_k8s_identified_payload_persists_a_runtime_identity_observation(client, session):
+    payload = ExportTraceServiceRequest(
+        resource_spans=[
+            _client_resource_spans(
+                client_service="OrderService", method="GET", route="/k8s-identity-test/{id}"
+            ),
+            _server_resource_spans_with_k8s_identity(
+                server_service="ProductService",
+                method="GET",
+                route="/k8s-identity-test/{id}",
+                k8s_pod_uid="pod-uid-e2e-1",
+            ),
+        ]
+    ).SerializeToString()
+
+    response = client.post("/v1/traces", content=payload, headers={"content-type": _CONTENT_TYPE})
+    assert response.status_code == 200
+    assert response.content == ExportTraceServiceResponse().SerializeToString()
+
+    record = session.run(
+        "MATCH (o:RuntimeIdentityObservation) WHERE o.k8s_pod_uid = $pod_uid "
+        "RETURN o.service_name AS service_name, o.environment AS environment, "
+        "o.k8s_pod_name AS k8s_pod_name",
+        pod_uid="pod-uid-e2e-1",
+    ).single()
+    assert record is not None
+    assert record["service_name"] == "ProductService"
+    assert record["environment"] == "production"
+    assert record["k8s_pod_name"] == "productservice-abcde"
 
 
 def _build_app_with_correlation_buffer(driver):

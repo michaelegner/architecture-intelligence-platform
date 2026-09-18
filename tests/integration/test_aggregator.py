@@ -3,9 +3,10 @@ from pathlib import Path
 
 import pytest
 
+from app.architecture_intelligence.repository import canonical_snapshot_state, snapshot_fingerprint
 from app.canonical import ids
 from app.graph.importer import import_all_sources
-from app.provenance.model import ObservedEvidence
+from app.provenance.model import ObservedEvidence, RuntimeIdentityObservation
 from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate, ObservedOnlyEntity
@@ -160,3 +161,159 @@ def test_persisting_the_same_fact_twice_merges_the_evidence_bucket(driver, sessi
     assert set(record["sample_trace_ids"]) == {"1" * 32, "2" * 32}
     assert record["first_seen"].to_native() == datetime(2026, 8, 26, 8, 0, tzinfo=UTC)
     assert record["last_seen"].to_native() == datetime(2026, 8, 26, 18, 0, tzinfo=UTC)
+
+
+# --- I3 §9.4/§23 slice 2: runtime identity observations --------------------------------------------
+
+
+def _runtime_identity_observation(**overrides) -> RuntimeIdentityObservation:
+    defaults = {
+        "id": ids.runtime_identity_observation_id(
+            environment="production",
+            bucket_start=datetime(2026, 8, 26, tzinfo=UTC),
+            service_name="OrderService",
+            service_namespace="commerce",
+            k8s_pod_uid="pod-uid-agg-1",
+        ),
+        "service_name": "OrderService",
+        "service_namespace": "commerce",
+        "environment": "production",
+        "k8s_pod_uid": "pod-uid-agg-1",
+        "first_seen": datetime(2026, 8, 26, 12, 0, tzinfo=UTC),
+        "last_seen": datetime(2026, 8, 26, 12, 0, tzinfo=UTC),
+        "observation_count": 1,
+    }
+    defaults.update(overrides)
+    return RuntimeIdentityObservation(**defaults)
+
+
+def test_runtime_identity_observation_persists_as_a_bare_node_with_no_relation(driver, session):
+    observation = _runtime_identity_observation()
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[observation])
+    )
+
+    record = session.run(
+        "MATCH (o:RuntimeIdentityObservation {id: $id}) "
+        "RETURN o.service_name AS service_name, o.k8s_pod_uid AS k8s_pod_uid, "
+        "COUNT { (o)-->() } AS out_degree, COUNT { (o)<--() } AS in_degree",
+        id=observation.id,
+    ).single()
+    assert record is not None
+    assert record["service_name"] == "OrderService"
+    assert record["k8s_pod_uid"] == "pod-uid-agg-1"
+    assert record["out_degree"] == 0
+    assert record["in_degree"] == 0
+
+
+def test_reobserving_the_same_pod_does_not_create_a_duplicate_node(driver, session):
+    observation = _runtime_identity_observation(id="runtime-identity:otel:production:dedup-test")
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[observation])
+    )
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[observation])
+    )
+
+    count = session.run(
+        "MATCH (o:RuntimeIdentityObservation {id: $id}) RETURN count(o) AS c", id=observation.id
+    ).single()["c"]
+    assert count == 1
+
+
+def test_persisting_the_same_runtime_identity_observation_twice_merges_the_bucket(driver, session):
+    first = _runtime_identity_observation(
+        id="runtime-identity:otel:production:merge-test",
+        first_seen=datetime(2026, 8, 26, 8, 0, tzinfo=UTC),
+        last_seen=datetime(2026, 8, 26, 8, 0, tzinfo=UTC),
+        observation_count=1,
+    )
+    second = _runtime_identity_observation(
+        id="runtime-identity:otel:production:merge-test",
+        first_seen=datetime(2026, 8, 26, 18, 0, tzinfo=UTC),
+        last_seen=datetime(2026, 8, 26, 18, 0, tzinfo=UTC),
+        observation_count=1,
+    )
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[first])
+    )
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[second])
+    )
+
+    record = session.run(
+        "MATCH (o:RuntimeIdentityObservation {id: $id}) "
+        "RETURN o.observation_count AS observation_count, "
+        "o.first_seen AS first_seen, o.last_seen AS last_seen",
+        id=first.id,
+    ).single()
+    assert record["observation_count"] == 2
+    assert record["first_seen"].to_native() == datetime(2026, 8, 26, 8, 0, tzinfo=UTC)
+    assert record["last_seen"].to_native() == datetime(2026, 8, 26, 18, 0, tzinfo=UTC)
+
+
+def test_conflicting_consistency_attributes_survive_a_neo4j_round_trip(driver, session):
+    first = _runtime_identity_observation(
+        id="runtime-identity:otel:production:conflict-test", k8s_pod_name="old-pod-name"
+    )
+    second = _runtime_identity_observation(
+        id="runtime-identity:otel:production:conflict-test", k8s_pod_name="new-pod-name"
+    )
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[first])
+    )
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[second])
+    )
+
+    record = session.run(
+        "MATCH (o:RuntimeIdentityObservation {id: $id}) "
+        "RETURN o.k8s_pod_name AS k8s_pod_name, "
+        "o.conflicting_consistency_attributes AS conflicting_consistency_attributes",
+        id=first.id,
+    ).single()
+    assert record["k8s_pod_name"] is None
+    assert record["conflicting_consistency_attributes"] == ["k8s_pod_name"]
+
+
+def test_a_freshly_persisted_runtime_identity_observation_has_no_conflicts(driver, session):
+    observation = _runtime_identity_observation(id="runtime-identity:otel:production:no-conflict")
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[observation])
+    )
+
+    record = session.run(
+        "MATCH (o:RuntimeIdentityObservation {id: $id}) "
+        "RETURN o.conflicting_consistency_attributes AS conflicting_consistency_attributes",
+        id=observation.id,
+    ).single()
+    assert record["conflicting_consistency_attributes"] == []
+
+
+def test_runtime_identity_observation_is_never_reachable_as_evidence(driver, session):
+    observation = _runtime_identity_observation(id="runtime-identity:otel:production:exposure-test")
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[observation])
+    )
+
+    record = session.run("MATCH (e:Evidence {id: $id}) RETURN e", id=observation.id).single()
+    assert record is None
+
+
+def test_persisting_a_runtime_identity_observation_does_not_change_the_public_snapshot_fingerprint(
+    driver, session
+):
+    before = canonical_snapshot_state(session, coverage_qualification_enabled=True)
+    before_id, _ = snapshot_fingerprint(before)
+
+    observation = _runtime_identity_observation(
+        id="runtime-identity:otel:production:fingerprint-test"
+    )
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[observation])
+    )
+
+    after = canonical_snapshot_state(session, coverage_qualification_enabled=True)
+    after_id, _ = snapshot_fingerprint(after)
+
+    assert after_id == before_id

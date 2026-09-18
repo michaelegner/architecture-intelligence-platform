@@ -486,6 +486,8 @@ first_seen
 last_seen
 observation_count
 
+conflicting_consistency_attributes  # names of §9.6 attributes that disagreed within this bucket
+
 OTel source/evidence identity
 normalization rule/version
 ```
@@ -494,6 +496,32 @@ It is not itself `DEPLOYED_AS`, `CALLS`, `SENDS`, or `RECEIVES_FROM`.
 
 It SHALL use the existing deterministic daily evidence-bucket convention or an equivalently
 deterministic bounded identity. Trace/span ids are not part of public semantic identity.
+
+Merging two observations into the same bucket SHALL NOT silently erase or overwrite disagreeing
+consistency-attribute evidence (§9.6 requires a directly contradictory value to surface as
+`CONFLICT`, not be lost at persistence time):
+
+```text
+for each optional §9.3/§9.6 consistency attribute (service.version and the six k8s.* attributes -
+service.namespace is excluded, since it is part of this bucket's own identity and so cannot differ
+within one bucket by construction):
+
+  existing non-null, seed null          -> keep the existing value (a missing attribute on one
+                                            observation is not itself a limitation, per §9.6)
+  existing null, seed non-null          -> adopt the seed's value
+  existing non-null, seed non-null,
+    equal                               -> keep the (shared) value
+  existing non-null, seed non-null,
+    different                           -> the merged value becomes null, and the attribute's name
+                                            is added to conflicting_consistency_attributes
+                                            (sorted, deduplicated, monotonic - once an attribute is
+                                            flagged for a bucket, it stays flagged for that bucket,
+                                            even if a later observation's value happens to agree
+                                            with a subsequent reconciled value)
+```
+
+A later slice's Path C evaluation SHALL treat a non-empty `conflicting_consistency_attributes` the
+same as a directly observed §9.6 contradiction (`CONFLICT`), not as a merely-missing attribute.
 
 ### 9.5 Pod and Workload resolution
 

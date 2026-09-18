@@ -66,3 +66,56 @@ class ObservedEvidence(Provenance):
     # How this evidence was derived (11H R3/spec §14 - see app.telemetry.model.CorrelationMode for
     # the allowed values). Optional so pre-11H-C construction sites keep working unmodified.
     correlation_mode: str | None = None
+
+
+class RuntimeIdentityObservation(Provenance):
+    """A bounded OTel runtime identity observation (I3 spec §9.4) - what a Resource's bounded
+    Kubernetes identity attributes (§9.3) describe about one Pod's runtime service identity.
+
+    Deliberately NOT itself a DEPLOYED_AS/CALLS/SENDS/RECEIVES_FROM fact - no relation is ever
+    created from this record; it exists so a later slice's Path C reconciliation can look it up by
+    (environment, k8s_pod_uid, window). It is also deliberately NOT persisted under the :Evidence
+    label (see app.telemetry.aggregator): I3's public evidence-reachability gate (§16.2) doesn't
+    exist until slice 5, and the existing :Evidence-scoped public surfaces
+    (app.api.evidence, app.architecture_intelligence.repository) filter only on
+    source_type != 'KUBERNETES' - an OPENTELEMETRY-sourced :Evidence node would be immediately,
+    unconditionally public. Kept separate from ObservedEvidence (a relation-fact's supporting
+    evidence) since the two have no field or lifecycle overlap: no sample_trace_ids (§9.4's field
+    list is exhaustive and excludes trace/span ids from identity and from the record itself), no
+    correlation_mode (nothing to correlate), but adds the normalization_rule fields and the full
+    bounded Kubernetes identity attribute set."""
+
+    source_type: str = SourceType.OPENTELEMETRY
+    source_file: str = "opentelemetry"
+    evidence_type: str = EvidenceType.OBSERVED
+
+    service_name: str
+    service_namespace: str | None = None
+    service_version: str | None = None
+    environment: str
+    k8s_pod_uid: str
+
+    # I3 §9.3 optional consistency attributes - see app.telemetry.semconv.resources.
+    k8s_pod_name: str | None = None
+    k8s_namespace_name: str | None = None
+    k8s_cluster_uid: str | None = None
+    k8s_deployment_name: str | None = None
+    k8s_statefulset_name: str | None = None
+    k8s_daemonset_name: str | None = None
+
+    first_seen: datetime
+    last_seen: datetime
+    observation_count: int
+
+    # I3 §9.4/§9.6 - names of the optional consistency attributes above (service_version or one of
+    # the six k8s.* fields; never service_namespace, which is part of this bucket's own identity)
+    # that disagreed across two merged observations. Sorted, deduplicated, monotonic - see
+    # app.telemetry.aggregator.merge_runtime_identity_observation for why a merge never silently
+    # overwrites a disagreement: §9.6 requires a directly contradictory consistency attribute to
+    # surface as CONFLICT downstream, not be lost at persistence time.
+    conflicting_consistency_attributes: list[str] = Field(default_factory=list)
+
+    # I3 §9.4 - identifies the normalization rule/version that produced this record, so a later
+    # rule revision can be distinguished from earlier persisted observations.
+    normalization_rule_id: str = "otel-runtime-identity-observation"
+    normalization_rule_version: int = 1
