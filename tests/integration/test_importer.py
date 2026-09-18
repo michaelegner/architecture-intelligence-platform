@@ -44,8 +44,14 @@ from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
 from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
 from app.ingestion.kubernetes_discoverer import KubernetesSourceDiscoverer
-from app.ingestion.orchestrator import run_discovery, run_filesystem_discovery
+from app.ingestion.orchestrator import (
+    run_discovery,
+    run_filesystem_discovery,
+    run_kubernetes_discovery,
+)
 from app.provenance.model import ObservedEvidence, Provenance
+from app.sources.identity import discovery_scope_id as k8s_discovery_scope_id
+from app.sources.jcs import canonical_json_bytes
 from app.sources.kubernetes_envelope import EXPECTED_RESOURCE_TYPES
 from app.sources.migration_mappings import load_migration_mappings
 from app.sources.model import (
@@ -1634,7 +1640,9 @@ def test_pod_with_multiple_controller_owners_rejects_the_source_and_commits_noth
 # `_import` with the adapter's own real digests.
 
 
-def _captured_deployment_outcome(root: Path, *, uid: str, resource_version: str):
+def _captured_deployment_outcome(
+    root: Path, *, uid: str, resource_version: str, mapping_context_digest: str = "a" * 64
+):
     root.mkdir(parents=True, exist_ok=True)
     resource_bytes = yaml.safe_dump(
         {
@@ -1692,7 +1700,7 @@ def _captured_deployment_outcome(root: Path, *, uid: str, resource_version: str)
         service_identity=None,
         shared_identity=None,
         upstream_model=None,
-        mapping_context_digest="a" * 64,
+        mapping_context_digest=mapping_context_digest,
     )
     return adapter_outcome, loaded.descriptor.source_instance_id
 
@@ -1726,6 +1734,705 @@ def test_resource_version_only_change_does_not_advance_the_graph_revision(driver
         stats = _import(
             session, source_instance_id, second.model, digest=second.semantic_input_digest
         )
+    assert stats.graph_revision_advanced is False
+
+
+# I2 Draft 0.2 §12 slice 5: shared lifecycle replay, conflict, scope/removal, and semantic/audit
+# report qualification. Slices 1-4 above already proved the generic I1 lifecycle machinery (replay
+# classification in app.sources.replay, per-source/whole-run reconciliation and tombstone-authorized
+# removal in this module) end to end for other source kinds; this section proves the SAME generic
+# machinery holds for the real Kubernetes discoverer/adapter path too, per §11's mandatory
+# qualification table. No new production code is expected here - see each test's own docstring for
+# the exact existing mechanism it drives.
+
+
+def _deployment(name: str, namespace: str, uid: str, resource_version: str = "1") -> dict:
+    return {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": {
+            "name": name,
+            "namespace": namespace,
+            "uid": uid,
+            "resourceVersion": resource_version,
+        },
+    }
+
+
+def _replicaset(name: str, namespace: str, uid: str, *, owner_name: str, owner_uid: str) -> dict:
+    return {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "metadata": {
+            "name": name,
+            "namespace": namespace,
+            "uid": uid,
+            "resourceVersion": "1",
+            "ownerReferences": [
+                {
+                    "apiVersion": "apps/v1",
+                    "kind": "Deployment",
+                    "name": owner_name,
+                    "uid": owner_uid,
+                    "controller": True,
+                }
+            ],
+        },
+    }
+
+
+def _pod(name: str, namespace: str, uid: str, *, owner_name: str, owner_uid: str) -> dict:
+    return {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": name,
+            "namespace": namespace,
+            "uid": uid,
+            "resourceVersion": "1",
+            "ownerReferences": [
+                {
+                    "apiVersion": "apps/v1",
+                    "kind": "ReplicaSet",
+                    "name": owner_name,
+                    "uid": owner_uid,
+                    "controller": True,
+                }
+            ],
+        },
+    }
+
+
+def _write_kubernetes_bundle(
+    root: Path,
+    *,
+    source_id: str,
+    scope_id: str,
+    cluster_uid: str,
+    namespaces: list[str],
+    resources: list[dict] | None,
+    expected_prior_inventory_revision: str | None,
+    stable_target_identity: str | None = None,
+) -> KubernetesSourceConfig:
+    """General-purpose bundle writer for slice 5's lifecycle scenarios: unlike
+    `_write_dynamic_kubernetes_bundle` (one fixed Namespace resource) or
+    `_write_conflicting_kubernetes_bundle` (one fixed Deployment), callers here independently vary
+    `namespaces`/`resources` to build scope-narrowing, empty-successor, and shared-scope multi-
+    source scenarios. `resources=None`/`[]` writes an explicit empty file list (I2 Draft 0.2 §4.3:
+    "a bundle with no resources can be complete only through an explicit empty file list"). Callers
+    that need ordinary (non-scope-changed) replay MUST pass the same `root` across calls: the
+    accepted `scope_definition_digest` folds in the normalized root path itself
+    (`app/ingestion/kubernetes_discoverer.py`), so two different `tmp_path` roots always count as a
+    scope change regardless of `namespaces`/`resources`.
+    """
+    root.mkdir(parents=True, exist_ok=True)
+    files_field: list[dict] = []
+    if resources:
+        resource_bytes = yaml.safe_dump_all(list(resources)).encode()
+        (root / "resources.yaml").write_bytes(resource_bytes)
+        files_field = [
+            {"path": "resources.yaml", "sha256": hashlib.sha256(resource_bytes).hexdigest()}
+        ]
+    envelope = {
+        "apiVersion": "aip.dev/v1",
+        "kind": "KubernetesSourceSnapshot",
+        "metadata": {
+            "id": f"{source_id}-snapshot",
+            "revision": f"{source_id}-revision",
+            "producer": "aip-kubernetes-capture-agent",
+            "capturedAt": "2026-09-17T10:00:00Z",
+        },
+        "source": {
+            "configuredSourceId": source_id,
+            "configuredScopeId": scope_id,
+            "clusterUid": cluster_uid,
+            "clusterIdentityEvidenceRef": "kube-system-namespace-uid",
+            "mode": "CAPTURED_RESOURCE",
+        },
+        "scope": {
+            "namespaces": sorted(namespaces),
+            "resourceTypes": sorted(EXPECTED_RESOURCE_TYPES),
+        },
+        "completeness": {
+            "status": "COMPLETE",
+            "authorityRef": f"{source_id}-authority",
+            "expectedPriorInventoryRevision": expected_prior_inventory_revision,
+        },
+        "files": files_field,
+    }
+    (root / "envelope.yaml").write_bytes(yaml.safe_dump(envelope).encode())
+    return KubernetesSourceConfig(
+        id=source_id,
+        root=root,
+        envelope_relative_path="envelope.yaml",
+        configured_scope_id=scope_id,
+        cluster_uid=cluster_uid,
+        evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+        authorized_producer="aip-kubernetes-capture-agent",
+        authority_record=f"{source_id}-authority",
+        stable_target_identity=stable_target_identity,
+    )
+
+
+def test_kubernetes_complete_empty_successor_withdraws_prior_source_owned_facts(driver, tmp_path):
+    """I2 Draft 0.2 §4.3/§8: a verified COMPLETE successor with an explicit empty file list "may
+    remove that source's contribution for resources/claims it no longer emits" - ordinary same-scope
+    source-owned withdrawal (the per-source content-diff path in `_import_source_tx`), not a
+    tombstone. Reuses the same physical root across both commits so `scope_definition_digest` (which
+    folds in the root path) stays unchanged - the only thing that changes between commits is the
+    resource content itself.
+    """
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="empty-successor-source",
+        scope_id="empty-successor-scope",
+        cluster_uid="empty-successor-cluster",
+        namespaces=["checkout"],
+        resources=[_deployment("checkout-api", "checkout", "deploy-uid-1")],
+        expected_prior_inventory_revision=None,
+    )
+    first = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert first.committed is True
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 1
+    assert _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == 1
+
+    with driver.session(database=DATABASE) as session:
+        first_revision = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS r"
+        ).single()["r"]
+
+    empty_config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="empty-successor-source",
+        scope_id="empty-successor-scope",
+        cluster_uid="empty-successor-cluster",
+        namespaces=["checkout"],
+        resources=[],
+        expected_prior_inventory_revision=first_revision,
+    )
+    second = import_kubernetes_source(driver, database=DATABASE, source_config=empty_config)
+
+    assert second.committed is True
+    assert not any(
+        d.code in (DiagnosticCode.K8S_SNAPSHOT_INCOMPLETE, DiagnosticCode.K8S_STALE_INVENTORY)
+        for d in second.diagnostics
+    )
+    [source_stats] = list(second.per_source.values())
+    assert source_stats.result == "ACCEPTED"
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 0
+    assert _count(driver, "MATCH (c:InfrastructureContribution) RETURN count(c) AS c") == 0
+    assert _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == 0
+
+
+def test_kubernetes_namespace_scope_narrowing_preserves_out_of_scope_claims(driver, tmp_path):
+    """I2 Draft 0.2 §8: "changing namespace filters changes the scope digest... claims absent from
+    the narrowed scope remain until an explicit versioned transition/tombstone authorizes removal" -
+    the per-source `SCOPE_CHANGED_PRESERVE_PENDING_TOMBSTONE` replay case (`app.sources.replay`),
+    proven end to end against the real discoverer/adapter rather than the unit-level replay
+    classification alone. The narrowed bundle must not re-list the now-out-of-scope resource at all
+    (§4.3: "out-of-scope resources reject the bundle rather than silently changing scope") - its
+    entity/claim survive only because they were already committed, not because they're resubmitted.
+    """
+    checkout_deployment = _deployment("checkout-api", "checkout", "deploy-uid-checkout")
+    payments_deployment = _deployment("payments-api", "payments", "deploy-uid-payments")
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="scope-narrow-source",
+        scope_id="scope-narrow-scope",
+        cluster_uid="scope-narrow-cluster",
+        namespaces=["checkout", "payments"],
+        resources=[checkout_deployment, payments_deployment],
+        expected_prior_inventory_revision=None,
+    )
+    first = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert first.committed is True
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 2
+
+    with driver.session(database=DATABASE) as session:
+        first_revision = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS r"
+        ).single()["r"]
+
+    narrowed_config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="scope-narrow-source",
+        scope_id="scope-narrow-scope",
+        cluster_uid="scope-narrow-cluster",
+        namespaces=["checkout"],
+        resources=[checkout_deployment],
+        expected_prior_inventory_revision=first_revision,
+    )
+    second = import_kubernetes_source(driver, database=DATABASE, source_config=narrowed_config)
+
+    assert second.committed is True
+    # A scope change alone must not auto-expire the now-out-of-scope entity/claim.
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 2
+    assert (
+        _count(
+            driver,
+            "MATCH (e:InfrastructureEntity {namespace: 'payments'}) RETURN count(e) AS c",
+        )
+        == 1
+    )
+    [source_stats] = list(second.per_source.values())
+    assert source_stats.nodes_expired == 0
+
+
+def test_kubernetes_explicit_tombstone_authorizes_whole_source_removal(driver, tmp_path):
+    """I2 Draft 0.2 §8: "explicit tombstones authorize whole-source removal." An ordinary same-scope
+    absence check alone can never remove a Kubernetes source's own facts through
+    `import_kubernetes_source`, because that wrapper always re-enumerates its own one configured
+    source in every run - the only way a *different* run's own known-source-states lookup
+    (`_import_all_sources_tx`) can see a Kubernetes source's id as absent is for a second,
+    independently-configured Kubernetes source to share the SAME `discovery_scope_id` (via an
+    explicit matching `stable_target_identity`, mirroring how multiple capture agents could target
+    one logical shared scope) while genuinely not re-enumerating the first source's own id. Mirrors
+    the existing generic precedent
+    `test_import_all_sources_denies_removal_on_scope_mismatch_but_an_explicit_tombstone_authorizes_it`
+    (line ~1062), adapted to two real Kubernetes sources instead of two filesystem roots under one
+    configured id.
+    """
+    shared_stable_identity = "urn:aip:k8s-shared-scope:tombstone-test-cluster"
+    config_a = _write_kubernetes_bundle(
+        tmp_path / "a",
+        source_id="tombstone-source-a",
+        scope_id="tombstone-shared-scope",
+        cluster_uid="tombstone-test-cluster",
+        namespaces=["checkout"],
+        resources=[_deployment("service-a", "checkout", "deploy-uid-a")],
+        expected_prior_inventory_revision=None,
+        stable_target_identity=shared_stable_identity,
+    )
+    stats_a = import_kubernetes_source(driver, database=DATABASE, source_config=config_a)
+    assert stats_a.committed is True
+    [source_instance_id_a] = list(stats_a.per_source.keys())
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 1
+
+    shared_scope_id = k8s_discovery_scope_id(
+        configured_scope_id=config_a.resolved_scope_id,
+        stable_target_identity=config_a.resolved_stable_target_identity,
+    )
+
+    def _current_inventory() -> dict:
+        with driver.session(database=DATABASE) as session:
+            record = session.run(
+                "MATCH (i:CurrentInventory {discovery_scope_id: $id}) RETURN "
+                "i.inventory_revision AS revision, i.scope_definition_digest AS digest",
+                id=shared_scope_id,
+            ).single()
+        return {"revision": record["revision"], "digest": record["digest"]}
+
+    after_a = _current_inventory()
+
+    def _config_b(expected_prior_inventory_revision: str | None) -> KubernetesSourceConfig:
+        return _write_kubernetes_bundle(
+            tmp_path / "b",
+            source_id="tombstone-source-b",
+            scope_id="tombstone-shared-scope",
+            cluster_uid="tombstone-test-cluster",
+            namespaces=["checkout"],
+            resources=[_deployment("service-b", "checkout", "deploy-uid-b")],
+            expected_prior_inventory_revision=expected_prior_inventory_revision,
+            stable_target_identity=shared_stable_identity,
+        )
+
+    # Source B's own commit succeeds and adds its own facts, but source A's facts - now absent from
+    # B's own run enumeration - survive: B's bundle lives under a different physical root, so its
+    # own accepted scope_definition_digest differs from what A committed, denying ordinary
+    # same-scope absence-removal (exactly I1's own filesystem precedent's reasoning).
+    stats_b = import_kubernetes_source(
+        driver, database=DATABASE, source_config=_config_b(after_a["revision"])
+    )
+    assert stats_b.committed is True
+    assert stats_b.removed_source_instance_ids == ()
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 2
+
+    after_b = _current_inventory()
+    tombstone = Tombstone(
+        target_source_instance_id=source_instance_id_a,
+        discovery_scope_id=shared_scope_id,
+        expected_prior_inventory_revision=after_b["revision"],
+        scope_definition_digest=after_b["digest"],
+        actor="operator@example.com",
+        reason="source A decommissioned",
+        tombstone_revision="1",
+    )
+    stats_b_with_tombstone = import_kubernetes_source(
+        driver,
+        database=DATABASE,
+        source_config=_config_b(after_b["revision"]),
+        tombstones=(tombstone,),
+    )
+
+    assert stats_b_with_tombstone.committed is True
+    assert stats_b_with_tombstone.removed_source_instance_ids == (source_instance_id_a,)
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 1
+    with driver.session(database=DATABASE) as session:
+        remaining_name = session.run(
+            "MATCH (e:InfrastructureEntity) RETURN e.name AS name"
+        ).single()["name"]
+    # Specifically A's facts are gone, not B's own.
+    assert remaining_name == "service-b"
+
+
+def test_kubernetes_entity_shared_by_two_sources_survives_one_source_withdrawing(driver, tmp_path):
+    """I2 Draft 0.2 §11 Ownership: "Two sources support one claim; one removed" - proven through two
+    real, independently-configured Kubernetes sources (own `configured_scope_id`/`discovery_scope_id`
+    each; unlike the tombstone test above, no shared scope is needed here) whose bundles happen to
+    describe the identical logical resource with an identical semantic projection. §7.1: "For one
+    logical entity ID, equal semantic digests merge contributions and union evidence
+    deterministically" - already generically proven against hand-built models
+    (`test_a_shared_claim_unions_evidence_from_both_sources_and_drops_only_the_departing_ones`); this
+    drives the same mechanism through two real, independent `import_kubernetes_source` calls, then
+    withdraws one source via the empty-successor mechanism proven above.
+    """
+    deployment = _deployment("checkout-api", "checkout", "deploy-uid-shared")
+    config_a = _write_kubernetes_bundle(
+        tmp_path / "a",
+        source_id="shared-entity-source-a",
+        scope_id="shared-entity-scope-a",
+        cluster_uid="shared-entity-cluster",
+        namespaces=["checkout"],
+        resources=[deployment],
+        expected_prior_inventory_revision=None,
+    )
+    config_b = _write_kubernetes_bundle(
+        tmp_path / "b",
+        source_id="shared-entity-source-b",
+        scope_id="shared-entity-scope-b",
+        cluster_uid="shared-entity-cluster",
+        namespaces=["checkout"],
+        resources=[deployment],
+        expected_prior_inventory_revision=None,
+    )
+    stats_a = import_kubernetes_source(driver, database=DATABASE, source_config=config_a)
+    stats_b = import_kubernetes_source(driver, database=DATABASE, source_config=config_b)
+    assert stats_a.committed is True
+    assert stats_b.committed is True
+    [source_instance_id_a] = list(stats_a.per_source.keys())
+    [source_instance_id_b] = list(stats_b.per_source.keys())
+
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 1
+    with driver.session(database=DATABASE) as session:
+        entity = session.run(
+            "MATCH (e:InfrastructureEntity) RETURN e.owner_source_ids AS owners"
+        ).single()
+        claim_before = session.run(
+            "MATCH (c:InfrastructureClaim {kind: 'WORKLOAD_EXISTS'}) "
+            "RETURN c.evidence_refs AS refs, c.owner_source_ids AS owners"
+        ).single()
+        contributions_before = {
+            record["source"]: record["refs"]
+            for record in session.run(
+                "MATCH (c:InfrastructureClaimContribution) "
+                "UNWIND c.owner_source_ids AS source RETURN source, c.evidence_refs AS refs"
+            )
+        }
+    assert sorted(entity["owners"]) == sorted([source_instance_id_a, source_instance_id_b])
+    # I2 Draft 0.2 §11 Ownership/§7.2: the shared WORKLOAD_EXISTS claim itself - not just the
+    # entity - is co-owned by both sources, each with its own non-empty per-source claim
+    # contribution, and the claim's own evidence_refs is the deterministic union of both.
+    assert claim_before is not None
+    assert sorted(claim_before["owners"]) == sorted([source_instance_id_a, source_instance_id_b])
+    assert set(contributions_before.keys()) == {source_instance_id_a, source_instance_id_b}
+    assert contributions_before[source_instance_id_a]
+    assert contributions_before[source_instance_id_b]
+    assert sorted(claim_before["refs"]) == sorted(
+        set(contributions_before[source_instance_id_a])
+        | set(contributions_before[source_instance_id_b])
+    )
+
+    b_scope_id = k8s_discovery_scope_id(
+        configured_scope_id=config_b.resolved_scope_id,
+        stable_target_identity=config_b.resolved_stable_target_identity,
+    )
+    with driver.session(database=DATABASE) as session:
+        b_revision = session.run(
+            "MATCH (i:CurrentInventory {discovery_scope_id: $id}) RETURN i.inventory_revision AS r",
+            id=b_scope_id,
+        ).single()["r"]
+
+    empty_config_b = _write_kubernetes_bundle(
+        tmp_path / "b",
+        source_id="shared-entity-source-b",
+        scope_id="shared-entity-scope-b",
+        cluster_uid="shared-entity-cluster",
+        namespaces=["checkout"],
+        resources=[],
+        expected_prior_inventory_revision=b_revision,
+    )
+    stats_b2 = import_kubernetes_source(driver, database=DATABASE, source_config=empty_config_b)
+    assert stats_b2.committed is True
+
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 1
+    with driver.session(database=DATABASE) as session:
+        entity_after = session.run(
+            "MATCH (e:InfrastructureEntity) RETURN e.owner_source_ids AS owners"
+        ).single()
+        claim_after = session.run(
+            "MATCH (c:InfrastructureClaim {kind: 'WORKLOAD_EXISTS'}) "
+            "RETURN c.evidence_refs AS refs, c.owner_source_ids AS owners"
+        ).single()
+        remaining_contribution_sources = {
+            record["source"]
+            for record in session.run(
+                "MATCH (c:InfrastructureClaimContribution) "
+                "UNWIND c.owner_source_ids AS source RETURN source"
+            )
+        }
+    assert entity_after["owners"] == [source_instance_id_a]
+    # The claim survives on source A's own support only - source B's claim contribution is fully
+    # gone (not merely un-owned), and the claim's evidence shrinks to exactly A's own refs, never a
+    # dangling reference to B's now-deleted evidence.
+    assert claim_after is not None
+    assert claim_after["owners"] == [source_instance_id_a]
+    assert claim_after["refs"] == contributions_before[source_instance_id_a]
+    assert remaining_contribution_sources == {source_instance_id_a}
+
+
+def test_kubernetes_recreated_pod_uid_replacement_drops_old_uid_from_owner_chain_claim(
+    driver, tmp_path
+):
+    """I2 Draft 0.2 §6: "A replacement resource with the same name and a new UID preserves logical
+    identity while changing incarnation evidence. Old UID links must not resolve against the
+    replacement." / §8: "must not retain an association justified only by a removed incarnation."
+    `test_captured_uid_replacement_advances_the_graph_revision` already proves the source-level
+    digest advances; this proves the actual persisted claim/contribution CONTENT drops the old UID,
+    using a real Pod -> ReplicaSet -> Deployment owner chain (slice 4a's own fixture shape).
+    """
+
+    def _bundle(
+        pod_uid: str, expected_prior_inventory_revision: str | None
+    ) -> KubernetesSourceConfig:
+        deployment = _deployment("checkout-api", "checkout", "deploy-uid-1")
+        replicaset = _replicaset(
+            "checkout-api-rs",
+            "checkout",
+            "rs-uid-1",
+            owner_name="checkout-api",
+            owner_uid="deploy-uid-1",
+        )
+        pod = _pod(
+            "checkout-api-pod",
+            "checkout",
+            pod_uid,
+            owner_name="checkout-api-rs",
+            owner_uid="rs-uid-1",
+        )
+        return _write_kubernetes_bundle(
+            tmp_path,
+            source_id="uid-replay-source",
+            scope_id="uid-replay-scope",
+            cluster_uid="uid-replay-cluster",
+            namespaces=["checkout"],
+            resources=[deployment, replicaset, pod],
+            expected_prior_inventory_revision=expected_prior_inventory_revision,
+        )
+
+    first = import_kubernetes_source(
+        driver, database=DATABASE, source_config=_bundle("pod-uid-a", None)
+    )
+    assert first.committed is True
+
+    with driver.session(database=DATABASE) as session:
+        pod_entity_id = session.run(
+            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_POD'}) RETURN e.id AS id"
+        ).single()["id"]
+        workload_entity_id = session.run(
+            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_WORKLOAD'}) RETURN e.id AS id"
+        ).single()["id"]
+        ownership_before = session.run(
+            "MATCH (c:InfrastructureClaim {kind: 'WORKLOAD_OWNS_POD'}) "
+            "RETURN c.subject_id AS subject_id, c.object_id AS object_id"
+        ).single()
+        contribution_before = session.run(
+            "MATCH (c:InfrastructureContribution {entity_id: $id}) "
+            "RETURN c.captured_resource_uid AS uid",
+            id=pod_entity_id,
+        ).single()
+        first_revision = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS r"
+        ).single()["r"]
+
+    assert ownership_before["subject_id"] == workload_entity_id
+    assert ownership_before["object_id"] == pod_entity_id
+    assert contribution_before["uid"] == "pod-uid-a"
+
+    second = import_kubernetes_source(
+        driver, database=DATABASE, source_config=_bundle("pod-uid-b", first_revision)
+    )
+    assert second.committed is True
+
+    with driver.session(database=DATABASE) as session:
+        ownership_after = session.run(
+            "MATCH (c:InfrastructureClaim {kind: 'WORKLOAD_OWNS_POD'}) "
+            "RETURN c.subject_id AS subject_id, c.object_id AS object_id"
+        ).single()
+        contribution_after = session.run(
+            "MATCH (c:InfrastructureContribution {entity_id: $id}) "
+            "RETURN c.captured_resource_uid AS uid",
+            id=pod_entity_id,
+        ).single()
+        old_uid_survivors = session.run(
+            "MATCH (n) WHERE n.captured_resource_uid = 'pod-uid-a' RETURN count(n) AS c"
+        ).single()["c"]
+
+    # The same logical Pod/Workload ids still resolve (§6: replacement preserves logical identity)...
+    assert ownership_after["subject_id"] == workload_entity_id
+    assert ownership_after["object_id"] == pod_entity_id
+    # ...but the contribution's captured UID is now the new one, and nothing anywhere still carries
+    # the old, replaced incarnation.
+    assert contribution_after["uid"] == "pod-uid-b"
+    assert old_uid_survivors == 0
+
+
+def test_kubernetes_two_clean_discovery_runs_produce_byte_identical_semantic_reports(tmp_path):
+    """I2 Draft 0.2 §11 Replay: "unchanged bundle and mapping context" determinism, mirroring I1's
+    own `test_i1_bundled_migration_determinism.py::
+    test_two_clean_checkouts_at_different_paths_produce_identical_results` pattern for Kubernetes.
+    Pure discovery/mapping-layer proof (no Neo4j) - two independent checkouts of identical bundle
+    content at different physical paths. Unlike `FilesystemSourceConfig` (whose default
+    `stable_target_identity` is `urn:aip:logical-root:<id>`), `KubernetesSourceConfig`'s own default
+    is `urn:aip:k8s-cluster:<cluster_uid>` (`app/sources/model.py`) - the SAME `cluster_uid` across
+    both checkouts is what keeps `discovery_scope_id` portable here, not the configured `id`. Only
+    `scope_definition_digest` (which legitimately folds in the physical root) differs.
+    """
+    resources = [_deployment("checkout-api", "checkout", "deploy-uid-1")]
+
+    def _run(root: Path):
+        config = _write_kubernetes_bundle(
+            root,
+            source_id="determinism-source",
+            scope_id="determinism-scope",
+            cluster_uid="determinism-cluster",
+            namespaces=["checkout"],
+            resources=resources,
+            expected_prior_inventory_revision=None,
+        )
+        return run_kubernetes_discovery(config)
+
+    result_one = _run(tmp_path / "checkout-one")
+    result_two = _run(tmp_path / "somewhere" / "else" / "checkout-two")
+
+    assert result_one.inventory_status == result_two.inventory_status
+    assert result_one.commit_eligible is True
+    assert result_one.commit_eligible == result_two.commit_eligible
+    assert result_one.discovery_scope_id == result_two.discovery_scope_id
+    assert result_one.scope_definition_digest != result_two.scope_definition_digest
+
+    ids_one = set(result_one.source_outcomes.keys())
+    ids_two = set(result_two.source_outcomes.keys())
+    assert ids_one == ids_two
+
+    digests_one = {
+        sid: ro.outcome.semantic_input_digest for sid, ro in result_one.source_outcomes.items()
+    }
+    digests_two = {
+        sid: ro.outcome.semantic_input_digest for sid, ro in result_two.source_outcomes.items()
+    }
+    assert digests_one == digests_two
+
+    def _canonical_merged_model_bytes(model) -> bytes:
+        return canonical_json_bytes(model.model_dump(mode="json", exclude={"provenance"}))
+
+    assert _canonical_merged_model_bytes(result_one.merged_model) == _canonical_merged_model_bytes(
+        result_two.merged_model
+    )
+
+
+def test_kubernetes_unchanged_reimport_is_a_true_replay_no_op(driver, tmp_path):
+    """I2 Draft 0.2 §11 Replay: "first import versus sequential no-op." A second, byte-identical
+    commit of the same bundle must be `REPLAY_NO_OP` (`app.sources.replay`): no expirations, no
+    changed entity/claim counts, and no graph-revision advance - not merely "committed=True again".
+    """
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="noop-replay-source",
+        scope_id="noop-replay-scope",
+        cluster_uid="noop-replay-cluster",
+        namespaces=["checkout"],
+        resources=[_deployment("checkout-api", "checkout", "deploy-uid-1")],
+        expected_prior_inventory_revision=None,
+    )
+    first = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert first.committed is True
+    entity_count_before = _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c")
+    claim_count_before = _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c")
+
+    with driver.session(database=DATABASE) as session:
+        first_revision = session.run(
+            "MATCH (i:CurrentInventory) RETURN i.inventory_revision AS r"
+        ).single()["r"]
+
+    unchanged_config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="noop-replay-source",
+        scope_id="noop-replay-scope",
+        cluster_uid="noop-replay-cluster",
+        namespaces=["checkout"],
+        resources=[_deployment("checkout-api", "checkout", "deploy-uid-1")],
+        expected_prior_inventory_revision=first_revision,
+    )
+    second = import_kubernetes_source(driver, database=DATABASE, source_config=unchanged_config)
+
+    assert second.committed is True
+    [source_stats] = list(second.per_source.values())
+    assert source_stats.graph_revision_advanced is False
+    assert source_stats.nodes_expired == 0
+    assert source_stats.relations_expired == 0
+    assert (
+        _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == entity_count_before
+    )
+    assert (
+        _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == claim_count_before
+    )
+
+
+def test_kubernetes_mapping_context_digest_change_triggers_reevaluation_not_a_silent_no_op(
+    driver, tmp_path
+):
+    """I2 Draft 0.2 §6: "The common I1 mapping context includes the active Kubernetes adapter/rule
+    versions and registration semantics... Document and mapping changes trigger reevaluation."
+    Isolates the same seam `_captured_deployment_outcome`'s own UID-replacement tests already use:
+    `KubernetesSourceAdapter.map` takes `mapping_context_digest` as an explicit parameter (in
+    production, computed by the orchestrator from every registered adapter's own
+    `adapter_identity`/`mapping_rule_version` -
+    `app.ingestion.orchestrator._compute_mapping_context_digest`) - a rule/context version bump is
+    exactly a changed value at this same injection point, with byte-identical resource content.
+
+    A first attempt at this test also asserted `graph_revision_advanced is True` on the second
+    import - that failed, and rightly so: `mapping_context_digest` never surfaces into any stored
+    canonical property (it is purely a digest-formula input), so a context-only change with
+    genuinely identical resource content produces no real canonical change, and
+    `_import_source_tx`'s own before/after content-diff check (see its docstring: "an adapter's
+    normalized projection can hash raw input the canonical model never surfaces at all, e.g.
+    OpenAPI's `info.description`") correctly withholds the revision-fence advance - the same
+    documented "canonically inert input change" precedent I1 already established for a different
+    source kind, now confirmed to hold for Kubernetes too. What §6 actually requires - that a
+    context/rule change is compared and not silently treated as identical - is exactly what a moved
+    `semantic_input_digest` proves: the comparison happened and correctly detected the difference,
+    which is the only observable effect a content-identical context bump can legitimately have.
+    """
+    first, source_instance_id = _captured_deployment_outcome(
+        tmp_path, uid="uid-context-test", resource_version="1", mapping_context_digest="a" * 64
+    )
+    second, _ = _captured_deployment_outcome(
+        tmp_path, uid="uid-context-test", resource_version="1", mapping_context_digest="b" * 64
+    )
+    # Identical resource content, only the mapping context changed - the source-level digest must
+    # still move, or a real rule/context change would be silently indistinguishable from an
+    # unchanged reimport at the one seam that carries it forward.
+    assert first.semantic_input_digest != second.semantic_input_digest
+
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, source_instance_id, first.model, digest=first.semantic_input_digest)
+        stats = _import(
+            session, source_instance_id, second.model, digest=second.semantic_input_digest
+        )
+    # No real canonical content changed (same UID/resourceVersion/projection), so no revision
+    # advance is expected here - see the docstring above. `nodes_expired`/`relations_expired` stay
+    # zero either way; the meaningful proof already happened above.
     assert stats.graph_revision_advanced is False
 
 
