@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from app.architecture_intelligence.contracts import (
+    DEPLOYMENT_RECONCILIATION_RULE_ID,
     ArchitectureAnswer,
     ArchitectureDriftData,
     Coverage,
@@ -15,6 +16,11 @@ from app.architecture_intelligence.contracts import (
     DeliveryRelationType,
     DependencyClaim,
     DependencyPredicate,
+    DeploymentClaim,
+    DeploymentPredicate,
+    DeploymentResolution,
+    DeploymentResolutionMethod,
+    DeploymentResolutionStatus,
     DestinationResolution,
     EntityRef,
     EntityType,
@@ -28,6 +34,8 @@ from app.architecture_intelligence.contracts import (
     Qualification,
     ServiceDependenciesData,
     SnapshotRef,
+    WorkloadKind,
+    WorkloadRef,
 )
 from app.architecture_intelligence.request import (
     ArchitectureDriftRequest,
@@ -42,7 +50,7 @@ SCHEMA_PATH = (
     Path(__file__).resolve().parent.parent.parent
     / "schemas"
     / "architecture_intelligence"
-    / "v0.4"
+    / "v0.5"
     / "architecture-answer.schema.json"
 )
 
@@ -50,7 +58,7 @@ EVIDENCE_SCHEMA_PATH = (
     Path(__file__).resolve().parent.parent.parent
     / "schemas"
     / "architecture_intelligence"
-    / "v0.4"
+    / "v0.5"
     / "evidence-answer.schema.json"
 )
 
@@ -80,7 +88,7 @@ def test_fixture_directory_is_not_empty():
 def test_fixture_round_trips_through_model(name):
     payload = load_fixture(name)
     answer = ANSWER_TYPE.model_validate(payload)
-    assert answer.schema_version == "0.4"
+    assert answer.schema_version == "0.5"
 
 
 @pytest.mark.parametrize("name", FIXTURE_NAMES)
@@ -107,7 +115,7 @@ def test_evidence_fixture_directory_is_not_empty():
 def test_evidence_fixture_round_trips_through_model(name):
     payload = load_evidence_fixture(name)
     answer = EVIDENCE_ANSWER_TYPE.model_validate(payload)
-    assert answer.schema_version == "0.4"
+    assert answer.schema_version == "0.5"
 
 
 @pytest.mark.parametrize("name", EVIDENCE_FIXTURE_NAMES)
@@ -192,6 +200,53 @@ def _valid_claim(**overrides) -> DependencyClaim:
     }
     fields.update(overrides)
     return DependencyClaim(**fields)
+
+
+def _valid_workload(**overrides) -> WorkloadRef:
+    fields = {
+        "id": "urn:aip:k8s-resource:" + "1" * 64,
+        "type": EntityType.WORKLOAD,
+        "name": "checkout",
+        "workload_kind": WorkloadKind.DEPLOYMENT,
+        "namespace": "checkout",
+    }
+    fields.update(overrides)
+    return WorkloadRef(**fields)
+
+
+def _valid_deployment_claim(**overrides) -> DeploymentClaim:
+    fields = {
+        "claim_id": "aip:claim:v1:" + "9" * 64,
+        "subject": _valid_service_entity(),
+        "predicate": DeploymentPredicate.DEPLOYED_AS,
+        "object": _valid_workload(),
+        "resolution_method": DeploymentResolutionMethod.RESOLVED_EXPLICIT,
+        "supporting_methods": [DeploymentResolutionMethod.RESOLVED_EXPLICIT],
+        "reconciliation_rule_id": DEPLOYMENT_RECONCILIATION_RULE_ID,
+        "reconciliation_rule_version": 1,
+        "evidence_refs": ["evidence:kubernetes:" + "a" * 64],
+    }
+    fields.update(overrides)
+    return DeploymentClaim(**fields)
+
+
+def _valid_deployment_resolution(**overrides) -> DeploymentResolution:
+    fields = {
+        "resolution_id": "aip:deployment-resolution:v1:" + "2" * 64,
+        "workload": _valid_workload(),
+        "status": DeploymentResolutionStatus.RESOLVED_EXPLICIT,
+        "service_id": "service:order-service",
+        "candidate_service_ids": ["service:order-service"],
+        "supporting_methods": [DeploymentResolutionMethod.RESOLVED_EXPLICIT],
+        "supporting_evidence_refs": ["evidence:kubernetes:" + "a" * 64],
+        "conflicting_evidence_refs": [],
+        "limitation_codes": [],
+        "claim_id": "aip:claim:v1:" + "9" * 64,
+        "reconciliation_rule_id": DEPLOYMENT_RECONCILIATION_RULE_ID,
+        "reconciliation_rule_version": 1,
+    }
+    fields.update(overrides)
+    return DeploymentResolution(**fields)
 
 
 def test_entity_ref_rejects_method_on_a_service():
@@ -552,13 +607,18 @@ def test_answer_rejects_claims_not_in_canonical_order():
 
 def _valid_answer_dict(**overrides) -> dict:
     base = {
-        "schema_version": "0.4",
+        "schema_version": "0.5",
         "producer": _valid_producer().model_dump(),
         "tool": "get_service_dependencies",
         "outcome": "ANSWERED",
         "snapshot": _valid_snapshot().model_dump(),
         "observation_context": _valid_context(),
-        "data": {"service": _valid_service_entity().model_dump(), "dependency_claim_ids": []},
+        "data": {
+            "service": _valid_service_entity().model_dump(),
+            "dependency_claim_ids": [],
+            "deployment_claim_ids": [],
+            "deployment_resolutions": [],
+        },
         "claims": [],
         "evidence_refs": [],
         "limitations": [],
@@ -808,7 +868,7 @@ def test_null_observation_context_without_required_limitation_fails_both_pydanti
 
 def _valid_evidence_answer_dict(**overrides) -> dict:
     base = {
-        "schema_version": "0.4",
+        "schema_version": "0.5",
         "producer": _valid_producer().model_dump(),
         "tool": "get_evidence",
         "outcome": "ANSWERED",
@@ -1009,7 +1069,7 @@ DRIFT_SCHEMA_PATH = (
     Path(__file__).resolve().parent.parent.parent
     / "schemas"
     / "architecture_intelligence"
-    / "v0.4"
+    / "v0.5"
     / "drift-answer.schema.json"
 )
 
@@ -1021,7 +1081,7 @@ def load_drift_schema() -> dict:
 def _valid_drift_answer_dict(**overrides) -> dict:
     claim = _valid_claim(qualification=Qualification.OBSERVED_ONLY)
     payload = {
-        "schema_version": "0.4",
+        "schema_version": "0.5",
         "producer": _valid_producer().model_dump(mode="json"),
         "tool": "get_architecture_drift",
         "outcome": "ANSWERED",
@@ -1219,3 +1279,536 @@ def test_drift_answer_rejects_an_evidence_union_that_is_not_exact():
         DRIFT_ANSWER_TYPE.model_validate(
             _valid_drift_answer_dict(evidence_refs=sorted(claim.evidence_refs))
         )
+
+
+# --- v0.5.0 I3 slice 1: WorkloadRef / DeploymentClaim / DeploymentResolution contract freeze ---
+# --- (spec §11/§12/§13) and the closed DependencyClaim | DeploymentClaim union (spec §14.2). ---
+
+
+def test_workload_ref_round_trips():
+    workload = _valid_workload()
+    assert workload.type == EntityType.WORKLOAD
+    assert WorkloadRef.model_validate(workload.model_dump()) == workload
+
+
+def test_workload_ref_rejects_a_non_workload_type():
+    with pytest.raises(ValidationError):
+        WorkloadRef.model_validate({**_valid_workload().model_dump(), "type": "SERVICE"})
+
+
+def test_dependency_claim_rejects_a_workload_typed_object():
+    # DependencyClaim.object is typed plain EntityRef, not WorkloadRef - the model_validator guard
+    # (not just EntityRef's own type-specific-field rules) must reject a Workload-shaped value.
+    with pytest.raises(ValidationError):
+        _valid_claim(object=EntityRef(id="wl:x", type=EntityType.WORKLOAD, name="x"))
+
+
+def test_dependency_claim_rejects_a_non_service_subject():
+    with pytest.raises(ValidationError):
+        _valid_claim(subject=_valid_operation_entity())
+
+
+def test_deployment_claim_round_trips():
+    claim = _valid_deployment_claim()
+    assert claim.predicate == DeploymentPredicate.DEPLOYED_AS
+    assert DeploymentClaim.model_validate(claim.model_dump()) == claim
+
+
+def test_deployment_claim_rejects_a_non_service_subject():
+    with pytest.raises(ValidationError):
+        _valid_deployment_claim(subject=_valid_operation_entity())
+
+
+def test_deployment_claim_requires_at_least_one_evidence_ref():
+    with pytest.raises(ValidationError):
+        _valid_deployment_claim(evidence_refs=[])
+
+
+def test_deployment_claim_requires_at_least_one_supporting_method():
+    with pytest.raises(ValidationError):
+        _valid_deployment_claim(supporting_methods=[])
+
+
+def test_deployment_claim_rejects_duplicate_supporting_methods():
+    with pytest.raises(ValidationError):
+        _valid_deployment_claim(
+            supporting_methods=[
+                DeploymentResolutionMethod.RESOLVED_EXPLICIT,
+                DeploymentResolutionMethod.RESOLVED_EXPLICIT,
+            ]
+        )
+
+
+def test_deployment_claim_rejects_supporting_methods_out_of_canonical_order():
+    with pytest.raises(ValidationError):
+        _valid_deployment_claim(
+            resolution_method=DeploymentResolutionMethod.RESOLVED_CONFIGURED,
+            supporting_methods=[
+                DeploymentResolutionMethod.RESOLVED_CONFIGURED,
+                DeploymentResolutionMethod.RESOLVED_EXPLICIT,
+            ],
+        )
+
+
+def test_deployment_claim_rejects_a_resolution_method_that_is_not_the_strongest():
+    with pytest.raises(ValidationError):
+        _valid_deployment_claim(
+            resolution_method=DeploymentResolutionMethod.RESOLVED_CONFIGURED,
+            supporting_methods=[
+                DeploymentResolutionMethod.RESOLVED_EXPLICIT,
+                DeploymentResolutionMethod.RESOLVED_CONFIGURED,
+            ],
+        )
+
+
+def test_deployment_claim_accepts_a_weaker_agreeing_method_as_the_strongest_when_alone():
+    claim = _valid_deployment_claim(
+        resolution_method=DeploymentResolutionMethod.RESOLVED_OBSERVED,
+        supporting_methods=[DeploymentResolutionMethod.RESOLVED_OBSERVED],
+    )
+    assert claim.resolution_method == DeploymentResolutionMethod.RESOLVED_OBSERVED
+
+
+def test_deployment_claim_rejects_a_non_default_reconciliation_rule_id():
+    with pytest.raises(ValidationError):
+        DeploymentClaim.model_validate(
+            {**_valid_deployment_claim().model_dump(), "reconciliation_rule_id": "some-other-rule"}
+        )
+
+
+def test_deployment_claim_rejects_a_non_default_reconciliation_rule_version():
+    with pytest.raises(ValidationError):
+        DeploymentClaim.model_validate(
+            {**_valid_deployment_claim().model_dump(), "reconciliation_rule_version": 2}
+        )
+
+
+@pytest.mark.parametrize(
+    "claim_id",
+    ["not-a-claim-id", "aip:deployment-resolution:v1:" + "a" * 64],
+)
+def test_deployment_claim_rejects_malformed_claim_id(claim_id):
+    with pytest.raises(ValidationError):
+        _valid_deployment_claim(claim_id=claim_id)
+
+
+def test_deployment_resolution_round_trips_when_resolved():
+    resolution = _valid_deployment_resolution()
+    assert DeploymentResolution.model_validate(resolution.model_dump()) == resolution
+
+
+def test_deployment_resolution_round_trips_when_unresolved():
+    resolution = _valid_deployment_resolution(
+        workload=None,
+        status=DeploymentResolutionStatus.UNRESOLVED,
+        service_id=None,
+        candidate_service_ids=[],
+        supporting_methods=[],
+        claim_id=None,
+        limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_UNRESOLVED],
+    )
+    assert resolution.claim_id is None
+    assert DeploymentResolution.model_validate(resolution.model_dump()) == resolution
+
+
+@pytest.mark.parametrize("missing_field", ["workload", "service_id", "claim_id"])
+def test_deployment_resolution_resolved_status_requires_the_resolved_fields(missing_field):
+    with pytest.raises(ValidationError):
+        _valid_deployment_resolution(**{missing_field: None})
+
+
+def test_deployment_resolution_resolved_status_requires_matching_candidate_service_ids():
+    with pytest.raises(ValidationError):
+        _valid_deployment_resolution(candidate_service_ids=["service:a-different-service"])
+
+
+def test_deployment_resolution_non_resolved_status_rejects_a_non_null_claim_id():
+    with pytest.raises(ValidationError):
+        _valid_deployment_resolution(
+            workload=None,
+            status=DeploymentResolutionStatus.CONFLICT,
+            service_id=None,
+            candidate_service_ids=[],
+        )
+
+
+@pytest.mark.parametrize(
+    "resolution_id",
+    ["not-a-resolution-id", "aip:claim:v1:" + "a" * 64],
+)
+def test_deployment_resolution_rejects_malformed_resolution_id(resolution_id):
+    with pytest.raises(ValidationError):
+        _valid_deployment_resolution(resolution_id=resolution_id)
+
+
+def test_deployment_resolution_rejects_a_malformed_non_null_claim_id():
+    with pytest.raises(ValidationError):
+        _valid_deployment_resolution(claim_id="not-a-claim-id")
+
+
+def test_deployment_resolution_rejects_unsorted_candidate_service_ids():
+    with pytest.raises(ValidationError):
+        _valid_deployment_resolution(
+            service_id="service:a",
+            candidate_service_ids=["service:b", "service:a"],
+        )
+
+
+def _service_dependencies_answer_dict(*, claims: list, data_overrides: dict | None = None) -> dict:
+    dependency_ids = [c["claim_id"] for c in claims if c.get("predicate") == "DIRECT_DEPENDENCY"]
+    deployment_ids = [c["claim_id"] for c in claims if c.get("predicate") == "DEPLOYED_AS"]
+    evidence_refs = sorted(
+        {
+            ref
+            for c in claims
+            for ref in (*c["evidence_refs"], *c.get("resolution_evidence_refs", []))
+        }
+    )
+    data = {
+        "service": _valid_service_entity().model_dump(mode="json"),
+        "dependency_claim_ids": dependency_ids,
+        "deployment_claim_ids": deployment_ids,
+        "deployment_resolutions": [],
+    }
+    if data_overrides:
+        data.update(data_overrides)
+    return _valid_answer_dict(data=data, claims=claims, evidence_refs=evidence_refs)
+
+
+_SHARED_OBJECT_ID = "urn:aip:k8s-resource:" + "3" * 64
+
+
+def _mixed_claim_pair() -> tuple[DependencyClaim, DeploymentClaim]:
+    # Deliberately the SAME object.id on both claims (a Service and a Workload can never really
+    # share an id in production, but this unit test isolates the predicate tiebreaker specifically -
+    # with object.id tied, ordering must fall through to `predicate`: "DEPLOYED_AS" < "DIRECT_
+    # DEPENDENCY" lexicographically, so the DeploymentClaim sorts first).
+    dependency_claim = _valid_claim(
+        object=EntityRef(id=_SHARED_OBJECT_ID, type=EntityType.SERVICE, name="Aaa")
+    )
+    deployment_claim = _valid_deployment_claim(object=_valid_workload(id=_SHARED_OBJECT_ID))
+    return dependency_claim, deployment_claim
+
+
+def test_answer_accepts_a_mixed_claims_list_sorted_by_object_id_then_predicate():
+    dependency_claim, deployment_claim = _mixed_claim_pair()
+    payload = _service_dependencies_answer_dict(
+        claims=[
+            deployment_claim.model_dump(mode="json"),
+            dependency_claim.model_dump(mode="json"),
+        ]
+    )
+    answer = ANSWER_TYPE.model_validate(payload)
+    assert [type(c).__name__ for c in answer.claims] == ["DeploymentClaim", "DependencyClaim"]
+    assert answer.data.dependency_claim_ids == [dependency_claim.claim_id]
+    assert answer.data.deployment_claim_ids == [deployment_claim.claim_id]
+
+
+def test_answer_rejects_a_mixed_claims_list_in_the_wrong_order():
+    dependency_claim, deployment_claim = _mixed_claim_pair()
+    payload = _service_dependencies_answer_dict(
+        claims=[
+            dependency_claim.model_dump(mode="json"),
+            deployment_claim.model_dump(mode="json"),
+        ]
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+
+
+def test_answer_rejects_an_unrecognized_predicate_value():
+    bad_claim = {**_valid_claim().model_dump(mode="json"), "predicate": "SOMETHING_ELSE"}
+    payload = _valid_answer_dict(
+        data={
+            "service": _valid_service_entity().model_dump(mode="json"),
+            "dependency_claim_ids": [],
+            "deployment_claim_ids": [],
+            "deployment_resolutions": [],
+        },
+        claims=[bad_claim],
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+
+
+def test_drift_answer_rejects_a_deployment_claim_in_claims():
+    deployment_claim = _valid_deployment_claim()
+    payload = _valid_drift_answer_dict(
+        data={
+            "service": _valid_service_entity().model_dump(mode="json"),
+            "drift_claim_ids": [deployment_claim.claim_id],
+        },
+        claims=[deployment_claim.model_dump(mode="json")],
+        evidence_refs=deployment_claim.evidence_refs,
+    )
+    with pytest.raises(ValidationError):
+        DRIFT_ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_drift_schema())
+
+
+def test_service_dependencies_data_partitions_claims_by_type():
+    dependency_claim = _valid_claim()
+    deployment_claim = _valid_deployment_claim(
+        object=_valid_workload(id="urn:aip:k8s-resource:" + "4" * 64)
+    )
+    payload = _service_dependencies_answer_dict(
+        claims=sorted(
+            [dependency_claim.model_dump(mode="json"), deployment_claim.model_dump(mode="json")],
+            key=lambda c: (c["object"]["id"], c["predicate"]),
+        )
+    )
+    answer = ANSWER_TYPE.model_validate(payload)
+    assert answer.data.dependency_claim_ids == [dependency_claim.claim_id]
+    assert answer.data.deployment_claim_ids == [deployment_claim.claim_id]
+
+
+def test_service_dependencies_data_rejects_a_deployment_claim_id_not_in_deployment_claim_ids():
+    deployment_claim = _valid_deployment_claim()
+    payload = _service_dependencies_answer_dict(
+        claims=[deployment_claim.model_dump(mode="json")],
+        data_overrides={"deployment_claim_ids": []},
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+
+
+def test_service_dependencies_data_rejects_a_resolution_claim_id_not_present_in_claims():
+    deployment_claim = _valid_deployment_claim()
+    resolution = _valid_deployment_resolution(claim_id=deployment_claim.claim_id)
+    payload = _service_dependencies_answer_dict(
+        claims=[deployment_claim.model_dump(mode="json")],
+        data_overrides={
+            # A different DeploymentClaim id than the one actually present in claims.
+            "deployment_resolutions": [
+                {**resolution.model_dump(mode="json"), "claim_id": "aip:claim:v1:" + "0" * 64}
+            ]
+        },
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+
+
+def test_service_dependencies_data_accepts_a_resolution_claim_id_present_in_claims():
+    deployment_claim = _valid_deployment_claim()
+    resolution = _valid_deployment_resolution(claim_id=deployment_claim.claim_id)
+    payload = _service_dependencies_answer_dict(
+        claims=[deployment_claim.model_dump(mode="json")],
+        data_overrides={"deployment_resolutions": [resolution.model_dump(mode="json")]},
+    )
+    answer = ANSWER_TYPE.model_validate(payload)
+    assert answer.data.deployment_resolutions[0].claim_id == deployment_claim.claim_id
+
+
+def test_deployment_resolutions_must_be_sorted_by_resolution_id():
+    first = _valid_deployment_resolution(
+        resolution_id="aip:deployment-resolution:v1:" + "1" * 64,
+        claim_id=None,
+        workload=None,
+        status=DeploymentResolutionStatus.UNRESOLVED,
+        service_id=None,
+        candidate_service_ids=[],
+        supporting_methods=[],
+    )
+    second = _valid_deployment_resolution(
+        resolution_id="aip:deployment-resolution:v1:" + "2" * 64,
+        claim_id=None,
+        workload=None,
+        status=DeploymentResolutionStatus.UNRESOLVED,
+        service_id=None,
+        candidate_service_ids=[],
+        supporting_methods=[],
+    )
+    with pytest.raises(ValidationError):
+        ServiceDependenciesData(
+            service=_valid_service_entity(),
+            dependency_claim_ids=[],
+            deployment_claim_ids=[],
+            # Deliberately out of resolution_id order.
+            deployment_resolutions=[second, first],
+        )
+
+
+def test_service_dependencies_schema_marks_deployment_fields_required():
+    schema = load_schema()
+    data_schema = schema["$defs"]["ServiceDependenciesData"]
+    for field in ("deployment_claim_ids", "deployment_resolutions"):
+        assert field in data_schema["required"]
+
+
+def test_deployment_claim_schema_marks_fields_required():
+    schema = load_schema()
+    required = schema["$defs"]["DeploymentClaim"]["required"]
+    for field in ("evidence_refs", "supporting_methods", "resolution_method"):
+        assert field in required
+
+
+def test_architecture_answer_schema_defines_a_discriminated_claims_union():
+    # PR #212 re-review finding: the original `or "$ref"` branch passed even for a single,
+    # non-union `$ref` (a real regression - dropping one claim arm - would have gone undetected).
+    # Assert the exact discriminator mapping and both oneOf arms instead.
+    schema = load_schema()
+    claims_schema = schema["properties"]["claims"]["items"]
+    assert claims_schema["discriminator"]["propertyName"] == "predicate"
+    assert claims_schema["discriminator"]["mapping"] == {
+        "DIRECT_DEPENDENCY": "#/$defs/DependencyClaim",
+        "DEPLOYED_AS": "#/$defs/DeploymentClaim",
+    }
+    assert {entry["$ref"] for entry in claims_schema["oneOf"]} == {
+        "#/$defs/DependencyClaim",
+        "#/$defs/DeploymentClaim",
+    }
+
+
+# --- PR #212 review round: a Pydantic field default is silently omitted from the generated JSON  --
+# --- Schema's `required` list, so a defaulted discriminator/identity field was NOT actually       --
+# --- required for a non-Pydantic client even though Pydantic itself always filled it in - fixed    --
+# --- by removing every such default; these prove both layers now reject the omission (spec         --
+# --- §11-§14.2), and that a WORKLOAD-typed `service` field can no longer slip past either layer.    --
+
+
+def test_workload_ref_omitting_type_fails_both_pydantic_and_schema():
+    deployment_claim = _valid_deployment_claim().model_dump(mode="json")
+    payload = _service_dependencies_answer_dict(claims=[deployment_claim])
+    del payload["claims"][0]["object"]["type"]
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_dependency_claim_omitting_predicate_fails_both_pydantic_and_schema():
+    claim = _valid_claim().model_dump(mode="json")
+    payload = _service_dependencies_answer_dict(claims=[claim])
+    del payload["claims"][0]["predicate"]
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_deployment_claim_omitting_predicate_fails_both_pydantic_and_schema():
+    claim = _valid_deployment_claim().model_dump(mode="json")
+    payload = _service_dependencies_answer_dict(claims=[claim])
+    del payload["claims"][0]["predicate"]
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+@pytest.mark.parametrize("field", ["reconciliation_rule_id", "reconciliation_rule_version"])
+def test_deployment_claim_omitting_reconciliation_rule_field_fails_both_pydantic_and_schema(field):
+    claim = _valid_deployment_claim().model_dump(mode="json")
+    payload = _service_dependencies_answer_dict(claims=[claim])
+    del payload["claims"][0][field]
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+@pytest.mark.parametrize("field", ["reconciliation_rule_id", "reconciliation_rule_version"])
+def test_deployment_resolution_omitting_reconciliation_rule_field_fails_both_pydantic_and_schema(
+    field,
+):
+    deployment_claim = _valid_deployment_claim()
+    resolution = _valid_deployment_resolution(claim_id=deployment_claim.claim_id)
+    resolution_dict = resolution.model_dump(mode="json")
+    del resolution_dict[field]
+    payload = _service_dependencies_answer_dict(
+        claims=[deployment_claim.model_dump(mode="json")],
+        data_overrides={"deployment_resolutions": [resolution_dict]},
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_deployment_claim_rejects_a_non_service_subject_both_pydantic_and_schema():
+    # _valid_deployment_claim's own model_validator already rejects an invalid subject before it
+    # can be constructed - build the invalid shape as a raw dict instead, mirroring every other
+    # "_and_schema" test in this file.
+    claim = _valid_deployment_claim().model_dump(mode="json")
+    claim["subject"] = _valid_operation_entity().model_dump(mode="json")
+    payload = _service_dependencies_answer_dict(
+        claims=[claim], data_overrides={"deployment_claim_ids": [claim["claim_id"]]}
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_deployment_resolution_rejects_a_malformed_claim_id_both_pydantic_and_schema():
+    deployment_claim = _valid_deployment_claim()
+    resolution = _valid_deployment_resolution(claim_id=deployment_claim.claim_id)
+    resolution_dict = resolution.model_dump(mode="json")
+    resolution_dict["claim_id"] = "not-a-claim-id"
+    payload = _service_dependencies_answer_dict(
+        claims=[deployment_claim.model_dump(mode="json")],
+        data_overrides={"deployment_resolutions": [resolution_dict]},
+    )
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_service_dependencies_data_rejects_a_workload_typed_service_both_pydantic_and_schema():
+    payload = _valid_answer_dict()
+    payload["data"]["service"]["type"] = "WORKLOAD"
+    with pytest.raises(ValidationError):
+        ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_schema())
+
+
+def test_drift_data_rejects_a_workload_typed_service_both_pydantic_and_schema():
+    payload = _valid_drift_answer_dict()
+    payload["data"]["service"]["type"] = "WORKLOAD"
+    with pytest.raises(ValidationError):
+        DRIFT_ANSWER_TYPE.model_validate(payload)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=payload, schema=load_drift_schema())
+
+
+def test_workload_ref_schema_marks_type_required():
+    schema = load_schema()
+    assert "type" in schema["$defs"]["WorkloadRef"]["required"]
+
+
+def test_dependency_claim_schema_marks_predicate_required():
+    schema = load_schema()
+    assert "predicate" in schema["$defs"]["DependencyClaim"]["required"]
+
+
+def test_deployment_claim_schema_marks_predicate_and_rule_fields_required():
+    schema = load_schema()
+    required = schema["$defs"]["DeploymentClaim"]["required"]
+    for field in ("predicate", "reconciliation_rule_id", "reconciliation_rule_version"):
+        assert field in required
+
+
+def test_deployment_resolution_schema_marks_rule_fields_required():
+    schema = load_schema()
+    required = schema["$defs"]["DeploymentResolution"]["required"]
+    for field in ("reconciliation_rule_id", "reconciliation_rule_version"):
+        assert field in required
+
+
+def test_service_dependencies_data_schema_requires_service_typed_service():
+    schema = load_schema()
+    data_schema = schema["$defs"]["ServiceDependenciesData"]
+    assert data_schema["allOf"][0]["properties"]["service"]["properties"]["type"]["const"] == (
+        "SERVICE"
+    )
+
+
+def test_drift_data_schema_requires_service_typed_service():
+    schema = load_drift_schema()
+    data_schema = schema["$defs"]["ArchitectureDriftData"]
+    assert data_schema["allOf"][0]["properties"]["service"]["properties"]["type"]["const"] == (
+        "SERVICE"
+    )

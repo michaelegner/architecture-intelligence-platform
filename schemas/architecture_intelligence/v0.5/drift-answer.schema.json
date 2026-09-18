@@ -2,6 +2,19 @@
   "$defs": {
     "ArchitectureDriftData": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "properties": {
+            "service": {
+              "properties": {
+                "type": {
+                  "const": "SERVICE"
+                }
+              }
+            }
+          }
+        }
+      ],
       "description": "v0.4.0 I3.1 - spec \u00a710. Deliberately only the service and the drift claim ids: no\n`observed_only[]`/`not_observed[]` buckets, no `severity`/`score`/`summary_text` (spec \u00a710 names\neach of those as prohibited), because every returned `DependencyClaim` already carries the\nauthoritative `qualification` that made it drift. The claims themselves stay on the enclosing\n`ArchitectureAnswer.claims` - this data payload only names them, in the same order.",
       "properties": {
         "drift_claim_ids": {
@@ -193,6 +206,26 @@
               }
             }
           }
+        },
+        {
+          "properties": {
+            "object": {
+              "properties": {
+                "type": {
+                  "not": {
+                    "const": "WORKLOAD"
+                  }
+                }
+              }
+            },
+            "subject": {
+              "properties": {
+                "type": {
+                  "const": "SERVICE"
+                }
+              }
+            }
+          }
         }
       ],
       "properties": {
@@ -230,7 +263,9 @@
           "$ref": "#/$defs/EntityRef"
         },
         "predicate": {
-          "$ref": "#/$defs/DependencyPredicate"
+          "const": "DIRECT_DEPENDENCY",
+          "title": "Predicate",
+          "type": "string"
         },
         "qualification": {
           "$ref": "#/$defs/Qualification"
@@ -262,11 +297,162 @@
       "title": "DependencyClaim",
       "type": "object"
     },
-    "DependencyPredicate": {
-      "enum": [
-        "DIRECT_DEPENDENCY"
+    "DeploymentClaim": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "supporting_methods": {
+                "prefixItems": [
+                  {
+                    "const": "RESOLVED_EXPLICIT"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "supporting_methods"
+            ]
+          },
+          "then": {
+            "properties": {
+              "resolution_method": {
+                "const": "RESOLVED_EXPLICIT"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supporting_methods": {
+                "prefixItems": [
+                  {
+                    "const": "RESOLVED_CONFIGURED"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "supporting_methods"
+            ]
+          },
+          "then": {
+            "properties": {
+              "resolution_method": {
+                "const": "RESOLVED_CONFIGURED"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supporting_methods": {
+                "prefixItems": [
+                  {
+                    "const": "RESOLVED_OBSERVED"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "supporting_methods"
+            ]
+          },
+          "then": {
+            "properties": {
+              "resolution_method": {
+                "const": "RESOLVED_OBSERVED"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "subject": {
+              "properties": {
+                "type": {
+                  "const": "SERVICE"
+                }
+              }
+            }
+          }
+        }
       ],
-      "title": "DependencyPredicate",
+      "description": "I3 spec \u00a712: the public `Service -[DEPLOYED_AS]-> Workload` claim. Deliberately has no\n`delivery`/`qualification`/`coverage`/`destination_resolution` fields - those are\n`DependencyClaim`-only concepts describing a CALLS/SENDS interaction, and `DEPLOYED_AS` is never\nan interaction (spec \u00a71: \"DEPLOYED_AS != CALLS != SENDS != RECEIVES_FROM\").",
+      "properties": {
+        "claim_id": {
+          "pattern": "^aip:claim:v1:[0-9a-f]{64}$",
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "object": {
+          "$ref": "#/$defs/WorkloadRef"
+        },
+        "predicate": {
+          "const": "DEPLOYED_AS",
+          "title": "Predicate",
+          "type": "string"
+        },
+        "reconciliation_rule_id": {
+          "const": "service-workload-reconciliation",
+          "title": "Reconciliation Rule Id",
+          "type": "string"
+        },
+        "reconciliation_rule_version": {
+          "const": 1,
+          "title": "Reconciliation Rule Version",
+          "type": "integer"
+        },
+        "resolution_method": {
+          "$ref": "#/$defs/DeploymentResolutionMethod"
+        },
+        "subject": {
+          "$ref": "#/$defs/EntityRef"
+        },
+        "supporting_methods": {
+          "items": {
+            "$ref": "#/$defs/DeploymentResolutionMethod"
+          },
+          "minItems": 1,
+          "title": "Supporting Methods",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "claim_id",
+        "subject",
+        "predicate",
+        "object",
+        "resolution_method",
+        "supporting_methods",
+        "reconciliation_rule_id",
+        "reconciliation_rule_version",
+        "evidence_refs"
+      ],
+      "title": "DeploymentClaim",
+      "type": "object"
+    },
+    "DeploymentResolutionMethod": {
+      "description": "I3 spec \u00a710.1: only the three *successful* identity-path outcomes - never CONFLICT/\nAMBIGUOUS/UNRESOLVED, which are never a \"method\" a claim can be supported by. Compare\n`DeploymentResolutionStatus` below, which is the wider 6-value outcome set a\n`DeploymentResolution` (as opposed to an actual `DeploymentClaim`) may carry.",
+      "enum": [
+        "RESOLVED_EXPLICIT",
+        "RESOLVED_CONFIGURED",
+        "RESOLVED_OBSERVED"
+      ],
+      "title": "DeploymentResolutionMethod",
       "type": "string"
     },
     "DestinationResolution": {
@@ -398,7 +584,8 @@
       "enum": [
         "SERVICE",
         "OPERATION",
-        "QUEUE"
+        "QUEUE",
+        "WORKLOAD"
       ],
       "title": "EntityType",
       "type": "string"
@@ -436,7 +623,14 @@
         "UNKNOWN_ENTITY",
         "OBSERVATION_CONTEXT_REQUIRED",
         "SNAPSHOT_NOT_AVAILABLE",
-        "RESULT_LIMIT_EXCEEDED"
+        "RESULT_LIMIT_EXCEEDED",
+        "DEPLOYMENT_IDENTITY_UNRESOLVED",
+        "DEPLOYMENT_IDENTITY_AMBIGUOUS",
+        "DEPLOYMENT_IDENTITY_CONFLICT",
+        "DEPLOYMENT_ENVIRONMENT_MISMATCH",
+        "DEPLOYMENT_TEMPORAL_MISMATCH",
+        "DEPLOYMENT_EVIDENCE_INCOMPLETE",
+        "DEPLOYMENT_RESULT_LIMIT_EXCEEDED"
       ],
       "title": "LimitationCode",
       "type": "string"
@@ -539,6 +733,51 @@
       ],
       "title": "SnapshotRef",
       "type": "object"
+    },
+    "WorkloadKind": {
+      "description": "I3 spec \u00a78.1: the exact supported Kubernetes controller kinds a deployment identity path may\nresolve to - the same closed set I2's own owner-chain resolution already admits.",
+      "enum": [
+        "DEPLOYMENT",
+        "STATEFULSET",
+        "DAEMONSET"
+      ],
+      "title": "WorkloadKind",
+      "type": "string"
+    },
+    "WorkloadRef": {
+      "additionalProperties": false,
+      "description": "I3 spec \u00a711: a bounded public Workload reference, deliberately its own model rather than an\n`EntityRef` extension. `EntityRef` is reused by `DependencyClaim.subject`/`.object` and\n`DeliveryRef.via` - widening its type-specific-field validator with a WORKLOAD branch would make\na Workload-shaped `EntityRef` constructible inside a dependency claim, exactly the governing\n\"DEPLOYED_AS != CALLS\" / entity-equivalence boundary spec \u00a71 forbids. `DeploymentClaim.object` is\ntyped `WorkloadRef`, never `EntityRef`, for the same reason.\n\nCluster UID, Pod UID, source inventory, resource UID, and owner-chain details remain evidence\ndrill-down, not fields of this relation target (spec \u00a711's own rule) - `namespace` here is\nidentity context, not a locality qualification.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        },
+        "type": {
+          "const": "WORKLOAD",
+          "title": "Type",
+          "type": "string"
+        },
+        "workload_kind": {
+          "$ref": "#/$defs/WorkloadKind"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "name",
+        "workload_kind",
+        "namespace"
+      ],
+      "title": "WorkloadRef",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -636,12 +875,44 @@
           "const": "get_architecture_drift"
         }
       }
+    },
+    {
+      "properties": {
+        "claims": {
+          "items": {
+            "not": {
+              "properties": {
+                "predicate": {
+                  "const": "DEPLOYED_AS"
+                }
+              },
+              "required": [
+                "predicate"
+              ]
+            }
+          }
+        }
+      }
     }
   ],
   "properties": {
     "claims": {
       "items": {
-        "$ref": "#/$defs/DependencyClaim"
+        "discriminator": {
+          "mapping": {
+            "DEPLOYED_AS": "#/$defs/DeploymentClaim",
+            "DIRECT_DEPENDENCY": "#/$defs/DependencyClaim"
+          },
+          "propertyName": "predicate"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/DependencyClaim"
+          },
+          {
+            "$ref": "#/$defs/DeploymentClaim"
+          }
+        ]
       },
       "title": "Claims",
       "type": "array"
@@ -688,7 +959,7 @@
       "$ref": "#/$defs/Producer"
     },
     "schema_version": {
-      "const": "0.4",
+      "const": "0.5",
       "title": "Schema Version",
       "type": "string"
     },

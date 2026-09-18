@@ -102,7 +102,9 @@
       "path": null,
       "protocol": null,
       "type": "SERVICE"
-    }
+    },
+    "deployment_claim_ids": [],
+    "deployment_resolutions": []
   },
   "evidence_refs": [
     "evidence:asyncapi:urn:aip:source:filesystem:09057155d2daa6c76678d784e73cb4b9e61e19f440f0989ec9480acd3e50f508",
@@ -123,7 +125,7 @@
     "name": "architecture-intelligence-platform",
     "version": "0.4.2"
   },
-  "schema_version": "0.4",
+  "schema_version": "0.5",
   "snapshot": {
     "model_revision": "sha256:f36e00c3c8b11b10cd0a02cba7f6e218b6005026ef4734c18f4509a70b3bd3c6",
     "snapshot_id": "aip:snapshot:v1:f36e00c3c8b11b10cd0a02cba7f6e218b6005026ef4734c18f4509a70b3bd3c6"

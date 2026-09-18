@@ -1,4 +1,4 @@
-"""Regenerate the frozen v0.4 ArchitectureAnswer JSON Schemas (all three since I3.1).
+"""Regenerate the frozen v0.5 ArchitectureAnswer JSON Schemas (all three since v0.4.0 I3.1).
 
     uv run python -m app.architecture_intelligence.schema_export
 
@@ -21,7 +21,7 @@ from app.architecture_intelligence.contracts import (
 )
 
 _SCHEMA_DIR = (
-    Path(__file__).resolve().parent.parent.parent / "schemas" / "architecture_intelligence" / "v0.4"
+    Path(__file__).resolve().parent.parent.parent / "schemas" / "architecture_intelligence" / "v0.5"
 )
 DEPENDENCIES_SCHEMA_PATH = _SCHEMA_DIR / "architecture-answer.schema.json"
 EVIDENCE_SCHEMA_PATH = _SCHEMA_DIR / "evidence-answer.schema.json"

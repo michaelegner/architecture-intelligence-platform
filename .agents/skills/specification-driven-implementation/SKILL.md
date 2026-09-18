@@ -79,6 +79,12 @@ second reviewer (human or automated) can arrive close in time to a bot's and rai
 findings that don't overlap at all — cross-reference the full list before concluding the fixes
 already made cover everything raised, not just the first source checked.
 
+A single check of these surfaces is only a snapshot: a bot review and a human review can land
+close together but asynchronously, so a query run right after one review lands can genuinely
+return nothing for a slower reviewer that posts moments later — not because it was skipped, but
+because it hadn't landed yet. Re-check all comment surfaces again once a fix is pushed and before
+declaring the round closed, rather than trusting the enumeration taken at the start of the round.
+
 ## PR review convergence
 
 For a specification-governed PR review, make the first substantive review as complete and

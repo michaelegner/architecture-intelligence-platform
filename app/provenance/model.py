@@ -4,12 +4,20 @@ from enum import StrEnum
 from pydantic import BaseModel, Field
 
 
-# The source types a *public* evidence answer may carry. Deliberately does NOT include Kubernetes:
-# `app.architecture_intelligence.contracts` types the frozen v0.4 evidence schema's `source_type`
-# from this enum, and I2 Draft 0.2 §9 (as amended) keeps Kubernetes evidence off every public
-# surface - so no public payload can ever carry it, and widening this enum would change a frozen
-# public schema to admit a value that can never appear. The internal value lives at
-# `app.canonical.infrastructure.KUBERNETES_SOURCE_TYPE`.
+# The source types a *public* evidence answer may carry. `app.architecture_intelligence.contracts`
+# types the frozen v0.5 evidence schema's `source_type` from this enum.
+#
+# KUBERNETES and CONFIGURATION were added in v0.5.0 I3 (spec §16.1): I2 Draft 0.2 §9 kept ALL
+# Kubernetes evidence off every public surface with no exception. I3 narrows that boundary rather
+# than removing it - a Kubernetes/configuration-mapping evidence record becomes publicly reachable
+# only when the current snapshot makes it reachable from a public DEPLOYED_AS claim or
+# DeploymentResolution (I3 spec §16.2's exact reachability gate); every other Kubernetes evidence
+# record remains exactly as internal as I2 left it. This enum widening reflects that a public
+# payload CAN now carry these values under that gate - it does not itself relax the gate, which is
+# enforced elsewhere (I3's reconciliation/exposure layer, not this type definition). The internal
+# Kubernetes source-type value lives at `app.canonical.infrastructure.KUBERNETES_SOURCE_TYPE`; the
+# configuration-mapping source type has no internal-module constant of its own yet since I3's
+# mapping-artifact evidence lands in a later slice.
 #
 # Kept as a comment rather than a class docstring on purpose: Pydantic exports a model/enum
 # docstring as the generated JSON Schema's `description`, so writing this as a docstring would
@@ -20,6 +28,8 @@ class SourceType(StrEnum):
     ASYNCAPI = "ASYNCAPI"
     MANIFEST = "MANIFEST"
     OPENTELEMETRY = "OPENTELEMETRY"
+    KUBERNETES = "KUBERNETES"
+    CONFIGURATION = "CONFIGURATION"
 
 
 class EvidenceType(StrEnum):

@@ -95,14 +95,17 @@ def _answer(
         None
         if outcome == Outcome.NOT_ANSWERED
         else ServiceDependenciesData(
-            service=_SUBJECT, dependency_claim_ids=[c.claim_id for c in claims]
+            service=_SUBJECT,
+            dependency_claim_ids=[c.claim_id for c in claims],
+            deployment_claim_ids=[],
+            deployment_resolutions=[],
         )
     )
     evidence_refs = sorted(
         {ref for c in claims for ref in (*c.evidence_refs, *c.resolution_evidence_refs)}
     )
     return ArchitectureAnswer[ServiceDependenciesData](
-        schema_version="0.4",
+        schema_version="0.5",
         producer=_PRODUCER,
         tool="get_service_dependencies",
         outcome=outcome,
@@ -270,7 +273,7 @@ def _drift_answer(*, claims=()) -> ArchitectureAnswer[ArchitectureDriftData]:
         {ref for c in claims for ref in (*c.evidence_refs, *c.resolution_evidence_refs)}
     )
     return ArchitectureAnswer[ArchitectureDriftData](
-        schema_version="0.4",
+        schema_version="0.5",
         producer=_PRODUCER,
         tool="get_architecture_drift",
         outcome=Outcome.ANSWERED,
@@ -324,7 +327,7 @@ def test_a_drift_answer_missing_a_claim_is_caught_as_a_field_and_missing_claim_m
 
 def test_evidence_scenario_report_records_get_evidence_as_its_tool():
     evidence_answer = ArchitectureAnswer[EvidenceData](
-        schema_version="0.4",
+        schema_version="0.5",
         producer=_PRODUCER,
         tool="get_evidence",
         outcome=Outcome.ANSWERED,

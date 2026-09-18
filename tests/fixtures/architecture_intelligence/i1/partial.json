@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.4",
+  "schema_version": "0.5",
   "producer": {
     "name": "architecture-intelligence-platform",
     "version": "0.4.0",
@@ -26,7 +26,9 @@
     "dependency_claim_ids": [
       "aip:claim:v1:494b7a4af689ce697b22041590a2b905446101f1efc7aaad56889d24a8f5105c",
       "aip:claim:v1:bb245d8e6e6b977c3256de7afac36a7da24ea24b891152186897766dab705b60"
-    ]
+    ],
+    "deployment_claim_ids": [],
+    "deployment_resolutions": []
   },
   "claims": [
     {

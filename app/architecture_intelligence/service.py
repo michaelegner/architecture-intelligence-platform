@@ -273,6 +273,10 @@ class ArchitectureIntelligenceService:
                     id=request.service_id, type=EntityType.SERVICE, name=shared.service_name
                 ),
                 dependency_claim_ids=[claim.claim_id for claim in claims],
+                # v0.5.0 I3 slice 1: deployment reconciliation ships in later slices - this method
+                # only ever produces DependencyClaims today, so both stay empty.
+                deployment_claim_ids=[],
+                deployment_resolutions=[],
             )
 
         evidence_refs = sorted(

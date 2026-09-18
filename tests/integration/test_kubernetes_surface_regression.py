@@ -45,7 +45,7 @@ from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 EXAMPLES_DIR = REPO_ROOT / "examples"
 KUBERNETES_FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "kubernetes" / "i2"
-SCHEMAS_DIR = REPO_ROOT / "schemas" / "architecture_intelligence" / "v0.4"
+SCHEMAS_DIR = REPO_ROOT / "schemas" / "architecture_intelligence" / "v0.5"
 ARCHITECTURE_ANSWER_SCHEMA = json.loads(
     (SCHEMAS_DIR / "architecture-answer.schema.json").read_text()
 )
