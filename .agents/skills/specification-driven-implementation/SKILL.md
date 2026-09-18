@@ -37,7 +37,7 @@ before phase 1 begins.
 1. Capture the current time once, in UTC, as RFC 3339 / ISO 8601 with whole-second precision:
    `YYYY-MM-DDTHH:MM:SSZ`.
 2. Immediately notify the human in the active interaction:
-   `Planning started at <timestamp> UTC.`
+   `Planning started at <timestamp>.`
 3. Keep that exact value unchanged for the lifetime of the work. Re-review, resumed sessions, plan
    revisions, implementation, and reconciliation do not reset it.
 4. When the first pull request for the work is opened, add exactly one hidden machine-readable marker
