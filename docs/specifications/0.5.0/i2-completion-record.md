@@ -1,9 +1,8 @@
 # I2 Completion Record — v0.5.0 Kubernetes Discovery Vertical Slice
 
-**Status:** COMPLETE, pending the immutable candidate-revision pin below (a required follow-up
-record-only commit after this PR merges — see "Immutable qualification identity"). I2 completion is
-not release publication or `SHIPPED_VERIFIED` — I3/I4 disposition, I5 independent qualification, and
-I6 exact-artifact release/post-release gates remain required by the parent specification (§13).
+**Status:** COMPLETE. I2 completion is not release publication or `SHIPPED_VERIFIED` — I3/I4
+disposition, I5 independent qualification, and I6 exact-artifact release/post-release gates remain
+required by the parent specification (§13).
 
 Governing spec: `docs/specifications/0.5.0/i2-kubernetes-discovery-vertical-slice.md` (Draft 0.2,
 post-I1 integration amendment). Per §13: I2 is complete only when its scope/claim/exposure decisions
@@ -34,7 +33,7 @@ AskUserQuestion when their own scope warranted it — mirroring I1's own PR3a/3b
 | 4b | Service selection, `NETWORK_SERVICE_SELECTS_WORKLOAD` | `59267a4` | #203 |
 | 4c | Ingress backend resolution, `INGRESS_ROUTES_TO_NETWORK_SERVICE` | `0cda410` | #204 |
 | 5 | Shared lifecycle replay, conflict, scope/removal qualification | `f5468ea` | #208 |
-| 6 | Independent frozen-capture qualification, surface regression, I3 handoff, completion record | *(this PR)* | *(this PR)* |
+| 6 | Independent frozen-capture qualification, surface regression, I3 handoff, completion record | `d82a0fa` (candidate; see "Immutable qualification identity" — merge commit will differ) | #209 |
 
 **Adapter/rule identity** (unchanged since slice 2b-i): `kubernetes-adapter@1`,
 `kubernetes-discoverer@1`.
@@ -56,18 +55,25 @@ test helpers).
 
 §13: "candidate, rule/schema, fixture, report, and evidence revisions are recorded" — pinned here by
 exact content digest/SHA, not by path alone, so this record identifies exactly which artifact set was
-qualified.
+qualified. This section is itself a record-only addition, not part of the qualified candidate below
+— it cites a commit that already existed and was already independently CI/CodeQL-verified before this
+section was written, avoiding the "a commit cites its own not-yet-created SHA" self-reference problem
+without needing to wait for this PR's eventual merge commit (§13 asks for the qualified candidate
+revision, not specifically the merge SHA).
 
 | Artifact | Revision |
 |---|---|
+| **Candidate revision** (the qualified implementation commit this record's report/evidence below was run against) | `d82a0fa1190f485482ab2ce2262e124a1280049d` (PR #209 tip at the time of qualification) |
 | Governing spec (`docs/specifications/0.5.0/i2-kubernetes-discovery-vertical-slice.md`) | git blob `c538661e50d589aa61b8ac00fa6aba967cb61470` |
+| Executable internal schema — envelope validation (`app/sources/kubernetes_envelope.py`) | git blob `e1cd79e8c31465cf23f60c558d6287f38762c6b7` at the candidate revision |
+| Executable internal schema — canonical infrastructure model (`app/canonical/infrastructure.py`) | git blob `83bb7f0d96757db734e133ea93e91c3758e0bd60` at the candidate revision |
 | Adapter/discoverer rule versions | `kubernetes-adapter@1`, `kubernetes-discoverer@1` (`app/ingestion/kubernetes_adapter.py`/`kubernetes_discoverer.py`) |
 | Authored fixture content (`tests/fixtures/kubernetes/i2/resources.yaml`) | sha256 `fa987f007a4e667644c43fded0eb698b2150259f13f408a7b9e6bbd1246fba07` (its own `envelope.yaml`'s pinned digest) |
 | Independently captured fixture content (`tests/fixtures/kubernetes/i2-independent-capture/resources.yaml`) | sha256 `de2fc2015dcbe33e7cbe0d1768b67cdfa001b696a3f239899e2baa7a3dc2ee14` (its own `envelope.yaml`'s pinned digest); full capture provenance in that directory's `PROVENANCE.md` |
-| Candidate revision (the exact commit this record's regression suite/report below was run against) | **pinned in a follow-up record-only commit once this PR's merge SHA is known** — a commit cannot correctly cite its own not-yet-created SHA; see this repo's own established two-step pattern for exactly this self-reference problem, already used for v0.4.0/v0.4.1's release-note link closure |
-| Report (the regression suite result below) | tied to the candidate revision above once pinned — re-run at that exact SHA, not assumed unchanged from an earlier commit on this branch |
+| Report (regression suite result below) | Local full-suite run at the candidate revision (recorded below); independently corroborated by GitHub Actions CI run [35325550552](https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/35325550552) (`conclusion: success`) at that same SHA |
+| Evidence (static analysis) | CodeQL run [35325550424](https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/35325550424) (`conclusion: success`) at the candidate revision |
 
-## Regression suite (full local run at this PR's tip)
+## Regression suite (full local run at the pinned candidate revision, `d82a0fa`)
 
 | Suite | Result |
 |---|---|
@@ -148,7 +154,7 @@ remain explicit I3 design decisions, not inherited defaults.
 
 ## Corrected I2 exit statement
 
-> **COMPLETE** — At this PR's merge revision, all six of §12's suggested implementation slices are
+> **COMPLETE** — At the pinned candidate revision (`d82a0fa`), all six of §12's suggested implementation slices are
 > present and re-verified together, several further split into their own reviewed delivery PRs
 > where their own scope warranted it (the twelve PRs in "Run identity" above): the shared I1
 > lifecycle seam and Canonical Model generalization (prerequisite A/B), envelope validation and
