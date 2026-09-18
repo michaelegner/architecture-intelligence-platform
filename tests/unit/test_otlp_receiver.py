@@ -4,7 +4,7 @@ from opentelemetry.proto.common.v1.common_pb2 import AnyValue, KeyValue
 from opentelemetry.proto.resource.v1.resource_pb2 import Resource
 from opentelemetry.proto.trace.v1.trace_pb2 import ResourceSpans, ScopeSpans, Span
 
-from app.telemetry.otlp_receiver import OtlpDecodeError, decode_export_request
+from app.telemetry.otlp_receiver import OtlpDecodeError, _resource_identity, decode_export_request
 
 
 def _kv(key: str, **value_kwargs) -> KeyValue:
@@ -95,6 +95,11 @@ def test_full_k8s_resource_identity_is_extracted():
 
 
 def test_out_of_allowlist_k8s_attributes_are_never_retained():
+    # Asserting against RuntimeSpan's own fields (as a prior version of this test did) can never
+    # catch a regression here: RuntimeSpan has no model_config, so Pydantic's default
+    # extra="ignore" would silently discard a leaked key regardless of what _resource_identity()
+    # returns - the only place this can be meaningfully tested is _resource_identity()'s raw
+    # output dict itself, before it ever reaches RuntimeSpan construction.
     resource = _resource(
         **{
             "service.name": "OrderService",
@@ -103,12 +108,22 @@ def test_out_of_allowlist_k8s_attributes_are_never_retained():
             "k8s.pod.ip": "10.0.0.5",
         }
     )
-    [span] = decode_export_request(_one_span_batch(resource, _span()))
-    assert span.k8s_pod_uid == "9f86d081-uid"
-    assert not hasattr(span, "k8s_pod_label_app")
-    assert not hasattr(span, "k8s_pod_ip")
-    assert "k8s.pod.label.app" not in span.model_dump()
-    assert "k8s.pod.ip" not in span.model_dump()
+    identity = _resource_identity(resource)
+    assert identity["k8s_pod_uid"] == "9f86d081-uid"
+    assert set(identity.keys()) == {
+        "service_name",
+        "service_namespace",
+        "service_version",
+        "service_instance_id",
+        "environment",
+        "k8s_pod_uid",
+        "k8s_pod_name",
+        "k8s_namespace_name",
+        "k8s_cluster_uid",
+        "k8s_deployment_name",
+        "k8s_statefulset_name",
+        "k8s_daemonset_name",
+    }
 
 
 def test_multiple_resource_spans_blocks_do_not_cross_contaminate():

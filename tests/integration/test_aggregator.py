@@ -252,6 +252,44 @@ def test_persisting_the_same_runtime_identity_observation_twice_merges_the_bucke
     assert record["last_seen"].to_native() == datetime(2026, 8, 26, 18, 0, tzinfo=UTC)
 
 
+def test_conflicting_consistency_attributes_survive_a_neo4j_round_trip(driver, session):
+    first = _runtime_identity_observation(
+        id="runtime-identity:otel:production:conflict-test", k8s_pod_name="old-pod-name"
+    )
+    second = _runtime_identity_observation(
+        id="runtime-identity:otel:production:conflict-test", k8s_pod_name="new-pod-name"
+    )
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[first])
+    )
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[second])
+    )
+
+    record = session.run(
+        "MATCH (o:RuntimeIdentityObservation {id: $id}) "
+        "RETURN o.k8s_pod_name AS k8s_pod_name, "
+        "o.conflicting_consistency_attributes AS conflicting_consistency_attributes",
+        id=first.id,
+    ).single()
+    assert record["k8s_pod_name"] is None
+    assert record["conflicting_consistency_attributes"] == ["k8s_pod_name"]
+
+
+def test_a_freshly_persisted_runtime_identity_observation_has_no_conflicts(driver, session):
+    observation = _runtime_identity_observation(id="runtime-identity:otel:production:no-conflict")
+    persist_observation_batch(
+        driver, DATABASE, ObservationBatch(runtime_identity_observations=[observation])
+    )
+
+    record = session.run(
+        "MATCH (o:RuntimeIdentityObservation {id: $id}) "
+        "RETURN o.conflicting_consistency_attributes AS conflicting_consistency_attributes",
+        id=observation.id,
+    ).single()
+    assert record["conflicting_consistency_attributes"] == []
+
+
 def test_runtime_identity_observation_is_never_reachable_as_evidence(driver, session):
     observation = _runtime_identity_observation(id="runtime-identity:otel:production:exposure-test")
     persist_observation_batch(

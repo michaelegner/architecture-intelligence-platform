@@ -107,6 +107,14 @@ class RuntimeIdentityObservation(Provenance):
     last_seen: datetime
     observation_count: int
 
+    # I3 §9.4/§9.6 - names of the optional consistency attributes above (service_version or one of
+    # the six k8s.* fields; never service_namespace, which is part of this bucket's own identity)
+    # that disagreed across two merged observations. Sorted, deduplicated, monotonic - see
+    # app.telemetry.aggregator.merge_runtime_identity_observation for why a merge never silently
+    # overwrites a disagreement: §9.6 requires a directly contradictory consistency attribute to
+    # surface as CONFLICT downstream, not be lost at persistence time.
+    conflicting_consistency_attributes: list[str] = Field(default_factory=list)
+
     # I3 §9.4 - identifies the normalization rule/version that produced this record, so a later
     # rule revision can be distinguished from earlier persisted observations.
     normalization_rule_id: str = "otel-runtime-identity-observation"

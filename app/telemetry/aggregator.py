@@ -70,6 +70,7 @@ _READ_RUNTIME_IDENTITY_OBSERVATION_QUERY = (
     "o.k8s_daemonset_name AS k8s_daemonset_name, "
     "o.first_seen AS first_seen, o.last_seen AS last_seen, "
     "o.observation_count AS observation_count, "
+    "o.conflicting_consistency_attributes AS conflicting_consistency_attributes, "
     "o.normalization_rule_id AS normalization_rule_id, "
     "o.normalization_rule_version AS normalization_rule_version"
 )
@@ -107,21 +108,54 @@ def merge_evidence(existing: ObservedEvidence | None, seed: ObservedEvidence) ->
     )
 
 
+# I3 §9.4/§9.6 - service_namespace is excluded: it is part of runtime_identity_observation_id()'s
+# own bucket identity, so it cannot differ between existing and seed within one bucket.
+_CONSISTENCY_ATTRIBUTE_FIELDS = (
+    "service_version",
+    "k8s_pod_name",
+    "k8s_namespace_name",
+    "k8s_cluster_uid",
+    "k8s_deployment_name",
+    "k8s_statefulset_name",
+    "k8s_daemonset_name",
+)
+
+
 def merge_runtime_identity_observation(
     existing: RuntimeIdentityObservation | None, seed: RuntimeIdentityObservation
 ) -> RuntimeIdentityObservation:
     """Merges a single-observation seed into the existing persisted runtime identity observation,
-    if any (I3 spec §9.4, mirrors merge_evidence's own bucket-merge shape). "Last observation wins"
-    for service_version and the optional §9.3 consistency attributes - the seed's own values are
-    kept as-is (mirrors merge_evidence leaving service_version untouched via its own update dict),
-    not appended/unioned."""
+    if any (I3 spec §9.4/§9.6, mirrors merge_evidence's own bucket-merge shape).
+
+    Never silently overwrites disagreeing consistency-attribute evidence: §9.6 requires a directly
+    contradictory attribute to surface as CONFLICT downstream, not be lost at persistence time. For
+    each of _CONSISTENCY_ATTRIBUTE_FIELDS: a missing value on either side never erases a known value
+    from the other side (a missing optional consistency attribute "is not a limitation by itself",
+    §9.6); two disagreeing non-null values null the merged field and add the field's name to
+    conflicting_consistency_attributes (sorted, deduplicated, monotonic - once flagged for a bucket,
+    an attribute stays flagged for that bucket even if a later value happens to agree with whatever
+    is currently reconciled)."""
     if existing is None:
         return seed
+
+    conflicts = set(existing.conflicting_consistency_attributes)
+    reconciled = {}
+    for field in _CONSISTENCY_ATTRIBUTE_FIELDS:
+        existing_value = getattr(existing, field)
+        seed_value = getattr(seed, field)
+        if existing_value is not None and seed_value is not None and existing_value != seed_value:
+            conflicts.add(field)
+            reconciled[field] = None
+        else:
+            reconciled[field] = existing_value if existing_value is not None else seed_value
+
     return seed.model_copy(
         update={
+            **reconciled,
             "first_seen": min(existing.first_seen, seed.first_seen),
             "last_seen": max(existing.last_seen, seed.last_seen),
             "observation_count": existing.observation_count + seed.observation_count,
+            "conflicting_consistency_attributes": sorted(conflicts),
         }
     )
 
