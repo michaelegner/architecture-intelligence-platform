@@ -2117,7 +2117,30 @@ def test_kubernetes_entity_shared_by_two_sources_survives_one_source_withdrawing
         entity = session.run(
             "MATCH (e:InfrastructureEntity) RETURN e.owner_source_ids AS owners"
         ).single()
+        claim_before = session.run(
+            "MATCH (c:InfrastructureClaim {kind: 'WORKLOAD_EXISTS'}) "
+            "RETURN c.evidence_refs AS refs, c.owner_source_ids AS owners"
+        ).single()
+        contributions_before = {
+            record["source"]: record["refs"]
+            for record in session.run(
+                "MATCH (c:InfrastructureClaimContribution) "
+                "UNWIND c.owner_source_ids AS source RETURN source, c.evidence_refs AS refs"
+            )
+        }
     assert sorted(entity["owners"]) == sorted([source_instance_id_a, source_instance_id_b])
+    # I2 Draft 0.2 §11 Ownership/§7.2: the shared WORKLOAD_EXISTS claim itself - not just the
+    # entity - is co-owned by both sources, each with its own non-empty per-source claim
+    # contribution, and the claim's own evidence_refs is the deterministic union of both.
+    assert claim_before is not None
+    assert sorted(claim_before["owners"]) == sorted([source_instance_id_a, source_instance_id_b])
+    assert set(contributions_before.keys()) == {source_instance_id_a, source_instance_id_b}
+    assert contributions_before[source_instance_id_a]
+    assert contributions_before[source_instance_id_b]
+    assert sorted(claim_before["refs"]) == sorted(
+        set(contributions_before[source_instance_id_a])
+        | set(contributions_before[source_instance_id_b])
+    )
 
     b_scope_id = k8s_discovery_scope_id(
         configured_scope_id=config_b.resolved_scope_id,
@@ -2146,7 +2169,25 @@ def test_kubernetes_entity_shared_by_two_sources_survives_one_source_withdrawing
         entity_after = session.run(
             "MATCH (e:InfrastructureEntity) RETURN e.owner_source_ids AS owners"
         ).single()
+        claim_after = session.run(
+            "MATCH (c:InfrastructureClaim {kind: 'WORKLOAD_EXISTS'}) "
+            "RETURN c.evidence_refs AS refs, c.owner_source_ids AS owners"
+        ).single()
+        remaining_contribution_sources = {
+            record["source"]
+            for record in session.run(
+                "MATCH (c:InfrastructureClaimContribution) "
+                "UNWIND c.owner_source_ids AS source RETURN source"
+            )
+        }
     assert entity_after["owners"] == [source_instance_id_a]
+    # The claim survives on source A's own support only - source B's claim contribution is fully
+    # gone (not merely un-owned), and the claim's evidence shrinks to exactly A's own refs, never a
+    # dangling reference to B's now-deleted evidence.
+    assert claim_after is not None
+    assert claim_after["owners"] == [source_instance_id_a]
+    assert claim_after["refs"] == contributions_before[source_instance_id_a]
+    assert remaining_contribution_sources == {source_instance_id_a}
 
 
 def test_kubernetes_recreated_pod_uid_replacement_drops_old_uid_from_owner_chain_claim(
@@ -2250,9 +2291,10 @@ def test_kubernetes_two_clean_discovery_runs_produce_byte_identical_semantic_rep
     own `test_i1_bundled_migration_determinism.py::
     test_two_clean_checkouts_at_different_paths_produce_identical_results` pattern for Kubernetes.
     Pure discovery/mapping-layer proof (no Neo4j) - two independent checkouts of identical bundle
-    content at different physical paths. The SAME configured `id` (hence the SAME default
-    `stable_target_identity`, `urn:aip:logical-root:<id>`) keeps `discovery_scope_id` portable across
-    paths, exactly as `resolved_stable_target_identity`'s own docstring describes; only
+    content at different physical paths. Unlike `FilesystemSourceConfig` (whose default
+    `stable_target_identity` is `urn:aip:logical-root:<id>`), `KubernetesSourceConfig`'s own default
+    is `urn:aip:k8s-cluster:<cluster_uid>` (`app/sources/model.py`) - the SAME `cluster_uid` across
+    both checkouts is what keeps `discovery_scope_id` portable here, not the configured `id`. Only
     `scope_definition_digest` (which legitimately folds in the physical root) differs.
     """
     resources = [_deployment("checkout-api", "checkout", "deploy-uid-1")]
