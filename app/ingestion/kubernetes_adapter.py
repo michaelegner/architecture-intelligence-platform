@@ -138,6 +138,7 @@ class KubernetesSourceAdapter:
                     evidence_mode=evidence_mode,
                     resource_semantic_digest=mapped.resource_semantic_digest,
                     captured_resource_uid=mapped.captured_uid,
+                    service_id_annotation=mapped.projection.get("serviceIdAnnotation"),
                     evidence_refs=entity_evidence_refs,
                     mapping_rule_id=self.adapter_identity,
                     mapping_rule_version=self.mapping_rule_version,

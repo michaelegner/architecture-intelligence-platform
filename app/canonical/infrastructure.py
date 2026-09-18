@@ -161,6 +161,16 @@ class InfrastructureContribution(BaseModel):
     likewise incompatible incarnations" - a conflict rule independent of `resource_semantic_digest`
     equality, since §7.1's own digest definition explicitly excludes capture-only UID. `None` for a
     `DECLARED_MANIFEST` contribution, or a `CAPTURED_RESOURCE` one this adapter version predates.
+
+    `service_id_annotation` is additive (I2 §12 slice 6), mirroring `captured_resource_uid`'s own
+    precedent: §9 requires the I3 handoff to include "the retained explicit Service-ID annotation as
+    unqualified input," but the `architecture-intelligence.io/service-id` annotation value (§5) was
+    previously folded only into the opaque `resource_semantic_digest` hash and never itself
+    persisted anywhere queryable - a hash cannot be reversed to recover it. `None` for every entity
+    kind but `KUBERNETES_WORKLOAD` (§5 retains this annotation only "on supported Workloads"), and
+    for a Workload with no such annotation set. I2 never evaluates this value into an AIP Service
+    identity (§9: "I2 never evaluates the annotation into an AIP Service identity") - it is retained
+    verbatim as unqualified input for I3 to interpret, not acted on here.
     """
 
     entity_id: str = Field(min_length=1)
@@ -168,6 +178,7 @@ class InfrastructureContribution(BaseModel):
     evidence_mode: KubernetesEvidenceMode
     resource_semantic_digest: str = Field(min_length=1)
     captured_resource_uid: str | None = None
+    service_id_annotation: str | None = None
     evidence_refs: list[str] = Field(default_factory=list)
     mapping_rule_id: str = Field(min_length=1)
     mapping_rule_version: str = Field(min_length=1)

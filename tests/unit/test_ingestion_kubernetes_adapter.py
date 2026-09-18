@@ -255,6 +255,34 @@ def test_captured_resource_uid_is_carried_onto_the_contribution(tmp_path):
     assert contribution.captured_resource_uid == "deploy-uid-1"
 
 
+def test_service_id_annotation_is_carried_onto_the_workload_contribution_only(tmp_path):
+    """I2 Draft 0.2 §9 (slice 6): the retained `architecture-intelligence.io/service-id` annotation
+    must be queryable as its own unqualified value, not only folded into the opaque
+    `resource_semantic_digest` - mirrors `captured_resource_uid`'s own additive-field precedent
+    (§5 retains this annotation "on supported Workloads" only, so Pod/Service contributions from
+    this same bundle must never carry it)."""
+    result = _map_bundle(
+        tmp_path, resource_bytes=_deployment_and_pod_yaml(service_id_annotation="service:checkout")
+    )
+    entities_by_kind = {e.entity_kind: e for e in result.model.infrastructure_entities}
+    contributions_by_entity = {c.entity_id: c for c in result.model.infrastructure_contributions}
+    workload = entities_by_kind[InfrastructureEntityKind.KUBERNETES_WORKLOAD]
+    pod = entities_by_kind[InfrastructureEntityKind.KUBERNETES_POD]
+    service = entities_by_kind[InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE]
+
+    assert contributions_by_entity[workload.id].service_id_annotation == "service:checkout"
+    assert contributions_by_entity[pod.id].service_id_annotation is None
+    assert contributions_by_entity[service.id].service_id_annotation is None
+
+
+def test_absent_service_id_annotation_is_none_not_a_fabricated_default(tmp_path):
+    result = _map_bundle(tmp_path, resource_bytes=_deployment_and_pod_yaml())
+    entities_by_kind = {e.entity_kind: e for e in result.model.infrastructure_entities}
+    contributions_by_entity = {c.entity_id: c for c in result.model.infrastructure_contributions}
+    workload = entities_by_kind[InfrastructureEntityKind.KUBERNETES_WORKLOAD]
+    assert contributions_by_entity[workload.id].service_id_annotation is None
+
+
 def test_captured_uid_replacement_changes_the_semantic_digest(tmp_path):
     """Review round (PR #200): `resource_semantic_digest` deliberately excludes capture-only UID
     (§7.1), but the SOURCE-level `semantic_input_digest` must still react to a same-source UID

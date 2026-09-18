@@ -5,6 +5,14 @@
 `Service`, `Operation`, `Queue`, `Message`, `Schema`, `Evidence` — each with a Neo4j uniqueness
 constraint on `id` (`app/graph/schema.py`).
 
+`InfrastructureEntity`, `InfrastructureContribution`, `InfrastructureClaim`, and
+`InfrastructureClaimContribution` (v0.5.0 I2, Kubernetes discovery) also exist as real Neo4j node
+labels with their own uniqueness constraints, but are deliberately excluded from the public node/
+relationship model this document describes — never exposed via REST or MCP, and absent from every
+relation this table below can express. See [`canonical-model.md`](canonical-model.md#infrastructure-entities-and-claims-appcanonicalinfrastructurepy--internal-only)
+for their shape and [`evidence.md`](evidence.md#internal-only-evidence) for why their own evidence is
+excluded too.
+
 ## Relations
 
 | Relation | From -> To | Meaning |

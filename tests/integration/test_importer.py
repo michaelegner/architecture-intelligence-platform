@@ -2436,6 +2436,71 @@ def test_kubernetes_mapping_context_digest_change_triggers_reevaluation_not_a_si
     assert stats.graph_revision_advanced is False
 
 
+# I2 Draft 0.2 §12 slice 6: the §9 I3 handoff requires "the retained explicit Service-ID annotation
+# as unqualified input" to be genuinely queryable, not only folded into the opaque
+# resource_semantic_digest hash (a real gap found while planning slice 6 - fixed by adding
+# InfrastructureContribution.service_id_annotation, mirroring captured_resource_uid's own additive
+# precedent). Proven here through the real discoverer/adapter/import_kubernetes_source path, not a
+# hand-built model, since the point is proving the real annotation value survives persistence.
+
+
+def test_kubernetes_service_id_annotation_survives_persistence_as_unqualified_input(
+    driver, tmp_path
+):
+    deployment = _deployment("checkout-api", "checkout", "deploy-uid-service-id")
+    deployment["metadata"]["annotations"] = {
+        "architecture-intelligence.io/service-id": "service:checkout"
+    }
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="service-id-annotation-source",
+        scope_id="service-id-annotation-scope",
+        cluster_uid="service-id-annotation-cluster",
+        namespaces=["checkout"],
+        resources=[deployment],
+        expected_prior_inventory_revision=None,
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    with driver.session(database=DATABASE) as session:
+        workload_id = session.run(
+            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_WORKLOAD'}) RETURN e.id AS id"
+        ).single()["id"]
+        contribution = session.run(
+            "MATCH (c:InfrastructureContribution {entity_id: $id}) "
+            "RETURN c.service_id_annotation AS annotation",
+            id=workload_id,
+        ).single()
+    # The real annotation value itself is queryable - not merely reflected in a changed digest.
+    assert contribution["annotation"] == "service:checkout"
+
+
+def test_kubernetes_absent_service_id_annotation_persists_as_null(driver, tmp_path):
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="no-service-id-annotation-source",
+        scope_id="no-service-id-annotation-scope",
+        cluster_uid="no-service-id-annotation-cluster",
+        namespaces=["checkout"],
+        resources=[_deployment("checkout-api", "checkout", "deploy-uid-no-annotation")],
+        expected_prior_inventory_revision=None,
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    with driver.session(database=DATABASE) as session:
+        workload_id = session.run(
+            "MATCH (e:InfrastructureEntity {entity_kind: 'KUBERNETES_WORKLOAD'}) RETURN e.id AS id"
+        ).single()["id"]
+        contribution = session.run(
+            "MATCH (c:InfrastructureContribution {entity_id: $id}) "
+            "RETURN c.service_id_annotation AS annotation",
+            id=workload_id,
+        ).single()
+    assert contribution["annotation"] is None
+
+
 # I2 Draft 0.2 §3 item 6: infrastructure facts go through the SAME write/ownership/reconciliation/
 # expiry path as every other canonical fact. Driven through the real `import_source` -> Neo4j path
 # with hand-built models, since the real `KubernetesSourceAdapter` (slice 2b-i) still emits only an
