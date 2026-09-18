@@ -50,6 +50,15 @@ def _resource_identity(resource: Resource) -> dict[str, str | None]:
         "service_version": attrs.get(semconv_resources.SERVICE_VERSION),
         "service_instance_id": attrs.get(semconv_resources.SERVICE_INSTANCE_ID),
         "environment": attrs.get(semconv_resources.DEPLOYMENT_ENVIRONMENT_NAME),
+        # I3 §9.3 bounded Kubernetes resource identity allowlist - no other k8s.*-shaped attribute
+        # is ever read out of a Resource's attributes.
+        "k8s_pod_uid": attrs.get(semconv_resources.K8S_POD_UID),
+        "k8s_pod_name": attrs.get(semconv_resources.K8S_POD_NAME),
+        "k8s_namespace_name": attrs.get(semconv_resources.K8S_NAMESPACE_NAME),
+        "k8s_cluster_uid": attrs.get(semconv_resources.K8S_CLUSTER_UID),
+        "k8s_deployment_name": attrs.get(semconv_resources.K8S_DEPLOYMENT_NAME),
+        "k8s_statefulset_name": attrs.get(semconv_resources.K8S_STATEFULSET_NAME),
+        "k8s_daemonset_name": attrs.get(semconv_resources.K8S_DAEMONSET_NAME),
     }
 
 

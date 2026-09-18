@@ -22,6 +22,14 @@ nothing outside this list is ever persisted:
 **Resource identity** (`app/telemetry/semconv/resources.py`): `service.name`,
 `service.namespace`, `service.version`, `service.instance.id`, `deployment.environment.name`.
 
+**Bounded Kubernetes resource identity** (`app/telemetry/semconv/resources.py`, I3 spec §9.3):
+`k8s.pod.uid` (required, alongside `service.name`/`deployment.environment.name`, for a bounded
+runtime identity observation to be recorded at all — see below), plus the optional consistency
+attributes `k8s.pod.name`, `k8s.namespace.name`, `k8s.cluster.uid`, `k8s.deployment.name`,
+`k8s.statefulset.name`, `k8s.daemonset.name`. No other Kubernetes-shaped attribute (labels,
+annotations, container env/command/args, pod/host IP, Node metadata, volumes, Secrets) is ever
+read.
+
 **HTTP** (`app/telemetry/semconv/http.py`): `http.request.method`, `http.route`, `url.template`
 (fallback for `http.route`), `server.address`/`server.port` (defined but never used to *resolve*
 anything — see below), `peer.service` (the sole allowlisted way to identify a CLIENT-only call's
@@ -36,6 +44,19 @@ bodies, query parameters, full URLs, or any other raw span attribute. `server.ad
 `server.port` exist as constants but are deliberately never used for identity resolution — a
 CLIENT-only call's target must come from `peer.service`, never guessed from a network address (the
 "no guessing" rule below).
+
+## Bounded runtime identity observations (I3)
+
+A span carrying `service.name`, `deployment.environment.name`, and `k8s.pod.uid` also produces a
+bounded runtime identity observation (`app.provenance.model.RuntimeIdentityObservation`), merged
+into a deterministic daily bucket (`app.canonical.ids.runtime_identity_observation_id`,
+`app.telemetry.aggregator.merge_runtime_identity_observation`) and persisted under its own
+`:RuntimeIdentityObservation` Neo4j label — independent of, and never coupled to, CALLS/SENDS/
+RECEIVES_FROM correlation. This is pure evidence capture: it produces no relation, is never itself
+a `DEPLOYED_AS` claim, and is not reachable through `GET /api/evidence`, `get_evidence`, or the
+public snapshot fingerprint (a different label than `:Evidence` entirely). A later increment's
+reconciliation reads these observations to resolve Service↔Workload identity; this ingestion layer
+only captures them.
 
 ## Correlation modes
 

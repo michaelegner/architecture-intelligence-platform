@@ -61,6 +61,54 @@ def test_optional_resource_fields_default_to_none_when_absent():
     assert span.service_version is None
     assert span.service_instance_id is None
     assert span.environment is None
+    assert span.k8s_pod_uid is None
+    assert span.k8s_pod_name is None
+    assert span.k8s_namespace_name is None
+    assert span.k8s_cluster_uid is None
+    assert span.k8s_deployment_name is None
+    assert span.k8s_statefulset_name is None
+    assert span.k8s_daemonset_name is None
+
+
+def test_full_k8s_resource_identity_is_extracted():
+    resource = _resource(
+        **{
+            "service.name": "OrderService",
+            "deployment.environment.name": "production",
+            "k8s.pod.uid": "9f86d081-uid",
+            "k8s.pod.name": "order-service-7d8f-abcde",
+            "k8s.namespace.name": "commerce",
+            "k8s.cluster.uid": "cluster-uid-1",
+            "k8s.deployment.name": "order-service",
+            "k8s.statefulset.name": "order-service-sts",
+            "k8s.daemonset.name": "order-service-ds",
+        }
+    )
+    [span] = decode_export_request(_one_span_batch(resource, _span()))
+    assert span.k8s_pod_uid == "9f86d081-uid"
+    assert span.k8s_pod_name == "order-service-7d8f-abcde"
+    assert span.k8s_namespace_name == "commerce"
+    assert span.k8s_cluster_uid == "cluster-uid-1"
+    assert span.k8s_deployment_name == "order-service"
+    assert span.k8s_statefulset_name == "order-service-sts"
+    assert span.k8s_daemonset_name == "order-service-ds"
+
+
+def test_out_of_allowlist_k8s_attributes_are_never_retained():
+    resource = _resource(
+        **{
+            "service.name": "OrderService",
+            "k8s.pod.uid": "9f86d081-uid",
+            "k8s.pod.label.app": "order-service",
+            "k8s.pod.ip": "10.0.0.5",
+        }
+    )
+    [span] = decode_export_request(_one_span_batch(resource, _span()))
+    assert span.k8s_pod_uid == "9f86d081-uid"
+    assert not hasattr(span, "k8s_pod_label_app")
+    assert not hasattr(span, "k8s_pod_ip")
+    assert "k8s.pod.label.app" not in span.model_dump()
+    assert "k8s.pod.ip" not in span.model_dump()
 
 
 def test_multiple_resource_spans_blocks_do_not_cross_contaminate():

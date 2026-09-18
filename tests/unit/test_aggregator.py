@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
-from app.provenance.model import ObservedEvidence
-from app.telemetry.aggregator import merge_evidence
+from app.provenance.model import ObservedEvidence, RuntimeIdentityObservation
+from app.telemetry.aggregator import merge_evidence, merge_runtime_identity_observation
 
 BUCKET_START = datetime(2026, 8, 26, tzinfo=UTC)
 BUCKET_END = datetime(2026, 8, 27, tzinfo=UTC)
@@ -129,3 +129,54 @@ def test_merge_prefers_a_real_mode_over_none_from_either_side():
     existing = _evidence(correlation_mode="SERVER_ONLY")
     seed = _evidence(correlation_mode=None)
     assert merge_evidence(existing, seed).correlation_mode == "SERVER_ONLY"
+
+
+# --- merge_runtime_identity_observation (I3 §9.4/§23 slice 2) -------------------------------------
+
+
+def _observation(**overrides) -> RuntimeIdentityObservation:
+    defaults = {
+        "id": "runtime-identity:otel:production:2026-08-26:abc123",
+        "service_name": "OrderService",
+        "service_namespace": "commerce",
+        "environment": "production",
+        "k8s_pod_uid": "pod-uid-1",
+        "first_seen": datetime(2026, 8, 26, 12, 0, tzinfo=UTC),
+        "last_seen": datetime(2026, 8, 26, 12, 0, tzinfo=UTC),
+        "observation_count": 1,
+    }
+    defaults.update(overrides)
+    return RuntimeIdentityObservation(**defaults)
+
+
+def test_no_existing_runtime_identity_observation_returns_seed_unchanged():
+    seed = _observation()
+    assert merge_runtime_identity_observation(None, seed) == seed
+
+
+def test_runtime_identity_observation_widens_first_and_last_seen():
+    existing = _observation(
+        first_seen=datetime(2026, 8, 26, 6, 0, tzinfo=UTC),
+        last_seen=datetime(2026, 8, 26, 12, 0, tzinfo=UTC),
+    )
+    seed = _observation(
+        first_seen=datetime(2026, 8, 26, 10, 0, tzinfo=UTC),
+        last_seen=datetime(2026, 8, 26, 18, 0, tzinfo=UTC),
+    )
+    result = merge_runtime_identity_observation(existing, seed)
+    assert result.first_seen == datetime(2026, 8, 26, 6, 0, tzinfo=UTC)
+    assert result.last_seen == datetime(2026, 8, 26, 18, 0, tzinfo=UTC)
+
+
+def test_runtime_identity_observation_count_sums():
+    existing = _observation(observation_count=4)
+    seed = _observation(observation_count=1)
+    assert merge_runtime_identity_observation(existing, seed).observation_count == 5
+
+
+def test_runtime_identity_observation_last_observation_wins_for_consistency_attributes():
+    existing = _observation(k8s_pod_name="old-pod-name", service_version="1.0.0")
+    seed = _observation(k8s_pod_name="new-pod-name", service_version="2.0.0")
+    result = merge_runtime_identity_observation(existing, seed)
+    assert result.k8s_pod_name == "new-pod-name"
+    assert result.service_version == "2.0.0"

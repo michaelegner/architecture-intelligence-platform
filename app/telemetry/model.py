@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.provenance.model import ObservedEvidence
+from app.provenance.model import ObservedEvidence, RuntimeIdentityObservation
 
 
 class DiscoveryStatus(StrEnum):
@@ -50,6 +50,15 @@ class RuntimeSpan(BaseModel):
     service_instance_id: str | None = None
 
     environment: str | None = None
+
+    # I3 §9.3 bounded Kubernetes resource identity allowlist - see app.telemetry.semconv.resources.
+    k8s_pod_uid: str | None = None
+    k8s_pod_name: str | None = None
+    k8s_namespace_name: str | None = None
+    k8s_cluster_uid: str | None = None
+    k8s_deployment_name: str | None = None
+    k8s_statefulset_name: str | None = None
+    k8s_daemonset_name: str | None = None
 
     start_time: datetime
     end_time: datetime
@@ -106,3 +115,6 @@ class ObservationBatch(BaseModel):
     entities: list[ObservedOnlyEntity] = Field(default_factory=list)
     facts: list[ObservedFactCandidate] = Field(default_factory=list)
     unresolved: list[UnresolvedObservation] = Field(default_factory=list)
+    # I3 §9.4/§23 slice 2 - independent of facts/entities above: no relation, no interaction
+    # inference, never coupled to CALLS/SENDS/RECEIVES_FROM correlation.
+    runtime_identity_observations: list[RuntimeIdentityObservation] = Field(default_factory=list)

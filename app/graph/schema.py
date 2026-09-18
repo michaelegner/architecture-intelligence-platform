@@ -48,6 +48,12 @@ CONSTRAINTS = [
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.
     "CREATE CONSTRAINT aip_internal_state_id IF NOT EXISTS FOR (s:AipInternalState) REQUIRE s.id IS UNIQUE",
+    # v0.5.0 I3 §9.4/§23 slice 2: a bounded OTel runtime identity observation, kept under its own
+    # label rather than :Evidence - see app.provenance.model.RuntimeIdentityObservation's docstring.
+    (
+        "CREATE CONSTRAINT runtime_identity_observation_id IF NOT EXISTS "
+        "FOR (o:RuntimeIdentityObservation) REQUIRE o.id IS UNIQUE"
+    ),
 ]
 
 

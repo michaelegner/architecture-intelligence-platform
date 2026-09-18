@@ -16,6 +16,7 @@ from app.telemetry.model import (
 )
 from app.telemetry.operation_resolver import DeclaredOperationCandidate, resolve_operation
 from app.telemetry.queue_resolver import DeclaredQueueCandidate
+from app.telemetry.runtime_identity import extract_runtime_identity_observations
 from app.telemetry.semconv.http import HTTP_REQUEST_METHOD, HTTP_ROUTE, PEER_SERVICE, URL_TEMPLATE
 from app.telemetry.semconv.messaging import (
     MESSAGING_DESTINATION_KIND,
@@ -685,6 +686,10 @@ def adapt(
     plan - still takes an already-decoded list[RuntimeSpan], not raw OTLP bytes. Composing
     decode-then-adapt, and wiring any of this into POST /v1/traces, is deferred further to
     whichever iteration first needs it (11E at the earliest, once there's something to persist).
+
+    Also extracts I3 §9.4 bounded runtime identity observations (spec §23 slice 2) - a third,
+    independent step sourced directly from `spans`, with no coupling to the HTTP/queue correlation
+    above and no interaction inference.
     """
     http_batch = correlate_http_call_observations(
         spans,
@@ -700,6 +705,7 @@ def adapt(
         service_aliases=service_aliases,
         queue_aliases=queue_aliases,
     )
+    runtime_identity_observations = extract_runtime_identity_observations(spans)
 
     entities: dict[str, ObservedOnlyEntity] = {}
     for entity in [*http_batch.entities, *queue_batch.entities]:
@@ -709,4 +715,5 @@ def adapt(
         entities=list(entities.values()),
         facts=[*http_batch.facts, *queue_batch.facts],
         unresolved=[*http_batch.unresolved, *queue_batch.unresolved],
+        runtime_identity_observations=runtime_identity_observations,
     )
