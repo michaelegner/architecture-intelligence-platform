@@ -1,3 +1,8 @@
+<!--
+Specification-driven agents: preserve the hidden `aip-agent-metadata:v1` planning-start marker
+required by the specification-driven-implementation skill when editing this PR description.
+-->
+
 ## What does this change?
 
 <!-- Summarize the change and why it's needed. -->
