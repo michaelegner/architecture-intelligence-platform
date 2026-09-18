@@ -1,0 +1,329 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: "2026-09-18T07:38:36Z"
+  labels:
+    kubernetes.io/metadata.name: aip-runtime-demo
+  name: aip-runtime-demo
+  resourceVersion: "480"
+  uid: d0a58885-572b-449f-93ad-4c96b0518752
+spec:
+  finalizers:
+  - kubernetes
+status:
+  phase: Active
+---
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      architecture-intelligence.io/service-id: service:runtime-demo
+      deployment.kubernetes.io/revision: "1"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{"architecture-intelligence.io/service-id":"service:runtime-demo"},"labels":{"app":"runtime-demo"},"name":"runtime-demo","namespace":"aip-runtime-demo"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"runtime-demo"}},"template":{"metadata":{"labels":{"app":"runtime-demo"}},"spec":{"containers":[{"env":[{"name":"OTEL_EXPORTER_OTLP_ENDPOINT","value":"http://otel-collector.aip-runtime-demo.svc.cluster.local:4318"},{"name":"AIP_BASE_URL","value":"http://architecture-intelligence.aip-runtime-demo.svc.cluster.local:8000"}],"image":"aip-runtime-demo:i2-capture","imagePullPolicy":"IfNotPresent","name":"runtime-demo"}]}}}}
+    creationTimestamp: "2026-09-18T07:38:36Z"
+    generation: 1
+    labels:
+      app: runtime-demo
+    name: runtime-demo
+    namespace: aip-runtime-demo
+    resourceVersion: "510"
+    uid: 947e8f54-9bc1-445d-8306-cf7266871ba4
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: runtime-demo
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: runtime-demo
+      spec:
+        containers:
+        - env:
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector.aip-runtime-demo.svc.cluster.local:4318
+          - name: AIP_BASE_URL
+            value: http://architecture-intelligence.aip-runtime-demo.svc.cluster.local:8000
+          image: aip-runtime-demo:i2-capture
+          imagePullPolicy: IfNotPresent
+          name: runtime-demo
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2026-09-18T07:38:38Z"
+      lastUpdateTime: "2026-09-18T07:38:38Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2026-09-18T07:38:36Z"
+      lastUpdateTime: "2026-09-18T07:38:38Z"
+      message: ReplicaSet "runtime-demo-6dc89f5656" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      architecture-intelligence.io/service-id: service:runtime-demo
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "1"
+    creationTimestamp: "2026-09-18T07:38:36Z"
+    generation: 1
+    labels:
+      app: runtime-demo
+      pod-template-hash: 6dc89f5656
+    name: runtime-demo-6dc89f5656
+    namespace: aip-runtime-demo
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: runtime-demo
+      uid: 947e8f54-9bc1-445d-8306-cf7266871ba4
+    resourceVersion: "508"
+    uid: 4b2e9d49-0c0b-4960-9856-b7ca3c4a63fb
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: runtime-demo
+        pod-template-hash: 6dc89f5656
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: runtime-demo
+          pod-template-hash: 6dc89f5656
+      spec:
+        containers:
+        - env:
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector.aip-runtime-demo.svc.cluster.local:4318
+          - name: AIP_BASE_URL
+            value: http://architecture-intelligence.aip-runtime-demo.svc.cluster.local:8000
+          image: aip-runtime-demo:i2-capture
+          imagePullPolicy: IfNotPresent
+          name: runtime-demo
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-09-18T07:38:36Z"
+    generateName: runtime-demo-6dc89f5656-
+    labels:
+      app: runtime-demo
+      pod-template-hash: 6dc89f5656
+    name: runtime-demo-6dc89f5656-8xxrv
+    namespace: aip-runtime-demo
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: runtime-demo-6dc89f5656
+      uid: 4b2e9d49-0c0b-4960-9856-b7ca3c4a63fb
+    resourceVersion: "506"
+    uid: 658bd464-c78f-4ca2-b7e4-2b04e158f4ee
+  spec:
+    containers:
+    - env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://otel-collector.aip-runtime-demo.svc.cluster.local:4318
+      - name: AIP_BASE_URL
+        value: http://architecture-intelligence.aip-runtime-demo.svc.cluster.local:8000
+      image: aip-runtime-demo:i2-capture
+      imagePullPolicy: IfNotPresent
+      name: runtime-demo
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5j22d
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: aip-i2-capture-control-plane
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-5j22d
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-18T07:38:38Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-18T07:38:36Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-18T07:38:38Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-18T07:38:38Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-18T07:38:36Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://c760ab9ec0feaece83c4fcf4e416dcc208d076925b4d155492f45e1d213cc15e
+      image: docker.io/library/aip-runtime-demo:i2-capture
+      imageID: docker.io/library/import-2026-09-18@sha256:40ff63d253d7d4c8d39b203b40e0713e84a2e1aedc826d47f8058aa344da92a0
+      lastState: {}
+      name: runtime-demo
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-09-18T07:38:37Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5j22d
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 172.18.0.2
+    hostIPs:
+    - ip: 172.18.0.2
+    phase: Running
+    podIP: 10.244.0.5
+    podIPs:
+    - ip: 10.244.0.5
+    qosClass: BestEffort
+    startTime: "2026-09-18T07:38:36Z"
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"runtime-demo","namespace":"aip-runtime-demo"},"spec":{"ports":[{"name":"http","port":8080,"targetPort":8080}],"selector":{"app":"runtime-demo"},"type":"ClusterIP"}}
+    creationTimestamp: "2026-09-18T07:38:36Z"
+    name: runtime-demo
+    namespace: aip-runtime-demo
+    resourceVersion: "489"
+    uid: 45174155-c2f7-409c-8fdd-961466e1f537
+  spec:
+    clusterIP: 10.96.176.43
+    clusterIPs:
+    - 10.96.176.43
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: runtime-demo
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{},"name":"runtime-demo","namespace":"aip-runtime-demo"},"spec":{"rules":[{"host":"runtime-demo.example.com","http":{"paths":[{"backend":{"service":{"name":"runtime-demo","port":{"number":8080}}},"path":"/","pathType":"Prefix"}]}}]}}
+    creationTimestamp: "2026-09-18T07:38:36Z"
+    generation: 1
+    name: runtime-demo
+    namespace: aip-runtime-demo
+    resourceVersion: "498"
+    uid: b0af9c0e-fb8e-4d88-826a-5a2b91e5001c
+  spec:
+    rules:
+    - host: runtime-demo.example.com
+      http:
+        paths:
+        - backend:
+            service:
+              name: runtime-demo
+              port:
+                number: 8080
+          path: /
+          pathType: Prefix
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""

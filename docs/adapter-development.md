@@ -65,6 +65,20 @@ In practice that means:
   express, rather than duplicating anything OpenAPI/AsyncAPI already cover
   ([`ingestion.md`](ingestion.md)).
 
+## A third shape: the Kubernetes adapter
+
+`app/ingestion/kubernetes_adapter.py` (v0.5.0 I2) implements the same `SourceAdapter` protocol as
+the three declared-source adapters above — registered the same way, still returns an
+`AdapterOutcome` — but produces internal-only infrastructure facts
+(`ArchitectureModel.infrastructure_entities`/`infrastructure_contributions`/`infrastructure_claims`,
+`app/canonical/infrastructure.py`), not the application-level `Service`/`Operation`/`Queue`/
+`Message`/`Schema` shape the worked example below builds. It is `OFFLINE_ONLY` (a frozen, versioned
+resource snapshot envelope, never a live cluster connection) and carries two immutable per-source
+evidence submodes within one adapter (`DECLARED_MANIFEST`/`CAPTURED_RESOURCE`) that the three
+declared-source adapters above have no equivalent of. See [`ingestion.md`](ingestion.md#kubernetes-adapter-appingestionkubernetes_adapterpy)
+and the governing spec for its full contract — it is a real, third adapter shape, not a variant of
+the toy worked example below, which stays a declared-source-only illustration.
+
 ## What a runtime-source adapter must produce
 
 An `ObservationBatch` (`app/telemetry/model.py`): possibly-new entities (`ObservedOnlyEntity` stubs

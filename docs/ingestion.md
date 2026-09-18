@@ -1,8 +1,9 @@
 # Ingestion & Source Adapters
 
 Three source adapters map declared architecture documents into the Canonical Model
-(`app/canonical/model.py`). None of them ever writes to Neo4j directly — see
-[`architecture.md`](architecture.md) for where they sit in the pipeline.
+(`app/canonical/model.py`). A fourth, the Kubernetes adapter (below), maps a different category —
+internal-only infrastructure facts, not application-level architecture. None of them ever writes to
+Neo4j directly — see [`architecture.md`](architecture.md) for where they sit in the pipeline.
 
 ## OpenAPI adapter (`app/ingestion/openapi_adapter.py`)
 
@@ -28,6 +29,25 @@ runs at `dependency_phase=1` (`app/sources/registry.py`), so it resolves each de
 an `operation_index` it builds from `upstream_model` — every phase-0 adapter's merged real
 `Operation.id` values — the manifest adapter itself never constructs an operation id independently,
 so it can never drift out of sync with however operation ids are actually minted.
+
+## Kubernetes adapter (`app/ingestion/kubernetes_adapter.py`)
+
+`OFFLINE_ONLY` (v0.5.0 I2): maps a frozen, versioned Kubernetes resource snapshot envelope — never a
+live cluster connection, kubeconfig, watch, or cluster write — into internal-only infrastructure
+entities/claims (`app/canonical/infrastructure.py`), not the application-level `ArchitectureModel`
+lists above. Two immutable per-source evidence modes: `DECLARED_MANIFEST` (attributable declarations,
+no claim of API presence) and `CAPTURED_RESOURCE` (presence in a bounded capture, requiring real
+`uid`/`resourceVersion`, never fabricated). Admits eight resource kinds (`Namespace`, `Deployment`/
+`StatefulSet`/`DaemonSet`, `Pod`, `ReplicaSet` — an internal owner-chain bridge only, never promoted
+to its own entity — `Service`, `Ingress`) and produces four entity kinds and four claim kinds:
+`WORKLOAD_EXISTS`, `WORKLOAD_OWNS_POD`, `NETWORK_SERVICE_SELECTS_WORKLOAD`,
+`INGRESS_ROUTES_TO_NETWORK_SERVICE`. It never establishes application interaction (no `CALLS`/
+`SENDS`/`RECEIVES_FROM`/`DEPLOYED_AS`) and never evaluates the
+`architecture-intelligence.io/service-id` annotation into an AIP Service identity — that annotation
+is retained verbatim as unqualified input for I3. See the governing spec
+(`docs/specifications/0.5.0/i2-kubernetes-discovery-vertical-slice.md`) and
+[`canonical-model.md`](canonical-model.md#infrastructure-entities-and-claims-appcanonicalinfrastructurepy--internal-only)
+for the full contract, limitations, and internal-only exposure boundary.
 
 ## Runtime observation adapter
 

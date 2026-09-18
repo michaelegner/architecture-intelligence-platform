@@ -6,7 +6,7 @@ must carry provenance. `Provenance` (`app/provenance/model.py`) is the base shap
 | Field | Meaning |
 |---|---|
 | `id` | Deterministic id (see [`canonical-model.md`](canonical-model.md)) |
-| `source_type` | `OPENAPI` \| `ASYNCAPI` \| `MANIFEST` \| `OPENTELEMETRY` |
+| `source_type` | `OPENAPI` \| `ASYNCAPI` \| `MANIFEST` \| `OPENTELEMETRY` \| `KUBERNETES` (internal-only — see [Internal-only evidence](#internal-only-evidence)) |
 | `source_file` | Where this came from (a spec file path, or `opentelemetry` for observed evidence) |
 | `source_revision` | Optional — a git revision or similar, if known |
 | `evidence_type` | `DECLARED` \| `OBSERVED` (`INFERRED` is reserved for a future documents/LLM/rules-derived phase and is not populated by anything today) |
@@ -23,6 +23,25 @@ from a relation to the `Evidence` node(s) that back it — every relation instea
 `evidence_ids: list[str]` property naming them; look them up with
 `MATCH (e:Evidence) WHERE e.id IN r.evidence_ids`. This is what makes provenance fully traceable
 end-to-end, not just produced in-memory during ingestion and discarded.
+
+## Internal-only evidence
+
+A Kubernetes source (`app/ingestion/kubernetes_adapter.py`, v0.5.0 I2) writes ordinary
+`Evidence`/`Provenance` records — `source_type: KUBERNETES` — for the facts it contributes, using
+the exact same `Evidence` node label and shape described above. They are real, committed graph
+nodes, not a separate mechanism.
+
+They are also, deliberately, the one category of `Evidence` this doc's own public query surface
+never returns: I2 Draft 0.2's §9 amendment keeps evidence supporting only internal-only Kubernetes
+infrastructure facts (`InfrastructureEntity`/`Contribution`/`Claim` — see
+[`canonical-model.md`](canonical-model.md#infrastructure-entities-and-claims-appcanonicalinfrastructurepy--internal-only))
+off `GET /api/evidence`, `GET /api/evidence/{id}`, and the canonical snapshot projection every MCP
+answer's `snapshot_id` is computed from. Exposing that evidence while hiding everything it supports
+would leak the existence, count, and source attribution of those internal-only facts indirectly —
+and would make merely *configuring* a Kubernetes source change the public snapshot fingerprint for
+every existing consumer, a public-surface change I2 does not otherwise make. Exposure of Kubernetes
+evidence requires its own explicit, versioned exposure amendment before implementation, exactly as
+the governing spec already requires for the infrastructure claims themselves.
 
 ## `correlation_mode`
 

@@ -1,0 +1,32 @@
+apiVersion: aip.dev/v1
+kind: KubernetesSourceSnapshot
+metadata:
+  id: aip-i2-independent-capture-snapshot
+  revision: kind-v0.33.0-node-v1.31.2-2026-09-18T07-38-45Z
+  producer: aip-i2-independent-capture-runbook
+  capturedAt: "2026-09-18T07:38:45Z"
+source:
+  configuredSourceId: aip-i2-independent-capture
+  configuredScopeId: aip-i2-independent-capture-scope
+  clusterUid: 599e90a5-7ab8-426f-807f-92a65dcc8822
+  clusterIdentityEvidenceRef: kube-system-namespace-uid
+  mode: CAPTURED_RESOURCE
+scope:
+  namespaces:
+    - aip-runtime-demo
+  resourceTypes:
+    - v1/Namespace
+    - v1/Pod
+    - v1/Service
+    - apps/v1/Deployment
+    - apps/v1/StatefulSet
+    - apps/v1/DaemonSet
+    - apps/v1/ReplicaSet
+    - networking.k8s.io/v1/Ingress
+completeness:
+  status: COMPLETE
+  authorityRef: aip-i2-independent-capture-self-declared-authority
+  expectedPriorInventoryRevision: null
+files:
+  - path: resources.yaml
+    sha256: de2fc2015dcbe33e7cbe0d1768b67cdfa001b696a3f239899e2baa7a3dc2ee14
