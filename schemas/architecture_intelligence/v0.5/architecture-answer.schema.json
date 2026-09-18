@@ -171,6 +171,26 @@
               }
             }
           }
+        },
+        {
+          "properties": {
+            "object": {
+              "properties": {
+                "type": {
+                  "not": {
+                    "const": "WORKLOAD"
+                  }
+                }
+              }
+            },
+            "subject": {
+              "properties": {
+                "type": {
+                  "const": "SERVICE"
+                }
+              }
+            }
+          }
         }
       ],
       "properties": {
@@ -208,7 +228,10 @@
           "$ref": "#/$defs/EntityRef"
         },
         "predicate": {
-          "$ref": "#/$defs/DependencyPredicate"
+          "const": "DIRECT_DEPENDENCY",
+          "default": "DIRECT_DEPENDENCY",
+          "title": "Predicate",
+          "type": "string"
         },
         "qualification": {
           "$ref": "#/$defs/Qualification"
@@ -228,7 +251,6 @@
       "required": [
         "claim_id",
         "subject",
-        "predicate",
         "object",
         "destination_resolution",
         "delivery",
@@ -240,11 +262,319 @@
       "title": "DependencyClaim",
       "type": "object"
     },
-    "DependencyPredicate": {
-      "enum": [
-        "DIRECT_DEPENDENCY"
+    "DeploymentClaim": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "supporting_methods": {
+                "prefixItems": [
+                  {
+                    "const": "RESOLVED_EXPLICIT"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "supporting_methods"
+            ]
+          },
+          "then": {
+            "properties": {
+              "resolution_method": {
+                "const": "RESOLVED_EXPLICIT"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supporting_methods": {
+                "prefixItems": [
+                  {
+                    "const": "RESOLVED_CONFIGURED"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "supporting_methods"
+            ]
+          },
+          "then": {
+            "properties": {
+              "resolution_method": {
+                "const": "RESOLVED_CONFIGURED"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supporting_methods": {
+                "prefixItems": [
+                  {
+                    "const": "RESOLVED_OBSERVED"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "supporting_methods"
+            ]
+          },
+          "then": {
+            "properties": {
+              "resolution_method": {
+                "const": "RESOLVED_OBSERVED"
+              }
+            }
+          }
+        }
       ],
-      "title": "DependencyPredicate",
+      "description": "I3 spec \u00a712: the public `Service -[DEPLOYED_AS]-> Workload` claim. Deliberately has no\n`delivery`/`qualification`/`coverage`/`destination_resolution` fields - those are\n`DependencyClaim`-only concepts describing a CALLS/SENDS interaction, and `DEPLOYED_AS` is never\nan interaction (spec \u00a71: \"DEPLOYED_AS != CALLS != SENDS != RECEIVES_FROM\").",
+      "properties": {
+        "claim_id": {
+          "pattern": "^aip:claim:v1:[0-9a-f]{64}$",
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "object": {
+          "$ref": "#/$defs/WorkloadRef"
+        },
+        "predicate": {
+          "const": "DEPLOYED_AS",
+          "default": "DEPLOYED_AS",
+          "title": "Predicate",
+          "type": "string"
+        },
+        "reconciliation_rule_id": {
+          "const": "service-workload-reconciliation",
+          "default": "service-workload-reconciliation",
+          "title": "Reconciliation Rule Id",
+          "type": "string"
+        },
+        "reconciliation_rule_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Reconciliation Rule Version",
+          "type": "integer"
+        },
+        "resolution_method": {
+          "$ref": "#/$defs/DeploymentResolutionMethod"
+        },
+        "subject": {
+          "$ref": "#/$defs/EntityRef"
+        },
+        "supporting_methods": {
+          "items": {
+            "$ref": "#/$defs/DeploymentResolutionMethod"
+          },
+          "minItems": 1,
+          "title": "Supporting Methods",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "claim_id",
+        "subject",
+        "object",
+        "resolution_method",
+        "supporting_methods",
+        "evidence_refs"
+      ],
+      "title": "DeploymentClaim",
+      "type": "object"
+    },
+    "DeploymentResolution": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "claim_id": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "status": {
+                "pattern": "^RESOLVED_"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "claim_id": {
+                "not": {
+                  "type": "null"
+                }
+              },
+              "service_id": {
+                "not": {
+                  "type": "null"
+                }
+              },
+              "supporting_methods": {
+                "minItems": 1
+              },
+              "workload": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "I3 spec \u00a713.3: the public resolution-outcome shape, returned for every reconciliation\ncandidate group whether it produced a claim or not - \"Resolved and non-resolved outcomes SHALL\nbe inspectable without fabricating a claim.\" ",
+      "properties": {
+        "candidate_service_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Candidate Service Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "claim_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Claim Id"
+        },
+        "conflicting_evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Conflicting Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "limitation_codes": {
+          "items": {
+            "$ref": "#/$defs/LimitationCode"
+          },
+          "title": "Limitation Codes",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "reconciliation_rule_id": {
+          "const": "service-workload-reconciliation",
+          "default": "service-workload-reconciliation",
+          "title": "Reconciliation Rule Id",
+          "type": "string"
+        },
+        "reconciliation_rule_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Reconciliation Rule Version",
+          "type": "integer"
+        },
+        "resolution_id": {
+          "pattern": "^aip:deployment-resolution:v1:[0-9a-f]{64}$",
+          "title": "Resolution Id",
+          "type": "string"
+        },
+        "service_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Service Id"
+        },
+        "status": {
+          "$ref": "#/$defs/DeploymentResolutionStatus"
+        },
+        "supporting_evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "supporting_methods": {
+          "items": {
+            "$ref": "#/$defs/DeploymentResolutionMethod"
+          },
+          "title": "Supporting Methods",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "workload": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkloadRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "resolution_id",
+        "workload",
+        "status",
+        "service_id",
+        "candidate_service_ids",
+        "supporting_methods",
+        "supporting_evidence_refs",
+        "conflicting_evidence_refs",
+        "limitation_codes",
+        "claim_id"
+      ],
+      "title": "DeploymentResolution",
+      "type": "object"
+    },
+    "DeploymentResolutionMethod": {
+      "description": "I3 spec \u00a710.1: only the three *successful* identity-path outcomes - never CONFLICT/\nAMBIGUOUS/UNRESOLVED, which are never a \"method\" a claim can be supported by. Compare\n`DeploymentResolutionStatus` below, which is the wider 6-value outcome set a\n`DeploymentResolution` (as opposed to an actual `DeploymentClaim`) may carry.",
+      "enum": [
+        "RESOLVED_EXPLICIT",
+        "RESOLVED_CONFIGURED",
+        "RESOLVED_OBSERVED"
+      ],
+      "title": "DeploymentResolutionMethod",
+      "type": "string"
+    },
+    "DeploymentResolutionStatus": {
+      "description": "I3 spec \u00a713.3: the wider 6-value outcome set a `DeploymentResolution` may carry - the three\nsuccessful `DeploymentResolutionMethod` values plus the three non-resolved outcomes. Kept as its\nown enum (not reusing `DeploymentResolutionMethod`) since CONFLICT/AMBIGUOUS/UNRESOLVED are never\nvalid `DeploymentClaim.resolution_method`/`.supporting_methods` values (spec \u00a710.1: \"Similarity is\nnever a successful path\" - and conflict/ambiguity are never \"methods\" either).",
+      "enum": [
+        "RESOLVED_EXPLICIT",
+        "RESOLVED_CONFIGURED",
+        "RESOLVED_OBSERVED",
+        "CONFLICT",
+        "AMBIGUOUS",
+        "UNRESOLVED"
+      ],
+      "title": "DeploymentResolutionStatus",
       "type": "string"
     },
     "DestinationResolution": {
@@ -376,163 +706,10 @@
       "enum": [
         "SERVICE",
         "OPERATION",
-        "QUEUE"
+        "QUEUE",
+        "WORKLOAD"
       ],
       "title": "EntityType",
-      "type": "string"
-    },
-    "EvidenceData": {
-      "additionalProperties": false,
-      "description": "v0.4.0 I2.1 - spec \u00a711.2/\u00a712. `claims`/top-level `evidence_refs` on the enclosing\n`ArchitectureAnswer` stay empty for this tool - lookup creates no claim; resolved ids live here.",
-      "properties": {
-        "missing_evidence_refs": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Missing Evidence Refs",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "records": {
-          "items": {
-            "$ref": "#/$defs/EvidenceRecord"
-          },
-          "title": "Records",
-          "type": "array"
-        },
-        "requested_evidence_refs": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Requested Evidence Refs",
-          "type": "array",
-          "uniqueItems": true
-        }
-      },
-      "required": [
-        "requested_evidence_refs",
-        "records",
-        "missing_evidence_refs"
-      ],
-      "title": "EvidenceData",
-      "type": "object"
-    },
-    "EvidenceRecord": {
-      "additionalProperties": false,
-      "allOf": [
-        {
-          "else": {
-            "properties": {
-              "observation": {
-                "type": "null"
-              }
-            }
-          },
-          "if": {
-            "properties": {
-              "evidence_type": {
-                "const": "OBSERVED"
-              }
-            },
-            "required": [
-              "evidence_type"
-            ]
-          },
-          "then": {
-            "properties": {
-              "observation": {
-                "not": {
-                  "type": "null"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "description": "v0.4.0 I2.1 - spec \u00a711.2. `evidence_type`/`source_type` reuse the existing\n`app.provenance.model` enums rather than redefining them - no new adapter classification.",
-      "properties": {
-        "evidence_type": {
-          "$ref": "#/$defs/EvidenceType"
-        },
-        "id": {
-          "title": "Id",
-          "type": "string"
-        },
-        "observation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ObservedEvidenceMetadata"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "source_locator": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Source Locator"
-        },
-        "source_revision": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Source Revision"
-        },
-        "source_type": {
-          "$ref": "#/$defs/SourceType"
-        },
-        "supports": {
-          "items": {
-            "$ref": "#/$defs/SupportedFact"
-          },
-          "title": "Supports",
-          "type": "array"
-        }
-      },
-      "required": [
-        "id",
-        "evidence_type",
-        "source_type",
-        "source_locator",
-        "source_revision",
-        "observation",
-        "supports"
-      ],
-      "title": "EvidenceRecord",
-      "type": "object"
-    },
-    "EvidenceRelationType": {
-      "description": "v0.4.0 I2.1 - the 7 canonical graph relation kinds (spec \u00a711.2's `supports`). Deliberately its\nown closed enum rather than reusing `DeliveryRelationType` (only CALLS/SENDS) or a graph-layer\nstring - `get_evidence` describes existing facts, never a new architecture claim.",
-      "enum": [
-        "PROVIDES",
-        "CALLS",
-        "SENDS",
-        "RECEIVES_FROM",
-        "CARRIES",
-        "CONFORMS_TO",
-        "DEAD_LETTERS_TO"
-      ],
-      "title": "EvidenceRelationType",
-      "type": "string"
-    },
-    "EvidenceType": {
-      "enum": [
-        "DECLARED",
-        "OBSERVED"
-      ],
-      "title": "EvidenceType",
       "type": "string"
     },
     "Limitation": {
@@ -568,7 +745,14 @@
         "UNKNOWN_ENTITY",
         "OBSERVATION_CONTEXT_REQUIRED",
         "SNAPSHOT_NOT_AVAILABLE",
-        "RESULT_LIMIT_EXCEEDED"
+        "RESULT_LIMIT_EXCEEDED",
+        "DEPLOYMENT_IDENTITY_UNRESOLVED",
+        "DEPLOYMENT_IDENTITY_AMBIGUOUS",
+        "DEPLOYMENT_IDENTITY_CONFLICT",
+        "DEPLOYMENT_ENVIRONMENT_MISMATCH",
+        "DEPLOYMENT_TEMPORAL_MISMATCH",
+        "DEPLOYMENT_EVIDENCE_INCOMPLETE",
+        "DEPLOYMENT_RESULT_LIMIT_EXCEEDED"
       ],
       "title": "LimitationCode",
       "type": "string"
@@ -606,74 +790,6 @@
         "window_end"
       ],
       "title": "ObservationContextRef",
-      "type": "object"
-    },
-    "ObservedEvidenceMetadata": {
-      "additionalProperties": false,
-      "description": "v0.4.0 I2.1 - spec \u00a711.2: bounded observed-evidence metadata only. No raw payloads,\nauthorization values, full spans, baggage, resource attributes, or sample trace ids.",
-      "properties": {
-        "bucket_end": {
-          "format": "date-time",
-          "title": "Bucket End",
-          "type": "string"
-        },
-        "bucket_start": {
-          "format": "date-time",
-          "title": "Bucket Start",
-          "type": "string"
-        },
-        "correlation_mode": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Correlation Mode"
-        },
-        "environment": {
-          "title": "Environment",
-          "type": "string"
-        },
-        "first_seen": {
-          "format": "date-time",
-          "title": "First Seen",
-          "type": "string"
-        },
-        "last_seen": {
-          "format": "date-time",
-          "title": "Last Seen",
-          "type": "string"
-        },
-        "observation_count": {
-          "title": "Observation Count",
-          "type": "integer"
-        },
-        "service_version": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Service Version"
-        }
-      },
-      "required": [
-        "environment",
-        "bucket_start",
-        "bucket_end",
-        "first_seen",
-        "last_seen",
-        "observation_count",
-        "service_version",
-        "correlation_mode"
-      ],
-      "title": "ObservedEvidenceMetadata",
       "type": "object"
     },
     "Outcome": {
@@ -719,6 +835,44 @@
       "title": "Qualification",
       "type": "string"
     },
+    "ServiceDependenciesData": {
+      "additionalProperties": false,
+      "description": "v0.5.0 I3 spec \u00a714.2: deployment is a separate sibling projection, never a dependency -\n`deployment_claim_ids`/`deployment_resolutions` are additive fields alongside the original\ndependency-only shape, not a replacement of it.",
+      "properties": {
+        "dependency_claim_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependency Claim Ids",
+          "type": "array"
+        },
+        "deployment_claim_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Deployment Claim Ids",
+          "type": "array"
+        },
+        "deployment_resolutions": {
+          "items": {
+            "$ref": "#/$defs/DeploymentResolution"
+          },
+          "title": "Deployment Resolutions",
+          "type": "array"
+        },
+        "service": {
+          "$ref": "#/$defs/EntityRef"
+        }
+      },
+      "required": [
+        "service",
+        "dependency_claim_ids",
+        "deployment_claim_ids",
+        "deployment_resolutions"
+      ],
+      "title": "ServiceDependenciesData",
+      "type": "object"
+    },
     "SnapshotRef": {
       "additionalProperties": false,
       "properties": {
@@ -740,38 +894,49 @@
       "title": "SnapshotRef",
       "type": "object"
     },
-    "SourceType": {
+    "WorkloadKind": {
+      "description": "I3 spec \u00a78.1: the exact supported Kubernetes controller kinds a deployment identity path may\nresolve to - the same closed set I2's own owner-chain resolution already admits.",
       "enum": [
-        "OPENAPI",
-        "ASYNCAPI",
-        "MANIFEST",
-        "OPENTELEMETRY"
+        "DEPLOYMENT",
+        "STATEFULSET",
+        "DAEMONSET"
       ],
-      "title": "SourceType",
+      "title": "WorkloadKind",
       "type": "string"
     },
-    "SupportedFact": {
+    "WorkloadRef": {
       "additionalProperties": false,
-      "description": "v0.4.0 I2.1 - spec \u00a711.2: one existing canonical relation fact an evidence record supports.\nNot a generic graph record and not a new architecture claim - only the 3 bounded fields.",
+      "description": "I3 spec \u00a711: a bounded public Workload reference, deliberately its own model rather than an\n`EntityRef` extension. `EntityRef` is reused by `DependencyClaim.subject`/`.object` and\n`DeliveryRef.via` - widening its type-specific-field validator with a WORKLOAD branch would make\na Workload-shaped `EntityRef` constructible inside a dependency claim, exactly the governing\n\"DEPLOYED_AS != CALLS\" / entity-equivalence boundary spec \u00a71 forbids. `DeploymentClaim.object` is\ntyped `WorkloadRef`, never `EntityRef`, for the same reason.\n\nCluster UID, Pod UID, source inventory, resource UID, and owner-chain details remain evidence\ndrill-down, not fields of this relation target (spec \u00a711's own rule) - `namespace` here is\nidentity context, not a locality qualification.",
       "properties": {
-        "relation_type": {
-          "$ref": "#/$defs/EvidenceRelationType"
-        },
-        "source_id": {
-          "title": "Source Id",
+        "id": {
+          "title": "Id",
           "type": "string"
         },
-        "target_id": {
-          "title": "Target Id",
+        "name": {
+          "title": "Name",
           "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        },
+        "type": {
+          "const": "WORKLOAD",
+          "default": "WORKLOAD",
+          "title": "Type",
+          "type": "string"
+        },
+        "workload_kind": {
+          "$ref": "#/$defs/WorkloadKind"
         }
       },
       "required": [
-        "relation_type",
-        "source_id",
-        "target_id"
+        "id",
+        "name",
+        "workload_kind",
+        "namespace"
       ],
-      "title": "SupportedFact",
+      "title": "WorkloadRef",
       "type": "object"
     }
   },
@@ -867,7 +1032,7 @@
     {
       "properties": {
         "tool": {
-          "const": "get_evidence"
+          "const": "get_service_dependencies"
         }
       }
     }
@@ -875,7 +1040,21 @@
   "properties": {
     "claims": {
       "items": {
-        "$ref": "#/$defs/DependencyClaim"
+        "discriminator": {
+          "mapping": {
+            "DEPLOYED_AS": "#/$defs/DeploymentClaim",
+            "DIRECT_DEPENDENCY": "#/$defs/DependencyClaim"
+          },
+          "propertyName": "predicate"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/DependencyClaim"
+          },
+          {
+            "$ref": "#/$defs/DeploymentClaim"
+          }
+        ]
       },
       "title": "Claims",
       "type": "array"
@@ -883,7 +1062,7 @@
     "data": {
       "anyOf": [
         {
-          "$ref": "#/$defs/EvidenceData"
+          "$ref": "#/$defs/ServiceDependenciesData"
         },
         {
           "type": "null"
@@ -922,7 +1101,7 @@
       "$ref": "#/$defs/Producer"
     },
     "schema_version": {
-      "const": "0.4",
+      "const": "0.5",
       "title": "Schema Version",
       "type": "string"
     },
@@ -958,6 +1137,6 @@
     "evidence_refs",
     "limitations"
   ],
-  "title": "ArchitectureAnswer[EvidenceData]",
+  "title": "ArchitectureAnswer[ServiceDependenciesData]",
   "type": "object"
 }

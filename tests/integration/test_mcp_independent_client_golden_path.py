@@ -54,21 +54,21 @@ DEPENDENCY_SCHEMA_PATH = (
     Path(__file__).resolve().parent.parent.parent
     / "schemas"
     / "architecture_intelligence"
-    / "v0.4"
+    / "v0.5"
     / "architecture-answer.schema.json"
 )
 EVIDENCE_SCHEMA_PATH = (
     Path(__file__).resolve().parent.parent.parent
     / "schemas"
     / "architecture_intelligence"
-    / "v0.4"
+    / "v0.5"
     / "evidence-answer.schema.json"
 )
 DRIFT_SCHEMA_PATH = (
     Path(__file__).resolve().parent.parent.parent
     / "schemas"
     / "architecture_intelligence"
-    / "v0.4"
+    / "v0.5"
     / "drift-answer.schema.json"
 )
 DEPENDENCY_SCHEMA = json.loads(DEPENDENCY_SCHEMA_PATH.read_text())

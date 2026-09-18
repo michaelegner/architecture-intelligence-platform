@@ -39,7 +39,7 @@ SCHEMA_PATH = (
     Path(__file__).resolve().parent.parent.parent
     / "schemas"
     / "architecture_intelligence"
-    / "v0.4"
+    / "v0.5"
     / "evidence-answer.schema.json"
 )
 DATABASE = "neo4j"

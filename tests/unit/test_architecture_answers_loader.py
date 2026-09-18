@@ -6,7 +6,7 @@ from evaluation.architecture_answers import loader
 from evaluation.architecture_answers.model import ScenarioValidationError
 
 _MINIMAL_ANSWERED_ANSWER = {
-    "schema_version": "0.4",
+    "schema_version": "0.5",
     "producer": {
         "name": "architecture-intelligence-platform",
         "version": "0.4.0",
@@ -27,6 +27,8 @@ _MINIMAL_ANSWERED_ANSWER = {
     "data": {
         "service": {"id": "service:product-service", "type": "SERVICE", "name": "ProductService"},
         "dependency_claim_ids": [],
+        "deployment_claim_ids": [],
+        "deployment_resolutions": [],
     },
     "claims": [],
     "evidence_refs": [],

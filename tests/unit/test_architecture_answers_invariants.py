@@ -85,7 +85,7 @@ def _drift_answer(*, claims: list[DependencyClaim]) -> ArchitectureAnswer[Archit
         {ref for c in claims for ref in (*c.evidence_refs, *c.resolution_evidence_refs)}
     )
     return ArchitectureAnswer[ArchitectureDriftData](
-        schema_version="0.4",
+        schema_version="0.5",
         producer=_PRODUCER,
         tool="get_architecture_drift",
         outcome=Outcome.ANSWERED,
@@ -105,14 +105,17 @@ def _dependency_answer(
         {ref for c in claims for ref in (*c.evidence_refs, *c.resolution_evidence_refs)}
     )
     return ArchitectureAnswer[ServiceDependenciesData](
-        schema_version="0.4",
+        schema_version="0.5",
         producer=_PRODUCER,
         tool="get_service_dependencies",
         outcome=Outcome.ANSWERED,
         snapshot=_SNAPSHOT,
         observation_context=_CONTEXT,
         data=ServiceDependenciesData(
-            service=_SUBJECT, dependency_claim_ids=[c.claim_id for c in claims]
+            service=_SUBJECT,
+            dependency_claim_ids=[c.claim_id for c in claims],
+            deployment_claim_ids=[],
+            deployment_resolutions=[],
         ),
         claims=claims,
         evidence_refs=evidence_refs,
@@ -125,7 +128,7 @@ def _evidence_answer(*, missing: list[str]) -> ArchitectureAnswer[EvidenceData]:
     refs` is set equal to it (trivially satisfying `EvidenceData`'s own partition invariant, since
     `records` stays empty), not to some independently realistic request list."""
     return ArchitectureAnswer[EvidenceData](
-        schema_version="0.4",
+        schema_version="0.5",
         producer=_PRODUCER,
         tool="get_evidence",
         outcome=Outcome.ANSWERED if not missing else Outcome.PARTIAL,
@@ -223,7 +226,7 @@ def test_drift_answer_missing_a_claim_the_live_filter_would_include_is_caught():
 def test_refusal_drift_answer_skips_the_dependency_check():
     """A drift refusal (`data is None`) names no service to compare against."""
     refusal = ArchitectureAnswer[ArchitectureDriftData](
-        schema_version="0.4",
+        schema_version="0.5",
         producer=_PRODUCER,
         tool="get_architecture_drift",
         outcome=Outcome.NOT_ANSWERED,
@@ -266,7 +269,7 @@ def test_get_evidence_refusing_is_caught_as_a_failure_not_a_crash():
     drifting = _claim()
     drift_answer = _drift_answer(claims=[drifting])
     refusal = ArchitectureAnswer[EvidenceData](
-        schema_version="0.4",
+        schema_version="0.5",
         producer=_PRODUCER,
         tool="get_evidence",
         outcome=Outcome.NOT_ANSWERED,

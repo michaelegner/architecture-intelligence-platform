@@ -26,7 +26,7 @@
     "name": "architecture-intelligence-platform",
     "version": "0.4.2"
   },
-  "schema_version": "0.4",
+  "schema_version": "0.5",
   "snapshot": {
     "model_revision": "sha256:1fbfe13051ec50bde32d353a7edb1ac5dd34d09b1ab7f5c6f885706152ee0749",
     "snapshot_id": "aip:snapshot:v1:1fbfe13051ec50bde32d353a7edb1ac5dd34d09b1ab7f5c6f885706152ee0749"

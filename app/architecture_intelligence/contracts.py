@@ -10,9 +10,10 @@ import, so this public contract doesn't couple to internal analysis-module churn
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Literal, get_args
+from typing import Annotated, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -23,6 +24,9 @@ _SNAPSHOT_ID_PATTERN = rf"^aip:snapshot:v1:{_SHA256_HEX}$"
 _MODEL_REVISION_PATTERN = rf"^sha256:{_SHA256_HEX}$"
 _CONTEXT_ID_PATTERN = rf"^aip:observation-context:v1:{_SHA256_HEX}$"
 _CLAIM_ID_PATTERN = rf"^aip:claim:v1:{_SHA256_HEX}$"
+# I3 spec §13.2: DeploymentResolution.resolution_id is a distinct public identity from claim_id -
+# it identifies a snapshot-bound reconciliation-candidate-group evaluation, not a claim.
+_DEPLOYMENT_RESOLUTION_ID_PATTERN = rf"^aip:deployment-resolution:v1:{_SHA256_HEX}$"
 
 # No leading/trailing whitespace and no control characters anywhere (spec §16.1). Expressed as a
 # single character-class-only pattern (no lookaround) so it also compiles under pydantic-core's
@@ -31,10 +35,16 @@ _ENVIRONMENT_PATTERN = r"^[^\s\x00-\x1f\x7f](?:[^\x00-\x1f\x7f]*[^\s\x00-\x1f\x7
 
 _MAX_OBSERVATION_WINDOW = timedelta(days=31)
 
-ArchitectureSchemaVersion = Literal["0.4"]
+ArchitectureSchemaVersion = Literal["0.5"]
 ARCHITECTURE_SCHEMA_VERSION: ArchitectureSchemaVersion = get_args(ArchitectureSchemaVersion)[0]
 ArchitectureToolName = Literal["get_service_dependencies", "get_evidence", "get_architecture_drift"]
 TOOL_NAMES: tuple[ArchitectureToolName, ...] = get_args(ArchitectureToolName)[::-1]
+
+# I3 spec §6: the frozen I3 reconciliation rule identity.
+DeploymentReconciliationRuleId = Literal["service-workload-reconciliation"]
+DEPLOYMENT_RECONCILIATION_RULE_ID: DeploymentReconciliationRuleId = get_args(
+    DeploymentReconciliationRuleId
+)[0]
 
 
 class Outcome(StrEnum):
@@ -47,6 +57,16 @@ class EntityType(StrEnum):
     SERVICE = "SERVICE"
     OPERATION = "OPERATION"
     QUEUE = "QUEUE"
+    WORKLOAD = "WORKLOAD"
+
+
+class WorkloadKind(StrEnum):
+    """I3 spec §8.1: the exact supported Kubernetes controller kinds a deployment identity path may
+    resolve to - the same closed set I2's own owner-chain resolution already admits."""
+
+    DEPLOYMENT = "DEPLOYMENT"
+    STATEFULSET = "STATEFULSET"
+    DAEMONSET = "DAEMONSET"
 
 
 class DeliveryKind(StrEnum):
@@ -84,6 +104,14 @@ class LimitationCode(StrEnum):
     OBSERVATION_CONTEXT_REQUIRED = "OBSERVATION_CONTEXT_REQUIRED"
     SNAPSHOT_NOT_AVAILABLE = "SNAPSHOT_NOT_AVAILABLE"
     RESULT_LIMIT_EXCEEDED = "RESULT_LIMIT_EXCEEDED"
+    # I3 spec §19 - deployment-reconciliation-specific limitation codes.
+    DEPLOYMENT_IDENTITY_UNRESOLVED = "DEPLOYMENT_IDENTITY_UNRESOLVED"
+    DEPLOYMENT_IDENTITY_AMBIGUOUS = "DEPLOYMENT_IDENTITY_AMBIGUOUS"
+    DEPLOYMENT_IDENTITY_CONFLICT = "DEPLOYMENT_IDENTITY_CONFLICT"
+    DEPLOYMENT_ENVIRONMENT_MISMATCH = "DEPLOYMENT_ENVIRONMENT_MISMATCH"
+    DEPLOYMENT_TEMPORAL_MISMATCH = "DEPLOYMENT_TEMPORAL_MISMATCH"
+    DEPLOYMENT_EVIDENCE_INCOMPLETE = "DEPLOYMENT_EVIDENCE_INCOMPLETE"
+    DEPLOYMENT_RESULT_LIMIT_EXCEEDED = "DEPLOYMENT_RESULT_LIMIT_EXCEEDED"
 
 
 class DependencyPredicate(StrEnum):
@@ -102,6 +130,7 @@ class EvidenceRelationType(StrEnum):
     CARRIES = "CARRIES"
     CONFORMS_TO = "CONFORMS_TO"
     DEAD_LETTERS_TO = "DEAD_LETTERS_TO"
+    DEPLOYED_AS = "DEPLOYED_AS"  # I3 spec §16.1
 
 
 # Fixed (kind, relation_type, via.type) pairs - spec §11.2/§13. No other combination is valid.
@@ -209,6 +238,28 @@ class EntityRef(BaseModel):
         return self
 
 
+class WorkloadRef(BaseModel):
+    """I3 spec §11: a bounded public Workload reference, deliberately its own model rather than an
+    `EntityRef` extension. `EntityRef` is reused by `DependencyClaim.subject`/`.object` and
+    `DeliveryRef.via` - widening its type-specific-field validator with a WORKLOAD branch would make
+    a Workload-shaped `EntityRef` constructible inside a dependency claim, exactly the governing
+    "DEPLOYED_AS != CALLS" / entity-equivalence boundary spec §1 forbids. `DeploymentClaim.object` is
+    typed `WorkloadRef`, never `EntityRef`, for the same reason.
+
+    Cluster UID, Pod UID, source inventory, resource UID, and owner-chain details remain evidence
+    drill-down, not fields of this relation target (spec §11's own rule) - `namespace` here is
+    identity context, not a locality qualification.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    type: Literal[EntityType.WORKLOAD] = EntityType.WORKLOAD
+    name: str
+    workload_kind: WorkloadKind
+    namespace: str
+
+
 def _delivery_ref_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
     """Encode the fixed (kind, relation_type, via.type) pairs table (spec §11.2/§13) as JSON
     Schema if/then so external (non-Pydantic) validators reject the same invalid combinations.
@@ -281,6 +332,16 @@ def _dependency_claim_schema_extra(schema: dict, _model: type[BaseModel]) -> Non
             "then": {"properties": {"resolution_evidence_refs": {"minItems": 1}}},
             "else": {"properties": {"resolution_evidence_refs": {"maxItems": 0}}},
         },
+        # I3 spec §1: "DEPLOYED_AS != CALLS" / entity-equivalence boundary. EntityType.WORKLOAD
+        # exists as of I3 (spec §11), so a dependency claim must reject it explicitly here - a
+        # generic EntityRef otherwise has no runtime/schema constraint stopping a Workload-shaped
+        # value from being used as a dependency claim's subject/object.
+        {
+            "properties": {
+                "subject": {"properties": {"type": {"const": "SERVICE"}}},
+                "object": {"properties": {"type": {"not": {"const": "WORKLOAD"}}}},
+            }
+        },
     ]
 
 
@@ -291,7 +352,9 @@ class DependencyClaim(BaseModel):
 
     claim_id: str = Field(pattern=_CLAIM_ID_PATTERN)
     subject: EntityRef
-    predicate: DependencyPredicate
+    predicate: Literal[DependencyPredicate.DIRECT_DEPENDENCY] = (
+        DependencyPredicate.DIRECT_DEPENDENCY
+    )
     object: EntityRef
     destination_resolution: DestinationResolution
     delivery: DeliveryRef
@@ -308,6 +371,16 @@ class DependencyClaim(BaseModel):
                 "evidence references must be sorted lexicographically and deduplicated"
             )
         return value
+
+    @model_validator(mode="after")
+    def _check_subject_and_object_types(self) -> DependencyClaim:
+        # I3 spec §1: a dependency claim is never a deployment-identity claim - EntityType.WORKLOAD
+        # (added in I3) must never appear here, mirroring _dependency_claim_schema_extra above.
+        if self.subject.type != EntityType.SERVICE:
+            raise ValueError("subject.type must be SERVICE for a dependency claim")
+        if self.object.type == EntityType.WORKLOAD:
+            raise ValueError("object.type must not be WORKLOAD for a dependency claim")
+        return self
 
     @model_validator(mode="after")
     def _check_coverage_and_evidence(self) -> DependencyClaim:
@@ -332,6 +405,231 @@ class DependencyClaim(BaseModel):
         return self
 
 
+class DeploymentPredicate(StrEnum):
+    DEPLOYED_AS = "DEPLOYED_AS"
+
+
+class DeploymentResolutionMethod(StrEnum):
+    """I3 spec §10.1: only the three *successful* identity-path outcomes - never CONFLICT/
+    AMBIGUOUS/UNRESOLVED, which are never a "method" a claim can be supported by. Compare
+    `DeploymentResolutionStatus` below, which is the wider 6-value outcome set a
+    `DeploymentResolution` (as opposed to an actual `DeploymentClaim`) may carry."""
+
+    RESOLVED_EXPLICIT = "RESOLVED_EXPLICIT"
+    RESOLVED_CONFIGURED = "RESOLVED_CONFIGURED"
+    RESOLVED_OBSERVED = "RESOLVED_OBSERVED"
+
+
+# I3 spec §10.1's canonical supporting-method strength order - lower is stronger. Reused for both
+# DeploymentClaim.supporting_methods and DeploymentResolution.supporting_methods so the same
+# semantic field sorts identically wherever it appears.
+_DEPLOYMENT_METHOD_STRENGTH = {
+    DeploymentResolutionMethod.RESOLVED_EXPLICIT: 0,
+    DeploymentResolutionMethod.RESOLVED_CONFIGURED: 1,
+    DeploymentResolutionMethod.RESOLVED_OBSERVED: 2,
+}
+
+
+def _check_supporting_methods_canonical_order(
+    value: list[DeploymentResolutionMethod],
+) -> list[DeploymentResolutionMethod]:
+    if len(set(value)) != len(value):
+        raise ValueError("supporting_methods must be deduplicated")
+    if value != sorted(value, key=lambda method: _DEPLOYMENT_METHOD_STRENGTH[method]):
+        raise ValueError(
+            "supporting_methods must be sorted by §10.1 canonical strength "
+            "(RESOLVED_EXPLICIT > RESOLVED_CONFIGURED > RESOLVED_OBSERVED)"
+        )
+    return value
+
+
+def _deployment_claim_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
+    """Encode "resolution_method == the strongest (canonically-first) entry of supporting_methods"
+    (spec §10.1/§12) as JSON Schema if/then so external validators reject the same invalid shapes.
+    The Python model_validator below is still authoritative at runtime."""
+    schema["allOf"] = [
+        *schema.get("allOf", []),
+        *(
+            {
+                "if": {
+                    "properties": {
+                        "supporting_methods": {"prefixItems": [{"const": method.value}]}
+                    },
+                    "required": ["supporting_methods"],
+                },
+                "then": {"properties": {"resolution_method": {"const": method.value}}},
+            }
+            for method in DeploymentResolutionMethod
+        ),
+    ]
+
+
+class DeploymentClaim(BaseModel):
+    """I3 spec §12: the public `Service -[DEPLOYED_AS]-> Workload` claim. Deliberately has no
+    `delivery`/`qualification`/`coverage`/`destination_resolution` fields - those are
+    `DependencyClaim`-only concepts describing a CALLS/SENDS interaction, and `DEPLOYED_AS` is never
+    an interaction (spec §1: "DEPLOYED_AS != CALLS != SENDS != RECEIVES_FROM")."""
+
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", json_schema_extra=_deployment_claim_schema_extra
+    )
+
+    claim_id: str = Field(pattern=_CLAIM_ID_PATTERN)
+    subject: EntityRef
+    predicate: Literal[DeploymentPredicate.DEPLOYED_AS] = DeploymentPredicate.DEPLOYED_AS
+    object: WorkloadRef
+    resolution_method: DeploymentResolutionMethod
+    supporting_methods: list[DeploymentResolutionMethod] = Field(
+        min_length=1, json_schema_extra={"uniqueItems": True}
+    )
+    reconciliation_rule_id: DeploymentReconciliationRuleId = DEPLOYMENT_RECONCILIATION_RULE_ID
+    reconciliation_rule_version: Literal[1] = 1
+    evidence_refs: list[str] = Field(min_length=1, json_schema_extra={"uniqueItems": True})
+
+    @field_validator("evidence_refs")
+    @classmethod
+    def _check_evidence_sorted_and_deduplicated(cls, value: list[str]) -> list[str]:
+        if value != sorted(set(value)):
+            raise ValueError(
+                "evidence references must be sorted lexicographically and deduplicated"
+            )
+        return value
+
+    @field_validator("supporting_methods")
+    @classmethod
+    def _check_supporting_methods(
+        cls, value: list[DeploymentResolutionMethod]
+    ) -> list[DeploymentResolutionMethod]:
+        return _check_supporting_methods_canonical_order(value)
+
+    @model_validator(mode="after")
+    def _check_subject_type_and_resolution_method(self) -> DeploymentClaim:
+        # I3 spec §1: DEPLOYED_AS relates a Service to a Workload, never anything else.
+        if self.subject.type != EntityType.SERVICE:
+            raise ValueError("subject.type must be SERVICE for a deployment claim")
+        if self.resolution_method != self.supporting_methods[0]:
+            raise ValueError(
+                "resolution_method must equal the strongest (first) entry in supporting_methods"
+            )
+        return self
+
+
+class DeploymentResolutionStatus(StrEnum):
+    """I3 spec §13.3: the wider 6-value outcome set a `DeploymentResolution` may carry - the three
+    successful `DeploymentResolutionMethod` values plus the three non-resolved outcomes. Kept as its
+    own enum (not reusing `DeploymentResolutionMethod`) since CONFLICT/AMBIGUOUS/UNRESOLVED are never
+    valid `DeploymentClaim.resolution_method`/`.supporting_methods` values (spec §10.1: "Similarity is
+    never a successful path" - and conflict/ambiguity are never "methods" either)."""
+
+    RESOLVED_EXPLICIT = "RESOLVED_EXPLICIT"
+    RESOLVED_CONFIGURED = "RESOLVED_CONFIGURED"
+    RESOLVED_OBSERVED = "RESOLVED_OBSERVED"
+    CONFLICT = "CONFLICT"
+    AMBIGUOUS = "AMBIGUOUS"
+    UNRESOLVED = "UNRESOLVED"
+
+
+def _deployment_resolution_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
+    """Encode the Resolved/Non-resolved invariants (spec §13.3) as JSON Schema if/then/else so
+    external validators reject the same invalid shapes. The Python model_validator below is still
+    authoritative at runtime. `candidate_service_ids == [service_id]` is NOT mirrored here - like
+    `ArchitectureAnswer`'s own evidence_refs-union invariant, a cross-property array-content equality
+    has no standard JSON Schema expression without the unsupported `$data` extension."""
+    schema["allOf"] = [
+        *schema.get("allOf", []),
+        {
+            "if": {"properties": {"status": {"pattern": "^RESOLVED_"}}, "required": ["status"]},
+            "then": {
+                "properties": {
+                    "workload": {"not": {"type": "null"}},
+                    "service_id": {"not": {"type": "null"}},
+                    "claim_id": {"not": {"type": "null"}},
+                    "supporting_methods": {"minItems": 1},
+                }
+            },
+            "else": {"properties": {"claim_id": {"type": "null"}}},
+        },
+    ]
+
+
+class DeploymentResolution(BaseModel):
+    """I3 spec §13.3: the public resolution-outcome shape, returned for every reconciliation
+    candidate group whether it produced a claim or not - "Resolved and non-resolved outcomes SHALL
+    be inspectable without fabricating a claim." """
+
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", json_schema_extra=_deployment_resolution_schema_extra
+    )
+
+    resolution_id: str = Field(pattern=_DEPLOYMENT_RESOLUTION_ID_PATTERN)
+    workload: WorkloadRef | None
+    status: DeploymentResolutionStatus
+    service_id: str | None
+    candidate_service_ids: list[str] = Field(json_schema_extra={"uniqueItems": True})
+    supporting_methods: list[DeploymentResolutionMethod] = Field(
+        json_schema_extra={"uniqueItems": True}
+    )
+    supporting_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
+    conflicting_evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
+    limitation_codes: list[LimitationCode] = Field(json_schema_extra={"uniqueItems": True})
+    claim_id: str | None
+    reconciliation_rule_id: DeploymentReconciliationRuleId = DEPLOYMENT_RECONCILIATION_RULE_ID
+    reconciliation_rule_version: Literal[1] = 1
+
+    @field_validator(
+        "candidate_service_ids", "supporting_evidence_refs", "conflicting_evidence_refs"
+    )
+    @classmethod
+    def _check_sorted_and_deduplicated(cls, value: list[str]) -> list[str]:
+        if value != sorted(set(value)):
+            raise ValueError("must be sorted lexicographically and deduplicated")
+        return value
+
+    @field_validator("limitation_codes")
+    @classmethod
+    def _check_limitation_codes_sorted_and_deduplicated(
+        cls, value: list[LimitationCode]
+    ) -> list[LimitationCode]:
+        if [code.value for code in value] != sorted({code.value for code in value}):
+            raise ValueError("limitation_codes must be sorted lexicographically and deduplicated")
+        return value
+
+    @field_validator("supporting_methods")
+    @classmethod
+    def _check_supporting_methods(
+        cls, value: list[DeploymentResolutionMethod]
+    ) -> list[DeploymentResolutionMethod]:
+        return _check_supporting_methods_canonical_order(value)
+
+    @field_validator("claim_id")
+    @classmethod
+    def _check_claim_id_pattern(cls, value: str | None) -> str | None:
+        if value is not None and not re.match(_CLAIM_ID_PATTERN, value):
+            raise ValueError(f"claim_id must match {_CLAIM_ID_PATTERN!r}")
+        return value
+
+    @model_validator(mode="after")
+    def _check_resolved_and_non_resolved_invariants(self) -> DeploymentResolution:
+        # spec §13.3: "status starts with RESOLVED_" - checked textually so this stays correct if
+        # the enum ever grows, without needing a second frozenset kept in sync by hand.
+        if self.status.value.startswith("RESOLVED_"):
+            if self.workload is None:
+                raise ValueError("workload must not be null for a RESOLVED_* status")
+            if self.service_id is None:
+                raise ValueError("service_id must not be null for a RESOLVED_* status")
+            if self.candidate_service_ids != [self.service_id]:
+                raise ValueError(
+                    "candidate_service_ids must equal [service_id] for a RESOLVED_* status"
+                )
+            if self.claim_id is None:
+                raise ValueError("claim_id must not be null for a RESOLVED_* status")
+            if not self.supporting_methods:
+                raise ValueError("supporting_methods must not be empty for a RESOLVED_* status")
+        elif self.claim_id is not None:
+            raise ValueError("claim_id must be null for a non-resolved status")
+        return self
+
+
 class Limitation(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -348,10 +646,29 @@ class Limitation(BaseModel):
 
 
 class ServiceDependenciesData(BaseModel):
+    """v0.5.0 I3 spec §14.2: deployment is a separate sibling projection, never a dependency -
+    `deployment_claim_ids`/`deployment_resolutions` are additive fields alongside the original
+    dependency-only shape, not a replacement of it."""
+
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     service: EntityRef
     dependency_claim_ids: list[str]
+    deployment_claim_ids: list[str]
+    deployment_resolutions: list[DeploymentResolution]
+
+    @field_validator("deployment_resolutions")
+    @classmethod
+    def _check_resolutions_sorted_by_id(
+        cls, value: list[DeploymentResolution]
+    ) -> list[DeploymentResolution]:
+        # spec §13.5: "DeploymentResolution[] is sorted lexicographically by resolution_id."
+        ids = [resolution.resolution_id for resolution in value]
+        if ids != sorted(ids) or len(ids) != len(set(ids)):
+            raise ValueError(
+                "deployment_resolutions must be sorted by resolution_id and deduplicated"
+            )
+        return value
 
 
 class ArchitectureDriftData(BaseModel):
@@ -495,8 +812,25 @@ class EvidenceData(BaseModel):
         return self
 
 
-def _claim_sort_key(claim: DependencyClaim) -> tuple[str, str, str, str]:
-    return (claim.object.id, claim.delivery.kind.value, claim.delivery.via.id, claim.claim_id)
+# I3 spec §14.2's closed claim union - the discriminator is `predicate`, since both claim models
+# already carry it with exactly one distinct Literal value each (`DIRECT_DEPENDENCY`/`DEPLOYED_AS`).
+# Pydantic 2 requires a discriminator field to be `Literal`-typed on every union arm (a bare StrEnum
+# field, even with one member, is rejected at class-definition time) - both models' `predicate`
+# fields are typed accordingly above.
+Claim = Annotated[DependencyClaim | DeploymentClaim, Field(discriminator="predicate")]
+
+
+def _claim_sort_key(claim: DependencyClaim | DeploymentClaim) -> tuple[str, str, str, str, str]:
+    # Resolved via AskUserQuestion during I3 slice 1 planning: the spec defines ordering within each
+    # claim type but not across the closed union. (object.id, predicate, ...) interleaves both claim
+    # types for the same entity, using only fields both types already carry; DependencyClaim's own
+    # existing (delivery.kind, delivery.via.id) tiebreaker becomes ("", "") for a DeploymentClaim,
+    # which has no `delivery` field at all.
+    if isinstance(claim, DependencyClaim):
+        secondary = (claim.delivery.kind.value, claim.delivery.via.id)
+    else:
+        secondary = ("", "")
+    return (claim.object.id, claim.predicate.value, *secondary, claim.claim_id)
 
 
 # v0.4.0 I2.1 - the tool name each generic specialization is locked to, keyed by its bound `T`.
@@ -512,14 +846,46 @@ _TOOL_NAME_BY_DATA_TYPE = {
     "ArchitectureDriftData": "get_architecture_drift",
 }
 
-# v0.4.0 I3.1 - the two claim-carrying data types name their claims under different field names, but
-# both fields carry the identical spec §11 invariant: the id list is a projection of `claims`, never
-# an independent list that could disagree with it. Keyed by type so the envelope check stays one
-# branch rather than one copy per specialization.
-_CLAIM_ID_FIELD_BY_DATA_TYPE: dict[type[BaseModel], str] = {
-    ServiceDependenciesData: "dependency_claim_ids",
-    ArchitectureDriftData: "drift_claim_ids",
-}
+# v0.4.0 I3.1 / v0.5.0 I3 slice 1: each claim-carrying data type projects `claims` into its own id
+# list(s), never an independent list that could disagree with it. `ServiceDependenciesData` now
+# carries BOTH claim types (spec §14.2: deployment is a sibling projection, never a dependency), so
+# its own claim-id lists are partitioned by claim subtype rather than being one flat projection like
+# `ArchitectureDriftData`'s `drift_claim_ids` - each data type therefore gets its own checker
+# function instead of sharing one generic field-name lookup.
+
+
+def _check_service_dependencies_claim_ids(
+    data: ServiceDependenciesData, claims: list[DependencyClaim | DeploymentClaim]
+) -> None:
+    expected_dependency_ids = [c.claim_id for c in claims if isinstance(c, DependencyClaim)]
+    if data.dependency_claim_ids != expected_dependency_ids:
+        raise ValueError(
+            "data.dependency_claim_ids must equal the DependencyClaim entries of claims, in order"
+        )
+    expected_deployment_ids = [c.claim_id for c in claims if isinstance(c, DeploymentClaim)]
+    if data.deployment_claim_ids != expected_deployment_ids:
+        raise ValueError(
+            "data.deployment_claim_ids must equal the DeploymentClaim entries of claims, in order"
+        )
+    # I3 spec §13.3: "claim_id names one returned DeploymentClaim."
+    deployment_claim_ids = set(expected_deployment_ids)
+    for resolution in data.deployment_resolutions:
+        if resolution.claim_id is not None and resolution.claim_id not in deployment_claim_ids:
+            raise ValueError(
+                "every DeploymentResolution.claim_id must name a DeploymentClaim present in claims"
+            )
+
+
+def _check_architecture_drift_claim_ids(
+    data: ArchitectureDriftData, claims: list[DependencyClaim | DeploymentClaim]
+) -> None:
+    # I3 spec §14.2: "get_architecture_drift returns only dependency-drift claims and never
+    # DEPLOYED_AS."
+    if any(isinstance(claim, DeploymentClaim) for claim in claims):
+        raise ValueError("get_architecture_drift answers must never contain a DeploymentClaim")
+    expected_claim_ids = [claim.claim_id for claim in claims]
+    if data.drift_claim_ids != expected_claim_ids:
+        raise ValueError("data.drift_claim_ids must equal claims[*].claim_id in the same order")
 
 
 def _bound_data_type_name(model: type[BaseModel]) -> str | None:
@@ -581,6 +947,23 @@ def _architecture_answer_schema_extra(schema: dict, model: type[BaseModel]) -> N
     tool_name = _TOOL_NAME_BY_DATA_TYPE.get(_bound_data_type_name(model))
     if tool_name is not None:
         all_of.append({"properties": {"tool": {"const": tool_name}}})
+    if tool_name == "get_architecture_drift":
+        # I3 spec §14.2: "get_architecture_drift returns only dependency-drift claims and never
+        # DEPLOYED_AS" - mirrors _check_architecture_drift_claim_ids for external validators.
+        all_of.append(
+            {
+                "properties": {
+                    "claims": {
+                        "items": {
+                            "not": {
+                                "properties": {"predicate": {"const": "DEPLOYED_AS"}},
+                                "required": ["predicate"],
+                            }
+                        }
+                    }
+                }
+            }
+        )
     schema["allOf"] = all_of
 
 
@@ -608,7 +991,7 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
     snapshot: SnapshotRef | None
     observation_context: ObservationContextRef | None
     data: T | None
-    claims: list[DependencyClaim]
+    claims: list[Claim]
     evidence_refs: list[str] = Field(json_schema_extra={"uniqueItems": True})
     limitations: list[Limitation]
 
@@ -646,11 +1029,16 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
                 "OBSERVATION_CONTEXT_REQUIRED is present"
             )
 
+        # DeploymentClaim has no resolution_evidence_refs field at all (that's a DependencyClaim/
+        # destination-resolution-only concept) - only union it in when present.
         expected_evidence_refs = sorted(
             {
                 ref
                 for claim in self.claims
-                for ref in (*claim.evidence_refs, *claim.resolution_evidence_refs)
+                for ref in (
+                    *claim.evidence_refs,
+                    *(claim.resolution_evidence_refs if isinstance(claim, DependencyClaim) else ()),
+                )
             }
         )
         if self.evidence_refs != expected_evidence_refs:
@@ -659,18 +1047,16 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
                 "evidence_refs and resolution_evidence_refs"
             )
 
-        claim_id_field = _CLAIM_ID_FIELD_BY_DATA_TYPE.get(type(self.data))
-        if claim_id_field is not None:
-            expected_claim_ids = [claim.claim_id for claim in self.claims]
-            if getattr(self.data, claim_id_field) != expected_claim_ids:
-                raise ValueError(
-                    f"data.{claim_id_field} must equal claims[*].claim_id in the same order"
-                )
+        if isinstance(self.data, ServiceDependenciesData):
+            _check_service_dependencies_claim_ids(self.data, self.claims)
+        elif isinstance(self.data, ArchitectureDriftData):
+            _check_architecture_drift_claim_ids(self.data, self.claims)
 
         claim_sort_keys = [_claim_sort_key(claim) for claim in self.claims]
         if claim_sort_keys != sorted(claim_sort_keys):
             raise ValueError(
-                "claims must be sorted by (object.id, delivery.kind, delivery.via.id, claim_id)"
+                "claims must be sorted by (object.id, predicate, delivery.kind, delivery.via.id, "
+                "claim_id)"
             )
 
         return self
