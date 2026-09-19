@@ -247,80 +247,72 @@ def parse_service_workload_mappings(
     return parsed, []
 
 
-def load_service_workload_mappings(
-    paths: Sequence[Path],
-) -> tuple[tuple[ServiceWorkloadMappingDocument, ...], tuple[IngestionDiagnostic, ...]]:
-    """Reads and parses every configured mapping-artifact file
-    (`app.settings.SourcesConfig.service_workload_mappings`). A missing/unreadable file or one
-    that isn't well-formed/single-document YAML at its root is diagnosed rather than raised or
-    silently skipped, mirroring `migration_mappings.load_migration_mappings`'s identical
-    "diagnose, don't fall back" discipline. Returns every successfully parsed document
-    independently (no merged index) - `resolve_path_b` needs full per-entry artifact provenance
-    for its own evidence-identity construction.
+def load_service_workload_mapping(
+    path: Path | None,
+) -> tuple[ServiceWorkloadMappingDocument | None, tuple[IngestionDiagnostic, ...]]:
+    """Reads and parses the single configured mapping-artifact file
+    (`app.settings.SourcesConfig.service_workload_mapping`), per spec §8.1: "Path B uses one local,
+    versioned mapping artifact" - never a collection (PR #215 review: an earlier `list[Path]`/
+    multi-document shape let two artifacts silently collide on the same `(artifact_id,
+    artifact_revision, mapping_id)` group key, violating §13.1's exactly-once reduction). `path is
+    None` (no artifact configured) returns `(None, ())`. A missing/unreadable file or one that isn't
+    well-formed/single-document YAML at its root is diagnosed rather than raised or silently
+    skipped, mirroring `migration_mappings.load_migration_mappings`'s identical "diagnose, don't
+    fall back" discipline.
     """
-    diagnostics: list[IngestionDiagnostic] = []
-    documents: list[ServiceWorkloadMappingDocument] = []
+    if path is None:
+        return None, ()
 
-    for path in paths:
-        locator = str(path)
-        try:
-            raw_bytes = path.read_bytes()
-        except OSError as exc:
-            diagnostics.append(
-                IngestionDiagnostic(
-                    code=DiagnosticCode.SERVICE_WORKLOAD_MAPPING_FILE_UNAVAILABLE,
-                    message=f"{locator}: {exc}",
-                    source_pointer=locator,
-                )
-            )
-            continue
-
-        content_digest = sha256_hex(raw_bytes)
-
-        try:
-            loaded_documents = load_bounded_yaml_documents(raw_bytes)
-        except (
-            KubernetesEnvelopeLimitExceeded,
-            KubernetesEnvelopeMalformedError,
-            yaml.YAMLError,
-        ) as exc:
-            diagnostics.append(
-                IngestionDiagnostic(
-                    code=DiagnosticCode.SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID,
-                    message=f"{locator}: {exc}",
-                    source_pointer=locator,
-                )
-            )
-            continue
-
-        if len(loaded_documents) != 1:
-            diagnostics.append(
-                IngestionDiagnostic(
-                    code=DiagnosticCode.SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID,
-                    message=(
-                        f"{locator}: expected exactly one YAML document, got "
-                        f"{len(loaded_documents)}"
-                    ),
-                    source_pointer=locator,
-                )
-            )
-            continue
-        [parsed_yaml] = loaded_documents
-        if not isinstance(parsed_yaml, dict):
-            diagnostics.append(
-                IngestionDiagnostic(
-                    code=DiagnosticCode.SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID,
-                    message=f"{locator}: root document is not a mapping",
-                    source_pointer=locator,
-                )
-            )
-            continue
-
-        document, parse_diagnostics = parse_service_workload_mappings(
-            parsed_yaml, locator=locator, content_digest=content_digest
+    locator = str(path)
+    try:
+        raw_bytes = path.read_bytes()
+    except OSError as exc:
+        return None, (
+            IngestionDiagnostic(
+                code=DiagnosticCode.SERVICE_WORKLOAD_MAPPING_FILE_UNAVAILABLE,
+                message=f"{locator}: {exc}",
+                source_pointer=locator,
+            ),
         )
-        diagnostics.extend(parse_diagnostics)
-        if document is not None:
-            documents.append(document)
 
-    return tuple(documents), tuple(diagnostics)
+    content_digest = sha256_hex(raw_bytes)
+
+    try:
+        loaded_documents = load_bounded_yaml_documents(raw_bytes)
+    except (
+        KubernetesEnvelopeLimitExceeded,
+        KubernetesEnvelopeMalformedError,
+        yaml.YAMLError,
+    ) as exc:
+        return None, (
+            IngestionDiagnostic(
+                code=DiagnosticCode.SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID,
+                message=f"{locator}: {exc}",
+                source_pointer=locator,
+            ),
+        )
+
+    if len(loaded_documents) != 1:
+        return None, (
+            IngestionDiagnostic(
+                code=DiagnosticCode.SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID,
+                message=(
+                    f"{locator}: expected exactly one YAML document, got {len(loaded_documents)}"
+                ),
+                source_pointer=locator,
+            ),
+        )
+    [parsed_yaml] = loaded_documents
+    if not isinstance(parsed_yaml, dict):
+        return None, (
+            IngestionDiagnostic(
+                code=DiagnosticCode.SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID,
+                message=f"{locator}: root document is not a mapping",
+                source_pointer=locator,
+            ),
+        )
+
+    document, parse_diagnostics = parse_service_workload_mappings(
+        parsed_yaml, locator=locator, content_digest=content_digest
+    )
+    return document, tuple(parse_diagnostics)

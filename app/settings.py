@@ -25,10 +25,12 @@ class SourcesConfig(BaseModel):
     # app.sources.tombstones.load_tombstones. Defaults to empty: no tombstone is declared unless an
     # operator configures one.
     tombstones: list[Path] = Field(default_factory=list)
-    # v0.5.0 I3 spec §8.1's configured Service<->Workload identity-mapping artifact (Path B) - a
-    # list, mirroring `migrations`' own "any number of configured artifacts" shape. Defaults to
-    # empty: no configured mapping is declared unless an operator configures one.
-    service_workload_mappings: list[Path] = Field(default_factory=list)
+    # v0.5.0 I3 spec §8.1's configured Service<->Workload identity-mapping artifact (Path B) -
+    # deliberately a single optional path, not a list: §8.1 states "Path B uses one local,
+    # versioned mapping artifact" (PR #215 review finding - an earlier `list[Path]` shape let two
+    # artifacts silently collide on the same group key, violating §13.1's exactly-once reduction).
+    # `None` (the default): no configured mapping is declared unless an operator configures one.
+    service_workload_mapping: Path | None = None
 
 
 class GraphConfig(BaseModel):

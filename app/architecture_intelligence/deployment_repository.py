@@ -21,7 +21,17 @@ from app.architecture_intelligence.deployment_projection import (
     WorkloadContribution,
 )
 
-_SERVICE_NAME_QUERY = "MATCH (s:Service {id: $service_id}) RETURN s.name AS name"
+# PR #215 review finding (spec §3/§7/§29): a `:Service` node minted purely from telemetry
+# (`app.telemetry.aggregator._MERGE_STUB_NODE_QUERY`, `ON CREATE SET n.discovery_status =
+# 'OBSERVED_ONLY'`) must never qualify Path A/B deployment identity - only a declared Service can.
+# A declared `Service` (`app.canonical.model.Service`, written via the normal `_write_nodes` import
+# path) never sets `discovery_status` at all, so `coalesce(..., 'DECLARED')` treats an absent
+# property as declared and excludes only the explicit 'OBSERVED_ONLY' stub.
+_DECLARED_SERVICE_NAME_QUERY = (
+    "MATCH (s:Service {id: $service_id}) "
+    "WHERE coalesce(s.discovery_status, 'DECLARED') <> 'OBSERVED_ONLY' "
+    "RETURN s.name AS name"
+)
 
 _WORKLOAD_BY_ID_QUERY = (
     "MATCH (e:InfrastructureEntity {id: $entity_id}) "
@@ -46,9 +56,11 @@ _CURRENT_KUBERNETES_WORKLOADS_QUERY = (
 
 
 def read_service_name(session: neo4j.Session, *, service_id: str) -> str | None:
-    """`None` when no declared `Service` with this id currently exists - spec §7/§8.2's "annotation/
-    mapping names a missing Service" case."""
-    record = session.run(_SERVICE_NAME_QUERY, service_id=service_id).single()
+    """`None` when no *declared* `Service` with this id currently exists - spec §7/§8.2's
+    "annotation/mapping names a missing Service" case, and (PR #215 review) also spec §3/§7/§29's
+    "an `OBSERVED_ONLY` Service cannot qualify deployment identity" case: a telemetry-minted stub
+    Service is excluded exactly like a genuinely absent one."""
+    record = session.run(_DECLARED_SERVICE_NAME_QUERY, service_id=service_id).single()
     return record["name"] if record is not None else None
 
 

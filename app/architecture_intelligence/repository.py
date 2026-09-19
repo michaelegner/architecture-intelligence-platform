@@ -20,9 +20,14 @@ from app.analysis.runtime import telemetry_coverage
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
+from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
 
 # Bumping this - or changing any query/rule below - is a snapshot-fingerprint contract change and
-# MUST be recorded explicitly (spec §18).
+# MUST be recorded explicitly (spec §18). Not bumped for the PR #215 mapping-artifact-binding
+# addition below: that addition is purely conditional on a real caller supplying a document (no
+# caller does yet - I3 slice 5 wires that), so every existing caller's hashed state is byte-
+# identical to before, and every already-frozen snapshot_id in this repo's independently-authored
+# evaluation fixtures stays valid. See `canonical_snapshot_state`'s own comment.
 _CANONICALIZATION_VERSION = 1
 
 _SERVICE_QUERY = "MATCH (n:Service) RETURN n.id AS id, n.name AS name, n.version AS version"
@@ -102,14 +107,51 @@ def _project_relations(session: neo4j.Session) -> list[dict]:
     return sorted(rows, key=lambda row: (row["type"], row["source_id"], row["target_id"]))
 
 
+def _semantic_config_state(
+    *,
+    coverage_qualification_enabled: bool,
+    service_workload_mapping_document: ServiceWorkloadMappingDocument | None,
+) -> dict:
+    """I3 spec §8.3: "Changing the mapping artifact content SHALL change the I3 reconciliation
+    context and public snapshot identity even if no source document or Kubernetes bundle changes."
+    §17 repeats this as a general snapshot-binding requirement, and §23 lists "snapshot binding of
+    mapping digest" as in-scope for slice 3 itself (PR #215 review finding: the first version of
+    this slice bound only the mapping *evidence* id, never the snapshot/reconciliation-context
+    identity `resolve_path_b` itself receives as a caller-supplied opaque string).
+
+    `service_workload_mapping_artifact` is omitted entirely (not merely set to `null`) when
+    `service_workload_mapping_document is None` - deliberately, so `semantic_config`'s hashed JSON
+    shape for every existing caller (none of which passes a real document yet; I3 slice 5 wires
+    that) stays byte-identical to before this addition, and no already-frozen snapshot_id in this
+    repo's independently-authored evaluation fixtures moves. Only a caller that actually supplies a
+    configured artifact changes the fingerprint, exactly as intended.
+    """
+    semantic_config = {"coverage_qualification_enabled": coverage_qualification_enabled}
+    if service_workload_mapping_document is not None:
+        semantic_config["service_workload_mapping_artifact"] = {
+            "artifact_id": service_workload_mapping_document.artifact_id,
+            "artifact_revision": service_workload_mapping_document.artifact_revision,
+            "content_digest": service_workload_mapping_document.content_digest,
+        }
+    return semantic_config
+
+
 def canonical_snapshot_state(
-    session: neo4j.Session, *, coverage_qualification_enabled: bool
+    session: neo4j.Session,
+    *,
+    coverage_qualification_enabled: bool,
+    service_workload_mapping_document: ServiceWorkloadMappingDocument | None = None,
 ) -> dict:
     """The complete queryable canonical model-and-evidence state, as an allowlisted (spec §18),
     canonically-ordered plain dict ready for `canonical_json_bytes`. Excludes Neo4j element ids,
     read/insertion order, relation `.key`, reconciliation-only `.owner_source_ids` arrays, and the
     internal revision-fence value - none of those are ever selected by the queries above in the
-    first place, so there is nothing further to strip here."""
+    first place, so there is nothing further to strip here.
+
+    `service_workload_mapping_document` is the currently configured I3 Path B artifact (or `None`),
+    supplied by the caller rather than read from Neo4j here, mirroring `coverage_qualification_
+    enabled`'s own "externally configured semantic value" shape - see `_semantic_config_state`.
+    """
     return {
         "version": _CANONICALIZATION_VERSION,
         "services": _project_nodes(session, _SERVICE_QUERY),
@@ -119,7 +161,10 @@ def canonical_snapshot_state(
         "schemas": _project_nodes(session, _SCHEMA_QUERY),
         "evidence": _project_nodes(session, _EVIDENCE_QUERY),
         "relations": _project_relations(session),
-        "semantic_config": {"coverage_qualification_enabled": coverage_qualification_enabled},
+        "semantic_config": _semantic_config_state(
+            coverage_qualification_enabled=coverage_qualification_enabled,
+            service_workload_mapping_document=service_workload_mapping_document,
+        ),
     }
 
 
@@ -174,16 +219,21 @@ def read_stable_snapshot_from_session[T](
     session: neo4j.Session,
     *,
     coverage_qualification_enabled: bool,
+    service_workload_mapping_document: ServiceWorkloadMappingDocument | None = None,
     read_extra: Callable[[neo4j.Session], T] = lambda _session: None,
     max_attempts: int = 3,
 ) -> StableSnapshot[T]:
     """I1.2 has no request-specific data yet, so `read_extra` defaults to a no-op; I1.3 passes its
     dependency-projection read here unchanged, reusing this same retry loop rather than
-    duplicating it."""
+    duplicating it. `service_workload_mapping_document` defaults to `None` - no caller loads and
+    passes a real Path B artifact yet (I3 slice 5 wires that); the parameter exists now so the
+    snapshot-binding mechanism itself is real and tested ahead of that wiring."""
     return read_stable_snapshot(
         read_revision_fn=lambda: read_revision(session),
         read_state=lambda: canonical_snapshot_state(
-            session, coverage_qualification_enabled=coverage_qualification_enabled
+            session,
+            coverage_qualification_enabled=coverage_qualification_enabled,
+            service_workload_mapping_document=service_workload_mapping_document,
         ),
         read_extra=lambda: read_extra(session),
         max_attempts=max_attempts,

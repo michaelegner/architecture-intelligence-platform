@@ -16,7 +16,7 @@ from app.canonical.infrastructure import KubernetesEvidenceMode
 from app.graph.importer import import_kubernetes_source
 from app.graph.schema import ensure_schema
 from app.sources.model import KubernetesSourceConfig
-from app.sources.service_workload_mapping import load_service_workload_mappings
+from app.sources.service_workload_mapping import load_service_workload_mapping
 
 DATABASE = "neo4j"
 SNAPSHOT_ID = "aip:snapshot:v1:" + "a" * 64
@@ -109,6 +109,15 @@ def _create_service(driver, *, service_id: str, name: str):
         )
 
 
+def _create_observed_only_service(driver, *, service_id: str, name: str):
+    with driver.session(database=DATABASE) as session:
+        session.run(
+            "MERGE (s:Service {id: $id}) SET s.name = $name, s.discovery_status = 'OBSERVED_ONLY'",
+            id=service_id,
+            name=name,
+        )
+
+
 def test_path_a_resolves_a_real_annotated_workload_end_to_end(driver, tmp_path):
     _reset_graph(driver)
     _create_service(driver, service_id="service:checkout", name="checkout")
@@ -189,6 +198,49 @@ def test_path_a_annotation_naming_a_missing_service_is_unresolved_end_to_end(dri
     assert result.claims == []
 
 
+def test_path_a_annotation_naming_an_observed_only_service_is_unresolved_end_to_end(
+    driver, tmp_path
+):
+    # PR #215 review (spec §3/§7/§29): a telemetry-minted OBSERVED_ONLY Service stub must never
+    # qualify deployment identity - treated identically to a genuinely missing Service.
+    _reset_graph(driver)
+    _create_observed_only_service(driver, service_id="service:checkout", name="checkout")
+
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="i3-path-a-observed-only-source",
+        scope_id="i3-path-a-observed-only-scope",
+        cluster_uid="i3-path-a-observed-only-cluster",
+        namespaces=["checkout"],
+        resources=[
+            _deployment(
+                "checkout-api",
+                "checkout",
+                "deploy-uid-path-a-observed-only",
+                annotations={"architecture-intelligence.io/service-id": "service:checkout"},
+            )
+        ],
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    with driver.session(database=DATABASE) as session:
+        workloads = deployment_repository.iter_current_kubernetes_workloads(session)
+        result = resolve_path_a(
+            workloads=workloads,
+            lookup_service_name=lambda service_id: deployment_repository.read_service_name(
+                session, service_id=service_id
+            ),
+            snapshot_id=SNAPSHOT_ID,
+            context_id=CONTEXT_ID,
+        )
+
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.candidate_service_ids == ["service:checkout"]
+    assert result.claims == []
+
+
 def test_path_b_resolves_a_real_configured_mapping_end_to_end(driver, tmp_path):
     _reset_graph(driver)
     _create_service(driver, service_id="service:checkout", name="checkout")
@@ -228,12 +280,12 @@ def test_path_b_resolves_a_real_configured_mapping_end_to_end(driver, tmp_path):
             }
         )
     )
-    documents, diagnostics = load_service_workload_mappings([mapping_path])
+    document, diagnostics = load_service_workload_mapping(mapping_path)
     assert diagnostics == ()
 
     with driver.session(database=DATABASE) as session:
         result = resolve_path_b(
-            documents=documents,
+            document=document,
             configured_kubernetes_sources=[("i3-path-b-source", "i3-path-b-cluster-uid")],
             resolve_workload=lambda entity_id: (
                 deployment_repository.read_current_kubernetes_workload(session, entity_id=entity_id)
@@ -282,12 +334,12 @@ def test_path_b_mapping_to_a_real_missing_workload_is_unresolved_end_to_end(driv
             }
         )
     )
-    documents, diagnostics = load_service_workload_mappings([mapping_path])
+    document, diagnostics = load_service_workload_mapping(mapping_path)
     assert diagnostics == ()
 
     with driver.session(database=DATABASE) as session:
         result = resolve_path_b(
-            documents=documents,
+            document=document,
             configured_kubernetes_sources=[
                 ("i3-path-b-missing-source", "i3-path-b-missing-cluster-uid")
             ],
@@ -304,4 +356,71 @@ def test_path_b_mapping_to_a_real_missing_workload_is_unresolved_end_to_end(driv
     [resolution] = result.resolutions
     assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
     assert resolution.workload is None
+    assert result.claims == []
+
+
+def test_path_b_mapping_to_an_observed_only_service_is_unresolved_end_to_end(driver, tmp_path):
+    # PR #215 review (spec §3/§8.2/§29): a configured mapping naming an OBSERVED_ONLY Service stub
+    # must resolve the Workload but still refuse to mint a claim.
+    _reset_graph(driver)
+    _create_observed_only_service(driver, service_id="service:checkout", name="checkout")
+
+    config = _write_kubernetes_bundle(
+        tmp_path / "cluster",
+        source_id="i3-path-b-observed-only-source",
+        scope_id="i3-path-b-observed-only-scope",
+        cluster_uid="i3-path-b-observed-only-cluster-uid",
+        namespaces=["checkout"],
+        resources=[_deployment("checkout-api", "checkout", "deploy-uid-path-b-observed-only")],
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    mapping_path = tmp_path / "mapping.yaml"
+    mapping_path.write_text(
+        yaml.safe_dump(
+            {
+                "apiVersion": "aip.dev/v1",
+                "kind": "ServiceWorkloadIdentityMappings",
+                "metadata": {"id": "i3-path-b-observed-only-mappings", "revision": "v1"},
+                "mappings": [
+                    {
+                        "mappingId": "checkout-runtime",
+                        "serviceId": "service:checkout",
+                        "kubernetesSourceId": "i3-path-b-observed-only-source",
+                        "clusterUid": "i3-path-b-observed-only-cluster-uid",
+                        "workload": {
+                            "apiGroup": "apps",
+                            "kind": "Deployment",
+                            "namespace": "checkout",
+                            "name": "checkout-api",
+                        },
+                    }
+                ],
+            }
+        )
+    )
+    document, diagnostics = load_service_workload_mapping(mapping_path)
+    assert diagnostics == ()
+
+    with driver.session(database=DATABASE) as session:
+        result = resolve_path_b(
+            document=document,
+            configured_kubernetes_sources=[
+                ("i3-path-b-observed-only-source", "i3-path-b-observed-only-cluster-uid")
+            ],
+            resolve_workload=lambda entity_id: (
+                deployment_repository.read_current_kubernetes_workload(session, entity_id=entity_id)
+            ),
+            lookup_service_name=lambda service_id: deployment_repository.read_service_name(
+                session, service_id=service_id
+            ),
+            snapshot_id=SNAPSHOT_ID,
+            context_id=CONTEXT_ID,
+        )
+
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.workload is not None  # the Workload itself resolved
+    assert resolution.candidate_service_ids == ["service:checkout"]
     assert result.claims == []

@@ -1,3 +1,5 @@
+import pytest
+
 from app.architecture_intelligence.contracts import (
     DEPLOYMENT_RECONCILIATION_RULE_ID,
     DeploymentResolutionMethod,
@@ -67,6 +69,20 @@ def test_compute_deployment_claim_id_differs_by_service_or_workload():
 
 def test_compute_deployment_group_key_workload_branch():
     assert compute_deployment_group_key(workload_id="w1") == "workload:w1"
+
+
+def test_compute_deployment_group_key_rejects_both_branches_given_together():
+    # PR #215 review (Copilot): the docstring says exactly one branch must be given - assert that's
+    # now enforced rather than silently preferring workload_id.
+    with pytest.raises(ValueError):
+        compute_deployment_group_key(
+            workload_id="w1", mapping_artifact_id="a", mapping_artifact_revision="b", mapping_id="c"
+        )
+
+
+def test_compute_deployment_group_key_rejects_neither_branch_given():
+    with pytest.raises(ValueError):
+        compute_deployment_group_key()
 
 
 def test_compute_deployment_group_key_mapping_branch_distinct_tuples():
@@ -362,7 +378,7 @@ def test_path_b_valid_mapping_for_each_supported_kind():
         )
 
     result = resolve_path_b(
-        documents=[document],
+        document=document,
         configured_kubernetes_sources=[CURRENT_SOURCE],
         resolve_workload=_workload_resolver(workloads_by_entity_id),
         lookup_service_name=_service_lookup({"service:checkout": "checkout"}),
@@ -390,7 +406,7 @@ def test_path_b_mapping_to_missing_service_is_unresolved():
         name=entry.name,
     )
     result = resolve_path_b(
-        documents=[document],
+        document=document,
         configured_kubernetes_sources=[CURRENT_SOURCE],
         resolve_workload=_workload_resolver({entity_id: _workload(workload_id=entity_id)}),
         lookup_service_name=_service_lookup({}),
@@ -407,7 +423,7 @@ def test_path_b_mapping_to_missing_service_is_unresolved():
 def test_path_b_mapping_to_missing_workload_is_unresolved_with_null_workload():
     document = _mapping_document([_mapping_entry()])
     result = resolve_path_b(
-        documents=[document],
+        document=document,
         configured_kubernetes_sources=[CURRENT_SOURCE],
         resolve_workload=_workload_resolver({}),
         lookup_service_name=_service_lookup({"service:checkout": "checkout"}),
@@ -423,7 +439,7 @@ def test_path_b_mapping_to_missing_workload_is_unresolved_with_null_workload():
 def test_path_b_wrong_configured_kubernetes_source_id_is_unresolved_with_null_workload():
     document = _mapping_document([_mapping_entry(kubernetes_source_id="other-cluster")])
     result = resolve_path_b(
-        documents=[document],
+        document=document,
         configured_kubernetes_sources=[CURRENT_SOURCE],
         resolve_workload=lambda entity_id: (_ for _ in ()).throw(
             AssertionError("resolve_workload must not be called for a non-current source")
@@ -440,7 +456,7 @@ def test_path_b_wrong_configured_kubernetes_source_id_is_unresolved_with_null_wo
 def test_path_b_wrong_cluster_uid_is_unresolved_with_null_workload():
     document = _mapping_document([_mapping_entry(cluster_uid="a-different-cluster-uid")])
     result = resolve_path_b(
-        documents=[document],
+        document=document,
         configured_kubernetes_sources=[CURRENT_SOURCE],
         resolve_workload=lambda entity_id: (_ for _ in ()).throw(
             AssertionError("resolve_workload must not be called for a non-current source")
@@ -473,7 +489,7 @@ def test_path_b_same_names_different_namespaces_are_independent():
         workloads[entity_id] = _workload(workload_id=entity_id, namespace=entry.namespace)
 
     result = resolve_path_b(
-        documents=[document],
+        document=document,
         configured_kubernetes_sources=[CURRENT_SOURCE],
         resolve_workload=_workload_resolver(workloads),
         lookup_service_name=_service_lookup({"service:a": "a", "service:b": "b"}),
@@ -516,7 +532,7 @@ def test_path_b_same_names_different_clusters_are_independent():
         workloads[entity_id] = _workload(workload_id=entity_id)
 
     result = resolve_path_b(
-        documents=[document],
+        document=document,
         configured_kubernetes_sources=[
             ("cluster-a", "00000000-0000-0000-0000-000000000001"),
             ("cluster-b", "00000000-0000-0000-0000-000000000002"),
@@ -545,7 +561,7 @@ def test_path_b_two_mappings_same_workload_different_services_conflict():
         name=entry_a.name,
     )
     result = resolve_path_b(
-        documents=[document],
+        document=document,
         configured_kubernetes_sources=[CURRENT_SOURCE],
         resolve_workload=_workload_resolver({entity_id: _workload(workload_id=entity_id)}),
         lookup_service_name=_service_lookup(
@@ -573,7 +589,7 @@ def test_path_b_evidence_id_reflects_artifact_identity_and_mapping_id():
         name=entry.name,
     )
     result = resolve_path_b(
-        documents=[document],
+        document=document,
         configured_kubernetes_sources=[CURRENT_SOURCE],
         resolve_workload=_workload_resolver({entity_id: _workload(workload_id=entity_id)}),
         lookup_service_name=_service_lookup({"service:checkout": "checkout"}),
@@ -588,3 +604,20 @@ def test_path_b_evidence_id_reflects_artifact_identity_and_mapping_id():
         mapping_id="checkout-runtime",
     )
     assert resolution.supporting_evidence_refs == [expected_evidence_id]
+
+
+def test_path_b_with_no_configured_artifact_produces_nothing():
+    # spec §8.1: "Path B uses one local, versioned mapping artifact" - `document=None` (no artifact
+    # configured) must produce no resolutions/claims at all, not an empty-but-present group.
+    result = resolve_path_b(
+        document=None,
+        configured_kubernetes_sources=[CURRENT_SOURCE],
+        resolve_workload=lambda entity_id: (_ for _ in ()).throw(
+            AssertionError("resolve_workload must not be called with no configured artifact")
+        ),
+        lookup_service_name=_service_lookup({}),
+        snapshot_id=SNAPSHOT_ID,
+        context_id=CONTEXT_ID,
+    )
+    assert result.resolutions == []
+    assert result.claims == []

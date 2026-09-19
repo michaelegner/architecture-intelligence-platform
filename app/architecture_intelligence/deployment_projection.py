@@ -109,6 +109,14 @@ def compute_deployment_group_key(
     per §13.1, specifically so delimiter-bearing artifact id/revision/mappingId values can never
     collide across a different `(artifact_id, artifact_revision, mapping_id)` tuple.
     """
+    mapping_fields_given = any(
+        value is not None for value in (mapping_artifact_id, mapping_artifact_revision, mapping_id)
+    )
+    if workload_id is not None and mapping_fields_given:
+        raise ValueError(
+            "compute_deployment_group_key accepts either workload_id or the mapping_* fields, "
+            "not both"
+        )
     if workload_id is not None:
         return f"workload:{workload_id}"
     if mapping_artifact_id is None or mapping_artifact_revision is None or mapping_id is None:
@@ -302,56 +310,59 @@ class _MappingRecord:
 
 def resolve_path_b(
     *,
-    documents: Sequence[ServiceWorkloadMappingDocument],
+    document: ServiceWorkloadMappingDocument | None,
     configured_kubernetes_sources: Sequence[tuple[str, str]],
     resolve_workload: Callable[[str], CurrentKubernetesWorkload | None],
     lookup_service_name: Callable[[str], str | None],
     snapshot_id: str,
     context_id: str,
 ) -> PathResolutionResult:
-    """Spec §8: for every `(document, entry)` pair across the loaded mapping artifacts, check the
-    entry's `(kubernetesSourceId, clusterUid)` against the currently configured I2 sources, then
-    resolve the exact Workload via `kubernetes_logical_resource_id` + `resolve_workload` (a point
-    lookup the caller supplies - real reads live in `app.architecture_intelligence.
-    deployment_repository`). Entries resolving to the same Workload are grouped per §13.1's
-    `"workload:"` branch (`RESOLVED_CONFIGURED`/`UNRESOLVED`/`CONFLICT`, mirroring `resolve_path_a`'s
-    identical reduction); entries whose target Workload didn't resolve (wrong source/cluster UID,
-    or no matching current Workload) each get their own `"mapping:"`-keyed group -> `UNRESOLVED`
-    with `workload = null`.
+    """Spec §8.1: "Path B uses one local, versioned mapping artifact" - `document` is that single
+    artifact (or `None` when none is configured), never a collection. For every entry, check its
+    `(kubernetesSourceId, clusterUid)` against the currently configured I2 sources, then resolve the
+    exact Workload via `kubernetes_logical_resource_id` + `resolve_workload` (a point lookup the
+    caller supplies - real reads live in `app.architecture_intelligence.deployment_repository`).
+    Entries resolving to the same Workload are grouped per §13.1's `"workload:"` branch
+    (`RESOLVED_CONFIGURED`/`UNRESOLVED`/`CONFLICT`, mirroring `resolve_path_a`'s identical
+    reduction); entries whose target Workload didn't resolve (wrong source/cluster UID, or no
+    matching current Workload) each get their own `"mapping:"`-keyed group -> `UNRESOLVED` with
+    `workload = null`.
     """
+    if document is None:
+        return PathResolutionResult(resolutions=[], claims=[])
+
     current_source_pairs = set(configured_kubernetes_sources)
     records: list[_MappingRecord] = []
 
-    for document in documents:
-        for entry in document.entries:
-            mapping_evidence_id = compute_service_workload_mapping_evidence_id(
-                artifact_id=document.artifact_id,
-                artifact_revision=document.artifact_revision,
-                content_digest=document.content_digest,
-                mapping_id=entry.mapping_id,
+    for entry in document.entries:
+        mapping_evidence_id = compute_service_workload_mapping_evidence_id(
+            artifact_id=document.artifact_id,
+            artifact_revision=document.artifact_revision,
+            content_digest=document.content_digest,
+            mapping_id=entry.mapping_id,
+        )
+        matches_current_source = (
+            entry.kubernetes_source_id,
+            entry.cluster_uid,
+        ) in current_source_pairs
+        workload: CurrentKubernetesWorkload | None = None
+        if matches_current_source:
+            entity_id = kubernetes_logical_resource_id(
+                cluster_uid=entry.cluster_uid,
+                api_group=entry.api_group,
+                kind=entry.workload_kind,
+                namespace=entry.namespace,
+                name=entry.name,
             )
-            matches_current_source = (
-                entry.kubernetes_source_id,
-                entry.cluster_uid,
-            ) in current_source_pairs
-            workload: CurrentKubernetesWorkload | None = None
-            if matches_current_source:
-                entity_id = kubernetes_logical_resource_id(
-                    cluster_uid=entry.cluster_uid,
-                    api_group=entry.api_group,
-                    kind=entry.workload_kind,
-                    namespace=entry.namespace,
-                    name=entry.name,
-                )
-                workload = resolve_workload(entity_id)
-            records.append(
-                _MappingRecord(
-                    document=document,
-                    entry=entry,
-                    mapping_evidence_id=mapping_evidence_id,
-                    workload=workload,
-                )
+            workload = resolve_workload(entity_id)
+        records.append(
+            _MappingRecord(
+                document=document,
+                entry=entry,
+                mapping_evidence_id=mapping_evidence_id,
+                workload=workload,
             )
+        )
 
     by_workload_id: dict[str, list[_MappingRecord]] = defaultdict(list)
     unmatched: list[_MappingRecord] = []

@@ -3,7 +3,7 @@ import yaml
 from app.sources.model import DiagnosticCode
 from app.sources.service_workload_mapping import (
     ServiceWorkloadMappingDocument,
-    load_service_workload_mappings,
+    load_service_workload_mapping,
     parse_service_workload_mappings,
 )
 
@@ -162,46 +162,52 @@ def test_parse_preserves_delimiter_bearing_identity_fields():
     assert parsed.entries[0].mapping_id == "mapping:with/colon"
 
 
-def test_load_service_workload_mappings_from_a_real_file(tmp_path):
+def test_load_service_workload_mapping_with_no_path_configured():
+    # spec §8.1: "Path B uses one local, versioned mapping artifact" - `None` (no artifact
+    # configured) is a legal, non-diagnosed input, not an error.
+    document, diagnostics = load_service_workload_mapping(None)
+    assert document is None
+    assert diagnostics == ()
+
+
+def test_load_service_workload_mapping_from_a_real_file(tmp_path):
     path = tmp_path / "mappings.yaml"
     path.write_text(yaml.safe_dump(_document()))
 
-    documents, diagnostics = load_service_workload_mappings([path])
+    document, diagnostics = load_service_workload_mapping(path)
 
     assert diagnostics == ()
-    assert len(documents) == 1
-    [document] = documents
     assert isinstance(document, ServiceWorkloadMappingDocument)
     assert document.locator == str(path)
     assert len(document.content_digest) == 64
     assert len(document.entries) == 1
 
 
-def test_load_service_workload_mappings_diagnoses_a_missing_file(tmp_path):
-    documents, diagnostics = load_service_workload_mappings([tmp_path / "does-not-exist.yaml"])
-    assert documents == ()
+def test_load_service_workload_mapping_diagnoses_a_missing_file(tmp_path):
+    document, diagnostics = load_service_workload_mapping(tmp_path / "does-not-exist.yaml")
+    assert document is None
     assert [d.code for d in diagnostics] == [
         DiagnosticCode.SERVICE_WORKLOAD_MAPPING_FILE_UNAVAILABLE
     ]
 
 
-def test_load_service_workload_mappings_diagnoses_malformed_yaml(tmp_path):
+def test_load_service_workload_mapping_diagnoses_malformed_yaml(tmp_path):
     path = tmp_path / "broken.yaml"
     path.write_text("not: valid: yaml: [")
-    documents, diagnostics = load_service_workload_mappings([path])
-    assert documents == ()
+    document, diagnostics = load_service_workload_mapping(path)
+    assert document is None
     assert [d.code for d in diagnostics] == [DiagnosticCode.SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID]
 
 
-def test_load_service_workload_mappings_diagnoses_non_mapping_root(tmp_path):
+def test_load_service_workload_mapping_diagnoses_non_mapping_root(tmp_path):
     path = tmp_path / "list.yaml"
     path.write_text("- just\n- a\n- list\n")
-    documents, diagnostics = load_service_workload_mappings([path])
-    assert documents == ()
+    document, diagnostics = load_service_workload_mapping(path)
+    assert document is None
     assert [d.code for d in diagnostics] == [DiagnosticCode.SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID]
 
 
-def test_load_service_workload_mappings_diagnoses_a_literal_duplicate_yaml_key(tmp_path):
+def test_load_service_workload_mapping_diagnoses_a_literal_duplicate_yaml_key(tmp_path):
     path = tmp_path / "duplicate-key.yaml"
     path.write_text(
         "apiVersion: aip.dev/v1\n"
@@ -211,28 +217,14 @@ def test_load_service_workload_mappings_diagnoses_a_literal_duplicate_yaml_key(t
         "  id: dup-again\n"
         "  revision: v1\n"
     )
-    documents, diagnostics = load_service_workload_mappings([path])
-    assert documents == ()
+    document, diagnostics = load_service_workload_mapping(path)
+    assert document is None
     assert [d.code for d in diagnostics] == [DiagnosticCode.SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID]
 
 
-def test_load_service_workload_mappings_diagnoses_a_multi_document_stream(tmp_path):
+def test_load_service_workload_mapping_diagnoses_a_multi_document_stream(tmp_path):
     path = tmp_path / "multi.yaml"
     path.write_text(yaml.safe_dump(_document()) + "---\n" + yaml.safe_dump(_document()))
-    documents, diagnostics = load_service_workload_mappings([path])
-    assert documents == ()
+    document, diagnostics = load_service_workload_mapping(path)
+    assert document is None
     assert [d.code for d in diagnostics] == [DiagnosticCode.SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID]
-
-
-def test_load_service_workload_mappings_continues_past_one_bad_file(tmp_path):
-    good_path = tmp_path / "good.yaml"
-    good_path.write_text(yaml.safe_dump(_document(metadata={"id": "good", "revision": "v1"})))
-    bad_path = tmp_path / "does-not-exist.yaml"
-
-    documents, diagnostics = load_service_workload_mappings([good_path, bad_path])
-
-    assert len(documents) == 1
-    assert documents[0].artifact_id == "good"
-    assert [d.code for d in diagnostics] == [
-        DiagnosticCode.SERVICE_WORKLOAD_MAPPING_FILE_UNAVAILABLE
-    ]
