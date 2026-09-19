@@ -13,7 +13,8 @@ from app.architecture_intelligence import deployment_repository
 from app.architecture_intelligence.contracts import DeploymentResolutionStatus
 from app.architecture_intelligence.deployment_projection import resolve_path_a, resolve_path_b
 from app.canonical.infrastructure import KubernetesEvidenceMode
-from app.graph.importer import import_kubernetes_source
+from app.canonical.model import ArchitectureModel, Service
+from app.graph.importer import import_kubernetes_source, import_source
 from app.graph.schema import ensure_schema
 from app.sources.model import KubernetesSourceConfig
 from app.sources.service_workload_mapping import load_service_workload_mapping
@@ -101,12 +102,18 @@ def _reset_graph(driver):
 
 
 def _create_service(driver, *, service_id: str, name: str):
+    """Declare a Service through the real source-owned importer path."""
     with driver.session(database=DATABASE) as session:
-        session.run(
-            "MERGE (s:Service {id: $id}) SET s.name = $name, s.version = '1'",
-            id=service_id,
-            name=name,
+        stats = import_source(
+            session,
+            source_instance_id=f"declared-source:{service_id}",
+            locator=f"{service_id}.yaml",
+            model=ArchitectureModel(services=[Service(id=service_id, name=name, version="1")]),
+            semantic_input_digest=hashlib.sha256(f"{service_id}:{name}".encode()).hexdigest(),
+            discovery_scope_id=f"declared-scope:{service_id}",
+            scope_definition_digest=hashlib.sha256(service_id.encode()).hexdigest(),
         )
+    assert stats.graph_revision_advanced is True
 
 
 def _create_observed_only_service(driver, *, service_id: str, name: str):
@@ -424,3 +431,105 @@ def test_path_b_mapping_to_an_observed_only_service_is_unresolved_end_to_end(dri
     assert resolution.workload is not None  # the Workload itself resolved
     assert resolution.candidate_service_ids == ["service:checkout"]
     assert result.claims == []
+
+
+def test_observed_first_then_declared_service_qualifies_both_paths_end_to_end(driver, tmp_path):
+    """PR #215 re-review regression: declaration ownership overrides a stale telemetry marker.
+
+    Neo4j's map update preserves `discovery_status = OBSERVED_ONLY` when the canonical importer
+    later claims the same node, so the lookup must use current source ownership rather than that
+    historical marker. Exercise both Path A and Path B through the real importer/repository seams.
+    """
+    _reset_graph(driver)
+    _create_observed_only_service(driver, service_id="service:checkout", name="checkout-observed")
+    _create_service(driver, service_id="service:checkout", name="checkout-declared")
+
+    config = _write_kubernetes_bundle(
+        tmp_path / "cluster",
+        source_id="i3-observed-then-declared-source",
+        scope_id="i3-observed-then-declared-scope",
+        cluster_uid="i3-observed-then-declared-cluster-uid",
+        namespaces=["checkout"],
+        resources=[
+            _deployment(
+                "checkout-api",
+                "checkout",
+                "deploy-uid-observed-then-declared",
+                annotations={"architecture-intelligence.io/service-id": "service:checkout"},
+            )
+        ],
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    mapping_path = tmp_path / "mapping.yaml"
+    mapping_path.write_text(
+        yaml.safe_dump(
+            {
+                "apiVersion": "aip.dev/v1",
+                "kind": "ServiceWorkloadIdentityMappings",
+                "metadata": {"id": "observed-then-declared-mappings", "revision": "v1"},
+                "mappings": [
+                    {
+                        "mappingId": "checkout-runtime",
+                        "serviceId": "service:checkout",
+                        "kubernetesSourceId": "i3-observed-then-declared-source",
+                        "clusterUid": "i3-observed-then-declared-cluster-uid",
+                        "workload": {
+                            "apiGroup": "apps",
+                            "kind": "Deployment",
+                            "namespace": "checkout",
+                            "name": "checkout-api",
+                        },
+                    }
+                ],
+            }
+        )
+    )
+    document, diagnostics = load_service_workload_mapping(mapping_path)
+    assert diagnostics == ()
+
+    with driver.session(database=DATABASE) as session:
+        service_record = session.run(
+            "MATCH (s:Service {id: $id}) "
+            "RETURN s.name AS name, s.discovery_status AS discovery_status, "
+            "s.owner_source_ids AS owner_source_ids",
+            id="service:checkout",
+        ).single()
+        assert service_record["name"] == "checkout-declared"
+        assert service_record["discovery_status"] == "OBSERVED_ONLY"
+        assert service_record["owner_source_ids"] == ["declared-source:service:checkout"]
+
+        def lookup_service_name(service_id):
+            return deployment_repository.read_service_name(session, service_id=service_id)
+
+        path_a = resolve_path_a(
+            workloads=deployment_repository.iter_current_kubernetes_workloads(session),
+            lookup_service_name=lookup_service_name,
+            snapshot_id=SNAPSHOT_ID,
+            context_id=CONTEXT_ID,
+        )
+        path_b = resolve_path_b(
+            document=document,
+            configured_kubernetes_sources=[
+                (
+                    "i3-observed-then-declared-source",
+                    "i3-observed-then-declared-cluster-uid",
+                )
+            ],
+            resolve_workload=lambda entity_id: (
+                deployment_repository.read_current_kubernetes_workload(session, entity_id=entity_id)
+            ),
+            lookup_service_name=lookup_service_name,
+            snapshot_id=SNAPSHOT_ID,
+            context_id=CONTEXT_ID,
+        )
+
+    assert [resolution.status for resolution in path_a.resolutions] == [
+        DeploymentResolutionStatus.RESOLVED_EXPLICIT
+    ]
+    assert [resolution.status for resolution in path_b.resolutions] == [
+        DeploymentResolutionStatus.RESOLVED_CONFIGURED
+    ]
+    assert [claim.subject.name for claim in path_a.claims] == ["checkout-declared"]
+    assert [claim.subject.name for claim in path_b.claims] == ["checkout-declared"]

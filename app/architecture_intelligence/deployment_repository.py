@@ -22,14 +22,17 @@ from app.architecture_intelligence.deployment_projection import (
 )
 
 # PR #215 review finding (spec §3/§7/§29): a `:Service` node minted purely from telemetry
-# (`app.telemetry.aggregator._MERGE_STUB_NODE_QUERY`, `ON CREATE SET n.discovery_status =
-# 'OBSERVED_ONLY'`) must never qualify Path A/B deployment identity - only a declared Service can.
-# A declared `Service` (`app.canonical.model.Service`, written via the normal `_write_nodes` import
-# path) never sets `discovery_status` at all, so `coalesce(..., 'DECLARED')` treats an absent
-# property as declared and excludes only the explicit 'OBSERVED_ONLY' stub.
+# (`app.telemetry.aggregator._MERGE_STUB_NODE_QUERY`) must never qualify Path A/B deployment
+# identity - only a currently declared Service can. `discovery_status` is not authoritative here:
+# if telemetry creates a stub first, the later canonical import's `SET n += $props` deliberately
+# leaves that old property in place because `app.canonical.model.Service` has no such field.
+# Canonical import ownership is the authoritative current-declaration signal instead: every
+# declared node is claimed through `_MERGE_NODE_TEMPLATE.owner_source_ids`, while a telemetry-only
+# stub has no owner. The normal reconciliation path removes ownership again when a declaration is
+# withdrawn, so this also follows current rather than historical declaration state.
 _DECLARED_SERVICE_NAME_QUERY = (
     "MATCH (s:Service {id: $service_id}) "
-    "WHERE coalesce(s.discovery_status, 'DECLARED') <> 'OBSERVED_ONLY' "
+    "WHERE size(coalesce(s.owner_source_ids, [])) > 0 "
     "RETURN s.name AS name"
 )
 
@@ -58,8 +61,9 @@ _CURRENT_KUBERNETES_WORKLOADS_QUERY = (
 def read_service_name(session: neo4j.Session, *, service_id: str) -> str | None:
     """`None` when no *declared* `Service` with this id currently exists - spec §7/§8.2's
     "annotation/mapping names a missing Service" case, and (PR #215 review) also spec §3/§7/§29's
-    "an `OBSERVED_ONLY` Service cannot qualify deployment identity" case: a telemetry-minted stub
-    Service is excluded exactly like a genuinely absent one."""
+    "an `OBSERVED_ONLY` Service cannot qualify deployment identity" case. Current canonical-import
+    ownership, not the telemetry marker, distinguishes a declared Service from a telemetry-only
+    stub and correctly handles an observed-first Service that is declared later."""
     record = session.run(_DECLARED_SERVICE_NAME_QUERY, service_id=service_id).single()
     return record["name"] if record is not None else None
 
