@@ -253,6 +253,17 @@ class DiagnosticCode(StrEnum):
     # resolved backends may still emit claims" - also reused for a resource backend ("Resource
     # backends are unsupported") and an ambiguous (more than one matching) Service port.
     K8S_BACKEND_UNRESOLVED = "K8S_BACKEND_UNRESOLVED"
+    # Not named by the spec text; introduced here for v0.5.0 I3 slice 3's §8.1 configured
+    # Service<->Workload identity-mapping artifact, mirroring the MIGRATION_MAPPING_*/
+    # MANIFEST_BINDING_* codes' own "shape, then target validity, then cross-entry conflict" split.
+    SERVICE_WORKLOAD_MAPPING_FILE_UNAVAILABLE = "SERVICE_WORKLOAD_MAPPING_FILE_UNAVAILABLE"
+    SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID = "SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID"
+    SERVICE_WORKLOAD_MAPPING_TARGET_INVALID = "SERVICE_WORKLOAD_MAPPING_TARGET_INVALID"
+    # A duplicate `mappingId` with differing content within one artifact - distinct from a literal
+    # duplicate YAML mapping key (which `load_bounded_yaml_documents` already rejects as a shape
+    # error) - since `mappingId` is part of both §13.1's group-key formula and §8.3's evidence
+    # identity, a silent collision here would be a latent identity defect, not a benign duplicate.
+    SERVICE_WORKLOAD_MAPPING_DUPLICATE_ID = "SERVICE_WORKLOAD_MAPPING_DUPLICATE_ID"
 
 
 class IngestionDiagnostic(BaseModel):
