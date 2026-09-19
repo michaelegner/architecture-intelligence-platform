@@ -2,6 +2,7 @@ import pytest
 
 from app.architecture_intelligence import repository as repo
 from app.architecture_intelligence.contracts import SnapshotRef
+from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
 
 
 class FakeSession:
@@ -66,13 +67,72 @@ def test_canonical_snapshot_state_assembles_expected_shape():
         }
     )
     state = repo.canonical_snapshot_state(session, coverage_qualification_enabled=True)
-    assert state["version"] == 1
+    assert state["version"] == repo._CANONICALIZATION_VERSION
     assert [s["id"] for s in state["services"]] == ["service:a", "service:b"]
     assert "version" not in state["services"][1]  # service:b's None version was dropped
     assert state["relations"][0]["evidence_ids"] == ["e1", "e2"]
+    # No `service_workload_mapping_artifact` key at all with no document supplied - not `None` -
+    # so every pre-existing caller's hashed state (and therefore snapshot_id) is unaffected by
+    # this addition (PR #215 review - see `_semantic_config_state`'s own comment).
     assert state["semantic_config"] == {"coverage_qualification_enabled": True}
     for key in ("operations", "queues", "messages", "schemas", "evidence"):
         assert state[key] == []
+
+
+def _mapping_document(*, artifact_id="art-1", revision="rev-1", digest="digest-1"):
+    return ServiceWorkloadMappingDocument(
+        artifact_id=artifact_id,
+        artifact_revision=revision,
+        locator="mappings.yaml",
+        content_digest=digest,
+        entries=(),
+    )
+
+
+def test_canonical_snapshot_state_binds_the_configured_mapping_artifact_identity():
+    # I3 spec §8.3/§17/§23 (PR #215 review): a configured Path B artifact's identity+digest is part
+    # of the public snapshot fingerprint, not just its own evidence id.
+    session = FakeSession({})
+    state = repo.canonical_snapshot_state(
+        session,
+        coverage_qualification_enabled=True,
+        service_workload_mapping_document=_mapping_document(),
+    )
+    assert state["semantic_config"]["service_workload_mapping_artifact"] == {
+        "artifact_id": "art-1",
+        "artifact_revision": "rev-1",
+        "content_digest": "digest-1",
+    }
+
+
+def test_snapshot_fingerprint_changes_when_the_mapping_artifact_content_changes():
+    session = FakeSession({})
+    state_no_artifact = repo.canonical_snapshot_state(session, coverage_qualification_enabled=True)
+    state_digest_1 = repo.canonical_snapshot_state(
+        session,
+        coverage_qualification_enabled=True,
+        service_workload_mapping_document=_mapping_document(digest="digest-1"),
+    )
+    state_digest_2 = repo.canonical_snapshot_state(
+        session,
+        coverage_qualification_enabled=True,
+        service_workload_mapping_document=_mapping_document(digest="digest-2"),
+    )
+    fingerprint_no_artifact = repo.snapshot_fingerprint(state_no_artifact)
+    fingerprint_digest_1 = repo.snapshot_fingerprint(state_digest_1)
+    fingerprint_digest_2 = repo.snapshot_fingerprint(state_digest_2)
+    # No artifact configured vs. one configured, and a content change within the same artifact,
+    # each produce a genuinely different snapshot id - not just a different evidence id.
+    assert len({fingerprint_no_artifact, fingerprint_digest_1, fingerprint_digest_2}) == 3
+
+    # Re-computing the same artifact's state twice is deterministic - not, e.g., accidentally
+    # order-sensitive over the artifact's own dict construction.
+    repeated_state_digest_1 = repo.canonical_snapshot_state(
+        session,
+        coverage_qualification_enabled=True,
+        service_workload_mapping_document=_mapping_document(digest="digest-1"),
+    )
+    assert repo.snapshot_fingerprint(repeated_state_digest_1) == fingerprint_digest_1
 
 
 def test_snapshot_fingerprint_produces_a_valid_matching_snapshot_ref():
