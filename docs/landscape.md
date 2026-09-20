@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-18_
+_Last reviewed: 2026-09-20_
 
 ## AIP anchor
 
@@ -64,6 +64,10 @@ visualization, provenance, or retrieval?
 
 ### Agent context and machine consumption
 
+[Moldable Architecture Knowledge](#moldable-development--glamorous-toolkit--rewilding-software-engineering) ·
+[Symbolic Separation](#davletiyarov-khan-and-bartolini--symbolic-separation) ·
+[Enola](#enola--deterministic-architecture-context-and-regression-testing) ·
+[Agent API Profile](#christian-posta--agent-api-profile) ·
 [MCP](#model-context-protocol-mcp) ·
 [Procedural Graphs](#lu-et-al--procedural-graphs) ·
 [Agent-ready bounded context](#daniel-kocot--agent-ready-apis-and-bounded-context) ·
@@ -714,6 +718,374 @@ This mirrors AIP's own `PROVIDES` / `CALLS` / `SENDS` / `RECEIVES_FROM` model an
 ---
 
 ## 3. Agent context and machine consumption
+
+### Moldable Development / Glamorous Toolkit / Rewilding Software Engineering
+
+**Sources**
+
+- [Moldable Development](https://moldabledevelopment.com/)
+- [Glamorous Toolkit](https://gtoolkit.com/)
+- [Glamorous Toolkit Book — What is Glamorous Toolkit?](https://book.gtoolkit.com/what-is-glamorous-toolkit--2tbpqa98apus4jnjk6bt9r8k8)
+- [Rewilding Software Engineering — Chapter 1](https://medium.com/feenk/rewilding-software-engineering-25ba0e141e69)
+- [Rewilding Software Engineering — Chapter 3: Questions and answers](https://medium.com/feenk/rewilding-software-engineering-f758ec97ddb2)
+- [Rewilding Software Engineering — Chapter 6: Myths we tell ourselves](https://medium.com/feenk/rewilding-software-engineering-ca3ad1e612d8)
+- [Glamorous Toolkit source](https://github.com/feenkcom/gtoolkit)
+
+**Core idea**
+
+Moldable Development treats software understanding as an active engineering activity. Instead of
+depending on a fixed set of generic tools, developers create inexpensive **contextual micro-tools**
+that answer a specific question about a specific system. Glamorous Toolkit (GT) is the environment
+built around that methodology.
+
+The important unit is therefore not a generic browser or diagram. It is:
+
+```text
+question about this system
+        ↓
+purpose-built deterministic analysis
+        ↓
+contextual representation
+        ↓
+understanding / decision
+        ↓
+next question
+```
+
+*Rewilding Software Engineering* makes the connection to AI especially concrete. Chapter 6 reports
+an experiment in which direct LLM answers to a dependency question looked impressive but missed a
+material fraction of the real dependencies across runs. Asking the model to construct a
+deterministic tool for the question changes the epistemic shape of the task: the model may help
+create the tool, but the answer comes from executable analysis of the system rather than from the
+model's reconstruction.
+
+This yields a principle that is directly relevant to AIP:
+
+> **When an architecture question can be answered deterministically, capture the answer mechanism
+> as a reusable tool instead of repeatedly asking an agent to infer the answer.**
+
+#### Moldable Architecture Knowledge
+
+AIP can generalize this idea from software reading to architecture knowledge.
+
+```text
+raw repositories / APIs / manifests / telemetry / configuration
+                         ↓
+                 source-specific evidence
+                         ↓
+          reconciliation + qualification
+                         ↓
+                Architecture Knowledge
+                         ↓
+            question-specific projection
+                         ↓
+         contextual architecture micro-tool
+                         ↓
+                 human / AI agent
+```
+
+The thing being molded is **Architecture Knowledge**, not architectural truth and not agent
+intelligence. A dependency view, deployment-identity view, evidence drill-down, unresolved-identity
+view, locality view, future Intent assessment, or change-impact view can each be a different bounded
+projection over the same underlying evidence-qualified knowledge.
+
+Examples include:
+
+```text
+Which services does this service depend on?
+Why does AIP believe this relation exists?
+Which evidence conflicts with this claim?
+Where is this service deployed?
+Which deployment identities remain unresolved?
+What changed between two qualified snapshots?
+Which architectural constraints apply to this proposed change?
+```
+
+Each question may require a different projection, but the projection must preserve the guarantees of
+the underlying knowledge.
+
+#### What AIP adds
+
+Moldable Development and AIP address different layers.
+
+```text
+Moldable Development
+system-specific question
+        ↓
+contextual deterministic tool
+        ↓
+explainable system understanding
+
+AIP
+heterogeneous architecture evidence
+        ↓
+qualified Architecture Knowledge
+        ↓
+contextual deterministic architecture tool
+        ↓
+explainable architecture understanding for humans and agents
+```
+
+AIP therefore adds requirements that a generic contextual tool does not necessarily provide:
+
+- **source semantics** — Kubernetes selection, OpenTelemetry communication, OpenAPI declaration,
+  configuration, and future Intent remain distinct;
+- **evidence and provenance** — every supported claim remains traceable to the evidence that
+  supports it;
+- **qualification** — unresolved, conflicting, insufficient, and unsupported outcomes remain
+  explicit;
+- **snapshot and observation context** — the answer states which qualified system state and time
+  context it belongs to;
+- **determinism** — equivalent qualified inputs produce equivalent supported answers;
+- **bounded public contracts** — agent-facing tools expose a deliberately small semantic surface
+  rather than arbitrary graph access;
+- **epistemic separation** — an LLM can formulate questions, compose tools, and interpret results,
+  but it does not become the source of Architecture Knowledge.
+
+This is especially relevant to AIP's MCP direction. The goal should not be to expose the entire
+architecture graph and rely on the agent to reconstruct meaning. Instead, AIP can expose a growing
+set of small, deterministic, evidence-qualified architecture questions whose results are directly
+inspectable and reusable.
+
+```text
+more architecture data
+        ≠
+better agent context
+
+the right deterministic projection
+of qualified Architecture Knowledge
+        ↓
+better bounded context
+```
+
+#### Relationship to the AIP ↔ GT experiment
+
+The AIP/GT integration is useful because it exercises this idea from the human side. A qualified AIP
+result can be inspected in GT, explored in a Playground, transformed into another question, and then
+promoted into a reusable contextual view or micro-tool.
+
+The important result is not a GT visualization. It is the feedback loop:
+
+```text
+qualified AIP answer
+        ↓
+inspect / explore
+        ↓
+form a sharper architecture question
+        ↓
+build deterministic query / micro-tool
+        ↓
+reuse the new explanation
+```
+
+The same loop can later apply to AI agents. An agent can help discover that a useful question is
+missing and help construct a deterministic implementation, while AIP retains control over the
+evidence, semantics, qualification, and public contract of the resulting architecture tool.
+
+#### AIP stance
+
+This is a **foundational interaction and product-design reference**, not a proposal to adopt
+Glamorous Toolkit as AIP's implementation platform and not a request to expand the current release
+scope.
+
+The long-term implication is stronger:
+
+> **AIP should make Architecture Knowledge moldable: small, question-specific, deterministic,
+> evidence-qualified projections should be inexpensive to create, inspect, verify, and expose to
+> humans and agents.**
+
+That principle can guide future AIP tool design without weakening the rule that agents may reason
+over Architecture Knowledge but must never become its source.
+
+### Davletiyarov, Khan, and Bartolini — Symbolic Separation
+
+**Source**
+
+- [Symbolic Separation: Grounding Deep Agents in Knowledge Graphs for Trustworthy Operational Data Analytics](https://arxiv.org/abs/2609.17107)
+
+**Core idea**
+
+The paper argues that a deep agent should be free to reason probabilistically while access to
+operational data is constrained by a symbolic semantic layer. Its implementation uses an
+ontology-constrained Virtual Knowledge Graph plus deterministic pre-execution validation so the
+model does not have to invent joins or relationships between heterogeneous sources at query time.
+
+The important separation is:
+
+```text
+probabilistic agent reasoning
+        ↓
+semantic request
+        ↓
+symbolic / ontology-constrained knowledge layer
+        ↓
+deterministically validated access to data
+```
+
+This addresses a failure mode that is highly relevant to AIP: an agent can understand all the
+individual fields or tools and still hallucinate **how they relate**.
+
+**Why this matters to AIP**
+
+This gives strong theoretical support to AIP's own epistemic boundary:
+
+```text
+agent reasoning
+        ≠
+source of Architecture Knowledge
+
+agent
+        ↓ asks a question
+AIP's qualified semantic layer
+        ↓
+evidence-backed architecture result
+        ↓
+agent interprets or acts
+```
+
+AIP's problem is narrower but also more explicit about the knowledge contract. Architecture
+Knowledge must preserve source semantics, provenance, qualification, snapshot identity,
+observation context, and unresolved/conflicting cases. A symbolic graph is therefore not enough by
+itself; the graph's claims must still be justified by the underlying evidence.
+
+**AIP distinction**
+
+Symbolic Separation shows why domain semantics should not be reconstructed probabilistically on
+every request. AIP adds architecture-specific evidence qualification and a stronger rule about
+epistemic authority:
+
+> **The agent may reason freely over Architecture Knowledge, but neither the agent nor an
+> unqualified graph becomes the source of that knowledge.**
+
+
+### Enola — Deterministic Architecture Context and Regression Testing
+
+**Sources**
+
+- [Enola](https://github.com/enola-labs/enola)
+- [Enola architecture](https://github.com/enola-labs/enola/blob/main/ARCHITECTURE.md)
+- [Enola — architectural regression testing for AI-assisted development](https://enola.tech/)
+
+**Core idea**
+
+Enola builds a deterministic graph from source repositories and exposes structural architecture
+context to developers, coding agents, CLI workflows, MCP clients, and CI. It supports cross-
+repository relationships, snapshots and deltas, impact analysis, architecture constraints, and
+regression checks without requiring an LLM or embeddings to establish the graph.
+
+Its basic loop is close to a problem AIP also cares about:
+
+```text
+before change
+deterministic architecture context
+        ↓
+coding agent / developer
+        ↓
+change
+        ↓
+deterministic structural re-analysis
+        ↓
+delta / regression verdict
+```
+
+**Why this matters to AIP**
+
+Enola is one of the closest current concrete product comparisons for agent-facing deterministic
+architecture context. It demonstrates that coding agents benefit from a precomputed structural
+model rather than repeatedly rediscovering dependencies from raw files, and that the same model can
+feed both pre-change context and post-change verification.
+
+The overlap with AIP is meaningful:
+
+```text
+deterministic graph
+snapshot identity
+change impact
+agent-facing queries / MCP
+architecture constraints
+CI verification
+```
+
+**AIP distinction**
+
+AIP's center of gravity is broader than code-derived structure. It reconciles heterogeneous sources
+whose semantics must remain distinct:
+
+```text
+OpenAPI declaration
+Kubernetes configuration / capture
+OpenTelemetry observation
+configured identity mappings
+future Intent
+        ↓
+not interchangeable evidence
+```
+
+AIP therefore emphasizes evidence identity, provenance, source-specific semantics, observation
+context, conflict/unresolved outcomes, and qualification before an architectural claim becomes
+public Architecture Knowledge.
+
+Enola is consequently an important comparison and potential interoperability neighbor, not evidence
+that AIP should reduce its model to static code structure or duplicate Enola's regression-analysis
+surface.
+
+
+### Christian Posta — Agent API Profile
+
+**Source**
+
+- [Christian Posta — recent writing and discussion on agent APIs](https://www.linkedin.com/in/christian-posta/recent-activity/posts/)
+
+**Core idea**
+
+Posta argues that if agents return to ordinary APIs rather than MCP-specific interfaces, they still
+need a constrained **Agent API Profile** so models are not forced to infer routine integration
+semantics on every call.
+
+The proposed deterministic surface includes concerns such as:
+
+```text
+capability discovery
+operation identity
+input / output schemas
+error semantics
+retry and idempotency behavior
+async behavior
+side effects
+authorization discovery / acquisition
+```
+
+The point is not that every API must use MCP. The point is that agent-facing integration needs more
+semantic regularity than "here is an arbitrary HTTP API; let the model work it out."
+
+**Why this matters to AIP**
+
+This complements Moldable Architecture Knowledge and AIP's MCP work:
+
+```text
+Architecture Knowledge semantics
+        ↓
+bounded deterministic AIP operation
+        ↓
+stable agent-facing contract
+        ↓
+MCP or another sufficiently constrained API profile
+        ↓
+agent
+```
+
+AIP should not make its architecture semantics depend on one transport protocol. MCP is currently a
+useful delivery mechanism, but the durable requirement is that operations remain explicit,
+discoverable, typed, bounded, deterministic, and safe to invoke without probabilistic reconstruction
+of basic protocol behavior.
+
+**AIP distinction**
+
+An Agent API Profile answers **how an agent can reliably invoke a capability**. AIP answers **what
+Architecture Knowledge that capability may safely return and why**. Transport determinism does not
+replace evidence qualification, and architecture semantics should remain stable if the transport
+changes.
+
 
 ### Model Context Protocol (MCP)
 
