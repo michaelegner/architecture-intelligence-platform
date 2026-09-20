@@ -6,7 +6,38 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-18_
+_Last reviewed: 2026-09-20_
+
+## Current highest-priority research direction
+
+### Priority 1 — Moldable Architecture Knowledge
+
+Moldable Development, Glamorous Toolkit, and *Rewilding Software Engineering* are currently AIP's
+highest-priority external research direction.
+
+The central connection is not visualization or a specific development environment. It is the idea
+that questions about a system should be answered through **small, contextual, executable tools**
+built for the problem at hand rather than by repeatedly asking a human or an LLM to reconstruct the
+answer from raw material.
+
+AIP extends that idea into **Moldable Architecture Knowledge**:
+
+```text
+heterogeneous architecture evidence
+        ↓
+qualification / reconciliation / provenance
+        ↓
+Architecture Knowledge
+        ↓
+question-specific deterministic projection
+        ↓
+small contextual architecture tool / view
+        ↓
+human or agent reasoning
+```
+
+The detailed research note appears first below because this direction can shape how AIP exposes
+Architecture Knowledge to both humans and agents without making either the source of that knowledge.
 
 ## AIP anchor
 
@@ -64,6 +95,7 @@ visualization, provenance, or retrieval?
 
 ### Agent context and machine consumption
 
+[Moldable Architecture Knowledge](#0-priority-research-direction--moldable-architecture-knowledge) ·
 [MCP](#model-context-protocol-mcp) ·
 [Procedural Graphs](#lu-et-al--procedural-graphs) ·
 [Agent-ready bounded context](#daniel-kocot--agent-ready-apis-and-bounded-context) ·
@@ -108,6 +140,190 @@ organizational responsibility constrain agent action without being inferred from
 
 **Core question:** How should AIP keep proposal, evidence judgment, deterministic verification,
 agent behavior, delivery lineage, and release qualification independently inspectable?
+
+---
+
+## 0. Priority research direction — Moldable Architecture Knowledge
+
+### Moldable Development / Glamorous Toolkit / Rewilding Software Engineering
+
+**Priority:** 1 — highest current landscape priority.
+
+**Sources**
+
+- [Moldable Development](https://moldabledevelopment.com/)
+- [Glamorous Toolkit](https://gtoolkit.com/)
+- [Glamorous Toolkit Book — What is Glamorous Toolkit?](https://book.gtoolkit.com/what-is-glamorous-toolkit--2tbpqa98apus4jnjk6bt9r8k8)
+- [Rewilding Software Engineering — Chapter 1](https://medium.com/feenk/rewilding-software-engineering-25ba0e141e69)
+- [Rewilding Software Engineering — Chapter 3: Questions and answers](https://medium.com/feenk/rewilding-software-engineering-f758ec97ddb2)
+- [Rewilding Software Engineering — Chapter 6: Myths we tell ourselves](https://medium.com/feenk/rewilding-software-engineering-ca3ad1e612d8)
+- [Glamorous Toolkit source](https://github.com/feenkcom/gtoolkit)
+
+**Core idea**
+
+Moldable Development treats software understanding as an active engineering activity. Instead of
+depending on a fixed set of generic tools, developers create inexpensive **contextual micro-tools**
+that answer a specific question about a specific system. Glamorous Toolkit (GT) is the environment
+built around that methodology.
+
+The important unit is therefore not a generic browser or diagram. It is:
+
+```text
+question about this system
+        ↓
+purpose-built deterministic analysis
+        ↓
+contextual representation
+        ↓
+understanding / decision
+        ↓
+next question
+```
+
+*Rewilding Software Engineering* makes the connection to AI especially concrete. Chapter 6 reports
+an experiment in which direct LLM answers to a dependency question looked impressive but missed a
+material fraction of the real dependencies across runs. Asking the model to construct a
+deterministic tool for the question changes the epistemic shape of the task: the model may help
+create the tool, but the answer comes from executable analysis of the system rather than from the
+model's reconstruction.
+
+This yields a principle that is directly relevant to AIP:
+
+> **When an architecture question can be answered deterministically, capture the answer mechanism
+> as a reusable tool instead of repeatedly asking an agent to infer the answer.**
+
+### Moldable Architecture Knowledge
+
+AIP can generalize this idea from software reading to architecture knowledge.
+
+```text
+raw repositories / APIs / manifests / telemetry / configuration
+                         ↓
+                 source-specific evidence
+                         ↓
+          reconciliation + qualification
+                         ↓
+                Architecture Knowledge
+                         ↓
+            question-specific projection
+                         ↓
+         contextual architecture micro-tool
+                         ↓
+                 human / AI agent
+```
+
+The thing being molded is **Architecture Knowledge**, not architectural truth and not agent
+intelligence. A dependency view, deployment-identity view, evidence drill-down, unresolved-identity
+view, locality view, future Intent assessment, or change-impact view can each be a different bounded
+projection over the same underlying evidence-qualified knowledge.
+
+Examples include:
+
+```text
+Which services does this service depend on?
+Why does AIP believe this relation exists?
+Which evidence conflicts with this claim?
+Where is this service deployed?
+Which deployment identities remain unresolved?
+What changed between two qualified snapshots?
+Which architectural constraints apply to this proposed change?
+```
+
+Each question may require a different projection, but the projection must preserve the guarantees of
+the underlying knowledge.
+
+### What AIP adds
+
+Moldable Development and AIP address different layers.
+
+```text
+Moldable Development
+system-specific question
+        ↓
+contextual deterministic tool
+        ↓
+explainable system understanding
+
+AIP
+heterogeneous architecture evidence
+        ↓
+qualified Architecture Knowledge
+        ↓
+contextual deterministic architecture tool
+        ↓
+explainable architecture understanding for humans and agents
+```
+
+AIP therefore adds requirements that a generic contextual tool does not necessarily provide:
+
+- **source semantics** — Kubernetes selection, OpenTelemetry communication, OpenAPI declaration,
+  configuration, and future Intent remain distinct;
+- **evidence and provenance** — every supported claim remains traceable to the evidence that
+  supports it;
+- **qualification** — unresolved, conflicting, insufficient, and unsupported outcomes remain
+  explicit;
+- **snapshot and observation context** — the answer states which qualified system state and time
+  context it belongs to;
+- **determinism** — equivalent qualified inputs produce equivalent supported answers;
+- **bounded public contracts** — agent-facing tools expose a deliberately small semantic surface
+  rather than arbitrary graph access;
+- **epistemic separation** — an LLM can formulate questions, compose tools, and interpret results,
+  but it does not become the source of Architecture Knowledge.
+
+This is especially relevant to AIP's MCP direction. The goal should not be to expose the entire
+architecture graph and rely on the agent to reconstruct meaning. Instead, AIP can expose a growing
+set of small, deterministic, evidence-qualified architecture questions whose results are directly
+inspectable and reusable.
+
+```text
+more architecture data
+        ≠
+better agent context
+
+the right deterministic projection
+of qualified Architecture Knowledge
+        ↓
+better bounded context
+```
+
+### Relationship to the AIP ↔ GT experiment
+
+The AIP/GT integration is useful because it exercises this idea from the human side. A qualified AIP
+result can be inspected in GT, explored in a Playground, transformed into another question, and then
+promoted into a reusable contextual view or micro-tool.
+
+The important result is not a GT visualization. It is the feedback loop:
+
+```text
+qualified AIP answer
+        ↓
+inspect / explore
+        ↓
+form a sharper architecture question
+        ↓
+build deterministic query / micro-tool
+        ↓
+reuse the new explanation
+```
+
+The same loop can later apply to AI agents. An agent can help discover that a useful question is
+missing and help construct a deterministic implementation, while AIP retains control over the
+evidence, semantics, qualification, and public contract of the resulting architecture tool.
+
+### AIP stance
+
+This is a **foundational interaction and product-design reference**, not a proposal to adopt
+Glamorous Toolkit as AIP's implementation platform and not a request to expand the current release
+scope.
+
+The long-term implication is stronger:
+
+> **AIP should make Architecture Knowledge moldable: small, question-specific, deterministic,
+> evidence-qualified projections should be inexpensive to create, inspect, verify, and expose to
+> humans and agents.**
+
+That principle can guide future AIP tool design without weakening the rule that agents may reason
+over Architecture Knowledge but must never become its source.
 
 ---
 
