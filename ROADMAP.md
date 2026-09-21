@@ -29,7 +29,8 @@ during the `v1.0.0-rc.N` freeze phase:
 
 - Canonical Model (`app/canonical/model.py`)
 - REST API surface
-- Graph Schema (node labels, relationship types/properties)
+- Graph persistence schema (node labels, relationship types/properties; implementation
+  compatibility surface, not the public Architecture Knowledge contract)
 - Adapter SPI (`docs/adapter-development.md`'s `Protocol` contracts)
 - Configuration format (`config.yaml`)
 
@@ -531,7 +532,8 @@ Qualification/freeze scope includes, where actually implemented and accepted:
   references, rule versions, and exact projection binding
 - temporal compatibility and coverage rules for Current↔Intent assessment
 - REST and MCP contract stabilization
-- Graph Schema stabilization
+- graph-persistence compatibility and migration rules; the internal graph representation is not
+  frozen as a public Architecture Knowledge contract
 - Adapter SPI stabilization
 - Configuration-format stabilization
 - Migration and deprecation rules
@@ -555,8 +557,9 @@ Exit condition:
 
 Focus: publish the first stable AIP release with mature architecture-intelligence semantics and
 public contracts. Requires: a stable architecture-intelligence model; stable public REST and MCP
-contracts; stable Graph Schema and Adapter SPI; a documented compatibility/migration policy;
-production qualification completed; critical semantic errors = 0; release blockers = 0.
+contracts; a stable Adapter SPI where it is intentionally public; documented compatibility and
+migration rules for graph persistence and configuration; production qualification completed;
+critical semantic errors = 0; release blockers = 0.
 
 ## Sequencing principle
 
