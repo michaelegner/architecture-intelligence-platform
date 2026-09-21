@@ -1,6 +1,6 @@
 # AIP v0.5.0 I3 — Runtime Identity Reconciliation and `DEPLOYED_AS`
 
-**Status:** Draft 0.3 — mapping group identity made injective after review  
+**Status:** Draft 0.4 — public Architecture Knowledge adapter consolidation  
 **Target release:** `v0.5.0`  
 **Release increment:** I3 — Deeper Runtime Discovery and Cross-Source Reconciliation  
 **Target repository path:** `docs/specifications/0.5.0/i3-runtime-identity-reconciliation.md`  
@@ -126,10 +126,13 @@ I3 SHALL deliver:
 5. a public `DEPLOYED_AS` claim projection;
 6. bounded public Workload references required by that claim;
 7. snapshot-bound evidence drill-down for every public deployment claim;
-8. one new REST read surface and integration into the existing
+8. public-adapter consolidation around `ArchitectureIntelligenceService`: REST parity for the
+   existing dependency, drift, and bounded evidence-resolution capabilities, standard negotiated
+   MCP as the sole public MCP transport, and retirement of the v0.4.x direct MCP envelope;
+9. the new deployment REST view plus deployment integration into the existing negotiated
    `get_service_dependencies` MCP tool without adding a fourth tool;
-9. explicit schema versioning for the widened public contract;
-10. deterministic qualification and an I3 completion record.
+10. explicit schema versioning for the widened public contract;
+11. deterministic qualification and an I3 completion record.
 
 ### 4.2 Non-goals
 
@@ -1011,20 +1014,52 @@ or environment contents.
 
 ---
 
-## 14. Public exposure and schema version
+## 14. Public exposure, adapter ownership, and schema version
 
-I3 freezes the §28 exposure decision as follows.
+I3 freezes the parent-spec §28 public-adapter decision as follows.
 
-| Semantic item | Canonical/internal status | REST | Existing MCP | Public schema |
+> **`ArchitectureIntelligenceService` is the single semantic owner. REST and standard negotiated
+> MCP are public adapters over that service. The architecture-answer evaluator invokes the service
+> directly as the transport-independent qualification oracle.**
+
+| Semantic item | Canonical/internal status | REST | Negotiated MCP | Public schema |
 |---|---|---|---|---|
 | I2 `InfrastructureEntity`/`Contribution`/`Claim` generally | internal-only | not exposed | not exposed | none |
-| `WorkloadRef` needed by `DEPLOYED_AS` | bounded public projection | `/api/services/{service_id}/deployments` | `get_service_dependencies` | `0.5` |
-| `DeploymentClaim(DEPLOYED_AS)` | public | `/api/services/{service_id}/deployments` | `get_service_dependencies` | `0.5` |
+| Existing dependency Architecture Knowledge | public | `GET /api/services/{service_id}/dependencies` | `get_service_dependencies` | `0.5` |
+| Existing dependency-drift Architecture Knowledge | public | `GET /api/services/{service_id}/drift` | `get_architecture_drift` | `0.5` |
+| `WorkloadRef` needed by `DEPLOYED_AS` | bounded public projection | `GET /api/services/{service_id}/deployments` | `get_service_dependencies` | `0.5` |
+| `DeploymentClaim(DEPLOYED_AS)` | public | `GET /api/services/{service_id}/deployments` | `get_service_dependencies` | `0.5` |
 | `DeploymentResolution` including conflict/ambiguity/unresolved | public | same endpoint | `get_service_dependencies.data.deployment_resolutions` | `0.5` |
-| Deployment-reconciliation evidence | public only when reachable from a public deployment claim or returned DeploymentResolution | snapshot-bound `/api/evidence` and `/api/evidence/{id}` | `get_evidence` | `0.5` |
-| `get_architecture_drift` | dependency-drift only | unchanged | unchanged meaning | `0.5` envelope/schema version |
+| Bounded evidence resolution | public under the existing visibility rules, widened by §16.2 for deployment evidence | `POST /api/evidence/resolve`; single-record/list convenience remains under `/api/evidence` | `get_evidence` | `0.5` |
+| `get_architecture_drift` deployment meaning | no deployment semantics | unchanged dependency-drift meaning | unchanged dependency-drift meaning | `0.5` |
 
-### 14.1 MCP tool budget
+### 14.1 Single semantic owner and public-adapter topology
+
+The public topology in v0.5 is:
+
+```text
+                    ArchitectureIntelligenceService
+                              |
+              +---------------+---------------+
+              |                               |
+             REST                     standard negotiated MCP
+```
+
+The deterministic architecture-answer evaluator calls `ArchitectureIntelligenceService` directly.
+It is a qualification path, not a public transport.
+
+A REST adapter MUST NOT query Neo4j, invoke qualification helpers, or reconstruct an
+`ArchitectureAnswer` independently when the corresponding service capability exists. It SHALL
+construct the relevant request model, invoke the service, and preserve the returned semantics.
+A REST-specific projection such as §15 MAY select a bounded subset of fields from that returned
+answer, but it MUST NOT derive stronger or different Architecture Knowledge.
+
+The AIP-specific direct MCP envelope shipped in v0.4.x is retired in v0.5. `POST /mcp` remains the
+single MCP endpoint and serves standard negotiated MCP only. Direct-envelope markers and routing are
+not part of the v0.5 public contract. Historical v0.4.x specifications and release evidence remain
+unchanged.
+
+### 14.2 MCP tool budget
 
 The tool count remains exactly three:
 
@@ -1034,9 +1069,10 @@ get_evidence
 get_service_dependencies
 ```
 
-No fourth MCP tool is added.
+No fourth MCP tool is added. The three tools continue to dispatch through the same
+`ArchitectureIntelligenceService` methods as the deterministic evaluator and REST adapters.
 
-### 14.2 `get_service_dependencies` integration
+### 14.3 `get_service_dependencies` integration
 
 The tool retains its existing dependency semantics and adds deployment as a **separate sibling
 projection**, never as a dependency.
@@ -1064,7 +1100,7 @@ Rules:
 - a `DeploymentClaim` MUST NOT be counted or described as a direct dependency;
 - `get_architecture_drift` returns only dependency-drift claims and never `DEPLOYED_AS`.
 
-### 14.3 Schema version decision
+### 14.4 Schema version decision
 
 I3 intentionally changes:
 
@@ -1083,15 +1119,49 @@ schema_version = "0.5"
 schemas/architecture_intelligence/v0.5/
 ```
 
-This is an intentional v0.5 contract revision.
-
-The three MCP tool names and request shapes remain stable. Existing `0.4` dependency/drift semantics
-remain semantically compatible, but a client that validates the closed `0.4` response schema must
-adopt the `0.5` schema.
+The three MCP tool names and request shapes remain stable. Existing `0.4` dependency/drift
+semantics remain semantically compatible, but a client that validates the closed `0.4` response
+schema must adopt the `0.5` schema.
 
 No dual-schema negotiation is required in I3.
 
----
+### 14.5 REST parity for existing Architecture Intelligence capabilities
+
+The REST adapter SHALL expose the existing service-level Architecture Knowledge through:
+
+```text
+GET  /api/services/{service_id}/dependencies
+GET  /api/services/{service_id}/drift
+POST /api/evidence/resolve
+```
+
+For the dependency and drift endpoints, these query parameters map directly to the existing request
+model:
+
+```text
+environment  -> observation_context.environment
+from         -> observation_context.window_start
+to           -> observation_context.window_end
+snapshot_id  -> request.snapshot_id
+```
+
+`snapshot_id` remains optional exactly as it is in `ServiceDependenciesRequest` and
+`ArchitectureDriftRequest`. Missing or incomplete observation context remains a semantic
+`ArchitectureIntelligenceService` refusal/limitation rather than being invented by the REST layer.
+Malformed supplied values that cannot form the request model are HTTP input errors.
+
+Both endpoints return the complete corresponding `ArchitectureAnswer` JSON shape. They SHALL call
+the matching `ArchitectureIntelligenceService` method exactly once and SHALL NOT run an
+independent REST qualification/query path.
+
+`POST /api/evidence/resolve` accepts the existing `EvidenceRequest` shape and returns the complete
+`ArchitectureAnswer[EvidenceData]` produced by
+`ArchitectureIntelligenceService.get_evidence`. This preserves the existing 1–20-ref bounded
+resolution, missing-ref reporting, and same-snapshot semantics over REST.
+
+The existing `GET /api/evidence` and `GET /api/evidence/{evidence_id}` forms remain REST
+convenience surfaces. I3 makes them snapshot-aware under §16.3; they MUST use the same public
+evidence-visibility rules and MUST NOT derive architecture claims.
 
 ## 15. REST deployment view
 
@@ -1124,7 +1194,11 @@ evidence_refs[]
 limitations[]
 ```
 
-It SHALL use the same reconciliation projection and same snapshot as MCP for equivalent inputs.
+It SHALL be a bounded REST projection over the deployment portion of one
+`ArchitectureIntelligenceService.get_service_dependencies` answer for the equivalent request. It
+MUST NOT invoke deployment reconciliation, Neo4j queries, or qualification logic independently.
+The projected deployment claims, resolutions, evidence references, snapshot, observation context,
+and limitations SHALL preserve the service answer semantics.
 
 The endpoint creates no graph writes.
 
@@ -1218,17 +1292,26 @@ declared Service.
 Existing pre-I3 public evidence remains public under its existing rules.
 
 Every evidence ref emitted in a `DeploymentClaim` or `DeploymentResolution` SHALL resolve through
-both REST and MCP `get_evidence` at the exact same snapshot.
+REST evidence resolution and negotiated MCP `get_evidence` at the exact same snapshot.
 
 Evidence not reachable under these rules behaves as a missing **public** evidence id even if an
 internal Evidence node exists.
 
 ### 16.3 Snapshot-aware REST evidence contract
 
-I3 changes the REST evidence request shape so evidence drill-down preserves the same snapshot
-continuity as Architecture Intelligence/MCP.
+I3 changes the REST evidence surface so evidence drill-down preserves the same snapshot continuity
+as `ArchitectureIntelligenceService` and negotiated MCP.
 
-The v0.5 REST forms are:
+The parity operation is:
+
+```text
+POST /api/evidence/resolve
+```
+
+Its body is the existing `EvidenceRequest`; its response is the complete
+`ArchitectureAnswer[EvidenceData]` returned by `ArchitectureIntelligenceService.get_evidence`.
+
+The existing REST convenience forms are:
 
 ```text
 GET /api/evidence?snapshot_id=<aip:snapshot:v1:...>
@@ -1262,10 +1345,11 @@ valid current snapshot + evidence is not publicly reachable / does not exist
 The list endpoint SHALL compute public evidence visibility from the same stable snapshot used to
 validate `snapshot_id`; it MUST NOT validate the snapshot and then run an unfenced second read.
 
-MCP `get_evidence` already requires `snapshot_id`; its snapshot semantics remain unchanged.
+`ArchitectureIntelligenceService.get_evidence` and negotiated MCP `get_evidence` already require
+`snapshot_id`; those snapshot semantics remain unchanged.
 
-The deployment REST/MCP response supplies the snapshot id clients SHALL pass to subsequent REST or
-MCP evidence drill-down.
+The dependency, drift, and deployment public responses supply the snapshot id clients SHALL pass to
+subsequent REST or MCP evidence drill-down.
 
 No public evidence response exposes:
 
@@ -1339,15 +1423,17 @@ The existing maximum window remains unchanged.
 
 I3 does not invent a second environment or time-window model.
 
-For equivalent REST/MCP calls:
+For equivalent REST and negotiated-MCP requests routed through the same service semantics:
 
 ```text
 same service id
 same snapshot
 same observation context
 same reconciliation context
-    -> byte-equivalent deployment semantics
+    -> equivalent deployment claims, resolutions, evidence, and limitations
 ```
+
+Transport envelopes need not be byte-identical; the Architecture Knowledge semantics must be.
 
 Path A/B may resolve without OTel evidence, but the public service deployment view still requires
 Observation Context because an applicable Path C observation inside that context may establish
@@ -1528,8 +1614,10 @@ old P1 no longer resolves in the new current snapshot
 Required cases:
 
 ```text
+ArchitectureIntelligenceService/REST/negotiated-MCP dependency semantics agree
+ArchitectureIntelligenceService/REST/negotiated-MCP drift semantics agree
 REST/MCP same deployment claims and resolutions
-direct/negotiated MCP same structuredContent
+POST /api/evidence/resolve and negotiated MCP get_evidence preserve service semantics
 get_architecture_drift never returns DEPLOYED_AS
 get_service_dependencies keeps dependency_claim_ids separate from deployment_claim_ids
 public WorkloadRef leaks no Pod/cluster internals beyond its frozen fields
@@ -1538,7 +1626,7 @@ unreferenced Kubernetes evidence remains hidden
 Kubernetes-only infrastructure with no A/B/C resolution creates no DEPLOYED_AS
 DEPLOYED_AS creates no CALLS/SENDS/RECEIVES_FROM
 MCP tool count remains exactly 3
-zero graph writes through all MCP paths
+zero graph writes through REST and negotiated MCP public read paths
 ```
 
 ### 21.7 Determinism
@@ -1644,19 +1732,41 @@ temporal compatibility
 
 Exit: observed positive/unresolved/ambiguous/conflict cases are executable internally.
 
-### Slice 5 — cross-path reducer and public exposure
+### Slice 5 — public adapter consolidation and public exposure
+
+Slice 5 is intentionally split into two reviewable parts. Slice 5a lands before 5b so the deployment
+surface is built on the final v0.5 adapter topology rather than on a transport that v0.5 removes.
+
+#### Slice 5a — public adapter consolidation and REST parity
+
+```text
+ArchitectureIntelligenceService remains the single semantic owner
+GET /api/services/{service_id}/dependencies
+GET /api/services/{service_id}/drift
+POST /api/evidence/resolve
+retire the v0.4.x direct MCP envelope
+retain standard negotiated MCP on /mcp
+ArchitectureAnswer evaluator continues direct in-process service invocation
+REST/service semantic-equivalence tests
+negotiated-MCP/service semantic-equivalence tests
+```
+
+Exit: existing dependency, drift, and evidence Architecture Knowledge is available through REST and
+standard negotiated MCP without a second semantic implementation or a direct MCP compatibility path.
+
+#### Slice 5b — deployment public exposure
 
 ```text
 agreement/conflict reducer
-get_service_dependencies integration
+get_service_dependencies deployment integration
 GET /api/services/{service_id}/deployments
 selective Kubernetes evidence exposure
-get_evidence support
 snapshot canonicalization bump
-direct/negotiated MCP equivalence
+REST/service/negotiated-MCP deployment equivalence
 ```
 
-Exit: full public `DEPLOYED_AS` vertical slice works without dependency relabeling.
+Exit: full public `DEPLOYED_AS` vertical slice works without dependency relabeling, and both public
+adapters preserve the same service-owned deployment semantics.
 
 ### Slice 6 — deterministic qualification and completion
 
@@ -1725,7 +1835,8 @@ I3 is complete only when:
 - supported Pod replacement preserves logical Workload association;
 - the mapping artifact is versioned, validated, evidence-backed, and snapshot-bound;
 - `DEPLOYED_AS` is exposed as its own public claim and never relabeled as a dependency;
-- REST and direct/negotiated MCP semantics are equivalent;
+- REST and negotiated MCP semantics are equivalent to the corresponding
+  `ArchitectureIntelligenceService` result;
 - `get_architecture_drift` remains deployment-agnostic;
 - every public deployment claim **and non-resolved resolution** evidence ref is drillable at the
   same snapshot;
@@ -1733,7 +1844,10 @@ I3 is complete only when:
 - DeploymentResolution grouping/id/cardinality/filtering/ordering are executable and deterministic;
 - unreferenced Kubernetes infrastructure/evidence remains internal;
 - `schema_version = "0.5"` and committed v0.5 schemas validate all new/old answer cases;
-- MCP exposes exactly three read-only tools and causes zero graph writes;
+- standard negotiated MCP exposes exactly three read-only tools and causes zero graph writes;
+- the v0.4.x direct MCP envelope is absent from the v0.5 public contract;
+- the deterministic architecture-answer evaluator invokes `ArchitectureIntelligenceService`
+  directly rather than using a transport adapter;
 - two clean qualification runs are byte-identical;
 - all pre-I3 I1/I2/OTel/MCP regression suites remain green;
 - limitations and unsupported cases are documented; and
@@ -1806,7 +1920,9 @@ Implementation SHALL stop for specification review if any of these becomes neces
 8. container/sidecar canonical entities to make a positive case work;
 9. exposing arbitrary Kubernetes or OTLP payloads;
 10. weakening conflict to precedence-based winner selection;
-11. schema widening while continuing to claim public `schema_version = "0.4"`.
+11. schema widening while continuing to claim public `schema_version = "0.4"`;
+12. a REST or MCP adapter independently deriving or qualifying Architecture Knowledge instead of
+    using `ArchitectureIntelligenceService`.
 
 These are scope changes, not implementation details.
 
@@ -1830,6 +1946,11 @@ Review SHALL explicitly confirm:
 - [ ] Contradiction wins over precedence.
 - [ ] Multi-Service-per-Workload is not modeled in v0.5.
 - [ ] `DEPLOYED_AS` is not a dependency or locality claim.
+- [ ] `ArchitectureIntelligenceService` is the single semantic owner for REST and negotiated MCP.
+- [ ] The deterministic evaluator invokes `ArchitectureIntelligenceService` directly.
+- [ ] The v0.4.x direct MCP envelope is retired; `/mcp` serves standard negotiated MCP only.
+- [ ] REST exposes dependencies, drift, and bounded evidence resolution through the §14.5 parity
+      operations.
 - [ ] `get_service_dependencies` exposes deployment as a separate sibling projection.
 - [ ] `get_architecture_drift` remains unchanged in meaning.
 - [ ] Evidence referenced by non-resolved public resolutions remains snapshot-drillable.
