@@ -11,7 +11,7 @@
 
 ## 1. Executive Summary
 
-AIP's customer promise is:
+AIP's customer value proposition is:
 
 > **Help coding agents work across multi-service systems without reconstructing architecture.**
 
@@ -46,7 +46,7 @@ turn into deterministic tools rather than repeated probabilistic inference.
 The strategic hierarchy is:
 
 ```text
-CUSTOMER PROMISE
+CUSTOMER VALUE PROPOSITION
 Help coding agents work across multi-service systems
 without reconstructing architecture
         ↓
@@ -2311,7 +2311,7 @@ for the primary user?
 ### Gate B — Strategic fit
 
 ```text
-Does it strengthen the customer promise
+Does it strengthen the customer value proposition
 without moving differentiation into transport or storage plumbing?
 
 Does it deepen AIP's Core Domain or Moldable Architecture Knowledge capability:
@@ -2470,7 +2470,7 @@ AIP should not design migration execution before Current State and any future In
 
 ## 31. Recommended Positioning
 
-### Customer promise
+### Customer value proposition
 
 > **Help coding agents work across multi-service systems without reconstructing architecture.**
 
@@ -2546,7 +2546,7 @@ by the target audience.
 The product direction remains sound. The Wardley-mapping exercise clarifies the strategic hierarchy:
 
 ```text
-Customer promise:
+Customer value proposition:
 Help coding agents work across multi-service systems
 without reconstructing architecture
 
@@ -2567,7 +2567,7 @@ Replaceable implementation:
 storage, graph layout, query language, transport plumbing
 ```
 
-The product center remains **Moldable Architecture Knowledge**, but it is not the customer promise
+The product center remains **Moldable Architecture Knowledge**, but it is not the customer value proposition
 itself.
 
 AIP should evolve from:
