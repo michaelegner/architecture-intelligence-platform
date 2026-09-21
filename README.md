@@ -7,6 +7,13 @@
 
 AIP gives coding agents evidence-qualified architecture context.
 
+The product direction is **Moldable Architecture Knowledge**: establish qualified Architecture
+Knowledge once, then make bounded, deterministic, question-specific projections easy for agents and
+engineering tools to inspect, compose, and reuse. The question or representation may be molded; the
+underlying evidence and qualification are not. See the
+[product doctrine](docs/product-doctrine-and-strategic-direction.md) and the validated
+[AIP × Glamorous Toolkit reference integration](docs/reference-integrations/glamorous-toolkit/README.md).
+
 It reconciles declared API contracts with observed runtime behavior so an agent can distinguish:
 
 - dependencies that are declared and observed;
