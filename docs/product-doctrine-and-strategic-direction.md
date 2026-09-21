@@ -1455,19 +1455,26 @@ insufficient to reproduce why AIP produced a specific result.
 
 ## 20. Agent-Ready Structured Context
 
-AIP should become more agent-ready by assembling **bounded, deterministic context**, not by taking
-over task reasoning.
+AIP should become more agent-ready by assembling **bounded, deterministic, moldable context**, not
+by taking over task reasoning.
 
-The agent decides:
+The agent may decide:
 
 ```text
 what it needs to know
+which supported question to ask
+which evidence to follow
+which returned facts to compose
+which contextual lens would make the answer easier to inspect
 ```
 
 AIP decides:
 
 ```text
 what the evidence and explicit intent support
+what qualification applies
+which limitations remain
+which snapshot/context the answer belongs to
 ```
 
 Every returned claim or assessment must retain:
@@ -1485,24 +1492,59 @@ limitations
 
 The context envelope must expose completeness and truncation explicitly.
 
-A generic unbounded graph-neighborhood dump is not an acceptable agent-context API.
+A generic unbounded graph-neighborhood dump is not an acceptable agent-context API. Neither is a
+design in which an agent reconstructs qualification from raw graph facts.
+
+The desired interaction is:
+
+```text
+agent chooses question
+        ↓
+AIP returns qualified Architecture Knowledge
+        ↓
+agent may follow provenance or compose a bounded lens
+        ↓
+external tool may render an ephemeral contextual micro-tool
+        ↓
+human controls permanent promotion
+```
+
+The [AIP × Glamorous Toolkit reference integration](reference-integrations/glamorous-toolkit/README.md)
+has validated this interaction pattern through agent-selected MCP calls, evidence chaining, and
+bounded agent-derived ephemeral micro-tools.
 
 ---
 
 ## 21. MCP and Interface Doctrine
 
-MCP is an adapter, not the product.
+MCP and REST are adapters, not the product.
 
 The durable product is:
 
 ```text
-evidence-qualified architecture semantics
+evidence-qualified Architecture Knowledge
+        +
+question-specific deterministic projections
 ```
 
-The MCP transport should remain as stable and boring as practical.
+The v0.5 public topology is intentionally simple:
 
-Future product evolution should appear primarily through typed architecture-intelligence contracts,
-not repeated transport redesign.
+```text
+                    ArchitectureIntelligenceService
+                              |
+              +---------------+---------------+
+              |                               |
+             REST                     standard negotiated MCP
+       general integrations                agent clients
+```
+
+The deterministic evaluator invokes `ArchitectureIntelligenceService` directly as the
+transport-independent qualification path. No public adapter owns Architecture Knowledge semantics.
+
+MCP should remain as stable and boring as practical. REST should remain a general deterministic
+integration surface. Future product evolution should appear primarily through typed
+architecture-intelligence contracts and new safely answerable questions, not repeated transport
+redesign.
 
 ### 21.1 Portability and composability
 
@@ -1538,16 +1580,17 @@ transport evolution
 
 without weakening or redefining AIP's evidence, qualification, provenance, and assessment semantics.
 
-MCP is the current primary agent-facing integration protocol, but AIP's semantic contracts should be
-portable enough to support other consumers or transports without making those consumers the source
-of architecture truth.
+Standard negotiated MCP is the primary agent-facing integration protocol, while REST is the general
+integration surface for tools and deterministic HTTP consumers. AIP's semantic contracts should be
+portable enough to support additional consumers without making any consumer the source of
+Architecture Knowledge.
 
 ### 21.2 Semantic tool layers
 
 Conceptually, the pre-v1.0 agent-facing semantics may evolve as:
 
 ```text
-MCP / other typed integration boundary
+REST / standard negotiated MCP / other typed integration boundary
 │
 ├── Current State
 │   dependencies / drift / evidence
@@ -1622,7 +1665,10 @@ Current and near-term core ownership:
 - provenance;
 - derivation lineage;
 - limitations and unresolved states;
-- bounded deterministic architecture context.
+- bounded deterministic architecture context;
+- question-specific deterministic Architecture Knowledge projections;
+- public semantic contracts that external moldable tools can inspect and compose without becoming
+  architecture authorities.
 
 Future, only if separately specified and validated:
 
@@ -1709,6 +1755,21 @@ AIP:
 establish architecture premises
 the agent does not have to invent
 ```
+
+### Moldable development environments
+
+```text
+Moldable environment:
+helps humans and agents construct contextual tools and representations
+
+AIP:
+provides evidence-qualified Architecture Knowledge
+whose bounded projections can be molded without changing underlying semantics
+```
+
+The AIP × GT reference integration demonstrates that the layers compose: a GT-hosted agent can ask
+AIP questions over MCP, follow evidence, and derive ephemeral micro-tools while AIP remains the
+knowledge authority and the developer controls permanence.
 
 ### Governance / policy systems
 
