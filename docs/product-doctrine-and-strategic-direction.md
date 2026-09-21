@@ -1,22 +1,29 @@
 # AIP Product Doctrine and Strategic Direction
 
-**Status:** Working strategy — revised after composition, authority, verification, temporal, and product-validation review<br>
+**Status:** Working strategy — Moldable Architecture Knowledge positioning and release doctrine integrated<br>
 **Project:** Architecture Intelligence Platform (AIP)<br>
-**Date:** 2026-09-14<br>
-**Scope:** Product doctrine, target wedge, semantic model, strategic direction, and roadmap alignment<br>
-**Current implementation center:** Evidence-qualified Current State and read-only agent context<br>
+**Date:** 2026-09-21<br>
+**Scope:** Product doctrine, target wedge, semantic model, Moldable Architecture Knowledge, strategic direction, and roadmap alignment<br>
+**Current implementation center:** Evidence-qualified Current State and read-only agent context; v0.5 broadens discovery and public Architecture Knowledge access<br>
 **Important:** ROADMAP.md assigns planned themes to v0.6–v0.8; detailed scope remains subject to release-specific specifications and qualification gates.
 
 ---
 
 ## 1. Executive Summary
 
-AIP should become the **evidence-qualified architecture knowledge layer for AI agents and engineering tools**.
+AIP should become the **evidence-qualified Architecture Knowledge platform for AI agents and
+engineering tools**.
 
-Its purpose is not to make agents more autonomous. Its purpose is to give them architecture context
-they do not have to reconstruct or invent.
+Its core product concept is **Moldable Architecture Knowledge**: establish qualified Architecture
+Knowledge once, then make small, deterministic, question-specific projections inexpensive to
+create, inspect, compose, and reuse without allowing the consumer to rewrite the underlying evidence
+or qualification.
 
-The current product center remains:
+Its purpose is not to make agents more autonomous. Its purpose is to give them architecture premises
+they do not have to reconstruct or invent, and to make recurring architecture questions cheaper to
+turn into deterministic tools rather than repeated probabilistic inference.
+
+The product center becomes:
 
 ```text
 Architecture Evidence
@@ -25,11 +32,13 @@ Evidence Applicability
         ↓
 Qualified Architecture Facts
         ↓
-Evidence-Qualified Current State
+Evidence-Qualified Architecture Knowledge
         ↓
-Bounded Agent-Ready Context
+Question-Specific Deterministic Projection
         ↓
-Agent Reasoning
+Agent / Human / Contextual Micro-Tool
+        ↓
+Reasoning / Inspection / Next Question
 ```
 
 The longer-term product thesis is now sharper, but it preserves a hard semantic separation between
@@ -79,6 +88,59 @@ The durable product boundary is:
 AIP does not decide what an agent should do. It does not promote inferred intent into architectural
 truth. It does not treat missing evidence as proof of absence. It does not prescribe a migration
 procedure merely because a Current State differs from explicit intent.
+
+### 1.1 Core concept: Moldable Architecture Knowledge
+
+"Moldable" describes the **question, projection, composition, and representation** of Architecture
+Knowledge. It does not mean that facts become user-shaped or that qualification becomes negotiable.
+
+```text
+consumer may mold:
+  question
+  selection
+  projection
+  composition
+  representation
+  contextual tool
+
+consumer may not mold:
+  source evidence
+  claim meaning
+  qualification
+  provenance
+  snapshot identity
+  limitations
+```
+
+The product rule is:
+
+> **Architecture Knowledge should be moldable without making its evidence, qualification,
+> provenance, or semantic meaning consumer-moldable.**
+
+A recurring architecture question should move toward this lifecycle:
+
+```text
+architecture question
+        ↓
+qualified Architecture Knowledge
+        ↓
+deterministic projection
+        ↓
+inspectable answer
+        ↓
+optional contextual micro-tool
+        ↓
+reuse / refinement / next question
+```
+
+The AIP × Glamorous Toolkit reference integration validates an important version of this loop:
+agents can select AIP capabilities, chain evidence requests, preserve AIP snapshot/provenance
+semantics, and derive bounded ephemeral micro-tools while AIP remains the source of Architecture
+Knowledge and the developer controls what becomes permanent.
+
+This concept does not make Glamorous Toolkit an AIP dependency. GT is a reference integration that
+demonstrates the interaction model. The durable product idea is portable across agent clients,
+engineering tools, REST consumers, and future interfaces.
 
 ---
 
