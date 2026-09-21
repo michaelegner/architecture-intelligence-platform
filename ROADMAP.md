@@ -589,6 +589,27 @@ ASSESS
 FREEZE
 ```
 
+In product-question terms:
+
+```text
+v0.5
+WHAT is running WHERE?
+        ↓
+v0.6
+WHERE does this architectural relationship hold?
+        ↓
+v0.7
+WHAT explicit Intent applies here?
+        ↓
+v0.8
+HOW does established Current State differ from applicable Intent?
+        ↓
+v1.0-rc
+FREEZE and qualify the question space already implemented
+```
+
+This question progression is the product-facing expression of the semantic sequence above.
+
 The ordering is semantic, not merely chronological:
 
 1. broader evidence must be trustworthy before it is used to establish more Current State;
