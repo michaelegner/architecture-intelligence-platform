@@ -1960,25 +1960,32 @@ guidance for the semantics and product boundaries behind that roadmap.
 
 ```text
 v0.5 — Broader Architecture Discovery
-  Broaden what AIP can safely know.
+  Product questions:
+  "Where is this service deployed?"
+  "Which deployment identities are unresolved?"
 
 v0.6 — Locality-Aware Current State
-  Establish what Current-State evidence supports within explicit locality
-  and observation context, while keeping execution centralized if desired.
+  Product questions:
+  "Where is this dependency established?"
+  "Does this relation differ by supported locality?"
 
 v0.7 — Explicit Architecture Intent
-  Represent explicit, attributable Intent without allowing Intent to alter
-  established Current State.
+  Product question:
+  "What explicit architecture intent applies here?"
 
 v0.8 — Qualified Architecture Assessment
-  Assess independently established Current State against independently
-  established applicable Intent.
+  Product question:
+  "Where does Current State differ from applicable Intent?"
 
-v0.9 — Contract Freeze / Production Qualification
-  Stabilize and production-qualify the contracts intended for v1.0.
+v1.0.0-rc.N — Contract Freeze / Production Qualification
+  Freeze and production-qualify the implemented contracts intended for v1.0;
+  this is a release-candidate phase, not a new architecture-question release.
 
 v1.0 — Stable Architecture Intelligence Platform
 ```
+
+The release themes still describe implementation scope. The product questions explain why each
+capability release expands AIP's useful Architecture Knowledge.
 
 The semantic dependency between these themes is deliberate:
 
@@ -2039,10 +2046,11 @@ v0.7 must implement and qualify the independent Intent path while preserving the
 v0.8 must implement and qualify the separate Current↔Intent assessment path over the two independent
 projections.
 
-### 26.4 v0.9 qualification and freeze rule
+### 26.4 v1.0 release-candidate qualification and freeze rule
 
-v0.9 should attempt to stabilize the planned pre-v1.0 capabilities that have been implemented and
-qualified through v0.8.
+After v0.8, contract freeze and production qualification should run as a `v1.0.0-rc.N` phase rather
+than as a separate `v0.9.0` product-capability release. That phase should stabilize the planned
+pre-v1.0 capabilities that have been implemented and qualified through v0.8.
 
 The rule is:
 
@@ -2062,7 +2070,9 @@ removed from the v1.0 contract
 ```
 
 No additional roadmap change is required merely to specify and implement the planned v0.7 Intent or
-v0.8 Assessment capabilities. Product-value and qualification gates still apply. A failed gate must
+v0.8 Assessment capabilities. The release-candidate phase must not invent a new product question
+merely to justify a version number; its purpose is to freeze and qualify the already-implemented
+question space. Product-value and qualification gates still apply. A failed gate must
 result in a documented decision to narrow, defer, or remove scope; material changes to release
 assignment or product boundary must also be reflected in ROADMAP.md.
 
@@ -2142,6 +2152,16 @@ Can the capability be evaluated deterministically
 and, where appropriate, against independently authored or real-system evidence?
 ```
 
+### Gate E — Architecture question
+
+```text
+What recurring architecture question becomes safely answerable,
+or materially more reusable, because this capability exists?
+```
+
+For a new capability release, inability to state that question clearly is a warning that the work is
+primarily machinery or hardening rather than product-surface expansion.
+
 ---
 
 ## 28. Near-Term Priority Order
@@ -2156,7 +2176,7 @@ Given the current roadmap, the preferred order is:
 5. Implement locality-aware Current-State semantics in v0.6 without requiring distributed execution.
 6. Implement the independent explicit-Intent path in v0.7.
 7. Implement the separate Current ↔ Intent assessment path in v0.8.
-8. In v0.9, freeze only contracts that survive implementation and qualification.
+8. In the v1.0 release-candidate phase, freeze only contracts that survive implementation and qualification.
 9. Keep historical trajectories and distributed Local Architecture Assessor deployment beyond v1.0,
    unscheduled, unless the roadmap is explicitly revised.
 ```
@@ -2178,21 +2198,22 @@ Assessment only over both established projections
 For every proposed feature, ask:
 
 1. **Who is the primary user for this capability?**
-2. **What concrete job or failure mode does it address?**
-3. **What measurable customer outcome should improve?**
-4. **What claim, assessment, or context does AIP produce?**
-5. **What exact evidence can support that output?**
-6. **Which artifact type × claim kind × mapping rule defines applicability?**
-7. **Which locality/context/time dimensions are actually supported?**
-8. **Is the claim local, projected, or intended to be global?**
-9. **If intent is involved, what explicit attributable artifact establishes it?**
-10. **What happens when evidence is missing, partial, conflicting, unsupported, or local-only?**
-11. **Can the semantics be stated without relying on an LLM?**
-12. **Can behavior be validated deterministically?**
-13. **Does the capability keep AIP advisory and read-only?**
-14. **Would an integration boundary be better than AIP owning the adjacent function?**
-15. **Does the feature accidentally couple AIP to one authoring format or deployment topology?**
-16. **What existing roadmap item should be delayed if this enters scope?**
+2. **What recurring architecture question becomes safely answerable?**
+3. **What concrete job or failure mode does it address?**
+4. **What measurable customer outcome should improve?**
+5. **What claim, assessment, or context does AIP produce?**
+6. **What exact evidence can support that output?**
+7. **Which artifact type × claim kind × mapping rule defines applicability?**
+8. **Which locality/context/time dimensions are actually supported?**
+9. **Is the claim local, projected, or intended to be global?**
+10. **If intent is involved, what explicit attributable artifact establishes it?**
+11. **What happens when evidence is missing, partial, conflicting, unsupported, or local-only?**
+12. **Can the semantics be stated without relying on an LLM?**
+13. **Can behavior be validated deterministically?**
+14. **Does the capability keep AIP advisory and read-only?**
+15. **Would an integration boundary be better than AIP owning the adjacent function?**
+16. **Does the feature accidentally couple AIP to one authoring format or deployment topology?**
+17. **What existing roadmap item should be delayed if this enters scope?**
 
 ---
 
@@ -2260,13 +2281,14 @@ AIP should not design migration execution before Current State and any future In
 
 ### Current short positioning
 
-> **AIP makes evidence-qualified architecture knowledge agent-ready.**
+> **AIP makes Architecture Knowledge moldable for agents and engineering tools — without making the
+> underlying evidence or qualification moldable.**
 
 ### Current product positioning
 
-> **AIP establishes what can currently be supported about architecture from available evidence,
-> preserves how that conclusion was derived, and exposes it in a form agents can safely reason
-> from.**
+> **AIP establishes evidence-qualified Architecture Knowledge and makes it inexpensive to turn
+> concrete architecture questions into bounded, deterministic projections that agents and
+> engineering tools can inspect, compose, and reuse.**
 
 ### Primary customer framing
 
@@ -2282,7 +2304,8 @@ AIP should not design migration execution before Current State and any future In
 
 ### Agent-readiness statement
 
-> **AIP is not an agent platform. It is evidence-qualified architecture infrastructure for agents.**
+> **AIP is not an agent platform. It is the evidence-qualified Architecture Knowledge layer agents
+> query and mold into contextual views without becoming the source of the knowledge.**
 
 ### Future product proposition — strategic hypothesis
 
@@ -2311,16 +2334,19 @@ by the target audience.
 
 ## 32. Strategic Conclusion
 
-The product direction remains sound, but the longer-term semantic center is now clearer.
+The product direction remains sound, but the product center is now clearer: **Moldable Architecture
+Knowledge**.
 
 AIP should evolve from:
 
 ```text
 Evidence
    ↓
-Qualified Current State
+Qualified Architecture Knowledge
    ↓
-Trusted Architecture Context
+Question-Specific Deterministic Projection
+   ↓
+Agent / Human / Contextual Tool
 ```
 
 while preserving two independent semantic paths:
@@ -2344,7 +2370,12 @@ Qualified Current ↔ Intent Assessment
 Under the current roadmap, **Architecture Trajectories remain beyond v1.0** and require a separate
 historical-state foundation before they can become a product capability.
 
-The most important conceptual insight is:
+The interaction insight is:
+
+> **AIP should establish Architecture Knowledge once and make recurring architecture questions cheap
+> to express as deterministic, inspectable projections.**
+
+The most important semantic insight remains:
 
 > **AIP establishes architecture locally before projecting it globally.**
 
