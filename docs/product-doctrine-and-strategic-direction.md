@@ -1,22 +1,74 @@
 # AIP Product Doctrine and Strategic Direction
 
-**Status:** Working strategy — revised after composition, authority, verification, temporal, and product-validation review<br>
+**Status:** Working strategy — Moldable Architecture Knowledge positioning and release doctrine integrated<br>
 **Project:** Architecture Intelligence Platform (AIP)<br>
-**Date:** 2026-09-14<br>
-**Scope:** Product doctrine, target wedge, semantic model, strategic direction, and roadmap alignment<br>
-**Current implementation center:** Evidence-qualified Current State and read-only agent context<br>
+**Date:** 2026-09-21<br>
+**Scope:** Product doctrine, target wedge, semantic model, Moldable Architecture Knowledge, strategic direction, and roadmap alignment<br>
+**Current implementation center:** Evidence-qualified Current State and read-only agent context; v0.5 broadens discovery and public Architecture Knowledge access<br>
 **Important:** ROADMAP.md assigns planned themes to v0.6–v0.8; detailed scope remains subject to release-specific specifications and qualification gates.
 
 ---
 
 ## 1. Executive Summary
 
-AIP should become the **evidence-qualified architecture knowledge layer for AI agents and engineering tools**.
+AIP's customer value proposition is:
 
-Its purpose is not to make agents more autonomous. Its purpose is to give them architecture context
-they do not have to reconstruct or invent.
+> **Help coding agents work across multi-service systems without reconstructing architecture.**
 
-The current product center remains:
+Its core product concept is **Moldable Architecture Knowledge**: establish qualified Architecture
+Knowledge once, then make small, deterministic, question-specific projections inexpensive to
+create, inspect, compose, and reuse without allowing the consumer to rewrite the underlying evidence
+or qualification.
+
+AIP's differentiation has two layers.
+
+**Core-domain differentiation** establishes trustworthy Architecture Knowledge:
+
+- **evidence applicability and qualification** — state what the available evidence actually supports;
+- **identity reconciliation** — relate heterogeneous identities without guessing;
+- **conflict-aware reconciliation** — combine potentially disagreeing sources without flattening
+  disagreement;
+- **provenance and derivation lineage** — preserve why a claim exists and where it came from;
+- **bounded uncertainty** — keep unresolved, conflicting, unsupported, incomplete, and scoped
+  outcomes explicit.
+
+**Product-level differentiation** makes that knowledge useful repeatedly:
+
+- **deterministic projections** — turn recurring architecture questions into reproducible,
+  inspectable answers over the same qualified knowledge;
+- **moldability** — allow question, selection, composition, and representation to vary without
+  changing the established meaning underneath.
+
+Its purpose is not to make agents more autonomous. Its purpose is to give them architecture premises
+they do not have to reconstruct or invent, and to make recurring architecture questions cheaper to
+turn into deterministic tools rather than repeated probabilistic inference.
+
+The strategic hierarchy is:
+
+```text
+CUSTOMER VALUE PROPOSITION
+Help coding agents work across multi-service systems
+without reconstructing architecture
+        ↓
+PRODUCT CONCEPT
+Moldable Architecture Knowledge
+        ↓ enabled by
+CORE DOMAIN
+Establishing Evidence-Qualified Architecture Knowledge
+        ↓
+CORE-DOMAIN DIFFERENTIATION
+applicability + identity/reconciliation + qualification
++ provenance/lineage + bounded uncertainty
+        ↓ exposed as
+PRODUCT-LEVEL DIFFERENTIATION
+deterministic question-specific projections + moldability
+        ↓
+REPLACEABLE IMPLEMENTATION
+graph/database layout, query language, storage technology,
+transport plumbing, internal traversal and persistence details
+```
+
+The product center becomes:
 
 ```text
 Architecture Evidence
@@ -25,11 +77,13 @@ Evidence Applicability
         ↓
 Qualified Architecture Facts
         ↓
-Evidence-Qualified Current State
+Evidence-Qualified Architecture Knowledge
         ↓
-Bounded Agent-Ready Context
+Question-Specific Deterministic Projection
         ↓
-Agent Reasoning
+Agent / Human / Contextual Micro-Tool
+        ↓
+Reasoning / Inspection / Next Question
 ```
 
 The longer-term product thesis is now sharper, but it preserves a hard semantic separation between
@@ -80,6 +134,174 @@ AIP does not decide what an agent should do. It does not promote inferred intent
 truth. It does not treat missing evidence as proof of absence. It does not prescribe a migration
 procedure merely because a Current State differs from explicit intent.
 
+### 1.1 Core concept: Moldable Architecture Knowledge
+
+"Moldable" describes the **question, projection, composition, and representation** of Architecture
+Knowledge. It does not mean that facts become user-shaped or that qualification becomes negotiable.
+
+```text
+consumer may mold:
+  question
+  selection
+  projection
+  composition
+  representation
+  contextual tool
+
+consumer may not mold:
+  source evidence
+  claim meaning
+  qualification
+  provenance
+  snapshot identity
+  limitations
+```
+
+The product rule is:
+
+> **Architecture Knowledge should be moldable without making its evidence, qualification,
+> provenance, or semantic meaning consumer-moldable.**
+
+A recurring architecture question should move toward this lifecycle:
+
+```text
+architecture question
+        ↓
+qualified Architecture Knowledge
+        ↓
+deterministic projection
+        ↓
+inspectable answer
+        ↓
+optional contextual micro-tool
+        ↓
+reuse / refinement / next question
+```
+
+The AIP × Glamorous Toolkit reference integration validates an important version of this loop:
+agents can select AIP capabilities, chain evidence requests, preserve AIP snapshot/provenance
+semantics, and derive bounded ephemeral micro-tools while AIP remains responsible for establishing
+the qualified Architecture Knowledge exposed by its contracts and the developer controls what
+becomes permanent.
+
+This concept does not make Glamorous Toolkit an AIP dependency. GT is a reference integration that
+demonstrates the interaction model. The durable product idea is portable across agent clients,
+engineering tools, REST consumers, and future interfaces.
+
+The map-derived product distinction is:
+
+> **Customers value a reliable Architecture Knowledge capability from which recurring questions can
+> be answered deterministically. They do not need AIP's internal storage representation to become
+> part of that contract.**
+
+This does **not** make the semantic model disposable. Public architectural meaning — identity,
+relation semantics, qualification, provenance, context, evidence linkage, limitations, and
+assessment meaning — is part of the product contract even when its internal graph/database
+representation is replaceable. Before v1.0 those semantics may still evolve through explicit,
+versioned contract changes; "not replaceable" means they are not mere implementation detail, not
+that they are already frozen.
+
+### 1.2 DDD framing: Core Domain and supporting capabilities
+
+In Domain-Driven Design terms, AIP's **Core Domain** is:
+
+> **Establishing Evidence-Qualified Architecture Knowledge from heterogeneous, incomplete, and
+> potentially conflicting system evidence.**
+
+The core domain answers:
+
+```text
+What architectural claim can be established?
+From which applicable evidence?
+Under which identity, locality, time, and observation context?
+With what qualification?
+With what conflicts, uncertainty, or limitation?
+With what provenance and derivation lineage?
+```
+
+This is distinct from the mechanics around it:
+
+```text
+CORE DOMAIN
+Architecture Knowledge establishment and qualification
+  - evidence applicability
+  - identity and reconciliation semantics
+  - claim qualification
+  - conflict / uncertainty semantics
+  - provenance / derivation meaning
+
+PRODUCT CAPABILITY BUILT ON THE CORE DOMAIN
+Deterministic question-specific projection
+  - bounded ArchitectureAnswer contracts
+  - reusable architecture questions
+  - moldable composition / representation
+
+SUPPORTING
+Protocol-specific source discovery / ingestion mechanics,
+syntactic normalization, snapshot plumbing, evaluation harnesses,
+adapter implementation
+
+GENERIC / STANDARDIZE WHERE PRACTICAL
+MCP / HTTP transport, protocol libraries, database technology,
+graph query mechanics, standard source APIs
+```
+
+A new source adapter is therefore not automatically new product capability. It becomes strategically
+important when it enables a materially new class of qualified Architecture Knowledge, requires new
+core-domain semantics, or unlocks a materially new deterministic architecture question.
+
+The Core Domain is not the same thing as one Bounded Context. Current State, explicit Intent, and
+Current↔Intent Assessment may require distinct semantic boundaries while still contributing to AIP's
+overall Architecture Knowledge domain. In particular, Intent must remain outside Current-State
+establishment.
+
+
+### 1.3 Architecture Intelligence Platform — Strategic Wardley Map
+
+The Wardley map makes the strategy above spatial: it connects the primary customer need to the
+capabilities required to satisfy it and positions those capabilities by their stage of evolution.
+
+![Architecture Intelligence Platform — Strategic Wardley Map](../images/wardley/aip-strategic-wardley-map.png)
+
+The map should be read as an **AIP strategy map**, not as an AIP × Glamorous Toolkit integration map.
+Glamorous Toolkit appears as an independent reference consumer that validates the moldable,
+question-driven interaction model; it is not part of AIP's core value chain.
+
+The map reinforces four investment conclusions:
+
+- **differentiate in the Core Domain** — evidence applicability, identity/reconciliation,
+  qualification, provenance/lineage, conflict handling, bounded uncertainty, and public
+  Architecture Knowledge semantics;
+- **differentiate at the product level** — deterministic, reusable, question-specific projections
+  over qualified Architecture Knowledge;
+- **standardize or consume mature capabilities** — MCP/REST transport, OpenAPI/OpenTelemetry/
+  Kubernetes/Git interfaces, persistence technology, and graph/query plumbing where practical;
+- **keep external exploration separate from semantic authority** — agents, GT, and other consumers
+  may select questions, compose projections, and create contextual tools without becoming the source
+  of evidence, qualification, or architectural meaning.
+
+The strategic reading is therefore:
+
+```text
+customer need
+    ↓
+coding agent
+    ↓
+question-specific architecture answer
+    ↓
+Evidence-Qualified Architecture Knowledge
+    ↓
+qualification / reconciliation
+    ↓
+source adapters
+    ↓
+enterprise evidence sources
+```
+
+This is a **chain of needs**, not a decomposition of AIP's implementation. The horizontal position
+expresses evolution from Genesis to Commodity; the vertical position expresses visibility to the
+customer. Dashed links indicate interaction or usage rather than value-chain dependency.
+
 ---
 
 ## 2. Primary Customer Hypothesis
@@ -91,9 +313,13 @@ The initial product audience should remain explicit enough to prioritize work.
 > **Platform engineering and architecture teams enabling coding agents to change multi-service
 > systems.**
 
-These teams need to let agents work across service boundaries without forcing the agent to reconstruct
-architecture from source code, documentation, naming conventions, stale diagrams, or incomplete
-telemetry.
+These teams need to let agents work across service boundaries without forcing the agent to
+reconstruct architecture from source code, documentation, naming conventions, stale diagrams, or
+incomplete telemetry.
+
+The primary customer need is therefore not "buy an architecture graph" or "buy more agent
+autonomy." It is to obtain reliable, bounded architecture knowledge at the point where an agent must
+reason across service boundaries.
 
 ### Secondary users
 
@@ -219,6 +445,26 @@ how the system might safely change
 
 AIP should not collapse these stages into one graph or one AI-generated answer.
 
+Product evolution should also be visible as an expansion of the **architecture-question space**.
+A capability release should be explainable in terms of a materially new recurring question that AIP
+can answer safely and deterministically, not merely in terms of internal machinery added to the
+platform.
+
+```text
+v0.5  Where is this service deployed?
+      Which deployment identities are unresolved?
+
+v0.6  Where is this dependency established?
+      Does this relation differ by supported locality?
+
+v0.7  What explicit architecture intent applies here?
+
+v0.8  Where does Current State differ from applicable Intent?
+```
+
+The technical model remains essential, but the product roadmap should explain **what new question
+becomes safely answerable** because of that model.
+
 ---
 
 ## 5. Customer Outcome Hypotheses
@@ -239,6 +485,12 @@ The current hypotheses are:
    blueprint.**
 8. **Make locality- and time-specific differences visible instead of flattening them into one global
    architecture view.**
+9. **Reduce the cost of turning a recurring architecture question into a reusable deterministic
+   projection or contextual tool.**
+10. **Allow agents to derive useful architecture lenses without allowing agent-generated content to
+    become Architecture Knowledge.**
+11. **Let REST, MCP, and external moldable tools consume the same semantic knowledge without
+    duplicating qualification logic.**
 
 These are hypotheses to validate, not claims that AIP has already demonstrated these business
 outcomes.
@@ -304,6 +556,9 @@ post-change discrepancies surfaced independently
 architecture-sensitive agent tasks that query AIP before acting
 time to identify Current ↔ Intent differences
 time to distinguish local deviation from system-wide deviation
+time from recurring architecture question to deterministic reusable projection
+reuse frequency of promoted architecture questions / projections
+recurring questions answered from deterministic Architecture Knowledge rather than agent reconstruction
 ```
 
 Metrics should remain small enough to support actual product decisions.
@@ -333,7 +588,7 @@ pilot has already passed or prescribe unvalidated numerical thresholds.
 
 ## 7. Core Product Question
 
-AIP's current differentiating question remains:
+AIP's current core epistemic question remains:
 
 > **What architecture can we currently support from available evidence, and what are the limits of
 > that knowledge?**
@@ -346,13 +601,22 @@ The longer-term question becomes:
 This is intentionally weaker and more defensible than claiming a universal architecture "truth
 layer."
 
-The preferred product term remains:
+The preferred product concept is:
 
-> **evidence-qualified architecture knowledge layer**
+> **Moldable Architecture Knowledge**
+
+with the semantic foundation:
+
+> **evidence-qualified Architecture Knowledge**
 
 not:
 
 > technical-architecture truth layer
+
+A complementary product-design question is:
+
+> **Which recurring architecture question can AIP make deterministic next, while preserving the
+> evidence, qualification, context, and limits of the answer?**
 
 ---
 
@@ -395,6 +659,16 @@ not:
     agents, and integration transports.**
 25. **Transformation planning is downstream from qualified Current State, explicit Intent, and
     qualified difference.**
+26. **Architecture Knowledge may be molded in question, projection, composition, and representation;
+    evidence, qualification, provenance, and semantic meaning are not consumer-moldable.**
+27. **When a recurring architecture question can be answered deterministically, prefer a reusable
+    projection/tool over repeatedly asking an agent to reconstruct the answer.**
+28. **Differentiate where Architecture Knowledge is established; standardize where it is transported
+    and sourced.**
+29. **Internal representation is replaceable; public architectural meaning is a versioned semantic
+    contract, not an implementation detail.**
+30. **The product is neither the graph nor a bag of fixed answers: it is a reliable Architecture
+    Knowledge capability whose qualified semantics support reusable deterministic projections.**
 
 ---
 
@@ -1351,19 +1625,26 @@ insufficient to reproduce why AIP produced a specific result.
 
 ## 20. Agent-Ready Structured Context
 
-AIP should become more agent-ready by assembling **bounded, deterministic context**, not by taking
-over task reasoning.
+AIP should become more agent-ready by assembling **bounded, deterministic, moldable context**, not
+by taking over task reasoning.
 
-The agent decides:
+The agent may decide:
 
 ```text
 what it needs to know
+which supported question to ask
+which evidence to follow
+which returned facts to compose
+which contextual lens would make the answer easier to inspect
 ```
 
 AIP decides:
 
 ```text
 what the evidence and explicit intent support
+what qualification applies
+which limitations remain
+which snapshot/context the answer belongs to
 ```
 
 Every returned claim or assessment must retain:
@@ -1381,24 +1662,74 @@ limitations
 
 The context envelope must expose completeness and truncation explicitly.
 
-A generic unbounded graph-neighborhood dump is not an acceptable agent-context API.
+A generic unbounded graph-neighborhood dump is not an acceptable agent-context API. Neither is a
+design in which an agent reconstructs qualification from raw graph facts.
+
+The desired interaction is:
+
+```text
+agent chooses question
+        ↓
+AIP returns qualified Architecture Knowledge
+        ↓
+agent may follow provenance or compose a bounded lens
+        ↓
+external tool may render an ephemeral contextual micro-tool
+        ↓
+human controls permanent promotion
+```
+
+The [AIP × Glamorous Toolkit reference integration](reference-integrations/glamorous-toolkit/README.md)
+has validated this interaction pattern through agent-selected MCP calls, evidence chaining, and
+bounded agent-derived ephemeral micro-tools.
 
 ---
 
 ## 21. MCP and Interface Doctrine
 
-MCP is an adapter, not the product.
+MCP and REST are adapters, not the product.
 
-The durable product is:
+The durable product boundary is:
 
 ```text
-evidence-qualified architecture semantics
+evidence-qualified Architecture Knowledge
+        +
+question-specific deterministic projections
+        +
+stable public architectural meaning
 ```
 
-The MCP transport should remain as stable and boring as practical.
+The storage representation beneath that boundary is replaceable. The semantic contract above it is
+not incidental implementation detail.
 
-Future product evolution should appear primarily through typed architecture-intelligence contracts,
-not repeated transport redesign.
+The v0.5 public topology is intentionally simple:
+
+```text
+                    ArchitectureIntelligenceService
+                              |
+              +---------------+---------------+
+              |                               |
+             REST                     standard negotiated MCP
+       general integrations                agent clients
+```
+
+The deterministic evaluator invokes `ArchitectureIntelligenceService` directly as the
+transport-independent qualification path. No public adapter owns Architecture Knowledge semantics.
+
+MCP should remain as stable and boring as practical. REST should remain a general deterministic
+integration surface. Future product evolution should appear primarily through typed
+architecture-intelligence contracts and new safely answerable questions, not repeated transport
+redesign.
+
+The strategic rule is:
+
+> **Differentiate where Architecture Knowledge is established; standardize where it is transported
+> and sourced.**
+
+That means transport protocols, standard source interfaces, graph/database technology, and similar
+plumbing should be consumed as mature capabilities wherever practical. AIP-specific investment
+belongs primarily in evidence semantics, identity/reconciliation, qualification, provenance,
+uncertainty handling, and deterministic projections.
 
 ### 21.1 Portability and composability
 
@@ -1434,16 +1765,17 @@ transport evolution
 
 without weakening or redefining AIP's evidence, qualification, provenance, and assessment semantics.
 
-MCP is the current primary agent-facing integration protocol, but AIP's semantic contracts should be
-portable enough to support other consumers or transports without making those consumers the source
-of architecture truth.
+Standard negotiated MCP is the primary agent-facing integration protocol, while REST is the general
+integration surface for tools and deterministic HTTP consumers. AIP's semantic contracts should be
+portable enough to support additional consumers without making any consumer the source of
+Architecture Knowledge.
 
 ### 21.2 Semantic tool layers
 
 Conceptually, the pre-v1.0 agent-facing semantics may evolve as:
 
 ```text
-MCP / other typed integration boundary
+REST / standard negotiated MCP / other typed integration boundary
 │
 ├── Current State
 │   dependencies / drift / evidence
@@ -1508,8 +1840,9 @@ unverified. They do not by themselves establish causality or overall change corr
 
 Current and near-term core ownership:
 
-- architecture evidence ingestion;
-- canonical architecture modeling;
+- source-to-claim semantic interpretation and evidence-applicability rules;
+- canonical architecture semantics exposed through public contracts, independent of the persistence
+  representation;
 - evidence applicability;
 - identity reconciliation;
 - declared-versus-observed qualification;
@@ -1517,8 +1850,16 @@ Current and near-term core ownership:
 - snapshot-bound architecture answers;
 - provenance;
 - derivation lineage;
-- limitations and unresolved states;
-- bounded deterministic architecture context.
+- limitations, conflicts, unsupported cases, and unresolved states;
+- bounded deterministic architecture context;
+- question-specific deterministic Architecture Knowledge projections;
+- public semantic contracts that external moldable tools can inspect and compose without becoming
+  architecture authorities.
+
+AIP should own the **domain meaning** required for these capabilities. Standard source protocols,
+transport libraries, and persistence mechanics should remain supporting or generic wherever
+practical. Consumers should not depend on the internal database schema, graph layout, query
+implementation, or persistence model used to realize the domain semantics.
 
 Future, only if separately specified and validated:
 
@@ -1546,6 +1887,8 @@ Beyond v1.0 under the current roadmap:
 - agent memory;
 - generic workflow automation;
 - generic enterprise knowledge graphs;
+- exposing AIP's internal graph/database representation as the product contract;
+- generic graph/Cypher access as a substitute for qualified architecture questions;
 - business capability ownership;
 - policy authoring;
 - approvals;
@@ -1606,6 +1949,22 @@ establish architecture premises
 the agent does not have to invent
 ```
 
+### Moldable development environments
+
+```text
+Moldable environment:
+helps humans and agents construct contextual tools and representations
+
+AIP:
+provides evidence-qualified Architecture Knowledge
+whose bounded projections can be molded without changing underlying semantics
+```
+
+The AIP × GT reference integration demonstrates that the layers compose: a GT-hosted agent can ask
+AIP questions over MCP, follow evidence, and derive ephemeral micro-tools while AIP remains
+responsible for the qualification semantics of the Architecture Knowledge it exposes and the
+developer controls permanence.
+
 ### Governance / policy systems
 
 ```text
@@ -1636,13 +1995,16 @@ without requiring a complete target blueprint
 
 ```text
 Knowledge graph:
-connects information
+connects and represents information
 
 AIP:
-qualifies which architecture claims
-the available evidence supports
-and how local assessments project into broader views
+establishes evidence-qualified Architecture Knowledge
+with public semantic meaning, provenance, context, limitations,
+and deterministic question-specific projections
 ```
+
+AIP may use a graph internally, but the graph representation is not the customer contract. The
+public architectural semantics are.
 
 ---
 
@@ -1795,25 +2157,32 @@ guidance for the semantics and product boundaries behind that roadmap.
 
 ```text
 v0.5 — Broader Architecture Discovery
-  Broaden what AIP can safely know.
+  Product questions:
+  "Where is this service deployed?"
+  "Which deployment identities are unresolved?"
 
 v0.6 — Locality-Aware Current State
-  Establish what Current-State evidence supports within explicit locality
-  and observation context, while keeping execution centralized if desired.
+  Product questions:
+  "Where is this dependency established?"
+  "Does this relation differ by supported locality?"
 
 v0.7 — Explicit Architecture Intent
-  Represent explicit, attributable Intent without allowing Intent to alter
-  established Current State.
+  Product question:
+  "What explicit architecture intent applies here?"
 
 v0.8 — Qualified Architecture Assessment
-  Assess independently established Current State against independently
-  established applicable Intent.
+  Product question:
+  "Where does Current State differ from applicable Intent?"
 
-v0.9 — Contract Freeze / Production Qualification
-  Stabilize and production-qualify the contracts intended for v1.0.
+v1.0.0-rc.N — Contract Freeze / Production Qualification
+  Freeze and production-qualify the implemented contracts intended for v1.0;
+  this is a release-candidate phase, not a new architecture-question release.
 
 v1.0 — Stable Architecture Intelligence Platform
 ```
+
+The release themes still describe implementation scope. The product questions explain why each
+capability release expands AIP's useful Architecture Knowledge.
 
 The semantic dependency between these themes is deliberate:
 
@@ -1874,10 +2243,11 @@ v0.7 must implement and qualify the independent Intent path while preserving the
 v0.8 must implement and qualify the separate Current↔Intent assessment path over the two independent
 projections.
 
-### 26.4 v0.9 qualification and freeze rule
+### 26.4 v1.0 release-candidate qualification and freeze rule
 
-v0.9 should attempt to stabilize the planned pre-v1.0 capabilities that have been implemented and
-qualified through v0.8.
+After v0.8, contract freeze and production qualification should run as a `v1.0.0-rc.N` phase rather
+than as a separate `v0.9.0` product-capability release. That phase should stabilize the planned
+pre-v1.0 capabilities that have been implemented and qualified through v0.8.
 
 The rule is:
 
@@ -1897,7 +2267,9 @@ removed from the v1.0 contract
 ```
 
 No additional roadmap change is required merely to specify and implement the planned v0.7 Intent or
-v0.8 Assessment capabilities. Product-value and qualification gates still apply. A failed gate must
+v0.8 Assessment capabilities. The release-candidate phase must not invent a new product question
+merely to justify a version number; its purpose is to freeze and qualify the already-implemented
+question space. Product-value and qualification gates still apply. A failed gate must
 result in a documented decision to narrow, defer, or remove scope; material changes to release
 assignment or product boundary must also be reflected in ROADMAP.md.
 
@@ -1942,13 +2314,39 @@ Safe / Unsafe / Unresolved
 Formal Bigraphical Reactive Systems and other transformation formalisms are more likely to become
 relevant here than in the current pre-v1.0 discovery, locality, intent, and assessment roadmap.
 
+### 26.7 Release/versioning doctrine
+
+From v0.5 onward, AIP version progression should track expansion of the safely answerable
+architecture-question space rather than accumulation of internal machinery.
+
+```text
+new materially different architecture question
+        ↓
+0.x.0 capability release
+
+same question space, post-release correction / maintenance
+        ↓
+0.x.y patch release
+```
+
+A `0.x.0` capability is not shipped merely because its semantic core exists. Its supported public
+adapters, evidence drill-down, limitations, deterministic evaluation, and release qualification are
+part of the same release. Planned patch releases must not be used as a place to finish incomplete
+`0.x.0` scope.
+
+Contract freeze and production qualification after the final pre-v1.0 capability release belong to
+the `v1.0.0-rc.N` phase because they harden an existing question space rather than create another
+one.
+
+Historical releases before v0.5 remain historical evidence and are not renamed to fit this doctrine.
+
 ---
 
 ## 27. Prioritization Framework
 
 A feature should not enter the roadmap merely because it improves the internal model.
 
-Prioritize using four gates.
+Prioritize using five gates.
 
 ### Gate A — Customer value
 
@@ -1960,7 +2358,15 @@ for the primary user?
 ### Gate B — Strategic fit
 
 ```text
-Does it strengthen AIP's evidence-qualified architecture context role?
+Does it strengthen the customer value proposition
+without moving differentiation into transport or storage plumbing?
+
+Does it deepen AIP's Core Domain or Moldable Architecture Knowledge capability:
+evidence applicability, identity/reconciliation, qualification, provenance,
+bounded uncertainty, or deterministic projection?
+
+If it only adds a new source or transport, what new qualified knowledge
+or recurring architecture question does that unlock?
 ```
 
 ### Gate C — Semantic defensibility
@@ -1977,6 +2383,16 @@ Can the capability be evaluated deterministically
 and, where appropriate, against independently authored or real-system evidence?
 ```
 
+### Gate E — Architecture question
+
+```text
+What recurring architecture question becomes safely answerable,
+or materially more reusable, because this capability exists?
+```
+
+For a new capability release, inability to state that question clearly is a warning that the work is
+primarily machinery or hardening rather than product-surface expansion.
+
 ---
 
 ## 28. Near-Term Priority Order
@@ -1991,7 +2407,7 @@ Given the current roadmap, the preferred order is:
 5. Implement locality-aware Current-State semantics in v0.6 without requiring distributed execution.
 6. Implement the independent explicit-Intent path in v0.7.
 7. Implement the separate Current ↔ Intent assessment path in v0.8.
-8. In v0.9, freeze only contracts that survive implementation and qualification.
+8. In the v1.0 release-candidate phase, freeze only contracts that survive implementation and qualification.
 9. Keep historical trajectories and distributed Local Architecture Assessor deployment beyond v1.0,
    unscheduled, unless the roadmap is explicitly revised.
 ```
@@ -2013,21 +2429,22 @@ Assessment only over both established projections
 For every proposed feature, ask:
 
 1. **Who is the primary user for this capability?**
-2. **What concrete job or failure mode does it address?**
-3. **What measurable customer outcome should improve?**
-4. **What claim, assessment, or context does AIP produce?**
-5. **What exact evidence can support that output?**
-6. **Which artifact type × claim kind × mapping rule defines applicability?**
-7. **Which locality/context/time dimensions are actually supported?**
-8. **Is the claim local, projected, or intended to be global?**
-9. **If intent is involved, what explicit attributable artifact establishes it?**
-10. **What happens when evidence is missing, partial, conflicting, unsupported, or local-only?**
-11. **Can the semantics be stated without relying on an LLM?**
-12. **Can behavior be validated deterministically?**
-13. **Does the capability keep AIP advisory and read-only?**
-14. **Would an integration boundary be better than AIP owning the adjacent function?**
-15. **Does the feature accidentally couple AIP to one authoring format or deployment topology?**
-16. **What existing roadmap item should be delayed if this enters scope?**
+2. **What recurring architecture question becomes safely answerable?**
+3. **What concrete job or failure mode does it address?**
+4. **What measurable customer outcome should improve?**
+5. **What claim, assessment, or context does AIP produce?**
+6. **What exact evidence can support that output?**
+7. **Which artifact type × claim kind × mapping rule defines applicability?**
+8. **Which locality/context/time dimensions are actually supported?**
+9. **Is the claim local, projected, or intended to be global?**
+10. **If intent is involved, what explicit attributable artifact establishes it?**
+11. **What happens when evidence is missing, partial, conflicting, unsupported, or local-only?**
+12. **Can the semantics be stated without relying on an LLM?**
+13. **Can behavior be validated deterministically?**
+14. **Does the capability keep AIP advisory and read-only?**
+15. **Would an integration boundary be better than AIP owning the adjacent function?**
+16. **Does the feature accidentally couple AIP to one authoring format or deployment topology?**
+17. **What existing roadmap item should be delayed if this enters scope?**
 
 ---
 
@@ -2037,6 +2454,13 @@ For every proposed feature, ask:
 
 Kubernetes, Pub/Sub, derivation, intent, assessment, and local assessors may all be
 useful, but without a validated primary workflow they can become parallel attractive directions.
+
+### Core-domain dilution
+
+AIP could become a broad integration, catalog, graph, or protocol platform if source breadth,
+visualization, transport, and persistence capabilities grow faster than the evidence-applicability,
+identity, reconciliation, qualification, provenance, uncertainty, and projection semantics that
+differentiate the product.
 
 ### Epistemic overclaiming
 
@@ -2093,22 +2517,41 @@ AIP should not design migration execution before Current State and any future In
 
 ## 31. Recommended Positioning
 
+### Customer value proposition
+
+> **Help coding agents work across multi-service systems without reconstructing architecture.**
+
+### Product concept
+
+> **Moldable Architecture Knowledge.**
+
+### Core Domain
+
+> **Establishing Evidence-Qualified Architecture Knowledge from heterogeneous, incomplete, and
+> potentially conflicting system evidence.**
+
+### Differentiation
+
+> **Core domain:** evidence applicability, identity/reconciliation, qualification, provenance and
+> lineage, conflict handling, and bounded uncertainty.  
+> **Product level:** deterministic question-specific projections and moldability.
+
 ### Current short positioning
 
-> **AIP makes evidence-qualified architecture knowledge agent-ready.**
+> **AIP gives coding agents trustworthy Architecture Knowledge they do not have to reconstruct.**
 
 ### Current product positioning
 
-> **AIP establishes what can currently be supported about architecture from available evidence,
-> preserves how that conclusion was derived, and exposes it in a form agents can safely reason
-> from.**
+> **AIP establishes evidence-qualified Architecture Knowledge from heterogeneous system evidence and
+> exposes bounded, deterministic projections for concrete architecture questions. The projections
+> are moldable; the evidence, qualification, provenance, and public architectural meaning are not.**
 
 ### Primary customer framing
 
 > **For platform engineering and architecture teams enabling coding agents across multi-service
-> systems, AIP provides bounded, evidence-qualified architecture context before a change and
-> independent evaluation of available architecture evidence afterward, with the supported scope and
-> remaining verification gaps made explicit.**
+> systems, AIP provides reliable, bounded Architecture Knowledge at the point where an agent would
+> otherwise have to reconstruct architecture from code, documentation, names, and partial runtime
+> evidence.**
 
 ### Boundary statement
 
@@ -2117,7 +2560,8 @@ AIP should not design migration execution before Current State and any future In
 
 ### Agent-readiness statement
 
-> **AIP is not an agent platform. It is evidence-qualified architecture infrastructure for agents.**
+> **AIP is not an agent platform. It is the evidence-qualified Architecture Knowledge layer agents
+> query and mold into contextual views without becoming the source of the knowledge.**
 
 ### Future product proposition — strategic hypothesis
 
@@ -2146,16 +2590,43 @@ by the target audience.
 
 ## 32. Strategic Conclusion
 
-The product direction remains sound, but the longer-term semantic center is now clearer.
+The product direction remains sound. The Wardley-mapping exercise clarifies the strategic hierarchy:
+
+```text
+Customer value proposition:
+Help coding agents work across multi-service systems
+without reconstructing architecture
+
+Product concept:
+Moldable Architecture Knowledge
+
+Core Domain:
+establishing Evidence-Qualified Architecture Knowledge
+
+Core-domain differentiation:
+evidence applicability, identity/reconciliation, qualification,
+provenance/lineage, conflict handling, bounded uncertainty
+
+Product-level differentiation:
+deterministic question-specific projections and moldability
+
+Replaceable implementation:
+storage, graph layout, query language, transport plumbing
+```
+
+The product center remains **Moldable Architecture Knowledge**, but it is not the customer value proposition
+itself.
 
 AIP should evolve from:
 
 ```text
 Evidence
    ↓
-Qualified Current State
+Qualified Architecture Knowledge
    ↓
-Trusted Architecture Context
+Question-Specific Deterministic Projection
+   ↓
+Agent / Human / Contextual Tool
 ```
 
 while preserving two independent semantic paths:
@@ -2179,7 +2650,22 @@ Qualified Current ↔ Intent Assessment
 Under the current roadmap, **Architecture Trajectories remain beyond v1.0** and require a separate
 historical-state foundation before they can become a product capability.
 
-The most important conceptual insight is:
+The interaction insight is:
+
+> **AIP should establish Architecture Knowledge once and make recurring architecture questions cheap
+> to express as deterministic, inspectable projections.**
+
+The strategic investment rule is:
+
+> **Differentiate where Architecture Knowledge is established; standardize where it is transported
+> and sourced.**
+
+And the contract rule is:
+
+> **Internal representation is replaceable. Public architectural meaning is a versioned semantic
+> contract, not an implementation detail.**
+
+The most important semantic insight remains:
 
 > **AIP establishes architecture locally before projecting it globally.**
 
