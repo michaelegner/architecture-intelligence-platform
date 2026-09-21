@@ -281,6 +281,26 @@ how the system might safely change
 
 AIP should not collapse these stages into one graph or one AI-generated answer.
 
+Product evolution should also be visible as an expansion of the **architecture-question space**.
+A capability release should be explainable in terms of a materially new recurring question that AIP
+can answer safely and deterministically, not merely in terms of internal machinery added to the
+platform.
+
+```text
+v0.5  Where is this service deployed?
+      Which deployment identities are unresolved?
+
+v0.6  Where is this dependency established?
+      Does this relation differ by supported locality?
+
+v0.7  What explicit architecture intent applies here?
+
+v0.8  Where does Current State differ from applicable Intent?
+```
+
+The technical model remains essential, but the product roadmap should explain **what new question
+becomes safely answerable** because of that model.
+
 ---
 
 ## 5. Customer Outcome Hypotheses
@@ -301,6 +321,12 @@ The current hypotheses are:
    blueprint.**
 8. **Make locality- and time-specific differences visible instead of flattening them into one global
    architecture view.**
+9. **Reduce the cost of turning a recurring architecture question into a reusable deterministic
+   projection or contextual tool.**
+10. **Allow agents to derive useful architecture lenses without allowing agent-generated content to
+    become Architecture Knowledge.**
+11. **Let REST, MCP, and external moldable tools consume the same semantic knowledge without
+    duplicating qualification logic.**
 
 These are hypotheses to validate, not claims that AIP has already demonstrated these business
 outcomes.
@@ -366,6 +392,9 @@ post-change discrepancies surfaced independently
 architecture-sensitive agent tasks that query AIP before acting
 time to identify Current ↔ Intent differences
 time to distinguish local deviation from system-wide deviation
+time from recurring architecture question to deterministic reusable projection
+reuse frequency of promoted architecture questions / projections
+recurring questions answered from deterministic Architecture Knowledge rather than agent reconstruction
 ```
 
 Metrics should remain small enough to support actual product decisions.
@@ -408,13 +437,22 @@ The longer-term question becomes:
 This is intentionally weaker and more defensible than claiming a universal architecture "truth
 layer."
 
-The preferred product term remains:
+The preferred product concept is:
 
-> **evidence-qualified architecture knowledge layer**
+> **Moldable Architecture Knowledge**
+
+with the semantic foundation:
+
+> **evidence-qualified Architecture Knowledge**
 
 not:
 
 > technical-architecture truth layer
+
+A complementary product-design question is:
+
+> **Which recurring architecture question can AIP make deterministic next, while preserving the
+> evidence, qualification, context, and limits of the answer?**
 
 ---
 
@@ -457,6 +495,10 @@ not:
     agents, and integration transports.**
 25. **Transformation planning is downstream from qualified Current State, explicit Intent, and
     qualified difference.**
+26. **Architecture Knowledge may be molded in question, projection, composition, and representation;
+    evidence, qualification, provenance, and semantic meaning are not consumer-moldable.**
+27. **When a recurring architecture question can be answered deterministically, prefer a reusable
+    projection/tool over repeatedly asking an agent to reconstruct the answer.**
 
 ---
 
