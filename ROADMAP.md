@@ -610,6 +610,28 @@ FREEZE and qualify the question space already implemented
 
 This question progression is the product-facing expression of the semantic sequence above.
 
+The Wardley-mapping result adds an investment rule:
+
+```text
+DIFFERENTIATE
+evidence qualification
+identity / reconciliation
+provenance and bounded uncertainty
+Architecture Knowledge semantics
+deterministic question-specific projections
+
+STANDARDIZE / CONSUME
+MCP and REST transport
+OpenAPI / OpenTelemetry / Kubernetes / Git interfaces
+graph/database and persistence plumbing
+other mature infrastructure
+```
+
+Roadmap scope should therefore expand AIP's safely answerable architecture-question space or deepen
+the semantic foundation needed to answer those questions. Proprietary transport, storage, or source
+plumbing should enter scope only when correctness, interoperability, or evidence semantics require
+it.
+
 The ordering is semantic, not merely chronological:
 
 1. broader evidence must be trustworthy before it is used to establish more Current State;
