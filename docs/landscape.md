@@ -13,7 +13,7 @@ _Last reviewed: 2026-09-21_
 AIP's strategic hierarchy is:
 
 ```text
-Customer promise
+Customer value proposition
 Help coding agents work across multi-service systems
 without reconstructing architecture
         ↓
