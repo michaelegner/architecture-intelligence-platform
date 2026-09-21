@@ -226,7 +226,7 @@ Architecture Intelligence guarantees.
 |---|---|
 | I1 — Source Ingestion Foundation | One adapter/discoverer seam for existing OpenAPI, AsyncAPI, Architecture Manifest, and filesystem discovery; bounded local references, deterministic identity/inventory/replay, and explicit versioned migration mappings. |
 | I2 — Kubernetes Discovery | Kubernetes is the only new source family. Deterministic offline discovery is mandatory; bounded read-only live discovery is optional and decided before implementation. Infrastructure claims do not establish application interaction. |
-| I3 — Runtime Identity Reconciliation | Bounded declared-Service/Workload association through explicit annotations, configured mappings, or qualified OTel Pod-UID/owner-chain evidence. The public relation is `DEPLOYED_AS`; disagreements remain conflicts, not precedence-based guesses. |
+| I3 — Runtime Identity Reconciliation | Bounded declared-Service/Workload association through explicit annotations, configured mappings, or qualified OTel Pod-UID/owner-chain evidence. The public relation is `DEPLOYED_AS`; disagreements remain conflicts, not precedence-based guesses. Consolidates public Architecture Knowledge access around REST and standard negotiated MCP over one `ArchitectureIntelligenceService` semantic owner, retiring the v0.4.x direct MCP envelope. |
 | I4 — Conditional Pub/Sub | Recorded `GO` or `DEFER`. Source-independent semantics require qualified Queue/Topic/Subscription distinctions and identity guards. No live broker adapter is introduced. |
 | I5 — Cross-System Qualification | Two materially different systems and negative fixtures; deterministic cross-source qualification and evidence-justified hardening. |
 | I6 — Release and Post-Release Verification | Exact-candidate qualification, publication disposition, and separate unpublished `RELEASE_READY_NOT_PUBLISHED` or published `SHIPPED_VERIFIED` outcomes. Publication requires authorization; shipped verification requires final-artifact and security evidence. |
@@ -243,8 +243,11 @@ same-scope inventory or an explicit versioned tombstone. Failed/incomplete disco
 last committed state; changed scopes cannot silently expire previous ownership.
 
 I2/I3 freeze concrete claim schemas and public exposure locations before implementation and
-fixtures. The existing three read-only MCP tools remain the scope budget. A live-discovery decision
-activates live-specific qualification in I2, not I1.
+fixtures. The existing three read-only MCP tools remain the scope budget. During I3, REST and
+standard negotiated MCP become the two public Architecture Knowledge adapters over
+`ArchitectureIntelligenceService`; the deterministic evaluator calls the service directly, and the
+v0.4.x direct MCP envelope is retired. A live-discovery decision activates live-specific
+qualification in I2, not I1.
 
 > **WHERE something is does not establish HOW it interacts.**
 

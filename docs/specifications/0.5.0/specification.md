@@ -1,6 +1,6 @@
 # AIP v0.5.0 Release Specification — Broader Architecture Discovery
 
-**Status:** Draft 0.1 — release capability and implementation contract (aligned with I1)  
+**Status:** Draft 0.2 — public Architecture Knowledge adapter consolidation  
 **Target release:** `v0.5.0`  
 **Release theme:** Broader Architecture Discovery  
 **Entry baseline:** Published and post-release-verified `v0.4.2`  
@@ -14,7 +14,9 @@ Architecture Intelligence guarantees.
 ## 1. Release Promise
 
 `v0.4.x` made AIP's evidence-backed architecture intelligence safely consumable through direct and
-negotiated MCP workflows. `v0.5.0` broadens what AIP can safely know.
+negotiated MCP workflows. `v0.5.0` broadens what AIP can safely know and consolidates the public
+Architecture Knowledge surface around REST and standard negotiated MCP, with
+`ArchitectureIntelligenceService` as the single semantic owner.
 
 The release SHALL prove this capability:
 
@@ -68,12 +70,20 @@ The following baseline properties SHALL remain true:
 - declared-versus-observed qualification remains governed by one semantic rule;
 - snapshot/revision fencing remains the basis for consistent reads;
 - `ArchitectureAnswer<T>` remains evidence-backed and limitation-aware;
-- direct and negotiated MCP paths remain semantically equivalent;
+- `ArchitectureIntelligenceService` remains the single semantic owner for public Architecture
+  Knowledge answers;
+- standard negotiated MCP remains semantically faithful to the service-owned Architecture Knowledge;
+- the deterministic architecture-answer evaluator invokes `ArchitectureIntelligenceService`
+  directly and remains the transport-independent qualification oracle;
 - the public MCP surface remains exactly three read-only tools unless a separately approved release
   amendment changes the scope budget;
 - no LLM or agent assertion can create or qualify a canonical fact;
 - the `v0.4.1` Queue/destination-kind and runtime-service-identity guards remain active unless an I4
   decision explicitly supersedes them with qualified semantics.
+
+One `v0.4.2` transport property is deliberately superseded by §28 rather than preserved: the
+public dual-mode direct/negotiated MCP topology. `v0.5.0` retires the direct envelope and keeps
+standard negotiated MCP as the sole public MCP transport.
 
 `v0.5.0` SHALL NOT weaken a baseline refusal merely because a new source provides a similar name,
 namespace, label, selector, address, or co-location signal.
@@ -91,9 +101,12 @@ namespace, label, selector, address, or co-location signal.
 5. Kubernetes as the single new discovery-source family;
 6. bounded OpenTelemetry/Kubernetes/declared-source identity reconciliation;
 7. conditional source-independent Pub/Sub semantics through a `GO` or `DEFER` gate;
-8. independent cross-system qualification and evidence-justified hardening;
-9. exact-candidate release preparation, optional owner-authorized publication, and published-
-   artifact verification.
+8. public Architecture Knowledge adapter consolidation: REST parity for public
+   `ArchitectureIntelligenceService` capabilities, standard negotiated MCP as the sole public MCP
+   transport, and retirement of the v0.4.x direct MCP envelope;
+9. independent cross-system qualification and evidence-justified hardening;
+10. exact-candidate release preparation, optional owner-authorized publication, and published-
+    artifact verification.
 
 ### 4.2 Explicitly out of scope
 
@@ -754,7 +767,8 @@ I3 requires:
 - service-name-only remains unresolved;
 - conflicts/unsupported combinations emit no association artifact;
 - Kubernetes-only evidence creates no interaction;
-- equivalent exposed REST/MCP semantics preserve qualification under the §28 exposure contract;
+- equivalent REST and negotiated-MCP requests preserve `ArchitectureIntelligenceService` semantics
+  under the §28 exposure contract;
 - two runs produce byte-identical semantics.
 
 ---
@@ -906,8 +920,10 @@ reimport/conflict/atomicity
 Kubernetes discovery
 runtime reconciliation
 Pub/Sub, only if I4 = GO
-deterministic evaluation twice
-direct and negotiated MCP regression/equivalence
+deterministic ArchitectureAnswer evaluation twice
+REST / ArchitectureIntelligenceService semantic equivalence
+negotiated MCP / ArchitectureIntelligenceService semantic equivalence
+REST / negotiated-MCP cross-surface consistency
 read-only invariants
 dependency/security checks
 repository/documentation hygiene
@@ -966,8 +982,8 @@ expected declared/infrastructure/observed facts
 unsupported/unresolved cases preserved
 claim evidence and mapping provenance
 same-snapshot continuity
-direct MCP workflow
-negotiated initialization/workflow
+REST Architecture Knowledge workflow
+negotiated MCP initialization/workflow
 disconnect/reconnect
 revision fence unchanged across read-only tools
 post-run fixture remains COMPLETE
@@ -1005,8 +1021,47 @@ failures. A closure commit is not required to embed its own SHA.
 
 ## 28. Public Surface and Compatibility
 
-`v0.5.0` SHALL NOT add a fourth MCP tool. Existing direct and negotiated workflows remain
-operational and equivalent.
+`ArchitectureIntelligenceService` is the single semantic owner for public Architecture Knowledge in
+`v0.5.0`.
+
+The supported public adapters are:
+
+```text
+REST
+standard negotiated MCP
+```
+
+The deterministic architecture-answer evaluator is not a third public transport. It invokes
+`ArchitectureIntelligenceService` directly and acts as the transport-independent qualification
+oracle.
+
+The AIP-specific direct MCP envelope shipped in `v0.4.x` is intentionally retired in `v0.5.0`.
+`/mcp` remains the public MCP path, but it serves standard negotiated MCP only. Historical
+`v0.4.x` specifications, ADRs, release records, and qualification evidence remain unchanged as the
+record of what those releases supported. This is an intentional pre-`1.0` public-contract cleanup,
+not a change to Architecture Knowledge semantics.
+
+`v0.5.0` SHALL NOT add a fourth MCP tool.
+
+For equivalent requests, REST and negotiated MCP SHALL preserve the
+`ArchitectureIntelligenceService` result semantics, including where applicable:
+
+```text
+outcome
+claims and claim identities
+qualification
+snapshot identity
+observation context
+evidence references and evidence roles
+deployment resolutions
+limitations
+canonical ordering
+schema meaning
+```
+
+Transport-specific HTTP/JSON-RPC envelopes and status/error mapping MAY differ. An adapter MUST NOT
+derive, qualify, reinterpret, strengthen, suppress, or widen Architecture Knowledge independently of
+the service.
 
 New canonical entities, predicates, or variants that cross a public schema boundary SHALL be added
 explicitly to the relevant versioned schema before qualification. The increment SHALL record
@@ -1014,15 +1069,16 @@ whether this is backward compatible or needs a schema-version change. Silent wid
 enum or undocumented payload drift is prohibited.
 
 Before implementation and fixture authoring, I2 and I3 SHALL freeze an exposure table for their
-claims: exact canonical name/shape, internal-only or public status, REST response location, existing
-MCP tool/result field where applicable, schema version, and evidence/limitation representation.
-I3's public `DEPLOYED_AS` meaning remains frozen by §17; only its concrete exposure locations are
-specified here. Infrastructure claims and `DEPLOYED_AS` MUST NOT be relabeled as application
-dependencies to fit an existing response. If an additional MCP tool is necessary, it requires a
-separately approved scope amendment. Equivalence gates apply to the same exposed semantics.
+claims: exact canonical name/shape, internal-only or public status, REST response location,
+negotiated-MCP tool/result field where applicable, schema version, and evidence/limitation
+representation. I3's public `DEPLOYED_AS` meaning remains frozen by §17; only its concrete exposure
+locations are specified here. Infrastructure claims and `DEPLOYED_AS` MUST NOT be relabeled as
+application dependencies to fit an existing response. If an additional MCP tool is necessary, it
+requires a separately approved scope amendment. Equivalence gates apply to the same exposed
+semantics.
 
 Evidence drill-down for every public new claim preserves source, inventory, mapping rule,
-observation context, and snapshot continuity. Tool adapters do not infer or rewrite claims.
+observation context, and snapshot continuity. Public adapters do not infer or rewrite claims.
 
 ## 29. Security and Data Handling
 
@@ -1088,7 +1144,7 @@ Explicit Intent remains `v0.7`, followed by Current-to-Intent assessment in `v0.
 |---|---|---|
 | I1 | Package interfaces and diagnostic wire schema | Source identity, inventory authority, atomicity, result taxonomy, and behavior cannot change. |
 | I2 | Exact infrastructure claim shapes and exposure table; `LIVE_INCLUDED` or `OFFLINE_ONLY` before implementation/fixtures | Offline discovery mandatory; no locality claim, interaction, or name-based AIP Service equivalence. |
-| I3 | Concrete REST/existing-MCP exposure locations and schema versions | §§15–17 identity paths, precedence, conflicts, and public `DEPLOYED_AS` meaning remain frozen. |
+| I3 | Exact schema artifacts and adapter error/status mappings within the frozen REST/negotiated-MCP exposure contract | §§15–18 identity paths, precedence, conflicts, public `DEPLOYED_AS` meaning, and §28 single-owner/public-adapter topology remain frozen. |
 | I4 | `GO`/`DEFER`; if `GO`, final Topic/Subscription schema | Queue/Topic/Subscription distinctions and multi-broker qualification are mandatory. |
 | I5 | Real systems, revisions, expected facts | Two materially different systems plus negative fixtures; target-specific fixes prohibited. |
 | I6 | Exact commands and evidence filenames | Candidate/revision/security/publication/terminal-state rules are fixed. |
