@@ -56,7 +56,7 @@ rather than allowing autonomous permanent code changes.
 
 The agent first obtained AIP context and then derived:
 
-> Which OrderService direct-dependency claims in the demo window resolve to services, and which remains a direct target with an unresolved identity?
+> Which OrderService direct-dependency claims in the demo window resolve to services, and which remain a direct target with an unresolved identity?
 
 The generated view compared:
 
