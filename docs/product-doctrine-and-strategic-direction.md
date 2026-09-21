@@ -255,6 +255,53 @@ Current↔Intent Assessment may require distinct semantic boundaries while still
 overall Architecture Knowledge domain. In particular, Intent must remain outside Current-State
 establishment.
 
+
+### 1.3 Architecture Intelligence Platform — Strategic Wardley Map
+
+The Wardley map makes the strategy above spatial: it connects the primary customer need to the
+capabilities required to satisfy it and positions those capabilities by their stage of evolution.
+
+![Architecture Intelligence Platform — Strategic Wardley Map](../images/wardley/aip-strategic-wardley-map.png)
+
+The map should be read as an **AIP strategy map**, not as an AIP × Glamorous Toolkit integration map.
+Glamorous Toolkit appears as an independent reference consumer that validates the moldable,
+question-driven interaction model; it is not part of AIP's core value chain.
+
+The map reinforces four investment conclusions:
+
+- **differentiate in the Core Domain** — evidence applicability, identity/reconciliation,
+  qualification, provenance/lineage, conflict handling, bounded uncertainty, and public
+  Architecture Knowledge semantics;
+- **differentiate at the product level** — deterministic, reusable, question-specific projections
+  over qualified Architecture Knowledge;
+- **standardize or consume mature capabilities** — MCP/REST transport, OpenAPI/OpenTelemetry/
+  Kubernetes/Git interfaces, persistence technology, and graph/query plumbing where practical;
+- **keep external exploration separate from semantic authority** — agents, GT, and other consumers
+  may select questions, compose projections, and create contextual tools without becoming the source
+  of evidence, qualification, or architectural meaning.
+
+The strategic reading is therefore:
+
+```text
+customer need
+    ↓
+coding agent
+    ↓
+question-specific architecture answer
+    ↓
+Evidence-Qualified Architecture Knowledge
+    ↓
+qualification / reconciliation
+    ↓
+source adapters
+    ↓
+enterprise evidence sources
+```
+
+This is a **chain of needs**, not a decomposition of AIP's implementation. The horizontal position
+expresses evolution from Genesis to Commodity; the vertical position expresses visibility to the
+customer. Dashed links indicate interaction or usage rather than value-chain dependency.
+
 ---
 
 ## 2. Primary Customer Hypothesis
