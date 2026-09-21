@@ -230,15 +230,16 @@ Architecture Knowledge establishment and qualification
   - conflict / uncertainty semantics
   - provenance / derivation meaning
 
-CLOSELY SUPPORTING PRODUCT CAPABILITY
+PRODUCT CAPABILITY BUILT ON THE CORE DOMAIN
 Deterministic question-specific projection
   - bounded ArchitectureAnswer contracts
   - reusable architecture questions
   - moldable composition / representation
 
 SUPPORTING
-Source discovery, ingestion, normalization, snapshot plumbing,
-evaluation harnesses, adapter implementation
+Protocol-specific source discovery / ingestion mechanics,
+syntactic normalization, snapshot plumbing, evaluation harnesses,
+adapter implementation
 
 GENERIC / STANDARDIZE WHERE PRACTICAL
 MCP / HTTP transport, protocol libraries, database technology,
@@ -540,7 +541,7 @@ pilot has already passed or prescribe unvalidated numerical thresholds.
 
 ## 7. Core Product Question
 
-AIP's current differentiating question remains:
+AIP's current core epistemic question remains:
 
 > **What architecture can we currently support from available evidence, and what are the limits of
 > that knowledge?**
@@ -617,7 +618,8 @@ A complementary product-design question is:
     projection/tool over repeatedly asking an agent to reconstruct the answer.**
 28. **Differentiate where Architecture Knowledge is established; standardize where it is transported
     and sourced.**
-29. **Internal representation is replaceable; public architectural meaning is not.**
+29. **Internal representation is replaceable; public architectural meaning is a versioned semantic
+    contract, not an implementation detail.**
 30. **The product is neither the graph nor a bag of fixed answers: it is a reliable Architecture
     Knowledge capability whose qualified semantics support reusable deterministic projections.**
 
@@ -1791,7 +1793,7 @@ unverified. They do not by themselves establish causality or overall change corr
 
 Current and near-term core ownership:
 
-- architecture evidence ingestion where AIP-specific semantic interpretation is required;
+- source-to-claim semantic interpretation and evidence-applicability rules;
 - canonical architecture semantics exposed through public contracts, independent of the persistence
   representation;
 - evidence applicability;
@@ -2550,13 +2552,6 @@ without reconstructing architecture
 
 Product concept:
 Moldable Architecture Knowledge
-
-Differentiation:
-evidence qualification
-reconciliation
-provenance
-bounded uncertainty
-deterministic projections
 
 Core Domain:
 establishing Evidence-Qualified Architecture Knowledge
