@@ -11,17 +11,51 @@
 
 ## 1. Executive Summary
 
-AIP should become the **evidence-qualified Architecture Knowledge platform for AI agents and
-engineering tools**.
+AIP's customer promise is:
+
+> **Help coding agents work across multi-service systems without reconstructing architecture.**
 
 Its core product concept is **Moldable Architecture Knowledge**: establish qualified Architecture
 Knowledge once, then make small, deterministic, question-specific projections inexpensive to
 create, inspect, compose, and reuse without allowing the consumer to rewrite the underlying evidence
 or qualification.
 
+AIP's differentiation is the semantic work required to make that promise credible:
+
+- **evidence qualification** — state what the available evidence actually supports;
+- **reconciliation** — combine heterogeneous, potentially disagreeing sources without guessing;
+- **provenance** — preserve why a claim or answer exists and where it came from;
+- **bounded uncertainty** — keep unresolved, conflicting, unsupported, incomplete, and scoped
+  outcomes explicit;
+- **deterministic projections** — turn recurring architecture questions into reproducible,
+  inspectable answers over the same qualified knowledge.
+
 Its purpose is not to make agents more autonomous. Its purpose is to give them architecture premises
 they do not have to reconstruct or invent, and to make recurring architecture questions cheaper to
 turn into deterministic tools rather than repeated probabilistic inference.
+
+The strategic hierarchy is:
+
+```text
+CUSTOMER PROMISE
+Help coding agents work across multi-service systems
+without reconstructing architecture
+        ↓
+PRODUCT CONCEPT
+Moldable Architecture Knowledge
+        ↓
+DIFFERENTIATION
+qualification + reconciliation + provenance
++ bounded uncertainty + deterministic projections
+        ↓
+PUBLIC SEMANTIC FOUNDATION
+evidence-qualified Architecture Knowledge
+with stable meaning, identity, context, limitations, and lineage
+        ↓
+REPLACEABLE IMPLEMENTATION
+graph/database layout, query language, storage technology,
+transport plumbing, internal traversal and persistence details
+```
 
 The product center becomes:
 
@@ -142,6 +176,17 @@ This concept does not make Glamorous Toolkit an AIP dependency. GT is a referenc
 demonstrates the interaction model. The durable product idea is portable across agent clients,
 engineering tools, REST consumers, and future interfaces.
 
+The map-derived product distinction is:
+
+> **Customers value a reliable Architecture Knowledge capability from which recurring questions can
+> be answered deterministically. They do not need AIP's internal storage representation to become
+> part of that contract.**
+
+This does **not** make the semantic model disposable. Public architectural meaning — identity,
+relation semantics, qualification, provenance, context, evidence linkage, limitations, and
+assessment meaning — is part of the product contract even when its internal graph/database
+representation is replaceable.
+
 ---
 
 ## 2. Primary Customer Hypothesis
@@ -153,9 +198,13 @@ The initial product audience should remain explicit enough to prioritize work.
 > **Platform engineering and architecture teams enabling coding agents to change multi-service
 > systems.**
 
-These teams need to let agents work across service boundaries without forcing the agent to reconstruct
-architecture from source code, documentation, naming conventions, stale diagrams, or incomplete
-telemetry.
+These teams need to let agents work across service boundaries without forcing the agent to
+reconstruct architecture from source code, documentation, naming conventions, stale diagrams, or
+incomplete telemetry.
+
+The primary customer need is therefore not "buy an architecture graph" or "buy more agent
+autonomy." It is to obtain reliable, bounded architecture knowledge at the point where an agent must
+reason across service boundaries.
 
 ### Secondary users
 
@@ -499,6 +548,11 @@ A complementary product-design question is:
     evidence, qualification, provenance, and semantic meaning are not consumer-moldable.**
 27. **When a recurring architecture question can be answered deterministically, prefer a reusable
     projection/tool over repeatedly asking an agent to reconstruct the answer.**
+28. **Differentiate where Architecture Knowledge is established; standardize where it is transported
+    and sourced.**
+29. **Internal representation is replaceable; public architectural meaning is not.**
+30. **The product is neither the graph nor a bag of fixed answers: it is a reliable Architecture
+    Knowledge capability whose qualified semantics support reusable deterministic projections.**
 
 ---
 
