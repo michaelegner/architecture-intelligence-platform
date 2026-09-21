@@ -2117,13 +2117,39 @@ Safe / Unsafe / Unresolved
 Formal Bigraphical Reactive Systems and other transformation formalisms are more likely to become
 relevant here than in the current pre-v1.0 discovery, locality, intent, and assessment roadmap.
 
+### 26.7 Release/versioning doctrine
+
+From v0.5 onward, AIP version progression should track expansion of the safely answerable
+architecture-question space rather than accumulation of internal machinery.
+
+```text
+new materially different architecture question
+        ↓
+0.x.0 capability release
+
+same question space, post-release correction / maintenance
+        ↓
+0.x.y patch release
+```
+
+A `0.x.0` capability is not shipped merely because its semantic core exists. Its supported public
+adapters, evidence drill-down, limitations, deterministic evaluation, and release qualification are
+part of the same release. Planned patch releases must not be used as a place to finish incomplete
+`0.x.0` scope.
+
+Contract freeze and production qualification after the final pre-v1.0 capability release belong to
+the `v1.0.0-rc.N` phase because they harden an existing question space rather than create another
+one.
+
+Historical releases before v0.5 remain historical evidence and are not renamed to fit this doctrine.
+
 ---
 
 ## 27. Prioritization Framework
 
 A feature should not enter the roadmap merely because it improves the internal model.
 
-Prioritize using four gates.
+Prioritize using five gates.
 
 ### Gate A — Customer value
 
@@ -2135,7 +2161,7 @@ for the primary user?
 ### Gate B — Strategic fit
 
 ```text
-Does it strengthen AIP's evidence-qualified architecture context role?
+Does it strengthen AIP's Moldable Architecture Knowledge role?
 ```
 
 ### Gate C — Semantic defensibility
