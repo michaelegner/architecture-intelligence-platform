@@ -628,9 +628,11 @@ other mature infrastructure
 ```
 
 Roadmap scope should therefore expand AIP's safely answerable architecture-question space or deepen
-the semantic foundation needed to answer those questions. Proprietary transport, storage, or source
-plumbing should enter scope only when correctness, interoperability, or evidence semantics require
-it.
+the Core Domain needed to establish those answers safely. A new source adapter is not, by itself, a
+new product capability: it should justify scope by enabling materially new qualified Architecture
+Knowledge, requiring new evidence/reconciliation semantics, or unlocking a materially new recurring
+architecture question. Proprietary transport, storage, or source plumbing should enter scope only
+when correctness, interoperability, or evidence semantics require it.
 
 The ordering is semantic, not merely chronological:
 
