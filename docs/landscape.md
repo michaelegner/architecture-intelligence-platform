@@ -10,21 +10,30 @@ _Last reviewed: 2026-09-21_
 
 ## AIP anchor
 
-AIP's core product concept is **Moldable Architecture Knowledge**:
+AIP's strategic hierarchy is:
 
 ```text
-Evidence
-   ↓
-Qualification / reconciliation
-   ↓
+Customer promise
+Help coding agents work across multi-service systems
+without reconstructing architecture
+        ↓
+Product concept
+Moldable Architecture Knowledge
+        ↓
+Differentiation
+qualification + reconciliation + provenance
++ bounded uncertainty + deterministic projections
+        ↓
 Evidence-qualified Architecture Knowledge
-   ↓
+        ↓
 Question-specific deterministic projection
-   ↓
+        ↓
 Agent / human / contextual micro-tool
-   ↓
-Next question
 ```
+
+The Wardley-mapping implication is explicit: **differentiate where Architecture Knowledge is
+established; standardize where it is transported and sourced**. Internal graph/storage
+representation is replaceable; public architectural meaning is not.
 
 Future Intent and Current↔Intent assessment remain separate semantic layers; moldability does not
 permit a consumer to rewrite evidence, qualification, provenance, or claim meaning.
