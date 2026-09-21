@@ -53,6 +53,7 @@ endorsement, dependency, or roadmap commitment.
 
 [Bigraphs](#robin-milner--bigraphs--bigraphical-reactive-systems) ·
 [Promise Theory](#mark-burgess--promise-theory) ·
+[Designing Delivery / Promise Thinking](#jeff-sussna--designing-delivery--promise-thinking) ·
 [Semantic Spacetime](#mark-burgess--semantic-spacetime) ·
 [SSTorytime](#mark-burgess--sstorytime-and-context-investment) ·
 [Strategic DDD](#domain-driven-design--strategic-patterns) ·
@@ -195,6 +196,69 @@ OBSERVED
 A declaration says something was specified. Runtime evidence says something happened. Architectural intent expresses what agents or components are expected or permitted to do.
 
 A Promise is not simply an ADR. ADRs, constraints, and policies are organizational artifacts; Promise Theory is a more general model of autonomous cooperation.
+
+### Jeff Sussna — Designing Delivery / Promise Thinking
+
+**Primary source**
+
+- Jeff Sussna, *Designing Delivery: Rethinking IT in the Digital Service Economy* (O'Reilly, 2015), especially Chapter 11, "Service as a Chain of Promises," and Chapter 14, "Thinking in Promises"
+
+**Core idea**
+
+Sussna applies Promise Theory to complex digital service systems. He frames services as chains of
+promises among autonomous participants and treats continuous quality as an ongoing process of
+feedback, learning, promise keeping, and repair rather than centralized command and control.
+
+A particularly relevant distinction for AIP is:
+
+```text
+explicit promise / intent
+        ≠
+established cooperation
+        ≠
+assessment of their relationship
+```
+
+Sussna also treats questioning as primary: maps, blueprints, and other representations are valuable
+because they support continuous inquiry and adaptation, not because the artifact becomes operational
+truth.
+
+**Why this matters to AIP**
+
+This reinforces AIP's independent semantic paths:
+
+```text
+Current-State evidence
+        ↓
+Evidence-Qualified Current State
+
+Explicit attributable Intent / promises
+        ↓
+Applicable Intent
+
+Current State + Intent
+        ↓
+Qualified Current ↔ Intent Assessment
+```
+
+It also supports **Moldable Architecture Knowledge**: recurring architecture questions can be exposed
+through bounded, question-specific projections without making the underlying evidence, qualification,
+provenance, or claim meaning consumer-moldable.
+
+Sussna's "chain of promises" suggests a potentially useful future projection over explicit Intent
+assertions and their dependencies. AIP must remain stricter than the design metaphor, however:
+an OpenAPI operation, runtime interaction, or technical dependency does not by itself establish that
+one component promised something to another.
+
+**AIP stance**
+
+Semantic and design foundation, not a product competitor or implementation model. AIP should preserve
+the useful Promise-Theory distinctions around autonomy, relationships, feedback, and explicit
+promises while adding its own evidence applicability, identity reconciliation, qualification,
+provenance, bounded uncertainty, locality, and deterministic projection semantics.
+
+This reference does not add roadmap scope. Promise-chain projections are a research direction unless
+a concrete architecture-question class justifies them.
 
 ### Mark Burgess — Semantic Spacetime
 
