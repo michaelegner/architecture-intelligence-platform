@@ -789,10 +789,11 @@ raw repositories / APIs / manifests / telemetry / configuration
                  human / AI agent
 ```
 
-The thing being molded is **Architecture Knowledge**, not architectural truth and not agent
-intelligence. A dependency view, deployment-identity view, evidence drill-down, unresolved-identity
-view, locality view, future Intent assessment, or change-impact view can each be a different bounded
-projection over the same underlying evidence-qualified knowledge.
+What is molded is the **question-specific projection and representation of Architecture
+Knowledge**, not the underlying evidence, qualification, provenance, or claim meaning. A dependency
+view, deployment-identity view, evidence drill-down, unresolved-identity view, locality view, future
+Intent assessment, or change-impact view can each be a different bounded projection over the same
+underlying evidence-qualified knowledge.
 
 Examples include:
 
