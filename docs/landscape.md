@@ -6,23 +6,28 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-20_
+_Last reviewed: 2026-09-21_
 
 ## AIP anchor
 
-AIP's core direction is:
+AIP's core product concept is **Moldable Architecture Knowledge**:
 
 ```text
 Evidence
    ↓
-Evidence-backed Current State
+Qualification / reconciliation
    ↓
-Architecture Intelligence
+Evidence-qualified Architecture Knowledge
    ↓
-Trusted Architecture Context for Agents
+Question-specific deterministic projection
    ↓
-Future: Intent / Governance / Transformation
+Agent / human / contextual micro-tool
+   ↓
+Next question
 ```
+
+Future Intent and Current↔Intent assessment remain separate semantic layers; moldability does not
+permit a consumer to rewrite evidence, qualification, provenance, or claim meaning.
 
 The landscape is organized by the architectural question each source helps answer.
 
@@ -858,41 +863,68 @@ of qualified Architecture Knowledge
 better bounded context
 ```
 
-#### Relationship to the AIP ↔ GT experiment
+#### Relationship to the validated AIP × GT reference integration
 
-The AIP/GT integration is useful because it exercises this idea from the human side. A qualified AIP
-result can be inspected in GT, explored in a Playground, transformed into another question, and then
-promoted into a reusable contextual view or micro-tool.
+The [AIP × Glamorous Toolkit reference integration](reference-integrations/glamorous-toolkit/README.md)
+has now exercised this idea across both moldable inspection and agentic use.
 
-The important result is not a GT visualization. It is the feedback loop:
+The validated flow is:
+
+```text
+architecture question
+        ↓
+GT-hosted agent chooses AIP capability
+        ↓
+AIP negotiated MCP
+        ↓
+evidence-qualified, snapshot-bound Architecture Knowledge
+        ↓
+agent follows provenance / composes a sharper question
+        ↓
+GT renders a bounded ephemeral micro-tool
+        ↓
+developer decides whether the idea becomes permanent
+```
+
+PoC 3 validated agent-selected tool use and multi-step evidence chaining. PoC 4 validated bounded
+agent-derived micro-tools whose snapshot, tool, and claim lineage remain explicit. The agent proposes
+the lens; AIP remains the Architecture Knowledge authority; the developer controls permanence.
+
+The important result is therefore not a GT visualization and not an MCP transport trick. It is the
+feedback loop:
 
 ```text
 qualified AIP answer
         ↓
-inspect / explore
+agent/human discovers a sharper recurring question
         ↓
-form a sharper architecture question
+bounded deterministic projection / micro-tool
         ↓
-build deterministic query / micro-tool
+inspection and reuse
         ↓
-reuse the new explanation
+optional human-controlled promotion
 ```
 
-The same loop can later apply to AI agents. An agent can help discover that a useful question is
-missing and help construct a deterministic implementation, while AIP retains control over the
-evidence, semantics, qualification, and public contract of the resulting architecture tool.
+This gives Moldable Architecture Knowledge a concrete agentic meaning: an agent may mold **how
+qualified knowledge is questioned and inspected** without molding the underlying evidence or
+qualification.
 
 #### AIP stance
 
-This is a **foundational interaction and product-design reference**, not a proposal to adopt
-Glamorous Toolkit as AIP's implementation platform and not a request to expand the current release
-scope.
+**Moldable Architecture Knowledge is now a core AIP product concept.** Glamorous Toolkit remains a
+reference integration and design influence, not AIP's implementation platform and not a reason to
+expand a release's semantic scope.
 
-The long-term implication is stronger:
+The product implication is:
 
 > **AIP should make Architecture Knowledge moldable: small, question-specific, deterministic,
-> evidence-qualified projections should be inexpensive to create, inspect, verify, and expose to
-> humans and agents.**
+> evidence-qualified projections should be inexpensive to create, inspect, verify, compose, and
+> expose to humans and agents.**
+
+The hard boundary remains:
+
+> **The question, projection, and representation may be molded; the evidence, qualification,
+> provenance, and semantic meaning are not consumer-moldable.**
 
 That principle can guide future AIP tool design without weakening the rule that agents may reason
 over Architecture Knowledge but must never become its source.
@@ -2095,9 +2127,14 @@ The sources above suggest several adjacent layers, but AIP should retain a narro
          manifest                               more adapters
 ```
 
-AIP's differentiating question remains:
+AIP's differentiating epistemic question remains:
 
 > **What architecture can we support from available evidence, and what are the limits of that knowledge?**
+
+Its product-design question is now:
+
+> **Which recurring architecture question can AIP make deterministic next, and how can that answer be
+> molded into the smallest useful bounded context without weakening its evidence or qualification?**
 
 This leads to four durable principles:
 
