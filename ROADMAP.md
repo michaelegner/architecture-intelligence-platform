@@ -2,10 +2,30 @@
 
 ## Versioning
 
-[Semantic Versioning](https://semver.org/). The first public release is `v0.1.0`, cut as
-`v0.1.0-alpha.1` first to validate the release pipeline end-to-end before promotion.
+AIP follows [Semantic Versioning](https://semver.org/) with an additional product discipline from
+`v0.5.0` onward:
 
-Not yet guaranteed stable pre-1.0 — expect breaking changes on a minor version bump:
+> **A new `0.x.0` capability release should add at least one materially new class of
+> evidence-qualified architecture question that AIP can answer safely and deterministically.**
+
+The release is not complete merely because the semantic core exists. The new question must ship
+end-to-end through the supported public adapters, with evidence/provenance continuity, qualification,
+deterministic evaluation, and release qualification.
+
+A patch release `0.x.y` is for a **post-release correction or maintenance change** that preserves
+the `0.x.0` architecture-question space and intended semantic contract: for example a defect fix,
+security/dependency patch, documentation correction, or semantics-preserving performance
+improvement. Patch releases are not pre-planned buckets for unfinished `0.x.0` work.
+
+After the final pre-1.0 capability release, contract freeze and production qualification use
+`v1.0.0-rc.N` prereleases rather than inventing another `0.x.0` product release with no new
+architecture question.
+
+Historical `v0.1`–`v0.4` releases predate this question-oriented versioning doctrine and remain
+unchanged.
+
+Not yet guaranteed stable pre-1.0 — expect breaking changes on a capability-release minor bump or
+during the `v1.0.0-rc.N` freeze phase:
 
 - Canonical Model (`app/canonical/model.py`)
 - REST API surface
@@ -217,6 +237,11 @@ for the published release.
 
 **Goal: Broaden what AIP can safely know about distributed systems.**
 
+**Product questions:**
+
+> **Where is this service deployed?**  
+> **Which deployment identities are unresolved?**
+
 The [v0.5.0 parent specification](docs/specifications/0.5.0/specification.md) defines the release
 contract. The scope combines ingestion hardening, one new discovery-source family, and bounded
 identity reconciliation while preserving evidence, provenance, unsupported-case, and read-only
@@ -280,6 +305,11 @@ historical trajectories, and distributed local-assessor deployment are outside v
 **Goal: Establish architecture knowledge locally and contextually before projecting it into broader
 Current-State views.**
 
+**Product questions:**
+
+> **Where is this dependency established?**  
+> **Does this relation differ by supported locality?**
+
 Focus: make context/locality an explicit part of Current-State qualification without changing the
 fundamental rule that Current State is derived only from Current-State evidence.
 
@@ -326,6 +356,10 @@ Exit capability:
 
 **Goal: Represent explicit, attributable architectural intent without allowing Intent to alter
 established Current State.**
+
+**Product question:**
+
+> **What explicit architecture intent applies here?**
 
 Focus: introduce a source-neutral Intent/Assertion model after the Current-State path is already
 locality-aware and independently qualified.
@@ -394,6 +428,10 @@ or automatic remediation is required in v0.7.
 
 **Goal: Assess independently established Current State against independently established applicable
 Intent.**
+
+**Product question:**
+
+> **Where does Current State differ from applicable Intent?**
 
 Focus: add a separate, read-only, evidence-linked assessment layer over the two already independent
 semantic paths.
@@ -474,13 +512,13 @@ Explicitly out of scope for v0.8:
 - distributed local-assessor deployment as a requirement;
 - agent-generated authoritative Intent.
 
-## v0.9 — Contract Freeze / Production Qualification (planned)
+## v1.0 Release-Candidate Phase — Contract Freeze / Production Qualification (planned)
 
 **Goal: Stabilize and production-qualify the architecture-intelligence contracts intended for
-v1.0.**
+v1.0 without pretending that stabilization introduces a new architecture-question class.**
 
-Focus: freeze only semantics and public contracts that have survived implementation, deterministic
-evaluation, and real-system qualification across v0.5-v0.8.
+This phase uses `v1.0.0-rc.N` prereleases. It freezes only semantics and public contracts that have
+survived implementation, deterministic evaluation, and real-system qualification across v0.5-v0.8.
 
 Qualification/freeze scope includes, where actually implemented and accepted:
 
@@ -501,14 +539,14 @@ Qualification/freeze scope includes, where actually implemented and accepted:
 - Performance and resilience qualification
 - Release/support policy
 
-Any known breaking redesign required for the stable contract must be completed before the v1.0
-candidate is frozen.
+Any known breaking redesign required for the stable contract must be completed before the final
+`v1.0.0` release.
 
-v0.9 must not freeze hypothetical contracts merely because they appeared in earlier strategy or
-roadmap text. A capability that did not survive implementation and qualification is either removed,
-kept explicitly experimental, or deferred beyond v1.0.
+The release-candidate phase must not freeze hypothetical contracts merely because they appeared in
+earlier strategy or roadmap text. A capability that did not survive implementation and
+qualification is either removed, kept explicitly experimental, or deferred beyond v1.0.
 
-Exit capability:
+Exit condition:
 
 > **The architecture-intelligence model and public contracts intended for v1.0 are semantically
 > stable, reproducible, migration-aware, and production-qualified.**
@@ -529,7 +567,7 @@ v0.3  validation and hardening
   -> v0.6  locality-aware Current State
   -> v0.7  explicit architecture Intent
   -> v0.8  qualified architecture assessment
-  -> v0.9  contract freeze and production qualification
+  -> v1.0-rc  contract freeze and production qualification
   -> v1.0  stable platform
 ```
 
