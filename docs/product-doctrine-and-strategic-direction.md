@@ -1573,13 +1573,18 @@ bounded agent-derived ephemeral micro-tools.
 
 MCP and REST are adapters, not the product.
 
-The durable product is:
+The durable product boundary is:
 
 ```text
 evidence-qualified Architecture Knowledge
         +
 question-specific deterministic projections
+        +
+stable public architectural meaning
 ```
+
+The storage representation beneath that boundary is replaceable. The semantic contract above it is
+not incidental implementation detail.
 
 The v0.5 public topology is intentionally simple:
 
@@ -1599,6 +1604,16 @@ MCP should remain as stable and boring as practical. REST should remain a genera
 integration surface. Future product evolution should appear primarily through typed
 architecture-intelligence contracts and new safely answerable questions, not repeated transport
 redesign.
+
+The strategic rule is:
+
+> **Differentiate where Architecture Knowledge is established; standardize where it is transported
+> and sourced.**
+
+That means transport protocols, standard source interfaces, graph/database technology, and similar
+plumbing should be consumed as mature capabilities wherever practical. AIP-specific investment
+belongs primarily in evidence semantics, identity/reconciliation, qualification, provenance,
+uncertainty handling, and deterministic projections.
 
 ### 21.1 Portability and composability
 
@@ -1709,8 +1724,8 @@ unverified. They do not by themselves establish causality or overall change corr
 
 Current and near-term core ownership:
 
-- architecture evidence ingestion;
-- canonical architecture modeling;
+- architecture evidence ingestion and source-semantic interpretation;
+- canonical public architecture semantics, independent of the persistence representation;
 - evidence applicability;
 - identity reconciliation;
 - declared-versus-observed qualification;
@@ -1718,11 +1733,15 @@ Current and near-term core ownership:
 - snapshot-bound architecture answers;
 - provenance;
 - derivation lineage;
-- limitations and unresolved states;
+- limitations, conflicts, unsupported cases, and unresolved states;
 - bounded deterministic architecture context;
 - question-specific deterministic Architecture Knowledge projections;
 - public semantic contracts that external moldable tools can inspect and compose without becoming
   architecture authorities.
+
+AIP should own the **meaning** required for these capabilities. It should not require consumers to
+depend on the internal database schema, graph layout, query implementation, or persistence model
+used to realize them.
 
 Future, only if separately specified and validated:
 
@@ -1750,6 +1769,8 @@ Beyond v1.0 under the current roadmap:
 - agent memory;
 - generic workflow automation;
 - generic enterprise knowledge graphs;
+- exposing AIP's internal graph/database representation as the product contract;
+- generic graph/Cypher access as a substitute for qualified architecture questions;
 - business capability ownership;
 - policy authoring;
 - approvals;
@@ -1855,13 +1876,16 @@ without requiring a complete target blueprint
 
 ```text
 Knowledge graph:
-connects information
+connects and represents information
 
 AIP:
-qualifies which architecture claims
-the available evidence supports
-and how local assessments project into broader views
+establishes evidence-qualified Architecture Knowledge
+with public semantic meaning, provenance, context, limitations,
+and deterministic question-specific projections
 ```
+
+AIP may use a graph internally, but the graph representation is not the customer contract. The
+public architectural semantics are.
 
 ---
 
@@ -2215,7 +2239,12 @@ for the primary user?
 ### Gate B — Strategic fit
 
 ```text
-Does it strengthen AIP's Moldable Architecture Knowledge role?
+Does it strengthen the customer promise
+without moving differentiation into transport or storage plumbing?
+
+Does it deepen AIP's Moldable Architecture Knowledge capability:
+qualification, reconciliation, provenance, bounded uncertainty,
+or deterministic projection?
 ```
 
 ### Gate C — Semantic defensibility
@@ -2359,23 +2388,35 @@ AIP should not design migration execution before Current State and any future In
 
 ## 31. Recommended Positioning
 
+### Customer promise
+
+> **Help coding agents work across multi-service systems without reconstructing architecture.**
+
+### Product concept
+
+> **Moldable Architecture Knowledge.**
+
+### Differentiation
+
+> **Evidence qualification, reconciliation, provenance, bounded uncertainty, and deterministic
+> projections.**
+
 ### Current short positioning
 
-> **AIP makes Architecture Knowledge moldable for agents and engineering tools — without making the
-> underlying evidence or qualification moldable.**
+> **AIP gives coding agents trustworthy Architecture Knowledge they do not have to reconstruct.**
 
 ### Current product positioning
 
-> **AIP establishes evidence-qualified Architecture Knowledge and makes it inexpensive to turn
-> concrete architecture questions into bounded, deterministic projections that agents and
-> engineering tools can inspect, compose, and reuse.**
+> **AIP establishes evidence-qualified Architecture Knowledge from heterogeneous system evidence and
+> exposes bounded, deterministic projections for concrete architecture questions. The projections
+> are moldable; the evidence, qualification, provenance, and public architectural meaning are not.**
 
 ### Primary customer framing
 
 > **For platform engineering and architecture teams enabling coding agents across multi-service
-> systems, AIP provides bounded, evidence-qualified architecture context before a change and
-> independent evaluation of available architecture evidence afterward, with the supported scope and
-> remaining verification gaps made explicit.**
+> systems, AIP provides reliable, bounded Architecture Knowledge at the point where an agent would
+> otherwise have to reconstruct architecture from code, documentation, names, and partial runtime
+> evidence.**
 
 ### Boundary statement
 
@@ -2414,8 +2455,32 @@ by the target audience.
 
 ## 32. Strategic Conclusion
 
-The product direction remains sound, but the product center is now clearer: **Moldable Architecture
-Knowledge**.
+The product direction remains sound. The Wardley-mapping exercise clarifies the strategic hierarchy:
+
+```text
+Customer promise:
+Help coding agents work across multi-service systems
+without reconstructing architecture
+
+Product concept:
+Moldable Architecture Knowledge
+
+Differentiation:
+evidence qualification
+reconciliation
+provenance
+bounded uncertainty
+deterministic projections
+
+Semantic foundation:
+evidence-qualified Architecture Knowledge
+
+Replaceable implementation:
+storage, graph layout, query language, transport plumbing
+```
+
+The product center remains **Moldable Architecture Knowledge**, but it is not the customer promise
+itself.
 
 AIP should evolve from:
 
@@ -2454,6 +2519,15 @@ The interaction insight is:
 
 > **AIP should establish Architecture Knowledge once and make recurring architecture questions cheap
 > to express as deterministic, inspectable projections.**
+
+The strategic investment rule is:
+
+> **Differentiate where Architecture Knowledge is established; standardize where it is transported
+> and sourced.**
+
+And the contract rule is:
+
+> **Internal representation is replaceable. Public architectural meaning is not.**
 
 The most important semantic insight remains:
 
