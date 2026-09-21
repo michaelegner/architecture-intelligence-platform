@@ -20,15 +20,24 @@ Knowledge once, then make small, deterministic, question-specific projections in
 create, inspect, compose, and reuse without allowing the consumer to rewrite the underlying evidence
 or qualification.
 
-AIP's differentiation is the semantic work required to make that promise credible:
+AIP's differentiation has two layers.
 
-- **evidence qualification** — state what the available evidence actually supports;
-- **reconciliation** — combine heterogeneous, potentially disagreeing sources without guessing;
-- **provenance** — preserve why a claim or answer exists and where it came from;
+**Core-domain differentiation** establishes trustworthy Architecture Knowledge:
+
+- **evidence applicability and qualification** — state what the available evidence actually supports;
+- **identity reconciliation** — relate heterogeneous identities without guessing;
+- **conflict-aware reconciliation** — combine potentially disagreeing sources without flattening
+  disagreement;
+- **provenance and derivation lineage** — preserve why a claim exists and where it came from;
 - **bounded uncertainty** — keep unresolved, conflicting, unsupported, incomplete, and scoped
-  outcomes explicit;
+  outcomes explicit.
+
+**Product-level differentiation** makes that knowledge useful repeatedly:
+
 - **deterministic projections** — turn recurring architecture questions into reproducible,
-  inspectable answers over the same qualified knowledge.
+  inspectable answers over the same qualified knowledge;
+- **moldability** — allow question, selection, composition, and representation to vary without
+  changing the established meaning underneath.
 
 Its purpose is not to make agents more autonomous. Its purpose is to give them architecture premises
 they do not have to reconstruct or invent, and to make recurring architecture questions cheaper to
@@ -43,14 +52,16 @@ without reconstructing architecture
         ↓
 PRODUCT CONCEPT
 Moldable Architecture Knowledge
+        ↓ enabled by
+CORE DOMAIN
+Establishing Evidence-Qualified Architecture Knowledge
         ↓
-DIFFERENTIATION
-qualification + reconciliation + provenance
-+ bounded uncertainty + deterministic projections
-        ↓
-PUBLIC SEMANTIC FOUNDATION
-evidence-qualified Architecture Knowledge
-with stable meaning, identity, context, limitations, and lineage
+CORE-DOMAIN DIFFERENTIATION
+applicability + identity/reconciliation + qualification
++ provenance/lineage + bounded uncertainty
+        ↓ exposed as
+PRODUCT-LEVEL DIFFERENTIATION
+deterministic question-specific projections + moldability
         ↓
 REPLACEABLE IMPLEMENTATION
 graph/database layout, query language, storage technology,
@@ -169,8 +180,9 @@ reuse / refinement / next question
 
 The AIP × Glamorous Toolkit reference integration validates an important version of this loop:
 agents can select AIP capabilities, chain evidence requests, preserve AIP snapshot/provenance
-semantics, and derive bounded ephemeral micro-tools while AIP remains the source of Architecture
-Knowledge and the developer controls what becomes permanent.
+semantics, and derive bounded ephemeral micro-tools while AIP remains responsible for establishing
+the qualified Architecture Knowledge exposed by its contracts and the developer controls what
+becomes permanent.
 
 This concept does not make Glamorous Toolkit an AIP dependency. GT is a reference integration that
 demonstrates the interaction model. The durable product idea is portable across agent clients,
@@ -185,7 +197,62 @@ The map-derived product distinction is:
 This does **not** make the semantic model disposable. Public architectural meaning — identity,
 relation semantics, qualification, provenance, context, evidence linkage, limitations, and
 assessment meaning — is part of the product contract even when its internal graph/database
-representation is replaceable.
+representation is replaceable. Before v1.0 those semantics may still evolve through explicit,
+versioned contract changes; "not replaceable" means they are not mere implementation detail, not
+that they are already frozen.
+
+### 1.2 DDD framing: Core Domain and supporting capabilities
+
+In Domain-Driven Design terms, AIP's **Core Domain** is:
+
+> **Establishing Evidence-Qualified Architecture Knowledge from heterogeneous, incomplete, and
+> potentially conflicting system evidence.**
+
+The core domain answers:
+
+```text
+What architectural claim can be established?
+From which applicable evidence?
+Under which identity, locality, time, and observation context?
+With what qualification?
+With what conflicts, uncertainty, or limitation?
+With what provenance and derivation lineage?
+```
+
+This is distinct from the mechanics around it:
+
+```text
+CORE DOMAIN
+Architecture Knowledge establishment and qualification
+  - evidence applicability
+  - identity and reconciliation semantics
+  - claim qualification
+  - conflict / uncertainty semantics
+  - provenance / derivation meaning
+
+CLOSELY SUPPORTING PRODUCT CAPABILITY
+Deterministic question-specific projection
+  - bounded ArchitectureAnswer contracts
+  - reusable architecture questions
+  - moldable composition / representation
+
+SUPPORTING
+Source discovery, ingestion, normalization, snapshot plumbing,
+evaluation harnesses, adapter implementation
+
+GENERIC / STANDARDIZE WHERE PRACTICAL
+MCP / HTTP transport, protocol libraries, database technology,
+graph query mechanics, standard source APIs
+```
+
+A new source adapter is therefore not automatically new product capability. It becomes strategically
+important when it enables a materially new class of qualified Architecture Knowledge, requires new
+core-domain semantics, or unlocks a materially new deterministic architecture question.
+
+The Core Domain is not the same thing as one Bounded Context. Current State, explicit Intent, and
+Current↔Intent Assessment may require distinct semantic boundaries while still contributing to AIP's
+overall Architecture Knowledge domain. In particular, Intent must remain outside Current-State
+establishment.
 
 ---
 
@@ -1724,8 +1791,9 @@ unverified. They do not by themselves establish causality or overall change corr
 
 Current and near-term core ownership:
 
-- architecture evidence ingestion and source-semantic interpretation;
-- canonical public architecture semantics, independent of the persistence representation;
+- architecture evidence ingestion where AIP-specific semantic interpretation is required;
+- canonical architecture semantics exposed through public contracts, independent of the persistence
+  representation;
 - evidence applicability;
 - identity reconciliation;
 - declared-versus-observed qualification;
@@ -1739,9 +1807,10 @@ Current and near-term core ownership:
 - public semantic contracts that external moldable tools can inspect and compose without becoming
   architecture authorities.
 
-AIP should own the **meaning** required for these capabilities. It should not require consumers to
-depend on the internal database schema, graph layout, query implementation, or persistence model
-used to realize them.
+AIP should own the **domain meaning** required for these capabilities. Standard source protocols,
+transport libraries, and persistence mechanics should remain supporting or generic wherever
+practical. Consumers should not depend on the internal database schema, graph layout, query
+implementation, or persistence model used to realize the domain semantics.
 
 Future, only if separately specified and validated:
 
@@ -1843,8 +1912,9 @@ whose bounded projections can be molded without changing underlying semantics
 ```
 
 The AIP × GT reference integration demonstrates that the layers compose: a GT-hosted agent can ask
-AIP questions over MCP, follow evidence, and derive ephemeral micro-tools while AIP remains the
-knowledge authority and the developer controls permanence.
+AIP questions over MCP, follow evidence, and derive ephemeral micro-tools while AIP remains
+responsible for the qualification semantics of the Architecture Knowledge it exposes and the
+developer controls permanence.
 
 ### Governance / policy systems
 
@@ -2242,9 +2312,12 @@ for the primary user?
 Does it strengthen the customer promise
 without moving differentiation into transport or storage plumbing?
 
-Does it deepen AIP's Moldable Architecture Knowledge capability:
-qualification, reconciliation, provenance, bounded uncertainty,
-or deterministic projection?
+Does it deepen AIP's Core Domain or Moldable Architecture Knowledge capability:
+evidence applicability, identity/reconciliation, qualification, provenance,
+bounded uncertainty, or deterministic projection?
+
+If it only adds a new source or transport, what new qualified knowledge
+or recurring architecture question does that unlock?
 ```
 
 ### Gate C — Semantic defensibility
@@ -2333,6 +2406,13 @@ For every proposed feature, ask:
 Kubernetes, Pub/Sub, derivation, intent, assessment, and local assessors may all be
 useful, but without a validated primary workflow they can become parallel attractive directions.
 
+### Core-domain dilution
+
+AIP could become a broad integration, catalog, graph, or protocol platform if source breadth,
+visualization, transport, and persistence capabilities grow faster than the evidence-applicability,
+identity, reconciliation, qualification, provenance, uncertainty, and projection semantics that
+differentiate the product.
+
 ### Epistemic overclaiming
 
 Calling AIP a "truth layer" would contradict its own open-world semantics.
@@ -2396,10 +2476,16 @@ AIP should not design migration execution before Current State and any future In
 
 > **Moldable Architecture Knowledge.**
 
+### Core Domain
+
+> **Establishing Evidence-Qualified Architecture Knowledge from heterogeneous, incomplete, and
+> potentially conflicting system evidence.**
+
 ### Differentiation
 
-> **Evidence qualification, reconciliation, provenance, bounded uncertainty, and deterministic
-> projections.**
+> **Core domain:** evidence applicability, identity/reconciliation, qualification, provenance and
+> lineage, conflict handling, and bounded uncertainty.  
+> **Product level:** deterministic question-specific projections and moldability.
 
 ### Current short positioning
 
@@ -2472,8 +2558,15 @@ provenance
 bounded uncertainty
 deterministic projections
 
-Semantic foundation:
-evidence-qualified Architecture Knowledge
+Core Domain:
+establishing Evidence-Qualified Architecture Knowledge
+
+Core-domain differentiation:
+evidence applicability, identity/reconciliation, qualification,
+provenance/lineage, conflict handling, bounded uncertainty
+
+Product-level differentiation:
+deterministic question-specific projections and moldability
 
 Replaceable implementation:
 storage, graph layout, query language, transport plumbing
@@ -2527,7 +2620,8 @@ The strategic investment rule is:
 
 And the contract rule is:
 
-> **Internal representation is replaceable. Public architectural meaning is not.**
+> **Internal representation is replaceable. Public architectural meaning is a versioned semantic
+> contract, not an implementation detail.**
 
 The most important semantic insight remains:
 
