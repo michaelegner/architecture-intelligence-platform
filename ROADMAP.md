@@ -630,10 +630,14 @@ graph/database and persistence plumbing
 other mature infrastructure
 ```
 
-Roadmap scope should therefore expand AIP's safely answerable architecture-question space or deepen
-the Core Domain needed to establish those answers safely. A new source adapter is not, by itself, a
-new product capability: it should justify scope by enabling materially new qualified Architecture
-Knowledge, requiring new evidence/reconciliation semantics, or unlocking a materially new recurring
+Roadmap scope should therefore prioritize expansion of AIP's safely answerable
+architecture-question space. Core Domain work is justified where it is required to establish those
+answers safely; Core Domain hardening without a materially new architecture-question class does not,
+by itself, justify another `0.x.0` capability release.
+
+Likewise, a new source adapter is not, by itself, a new product capability or capability-release
+justification. It is strategically relevant when it enables materially new qualified Architecture
+Knowledge, requires new evidence/reconciliation semantics, or unlocks a materially new recurring
 architecture question. Proprietary transport, storage, or source plumbing should enter scope only
 when correctness, interoperability, or evidence semantics require it.
 
