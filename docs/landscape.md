@@ -20,20 +20,23 @@ without reconstructing architecture
 Product concept
 Moldable Architecture Knowledge
         ↓
-Differentiation
-qualification + reconciliation + provenance
-+ bounded uncertainty + deterministic projections
+Core Domain
+Establishing Evidence-Qualified Architecture Knowledge
         ↓
-Evidence-qualified Architecture Knowledge
+Core-domain differentiation
+applicability + identity/reconciliation + qualification
++ provenance/lineage + bounded uncertainty
         ↓
-Question-specific deterministic projection
+Product-level differentiation
+deterministic question-specific projections + moldability
         ↓
 Agent / human / contextual micro-tool
 ```
 
 The Wardley-mapping implication is explicit: **differentiate where Architecture Knowledge is
 established; standardize where it is transported and sourced**. Internal graph/storage
-representation is replaceable; public architectural meaning is not.
+representation is replaceable; public architectural meaning is a versioned semantic contract rather
+than implementation detail.
 
 Future Intent and Current↔Intent assessment remain separate semantic layers; moldability does not
 permit a consumer to rewrite evidence, qualification, provenance, or claim meaning.
