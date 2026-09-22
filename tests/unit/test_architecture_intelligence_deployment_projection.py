@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 
 from app.architecture_intelligence.contracts import (
@@ -8,19 +10,26 @@ from app.architecture_intelligence.contracts import (
     WorkloadKind,
 )
 from app.architecture_intelligence.deployment_projection import (
+    CapturedPodRow,
     CurrentKubernetesWorkload,
+    DeclaredServiceIdentity,
+    RuntimeIdentityObservationRow,
     WorkloadContribution,
+    WorkloadOwnershipRow,
     compute_deployment_claim_id,
     compute_deployment_group_key,
     compute_deployment_resolution_id,
     compute_service_workload_mapping_evidence_id,
     resolve_path_a,
     resolve_path_b,
+    resolve_path_c,
 )
+from app.architecture_intelligence.observation_context import build_observation_context_ref
 from app.sources.service_workload_mapping import (
     ServiceWorkloadMappingDocument,
     ServiceWorkloadMappingEntry,
 )
+from app.telemetry.service_resolver import DeclaredServiceCandidate
 
 SNAPSHOT_ID = "aip:snapshot:v1:" + "a" * 64
 CONTEXT_ID = "aip:observation-context:v1:" + "b" * 64
@@ -620,4 +629,449 @@ def test_path_b_with_no_configured_artifact_produces_nothing():
         context_id=CONTEXT_ID,
     )
     assert result.resolutions == []
+    assert result.claims == []
+
+
+# ---------------------------------------------------------------------------------------------
+# compute_deployment_group_key - the new "otel:" branch
+# ---------------------------------------------------------------------------------------------
+
+
+def test_compute_deployment_group_key_otel_branch():
+    assert compute_deployment_group_key(otel_observation_id="obs-1") == "otel:obs-1"
+
+
+def test_compute_deployment_group_key_rejects_workload_and_otel_together():
+    with pytest.raises(ValueError):
+        compute_deployment_group_key(workload_id="w1", otel_observation_id="obs-1")
+
+
+def test_compute_deployment_group_key_rejects_mapping_and_otel_together():
+    with pytest.raises(ValueError):
+        compute_deployment_group_key(
+            mapping_artifact_id="a",
+            mapping_artifact_revision="b",
+            mapping_id="c",
+            otel_observation_id="obs-1",
+        )
+
+
+# ---------------------------------------------------------------------------------------------
+# Path C (spec §9, §10.5, §21.3)
+# ---------------------------------------------------------------------------------------------
+
+POD_UID = "pod-uid-1"
+POD_ID = "pod:1"
+WORKLOAD_ID = "workload:deploy-1"
+SERVICE_ID = "service:checkout"
+
+WINDOW_START = datetime(2026, 9, 19, 0, 0, 0, tzinfo=UTC)
+WINDOW_END = datetime(2026, 9, 19, 23, 59, 59, tzinfo=UTC)
+IN_WINDOW = datetime(2026, 9, 19, 12, 0, 0, tzinfo=UTC)
+BEFORE_WINDOW = datetime(2026, 9, 18, 12, 0, 0, tzinfo=UTC)
+AFTER_WINDOW = datetime(2026, 9, 20, 12, 0, 0, tzinfo=UTC)
+IN_WINDOW_STR = "2026-09-19T12:00:00Z"
+BEFORE_WINDOW_STR = "2026-09-18T12:00:00Z"
+AFTER_WINDOW_STR = "2026-09-20T12:00:00Z"
+
+
+def _observation_context(environment="prod"):
+    return build_observation_context_ref(environment, WINDOW_START, WINDOW_END)
+
+
+def _pod_row(**overrides):
+    defaults = {
+        "pod_id": POD_ID,
+        "pod_name": "checkout-api-abc123",
+        "pod_namespace": "checkout",
+        "cluster_uid": "cluster-1",
+        "captured_at": IN_WINDOW_STR,
+        "evidence_refs": ("ev-pod",),
+    }
+    defaults.update(overrides)
+    return CapturedPodRow(**defaults)
+
+
+def _observation_row(**overrides):
+    defaults = {
+        "id": "runtime-identity:otel:prod:2026-09-19:abc123",
+        "service_name": "checkout",
+        "service_namespace": None,
+        "service_version": None,
+        "environment": "prod",
+        "k8s_pod_uid": POD_UID,
+        "k8s_pod_name": None,
+        "k8s_namespace_name": None,
+        "k8s_cluster_uid": None,
+        "k8s_deployment_name": None,
+        "k8s_statefulset_name": None,
+        "k8s_daemonset_name": None,
+        "last_seen": IN_WINDOW,
+        "conflicting_consistency_attributes": (),
+    }
+    defaults.update(overrides)
+    return RuntimeIdentityObservationRow(**defaults)
+
+
+def _declared_candidate(id=SERVICE_ID, name="checkout", namespace=None):
+    return DeclaredServiceCandidate(id, name, namespace)
+
+
+def _default_declared_identities():
+    return {
+        SERVICE_ID: DeclaredServiceIdentity(
+            service_id=SERVICE_ID, name="checkout", namespace=None, version=None
+        )
+    }
+
+
+def _run_path_c(
+    observations,
+    *,
+    pods_by_uid=None,
+    owners_by_pod=None,
+    workloads=None,
+    declared_candidates=None,
+    aliases=None,
+    declared_identities=None,
+    observation_context=None,
+):
+    pods_by_uid = pods_by_uid if pods_by_uid is not None else {POD_UID: [_pod_row()]}
+    owners_by_pod = (
+        owners_by_pod
+        if owners_by_pod is not None
+        else {POD_ID: [WorkloadOwnershipRow(workload_id=WORKLOAD_ID, evidence_refs=("ev-owns",))]}
+    )
+    workloads = (
+        workloads
+        if workloads is not None
+        else {
+            WORKLOAD_ID: _workload(workload_id=WORKLOAD_ID, kind="Deployment", name="checkout-api")
+        }
+    )
+    declared_candidates = (
+        declared_candidates if declared_candidates is not None else [_declared_candidate()]
+    )
+    declared_identities = (
+        declared_identities if declared_identities is not None else _default_declared_identities()
+    )
+    aliases = aliases if aliases is not None else {}
+    return resolve_path_c(
+        observations=observations,
+        observation_context=observation_context or _observation_context(),
+        lookup_pods_by_uid=lambda uid: pods_by_uid.get(uid, []),
+        lookup_workload_ids_owning_pod=lambda pod_id: owners_by_pod.get(pod_id, []),
+        resolve_workload=lambda wid: workloads.get(wid),
+        declared_service_candidates=declared_candidates,
+        service_aliases=aliases,
+        lookup_declared_service=lambda sid: declared_identities.get(sid),
+        snapshot_id=SNAPSHOT_ID,
+        context_id=CONTEXT_ID,
+    )
+
+
+def test_path_c_resolves_via_exact_namespace_and_name():
+    result = _run_path_c(
+        [_observation_row(service_namespace="checkout")],
+        declared_candidates=[_declared_candidate(namespace="checkout")],
+        declared_identities={
+            SERVICE_ID: DeclaredServiceIdentity(
+                service_id=SERVICE_ID, name="checkout", namespace="checkout", version=None
+            )
+        },
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+    assert resolution.service_id == SERVICE_ID
+    assert resolution.supporting_methods == [DeploymentResolutionMethod.RESOLVED_OBSERVED]
+    [claim] = result.claims
+    assert claim.claim_id == resolution.claim_id
+
+
+def test_path_c_resolves_via_unique_exact_name():
+    result = _run_path_c([_observation_row()])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+    assert resolution.service_id == SERVICE_ID
+
+
+def test_path_c_resolves_via_configured_alias():
+    result = _run_path_c(
+        [_observation_row(service_name="checkout-svc")],
+        declared_candidates=[],
+        aliases={"checkout-svc": SERVICE_ID},
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+    assert resolution.service_id == SERVICE_ID
+
+
+def test_path_c_alias_target_missing_is_unresolved():
+    result = _run_path_c(
+        [_observation_row(service_name="unknown-svc")], declared_candidates=[], aliases={}
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.workload is not None
+    assert result.claims == []
+
+
+def test_path_c_service_resolves_observed_only_is_unresolved():
+    # The "critical trap": resolve_service's own tiering reports DECLARED (a :Service node with
+    # this name exists), but the authoritative owner_source_ids re-check says it's not currently
+    # declared (a stale OBSERVED_ONLY stub) - must not be treated as resolved.
+    result = _run_path_c([_observation_row()], declared_identities={})
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.workload is not None
+    assert result.claims == []
+
+
+def test_path_c_missing_pod_uid_is_unresolved_with_no_workload():
+    result = _run_path_c([_observation_row(k8s_pod_uid=None)])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.workload is None
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_IDENTITY_UNRESOLVED]
+    assert result.claims == []
+
+
+def test_path_c_unknown_pod_uid_is_unresolved_with_no_workload():
+    result = _run_path_c([_observation_row()], pods_by_uid={})
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.workload is None
+
+
+def test_path_c_stale_pod_uid_is_unresolved_with_no_workload():
+    # A replaced Pod's row is genuinely gone from the current graph - indistinguishable from an
+    # unknown UID, which is correct (spec §21.5's Pod-replacement guarantee).
+    result = _run_path_c([_observation_row()], pods_by_uid={POD_UID: []})
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.workload is None
+
+
+def test_path_c_pod_uid_resolves_ambiguously():
+    result = _run_path_c(
+        [_observation_row()],
+        pods_by_uid={POD_UID: [_pod_row(pod_id="pod:1"), _pod_row(pod_id="pod:2")]},
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.AMBIGUOUS
+    assert resolution.workload is None
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_IDENTITY_AMBIGUOUS]
+
+
+def test_path_c_owner_chain_unresolved():
+    result = _run_path_c([_observation_row()], owners_by_pod={})
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.workload is None
+
+
+def test_path_c_owner_chain_ambiguous():
+    result = _run_path_c(
+        [_observation_row()],
+        owners_by_pod={
+            POD_ID: [
+                WorkloadOwnershipRow(workload_id="workload:a"),
+                WorkloadOwnershipRow(workload_id="workload:b"),
+            ]
+        },
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.AMBIGUOUS
+    assert resolution.workload is None
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_IDENTITY_AMBIGUOUS]
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["k8s_namespace_name", "k8s_cluster_uid", "k8s_pod_name"],
+)
+def test_path_c_consistency_attribute_agrees(field):
+    values = {
+        "k8s_namespace_name": "checkout",
+        "k8s_cluster_uid": "cluster-1",
+        "k8s_pod_name": "checkout-api-abc123",
+    }
+    result = _run_path_c([_observation_row(**{field: values[field]})])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["k8s_namespace_name", "k8s_cluster_uid", "k8s_pod_name"],
+)
+def test_path_c_consistency_attribute_disagrees_is_conflict(field):
+    result = _run_path_c([_observation_row(**{field: "something-else"})])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.CONFLICT
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_IDENTITY_CONFLICT]
+    assert result.claims == []
+
+
+def test_path_c_workload_name_consistency_attribute_agrees():
+    result = _run_path_c([_observation_row(k8s_deployment_name="checkout-api")])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+
+
+def test_path_c_workload_name_consistency_attribute_disagrees_same_kind():
+    result = _run_path_c([_observation_row(k8s_deployment_name="something-else")])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.CONFLICT
+
+
+def test_path_c_workload_name_consistency_attribute_disagrees_cross_kind():
+    # A non-null attribute naming a *different* Workload kind than the one actually resolved is
+    # unconditionally contradictory, regardless of its own value (spec §9.6).
+    result = _run_path_c([_observation_row(k8s_statefulset_name="checkout-api")])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.CONFLICT
+
+
+def test_path_c_service_version_agrees():
+    result = _run_path_c(
+        [_observation_row(service_version="v1")],
+        declared_identities={
+            SERVICE_ID: DeclaredServiceIdentity(
+                service_id=SERVICE_ID, name="checkout", namespace=None, version="v1"
+            )
+        },
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+
+
+def test_path_c_service_version_disagrees():
+    result = _run_path_c(
+        [_observation_row(service_version="v2")],
+        declared_identities={
+            SERVICE_ID: DeclaredServiceIdentity(
+                service_id=SERVICE_ID, name="checkout", namespace=None, version="v1"
+            )
+        },
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.CONFLICT
+
+
+def test_path_c_service_version_only_one_side_present_is_not_a_limitation():
+    result = _run_path_c(
+        [_observation_row(service_version="v2")],
+        declared_identities={
+            SERVICE_ID: DeclaredServiceIdentity(
+                service_id=SERVICE_ID, name="checkout", namespace=None, version=None
+            )
+        },
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+
+
+def test_path_c_conflicting_consistency_attributes_from_merge_is_conflict():
+    # §9.4: a non-empty conflicting_consistency_attributes (already flagged during slice 2's own
+    # bucket merge) is treated identically to a directly observed contradiction.
+    result = _run_path_c([_observation_row(conflicting_consistency_attributes=("k8s_pod_name",))])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.CONFLICT
+
+
+def test_path_c_last_seen_inside_window():
+    result = _run_path_c([_observation_row(last_seen=IN_WINDOW)])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+
+
+def test_path_c_last_seen_before_window():
+    result = _run_path_c([_observation_row(last_seen=BEFORE_WINDOW)])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_TEMPORAL_MISMATCH]
+
+
+def test_path_c_last_seen_after_window():
+    result = _run_path_c([_observation_row(last_seen=AFTER_WINDOW)])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_TEMPORAL_MISMATCH]
+
+
+def test_path_c_captured_at_inside_window():
+    result = _run_path_c(
+        [_observation_row()], pods_by_uid={POD_UID: [_pod_row(captured_at=IN_WINDOW_STR)]}
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+
+
+def test_path_c_captured_at_before_window():
+    result = _run_path_c(
+        [_observation_row()], pods_by_uid={POD_UID: [_pod_row(captured_at=BEFORE_WINDOW_STR)]}
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_TEMPORAL_MISMATCH]
+
+
+def test_path_c_captured_at_after_window():
+    result = _run_path_c(
+        [_observation_row()], pods_by_uid={POD_UID: [_pod_row(captured_at=AFTER_WINDOW_STR)]}
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_TEMPORAL_MISMATCH]
+
+
+def test_path_c_environment_absent():
+    result = _run_path_c([_observation_row(environment=None)])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_EVIDENCE_INCOMPLETE]
+
+
+def test_path_c_environment_mismatch():
+    result = _run_path_c([_observation_row(environment="staging")])
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_ENVIRONMENT_MISMATCH]
+
+
+def test_path_c_multiple_declared_services_is_ambiguous_not_conflict():
+    # §10.5: multiple distinct declared Services satisfying one Path C runtime identity is always
+    # AMBIGUOUS, never CONFLICT - two distinct Pod UIDs owner-chain-resolving to the SAME Workload,
+    # but resolving via resolve_service to two different declared Service ids.
+    other_service_id = "service:other"
+    result = _run_path_c(
+        [
+            _observation_row(id="obs-1", k8s_pod_uid="pod-uid-1", service_name="checkout"),
+            _observation_row(id="obs-2", k8s_pod_uid="pod-uid-2", service_name="other"),
+        ],
+        pods_by_uid={
+            "pod-uid-1": [_pod_row(pod_id="pod:1")],
+            "pod-uid-2": [_pod_row(pod_id="pod:2")],
+        },
+        owners_by_pod={
+            "pod:1": [WorkloadOwnershipRow(workload_id=WORKLOAD_ID)],
+            "pod:2": [WorkloadOwnershipRow(workload_id=WORKLOAD_ID)],
+        },
+        declared_candidates=[
+            _declared_candidate(id=SERVICE_ID, name="checkout"),
+            _declared_candidate(id=other_service_id, name="other"),
+        ],
+        declared_identities={
+            SERVICE_ID: DeclaredServiceIdentity(
+                service_id=SERVICE_ID, name="checkout", namespace=None, version=None
+            ),
+            other_service_id: DeclaredServiceIdentity(
+                service_id=other_service_id, name="other", namespace=None, version=None
+            ),
+        },
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.AMBIGUOUS
+    assert resolution.candidate_service_ids == sorted([SERVICE_ID, other_service_id])
     assert result.claims == []

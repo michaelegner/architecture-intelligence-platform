@@ -171,6 +171,15 @@ class InfrastructureContribution(BaseModel):
     for a Workload with no such annotation set. I2 never evaluates this value into an AIP Service
     identity (§9: "I2 never evaluates the annotation into an AIP Service identity") - it is retained
     verbatim as unqualified input for I3 to interpret, not acted on here.
+
+    `captured_at` is additive (v0.5.0 I3 slice 4), mirroring the same two precedents above: I3 spec
+    §9.7 requires checking "the current I2 CAPTURED_RESOURCE envelope capturedAt" against an
+    observation window, but the envelope's own `metadata.capturedAt` (already parsed and validated
+    by `app.sources.kubernetes_envelope.KubernetesSourceSnapshotMetadata`) was previously discarded
+    after envelope validation and never persisted anywhere queryable. One envelope produces one
+    `capturedAt` value shared by every contribution from that source/capture, so this is a per-
+    source-snapshot value, not a per-resource one. `None` only for a contribution written by a
+    pre-slice-4 adapter version.
     """
 
     entity_id: str = Field(min_length=1)
@@ -179,6 +188,7 @@ class InfrastructureContribution(BaseModel):
     resource_semantic_digest: str = Field(min_length=1)
     captured_resource_uid: str | None = None
     service_id_annotation: str | None = None
+    captured_at: str | None = None
     evidence_refs: list[str] = Field(default_factory=list)
     mapping_rule_id: str = Field(min_length=1)
     mapping_rule_version: str = Field(min_length=1)
