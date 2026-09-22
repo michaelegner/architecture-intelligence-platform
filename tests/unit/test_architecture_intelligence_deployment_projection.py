@@ -1096,3 +1096,37 @@ def test_path_c_multiple_declared_services_is_ambiguous_not_conflict():
     assert resolution.status == DeploymentResolutionStatus.AMBIGUOUS
     assert resolution.candidate_service_ids == sorted([SERVICE_ID, other_service_id])
     assert result.claims == []
+
+
+def test_path_c_non_applicable_observation_does_not_taint_a_resolved_sibling():
+    # PR #220 review (round 2): obs A (prod, in-window) is a clean candidate for Workload W; obs B
+    # for the SAME Workload is non-applicable (wrong environment) AND carries a directly
+    # contradictory consistency attribute. B must never turn the group into CONFLICT, and its
+    # evidence must never leak into A's own resolved claim.
+    result = _run_path_c(
+        [
+            _observation_row(id="obs-a", k8s_pod_uid="pod-uid-a"),
+            _observation_row(
+                id="obs-b",
+                k8s_pod_uid="pod-uid-b",
+                environment="staging",
+                k8s_pod_name="not-the-real-pod-name",
+            ),
+        ],
+        pods_by_uid={
+            "pod-uid-a": [_pod_row(pod_id="pod:a", evidence_refs=("ev-pod-a",))],
+            "pod-uid-b": [_pod_row(pod_id="pod:b", evidence_refs=("ev-pod-b",))],
+        },
+        owners_by_pod={
+            "pod:a": [WorkloadOwnershipRow(workload_id=WORKLOAD_ID, evidence_refs=("ev-owns-a",))],
+            "pod:b": [WorkloadOwnershipRow(workload_id=WORKLOAD_ID, evidence_refs=("ev-owns-b",))],
+        },
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+    assert resolution.service_id == SERVICE_ID
+    assert resolution.supporting_evidence_refs == sorted(["ev-pod-a", "ev-owns-a", "obs-a"])
+    for tainted_ref in ("ev-pod-b", "ev-owns-b", "obs-b"):
+        assert tainted_ref not in resolution.supporting_evidence_refs
+    [claim] = result.claims
+    assert claim.evidence_refs == sorted(["ev-pod-a", "ev-owns-a", "obs-a"])

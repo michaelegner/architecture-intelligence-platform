@@ -750,9 +750,11 @@ def _evaluate_observation(
     snapshot_id: str,
     context_id: str,
 ) -> DeploymentResolution | _WorkloadScopedOutcome:
-    """Spec §9.1->9.7's full per-observation pipeline: Pod-UID lookup, owner-chain linkage, exact
-    Service resolution, consistency checks, observation-context/temporal compatibility - in that
-    order, stopping at the first outcome that's already determined."""
+    """Spec §9.1->9.7's full per-observation pipeline: Pod-UID lookup, owner-chain linkage,
+    observation-context/temporal compatibility, exact Service resolution, consistency checks - in
+    that order, stopping at the first outcome that's already determined. Observation-context
+    applicability is checked before Service/consistency (PR #220 review, round 2) specifically so a
+    non-applicable observation can never be misclassified as a Service/Workload contradiction."""
     if not obs.k8s_pod_uid:
         # §9.1: "service.name alone is insufficient" / no Pod UID at all to look up.
         return _standalone_otel_resolution(
@@ -829,6 +831,26 @@ def _evaluate_observation(
     # reachable until slice 5's gate - see the plan's own flagged note on this.
     base_evidence = (*pod.evidence_refs, *owner.evidence_refs, obs.id)
 
+    # PR #220 review (round 2): observation-context/temporal applicability is checked BEFORE
+    # Service resolution/consistency, not after. §9.7 is explicit that a non-applicable observation
+    # (wrong environment, outside the window) "is not a contradictory Service<->Workload identity
+    # claim" - it must never be allowed to reach the consistency check and risk being misclassified
+    # as CONFLICT (or, once the repository read became an unfiltered full scan, silently support a
+    # RESOLVED_OBSERVED claim as if it had actually agreed). `capturedAt` only needs `pod`, already
+    # available at this point, so this reordering costs nothing.
+    limitation = _observation_context_limitation(
+        obs=obs, pod=pod, observation_context=observation_context
+    )
+    if limitation is not None:
+        return _WorkloadScopedOutcome(
+            workload=workload,
+            outcome="unresolved",
+            candidate_service_id=None,
+            candidate_service_name=None,
+            limitation_code=limitation,
+            evidence_refs=base_evidence,
+        )
+
     identity = _resolve_declared_service_id(
         obs=obs,
         declared_service_candidates=declared_service_candidates,
@@ -852,19 +874,6 @@ def _evaluate_observation(
             candidate_service_id=identity.service_id,
             candidate_service_name=identity.name,
             limitation_code=LimitationCode.DEPLOYMENT_IDENTITY_CONFLICT,
-            evidence_refs=base_evidence,
-        )
-
-    limitation = _observation_context_limitation(
-        obs=obs, pod=pod, observation_context=observation_context
-    )
-    if limitation is not None:
-        return _WorkloadScopedOutcome(
-            workload=workload,
-            outcome="unresolved",
-            candidate_service_id=None,
-            candidate_service_name=None,
-            limitation_code=limitation,
             evidence_refs=base_evidence,
         )
 
@@ -929,7 +938,18 @@ def resolve_path_c(
         resolution_id = compute_deployment_resolution_id(
             snapshot_id=snapshot_id, context_id=context_id, group_key=group_key
         )
+        # PR #220 review (round 2): evidence for every outcome below except the terminal
+        # all-unresolved case is built only from "applicable" outcomes (candidate/conflict - i.e.
+        # observations that already passed §9.7's applicability check) - never from an "unresolved"
+        # sibling in the same Workload group, which may be unresolved *because it wasn't applicable
+        # at all* (wrong environment/window) and must not silently support or taint a claim it was
+        # never actually part of. The full-group union is reserved for the one case where nothing
+        # succeeded and there's nothing better to surface.
         all_evidence = sorted({ref for outcome in group for ref in outcome.evidence_refs})
+        applicable = [outcome for outcome in group if outcome.outcome in ("candidate", "conflict")]
+        applicable_evidence = sorted(
+            {ref for outcome in applicable for ref in outcome.evidence_refs}
+        )
 
         conflicting = [outcome for outcome in group if outcome.outcome == "conflict"]
         if conflicting:
@@ -945,7 +965,7 @@ def resolve_path_c(
                     candidate_service_ids=candidate_ids,
                     supporting_methods=[],
                     supporting_evidence_refs=[],
-                    conflicting_evidence_refs=all_evidence,
+                    conflicting_evidence_refs=applicable_evidence,
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_CONFLICT],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
@@ -972,7 +992,7 @@ def resolve_path_c(
                     service_id=None,
                     candidate_service_ids=candidate_ids,
                     supporting_methods=[],
-                    supporting_evidence_refs=all_evidence,
+                    supporting_evidence_refs=applicable_evidence,
                     conflicting_evidence_refs=[],
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_AMBIGUOUS],
                     claim_id=None,
@@ -990,7 +1010,7 @@ def resolve_path_c(
                 service_name=service_name,
                 workload_ref=workload_ref,
                 method=DeploymentResolutionMethod.RESOLVED_OBSERVED,
-                evidence_refs=all_evidence,
+                evidence_refs=applicable_evidence,
             )
             claims.append(claim)
             resolutions.append(
@@ -1001,7 +1021,7 @@ def resolve_path_c(
                     service_id=service_id,
                     candidate_service_ids=[service_id],
                     supporting_methods=[DeploymentResolutionMethod.RESOLVED_OBSERVED],
-                    supporting_evidence_refs=all_evidence,
+                    supporting_evidence_refs=applicable_evidence,
                     conflicting_evidence_refs=[],
                     limitation_codes=[],
                     claim_id=claim.claim_id,
@@ -1011,8 +1031,9 @@ def resolve_path_c(
             )
             continue
 
-        # No candidate and no conflict: every group member is workload-scoped but Service-
-        # resolution/consistency/temporal-unresolved.
+        # No candidate and no conflict: every group member is workload-scoped but non-applicable
+        # or Service-identity-unresolved. Nothing succeeded, so the full group's evidence (not just
+        # "applicable_evidence", which is empty here by construction) is surfaced rather than hidden.
         limitation_codes = sorted(
             {o.limitation_code for o in group if o.limitation_code is not None},
             key=lambda code: code.value,
