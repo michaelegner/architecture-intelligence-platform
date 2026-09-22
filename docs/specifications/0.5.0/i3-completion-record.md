@@ -28,9 +28,10 @@ fixture digests, and qualification report/evidence revisions.
 
 ## Run identity
 
-I3 was delivered as eight sequential PRs (spec + six implementation slices, one of which split into
-5a/5b) plus one spec amendment, each independently reviewed and merged, per §23's six suggested
-implementation slices:
+I3 was delivered as nine sequential implementation/record PRs (spec + six implementation slices, two
+of which split into their own reviewed delivery PRs — slice 5 into 5a/5b, slice 6 into 6a/6b) plus one
+spec amendment, each independently reviewed and merged, per §23's six suggested implementation
+slices:
 
 | Item | Scope | Merge commit | PR # |
 |---|---|---|---|
@@ -43,12 +44,13 @@ implementation slices:
 | Slice 5a | Public adapter consolidation, REST parity | `08d352616ff7a38b937f5deddd9db46f27073612` | #221 |
 | Slice 5b | Deployment public exposure | `5b7561bd238f2849bc459026b2b577a4fea91eab` | #222 |
 | Slice 6a | Deterministic qualification (§21 matrix, §22 fixture) | `dbf066b593b8b19f18596a0be27dc2724885cdbc` | #224 |
-| Slice 6b | Documentation and this completion record | (this PR; merge commit will differ — see "Immutable qualification identity") | — |
+| Slice 6b | Documentation and this completion record | (this PR's own merge commit — see "Immutable qualification identity" for why the *implementation* candidate revision is pinned to slice 6a instead) | #225 |
 
-**Reconciliation rule identity** (frozen since slice 1, unchanged since): `DEPLOYMENT_RECONCILIATION_
-RULE_ID = "service-workload-reconciliation"`, `reconciliation_rule_version = 1`
-(`app/architecture_intelligence/contracts.py`, `app/architecture_intelligence/
-deployment_projection.py`). **Runtime identity normalization rule** (frozen since slice 2):
+**Reconciliation rule identity** (frozen since slice 1, unchanged since):
+`DEPLOYMENT_RECONCILIATION_RULE_ID = "service-workload-reconciliation"`,
+`reconciliation_rule_version = 1` (`app/architecture_intelligence/contracts.py`,
+`app/architecture_intelligence/deployment_projection.py`). **Runtime identity normalization rule**
+(frozen since slice 2):
 `normalization_rule_id = "otel-runtime-identity-observation"`, `normalization_rule_version = 1`
 (`app/provenance/model.py`). **Canonicalization version** (bumped 1→2 in slice 5b to bind the mapping
 digest into snapshot identity): `_CANONICALIZATION_VERSION = 2`
@@ -69,9 +71,15 @@ requirement, satisfied via the content digest rather than a bumped rule version.
 | Per-test hand-built fixtures | Inline in `tests/unit/test_architecture_intelligence_deployment_projection.py`, `tests/unit/test_architecture_intelligence_deployment_reconciliation.py`, and every `tests/integration/test_architecture_intelligence_deployment_*.py` file | Deterministic, precisely-shaped coverage of every individual §21.1-§21.7 required case, one scenario per test. |
 | §22 frozen cross-source fixture | `tests/fixtures/deployment/i3-cross-source/` | The spec's own required "one frozen cross-source fixture" — reuses I2's real, independently captured Kubernetes bundle (`tests/fixtures/kubernetes/i2-independent-capture/`, itself already qualified by I2 slice 6) unmodified, combined with authored Path B mapping artifacts and authored Path C OTel observations; see its own `PROVENANCE.md` for the full real-vs-authored disclosure. Exercised by `tests/integration/test_i3_cross_source_qualification.py` (9 tests): all-three-paths-agree, Path A-vs-B conflict, Path A-vs-C conflict, byte-repeatability, resource-ordering invariance, OTel-batch-ordering invariance, zero-graph-write, and real Path B/C evidence resolving through both REST and negotiated MCP. |
 
-Both fixture families use real `CAPTURED_RESOURCE`/`DECLARED_MANIFEST` I2 evidence modes throughout
-via the real `import_kubernetes_source` path — no test in this suite writes Kubernetes facts via raw
-Cypher.
+The §22 fixture and every integration-level per-test fixture are imported through the real
+`import_kubernetes_source`/`import_source` paths (`CAPTURED_RESOURCE`/`DECLARED_MANIFEST` I2 evidence
+modes) — no test writes Kubernetes or Service facts via raw Cypher. The unit-level hand-built
+fixtures in `test_architecture_intelligence_deployment_projection.py`/
+`test_architecture_intelligence_deployment_reconciliation.py` are pure in-memory `CurrentKubernetes
+Workload`/`RuntimeIdentityObservationRow`/`PathResolutionResult` constructions passed directly to
+`resolve_path_a`/`b`/`c`/`reduce_cross_path_resolutions` — they never touch Neo4j at all, by design
+(the same fast, precisely-shaped-per-case pattern every prior I3 slice's own unit suite already
+uses).
 
 ## Immutable qualification identity
 
@@ -177,16 +185,19 @@ Target-specific identity exceptions remain prohibited.
 
 ## Corrected I3 exit statement
 
-> **COMPLETE** — At the pinned candidate revision (`dbf066b`), all six of §23's suggested
-> implementation slices are present and re-verified together, one further split into its own
-> reviewed delivery PRs where its own scope warranted it (slice 5's 5a/5b split, and slice 6's own
-> 6a/6b split for the same reason I2's completion record cited — a qualification/completion record
-> PR needs its own already-merged predecessor SHA to cite, not a self-reference): contract and schema
-> foundation (slice 1), bounded OTel runtime identity evidence (slice 2), explicit and configured
-> identity paths (slice 3), the observed path with real Pod-UID/owner-chain/temporal qualification
-> (slice 4), public adapter consolidation and the full public deployment vertical slice (slice 5a/5b),
-> and full §21 deterministic qualification against one frozen §22 cross-source fixture (slice 6a).
-> `uv run pytest tests/unit` (1815) and `tests/integration` (405) both pass in full; lint/format are
-> clean. No production regression was found in any pre-existing I1/I2/OTel/MCP suite. I3 completion
-> is not release publication or `SHIPPED_VERIFIED` — I5 independent qualification and I6 exact-
-> artifact release/post-release gates remain required by the parent specification.
+> **COMPLETE** — The pinned *implementation* candidate revision (`dbf066b`, slice 6a's own merge)
+> contains all code and test changes I3 required: contract and schema foundation (slice 1), bounded
+> OTel runtime identity evidence (slice 2), explicit and configured identity paths (slice 3), the
+> observed path with real Pod-UID/owner-chain/temporal qualification (slice 4), public adapter
+> consolidation and the full public deployment vertical slice (slice 5, split into reviewed delivery
+> PRs 5a/5b), and full §21 deterministic qualification against one frozen §22 cross-source fixture
+> (slice 6a). `uv run pytest tests/unit` (1815) and `tests/integration` (405) both pass in full at
+> that revision; lint/format are clean; no production regression was found in any pre-existing
+> I1/I2/OTel/MCP suite. This 6b PR (#225) adds no further code or test changes on top of that
+> candidate — only the §24 documentation updates and this completion record itself, split into its
+> own reviewed PR for the same reason I2's own completion record cited (a qualification/completion
+> record PR needs its own already-merged predecessor SHA to cite, not a self-reference). **I3 itself
+> is COMPLETE only once this PR merges** — the pinned code candidate alone satisfies §25's technical
+> bullets, but §25 also requires the documentation and this very record to exist. I3 completion is
+> not release publication or `SHIPPED_VERIFIED` — I5 independent qualification and I6 exact-artifact
+> release/post-release gates remain required by the parent specification.

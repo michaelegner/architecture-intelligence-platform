@@ -44,7 +44,7 @@ Unlike every relation in the table above, `Service -[DEPLOYED_AS]-> Workload` is
 a real Neo4j relationship**. `Workload` itself is not a public node label at all — it is the
 internal-only `InfrastructureEntity {entity_kind: KUBERNETES_WORKLOAD}` node
 ([`canonical-model.md`](canonical-model.md#infrastructure-entities-and-claims-appcanonicalinfrastructurepy--internal-only)),
-projected into a public, bounded `WorkloadRef` (`id`, `type`, `workload_kind`, `name`, `namespace` —
+projected into a public, bounded `WorkloadRef` (`id`, `type`, `name`, `workload_kind`, `namespace` —
 cluster UID, Pod UID, and owner-chain detail stay evidence drill-down, never fields of the reference
 itself) only at answer-construction time. `namespace` here is identity context, not a locality
 qualification — I3 introduces no locality-qualified claim (that's v0.6's own, later job).
