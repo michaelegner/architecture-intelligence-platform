@@ -547,6 +547,14 @@ class RuntimeIdentityObservationRow:
     k8s_statefulset_name: str | None
     k8s_daemonset_name: str | None
     last_seen: datetime | None
+    # v0.5.0 I3 slice 5b (PR #222 Copilot review finding): the four fields a synthetic Path C
+    # `EvidenceRecord` needs to carry the observation's *real* metadata (spec §16.1) instead of
+    # fabricating it from `last_seen` alone - `resolve_path_c` itself never reads these, only
+    # `deployment_reconciliation._path_c_evidence_records`/`_bucket_context_free_observations` do.
+    first_seen: datetime | None = None
+    observation_count: int | None = None
+    normalization_rule_id: str | None = None
+    normalization_rule_version: int | None = None
     conflicting_consistency_attributes: tuple[str, ...] = ()
 
 

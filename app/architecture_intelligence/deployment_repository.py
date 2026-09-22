@@ -133,7 +133,10 @@ _RUNTIME_IDENTITY_OBSERVATIONS_QUERY = (
     "o.k8s_namespace_name AS k8s_namespace_name, o.k8s_cluster_uid AS k8s_cluster_uid, "
     "o.k8s_deployment_name AS k8s_deployment_name, "
     "o.k8s_statefulset_name AS k8s_statefulset_name, o.k8s_daemonset_name AS k8s_daemonset_name, "
-    "o.last_seen AS last_seen, "
+    "o.last_seen AS last_seen, o.first_seen AS first_seen, "
+    "o.observation_count AS observation_count, "
+    "o.normalization_rule_id AS normalization_rule_id, "
+    "o.normalization_rule_version AS normalization_rule_version, "
     "o.conflicting_consistency_attributes AS conflicting_consistency_attributes"
 )
 
@@ -277,6 +280,12 @@ def read_runtime_identity_observations(
             k8s_statefulset_name=record["k8s_statefulset_name"],
             k8s_daemonset_name=record["k8s_daemonset_name"],
             last_seen=record["last_seen"].to_native() if record["last_seen"] is not None else None,
+            first_seen=record["first_seen"].to_native()
+            if record["first_seen"] is not None
+            else None,
+            observation_count=record["observation_count"],
+            normalization_rule_id=record["normalization_rule_id"],
+            normalization_rule_version=record["normalization_rule_version"],
             conflicting_consistency_attributes=tuple(
                 record.get("conflicting_consistency_attributes") or ()
             ),

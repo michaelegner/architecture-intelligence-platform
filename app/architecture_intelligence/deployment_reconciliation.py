@@ -32,6 +32,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import neo4j
@@ -69,9 +70,10 @@ from app.architecture_intelligence.deployment_repository import (
     read_runtime_identity_observations,
     read_workload_ids_owning_pod,
 )
+from app.architecture_intelligence.observation_context import build_observation_context_ref
 from app.provenance.model import SourceType
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
-from app.telemetry.service_resolver import fetch_candidates
+from app.telemetry.service_resolver import DeclaredServiceCandidate, fetch_candidates
 
 _DEPLOYMENT_METHOD_TO_STATUS = {
     "RESOLVED_EXPLICIT": DeploymentResolutionStatus.RESOLVED_EXPLICIT,
@@ -91,6 +93,65 @@ _MAX_EVIDENCE_REFS_PER_CLAIM = 64
 # produces are never exposed (evidence visibility only consumes reachable-id-set membership and
 # `SupportedFact`s, neither of which carries a `resolution_id`/`claim_id`).
 EVIDENCE_VISIBILITY_CONTEXT_ID = "aip:observation-context:v1:" + "0" * 64
+
+# PR #222 review finding (human reviewer, extended): `app.architecture_intelligence.request.
+# EvidenceRequest.evidence_refs` enforces a frozen `^evidence:` pattern (spec §11.1), but Path B's
+# own mapping-evidence id (`compute_service_workload_mapping_evidence_id`, §8.3) and Path C's own
+# observation id (`app.canonical.ids.runtime_identity_observation_id`, §9.4) are each minted with a
+# different prefix, by design, in `deployment_projection.py` - neither is `evidence:`-prefixed.
+# Reused unchanged as *internal* identity (group keys, synthetic-evidence-record keys), but a
+# `DeploymentClaim`/`DeploymentResolution` citing either raw form as a public `evidence_refs` entry
+# could never actually be requested through `get_evidence`/`POST /api/evidence/resolve` - violating
+# spec §16.2's "every evidence ref emitted...SHALL resolve through...negotiated MCP get_evidence".
+# `_public_evidence_ref` is a reversible prefix swap (not a hash) applied only at this module's own
+# public-facing boundary (never inside `deployment_projection.py`, which stays exactly as the plan's
+# own Non-Goals require) - `_path_b_evidence_records`/`_path_c_evidence_records` key their synthetic
+# `EvidenceRecord`s by applying this same function to the same raw identity, so the two always agree
+# with no side mapping to keep in sync. A real Path A/I2-Kubernetes ref (already `evidence:`-
+# prefixed, including the ones Path C's own owner-chain cites) passes through unchanged.
+_PATH_B_RAW_PREFIX = "urn:aip:service-workload-mapping-evidence:v1:"
+_PATH_B_EVIDENCE_PREFIX = "evidence:mapping:v1:"
+_PATH_C_RAW_PREFIX = "runtime-identity:otel:"
+_PATH_C_EVIDENCE_PREFIX = "evidence:otel:"
+
+
+def _public_evidence_ref(raw: str) -> str:
+    if raw.startswith("evidence:"):
+        return raw
+    if raw.startswith(_PATH_B_RAW_PREFIX):
+        return _PATH_B_EVIDENCE_PREFIX + raw[len(_PATH_B_RAW_PREFIX) :]
+    if raw.startswith(_PATH_C_RAW_PREFIX):
+        return _PATH_C_EVIDENCE_PREFIX + raw[len(_PATH_C_RAW_PREFIX) :]
+    return raw  # defensive: an unrecognized shape passes through rather than silently vanishing
+
+
+def _publicize_evidence_refs(result: PathResolutionResult) -> PathResolutionResult:
+    """Rewrites every evidence ref in `result`'s own claims/resolutions through
+    `_public_evidence_ref`, re-sorting/deduplicating each field afterward (`model_copy(update=...)`
+    never re-validates, so this must produce already-conformant lists) - applied to Path B/C's raw
+    output only, never Path A (whose refs are already real `:Evidence` ids, so this is a no-op for
+    it, but calling it unconditionally on every path is simpler than special-casing which paths
+    need it and keeps this correct if that ever changes)."""
+    claims = [
+        claim.model_copy(
+            update={"evidence_refs": sorted({_public_evidence_ref(r) for r in claim.evidence_refs})}
+        )
+        for claim in result.claims
+    ]
+    resolutions = [
+        resolution.model_copy(
+            update={
+                "supporting_evidence_refs": sorted(
+                    {_public_evidence_ref(r) for r in resolution.supporting_evidence_refs}
+                ),
+                "conflicting_evidence_refs": sorted(
+                    {_public_evidence_ref(r) for r in resolution.conflicting_evidence_refs}
+                ),
+            }
+        )
+        for resolution in result.resolutions
+    ]
+    return PathResolutionResult(resolutions=resolutions, claims=claims)
 
 
 # --- §10: cross-path agreement/conflict/ambiguity/unresolved reduction -------------------------
@@ -317,6 +378,13 @@ def check_result_bounds(
 # --- §16.1: DEPLOYED_AS `supports` augmentation ---------------------------------------------------
 
 
+def _supported_fact_sort_key(fact: SupportedFact) -> tuple[str, str, str]:
+    # Mirrors `contracts._supported_fact_sort_key` (private to that module) and `service.py`'s own
+    # identical local copy - `EvidenceRecord.supports`' sort key, reused here since this module
+    # produces `SupportedFact` lists that must already satisfy it before a caller ever sees them.
+    return (fact.relation_type.value, fact.source_id, fact.target_id)
+
+
 def deployed_as_supported_facts(
     claims: Sequence[DeploymentClaim],
 ) -> dict[str, list[SupportedFact]]:
@@ -325,7 +393,12 @@ def deployed_as_supported_facts(
     `DeploymentResolution` (§16.1's explicit "MUST NOT falsely advertise" rule: a resolution alone
     never adds one). `DEPLOYED_AS` is never written to the graph as a real relation, so this can't
     reuse the existing relation-matching evidence query - it's a computed augmentation only this
-    module can produce, since only it knows which evidence ids a claim actually names."""
+    module can produce, since only it knows which evidence ids a claim actually names.
+
+    PR #222 review finding: each returned list is sorted and deduplicated here, at the single
+    producer, rather than leaving every call site responsible for it - `EvidenceRecord.supports`
+    is contractually required to be sorted by `(relation_type, source_id, target_id)` and
+    deduplicated, and `model_copy(update=...)` never re-validates that invariant."""
     result: dict[str, list[SupportedFact]] = defaultdict(list)
     for claim in claims:
         fact = SupportedFact(
@@ -335,7 +408,7 @@ def deployed_as_supported_facts(
         )
         for ref in claim.evidence_refs:
             result[ref].append(fact)
-    return dict(result)
+    return {ref: sorted(set(facts), key=_supported_fact_sort_key) for ref, facts in result.items()}
 
 
 # --- §16.2: selective Kubernetes/OTel/configuration evidence visibility --------------------------
@@ -377,11 +450,13 @@ def _path_b_evidence_records(
     locator = Path(document.locator).name
     records: dict[str, EvidenceRecord] = {}
     for entry in document.entries:
-        evidence_id = compute_service_workload_mapping_evidence_id(
-            artifact_id=document.artifact_id,
-            artifact_revision=document.artifact_revision,
-            content_digest=document.content_digest,
-            mapping_id=entry.mapping_id,
+        evidence_id = _public_evidence_ref(
+            compute_service_workload_mapping_evidence_id(
+                artifact_id=document.artifact_id,
+                artifact_revision=document.artifact_revision,
+                content_digest=document.content_digest,
+                mapping_id=entry.mapping_id,
+            )
         )
         revision = (
             f"{document.artifact_id}@{document.artifact_revision}:"
@@ -415,12 +490,16 @@ def _path_c_evidence_records(
     """One synthetic `EvidenceRecord` per persisted `RuntimeIdentityObservation`, keyed by its own
     `.id` - the id Path C's `evidence_refs` actually use. Most of "OTel observation context" (spec
     §16.1) is already covered by the existing `ObservedEvidenceMetadata` fields, reused directly
-    from the observation row with zero new encoding; `source_locator` carries only the bounded,
-    *present* `k8s.*` consistency attributes as a short `key=value,...` string (never raw Resource
-    data, per §16.3's own "no raw OTLP Resource data" rule)."""
+    from the observation row's own real `first_seen`/`last_seen`/`observation_count` (no fabricated
+    values - `RuntimeIdentityObservation` has no distinct "bucket" concept of its own, so
+    `bucket_start`/`bucket_end` reuse the same real `first_seen`/`last_seen` span). `source_locator`
+    carries only the bounded, *present* `k8s.*` consistency attributes as a short `key=value,...`
+    string (never raw Resource data, per §16.3's own "no raw OTLP Resource data" rule);
+    `source_revision` names the normalization rule/version that produced this record (the plan's
+    own design decision)."""
     records: dict[str, EvidenceRecord] = {}
     for obs in observations:
-        if obs.environment is None or obs.last_seen is None:
+        if obs.environment is None or obs.first_seen is None or obs.last_seen is None:
             # An observation missing its own required identity fields was never itself a valid
             # Path C candidate (spec §9.1) - no evidence record is built for it either.
             continue
@@ -429,25 +508,228 @@ def _path_c_evidence_records(
             for field, label in _K8S_ATTR_ORDER
             if getattr(obs, field) is not None
         ]
-        records[obs.id] = EvidenceRecord(
-            id=obs.id,
+        source_revision = (
+            f"{obs.normalization_rule_id}@{obs.normalization_rule_version}"
+            if obs.normalization_rule_id is not None and obs.normalization_rule_version is not None
+            else None
+        )
+        evidence_id = _public_evidence_ref(obs.id)
+        records[evidence_id] = EvidenceRecord(
+            id=evidence_id,
             evidence_type=EvidenceType.OBSERVED,
             source_type=SourceType.OPENTELEMETRY,
             source_locator=",".join(present_attrs) if present_attrs else None,
-            source_revision=None,
+            source_revision=source_revision,
             observation=ObservedEvidenceMetadata(
                 environment=obs.environment,
-                bucket_start=obs.last_seen,
+                bucket_start=obs.first_seen,
                 bucket_end=obs.last_seen,
-                first_seen=obs.last_seen,
+                first_seen=obs.first_seen,
                 last_seen=obs.last_seen,
-                observation_count=1,
+                observation_count=obs.observation_count if obs.observation_count is not None else 1,
                 service_version=obs.service_version,
                 correlation_mode=None,
             ),
             supports=[],
         )
     return records
+
+
+# --- §16.2 correctness: context-free Path C for the evidence-visibility-only callers -------------
+
+# Mirrors `app.architecture_intelligence.contracts._MAX_OBSERVATION_WINDOW` (private to that module,
+# not re-exported) - kept as its own local constant rather than importing a private symbol across
+# modules; `build_observation_context_ref` re-enforces this bound anyway, so a drift here would fail
+# loudly (a raised `pydantic.ValidationError`), not silently.
+_PATH_C_MAX_WINDOW = timedelta(days=31)
+_PATH_C_PLACEHOLDER_ENVIRONMENT = "unspecified"
+# Only ever used for a row with no usable first_seen/last_seen at all, where the temporal check
+# fails regardless of window choice (see `_bucket_context_free_observations`'s own comment) - any
+# fixed, valid, tz-aware placeholder is safe here.
+_EPOCH = datetime(2000, 1, 1, tzinfo=UTC)
+
+
+def _resolve_workload_group_key(
+    session: neo4j.Session, obs: RuntimeIdentityObservationRow
+) -> tuple[str, datetime | None] | None:
+    """The same Pod-UID -> exactly-one-Pod -> exactly-one-owner resolution
+    `deployment_projection._evaluate_observation` performs before its own temporal/environment
+    check - replicated here (read-only, side-effect-free) purely to compute a *grouping* key, never
+    to decide RESOLVED/CONFLICT/AMBIGUOUS status (that stays `resolve_path_c`'s own job, called
+    below with each group's own real data). `None` for every case that never reaches a single
+    resolved Workload - those observations don't share a `resolve_path_c` group_key with any
+    other observation, so they need no grouping at all (see `_bucket_context_free_observations`).
+    Also returns the matched Pod's own `captured_at` (parsed) - PR #222 review finding (human
+    reviewer), round 2: `_observation_context_limitation` checks the Pod's `captured_at` against
+    the window *in addition to* the observation's own `first_seen`/`last_seen`, so a bucket window
+    built from observation timestamps alone can still incorrectly reject an otherwise-applicable
+    observation whose Pod was captured outside that narrower span."""
+    if not obs.k8s_pod_uid:
+        return None
+    pods = read_captured_pods_by_uid(session, pod_uid=obs.k8s_pod_uid)
+    if len(pods) != 1:
+        return None
+    [pod] = pods
+    owners = read_workload_ids_owning_pod(session, pod_id=pod.pod_id)
+    if len(owners) != 1:
+        return None
+    captured_at = None
+    if pod.captured_at is not None:
+        try:
+            captured_at = datetime.fromisoformat(pod.captured_at)
+        except ValueError:
+            captured_at = None
+    return owners[0].workload_id, captured_at
+
+
+def _row_span(row: RuntimeIdentityObservationRow, captured_at: datetime | None) -> tuple | None:
+    """Every timestamp `_observation_context_limitation` checks this row against - its own
+    `first_seen`/`last_seen` *and* its matched Pod's `captured_at` - so a bucket window built to
+    cover this span guarantees the row passes §9.7's temporal check regardless of which bucket it
+    lands in. `None` when no timestamp is usable at all."""
+    values = [v for v in (row.first_seen, row.last_seen, captured_at) if v is not None]
+    return (min(values), max(values)) if values else None
+
+
+def _bucket_by_window(
+    rows: list[tuple[RuntimeIdentityObservationRow, datetime | None]],
+) -> list[list[tuple[RuntimeIdentityObservationRow, datetime | None]]]:
+    """Greedily packs same-(workload, environment) rows, sorted by their own span start, into
+    consecutive buckets whose own combined span never exceeds `ObservationContextRef`'s 31-day
+    maximum window - so every bucket can become one valid, real caller-shaped context. A row with
+    no usable timestamp at all can never satisfy §9.7's temporal check regardless of which window
+    is chosen (same outcome a real caller-supplied context would also produce for it:
+    `DEPLOYMENT_TEMPORAL_MISMATCH`/`DEPLOYMENT_EVIDENCE_INCOMPLETE`), so it gets its own singleton
+    bucket rather than forcing every other row's window wider to accommodate it."""
+    spans = [(row, captured_at, _row_span(row, captured_at)) for row, captured_at in rows]
+    timestamped = sorted((s for s in spans if s[2] is not None), key=lambda s: s[2][0])
+    untimestamped = [s for s in spans if s[2] is None]
+
+    buckets: list[list[tuple[RuntimeIdentityObservationRow, datetime | None]]] = []
+    bounds: list[tuple] = []
+    for row, captured_at, (span_min, span_max) in timestamped:
+        if buckets:
+            min_first, max_last = bounds[-1]
+            candidate_min = min(min_first, span_min)
+            candidate_max = max(max_last, span_max)
+            if candidate_max - candidate_min <= _PATH_C_MAX_WINDOW:
+                buckets[-1].append((row, captured_at))
+                bounds[-1] = (candidate_min, candidate_max)
+                continue
+        buckets.append([(row, captured_at)])
+        bounds.append((span_min, span_max))
+
+    buckets.extend([(row, captured_at)] for row, captured_at, _ in untimestamped)
+    return buckets
+
+
+def _bucket_context_free_observations(
+    session: neo4j.Session, observations: Sequence[RuntimeIdentityObservationRow]
+) -> list[tuple[list[RuntimeIdentityObservationRow], ObservationContextRef]]:
+    """Groups observations exactly the way `resolve_path_c`'s own reduction would (§13.1: a
+    `"workload:"` group is keyed by the resolved Workload id alone - never by context), then builds
+    one real, valid `ObservationContextRef` per group so each can be passed through the unmodified
+    `resolve_path_c` in one call, preserving its own cross-observation AMBIGUOUS/CONFLICT
+    detection within the group. Calling `resolve_path_c` once per *observation* instead would be
+    unsound: it would silently fragment one Workload's multi-observation reduction into several
+    single-observation calls that can never see each other's candidates."""
+    grouped: dict[
+        tuple[str, str | None], list[tuple[RuntimeIdentityObservationRow, datetime | None]]
+    ] = defaultdict(list)
+    standalone: list[tuple[RuntimeIdentityObservationRow, datetime | None]] = []
+    for obs in observations:
+        resolved = _resolve_workload_group_key(session, obs)
+        if resolved is None:
+            standalone.append((obs, None))
+        else:
+            workload_id, captured_at = resolved
+            grouped[(workload_id, obs.environment)].append((obs, captured_at))
+
+    batches: list[tuple[list[RuntimeIdentityObservationRow], ObservationContextRef]] = []
+    for (_workload_id, environment), rows in grouped.items():
+        for bucket in _bucket_by_window(rows):
+            spans = [_row_span(row, captured_at) for row, captured_at in bucket]
+            usable = [s for s in spans if s is not None]
+            if usable:
+                window_start = min(s[0] for s in usable)
+                window_end = max(s[1] for s in usable)
+            else:
+                # No usable timestamp on any row in this singleton bucket - the placeholder window
+                # is never actually consulted (DEPLOYMENT_EVIDENCE_INCOMPLETE/TEMPORAL_MISMATCH
+                # fires first either way), it only needs to be a *valid* ObservationContextRef.
+                window_start = window_end = _EPOCH
+            context = build_observation_context_ref(
+                environment or _PATH_C_PLACEHOLDER_ENVIRONMENT, window_start, window_end
+            )
+            batches.append(([row for row, _ in bucket], context))
+
+    # Every standalone observation gets its own placeholder-context singleton batch - its
+    # resolve_path_c group_key is keyed by its own observation id (never a Workload id), and the
+    # temporal/environment check is never reached for it (see `_resolve_workload_group_key`'s
+    # docstring), so the context value is inert here too.
+    for obs, _captured_at in standalone:
+        context = build_observation_context_ref(
+            obs.environment or _PATH_C_PLACEHOLDER_ENVIRONMENT,
+            obs.first_seen or _EPOCH,
+            obs.last_seen or _EPOCH,
+        )
+        batches.append(([obs], context))
+
+    return batches
+
+
+def _resolve_path_c_context_free(
+    session: neo4j.Session,
+    *,
+    observations: Sequence[RuntimeIdentityObservationRow],
+    candidates: Sequence[DeclaredServiceCandidate],
+    service_aliases: dict[str, str],
+    snapshot_id: str,
+    context_id: str,
+) -> PathResolutionResult:
+    """spec §16.2: "Every evidence ref emitted in a DeploymentClaim or DeploymentResolution SHALL
+    resolve through REST evidence resolution and negotiated MCP get_evidence at the exact same
+    snapshot" - unconditional, with no carve-out for Path C. The evidence-visibility-only callers
+    (`get_evidence`/`list_public_evidence`/`get_public_evidence`) have no caller-supplied
+    observation context of their own, so this builds one synthetic, valid context per group of
+    observations that would share one `resolve_path_c` group_key (see
+    `_bucket_context_free_observations`) and calls the real, unmodified `resolve_path_c` once per
+    group - never reimplementing its resolution logic. `resolution_id`/`claim_id` are unaffected by
+    which synthetic context is used (they hash `(snapshot_id, context_id, group_key)`, and
+    `group_key` depends only on the resolved Workload id / observation id - never on
+    `observation_context`), so this reproduces exactly what a real caller-supplied context wide
+    enough to cover the data would also produce.
+
+    Disclosed limitation: a single Workload's own observation history spanning more than 31 days
+    is packed into multiple sequential windows (`_bucket_by_window`) rather than one - each window
+    is independently resolved, so an observation more than 31 days older than that Workload's most
+    recent one is evaluated in a separate `resolve_path_c` call and never cross-checked against it
+    for AMBIGUOUS/CONFLICT. This narrows, but does not reopen, the gap this function exists to
+    close - the alternative (skipping Path C here entirely) is the actual §16.2 violation."""
+    resolutions: list = []
+    claims: list = []
+    for bucket, context in _bucket_context_free_observations(session, observations):
+        result = resolve_path_c(
+            observations=bucket,
+            observation_context=context,
+            lookup_pods_by_uid=lambda pod_uid: read_captured_pods_by_uid(session, pod_uid=pod_uid),
+            lookup_workload_ids_owning_pod=lambda pod_id: read_workload_ids_owning_pod(
+                session, pod_id=pod_id
+            ),
+            resolve_workload=lambda entity_id: read_current_kubernetes_workload(
+                session, entity_id=entity_id
+            ),
+            declared_service_candidates=candidates,
+            service_aliases=service_aliases,
+            lookup_declared_service=lambda service_id: read_declared_service_identity(
+                session, service_id=service_id
+            ),
+            snapshot_id=snapshot_id,
+            context_id=context_id,
+        )
+        resolutions.extend(result.resolutions)
+        claims.extend(result.claims)
+    return PathResolutionResult(resolutions=resolutions, claims=claims)
 
 
 # --- Whole-graph orchestration --------------------------------------------------------------------
@@ -501,7 +783,10 @@ def run_whole_graph_reconciliation(
     candidates = fetch_candidates(session)
 
     workloads = iter_current_kubernetes_workloads(session)
-    observations = read_runtime_identity_observations(session) if observation_context else []
+    # PR #222 review finding (human reviewer): fetched unconditionally now - the observation_
+    # context=None branch below still needs every current observation, both to build the
+    # context-free Path C result and to key the synthetic evidence records against it.
+    observations = read_runtime_identity_observations(session)
 
     path_a = resolve_path_a(
         workloads=workloads,
@@ -509,38 +794,57 @@ def run_whole_graph_reconciliation(
         snapshot_id=snapshot_id,
         context_id=context_id,
     )
-    path_b = resolve_path_b(
-        document=document,
-        configured_kubernetes_sources=configured_kubernetes_sources,
-        resolve_workload=lambda entity_id: read_current_kubernetes_workload(
-            session, entity_id=entity_id
-        ),
-        lookup_service_name=_lookup_service_name,
-        snapshot_id=snapshot_id,
-        context_id=context_id,
-    )
-    path_c = (
-        resolve_path_c(
-            observations=observations,
-            observation_context=observation_context,
-            lookup_pods_by_uid=lambda pod_uid: read_captured_pods_by_uid(session, pod_uid=pod_uid),
-            lookup_workload_ids_owning_pod=lambda pod_id: read_workload_ids_owning_pod(
-                session, pod_id=pod_id
-            ),
+    path_b = _publicize_evidence_refs(
+        resolve_path_b(
+            document=document,
+            configured_kubernetes_sources=configured_kubernetes_sources,
             resolve_workload=lambda entity_id: read_current_kubernetes_workload(
                 session, entity_id=entity_id
             ),
-            declared_service_candidates=candidates,
-            service_aliases=service_aliases,
-            lookup_declared_service=lambda service_id: read_declared_service_identity(
-                session, service_id=service_id
-            ),
+            lookup_service_name=_lookup_service_name,
             snapshot_id=snapshot_id,
             context_id=context_id,
         )
-        if observation_context is not None
-        else PathResolutionResult(resolutions=[], claims=[])
     )
+    if observation_context is not None:
+        path_c = _publicize_evidence_refs(
+            resolve_path_c(
+                observations=observations,
+                observation_context=observation_context,
+                lookup_pods_by_uid=lambda pod_uid: read_captured_pods_by_uid(
+                    session, pod_uid=pod_uid
+                ),
+                lookup_workload_ids_owning_pod=lambda pod_id: read_workload_ids_owning_pod(
+                    session, pod_id=pod_id
+                ),
+                resolve_workload=lambda entity_id: read_current_kubernetes_workload(
+                    session, entity_id=entity_id
+                ),
+                declared_service_candidates=candidates,
+                service_aliases=service_aliases,
+                lookup_declared_service=lambda service_id: read_declared_service_identity(
+                    session, service_id=service_id
+                ),
+                snapshot_id=snapshot_id,
+                context_id=context_id,
+            )
+        )
+    else:
+        # PR #222 review finding (human reviewer): spec §16.2 requires every evidence ref emitted
+        # in a DeploymentClaim/DeploymentResolution to resolve through get_evidence at the same
+        # snapshot, with no carve-out for Path C - skipping Path C entirely here (as an earlier
+        # version of this function did) would let get_service_dependencies emit Path C evidence
+        # refs that get_evidence/list_public_evidence/get_public_evidence could never resolve.
+        path_c = _publicize_evidence_refs(
+            _resolve_path_c_context_free(
+                session,
+                observations=observations,
+                candidates=candidates,
+                service_aliases=service_aliases,
+                snapshot_id=snapshot_id,
+                context_id=context_id,
+            )
+        )
 
     reduced = reduce_cross_path_resolutions(path_a=path_a, path_b=path_b, path_c=path_c)
     reachable = reachable_deployment_evidence_ids(

@@ -66,6 +66,16 @@ encoded, in-memory only (never written to Neo4j), into the two already-generic `
   consistency attributes as a short `key=value` string (never raw OTLP Resource data), and
   `source_revision` names the reconciliation rule/version that normalized it.
 
+Path B/C's own *internal* identity (`compute_service_workload_mapping_evidence_id`'s
+`urn:aip:service-workload-mapping-evidence:v1:...`, and `RuntimeIdentityObservation`'s own
+`runtime-identity:otel:...` id) is never cited directly as a public `evidence_refs` entry — neither
+shape satisfies `get_evidence`'s own frozen `evidence_refs` pattern (every requested ref must start
+with `evidence:`), which would make it impossible to ever actually request through `get_evidence`/
+`POST /api/evidence/resolve`. Both are rewritten, at the public boundary only, into an
+`evidence:`-prefixed reference (`evidence:mapping:v1:...` / `evidence:otel:...`) via a reversible
+prefix swap — the same function mints both the id every `DeploymentClaim`/`DeploymentResolution`
+cites and the id the corresponding synthetic `EvidenceRecord` is keyed by, so the two always agree.
+
 Both are still bounded and sanitized the same way every other evidence record is — no raw mapping
 YAML, no arbitrary Resource attributes, no unbounded strings.
 

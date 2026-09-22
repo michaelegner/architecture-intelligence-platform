@@ -9,6 +9,8 @@ group naturally produces matching `resolution_id`s across paths - the same real 
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from app.architecture_intelligence.contracts import (
     DeploymentResolutionMethod,
     DeploymentResolutionStatus,
@@ -17,11 +19,14 @@ from app.architecture_intelligence.contracts import (
 from app.architecture_intelligence.deployment_projection import (
     CurrentKubernetesWorkload,
     PathResolutionResult,
+    RuntimeIdentityObservationRow,
     WorkloadContribution,
     resolve_path_a,
     resolve_path_b,
 )
 from app.architecture_intelligence.deployment_reconciliation import (
+    _bucket_by_window,
+    _public_evidence_ref,
     check_result_bounds,
     filter_for_service,
     reduce_cross_path_resolutions,
@@ -279,3 +284,79 @@ def test_check_result_bounds_flags_too_many_evidence_refs_on_one_claim():
         check_result_bounds([bloated_claim], resolutions)
         == LimitationCode.DEPLOYMENT_RESULT_LIMIT_EXCEEDED
     )
+
+
+# --- PR #222 review fix: _public_evidence_ref / _bucket_by_window ------------------------------
+
+
+def test_public_evidence_ref_leaves_real_evidence_ids_unchanged():
+    assert _public_evidence_ref("evidence:kubernetes:abc") == "evidence:kubernetes:abc"
+
+
+def test_public_evidence_ref_wraps_path_b_mapping_evidence_id():
+    raw = "urn:aip:service-workload-mapping-evidence:v1:deadbeef"
+    assert _public_evidence_ref(raw) == "evidence:mapping:v1:deadbeef"
+
+
+def test_public_evidence_ref_wraps_path_c_runtime_identity_id():
+    raw = "runtime-identity:otel:prod:2026-09-19:cafef00d"
+    assert _public_evidence_ref(raw) == "evidence:otel:prod:2026-09-19:cafef00d"
+
+
+def _observation_row(**overrides) -> RuntimeIdentityObservationRow:
+    defaults = {
+        "id": "runtime-identity:otel:prod:2026-09-19:x",
+        "service_name": "checkout",
+        "service_namespace": None,
+        "service_version": None,
+        "environment": "prod",
+        "k8s_pod_uid": "pod-uid-1",
+        "k8s_pod_name": None,
+        "k8s_namespace_name": None,
+        "k8s_cluster_uid": None,
+        "k8s_deployment_name": None,
+        "k8s_statefulset_name": None,
+        "k8s_daemonset_name": None,
+        "last_seen": None,
+        "first_seen": None,
+    }
+    defaults.update(overrides)
+    return RuntimeIdentityObservationRow(**defaults)
+
+
+def test_bucket_by_window_packs_nearby_rows_into_one_bucket():
+    base = datetime(2026, 9, 1, tzinfo=UTC)
+    row_a = _observation_row(id="a", first_seen=base, last_seen=base)
+    row_b = _observation_row(
+        id="b", first_seen=base + timedelta(days=1), last_seen=base + timedelta(days=1)
+    )
+    buckets = _bucket_by_window([(row_a, None), (row_b, None)])
+    assert len(buckets) == 1
+    assert {row.id for row, _ in buckets[0]} == {"a", "b"}
+
+
+def test_bucket_by_window_splits_rows_more_than_31_days_apart():
+    base = datetime(2026, 9, 1, tzinfo=UTC)
+    row_a = _observation_row(id="a", first_seen=base, last_seen=base)
+    far = base + timedelta(days=40)
+    row_b = _observation_row(id="b", first_seen=far, last_seen=far)
+    buckets = _bucket_by_window([(row_a, None), (row_b, None)])
+    assert len(buckets) == 2
+
+
+def test_bucket_by_window_includes_captured_at_in_the_span():
+    """PR #222 review, round 2: a Pod's own `captured_at` - not just the observation's own
+    first_seen/last_seen - must also be covered by the bucket's span, since
+    `_observation_context_limitation` checks it independently."""
+    base = datetime(2026, 9, 1, tzinfo=UTC)
+    row = _observation_row(id="a", first_seen=base, last_seen=base)
+    far_captured_at = base + timedelta(days=40)
+    [bucket] = _bucket_by_window([(row, far_captured_at)])
+    assert bucket == [(row, far_captured_at)]
+
+
+def test_bucket_by_window_gives_untimestamped_rows_their_own_singleton_bucket():
+    row_a = _observation_row(id="a", first_seen=None, last_seen=None)
+    row_b = _observation_row(id="b", first_seen=None, last_seen=None)
+    buckets = _bucket_by_window([(row_a, None), (row_b, None)])
+    assert len(buckets) == 2

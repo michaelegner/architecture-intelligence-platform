@@ -11,6 +11,7 @@ Reuses `test_architecture_intelligence_deployment_repository.py`'s own fixture h
 from __future__ import annotations
 
 import hashlib
+from datetime import UTC, datetime
 
 import pytest
 import yaml
@@ -23,6 +24,12 @@ from app.canonical.model import ArchitectureModel, Service
 from app.graph.importer import import_kubernetes_source, import_source
 from app.graph.schema import ensure_schema
 from app.sources.model import KubernetesSourceConfig
+from app.telemetry.adapter import adapt
+from app.telemetry.aggregator import persist_observation_batch
+from app.telemetry.model import RuntimeSpan
+from app.telemetry.operation_resolver import fetch_operation_candidates
+from app.telemetry.queue_resolver import fetch_queue_candidates
+from app.telemetry.service_resolver import fetch_candidates
 
 DATABASE = "neo4j"
 EXPECTED_RESOURCE_TYPES = frozenset(
@@ -83,6 +90,66 @@ def _deployment(name: str, namespace: str, uid: str, *, annotations: dict | None
     if annotations:
         metadata["annotations"] = annotations
     return {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": metadata}
+
+
+def _replica_set(name: str, *, uid: str, namespace: str, owner_name: str, owner_uid: str) -> dict:
+    return {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "metadata": {
+            "name": name,
+            "namespace": namespace,
+            "uid": uid,
+            "resourceVersion": "1",
+            "ownerReferences": [
+                {
+                    "apiVersion": "apps/v1",
+                    "kind": "Deployment",
+                    "name": owner_name,
+                    "uid": owner_uid,
+                    "controller": True,
+                }
+            ],
+        },
+    }
+
+
+def _pod(name: str, *, uid: str, namespace: str, owner_name: str, owner_uid: str) -> dict:
+    return {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": name,
+            "namespace": namespace,
+            "uid": uid,
+            "resourceVersion": "1",
+            "ownerReferences": [
+                {
+                    "apiVersion": "apps/v1",
+                    "kind": "ReplicaSet",
+                    "name": owner_name,
+                    "uid": owner_uid,
+                    "controller": True,
+                }
+            ],
+        },
+    }
+
+
+def _persist_spans(driver, spans: list[RuntimeSpan]) -> None:
+    with driver.session(database=DATABASE) as session:
+        service_candidates = fetch_candidates(session)
+        operation_candidates = fetch_operation_candidates(session)
+        queue_candidates = fetch_queue_candidates(session)
+    batch = adapt(
+        spans,
+        service_candidates=service_candidates,
+        operation_candidates=operation_candidates,
+        queue_candidates=queue_candidates,
+        service_aliases={},
+        queue_aliases={},
+    )
+    persist_observation_batch(driver, DATABASE, batch)
 
 
 def _write_kubernetes_bundle(
@@ -310,3 +377,96 @@ def test_unreferenced_kubernetes_evidence_stays_hidden(driver, tmp_path):
     assert resolved.data is not None
     assert resolved.data.records == []
     assert resolved.data.missing_evidence_refs == [evidence_id]
+
+
+def test_path_c_deployment_evidence_resolves_via_get_evidence_with_no_caller_context(
+    driver, tmp_path
+):
+    """PR #222 review finding (human reviewer): spec §16.2's frozen requirement - "Every evidence
+    ref emitted in a DeploymentClaim or DeploymentResolution SHALL resolve through REST evidence
+    resolution and negotiated MCP get_evidence at the exact same snapshot" - has no carve-out for
+    Path C. `get_service_dependencies` resolves a real Path C (OTel-observed) deployment using its
+    own real request-scoped observation context; `get_evidence` has none at all
+    (`EvidenceRequest` carries no observation context, spec §12). This proves the OTel evidence ref
+    the first call emits still resolves through the second, real end-to-end (real Pod -> ReplicaSet
+    -> Deployment owner chain + a real persisted OTel span), not just via the pure-function
+    reachability tests in `test_architecture_intelligence_deployment_reconciliation.py`."""
+    service_id = "service:checkout"
+    _create_service(driver, service_id=service_id, name="checkout")
+
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="i3-path-c-round-trip-source",
+        resources=[
+            _deployment("checkout-api", "checkout", "deploy-uid-path-c-round-trip"),
+            _replica_set(
+                "checkout-api-rs",
+                uid="rs-uid-path-c-round-trip",
+                namespace="checkout",
+                owner_name="checkout-api",
+                owner_uid="deploy-uid-path-c-round-trip",
+            ),
+            _pod(
+                "checkout-api-pod",
+                uid="pod-uid-path-c-round-trip",
+                namespace="checkout",
+                owner_name="checkout-api-rs",
+                owner_uid="rs-uid-path-c-round-trip",
+            ),
+        ],
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    span_time = datetime(2026, 9, 19, 12, 0, 0, tzinfo=UTC)
+    _persist_spans(
+        driver,
+        [
+            RuntimeSpan(
+                trace_id="4bf92f3577b34da6a3ce929d0e0e4736",
+                span_id="00f067aa0ba902b7",
+                span_name="GET /health",
+                span_kind="SERVER",
+                service_name="checkout",
+                environment="prod",
+                k8s_pod_uid="pod-uid-path-c-round-trip",
+                start_time=span_time,
+                end_time=span_time,
+            )
+        ],
+    )
+
+    service = _service(driver)
+    answer = service.get_service_dependencies(
+        ServiceDependenciesRequest.model_validate(
+            {
+                "service_id": service_id,
+                "observation_context": {
+                    "environment": "prod",
+                    "window_start": "2026-09-19T00:00:00Z",
+                    "window_end": "2026-09-19T23:59:59Z",
+                },
+            }
+        )
+    )
+    assert answer.data is not None
+    [claim_id] = answer.data.deployment_claim_ids
+    [claim] = [c for c in answer.claims if c.claim_id == claim_id]
+    assert claim.resolution_method == "RESOLVED_OBSERVED"
+    # The observation's own raw id (`runtime-identity:otel:...`) is never cited directly - it's
+    # rewritten to an `evidence:`-prefixed public ref (PR #222 review fix), since
+    # EvidenceRequest.evidence_refs' frozen `^evidence:` pattern would otherwise make it impossible
+    # to ever request through get_evidence in the first place.
+    [otel_evidence_id] = [ref for ref in claim.evidence_refs if ref.startswith("evidence:otel:")]
+
+    resolved = service.get_evidence(
+        EvidenceRequest.model_validate(
+            {"evidence_refs": [otel_evidence_id], "snapshot_id": answer.snapshot.snapshot_id}
+        )
+    )
+    assert resolved.data is not None
+    assert resolved.data.missing_evidence_refs == []
+    [record] = resolved.data.records
+    assert record.id == otel_evidence_id
+    assert record.source_type == "OPENTELEMETRY"
+    assert any(f.relation_type == "DEPLOYED_AS" for f in record.supports)

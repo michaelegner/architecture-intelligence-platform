@@ -29,6 +29,7 @@ from app.architecture_intelligence.contracts import (
     DeploymentClaim,
     DeploymentResolution,
     EntityRef,
+    EntityType,
     Limitation,
     LimitationCode,
     ObservationContextRef,
@@ -149,10 +150,21 @@ def get_service_deployments(
     if any(limitation.code == LimitationCode.UNKNOWN_ENTITY for limitation in answer.limitations):
         raise HTTPException(status_code=404, detail=f"unknown service: {service_id}")
 
-    # `data` is only ever null for a NOT_ANSWERED outcome (ArchitectureAnswer's own envelope
-    # invariant), and the only NOT_ANSWERED outcome a known service_id can produce here -
-    # UNKNOWN_ENTITY - was already turned into a 404 above.
-    assert answer.data is not None, "known service_id produced a NOT_ANSWERED answer with no data"
+    # PR #222 review finding: `data` is null for every NOT_ANSWERED outcome (ArchitectureAnswer's
+    # own envelope invariant), not just UNKNOWN_ENTITY - a known service_id can also refuse with
+    # e.g. SNAPSHOT_NOT_AVAILABLE. That must stay a 200 body with `limitations[]`, matching this
+    # file's own "everything but UNKNOWN_ENTITY stays 200" rule, never a 500.
+    if answer.data is None:
+        return ServiceDeploymentsView(
+            schema_version=answer.schema_version,
+            snapshot=answer.snapshot,
+            observation_context=answer.observation_context,
+            service=EntityRef(id=service_id, type=EntityType.SERVICE, name=service_id),
+            deployment_claims=[],
+            deployment_resolutions=[],
+            evidence_refs=[],
+            limitations=answer.limitations,
+        )
 
     deployment_claims = [claim for claim in answer.claims if isinstance(claim, DeploymentClaim)]
     deployment_resolutions = answer.data.deployment_resolutions
