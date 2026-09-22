@@ -31,6 +31,7 @@ from app.architecture_intelligence.deployment_reconciliation import (
     filter_for_service,
     reduce_cross_path_resolutions,
 )
+from app.architecture_intelligence.observation_context import build_observation_context_ref
 from app.sources.service_workload_mapping import (
     ServiceWorkloadMappingDocument,
     ServiceWorkloadMappingEntry,
@@ -332,7 +333,9 @@ def test_bucket_by_window_packs_nearby_rows_into_one_bucket():
     )
     buckets = _bucket_by_window([(row_a, None), (row_b, None)])
     assert len(buckets) == 1
-    assert {row.id for row, _ in buckets[0]} == {"a", "b"}
+    [(rows, bounds)] = buckets
+    assert {row.id for row, _ in rows} == {"a", "b"}
+    assert bounds[1] - bounds[0] <= timedelta(days=31)
 
 
 def test_bucket_by_window_splits_rows_more_than_31_days_apart():
@@ -346,17 +349,38 @@ def test_bucket_by_window_splits_rows_more_than_31_days_apart():
 
 def test_bucket_by_window_includes_captured_at_in_the_span():
     """PR #222 review, round 2: a Pod's own `captured_at` - not just the observation's own
-    first_seen/last_seen - must also be covered by the bucket's span, since
+    first_seen/last_seen - must also be covered by the bucket's own bounds, since
     `_observation_context_limitation` checks it independently."""
     base = datetime(2026, 9, 1, tzinfo=UTC)
     row = _observation_row(id="a", first_seen=base, last_seen=base)
+    near_captured_at = base + timedelta(days=5)
+    [(rows, bounds)] = _bucket_by_window([(row, near_captured_at)])
+    assert rows == [(row, near_captured_at)]
+    assert bounds[0] <= near_captured_at <= bounds[1]
+    assert bounds[0] <= base <= bounds[1]
+
+
+def test_bucket_by_window_clamps_a_single_rows_own_span_exceeding_31_days():
+    """PR #222 review, round 2 (blocking): a single row's own span (its captured_at 40 days from
+    its first_seen/last_seen) must never reach the caller unclamped - the original version only
+    enforced the 31-day limit when merging into an *existing* bucket, never for a brand-new one,
+    letting an invalid >31-day window reach `build_observation_context_ref` and raise instead of
+    the row failing DEPLOYMENT_TEMPORAL_MISMATCH like a real request would."""
+    base = datetime(2026, 9, 1, tzinfo=UTC)
+    row = _observation_row(id="a", first_seen=base, last_seen=base)
     far_captured_at = base + timedelta(days=40)
-    [bucket] = _bucket_by_window([(row, far_captured_at)])
-    assert bucket == [(row, far_captured_at)]
+    [(rows, bounds)] = _bucket_by_window([(row, far_captured_at)])
+    assert rows == [(row, far_captured_at)]
+    assert bounds is not None
+    assert bounds[1] - bounds[0] <= timedelta(days=31)
+    # A real ObservationContextRef must actually accept these bounds - this is what a naive
+    # unclamped span would fail to do.
+    build_observation_context_ref("prod", bounds[0], bounds[1])
 
 
-def test_bucket_by_window_gives_untimestamped_rows_their_own_singleton_bucket():
+def test_bucket_by_window_gives_untimestamped_rows_their_own_none_bounds_bucket():
     row_a = _observation_row(id="a", first_seen=None, last_seen=None)
     row_b = _observation_row(id="b", first_seen=None, last_seen=None)
     buckets = _bucket_by_window([(row_a, None), (row_b, None)])
     assert len(buckets) == 2
+    assert all(bounds is None for _rows, bounds in buckets)

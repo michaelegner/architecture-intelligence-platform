@@ -29,7 +29,6 @@ from app.architecture_intelligence.contracts import (
     DeploymentClaim,
     DeploymentResolution,
     EntityRef,
-    EntityType,
     Limitation,
     LimitationCode,
     ObservationContextRef,
@@ -61,7 +60,12 @@ class ServiceDeploymentsView(BaseModel):
     schema_version: ArchitectureSchemaVersion
     snapshot: SnapshotRef | None
     observation_context: ObservationContextRef | None
-    service: EntityRef
+    # PR #222 review finding (round 2): null, like `snapshot`/`observation_context`, for a
+    # NOT_ANSWERED refusal - the underlying `ServiceDependenciesData.service` field itself doesn't
+    # exist when `data is None`, so fabricating an `EntityRef` here (even from the request's own
+    # `service_id`) would invent Architecture Knowledge the service answer never confirmed,
+    # contradicting spec §15's "preserve the service answer semantics."
+    service: EntityRef | None
     deployment_claims: list[DeploymentClaim]
     deployment_resolutions: list[DeploymentResolution]
     evidence_refs: list[str]
@@ -159,7 +163,7 @@ def get_service_deployments(
             schema_version=answer.schema_version,
             snapshot=answer.snapshot,
             observation_context=answer.observation_context,
-            service=EntityRef(id=service_id, type=EntityType.SERVICE, name=service_id),
+            service=None,
             deployment_claims=[],
             deployment_resolutions=[],
             evidence_refs=[],

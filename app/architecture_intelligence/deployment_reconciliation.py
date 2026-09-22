@@ -593,14 +593,27 @@ def _row_span(row: RuntimeIdentityObservationRow, captured_at: datetime | None) 
 
 def _bucket_by_window(
     rows: list[tuple[RuntimeIdentityObservationRow, datetime | None]],
-) -> list[list[tuple[RuntimeIdentityObservationRow, datetime | None]]]:
+) -> list[tuple[list[tuple[RuntimeIdentityObservationRow, datetime | None]], tuple | None]]:
     """Greedily packs same-(workload, environment) rows, sorted by their own span start, into
-    consecutive buckets whose own combined span never exceeds `ObservationContextRef`'s 31-day
-    maximum window - so every bucket can become one valid, real caller-shaped context. A row with
-    no usable timestamp at all can never satisfy §9.7's temporal check regardless of which window
-    is chosen (same outcome a real caller-supplied context would also produce for it:
+    consecutive buckets whose own combined, *clamped* span never exceeds `ObservationContextRef`'s
+    31-day maximum window - so every bucket's returned bounds can become one valid, real
+    caller-shaped context. Returns each bucket paired with its own `(window_start, window_end)`
+    bounds (already clamped) rather than leaving the caller to recompute them from the bucket's raw
+    rows - recomputing independently would silently drop the clamp this function just applied.
+
+    A row with no usable timestamp at all can never satisfy §9.7's temporal check regardless of
+    which window is chosen (same outcome a real caller-supplied context would also produce for it:
     `DEPLOYMENT_TEMPORAL_MISMATCH`/`DEPLOYMENT_EVIDENCE_INCOMPLETE`), so it gets its own singleton
-    bucket rather than forcing every other row's window wider to accommodate it."""
+    bucket with `None` bounds rather than forcing every other row's window wider to accommodate it.
+
+    PR #222 review finding (round 2): a single row's *own* span (first_seen/last_seen vs. its Pod's
+    independently-timestamped captured_at) can itself exceed 31 days - the original version only
+    checked the 31-day limit when *merging* a row into an already-existing bucket, never for a
+    brand-new one, so an unclamped >31-day single-row span reached `build_observation_context_ref`
+    unclamped and raised - a crash (get_evidence's own 500), not a refusal. Clamped here to the most
+    recent 31 days: no real caller-supplied context could ever cover a >31-day span either, so this
+    row would fail `DEPLOYMENT_TEMPORAL_MISMATCH` against a real request the same way - clamping
+    just lets `resolve_path_c` reach that same, correct conclusion instead of crashing first."""
     spans = [(row, captured_at, _row_span(row, captured_at)) for row, captured_at in rows]
     timestamped = sorted((s for s in spans if s[2] is not None), key=lambda s: s[2][0])
     untimestamped = [s for s in spans if s[2] is None]
@@ -617,10 +630,14 @@ def _bucket_by_window(
                 bounds[-1] = (candidate_min, candidate_max)
                 continue
         buckets.append([(row, captured_at)])
-        bounds.append((span_min, span_max))
+        if span_max - span_min > _PATH_C_MAX_WINDOW:
+            bounds.append((span_max - _PATH_C_MAX_WINDOW, span_max))
+        else:
+            bounds.append((span_min, span_max))
 
-    buckets.extend([(row, captured_at)] for row, captured_at, _ in untimestamped)
-    return buckets
+    result = list(zip(buckets, bounds, strict=True))
+    result.extend(([(row, captured_at)], None) for row, captured_at, _ in untimestamped)
+    return result
 
 
 def _bucket_context_free_observations(
@@ -647,12 +664,12 @@ def _bucket_context_free_observations(
 
     batches: list[tuple[list[RuntimeIdentityObservationRow], ObservationContextRef]] = []
     for (_workload_id, environment), rows in grouped.items():
-        for bucket in _bucket_by_window(rows):
-            spans = [_row_span(row, captured_at) for row, captured_at in bucket]
-            usable = [s for s in spans if s is not None]
-            if usable:
-                window_start = min(s[0] for s in usable)
-                window_end = max(s[1] for s in usable)
+        for bucket, bounds in _bucket_by_window(rows):
+            # Use `_bucket_by_window`'s own already-clamped bounds directly - recomputing from the
+            # bucket's raw rows here would silently drop its 31-day clamp (PR #222 review finding,
+            # round 2) and could build an invalid ObservationContextRef again.
+            if bounds is not None:
+                window_start, window_end = bounds
             else:
                 # No usable timestamp on any row in this singleton bucket - the placeholder window
                 # is never actually consulted (DEPLOYMENT_EVIDENCE_INCOMPLETE/TEMPORAL_MISMATCH

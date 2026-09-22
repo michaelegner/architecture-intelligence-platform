@@ -15,7 +15,16 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
-from app.architecture_intelligence.contracts import DeploymentResolutionStatus, Producer
+from app.architecture_intelligence.contracts import (
+    ArchitectureAnswer,
+    DeploymentResolutionStatus,
+    Limitation,
+    LimitationCode,
+    Outcome,
+    Producer,
+    ServiceDependenciesData,
+)
+from app.architecture_intelligence.observation_context import build_observation_context_ref
 from app.architecture_intelligence.request import (
     ArchitectureDriftRequest,
     ServiceDependenciesRequest,
@@ -312,3 +321,61 @@ def test_drift_never_returns_a_deployment_claim_even_when_a_deployment_resolves(
     )
     assert response.status_code == 200
     assert all(claim["predicate"] != "DEPLOYED_AS" for claim in response.json()["claims"])
+
+
+class _SnapshotUnavailableService:
+    """PR #222 review finding (round 2, blocking): a known service can refuse with
+    `SNAPSHOT_NOT_AVAILABLE` (not just `UNKNOWN_ENTITY`) - deterministically forcing this against a
+    real Neo4j container is inherently racy (this slice's plan's own Open Questions #5 already flags
+    this pattern), so this double returns the hand-built refusal answer directly, mirroring
+    `test_api_architecture_intelligence_equivalence.py`'s `_SnapshotUnstableService`."""
+
+    def get_service_dependencies(self, request: ServiceDependenciesRequest):
+        # A real SNAPSHOT_NOT_AVAILABLE refusal still carries the caller's own real, validated
+        # observation_context (only `snapshot` itself is null) - only OBSERVATION_CONTEXT_REQUIRED
+        # ever nulls observation_context (ArchitectureAnswer's own envelope invariant).
+        context = build_observation_context_ref(
+            request.observation_context.environment,
+            request.observation_context.window_start,
+            request.observation_context.window_end,
+        )
+        return ArchitectureAnswer[ServiceDependenciesData](
+            schema_version="0.5",
+            producer=PRODUCER,
+            tool="get_service_dependencies",
+            outcome=Outcome.NOT_ANSWERED,
+            snapshot=None,
+            observation_context=context,
+            data=None,
+            claims=[],
+            evidence_refs=[],
+            limitations=[
+                Limitation(
+                    code=LimitationCode.SNAPSHOT_NOT_AVAILABLE,
+                    message="no consistent current snapshot could be acquired",
+                    claim_ids=[],
+                )
+            ],
+        )
+
+
+def test_deployments_rest_non_unknown_entity_refusal_never_fabricates_a_service(driver):
+    """PR #222 review finding (round 2, blocking): the previous fix for the 500-on-refusal bug
+    synthesized `EntityRef(id=service_id, name=service_id)` for this case - inventing Architecture
+    Knowledge the service answer never confirmed, contradicting spec §15's "preserve the service
+    answer semantics." `service` must stay `None`, exactly like `snapshot` already does for the
+    same `SNAPSHOT_NOT_AVAILABLE` outcome (`observation_context` itself stays populated here - only
+    an `OBSERVATION_CONTEXT_REQUIRED` refusal ever nulls that one)."""
+    client = _client(driver, service=_SnapshotUnavailableService())
+    response = client.get(
+        f"/api/services/{ids.service_id('checkout')}/deployments",
+        params={"environment": ENVIRONMENT, "from": WINDOW_START, "to": WINDOW_END},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["service"] is None
+    assert body["snapshot"] is None
+    assert body["deployment_claims"] == []
+    assert body["deployment_resolutions"] == []
+    assert body["evidence_refs"] == []
+    assert body["limitations"][0]["code"] == "SNAPSHOT_NOT_AVAILABLE"
