@@ -120,6 +120,12 @@ def test_compute_deployment_resolution_id_deterministic_and_context_sensitive():
         snapshot_id="aip:snapshot:v1:" + "c" * 64, context_id=CONTEXT_ID, group_key=key
     )
     assert other_snapshot != id_1
+    # §21.7: resolution_id must also change when only observation_context.context_id changes.
+    other_context = compute_deployment_resolution_id(
+        snapshot_id=SNAPSHOT_ID, context_id="aip:observation-context:v1:" + "d" * 64, group_key=key
+    )
+    assert other_context != id_1
+    assert other_context != other_snapshot
 
 
 def test_compute_service_workload_mapping_evidence_id_distinct_delimiter_tuples():
@@ -399,6 +405,49 @@ def test_path_b_valid_mapping_for_each_supported_kind():
     for resolution in result.resolutions:
         assert resolution.status == DeploymentResolutionStatus.RESOLVED_CONFIGURED
         assert resolution.supporting_methods == [DeploymentResolutionMethod.RESOLVED_CONFIGURED]
+
+
+def test_path_b_mapping_entry_ordering_has_no_effect_on_resolution():
+    """§21.7 determinism: reordering `document.entries` must not change `resolve_path_b`'s output -
+    the function already sorts by workload_id/mapping_id internally (see its own docstring), so this
+    proves that in practice rather than by inspection alone."""
+    entries = [
+        _mapping_entry(mapping_id="a", name="checkout", service_id="service:checkout"),
+        _mapping_entry(mapping_id="b", name="billing", service_id="service:billing"),
+        _mapping_entry(mapping_id="c", name="ghost", service_id="service:ghost"),
+    ]
+
+    from app.sources.identity import kubernetes_logical_resource_id
+
+    workloads_by_entity_id = {}
+    for entry in entries[:2]:
+        entity_id = kubernetes_logical_resource_id(
+            cluster_uid=entry.cluster_uid,
+            api_group=entry.api_group,
+            kind=entry.workload_kind,
+            namespace=entry.namespace,
+            name=entry.name,
+        )
+        workloads_by_entity_id[entity_id] = _workload(
+            workload_id=entity_id, namespace=entry.namespace, name=entry.name
+        )
+
+    def _run(ordered_entries):
+        return resolve_path_b(
+            document=_mapping_document(ordered_entries),
+            configured_kubernetes_sources=[CURRENT_SOURCE],
+            resolve_workload=_workload_resolver(workloads_by_entity_id),
+            lookup_service_name=_service_lookup(
+                {"service:checkout": "checkout", "service:billing": "billing"}
+            ),
+            snapshot_id=SNAPSHOT_ID,
+            context_id=CONTEXT_ID,
+        )
+
+    forward = _run(entries)
+    reversed_result = _run(list(reversed(entries)))
+    assert forward == reversed_result
+    assert len(forward.resolutions) == 3
 
 
 def test_path_b_mapping_to_missing_service_is_unresolved():
@@ -1059,6 +1108,19 @@ def test_path_c_environment_mismatch():
     [resolution] = result.resolutions
     assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
     assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_ENVIRONMENT_MISMATCH]
+
+
+def test_path_c_environment_exact_match():
+    """§21.3's own literal required-case list names this as its own case, distinct from
+    `..._absent`/`..._mismatch` above - every other positive Path C test happens to also use a
+    matching environment implicitly, but this is the one that names and asserts it directly."""
+    result = _run_path_c(
+        [_observation_row(environment="prod")],
+        observation_context=_observation_context(environment="prod"),
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+    assert resolution.limitation_codes == []
 
 
 def test_path_c_multiple_declared_services_is_ambiguous_not_conflict():

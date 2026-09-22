@@ -1,0 +1,15 @@
+apiVersion: aip.dev/v1
+kind: ServiceWorkloadIdentityMappings
+metadata:
+  id: i3-cross-source-mappings-conflict
+  revision: v1
+mappings:
+  - mappingId: runtime-demo-conflict
+    serviceId: service:runtime-demo-alt
+    kubernetesSourceId: aip-i2-independent-capture
+    clusterUid: 599e90a5-7ab8-426f-807f-92a65dcc8822
+    workload:
+      apiGroup: apps
+      kind: Deployment
+      namespace: aip-runtime-demo
+      name: runtime-demo
