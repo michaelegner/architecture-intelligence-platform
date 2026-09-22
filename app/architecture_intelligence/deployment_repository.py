@@ -17,8 +17,6 @@ function here is a pure read - none ever calls `app.telemetry.aggregator`'s or
 
 from __future__ import annotations
 
-from datetime import datetime
-
 import neo4j
 
 from app.architecture_intelligence.deployment_projection import (
@@ -104,16 +102,16 @@ _WORKLOAD_OWNS_POD_QUERY = (
     "RETURN c.subject_id AS workload_id, c.evidence_refs AS evidence_refs"
 )
 
-# I3 spec §9.7: filters by the requested observation context's environment and `last_seen` window
-# in the query itself (both a query-scalability bound and the "not applicable to this context"
-# exclusion spec's own applicability rule describes) - `resolve_path_c`'s own per-observation checks
-# independently re-verify both, since a raw Neo4j row is never re-validated the way the write-side
-# Pydantic model was, and the required §21.3 "absent"/"mismatch" cases are exercised at that level
-# via hand-built fake rows.
+# I3 spec §9.7 (PR #220 review finding): every current `RuntimeIdentityObservation`, unfiltered by
+# environment/window - mirrors `iter_current_kubernetes_workloads`'s own "full scan, let the pure
+# layer decide" shape. An earlier version of this query pre-filtered by environment/`last_seen`
+# window, which meant a real absent/mismatched-environment or out-of-window observation could never
+# reach `resolve_path_c`'s own §9.7 applicability checks on the real repository-backed path - the
+# frozen DEPLOYMENT_ENVIRONMENT_MISMATCH/DEPLOYMENT_TEMPORAL_MISMATCH outcomes were reachable only
+# through hand-built unit rows, contradicting spec's "the same exact environment/window semantics
+# on every implementation path." `resolve_path_c` is the sole arbiter of applicability now.
 _RUNTIME_IDENTITY_OBSERVATIONS_QUERY = (
     "MATCH (o:RuntimeIdentityObservation) "
-    "WHERE o.environment = $environment "
-    "AND o.last_seen >= $window_start AND o.last_seen <= $window_end "
     "RETURN o.id AS id, o.service_name AS service_name, o.service_namespace AS service_namespace, "
     "o.service_version AS service_version, o.environment AS environment, "
     "o.k8s_pod_uid AS k8s_pod_uid, o.k8s_pod_name AS k8s_pod_name, "
@@ -232,13 +230,15 @@ def read_workload_ids_owning_pod(
     ]
 
 
-def read_runtime_identity_observations_in_window(
-    session: neo4j.Session, *, environment: str, window_start: datetime, window_end: datetime
+def read_runtime_identity_observations(
+    session: neo4j.Session,
 ) -> list[RuntimeIdentityObservationRow]:
-    """Every `RuntimeIdentityObservation` matching the requested environment with `last_seen`
-    inside `[window_start, window_end]` - Path C's own full scan (spec §9 evaluates every
+    """Every current `RuntimeIdentityObservation` - Path C's own full scan (spec §9 evaluates every
     applicable persisted observation, not just ones a caller names in advance, mirroring Path A's
-    own full-scan shape rather than Path B's mapping-artifact-driven one)."""
+    own full-scan shape rather than Path B's mapping-artifact-driven one). Unfiltered by
+    environment/window (PR #220 review finding) - `resolve_path_c`'s own §9.7 applicability checks
+    are the sole arbiter of which observations are applicable, so the same real-vs-fake row can
+    never diverge between the repository-backed path and a unit test."""
     return [
         RuntimeIdentityObservationRow(
             id=record["id"],
@@ -258,10 +258,5 @@ def read_runtime_identity_observations_in_window(
                 record.get("conflicting_consistency_attributes") or ()
             ),
         )
-        for record in session.run(
-            _RUNTIME_IDENTITY_OBSERVATIONS_QUERY,
-            environment=environment,
-            window_start=window_start,
-            window_end=window_end,
-        )
+        for record in session.run(_RUNTIME_IDENTITY_OBSERVATIONS_QUERY)
     ]

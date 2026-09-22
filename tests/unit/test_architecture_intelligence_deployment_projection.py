@@ -828,51 +828,71 @@ def test_path_c_service_resolves_observed_only_is_unresolved():
 
 
 def test_path_c_missing_pod_uid_is_unresolved_with_no_workload():
-    result = _run_path_c([_observation_row(k8s_pod_uid=None)])
+    observation = _observation_row(k8s_pod_uid=None)
+    result = _run_path_c([observation])
     [resolution] = result.resolutions
     assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
     assert resolution.workload is None
     assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_IDENTITY_UNRESOLVED]
+    # PR #220 review: the standalone group's only universally-available evidence is the
+    # observation itself (§13.1 names the group after "the OTel runtime-identity evidence id";
+    # §13.5 requires a non-resolved outcome to retain its own evidence) - never dropped even when
+    # there's no Pod/owner-chain evidence to union it with.
+    assert resolution.supporting_evidence_refs == [observation.id]
     assert result.claims == []
 
 
 def test_path_c_unknown_pod_uid_is_unresolved_with_no_workload():
-    result = _run_path_c([_observation_row()], pods_by_uid={})
+    observation = _observation_row()
+    result = _run_path_c([observation], pods_by_uid={})
     [resolution] = result.resolutions
     assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
     assert resolution.workload is None
+    assert resolution.supporting_evidence_refs == [observation.id]
 
 
 def test_path_c_stale_pod_uid_is_unresolved_with_no_workload():
     # A replaced Pod's row is genuinely gone from the current graph - indistinguishable from an
     # unknown UID, which is correct (spec §21.5's Pod-replacement guarantee).
-    result = _run_path_c([_observation_row()], pods_by_uid={POD_UID: []})
+    observation = _observation_row()
+    result = _run_path_c([observation], pods_by_uid={POD_UID: []})
     [resolution] = result.resolutions
     assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
     assert resolution.workload is None
+    assert resolution.supporting_evidence_refs == [observation.id]
 
 
 def test_path_c_pod_uid_resolves_ambiguously():
+    observation = _observation_row()
     result = _run_path_c(
-        [_observation_row()],
-        pods_by_uid={POD_UID: [_pod_row(pod_id="pod:1"), _pod_row(pod_id="pod:2")]},
+        [observation],
+        pods_by_uid={
+            POD_UID: [
+                _pod_row(pod_id="pod:1", evidence_refs=("ev-pod-1",)),
+                _pod_row(pod_id="pod:2", evidence_refs=("ev-pod-2",)),
+            ]
+        },
     )
     [resolution] = result.resolutions
     assert resolution.status == DeploymentResolutionStatus.AMBIGUOUS
     assert resolution.workload is None
     assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_IDENTITY_AMBIGUOUS]
+    assert resolution.supporting_evidence_refs == sorted(["ev-pod-1", "ev-pod-2", observation.id])
 
 
 def test_path_c_owner_chain_unresolved():
-    result = _run_path_c([_observation_row()], owners_by_pod={})
+    observation = _observation_row()
+    result = _run_path_c([observation], owners_by_pod={})
     [resolution] = result.resolutions
     assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
     assert resolution.workload is None
+    assert resolution.supporting_evidence_refs == sorted(["ev-pod", observation.id])
 
 
 def test_path_c_owner_chain_ambiguous():
+    observation = _observation_row()
     result = _run_path_c(
-        [_observation_row()],
+        [observation],
         owners_by_pod={
             POD_ID: [
                 WorkloadOwnershipRow(workload_id="workload:a"),
@@ -884,6 +904,7 @@ def test_path_c_owner_chain_ambiguous():
     assert resolution.status == DeploymentResolutionStatus.AMBIGUOUS
     assert resolution.workload is None
     assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_IDENTITY_AMBIGUOUS]
+    assert resolution.supporting_evidence_refs == sorted(["ev-pod", observation.id])
 
 
 @pytest.mark.parametrize(

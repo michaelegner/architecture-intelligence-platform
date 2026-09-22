@@ -709,7 +709,14 @@ def _standalone_otel_resolution(
 ) -> DeploymentResolution:
     """Spec §13.1's third group-key branch: an observation whose Pod UID never resolves to exactly
     one current Workload gets its own `"otel:<observation-id>"` group (§9.5's unknown/stale/
-    ambiguous Pod UID and unresolved/ambiguous owner-chain cases)."""
+    ambiguous Pod UID and unresolved/ambiguous owner-chain cases).
+
+    `observation_id` is unioned into the returned evidence unconditionally (PR #220 review finding):
+    §13.1 names the group key itself after "the OTel runtime-identity evidence id," and §13.5
+    requires a non-resolved outcome to retain its own evidence - every standalone group's *only*
+    universally-available evidence is the observation that produced it, so this must never depend
+    on a caller remembering to include it in `evidence_refs`.
+    """
     group_key = compute_deployment_group_key(otel_observation_id=observation_id)
     resolution_id = compute_deployment_resolution_id(
         snapshot_id=snapshot_id, context_id=context_id, group_key=group_key
@@ -721,7 +728,7 @@ def _standalone_otel_resolution(
         service_id=None,
         candidate_service_ids=[],
         supporting_methods=[],
-        supporting_evidence_refs=sorted(set(evidence_refs)),
+        supporting_evidence_refs=sorted({*evidence_refs, observation_id}),
         conflicting_evidence_refs=[],
         limitation_codes=[limitation_code],
         claim_id=None,

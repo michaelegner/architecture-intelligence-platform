@@ -22,6 +22,7 @@ from app.architecture_intelligence import deployment_repository
 from app.architecture_intelligence.contracts import (
     DeploymentResolutionMethod,
     DeploymentResolutionStatus,
+    LimitationCode,
 )
 from app.architecture_intelligence.deployment_projection import resolve_path_c
 from app.architecture_intelligence.observation_context import build_observation_context_ref
@@ -227,9 +228,7 @@ def _persist_spans(driver, spans: list[RuntimeSpan]) -> None:
 def _run_resolve_path_c(driver):
     observation_context = build_observation_context_ref(ENVIRONMENT, WINDOW_START, WINDOW_END)
     with driver.session(database=DATABASE) as session:
-        observations = deployment_repository.read_runtime_identity_observations_in_window(
-            session, environment=ENVIRONMENT, window_start=WINDOW_START, window_end=WINDOW_END
-        )
+        observations = deployment_repository.read_runtime_identity_observations(session)
         declared_candidates = fetch_candidates(session)
         return resolve_path_c(
             observations=observations,
@@ -464,3 +463,54 @@ def test_path_c_pod_replacement_preserves_claim_id(driver, tmp_path):
     ]
     assert len(resolved) == 1
     assert resolved[0].claim_id == first_claim_id
+
+
+def test_path_c_environment_mismatch_reachable_via_the_real_query_path(driver, tmp_path):
+    # PR #220 review: an earlier version of `read_runtime_identity_observations` pre-filtered by
+    # environment/window at the query level, so a real mismatched observation could never reach
+    # `resolve_path_c`'s own §9.7 check - only a hand-built unit-test row could. This proves the
+    # fix: a real observation persisted for a *different* environment than the requested
+    # observation context is fetched by the real query and correctly comes back UNRESOLVED +
+    # DEPLOYMENT_ENVIRONMENT_MISMATCH, not silently dropped.
+    _reset_graph(driver)
+    _create_service(driver, service_id="service:checkout", name="checkout")
+
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        source_id="i3-path-c-env-mismatch-source",
+        scope_id="i3-path-c-env-mismatch-scope",
+        cluster_uid="i3-path-c-env-mismatch-cluster",
+        namespaces=["checkout"],
+        resources=[
+            _workload_resource(
+                "Deployment", "checkout-api", uid="deploy-uid-1", namespace="checkout"
+            ),
+            _replica_set_resource(
+                "checkout-api-rs",
+                uid="rs-uid-1",
+                namespace="checkout",
+                owner_name="checkout-api",
+                owner_uid="deploy-uid-1",
+            ),
+            _pod_resource(
+                "checkout-api-pod",
+                uid="pod-uid-1",
+                namespace="checkout",
+                owner_kind="ReplicaSet",
+                owner_name="checkout-api-rs",
+                owner_uid="rs-uid-1",
+            ),
+        ],
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    # Persisted for "staging", but _run_resolve_path_c always evaluates against "prod".
+    _persist_spans(driver, [_runtime_span(k8s_pod_uid="pod-uid-1", environment="staging")])
+
+    result = _run_resolve_path_c(driver)
+    assert len(result.resolutions) == 1
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_ENVIRONMENT_MISMATCH]
+    assert result.claims == []
