@@ -953,8 +953,14 @@ def resolve_path_c(
 
         conflicting = [outcome for outcome in group if outcome.outcome == "conflict"]
         if conflicting:
+            # §13.3: `candidate_service_ids` names every Service id "named or exactly resolved by
+            # applicable paths in that group" - not only the ones that directly conflicted. A clean
+            # candidate sibling (e.g. Service B) must still appear here even though the overall
+            # status is CONFLICT because of a *different* observation's own contradiction (e.g.
+            # Service A) - §13.4's cross-Service-projection visibility depends on it (PR #220
+            # review, round 3).
             candidate_ids = sorted(
-                {o.candidate_service_id for o in conflicting if o.candidate_service_id is not None}
+                {o.candidate_service_id for o in applicable if o.candidate_service_id is not None}
             )
             resolutions.append(
                 DeploymentResolution(

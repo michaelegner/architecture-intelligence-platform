@@ -1130,3 +1130,48 @@ def test_path_c_non_applicable_observation_does_not_taint_a_resolved_sibling():
         assert tainted_ref not in resolution.supporting_evidence_refs
     [claim] = result.claims
     assert claim.evidence_refs == sorted(["ev-pod-a", "ev-owns-a", "obs-a"])
+
+
+def test_path_c_conflict_candidate_service_ids_include_every_applicable_service():
+    # PR #220 review (round 3): §13.3 requires candidate_service_ids to name every Service id
+    # "named or exactly resolved by applicable paths in that group," not only the ones that
+    # directly conflicted. obs A (applicable, resolves Service A) has a contradictory consistency
+    # attribute; obs B (applicable, resolves Service B) is a clean candidate. Overall status is
+    # CONFLICT (A's contradiction), but B must still be visible in candidate_service_ids so a
+    # Service-B-scoped projection can see the conflict too (§13.4).
+    other_service_id = "service:other"
+    result = _run_path_c(
+        [
+            _observation_row(
+                id="obs-a",
+                k8s_pod_uid="pod-uid-a",
+                service_name="checkout",
+                k8s_pod_name="not-the-real-pod-name",
+            ),
+            _observation_row(id="obs-b", k8s_pod_uid="pod-uid-b", service_name="other"),
+        ],
+        pods_by_uid={
+            "pod-uid-a": [_pod_row(pod_id="pod:a")],
+            "pod-uid-b": [_pod_row(pod_id="pod:b")],
+        },
+        owners_by_pod={
+            "pod:a": [WorkloadOwnershipRow(workload_id=WORKLOAD_ID)],
+            "pod:b": [WorkloadOwnershipRow(workload_id=WORKLOAD_ID)],
+        },
+        declared_candidates=[
+            _declared_candidate(id=SERVICE_ID, name="checkout"),
+            _declared_candidate(id=other_service_id, name="other"),
+        ],
+        declared_identities={
+            SERVICE_ID: DeclaredServiceIdentity(
+                service_id=SERVICE_ID, name="checkout", namespace=None, version=None
+            ),
+            other_service_id: DeclaredServiceIdentity(
+                service_id=other_service_id, name="other", namespace=None, version=None
+            ),
+        },
+    )
+    [resolution] = result.resolutions
+    assert resolution.status == DeploymentResolutionStatus.CONFLICT
+    assert resolution.candidate_service_ids == sorted([SERVICE_ID, other_service_id])
+    assert result.claims == []
