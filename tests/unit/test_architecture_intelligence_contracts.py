@@ -1296,6 +1296,18 @@ def test_workload_ref_rejects_a_non_workload_type():
         WorkloadRef.model_validate({**_valid_workload().model_dump(), "type": "SERVICE"})
 
 
+def test_workload_ref_exposes_exactly_its_frozen_field_allowlist():
+    """§21.6/spec §11: `WorkloadRef` leaks no Pod/cluster internals beyond its own frozen fields -
+    asserted here as an exact field-set match (not just `extra=forbid` rejecting one extra field
+    on write), so a future field addition to the model is caught by this test too, not just by
+    someone remembering to update it."""
+    assert set(WorkloadRef.model_fields) == {"id", "type", "name", "workload_kind", "namespace"}
+    dumped = set(_valid_workload().model_dump())
+    assert dumped == {"id", "type", "name", "workload_kind", "namespace"}
+    with pytest.raises(ValidationError):
+        WorkloadRef.model_validate({**_valid_workload().model_dump(), "cluster_uid": "c1"})
+
+
 def test_dependency_claim_rejects_a_workload_typed_object():
     # DependencyClaim.object is typed plain EntityRef, not WorkloadRef - the model_validator guard
     # (not just EntityRef's own type-specific-field rules) must reject a Workload-shaped value.

@@ -15,11 +15,13 @@ that instance's answer unchanged.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 import jsonschema
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 
 from app.architecture_intelligence.contracts import Producer
@@ -31,10 +33,12 @@ from app.architecture_intelligence.request import (
 )
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.canonical import ids
-from app.graph.importer import import_all_sources
+from app.canonical.infrastructure import KubernetesEvidenceMode
+from app.canonical.model import ArchitectureModel, Service
+from app.graph.importer import import_all_sources, import_kubernetes_source, import_source
 from app.main import create_app
 from app.settings import AppConfig, Secrets, Settings
-from app.sources.model import FilesystemSourceConfig
+from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 SCHEMAS_DIR = (
@@ -301,6 +305,147 @@ def test_evidence_resolve_rest_matches_service(driver):
     )
     assert response.status_code == 200
     jsonschema.validate(instance=response.json(), schema=EVIDENCE_ANSWER_SCHEMA)
+    assert response.json() == direct
+
+
+# --- §21.6: POST /api/evidence/resolve with real deployment (Path A) evidence, not just I1's --------
+# dependency evidence - the deployment-evidence round-trip tests in
+# `test_architecture_intelligence_deployment_evidence_visibility.py` all call
+# `ArchitectureIntelligenceService.get_evidence` directly; this proves the same real deployment
+# evidence ref resolves identically through the REST adapter specifically.
+
+
+def _deployment_resource(name: str, namespace: str, uid: str, *, annotations: dict) -> dict:
+    return {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": {
+            "name": name,
+            "namespace": namespace,
+            "uid": uid,
+            "resourceVersion": "1",
+            "annotations": annotations,
+        },
+    }
+
+
+def _write_kubernetes_bundle(root: Path, *, resources: list[dict]) -> KubernetesSourceConfig:
+    root.mkdir(parents=True, exist_ok=True)
+    resource_bytes = yaml.safe_dump_all(resources).encode()
+    (root / "resources.yaml").write_bytes(resource_bytes)
+    envelope = {
+        "apiVersion": "aip.dev/v1",
+        "kind": "KubernetesSourceSnapshot",
+        "metadata": {
+            "id": "rest-evidence-deployment-snapshot",
+            "revision": "rest-evidence-deployment-revision",
+            "producer": "aip-kubernetes-capture-agent",
+            "capturedAt": "2026-08-26T10:00:00Z",
+        },
+        "source": {
+            "configuredSourceId": "rest-evidence-deployment-source",
+            "configuredScopeId": "rest-evidence-deployment-scope",
+            "clusterUid": "rest-evidence-deployment-cluster",
+            "clusterIdentityEvidenceRef": "kube-system-namespace-uid",
+            "mode": "CAPTURED_RESOURCE",
+        },
+        "scope": {
+            "namespaces": ["checkout"],
+            "resourceTypes": sorted(
+                {
+                    "v1/Namespace",
+                    "v1/Pod",
+                    "v1/Service",
+                    "apps/v1/Deployment",
+                    "apps/v1/StatefulSet",
+                    "apps/v1/DaemonSet",
+                    "apps/v1/ReplicaSet",
+                    "networking.k8s.io/v1/Ingress",
+                }
+            ),
+        },
+        "completeness": {
+            "status": "COMPLETE",
+            "authorityRef": "rest-evidence-deployment-authority",
+            "expectedPriorInventoryRevision": None,
+        },
+        "files": [{"path": "resources.yaml", "sha256": hashlib.sha256(resource_bytes).hexdigest()}],
+    }
+    (root / "envelope.yaml").write_bytes(yaml.safe_dump(envelope).encode())
+    return KubernetesSourceConfig(
+        id="rest-evidence-deployment-source",
+        root=root,
+        envelope_relative_path="envelope.yaml",
+        configured_scope_id="rest-evidence-deployment-scope",
+        cluster_uid="rest-evidence-deployment-cluster",
+        evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+        authorized_producer="aip-kubernetes-capture-agent",
+        authority_record="rest-evidence-deployment-authority",
+    )
+
+
+def test_evidence_resolve_rest_matches_service_for_real_deployment_evidence(driver, tmp_path):
+    service_id = ids.service_id("checkout")
+    with driver.session(database=DATABASE) as session:
+        import_source(
+            session,
+            source_instance_id=f"declared-source:{service_id}",
+            locator=f"{service_id}.yaml",
+            model=ArchitectureModel(
+                services=[Service(id=service_id, name="checkout", version="1")]
+            ),
+            semantic_input_digest=hashlib.sha256(service_id.encode()).hexdigest(),
+            discovery_scope_id=f"declared-scope:{service_id}",
+            scope_definition_digest=hashlib.sha256(service_id.encode()).hexdigest(),
+        )
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        resources=[
+            _deployment_resource(
+                "checkout-api",
+                "checkout",
+                "deploy-uid-rest-evidence",
+                annotations={"architecture-intelligence.io/service-id": service_id},
+            )
+        ],
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    service = _service(driver)
+    dependency_answer = service.get_service_dependencies(
+        ServiceDependenciesRequest.model_validate(
+            {
+                "service_id": service_id,
+                "observation_context": {
+                    "environment": ENVIRONMENT,
+                    "window_start": WINDOW_START,
+                    "window_end": WINDOW_END,
+                },
+            }
+        )
+    )
+    assert dependency_answer.data.deployment_claim_ids != []
+    assert any(ref.startswith("evidence:kubernetes:") for ref in dependency_answer.evidence_refs)
+
+    evidence_request = EvidenceRequest.model_validate(
+        {
+            "evidence_refs": sorted(dependency_answer.evidence_refs),
+            "snapshot_id": dependency_answer.snapshot.snapshot_id,
+        }
+    )
+    direct = service.get_evidence(evidence_request).model_dump(mode="json")
+    assert direct["data"]["missing_evidence_refs"] == []
+
+    client = _client(driver, service=service)
+    response = client.post(
+        "/api/evidence/resolve",
+        json={
+            "evidence_refs": sorted(dependency_answer.evidence_refs),
+            "snapshot_id": dependency_answer.snapshot.snapshot_id,
+        },
+    )
+    assert response.status_code == 200
     assert response.json() == direct
 
 

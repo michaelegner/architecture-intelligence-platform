@@ -17,12 +17,16 @@ from app.architecture_intelligence.contracts import (
     LimitationCode,
 )
 from app.architecture_intelligence.deployment_projection import (
+    CapturedPodRow,
     CurrentKubernetesWorkload,
+    DeclaredServiceIdentity,
     PathResolutionResult,
     RuntimeIdentityObservationRow,
     WorkloadContribution,
+    WorkloadOwnershipRow,
     resolve_path_a,
     resolve_path_b,
+    resolve_path_c,
 )
 from app.architecture_intelligence.deployment_reconciliation import (
     _bucket_by_window,
@@ -36,6 +40,7 @@ from app.sources.service_workload_mapping import (
     ServiceWorkloadMappingDocument,
     ServiceWorkloadMappingEntry,
 )
+from app.telemetry.service_resolver import DeclaredServiceCandidate
 
 SNAPSHOT_ID = "aip:snapshot:v1:" + "a" * 64
 CONTEXT_ID = "aip:observation-context:v1:" + "b" * 64
@@ -43,6 +48,10 @@ _EMPTY = PathResolutionResult(resolutions=[], claims=[])
 _ENVIRONMENT = "prod"
 _WINDOW_START = "2026-08-26T00:00:00.000000Z"
 _WINDOW_END = "2026-08-27T00:00:00.000000Z"
+_WINDOW_START_DT = datetime(2026, 8, 26, 0, 0, 0, tzinfo=UTC)
+_WINDOW_END_DT = datetime(2026, 8, 27, 0, 0, 0, tzinfo=UTC)
+_IN_WINDOW_DT = datetime(2026, 8, 26, 12, 0, 0, tzinfo=UTC)
+_DECLARED_SERVICES = {"service:checkout": "checkout", "service:other": "other"}
 
 
 def _workload(workload_id="workload:1", kind="Deployment", namespace="checkout", name="checkout"):
@@ -107,6 +116,78 @@ def _path_b(*, service_id: str | None, mapping_id: str = "m1"):
         configured_kubernetes_sources=[("checkout-cluster", "cluster-uid-1")],
         resolve_workload=lambda entity_id: _workload(),
         lookup_service_name=lambda sid: services.get(sid),
+        snapshot_id=SNAPSHOT_ID,
+        context_id=CONTEXT_ID,
+    )
+
+
+def _path_c(
+    *,
+    service_ids: list[str | None],
+    evidence_ref_prefix: str = "runtime-identity:otel:prod:2026-08-26:c",
+    workload_id: str = "workload:1",
+):
+    """Builds a real `resolve_path_c` result for `workload:1` (the same default target Path A/B's
+    own `_workload()`/`_path_b` helpers use), so C can agree or conflict with A/B against a shared
+    group key exactly as the real reducer would see it. One observation per entry in `service_ids`
+    - `None` means an observation whose `service_name` matches no declared candidate (unresolved);
+    two or more distinct non-None entries produce Path C's own §10.5 `AMBIGUOUS` outcome."""
+    pod_uid = "pod-uid-c1"
+    pod_id = "pod:c1"
+    observations = [
+        RuntimeIdentityObservationRow(
+            id=f"{evidence_ref_prefix}-{i}",
+            service_name=_DECLARED_SERVICES.get(service_id, "ghost-service"),
+            service_namespace=None,
+            service_version=None,
+            environment=_ENVIRONMENT,
+            k8s_pod_uid=pod_uid,
+            k8s_pod_name=None,
+            k8s_namespace_name=None,
+            k8s_cluster_uid=None,
+            k8s_deployment_name=None,
+            k8s_statefulset_name=None,
+            k8s_daemonset_name=None,
+            last_seen=_IN_WINDOW_DT,
+        )
+        for i, service_id in enumerate(service_ids)
+    ]
+    candidates = [
+        DeclaredServiceCandidate(sid, name, None) for sid, name in _DECLARED_SERVICES.items()
+    ]
+    identities = {
+        sid: DeclaredServiceIdentity(service_id=sid, name=name, namespace=None, version=None)
+        for sid, name in _DECLARED_SERVICES.items()
+    }
+    observation_context = build_observation_context_ref(
+        _ENVIRONMENT, _WINDOW_START_DT, _WINDOW_END_DT
+    )
+    return resolve_path_c(
+        observations=observations,
+        observation_context=observation_context,
+        lookup_pods_by_uid=lambda uid: (
+            [
+                CapturedPodRow(
+                    pod_id=pod_id,
+                    pod_name="pod",
+                    pod_namespace="checkout",
+                    cluster_uid="cluster-1",
+                    captured_at="2026-08-26T12:00:00Z",
+                    evidence_refs=(),
+                )
+            ]
+            if uid == pod_uid
+            else []
+        ),
+        lookup_workload_ids_owning_pod=lambda pid: (
+            [WorkloadOwnershipRow(workload_id=workload_id, evidence_refs=())]
+            if pid == pod_id
+            else []
+        ),
+        resolve_workload=lambda wid: _workload(workload_id=wid) if wid == workload_id else None,
+        declared_service_candidates=candidates,
+        service_aliases={},
+        lookup_declared_service=lambda sid: identities.get(sid),
         snapshot_id=SNAPSHOT_ID,
         context_id=CONTEXT_ID,
     )
@@ -205,6 +286,186 @@ def test_no_evidence_at_all_produces_no_resolution():
     )
     assert reduced.resolutions == []
     assert reduced.claims == []
+
+
+# --- §21.4 cross-path reduction, real Path C (spec §10, §10.5) -----------------------------------
+
+
+def test_path_c_only_passes_through_as_resolved_observed():
+    reduced = reduce_cross_path_resolutions(
+        path_a=_EMPTY, path_b=_EMPTY, path_c=_path_c(service_ids=["service:checkout"])
+    )
+    assert len(reduced.resolutions) == 1
+    [resolution] = reduced.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_OBSERVED
+    assert resolution.service_id == "service:checkout"
+    [claim] = reduced.claims
+    assert claim.resolution_method == DeploymentResolutionMethod.RESOLVED_OBSERVED
+    assert claim.supporting_methods == [DeploymentResolutionMethod.RESOLVED_OBSERVED]
+
+
+def test_a_and_c_agree_explicit_is_strongest_and_evidence_is_unioned():
+    reduced = reduce_cross_path_resolutions(
+        path_a=_path_a(service_id="service:checkout", evidence_ref="evidence:kubernetes:from-a"),
+        path_b=_EMPTY,
+        path_c=_path_c(service_ids=["service:checkout"]),
+    )
+    assert len(reduced.resolutions) == 1
+    [resolution] = reduced.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_EXPLICIT
+    assert resolution.supporting_methods == [
+        DeploymentResolutionMethod.RESOLVED_EXPLICIT,
+        DeploymentResolutionMethod.RESOLVED_OBSERVED,
+    ]
+    [claim] = reduced.claims
+    assert claim.resolution_method == DeploymentResolutionMethod.RESOLVED_EXPLICIT
+    assert "evidence:kubernetes:from-a" in claim.evidence_refs
+    # Path C's own runtime-identity evidence id is unioned in too, not just A's - raw here since
+    # this test calls `resolve_path_c` directly, without the `_publicize_evidence_refs` wrapping
+    # only `run_whole_graph_reconciliation` applies (already covered on its own by
+    # `test_public_evidence_ref_wraps_path_c_runtime_identity_id` above).
+    assert any(ref.startswith("runtime-identity:otel:") for ref in claim.evidence_refs)
+    assert len(claim.evidence_refs) == 2
+
+
+def test_b_and_c_agree_configured_is_strongest_and_evidence_is_unioned():
+    reduced = reduce_cross_path_resolutions(
+        path_a=_EMPTY,
+        path_b=_path_b(service_id="service:checkout"),
+        path_c=_path_c(service_ids=["service:checkout"]),
+    )
+    assert len(reduced.resolutions) == 1
+    [resolution] = reduced.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_CONFIGURED
+    assert resolution.supporting_methods == [
+        DeploymentResolutionMethod.RESOLVED_CONFIGURED,
+        DeploymentResolutionMethod.RESOLVED_OBSERVED,
+    ]
+    [claim] = reduced.claims
+    assert claim.resolution_method == DeploymentResolutionMethod.RESOLVED_CONFIGURED
+    assert len(claim.evidence_refs) == 2
+
+
+def test_a_b_c_all_agree_explicit_is_strongest_and_evidence_is_unioned_across_all_three():
+    reduced = reduce_cross_path_resolutions(
+        path_a=_path_a(service_id="service:checkout", evidence_ref="evidence:kubernetes:from-a"),
+        path_b=_path_b(service_id="service:checkout"),
+        path_c=_path_c(service_ids=["service:checkout"]),
+    )
+    assert len(reduced.resolutions) == 1
+    [resolution] = reduced.resolutions
+    assert resolution.status == DeploymentResolutionStatus.RESOLVED_EXPLICIT
+    assert resolution.supporting_methods == [
+        DeploymentResolutionMethod.RESOLVED_EXPLICIT,
+        DeploymentResolutionMethod.RESOLVED_CONFIGURED,
+        DeploymentResolutionMethod.RESOLVED_OBSERVED,
+    ]
+    [claim] = reduced.claims
+    assert claim.resolution_method == DeploymentResolutionMethod.RESOLVED_EXPLICIT
+    assert len(claim.evidence_refs) == 3
+
+
+def test_a_vs_c_disagreement_is_conflict_with_no_claim():
+    reduced = reduce_cross_path_resolutions(
+        path_a=_path_a(service_id="service:checkout"),
+        path_b=_EMPTY,
+        path_c=_path_c(service_ids=["service:other"]),
+    )
+    assert reduced.claims == []
+    [resolution] = reduced.resolutions
+    assert resolution.status == DeploymentResolutionStatus.CONFLICT
+    assert resolution.candidate_service_ids == ["service:checkout", "service:other"]
+    assert resolution.limitation_codes == [LimitationCode.DEPLOYMENT_IDENTITY_CONFLICT]
+
+
+def test_b_vs_c_disagreement_is_conflict_with_no_claim():
+    reduced = reduce_cross_path_resolutions(
+        path_a=_EMPTY,
+        path_b=_path_b(service_id="service:checkout"),
+        path_c=_path_c(service_ids=["service:other"]),
+    )
+    assert reduced.claims == []
+    [resolution] = reduced.resolutions
+    assert resolution.status == DeploymentResolutionStatus.CONFLICT
+    assert resolution.candidate_service_ids == ["service:checkout", "service:other"]
+
+
+def test_path_c_multiple_services_ambiguous_passes_through_reducer_unmerged():
+    """Spec §10.5: multiple distinct declared Services satisfying one Path C runtime identity is
+    AMBIGUOUS at Path C's own level (never CONFLICT) - this asserts the reducer passes that
+    AMBIGUOUS status through untouched when no other path contributes anything, rather than
+    silently reinterpreting it."""
+    path_c = _path_c(service_ids=["service:checkout", "service:other"])
+    [path_c_resolution] = path_c.resolutions
+    assert path_c_resolution.status == DeploymentResolutionStatus.AMBIGUOUS
+    reduced = reduce_cross_path_resolutions(path_a=_EMPTY, path_b=_EMPTY, path_c=path_c)
+    assert reduced.claims == []
+    [resolution] = reduced.resolutions
+    assert resolution.status == DeploymentResolutionStatus.AMBIGUOUS
+    assert resolution.candidate_service_ids == ["service:checkout", "service:other"]
+
+
+def test_cross_path_similarity_only_reduces_to_unresolved_with_no_claim():
+    """A Path A annotation that only similarity-matches a real Service id (wrong case) never
+    resolves at Path A's own level (spec §7's exact-case requirement) - this proves the reducer
+    still reduces that to a clean UNRESOLVED with no claim once B/C contribute nothing either,
+    the same as any other never-resolved path."""
+    reduced = reduce_cross_path_resolutions(
+        path_a=_path_a(service_id="Service:Checkout"), path_b=_EMPTY, path_c=_EMPTY
+    )
+    assert reduced.claims == []
+    [resolution] = reduced.resolutions
+    assert resolution.status == DeploymentResolutionStatus.UNRESOLVED
+    assert resolution.candidate_service_ids == ["Service:Checkout"]
+
+
+# --- §21.7 determinism: one resolution per group_key across multiple simultaneous groups ---------
+
+
+def test_reducer_produces_exactly_one_resolution_per_group_key_across_multiple_groups():
+    group_1 = _path_a(service_id="service:checkout")
+    workload_2 = CurrentKubernetesWorkload(
+        workload_id="workload:2",
+        workload_kind="Deployment",
+        namespace="checkout",
+        name="checkout-other",
+        contributions=(
+            WorkloadContribution(
+                annotation="service:other", evidence_refs=("evidence:kubernetes:g2",)
+            ),
+        ),
+    )
+    group_2 = resolve_path_a(
+        workloads=[workload_2],
+        lookup_service_name=lambda sid: {"service:other": "OtherService"}.get(sid),
+        snapshot_id=SNAPSHOT_ID,
+        context_id=CONTEXT_ID,
+    )
+    workload_3 = CurrentKubernetesWorkload(
+        workload_id="workload:3",
+        workload_kind="Deployment",
+        namespace="billing",
+        name="billing",
+        contributions=(
+            WorkloadContribution(
+                annotation="service:checkout", evidence_refs=("evidence:kubernetes:g3",)
+            ),
+        ),
+    )
+    group_3 = resolve_path_a(
+        workloads=[workload_3],
+        lookup_service_name=lambda sid: {"service:checkout": "CheckoutService"}.get(sid),
+        snapshot_id=SNAPSHOT_ID,
+        context_id=CONTEXT_ID,
+    )
+    combined_a = PathResolutionResult(
+        resolutions=[*group_1.resolutions, *group_2.resolutions, *group_3.resolutions],
+        claims=[*group_1.claims, *group_2.claims, *group_3.claims],
+    )
+    reduced_multi = reduce_cross_path_resolutions(path_a=combined_a, path_b=_EMPTY, path_c=_EMPTY)
+    assert len(reduced_multi.resolutions) == 3
+    assert len({r.resolution_id for r in reduced_multi.resolutions}) == 3
+    assert len(reduced_multi.claims) == 3
 
 
 # --- §13.4 service-scoped cardinality ------------------------------------------------------------

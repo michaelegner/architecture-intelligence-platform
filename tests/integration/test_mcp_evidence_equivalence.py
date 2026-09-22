@@ -12,6 +12,7 @@ against.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -19,18 +20,21 @@ from pathlib import Path
 import httpx
 import jsonschema
 import pytest
+import yaml
 from mcp.server import MCPServer
 
 from app.architecture_intelligence.contracts import Outcome, Producer
 from app.architecture_intelligence.request import EvidenceRequest, ServiceDependenciesRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.canonical import ids
-from app.graph.importer import import_all_sources
+from app.canonical.infrastructure import KubernetesEvidenceMode
+from app.canonical.model import ArchitectureModel, Service
+from app.graph.importer import import_all_sources, import_kubernetes_source, import_source
 from app.graph.revision_fence import read_revision
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
 from app.provenance.model import ObservedEvidence
-from app.sources.model import FilesystemSourceConfig
+from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
 from tests.support.negotiated_mcp_client import call_negotiated
@@ -261,3 +265,130 @@ async def test_refusal_mcp_call_leaves_revision_fence_unchanged(driver):
     with driver.session(database=DATABASE) as session:
         after = read_revision(session)
     assert after == before
+
+
+# --- §21.6: negotiated MCP get_evidence with real deployment (Path A) evidence, not just I1's -----
+# dependency evidence - mirrors `test_api_architecture_intelligence_equivalence.py::test_evidence_
+# resolve_rest_matches_service_for_real_deployment_evidence`, over the MCP transport instead of REST.
+
+
+def _deployment_resource(name: str, namespace: str, uid: str, *, annotations: dict) -> dict:
+    return {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": {
+            "name": name,
+            "namespace": namespace,
+            "uid": uid,
+            "resourceVersion": "1",
+            "annotations": annotations,
+        },
+    }
+
+
+def _write_kubernetes_bundle(root: Path, *, resources: list[dict]) -> KubernetesSourceConfig:
+    root.mkdir(parents=True, exist_ok=True)
+    resource_bytes = yaml.safe_dump_all(resources).encode()
+    (root / "resources.yaml").write_bytes(resource_bytes)
+    envelope = {
+        "apiVersion": "aip.dev/v1",
+        "kind": "KubernetesSourceSnapshot",
+        "metadata": {
+            "id": "mcp-evidence-deployment-snapshot",
+            "revision": "mcp-evidence-deployment-revision",
+            "producer": "aip-kubernetes-capture-agent",
+            "capturedAt": "2026-08-26T10:00:00Z",
+        },
+        "source": {
+            "configuredSourceId": "mcp-evidence-deployment-source",
+            "configuredScopeId": "mcp-evidence-deployment-scope",
+            "clusterUid": "mcp-evidence-deployment-cluster",
+            "clusterIdentityEvidenceRef": "kube-system-namespace-uid",
+            "mode": "CAPTURED_RESOURCE",
+        },
+        "scope": {
+            "namespaces": ["checkout"],
+            "resourceTypes": sorted(
+                {
+                    "v1/Namespace",
+                    "v1/Pod",
+                    "v1/Service",
+                    "apps/v1/Deployment",
+                    "apps/v1/StatefulSet",
+                    "apps/v1/DaemonSet",
+                    "apps/v1/ReplicaSet",
+                    "networking.k8s.io/v1/Ingress",
+                }
+            ),
+        },
+        "completeness": {
+            "status": "COMPLETE",
+            "authorityRef": "mcp-evidence-deployment-authority",
+            "expectedPriorInventoryRevision": None,
+        },
+        "files": [{"path": "resources.yaml", "sha256": hashlib.sha256(resource_bytes).hexdigest()}],
+    }
+    (root / "envelope.yaml").write_bytes(yaml.safe_dump(envelope).encode())
+    return KubernetesSourceConfig(
+        id="mcp-evidence-deployment-source",
+        root=root,
+        envelope_relative_path="envelope.yaml",
+        configured_scope_id="mcp-evidence-deployment-scope",
+        cluster_uid="mcp-evidence-deployment-cluster",
+        evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+        authorized_producer="aip-kubernetes-capture-agent",
+        authority_record="mcp-evidence-deployment-authority",
+    )
+
+
+@pytest.mark.asyncio
+async def test_deployment_evidence_resolves_identically_direct_vs_mcp(driver, tmp_path):
+    service_id = ids.service_id("checkout")
+    with driver.session(database=DATABASE) as session:
+        import_source(
+            session,
+            source_instance_id=f"declared-source:{service_id}",
+            locator=f"{service_id}.yaml",
+            model=ArchitectureModel(
+                services=[Service(id=service_id, name="checkout", version="1")]
+            ),
+            semantic_input_digest=hashlib.sha256(service_id.encode()).hexdigest(),
+            discovery_scope_id=f"declared-scope:{service_id}",
+            scope_definition_digest=hashlib.sha256(service_id.encode()).hexdigest(),
+        )
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        resources=[
+            _deployment_resource(
+                "checkout-api",
+                "checkout",
+                "deploy-uid-mcp-evidence",
+                annotations={"architecture-intelligence.io/service-id": service_id},
+            )
+        ],
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    dependency_answer = _service(driver).get_service_dependencies(_dependency_request(service_id))
+    assert dependency_answer.data.deployment_claim_ids != []
+    request_payload = {
+        "evidence_refs": sorted(dependency_answer.evidence_refs),
+        "snapshot_id": dependency_answer.snapshot.snapshot_id,
+    }
+
+    direct_json = (
+        _service(driver)
+        .get_evidence(EvidenceRequest.model_validate(request_payload))
+        .model_dump(mode="json")
+    )
+    assert direct_json["outcome"] == Outcome.ANSWERED.value
+    assert direct_json["data"]["missing_evidence_refs"] == []
+
+    server, app = _build_server_and_app(driver)
+    async with mcp_session_manager_lifespan(server):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
+            result = await _call_mcp(client, request_payload)
+            assert result["isError"] is False
+            assert result["structuredContent"] == direct_json
