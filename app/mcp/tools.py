@@ -48,7 +48,7 @@ from app.architecture_intelligence.contracts import (
     EvidenceData,
     ServiceDependenciesData,
 )
-from app.architecture_intelligence.observation_context import build_observation_context_ref
+from app.architecture_intelligence.observation_context import reject_malformed_observation_context
 from app.architecture_intelligence.request import (
     ArchitectureDriftRequest,
     EvidenceRequest,
@@ -179,17 +179,16 @@ def register_tools(
 
 def _reject_malformed_observation_context(context: ObservationContextInput | None) -> None:
     """Shared by `get_architecture_drift` and `get_service_dependencies` (I3 spec §23/§46): the only
-    two tools whose request carries an `observation_context` to pre-validate. Raises `ToolError` for
-    a malformed *caller-supplied* value (bad offset, reversed/excessive window, invalid environment)
-    - see `get_service_dependencies`'s docstring above for why this must happen before, not around,
-    the service call itself."""
-    if context is not None and context.is_complete:
-        try:
-            build_observation_context_ref(
-                context.environment, context.window_start, context.window_end
-            )
-        except pydantic.ValidationError as exc:
-            raise ToolError(str(exc)) from exc
+    two tools whose request carries an `observation_context` to pre-validate. MCP-specific
+    translation of the shared cross-adapter check (v0.5.0 I3 slice 5a,
+    `app.architecture_intelligence.observation_context.reject_malformed_observation_context` - also
+    used by the REST adapter) into `ToolError` for a malformed *caller-supplied* value (bad offset,
+    reversed/excessive window, invalid environment) - see `get_service_dependencies`'s docstring
+    above for why this must happen before, not around, the service call itself."""
+    try:
+        reject_malformed_observation_context(context)
+    except pydantic.ValidationError as exc:
+        raise ToolError(str(exc)) from exc
 
 
 def _close_input_schema(server: MCPServer, tool_name: str) -> None:

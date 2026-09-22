@@ -27,6 +27,7 @@ from pydantic import ValidationError
 from app.architecture_intelligence.contracts import ArchitectureAnswer, ServiceDependenciesData
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
+from tests.support.negotiated_mcp_client import call_negotiated
 
 _ALLOWED_ORIGIN = "http://localhost"
 _ALLOWED_HOST = "localhost"
@@ -58,39 +59,10 @@ class _FakeService:
         return self._answer
 
 
-def _meta() -> dict[str, object]:
-    return {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-    }
-
-
-def _headers(*, name: str) -> dict[str, str]:
-    return {
-        "content-type": "application/json",
-        "accept": "application/json, text/event-stream",
-        "origin": _ALLOWED_ORIGIN,
-        "mcp-method": "tools/call",
-        "mcp-name": name,
-        "mcp-protocol-version": "2026-07-28",
-    }
-
-
-def _call_body(arguments: dict[str, object], request_id: int = 1) -> dict[str, object]:
-    return {
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "method": "tools/call",
-        "params": {"name": "get_service_dependencies", "arguments": arguments, "_meta": _meta()},
-    }
-
-
 async def _call(client: httpx.AsyncClient, arguments: dict[str, object]) -> dict:
-    response = await client.post(
-        "/mcp", headers=_headers(name="get_service_dependencies"), json=_call_body(arguments)
+    return await call_negotiated(
+        client, origin=_ALLOWED_ORIGIN, name="get_service_dependencies", arguments=arguments
     )
-    assert response.status_code == 200
-    return response.json()["result"]
 
 
 @pytest.mark.asyncio

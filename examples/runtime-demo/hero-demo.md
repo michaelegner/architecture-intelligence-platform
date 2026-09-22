@@ -1,10 +1,15 @@
 # Hero Demo — Architecture Drift via MCP
 
 This is the `v0.4.0` I3.4 "hero demo" (spec §41-43): a new, independent client — using nothing but
-plain HTTP/JSON-RPC — asks AIP's read-only MCP tools **which direct dependencies of
-`order-service` were observed at runtime but never declared**, gets `LegacyPricingService` back
-qualified `OBSERVED_ONLY`, then drills into the evidence that supports that answer, entirely
-through the same immutable snapshot. No LLM, no graph query language, no AIP internal module.
+plain HTTP — asks AIP **which direct dependencies of `order-service` were observed at runtime but
+never declared**, gets `LegacyPricingService` back qualified `OBSERVED_ONLY`, then drills into the
+evidence that supports that answer, entirely through the same immutable snapshot. No LLM, no graph
+query language, no AIP internal module.
+
+Since `v0.5.0` I3 (ADR 0016), `ArchitectureIntelligenceService` is the single semantic owner behind
+two public adapters — standard negotiated MCP and REST. This walkthrough discovers the tools over
+MCP, then drives the deterministic drift → evidence path over REST (the published-image golden path
+per ADR 0016); either adapter returns the same `ArchitectureAnswer` semantics.
 
 Unlike [`README.md`](README.md)'s live traffic-generator walkthrough, this demo's evidence is a
 **one-shot, timestamp-frozen** batch (`seed_frozen_evidence.py`), not a continuous live-clock loop
@@ -55,62 +60,35 @@ used below) through the real collector → AIP ingestion path: `OrderService -> 
 qualify `CONFIRMED` — plus the undeclared `OrderService -> LegacyPricingService` call. Since this
 sends once and exits, re-running step 4 again is harmless and produces the same result.
 
-## 5. Discover the tools
+## 5. Discover the tools over standard negotiated MCP
+
+Since `v0.5.0` I3 (ADR 0016), `/mcp` serves standard negotiated MCP only — no `mcp-method`/`mcp-name`
+headers or `_meta` markers are needed; a standalone `tools/list` is answered statelessly:
 
 ```bash
 curl -s http://localhost:8000/mcp \
   -H 'content-type: application/json' \
   -H 'accept: application/json, text/event-stream' \
-  -H 'mcp-protocol-version: 2026-07-28' \
-  -H 'mcp-method: tools/list' \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/list",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {}
-      }
-    }
-  }' | jq '.result.tools[].name'
+  -H 'mcp-protocol-version: 2025-11-25' \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' \
+  | jq '.result.tools[].name'
 ```
 
 Expect exactly three tools, in this order: `get_architecture_drift`, `get_evidence`,
 `get_service_dependencies` (I3 spec §24's frozen lexicographic order).
 
-## 6. Call `get_architecture_drift`
+## 6. Ask `GET /api/services/{id}/drift` (REST)
+
+Per ADR 0016, the deterministic drift → evidence walkthrough below uses the REST adapter — the same
+`ArchitectureIntelligenceService.get_architecture_drift` semantics, over plain HTTP:
 
 ```bash
-curl -s http://localhost:8000/mcp \
-  -H 'content-type: application/json' \
-  -H 'accept: application/json, text/event-stream' \
-  -H 'mcp-protocol-version: 2026-07-28' \
-  -H 'mcp-method: tools/call' \
-  -H 'mcp-name: get_architecture_drift' \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 2,
-    "method": "tools/call",
-    "params": {
-      "name": "get_architecture_drift",
-      "arguments": {
-        "request": {
-          "service_id": "service:order-service",
-          "observation_context": {
-            "environment": "demo",
-            "window_start": "2026-08-26T00:00:00.000000Z",
-            "window_end": "2026-08-27T00:00:00.000000Z"
-          }
-        }
-      },
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {}
-      }
-    }
-  }' > /tmp/drift.json
-jq '.result.structuredContent.claims[] | {object: .object.name, qualification}' /tmp/drift.json
+curl -sf -G http://localhost:8000/api/services/service:order-service/drift \
+  --data-urlencode 'environment=demo' \
+  --data-urlencode 'from=2026-08-26T00:00:00.000000Z' \
+  --data-urlencode 'to=2026-08-27T00:00:00.000000Z' \
+  > /tmp/drift.json
+jq '.claims[] | {object: .object.name, qualification}' /tmp/drift.json
 ```
 
 Expect two claims: `LegacyPricingService` qualified `OBSERVED_ONLY` (the hero finding — a real
@@ -122,7 +100,7 @@ returns a discrepancy, never a match.
 ## 7. Inspect the snapshot and observation context
 
 ```bash
-jq '.result.structuredContent | {snapshot, observation_context}' /tmp/drift.json
+jq '{snapshot, observation_context}' /tmp/drift.json
 ```
 
 Both are stable identifiers bound to this exact answer — the evidence lookup in the next step must
@@ -131,40 +109,22 @@ reuse the same `snapshot_id` to see the same underlying facts.
 ## 8. Collect the evidence references
 
 ```bash
-jq -c '.result.structuredContent.evidence_refs' /tmp/drift.json
-SNAPSHOT_ID=$(jq -r '.result.structuredContent.snapshot.snapshot_id' /tmp/drift.json)
+jq -c '.evidence_refs' /tmp/drift.json
+SNAPSHOT_ID=$(jq -r '.snapshot.snapshot_id' /tmp/drift.json)
 ```
 
 `evidence_refs` is the exact sorted union of every returned claim's evidence (I3 spec §21) — opaque
 IDs only, no raw span/trace payload.
 
-## 9. Call `get_evidence` on the same snapshot
-
-`_meta` belongs *inside* `params`, alongside `name`/`arguments` (not a top-level sibling) — building
-the body with `jq -n` below avoids hand-splicing that structure into a JSON string:
+## 9. Resolve the evidence on the same snapshot (REST)
 
 ```bash
-EVIDENCE_REFS=$(jq -c '.result.structuredContent.evidence_refs' /tmp/drift.json)
-BODY=$(jq -n --argjson refs "$EVIDENCE_REFS" --arg snapshot "$SNAPSHOT_ID" '{
-  jsonrpc: "2.0",
-  id: 3,
-  method: "tools/call",
-  params: {
-    name: "get_evidence",
-    arguments: {request: {evidence_refs: $refs, snapshot_id: $snapshot}},
-    _meta: {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  }
-}')
-curl -s http://localhost:8000/mcp \
+EVIDENCE_REFS=$(jq -c '.evidence_refs' /tmp/drift.json)
+BODY=$(jq -n --argjson refs "$EVIDENCE_REFS" --arg snapshot "$SNAPSHOT_ID" \
+  '{evidence_refs: $refs, snapshot_id: $snapshot}')
+curl -sf -X POST http://localhost:8000/api/evidence/resolve \
   -H 'content-type: application/json' \
-  -H 'accept: application/json, text/event-stream' \
-  -H 'mcp-protocol-version: 2026-07-28' \
-  -H 'mcp-method: tools/call' \
-  -H 'mcp-name: get_evidence' \
-  -d "$BODY" | jq '.result.structuredContent.data.records'
+  -d "$BODY" | jq '.data.records'
 ```
 
 Returns sanitized provenance for each reference — `evidence_type` (`DECLARED`/`OBSERVED`),

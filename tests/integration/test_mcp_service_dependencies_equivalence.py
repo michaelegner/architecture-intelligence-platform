@@ -29,6 +29,7 @@ from app.graph.revision_fence import read_revision
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
 from app.sources.model import FilesystemSourceConfig
+from tests.support.negotiated_mcp_client import call_negotiated
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 SCHEMA_PATH = (
@@ -90,41 +91,13 @@ def _build_server_and_app(driver) -> tuple[MCPServer, object]:
     return server, app
 
 
-def _meta() -> dict[str, object]:
-    return {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-    }
-
-
-def _headers() -> dict[str, str]:
-    return {
-        "content-type": "application/json",
-        "accept": "application/json, text/event-stream",
-        "origin": _ALLOWED_ORIGIN,
-        "mcp-method": "tools/call",
-        "mcp-name": "get_service_dependencies",
-        "mcp-protocol-version": "2026-07-28",
-    }
-
-
-def _call_body(request_payload: dict, request_id: int = 1) -> dict:
-    return {
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "method": "tools/call",
-        "params": {
-            "name": "get_service_dependencies",
-            "arguments": {"request": request_payload},
-            "_meta": _meta(),
-        },
-    }
-
-
 async def _call_mcp(client: httpx.AsyncClient, request_payload: dict) -> dict:
-    response = await client.post("/mcp", headers=_headers(), json=_call_body(request_payload))
-    assert response.status_code == 200
-    return response.json()["result"]
+    return await call_negotiated(
+        client,
+        origin=_ALLOWED_ORIGIN,
+        name="get_service_dependencies",
+        arguments={"request": request_payload},
+    )
 
 
 @pytest.mark.asyncio

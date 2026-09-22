@@ -342,6 +342,48 @@ def read_evidence_rows(session: neo4j.Session, *, evidence_ids: list[str]) -> di
     return {"evidence": evidence, "relations": relations}
 
 
+# --- v0.5.0 I3 slice 5a: public evidence list/lookup reads (spec §16.3) ------------------------
+#
+# `read_evidence_rows` above only resolves a caller-supplied bounded id list (spec §11.1's 1-20-ref
+# `EvidenceRequest.evidence_refs`); the REST `GET /api/evidence`/`GET /api/evidence/{evidence_id}`
+# convenience surfaces need an open-ended "list every publicly visible Evidence record" and "get one
+# arbitrary id" capability with no bounded caller-supplied id set to key off. These reuse the exact
+# same public-evidence predicate/field projection `app/api/evidence.py` ran directly against Neo4j
+# before this slice (spec §16.2: "Existing pre-I3 public evidence remains public under its existing
+# rules" - I3 slice 5b's DEPLOYED_AS-reachability widening is structurally inapplicable until a
+# public DeploymentClaim/DeploymentResolution exists to reach evidence from, so this predicate is
+# unchanged in slice 5a).
+
+_PUBLIC_EVIDENCE_FIELDS = (
+    "e.id AS id, e.source_type AS source_type, e.source_file AS source_file, "
+    "e.source_revision AS source_revision, e.evidence_type AS evidence_type"
+)
+_PUBLIC_EVIDENCE_LIST_QUERY = (
+    f"MATCH (e:Evidence) WHERE e.source_type <> '{KUBERNETES_SOURCE_TYPE}' "
+    f"RETURN {_PUBLIC_EVIDENCE_FIELDS} ORDER BY e.id"
+)
+_PUBLIC_EVIDENCE_GET_QUERY = (
+    f"MATCH (e:Evidence {{id: $evidence_id}}) WHERE e.source_type <> '{KUBERNETES_SOURCE_TYPE}' "
+    f"RETURN {_PUBLIC_EVIDENCE_FIELDS}"
+)
+
+
+def read_public_evidence_list_rows(session: neo4j.Session) -> list[dict]:
+    """Every publicly visible Evidence record's REST convenience-surface fields (spec §16.3's list
+    endpoint), read inside the same stable-read attempt as the snapshot used to validate the
+    caller's supplied `snapshot_id` - see `read_stable_snapshot_from_session`'s `read_extra`
+    parameter."""
+    return [record.data() for record in session.run(_PUBLIC_EVIDENCE_LIST_QUERY)]
+
+
+def read_public_evidence_row(session: neo4j.Session, *, evidence_id: str) -> dict | None:
+    """One publicly visible Evidence record's REST convenience-surface fields by id (spec §16.3's
+    lookup endpoint), or `None` if it doesn't exist or isn't publicly visible - the caller decides
+    the 404, this function only reports raw presence/absence."""
+    record = session.run(_PUBLIC_EVIDENCE_GET_QUERY, evidence_id=evidence_id).single()
+    return record.data() if record is not None else None
+
+
 def read_service_dependency_rows(
     session: neo4j.Session,
     *,

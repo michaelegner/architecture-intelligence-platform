@@ -3,11 +3,17 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from app.architecture_intelligence.contracts import Producer
+from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.canonical import ids
 from app.graph.importer import import_all_sources
 from app.main import create_app
 from app.settings import AppConfig, Secrets, Settings
 from app.sources.model import FilesystemSourceConfig
+
+_PRODUCER = Producer(
+    name="architecture-intelligence-platform", version="0.5.0", build_revision="f" * 40
+)
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
@@ -57,6 +63,15 @@ def _evidence_id(driver, *, source_type: str) -> str:
         ).single()["id"]
 
 
+def _snapshot_id(driver) -> str:
+    """v0.5.0 I3 slice 5a: `GET /api/evidence`/`GET /api/evidence/{id}` now require a real,
+    current `snapshot_id` (spec §16.3) - fetched the same way a real caller would, from any other
+    `ArchitectureIntelligenceService`-backed answer."""
+    service = ArchitectureIntelligenceService(driver, database=DATABASE, producer=_PRODUCER)
+    snapshot_id, _rows = service.list_public_evidence()
+    return snapshot_id
+
+
 class FakeProvider:
     """No real OpenAI calls: fixed Cypher, deterministic answer."""
 
@@ -74,6 +89,9 @@ def _build_app(driver, *, llm_provider=None):
     app = create_app()
     app.state.driver = driver
     app.state.llm_provider = llm_provider
+    app.state.architecture_intelligence_service = ArchitectureIntelligenceService(
+        driver, database=DATABASE, producer=_PRODUCER
+    )
     app.state.settings = Settings(
         config=AppConfig.model_validate(
             {
@@ -175,8 +193,8 @@ def test_get_message_not_found(client):
     assert response.status_code == 404
 
 
-def test_list_evidence(client):
-    response = client.get("/api/evidence")
+def test_list_evidence(client, driver):
+    response = client.get("/api/evidence", params={"snapshot_id": _snapshot_id(driver)})
     assert response.status_code == 200
     # one per scanned source file: order-service has 3 (openapi/asyncapi/manifest),
     # product-service/payment-service/invoice-service have 1 each
@@ -185,8 +203,23 @@ def test_list_evidence(client):
     assert source_types == {"OPENAPI", "ASYNCAPI", "MANIFEST"}
 
 
+def test_list_evidence_requires_snapshot_id(client):
+    response = client.get("/api/evidence")
+    assert response.status_code == 422
+
+
+def test_list_evidence_rejects_stale_snapshot_id(client):
+    stale_snapshot_id = "aip:snapshot:v1:" + "0" * 64
+    response = client.get("/api/evidence", params={"snapshot_id": stale_snapshot_id})
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "SNAPSHOT_NOT_AVAILABLE"
+
+
 def test_get_evidence(client, driver):
-    response = client.get(f"/api/evidence/{_evidence_id(driver, source_type='MANIFEST')}")
+    response = client.get(
+        f"/api/evidence/{_evidence_id(driver, source_type='MANIFEST')}",
+        params={"snapshot_id": _snapshot_id(driver)},
+    )
     assert response.status_code == 200
     body = response.json()
     assert body["source_type"] == "MANIFEST"
@@ -194,8 +227,11 @@ def test_get_evidence(client, driver):
     assert body["evidence_type"] == "DECLARED"
 
 
-def test_get_evidence_not_found(client):
-    response = client.get("/api/evidence/evidence:openapi:does-not-exist")
+def test_get_evidence_not_found(client, driver):
+    response = client.get(
+        "/api/evidence/evidence:openapi:does-not-exist",
+        params={"snapshot_id": _snapshot_id(driver)},
+    )
     assert response.status_code == 404
 
 
@@ -445,12 +481,18 @@ def test_kubernetes_evidence_is_absent_from_the_public_evidence_surface(client, 
             id=evidence_id,
         )
     try:
-        listed = client.get("/api/evidence")
+        snapshot_id = _snapshot_id(driver)
+        listed = client.get("/api/evidence", params={"snapshot_id": snapshot_id})
         assert listed.status_code == 200
         assert evidence_id not in {e["id"] for e in listed.json()}
         assert "KUBERNETES" not in {e["source_type"] for e in listed.json()}
 
-        assert client.get(f"/api/evidence/{evidence_id}").status_code == 404
+        assert (
+            client.get(
+                f"/api/evidence/{evidence_id}", params={"snapshot_id": snapshot_id}
+            ).status_code
+            == 404
+        )
     finally:
         with driver.session(database=DATABASE) as session:
             session.run("MATCH (e:Evidence {id: $id}) DETACH DELETE e", id=evidence_id)

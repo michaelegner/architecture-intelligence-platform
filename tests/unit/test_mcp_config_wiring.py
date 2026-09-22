@@ -36,25 +36,16 @@ def app_with_custom_mcp_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 def _tools_list_request(origin: str) -> dict:
+    """v0.5.0 I3 slice 5a: the v0.4.x direct MCP envelope is retired (ADR 0016) - a negotiated
+    `tools/list` request exercises the same Origin/Host config wiring this test is actually about."""
     return {
         "headers": {
             "content-type": "application/json",
             "accept": "application/json, text/event-stream",
-            "mcp-protocol-version": "2026-07-28",
-            "mcp-method": "tools/list",
+            "mcp-protocol-version": "2025-11-25",
             "origin": origin,
         },
-        "json": {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "tools/list",
-            "params": {
-                "_meta": {
-                    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-                    "io.modelcontextprotocol/clientCapabilities": {},
-                }
-            },
-        },
+        "json": {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
     }
 
 

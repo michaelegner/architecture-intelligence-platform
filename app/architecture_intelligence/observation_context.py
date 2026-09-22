@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes, format_utc_timestamp
 from app.architecture_intelligence.contracts import ObservationContextRef
+from app.architecture_intelligence.request import ObservationContextInput
 
 _CONTEXT_ID_VERSION = 1
 
@@ -60,3 +61,21 @@ def build_observation_context_ref(
         window_start=_normalize_to_utc(window_start),
         window_end=_normalize_to_utc(window_end),
     )
+
+
+def reject_malformed_observation_context(context: ObservationContextInput | None) -> None:
+    """v0.5.0 I3 slice 5a - shared by every public adapter (MCP, REST) that must pre-validate a
+    caller-supplied `observation_context` *before* dispatch, so a malformed value (bad offset,
+    reversed/excessive window, invalid environment) is rejected as the adapter's own input-error
+    shape rather than falling through into a service-internal exception path. Calls the exact same
+    `build_observation_context_ref` the service itself calls internally - not a reimplementation,
+    the same pure function, called once more for its side-effect-free `pydantic.ValidationError`.
+    Raises `pydantic.ValidationError` uncaught; each adapter translates it into its own error type
+    (MCP: `ToolError`; REST: `HTTPException(422, ...)`).
+
+    A missing or incomplete context is deliberately not rejected here - that remains a semantic
+    `ArchitectureIntelligenceService` refusal (`OBSERVATION_CONTEXT_REQUIRED`), never an adapter
+    input error.
+    """
+    if context is not None and context.is_complete:
+        build_observation_context_ref(context.environment, context.window_start, context.window_end)

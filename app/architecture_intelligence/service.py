@@ -39,6 +39,8 @@ from app.architecture_intelligence.observation_context import build_observation_
 from app.architecture_intelligence.repository import (
     SnapshotUnstable,
     read_evidence_rows,
+    read_public_evidence_list_rows,
+    read_public_evidence_row,
     read_service_dependency_rows,
     read_stable_snapshot_from_session,
 )
@@ -507,3 +509,32 @@ class ArchitectureIntelligenceService:
             evidence_refs=[],
             limitations=[Limitation(code=code, message=message)],
         )
+
+    def list_public_evidence(self) -> tuple[str, list[dict]]:
+        """v0.5.0 I3 slice 5a - REST-only convenience capability backing `GET /api/evidence` (spec
+        §16.3). `EvidenceRequest`/`get_evidence` above only resolve a caller-supplied bounded 1-20-
+        ref id list; this method has no bounded id set to key off, so it is deliberately not
+        `ArchitectureAnswer`-shaped and lets `SnapshotUnstable` propagate uncaught - the REST route
+        maps it to its own 503 `SNAPSHOT_NOT_AVAILABLE` response (spec §16.3's frozen status table),
+        which does not fit a semantic `ArchitectureAnswer` refusal envelope the way `get_evidence`'s
+        bounded-lookup refusals do."""
+        with open_session(self._driver, database=self._database, read_only=True) as session:
+            snapshot = read_stable_snapshot_from_session(
+                session,
+                coverage_qualification_enabled=self._coverage_qualification_enabled,
+                read_extra=read_public_evidence_list_rows,
+            )
+            return snapshot.snapshot_id, snapshot.extra
+
+    def get_public_evidence(self, evidence_id: str) -> tuple[str, dict | None]:
+        """v0.5.0 I3 slice 5a - the `GET /api/evidence/{evidence_id}` counterpart to
+        `list_public_evidence` above. Returns `None` for the row when `evidence_id` doesn't exist or
+        isn't publicly visible - the REST route decides the 404, this method only reports raw
+        presence/absence bound to one stable snapshot."""
+        with open_session(self._driver, database=self._database, read_only=True) as session:
+            snapshot = read_stable_snapshot_from_session(
+                session,
+                coverage_qualification_enabled=self._coverage_qualification_enabled,
+                read_extra=lambda s: read_public_evidence_row(s, evidence_id=evidence_id),
+            )
+            return snapshot.snapshot_id, snapshot.extra

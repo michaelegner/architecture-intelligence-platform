@@ -2,6 +2,12 @@
 drives the full `get_service_dependencies` -> `get_evidence` golden path using only generic
 HTTP/JSON-RPC, importing no AIP internal module and requiring no LLM key.
 
+v0.5.0 I3 slice 5a retires the v0.4.x AIP-specific direct MCP envelope (ADR 0016, spec §14.1) -
+`POST /mcp` now serves standard negotiated MCP only, so this client speaks plain negotiated MCP: no
+`mcp-method`/`mcp-name` headers, no `params._meta` markers. No prior `initialize` handshake is
+required either - this project's mounted MCP app runs the SDK's session manager in
+`stateless_http=True` mode, so a standalone `tools/list`/`tools/call` is answered statelessly.
+
 This module MUST import nothing from `app.*` - `tests/unit/test_independent_mcp_client_boundary.py`
 enforces this statically (AST-level, mirroring `tests/unit/test_mcp_read_only_boundary.py`'s
 technique). Only `httpx` and the standard library are used; MCP protocol/JSON-RPC framing is
@@ -12,36 +18,20 @@ from __future__ import annotations
 
 import httpx
 
-MCP_PROTOCOL_VERSION = "2026-07-28"
+MCP_PROTOCOL_VERSION = "2025-11-25"
 
 
-def _meta() -> dict[str, object]:
+def _headers() -> dict[str, str]:
     return {
-        "io.modelcontextprotocol/protocolVersion": MCP_PROTOCOL_VERSION,
-        "io.modelcontextprotocol/clientCapabilities": {},
-    }
-
-
-def _headers(*, method: str, name: str | None = None) -> dict[str, str]:
-    headers = {
         "content-type": "application/json",
         "accept": "application/json, text/event-stream",
         "mcp-protocol-version": MCP_PROTOCOL_VERSION,
-        "mcp-method": method,
     }
-    if name is not None:
-        headers["mcp-name"] = name
-    return headers
 
 
 def tools_list(client: httpx.Client, *, request_id: int = 1) -> dict:
-    body = {
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "method": "tools/list",
-        "params": {"_meta": _meta()},
-    }
-    response = client.post("/mcp", headers=_headers(method="tools/list"), json=body)
+    body = {"jsonrpc": "2.0", "id": request_id, "method": "tools/list", "params": {}}
+    response = client.post("/mcp", headers=_headers(), json=body)
     response.raise_for_status()
     return response.json()["result"]
 
@@ -53,9 +43,9 @@ def call_tool(
         "jsonrpc": "2.0",
         "id": request_id,
         "method": "tools/call",
-        "params": {"name": name, "arguments": arguments, "_meta": _meta()},
+        "params": {"name": name, "arguments": arguments},
     }
-    response = client.post("/mcp", headers=_headers(method="tools/call", name=name), json=body)
+    response = client.post("/mcp", headers=_headers(), json=body)
     response.raise_for_status()
     return response.json()["result"]
 

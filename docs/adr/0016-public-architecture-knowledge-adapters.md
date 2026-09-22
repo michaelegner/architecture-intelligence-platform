@@ -1,6 +1,6 @@
 # 16. Use REST and standard negotiated MCP as the public Architecture Knowledge adapters
 
-Status: Proposed — targeted for `v0.5.0` I3 Slice 5.
+Status: Accepted — implemented in `v0.5.0` I3 Slice 5a.
 
 ## Context
 

@@ -10,6 +10,7 @@ from app.ai.provider import OpenAIProvider
 from app.ai.semantic_query_validator import SemanticValidationError
 from app.api import (
     analysis,
+    architecture_intelligence,
     evidence,
     import_api,
     messages,
@@ -42,11 +43,16 @@ async def lifespan(app: FastAPI):
     # v0.4.0 I2.2 - the MCP tool bodies are registered at import time (app.mcp.server), before this
     # driver exists; app.mcp.wiring.get_service() is the lazy indirection they resolve it through on
     # every dispatch. See app.mcp.wiring's module docstring for why this can't be done eagerly.
-    mcp_wiring.configure(
-        mcp_wiring.build_production_service(
-            app.state.driver, database=settings.config.graph.database
-        )
+    #
+    # v0.5.0 I3 slice 5a: the same constructed service is also set on app.state so REST routes
+    # (app.deps.get_architecture_intelligence_service) share the exact same instance, not a second
+    # construction - see ADR 0016 decision #1/#2 (ArchitectureIntelligenceService is the single
+    # semantic owner behind both public adapters).
+    architecture_intelligence_service = mcp_wiring.build_production_service(
+        app.state.driver, database=settings.config.graph.database
     )
+    mcp_wiring.configure(architecture_intelligence_service)
+    app.state.architecture_intelligence_service = architecture_intelligence_service
     if settings.config.llm.enabled and settings.secrets.openai_api_key:
         app.state.llm_provider = OpenAIProvider(api_key=settings.secrets.openai_api_key)
     else:
@@ -79,6 +85,7 @@ def create_app() -> FastAPI:
     app.include_router(import_api.router)
     app.include_router(query.router)
     app.include_router(evidence.router)
+    app.include_router(architecture_intelligence.router)
     app.include_router(telemetry.router)
     app.include_router(runtime.runtime_router)
     app.include_router(runtime.runtime_analysis_router)
