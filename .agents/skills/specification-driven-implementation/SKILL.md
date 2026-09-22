@@ -95,7 +95,13 @@ the repository adopts one, but the timestamp remains in the hidden PR metadata m
 
 8. **Execute the specified validation and qualification steps** — the plan's own "Validation
    Commands" section, run in full (this repo's real `tests/unit`/`tests/integration` suites, lint,
-   format — not a hand-picked subset).
+   format — not a hand-picked subset). Run autofixes (`ruff format`, `ruff check --fix`) before
+   tests, not after, so the common case needs only one test run. This is not a blanket "autofixes
+   never affect behavior" claim — `ruff check --fix` applies whatever rules are enabled, which can
+   rewrite program text beyond formatting/import ordering, so treat that possibility as real: if an
+   autofix runs *after* a test run that already passed and it changes source, rerun the affected (or
+   full) suite before treating validation as final. The point is to avoid a redundant re-run for zero
+   new signal, not to skip re-verifying a change that could plausibly affect behavior.
 
 9. **Reconcile the final implementation against the *retained* original plan**, using the
    reconciliation template below. This is a diff against what was promised, not a fresh

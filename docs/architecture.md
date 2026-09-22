@@ -48,7 +48,8 @@ Every endpoint is mounted in `app/main.py`; each router lives in its own `app/ap
 | `services.py` | `/api/services` | List/get services; per-service evidence |
 | `queues.py` | `/api/queues` | List/get queues; per-queue evidence |
 | `messages.py` | `/api/messages` | List/get messages |
-| `evidence.py` | `/api/evidence` | List/get raw `Evidence` nodes by id |
+| `architecture_intelligence.py` | `/api/services/{id}/dependencies`, `/api/services/{id}/drift` | REST parity for `ArchitectureIntelligenceService.get_service_dependencies`/`.get_architecture_drift` (v0.5.0 I3 slice 5a) |
+| `evidence.py` | `/api/evidence` | `POST /resolve` (REST parity for `ArchitectureIntelligenceService.get_evidence`); snapshot-aware `GET ""`/`GET /{id}` convenience list/lookup over publicly visible `Evidence` nodes |
 | `analysis.py` | `/api/analysis` | Deterministic A1-A5 (senders/consumers/orphan-queue/blast-radius) |
 | `runtime.py` (`runtime_router`) | `/api/runtime` | Observed relations, per-service runtime profile |
 | `runtime.py` (`runtime_analysis_router`) | `/api/analysis/runtime` | O1-O5 (confirmed/observed-only/declared-only/coverage) |
@@ -57,9 +58,19 @@ Every endpoint is mounted in `app/main.py`; each router lives in its own `app/ap
 | `telemetry.py` | `/v1/traces` | OTLP/HTTP trace ingestion |
 | `ui.py` | `/`, `/services/{id}`, `/queues/{id}`, `/query` | Minimal server-rendered HTML UI |
 
+Since `v0.5.0` I3 (ADR 0016), `ArchitectureIntelligenceService` is the single semantic owner of
+public Architecture Knowledge (dependencies, drift, evidence resolution). `architecture_intelligence.py`
+and `evidence.py`'s `POST /resolve` are thin REST wrappers over that service — they construct the
+existing request model and call the corresponding service method exactly once, never querying Neo4j
+or re-deriving Architecture Knowledge independently. Standard negotiated [MCP](mcp.md) is the other
+public adapter over the same service; the two are semantically equivalent for equivalent requests.
+The remaining routers above predate this consolidation and expose general graph-browsing/analysis
+capability, not `ArchitectureIntelligenceService`'s own contract.
+
 See [`analyses.md`](analyses.md) for what each deterministic analysis actually computes,
-[`semantic-validation.md`](semantic-validation.md) for the NL-query pipeline, and
-[`configuration.md`](configuration.md) for every setting that shapes this behavior.
+[`semantic-validation.md`](semantic-validation.md) for the NL-query pipeline,
+[`mcp.md`](mcp.md) for the MCP adapter, and [`configuration.md`](configuration.md) for every setting
+that shapes this behavior.
 
 ## Architecture principles
 

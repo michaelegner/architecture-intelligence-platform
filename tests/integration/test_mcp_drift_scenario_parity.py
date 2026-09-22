@@ -36,6 +36,7 @@ from evaluation import fixture_setup
 from evaluation.architecture_answers.loader import discover_scenarios, load_scenario
 from evaluation.architecture_answers.model import TOOL_ARCHITECTURE_DRIFT
 from evaluation.architecture_answers.runner import build_request_payload
+from tests.support.negotiated_mcp_client import call_negotiated
 
 DATABASE = "neo4j"
 _ALLOWED_ORIGIN = "http://localhost"
@@ -72,24 +73,6 @@ def clean_database(driver):
     yield
 
 
-def _meta() -> dict[str, object]:
-    return {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-    }
-
-
-def _headers() -> dict[str, str]:
-    return {
-        "content-type": "application/json",
-        "accept": "application/json, text/event-stream",
-        "origin": _ALLOWED_ORIGIN,
-        "mcp-method": "tools/call",
-        "mcp-name": "get_architecture_drift",
-        "mcp-protocol-version": "2026-07-28",
-    }
-
-
 def _json_safe(value: object) -> object:
     """`build_request_payload` returns native `datetime` values (fine for `.model_validate()`
     directly, per the direct-call path below) - the MCP path additionally has to survive a real
@@ -103,23 +86,13 @@ def _json_safe(value: object) -> object:
     return value
 
 
-def _call_body(request_payload: dict, request_id: int = 1) -> dict:
-    return {
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "method": "tools/call",
-        "params": {
-            "name": "get_architecture_drift",
-            "arguments": {"request": _json_safe(request_payload)},
-            "_meta": _meta(),
-        },
-    }
-
-
 async def _call_drift_via_mcp(client: httpx.AsyncClient, request_payload: dict) -> dict:
-    response = await client.post("/mcp", headers=_headers(), json=_call_body(request_payload))
-    assert response.status_code == 200
-    return response.json()["result"]
+    return await call_negotiated(
+        client,
+        origin=_ALLOWED_ORIGIN,
+        name="get_architecture_drift",
+        arguments={"request": _json_safe(request_payload)},
+    )
 
 
 @pytest.mark.asyncio

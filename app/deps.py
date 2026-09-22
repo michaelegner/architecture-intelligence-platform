@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException, Request
 
 from app.ai.provider import LLMProvider
 from app.ai.question_service import ArchitectureQuestionService
+from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.graph.repository import open_session
 from app.settings import Settings
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer
@@ -16,6 +17,18 @@ def get_settings(request: Request) -> Settings:
 
 def get_driver(request: Request) -> neo4j.Driver:
     return request.app.state.driver
+
+
+def get_architecture_intelligence_service(request: Request) -> ArchitectureIntelligenceService:
+    """v0.5.0 I3 slice 5a - the same `ArchitectureIntelligenceService` singleton
+    `app.mcp.wiring.configure()` gives the MCP tools, set on `app.state` once during
+    `app.main.lifespan`'s startup. REST routes depend on this rather than importing
+    `app.mcp.wiring.get_service` directly: every other REST dependency in this module is already an
+    `app.state`-backed `Depends` wrapper, and importing another public adapter's own wiring module
+    would make REST and MCP share hidden module-global state instead of the request-scoped `app.state`
+    every other dependency here already uses - it also means REST/service equivalence is definitional
+    (same instance, same producer), not something that could silently drift."""
+    return request.app.state.architecture_intelligence_service
 
 
 def get_read_session(request: Request) -> Iterator[neo4j.Session]:

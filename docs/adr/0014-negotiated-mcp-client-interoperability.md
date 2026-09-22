@@ -1,6 +1,9 @@
 # 14. Support negotiated MCP client interoperability without weakening the direct 2026-07-28 contract
 
-Status: Accepted — implemented in `v0.4.2` I1.
+Status: Accepted — implemented in `v0.4.2` I1. Superseded by 0016 for the active `v0.5+`
+architecture (the AIP-specific direct MCP envelope this ADR's dual-mode decision retained alongside
+negotiated MCP is retired in `v0.5.0` I3 Slice 5a); this ADR's body remains unchanged as the
+historical rationale and implementation record for the `v0.4.2` dual-mode release.
 
 ## Context
 

@@ -4,11 +4,17 @@
 # MCP client instead of the scripted direct walkthrough - see
 # docs/specifications/0.4.2/i2-client-ready-demo-and-documentation.md.
 #
-# Does exactly what hero-demo.md does by hand - bring up AIP without the live traffic generator,
-# import the declared architecture, seed one timestamp-frozen OTLP batch, then drive
-# tools/list -> get_architecture_drift -> get_evidence over plain HTTP/JSON-RPC - and prints the
-# interesting parts of each answer. Read hero-demo.md for what every step means and why the
-# observation window below is a fixed constant rather than "now - 24h".
+# v0.5.0 I3 slice 5a (ADR 0016): the v0.4.x direct MCP envelope this script originally used is
+# retired - `/mcp` now serves standard negotiated MCP only. Per ADR 0016's own consequence ("The
+# published-image golden path uses REST plus standard negotiated MCP rather than direct plus
+# negotiated MCP"), this script now discovers tools over negotiated MCP but drives the deterministic
+# drift -> evidence walkthrough over the new REST surface (`GET /api/services/{id}/drift`,
+# `POST /api/evidence/resolve`) instead of scripted MCP tool calls.
+#
+# Bring up AIP without the live traffic generator, import the declared architecture, seed one
+# timestamp-frozen OTLP batch, then drive tools/list (negotiated MCP) -> drift -> evidence (REST)
+# over plain HTTP/JSON - and print the interesting parts of each answer. Read hero-demo.md for what
+# every step means and why the observation window below is a fixed constant rather than "now - 24h".
 #
 # Usage:
 #   examples/runtime-demo/mcp-demo.sh          # run the full scripted MCP walkthrough
@@ -53,9 +59,8 @@ CLIENT_GUIDE_PATH="examples/mcp-clients/README.md"
 MCP_HEADERS=(
   -H 'content-type: application/json'
   -H 'accept: application/json, text/event-stream'
-  -H 'mcp-protocol-version: 2026-07-28'
+  -H 'mcp-protocol-version: 2025-11-25'
 )
-META='{"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}'
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
 
@@ -294,49 +299,36 @@ if [[ "${MODE}" == "serve" ]]; then
   exit 0
 fi
 
-step "Discovering the tools (tools/list)"
-curl -s "${AIP_URL}/mcp" "${MCP_HEADERS[@]}" -H 'mcp-method: tools/list' \
-  -d "$(jq -n --argjson meta "$META" '{jsonrpc: "2.0", id: 1, method: "tools/list", params: {_meta: $meta}}')" \
+step "Discovering the tools over standard negotiated MCP (tools/list)"
+curl -s "${AIP_URL}/mcp" "${MCP_HEADERS[@]}" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' \
   | jq -r '.result.tools[].name'
 
-step "Asking get_architecture_drift about ${SERVICE_ID}"
-DRIFT="$(curl -s "${AIP_URL}/mcp" "${MCP_HEADERS[@]}" \
-  -H 'mcp-method: tools/call' -H 'mcp-name: get_architecture_drift' \
-  -d "$(jq -n --argjson meta "$META" --arg service "$SERVICE_ID" --arg env "$ENVIRONMENT" \
-        --arg wstart "$WINDOW_START" --arg wend "$WINDOW_END" '{
-          jsonrpc: "2.0", id: 2, method: "tools/call",
-          params: {
-            name: "get_architecture_drift",
-            arguments: {request: {service_id: $service, observation_context: {environment: $env, window_start: $wstart, window_end: $wend}}},
-            _meta: $meta
-          }
-        }')")"
+step "Asking GET /api/services/${SERVICE_ID}/drift about drift"
+DRIFT="$(curl -sf -G "${AIP_URL}/api/services/${SERVICE_ID}/drift" \
+  --data-urlencode "environment=${ENVIRONMENT}" \
+  --data-urlencode "from=${WINDOW_START}" \
+  --data-urlencode "to=${WINDOW_END}")"
 # Kept in a variable rather than a temp file - a snap-packaged jq cannot read the host's /tmp.
-printf '%s' "${DRIFT}" | jq -e '.result.structuredContent' >/dev/null || {
-  echo "error: unexpected MCP response:" >&2
+printf '%s' "${DRIFT}" | jq -e '.claims' >/dev/null || {
+  echo "error: unexpected REST response:" >&2
   printf '%s\n' "${DRIFT}" >&2
   exit 1
 }
-printf '%s' "${DRIFT}" | jq '.result.structuredContent
-  | {snapshot_id: .snapshot.snapshot_id, outcome, limitations,
-     claims: [.claims[] | {dependency: .object.name, via: .delivery.via.name, qualification, evidence_refs}]}'
+printf '%s' "${DRIFT}" | jq \
+  '{snapshot_id: .snapshot.snapshot_id, outcome, limitations,
+    claims: [.claims[] | {dependency: .object.name, via: .delivery.via.name, qualification, evidence_refs}]}'
 
 # 4. Resolve the answer's own opaque evidence references - at the SAME snapshot, so both calls read
 #    one immutable graph state.
-step "Resolving that answer's evidence_refs with get_evidence (same snapshot)"
-curl -s "${AIP_URL}/mcp" "${MCP_HEADERS[@]}" \
-  -H 'mcp-method: tools/call' -H 'mcp-name: get_evidence' \
-  -d "$(jq -n --argjson meta "$META" \
-        --argjson refs "$(printf '%s' "${DRIFT}" | jq -c '.result.structuredContent.evidence_refs')" \
-        --arg snapshot "$(printf '%s' "${DRIFT}" | jq -r '.result.structuredContent.snapshot.snapshot_id')" '{
-          jsonrpc: "2.0", id: 3, method: "tools/call",
-          params: {
-            name: "get_evidence",
-            arguments: {request: {evidence_refs: $refs, snapshot_id: $snapshot}},
-            _meta: $meta
-          }
-        }')" \
-  | jq '[.result.structuredContent.data.records[] | {id, evidence_type, source_type, source_locator}]'
+step "Resolving that answer's evidence_refs with POST /api/evidence/resolve (same snapshot)"
+curl -sf -X POST "${AIP_URL}/api/evidence/resolve" \
+  -H 'content-type: application/json' \
+  -d "$(jq -n \
+        --argjson refs "$(printf '%s' "${DRIFT}" | jq -c '.evidence_refs')" \
+        --arg snapshot "$(printf '%s' "${DRIFT}" | jq -r '.snapshot.snapshot_id')" \
+        '{evidence_refs: $refs, snapshot_id: $snapshot}')" \
+  | jq '[.data.records[] | {id, evidence_type, source_type, source_locator}]'
 
 step "Done - the stack is still running"
 cat <<EOF

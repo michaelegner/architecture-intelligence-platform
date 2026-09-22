@@ -41,6 +41,7 @@ from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
 from app.settings import AppConfig, Secrets, Settings
 from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
+from tests.support.negotiated_mcp_client import call_negotiated
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 EXAMPLES_DIR = REPO_ROOT / "examples"
@@ -126,6 +127,7 @@ def _rest_client(driver) -> TestClient:
     app = create_app()
     app.state.driver = driver
     app.state.llm_provider = None
+    app.state.architecture_intelligence_service = _service(driver)
     app.state.settings = Settings(
         config=AppConfig.model_validate(
             {
@@ -156,39 +158,10 @@ def _build_mcp_server_and_app(driver) -> tuple[MCPServer, object]:
     return server, app
 
 
-def _mcp_headers(tool_name: str) -> dict[str, str]:
-    return {
-        "content-type": "application/json",
-        "accept": "application/json, text/event-stream",
-        "origin": _ALLOWED_ORIGIN,
-        "mcp-method": "tools/call",
-        "mcp-name": tool_name,
-        "mcp-protocol-version": "2026-07-28",
-    }
-
-
-def _mcp_call_body(tool_name: str, request_payload: dict, request_id: int = 1) -> dict:
-    return {
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "method": "tools/call",
-        "params": {
-            "name": tool_name,
-            "arguments": {"request": request_payload},
-            "_meta": {
-                "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-                "io.modelcontextprotocol/clientCapabilities": {},
-            },
-        },
-    }
-
-
 async def _call_mcp_tool(client: httpx.AsyncClient, tool_name: str, request_payload: dict) -> dict:
-    response = await client.post(
-        "/mcp", headers=_mcp_headers(tool_name), json=_mcp_call_body(tool_name, request_payload)
+    return await call_negotiated(
+        client, origin=_ALLOWED_ORIGIN, name=tool_name, arguments={"request": request_payload}
     )
-    assert response.status_code == 200
-    return response.json()["result"]
 
 
 def _assert_no_internal_markers(serialized: str) -> None:
@@ -215,14 +188,17 @@ def test_kubernetes_evidence_is_absent_from_the_rest_evidence_list_and_lookup(dr
     assert kubernetes_evidence_ids
 
     client = _rest_client(driver)
-    list_response = client.get("/api/evidence")
+    snapshot_id, _rows = _service(driver).list_public_evidence()
+    list_response = client.get("/api/evidence", params={"snapshot_id": snapshot_id})
     assert list_response.status_code == 200
     listed_ids = {e["id"] for e in list_response.json()}
     assert not listed_ids & set(kubernetes_evidence_ids)
     assert all(e["source_type"] != "KUBERNETES" for e in list_response.json())
 
     for evidence_id in kubernetes_evidence_ids:
-        lookup_response = client.get(f"/api/evidence/{evidence_id}")
+        lookup_response = client.get(
+            f"/api/evidence/{evidence_id}", params={"snapshot_id": snapshot_id}
+        )
         assert lookup_response.status_code == 404
 
 

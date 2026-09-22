@@ -1,23 +1,41 @@
 """v0.4.0 I2.1 - MCP protocol/discovery tests (spec §17's "Protocol and Discovery" scenarios 1-4,
-plus the two verified SDK gaps `app.mcp.guard` corrects and the request/response contract shape).
+plus the request/response contract shape).
 
-v0.4.2 I1 adds the dual-mode transport routing-truth-table coverage from
-`docs/specifications/0.4.2/i1-dual-mode-mcp-transport.md` §11.1/§28/§30: every request-shape
-row that must route to negotiated SDK handling vs. be rejected before SDK dispatch, plus the
-per-HTTP-method contract for `/mcp`. All direct-mode tests above are unchanged and untouched by
-that increment - every one of them sends the `mcp-method` header via `_headers()`, which is
-itself an AIP direct-envelope marker, so they all still take the pre-I1 `classify_inbound_request`
-path byte-for-byte.
+v0.5.0 I3 slice 5a retires the v0.4.x AIP-specific "direct mode" envelope (ADR 0016, spec §14.1):
+`app.mcp.guard.ModernProtocolGuard` no longer classifies any request as "direct" - every request
+that reaches `/mcp` either matches its narrow retained checks (HTTP method, body size, the retired-
+era-on-a-markerless-follow-up rejection) or is forwarded to the SDK's own negotiated dispatch
+unmodified. Every `mcp-method`/`mcp-name`-header test this file used to run is gone: those headers
+are now ordinary, inert HTTP headers the guard never inspects. What remains is this project's own
+negotiated-only contract - the routing-truth-table coverage `docs/specifications/0.4.2/
+i1-dual-mode-mcp-transport.md` §11.1/§28/§30 originally introduced, minus everything that was
+direct-mode-specific.
+
+**Disclosed scope decision, carried over from `app/mcp/guard.py`'s own module docstring**: the
+v0.4.2 `_DIRECT_MODE_METHODS` allowlist (protection against a real, verified `subscriptions/listen`
+SDK-hang DoS) is retired along with direct-marker classification and is NOT reintroduced for
+negotiated traffic. This file deliberately does not exercise `subscriptions/listen` (or any other
+non-allowlisted method) at all - doing so could hang the pytest process, exactly the failure mode
+`tests/integration/test_mcp_direct_marker_dos_regression.py` (deleted this slice) existed to catch
+when this protection still applied to direct-marked traffic.
+
+Two checks below (`_check_unknown_tool_name_is_a_tool_execution_error_not_a_protocol_error`,
+`_check_unexpected_top_level_argument_no_longer_fails_before_dispatch`) replace this file's former
+guard-level "unknown tool"/"unexpected argument" protocol-error checks: those protections were only
+ever applied inside the now-deleted direct-mode branch (confirmed live, `app.mcp.tools`'s own module
+docstring names them as SDK gaps the guard corrected "ahead of the SDK's own dispatch" - negotiated
+traffic never had this correction). Deleting direct mode does not newly introduce this gap; it
+removes the one mode that happened to have it patched. These two tests document the SDK's actual,
+unpatched negotiated-mode behavior rather than silently losing coverage of what changed.
 
 Tests against `app.mcp.app.build_mcp_app` directly (not the full `app.main` FastAPI app) with a real
 `httpx.AsyncClient`/`ASGITransport` - a real HTTP round trip through the guard and the SDK, not the
 SDK's own client, so this doesn't validate the SDK against itself. No Neo4j/settings dependency:
-`get_evidence` has no working body until I2.3, and `register_tools(server)` here takes no
-`get_service` override, so `get_service_dependencies` dispatches against the never-`configure()`-d
-`app.mcp.wiring` singleton (see `_check_get_service_dependencies_fails_safely_when_wiring_is_
-unconfigured` - this is deliberate coverage of that path, not an oversight). Real
-`ArchitectureIntelligenceService` dispatch against a live Neo4j driver is
-`tests/integration/test_mcp_service_dependencies_equivalence.py`'s job (I2.2).
+`register_tools(server)` here takes no `get_service` override, so every tool dispatches against the
+never-`configure()`-d `app.mcp.wiring` singleton (see the `_check_*_fails_safely_when_wiring_is_
+unconfigured` checks - this is deliberate coverage of that path, not an oversight). Real
+`ArchitectureIntelligenceService` dispatch against a live Neo4j driver is `tests/integration/
+test_mcp_service_dependencies_equivalence.py`'s job.
 
 All scenarios run inside one test function rather than one-test-per-scenario: `MCPServer.
 session_manager.run()` owns an anyio task group whose cancel scope must be entered and exited by the
@@ -30,15 +48,12 @@ failure attribution in the traceback.
 
 from __future__ import annotations
 
-import asyncio
-
 import httpx
 import pytest
 from mcp.server import MCPServer
 
 from app.architecture_intelligence import contracts as contracts_module
 from app.architecture_intelligence import service as service_module
-from app.mcp import guard as guard_module
 from app.mcp import server as server_module
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import TOOL_NAMES, register_tools
@@ -50,7 +65,6 @@ _ALLOWED_HOST = "localhost"
 def test_tool_names_are_single_sourced() -> None:
     assert contracts_module.TOOL_NAMES is TOOL_NAMES
     assert server_module.TOOL_NAMES is TOOL_NAMES
-    assert guard_module.TOOL_NAMES is TOOL_NAMES
     assert {
         service_module._DRIFT_TOOL_NAME,
         service_module._EVIDENCE_TOOL_NAME,
@@ -58,342 +72,10 @@ def test_tool_names_are_single_sourced() -> None:
     } == set(TOOL_NAMES)
 
 
-def _headers(
-    *, method: str, name: str | None = None, protocol_version: str | None = "2026-07-28"
-) -> dict[str, str]:
-    headers = {
-        "content-type": "application/json",
-        "accept": "application/json, text/event-stream",
-        "origin": _ALLOWED_ORIGIN,
-        "mcp-method": method,
-    }
-    if protocol_version is not None:
-        headers["mcp-protocol-version"] = protocol_version
-    if name is not None:
-        headers["mcp-name"] = name
-    return headers
-
-
-def _meta(protocol_version: str = "2026-07-28") -> dict[str, object]:
-    return {
-        "io.modelcontextprotocol/protocolVersion": protocol_version,
-        "io.modelcontextprotocol/clientCapabilities": {},
-    }
-
-
-def _tools_list_body(
-    request_id: int = 1, *, protocol_version: str = "2026-07-28"
-) -> dict[str, object]:
-    return {
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "method": "tools/list",
-        "params": {"_meta": _meta(protocol_version)},
-    }
-
-
-def _tools_call_body(
-    name: str, arguments: dict[str, object], request_id: int = 1
-) -> dict[str, object]:
-    return {
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "method": "tools/call",
-        "params": {"name": name, "arguments": arguments, "_meta": _meta()},
-    }
-
-
-# --- Protocol and Discovery (spec §17 scenarios 1-4) ----------------------------------------------
-
-
-async def _check_valid_protocol_metadata_is_accepted(client: httpx.AsyncClient) -> None:
-    response = await client.post(
-        "/mcp", headers=_headers(method="tools/list"), json=_tools_list_body()
-    )
-    assert response.status_code == 200
-    assert "error" not in response.json()
-
-
-async def _check_missing_protocol_version_header_is_rejected(client: httpx.AsyncClient) -> None:
-    """A *missing* required header is HEADER_MISMATCH (-32020), not UNSUPPORTED_PROTOCOL_VERSION
-    (-32022, reserved for a *present* but unsupported value) - per `mcp.shared.inbound.
-    classify_inbound_request`'s own rung 2, which the guard delegates to directly rather than
-    reimplementing."""
-    headers = _headers(method="tools/list", protocol_version=None)
-    response = await client.post("/mcp", headers=headers, json=_tools_list_body())
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == -32020
-
-
-async def _check_mcp_method_header_mismatch_is_rejected(client: httpx.AsyncClient) -> None:
-    headers = dict(_headers(method="tools/list"), **{"mcp-method": "tools/call"})
-    response = await client.post("/mcp", headers=headers, json=_tools_list_body())
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == -32020
-
-
-async def _check_mcp_name_header_mismatch_is_rejected(client: httpx.AsyncClient) -> None:
-    headers = _headers(method="tools/call", name="get_evidence")
-    body = _tools_call_body(
-        "get_evidence",
-        {
-            "request": {
-                "evidence_refs": ["evidence:missing"],
-                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
-            }
-        },
-    )
-    response = await client.post(
-        "/mcp", headers=dict(headers, **{"mcp-name": "get_service_dependencies"}), json=body
-    )
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == -32020
-
-
-async def _check_header_mismatch_takes_priority_over_unknown_tool(
-    client: httpx.AsyncClient,
-) -> None:
-    """A request that is simultaneously an Mcp-Name/body mismatch AND names an unknown tool must
-    report the header mismatch (-32020), not the guard's own unknown-tool check (-32602) - the
-    guard only runs its tool-name/argument checks after `classify_inbound_request` has already
-    accepted the request, matching the SDK's own rung ordering."""
-    headers = _headers(method="tools/call", name="does_not_exist")
-    body = _tools_call_body("does_not_exist", {})
-    response = await client.post(
-        "/mcp", headers=dict(headers, **{"mcp-name": "something_else"}), json=body
-    )
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == -32020
-
-
-async def _check_unrelated_path_is_a_normal_404(client: httpx.AsyncClient) -> None:
-    """A stray POST to a path the guard doesn't recognize must fall straight through to the inner
-    app's own 404, never a synthesized MCP protocol error - the guard only inspects `MCP_PATH`."""
-    response = await client.post(
-        "/not-mcp", headers=_headers(method="tools/list"), json=_tools_list_body()
-    )
-    assert response.status_code == 404
-    assert "jsonrpc" not in response.text
-
-
-async def _check_legacy_handshake_version_is_rejected_not_silently_served(
-    client: httpx.AsyncClient,
-) -> None:
-    """A pre-2026-07-28 handshake version must be rejected, not served by the SDK's legacy
-    initialize/session path (spec §4/§20's "implementation requires initialize while claiming MCP
-    2026-07-28" release blocker) - confirmed live that without app.mcp.guard, this is exactly what
-    the SDK does instead."""
-    headers = _headers(method="tools/list", protocol_version="2025-06-18")
-    body = _tools_list_body(protocol_version="2025-06-18")
-    response = await client.post("/mcp", headers=headers, json=body)
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == -32022
-
-
-async def _check_missing_required_meta_field_is_rejected(client: httpx.AsyncClient) -> None:
-    body = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
-    response = await client.post("/mcp", headers=_headers(method="tools/list"), json=body)
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == -32602
-
-
-async def _check_unsupported_protocol_version_is_rejected(client: httpx.AsyncClient) -> None:
-    headers = _headers(method="tools/list", protocol_version="2099-01-01")
-    body = _tools_list_body(protocol_version="2099-01-01")
-    response = await client.post("/mcp", headers=headers, json=body)
-    assert response.status_code == 400
-    error = response.json()["error"]
-    assert error["code"] == -32022
-    assert error["data"] == {"supported": ["2026-07-28"], "requested": "2099-01-01"}
-
-
-async def _check_no_initialize_handshake_or_session_id_required(client: httpx.AsyncClient) -> None:
-    response = await client.post(
-        "/mcp", headers=_headers(method="tools/list"), json=_tools_list_body()
-    )
-    assert response.status_code == 200
-    assert "mcp-session-id" not in {k.lower() for k in response.headers}
-
-
-async def _check_tools_list_returns_exactly_three_tools_in_lexicographic_order(
-    client: httpx.AsyncClient,
-) -> None:
-    """v0.4.0 I3.2 - I3 spec §24/§45: `tools/list` count moves 2 -> 3 for the still-unreleased
-    v0.4.0 line; no existing tool name/schema meaning changes to make room for the third."""
-    response = await client.post(
-        "/mcp", headers=_headers(method="tools/list"), json=_tools_list_body()
-    )
-    result = response.json()["result"]
-    assert result["resultType"] == "complete"
-    names = [tool["name"] for tool in result["tools"]]
-    assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
-
-
-async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> None:
-    response = await client.post(
-        "/mcp", headers=_headers(method="tools/list"), json=_tools_list_body()
-    )
-    evidence_request_schema = None
-    for tool in response.json()["result"]["tools"]:
-        input_schema = tool["inputSchema"]
-        assert input_schema["type"] == "object"
-        # The outer wrapper (the SDK's synthesized argument model) is explicitly closed by
-        # app.mcp.tools._close_input_schema - the SDK doesn't do this itself (confirmed live).
-        assert input_schema["additionalProperties"] is False
-        # The request type is nested one level in ($ref'd, per app.mcp.server's verified findings)
-        # and keeps its own extra=forbid closure - checked on both request models below.
-        for definition in input_schema.get("$defs", {}).values():
-            if definition.get("title") in {
-                "ServiceDependenciesRequest",
-                "EvidenceRequest",
-                "ArchitectureDriftRequest",
-            }:
-                assert definition["additionalProperties"] is False
-            if definition.get("title") == "EvidenceRequest":
-                evidence_request_schema = definition
-        assert tool["outputSchema"]["title"].startswith("ArchitectureAnswer[")
-
-    assert evidence_request_schema is not None
-    evidence_refs_schema = evidence_request_schema["properties"]["evidence_refs"]
-    assert evidence_refs_schema["minItems"] == 1
-    assert evidence_refs_schema["maxItems"] == 20
-    assert evidence_refs_schema["uniqueItems"] is True
-    evidence_items = evidence_refs_schema["items"]
-    assert evidence_items["type"] == "string"
-    assert evidence_items["pattern"] == r"^evidence:"
-    assert evidence_items["maxLength"] == 512
-
-
-async def _check_unknown_tool_name_fails_as_protocol_error_without_reaching_a_handler(
-    client: httpx.AsyncClient,
-) -> None:
-    body = _tools_call_body("does_not_exist", {})
-    headers = _headers(method="tools/call", name="does_not_exist")
-    response = await client.post("/mcp", headers=headers, json=body)
-    assert response.status_code == 400
-    error = response.json()["error"]
-    assert error["code"] == -32602
-    assert error["message"] == "Unknown tool: does_not_exist"
-    assert "result" not in response.json()
-
-
-async def _check_unexpected_top_level_argument_fails_as_protocol_error(
-    client: httpx.AsyncClient,
-) -> None:
-    body = _tools_call_body(
-        "get_evidence",
-        {
-            "request": {
-                "evidence_refs": ["evidence:missing"],
-                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
-            },
-            "junk": 1,
-        },
-    )
-    headers = _headers(method="tools/call", name="get_evidence")
-    response = await client.post("/mcp", headers=headers, json=body)
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == -32602
-
-
-async def _check_malformed_nested_arguments_are_a_tool_execution_error(
-    client: httpx.AsyncClient,
-) -> None:
-    """Distinct from the guard-level corrections above: once a tools/call names a real tool and
-    only the expected top-level key, argument-schema validation is the SDK's own verified behavior
-    (spec §16: "Invalid tool arguments -> Tool execution error with isError: true") and must not be
-    intercepted by the guard. `snapshot_id` is required on `EvidenceRequest` and omitted here."""
-    body = _tools_call_body("get_evidence", {"request": {"evidence_refs": ["evidence:missing"]}})
-    headers = _headers(method="tools/call", name="get_evidence")
-    response = await client.post("/mcp", headers=headers, json=body)
-    assert response.status_code == 200
-    result = response.json()["result"]
-    assert result["isError"] is True
-
-
-async def _check_get_evidence_fails_safely_when_wiring_is_unconfigured(
-    client: httpx.AsyncClient,
-) -> None:
-    """v0.4.0 I2.3 - `get_evidence` is discoverable via `tools/list` and, once dispatched, follows
-    the same default-sanitization path `get_service_dependencies` already proves below: this test's
-    server is registered via `register_tools(server)` with no `get_service` override, so
-    `wiring.get_service()` is never `configure()`-d, and the SDK sanitizes the resulting
-    `RuntimeError` into a generic `UnexpectedToolError`, never leaking "not configured"."""
-    body = _tools_call_body(
-        "get_evidence",
-        {
-            "request": {
-                "evidence_refs": ["evidence:missing"],
-                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
-            }
-        },
-    )
-    headers = _headers(method="tools/call", name="get_evidence")
-    response = await client.post("/mcp", headers=headers, json=body)
-    assert response.status_code == 200
-    result = response.json()["result"]
-    assert result["isError"] is True
-    text = result["content"][0]["text"]
-    assert text == "Error executing tool get_evidence"
-    assert "not configured" not in text
-
-
-async def _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigured(
-    client: httpx.AsyncClient,
-) -> None:
-    """v0.4.0 I2.2 - this test's server is registered via `register_tools(server)` with no
-    `get_service` override, so it defaults to `app.mcp.wiring.get_service`, which is never
-    `configure()`-d here (no Neo4j/settings in this test's minimal harness). `app.mcp.tools` doesn't
-    catch this `RuntimeError` itself - the SDK's own `Tool.run` sanitizes it into a generic
-    `UnexpectedToolError` (see `app.mcp.tools.get_service_dependencies`'s docstring for the verified
-    live behavior this relies on). This proves that default sanitization actually fires end to end,
-    not just that the adapter's own code never leaks anything."""
-    body = _tools_call_body(
-        "get_service_dependencies", {"request": {"service_id": "service:order-service"}}
-    )
-    headers = _headers(method="tools/call", name="get_service_dependencies")
-    response = await client.post("/mcp", headers=headers, json=body)
-    assert response.status_code == 200
-    result = response.json()["result"]
-    assert result["isError"] is True
-    text = result["content"][0]["text"]
-    assert text == "Error executing tool get_service_dependencies"
-    assert "not configured" not in text
-
-
-async def _check_get_architecture_drift_fails_safely_when_wiring_is_unconfigured(
-    client: httpx.AsyncClient,
-) -> None:
-    """v0.4.0 I3.2 - `get_architecture_drift` is discoverable via `tools/list` and, once dispatched,
-    follows the same default-sanitization path the other two tools already prove above: this test's
-    server is registered via `register_tools(server)` with no `get_service` override, so
-    `wiring.get_service()` is never `configure()`-d, and the SDK sanitizes the resulting
-    `RuntimeError` into a generic `UnexpectedToolError`, never leaking "not configured"."""
-    body = _tools_call_body(
-        "get_architecture_drift", {"request": {"service_id": "service:order-service"}}
-    )
-    headers = _headers(method="tools/call", name="get_architecture_drift")
-    response = await client.post("/mcp", headers=headers, json=body)
-    assert response.status_code == 200
-    result = response.json()["result"]
-    assert result["isError"] is True
-    text = result["content"][0]["text"]
-    assert text == "Error executing tool get_architecture_drift"
-    assert "not configured" not in text
-
-
-async def _check_disallowed_origin_is_rejected(client: httpx.AsyncClient) -> None:
-    headers = dict(_headers(method="tools/list"), origin="http://evil.example")
-    response = await client.post("/mcp", headers=headers, json=_tools_list_body())
-    assert response.status_code == 403
-
-
-# --- Dual-mode transport routing (v0.4.2 I1, spec §11.1/§28/§30) ----------------------------------
+# --- Negotiated-mode request builders (the sole remaining transport, v0.5.0 I3 slice 5a) ----------
 
 
 def _negotiated_headers(*, protocol_version: str | None = None) -> dict[str, str]:
-    """A markerless request: no `mcp-method`/`mcp-name` - the only headers a genuine negotiated SDK
-    client would send. `protocol_version`, when given, is the *only* AIP-adjacent header present."""
     headers = {
         "content-type": "application/json",
         "accept": "application/json, text/event-stream",
@@ -432,11 +114,225 @@ def _negotiated_tools_call_body(
     }
 
 
+# --- Protocol and Discovery (spec §17 scenarios 1-4) ----------------------------------------------
+
+
+async def _check_unrelated_path_is_a_normal_404(client: httpx.AsyncClient) -> None:
+    """A stray POST to a path the guard doesn't recognize must fall straight through to the inner
+    app's own 404, never a synthesized MCP protocol error - the guard only inspects `MCP_PATH`."""
+    response = await client.post(
+        "/not-mcp",
+        headers=_negotiated_headers(protocol_version="2025-11-25"),
+        json=_negotiated_tools_list_body(),
+    )
+    assert response.status_code == 404
+    assert "jsonrpc" not in response.text
+
+
+async def _check_tools_list_returns_exactly_three_tools_in_lexicographic_order(
+    client: httpx.AsyncClient,
+) -> None:
+    """v0.4.0 I3.2 - I3 spec §24/§45: `tools/list` count moves 2 -> 3 for the still-unreleased
+    v0.4.0 line; no existing tool name/schema meaning changes to make room for the third."""
+    response = await client.post(
+        "/mcp",
+        headers=_negotiated_headers(protocol_version="2025-11-25"),
+        json=_negotiated_tools_list_body(),
+    )
+    result = response.json()["result"]
+    # `resultType` is only stamped onto the wire when the negotiated protocol era requires it
+    # (confirmed live in `mcp.server.runner`: only for the `2026-07-28`-and-later modern era this
+    # project's negotiated tests deliberately don't negotiate - `MODERN_PROTOCOL_VERSIONS`); absence
+    # is spec-equivalent to "complete" (`mcp_types._types`'s own docstring), not a missing field.
+    assert result.get("resultType", "complete") == "complete"
+    names = [tool["name"] for tool in result["tools"]]
+    assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+
+
+async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> None:
+    response = await client.post(
+        "/mcp",
+        headers=_negotiated_headers(protocol_version="2025-11-25"),
+        json=_negotiated_tools_list_body(),
+    )
+    evidence_request_schema = None
+    for tool in response.json()["result"]["tools"]:
+        input_schema = tool["inputSchema"]
+        assert input_schema["type"] == "object"
+        # The outer wrapper (the SDK's synthesized argument model) is explicitly closed by
+        # app.mcp.tools._close_input_schema - the SDK doesn't do this itself (confirmed live).
+        assert input_schema["additionalProperties"] is False
+        # The request type is nested one level in ($ref'd, per app.mcp.server's verified findings)
+        # and keeps its own extra=forbid closure - checked on both request models below.
+        for definition in input_schema.get("$defs", {}).values():
+            if definition.get("title") in {
+                "ServiceDependenciesRequest",
+                "EvidenceRequest",
+                "ArchitectureDriftRequest",
+            }:
+                assert definition["additionalProperties"] is False
+            if definition.get("title") == "EvidenceRequest":
+                evidence_request_schema = definition
+        assert tool["outputSchema"]["title"].startswith("ArchitectureAnswer[")
+
+    assert evidence_request_schema is not None
+    evidence_refs_schema = evidence_request_schema["properties"]["evidence_refs"]
+    assert evidence_refs_schema["minItems"] == 1
+    assert evidence_refs_schema["maxItems"] == 20
+    assert evidence_refs_schema["uniqueItems"] is True
+    evidence_items = evidence_refs_schema["items"]
+    assert evidence_items["type"] == "string"
+    assert evidence_items["pattern"] == r"^evidence:"
+    assert evidence_items["maxLength"] == 512
+
+
+async def _check_unknown_tool_name_is_a_tool_execution_error_not_a_protocol_error(
+    client: httpx.AsyncClient,
+) -> None:
+    """See module docstring: no adapter-level protection remains for this case after direct-mode's
+    retirement - this documents the SDK's own actual (unpatched) negotiated-mode behavior."""
+    body = _negotiated_tools_call_body("does_not_exist", {})
+    response = await client.post(
+        "/mcp", headers=_negotiated_headers(protocol_version="2025-11-25"), json=body
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+
+
+async def _check_unexpected_top_level_argument_no_longer_fails_before_dispatch(
+    client: httpx.AsyncClient,
+) -> None:
+    """See module docstring: no adapter-level protection remains for this case after direct-mode's
+    retirement - confirmed live, the SDK's synthesized argument wrapper model (`extra="ignore"` by
+    default, `app.mcp.tools`'s own docstring) silently drops the unrecognized `junk` key rather than
+    rejecting it, so dispatch proceeds exactly as if `junk` had never been sent - `isError: true`
+    here comes from the unconfigured-wiring harness (same shape as the checks below), not from the
+    extra key."""
+    body = _negotiated_tools_call_body(
+        "get_evidence",
+        {
+            "request": {
+                "evidence_refs": ["evidence:missing"],
+                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
+            },
+            "junk": 1,
+        },
+    )
+    response = await client.post(
+        "/mcp", headers=_negotiated_headers(protocol_version="2025-11-25"), json=body
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    assert result["content"][0]["text"] == "Error executing tool get_evidence"
+
+
+async def _check_malformed_nested_arguments_are_a_tool_execution_error(
+    client: httpx.AsyncClient,
+) -> None:
+    """Argument-schema validation is the SDK's own verified behavior (spec §16: "Invalid tool
+    arguments -> Tool execution error with isError: true") and is unaffected by the guard's
+    direct-mode retirement. `snapshot_id` is required on `EvidenceRequest` and omitted here."""
+    body = _negotiated_tools_call_body(
+        "get_evidence", {"request": {"evidence_refs": ["evidence:missing"]}}
+    )
+    response = await client.post(
+        "/mcp", headers=_negotiated_headers(protocol_version="2025-11-25"), json=body
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+
+
+async def _check_get_evidence_fails_safely_when_wiring_is_unconfigured(
+    client: httpx.AsyncClient,
+) -> None:
+    """v0.4.0 I2.3 - `get_evidence` is discoverable via `tools/list` and, once dispatched, follows
+    the same default-sanitization path `get_service_dependencies` already proves below: this test's
+    server is registered via `register_tools(server)` with no `get_service` override, so
+    `wiring.get_service()` is never `configure()`-d, and the SDK sanitizes the resulting
+    `RuntimeError` into a generic `UnexpectedToolError`, never leaking "not configured"."""
+    body = _negotiated_tools_call_body(
+        "get_evidence",
+        {
+            "request": {
+                "evidence_refs": ["evidence:missing"],
+                "snapshot_id": "aip:snapshot:v1:" + "a" * 64,
+            }
+        },
+    )
+    response = await client.post(
+        "/mcp", headers=_negotiated_headers(protocol_version="2025-11-25"), json=body
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    text = result["content"][0]["text"]
+    assert text == "Error executing tool get_evidence"
+    assert "not configured" not in text
+
+
+async def _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigured(
+    client: httpx.AsyncClient,
+) -> None:
+    """v0.4.0 I2.2 - this test's server is registered via `register_tools(server)` with no
+    `get_service` override, so it defaults to `app.mcp.wiring.get_service`, which is never
+    `configure()`-d here (no Neo4j/settings in this test's minimal harness). `app.mcp.tools` doesn't
+    catch this `RuntimeError` itself - the SDK's own `Tool.run` sanitizes it into a generic
+    `UnexpectedToolError` (see `app.mcp.tools.get_service_dependencies`'s docstring for the verified
+    live behavior this relies on). This proves that default sanitization actually fires end to end,
+    not just that the adapter's own code never leaks anything."""
+    body = _negotiated_tools_call_body(
+        "get_service_dependencies", {"request": {"service_id": "service:order-service"}}
+    )
+    response = await client.post(
+        "/mcp", headers=_negotiated_headers(protocol_version="2025-11-25"), json=body
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    text = result["content"][0]["text"]
+    assert text == "Error executing tool get_service_dependencies"
+    assert "not configured" not in text
+
+
+async def _check_get_architecture_drift_fails_safely_when_wiring_is_unconfigured(
+    client: httpx.AsyncClient,
+) -> None:
+    """v0.4.0 I3.2 - `get_architecture_drift` is discoverable via `tools/list` and, once dispatched,
+    follows the same default-sanitization path the other two tools already prove above: this test's
+    server is registered via `register_tools(server)` with no `get_service` override, so
+    `wiring.get_service()` is never `configure()`-d, and the SDK sanitizes the resulting
+    `RuntimeError` into a generic `UnexpectedToolError`, never leaking "not configured"."""
+    body = _negotiated_tools_call_body(
+        "get_architecture_drift", {"request": {"service_id": "service:order-service"}}
+    )
+    response = await client.post(
+        "/mcp", headers=_negotiated_headers(protocol_version="2025-11-25"), json=body
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    text = result["content"][0]["text"]
+    assert text == "Error executing tool get_architecture_drift"
+    assert "not configured" not in text
+
+
+async def _check_disallowed_origin_is_rejected(client: httpx.AsyncClient) -> None:
+    headers = dict(_negotiated_headers(protocol_version="2025-11-25"), origin="http://evil.example")
+    response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
+    assert response.status_code == 403
+
+
+# --- Negotiated-only transport contract (retained/reworked from v0.4.2 I1's routing truth table) ---
+
+
 async def _check_markerless_initialize_reaches_negotiated_sdk_path(
     client: httpx.AsyncClient,
 ) -> None:
-    """A markerless `initialize` is always delegated to the pinned SDK's own negotiation, not the
-    guard's direct-mode ladder, even with no `MCP-Protocol-Version` header at all."""
+    """`initialize` is always delegated to the pinned SDK's own negotiation, even with no
+    `MCP-Protocol-Version` header at all."""
     response = await client.post(
         "/mcp", headers=_negotiated_headers(), json=_negotiated_initialize_body()
     )
@@ -450,9 +346,8 @@ async def _check_negotiated_mode_issues_no_session_id(client: httpx.AsyncClient)
     """spec §15/§34's conditional session-behavior determination: SESSION_BEHAVIOR =
     NOT_APPLICABLE for this release candidate, because the pinned SDK's stateless handler never
     issues an `Mcp-Session-Id` - confirmed here across successful `initialize`, `tools/list`, and
-    `tools/call` operations, not just the single call `_check_no_initialize_handshake_or_session_id_
-    required` already checks for direct mode. Each non-`initialize` request must carry a recognized
-    handshake-era `MCP-Protocol-Version` header so it actually reaches the SDK's negotiated dispatch
+    `tools/call` operations. Each non-`initialize` request must carry a recognized handshake-era
+    `MCP-Protocol-Version` header so it actually reaches the SDK's negotiated dispatch
     (`_negotiated_headers()`'s own default omits the header entirely, which would otherwise make
     this assertion vacuous - both requests would be guard-rejected before ever reaching the SDK, so
     trivially carry no session header either; PR review finding on this file's first draft)."""
@@ -487,23 +382,19 @@ async def _check_negotiated_mode_issues_no_session_id(client: httpx.AsyncClient)
     assert call_response.status_code == 200
     # Wiring is unconfigured in this unit-test harness (see e.g.
     # _check_get_evidence_fails_safely_when_wiring_is_unconfigured above) - isError: true here means
-    # the call *reached* negotiated tool dispatch and was sanitized normally, the same successful
-    # dispatch outcome direct mode gets from this same harness, not a rejection before dispatch.
+    # the call *reached* negotiated tool dispatch and was sanitized normally.
     assert call_response.json()["result"]["isError"] is True
 
     for response in (init_response, list_response, call_response):
         assert "mcp-session-id" not in {k.lower() for k in response.headers}
 
 
-async def _check_protocol_version_header_alone_does_not_select_direct_mode(
+async def _check_protocol_version_header_alone_reaches_negotiated_dispatch(
     client: httpx.AsyncClient,
 ) -> None:
-    """`MCP-Protocol-Version` by itself (no `mcp-method`/`mcp-name`, no `_meta`) must NOT be treated
-    as a direct-envelope marker: a handshake-era value on a markerless non-`initialize` follow-up
-    reaches the pinned SDK's own stateless negotiated dispatch (confirmed live: the SDK answers a
-    standalone `tools/list` statelessly, with no prior `initialize` needed on the same connection) -
-    it must not fall into the guard's `classify_inbound_request` ladder, which would reject it for
-    missing `_meta` instead of returning a real tool list."""
+    """`MCP-Protocol-Version` by itself (no prior `initialize` on this connection) reaches the
+    pinned SDK's own stateless negotiated dispatch (confirmed live: the SDK answers a standalone
+    `tools/list` statelessly, with no prior `initialize` needed on the same connection)."""
     headers = _negotiated_headers(protocol_version="2025-11-25")
     response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
     assert response.status_code == 200
@@ -514,10 +405,10 @@ async def _check_protocol_version_header_alone_does_not_select_direct_mode(
 async def _check_markerless_tools_list_without_header_falls_back_to_sdk(
     client: httpx.AsyncClient,
 ) -> None:
-    """A markerless non-`initialize` request with no `MCP-Protocol-Version` header at all is
-    forwarded to the pinned SDK, not rejected (v0.4.2 I1 amendment, I3.4 VS Code finding) - the
-    SDK's own `DEFAULT_NEGOTIATED_VERSION` fallback answers it normally, matching the MCP spec's
-    backward-compatibility clause for a missing header."""
+    """A request with no `MCP-Protocol-Version` header at all is forwarded to the pinned SDK, not
+    rejected (v0.4.2 I1 amendment, I3.4 VS Code finding) - the SDK's own `DEFAULT_NEGOTIATED_VERSION`
+    fallback answers it normally, matching the MCP spec's backward-compatibility clause for a
+    missing header."""
     response = await client.post(
         "/mcp", headers=_negotiated_headers(), json=_negotiated_tools_list_body()
     )
@@ -541,11 +432,9 @@ async def _check_markerless_tools_call_without_header_falls_back_to_sdk(
     assert result["content"][0]["text"] == "Error executing tool get_architecture_drift"
 
 
-async def _check_direct_era_header_without_marker_is_rejected(
-    client: httpx.AsyncClient,
-) -> None:
-    """A markerless follow-up naming the direct/single-exchange `2026-07-28` era must never become
-    negotiated traffic - that combination is rejected outright, not delegated to the SDK."""
+async def _check_retired_era_header_on_a_follow_up_is_rejected(client: httpx.AsyncClient) -> None:
+    """A follow-up naming the retired direct/single-exchange `2026-07-28` era must never be served
+    as negotiated traffic - that combination is rejected outright, not delegated to the SDK."""
     headers = _negotiated_headers(protocol_version="2026-07-28")
     response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
     assert response.status_code == 400
@@ -553,12 +442,12 @@ async def _check_direct_era_header_without_marker_is_rejected(
     assert "result" not in response.json()
 
 
-async def _check_session_id_header_alone_is_not_a_direct_marker(
+async def _check_session_id_header_alone_does_not_change_routing(
     client: httpx.AsyncClient,
 ) -> None:
-    """An MCP session identifier by itself is also not a direct-mode discriminator - a markerless
-    request carrying only a (fabricated, unrecognized) session id and no protocol-version header
-    is treated the same way a bare markerless request is (falls back to the SDK), not differently."""
+    """An MCP session identifier by itself does not change routing - a request carrying only a
+    (fabricated, unrecognized) session id and no protocol-version header is treated the same way a
+    bare request is (falls back to the SDK), not differently."""
     headers = dict(_negotiated_headers(), **{"mcp-session-id": "not-a-real-session"})
     response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
     assert response.status_code == 200
@@ -569,7 +458,7 @@ async def _check_session_id_header_alone_is_not_a_direct_marker(
 async def _check_unrecognized_protocol_version_is_handled_by_sdk_without_dispatch(
     client: httpx.AsyncClient,
 ) -> None:
-    """A `MCP-Protocol-Version` value that is neither the direct era nor a known handshake era is
+    """A `MCP-Protocol-Version` value that is neither the retired era nor a known handshake era is
     still delegated to the pinned SDK rather than guard-rejected (spec: "use pinned SDK
     recognition/error semantics") - confirmed live that the SDK's own streamable-HTTP dispatch
     produces a real JSON-RPC error and never reaches tool dispatch for this case on its own."""
@@ -579,40 +468,21 @@ async def _check_unrecognized_protocol_version_is_handled_by_sdk_without_dispatc
     assert "result" not in response.json()
 
 
-async def _check_malformed_json_without_direct_header_reaches_sdk_parse_handler(
-    client: httpx.AsyncClient,
-) -> None:
-    """Malformed/non-object JSON with no direct-specific header must be owned by the pinned SDK's
-    own parse handler, not the guard's negotiated-header precheck - no valid method has been
-    extracted yet, so that check does not apply."""
+async def _check_malformed_json_reaches_sdk_parse_handler(client: httpx.AsyncClient) -> None:
+    """Malformed/non-object JSON is always owned by the pinned SDK's own parse handler now - there
+    is no longer a sticky "direct ownership" branch to compare against."""
     response = await client.post("/mcp", headers=_negotiated_headers(), content=b"{not valid json")
     assert response.status_code == 400
     error = response.json()["error"]
     assert error["code"] == -32700
-    assert (
-        error["message"] != "Malformed JSON body"
-    )  # this is the SDK's own message, not the guard's
 
 
-async def _check_malformed_json_with_direct_header_is_owned_by_direct_path(
+async def _check_tools_call_dispatches_to_the_real_tool_implementation(
     client: httpx.AsyncClient,
 ) -> None:
-    """Malformed/non-object JSON WITH a direct-specific header (`mcp-method`) stays sticky to the
-    direct path - it must not fall through to the SDK's negotiated parse handler."""
-    headers = dict(_negotiated_headers(), **{"mcp-method": "tools/list"})
-    response = await client.post("/mcp", headers=headers, content=b"{not valid json")
-    assert response.status_code == 400
-    error = response.json()["error"]
-    assert error["code"] == -32700
-    assert error["message"] == "Malformed JSON body"
-
-
-async def _check_negotiated_tools_call_shares_the_direct_tool_implementation(
-    client: httpx.AsyncClient,
-) -> None:
-    """A negotiated `tools/call` must dispatch to the exact same tool implementation as direct mode
-    - proven here by getting the identical sanitized-error shape the direct-mode equivalents above
-    get from this same unconfigured-wiring test harness, not a negotiated-only code path."""
+    """A negotiated `tools/call` dispatches to the real tool implementation - proven here by the
+    same sanitized-error shape this unconfigured-wiring test harness produces everywhere else in
+    this file."""
     headers = _negotiated_headers(protocol_version="2025-11-25")
     body = _negotiated_tools_call_body(
         "get_architecture_drift", {"request": {"service_id": "service:order-service"}}
@@ -660,117 +530,6 @@ async def _check_vscode_full_sequence_without_protocol_header_is_accepted(
     assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
 
 
-# --- Direct-marked but unimplemented methods (v0.4.2 I1, I3.3 actual-client finding) ---------------
-#
-# `mcp-method`/`mcp-name` are the pinned SDK's own header names (`mcp.shared.inbound`), not
-# AIP-proprietary - a real client can legitimately send them for its own SDK-native purposes.
-# Claude Code's actual MCP client sends `mcp-method: server/discover` and
-# `mcp-method: subscriptions/listen` as part of its ordinary capability-discovery/notification
-# handshake under protocol era `2026-07-28`. Before the fix, any direct-marked request whose method
-# was not `tools/call` fell through to a blind `await self._app(...)` forward - which is exactly how
-# `subscriptions/listen` reached an SDK code path that hangs indefinitely under AIP's stateless
-# single-worker deployment, pegging the process at ~100% CPU and making it unresponsive to every
-# other client, including its own health check. See `app/mcp/guard.py`'s `_DIRECT_MODE_METHODS`.
-#
-# The exact `subscriptions/listen` reproduction is deliberately NOT an in-process ASGI check here:
-# this module's own root-cause finding is that the offending SDK code never yields to the event
-# loop, so `asyncio.wait_for` cannot preempt it once it starts - confirmed by git-stash-verifying
-# that an in-process version of this exact check hangs the *entire* pytest process indefinitely
-# without the fix, not just this one test. `tests/integration/test_mcp_direct_marker_dos_regression.py`
-# covers that specific case instead, running the guard-wrapped app in a genuinely separate OS
-# process so a parent-side hard timeout can terminate the child and fail promptly if it regresses.
-
-
-async def _check_another_unimplemented_direct_marked_method_is_also_rejected(
-    client: httpx.AsyncClient,
-) -> None:
-    """Proves the fix is a general allowlist, not a `subscriptions/listen`-specific denylist entry:
-    `server/discover` (the other real Claude Code method observed) is rejected the same way, even
-    though it happened to return a plausible-looking response - not a hang - before this fix."""
-    body = {
-        "jsonrpc": "2.0",
-        "id": "discover:0",
-        "method": "server/discover",
-        "params": {"_meta": _meta()},
-    }
-    response = await asyncio.wait_for(
-        client.post("/mcp", headers=_headers(method="server/discover"), json=body),
-        timeout=5,
-    )
-    assert response.status_code == 404
-    error = response.json()["error"]
-    assert error["code"] == -32601
-    assert error["data"] == "server/discover"
-
-
-async def _check_header_body_mismatch_takes_priority_over_unimplemented_method(
-    client: httpx.AsyncClient,
-) -> None:
-    """A request that is simultaneously an Mcp-Method/body mismatch AND names an unimplemented
-    method must report the header mismatch, not the new allowlist check - matching this guard's
-    existing rung ordering (`classify_inbound_request` always runs first)."""
-    headers = dict(_headers(method="subscriptions/listen"), **{"mcp-method": "tools/list"})
-    body = {
-        "jsonrpc": "2.0",
-        "id": "x",
-        "method": "subscriptions/listen",
-        "params": {"_meta": _meta()},
-    }
-    response = await asyncio.wait_for(client.post("/mcp", headers=headers, json=body), timeout=5)
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == -32020
-
-
-async def _check_server_stays_responsive_after_rejecting_an_unimplemented_direct_method(
-    client: httpx.AsyncClient,
-) -> None:
-    """A rejected unimplemented-method request must leave no residual damage - an ordinary direct
-    `tools/list` immediately afterward must still succeed normally, and negotiated `initialize`
-    traffic must still route correctly too (direct/negotiated classification stays distinct)."""
-    body = {
-        "jsonrpc": "2.0",
-        "id": "listen:1",
-        "method": "subscriptions/listen",
-        "params": {"_meta": _meta()},
-    }
-    await asyncio.wait_for(
-        client.post("/mcp", headers=_headers(method="subscriptions/listen"), json=body),
-        timeout=5,
-    )
-
-    direct_response = await asyncio.wait_for(
-        client.post("/mcp", headers=_headers(method="tools/list"), json=_tools_list_body()),
-        timeout=5,
-    )
-    assert direct_response.status_code == 200
-    names = [t["name"] for t in direct_response.json()["result"]["tools"]]
-    assert len(names) == 3
-
-    negotiated_response = await asyncio.wait_for(
-        client.post(
-            "/mcp",
-            headers={
-                "content-type": "application/json",
-                "accept": "application/json, text/event-stream",
-                "origin": _ALLOWED_ORIGIN,
-            },
-            json={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "2025-11-25",
-                    "capabilities": {},
-                    "clientInfo": {"name": "post-hang-check", "version": "0.0.0"},
-                },
-            },
-        ),
-        timeout=5,
-    )
-    assert negotiated_response.status_code == 200
-    assert negotiated_response.json()["result"]["protocolVersion"] == "2025-11-25"
-
-
 async def _check_get_is_rejected_with_405_before_sdk_invocation(
     client: httpx.AsyncClient,
 ) -> None:
@@ -814,7 +573,7 @@ async def _check_other_non_post_methods_are_rejected_with_405(
 
 @pytest.mark.asyncio
 async def test_mcp_protocol_and_discovery() -> None:
-    server = MCPServer(name="architecture-intelligence-platform-test", version="0.4.0")
+    server = MCPServer(name="architecture-intelligence-platform-test", version="0.5.0")
     register_tools(server)
     app = build_mcp_app(
         allowed_origins=[_ALLOWED_ORIGIN], allowed_hosts=[_ALLOWED_HOST], server=server
@@ -822,22 +581,11 @@ async def test_mcp_protocol_and_discovery() -> None:
     async with mcp_session_manager_lifespan(server):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
-            await _check_valid_protocol_metadata_is_accepted(client)
-            await _check_missing_protocol_version_header_is_rejected(client)
-            await _check_mcp_method_header_mismatch_is_rejected(client)
-            await _check_mcp_name_header_mismatch_is_rejected(client)
-            await _check_header_mismatch_takes_priority_over_unknown_tool(client)
-            await _check_legacy_handshake_version_is_rejected_not_silently_served(client)
-            await _check_missing_required_meta_field_is_rejected(client)
-            await _check_unsupported_protocol_version_is_rejected(client)
-            await _check_no_initialize_handshake_or_session_id_required(client)
             await _check_unrelated_path_is_a_normal_404(client)
             await _check_tools_list_returns_exactly_three_tools_in_lexicographic_order(client)
             await _check_tools_list_schemas_are_closed(client)
-            await _check_unknown_tool_name_fails_as_protocol_error_without_reaching_a_handler(
-                client
-            )
-            await _check_unexpected_top_level_argument_fails_as_protocol_error(client)
+            await _check_unknown_tool_name_is_a_tool_execution_error_not_a_protocol_error(client)
+            await _check_unexpected_top_level_argument_no_longer_fails_before_dispatch(client)
             await _check_malformed_nested_arguments_are_a_tool_execution_error(client)
             await _check_get_evidence_fails_safely_when_wiring_is_unconfigured(client)
             await _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigured(client)
@@ -845,21 +593,15 @@ async def test_mcp_protocol_and_discovery() -> None:
             await _check_disallowed_origin_is_rejected(client)
             await _check_markerless_initialize_reaches_negotiated_sdk_path(client)
             await _check_negotiated_mode_issues_no_session_id(client)
-            await _check_protocol_version_header_alone_does_not_select_direct_mode(client)
+            await _check_protocol_version_header_alone_reaches_negotiated_dispatch(client)
             await _check_markerless_tools_list_without_header_falls_back_to_sdk(client)
             await _check_markerless_tools_call_without_header_falls_back_to_sdk(client)
-            await _check_direct_era_header_without_marker_is_rejected(client)
-            await _check_session_id_header_alone_is_not_a_direct_marker(client)
+            await _check_retired_era_header_on_a_follow_up_is_rejected(client)
+            await _check_session_id_header_alone_does_not_change_routing(client)
             await _check_unrecognized_protocol_version_is_handled_by_sdk_without_dispatch(client)
-            await _check_malformed_json_without_direct_header_reaches_sdk_parse_handler(client)
-            await _check_malformed_json_with_direct_header_is_owned_by_direct_path(client)
-            await _check_negotiated_tools_call_shares_the_direct_tool_implementation(client)
+            await _check_malformed_json_reaches_sdk_parse_handler(client)
+            await _check_tools_call_dispatches_to_the_real_tool_implementation(client)
             await _check_vscode_full_sequence_without_protocol_header_is_accepted(client)
-            await _check_another_unimplemented_direct_marked_method_is_also_rejected(client)
-            await _check_header_body_mismatch_takes_priority_over_unimplemented_method(client)
-            await _check_server_stays_responsive_after_rejecting_an_unimplemented_direct_method(
-                client
-            )
             await _check_get_is_rejected_with_405_before_sdk_invocation(client)
             await _check_delete_is_rejected_with_405_before_sdk_invocation(client)
             await _check_head_is_rejected_with_405_and_empty_body(client)
