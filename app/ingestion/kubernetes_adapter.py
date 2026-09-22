@@ -76,6 +76,11 @@ class KubernetesSourceAdapter:
 
         envelope_source = loaded.document["source"]
         envelope_scope = loaded.document["scope"]
+        # v0.5.0 I3 slice 4: the envelope's own `metadata.capturedAt` (already parsed/validated by
+        # `app.sources.kubernetes_envelope`) is threaded onto every contribution from this source -
+        # I3 spec §9.7 needs it to check temporal applicability against an observation window, and
+        # it was previously read only for envelope-shape validation, never persisted.
+        captured_at = loaded.document["metadata"]["capturedAt"]
         mapping_result = map_kubernetes_resources(
             loaded.kubernetes_resources,
             cluster_uid=envelope_source["clusterUid"],
@@ -139,6 +144,7 @@ class KubernetesSourceAdapter:
                     resource_semantic_digest=mapped.resource_semantic_digest,
                     captured_resource_uid=mapped.captured_uid,
                     service_id_annotation=mapped.projection.get("serviceIdAnnotation"),
+                    captured_at=captured_at,
                     evidence_refs=entity_evidence_refs,
                     mapping_rule_id=self.adapter_identity,
                     mapping_rule_version=self.mapping_rule_version,
