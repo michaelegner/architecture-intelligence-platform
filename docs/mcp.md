@@ -58,6 +58,26 @@ Schemas live at `schemas/architecture_intelligence/v0.5/`:
 `architecture-answer.schema.json` (`get_service_dependencies`), `drift-answer.schema.json`
 (`get_architecture_drift`), `evidence-answer.schema.json` (`get_evidence`).
 
+## `DEPLOYED_AS` deployment claims (v0.5.0 I3)
+
+I3 adds zero new MCP tools — `tools/list` still returns exactly the three above, in the same fixed
+order. `Service -[DEPLOYED_AS]-> Workload` identity is folded entirely into
+`get_service_dependencies`'s existing `data.deployment_claim_ids` / `data.deployment_resolutions`
+fields (siblings of, never merged into, `data.dependency_claim_ids`) and into the same answer's
+`claims` union, which now closes over `DependencyClaim | DeploymentClaim`. A `DeploymentClaim`'s
+`object` is a bounded `WorkloadRef` (`id`, `type`, `workload_kind`, `name`, `namespace`) — never a
+`Workload`-typed `EntityRef`, and never any Pod/cluster-UID/owner-chain detail beyond those fields;
+its `resolution_method` names the strongest agreeing identity path
+(`RESOLVED_EXPLICIT`/`RESOLVED_CONFIGURED`/`RESOLVED_OBSERVED`). Every reconciliation outcome —
+resolved or not — is also returned as its own `DeploymentResolution`, whose `status` is one of
+`RESOLVED_EXPLICIT`/`RESOLVED_CONFIGURED`/`RESOLVED_OBSERVED`/`CONFLICT`/`AMBIGUOUS`/`UNRESOLVED`, so
+a client can always see *why* a deployment didn't resolve, not just that it didn't. `get_evidence`
+resolves every deployment evidence ref a resolved-or-not outcome cites, the same as any other
+evidence — see [`evidence.md`](evidence.md) and
+[`graph-model.md`](graph-model.md#deployed_as-v050-i3--computed-not-a-stored-graph-edge) for the full
+contract. `get_architecture_drift` never returns a `DeploymentClaim` — drift stays deployment-
+agnostic, unchanged in meaning by I3.
+
 ## Qualification consistency with the analysis/REST surface (v0.4.1 ADR 0010)
 
 These MCP tools require the explicit observation context defined by the v0.4 contract above —
