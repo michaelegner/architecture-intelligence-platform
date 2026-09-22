@@ -142,6 +142,8 @@
       "aip:claim:v1:a8a00df70b4d864fa5dc3b27e9d6d8fa2cb416c4ac636931f5383a02389e41a9",
       "aip:claim:v1:42e73cd9f0ed6f067bdc064094dd632ffe53c2bedf03340ab3dedea432453a0f"
     ],
+    "deployment_claim_ids": [],
+    "deployment_resolutions": [],
     "service": {
       "id": "service:rest-fights",
       "method": null,
@@ -150,9 +152,7 @@
       "path": null,
       "protocol": null,
       "type": "SERVICE"
-    },
-    "deployment_claim_ids": [],
-    "deployment_resolutions": []
+    }
   },
   "evidence_refs": [
     "evidence:manifest:urn:aip:source:filesystem:45da4b7fd7b0d3d06f5abbfbc318d90f8679f281684f2fc54e4e16cc7144b83a",
@@ -178,8 +178,8 @@
   },
   "schema_version": "0.5",
   "snapshot": {
-    "model_revision": "sha256:e2c8ae02d34191a951b13f6b5b82a79d3bfc0077585fd3af4d5413fd116f2d3a",
-    "snapshot_id": "aip:snapshot:v1:e2c8ae02d34191a951b13f6b5b82a79d3bfc0077585fd3af4d5413fd116f2d3a"
+    "model_revision": "sha256:523c843ce30b71e944cf2b20332bdc307ab8e15d793e7f17d151a458c1cb3645",
+    "snapshot_id": "aip:snapshot:v1:523c843ce30b71e944cf2b20332bdc307ab8e15d793e7f17d151a458c1cb3645"
   },
   "tool": "get_service_dependencies"
 }

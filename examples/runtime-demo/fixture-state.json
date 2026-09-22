@@ -516,7 +516,7 @@
         "version": "1.0.0"
       }
     ],
-    "version": 1
+    "version": 2
   },
   "environment": "demo",
   "expected_drift_claims": [
@@ -548,7 +548,7 @@
       "via": "unused-q"
     }
   ],
-  "expected_snapshot_id": "aip:snapshot:v1:09dfdf1a1f91611b51d1a3c9ecbacb7953d66a4bd2672db669e43e2a2c18beac",
+  "expected_snapshot_id": "aip:snapshot:v1:1916aff179fe89b8a6f96766c739c778e0e3c95bbcf7574c75d1b285f6899f17",
   "fixture_id": "runtime-demo-frozen-2026-08-26",
   "manifest_version": 1,
   "seed_timestamp": "2026-08-26T12:00:00.000000Z",

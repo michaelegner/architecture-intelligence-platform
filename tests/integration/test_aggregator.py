@@ -300,9 +300,15 @@ def test_runtime_identity_observation_is_never_reachable_as_evidence(driver, ses
     assert record is None
 
 
-def test_persisting_a_runtime_identity_observation_does_not_change_the_public_snapshot_fingerprint(
+def test_persisting_a_runtime_identity_observation_now_changes_the_public_snapshot_fingerprint(
     driver, session
 ):
+    """Pre-I3 this observation kind was excluded from the public snapshot entirely (same I2 Draft
+    0.2 §9 boundary `test_runtime_identity_observation_is_never_reachable_as_evidence` above still
+    proves for evidence resolution specifically). v0.5.0 I3 Draft 0.4 §17 deliberately narrows that
+    boundary for "bounded OTel runtime identity observations" - Path C's own deployment
+    reconciliation reads these rows, so snapshot determinism requires them to move the fingerprint
+    the same way every other reconciliation input already does."""
     before = canonical_snapshot_state(session, coverage_qualification_enabled=True)
     before_id, _ = snapshot_fingerprint(before)
 
@@ -316,4 +322,4 @@ def test_persisting_a_runtime_identity_observation_does_not_change_the_public_sn
     after = canonical_snapshot_state(session, coverage_qualification_enabled=True)
     after_id, _ = snapshot_fingerprint(after)
 
-    assert after_id == before_id
+    assert after_id != before_id

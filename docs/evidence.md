@@ -24,24 +24,60 @@ from a relation to the `Evidence` node(s) that back it — every relation instea
 `MATCH (e:Evidence) WHERE e.id IN r.evidence_ids`. This is what makes provenance fully traceable
 end-to-end, not just produced in-memory during ingestion and discarded.
 
-## Internal-only evidence
+## Internal-only evidence, and its narrow v0.5.0 I3 exposure
 
 A Kubernetes source (`app/ingestion/kubernetes_adapter.py`, v0.5.0 I2) writes ordinary
 `Evidence`/`Provenance` records — `source_type: KUBERNETES` — for the facts it contributes, using
 the exact same `Evidence` node label and shape described above. They are real, committed graph
 nodes, not a separate mechanism.
 
-They are also, deliberately, the one category of `Evidence` this doc's own public query surface
-never returns: I2 Draft 0.2's §9 amendment keeps evidence supporting only internal-only Kubernetes
-infrastructure facts (`InfrastructureEntity`/`Contribution`/`Claim` — see
+I2 Draft 0.2's §9 amendment kept evidence supporting only internal-only Kubernetes infrastructure
+facts (`InfrastructureEntity`/`Contribution`/`Claim` — see
 [`canonical-model.md`](canonical-model.md#infrastructure-entities-and-claims-appcanonicalinfrastructurepy--internal-only))
-off `GET /api/evidence`, `GET /api/evidence/{id}`, and the canonical snapshot projection every MCP
-answer's `snapshot_id` is computed from. Exposing that evidence while hiding everything it supports
-would leak the existence, count, and source attribution of those internal-only facts indirectly —
-and would make merely *configuring* a Kubernetes source change the public snapshot fingerprint for
-every existing consumer, a public-surface change I2 does not otherwise make. Exposure of Kubernetes
-evidence requires its own explicit, versioned exposure amendment before implementation, exactly as
-the governing spec already requires for the infrastructure claims themselves.
+off every public surface entirely, to avoid leaking the existence, count, and source attribution of
+those internal-only facts indirectly, and to avoid merely *configuring* a Kubernetes source changing
+the public snapshot fingerprint for every existing consumer.
+
+v0.5.0 I3 narrows that boundary, deliberately and only this far: **an otherwise-internal
+Kubernetes/configuration/runtime-identity evidence record becomes publicly resolvable only when the
+current snapshot makes it reachable from a public `DEPLOYED_AS` claim or from a public
+`DeploymentResolution`** (including a non-resolved `CONFLICT`/`AMBIGUOUS`/`UNRESOLVED` one — a
+resolution's evidence must stay drillable even when no claim was established, so a client is never
+handed a dead reference). All other Kubernetes evidence remains hidden exactly as in I2; see
+[`graph-model.md`](graph-model.md#deployed_as-v050-i3--computed-not-a-stored-graph-edge) for how
+`DEPLOYED_AS` itself is produced.
+
+Path A's evidence (the explicit `architecture-intelligence.io/service-id` annotation) is a real,
+committed `Evidence` node exactly like any other Kubernetes evidence — it only becomes visible
+because reachability now admits it. Path B (a configured mapping entry) and Path C (an OpenTelemetry
+runtime identity observation) have no real `:Evidence` node at all — a mapping entry and a
+`RuntimeIdentityObservation` are not `Evidence`-labeled to begin with. Rather than widen the frozen
+`EvidenceRecord`/`ObservedEvidenceMetadata` contract with new dedicated fields, their identity is
+encoded, in-memory only (never written to Neo4j), into the two already-generic `source_locator`/
+`source_revision` string fields every `EvidenceRecord` already carries:
+
+- **Path B**: `source_locator` is the mapping artifact's own sanitized relative path;
+  `source_revision` identifies `artifact_id`, `artifact_revision`, `mapping_id`, and a short prefix
+  of the artifact's content digest — the four values needed to pin exactly which mapping entry
+  produced the claim.
+- **Path C**: reuses the real `RuntimeIdentityObservation` row's own `ObservedEvidenceMetadata`
+  fields (`environment`, `bucket_start`/`bucket_end`, `first_seen`/`last_seen`, `observation_count`,
+  `service_version`) directly; `source_locator` carries only the bounded, present `k8s.*`
+  consistency attributes as a short `key=value` string (never raw OTLP Resource data), and
+  `source_revision` names the reconciliation rule/version that normalized it.
+
+Path B/C's own *internal* identity (`compute_service_workload_mapping_evidence_id`'s
+`urn:aip:service-workload-mapping-evidence:v1:...`, and `RuntimeIdentityObservation`'s own
+`runtime-identity:otel:...` id) is never cited directly as a public `evidence_refs` entry — neither
+shape satisfies `get_evidence`'s own frozen `evidence_refs` pattern (every requested ref must start
+with `evidence:`), which would make it impossible to ever actually request through `get_evidence`/
+`POST /api/evidence/resolve`. Both are rewritten, at the public boundary only, into an
+`evidence:`-prefixed reference (`evidence:mapping:v1:...` / `evidence:otel:...`) via a reversible
+prefix swap — the same function mints both the id every `DeploymentClaim`/`DeploymentResolution`
+cites and the id the corresponding synthetic `EvidenceRecord` is keyed by, so the two always agree.
+
+Both are still bounded and sanitized the same way every other evidence record is — no raw mapping
+YAML, no arbitrary Resource attributes, no unbounded strings.
 
 ## `correlation_mode`
 

@@ -2671,13 +2671,21 @@ def test_infrastructure_entity_shared_by_two_sources_survives_one_source_droppin
     assert _count(driver, "MATCH (c:InfrastructureContribution) RETURN count(c) AS c") == 1
 
 
-def test_persisted_infrastructure_facts_do_not_leak_into_the_public_snapshot(driver):
-    """I2 Draft 0.2 §9: these internal-only facts "MUST NOT leak through generic serialization,
-    existing dependency answers, or a graph tool". Note `_RELATION_QUERY` in
-    `app.architecture_intelligence.repository` is deliberately untyped (`MATCH (a)-[r]->(b)`), so
-    any binary claim modelled as a graph *edge* would silently enter every MCP answer's relation
-    projection and snapshot fingerprint - modelling all four claim kinds as owned claim *nodes*
-    (which §7.2's unary `WORKLOAD_EXISTS` requires anyway) is what keeps this boundary intact.
+def test_persisted_kubernetes_workload_identity_now_binds_the_public_snapshot(driver):
+    """I2 Draft 0.2 §9 originally kept every infrastructure fact off the public snapshot entirely.
+    v0.5.0 I3 Draft 0.4 §17 deliberately narrows that boundary: "I2 intentionally excluded internal
+    Kubernetes state from the public Architecture Intelligence snapshot because it could not affect
+    a public answer. I3 changes that only for the bounded reconciliation projection" - naming
+    "current supported Workload identity" as one of the state categories the fingerprint SHALL now
+    bind (Path A/B/C's own deployment reconciliation reads exactly this Workload identity, so
+    snapshot determinism requires it to move the fingerprint). This test proves that new, narrower
+    boundary for a `KUBERNETES_WORKLOAD` entity specifically; the sibling test just below proves the
+    §17 "SHALL NOT include" list (Network Service/Ingress facts) still does not leak, unchanged from
+    I2 Draft 0.2 §9's original rule. Note `_RELATION_QUERY` in `app.architecture_intelligence.
+    repository` stays deliberately untyped (`MATCH (a)-[r]->(b)`) throughout, so no binary
+    infrastructure claim modelled as a graph *edge* (all four claim kinds are modelled as owned
+    claim *nodes*, per §7.2's unary `WORKLOAD_EXISTS` requirement) ever enters the relation
+    projection - that boundary is untouched by I3.
     """
     with driver.session(database=DATABASE) as session:
         ensure_schema(session)
@@ -2698,26 +2706,105 @@ def test_persisted_infrastructure_facts_do_not_leak_into_the_public_snapshot(dri
     assert _count(driver, "MATCH (c:InfrastructureContribution) RETURN count(c) AS c") == 1
     assert _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == 1
 
-    # ...yet no entity, contribution, or claim of theirs appears anywhere in the public snapshot,
-    # and no infrastructure graph *edge* exists for the untyped relation projection to pick up.
+    # ...the Workload's own id now legitimately appears (spec §17's "current supported Workload
+    # identity" bullet - `deployment_workloads` binds every current KUBERNETES_WORKLOAD entity,
+    # annotated or not, since Path C's Pod/Workload resolution needs the full set)...
     serialized = json.dumps(after)
-    assert INFRA_ENTITY_ID not in serialized
+    assert INFRA_ENTITY_ID in serialized
+    # ...but the claim-kind literal and entity-kind literal still don't - `deployment_workloads`
+    # never returns `entity_kind`, and this fixture's `WORKLOAD_EXISTS` claim isn't one of the two
+    # claim kinds (`WORKLOAD_OWNS_POD`/none else) §17's bounded projection reads.
     assert "WORKLOAD_EXISTS" not in serialized
     assert "KUBERNETES_WORKLOAD" not in serialized
+    # No infrastructure claim/contribution is modelled as a graph *edge*, so the untyped relation
+    # projection and its own edge-count boundary are both still exactly as before.
     assert after["relations"] == before["relations"]
     assert _count(driver, "MATCH (:InfrastructureEntity)-[r]-() RETURN count(r) AS c") == 0
 
-    # Nor does the Kubernetes source's own Evidence record: §9 as amended in Draft 0.2 keeps
-    # evidence supporting only internal-only facts internal too, so merely configuring a Kubernetes
-    # source cannot change the public snapshot fingerprint every MCP answer carries.
-    assert after == before
-    assert after_id == before_id
-    assert INFRA_EVIDENCE.id not in serialized
-    # ...even though the evidence node really is committed and really is owned by that source.
-    assert (
-        _count(driver, "MATCH (e:Evidence {id: $id}) RETURN count(e) AS c", id=INFRA_EVIDENCE.id)
-        == 1
+    assert after != before
+    assert after_id != before_id
+
+
+def test_kubernetes_network_service_and_ingress_facts_still_do_not_leak_into_the_public_snapshot(
+    driver,
+):
+    """The other half of spec §17's boundary: entity/claim kinds explicitly named in its "SHALL NOT
+    include" list (Network Service selector facts, Ingress routing facts) are outside I3's bounded
+    deployment-reconciliation projection and so must still never affect the public snapshot -
+    exactly I2 Draft 0.2 §9's original, unmodified rule for everything I3 didn't carve an exception
+    for."""
+    service_entity = InfrastructureEntity(
+        id="urn:aip:k8s-resource:network-service-1",
+        entity_kind=InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE,
+        cluster_uid="cluster-1",
+        api_group="",
+        resource_kind="Service",
+        namespace="default",
+        name="order-service",
     )
+    workload_entity = InfrastructureEntity(
+        id=INFRA_ENTITY_ID,
+        entity_kind=InfrastructureEntityKind.KUBERNETES_WORKLOAD,
+        cluster_uid="cluster-1",
+        api_group="apps",
+        resource_kind="Deployment",
+        namespace="default",
+        name="order-service",
+    )
+    model = ArchitectureModel(
+        provenance=[INFRA_EVIDENCE],
+        infrastructure_entities=[service_entity, workload_entity],
+        infrastructure_contributions=[
+            InfrastructureContribution(
+                entity_id=workload_entity.id,
+                source_instance_id="src:k8s-1",
+                evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+                resource_semantic_digest="digest-1",
+                evidence_refs=[INFRA_EVIDENCE.id],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+        infrastructure_claims=[
+            InfrastructureClaim(
+                kind=InfrastructureClaimKind.NETWORK_SERVICE_SELECTS_WORKLOAD,
+                subject_id=service_entity.id,
+                object_id=workload_entity.id,
+                evidence_refs=[INFRA_EVIDENCE.id],
+                mapping_rule_id="kubernetes-adapter@1",
+                mapping_rule_version="v1",
+            )
+        ],
+    )
+
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(
+            session,
+            "src:app",
+            ArchitectureModel(services=[Service(id="service:order-service", name="OrderService")]),
+        )
+        before = canonical_snapshot_state(session, coverage_qualification_enabled=True)
+        before_id, _ = snapshot_fingerprint(before)
+
+        _import(session, "src:k8s-1", model)
+        after = canonical_snapshot_state(session, coverage_qualification_enabled=True)
+        after_id, _ = snapshot_fingerprint(after)
+
+    assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 2
+    assert _count(driver, "MATCH (c:InfrastructureClaim) RETURN count(c) AS c") == 1
+
+    serialized = json.dumps(after)
+    assert service_entity.id not in serialized
+    assert "NETWORK_SERVICE_SELECTS_WORKLOAD" not in serialized
+    assert "KUBERNETES_NETWORK_SERVICE" not in serialized
+    assert after["relations"] == before["relations"]
+    assert _count(driver, "MATCH (:InfrastructureEntity)-[r]-() RETURN count(r) AS c") == 0
+
+    # The Workload's own identity still legitimately binds (see the sibling test above) - this test
+    # is only about the Network Service/Ingress side of §17's "SHALL NOT include" list, which the
+    # assertions above already cover.
+    assert after_id != before_id
 
 
 def _infra_claim_model(

@@ -52,11 +52,22 @@ bounded runtime identity observation (`app.provenance.model.RuntimeIdentityObser
 into a deterministic daily bucket (`app.canonical.ids.runtime_identity_observation_id`,
 `app.telemetry.aggregator.merge_runtime_identity_observation`) and persisted under its own
 `:RuntimeIdentityObservation` Neo4j label — independent of, and never coupled to, CALLS/SENDS/
-RECEIVES_FROM correlation. This is pure evidence capture: it produces no relation, is never itself
-a `DEPLOYED_AS` claim, and is not reachable through `GET /api/evidence`, `get_evidence`, or the
-public snapshot fingerprint (a different label than `:Evidence` entirely). A later increment's
-reconciliation reads these observations to resolve Service↔Workload identity; this ingestion layer
-only captures them.
+RECEIVES_FROM correlation. This is pure evidence capture at ingestion time: it produces no relation
+of its own, and the `:RuntimeIdentityObservation` node itself is never reachable through
+`GET /api/evidence`, `get_evidence`, or the public snapshot fingerprint (a different label than
+`:Evidence` entirely).
+
+v0.5.0 I3's deployment reconciliation ("Path C", `app.architecture_intelligence.
+deployment_reconciliation`) reads these observations at query time — together with a real Pod's
+captured owner chain (Pod → ReplicaSet/StatefulSet/DaemonSet → Workload) and an exact Service
+resolution over the same span's declared/observed CALLS identity — to produce a public
+`Service -[DEPLOYED_AS]-> Workload` `DeploymentClaim` (or a non-resolved `DeploymentResolution` when
+the evidence conflicts, is ambiguous, or doesn't reach a single Service) through
+`get_service_dependencies`/`GET /api/services/{id}/deployments`. That public claim's own
+`evidence_refs` never point at a raw `:RuntimeIdentityObservation` node directly; a bounded,
+sanitized `EvidenceRecord` (source type `OPENTELEMETRY`) is synthesized from it on read, carrying
+only the same allowlisted attributes already described above, and only when the current snapshot
+makes it reachable from a public claim or resolution (see [`evidence.md`](evidence.md)).
 
 ## Correlation modes
 

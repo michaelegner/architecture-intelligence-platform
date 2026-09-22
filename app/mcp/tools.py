@@ -123,7 +123,9 @@ def register_tools(
         name="get_service_dependencies",
         description=(
             "One-hop direct dependencies of a service, qualified against declared and observed "
-            "evidence and bound to a stable snapshot."
+            "evidence and bound to a stable snapshot. Also returns the service's Service-Workload "
+            "deployment claims and resolutions (explicit annotation, configured mapping, or "
+            "observed OpenTelemetry/Kubernetes linkage), reconciled across all applicable methods."
         ),
         annotations=_READ_ONLY_ANNOTATIONS,
     )
