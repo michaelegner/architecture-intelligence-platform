@@ -963,7 +963,7 @@ The analogy sharpens the consumer-side boundary around AIP:
 
 ```text
 AIP
-establish what architecture evidence supports
+establishes what architecture evidence supports
 
 agent
 reason / explore / propose
