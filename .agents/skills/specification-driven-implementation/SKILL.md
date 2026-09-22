@@ -29,6 +29,18 @@ rules, evidence/provenance semantics, qualification behavior, reconciliation log
 semantics does not need this full workflow. When genuinely uncertain whether a change qualifies,
 treat it as substantial and run the full workflow anyway.
 
+**Documentation-only pre-PR validation exemption.** When the complete proposed PR diff contains only
+documentation and has no source relevance, do **not** run the repository's unit/integration test
+suites merely as a prerequisite to opening the PR. "No source relevance" means the change touches no
+production or test source, executable examples/fixtures, schemas, configuration, workflows,
+dependency/lock files, generated artifacts, version/build metadata, or other files whose contents
+can change runtime, build, validation, release, or qualification behavior. Before relying on this
+exemption, inspect the complete diff and state why it is documentation-only. Run only lightweight
+validation that can provide signal for the changed documents (for example Markdown/link/reference
+checks when such tooling exists). Once the PR exists, normal CI remains authoritative and may still
+run repository-wide tests. If any changed file has plausible source/runtime/build/qualification
+relevance, the exemption does not apply.
+
 ## Planning-start telemetry
 
 For every substantial workflow that uses this skill, record one immutable planning-start timestamp
@@ -95,13 +107,17 @@ the repository adopts one, but the timestamp remains in the hidden PR metadata m
 
 8. **Execute the specified validation and qualification steps** — the plan's own "Validation
    Commands" section, run in full (this repo's real `tests/unit`/`tests/integration` suites, lint,
-   format — not a hand-picked subset). Run autofixes (`ruff format`, `ruff check --fix`) before
-   tests, not after, so the common case needs only one test run. This is not a blanket "autofixes
-   never affect behavior" claim — `ruff check --fix` applies whatever rules are enabled, which can
-   rewrite program text beyond formatting/import ordering, so treat that possibility as real: if an
-   autofix runs *after* a test run that already passed and it changes source, rerun the affected (or
-   full) suite before treating validation as final. The point is to avoid a redundant re-run for zero
-   new signal, not to skip re-verifying a change that could plausibly affect behavior.
+   format — not a hand-picked subset), **except for the documentation-only pre-PR validation
+   exemption above**. For a qualifying docs-only PR, do not run unit/integration suites before PR
+   creation solely to satisfy this phase; record the inspected diff and any lightweight
+   documentation validation instead, then rely on normal PR CI for repository-wide checks. For all
+   source-relevant changes, run autofixes (`ruff format`, `ruff check --fix`) before tests, not
+   after, so the common case needs only one test run. This is not a blanket "autofixes never affect
+   behavior" claim — `ruff check --fix` applies whatever rules are enabled, which can rewrite
+   program text beyond formatting/import ordering, so treat that possibility as real: if an autofix
+   runs *after* a test run that already passed and it changes source, rerun the affected (or full)
+   suite before treating validation as final. The point is to avoid a redundant re-run for zero new
+   signal, not to skip re-verifying a change that could plausibly affect behavior.
 
 9. **Reconcile the final implementation against the *retained* original plan**, using the
    reconciliation template below. This is a diff against what was promised, not a fresh
