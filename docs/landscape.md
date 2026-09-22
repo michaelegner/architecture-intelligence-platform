@@ -89,6 +89,7 @@ visualization, provenance, or retrieval?
 [Moldable Architecture Knowledge](#moldable-development--glamorous-toolkit--rewilding-software-engineering) ·
 [Architectural judgment](#michael-smith--line-of-sight-ai-and-architecture) ·
 [Symbolic Separation](#davletiyarov-khan-and-bartolini--symbolic-separation) ·
+[Typed probabilistic judgment](#typesafe-ai--jev-and-typed-probabilistic-judgment) ·
 [Enola](#enola--deterministic-architecture-context-and-regression-testing) ·
 [Agent API Profile](#christian-posta--agent-api-profile) ·
 [MCP](#model-context-protocol-mcp) ·
@@ -1185,6 +1186,55 @@ The hard boundary remains:
 
 That principle can guide future AIP tool design without weakening the rule that agents may reason
 over Architecture Knowledge but must never become its source.
+
+### TypeSafe AI — Jev and Typed Probabilistic Judgment
+
+**Sources**
+
+- [TypeSafe AI](https://typesafe.ai/)
+- [Introducing System One Models & Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
+
+**Core idea**
+
+Jev is a decision-oriented model that takes shared state plus bounded typed questions and returns
+typed probabilistic judgments rather than free-form text. Its public interface emphasizes a small
+set of question/answer shapes, calibrated probabilities, and composition in ordinary software so
+uncertain judgments can be thresholded, combined, or escalated without turning every decision into
+an open-ended language-generation task.
+
+**Why this matters to AIP**
+
+Jev provides a useful adjacent reasoning model for bounded questions that are genuinely
+probabilistic rather than deterministically derivable from AIP's evidence model:
+
+```text
+AIP
+KNOW
+what architecture claims the evidence supports
+
+Jev
+JUDGE
+a bounded semantic question probabilistically
+
+GT
+EXPLORE / MOLD / EXPLAIN
+turn questions and results into contextual tools
+```
+
+Atomic typed judgments are especially interesting at the consumer/orchestration boundary for
+classification, routing, prioritization, or other bounded decisions whose result can then be
+composed deterministically in code.
+
+**AIP distinction**
+
+> **Model confidence is not evidence qualification.**
+
+A calibrated probability can express uncertainty in a probabilistic judgment; it does not establish
+an architecture fact, reconcile an identity, qualify source evidence, determine applicability, or
+establish Intent. Jev therefore belongs beside AIP as a possible reasoning primitive, not inside
+AIP's knowledge-establishment authority.
+
+This is a landscape reference, not an AIP dependency or roadmap commitment.
 
 ### Davletiyarov, Khan, and Bartolini — Symbolic Separation
 
