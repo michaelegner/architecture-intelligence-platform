@@ -12,23 +12,27 @@ state I1's own suite already qualifies against.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 import httpx
 import jsonschema
 import pytest
+import yaml
 from mcp.server import MCPServer
 
 from app.architecture_intelligence.contracts import Outcome, Producer
 from app.architecture_intelligence.request import ServiceDependenciesRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.canonical import ids
-from app.graph.importer import import_all_sources
+from app.canonical.infrastructure import KubernetesEvidenceMode
+from app.canonical.model import ArchitectureModel, Service
+from app.graph.importer import import_all_sources, import_kubernetes_source, import_source
 from app.graph.revision_fence import read_revision
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
-from app.sources.model import FilesystemSourceConfig
+from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
 from tests.support.negotiated_mcp_client import call_negotiated
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
@@ -268,3 +272,118 @@ async def test_service_validation_error_leaves_revision_fence_unchanged(driver):
     with driver.session(database=DATABASE) as session:
         after = read_revision(session)
     assert after == before
+
+
+# --- v0.5.0 I3 slice 5b: deployment-scoped negotiated-MCP/direct equivalence ---------------------
+
+_K8S_RESOURCE_TYPES = frozenset(
+    {
+        "v1/Namespace",
+        "v1/Pod",
+        "v1/Service",
+        "apps/v1/Deployment",
+        "apps/v1/StatefulSet",
+        "apps/v1/DaemonSet",
+        "apps/v1/ReplicaSet",
+        "networking.k8s.io/v1/Ingress",
+    }
+)
+
+
+def _create_declared_service(driver, *, service_id: str, name: str) -> None:
+    with driver.session(database=DATABASE) as session:
+        import_source(
+            session,
+            source_instance_id=f"declared-source:{service_id}",
+            locator=f"{service_id}.yaml",
+            model=ArchitectureModel(services=[Service(id=service_id, name=name, version="1")]),
+            semantic_input_digest=hashlib.sha256(f"{service_id}:{name}".encode()).hexdigest(),
+            discovery_scope_id=f"declared-scope:{service_id}",
+            scope_definition_digest=hashlib.sha256(service_id.encode()).hexdigest(),
+        )
+
+
+def _write_kubernetes_bundle(root, *, resources: list[dict]) -> KubernetesSourceConfig:
+    root.mkdir(parents=True, exist_ok=True)
+    resource_bytes = yaml.safe_dump_all(resources).encode()
+    (root / "resources.yaml").write_bytes(resource_bytes)
+    envelope = {
+        "apiVersion": "aip.dev/v1",
+        "kind": "KubernetesSourceSnapshot",
+        "metadata": {
+            "id": "i3-mcp-equivalence-snapshot",
+            "revision": "i3-mcp-equivalence-revision",
+            "producer": "aip-kubernetes-capture-agent",
+            "capturedAt": "2026-09-19T10:00:00Z",
+        },
+        "source": {
+            "configuredSourceId": "i3-mcp-equivalence-source",
+            "configuredScopeId": "i3-mcp-equivalence-scope",
+            "clusterUid": "i3-mcp-equivalence-cluster",
+            "clusterIdentityEvidenceRef": "kube-system-namespace-uid",
+            "mode": "CAPTURED_RESOURCE",
+        },
+        "scope": {"namespaces": ["checkout"], "resourceTypes": sorted(_K8S_RESOURCE_TYPES)},
+        "completeness": {
+            "status": "COMPLETE",
+            "authorityRef": "i3-mcp-equivalence-authority",
+            "expectedPriorInventoryRevision": None,
+        },
+        "files": [{"path": "resources.yaml", "sha256": hashlib.sha256(resource_bytes).hexdigest()}],
+    }
+    (root / "envelope.yaml").write_bytes(yaml.safe_dump(envelope).encode())
+    return KubernetesSourceConfig(
+        id="i3-mcp-equivalence-source",
+        root=root,
+        envelope_relative_path="envelope.yaml",
+        configured_scope_id="i3-mcp-equivalence-scope",
+        cluster_uid="i3-mcp-equivalence-cluster",
+        evidence_mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
+        authorized_producer="aip-kubernetes-capture-agent",
+        authority_record="i3-mcp-equivalence-authority",
+    )
+
+
+@pytest.mark.asyncio
+async def test_resolved_deployment_answer_is_identical_direct_vs_mcp(driver, tmp_path):
+    """spec §23: REST/service/negotiated-MCP deployment equivalence - `deployment_claim_ids`/
+    `deployment_resolutions` and the interleaved `DeploymentClaim` in `claims` must be byte-identical
+    between a direct `get_service_dependencies` call and the same request dispatched over the real
+    negotiated MCP transport, exactly as already proven for dependency-only answers above."""
+    service_id = ids.service_id("checkout")
+    _create_declared_service(driver, service_id=service_id, name="checkout")
+    config = _write_kubernetes_bundle(
+        tmp_path,
+        resources=[
+            {
+                "apiVersion": "apps/v1",
+                "kind": "Deployment",
+                "metadata": {
+                    "name": "checkout-api",
+                    "namespace": "checkout",
+                    "uid": "deploy-uid-mcp-equivalence",
+                    "resourceVersion": "1",
+                    "annotations": {"architecture-intelligence.io/service-id": service_id},
+                },
+            }
+        ],
+    )
+    stats = import_kubernetes_source(driver, database=DATABASE, source_config=config)
+    assert stats.committed is True
+
+    direct_json = (
+        _service(driver).get_service_dependencies(_request(service_id)).model_dump(mode="json")
+    )
+    assert direct_json["data"]["deployment_claim_ids"]
+    jsonschema.validate(instance=direct_json, schema=DEPENDENCY_ANSWER_SCHEMA)
+
+    server, app = _build_server_and_app(driver)
+    async with mcp_session_manager_lifespan(server):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
+            result = await _call_mcp(client, _request_payload(service_id))
+            assert result["isError"] is False
+            jsonschema.validate(
+                instance=result["structuredContent"], schema=DEPENDENCY_ANSWER_SCHEMA
+            )
+            assert result["structuredContent"] == direct_json

@@ -54,6 +54,21 @@ _DECLARED_SERVICE_IDENTITY_QUERY = (
     "RETURN s.name AS name, s.namespace AS namespace, s.version AS version"
 )
 
+# v0.5.0 I3 slice 5b - the same `owner_source_ids` gate as `_DECLARED_SERVICE_NAME_QUERY`, as a full
+# scan rather than a point lookup: `deployment_reconciliation.run_whole_graph_reconciliation` needs
+# every currently-declared Service id/name for (a) Path A/B's own `lookup_service_name` resolution
+# and (b) spec §16.2's "candidate names a currently-declared Service" evidence-reachability gate.
+# Deliberately NOT `app.telemetry.service_resolver.fetch_candidates` (its own `_CANDIDATES_QUERY` has
+# no `owner_source_ids` filter at all - it exists to resolve telemetry against *any* known Service,
+# declared or observed-only, a legitimately looser purpose than this one) - reusing it here would
+# silently let a telemetry-minted `OBSERVED_ONLY` Service stub qualify deployment identity, exactly
+# the bug PR #215's review finding (see `_DECLARED_SERVICE_NAME_QUERY`'s own comment) already fixed
+# once for the point-lookup path.
+_DECLARED_SERVICE_IDS_QUERY = (
+    "MATCH (s:Service) WHERE size(coalesce(s.owner_source_ids, [])) > 0 "
+    "RETURN s.id AS id, s.name AS name"
+)
+
 _WORKLOAD_BY_ID_QUERY = (
     "MATCH (e:InfrastructureEntity {id: $entity_id}) "
     "WHERE e.entity_kind = 'KUBERNETES_WORKLOAD' "
@@ -131,6 +146,14 @@ def read_service_name(session: neo4j.Session, *, service_id: str) -> str | None:
     stub and correctly handles an observed-first Service that is declared later."""
     record = session.run(_DECLARED_SERVICE_NAME_QUERY, service_id=service_id).single()
     return record["name"] if record is not None else None
+
+
+def read_declared_service_ids(session: neo4j.Session) -> dict[str, str]:
+    """`{service_id: name}` for every *declared* Service currently in the graph - the bulk
+    equivalent of `read_service_name`'s point lookup, same `owner_source_ids` gate (see
+    `_DECLARED_SERVICE_IDS_QUERY`'s own comment for why this must not reuse
+    `app.telemetry.service_resolver.fetch_candidates`)."""
+    return {record["id"]: record["name"] for record in session.run(_DECLARED_SERVICE_IDS_QUERY)}
 
 
 def read_current_kubernetes_workload(

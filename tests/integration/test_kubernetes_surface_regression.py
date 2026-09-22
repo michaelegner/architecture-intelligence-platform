@@ -298,10 +298,16 @@ async def test_kubernetes_facts_do_not_leak_through_the_real_mcp_transport(drive
             _assert_no_internal_markers(json.dumps(drift_result["structuredContent"]))
 
 
-def test_configuring_a_kubernetes_source_does_not_change_the_public_snapshot_fingerprint(driver):
-    """§9's Draft 0.2 amendment: "merely *configuring* a Kubernetes source [must not] change the
-    public snapshot fingerprint every MCP answer's snapshot identity is computed from." Proven here
-    against the real committed bundle, not a hand-built model."""
+def test_configuring_a_kubernetes_source_now_changes_the_public_snapshot_fingerprint(driver):
+    """§9's Draft 0.2 amendment originally read: "merely *configuring* a Kubernetes source [must
+    not] change the public snapshot fingerprint every MCP answer's snapshot identity is computed
+    from." v0.5.0 I3 Draft 0.4 §17 deliberately narrows that boundary: "I2 intentionally excluded
+    internal Kubernetes state from the public Architecture Intelligence snapshot because it could
+    not affect a public answer. I3 changes that only for the bounded reconciliation projection" -
+    this fixture bundle's real Deployment/Pod resolve to exactly the "current supported Workload
+    identity" / "current captured Pod UID bindings" / "current WORKLOAD_OWNS_POD links" state §17
+    now binds, since Path A/B/C's own deployment reconciliation reads it. Proven here against the
+    real committed bundle, not a hand-built model."""
     _import_application_facts(driver)
     with driver.session(database=DATABASE) as session:
         before = canonical_snapshot_state(session, coverage_qualification_enabled=True)
@@ -316,5 +322,8 @@ def test_configuring_a_kubernetes_source_does_not_change_the_public_snapshot_fin
         after = canonical_snapshot_state(session, coverage_qualification_enabled=True)
         after_id, _ = snapshot_fingerprint(after)
 
-    assert after == before
-    assert after_id == before_id
+    assert after != before
+    assert after_id != before_id
+    # ...but the untyped relation projection - the leak path §9's original amendment was written to
+    # close - is still exactly as before: no infrastructure fact is modelled as a graph edge.
+    assert after["relations"] == before["relations"]

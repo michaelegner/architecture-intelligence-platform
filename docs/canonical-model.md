@@ -49,16 +49,30 @@ first-class *unary* claim and §7.2 forbids inventing a sentinel entity or self-
 a binary-relation shape, and keeping them off the relationship graph is also what stops them
 reaching the deliberately untyped relation projection behind every MCP answer.
 
-They remain **internal-only**: not exposed via REST or MCP, and absent from
-`docs/graph-model.md`'s public node/relationship model. This extends to their own provenance: a
-Kubernetes source's ordinary `Evidence`/`Provenance` records are real, committed nodes, but §9's
-Draft 0.2 amendment keeps them off every public evidence surface too — neither the REST evidence
-endpoints (`/api/evidence`) nor the canonical snapshot projection every MCP answer's `snapshot_id` is
-computed from expose them, so merely configuring a Kubernetes source cannot change that fingerprint
-for any existing consumer. See [`evidence.md`](evidence.md#internal-only-evidence) for the model-wide
-statement and the governing spec
-(`docs/specifications/0.5.0/i2-kubernetes-discovery-vertical-slice.md` §7, §9) before assuming any
-further exposure.
+They remain **internal-only**: not exposed via REST or MCP as their own entities, and absent from
+`docs/graph-model.md`'s public node/relationship model. `WORKLOAD_EXISTS`/`WORKLOAD_OWNS_POD`/
+`NETWORK_SERVICE_SELECTS_WORKLOAD`/`INGRESS_ROUTES_TO_NETWORK_SERVICE` are never themselves returned
+as claims, and `KUBERNETES_NETWORK_SERVICE`/`KUBERNETES_INGRESS` entities and their evidence stay
+fully hidden exactly as I2 Draft 0.2's §9 amendment originally specified.
+
+v0.5.0 I3 narrows that boundary in exactly two ways, both scoped to what its own deployment
+reconciliation reads (`docs/specifications/0.5.0/i3-runtime-identity-reconciliation.md` §17, §16):
+
+- A `KUBERNETES_WORKLOAD` entity's own identity (id, `resource_kind`, `namespace`, `name`, and any
+  retained `service_id_annotation`) now binds the public snapshot fingerprint — Path A/B/C's
+  reconciliation reads it on every request, so snapshot determinism requires it to move the
+  fingerprint the same way every other reconciliation input already does. `entity_kind` itself, and
+  every other still-internal entity/claim kind, still never appears anywhere public.
+- A Kubernetes source's own `Evidence`/`Provenance` records become selectively resolvable — only
+  when the current snapshot makes that specific evidence reachable from a public `DEPLOYED_AS` claim
+  or `DeploymentResolution` — through `get_evidence`/`GET /api/evidence`. See
+  [`evidence.md`](evidence.md#internal-only-evidence-and-its-narrow-v050-i3-exposure) for the full
+  rule and [`graph-model.md`](graph-model.md#deployed_as-v050-i3--computed-not-a-stored-graph-edge)
+  for how `DEPLOYED_AS` is produced.
+
+Merely *configuring* a Kubernetes source still cannot change the fingerprint through any of the
+still-excluded categories (Network Service selector facts, Ingress routing facts, unreferenced
+evidence) — only through the bounded Workload-identity/evidence-reachability state named above.
 
 ## Deterministic IDs (`app/canonical/ids.py`)
 

@@ -23,8 +23,8 @@
   },
   "schema_version": "0.5",
   "snapshot": {
-    "model_revision": "sha256:a70e54c0a4e9e248d9bc9c975fff2208b737e29c2a052cc789b1ecb0b353ac60",
-    "snapshot_id": "aip:snapshot:v1:a70e54c0a4e9e248d9bc9c975fff2208b737e29c2a052cc789b1ecb0b353ac60"
+    "model_revision": "sha256:75321881c9a8adc084828645605dd93d12b6fda3f8e5be2a738436554784b76b",
+    "snapshot_id": "aip:snapshot:v1:75321881c9a8adc084828645605dd93d12b6fda3f8e5be2a738436554784b76b"
   },
   "tool": "get_architecture_drift"
 }

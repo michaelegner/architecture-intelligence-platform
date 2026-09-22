@@ -50,6 +50,8 @@
     "dependency_claim_ids": [
       "aip:claim:v1:c41d3611d0e93513439ec4859dbd96e741750b689c6a77267e68b5705b977bc9"
     ],
+    "deployment_claim_ids": [],
+    "deployment_resolutions": [],
     "service": {
       "id": "service:order-service",
       "method": null,
@@ -58,9 +60,7 @@
       "path": null,
       "protocol": null,
       "type": "SERVICE"
-    },
-    "deployment_claim_ids": [],
-    "deployment_resolutions": []
+    }
   },
   "evidence_refs": [
     "evidence:manifest:urn:aip:source:filesystem:9cbaa26c6bb8086b7f547dd628a3cc6cbcc562b0f6e37a9f8c4621bc18ec8558",
@@ -82,8 +82,8 @@
   },
   "schema_version": "0.5",
   "snapshot": {
-    "model_revision": "sha256:5c290954105441fa8f416c8665ddcbbfb04e58ff7fcd40f8cde8d780b76d4dd3",
-    "snapshot_id": "aip:snapshot:v1:5c290954105441fa8f416c8665ddcbbfb04e58ff7fcd40f8cde8d780b76d4dd3"
+    "model_revision": "sha256:0334c875bb8ff7ff84891b0f4e926066bcca89da08f5cab457c0321af7d7ac9f",
+    "snapshot_id": "aip:snapshot:v1:0334c875bb8ff7ff84891b0f4e926066bcca89da08f5cab457c0321af7d7ac9f"
   },
   "tool": "get_service_dependencies"
 }

@@ -20,11 +20,20 @@ from datetime import datetime
 
 import pydantic
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict
 
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
     ArchitectureDriftData,
+    ArchitectureSchemaVersion,
+    DeploymentClaim,
+    DeploymentResolution,
+    EntityRef,
+    Limitation,
+    LimitationCode,
+    ObservationContextRef,
     ServiceDependenciesData,
+    SnapshotRef,
 )
 from app.architecture_intelligence.observation_context import reject_malformed_observation_context
 from app.architecture_intelligence.request import (
@@ -36,6 +45,26 @@ from app.architecture_intelligence.service import ArchitectureIntelligenceServic
 from app.deps import get_architecture_intelligence_service
 
 router = APIRouter(prefix="/api/services", tags=["architecture-intelligence"])
+
+
+class ServiceDeploymentsView(BaseModel):
+    """v0.5.0 I3 spec §15: the REST-only projection `GET /{service_id}/deployments` returns - not a
+    public MCP contract type (there is no matching MCP tool for this view), so it lives here rather
+    than in `contracts.py`. Every field is extracted from one already-computed
+    `get_service_dependencies` answer (spec §15: "MUST NOT invoke deployment reconciliation, Neo4j
+    queries, or qualification logic independently") - this model has no validators of its own beyond
+    shape, since the answer it projects is already fully validated."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: ArchitectureSchemaVersion
+    snapshot: SnapshotRef | None
+    observation_context: ObservationContextRef | None
+    service: EntityRef
+    deployment_claims: list[DeploymentClaim]
+    deployment_resolutions: list[DeploymentResolution]
+    evidence_refs: list[str]
+    limitations: list[Limitation]
 
 
 def _observation_context_input(
@@ -91,3 +120,63 @@ def get_architecture_drift(
     except pydantic.ValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return service.get_architecture_drift(request)
+
+
+@router.get("/{service_id}/deployments")
+def get_service_deployments(
+    service_id: str,
+    environment: str = Query(...),
+    from_: datetime = Query(..., alias="from"),
+    to: datetime = Query(...),
+    service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
+) -> ServiceDeploymentsView:
+    """`GET /api/services/{service_id}/deployments` (spec §15). Unlike `/dependencies`/`/drift`,
+    `environment`/`from`/`to` are required (FastAPI's own required `Query(...)` gives 422 for a
+    missing one for free), and an `UNKNOWN_ENTITY` limitation becomes a real 404 - the one spec-frozen
+    exception to this file's "everything else stays 200" rule (see the module docstring)."""
+    try:
+        request = ServiceDependenciesRequest(
+            service_id=service_id,
+            observation_context=_observation_context_input(environment, from_, to),
+            snapshot_id=None,
+        )
+        reject_malformed_observation_context(request.observation_context)
+    except pydantic.ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    answer = service.get_service_dependencies(request)
+
+    if any(limitation.code == LimitationCode.UNKNOWN_ENTITY for limitation in answer.limitations):
+        raise HTTPException(status_code=404, detail=f"unknown service: {service_id}")
+
+    # `data` is only ever null for a NOT_ANSWERED outcome (ArchitectureAnswer's own envelope
+    # invariant), and the only NOT_ANSWERED outcome a known service_id can produce here -
+    # UNKNOWN_ENTITY - was already turned into a 404 above.
+    assert answer.data is not None, "known service_id produced a NOT_ANSWERED answer with no data"
+
+    deployment_claims = [claim for claim in answer.claims if isinstance(claim, DeploymentClaim)]
+    deployment_resolutions = answer.data.deployment_resolutions
+    evidence_refs = sorted(
+        {
+            *(ref for claim in deployment_claims for ref in claim.evidence_refs),
+            *(
+                ref
+                for resolution in deployment_resolutions
+                for ref in (
+                    *resolution.supporting_evidence_refs,
+                    *resolution.conflicting_evidence_refs,
+                )
+            ),
+        }
+    )
+
+    return ServiceDeploymentsView(
+        schema_version=answer.schema_version,
+        snapshot=answer.snapshot,
+        observation_context=answer.observation_context,
+        service=answer.data.service,
+        deployment_claims=deployment_claims,
+        deployment_resolutions=deployment_resolutions,
+        evidence_refs=evidence_refs,
+        limitations=answer.limitations,
+    )

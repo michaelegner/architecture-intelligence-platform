@@ -44,7 +44,11 @@ to its own entity — `Service`, `Ingress`) and produces four entity kinds and f
 `INGRESS_ROUTES_TO_NETWORK_SERVICE`. It never establishes application interaction (no `CALLS`/
 `SENDS`/`RECEIVES_FROM`/`DEPLOYED_AS`) and never evaluates the
 `architecture-intelligence.io/service-id` annotation into an AIP Service identity — that annotation
-is retained verbatim as unqualified input for I3. See the governing spec
+is retained verbatim as unqualified input. v0.5.0 I3's deployment reconciliation
+(`app.architecture_intelligence.deployment_reconciliation`, "Path A") is what actually evaluates it
+against declared Service identity to produce a public `DEPLOYED_AS` claim, at query time, never at
+ingestion time — see [`evidence.md`](evidence.md) and [`graph-model.md`](graph-model.md) for the
+resulting public shape. See the governing spec
 (`docs/specifications/0.5.0/i2-kubernetes-discovery-vertical-slice.md`) and
 [`canonical-model.md`](canonical-model.md#infrastructure-entities-and-claims-appcanonicalinfrastructurepy--internal-only)
 for the full contract, limitations, and internal-only exposure boundary.

@@ -44,12 +44,14 @@ import logging
 import os
 import re
 import subprocess
+from collections.abc import Sequence
 from pathlib import Path
 
 import neo4j
 
 from app.architecture_intelligence.contracts import PRODUCER_NAME, Producer
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
+from app.sources.service_workload_mapping import load_service_workload_mapping
 from app.version import package_version
 
 logger = logging.getLogger("architecture_intelligence.mcp")
@@ -106,11 +108,33 @@ def _resolve_build_revision() -> str:
 
 
 def build_production_service(
-    driver: neo4j.Driver, *, database: str
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    service_workload_mapping_path: Path | None = None,
+    configured_kubernetes_sources: Sequence[tuple[str, str]] = (),
+    service_aliases: dict[str, str] | None = None,
 ) -> ArchitectureIntelligenceService:
     producer = Producer(
         name=PRODUCER_NAME,
         version=package_version(),
         build_revision=_resolve_build_revision(),
     )
-    return ArchitectureIntelligenceService(driver, database=database, producer=producer)
+    # v0.5.0 I3 spec §19: "a diagnostics-producing [mapping] file SHALL fail startup/load rather
+    # than silently become an unresolved identity" - unlike `load_migration_mappings`/
+    # `load_tombstones`, which are read per-import-request and diagnosed into that request's own
+    # response, this artifact is read once, held in memory, and consulted on every deployment
+    # reconciliation - a malformed artifact silently producing `None` here would make every Path B
+    # resolution silently behave as "no mapping configured" instead of failing loudly.
+    document, diagnostics = load_service_workload_mapping(service_workload_mapping_path)
+    if diagnostics:
+        detail = "; ".join(f"{d.code.value}: {d.message}" for d in diagnostics)
+        raise RuntimeError(f"service-workload mapping artifact failed to load: {detail}")
+    return ArchitectureIntelligenceService(
+        driver,
+        database=database,
+        producer=producer,
+        service_workload_mapping_document=document,
+        configured_kubernetes_sources=configured_kubernetes_sources,
+        service_aliases=service_aliases,
+    )

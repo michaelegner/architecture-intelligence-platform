@@ -10,12 +10,41 @@ from app.architecture_intelligence.contracts import (
     Producer,
     Qualification,
 )
+from app.architecture_intelligence.deployment_projection import PathResolutionResult
+from app.architecture_intelligence.deployment_reconciliation import WholeGraphReconciliation
 from app.architecture_intelligence.repository import SnapshotUnstable, StableSnapshot
 from app.architecture_intelligence.request import (
     ArchitectureDriftRequest,
     EvidenceRequest,
     ServiceDependenciesRequest,
 )
+
+# v0.5.0 I3 slice 5b: `get_service_dependencies`/`get_evidence`/`list_public_evidence`/
+# `get_public_evidence` now unconditionally run the whole-graph deployment reconciliation inside
+# their own stable-read attempt. These pre-existing dependency/drift/evidence tests are about
+# dependency/drift/evidence semantics specifically, not deployment reconciliation - patched to a
+# trivially empty result (see `_patch_deployment_internals` below) so they exercise exactly what
+# they did before this slice, with deployment_claim_ids/deployment_resolutions staying empty.
+_EMPTY_RECONCILIATION = WholeGraphReconciliation(
+    reduced=PathResolutionResult(resolutions=[], claims=[]),
+    declared_service_ids=frozenset(),
+    synthetic_evidence_records={},
+    reachable_evidence_ids=frozenset(),
+)
+
+
+def _patch_deployment_internals(monkeypatch) -> None:
+    """Neutralizes the two new whole-graph-reconciliation dependencies every stable-read attempt
+    now unconditionally exercises (`read_state` always calls `canonical_snapshot_state`;
+    `get_service_dependencies`/the evidence methods also call `run_whole_graph_reconciliation`) -
+    both would otherwise try to run real Cypher against `FakeSession`, which has no `.run()`."""
+    monkeypatch.setattr(service_module, "canonical_snapshot_state", lambda *args, **kwargs: {})
+    monkeypatch.setattr(
+        service_module,
+        "run_whole_graph_reconciliation",
+        lambda *args, **kwargs: _EMPTY_RECONCILIATION,
+    )
+
 
 ENVIRONMENT = "demo"
 WINDOW_START = "2026-08-26T00:00:00.000000Z"
@@ -66,10 +95,11 @@ _UNSET = _Unset()
 def _make_fake_read_stable_snapshot(
     *, raises: Exception | None = None, snapshot_id: str = FAKE_SNAPSHOT_ID
 ):
-    def fake(session, *, coverage_qualification_enabled, read_extra, max_attempts=3):
+    def fake(*, read_revision_fn, read_state, read_extra, max_attempts=3):
         if raises is not None:
             raise raises
-        extra = read_extra(session)
+        read_state()  # populates service.py's own fingerprint_holder cell; result unused here
+        extra = read_extra()
         return StableSnapshot(
             snapshot_id=snapshot_id, model_revision=FAKE_MODEL_REVISION, extra=extra
         )
@@ -87,9 +117,10 @@ def _service(
     monkeypatch.setattr(
         service_module, "open_session", lambda driver, *, database, read_only: FakeSession()
     )
+    _patch_deployment_internals(monkeypatch)
     monkeypatch.setattr(
         service_module,
-        "read_stable_snapshot_from_session",
+        "read_stable_snapshot",
         _make_fake_read_stable_snapshot(raises=raises, snapshot_id=snapshot_id),
     )
     if rows is not _UNSET:
@@ -119,17 +150,22 @@ def _request(**overrides) -> ServiceDependenciesRequest:
 def test_missing_observation_context_yields_observation_context_required(monkeypatch):
     request = ServiceDependenciesRequest.model_validate({"service_id": "service:order-service"})
 
-    def fake_read_stable(session, *, coverage_qualification_enabled, read_extra, max_attempts=3):
-        # read_extra must be a safe no-op when context is incomplete - never touches Neo4j.
-        assert read_extra(session) is None
+    def fake_read_stable(*, read_revision_fn, read_state, read_extra, max_attempts=3):
+        read_state()
+        # dependency_rows/deployment must both be a safe no-op when context is incomplete - never
+        # touches Neo4j (deployment reconciliation is unconditionally skipped too, regardless of
+        # include_deployment, since context_complete gates both).
+        extra = read_extra()
+        assert extra == {"dependency_rows": None, "deployment": None}
         return StableSnapshot(
-            snapshot_id=FAKE_SNAPSHOT_ID, model_revision=FAKE_MODEL_REVISION, extra=None
+            snapshot_id=FAKE_SNAPSHOT_ID, model_revision=FAKE_MODEL_REVISION, extra=extra
         )
 
     monkeypatch.setattr(
         service_module, "open_session", lambda driver, *, database, read_only: FakeSession()
     )
-    monkeypatch.setattr(service_module, "read_stable_snapshot_from_session", fake_read_stable)
+    _patch_deployment_internals(monkeypatch)
+    monkeypatch.setattr(service_module, "read_stable_snapshot", fake_read_stable)
     svc = service_module.ArchitectureIntelligenceService(
         driver=object(), database="neo4j", producer=PRODUCER
     )
@@ -389,14 +425,17 @@ def _evidence_service(
     monkeypatch.setattr(
         service_module, "open_session", lambda driver, *, database, read_only: FakeSession()
     )
+    _patch_deployment_internals(monkeypatch)
     monkeypatch.setattr(
         service_module,
-        "read_stable_snapshot_from_session",
+        "read_stable_snapshot",
         _make_fake_read_stable_snapshot(raises=raises, snapshot_id=snapshot_id),
     )
     if rows is not _UNSET:
         monkeypatch.setattr(
-            service_module, "read_evidence_rows", lambda session, *, evidence_ids: rows
+            service_module,
+            "read_evidence_rows",
+            lambda session, *, evidence_ids, reachable_kubernetes_evidence_ids=frozenset(): rows,
         )
     return service_module.ArchitectureIntelligenceService(
         driver=object(), database="neo4j", producer=PRODUCER
@@ -842,16 +881,19 @@ def test_drift_unknown_service_yields_unknown_entity(monkeypatch):
 def test_drift_missing_observation_context_yields_observation_context_required(monkeypatch):
     request = ArchitectureDriftRequest.model_validate({"service_id": "service:order-service"})
 
-    def fake_read_stable(session, *, coverage_qualification_enabled, read_extra, max_attempts=3):
-        assert read_extra(session) is None
+    def fake_read_stable(*, read_revision_fn, read_state, read_extra, max_attempts=3):
+        read_state()
+        extra = read_extra()
+        assert extra == {"dependency_rows": None, "deployment": None}
         return StableSnapshot(
-            snapshot_id=FAKE_SNAPSHOT_ID, model_revision=FAKE_MODEL_REVISION, extra=None
+            snapshot_id=FAKE_SNAPSHOT_ID, model_revision=FAKE_MODEL_REVISION, extra=extra
         )
 
     monkeypatch.setattr(
         service_module, "open_session", lambda driver, *, database, read_only: FakeSession()
     )
-    monkeypatch.setattr(service_module, "read_stable_snapshot_from_session", fake_read_stable)
+    _patch_deployment_internals(monkeypatch)
+    monkeypatch.setattr(service_module, "read_stable_snapshot", fake_read_stable)
     svc = service_module.ArchitectureIntelligenceService(
         driver=object(), database="neo4j", producer=PRODUCER
     )
@@ -887,18 +929,20 @@ def test_drift_uses_the_stable_read_retry_path(monkeypatch):
     than a second read boundary of its own."""
     calls = []
 
-    def recording_read_stable(session, *, coverage_qualification_enabled, read_extra, **kwargs):
-        calls.append(kwargs)
+    def recording_read_stable(*, read_revision_fn, read_state, read_extra, max_attempts=3):
+        calls.append(None)
+        read_state()
         return StableSnapshot(
             snapshot_id=FAKE_SNAPSHOT_ID,
             model_revision=FAKE_MODEL_REVISION,
-            extra=read_extra(session),
+            extra=read_extra(),
         )
 
     monkeypatch.setattr(
         service_module, "open_session", lambda driver, *, database, read_only: FakeSession()
     )
-    monkeypatch.setattr(service_module, "read_stable_snapshot_from_session", recording_read_stable)
+    _patch_deployment_internals(monkeypatch)
+    monkeypatch.setattr(service_module, "read_stable_snapshot", recording_read_stable)
     monkeypatch.setattr(
         service_module,
         "read_service_dependency_rows",

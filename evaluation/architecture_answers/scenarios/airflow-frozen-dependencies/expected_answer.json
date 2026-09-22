@@ -2,6 +2,8 @@
   "claims": [],
   "data": {
     "dependency_claim_ids": [],
+    "deployment_claim_ids": [],
+    "deployment_resolutions": [],
     "service": {
       "id": "service:airflow-apiserver",
       "method": null,
@@ -10,9 +12,7 @@
       "path": null,
       "protocol": null,
       "type": "SERVICE"
-    },
-    "deployment_claim_ids": [],
-    "deployment_resolutions": []
+    }
   },
   "evidence_refs": [],
   "limitations": [],
@@ -30,8 +30,8 @@
   },
   "schema_version": "0.5",
   "snapshot": {
-    "model_revision": "sha256:21d35f049d023336f3dc0624b67581dbe6175e114ee8e71f2351ec8d7fe1c060",
-    "snapshot_id": "aip:snapshot:v1:21d35f049d023336f3dc0624b67581dbe6175e114ee8e71f2351ec8d7fe1c060"
+    "model_revision": "sha256:a71524b2bc7e6f4053f313b9a4fa982586c0cc3271b5ba468a69ce8b5dd71d93",
+    "snapshot_id": "aip:snapshot:v1:a71524b2bc7e6f4053f313b9a4fa982586c0cc3271b5ba468a69ce8b5dd71d93"
   },
   "tool": "get_service_dependencies"
 }
