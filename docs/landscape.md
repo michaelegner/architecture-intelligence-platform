@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-21_
+_Last reviewed: 2026-09-22_
 
 ## AIP anchor
 
@@ -71,6 +71,10 @@ promises, temporal context, and explicit system intent without collapsing them i
 [Backstage](#backstage-software-catalog) ·
 [Cartography](#cartography--infrastructure-and-security-graph-discovery) ·
 [EventCatalog](#eventcatalog--connected-architecture-catalog-for-humans-and-agents) ·
+[Evidence-backed relationships](#bipul-sinha--components-describe-a-system-relationships-reveal-its-architecture) ·
+[Evidence-derived documentation](#sdlc-playbook--documentation-decay-and-evidence-derived-architecture-views) ·
+[Axium](#mobilab-axium--semantic-ai-and-architecture-intelligence) ·
+[ArchSmith](#sathish-siva-shankar--archsmith-and-intent-first-semantic-architecture-intelligence) ·
 [ProvenMap](#provenmap--architecture-intelligence-intent-and-provenance) ·
 [Logorythm](#logorythm--architecture-intelligence-from-static-analysis) ·
 [Premise quality](#praveen-kasam--why-your-ai-agent-fails-the-answer-is-almost-never-the-model) ·
@@ -83,6 +87,7 @@ visualization, provenance, or retrieval?
 ### Agent context and machine consumption
 
 [Moldable Architecture Knowledge](#moldable-development--glamorous-toolkit--rewilding-software-engineering) ·
+[Architectural judgment](#michael-smith--line-of-sight-ai-and-architecture) ·
 [Symbolic Separation](#davletiyarov-khan-and-bartolini--symbolic-separation) ·
 [Enola](#enola--deterministic-architecture-context-and-regression-testing) ·
 [Agent API Profile](#christian-posta--agent-api-profile) ·
@@ -660,6 +665,143 @@ boundary. Integration may be more valuable than duplicating catalog capabilities
 > **EventCatalog makes architecture connected and queryable. AIP makes architecture claims
 > evidence-qualified and independently inspectable.**
 
+### Bipul Sinha — Components Describe a System. Relationships Reveal Its Architecture
+
+**Source**
+
+- [Bipul Sinha — LinkedIn](https://www.linkedin.com/in/sinhabipul/), article published
+  2026-09-19
+
+**Core idea**
+
+Sinha argues that architecture understanding comes from contextualized relationships rather than
+component inventories alone. He separates static evidence from runtime observation, observed facts
+from architectural interpretation, deterministic discovery from AI-assisted interpretation, and
+identifies architecture entity resolution as a distinct problem.
+
+**Why this matters to AIP**
+
+This is strong independent convergence with several AIP concerns:
+
+- heterogeneous evidence has different semantics;
+- runtime observation and static/declarative evidence must not be collapsed;
+- identity reconciliation is required before architectural reasoning is reliable;
+- deterministic software should answer deterministic graph questions before an LLM is asked to
+  interpret them;
+- evidence should remain visible behind architectural relationships.
+
+**AIP distinction**
+
+AIP makes the knowledge-establishment boundary stricter through evidence applicability, exact
+identity/reconciliation, qualification, provenance, bounded uncertainty, snapshot context, and
+Current-State/Intent separation. An "Architecture Knowledge Graph" is therefore a possible
+representation, not AIP's durable semantic contract.
+
+This is landscape validation, not additional roadmap scope.
+
+### SDLC Playbook — Documentation Decay and Evidence-Derived Architecture Views
+
+**Source**
+
+- [Documentation Decay](https://sdlcplaybook.com/resources/documentation-decay/)
+
+**Core idea**
+
+SDLC Playbook argues that documentation decays when updating it is a separate remembered task.
+Release notes, runbooks, and architecture views should instead be derived from evidence produced by
+the delivery process and running system. Design-phase architecture still has value, but as explicit
+intent alongside a view of current reality.
+
+**Why this matters to AIP**
+
+This strongly supports treating architecture views as projections rather than primary truth and
+reinforces AIP's separation between evidence-qualified Current State and explicit attributable
+Intent.
+
+**AIP distinction**
+
+"Generated from the source of truth" is not sufficient for AIP because architecture rarely has one
+source of truth. Code, APIs, deployment state, telemetry, and intent artifacts establish different
+kinds of claims. A generated view is trustworthy only to the extent that its source semantics,
+applicability, reconciliation, qualification, provenance, and limitations are preserved.
+
+### MobiLab Axium — Semantic AI and Architecture Intelligence
+
+**Sources**
+
+- [Axium](https://mobilabsolutions.com/axium/)
+- [Energy: Connected Architecture Intelligence with Axium](https://mobilabsolutions.com/portfolio/energy-connected-architecture-intelligence-with-axium/)
+
+**Core idea**
+
+Axium provides a model-first semantic layer over heterogeneous enterprise data using ontologies and
+knowledge graphs, with conversational exploration, generated APIs, source-linked answers, portable
+semantic representations, and MCP access. Its architecture-intelligence use case connects
+application portfolios, capabilities, interfaces, ownership, lifecycle, SLA, and other enterprise
+context.
+
+**Why this matters to AIP**
+
+Axium is useful external evidence that "Architecture Intelligence" is becoming a product category
+and that machine-consumable semantic architecture knowledge is valuable to both humans and agents.
+Its storage-independent semantic positioning also supports AIP's rule that public architectural
+meaning must not depend on the internal graph/database representation.
+
+**AIP distinction**
+
+Axium is primarily model-first: enterprise knowledge is unified under an authored semantic model.
+AIP is evidence-first: it establishes what technical architecture claims heterogeneous evidence can
+support. Source linkage provides traceability; it does not by itself qualify what a source is
+allowed to mean.
+
+### Sathish Siva Shankar — ArchSmith and Intent-First Semantic Architecture Intelligence
+
+**Source**
+
+- [Sathish Siva Shankar — LinkedIn](https://www.linkedin.com/in/sathish-siva-shankar-32018648/)
+
+**Core idea**
+
+ArchSmith normalizes requirements into explicit semantic architecture objects before generation:
+
+```text
+requirements
+    ↓
+capabilities
+    ↓
+services / APIs / events
+    ↓
+C4 / OpenAPI / AsyncAPI / Terraform / ADR / arc42
+    ↓
+impact analysis + governance + version history
+```
+
+The intent is to keep one semantic thread through architecture design and delivery rather than
+producing disconnected AI-generated artifacts.
+
+**Why this matters to AIP**
+
+ArchSmith strongly overlaps with AIP's rejection of "prompt in, blob out" architecture and its
+preference for explicit machine-readable semantics. Its generated artifacts could also become
+attributable Intent or declaration inputs to a future AIP adapter boundary.
+
+**AIP distinction**
+
+The systems run in opposite epistemic directions:
+
+```text
+ArchSmith
+intent → semantic design → generated delivery artifacts
+
+AIP
+technical evidence → applicability/reconciliation/qualification → Current-State knowledge
+```
+
+AIP should keep those layers connected but distinct. An approved or generated OpenAPI, ADR,
+Terraform, or C4 artifact may establish attributable intent or declaration; it does not prove that
+the running system behaves accordingly. This is a landscape/interoperability reference, not a
+roadmap commitment.
+
 ### ProvenMap — Architecture Intelligence, Intent, and Provenance
 
 **Sources**
@@ -799,6 +941,44 @@ This mirrors AIP's own `PROVIDES` / `CALLS` / `SENDS` / `RECEIVES_FROM` model an
 ---
 
 ## 3. Agent context and machine consumption
+
+### Michael Smith — Line of Sight: AI and Architecture
+
+**Source**
+
+- [Michael Smith — LinkedIn](https://www.linkedin.com/in/michael-smith-82358287/), *Line of Sight
+  AI + Architecture* (2026)
+
+**Core idea**
+
+Smith argues that as AI makes production and documentation cheaper, architectural value shifts
+toward briefing, evaluation, judgment, checking, and professional authentication. He also describes
+"architectural thinking" becoming increasingly executable as domain experts can use AI to turn
+structured intent into tools and workflows.
+
+**Why this matters to AIP**
+
+The analogy sharpens the consumer-side boundary around AIP:
+
+```text
+AIP
+establish what architecture evidence supports
+
+agent
+reason / explore / propose
+
+human
+judge / accept / change intent
+```
+
+As implementation velocity increases, trustworthy machine-readable architecture context becomes
+more valuable because human reconstruction and review do not scale at the same rate.
+
+**AIP distinction**
+
+This is a cross-domain conceptual reference rather than a software-architecture implementation
+model. AIP does not automate professional judgment or decision authority; it supplies bounded,
+evidence-qualified premises on which humans and agents can reason.
 
 ### Moldable Development / Glamorous Toolkit / Rewilding Software Engineering
 
