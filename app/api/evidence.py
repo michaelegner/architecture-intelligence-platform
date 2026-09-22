@@ -27,7 +27,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.architecture_intelligence.contracts import ArchitectureAnswer, EvidenceData
+from app.architecture_intelligence.contracts import (
+    _SNAPSHOT_ID_PATTERN,
+    ArchitectureAnswer,
+    EvidenceData,
+)
 from app.architecture_intelligence.repository import SnapshotUnstable
 from app.architecture_intelligence.request import EvidenceRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
@@ -60,7 +64,7 @@ def resolve_evidence(
 
 @router.get("")
 def list_evidence(
-    snapshot_id: str = Query(...),
+    snapshot_id: str = Query(..., pattern=_SNAPSHOT_ID_PATTERN),
     service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
 ) -> list[dict]:
     try:
@@ -78,7 +82,7 @@ def list_evidence(
 @router.get("/{evidence_id}")
 def get_evidence(
     evidence_id: str,
-    snapshot_id: str = Query(...),
+    snapshot_id: str = Query(..., pattern=_SNAPSHOT_ID_PATTERN),
     service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
 ) -> dict:
     try:

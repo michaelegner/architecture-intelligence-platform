@@ -58,9 +58,10 @@ async def call_negotiated(
 ) -> dict:
     """Stateless single-shot `tools/call` - no prior `initialize` handshake is required, since this
     project's mounted MCP app runs the SDK's session manager in `stateless_http=True` mode
-    (confirmed live by the pre-existing `test_direct_and_negotiated_structured_content_are_
-    semantically_equivalent` test, which already called negotiated `tools/call` with no preceding
-    `initialize`)."""
+    (confirmed live: `test_mcp_negotiated_transport.py::test_mandatory_negotiated_flow_against_real_data`
+    exercises a fresh reconnect with no session id carried over, and every rewritten MCP equivalence/
+    adapter test in this repo calls `tools/call` through this exact helper with no preceding
+    `initialize` and gets a normal 200 response)."""
     response = await client.post(
         "/mcp",
         headers=negotiated_headers(origin=origin),
