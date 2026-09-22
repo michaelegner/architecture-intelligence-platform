@@ -69,6 +69,29 @@ sanitized `EvidenceRecord` (source type `OPENTELEMETRY`) is synthesized from it 
 only the same allowlisted attributes already described above, and only when the current snapshot
 makes it reachable from a public claim or resolution (see [`evidence.md`](evidence.md)).
 
+### Observation-context compatibility (I3)
+
+Path C never treats a persisted observation as applicable just because its identity resolves — it
+first checks the observation against the caller's own `(environment, window_start, window_end)`
+Observation Context, using the *persisted* `last_seen` and the owning Pod's real I2
+`CAPTURED_RESOURCE` `capturedAt` (never an undefined synthetic "observation timestamp", and never
+the daily bucket treated as a continuous interval):
+
+| Check | Outcome when it fails |
+|---|---|
+| `environment` present and exactly equal to the context's `environment` | `UNRESOLVED` / `DEPLOYMENT_EVIDENCE_INCOMPLETE` (absent) or `DEPLOYMENT_ENVIRONMENT_MISMATCH` (present but different) |
+| `last_seen` present and inside `[window_start, window_end]` (inclusive) | `UNRESOLVED` / `DEPLOYMENT_TEMPORAL_MISMATCH` |
+| the owning Pod's real `capturedAt` present and inside `[window_start, window_end]` (inclusive) | `UNRESOLVED` / `DEPLOYMENT_TEMPORAL_MISMATCH` |
+
+`last_seen` is the decisive runtime timestamp for window applicability — `first_seen` and
+`observation_count` are evidence metadata only and never independently satisfy the window check. An
+environment mismatch is not a contradictory Service↔Workload identity claim; it just means the
+observation doesn't apply to the requested context. This rule deliberately has no arbitrary "N hours
+of skew" constant — a future historical/locality release may introduce richer temporal continuity,
+I3 does not. Relatedly, the `k8s.namespace.name`/`k8s.cluster.uid` consistency attributes above are
+correlation inputs only, checked for agreement against the resolved Workload's own values — never a
+locality claim in their own right.
+
 ## Correlation modes
 
 An HTTP call observation's `correlation_mode` records how confidently it was correlated:

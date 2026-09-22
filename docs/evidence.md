@@ -79,6 +79,15 @@ cites and the id the corresponding synthetic `EvidenceRecord` is keyed by, so th
 Both are still bounded and sanitized the same way every other evidence record is — no raw mapping
 YAML, no arbitrary Resource attributes, no unbounded strings.
 
+Path C evidence reachability is itself gated by observation-context/temporal compatibility (spec
+§9.7, see [`opentelemetry.md`](opentelemetry.md#observation-context-compatibility-i3)): a caller-free
+lookup (`get_evidence`/`GET /api/evidence`'s convenience forms, which supply no request-scoped
+Observation Context of their own) re-derives one real context per Pod-resolved observation group
+from that group's own persisted `first_seen`/`last_seen`/`capturedAt`, so a Path C evidence ref
+`get_service_dependencies` emitted under a real caller context still resolves through `get_evidence`
+at the same snapshot, per spec §16.2's unconditional drill-down requirement — never by skipping
+Path C's own window check.
+
 ## `correlation_mode`
 
 For `OBSERVED` evidence produced by the OpenTelemetry pipeline, `correlation_mode` records *how*

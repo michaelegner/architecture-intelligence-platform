@@ -53,6 +53,46 @@ resulting public shape. See the governing spec
 [`canonical-model.md`](canonical-model.md#infrastructure-entities-and-claims-appcanonicalinfrastructurepy--internal-only)
 for the full contract, limitations, and internal-only exposure boundary.
 
+## Service-Workload mapping artifact (`app/sources/service_workload_mapping.py`, v0.5.0 I3 Path B)
+
+A sibling configured input to the Kubernetes adapter above, not a Kubernetes resource itself: exactly
+one local, versioned YAML artifact (`SourcesConfig.service_workload_mapping`) naming explicit
+Service↔Workload identity mappings the Kubernetes adapter's own annotation reading (Path A) doesn't
+cover.
+
+```yaml
+apiVersion: aip.dev/v1
+kind: ServiceWorkloadIdentityMappings
+metadata:
+  id: v0.5.0-service-workload-identities
+  revision: <non-empty version/revision>
+mappings:
+  - mappingId: checkout-runtime
+    serviceId: service:checkout
+    kubernetesSourceId: checkout-cluster
+    clusterUid: 599e90a5-7ab8-426f-807f-92a65dcc8822
+    workload:
+      apiGroup: apps
+      kind: Deployment
+      namespace: checkout
+      name: checkout
+```
+
+Every property shown above is required; unknown top-level or entry fields are rejected outright, and
+remote references, environment substitution, templating, shell execution, and implicit aliases are
+all prohibited — this is a plain, fully self-contained declaration, not a template. Supported
+`workload.kind` values are exactly `Deployment`, `StatefulSet`, `DaemonSet`.
+
+A mapping entry resolves (`RESOLVED_CONFIGURED`) only when its `serviceId` names exactly one existing
+declared AIP Service, its `kubernetesSourceId`/`clusterUid` identify the currently configured I2
+source, and its `(apiGroup, kind, namespace, name)` identifies exactly one current I2 Workload — a
+mapping to a missing Service or Workload is `UNRESOLVED`. Two entries naming the same Workload but
+different Services are `CONFLICT`; file ordering never selects a winner. Identical duplicate entries
+are normalized deterministically, never treated as two separate mappings. See
+[`graph-model.md`](graph-model.md#deployed_as-v050-i3--computed-not-a-stored-graph-edge) for how this
+combines with Path A/C into the public `DEPLOYED_AS` claim, and [`evidence.md`](evidence.md) for how
+a mapping entry's own evidence is encoded and exposed.
+
 ## Runtime observation adapter
 
 Independently of the three above, `app/telemetry/adapter.py` maps OpenTelemetry spans into observed

@@ -44,9 +44,10 @@ Unlike every relation in the table above, `Service -[DEPLOYED_AS]-> Workload` is
 a real Neo4j relationship**. `Workload` itself is not a public node label at all — it is the
 internal-only `InfrastructureEntity {entity_kind: KUBERNETES_WORKLOAD}` node
 ([`canonical-model.md`](canonical-model.md#infrastructure-entities-and-claims-appcanonicalinfrastructurepy--internal-only)),
-projected into a public, bounded `WorkloadRef` (`id`, `type`, `namespace`, `name` — cluster UID, Pod
-UID, and owner-chain detail stay evidence drill-down, never fields of the reference itself) only at
-answer-construction time.
+projected into a public, bounded `WorkloadRef` (`id`, `type`, `name`, `workload_kind`, `namespace` —
+cluster UID, Pod UID, and owner-chain detail stay evidence drill-down, never fields of the reference
+itself) only at answer-construction time. `namespace` here is identity context, not a locality
+qualification — I3 introduces no locality-qualified claim (that's v0.6's own, later job).
 
 `DEPLOYED_AS` is produced by reconciling three independent, deterministic resolution paths — never
 by evaluating any one of them alone:
@@ -60,10 +61,14 @@ by evaluating any one of them alone:
 `app.architecture_intelligence.deployment_reconciliation.reduce_cross_path_resolutions` combines all
 three paths' independently-computed results at query time, keyed by a path-independent
 `resolution_id`/`claim_id` (a pure function of `(snapshot_id, context_id, group_key)` — no
-per-path/method input). Agreement across paths yields one public `DeploymentClaim`; disagreement
-between successful paths yields `CONFLICT`; more than one candidate Service from the same path
-yields `AMBIGUOUS`; nothing resolves yields `UNRESOLVED` — every outcome (resolved or not) is
-returned as a `DeploymentResolution`, never silently dropped. `GET /api/services/{id}/dependencies`
+per-path/method input). Agreement across paths yields one public `DeploymentClaim`, and its
+`resolution_method` names the *strongest agreeing* path (explicit > configured > observed) — that
+ordering is only ever a tie-break label on an agreement that already happened, never a way to
+resolve a disagreement: disagreement between successful paths always yields `CONFLICT` regardless of
+which paths are involved, contradiction winning over precedence in every case. More than one
+candidate Service from the same path yields `AMBIGUOUS`; nothing resolves yields `UNRESOLVED` —
+every outcome (resolved or not) is returned as a `DeploymentResolution`, never silently dropped.
+`GET /api/services/{id}/dependencies`
 and `GET /api/services/{id}/deployments` are the only surfaces that expose this; `get_evidence`/
 `GET /api/evidence` never establish a `DEPLOYED_AS` claim on their own (they only resolve evidence
 that a claim or resolution has already made reachable — see [`evidence.md`](evidence.md)).
