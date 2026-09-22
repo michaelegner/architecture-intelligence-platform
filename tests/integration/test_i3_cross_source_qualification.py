@@ -18,7 +18,11 @@ import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 
+import httpx
+import pytest
 import yaml
+from fastapi.testclient import TestClient
+from mcp.server import MCPServer
 
 from app.architecture_intelligence.contracts import (
     DeploymentClaim,
@@ -28,6 +32,7 @@ from app.architecture_intelligence.contracts import (
     Producer,
 )
 from app.architecture_intelligence.request import (
+    EvidenceRequest,
     ObservationContextInput,
     ServiceDependenciesRequest,
 )
@@ -37,6 +42,10 @@ from app.canonical.model import ArchitectureModel, Service
 from app.graph.importer import import_kubernetes_source, import_source
 from app.graph.revision_fence import read_revision
 from app.graph.schema import ensure_schema
+from app.main import create_app
+from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
+from app.mcp.tools import register_tools
+from app.settings import AppConfig, Secrets, Settings
 from app.sources.model import KubernetesSourceConfig
 from app.sources.service_workload_mapping import load_service_workload_mapping
 from app.telemetry.adapter import adapt
@@ -45,6 +54,11 @@ from app.telemetry.model import RuntimeSpan
 from app.telemetry.operation_resolver import fetch_operation_candidates
 from app.telemetry.queue_resolver import fetch_queue_candidates
 from app.telemetry.service_resolver import fetch_candidates
+from tests.support.negotiated_mcp_client import call_negotiated
+
+EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
+_ALLOWED_ORIGIN = "http://localhost"
+_ALLOWED_HOST = "localhost"
 
 DATABASE = "neo4j"
 FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "deployment" / "i3-cross-source"
@@ -162,6 +176,46 @@ def _dependencies_request(service_id: str) -> ServiceDependenciesRequest:
     )
 
 
+def _rest_client(driver, *, service: ArchitectureIntelligenceService) -> TestClient:
+    app = create_app()
+    app.state.driver = driver
+    app.state.llm_provider = None
+    app.state.architecture_intelligence_service = service
+    app.state.settings = Settings(
+        config=AppConfig.model_validate(
+            {
+                "sources": {
+                    "directories": [
+                        {
+                            "id": "aip-bundled-examples-v0.5",
+                            "root": str(EXAMPLES_DIR),
+                            "stable_target_identity": "urn:aip:logical-root:bundled-examples",
+                        }
+                    ]
+                },
+                "graph": {"uri": "bolt://ignored:7687", "database": DATABASE},
+            }
+        ),
+        secrets=Secrets(neo4j_user="neo4j", neo4j_password="ignored", openai_api_key=None),
+    )
+    return TestClient(app)
+
+
+def _build_mcp_server_and_app(service: ArchitectureIntelligenceService) -> tuple[MCPServer, object]:
+    server = MCPServer(name="test", version="0.5.0")
+    register_tools(server, get_service=lambda: service)
+    app = build_mcp_app(
+        allowed_origins=[_ALLOWED_ORIGIN], allowed_hosts=[_ALLOWED_HOST], server=server
+    )
+    return server, app
+
+
+async def _call_mcp_get_evidence(client: httpx.AsyncClient, request_payload: dict) -> dict:
+    return await call_negotiated(
+        client, origin=_ALLOWED_ORIGIN, name="get_evidence", arguments={"request": request_payload}
+    )
+
+
 def test_cross_source_all_three_paths_agree_produces_one_resolved_explicit_claim(driver):
     _reset_graph(driver)
     _declare_service(driver, service_id="service:runtime-demo", name="runtime-demo")
@@ -212,6 +266,36 @@ def test_cross_source_path_a_vs_path_b_contradiction_produces_conflict(driver):
     answer_b = service.get_service_dependencies(_dependencies_request("service:runtime-demo-alt"))
 
     for answer in (answer_a, answer_b):
+        assert answer.outcome == Outcome.ANSWERED
+        assert answer.data is not None
+        assert answer.data.deployment_claim_ids == []
+        [resolution] = answer.data.deployment_resolutions
+        assert resolution.status == DeploymentResolutionStatus.CONFLICT
+        assert resolution.candidate_service_ids == [
+            "service:runtime-demo",
+            "service:runtime-demo-alt",
+        ]
+    assert [c for c in answer_a.claims if isinstance(c, DeploymentClaim)] == []
+
+
+def test_cross_source_path_a_vs_path_c_contradiction_produces_conflict(driver):
+    """PR #224 review (Copilot): this fixture's own PROVENANCE.md discloses an authored OTel
+    observation naming a *disagreeing* `service.name` (`runtime-demo-alt`) specifically to exercise
+    a real contradictory Path C case - `test_cross_source_path_a_vs_path_b_contradiction_produces_
+    conflict` above never actually persists any OTel span, so that disclosure was inaccurate until
+    this test exists. Real Path A (the captured annotation, naming `service:runtime-demo`) vs. real
+    Path C (an OTel observation of the real captured Pod, naming `service:runtime-demo-alt`)."""
+    _reset_graph(driver)
+    _declare_service(driver, service_id="service:runtime-demo", name="runtime-demo")
+    _declare_service(driver, service_id="service:runtime-demo-alt", name="runtime-demo-alt")
+    _import_real_kubernetes_bundle(driver)
+    _persist_spans(driver, [_runtime_demo_span(service_name="runtime-demo-alt")])
+
+    service = _service(driver)
+    answer_a = service.get_service_dependencies(_dependencies_request("service:runtime-demo"))
+    answer_alt = service.get_service_dependencies(_dependencies_request("service:runtime-demo-alt"))
+
+    for answer in (answer_a, answer_alt):
         assert answer.outcome == Outcome.ANSWERED
         assert answer.data is not None
         assert answer.data.deployment_claim_ids == []
@@ -279,7 +363,7 @@ def test_cross_source_resource_ordering_has_no_effect_on_deployment_resolution(d
     raw = (KUBERNETES_FIXTURE_DIR / "resources.yaml").read_bytes()
     documents = list(yaml.safe_load_all(raw))
 
-    def _run(root: Path, ordered_documents: list) -> DeploymentResolutionStatus:
+    def _run(root: Path, ordered_documents: list) -> dict:
         _reset_graph(driver)
         _declare_service(driver, service_id="service:runtime-demo", name="runtime-demo")
         root.mkdir(parents=True, exist_ok=True)
@@ -340,12 +424,16 @@ def test_cross_source_resource_ordering_has_no_effect_on_deployment_resolution(d
         assert stats.committed is True
         service = _service(driver)
         answer = service.get_service_dependencies(_dependencies_request("service:runtime-demo"))
-        [resolution] = answer.data.deployment_resolutions
-        return resolution.status
+        return answer.model_dump(mode="json")
 
-    forward_status = _run(tmp_path / "forward", documents)
-    reversed_status = _run(tmp_path / "reversed", list(reversed(documents)))
-    assert forward_status == reversed_status == DeploymentResolutionStatus.RESOLVED_EXPLICIT
+    forward = _run(tmp_path / "forward", documents)
+    reversed_answer = _run(tmp_path / "reversed", list(reversed(documents)))
+    # Full-answer equality (PR #224 review, user's own review round 1): comparing only
+    # `resolution.status` let a reordering-induced change to ids/workload/methods/evidence pass
+    # unnoticed - this now matches the PR's own reconciliation claim of whole-answer comparison.
+    assert forward == reversed_answer
+    [resolution] = forward["data"]["deployment_resolutions"]
+    assert resolution["status"] == DeploymentResolutionStatus.RESOLVED_EXPLICIT.value
     # The checked-in frozen fixture itself must remain untouched by this test.
     assert (KUBERNETES_FIXTURE_DIR / "resources.yaml").read_bytes() == raw
 
@@ -368,3 +456,89 @@ def test_cross_source_deployment_resolving_read_causes_zero_graph_writes(driver)
     with driver.session(database=DATABASE) as session:
         after = read_revision(session)
     assert before == after
+
+
+# --- PR #224 review (user's own review): §21.6 requires Path B/Path C deployment evidence to -----
+# round-trip through the public adapters (REST + negotiated MCP), not just Path A (the only path
+# `test_api_architecture_intelligence_equivalence.py`/`test_mcp_evidence_equivalence.py`'s own
+# deployment-evidence tests cover).
+
+
+def test_cross_source_evidence_resolve_rest_matches_service_for_path_b_and_c_evidence(driver):
+    _reset_graph(driver)
+    _declare_service(driver, service_id="service:runtime-demo", name="runtime-demo")
+    _import_real_kubernetes_bundle(driver)
+    _persist_spans(driver, [_runtime_demo_span(service_name="runtime-demo")])
+
+    service = _service(driver, document=_load_mapping("service-workload-mapping-agree.yaml"))
+    dependency_answer = service.get_service_dependencies(
+        _dependencies_request("service:runtime-demo")
+    )
+    [deployment_claim] = [c for c in dependency_answer.claims if isinstance(c, DeploymentClaim)]
+    path_b_and_c_refs = sorted(
+        ref
+        for ref in deployment_claim.evidence_refs
+        if ref.startswith(("evidence:mapping:", "evidence:otel:"))
+    )
+    assert any(ref.startswith("evidence:mapping:") for ref in path_b_and_c_refs)
+    assert any(ref.startswith("evidence:otel:") for ref in path_b_and_c_refs)
+
+    evidence_request = EvidenceRequest.model_validate(
+        {
+            "evidence_refs": path_b_and_c_refs,
+            "snapshot_id": dependency_answer.snapshot.snapshot_id,
+        }
+    )
+    direct = service.get_evidence(evidence_request).model_dump(mode="json")
+    assert direct["data"]["missing_evidence_refs"] == []
+
+    client = _rest_client(driver, service=service)
+    response = client.post(
+        "/api/evidence/resolve",
+        json={
+            "evidence_refs": path_b_and_c_refs,
+            "snapshot_id": dependency_answer.snapshot.snapshot_id,
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == direct
+
+
+@pytest.mark.asyncio
+async def test_cross_source_evidence_resolve_mcp_matches_service_for_path_b_and_c_evidence(driver):
+    _reset_graph(driver)
+    _declare_service(driver, service_id="service:runtime-demo", name="runtime-demo")
+    _import_real_kubernetes_bundle(driver)
+    _persist_spans(driver, [_runtime_demo_span(service_name="runtime-demo")])
+
+    service = _service(driver, document=_load_mapping("service-workload-mapping-agree.yaml"))
+    dependency_answer = service.get_service_dependencies(
+        _dependencies_request("service:runtime-demo")
+    )
+    [deployment_claim] = [c for c in dependency_answer.claims if isinstance(c, DeploymentClaim)]
+    path_b_and_c_refs = sorted(
+        ref
+        for ref in deployment_claim.evidence_refs
+        if ref.startswith(("evidence:mapping:", "evidence:otel:"))
+    )
+
+    evidence_request = EvidenceRequest.model_validate(
+        {
+            "evidence_refs": path_b_and_c_refs,
+            "snapshot_id": dependency_answer.snapshot.snapshot_id,
+        }
+    )
+    direct_json = service.get_evidence(evidence_request).model_dump(mode="json")
+    assert direct_json["data"]["missing_evidence_refs"] == []
+
+    server, app = _build_mcp_server_and_app(service)
+    payload = {
+        "evidence_refs": path_b_and_c_refs,
+        "snapshot_id": dependency_answer.snapshot.snapshot_id,
+    }
+    async with mcp_session_manager_lifespan(server):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
+            result = await _call_mcp_get_evidence(client, payload)
+            assert result["isError"] is False
+            assert result["structuredContent"] == direct_json

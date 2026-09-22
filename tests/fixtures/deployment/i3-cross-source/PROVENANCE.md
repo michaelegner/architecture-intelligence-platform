@@ -47,8 +47,12 @@ resolution exercises.
   integration test's own convention — no checked-in OTel JSON fixture exists anywhere in this repo),
   naming the real captured Pod UID (`658bd464-c78f-4ca2-b7e4-2b04e158f4ee`) with `service.name`
   either agreeing (`runtime-demo`) or disagreeing (`runtime-demo-alt`) with the declared/annotated
-  identity, to exercise both the positive (all three paths agree) and contradictory (Path A/B/C
-  disagree) required cases in the same underlying real Kubernetes data.
+  identity. Exactly which test uses which, since not every scenario in this file touches Path C at
+  all: `test_cross_source_all_three_paths_agree_produces_one_resolved_explicit_claim` (and the
+  byte-repeatability/ordering tests built on it) persist an *agreeing* span; `test_cross_source_
+  path_a_vs_path_c_contradiction_produces_conflict` persists a *disagreeing* one (real Path A vs.
+  this authored Path C observation); `test_cross_source_path_a_vs_path_b_contradiction_produces_
+  conflict` persists no OTel span at all (its own contradiction is Path A vs. Path B only).
 
 ## Why one real Workload is enough for both a positive and a contradictory scenario
 
