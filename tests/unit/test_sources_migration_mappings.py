@@ -565,3 +565,45 @@ def test_topic_and_queue_mappings_at_the_same_pointer_stay_in_independent_namesp
     }
     assert index.queue_id_for(**lookup) == "queue:payment-q"
     assert index.topic_id_for(**lookup) == TOPIC_ID
+
+
+@pytest.mark.parametrize(
+    ("kind_field", "entry"),
+    [
+        # a subscription entry missing its Topic binding / name
+        (
+            "subscription_mappings",
+            IdentityMappingEntry(
+                source_instance_id=SOURCE_A,
+                document_path="root.yaml",
+                pointer="/channels/orders/subscribe",
+                pointer_tokens=("channels", "orders", "subscribe"),
+                target_id=SUBSCRIPTION_ID,
+                bound_topic_id=TOPIC_ID,
+            ),
+        ),
+        # a non-subscription entry carrying stray binding fields
+        (
+            "topic_mappings",
+            IdentityMappingEntry(
+                source_instance_id=SOURCE_A,
+                document_path="root.yaml",
+                pointer="/channels/orders",
+                pointer_tokens=("channels", "orders"),
+                target_id=TOPIC_ID,
+                bound_topic_id=TOPIC_ID,
+                subscription_name="billing",
+            ),
+        ),
+    ],
+)
+def test_build_index_rejects_malformed_in_memory_subscription_binding(kind_field, entry):
+    document = MigrationMappingsDocument(
+        artifact_id="programmatic",
+        artifact_revision="v1",
+        locator="programmatic.yaml",
+        content_digest="test-content-digest",
+        **{kind_field: (entry,)},
+    )
+    with pytest.raises(ValueError, match="bound_topic_id/subscription_name"):
+        build_shared_identity_index([document])

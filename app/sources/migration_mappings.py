@@ -327,6 +327,8 @@ def _build_kind_entry_index(
     document path plus RFC 6901 pointer together, never the pointer alone.
     """
     raw_entries = [entry for document in documents for entry in _kind_entries(document, kind=kind)]
+    for entry in raw_entries:
+        _check_subscription_binding_invariant(entry, kind=kind)
     sorted_entries = sorted(raw_entries, key=_entry_sort_key)
 
     index: dict[tuple[str, str, str], IdentityMappingEntry] = {}
@@ -356,6 +358,20 @@ def _build_kind_entry_index(
         index[key] = entry
 
     return index, diagnostics
+
+
+def _check_subscription_binding_invariant(entry: IdentityMappingEntry, *, kind: str) -> None:
+    """`bound_topic_id`/`subscription_name` are set exactly for subscriptionMappings entries.
+    `parse_migration_mappings` guarantees this, but `build_shared_identity_index` also accepts
+    programmatically-built documents - fail fast on a malformed one rather than indexing a
+    `SubscriptionMapping` with missing fields or silently ignoring stray binding fields."""
+    has_binding = (entry.bound_topic_id is not None, entry.subscription_name is not None)
+    expected = (True, True) if kind == "subscription" else (False, False)
+    if has_binding != expected:
+        raise ValueError(
+            f"{kind} mapping entry at {entry.document_path!r}{entry.pointer!r}: "
+            "bound_topic_id/subscription_name must be set for, and only for, subscription mappings"
+        )
 
 
 def _describe_payload(entry: IdentityMappingEntry) -> str:

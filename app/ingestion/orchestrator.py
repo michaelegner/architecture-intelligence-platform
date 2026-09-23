@@ -296,14 +296,14 @@ def _classify_shared_identity_entries(
     shared_identity_index: SharedIdentityMappingIndex,
 ) -> tuple[list[dict], list[dict], list[dict], list[dict], list[dict], list[dict]]:
     """§5.3 names `bundledMigrationMappings` as one context category and `sharedSchemaMappings`/
-    `sharedMessageMappings`/`sharedQueueMappings` as three separate ones - a distinction the spec
+    `sharedMessageMappings`/`sharedQueueMappings` as separate ones - a distinction the spec
     text doesn't otherwise define, so this module draws it explicitly (flagged for review): any
     loaded migration document whose artifact id is the fixed §5.1.1 bundled-example constant
-    contributes all of its entries (schema, message, and queue alike) to the one
-    `bundledMigrationMappings` list; every other configured document's entries are split by kind
-    into the three `shared*Mappings` categories instead, since that general mechanism has no
-    single-artifact identity to fold entries under. v0.5.0 I4 spec §7.3 adds the Topic and
-    Subscription kinds to both halves of the same rule.
+    contributes all of its entries (every kind alike) to the one `bundledMigrationMappings` list;
+    every other configured document's entries are split by kind into the five `shared*Mappings`
+    categories instead (schema, message, queue, and - since v0.5.0 I4 spec §7.3 - topic and
+    subscription), since that general mechanism has no single-artifact identity to fold entries
+    under.
     """
     bundled: list[dict] = []
     shared_schema: list[dict] = []
