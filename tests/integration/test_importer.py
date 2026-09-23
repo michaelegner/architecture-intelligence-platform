@@ -111,6 +111,8 @@ def test_ensure_schema_creates_constraints(driver):
         "service_id",
         "operation_id",
         "queue_id",
+        "topic_id",
+        "subscription_id",
         "message_id",
         "schema_id",
         "source_state_source_instance_id",

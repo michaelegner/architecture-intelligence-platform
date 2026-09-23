@@ -68,8 +68,31 @@
           "then": {
             "properties": {
               "relation_type": {
+                "enum": [
+                  "PUBLISHES_TO",
+                  "SENDS"
+                ]
+              }
+            },
+            "required": [
+              "relation_type",
+              "via"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "relation_type": {
                 "const": "SENDS"
-              },
+              }
+            },
+            "required": [
+              "relation_type"
+            ]
+          },
+          "then": {
+            "properties": {
               "via": {
                 "properties": {
                   "type": {
@@ -82,9 +105,84 @@
               }
             },
             "required": [
-              "relation_type",
               "via"
             ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "relation_type": {
+                "const": "PUBLISHES_TO"
+              }
+            },
+            "required": [
+              "relation_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "via": {
+                "properties": {
+                  "type": {
+                    "const": "TOPIC"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            "required": [
+              "via"
+            ]
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "subscription": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "via": {
+                "properties": {
+                  "type": {
+                    "const": "TOPIC"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            "required": [
+              "via"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "subscription": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "properties": {
+                    "type": {
+                      "const": "SUBSCRIPTION"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ]
+            }
           }
         }
       ],
@@ -94,6 +192,17 @@
         },
         "relation_type": {
           "$ref": "#/$defs/DeliveryRelationType"
+        },
+        "subscription": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntityRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "via": {
           "$ref": "#/$defs/EntityRef"
@@ -110,7 +219,8 @@
     "DeliveryRelationType": {
       "enum": [
         "CALLS",
-        "SENDS"
+        "SENDS",
+        "PUBLISHES_TO"
       ],
       "title": "DeliveryRelationType",
       "type": "string"
@@ -467,7 +577,11 @@
           "if": {
             "properties": {
               "type": {
-                "const": "QUEUE"
+                "enum": [
+                  "QUEUE",
+                  "SUBSCRIPTION",
+                  "TOPIC"
+                ]
               }
             },
             "required": [
@@ -550,7 +664,9 @@
         "SERVICE",
         "OPERATION",
         "QUEUE",
-        "WORKLOAD"
+        "WORKLOAD",
+        "TOPIC",
+        "SUBSCRIPTION"
       ],
       "title": "EntityType",
       "type": "string"
@@ -688,7 +804,7 @@
       "type": "object"
     },
     "EvidenceRelationType": {
-      "description": "v0.4.0 I2.1 - the 7 canonical graph relation kinds (spec \u00a711.2's `supports`). Deliberately its\nown closed enum rather than reusing `DeliveryRelationType` (only CALLS/SENDS) or a graph-layer\nstring - `get_evidence` describes existing facts, never a new architecture claim.",
+      "description": "v0.4.0 I2.1 - the closed set of canonical graph relation kinds (spec \u00a711.2's `supports`),\nwidened by I3 (DEPLOYED_AS) and v0.5.0 I4 (PUBLISHES_TO/SUBSCRIPTION_OF). Deliberately its own\nclosed enum rather than reusing `DeliveryRelationType` (only the delivery relations) or a\ngraph-layer string - `get_evidence` describes existing facts, never a new architecture claim.",
       "enum": [
         "PROVIDES",
         "CALLS",
@@ -697,7 +813,9 @@
         "CARRIES",
         "CONFORMS_TO",
         "DEAD_LETTERS_TO",
-        "DEPLOYED_AS"
+        "DEPLOYED_AS",
+        "PUBLISHES_TO",
+        "SUBSCRIPTION_OF"
       ],
       "title": "EvidenceRelationType",
       "type": "string"

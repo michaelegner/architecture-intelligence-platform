@@ -142,3 +142,52 @@ def queue_owned_id(
         _utf8(exact_channel_address),
     )
     return f"queue:owned:{sha256_hex(key)}"
+
+
+def topic_owned_id(
+    *,
+    stable_broker_id: str,
+    normalized_namespace_or_empty: str,
+    exact_topic_address: str,
+) -> str:
+    """v0.5.0 I4 spec §7.1:
+
+        topic_owner_key = length-delimited(
+            stable broker id, normalized namespace-or-empty, exact normalized topic/channel address)
+        topic_id = topic:owned:<sha256(topic_owner_key)>
+
+    Same inputs as `queue_owned_id`, but a distinct prefix - Queue and Topic ids never alias merely
+    because their inputs match. As with `queue_owned_id`, the caller applies Unicode NFC first.
+    """
+    key = length_delimited(
+        _utf8(stable_broker_id),
+        _utf8(normalized_namespace_or_empty),
+        _utf8(exact_topic_address),
+    )
+    return f"topic:owned:{sha256_hex(key)}"
+
+
+def subscription_owned_id(
+    *,
+    stable_broker_id: str,
+    normalized_namespace_or_empty: str,
+    topic_id: str,
+    exact_subscription_name: str,
+) -> str:
+    """v0.5.0 I4 spec §7.2:
+
+        subscription_owner_key = length-delimited(
+            stable broker id, normalized namespace-or-empty, canonical Topic id,
+            exact normalized subscription name)
+        subscription_id = subscription:owned:<sha256(subscription_owner_key)>
+
+    Binding the canonical Topic id keeps identical Subscription names on different Topics distinct.
+    There is deliberately no consumer-group input (spec §7.2). The caller applies Unicode NFC first.
+    """
+    key = length_delimited(
+        _utf8(stable_broker_id),
+        _utf8(normalized_namespace_or_empty),
+        _utf8(topic_id),
+        _utf8(exact_subscription_name),
+    )
+    return f"subscription:owned:{sha256_hex(key)}"

@@ -57,6 +57,9 @@ class EntityType(StrEnum):
     OPERATION = "OPERATION"
     QUEUE = "QUEUE"
     WORKLOAD = "WORKLOAD"
+    # v0.5.0 I4 spec §12.1.
+    TOPIC = "TOPIC"
+    SUBSCRIPTION = "SUBSCRIPTION"
 
 
 class WorkloadKind(StrEnum):
@@ -76,6 +79,7 @@ class DeliveryKind(StrEnum):
 class DeliveryRelationType(StrEnum):
     CALLS = "CALLS"
     SENDS = "SENDS"
+    PUBLISHES_TO = "PUBLISHES_TO"  # v0.5.0 I4 spec §12.2
 
 
 class DestinationResolution(StrEnum):
@@ -118,9 +122,10 @@ class DependencyPredicate(StrEnum):
 
 
 class EvidenceRelationType(StrEnum):
-    """v0.4.0 I2.1 - the 7 canonical graph relation kinds (spec §11.2's `supports`). Deliberately its
-    own closed enum rather than reusing `DeliveryRelationType` (only CALLS/SENDS) or a graph-layer
-    string - `get_evidence` describes existing facts, never a new architecture claim."""
+    """v0.4.0 I2.1 - the closed set of canonical graph relation kinds (spec §11.2's `supports`),
+    widened by I3 (DEPLOYED_AS) and v0.5.0 I4 (PUBLISHES_TO/SUBSCRIPTION_OF). Deliberately its own
+    closed enum rather than reusing `DeliveryRelationType` (only the delivery relations) or a
+    graph-layer string - `get_evidence` describes existing facts, never a new architecture claim."""
 
     PROVIDES = "PROVIDES"
     CALLS = "CALLS"
@@ -130,13 +135,21 @@ class EvidenceRelationType(StrEnum):
     CONFORMS_TO = "CONFORMS_TO"
     DEAD_LETTERS_TO = "DEAD_LETTERS_TO"
     DEPLOYED_AS = "DEPLOYED_AS"  # I3 spec §16.1
+    # v0.5.0 I4 spec §12.1: exactly these two are added; RECEIVES_FROM and CARRIES are reused.
+    PUBLISHES_TO = "PUBLISHES_TO"
+    SUBSCRIPTION_OF = "SUBSCRIPTION_OF"
 
 
 # Fixed (kind, relation_type, via.type) pairs - spec §11.2/§13. No other combination is valid.
 _ALLOWED_DELIVERY_PAIRS = {
     (DeliveryKind.SYNC_HTTP, DeliveryRelationType.CALLS, EntityType.OPERATION),
     (DeliveryKind.ASYNC_MESSAGE, DeliveryRelationType.SENDS, EntityType.QUEUE),
+    # v0.5.0 I4 spec §12.2.
+    (DeliveryKind.ASYNC_MESSAGE, DeliveryRelationType.PUBLISHES_TO, EntityType.TOPIC),
 }
+
+# v0.5.0 I4 spec §12.1: `EntityRef` may carry bounded protocol/namespace metadata for these only.
+_DESTINATION_ENTITY_TYPES = frozenset({EntityType.QUEUE, EntityType.TOPIC, EntityType.SUBSCRIPTION})
 
 
 ProducerName = Literal["architecture-intelligence-platform"]
@@ -207,7 +220,10 @@ def _entity_ref_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
             "else": {"properties": {"method": {"type": "null"}, "path": {"type": "null"}}},
         },
         {
-            "if": {"properties": {"type": {"const": "QUEUE"}}, "required": ["type"]},
+            "if": {
+                "properties": {"type": {"enum": sorted(_DESTINATION_ENTITY_TYPES)}},
+                "required": ["type"],
+            },
             "else": {"properties": {"protocol": {"type": "null"}, "namespace": {"type": "null"}}},
         },
     ]
@@ -230,10 +246,12 @@ class EntityRef(BaseModel):
     def _check_type_specific_fields(self) -> EntityRef:
         if self.type != EntityType.OPERATION and (self.method is not None or self.path is not None):
             raise ValueError("method/path are only allowed when type == OPERATION")
-        if self.type != EntityType.QUEUE and (
+        if self.type not in _DESTINATION_ENTITY_TYPES and (
             self.protocol is not None or self.namespace is not None
         ):
-            raise ValueError("protocol/namespace are only allowed when type == QUEUE")
+            raise ValueError(
+                "protocol/namespace are only allowed when type is QUEUE/TOPIC/SUBSCRIPTION"
+            )
         return self
 
 
@@ -264,10 +282,10 @@ class WorkloadRef(BaseModel):
 
 
 def _delivery_ref_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
-    """Encode the fixed (kind, relation_type, via.type) pairs table (spec §11.2/§13) as JSON
-    Schema if/then so external (non-Pydantic) validators reject the same invalid combinations.
-    The Python model_validator below is still authoritative at runtime - this only mirrors it
-    for the committed schema."""
+    """Encode the fixed (kind, relation_type, via.type) pairs table (spec §11.2/§13, widened by
+    v0.5.0 I4 spec §12.2) and the I4 `subscription` invariants as JSON Schema if/then so external
+    (non-Pydantic) validators reject the same invalid combinations. The Python model_validator
+    below is still authoritative at runtime - this only mirrors it for the committed schema."""
     schema["allOf"] = [
         *schema.get("allOf", []),
         {
@@ -283,12 +301,54 @@ def _delivery_ref_schema_extra(schema: dict, _model: type[BaseModel]) -> None:
         {
             "if": {"properties": {"kind": {"const": "ASYNC_MESSAGE"}}, "required": ["kind"]},
             "then": {
-                "properties": {
-                    "relation_type": {"const": "SENDS"},
-                    "via": {"properties": {"type": {"const": "QUEUE"}}, "required": ["type"]},
-                },
+                "properties": {"relation_type": {"enum": ["PUBLISHES_TO", "SENDS"]}},
                 "required": ["relation_type", "via"],
             },
+        },
+        {
+            "if": {
+                "properties": {"relation_type": {"const": "SENDS"}},
+                "required": ["relation_type"],
+            },
+            "then": {
+                "properties": {
+                    "via": {"properties": {"type": {"const": "QUEUE"}}, "required": ["type"]},
+                },
+                "required": ["via"],
+            },
+        },
+        {
+            "if": {
+                "properties": {"relation_type": {"const": "PUBLISHES_TO"}},
+                "required": ["relation_type"],
+            },
+            "then": {
+                "properties": {
+                    "via": {"properties": {"type": {"const": "TOPIC"}}, "required": ["type"]},
+                },
+                "required": ["via"],
+            },
+        },
+        # I4 spec §12.2: `subscription` is null unless `via` is a Topic, and a non-null
+        # `subscription` is a SUBSCRIPTION-typed ref.
+        {
+            "if": {
+                "properties": {
+                    "via": {"properties": {"type": {"const": "TOPIC"}}, "required": ["type"]},
+                },
+                "required": ["via"],
+            },
+            "else": {"properties": {"subscription": {"type": "null"}}},
+        },
+        {
+            "properties": {
+                "subscription": {
+                    "anyOf": [
+                        {"type": "null"},
+                        {"properties": {"type": {"const": "SUBSCRIPTION"}}, "required": ["type"]},
+                    ]
+                }
+            }
         },
     ]
 
@@ -301,6 +361,11 @@ class DeliveryRef(BaseModel):
     kind: DeliveryKind
     relation_type: DeliveryRelationType
     via: EntityRef
+    # v0.5.0 I4 spec §12.2: the optional Pub/Sub Subscription route. Always emitted (as null when
+    # absent), like `EntityRef`'s own optional fields. That the Subscription is `SUBSCRIPTION_OF`
+    # the `via` Topic in the same snapshot is a projection invariant (graph-dependent), not a
+    # model rule.
+    subscription: EntityRef | None = None
 
     @model_validator(mode="after")
     def _check_allowed_pair(self) -> DeliveryRef:
@@ -309,6 +374,11 @@ class DeliveryRef(BaseModel):
             raise ValueError(
                 f"unsupported delivery (kind, relation_type, via.type) combination: {pair}"
             )
+        if self.subscription is not None:
+            if self.via.type != EntityType.TOPIC:
+                raise ValueError("subscription is only allowed when via.type == TOPIC")
+            if self.subscription.type != EntityType.SUBSCRIPTION:
+                raise ValueError("subscription.type must be SUBSCRIPTION")
         return self
 
 
