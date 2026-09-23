@@ -264,6 +264,15 @@ class DiagnosticCode(StrEnum):
     # error) - since `mappingId` is part of both §13.1's group-key formula and §8.3's evidence
     # identity, a silent collision here would be a latent identity defect, not a benign duplicate.
     SERVICE_WORKLOAD_MAPPING_DUPLICATE_ID = "SERVICE_WORKLOAD_MAPPING_DUPLICATE_ID"
+    # v0.5.0 I4 spec §8.4's own named codes - exactly these three, and no DESTINATION_KIND_UNSUPPORTED
+    # member. Vocabulary only as of I4 slice 1; the AsyncAPI Topic/Subscription mapping that emits
+    # them lands in slice 2. TOPIC_IDENTITY_CONFLICT: configured vs derived Topic id disagree.
+    # SUBSCRIPTION_IDENTITY_CONFLICT: configured Subscription id, Topic binding, or Subscription name
+    # disagrees with its declared/derived counterpart. SUBSCRIPTION_IDENTITY_MISSING: a Topic
+    # subscribe operation with no explicit or configured Subscription identity.
+    TOPIC_IDENTITY_CONFLICT = "TOPIC_IDENTITY_CONFLICT"
+    SUBSCRIPTION_IDENTITY_CONFLICT = "SUBSCRIPTION_IDENTITY_CONFLICT"
+    SUBSCRIPTION_IDENTITY_MISSING = "SUBSCRIPTION_IDENTITY_MISSING"
 
 
 class IngestionDiagnostic(BaseModel):

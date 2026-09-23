@@ -39,6 +39,29 @@ class Queue(BaseModel):
     queue_type: str = "STANDARD"
 
 
+class Topic(BaseModel):
+    """v0.5.0 I4 spec §6.2: a publish destination whose downstream fan-out is expressed only by
+    distinct Subscriptions. Deliberately separate from `Queue` (no `queue_type`) and from any generic
+    destination supertype (ADR 0017). Not yet carried by `ArchitectureModel` - slice 2 adds it
+    together with the importer path and the canonicalization-v3 bump (spec §11)."""
+
+    id: str
+    name: str
+    protocol: str | None = None
+    namespace: str | None = None
+
+
+class Subscription(BaseModel):
+    """v0.5.0 I4 spec §6.2: a stable named logical delivery entity associated with exactly one Topic.
+    The Topic association is the `SUBSCRIPTION_OF` relation, not a field here. Carries no consumer
+    instances, consumer groups, partitions, offsets, lag, filters, or delivery guarantees."""
+
+    id: str
+    name: str
+    protocol: str | None = None
+    namespace: str | None = None
+
+
 class Message(BaseModel):
     id: str
     name: str

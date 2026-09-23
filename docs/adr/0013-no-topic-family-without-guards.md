@@ -2,6 +2,8 @@
 
 Status: Accepted — promotes an existing `v0.3` cross-system decision into the ADR index; it does not
 re-decide it.
+Superseded in part by [0017](0017-source-independent-pubsub-semantics.md): only the
+Topic/Subscription prohibition is superseded, and both guards are retained.
 
 ## Context
 

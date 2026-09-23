@@ -1824,3 +1824,145 @@ def test_drift_data_schema_requires_service_typed_service():
     assert data_schema["allOf"][0]["properties"]["service"]["properties"]["type"]["const"] == (
         "SERVICE"
     )
+
+
+# --- v0.5.0 I4 slice 1: Pub/Sub public contract skeleton (spec §12.1/§12.2) --------------------
+
+
+def _i4_ref(entity_type: EntityType) -> EntityRef:
+    if entity_type == EntityType.OPERATION:
+        return _valid_operation_entity()
+    return EntityRef(id=f"{entity_type.value.lower()}:x:y", type=entity_type, name="y")
+
+
+def _i4_answer(claim: dict) -> dict:
+    # A complete, valid ServiceDependenciesData (incl. the I3 deployment fields) so each I4
+    # parity case varies exactly one delivery/entity shape against an otherwise-valid answer.
+    return _answer_dict_with_claim_dict(
+        claim,
+        data={
+            "service": _valid_service_entity().model_dump(mode="json"),
+            "dependency_claim_ids": [claim["claim_id"]],
+            "deployment_claim_ids": [],
+            "deployment_resolutions": [],
+        },
+    )
+
+
+def _pydantic_and_schema_validity(payload: dict) -> tuple[bool, bool]:
+    try:
+        ANSWER_TYPE.model_validate(payload)
+        pydantic_valid = True
+    except ValidationError:
+        pydantic_valid = False
+    return pydantic_valid, jsonschema.Draft202012Validator(load_schema()).is_valid(payload)
+
+
+def test_i4_parity_baseline_answer_is_valid_in_both():
+    """Positive control: without it, every negative parity case below could pass vacuously."""
+    assert _pydantic_and_schema_validity(_i4_answer(_valid_claim().model_dump(mode="json"))) == (
+        True,
+        True,
+    )
+
+
+_I4_VIA_TYPES = [t for t in EntityType if t != EntityType.WORKLOAD]
+_I4_SUBSCRIPTION_CHOICES = [None, EntityType.SUBSCRIPTION, EntityType.QUEUE, EntityType.TOPIC]
+_I4_VALID_DELIVERIES = {
+    (DeliveryKind.SYNC_HTTP, DeliveryRelationType.CALLS, EntityType.OPERATION, None),
+    (DeliveryKind.ASYNC_MESSAGE, DeliveryRelationType.SENDS, EntityType.QUEUE, None),
+    (DeliveryKind.ASYNC_MESSAGE, DeliveryRelationType.PUBLISHES_TO, EntityType.TOPIC, None),
+    (
+        DeliveryKind.ASYNC_MESSAGE,
+        DeliveryRelationType.PUBLISHES_TO,
+        EntityType.TOPIC,
+        EntityType.SUBSCRIPTION,
+    ),
+}
+
+
+@pytest.mark.parametrize("subscription_type", _I4_SUBSCRIPTION_CHOICES)
+@pytest.mark.parametrize("via_type", _I4_VIA_TYPES)
+@pytest.mark.parametrize("relation_type", list(DeliveryRelationType))
+@pytest.mark.parametrize("kind", list(DeliveryKind))
+def test_delivery_ref_cross_product_agrees_between_pydantic_and_frozen_schema(
+    kind, relation_type, via_type, subscription_type
+):
+    """I4 spec §12.2: the exhaustive (kind, relation_type, via.type, subscription) cross product.
+    Exactly the four spec-listed shapes are valid, and Pydantic and the committed JSON Schema agree
+    on every combination (frozen contract <-> schema parity)."""
+    expected_valid = (kind, relation_type, via_type, subscription_type) in _I4_VALID_DELIVERIES
+    claim = _valid_claim().model_dump(mode="json")
+    claim["delivery"] = {
+        "kind": kind.value,
+        "relation_type": relation_type.value,
+        "via": _i4_ref(via_type).model_dump(mode="json"),
+        "subscription": (
+            None
+            if subscription_type is None
+            else _i4_ref(subscription_type).model_dump(mode="json")
+        ),
+    }
+    pydantic_valid, schema_valid = _pydantic_and_schema_validity(_i4_answer(claim))
+
+    assert pydantic_valid is expected_valid
+    assert schema_valid is expected_valid
+
+
+def test_delivery_ref_subscription_defaults_to_null_and_is_emitted():
+    dumped = _valid_delivery().model_dump(mode="json")
+    assert "subscription" in dumped
+    assert dumped["subscription"] is None
+
+
+@pytest.mark.parametrize("entity_type", _I4_VIA_TYPES)
+def test_entity_ref_protocol_namespace_agree_between_pydantic_and_frozen_schema(entity_type):
+    """I4 spec §12.1: protocol/namespace are allowed for QUEUE/TOPIC/SUBSCRIPTION only."""
+    expected_valid = entity_type in {EntityType.QUEUE, EntityType.TOPIC, EntityType.SUBSCRIPTION}
+    via = _i4_ref(entity_type).model_dump(mode="json")
+    via.update(protocol="amqp", namespace="ns")
+    claim = _valid_claim().model_dump(mode="json")
+    claim["object"] = via
+    claim["destination_resolution"] = DestinationResolution.DIRECT_TARGET_FALLBACK.value
+    claim["resolution_evidence_refs"] = []
+    pydantic_valid, schema_valid = _pydantic_and_schema_validity(_i4_answer(claim))
+    assert pydantic_valid is expected_valid
+    assert schema_valid is expected_valid
+
+
+def test_i4_public_vocabulary_additions_are_exact():
+    assert {EntityType.TOPIC.value, EntityType.SUBSCRIPTION.value} <= {t.value for t in EntityType}
+    assert {t.value for t in DeliveryRelationType} == {"CALLS", "SENDS", "PUBLISHES_TO"}
+    evidence_enum = load_evidence_schema()["$defs"]["EvidenceRelationType"]["enum"]
+    pre_i4 = {
+        "PROVIDES",
+        "CALLS",
+        "SENDS",
+        "RECEIVES_FROM",
+        "CARRIES",
+        "CONFORMS_TO",
+        "DEAD_LETTERS_TO",
+        "DEPLOYED_AS",
+    }
+    assert set(evidence_enum) - pre_i4 == {"PUBLISHES_TO", "SUBSCRIPTION_OF"}
+    assert pre_i4 <= set(evidence_enum)
+
+
+def test_topic_and_subscription_claim_objects_are_admitted_as_direct_target_fallback():
+    """I4 spec §12.3: Topic or Subscription may be a DIRECT_TARGET_FALLBACK claim object."""
+    for object_type in (EntityType.TOPIC, EntityType.SUBSCRIPTION):
+        _valid_claim(
+            object=_i4_ref(object_type),
+            destination_resolution=DestinationResolution.DIRECT_TARGET_FALLBACK,
+            resolution_evidence_refs=[],
+            delivery=DeliveryRef(
+                kind=DeliveryKind.ASYNC_MESSAGE,
+                relation_type=DeliveryRelationType.PUBLISHES_TO,
+                via=_i4_ref(EntityType.TOPIC),
+                subscription=(
+                    _i4_ref(EntityType.SUBSCRIPTION)
+                    if object_type == EntityType.SUBSCRIPTION
+                    else None
+                ),
+            ),
+        )

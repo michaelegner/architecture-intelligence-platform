@@ -68,8 +68,31 @@
           "then": {
             "properties": {
               "relation_type": {
+                "enum": [
+                  "PUBLISHES_TO",
+                  "SENDS"
+                ]
+              }
+            },
+            "required": [
+              "relation_type",
+              "via"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "relation_type": {
                 "const": "SENDS"
-              },
+              }
+            },
+            "required": [
+              "relation_type"
+            ]
+          },
+          "then": {
+            "properties": {
               "via": {
                 "properties": {
                   "type": {
@@ -82,9 +105,84 @@
               }
             },
             "required": [
-              "relation_type",
               "via"
             ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "relation_type": {
+                "const": "PUBLISHES_TO"
+              }
+            },
+            "required": [
+              "relation_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "via": {
+                "properties": {
+                  "type": {
+                    "const": "TOPIC"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            "required": [
+              "via"
+            ]
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "subscription": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "via": {
+                "properties": {
+                  "type": {
+                    "const": "TOPIC"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            "required": [
+              "via"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "subscription": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "properties": {
+                    "type": {
+                      "const": "SUBSCRIPTION"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ]
+            }
           }
         }
       ],
@@ -94,6 +192,17 @@
         },
         "relation_type": {
           "$ref": "#/$defs/DeliveryRelationType"
+        },
+        "subscription": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntityRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "via": {
           "$ref": "#/$defs/EntityRef"
@@ -110,7 +219,8 @@
     "DeliveryRelationType": {
       "enum": [
         "CALLS",
-        "SENDS"
+        "SENDS",
+        "PUBLISHES_TO"
       ],
       "title": "DeliveryRelationType",
       "type": "string"
@@ -636,7 +746,11 @@
           "if": {
             "properties": {
               "type": {
-                "const": "QUEUE"
+                "enum": [
+                  "QUEUE",
+                  "SUBSCRIPTION",
+                  "TOPIC"
+                ]
               }
             },
             "required": [
@@ -719,7 +833,9 @@
         "SERVICE",
         "OPERATION",
         "QUEUE",
-        "WORKLOAD"
+        "WORKLOAD",
+        "TOPIC",
+        "SUBSCRIPTION"
       ],
       "title": "EntityType",
       "type": "string"

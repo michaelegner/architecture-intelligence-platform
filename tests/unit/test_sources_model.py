@@ -87,3 +87,21 @@ def test_diagnostic_code_includes_pr3b_reference_resolution_codes():
         DiagnosticCode.REFERENCE_INVALID,
         DiagnosticCode.UNSUPPORTED_DIALECT_VERSION,
     } <= set(DiagnosticCode)
+
+
+def test_i4_diagnostic_code_addition_is_exactly_the_three_spec_members():
+    """v0.5.0 I4 spec §8.4/§13.1: I4 adds exactly TOPIC_IDENTITY_CONFLICT,
+    SUBSCRIPTION_IDENTITY_CONFLICT, and SUBSCRIPTION_IDENTITY_MISSING - and no
+    DESTINATION_KIND_UNSUPPORTED member."""
+    i4_codes = {
+        "TOPIC_IDENTITY_CONFLICT",
+        "SUBSCRIPTION_IDENTITY_CONFLICT",
+        "SUBSCRIPTION_IDENTITY_MISSING",
+    }
+    members = {member.value for member in DiagnosticCode}
+    assert i4_codes <= members
+    assert "DESTINATION_KIND_UNSUPPORTED" not in members
+    new_topic_or_subscription_codes = {
+        value for value in members if value.startswith(("TOPIC_", "SUBSCRIPTION_"))
+    }
+    assert new_topic_or_subscription_codes == i4_codes
