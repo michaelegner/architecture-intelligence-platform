@@ -1104,3 +1104,70 @@ def test_each_subscription_payload_field_changes_the_mapping_context_digest(fiel
     assert _pubsub_digest(subscription=[_subscription_entry()]) != _pubsub_digest(
         subscription=[_subscription_entry(**{field: value})]
     )
+
+
+def test_one_source_reusing_a_configured_subscription_id_across_two_topics_rejects_cleanly(
+    tmp_path,
+):
+    """PR #230 review: a single source that binds one configured Subscription id to two different
+    Topics (two subscribe operations) must be rejected at the discovery boundary - REJECTED_CONFLICT
+    with SUBSCRIPTION_IDENTITY_CONFLICT and a non-commit-eligible run - never reaching import-time
+    canonical validation (which would raise instead of rejecting)."""
+    message = {"name": "M", "payload": {"type": "object"}}
+    document = {
+        "asyncapi": "2.6.0",
+        "info": {"title": "Svc", "version": "1"},
+        "x-aip-service-id": "service:svc",
+        "channels": {
+            channel: {"x-aip-destination-kind": "topic", "subscribe": {"message": message}}
+            for channel in ("orders", "invoices")
+        },
+    }
+    _write(tmp_path / "svc" / "asyncapi.yaml", document)
+    config = FilesystemSourceConfig(id="one-source-subscription", root=tmp_path)
+    sid = source_instance_id(
+        configured_source_id="one-source-subscription",
+        source_kind=SourceKind.FILESYSTEM,
+        normalized_root_document_path="svc/asyncapi.yaml",
+    )
+
+    def entry(pointer, target_id, **extra):
+        return IdentityMappingEntry(
+            source_instance_id=sid,
+            document_path="svc/asyncapi.yaml",
+            pointer=pointer,
+            pointer_tokens=tuple(pointer.strip("/").split("/")),
+            target_id=target_id,
+            **extra,
+        )
+
+    index, diagnostics = build_shared_identity_index(
+        [
+            MigrationMappingsDocument(
+                artifact_id="one-source",
+                artifact_revision="v1",
+                locator="mappings.yaml",
+                content_digest="x",
+                topic_mappings=tuple(
+                    entry(f"/channels/{c}", f"topic:configured-{c}") for c in ("orders", "invoices")
+                ),
+                subscription_mappings=tuple(
+                    entry(
+                        f"/channels/{c}/subscribe",
+                        "subscription:configured-shared",
+                        bound_topic_id=f"topic:configured-{c}",
+                        subscription_name="shared",
+                    )
+                    for c in ("orders", "invoices")
+                ),
+            )
+        ]
+    )
+    assert diagnostics == []
+
+    run = run_filesystem_discovery(config, migration_mappings=index)
+
+    assert run.commit_eligible is False
+    [outcome] = run.source_outcomes.values()
+    assert outcome.outcome.result is IngestionResult.REJECTED_CONFLICT
+    assert DiagnosticCode.SUBSCRIPTION_IDENTITY_CONFLICT in {d.code for d in run.diagnostics}
