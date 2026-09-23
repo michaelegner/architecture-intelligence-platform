@@ -1,12 +1,12 @@
 # AIP v0.5.0 I4 Specification — Conditional Source-Independent Pub/Sub Semantics
 
-**Status:** Draft 0.2 — `GO` candidate, amended during PR review; implementation is not authorized until this specification and the corresponding ADR are reviewed and merged<br>
-**Target release:** `v0.5.0`  
-**Release increment:** I4 — Conditional Source-Independent Pub/Sub Semantics  
-**Parent:** `docs/specifications/0.5.0/specification.md`, especially §§4–5, 19–21, 28–31  
-**Entry baseline:** I3-complete `main`, commit `571220bdfdbbea118b152833b78e11158fb1429b`  
-**Dependencies:** I1 complete; I2 complete; I3 complete  
-**Required decision artifact:** ADR 0017, superseding only ADR 0013's prohibition on a Topic/Subscription canonical family while preserving ADR 0013's two safety guards  
+**Status:** Draft 0.3 — `GO` candidate, amended during PR review; implementation is not authorized until this specification and the corresponding ADR are reviewed and merged<br>
+**Target release:** `v0.5.0`<br>
+**Release increment:** I4 — Conditional Source-Independent Pub/Sub Semantics<br>
+**Parent:** `docs/specifications/0.5.0/specification.md`, especially §§4–5, 19–21, 28–31<br>
+**Entry baseline:** I3-complete `main`, commit `571220bdfdbbea118b152833b78e11158fb1429b`<br>
+**Dependencies:** I1 complete; I2 complete; I3 complete<br>
+**Required decision artifact:** ADR 0017, superseding only ADR 0013's prohibition on a Topic/Subscription canonical family while preserving ADR 0013's two safety guards<br>
 
 ---
 
@@ -268,7 +268,7 @@ identity, Channel name, namespace name, or `messaging.system` alone SHALL NOT es
 identity. Multiple selected servers must resolve to one broker id and namespace or the result is
 `AMBIGUOUS` and no Topic is emitted.
 
-A versioned configured destination mapping MAY instead supply a full canonical Topic id. When both
+A versioned `topicMappings` entry MAY instead supply a full canonical Topic id. When both
 configured and derived Topic ids exist they MUST agree or the source is `REJECTED_CONFLICT` with
 `TOPIC_IDENTITY_CONFLICT`. The mapping is attributable and included in I1's
 `mapping_context_digest`; it is not a name-based alias.
@@ -289,7 +289,7 @@ subscription_id = subscription:owned:<sha256(subscription_owner_key)>
 
 Binding the Topic id prevents identical Subscription names on different Topics from colliding.
 
-A versioned configured destination mapping MAY supply a full canonical Subscription id only when
+A versioned `subscriptionMappings` entry MAY supply a full canonical Subscription id only when
 it also binds the exact canonical Topic id and explicit Subscription name. When configured and
 derived Subscription ids both exist they MUST agree or the source is `REJECTED_CONFLICT` with
 `SUBSCRIPTION_IDENTITY_CONFLICT`. Configured Topic and Subscription ids are type-distinct and use
@@ -302,6 +302,41 @@ A consumer-group identifier SHALL NOT be fed into the Subscription identity form
 Parameterized AsyncAPI channel addresses remain literal identity inputs in I4. For example,
 `orders/{region}` is normalized to NFC as that exact string; I4 does not expand parameters, match a
 runtime concrete address to a template, or derive identity from `messaging.destination.template`.
+
+### 7.3 Configured mapping artifact shape
+
+I4 widens the existing `AipSharedIdentityMappings` artifact with two optional arrays. They reuse the
+artifact's `apiVersion`, `kind`, metadata, attribution, exact source-key normalization, shape-first
+validation, sorted deduplication, conflict detection, and mapping-context hashing:
+
+```yaml
+topicMappings:
+  - sourceInstanceId: <non-empty SourceInstanceId>
+    documentPath: <normalized relative document path>
+    pointer: <exact RFC 6901 Channel pointer>
+    topicId: <full canonical id matching ^topic:\S+$>
+
+subscriptionMappings:
+  - sourceInstanceId: <non-empty SourceInstanceId>
+    documentPath: <normalized relative document path>
+    pointer: <exact RFC 6901 subscribe-operation pointer>
+    topicId: <full canonical id matching ^topic:\S+$>
+    subscriptionName: <non-empty exact name, normalized to NFC without trimming/case folding>
+    subscriptionId: <full canonical id matching ^subscription:\S+$>
+```
+
+The presence of a valid `topicMappings` entry at a Channel pointer is positive Topic-kind evidence;
+no generic `kind` field is added. A `subscriptionMappings` entry identifies only the Subscription
+declared by its exact subscribe-operation pointer and exact Topic id; it is not positive evidence
+for any sibling operation or Channel. Its `topicId` MUST equal the Topic resolved for that Channel,
+and its `subscriptionName` MUST equal any simultaneously declared `x-aip-subscription-name` after
+the §7 normalization, or the source is `REJECTED_CONFLICT` with
+`SUBSCRIPTION_IDENTITY_CONFLICT`.
+
+The existing `schemaMappings`, `messageMappings`, and `queueMappings` shapes and meanings remain
+unchanged. Shape/pointer, target-grammar, and cross-entry conflict failures reuse the existing
+`MIGRATION_MAPPING_*` diagnostics. I4 SHALL widen the `AipSharedIdentityMappings` validator, parsed
+document/index/resolver, and `mapping_context_digest` projection for these two arrays atomically.
 
 ---
 
@@ -333,12 +368,14 @@ This is an intentional behavior widening for an existing input: a document alrea
 emit Topic semantics only when every other I4 kind and identity guard succeeds. This is not a
 reclassification of an existing Queue.
 
-A present `x-aip-destination-kind` value other than exact `queue` or `topic` is
-`REJECTED_UNSUPPORTED` with `DESTINATION_KIND_UNSUPPORTED`; it is not merely a negative Queue vote.
-The AMQP channel-binding value `is: routingKey` and every `is` value other than exact `queue` are not
-positive Topic evidence. A non-`queue` AMQP vote conflicts with explicit `queue` evidence under the
-unchanged I1 rule, but cannot establish Topic without `x-aip-destination-kind: topic` or an explicit
-configured destination mapping declaring `kind = "topic"`.
+A present `x-aip-destination-kind` value other than exact `queue` or `topic` preserves I1 behavior:
+it remains a non-Queue vote, supplies no Topic-kind evidence, and the Channel is omitted with
+`QUEUE_EVIDENCE_MISSING` unless another existing Queue evidence path creates the unchanged I1
+agreement/conflict outcome. Source-level `ACCEPTED_WITH_LIMITATIONS` versus
+`REJECTED_UNSUPPORTED` aggregation also remains unchanged. The AMQP channel-binding value
+`is: routingKey` and every `is` value other than exact `queue` are not positive Topic evidence. A
+non-`queue` AMQP vote conflicts with explicit `queue` evidence under the unchanged I1 rule, but
+cannot establish Topic without `x-aip-destination-kind: topic` or a valid `topicMappings` entry.
 
 All existing Queue evidence paths/conflict rules remain unchanged.
 
@@ -364,7 +401,10 @@ Existing Message and payload-schema identity rules are reused unchanged.
 
 AsyncAPI `subscribe` identifies direction but does not identify a broker Subscription.
 
-A qualified Topic `subscribe` operation SHALL therefore require an explicit non-empty `x-aip-subscription-name` to establish Subscription identity.
+A qualified Topic `subscribe` operation SHALL therefore require Subscription identity from either
+an explicit non-empty `x-aip-subscription-name` or a valid `subscriptionMappings` entry at that
+exact subscribe-operation pointer. When both exist, their normalized Subscription names and
+resolved Topic ids MUST agree as specified in §7.3.
 
 ```yaml
 channels:
@@ -387,9 +427,26 @@ Topic                   -[CARRIES]-> Message(OrderCreated)
 Without explicit Subscription identity, AIP SHALL NOT synthesize one from Service name, Channel name, operationId, consumer group, handler name, or source path. Supported Topic publication/message semantics MAY remain, while subscribe-side topology is omitted with a stable limitation/diagnostic.
 
 The source result is `ACCEPTED_WITH_LIMITATIONS` and the omitted subscribe operation emits
-`SUBSCRIPTION_IDENTITY_MISSING` at its source pointer. I4 adds that exact member to
-`DiagnosticCode`; it does not surface this source-local omission as a fabricated public dependency
-claim.
+`SUBSCRIPTION_IDENTITY_MISSING` at its source pointer, as listed in §8.4. It does not surface this
+source-local omission as a fabricated public dependency claim.
+
+### 8.4 Diagnostic vocabulary added by I4
+
+I4 adds exactly these `DiagnosticCode` members:
+
+```text
+TOPIC_IDENTITY_CONFLICT
+SUBSCRIPTION_IDENTITY_CONFLICT
+SUBSCRIPTION_IDENTITY_MISSING
+```
+
+`TOPIC_IDENTITY_CONFLICT` covers disagreement between configured and derived Topic ids.
+`SUBSCRIPTION_IDENTITY_CONFLICT` covers disagreement among the configured Subscription id, Topic
+binding, Subscription name, and their declared/derived counterparts. `SUBSCRIPTION_IDENTITY_MISSING`
+covers a Topic subscribe operation with no explicit or configured Subscription identity. All other
+mapping shape/target/pointer/conflict failures reuse the existing `MIGRATION_MAPPING_*`,
+`QUEUE_*`, or `AMBIGUOUS` members as specified in §§7–8; I4 adds no
+`DESTINATION_KIND_UNSUPPORTED` member.
 
 ---
 
@@ -597,10 +654,10 @@ dependency claims produced by §12.3 to qualifications `OBSERVED_ONLY` and
 - Matching runtime publisher or consumer evidence confirms the exact declared Topic or
   Subscription route. Evidence for one Subscription does not confirm a sibling Subscription.
 - Runtime-only Topic/Subscription minting remains prohibited, so an unmatched consumer span creates
-  no `OBSERVED_ONLY` Pub/Sub claim. It is retained only as bounded rejected observation evidence
-  with refusal reason `unresolved_destination_semantics`; where the queried Service has applicable
-  messaging coverage but no safe dependency claim, the public answer uses the existing
-  claim-independent `INSUFFICIENT_EVIDENCE` limitation.
+  no `OBSERVED_ONLY` Pub/Sub claim. It appears only as an in-memory `UnresolvedObservation` on that
+  `ObservationBatch`, with refusal reason `unresolved_destination_semantics`, and is never persisted,
+  included in the snapshot fingerprint, or exposed as public evidence/limitation. It therefore
+  cannot change a later dependency or drift answer by itself.
 - Every claim and retained limitation in drift is the unchanged object selected from the dependency
   projection, preserving claim id, Subscription route, evidence, qualification, and ordering.
 
@@ -629,7 +686,8 @@ At minimum:
 
 - existing Queue channels remain unchanged;
 - Topic with stable broker identity maps to Topic;
-- explicit configured Topic/Subscription ids agree with derived ids or reject with the named
+- `topicMappings` and `subscriptionMappings` validate with the exact §7.3 shapes, participate in the
+  mapping-context digest, and agree with derived/declared inputs or reject with the named
   identity-conflict diagnostic;
 - Topic `publish` maps to `PUBLISHES_TO`;
 - Topic Message maps to `Topic CARRIES Message`;
@@ -637,11 +695,12 @@ At minimum:
 - missing Subscription identity never guesses one;
 - missing Subscription identity is `ACCEPTED_WITH_LIMITATIONS` with
   `SUBSCRIPTION_IDENTITY_MISSING` at the subscribe pointer;
+- the complete I4 `DiagnosticCode` addition is exactly the three-member §8.4 list;
 - Queue/Topic kind conflict rejects atomically;
 - pre-I4 `x-aip-destination-kind: topic` input changes from `QUEUE_EVIDENCE_MISSING` omission to
   Topic eligibility only when all I4 guards pass;
-- `x-aip-destination-kind: pubsub` and every other unrecognized value are
-  `REJECTED_UNSUPPORTED` with `DESTINATION_KIND_UNSUPPORTED`;
+- `x-aip-destination-kind: pubsub` and every other unrecognized value preserve I1's non-Queue vote,
+  Channel omission, `QUEUE_EVIDENCE_MISSING`, and unchanged source-level result aggregation;
 - AMQP `is: routingKey` is never positive Topic evidence;
 - same names across kinds/brokers/namespaces remain distinct;
 - same Subscription name under different Topics remains distinct;
@@ -662,6 +721,8 @@ At minimum:
 - declared Topic + exact declared Subscription + resolved Service may qualify `RECEIVES_FROM Subscription`;
 - consumer group only cannot resolve Subscription;
 - consumer-group name accidentally equal to Subscription name is still not an implicit match;
+- unmatched Topic/Subscription observations remain only in the in-memory batch's
+  `UnresolvedObservation[]` and never enter persistence or snapshot identity;
 - `messaging.destination.subscription.name` exactly matches within an already-resolved Topic;
 - `messaging.destination_kind=subscription` remains unsupported;
 - configured Topic aliases follow the existing five-step destination precedence while Queue aliases
@@ -711,7 +772,8 @@ Existing Queue data SHALL NOT be implicitly reclassified as Topic.
 
 The newly admitted exact `x-aip-destination-kind: topic` value is an intentional pre-`1.0`
 behavior widening for documents that I1 omitted as non-Queue. Unknown/non-admitted kind values stay
-unsupported and never become Topic by negative inference.
+unsupported, preserve I1's Channel-omission and source-result aggregation behavior, and never become
+Topic by negative inference.
 
 ---
 
