@@ -25,6 +25,7 @@ architecture_intelligence:
   telemetry:
     service_aliases: {}
     queue_aliases: {}
+    topic_aliases: {}
     http-correlation:
       enabled: true
       ttl-seconds: 60

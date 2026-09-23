@@ -10,6 +10,7 @@ from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer
 from app.telemetry.operation_resolver import fetch_operation_candidates
 from app.telemetry.otlp_receiver import OtlpDecodeError, decode_export_request
+from app.telemetry.pubsub_resolver import fetch_subscription_candidates, fetch_topic_candidates
 from app.telemetry.queue_resolver import fetch_queue_candidates
 from app.telemetry.service_resolver import fetch_candidates
 
@@ -46,6 +47,8 @@ async def post_traces(
         service_candidates = fetch_candidates(session)
         operation_candidates = fetch_operation_candidates(session)
         queue_candidates = fetch_queue_candidates(session)
+        topic_candidates = fetch_topic_candidates(session)
+        subscription_candidates = fetch_subscription_candidates(session)
 
     batch = adapt(
         spans,
@@ -55,6 +58,9 @@ async def post_traces(
         service_aliases=settings.config.telemetry.service_aliases,
         queue_aliases=settings.config.telemetry.queue_aliases,
         correlation_buffer=correlation_buffer,
+        topic_candidates=topic_candidates,
+        subscription_candidates=subscription_candidates,
+        topic_aliases=settings.config.telemetry.topic_aliases,
     )
     persist_observation_batch(driver, database, batch)
 
