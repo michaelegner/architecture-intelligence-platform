@@ -1,6 +1,6 @@
 # AIP v0.5.0 I4 Specification — Conditional Source-Independent Pub/Sub Semantics
 
-**Status:** Draft 0.1 — `GO` candidate; implementation is not authorized until this specification and the corresponding ADR are reviewed and merged  
+**Status:** Draft 0.2 — `GO` candidate, amended during PR review; implementation is not authorized until this specification and the corresponding ADR are reviewed and merged<br>
 **Target release:** `v0.5.0`  
 **Release increment:** I4 — Conditional Source-Independent Pub/Sub Semantics  
 **Parent:** `docs/specifications/0.5.0/specification.md`, especially §§4–5, 19–21, 28–31  
@@ -107,7 +107,8 @@ consumer group != automatically Subscription
 
 Queue + multiple consumers
   -> competing consumers
-  -> no fan-out claim
+  -> no fan-out topology
+  -> preserve one existing resolved dependency claim per distinct logical consumer Service
 
 Topic + multiple Subscriptions
   -> fan-out topology
@@ -226,15 +227,23 @@ Topic        -[CARRIES]-> Message
 
 No other generic Pub/Sub relation is introduced by I4.
 
-Fan-out is represented by distinct Subscription paths. Multiple instances of one logical Service behind one Subscription remain competing/load-balanced consumers and collapse to one logical consumer relation with unioned evidence.
+Fan-out is represented only by distinct Subscription paths. Multiple instances of one logical
+Service behind one Subscription remain competing/load-balanced consumers and collapse to one
+logical consumer relation with unioned evidence.
 
-Multiple distinct logical Services apparently consuming through one Subscription SHALL NOT be interpreted as fan-out; the public dependency result falls back to the Subscription with an unresolved/ambiguous limitation.
+Multiple distinct logical Services consuming through one Subscription remain competing consumers,
+not fan-out. To preserve the shipped Queue projection, the public dependency result emits one
+resolved claim per distinct evidenced logical consumer Service. The claims share the same
+Subscription route. This claim cardinality does not assert that each Service receives an independent
+copy; only distinct Subscriptions establish fan-out topology.
 
 ---
 
 ## 7. Canonical identity
 
-Topic and Subscription identity SHALL be deterministic, path-independent, broker/namespace scoped, type-distinct, Unicode-normalized, and stable across equivalent replay.
+Topic and Subscription identity SHALL be deterministic, path-independent, broker/namespace scoped,
+type-distinct, and stable across equivalent replay. Every textual identity input is normalized to
+Unicode NFC without trimming or case folding, exactly as in I1 §9.
 
 Names alone are never canonical identity.
 
@@ -251,7 +260,18 @@ topic_owner_key =
 topic_id = topic:owned:<sha256(topic_owner_key)>
 ```
 
-Protocol/vendor, server URL, Channel name, namespace name, or `messaging.system` alone SHALL NOT establish Topic identity.
+The stable broker id and namespace inputs reuse I1 §9 exactly: broker id comes only from explicit
+`x-aip-broker-id` on the selected server or a versioned configured server-identity mapping;
+namespace comes from a configured destination namespace, otherwise the AMQP server-binding
+`virtualHost`, otherwise the explicit empty string. Server name, URL, hostname, protocol, TLS
+identity, Channel name, namespace name, or `messaging.system` alone SHALL NOT establish Topic
+identity. Multiple selected servers must resolve to one broker id and namespace or the result is
+`AMBIGUOUS` and no Topic is emitted.
+
+A versioned configured destination mapping MAY instead supply a full canonical Topic id. When both
+configured and derived Topic ids exist they MUST agree or the source is `REJECTED_CONFLICT` with
+`TOPIC_IDENTITY_CONFLICT`. The mapping is attributable and included in I1's
+`mapping_context_digest`; it is not a name-based alias.
 
 ### 7.2 Subscription
 
@@ -269,9 +289,19 @@ subscription_id = subscription:owned:<sha256(subscription_owner_key)>
 
 Binding the Topic id prevents identical Subscription names on different Topics from colliding.
 
+A versioned configured destination mapping MAY supply a full canonical Subscription id only when
+it also binds the exact canonical Topic id and explicit Subscription name. When configured and
+derived Subscription ids both exist they MUST agree or the source is `REJECTED_CONFLICT` with
+`SUBSCRIPTION_IDENTITY_CONFLICT`. Configured Topic and Subscription ids are type-distinct and use
+the same attribution, replay, and mapping-context rules as I1 configured Queue identity.
+
 Queue, Topic, and Subscription ids SHALL use distinct prefixes and never alias merely because names match.
 
 A consumer-group identifier SHALL NOT be fed into the Subscription identity formula.
+
+Parameterized AsyncAPI channel addresses remain literal identity inputs in I4. For example,
+`orders/{region}` is normalized to NFC as that exact string; I4 does not expand parameters, match a
+runtime concrete address to a template, or derive identity from `messaging.destination.template`.
 
 ---
 
@@ -298,9 +328,24 @@ topic
 
 No `pubsub`, `broadcast`, `fanout`, vendor-product, or protocol synonym is admitted.
 
+This is an intentional behavior widening for an existing input: a document already carrying
+`x-aip-destination-kind: topic` was omitted by I1 with `QUEUE_EVIDENCE_MISSING`; after I4 GO it may
+emit Topic semantics only when every other I4 kind and identity guard succeeds. This is not a
+reclassification of an existing Queue.
+
+A present `x-aip-destination-kind` value other than exact `queue` or `topic` is
+`REJECTED_UNSUPPORTED` with `DESTINATION_KIND_UNSUPPORTED`; it is not merely a negative Queue vote.
+The AMQP channel-binding value `is: routingKey` and every `is` value other than exact `queue` are not
+positive Topic evidence. A non-`queue` AMQP vote conflicts with explicit `queue` evidence under the
+unchanged I1 rule, but cannot establish Topic without `x-aip-destination-kind: topic` or an explicit
+configured destination mapping declaring `kind = "topic"`.
+
 All existing Queue evidence paths/conflict rules remain unchanged.
 
-A Topic is eligible only when positive Topic-kind evidence and stable broker/namespace identity both exist. Topic SHALL NOT be inferred from protocol/vendor, a `publish` operation, a `subscribe` operation, `messaging.system`, or the absence of Queue evidence.
+A Topic is eligible only when positive Topic-kind evidence and qualified Topic identity both exist.
+Qualified identity is either the agreeing configured full id or the stable broker/namespace-derived
+id from §7.1. Topic SHALL NOT be inferred from protocol/vendor, a `publish` operation, a `subscribe`
+operation, `messaging.system`, or the absence of Queue evidence.
 
 Contradictory Queue/Topic evidence is `REJECTED_CONFLICT`; no precedence chooses a winner.
 
@@ -341,6 +386,11 @@ Topic                   -[CARRIES]-> Message(OrderCreated)
 
 Without explicit Subscription identity, AIP SHALL NOT synthesize one from Service name, Channel name, operationId, consumer group, handler name, or source path. Supported Topic publication/message semantics MAY remain, while subscribe-side topology is omitted with a stable limitation/diagnostic.
 
+The source result is `ACCEPTED_WITH_LIMITATIONS` and the omitted subscribe operation emits
+`SUBSCRIPTION_IDENTITY_MISSING` at its source pointer. I4 adds that exact member to
+`DiagnosticCode`; it does not surface this source-local omission as a fabricated public dependency
+claim.
+
 ---
 
 ## 9. OpenTelemetry runtime mapping
@@ -349,15 +399,44 @@ Runtime evidence MAY qualify behavior against existing declared Topic/Subscripti
 
 Runtime evidence SHALL NOT mint an `OBSERVED_ONLY` Topic or Subscription in I4.
 
-I4 SHALL NOT opportunistically widen the existing messaging operation-attribute key boundary. Pub/Sub semantics and semantic-convention-key migration are separate changes.
+I4 SHALL NOT opportunistically widen the existing messaging operation-attribute key boundary.
+Operation classification continues to read only `messaging.operation.type`; alternate/deprecated
+operation keys remain unsupported. Destination-side recognition is widened by exactly these two
+OpenTelemetry keys:
 
-A runtime Topic can resolve only when destination name is present, exactly one declared Topic candidate matches under the broker/namespace rule, any present kind evidence is compatible, and the existing Service identity guard accepts.
+```text
+messaging.destination.subscription.name
+messaging.consumer.group.name
+```
+
+The existing recognized keys remain `messaging.destination.name`,
+`messaging.destination.template`, `messaging.destination_kind`, and `messaging.system`. No
+deprecated or vendor-specific Subscription key is accepted. ADR 0017 SHALL cite ADR 0013 decision
+#2 and record this bounded widening.
+
+A runtime Topic can resolve only when destination name is present, exactly one declared Topic
+candidate matches, any present kind evidence is compatible, and the existing Service identity guard
+accepts. Topic matching reuses `_match_declared_queue`'s five-step precedence with type-specific
+Topic candidates: exact name plus compatible `messaging.system`, exact name with no conflicting
+namespace, then a versioned configured Topic alias after no unique direct match. Queue aliases can
+never select a Topic, and Topic aliases can never select a Queue. Subscription matching is exact
+NFC-normalized `messaging.destination.subscription.name` within the already-resolved Topic;
+Subscription aliases are not admitted in I4.
 
 A bare runtime destination name is insufficient. If Queue and Topic both remain viable, the observation is unresolved and creates no messaging fact.
 
-`messaging.destination_kind=queue` preserves existing Queue behavior. `topic` may confirm a declared Topic but SHALL NOT mint one.
+`messaging.destination_kind=queue` preserves existing Queue behavior. `topic` may confirm a
+declared Topic but SHALL NOT mint one. `subscription` remains an unsupported destination-kind value
+and creates no Queue, Topic, Subscription, or messaging fact.
 
-A consumer observation supports `Service -[RECEIVES_FROM]-> Subscription` only when the declared Topic resolves exactly, the declared Subscription resolves exactly, `SUBSCRIPTION_OF` links them, the Service identity guard accepts, and runtime Subscription identity matches exactly.
+A consumer observation supports `Service -[RECEIVES_FROM]-> Subscription` only when
+`messaging.destination.name` resolves the declared Topic exactly,
+`messaging.destination.subscription.name` resolves the declared Subscription exactly within that
+Topic, `SUBSCRIPTION_OF` links them, and the Service identity guard accepts. The current
+OpenTelemetry conventions use `messaging.destination.name` for the Topic and the separate
+subscription-name key for both Google Cloud Pub/Sub and Azure Service Bus consumer spans; the I4
+positive fixtures SHALL pin those combinations. A composite path or Subscription name in
+`messaging.destination.name` does not match a Topic in I4.
 
 `messaging.consumer.group.name` MAY be retained as bounded evidence metadata but SHALL NOT create a Subscription, resolve a Subscription by itself, or act as an implicit alias.
 
@@ -371,7 +450,13 @@ The parent qualification matrix requires a subscription-specific dead-letter cas
 
 I4 therefore SHALL NOT introduce a generic `Subscription -[DEAD_LETTERS_TO]-> Queue` or force every target into Topic.
 
-When declared evidence contains Subscription-specific dead-letter configuration, AIP SHALL preserve that it belongs to the exact Subscription, retain bounded provenance/source-pointer evidence, prevent leakage to sibling Subscriptions, and avoid creating a generic canonical target relation.
+When declared evidence contains Subscription-specific dead-letter configuration, AIP SHALL retain
+an internal source-owned `SubscriptionDeadLetterConfiguration` contribution keyed by canonical
+Subscription id. It carries the exact normalized declared target token, its declared target-kind
+token when present, and bounded provenance/source-pointer evidence. It is not a canonical entity,
+relation, or public property in I4. Import replay/removal follows the existing I1 ownership engine;
+qualification asserts that only the named Subscription contribution exists, sibling Subscriptions
+carry none, and no generic target entity or relation is minted.
 
 Existing Queue `DEAD_LETTERS_TO` behavior remains unchanged.
 
@@ -387,7 +472,13 @@ Runtime evidence SHALL remain bounded/sanitized and SHALL NOT capture arbitrary 
 
 Every public Pub/Sub evidence ref SHALL resolve through `ArchitectureIntelligenceService.get_evidence`, REST evidence resolution, and negotiated MCP `get_evidence` at the same snapshot.
 
-Topic/Subscription public state SHALL participate in snapshot identity. I4 GO SHALL bump `_CANONICALIZATION_VERSION` from `2` to `3` exactly when that public state lands.
+Topic/Subscription public state SHALL participate in snapshot identity. In the first slice that
+persists Pub/Sub state (Slice 2), I4 GO SHALL add dedicated Topic and Subscription node queries,
+include their public fields and evidence-bearing Pub/Sub relations in canonicalization, and bump
+`_CANONICALIZATION_VERSION` from `2` to `3` in the same commit. The generic `_RELATION_QUERY`
+already sees new relation types, so persisting any Pub/Sub relation before those node queries and
+the version bump is prohibited. Slice 1 may add in-memory models/schema skeletons only; it SHALL
+persist no Pub/Sub node or relation.
 
 Derived dependency claim ids SHALL NOT be snapshot inputs.
 
@@ -464,11 +555,18 @@ multiple instances of same logical Service
   -> one logical consumer, evidence union
 
 multiple distinct logical Services on one Subscription
-  -> fallback to Subscription + ambiguity limitation
+  -> one RESOLVED_SERVICE claim per distinct evidenced Service
+  -> all claims retain the same Subscription route
+  -> no fan-out assertion
 
 two distinct Subscriptions
   -> two distinct routed claims
 ```
+
+Every `DIRECT_TARGET_FALLBACK` claim above carries the existing claim-scoped
+`LimitationCode.UNRESOLVED_IDENTITY`; I4 adds no generic ambiguity limitation. A candidate relation
+that cannot produce any safe claim uses the existing claim-independent
+`LimitationCode.INSUFFICIENT_EVIDENCE` when it materially limits the requested answer.
 
 ### 12.4 Claim identity compatibility
 
@@ -487,6 +585,40 @@ This keeps `DeliveryRef.via` semantically honest while making distinct Subscript
 
 The public schema remains `schema_version = "0.5"` because v0.5.0 has not shipped; committed v0.5 schemas must be widened explicitly before qualification.
 
+### 12.5 Drift semantics
+
+I4 does not introduce a second drift engine. `get_architecture_drift` continues to filter the exact
+dependency claims produced by §12.3 to qualifications `OBSERVED_ONLY` and
+`NOT_OBSERVED_IN_WINDOW`.
+
+- A declared `PUBLISHES_TO` route, including its optional Subscription route, is
+  `NOT_OBSERVED_IN_WINDOW` only under the existing messaging-coverage rule; non-observation without
+  sufficient coverage remains declared-only without an absence claim.
+- Matching runtime publisher or consumer evidence confirms the exact declared Topic or
+  Subscription route. Evidence for one Subscription does not confirm a sibling Subscription.
+- Runtime-only Topic/Subscription minting remains prohibited, so an unmatched consumer span creates
+  no `OBSERVED_ONLY` Pub/Sub claim. It is retained only as bounded rejected observation evidence
+  with refusal reason `unresolved_destination_semantics`; where the queried Service has applicable
+  messaging coverage but no safe dependency claim, the public answer uses the existing
+  claim-independent `INSUFFICIENT_EVIDENCE` limitation.
+- Every claim and retained limitation in drift is the unchanged object selected from the dependency
+  projection, preserving claim id, Subscription route, evidence, qualification, and ordering.
+
+### 12.6 Frozen public exposure table
+
+| Semantic item | Canonical/internal status | REST | Negotiated MCP | Public schema/evidence representation |
+|---|---|---|---|---|
+| `Topic` / `Subscription` refs | bounded public projections | `GET /api/services/{service_id}/dependencies` and `/drift` inside returned claims | existing `get_service_dependencies` / `get_architecture_drift` claim fields | `schemas/architecture_intelligence/v0.5/architecture-answer.schema.json` and `drift-answer.schema.json`; `EntityType.TOPIC|SUBSCRIPTION` |
+| `PUBLISHES_TO` dependency and Subscription route | public | same dependency/drift endpoints | same two existing tools; `DeliveryRef.via` and optional `subscription` | same two schemas; ordinary claim evidence refs and existing limitation representation |
+| `SUBSCRIPTION_OF` / Pub/Sub `RECEIVES_FROM` / `CARRIES` | canonical support facts; public only through dependency projection and evidence drill-down | no generic graph endpoint; `POST /api/evidence/resolve` for referenced support | no new tool; existing `get_evidence` | `schemas/architecture_intelligence/v0.5/evidence-answer.schema.json`; add `EvidenceRelationType.PUBLISHES_TO|SUBSCRIPTION_OF`, reuse `RECEIVES_FROM|CARRIES` |
+| `SubscriptionDeadLetterConfiguration` | internal-only source contribution | not exposed | not exposed | none; its provenance remains internal and is not publicly resolvable in I4 |
+| missing Subscription declaration | source diagnostic only | no fabricated claim | no fabricated claim | `DiagnosticCode.SUBSCRIPTION_IDENTITY_MISSING`; dependency answers may carry only applicable existing limitations |
+
+No fourth tool, generic graph response, or independent REST/MCP derivation is introduced. All three
+committed `schemas/architecture_intelligence/v0.5/*.schema.json` files SHALL be reviewed and widened
+where their closed definitions reference the affected entity, delivery, relation, or evidence
+vocabularies; unchanged portions remain byte-compatible.
+
 ---
 
 ## 13. Required qualification
@@ -497,14 +629,25 @@ At minimum:
 
 - existing Queue channels remain unchanged;
 - Topic with stable broker identity maps to Topic;
+- explicit configured Topic/Subscription ids agree with derived ids or reject with the named
+  identity-conflict diagnostic;
 - Topic `publish` maps to `PUBLISHES_TO`;
 - Topic Message maps to `Topic CARRIES Message`;
 - Topic `subscribe` plus explicit Subscription name maps Subscription topology;
 - missing Subscription identity never guesses one;
+- missing Subscription identity is `ACCEPTED_WITH_LIMITATIONS` with
+  `SUBSCRIPTION_IDENTITY_MISSING` at the subscribe pointer;
 - Queue/Topic kind conflict rejects atomically;
+- pre-I4 `x-aip-destination-kind: topic` input changes from `QUEUE_EVIDENCE_MISSING` omission to
+  Topic eligibility only when all I4 guards pass;
+- `x-aip-destination-kind: pubsub` and every other unrecognized value are
+  `REJECTED_UNSUPPORTED` with `DESTINATION_KIND_UNSUPPORTED`;
+- AMQP `is: routingKey` is never positive Topic evidence;
 - same names across kinds/brokers/namespaces remain distinct;
 - same Subscription name under different Topics remains distinct;
-- Subscription-specific dead-letter configuration remains scoped and does not mint a generic target relation;
+- Subscription-specific dead-letter configuration is retained only in the named internal carrier,
+  remains scoped, and does not mint a generic target relation;
+- parameterized channel addresses remain exact literal identity inputs and are not expanded;
 - protocol/vendor only never establishes kind;
 - AsyncAPI 3.x remains rejected.
 
@@ -519,6 +662,12 @@ At minimum:
 - declared Topic + exact declared Subscription + resolved Service may qualify `RECEIVES_FROM Subscription`;
 - consumer group only cannot resolve Subscription;
 - consumer-group name accidentally equal to Subscription name is still not an implicit match;
+- `messaging.destination.subscription.name` exactly matches within an already-resolved Topic;
+- `messaging.destination_kind=subscription` remains unsupported;
+- configured Topic aliases follow the existing five-step destination precedence while Queue aliases
+  cannot cross-select Topics and Subscription aliases are not admitted;
+- GCP Pub/Sub and Azure Service Bus consumer fixtures carry Topic in
+  `messaging.destination.name` and Subscription in `messaging.destination.subscription.name`;
 - placeholder/ambiguous Service identity creates zero Pub/Sub fact;
 - unsupported operation attribute keys remain unsupported;
 - span batch ordering has no semantic effect.
@@ -560,6 +709,10 @@ existing Queue EntityRef shape
 
 Existing Queue data SHALL NOT be implicitly reclassified as Topic.
 
+The newly admitted exact `x-aip-destination-kind: topic` value is an intentional pre-`1.0`
+behavior widening for documents that I1 omitted as non-Queue. Unknown/non-admitted kind values stay
+unsupported and never become Topic by negative inference.
+
 ---
 
 ## 15. Implementation slices
@@ -572,7 +725,7 @@ Recommended slicing:
 - ADR 0017;
 - GO/DEFER decision;
 - if GO: Topic/Subscription models, identity helpers, graph schema, public contract skeleton;
-- no adapter behavior yet.
+- no adapter behavior and no persisted Pub/Sub node/relation yet.
 
 ### Slice 2 — Declared AsyncAPI vertical slice
 
@@ -580,6 +733,8 @@ Recommended slicing:
 - Subscription identity rule;
 - PUBLISHES_TO / SUBSCRIPTION_OF / RECEIVES_FROM / CARRIES;
 - subscription-specific dead-letter evidence handling;
+- dedicated Topic/Subscription canonicalization queries and the atomic canonicalization-v3 bump
+  before the first Pub/Sub persistence;
 - importer/replay/atomicity tests.
 
 ### Slice 3 — Runtime qualification
@@ -595,7 +750,6 @@ Recommended slicing:
 - Topic/Subscription public refs;
 - DeliveryRef Subscription route;
 - dependency/drift projection;
-- snapshot canonicalization v3;
 - REST/service/MCP equivalence;
 - evidence drill-down.
 
@@ -701,6 +855,8 @@ If I4 = DEFER, I5 treats Pub/Sub as unsupported/deferred and SHALL NOT reopen it
 - [ ] Azure Service Bus and Google Pub/Sub independently support the abstraction.
 - [ ] Kafka consumer group is not normalized to Subscription.
 - [ ] Queue remains competing-consumer semantics.
+- [ ] Queue and Subscription each preserve one resolved dependency claim per distinct evidenced
+      logical consumer without calling that cardinality fan-out.
 - [ ] Topic fan-out is represented by distinct Subscriptions.
 - [ ] multiple instances on one Subscription are not fan-out.
 - [ ] AsyncAPI Channel is not automatically Queue/Topic.
@@ -715,7 +871,8 @@ If I4 = DEFER, I5 treats Pub/Sub as unsupported/deferred and SHALL NOT reopen it
 - [ ] exactly three MCP tools remain.
 - [ ] `ArchitectureIntelligenceService` remains semantic owner.
 - [ ] Queue claim ids remain unchanged.
-- [ ] canonicalization version bumps to 3 only when new public state lands.
+- [ ] canonicalization version bumps to 3, with Topic/Subscription node queries, in the first slice
+      that persists new public state.
 - [ ] schema version remains `0.5`.
 - [ ] no live broker adapter is added.
 - [ ] no broker-specific production branch is required.

@@ -32,10 +32,12 @@ treat it as substantial and run the full workflow anyway.
 **Documentation-only pre-PR validation exemption.** When the complete proposed PR diff contains only
 documentation and has no source relevance, do **not** run the repository's unit/integration test
 suites merely as a prerequisite to opening the PR. "No source relevance" means the change touches no
-production or test source, executable examples/fixtures, schemas, configuration, workflows,
-dependency/lock files, generated artifacts, version/build metadata, or other files whose contents
-can change runtime, build, validation, release, or qualification behavior. Before relying on this
-exemption, inspect the complete diff and state why it is documentation-only. Run only lightweight
+production or test source, executable examples/fixtures, documentation read or asserted by tests or
+scripts, schemas, configuration, workflows, dependency/lock files, generated artifacts,
+version/build metadata, release notes, changelogs, completion records, or other release-candidate
+content whose contents can change runtime, build, validation, release, or qualification behavior.
+Before relying on this exemption, inspect the complete diff and state why it is documentation-only.
+Run only lightweight
 validation that can provide signal for the changed documents (for example Markdown/link/reference
 checks when such tooling exists). Once the PR exists, normal CI remains authoritative and may still
 run repository-wide tests. If any changed file has plausible source/runtime/build/qualification
