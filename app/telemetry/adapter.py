@@ -4,7 +4,11 @@ from typing import Literal
 from app.canonical import ids
 from app.provenance.model import ObservedEvidence
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer, PendingHttpSpan
-from app.telemetry.messaging_guards import decide_destination_semantics, decide_service_identity
+from app.telemetry.messaging_guards import (
+    PubSubDecision,
+    decide_messaging_destination,
+    decide_service_identity,
+)
 from app.telemetry.model import (
     DiscoveryStatus,
     ObservationBatch,
@@ -15,12 +19,14 @@ from app.telemetry.model import (
     day_bucket,
 )
 from app.telemetry.operation_resolver import DeclaredOperationCandidate, resolve_operation
+from app.telemetry.pubsub_resolver import DeclaredSubscriptionCandidate, DeclaredTopicCandidate
 from app.telemetry.queue_resolver import DeclaredQueueCandidate
 from app.telemetry.runtime_identity import extract_runtime_identity_observations
 from app.telemetry.semconv.http import HTTP_REQUEST_METHOD, HTTP_ROUTE, PEER_SERVICE, URL_TEMPLATE
 from app.telemetry.semconv.messaging import (
     MESSAGING_DESTINATION_KIND,
     MESSAGING_DESTINATION_NAME,
+    MESSAGING_DESTINATION_SUBSCRIPTION_NAME,
     MESSAGING_OPERATION_TYPE,
     MESSAGING_SYSTEM,
 )
@@ -537,6 +543,9 @@ def correlate_queue_observations(
     queue_candidates: list[DeclaredQueueCandidate],
     service_aliases: dict[str, str],
     queue_aliases: dict[str, str],
+    topic_candidates: list[DeclaredTopicCandidate] = (),
+    subscription_candidates: list[DeclaredSubscriptionCandidate] = (),
+    topic_aliases: dict[str, str] | None = None,
 ) -> ObservationBatch:
     """Builds observed SENDS/RECEIVES_FROM facts from messaging spans (spec §24-26). Unlike HTTP,
     no correlation between spans is needed - SENDS/RECEIVES_FROM are independent relations, each
@@ -557,7 +566,15 @@ def correlate_queue_observations(
     without ever resolving service identity (spec §6's destination-first precedence, so exactly one
     reason is produced when both would fail); a service refusal after a destination accept still
     records nothing - the accepted destination's resolution is discarded, not partially persisted.
+
+    v0.5.0 I4 spec §9: the same destination-first/service-second order also qualifies
+    already-declared Topic/Subscription topology via `decide_messaging_destination` - a `send`
+    confirms `Service -[PUBLISHES_TO]-> Topic`, a `receive`/`process` with an exactly matching
+    `messaging.destination.subscription.name` confirms `Service -[RECEIVES_FROM]-> Subscription`.
+    Nothing on that route is ever recorded as an observed-only entity: no Topic/Subscription is
+    minted from runtime evidence.
     """
+    topic_aliases = topic_aliases or {}
     facts: list[ObservedFactCandidate] = []
     entities: dict[str, ObservedOnlyEntity] = {}
     unresolved: list[UnresolvedObservation] = []
@@ -588,12 +605,17 @@ def correlate_queue_observations(
             continue
 
         messaging_system = span.attributes.get(MESSAGING_SYSTEM)
-        destination_decision = decide_destination_semantics(
+        destination_decision = decide_messaging_destination(
             queue_candidates,
+            list(topic_candidates),
+            list(subscription_candidates),
             messaging_system=messaging_system,
             destination_name=destination_name,
             destination_kind=span.attributes.get(MESSAGING_DESTINATION_KIND),
-            aliases=queue_aliases,
+            is_consumer=relation_type == "RECEIVES_FROM",
+            subscription_name=span.attributes.get(MESSAGING_DESTINATION_SUBSCRIPTION_NAME),
+            queue_aliases=queue_aliases,
+            topic_aliases=topic_aliases,
         )
         if not destination_decision.accepted:
             unresolved.append(
@@ -624,13 +646,24 @@ def correlate_queue_observations(
             label="Service",
             name=span.service_name,
         )
-        _record_if_observed_only(
-            entities,
-            entity_id=destination_decision.queue_id,
-            discovery_status=destination_decision.discovery_status,
-            label="Queue",
-            name=destination_name,
-        )
+        if isinstance(destination_decision, PubSubDecision):
+            # I4 §9: a declared Topic (producer) or declared Subscription (consumer) only.
+            if relation_type == "SENDS":
+                fact_relation_type, object_id = "PUBLISHES_TO", destination_decision.topic_id
+            else:
+                fact_relation_type, object_id = (
+                    "RECEIVES_FROM",
+                    destination_decision.subscription_id,
+                )
+        else:
+            fact_relation_type, object_id = relation_type, destination_decision.queue_id
+            _record_if_observed_only(
+                entities,
+                entity_id=destination_decision.queue_id,
+                discovery_status=destination_decision.discovery_status,
+                label="Queue",
+                name=destination_name,
+            )
 
         timestamp = span.end_time
         bucket_start, bucket_end = day_bucket(timestamp)
@@ -638,8 +671,8 @@ def correlate_queue_observations(
             span.environment,
             bucket_start,
             service_decision.service_id,
-            relation_type,
-            destination_decision.queue_id,
+            fact_relation_type,
+            object_id,
         )
         evidence = ObservedEvidence(
             id=evidence_id,
@@ -656,8 +689,8 @@ def correlate_queue_observations(
         facts.append(
             ObservedFactCandidate(
                 subject_id=service_decision.service_id,
-                relation_type=relation_type,
-                object_id=destination_decision.queue_id,
+                relation_type=fact_relation_type,
+                object_id=object_id,
                 environment=span.environment,
                 timestamp=timestamp,
                 trace_id=span.trace_id,
@@ -678,6 +711,9 @@ def adapt(
     service_aliases: dict[str, str],
     queue_aliases: dict[str, str],
     correlation_buffer: HttpCorrelationBuffer | None = None,
+    topic_candidates: list[DeclaredTopicCandidate] = (),
+    subscription_candidates: list[DeclaredSubscriptionCandidate] = (),
+    topic_aliases: dict[str, str] | None = None,
 ) -> ObservationBatch:
     """Combines HTTP and queue observations from one decoded OTLP batch into a single
     ObservationBatch (spec §9's OpenTelemetryAdapter stage).
@@ -704,6 +740,9 @@ def adapt(
         queue_candidates=queue_candidates,
         service_aliases=service_aliases,
         queue_aliases=queue_aliases,
+        topic_candidates=topic_candidates,
+        subscription_candidates=subscription_candidates,
+        topic_aliases=topic_aliases,
     )
     runtime_identity_observations = extract_runtime_identity_observations(spans)
 

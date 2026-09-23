@@ -81,6 +81,10 @@ class CoverageConfig(BaseModel):
 class TelemetryConfig(BaseModel):
     service_aliases: dict[str, str] = Field(default_factory=dict)
     queue_aliases: dict[str, str] = Field(default_factory=dict)
+    # v0.5.0 I4 spec §9: configured runtime Topic aliases {destination name: canonical Topic id},
+    # consulted only after no unique direct Topic match - never able to select a Queue, just as
+    # queue_aliases can never select a Topic. No Subscription aliases are admitted.
+    topic_aliases: dict[str, str] = Field(default_factory=dict)
     http_correlation: HttpCorrelationConfig = Field(
         default_factory=HttpCorrelationConfig, alias="http-correlation"
     )

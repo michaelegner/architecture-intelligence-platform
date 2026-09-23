@@ -15,7 +15,9 @@ import re
 from dataclasses import dataclass
 
 from app.canonical import ids
+from app.sources.encoding import unicode_nfc
 from app.telemetry.model import DiscoveryStatus
+from app.telemetry.pubsub_resolver import DeclaredSubscriptionCandidate, DeclaredTopicCandidate
 from app.telemetry.queue_resolver import DeclaredQueueCandidate
 from app.telemetry.service_resolver import DeclaredServiceCandidate, _slugify
 
@@ -185,6 +187,114 @@ def decide_destination_semantics(
             accepted=True, discovery_status=DiscoveryStatus.OBSERVED_ONLY, queue_id=minted_id
         )
     return DestinationDecision(accepted=False, refusal_reason=UNRESOLVED_DESTINATION_SEMANTICS)
+
+
+@dataclass(frozen=True)
+class PubSubDecision:
+    """v0.5.0 I4 spec §9: the Topic-route outcome. `accepted=True` always refers to an
+    already-declared Topic (and, for a consumer span, an already-declared Subscription of it) -
+    there is no `discovery_status`, because nothing on this route is ever minted."""
+
+    accepted: bool
+    topic_id: str | None = None
+    subscription_id: str | None = None
+    refusal_reason: str | None = None
+
+
+_TOPIC_KIND = "topic"
+
+
+def _normalized_kind(raw: object) -> str | None:
+    if raw is None or not isinstance(raw, str):
+        return None
+    return raw.strip().lower()
+
+
+def decide_messaging_destination(
+    queue_candidates: list[DeclaredQueueCandidate],
+    topic_candidates: list[DeclaredTopicCandidate],
+    subscription_candidates: list[DeclaredSubscriptionCandidate],
+    *,
+    messaging_system: str | None,
+    destination_name: str,
+    destination_kind: object,
+    is_consumer: bool,
+    subscription_name: object,
+    queue_aliases: dict[str, str],
+    topic_aliases: dict[str, str],
+) -> DestinationDecision | PubSubDecision:
+    """v0.5.0 I4 spec §9: a front guard that routes a messaging span to either the unchanged Queue
+    guard (`decide_destination_semantics`, returning `DestinationDecision`) or the Topic route
+    (returning `PubSubDecision`). Queue outcomes are unchanged whenever no declared Topic is
+    involved.
+
+    - `messaging.destination_kind=topic` may only confirm a declared Topic, never mint one.
+    - `queue`, `subscription`, other unsupported, and malformed kinds keep the unchanged Queue-guard
+      behavior (`subscription` stays unsupported).
+    - An absent kind consults both declared families; if Queue and Topic both remain viable (a
+      declared or ambiguous match each) the observation is unresolved - no precedence picks one.
+
+    Topic matching reuses `_match_declared_queue`'s precedence with type-specific candidates and
+    aliases, so a Queue alias can never select a Topic and a Topic alias never a Queue. The
+    consumer-group name is not an input at all (ADR 0017 #4).
+    """
+    raw_kind = _normalized_kind(destination_kind)
+    if destination_kind is not None and raw_kind != _TOPIC_KIND:
+        return decide_destination_semantics(
+            queue_candidates,
+            messaging_system=messaging_system,
+            destination_name=destination_name,
+            destination_kind=destination_kind,
+            aliases=queue_aliases,
+        )
+
+    topic_match, topic_id = _match_declared_queue(
+        topic_candidates,
+        messaging_system=messaging_system,
+        destination_name=destination_name,
+        aliases=topic_aliases,
+    )
+    if destination_kind is None:
+        queue_match, _ = _match_declared_queue(
+            queue_candidates,
+            messaging_system=messaging_system,
+            destination_name=destination_name,
+            aliases=queue_aliases,
+        )
+        if queue_match != "none" and topic_match != "none":
+            return PubSubDecision(accepted=False, refusal_reason=UNRESOLVED_DESTINATION_SEMANTICS)
+        if topic_match == "none":
+            return decide_destination_semantics(
+                queue_candidates,
+                messaging_system=messaging_system,
+                destination_name=destination_name,
+                destination_kind=destination_kind,
+                aliases=queue_aliases,
+            )
+
+    if topic_match == "ambiguous":
+        return PubSubDecision(accepted=False, refusal_reason=AMBIGUOUS_DESTINATION_IDENTITY)
+    if topic_match == "none":
+        # kind == topic with no declared Topic: never minted (I4 §9). The refusal reason stays the
+        # exact v0.4.1 one (a topic-shaped destination is unsupported unless declared), so every
+        # pre-I4 outcome is byte-identical whenever no Topic is declared.
+        return PubSubDecision(accepted=False, refusal_reason=UNSUPPORTED_DESTINATION_SEMANTICS)
+    if not is_consumer:
+        return PubSubDecision(accepted=True, topic_id=topic_id)
+
+    if not isinstance(subscription_name, str) or not subscription_name:
+        return PubSubDecision(accepted=False, refusal_reason=UNRESOLVED_DESTINATION_SEMANTICS)
+    normalized_name = unicode_nfc(subscription_name)
+    matched_ids = {
+        candidate.id
+        for candidate in subscription_candidates
+        if candidate.topic_id == topic_id and candidate.name == normalized_name
+    }
+    if not matched_ids:
+        return PubSubDecision(accepted=False, refusal_reason=UNRESOLVED_DESTINATION_SEMANTICS)
+    if len(matched_ids) > 1:
+        return PubSubDecision(accepted=False, refusal_reason=AMBIGUOUS_DESTINATION_IDENTITY)
+    return PubSubDecision(accepted=True, topic_id=topic_id, subscription_id=next(iter(matched_ids)))
 
 
 def _normalize_for_placeholder_check(name: str) -> str:
