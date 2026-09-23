@@ -1,3 +1,4 @@
+import pytest
 import yaml
 
 from app.sources.migration_mappings import (
@@ -370,3 +371,197 @@ def test_load_migration_mappings_merges_multiple_files(tmp_path):
         )
         == "schema:Other"
     )
+
+
+# --- v0.5.0 I4 spec §7.3: topicMappings / subscriptionMappings ---------------------------------
+
+TOPIC_ID = "topic:owned:" + "1" * 64
+OTHER_TOPIC_ID = "topic:owned:" + "2" * 64
+SUBSCRIPTION_ID = "subscription:owned:" + "3" * 64
+
+
+def _pubsub_document(**overrides):
+    document = {
+        "apiVersion": "aip.dev/v1",
+        "kind": "AipSharedIdentityMappings",
+        "metadata": {"id": "pubsub", "revision": "v1"},
+        "topicMappings": [
+            {
+                "sourceInstanceId": SOURCE_A,
+                "documentPath": "root.yaml",
+                "pointer": "/channels/orders",
+                "topicId": TOPIC_ID,
+            }
+        ],
+        "subscriptionMappings": [
+            {
+                "sourceInstanceId": SOURCE_A,
+                "documentPath": "root.yaml",
+                "pointer": "/channels/orders/subscribe",
+                "topicId": TOPIC_ID,
+                "subscriptionName": "billing",
+                "subscriptionId": SUBSCRIPTION_ID,
+            }
+        ],
+    }
+    document.update(overrides)
+    return document
+
+
+def _parse(document):
+    return parse_migration_mappings(
+        document, locator="migrations.yaml", content_digest="test-content-digest"
+    )
+
+
+def test_parse_valid_topic_and_subscription_mappings():
+    parsed, diagnostics = _parse(_pubsub_document())
+    assert diagnostics == []
+    [topic] = parsed.topic_mappings
+    assert (topic.pointer_tokens, topic.target_id) == (("channels", "orders"), TOPIC_ID)
+    [subscription] = parsed.subscription_mappings
+    assert subscription.pointer_tokens == ("channels", "orders", "subscribe")
+    assert subscription.target_id == SUBSCRIPTION_ID
+    assert subscription.bound_topic_id == TOPIC_ID
+    assert subscription.subscription_name == "billing"
+
+
+def test_pre_i4_document_has_empty_topic_and_subscription_mappings():
+    parsed, diagnostics = _parse(_document())
+    assert diagnostics == []
+    assert parsed.topic_mappings == ()
+    assert parsed.subscription_mappings == ()
+
+
+def test_subscription_name_is_nfc_normalized_without_trimming_or_case_folding():
+    document = _pubsub_document()
+    document["subscriptionMappings"][0]["subscriptionName"] = " Café "
+    parsed, _ = _parse(document)
+    assert parsed.subscription_mappings[0].subscription_name == " Café "
+
+
+@pytest.mark.parametrize(
+    ("array", "mutate"),
+    [
+        ("topicMappings", lambda e: e.update(kind="topic")),
+        ("topicMappings", lambda e: e.pop("topicId")),
+        ("topicMappings", lambda e: e.update(topicId="")),
+        ("subscriptionMappings", lambda e: e.pop("topicId")),
+        ("subscriptionMappings", lambda e: e.pop("subscriptionName")),
+        ("subscriptionMappings", lambda e: e.pop("subscriptionId")),
+        ("subscriptionMappings", lambda e: e.update(subscriptionName="")),
+        ("subscriptionMappings", lambda e: e.update(consumerGroup="billing-group")),
+    ],
+)
+def test_pubsub_mapping_shape_violations_are_shape_invalid(array, mutate):
+    document = _pubsub_document()
+    mutate(document[array][0])
+    parsed, diagnostics = _parse(document)
+    assert parsed is None
+    assert diagnostics
+    assert {d.code for d in diagnostics} == {DiagnosticCode.MIGRATION_MAPPING_SHAPE_INVALID}
+
+
+@pytest.mark.parametrize(
+    ("array", "field", "value"),
+    [
+        ("topicMappings", "topicId", "queue:owned:x"),
+        ("topicMappings", "topicId", "topic: has space"),
+        ("subscriptionMappings", "topicId", "subscription:owned:x"),
+        ("subscriptionMappings", "subscriptionId", "topic:owned:x"),
+    ],
+)
+def test_pubsub_mapping_target_grammar_violations_are_target_invalid(array, field, value):
+    document = _pubsub_document()
+    document[array][0][field] = value
+    parsed, diagnostics = _parse(document)
+    assert parsed is None
+    [diagnostic] = diagnostics
+    assert diagnostic.code is DiagnosticCode.MIGRATION_MAPPING_TARGET_INVALID
+    assert diagnostic.source_pointer == f"/{array}/0/{field}"
+
+
+def test_pubsub_mapping_malformed_pointer_is_shape_invalid():
+    document = _pubsub_document()
+    document["subscriptionMappings"][0]["pointer"] = "channels/orders/subscribe"
+    parsed, diagnostics = _parse(document)
+    assert parsed is None
+    [diagnostic] = diagnostics
+    assert diagnostic.code is DiagnosticCode.MIGRATION_MAPPING_SHAPE_INVALID
+    assert diagnostic.source_pointer == "/subscriptionMappings/0/pointer"
+
+
+def test_index_resolves_topic_and_subscription_mappings_by_exact_key():
+    parsed, _ = _parse(_pubsub_document())
+    index, diagnostics = build_shared_identity_index([parsed])
+    assert diagnostics == []
+    lookup = {"source_instance_id": SOURCE_A, "document_path": "root.yaml"}
+    assert index.topic_id_for(**lookup, pointer="/channels/orders") == TOPIC_ID
+    mapping = index.subscription_mapping_for(**lookup, pointer="/channels/orders/subscribe")
+    assert (mapping.topic_id, mapping.subscription_name, mapping.subscription_id) == (
+        TOPIC_ID,
+        "billing",
+        SUBSCRIPTION_ID,
+    )
+    # exact lookup only - no sibling pointer, other document, or other kind resolves
+    assert index.topic_id_for(**lookup, pointer="/channels/orders/subscribe") is None
+    assert index.subscription_mapping_for(**lookup, pointer="/channels/orders") is None
+    assert index.queue_id_for(**lookup, pointer="/channels/orders") is None
+    assert (
+        index.topic_id_for(
+            source_instance_id=SOURCE_B, document_path="root.yaml", pointer="/channels/orders"
+        )
+        is None
+    )
+
+
+def test_index_deduplicates_identical_subscription_entries_across_documents():
+    parsed, _ = _parse(_pubsub_document())
+    twin, _ = _parse(_pubsub_document(metadata={"id": "twin", "revision": "v1"}))
+    _, diagnostics = build_shared_identity_index([parsed, twin])
+    assert diagnostics == []
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("subscriptionId", "subscription:owned:" + "9" * 64),
+        ("topicId", OTHER_TOPIC_ID),
+        ("subscriptionName", "shipping"),
+    ],
+)
+def test_subscription_entries_disagreeing_on_any_payload_field_conflict(field, value):
+    """I4 spec §7.3: two entries at one key that agree on the Subscription id but disagree on its
+    Topic binding or name are a conflict, never a silent first-wins."""
+    parsed, _ = _parse(_pubsub_document())
+    other = _pubsub_document(metadata={"id": "other", "revision": "v1"})
+    other["subscriptionMappings"][0][field] = value
+    other_parsed, _ = _parse(other)
+    _, diagnostics = build_shared_identity_index([parsed, other_parsed])
+    assert [d.code for d in diagnostics] == [DiagnosticCode.MIGRATION_MAPPING_CONFLICT]
+
+
+def test_conflicting_topic_mappings_for_same_channel_conflict():
+    parsed, _ = _parse(_pubsub_document())
+    other = _pubsub_document(metadata={"id": "other", "revision": "v1"})
+    other["topicMappings"][0]["topicId"] = OTHER_TOPIC_ID
+    other_parsed, _ = _parse(other)
+    _, diagnostics = build_shared_identity_index([parsed, other_parsed])
+    assert [d.code for d in diagnostics] == [DiagnosticCode.MIGRATION_MAPPING_CONFLICT]
+
+
+def test_topic_and_queue_mappings_at_the_same_pointer_stay_in_independent_namespaces():
+    """The index never merges kinds; a Queue+Topic mapping at one Channel pointer is a kind
+    conflict the AsyncAPI adapter rejects (I4 spec §8.1), not something the index resolves."""
+    document = _pubsub_document(queueMappings=_document()["queueMappings"])
+    document["queueMappings"][0]["pointer"] = "/channels/orders"
+    parsed, _ = _parse(document)
+    index, diagnostics = build_shared_identity_index([parsed])
+    assert diagnostics == []
+    lookup = {
+        "source_instance_id": SOURCE_A,
+        "document_path": "root.yaml",
+        "pointer": "/channels/orders",
+    }
+    assert index.queue_id_for(**lookup) == "queue:payment-q"
+    assert index.topic_id_for(**lookup) == TOPIC_ID

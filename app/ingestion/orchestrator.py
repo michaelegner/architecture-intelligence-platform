@@ -54,6 +54,7 @@ from app.sources.migration_mappings import (
     IdentityMappingEntry,
     MigrationMappingsDocument,
     SharedIdentityMappingIndex,
+    SubscriptionMapping,
 )
 from app.sources.model import (
     NOT_SUPPLIED,
@@ -217,6 +218,20 @@ class _RunSharedIdentityResolver:
             source_instance_id=source_instance_id, document_path=document_path, pointer=pointer
         )
 
+    def topic_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self._index.topic_id_for(
+            source_instance_id=source_instance_id, document_path=document_path, pointer=pointer
+        )
+
+    def subscription_mapping_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> SubscriptionMapping | None:
+        return self._index.subscription_mapping_for(
+            source_instance_id=source_instance_id, document_path=document_path, pointer=pointer
+        )
+
 
 def _binding_index_to_pointer_bindings(binding_index: BindingIndex) -> tuple[PointerBinding, ...]:
     return tuple(
@@ -239,6 +254,13 @@ BUNDLED_MIGRATION_ARTIFACT_ID = "aip-v0.5.0-bundled-example-identities-v1"
 def _mapping_entry_context(
     document: MigrationMappingsDocument, entry: IdentityMappingEntry, *, id_field: str
 ) -> dict[str, str]:
+    # v0.5.0 I4 spec §7.3: a subscriptionMappings entry's Topic binding and Subscription name are
+    # part of its identity payload, so they enter the digest alongside its Subscription id.
+    subscription_binding = (
+        {"topicId": entry.bound_topic_id, "subscriptionName": entry.subscription_name}
+        if entry.bound_topic_id is not None
+        else {}
+    )
     return {
         "artifactId": document.artifact_id,
         "artifactRevision": document.artifact_revision,
@@ -266,12 +288,13 @@ def _mapping_entry_context(
         "documentPath": entry.document_path,
         "pointer": entry.pointer,
         id_field: entry.target_id,
+        **subscription_binding,
     }
 
 
 def _classify_shared_identity_entries(
     shared_identity_index: SharedIdentityMappingIndex,
-) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
+) -> tuple[list[dict], list[dict], list[dict], list[dict], list[dict], list[dict]]:
     """§5.3 names `bundledMigrationMappings` as one context category and `sharedSchemaMappings`/
     `sharedMessageMappings`/`sharedQueueMappings` as three separate ones - a distinction the spec
     text doesn't otherwise define, so this module draws it explicitly (flagged for review): any
@@ -279,12 +302,15 @@ def _classify_shared_identity_entries(
     contributes all of its entries (schema, message, and queue alike) to the one
     `bundledMigrationMappings` list; every other configured document's entries are split by kind
     into the three `shared*Mappings` categories instead, since that general mechanism has no
-    single-artifact identity to fold entries under.
+    single-artifact identity to fold entries under. v0.5.0 I4 spec §7.3 adds the Topic and
+    Subscription kinds to both halves of the same rule.
     """
     bundled: list[dict] = []
     shared_schema: list[dict] = []
     shared_message: list[dict] = []
     shared_queue: list[dict] = []
+    shared_topic: list[dict] = []
+    shared_subscription: list[dict] = []
     for document in shared_identity_index.documents:
         is_bundled = document.artifact_id == BUNDLED_MIGRATION_ARTIFACT_ID
         for entry in document.schema_mappings:
@@ -296,7 +322,20 @@ def _classify_shared_identity_entries(
         for entry in document.queue_mappings:
             item = _mapping_entry_context(document, entry, id_field="queueId")
             (bundled if is_bundled else shared_queue).append(item)
-    return bundled, shared_schema, shared_message, shared_queue
+        for entry in document.topic_mappings:
+            item = _mapping_entry_context(document, entry, id_field="topicId")
+            (bundled if is_bundled else shared_topic).append(item)
+        for entry in document.subscription_mappings:
+            item = _mapping_entry_context(document, entry, id_field="subscriptionId")
+            (bundled if is_bundled else shared_subscription).append(item)
+    return (
+        bundled,
+        shared_schema,
+        shared_message,
+        shared_queue,
+        shared_topic,
+        shared_subscription,
+    )
 
 
 def _compute_mapping_context_digest(
@@ -309,11 +348,18 @@ def _compute_mapping_context_digest(
     namespace mappings, bundled migration mappings, and all active adapter, normalization, and
     mapping-rule identities/versions." `configuredServiceMappings`/`destinationBrokerMappings`
     remain explicit empty arrays - no configured instance of either exists or is needed yet
-    ("Explicit empty arrays represent absent mapping categories" - §5.3).
+    ("Explicit empty arrays represent absent mapping categories" - §5.3). v0.5.0 I4 spec §7.3 adds
+    `sharedTopicMappings`/`sharedSubscriptionMappings` under the same always-present rule, so every
+    pre-I4 context digest changes once (a one-time same-scope re-evaluation, not a new identity).
     """
-    bundled, shared_schema, shared_message, shared_queue = _classify_shared_identity_entries(
-        shared_identity_index
-    )
+    (
+        bundled,
+        shared_schema,
+        shared_message,
+        shared_queue,
+        shared_topic,
+        shared_subscription,
+    ) = _classify_shared_identity_entries(shared_identity_index)
     context = {
         "manifestBindings": sort_entries_by_canonical_bytes(
             [
@@ -329,6 +375,8 @@ def _compute_mapping_context_digest(
         "sharedSchemaMappings": sort_entries_by_canonical_bytes(shared_schema),
         "sharedMessageMappings": sort_entries_by_canonical_bytes(shared_message),
         "sharedQueueMappings": sort_entries_by_canonical_bytes(shared_queue),
+        "sharedTopicMappings": sort_entries_by_canonical_bytes(shared_topic),
+        "sharedSubscriptionMappings": sort_entries_by_canonical_bytes(shared_subscription),
         "destinationBrokerMappings": [],
         "bundledMigrationMappings": sort_entries_by_canonical_bytes(bundled),
         "adapters": sort_entries_by_canonical_bytes(

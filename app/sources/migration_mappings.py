@@ -1,6 +1,7 @@
 """I1 spec §5.1.1/§8.1/§9/§9.1's explicit shared-identity mapping mechanism: a versioned artifact
 binding exact `(SourceInstanceId, normalized definition document path, source pointer)` triples to
-a full canonical Schema/Message/Queue ID, so a source's owner-scoped default identity can be
+a full canonical Schema/Message/Queue ID (widened by v0.5.0 I4 spec §7.3 with Topic ids and
+Topic-bound Subscription ids), so a source's owner-scoped default identity can be
 deliberately overridden to preserve a prior (e.g. v0.4.2, pre-owner-scoped) canonical meaning, or to
 merge two independent sources' claims onto one shared entity. The document path is part of the
 lookup key, not folded into the pointer, because one SourceInstanceId's own bounded multi-file
@@ -24,7 +25,7 @@ from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator
 
-from app.sources.encoding import sha256_hex
+from app.sources.encoding import sha256_hex, unicode_nfc
 from app.sources.identity import normalize_relative_posix_path
 from app.sources.model import DiagnosticCode, IngestionDiagnostic
 from app.sources.pointers import decode_pointer_tokens, is_well_formed_pointer
@@ -45,12 +46,14 @@ _MAPPING_ENTRY_SCHEMA = {
 }
 
 
-def _entry_schema(id_field: str) -> dict:
+def _entry_schema(*target_fields: str) -> dict:
+    # v0.5.0 I4 spec §7.3: a `subscriptionMappings` entry carries three required target fields
+    # (`topicId`, `subscriptionName`, `subscriptionId`), every other kind exactly one.
     schema = dict(_MAPPING_ENTRY_SCHEMA)
-    schema["required"] = [*_MAPPING_ENTRY_SCHEMA["required"], id_field]
+    schema["required"] = [*_MAPPING_ENTRY_SCHEMA["required"], *target_fields]
     schema["properties"] = {
         **_MAPPING_ENTRY_SCHEMA["properties"],
-        id_field: {"type": "string", "minLength": 1},
+        **{name: {"type": "string", "minLength": 1} for name in target_fields},
     }
     return schema
 
@@ -77,6 +80,13 @@ _MIGRATION_MAPPINGS_SCHEMA = {
         "schemaMappings": {"type": "array", "items": _entry_schema("schemaId")},
         "messageMappings": {"type": "array", "items": _entry_schema("messageId")},
         "queueMappings": {"type": "array", "items": _entry_schema("queueId")},
+        # v0.5.0 I4 spec §7.3: the two widened arrays. A topicMappings entry's presence at a
+        # Channel pointer is itself positive Topic-kind evidence (no generic `kind` field).
+        "topicMappings": {"type": "array", "items": _entry_schema("topicId")},
+        "subscriptionMappings": {
+            "type": "array",
+            "items": _entry_schema("topicId", "subscriptionName", "subscriptionId"),
+        },
     },
 }
 
@@ -86,7 +96,18 @@ _TARGET_ID_RE = {
     "schema": re.compile(r"^schema:\S+$"),
     "message": re.compile(r"^message:\S+$"),
     "queue": re.compile(r"^queue:\S+$"),
+    "topic": re.compile(r"^topic:\S+$"),
+    "subscription": re.compile(r"^subscription:\S+$"),
 }
+
+# (array name, target-id field, kind) for every mapping array, in document order.
+_MAPPING_ARRAYS = (
+    ("schemaMappings", "schemaId", "schema"),
+    ("messageMappings", "messageId", "message"),
+    ("queueMappings", "queueId", "queue"),
+    ("topicMappings", "topicId", "topic"),
+    ("subscriptionMappings", "subscriptionId", "subscription"),
+)
 
 
 @dataclass(frozen=True)
@@ -96,6 +117,20 @@ class IdentityMappingEntry:
     pointer: str
     pointer_tokens: tuple[str, ...]
     target_id: str
+    # v0.5.0 I4 spec §7.3: set only for a subscriptionMappings entry, whose `target_id` is the
+    # full Subscription id and which additionally binds the exact canonical Topic id and the
+    # explicit Subscription name (normalized to NFC without trimming/case folding).
+    bound_topic_id: str | None = None
+    subscription_name: str | None = None
+
+
+@dataclass(frozen=True)
+class SubscriptionMapping:
+    """The resolved payload of one `subscriptionMappings` entry (I4 spec §7.3)."""
+
+    topic_id: str
+    subscription_name: str
+    subscription_id: str
 
 
 @dataclass(frozen=True)
@@ -115,6 +150,8 @@ class MigrationMappingsDocument:
     schema_mappings: tuple[IdentityMappingEntry, ...] = field(default_factory=tuple)
     message_mappings: tuple[IdentityMappingEntry, ...] = field(default_factory=tuple)
     queue_mappings: tuple[IdentityMappingEntry, ...] = field(default_factory=tuple)
+    topic_mappings: tuple[IdentityMappingEntry, ...] = field(default_factory=tuple)
+    subscription_mappings: tuple[IdentityMappingEntry, ...] = field(default_factory=tuple)
 
 
 def _shape_errors(document: dict) -> list[str]:
@@ -161,6 +198,24 @@ def _parse_entries(
                 )
             )
             continue
+        bound_topic_id = None
+        subscription_name = None
+        if kind == "subscription":
+            bound_topic_id = raw["topicId"]
+            if not _TARGET_ID_RE["topic"].fullmatch(bound_topic_id):
+                diagnostics.append(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.MIGRATION_MAPPING_TARGET_INVALID,
+                        message=(
+                            f"{array_name}[{index}]: topicId {bound_topic_id!r} is not a valid "
+                            "topic id"
+                        ),
+                        source_pointer=f"{source_pointer}/topicId",
+                        source_instance_id=raw["sourceInstanceId"],
+                    )
+                )
+                continue
+            subscription_name = unicode_nfc(raw["subscriptionName"])
 
         entries.append(
             IdentityMappingEntry(
@@ -169,6 +224,8 @@ def _parse_entries(
                 pointer=pointer,
                 pointer_tokens=decode_pointer_tokens(pointer),
                 target_id=target_id,
+                bound_topic_id=bound_topic_id,
+                subscription_name=subscription_name,
             )
         )
     return tuple(entries), diagnostics
@@ -198,30 +255,17 @@ def parse_migration_mappings(
         ]
 
     diagnostics: list[IngestionDiagnostic] = []
-    schema_mappings, schema_diagnostics = _parse_entries(
-        document.get("schemaMappings") or (),
-        id_field="schemaId",
-        kind="schema",
-        locator=locator,
-        array_name="schemaMappings",
-    )
-    message_mappings, message_diagnostics = _parse_entries(
-        document.get("messageMappings") or (),
-        id_field="messageId",
-        kind="message",
-        locator=locator,
-        array_name="messageMappings",
-    )
-    queue_mappings, queue_diagnostics = _parse_entries(
-        document.get("queueMappings") or (),
-        id_field="queueId",
-        kind="queue",
-        locator=locator,
-        array_name="queueMappings",
-    )
-    diagnostics.extend(schema_diagnostics)
-    diagnostics.extend(message_diagnostics)
-    diagnostics.extend(queue_diagnostics)
+    parsed_arrays: dict[str, tuple[IdentityMappingEntry, ...]] = {}
+    for array_name, id_field, kind in _MAPPING_ARRAYS:
+        entries, entry_diagnostics = _parse_entries(
+            document.get(array_name) or (),
+            id_field=id_field,
+            kind=kind,
+            locator=locator,
+            array_name=array_name,
+        )
+        parsed_arrays[kind] = entries
+        diagnostics.extend(entry_diagnostics)
     if diagnostics:
         return None, diagnostics
 
@@ -230,9 +274,11 @@ def parse_migration_mappings(
         artifact_revision=document["metadata"]["revision"],
         locator=locator,
         content_digest=content_digest,
-        schema_mappings=schema_mappings,
-        message_mappings=message_mappings,
-        queue_mappings=queue_mappings,
+        schema_mappings=parsed_arrays["schema"],
+        message_mappings=parsed_arrays["message"],
+        queue_mappings=parsed_arrays["queue"],
+        topic_mappings=parsed_arrays["topic"],
+        subscription_mappings=parsed_arrays["subscription"],
     )
     return parsed, []
 
@@ -244,16 +290,33 @@ def _kind_entries(
         "schema": document.schema_mappings,
         "message": document.message_mappings,
         "queue": document.queue_mappings,
+        "topic": document.topic_mappings,
+        "subscription": document.subscription_mappings,
     }[kind]
 
 
+def _entry_payload(entry: IdentityMappingEntry) -> tuple[str, str | None, str | None]:
+    # I4 spec §7.3: a subscriptionMappings entry's identity payload is the Subscription id *and*
+    # its Topic binding and name - two entries at one key agreeing on the id but disagreeing on
+    # either binding are a conflict, never a silent first-wins. For every other kind the extra
+    # members are None, so this reduces to exactly the pre-I4 target-id comparison.
+    return (entry.target_id, entry.bound_topic_id, entry.subscription_name)
+
+
 def _entry_sort_key(entry: IdentityMappingEntry) -> tuple:
-    return (entry.source_instance_id, entry.document_path, entry.pointer_tokens, entry.target_id)
+    return (
+        entry.source_instance_id,
+        entry.document_path,
+        entry.pointer_tokens,
+        entry.target_id,
+        entry.bound_topic_id or "",
+        entry.subscription_name or "",
+    )
 
 
-def _build_kind_index(
+def _build_kind_entry_index(
     documents: Sequence[MigrationMappingsDocument], *, kind: str
-) -> tuple[dict[tuple[str, str, str], str], list[IngestionDiagnostic]]:
+) -> tuple[dict[tuple[str, str, str], IdentityMappingEntry], list[IngestionDiagnostic]]:
     """Sorted-dedup-then-conflict, mirroring `manifest_bindings.build_binding_index`: an identical
     (source_instance_id, document_path, pointer, target_id) quadruple repeated across files
     collapses silently (permutation-independent by construction); the same (source_instance_id,
@@ -266,33 +329,49 @@ def _build_kind_index(
     raw_entries = [entry for document in documents for entry in _kind_entries(document, kind=kind)]
     sorted_entries = sorted(raw_entries, key=_entry_sort_key)
 
-    index: dict[tuple[str, str, str], str] = {}
+    index: dict[tuple[str, str, str], IdentityMappingEntry] = {}
     diagnostics: list[IngestionDiagnostic] = []
-    seen_quadruples: set[tuple[str, str, str, str]] = set()
+    seen: set[tuple] = set()
     for entry in sorted_entries:
-        quadruple = (entry.source_instance_id, entry.document_path, entry.pointer, entry.target_id)
-        if quadruple in seen_quadruples:
+        full = (entry.source_instance_id, entry.document_path, entry.pointer, _entry_payload(entry))
+        if full in seen:
             continue
-        seen_quadruples.add(quadruple)
+        seen.add(full)
 
         key = (entry.source_instance_id, entry.document_path, entry.pointer)
-        if key in index and index[key] != entry.target_id:
+        if key in index and _entry_payload(index[key]) != _entry_payload(entry):
             diagnostics.append(
                 IngestionDiagnostic(
                     code=DiagnosticCode.MIGRATION_MAPPING_CONFLICT,
                     message=(
                         f"conflicting {kind} migration mapping for {entry.source_instance_id!r} "
-                        f"at {entry.document_path!r}{entry.pointer!r}: {index[key]!r} vs "
-                        f"{entry.target_id!r}"
+                        f"at {entry.document_path!r}{entry.pointer!r}: "
+                        f"{_describe_payload(index[key])} vs {_describe_payload(entry)}"
                     ),
                     source_pointer=entry.pointer,
                     source_instance_id=entry.source_instance_id,
                 )
             )
             continue
-        index[key] = entry.target_id
+        index[key] = entry
 
     return index, diagnostics
+
+
+def _describe_payload(entry: IdentityMappingEntry) -> str:
+    if entry.bound_topic_id is None:
+        return repr(entry.target_id)
+    return (
+        f"(topicId={entry.bound_topic_id!r}, subscriptionName={entry.subscription_name!r}, "
+        f"subscriptionId={entry.target_id!r})"
+    )
+
+
+def _build_kind_index(
+    documents: Sequence[MigrationMappingsDocument], *, kind: str
+) -> tuple[dict[tuple[str, str, str], str], list[IngestionDiagnostic]]:
+    entry_index, diagnostics = _build_kind_entry_index(documents, kind=kind)
+    return {key: entry.target_id for key, entry in entry_index.items()}, diagnostics
 
 
 @dataclass(frozen=True)
@@ -300,6 +379,10 @@ class SharedIdentityMappingIndex:
     schema_index: dict[tuple[str, str, str], str] = field(default_factory=dict)
     message_index: dict[tuple[str, str, str], str] = field(default_factory=dict)
     queue_index: dict[tuple[str, str, str], str] = field(default_factory=dict)
+    topic_index: dict[tuple[str, str, str], str] = field(default_factory=dict)
+    subscription_index: dict[tuple[str, str, str], SubscriptionMapping] = field(
+        default_factory=dict
+    )
     documents: tuple[MigrationMappingsDocument, ...] = field(default_factory=tuple)
 
     def schema_id_for(
@@ -316,6 +399,16 @@ class SharedIdentityMappingIndex:
         self, *, source_instance_id: str, document_path: str, pointer: str
     ) -> str | None:
         return self.queue_index.get((source_instance_id, document_path, pointer))
+
+    def topic_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None:
+        return self.topic_index.get((source_instance_id, document_path, pointer))
+
+    def subscription_mapping_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> SubscriptionMapping | None:
+        return self.subscription_index.get((source_instance_id, document_path, pointer))
 
 
 EMPTY_SHARED_IDENTITY_INDEX = SharedIdentityMappingIndex()
@@ -334,12 +427,31 @@ def build_shared_identity_index(
     schema_index, schema_diagnostics = _build_kind_index(documents, kind="schema")
     message_index, message_diagnostics = _build_kind_index(documents, kind="message")
     queue_index, queue_diagnostics = _build_kind_index(documents, kind="queue")
-    diagnostics = [*schema_diagnostics, *message_diagnostics, *queue_diagnostics]
+    topic_index, topic_diagnostics = _build_kind_index(documents, kind="topic")
+    subscription_entries, subscription_diagnostics = _build_kind_entry_index(
+        documents, kind="subscription"
+    )
+    diagnostics = [
+        *schema_diagnostics,
+        *message_diagnostics,
+        *queue_diagnostics,
+        *topic_diagnostics,
+        *subscription_diagnostics,
+    ]
     return (
         SharedIdentityMappingIndex(
             schema_index=schema_index,
             message_index=message_index,
             queue_index=queue_index,
+            topic_index=topic_index,
+            subscription_index={
+                key: SubscriptionMapping(
+                    topic_id=entry.bound_topic_id,
+                    subscription_name=entry.subscription_name,
+                    subscription_id=entry.target_id,
+                )
+                for key, entry in subscription_entries.items()
+            },
             documents=tuple(documents),
         ),
         diagnostics,
