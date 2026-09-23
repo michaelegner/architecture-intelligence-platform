@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 import yaml
 
 from app.canonical.infrastructure import (
@@ -1023,3 +1024,83 @@ def test_merge_models_unions_evidence_for_a_shared_claim():
         ]
     )
     assert reversed_merge.infrastructure_claims[0].evidence_refs == claim.evidence_refs
+
+
+# --- v0.5.0 I4 spec §7.3: Topic/Subscription mappings enter the mapping-context digest ----------
+
+
+def _pubsub_digest(*, topic=(), subscription=()) -> str:
+    from app.ingestion.orchestrator import _compute_mapping_context_digest, default_registry
+    from app.sources.manifest_bindings import BindingIndex
+
+    index, diagnostics = build_shared_identity_index(
+        [
+            MigrationMappingsDocument(
+                artifact_id="pubsub-mappings",
+                artifact_revision="v1",
+                locator="pubsub.yaml",
+                content_digest="test-content-digest",
+                topic_mappings=tuple(topic),
+                subscription_mappings=tuple(subscription),
+            )
+        ]
+    )
+    assert diagnostics == []
+    return _compute_mapping_context_digest(BindingIndex(entries=()), default_registry(), index)
+
+
+def _topic_entry(topic_id="topic:owned:" + "1" * 64):
+    return IdentityMappingEntry(
+        source_instance_id="urn:aip:source:filesystem:" + "a" * 64,
+        document_path="svc/asyncapi.yaml",
+        pointer="/channels/orders",
+        pointer_tokens=("channels", "orders"),
+        target_id=topic_id,
+    )
+
+
+def _subscription_entry(**overrides):
+    fields = {
+        "source_instance_id": "urn:aip:source:filesystem:" + "a" * 64,
+        "document_path": "svc/asyncapi.yaml",
+        "pointer": "/channels/orders/subscribe",
+        "pointer_tokens": ("channels", "orders", "subscribe"),
+        "target_id": "subscription:owned:" + "3" * 64,
+        "bound_topic_id": "topic:owned:" + "1" * 64,
+        "subscription_name": "billing",
+    }
+    fields.update(overrides)
+    return IdentityMappingEntry(**fields)
+
+
+def test_empty_pubsub_mapping_digest_is_deterministic():
+    assert _pubsub_digest() == _pubsub_digest()
+
+
+def test_topic_and_subscription_mappings_each_change_the_mapping_context_digest():
+    empty = _pubsub_digest()
+    with_topic = _pubsub_digest(topic=[_topic_entry()])
+    with_subscription = _pubsub_digest(subscription=[_subscription_entry()])
+    assert len({empty, with_topic, with_subscription}) == 3
+
+
+def test_topic_id_only_change_changes_the_mapping_context_digest():
+    assert _pubsub_digest(topic=[_topic_entry()]) != _pubsub_digest(
+        topic=[_topic_entry("topic:owned:" + "2" * 64)]
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("target_id", "subscription:owned:" + "9" * 64),
+        ("bound_topic_id", "topic:owned:" + "2" * 64),
+        ("subscription_name", "shipping"),
+    ],
+)
+def test_each_subscription_payload_field_changes_the_mapping_context_digest(field, value):
+    """I4 spec §7.3: the Topic binding and Subscription name are part of the entry's identity
+    payload, so each alone must be visible to the revision fence."""
+    assert _pubsub_digest(subscription=[_subscription_entry()]) != _pubsub_digest(
+        subscription=[_subscription_entry(**{field: value})]
+    )

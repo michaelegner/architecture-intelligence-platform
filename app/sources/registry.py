@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from app.canonical.model import ArchitectureModel
+from app.sources.migration_mappings import SubscriptionMapping
 from app.sources.model import (
     NOT_SUPPLIED,
     IngestionDiagnostic,
@@ -50,6 +51,14 @@ class SharedIdentityResolver(Protocol):
     def queue_id_for(
         self, *, source_instance_id: str, document_path: str, pointer: str
     ) -> str | None: ...
+    # v0.5.0 I4 spec §7.3: a Channel pointer's configured full Topic id, and a subscribe-operation
+    # pointer's configured (Topic binding, Subscription name, Subscription id).
+    def topic_id_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> str | None: ...
+    def subscription_mapping_for(
+        self, *, source_instance_id: str, document_path: str, pointer: str
+    ) -> SubscriptionMapping | None: ...
 
 
 @dataclass(frozen=True)
