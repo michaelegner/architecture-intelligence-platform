@@ -7,6 +7,7 @@ from app.canonical.infrastructure import (
     InfrastructureContribution,
     InfrastructureEntity,
 )
+from app.canonical.pubsub import PubSubDeclaration, SubscriptionDeadLetterConfiguration
 from app.provenance.model import Provenance
 
 
@@ -42,8 +43,7 @@ class Queue(BaseModel):
 class Topic(BaseModel):
     """v0.5.0 I4 spec §6.2: a publish destination whose downstream fan-out is expressed only by
     distinct Subscriptions. Deliberately separate from `Queue` (no `queue_type`) and from any generic
-    destination supertype (ADR 0017). Not yet carried by `ArchitectureModel` - slice 2 adds it
-    together with the importer path and the canonicalization-v3 bump (spec §11)."""
+    destination supertype (ADR 0017)."""
 
     id: str
     name: str
@@ -103,3 +103,11 @@ class ArchitectureModel(BaseModel):
     infrastructure_entities: list[InfrastructureEntity] = Field(default_factory=list)
     infrastructure_contributions: list[InfrastructureContribution] = Field(default_factory=list)
     infrastructure_claims: list[InfrastructureClaim] = Field(default_factory=list)
+    # v0.5.0 I4 spec §6.2/§10/§11: Topic/Subscription are canonical entities; the two carriers are
+    # internal source-owned contributions (see app.canonical.pubsub), never public or snapshot state.
+    topics: list[Topic] = Field(default_factory=list)
+    subscriptions: list[Subscription] = Field(default_factory=list)
+    pubsub_declarations: list[PubSubDeclaration] = Field(default_factory=list)
+    subscription_dead_letter_configurations: list[SubscriptionDeadLetterConfiguration] = Field(
+        default_factory=list
+    )

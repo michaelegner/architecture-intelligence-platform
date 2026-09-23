@@ -10,7 +10,7 @@ fed the same list of per-source models the orchestrator is about to merge, befor
 own first-wins dedup discards the disagreement.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from app.canonical.model import ArchitectureModel
@@ -151,6 +151,57 @@ def detect_infrastructure_entity_content_conflicts(
 
     return InfrastructureEntityConflicts(
         # Deterministic order regardless of caller-supplied model order or dict iteration order.
+        diagnostics=tuple(sorted(diagnostics, key=lambda d: (d.code, d.source_pointer or ""))),
+        conflicted_source_instance_ids=frozenset(conflicted_sources),
+    )
+
+
+@dataclass(frozen=True)
+class SubscriptionTopicBindingConflicts:
+    diagnostics: tuple[IngestionDiagnostic, ...]
+    conflicted_source_instance_ids: frozenset[str]
+
+    def __bool__(self) -> bool:
+        return bool(self.diagnostics)
+
+
+def detect_subscription_topic_binding_conflicts(
+    models_by_source: Mapping[str, ArchitectureModel],
+) -> SubscriptionTopicBindingConflicts:
+    """v0.5.0 I4 spec §4.2/§6.2: a Subscription is "associated with exactly one Topic". A derived
+    Subscription id binds its Topic id into the hash (§7.2), but a *configured* `subscriptionId` can
+    be bound to different Topics by two independent sources - each source's own model is internally
+    consistent, so only the pre-merge cross-source view can see it. Two sources disagreeing on a
+    Subscription's `SUBSCRIPTION_OF` target are `SUBSCRIPTION_IDENTITY_CONFLICT`; every source
+    involved is `REJECTED_CONFLICT` and the run does not commit (no source wins by precedence).
+    """
+    topics_by_subscription: dict[str, set[str]] = {}
+    sources_by_subscription: dict[str, set[str]] = {}
+    for source_instance_id, model in models_by_source.items():
+        for relation in model.relations:
+            if relation.type != "SUBSCRIPTION_OF":
+                continue
+            topics_by_subscription.setdefault(relation.source_id, set()).add(relation.target_id)
+            sources_by_subscription.setdefault(relation.source_id, set()).add(source_instance_id)
+
+    diagnostics = []
+    conflicted_sources: set[str] = set()
+    for subscription_id, topic_ids in topics_by_subscription.items():
+        if len(topic_ids) < 2:
+            continue
+        sources = sources_by_subscription[subscription_id]
+        conflicted_sources |= sources
+        diagnostics.append(
+            IngestionDiagnostic(
+                code=DiagnosticCode.SUBSCRIPTION_IDENTITY_CONFLICT,
+                message=(
+                    f"subscription {subscription_id!r} is bound to {len(topic_ids)} different "
+                    f"Topics {sorted(topic_ids)!r} across sources {sorted(sources)!r}"
+                ),
+                source_pointer=subscription_id,
+            )
+        )
+    return SubscriptionTopicBindingConflicts(
         diagnostics=tuple(sorted(diagnostics, key=lambda d: (d.code, d.source_pointer or ""))),
         conflicted_source_instance_ids=frozenset(conflicted_sources),
     )

@@ -26,15 +26,26 @@ RELATIONS: dict[str, RelationDefinition] = {
         source_labels=frozenset({"Service"}),
         target_labels=frozenset({"Queue"}),
     ),
+    # v0.5.0 I4 spec §6.3: RECEIVES_FROM also targets a Subscription, CARRIES also leaves a Topic.
     "RECEIVES_FROM": RelationDefinition(
         name="RECEIVES_FROM",
         source_labels=frozenset({"Service"}),
-        target_labels=frozenset({"Queue"}),
+        target_labels=frozenset({"Queue", "Subscription"}),
     ),
     "CARRIES": RelationDefinition(
         name="CARRIES",
-        source_labels=frozenset({"Queue"}),
+        source_labels=frozenset({"Queue", "Topic"}),
         target_labels=frozenset({"Message"}),
+    ),
+    "PUBLISHES_TO": RelationDefinition(
+        name="PUBLISHES_TO",
+        source_labels=frozenset({"Service"}),
+        target_labels=frozenset({"Topic"}),
+    ),
+    "SUBSCRIPTION_OF": RelationDefinition(
+        name="SUBSCRIPTION_OF",
+        source_labels=frozenset({"Subscription"}),
+        target_labels=frozenset({"Topic"}),
     ),
     "CONFORMS_TO": RelationDefinition(
         name="CONFORMS_TO",

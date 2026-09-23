@@ -7,7 +7,10 @@ from app.canonical.model import (
     Relation,
     Schema,
     Service,
+    Subscription,
+    Topic,
 )
+from app.canonical.pubsub import PubSubDeclaration, SubscriptionDeadLetterConfiguration
 from app.ingestion._shared import (
     build_resolution_cache,
     enforce_reference_closure,
@@ -33,6 +36,8 @@ from app.sources.owner_ids import (
     normalize_x_version,
     queue_owned_id,
     schema_owned_id,
+    subscription_owned_id,
+    topic_owned_id,
 )
 from app.sources.pointers import encode_pointer_tokens
 from app.sources.reference_resolution import ReferenceResolutionError, resolve_and_read
@@ -189,21 +194,72 @@ def _resolve_broker_and_namespace(
     return next(iter(candidates))
 
 
-def _resolve_queue_kind_votes(channel_def: dict) -> frozenset[bool]:
-    """Raw Queue-kind evidence votes from this channel's two built-in evidence paths (the
-    `x-aip-destination-kind` extension and an AMQP binding's `is`). Returns the raw vote set rather
-    than collapsing it, so the caller can combine it with a third vote (an explicit configured
-    Queue-identity mapping's mere presence also counts as "queue" evidence, per §9's "versioned
-    configured destination mapping declares kind = 'queue'" path) and apply one uniform no-evidence/
-    agreement/conflict decision across all three paths at once.
+class _KindEvidence:
+    """One channel's destination-kind evidence, per path (I1 spec §9, widened by I4 spec §8.1).
+
+    - `queue_paths`: positive Queue evidence - `x-aip-destination-kind: queue`, AMQP `is: queue`, or
+      a configured `queueMappings` entry at the Channel pointer (§9's "versioned configured
+      destination mapping declares kind = 'queue'").
+    - `topic_paths`: positive Topic evidence - exactly `x-aip-destination-kind: topic`, or a valid
+      `topicMappings` entry at the Channel pointer (I4 §7.3: its presence is positive Topic-kind
+      evidence).
+    - `non_queue_vote`: a present kind value that is neither - any other extension value
+      (`pubsub`, `broadcast`, a vendor name, ...) or any AMQP `is` other than `queue` (e.g.
+      `routingKey`). It contradicts Queue evidence under the unchanged I1 rule but never supplies
+      Topic evidence (I4 §8.1: no negative inference).
     """
-    votes: set[bool] = set()
+
+    __slots__ = ("non_queue_vote", "queue_paths", "topic_paths")
+
+    def __init__(self, queue_paths: list[str], topic_paths: list[str], non_queue_vote: bool):
+        self.queue_paths = queue_paths
+        self.topic_paths = topic_paths
+        self.non_queue_vote = non_queue_vote
+
+
+def _classify_destination_kind(
+    channel_def: dict, *, queue_mapped: bool, topic_mapped: bool
+) -> _KindEvidence:
+    queue_paths: list[str] = []
+    topic_paths: list[str] = []
+    non_queue_vote = False
     if "x-aip-destination-kind" in channel_def:
-        votes.add(channel_def["x-aip-destination-kind"] == "queue")
+        declared_kind = channel_def["x-aip-destination-kind"]
+        if declared_kind == "queue":
+            queue_paths.append("x-aip-destination-kind")
+        elif declared_kind == "topic":
+            topic_paths.append("x-aip-destination-kind")
+        else:
+            non_queue_vote = True
     amqp_binding = ((channel_def.get("bindings") or {}).get("amqp")) or {}
     if "is" in amqp_binding:
-        votes.add(amqp_binding["is"] == "queue")
-    return frozenset(votes)
+        if amqp_binding["is"] == "queue":
+            queue_paths.append("bindings.amqp.is")
+        else:
+            non_queue_vote = True
+    if queue_mapped:
+        queue_paths.append("queueMappings")
+    if topic_mapped:
+        topic_paths.append("topicMappings")
+    return _KindEvidence(sorted(queue_paths), sorted(topic_paths), non_queue_vote)
+
+
+_SUBSCRIPTION_DEAD_LETTER_KEY = "x-aip-subscription-dead-letter"
+
+
+def _parse_subscription_dead_letter(value: object) -> tuple[str, str | None] | None:
+    """I4 spec §10 (declared construct is a slice-2 decision, disclosed in its PR): exactly
+    `{target: <non-empty string>, targetKind: <non-empty string, optional>}`. Returns the
+    NFC-normalized `(target_token, target_kind_token)`, or `None` for any other shape."""
+    if not isinstance(value, dict) or not set(value) <= {"target", "targetKind"}:
+        return None
+    target = value.get("target")
+    if not isinstance(target, str) or not target:
+        return None
+    target_kind = value.get("targetKind")
+    if "targetKind" in value and (not isinstance(target_kind, str) or not target_kind):
+        return None
+    return unicode_nfc(target), (unicode_nfc(target_kind) if target_kind is not None else None)
 
 
 class AsyncApiSourceAdapter:
@@ -431,6 +487,290 @@ class AsyncApiSourceAdapter:
         any_channel_supported = False
         any_omission = False
 
+        # v0.5.0 I4 §7-§11 Topic/Subscription state. Declarations are collected as field dicts and
+        # materialized after the semantic input digest is known (§11 retains it per artifact).
+        topics_by_id: dict[str, Topic] = {}
+        subscriptions_by_id: dict[str, Subscription] = {}
+        dead_letter_configurations: list[SubscriptionDeadLetterConfiguration] = []
+        pending_declarations: list[dict] = []
+        channel_topic_id: dict[str, str] = {}
+        # channel -> (stable broker id or None, namespace-or-empty, exact NFC channel address)
+        channel_topic_context: dict[str, tuple[str | None, str, str]] = {}
+
+        def resolve_topic(
+            channel_name: str,
+            channel_def: dict,
+            *,
+            channel_pointer: str,
+            explicit_topic_id: str | None,
+            kind_evidence: list[str],
+        ) -> AdapterOutcome | None:
+            """I4 spec §7.1/§8.1: positive Topic-kind evidence exists; establish qualified Topic
+            identity or omit the channel. Returns an outcome only for an atomic rejection."""
+            nonlocal any_omission
+            broker_and_namespace = _resolve_broker_and_namespace(
+                _resolve_selected_servers(document, channel_def)
+            )
+            # Mirrors the Queue rule: disagreeing/partial server declarations leave identity
+            # AMBIGUOUS even when a configured Topic id exists.
+            if broker_and_namespace is _AMBIGUOUS_BROKER_NAMESPACE:
+                any_omission = True
+                diagnostics.append(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.AMBIGUOUS,
+                        message=(
+                            f"channel {channel_name!r}: no single agreeing broker id/namespace "
+                            "across selected servers"
+                        ),
+                        source_pointer=channel_pointer,
+                    )
+                )
+                return None
+
+            topic_address = unicode_nfc(channel_name)
+            stable_broker_id, namespace = None, ""
+            derived_topic_id = None
+            if broker_and_namespace is not None:
+                stable_broker_id, namespace = broker_and_namespace
+                derived_topic_id = topic_owned_id(
+                    stable_broker_id=stable_broker_id,
+                    normalized_namespace_or_empty=namespace,
+                    exact_topic_address=topic_address,
+                )
+
+            if (
+                explicit_topic_id is not None
+                and derived_topic_id is not None
+                and explicit_topic_id != derived_topic_id
+            ):
+                return AdapterOutcome(
+                    result=IngestionResult.REJECTED_CONFLICT,
+                    model=ArchitectureModel(),
+                    diagnostics=(
+                        IngestionDiagnostic(
+                            code=DiagnosticCode.TOPIC_IDENTITY_CONFLICT,
+                            message=(
+                                f"channel {channel_name!r}: configured Topic id "
+                                f"{explicit_topic_id!r} disagrees with the derived id "
+                                f"{derived_topic_id!r}"
+                            ),
+                            source_pointer=channel_pointer,
+                        ),
+                    ),
+                    semantic_input_digest=None,
+                )
+
+            topic_id_value = explicit_topic_id or derived_topic_id
+            if topic_id_value is None:
+                any_omission = True
+                diagnostics.append(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.AMBIGUOUS,
+                        message=(
+                            f"channel {channel_name!r}: Topic kind evidence without a stable "
+                            "broker id or a configured Topic id"
+                        ),
+                        source_pointer=channel_pointer,
+                    )
+                )
+                return None
+
+            topics_by_id.setdefault(
+                topic_id_value,
+                Topic(
+                    id=topic_id_value,
+                    name=channel_name,
+                    protocol=next(iter(channel_def.get("bindings") or {}), None),
+                    namespace=namespace or None,
+                ),
+            )
+            channel_topic_id[channel_name] = topic_id_value
+            channel_topic_context[channel_name] = (stable_broker_id, namespace, topic_address)
+            pending_declarations.append(
+                {
+                    "entity_id": topic_id_value,
+                    "entity_kind": "TOPIC",
+                    "source_pointer": channel_pointer,
+                    "broker_id": stable_broker_id,
+                    "namespace": namespace or None,
+                    "kind_evidence": kind_evidence,
+                    "identity_methods": sorted(
+                        {
+                            *(["CONFIGURED"] if explicit_topic_id is not None else []),
+                            *(["DERIVED"] if derived_topic_id is not None else []),
+                        }
+                    ),
+                    "topic_address": topic_address,
+                }
+            )
+            return None
+
+        def resolve_subscription(
+            channel_name: str, operation_def: dict, *, topic_id_value: str
+        ) -> tuple[str | None, AdapterOutcome | None]:
+            """I4 spec §7.2/§7.3/§8.3: a Topic subscribe operation needs explicit Subscription
+            identity; nothing is ever synthesized from a Service/Channel/operationId/path. Returns
+            (subscription id or None when omitted, atomic-rejection outcome or None)."""
+            nonlocal any_omission
+            operation_pointer = encode_pointer_tokens(("channels", channel_name, "subscribe"))
+            dead_letter = None
+            if _SUBSCRIPTION_DEAD_LETTER_KEY in operation_def:
+                dead_letter = _parse_subscription_dead_letter(
+                    operation_def[_SUBSCRIPTION_DEAD_LETTER_KEY]
+                )
+                if dead_letter is None:
+                    return None, AdapterOutcome(
+                        result=IngestionResult.REJECTED_INVALID,
+                        model=ArchitectureModel(),
+                        diagnostics=(
+                            IngestionDiagnostic(
+                                code=DiagnosticCode.DOCUMENT_PARSE_INVALID,
+                                message=(
+                                    f"channel {channel_name!r}: {_SUBSCRIPTION_DEAD_LETTER_KEY} "
+                                    "must be {target: <non-empty string>, targetKind: "
+                                    "<non-empty string, optional>}"
+                                ),
+                                source_pointer=encode_pointer_tokens(
+                                    (
+                                        "channels",
+                                        channel_name,
+                                        "subscribe",
+                                        _SUBSCRIPTION_DEAD_LETTER_KEY,
+                                    )
+                                ),
+                            ),
+                        ),
+                        semantic_input_digest=None,
+                    )
+
+            mapping = shared_identity.subscription_mapping_for(
+                source_instance_id=source_instance_id,
+                document_path=root_relative_path,
+                pointer=operation_pointer,
+            )
+            raw_name = operation_def.get("x-aip-subscription-name")
+            declared_name = (
+                unicode_nfc(raw_name) if isinstance(raw_name, str) and raw_name else None
+            )
+
+            def conflict(message: str) -> tuple[None, AdapterOutcome]:
+                return None, AdapterOutcome(
+                    result=IngestionResult.REJECTED_CONFLICT,
+                    model=ArchitectureModel(),
+                    diagnostics=(
+                        IngestionDiagnostic(
+                            code=DiagnosticCode.SUBSCRIPTION_IDENTITY_CONFLICT,
+                            message=f"channel {channel_name!r}: {message}",
+                            source_pointer=operation_pointer,
+                        ),
+                    ),
+                    semantic_input_digest=None,
+                )
+
+            if mapping is not None and mapping.topic_id != topic_id_value:
+                return conflict(
+                    f"configured Subscription binds Topic {mapping.topic_id!r}, but the Channel "
+                    f"resolves Topic {topic_id_value!r}"
+                )
+            if (
+                mapping is not None
+                and declared_name is not None
+                and mapping.subscription_name != declared_name
+            ):
+                return conflict(
+                    f"configured Subscription name {mapping.subscription_name!r} disagrees with "
+                    f"x-aip-subscription-name {declared_name!r}"
+                )
+
+            subscription_name = declared_name or (mapping.subscription_name if mapping else None)
+            stable_broker_id, namespace, topic_address = channel_topic_context[channel_name]
+            derived_subscription_id = None
+            if subscription_name is not None and stable_broker_id is not None:
+                derived_subscription_id = subscription_owned_id(
+                    stable_broker_id=stable_broker_id,
+                    normalized_namespace_or_empty=namespace,
+                    topic_id=topic_id_value,
+                    exact_subscription_name=subscription_name,
+                )
+            if (
+                mapping is not None
+                and derived_subscription_id is not None
+                and mapping.subscription_id != derived_subscription_id
+            ):
+                return conflict(
+                    f"configured Subscription id {mapping.subscription_id!r} disagrees with the "
+                    f"derived id {derived_subscription_id!r}"
+                )
+
+            subscription_id_value = (
+                mapping.subscription_id if mapping is not None else derived_subscription_id
+            )
+            if subscription_id_value is None:
+                any_omission = True
+                diagnostics.append(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.SUBSCRIPTION_IDENTITY_MISSING,
+                        message=(
+                            f"channel {channel_name!r}: Topic subscribe operation has no explicit "
+                            "x-aip-subscription-name with stable broker identity and no "
+                            "configured Subscription mapping; subscribe-side topology omitted"
+                        ),
+                        source_pointer=operation_pointer,
+                    )
+                )
+                return None, None
+
+            topic = topics_by_id[topic_id_value]
+            subscriptions_by_id.setdefault(
+                subscription_id_value,
+                Subscription(
+                    id=subscription_id_value,
+                    name=subscription_name,
+                    protocol=topic.protocol,
+                    namespace=topic.namespace,
+                ),
+            )
+            pending_declarations.append(
+                {
+                    "entity_id": subscription_id_value,
+                    "entity_kind": "SUBSCRIPTION",
+                    "source_pointer": operation_pointer,
+                    "broker_id": stable_broker_id,
+                    "namespace": namespace or None,
+                    "kind_evidence": sorted(
+                        {
+                            *(["subscriptionMappings"] if mapping is not None else []),
+                            *(["x-aip-subscription-name"] if declared_name is not None else []),
+                        }
+                    ),
+                    "identity_methods": sorted(
+                        {
+                            *(["CONFIGURED"] if mapping is not None else []),
+                            *(["DERIVED"] if derived_subscription_id is not None else []),
+                        }
+                    ),
+                    "topic_address": topic_address,
+                    "topic_id": topic_id_value,
+                    "subscription_name": subscription_name,
+                }
+            )
+            if dead_letter is not None:
+                target_token, target_kind_token = dead_letter
+                dead_letter_configurations.append(
+                    SubscriptionDeadLetterConfiguration(
+                        subscription_id=subscription_id_value,
+                        source_instance_id=source_instance_id,
+                        source_locator=locator,
+                        source_revision=loaded.descriptor.declared_provider_revision,
+                        source_pointer=encode_pointer_tokens(
+                            ("channels", channel_name, "subscribe", _SUBSCRIPTION_DEAD_LETTER_KEY)
+                        ),
+                        target_token=target_token,
+                        target_kind_token=target_kind_token,
+                    )
+                )
+            return subscription_id_value, None
+
         # Pass 1: resolve Queue kind/identity per channel.
         for channel_name, channel_def in channels.items():
             if not isinstance(channel_def, dict):
@@ -442,16 +782,23 @@ class AsyncApiSourceAdapter:
                 document_path=root_relative_path,
                 pointer=channel_pointer,
             )
+            explicit_topic_id = shared_identity.topic_id_for(
+                source_instance_id=source_instance_id,
+                document_path=root_relative_path,
+                pointer=channel_pointer,
+            )
 
             # §9: "versioned configured destination mapping declares kind = 'queue'" is a third
             # Queue-kind evidence path, on equal footing with the extension/AMQP-binding paths - an
-            # explicit mapping's mere presence counts as a "queue" vote. All three paths are folded
-            # into one vote set so disagreement among ANY of them (not just the original two) is
-            # caught uniformly, distinct from no evidence at all.
-            kind_votes = _resolve_queue_kind_votes(channel_def)
-            if explicit_queue_id is not None:
-                kind_votes = kind_votes | {True}
-            if len(kind_votes) > 1:
+            # explicit mapping's mere presence counts as Queue evidence. I4 §8.1 adds the Topic
+            # paths. Every path is classified together so disagreement among ANY of them is caught
+            # uniformly, distinct from no evidence at all - and no precedence ever picks a winner.
+            kind = _classify_destination_kind(
+                channel_def,
+                queue_mapped=explicit_queue_id is not None,
+                topic_mapped=explicit_topic_id is not None,
+            )
+            if kind.queue_paths and (kind.topic_paths or kind.non_queue_vote):
                 return AdapterOutcome(
                     result=IngestionResult.REJECTED_CONFLICT,
                     model=ArchitectureModel(),
@@ -459,14 +806,28 @@ class AsyncApiSourceAdapter:
                         IngestionDiagnostic(
                             code=DiagnosticCode.QUEUE_KIND_CONFLICT,
                             message=(
-                                f"channel {channel_name!r}: Queue-kind evidence paths disagree"
+                                f"channel {channel_name!r}: Queue/Topic kind evidence paths "
+                                "disagree"
+                                if kind.topic_paths
+                                else f"channel {channel_name!r}: Queue-kind evidence paths disagree"
                             ),
                             source_pointer=channel_pointer,
                         ),
                     ),
                     semantic_input_digest=None,
                 )
-            if not kind_votes:
+            if kind.topic_paths:
+                topic_outcome = resolve_topic(
+                    channel_name,
+                    channel_def,
+                    channel_pointer=channel_pointer,
+                    explicit_topic_id=explicit_topic_id,
+                    kind_evidence=kind.topic_paths,
+                )
+                if topic_outcome is not None:
+                    return topic_outcome
+                continue
+            if not kind.queue_paths and not kind.non_queue_vote:
                 any_omission = True
                 diagnostics.append(
                     IngestionDiagnostic(
@@ -476,7 +837,7 @@ class AsyncApiSourceAdapter:
                     )
                 )
                 continue
-            if next(iter(kind_votes)) is False:
+            if not kind.queue_paths:
                 any_omission = True
                 diagnostics.append(
                     IngestionDiagnostic(
@@ -672,11 +1033,18 @@ class AsyncApiSourceAdapter:
             add_relation("DEAD_LETTERS_TO", channel_queue_id[channel_name], target_queue_id)
 
         # Pass 2: publish/subscribe operations and their messages, only for channels with a
-        # resolved Queue.
+        # resolved Queue or (I4) a resolved Topic.
         for channel_name, channel_def in channels.items():
-            if not isinstance(channel_def, dict) or channel_name not in channel_queue_id:
+            if not isinstance(channel_def, dict):
                 continue
-            queue_id_value = channel_queue_id[channel_name]
+            if channel_name in channel_queue_id:
+                destination_id = channel_queue_id[channel_name]
+                is_topic = False
+            elif channel_name in channel_topic_id:
+                destination_id = channel_topic_id[channel_name]
+                is_topic = True
+            else:
+                continue
 
             for operation_key, direction in OPERATION_DIRECTIONS.items():
                 operation_def = channel_def.get(operation_key)
@@ -684,7 +1052,22 @@ class AsyncApiSourceAdapter:
                     continue
 
                 any_channel_supported = True
-                add_relation(RELATION_TYPES[direction], canonical_service_id, queue_id_value)
+                if not is_topic:
+                    add_relation(RELATION_TYPES[direction], canonical_service_id, destination_id)
+                elif direction is Direction.SEND:
+                    # I4 §8.2: application-perspective publish on a qualified Topic.
+                    add_relation("PUBLISHES_TO", canonical_service_id, destination_id)
+                else:
+                    # I4 §8.3: subscribe identifies direction only; topology needs explicit
+                    # Subscription identity. Topic CARRIES Message remains either way.
+                    subscription_id_value, error_outcome = resolve_subscription(
+                        channel_name, operation_def, topic_id_value=destination_id
+                    )
+                    if error_outcome is not None:
+                        return error_outcome
+                    if subscription_id_value is not None:
+                        add_relation("SUBSCRIPTION_OF", subscription_id_value, destination_id)
+                        add_relation("RECEIVES_FROM", canonical_service_id, subscription_id_value)
 
                 try:
                     message_defs = _extract_message_defs(
@@ -778,7 +1161,7 @@ class AsyncApiSourceAdapter:
                         )
                     if schema_id_value:
                         add_relation("CONFORMS_TO", message_id_value, schema_id_value)
-                    add_relation("CARRIES", queue_id_value, message_id_value)
+                    add_relation("CARRIES", destination_id, message_id_value)
 
         if not channels:
             result = IngestionResult.ACCEPTED
@@ -817,6 +1200,11 @@ class AsyncApiSourceAdapter:
         )
         relations = [r.model_copy(update={"evidence_ids": [evidence.id]}) for r in relations]
 
+        digest = semantic_input_digest(
+            normalized_document_projection_bytes=semantic_input_digest_bytes(cache),
+            mapping_context_digest=mapping_context_digest,
+        )
+
         model = ArchitectureModel(
             services=[
                 Service(
@@ -830,11 +1218,22 @@ class AsyncApiSourceAdapter:
             schemas=list(schemas_by_id.values()),
             relations=relations,
             provenance=[evidence],
-        )
-
-        digest = semantic_input_digest(
-            normalized_document_projection_bytes=semantic_input_digest_bytes(cache),
-            mapping_context_digest=mapping_context_digest,
+            topics=list(topics_by_id.values()),
+            subscriptions=list(subscriptions_by_id.values()),
+            pubsub_declarations=[
+                PubSubDeclaration(
+                    **fields,
+                    source_instance_id=source_instance_id,
+                    source_locator=locator,
+                    source_revision=loaded.descriptor.declared_provider_revision,
+                    semantic_input_digest=digest,
+                    adapter_identity=loaded.descriptor.adapter_identity,
+                    mapping_rule_id=loaded.descriptor.mapping_rule_id,
+                    mapping_rule_version=loaded.descriptor.mapping_rule_version,
+                )
+                for fields in pending_declarations
+            ],
+            subscription_dead_letter_configurations=dead_letter_configurations,
         )
 
         return AdapterOutcome(

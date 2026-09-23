@@ -29,11 +29,15 @@ def validate_canonical_model(model: ArchitectureModel) -> None:
     message_ids = {m.id for m in model.messages}
     schema_ids = {s.id for s in model.schemas}
     operation_ids = {o.id for o in model.operations}
+    topic_ids = {t.id for t in model.topics}
+    subscription_ids = {s.id for s in model.subscriptions}
 
     # V1 / V3 / V4: unique stable ids
     _check_unique([s.id for s in model.services], "Service", errors)
     _check_unique([q.id for q in model.queues], "Queue", errors)
     _check_unique([m.id for m in model.messages], "Message", errors)
+    _check_unique([t.id for t in model.topics], "Topic", errors)
+    _check_unique([s.id for s in model.subscriptions], "Subscription", errors)
 
     # V2: every operation has exactly one provider, matching its own service_id
     provides_sources_by_target: dict[str, list[str]] = defaultdict(list)
@@ -79,12 +83,22 @@ def validate_canonical_model(model: ArchitectureModel) -> None:
             errors.append(f"Queue {relation.source_id} cannot be its own DLQ")
 
     # V8: relations only reference existing source/target entities
-    known_ids = service_ids | operation_ids | queue_ids | message_ids | schema_ids
+    known_ids = (
+        service_ids | operation_ids | queue_ids | message_ids | schema_ids | topic_ids
+    ) | subscription_ids
     for relation in model.relations:
         if relation.source_id not in known_ids:
             errors.append(f"Relation {relation.type} has unknown source {relation.source_id}")
         if relation.target_id not in known_ids:
             errors.append(f"Relation {relation.type} has unknown target {relation.target_id}")
+
+    _validate_pubsub(
+        model,
+        service_ids=service_ids,
+        topic_ids=topic_ids,
+        subscription_ids=subscription_ids,
+        errors=errors,
+    )
 
     # Evidence: every relation's evidence_ids must reference a Provenance record in this model
     evidence_ids = {p.id for p in model.provenance}
@@ -101,6 +115,64 @@ def validate_canonical_model(model: ArchitectureModel) -> None:
 
     if errors:
         raise CanonicalValidationError(errors)
+
+
+# v0.5.0 I4 spec §6.3: the only generic Pub/Sub relation triples. RECEIVES_FROM/CARRIES keep their
+# pre-I4 Queue endpoints and additionally admit the Subscription/Topic endpoints respectively.
+_PUBSUB_TRIPLES = {
+    "PUBLISHES_TO": ("service", "topic"),
+    "SUBSCRIPTION_OF": ("subscription", "topic"),
+}
+
+
+def _validate_pubsub(
+    model: ArchitectureModel,
+    *,
+    service_ids: set[str],
+    topic_ids: set[str],
+    subscription_ids: set[str],
+    errors: list[str],
+) -> None:
+    ids_by_kind = {"service": service_ids, "topic": topic_ids, "subscription": subscription_ids}
+    topics_by_subscription: dict[str, set[str]] = defaultdict(set)
+    for relation in model.relations:
+        if relation.type in _PUBSUB_TRIPLES:
+            source_kind, target_kind = _PUBSUB_TRIPLES[relation.type]
+            if relation.source_id not in ids_by_kind[source_kind]:
+                errors.append(f"{relation.type} source {relation.source_id} is not a {source_kind}")
+            if relation.target_id not in ids_by_kind[target_kind]:
+                errors.append(f"{relation.type} target {relation.target_id} is not a {target_kind}")
+            if relation.type == "SUBSCRIPTION_OF":
+                topics_by_subscription[relation.source_id].add(relation.target_id)
+        elif relation.type == "RECEIVES_FROM" and relation.target_id in topic_ids:
+            errors.append(
+                f"RECEIVES_FROM target {relation.target_id} is a Topic, not a Subscription"
+            )
+        elif relation.type == "CARRIES" and relation.source_id in subscription_ids:
+            errors.append(f"CARRIES source {relation.source_id} is a Subscription, not a Topic")
+
+    # §4.2/§6.2: a Subscription is associated with exactly one Topic.
+    for subscription_id in sorted(subscription_ids):
+        bound = topics_by_subscription.get(subscription_id, set())
+        if len(bound) != 1:
+            errors.append(
+                f"Subscription {subscription_id} must be SUBSCRIPTION_OF exactly one Topic, found "
+                f"{sorted(bound)!r}"
+            )
+
+    for declaration in model.pubsub_declarations:
+        expected = topic_ids if declaration.entity_kind == "TOPIC" else subscription_ids
+        if declaration.entity_id not in expected:
+            errors.append(
+                f"PubSubDeclaration {declaration.id} references unknown "
+                f"{declaration.entity_kind} {declaration.entity_id}"
+            )
+    for configuration in model.subscription_dead_letter_configurations:
+        if configuration.subscription_id not in subscription_ids:
+            errors.append(
+                f"SubscriptionDeadLetterConfiguration {configuration.id} references unknown "
+                f"Subscription {configuration.subscription_id}"
+            )
 
 
 def _check_infrastructure_evidence_ref(

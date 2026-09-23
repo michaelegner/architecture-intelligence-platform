@@ -25,7 +25,7 @@ def test_generate_cypher_passes_question_and_fixed_schema_to_provider():
 
 
 def test_schema_description_documents_all_node_labels_and_relations():
-    for label in ("Service", "Operation", "Queue", "Message", "Schema"):
+    for label in ("Service", "Operation", "Queue", "Topic", "Subscription", "Message", "Schema"):
         assert label in GRAPH_SCHEMA_DESCRIPTION
     for relation in (
         "PROVIDES",
@@ -37,5 +37,7 @@ def test_schema_description_documents_all_node_labels_and_relations():
         "CARRIES",
         "CONFORMS_TO",
         "DEAD_LETTERS_TO",
+        "PUBLISHES_TO",
+        "SUBSCRIPTION_OF",
     ):
         assert relation in GRAPH_SCHEMA_DESCRIPTION

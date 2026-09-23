@@ -4,6 +4,10 @@ from dataclasses import dataclass, replace
 import neo4j
 
 from app.canonical.model import ArchitectureModel
+from app.canonical.pubsub import (
+    PUBSUB_DECLARATION_LABEL,
+    SUBSCRIPTION_DEAD_LETTER_CONFIGURATION_LABEL,
+)
 from app.graph.repository import open_session
 from app.graph.revision_fence import bump_revision
 from app.graph.schema import ensure_schema
@@ -57,6 +61,10 @@ NODE_LABELS = {
     "messages": "Message",
     "schemas": "Schema",
     "provenance": "Evidence",
+    # v0.5.0 I4 spec §6.2/§11: persisted from the same slice (2b) that bumps snapshot
+    # canonicalization to v3 with dedicated Topic/Subscription node queries.
+    "topics": "Topic",
+    "subscriptions": "Subscription",
 }
 
 # I2 Draft 0.2 §3 item 6 / §7: internal-only infrastructure labels, deliberately NOT in
@@ -99,6 +107,9 @@ KNOWN_RELATION_TYPES = {
     "CARRIES",
     "CONFORMS_TO",
     "DEAD_LETTERS_TO",
+    # v0.5.0 I4 spec §6.3 (RECEIVES_FROM and CARRIES are reused for Subscription/Topic endpoints).
+    "PUBLISHES_TO",
+    "SUBSCRIPTION_OF",
 }
 
 
@@ -114,6 +125,12 @@ def _model_node_ids(model: ArchitectureModel, *, source_instance_id: str) -> set
         *(m.id for m in model.messages),
         *(sc.id for sc in model.schemas),
         *(p.id for p in model.provenance),
+        # v0.5.0 I4: Topic/Subscription plus their internal source-owned carriers, through the same
+        # ownership/reconciliation path (§11: no parallel lifecycle engine).
+        *(t.id for t in model.topics),
+        *(s.id for s in model.subscriptions),
+        *(d.id for d in model.pubsub_declarations),
+        *(c.id for c in model.subscription_dead_letter_configurations),
         # I2 Draft 0.2 §3 item 6: infrastructure facts go through the *same* ownership and
         # reconciliation path as every other canonical fact - including them here is what makes
         # `plan_source_claim_reconciliation`'s claim-key diff, `_EXPIRE_NODES_QUERY`'s
@@ -291,7 +308,35 @@ def _write_nodes(
                 source_instance_id=source_instance_id,
             )
             count += 1
+    count += _write_pubsub_carrier_nodes(tx, source_instance_id, model)
     return count + _write_infrastructure_nodes(tx, source_instance_id, model)
+
+
+def _write_pubsub_carrier_nodes(
+    tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
+) -> int:
+    """v0.5.0 I4 spec §10/§11: the internal source-owned carriers, deliberately outside
+    `NODE_LABELS` (their `id` is a computed property, and they must stay out of the NL-query label
+    allowlist and snapshot canonicalization), written with the same MERGE template as
+    `_write_infrastructure_nodes`' contributions."""
+    count = 0
+    for label, carriers in (
+        (PUBSUB_DECLARATION_LABEL, model.pubsub_declarations),
+        (
+            SUBSCRIPTION_DEAD_LETTER_CONFIGURATION_LABEL,
+            model.subscription_dead_letter_configurations,
+        ),
+    ):
+        query = _MERGE_NODE_TEMPLATE.format(label=label)
+        for carrier in carriers:
+            tx.run(
+                query,
+                id=carrier.id,
+                props=carrier.model_dump(),
+                source_instance_id=source_instance_id,
+            )
+            count += 1
+    return count
 
 
 def _infrastructure_entity_props(entity) -> dict:

@@ -20,11 +20,15 @@ def test_registry_domain_range_matches_spec_table():
         "REQUEST_SCHEMA": ({"Operation"}, {"Schema"}),
         "RESPONSE_SCHEMA": ({"Operation"}, {"Schema"}),
         "SENDS": ({"Service"}, {"Queue"}),
-        "RECEIVES_FROM": ({"Service"}, {"Queue"}),
-        "CARRIES": ({"Queue"}, {"Message"}),
+        "RECEIVES_FROM": ({"Service"}, {"Queue", "Subscription"}),
+        "CARRIES": ({"Queue", "Topic"}, {"Message"}),
         "CONFORMS_TO": ({"Message"}, {"Schema"}),
         "DEAD_LETTERS_TO": ({"Queue"}, {"Queue"}),
+        # v0.5.0 I4 spec §6.3
+        "PUBLISHES_TO": ({"Service"}, {"Topic"}),
+        "SUBSCRIPTION_OF": ({"Subscription"}, {"Topic"}),
     }
+    assert set(expected) == set(RELATIONS)
     for name, (source, target) in expected.items():
         definition = RELATIONS[name]
         assert definition.source_labels == frozenset(source)
