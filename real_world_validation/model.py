@@ -64,7 +64,8 @@ DEFAULT_SEVERITY: dict[str, str] = {
 KNOWN_RELATION_TYPES = frozenset(RELATIONS)
 
 _CANONICAL_ID_PREFIXES = tuple(
-    f"{kind}:" for kind in ("service", "operation", "queue", "message", "schema")
+    f"{kind}:"
+    for kind in ("service", "operation", "queue", "topic", "subscription", "message", "schema")
 )
 
 

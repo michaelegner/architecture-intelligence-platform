@@ -12,4 +12,4 @@ request:
     - "evidence:manifest:urn:aip:source:filesystem:cf99f003b0b94f3ca9a029b79788a502fa82b17daac97a4c0d81466942aebb10"
     - "evidence:openapi:urn:aip:source:filesystem:8cefa5e3d0cf3d6834ce730b4af438b5afb224dd3caabe09f4dd621efef26fb3"
     - "evidence:otel:test:2026-08-26:b1d283d583bd"
-  snapshot_id: "aip:snapshot:v1:0e062d4e685d7ba3039fb129e0ce89523cf3afc0fc79d7479e874084fd198642"
+  snapshot_id: "aip:snapshot:v1:61e7161903c3604ef40e910040e5f25345cc14f448a07ab72a92baec98f47f62"

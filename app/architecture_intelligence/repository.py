@@ -41,7 +41,15 @@ _DEPLOYMENT_RECONCILIATION_RULE_VERSION = 1
 # OTel-runtime-identity/mapping-artifact state - a request with none of that present hashes the
 # same new-but-empty keys every time, which is itself still a real, deliberate fingerprint change
 # per this comment's own "MUST be recorded explicitly" rule, not an oversight.
-_CANONICALIZATION_VERSION = 2
+#
+# v0.5.0 I4 slice 2b bumps this 2 -> 3 (I4 spec §11), in the same commit that first persists
+# Topic/Subscription state: dedicated `_TOPIC_QUERY`/`_SUBSCRIPTION_QUERY` node projections bind
+# Topic/Subscription public state, and the untyped `_RELATION_QUERY` already binds the new
+# PUBLISHES_TO/SUBSCRIPTION_OF relations and the Pub/Sub RECEIVES_FROM/CARRIES endpoints. The
+# internal PubSubDeclaration/SubscriptionDeadLetterConfiguration carriers are deliberately NOT
+# snapshot inputs (never public state). Every existing snapshot_id moves once, even for a graph
+# with no Pub/Sub content (new version and two new always-present keys).
+_CANONICALIZATION_VERSION = 3
 
 _SERVICE_QUERY = "MATCH (n:Service) RETURN n.id AS id, n.name AS name, n.version AS version"
 _OPERATION_QUERY = (
@@ -53,6 +61,14 @@ _OPERATION_QUERY = (
 _QUEUE_QUERY = (
     "MATCH (n:Queue) RETURN n.id AS id, n.name AS name, n.protocol AS protocol, "
     "n.namespace AS namespace, n.queue_type AS queue_type, n.discovery_status AS discovery_status"
+)
+_TOPIC_QUERY = (
+    "MATCH (n:Topic) RETURN n.id AS id, n.name AS name, n.protocol AS protocol, "
+    "n.namespace AS namespace"
+)
+_SUBSCRIPTION_QUERY = (
+    "MATCH (n:Subscription) RETURN n.id AS id, n.name AS name, n.protocol AS protocol, "
+    "n.namespace AS namespace"
 )
 _MESSAGE_QUERY = (
     "MATCH (n:Message) RETURN n.id AS id, n.name AS name, n.version AS version, "
@@ -288,6 +304,8 @@ def canonical_snapshot_state(
         "services": _project_nodes(session, _SERVICE_QUERY),
         "operations": _project_nodes(session, _OPERATION_QUERY),
         "queues": _project_nodes(session, _QUEUE_QUERY),
+        "topics": _project_nodes(session, _TOPIC_QUERY),
+        "subscriptions": _project_nodes(session, _SUBSCRIPTION_QUERY),
         "messages": _project_nodes(session, _MESSAGE_QUERY),
         "schemas": _project_nodes(session, _SCHEMA_QUERY),
         "evidence": _project_nodes(session, _EVIDENCE_QUERY),
@@ -471,7 +489,8 @@ _EVIDENCE_BY_ID_QUERY = (
 # in Python) keeps the query itself the single source of truth for what counts as a supporting
 # relation.
 _SUPPORTING_RELATIONS_QUERY = (
-    "MATCH (a)-[r:PROVIDES|CALLS|SENDS|RECEIVES_FROM|CARRIES|CONFORMS_TO|DEAD_LETTERS_TO]->(b) "
+    "MATCH (a)-[r:PROVIDES|CALLS|SENDS|RECEIVES_FROM|CARRIES|CONFORMS_TO|DEAD_LETTERS_TO|"
+    "PUBLISHES_TO|SUBSCRIPTION_OF]->(b) "
     "WHERE any(eid IN coalesce(r.evidence_ids, []) WHERE eid IN $evidence_ids) "
     "RETURN type(r) AS type, a.id AS source_id, b.id AS target_id, "
     "coalesce(r.evidence_ids, []) AS evidence_ids"

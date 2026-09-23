@@ -23,7 +23,17 @@ from app.canonical.infrastructure import (
     InfrastructureContribution,
     InfrastructureEntity,
 )
-from app.canonical.model import ArchitectureModel, Message, Operation, Queue, Schema, Service
+from app.canonical.model import (
+    ArchitectureModel,
+    Message,
+    Operation,
+    Queue,
+    Schema,
+    Service,
+    Subscription,
+    Topic,
+)
+from app.canonical.pubsub import PubSubDeclaration, SubscriptionDeadLetterConfiguration
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
@@ -34,6 +44,7 @@ from app.provenance.model import Provenance
 from app.sources.claim_conflicts import (
     detect_infrastructure_entity_content_conflicts,
     detect_shared_claim_content_conflicts,
+    detect_subscription_topic_binding_conflicts,
 )
 from app.sources.commit_gate import classify_inventory_status, run_is_eligible_to_commit
 from app.sources.identity import mapping_context_digest as compute_mapping_context_digest
@@ -112,6 +123,12 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
     infrastructure_entities: dict[str, InfrastructureEntity] = {}
     infrastructure_contributions: dict[tuple[str, str], InfrastructureContribution] = {}
     infrastructure_claims: dict[tuple[str, str, str | None], InfrastructureClaim] = {}
+    # v0.5.0 I4: first-wins by id, exactly like Queue. The two internal carriers' ids are
+    # source-scoped (see app.canonical.pubsub), so they never collide across sources.
+    topics: dict[str, Topic] = {}
+    subscriptions: dict[str, Subscription] = {}
+    pubsub_declarations: dict[str, PubSubDeclaration] = {}
+    dead_letter_configurations: dict[str, SubscriptionDeadLetterConfiguration] = {}
 
     for model in models:
         for service in model.services:
@@ -130,6 +147,14 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
                 seen_relations.add(key)
                 relations.append(relation)
         provenance.extend(model.provenance)
+        for topic in model.topics:
+            topics.setdefault(topic.id, topic)
+        for subscription in model.subscriptions:
+            subscriptions.setdefault(subscription.id, subscription)
+        for declaration in model.pubsub_declarations:
+            pubsub_declarations.setdefault(declaration.id, declaration)
+        for configuration in model.subscription_dead_letter_configurations:
+            dead_letter_configurations.setdefault(configuration.id, configuration)
         for entity in model.infrastructure_entities:
             infrastructure_entities.setdefault(entity.id, entity)
         for contribution in model.infrastructure_contributions:
@@ -166,6 +191,10 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
         infrastructure_entities=list(infrastructure_entities.values()),
         infrastructure_contributions=list(infrastructure_contributions.values()),
         infrastructure_claims=list(infrastructure_claims.values()),
+        topics=list(topics.values()),
+        subscriptions=list(subscriptions.values()),
+        pubsub_declarations=list(pubsub_declarations.values()),
+        subscription_dead_letter_configurations=list(dead_letter_configurations.values()),
     )
 
 
@@ -675,10 +704,19 @@ def run_discovery(
     # §7.1's equivalent rule for infrastructure entity contributions is checked the same way, at the
     # same point, even though nothing populates infrastructure_contributions yet.
     infrastructure_conflicts = detect_infrastructure_entity_content_conflicts(source_models)
+    # v0.5.0 I4 §6.2: a Subscription bound to two different Topics across sources.
+    subscription_conflicts = detect_subscription_topic_binding_conflicts(
+        {sid: run_outcome.outcome.model for sid, run_outcome in source_outcomes.items()}
+    )
+    conflicted_source_instance_ids = (
+        infrastructure_conflicts.conflicted_source_instance_ids
+        | subscription_conflicts.conflicted_source_instance_ids
+    )
     content_conflicts = tuple(
         sorted(
             detect_shared_claim_content_conflicts(source_models)
-            + infrastructure_conflicts.diagnostics,
+            + infrastructure_conflicts.diagnostics
+            + subscription_conflicts.diagnostics,
             key=lambda d: (d.code, d.source_pointer or ""),
         )
     )
@@ -690,7 +728,7 @@ def run_discovery(
         source_outcomes = {
             source_instance_id: (
                 _rejected_conflict(run_outcome)
-                if source_instance_id in infrastructure_conflicts.conflicted_source_instance_ids
+                if source_instance_id in conflicted_source_instance_ids
                 else run_outcome
             )
             for source_instance_id, run_outcome in source_outcomes.items()

@@ -6,11 +6,18 @@ CONSTRAINTS = [
     "CREATE CONSTRAINT service_id IF NOT EXISTS FOR (s:Service) REQUIRE s.id IS UNIQUE",
     "CREATE CONSTRAINT operation_id IF NOT EXISTS FOR (o:Operation) REQUIRE o.id IS UNIQUE",
     "CREATE CONSTRAINT queue_id IF NOT EXISTS FOR (q:Queue) REQUIRE q.id IS UNIQUE",
-    # v0.5.0 I4 slice 1 (spec §11/§15): uniqueness for the Topic/Subscription identities defined in
-    # §7. Schema only - no Topic/Subscription node is persisted until slice 2's canonicalization-v3
-    # bump opens the importer path.
+    # v0.5.0 I4 (spec §7/§11): uniqueness for the Topic/Subscription identities, plus the two
+    # internal source-owned Pub/Sub carriers (app.canonical.pubsub).
     "CREATE CONSTRAINT topic_id IF NOT EXISTS FOR (t:Topic) REQUIRE t.id IS UNIQUE",
     ("CREATE CONSTRAINT subscription_id IF NOT EXISTS FOR (s:Subscription) REQUIRE s.id IS UNIQUE"),
+    (
+        "CREATE CONSTRAINT pubsub_declaration_id IF NOT EXISTS "
+        "FOR (d:PubSubDeclaration) REQUIRE d.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT subscription_dead_letter_configuration_id IF NOT EXISTS "
+        "FOR (c:SubscriptionDeadLetterConfiguration) REQUIRE c.id IS UNIQUE"
+    ),
     "CREATE CONSTRAINT message_id IF NOT EXISTS FOR (m:Message) REQUIRE m.id IS UNIQUE",
     "CREATE CONSTRAINT schema_id IF NOT EXISTS FOR (s:Schema) REQUIRE s.id IS UNIQUE",
     "CREATE CONSTRAINT evidence_id IF NOT EXISTS FOR (e:Evidence) REQUIRE e.id IS UNIQUE",

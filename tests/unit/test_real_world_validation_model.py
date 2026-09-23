@@ -27,6 +27,8 @@ def test_known_relation_types_mirrors_the_canonical_relation_registry():
         "CARRIES",
         "CONFORMS_TO",
         "DEAD_LETTERS_TO",
+        "PUBLISHES_TO",
+        "SUBSCRIPTION_OF",
     }
 
 
@@ -36,6 +38,8 @@ def test_is_canonical_id_accepts_known_prefixes():
     assert is_canonical_id("queue:payment-q")
     assert is_canonical_id("message:PaymentRequested:v2")
     assert is_canonical_id("schema:PaymentRequested:v2")
+    assert is_canonical_id("topic:owned:" + "a" * 64)
+    assert is_canonical_id("subscription:owned:" + "b" * 64)
 
 
 def test_is_canonical_id_rejects_unknown_prefix_and_non_string():
