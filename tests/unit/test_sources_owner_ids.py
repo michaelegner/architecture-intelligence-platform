@@ -264,3 +264,13 @@ def test_subscription_owned_id_has_no_consumer_group_input():
         "topic_id",
         "exact_subscription_name",
     ]
+
+
+@pytest.mark.parametrize("helper", [topic_owned_id, subscription_owned_id])
+def test_pubsub_owned_id_helpers_are_keyword_only(helper):
+    """Mirrors `queue_owned_id`: every identity input is keyword-only, so two same-typed string
+    inputs (e.g. broker id and namespace) can never be transposed positionally."""
+    parameters = inspect.signature(helper).parameters.values()
+    assert all(p.kind is inspect.Parameter.KEYWORD_ONLY for p in parameters)
+    with pytest.raises(TypeError):
+        helper(*(["x"] * len(inspect.signature(helper).parameters)))
