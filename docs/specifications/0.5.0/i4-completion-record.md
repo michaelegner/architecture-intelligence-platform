@@ -1,14 +1,14 @@
 # AIP v0.5.0 I4 — Completion Record
 
-**Status:** COMPLETE (`GO`) — once the Slice 6 PR carrying this record merges. I4 completion is not
+**Status:** COMPLETE (`GO`) — once the Slice 6 PR carrying this record (#234) merges. I4 completion is not
 release qualification. I5 and I6 are still required (spec §17).
 
 This record covers the governing specification
 [`i4-source-independent-pubsub-semantics.md`](i4-source-independent-pubsub-semantics.md). Draft 0.3
-(#226, #227 → `f98e48b`) is what was implemented. Draft 0.4 is amended by this record's own PR. Its
+(#226, #227 → `f98e48b`) is what was implemented. Draft 0.4 is amended by this record's own PR (#234). Its
 §20 records the nine decisions settled during implementation and changes no already-merged behavior.
 The decision is recorded in [`i4-decision-evidence.md`](i4-decision-evidence.md) and in
-[ADR 0017](../../adr/0017-source-independent-pubsub-semantics.md), which is Accepted by this PR.
+[ADR 0017](../../adr/0017-source-independent-pubsub-semantics.md), which is Accepted by #234.
 
 I4 answered §1's question with `GO`:
 - AIP now carries source-independent `Topic` and `Subscription` entities with deterministic,
@@ -23,15 +23,15 @@ I4 answered §1's question with `GO`:
 
 | Item | Scope | Merge commit | PR # |
 |---|---|---|---|
-| Spec Draft 0.2 | I4 specification | `48552d2` | #226 |
-| Spec Draft 0.3 | Post-merge review residuals | `f98e48b` | #227 |
-| Slice 1 | Decision evidence, ADR 0017 (Proposed), GO, canonical foundation, public contract skeleton | `47873e8` | #228 |
-| Slice 2a | `topicMappings`/`subscriptionMappings` in the shared-identity artifact, always-present digest keys | `c5dd51e` | #229 |
-| Slice 2b | AsyncAPI Topic/Subscription mapping, persistence, carriers, canonicalization v3 | `f31cf4b` | #230 |
-| Slice 3 | Runtime Topic/Subscription qualification (`decide_messaging_destination`) | `5958b4d` | #231 |
-| Slice 4 | Architecture Intelligence dependency/drift/evidence projection, claim-id `subscription_id`, widened coverage | `af45004` | #232 |
-| Slice 5 | Broker-semantic fixtures and deterministic qualification | `a72b292` | #233 |
-| Slice 6 | Docs, spec Draft 0.4, ADR 0017 Accepted, this record | (this PR's own merge commit) | this PR |
+| Spec Draft 0.2 | I4 specification | `48552d2d8c2f721976aaa7de98057c4fb12fffaa` | #226 |
+| Spec Draft 0.3 | Post-merge review residuals | `f98e48b54661569b719a17a5356d1bccd7552da5` | #227 |
+| Slice 1 | Decision evidence, ADR 0017 (Proposed), GO, canonical foundation, public contract skeleton | `47873e8a050770195a7d45cd22d2ef8da96eae6f` | #228 |
+| Slice 2a | `topicMappings`/`subscriptionMappings` in the shared-identity artifact, always-present digest keys | `c5dd51e49ac23f8b5ed5dc0cb1f2d5f9bcbc5381` | #229 |
+| Slice 2b | AsyncAPI Topic/Subscription mapping, persistence, carriers, canonicalization v3 | `f31cf4bfc4239e7cc2690734be00b0f6f5a19da1` | #230 |
+| Slice 3 | Runtime Topic/Subscription qualification (`decide_messaging_destination`) | `5958b4d9a33a4f4f7e49ee4b6a278bc63008218d` | #231 |
+| Slice 4 | Architecture Intelligence dependency/drift/evidence projection, claim-id `subscription_id`, widened coverage | `af45004c9f74e4b58100da618e223cadc16d363e` | #232 |
+| Slice 5 | Broker-semantic fixtures and deterministic qualification | `a72b29287b85d6ceabc3c537d3b66bd0480b494a` | #233 |
+| Slice 6 | Docs, spec Draft 0.4, ADR 0017 Accepted, this record | #234's own merge commit (not citable from inside this record; see Immutable qualification identity) | #234 |
 
 **Rule identity at the candidate:**
 - **Snapshot and schema:** `_CANONICALIZATION_VERSION = 3`, with dedicated Topic/Subscription node
@@ -58,7 +58,7 @@ forbidden facts and unsupported constructs in its own `PROVENANCE.md`.
 | `kafka/` | negative | Topic modeled; consumer-group subscriber → `SUBSCRIPTION_IDENTITY_MISSING`; group-only spans unresolved; zero Subscriptions |
 
 The `SHA256SUMS` manifest has sha256 `873b206b37d66e6f9eb460df6d91c0439c6162d6b0c4ce608156152b86f8f5e1`
-and git blob `bd003e5` at the candidate. It pins every fixture file (per-file sha256):
+and git blob `bd003e5cbf60653ac13600067435c8477c1aadb7` at the candidate. It pins every fixture file (per-file sha256):
 
 | File | sha256 |
 |---|---|
@@ -88,14 +88,14 @@ and git blob `bd003e5` at the candidate. It pins every fixture file (per-file sh
 ## Immutable qualification identity
 
 This section is record-only. It cites an already-merged, CI- and CodeQL-verified SHA, so the record
-never has to cite its own merge commit. The Slice 6 PR adds no code, test or fixture change.
+never has to cite its own merge commit. The Slice 6 PR (#234) adds no code, test or fixture change.
 
 | Artifact | Revision |
 |---|---|
 | Implementation candidate | `a72b29287b85d6ceabc3c537d3b66bd0480b494a` (#233, Slice 5, the last content-bearing I4 PR) |
 | Governing spec as implemented (Draft 0.3) | git blob `5b896583fd86eb2645464fcc887c609e14788d8a`. It is identical at `f98e48b` and at the candidate. |
 | Decision evidence | `i4-decision-evidence.md` blob `17423bf5d207b5f94561216ab6b935e08fc2fb5f` |
-| ADR 0017 at the candidate (Proposed; Accepted by this PR) | blob `24a26957922e8195c235a6364523242ed2393572` |
+| ADR 0017 at the candidate (Proposed; Accepted by #234) | blob `24a26957922e8195c235a6364523242ed2393572` |
 | `app/canonical/pubsub.py` | blob `99ce788da4630f9df4d8b63b8e1e782be6e3be18` |
 | `app/sources/owner_ids.py` | blob `36e20564d2d1abd65f636f49f89d418cba84f4e7` |
 | `app/sources/migration_mappings.py` | blob `ae20aea20820f941ac803d621c2499c0a803edfb` |
@@ -157,7 +157,7 @@ during I4. Each change only widened them for the new I4 vocabulary and row keys,
 
 | §17 item | Evidence |
 |---|---|
-| ADR 0017 is accepted | [`docs/adr/0017-source-independent-pubsub-semantics.md`](../../adr/0017-source-independent-pubsub-semantics.md) Status line (this PR) |
+| ADR 0017 is accepted | [`docs/adr/0017-source-independent-pubsub-semantics.md`](../../adr/0017-source-independent-pubsub-semantics.md) Status line (#234) |
 | Topic/Subscription semantics are source-independent | No broker-specific entity or branch: `test_i4_pubsub_qualification.py::test_fixture_matches_its_hand_authored_expectations` passes for ASB and GCP through one unmodified production path. `git diff af45004 a72b292 -- app/` is empty (Slice 5 changed no production code). |
 | Queue/Topic/Subscription identities are deterministic and collision-safe | `tests/unit/test_sources_owner_ids.py` (Queue/Topic never alias; the same Subscription name under different Topics is distinct; no consumer-group input); `test_asyncapi_adapter_pubsub.py::test_same_topic_name_under_different_brokers_or_namespaces_is_distinct` |
 | Queue non-regression passes | The regression suite above; `test_i4_pubsub_qualification.py::test_queue_claims_keep_their_pre_i4_claim_ids`; `test_architecture_intelligence_dependency_projection_pubsub.py::test_http_and_queue_claim_ids_are_the_unchanged_five_field_payload` |
@@ -197,7 +197,7 @@ during I4. Each change only widened them for the new I4 vocabulary and row keys,
 - **Decisions settled during implementation:** spec §20 items 1-9 (Draft 0.4). Two consequences are
   worth restating here:
   - publisher-only qualification means one observed publish CONFIRMS every declared Subscription
-    route of that Topic;
+    route of that Topic, while a claim's `coverage` stays service-wide (§20 item 6 and item 8);
   - O5 and REST `messagingObserved` now also reflect Pub/Sub-only telemetry.
 - **Checkout-path-dependent snapshot identity (pre-existing, spec §20 item 9).** Declared
   `Evidence.source_file` is absolute, so identical inputs at another path give a different
@@ -243,7 +243,7 @@ semantics remain prohibited (§18).
 >   and deterministic broker-semantic qualification;
 > - 2138 unit and 427 integration tests passing, with green CI and CodeQL at that exact SHA.
 >
-> The Slice 6 PR carrying this record adds no further code, test or fixture changes. It contains
+> The Slice 6 PR carrying this record (#234) adds no further code, test or fixture changes. It contains
 > only living documentation, the spec's Draft 0.4 amendment (§20), ADR 0017's move to Accepted, ADR
-> index corrections, and this record. **I4 itself is COMPLETE only once that PR merges.** I5 and I6
+> index corrections, and this record. **I4 itself is COMPLETE only once #234 merges.** I5 and I6
 > remain required before v0.5.0 release qualification.

@@ -1,6 +1,6 @@
 # AIP v0.5.0 I4 Specification — Conditional Source-Independent Pub/Sub Semantics
 
-**Status:** Draft 0.4 — `GO`; implemented in Slices 1-6 (#228-#233 plus the Slice 6 completion PR) and recorded in [`i4-completion-record.md`](i4-completion-record.md). Draft 0.3 (#226, #227 → `f98e48b`) is the text that was implemented; Draft 0.4 only folds in the decisions settled during implementation (§20) and changes no already-merged behavior<br>
+**Status:** Draft 0.4 — `GO`; implemented in Slices 1-6 (#228-#234) and recorded in [`i4-completion-record.md`](i4-completion-record.md). Draft 0.3 (#226, #227 → `f98e48b`) is the text that was implemented; Draft 0.4 only folds in the decisions settled during implementation (§20) and changes no already-merged behavior<br>
 **Target release:** `v0.5.0`<br>
 **Release increment:** I4 — Conditional Source-Independent Pub/Sub Semantics<br>
 **Parent:** `docs/specifications/0.5.0/specification.md`, especially §§4–5, 19–21, 28–31<br>
@@ -941,9 +941,9 @@ If I4 = DEFER, I5 treats Pub/Sub as unsupported/deferred and SHALL NOT reopen it
 - [x] no live broker adapter is added.
 - [x] no broker-specific production branch is required.
 
-Acceptance of this checklist is the implementation entry gate. All items were satisfied at the Slice 1
-decision. [`i4-completion-record.md`](i4-completion-record.md) maps each one to the implementation
-and test evidence.
+Acceptance of this checklist is the implementation entry gate. All items were accepted at the Slice 1
+`GO` decision (#228). [`i4-completion-record.md`](i4-completion-record.md) maps each one to the
+implementation and test evidence that later satisfied it.
 
 ---
 
@@ -970,9 +970,12 @@ recorded here as normative. None changes behavior that had already merged before
 5. **§9 `messaging.destination_kind=topic` with no declared Topic (#231).** The span is refused with
    v0.4.1's unchanged `unsupported_destination_semantics` reason, so pre-I4 runtime outcomes are
    byte-identical when no Topic is declared.
-6. **§12.3/§12.5 qualification source (#232).** A Pub/Sub dependency claim's qualification,
-   coverage, and `evidence_refs` come only from the subject's own `PUBLISHES_TO` evidence, exactly as
-   a Queue claim's come from `SENDS`.
+6. **§12.3/§12.5 qualification source (#232).** A Pub/Sub dependency claim's qualification and
+   `evidence_refs` come only from the subject's own `PUBLISHES_TO` evidence, exactly as a Queue
+   claim's come from `SENDS`. Its `coverage` is not publisher-only. It is classified through the
+   shared, service-wide messaging-coverage rule in item 8. For example, a declared-only
+   `PUBLISHES_TO` claim is `SUFFICIENT` when the same Service has any observed Queue or Pub/Sub
+   messaging relation in the window.
    - Consumer-side `RECEIVES_FROM -> Subscription` evidence appears only in its own route's
      `resolution_evidence_refs`.
    - §12.5's "evidence for one Subscription does not confirm a sibling Subscription" is therefore

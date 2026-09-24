@@ -1,7 +1,6 @@
 # 17. Source-independent Topic/Subscription semantics, with both ADR 0013 guards retained
 
-Status: Accepted — implemented in `v0.5.0` I4 (Slices 1-6, #228-#233 plus the Slice 6 completion
-PR; see [`i4-completion-record.md`](../specifications/0.5.0/i4-completion-record.md)). The `GO`
+Status: Accepted — implemented in `v0.5.0` I4 (Slices 1-6, #228-#234; see [`i4-completion-record.md`](../specifications/0.5.0/i4-completion-record.md)). The `GO`
 decision was recorded in I4 Slice 1. It supersedes
 [ADR 0013](0013-no-topic-family-without-guards.md) **only** with respect to ADR 0013's
 Topic/Subscription prohibition.
