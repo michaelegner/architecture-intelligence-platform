@@ -134,7 +134,7 @@ rerun criteria:             A comparison is rerun only after a documented clean-
 ## Revision history
 
 - **Freeze:** #240 (`ef503a5`).
-- **Post-freeze profile hardening** (this PR). The expected facts, components, scope, traffic,
+- **Post-freeze profile hardening** (#243). The expected facts, components, scope, traffic,
   capture authority and comparison rules are unchanged (I5 §6). The change applies the Airflow
   PR #242 review's run-identity rule to this profile:
   - `docker-compose.yml` no longer reads `NEO4J_USER` or `OPENAI_API_KEY` from the environment.
@@ -142,6 +142,9 @@ rerun criteria:             A comparison is rerun only after a documented clean-
   - The runbook unsets `COMPOSE_FILE` and `COMPOSE_PROFILES`, and checks on the resolved Compose
     config that every bind mount comes from `runtime/` or the verified pinned clone.
   - `tests/unit/test_quarkus_v05_dossier.py` guards the interpolation set.
+  - Every Compose call goes through `frozen_compose` (PR #243 review). It passes a fixed project
+    name, `--project-directory`, `-f runtime/docker-compose.yml` and `--env-file /dev/null`, so a
+    gitignored `.env` or a `docker-compose.override.yml` cannot change the run.
 
 ## Startup, traffic, and shutdown procedures
 

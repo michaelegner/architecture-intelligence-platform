@@ -110,6 +110,15 @@ rerun criteria:             A comparison is rerun only after a documented clean-
                             A rerun never replaces a failed comparison.
 ```
 
+## Revision history
+
+- **Freeze:** #242 (`1760786`).
+- **Post-freeze runbook hardening** (#243). The expected facts, components, scope, traffic, capture
+  authority and comparison rules are unchanged (I5 §6). Every Compose call now goes through
+  `frozen_compose`. It passes a fixed project name, `--project-directory`,
+  `-f runtime/docker-compose.yml` and `--env-file /dev/null`, so a gitignored `.env` (which could
+  set `COMPOSE_FILE`) or a `docker-compose.override.yml` cannot change the run.
+
 ## Startup, traffic, and shutdown procedures
 
 See `runbook.md`. Clean state is `docker compose down -v`. The Airflow logs, config and plugins are
