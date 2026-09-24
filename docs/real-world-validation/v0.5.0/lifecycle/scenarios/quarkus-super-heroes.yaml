@@ -1,0 +1,22 @@
+# I5 §10 lifecycle scenarios for quarkus-super-heroes, frozen in Slice 4. mutate.py materializes
+# each step into a scratch copy of the frozen dossier declarations (../../quarkus-super-heroes/
+# runtime/declarations). The frozen dossier is never modified. The expected outcomes are in ../README.md.
+target: quarkus-super-heroes
+dossier_declarations: ../quarkus-super-heroes/runtime/declarations
+declarations_source_id: qsh-v0.5-declarations
+# X is the source that the removal scenarios act on. No other declaration depends on it: the
+# rest-fights manifest calls only the heroes, villains and narration operations.
+x: rest-fights/openapi.yml
+steps:
+  - {id: S0, root: declarations}
+  - {id: L1, root: declarations}
+  - {id: L4a, root: declarations-missing, materialize: false}
+  - id: L4b
+    root: declarations
+    omit_x: true
+    unbound_copy: {from: rest-heroes/openapi.yml, to: lifecycle-unbound-copy/openapi.yml}
+  - {id: L6, root: declarations, inject_x_service_id: service:rest-villains}
+  - {id: L2, root: declarations, omit_x: true}
+  - {id: R, root: declarations}
+  - {id: L5, root: declarations-relocated, omit_x: true}
+  - {id: L3, root: declarations-relocated, omit_x: true, tombstone_x: true}

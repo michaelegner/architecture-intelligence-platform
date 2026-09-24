@@ -1,0 +1,7 @@
+# Frozen tombstone fields for step L3 (I1 §6). mutate.py fills in the three committed-state fields
+# (discovery_scope_id, scope_definition_digest, expected_prior_inventory_revision) at run time from
+# the frozen Q-INV query taken after step L5. That binds the tombstone to the run's own committed
+# inventory, and it is procedure, not ground truth. The target source id is X's SourceInstanceId.
+actor: aip-i5-qualification-operator
+reason: I5 §10 explicit-tombstone scenario; X is absent after the L5 root change
+tombstone_revision: i5-lifecycle-l3-v1

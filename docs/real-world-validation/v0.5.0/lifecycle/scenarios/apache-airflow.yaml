@@ -1,0 +1,22 @@
+# I5 §10 lifecycle scenarios for apache-airflow, frozen in Slice 4. mutate.py materializes each step
+# into a scratch copy of the frozen dossier declarations (../../apache-airflow/runtime/declarations).
+# The frozen dossier is never modified. The expected outcomes are in ../README.md.
+target: apache-airflow
+dossier_declarations: ../apache-airflow/runtime/declarations
+declarations_source_id: airflow-v0.5-declarations
+# X is Airflow's only OpenAPI source. Omitting it also empties the bindings list, which stays a
+# valid document.
+x: airflow-apiserver/openapi.yml
+steps:
+  - {id: S0, root: declarations}
+  - {id: L1, root: declarations}
+  - {id: L4a, root: declarations-missing, materialize: false}
+  - id: L4b
+    root: declarations
+    omit_x: true
+    unbound_copy: {from: airflow-apiserver/openapi.yml, to: lifecycle-unbound-copy/openapi.yml}
+  - {id: L6, root: declarations, inject_x_service_id: service:airflow-scheduler}
+  - {id: L2, root: declarations, omit_x: true}
+  - {id: R, root: declarations}
+  - {id: L5, root: declarations-relocated, omit_x: true}
+  - {id: L3, root: declarations-relocated, omit_x: true, tombstone_x: true}
