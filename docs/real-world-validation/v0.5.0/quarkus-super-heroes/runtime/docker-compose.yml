@@ -1,7 +1,10 @@
 # Quarkus Super Heroes v0.5.0 I5 validation profile (I5 §8.1, ../profile.md, ../runbook.md).
 # Carried over from the v0.3 I2 profile (../../../quarkus-super-heroes/runtime/docker-compose.yml);
-# the only changes are the environment name (quarkus-i5), the AIP build context, and the AIP
-# container mounts for the I5 Kubernetes bundles and the Path B mapping artifact.
+# The v0.5 changes are:
+# - the environment name (quarkus-i5);
+# - the AIP build context, image name and build revision (the candidate SHA);
+# - the AIP container mounts for the I5 Kubernetes bundles and the Path B mapping artifact;
+# - every third-party image pinned by its frozen digest (upstream.md; PR #240 review).
 #
 # Env wiring for the infra services and each pinned service's datasource/Stork/Kafka/Apicurio
 # configuration is carried over unchanged from the pinned repository's own CI-generated
@@ -27,14 +30,22 @@
 # controls resolves to the same bytes on every run, not only the pinned Quarkus commit - so every
 # image below is pinned to an exact version (the official upstream compose's major-only
 # neo4j:5/mongo:8/postgres:18/mariadb:11.5 are tightened to a specific patch), and the Collector -
-# directly on the OTLP evidence path - is additionally pinned by digest.
+# directly on the OTLP evidence path - is additionally pinned by digest. v0.5 I5 pins every
+# third-party image by the digest frozen in ../upstream.md, so Docker refuses any other bytes.
 
 services:
 
   # --- AIP itself (mirrors docker-compose.demo.yml's architecture-intelligence/neo4j services) ---
 
   architecture-intelligence:
-    build: ../../../../..
+    # I5 §11 run identity (PR #240 review): runbook.md step 4 builds this image from the verified
+    # clean candidate checkout with --no-cache, and names it with that candidate SHA.
+    # AIP_BUILD_REVISION makes the running app report the same SHA as its Producer.build_revision.
+    image: aip-i5-candidate:${AIP_CANDIDATE_SHA:?set AIP_CANDIDATE_SHA (runbook.md step 4)}
+    build:
+      context: ../../../../..
+      args:
+        AIP_BUILD_REVISION: ${AIP_CANDIDATE_SHA:?set AIP_CANDIDATE_SHA (runbook.md step 4)}
     ports:
       - "8000:8000"
     environment:
@@ -53,7 +64,7 @@ services:
         condition: service_healthy
 
   neo4j:
-    image: neo4j:5.26.0
+    image: neo4j:5.26.0@sha256:5a015e53de1895e7eee1574ae0325cf8c4b89587222778108c594bdd45a474b5
     ports:
       - "7474:7474"
       - "7687:7687"
@@ -83,7 +94,7 @@ services:
   # --- Quarkus Super Heroes infra (unchanged from the pinned repo's own compose) ---
 
   fights-db:
-    image: mongo:8.3.8
+    image: mongo:8.3.8@sha256:5211c51171f57ae60842b11664bb244628971b3d35325762a97888337b9bb0db
     container_name: fights-db
     ports:
       - "27017"
@@ -95,7 +106,7 @@ services:
       - ${QUARKUS_SUPERHEROES_CHECKOUT:?set QUARKUS_SUPERHEROES_CHECKOUT to your pinned-commit checkout}/rest-fights/deploy/db-init/initialize-database.js:/docker-entrypoint-initdb.d/1-init-db.js
 
   apicurio:
-    image: quay.io/apicurio/apicurio-registry:3.1.7
+    image: quay.io/apicurio/apicurio-registry:3.1.7@sha256:3ff121c9f744d535ef770b80ff95693bc95063295316a5864b56312b6edfb4e2
     container_name: apicurio
     ports:
       - "8086:8086"
@@ -104,7 +115,7 @@ services:
       QUARKUS_HTTP_PORT: 8086
 
   fights-kafka:
-    image: apache/kafka-native:4.2.0
+    image: apache/kafka-native:4.2.0@sha256:777f2dddec6970003f1f27922a8c317d87140567b0537e801d35669ad9a81faf
     container_name: fights-kafka
     depends_on:
       - apicurio
@@ -124,7 +135,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
 
   villains-db:
-    image: postgres:18.6
+    image: postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
     container_name: villains-db
     ports:
       - "5432"
@@ -136,7 +147,7 @@ services:
       - ${QUARKUS_SUPERHEROES_CHECKOUT:?set QUARKUS_SUPERHEROES_CHECKOUT to your pinned-commit checkout}/rest-villains/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql
 
   heroes-db:
-    image: postgres:18.6
+    image: postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
     container_name: heroes-db
     ports:
       - "5432"
@@ -148,7 +159,7 @@ services:
       - ${QUARKUS_SUPERHEROES_CHECKOUT:?set QUARKUS_SUPERHEROES_CHECKOUT to your pinned-commit checkout}/rest-heroes/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql
 
   locations-db:
-    image: mariadb:11.5.2
+    image: mariadb:11.5.2@sha256:2d50fe0f77dac919396091e527e5e148a9de690e58f32875f113bef6506a17f5
     container_name: locations-db
     ports:
       - "3306"

@@ -21,6 +21,7 @@ validation date:             2026-09-24 (freeze drafted; no qualifying run yet)
 | --- | --- | --- |
 | `quarkus-super-heroes/{rest-fights,rest-heroes,rest-villains,rest-narration,event-statistics,grpc-locations}:8ea0337` | The six services, built locally from the pin | Build recipe: `runbook.md` step 3. Each is built with `maven:3.9.16-eclipse-temurin-25` and the service's own `src/main/docker/Dockerfile.jvm`. The built image digests are recorded at run time in `results.md` and disclosed as run-time identities (see below). |
 | `maven:3.9.16-eclipse-temurin-25` | Build container | `sha256:dd8e01b3be719853578c07b57ff8d9bbbbfe746f802226f05b19689420815221` |
+| `registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24` | Base image of every upstream `src/main/docker/Dockerfile.jvm` | `sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626` |
 | `neo4j:5.26.0` | AIP graph | `sha256:5a015e53de1895e7eee1574ae0325cf8c4b89587222778108c594bdd45a474b5` |
 | `otel/opentelemetry-collector:0.159.0` | OTLP routing | Pinned by digest in `runtime/docker-compose.yml`: `sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2` |
 | `mongo:8.3.8` | fights-db | `sha256:5211c51171f57ae60842b11664bb244628971b3d35325762a97888337b9bb0db` |
@@ -30,14 +31,19 @@ validation date:             2026-09-24 (freeze drafted; no qualifying run yet)
 | `mariadb:11.5.2` | locations-db | `sha256:2d50fe0f77dac919396091e527e5e148a9de690e58f32875f113bef6506a17f5` |
 
 The third-party digests are the multi-arch index digests that the tags resolved to on 2026-09-24
-(`docker buildx imagetools inspect <tag>`). The Compose file keeps pulling by tag, as in v0.3,
-except for the Collector. A qualifying run SHALL record the digests it actually pulled in
-`results.md`. A differing digest is a profile change that must be disclosed. It is never silently
-accepted.
+(`docker buildx imagetools inspect <tag>`). They are enforced, not only recorded (PR #240 review):
+- `runtime/docker-compose.yml` references every third-party runtime image as `<tag>@<digest>`, so
+  Docker cannot run other bytes;
+- `runbook.md` step 3 pulls the Maven builder and the `Dockerfile.jvm` base by digest, and builds
+  the unmodified upstream Dockerfiles on exactly that base.
+
+Changing any of these digests is a profile change that needs a new freeze (I5 §6).
 
 The six service images cannot carry a pre-run digest. They are built locally from the pin, and a
-local build is not byte-reproducible. Their identity for the freeze is therefore the pinned commit
-plus the build recipe. The digests of a run are recorded with that run.
+local build is not byte-reproducible. Their identity for the freeze is therefore the pinned commit,
+the frozen builder and base digests, and the build recipe. Every run rebuilds them from scratch
+(`--no-cache`, fresh clone) and records their image ids. It then checks that the running containers
+use exactly those ids before any import or traffic (`runbook.md` steps 2-5).
 
 **Framework identity.** The pin's `quarkus.platform.version` is 3.39.1 (the commit title). The
 REST services use the Quarkus REST client with Stork static discovery. Messaging uses SmallRye

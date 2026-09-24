@@ -99,6 +99,12 @@ These are:
 ## Comparison projection, window, and determinism (I5 §6 item 4, §12)
 
 ```text
+run identity:               The candidate SHA is the HEAD of the clean checkout at the frozen
+                            location. The AIP image aip-i5-candidate:<SHA> and the six service
+                            images are rebuilt with --no-cache for every run. Third-party, builder
+                            and base images are pulled by their frozen digests. The running
+                            containers are verified against these before any import or traffic
+                            (runbook.md steps 2-5; PR #240 review).
 observation environment:    quarkus-i5
 observation window:         [WINDOW_START, WINDOW_END], derived by runbook.md step 9. WINDOW_END is
                             when the three exercised CALLS are first CONFIRMED, bounded by 60s.

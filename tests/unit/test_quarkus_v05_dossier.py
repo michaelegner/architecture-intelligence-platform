@@ -59,6 +59,7 @@ def _derive_module():
     spec = importlib.util.spec_from_file_location(
         "derive_namespaced", RUNTIME / "k8s" / "derive_namespaced.py"
     )
+    assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -181,3 +182,18 @@ def test_mapping_binds_only_the_three_frozen_services():
         ("service:event-statistics", "event-statistics"),
     }
     assert not forbidden & mapped
+
+
+def test_compose_runs_only_digest_pinned_or_run_built_images():
+    compose = yaml.safe_load((RUNTIME / "docker-compose.yml").read_text())
+    for name, service in compose["services"].items():
+        image = service["image"]
+        if name == "architecture-intelligence":
+            # Rebuilt from the verified candidate checkout each run (runbook.md step 4).
+            assert image.startswith("aip-i5-candidate:${AIP_CANDIDATE_SHA")
+            assert "AIP_BUILD_REVISION" in service["build"]["args"]
+        elif image.startswith("quarkus-super-heroes/"):
+            # Rebuilt from scratch at the pin each run and verified by id (runbook.md steps 3, 5).
+            assert image.endswith(":8ea0337"), name
+        else:
+            assert "@sha256:" in image, name
