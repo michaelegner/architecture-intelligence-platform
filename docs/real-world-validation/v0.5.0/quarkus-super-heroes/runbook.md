@@ -24,7 +24,8 @@ export NEO4J_PASSWORD='replace-with-a-local-password'
 ```
 
 `docker-compose.yml` requires `NEO4J_PASSWORD`, `AIP_CANDIDATE_SHA` and
-`QUARKUS_SUPERHEROES_CHECKOUT`. Compose checks them for every command, including `down`. The last two
+`QUARKUS_SUPERHEROES_CHECKOUT`, and it interpolates no other variable. Compose checks them for every
+command, including `down`. The last two
 are exported by step 2. Run every step in this one shell, including the step 12 teardown.
 
 ## 1. Prerequisites
@@ -99,6 +100,18 @@ done
 ```bash
 cd "$RUNTIME"
 : "${NEO4J_PASSWORD:?}" "${AIP_CANDIDATE_SHA:?}" "${QUARKUS_SUPERHEROES_CHECKOUT:?}"  # PR #240 review
+unset COMPOSE_FILE COMPOSE_PROFILES   # only this dossier's docker-compose.yml, no extra profiles
+
+# Every bind mount must come from this dossier's runtime/ or from the verified pinned clone (step 2).
+docker compose config --format json | jq -r \
+  '.services[] | .volumes[]? | select(.type == "bind") | .source' | sort -u |
+  while read -r src; do
+    case "$src" in
+      "$RUNTIME"/*|"$QUARKUS_SUPERHEROES_CHECKOUT"/*) ;;
+      *) echo "unexpected bind mount source: $src" >&2; exit 1 ;;
+    esac
+  done
+
 docker compose down -v            # I5 §11: every run begins from clean AIP and upstream state
 docker compose build --no-cache architecture-intelligence
 docker image inspect --format '{{.Id}}' "aip-i5-candidate:$AIP_CANDIDATE_SHA" > "$RUN_DIR/aip-image"

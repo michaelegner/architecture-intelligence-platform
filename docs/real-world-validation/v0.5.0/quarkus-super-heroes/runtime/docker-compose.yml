@@ -4,7 +4,10 @@
 # - the environment name (quarkus-i5);
 # - the AIP build context, image name and build revision (the candidate SHA);
 # - the AIP container mounts for the I5 Kubernetes bundles and the Path B mapping artifact;
-# - every third-party image pinned by its frozen digest (upstream.md; PR #240 review).
+# - every third-party image pinned by its frozen digest (upstream.md; PR #240 review);
+# - no value can be overridden from the environment (post-freeze hardening, profile.md "Revision
+#   history"). The only interpolated variables are the three required ones: NEO4J_PASSWORD,
+#   AIP_CANDIDATE_SHA and QUARKUS_SUPERHEROES_CHECKOUT.
 #
 # Env wiring for the infra services and each pinned service's datasource/Stork/Kafka/Apicurio
 # configuration is carried over unchanged from the pinned repository's own CI-generated
@@ -50,9 +53,9 @@ services:
       - "8000:8000"
     environment:
       NEO4J_URI: bolt://neo4j:7687
-      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_USER: neo4j
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_API_KEY: ""
       CONFIG_PATH: config.quarkus-i5.yaml
     volumes:
       - ./declarations:/app/declarations:ro
@@ -69,7 +72,7 @@ services:
       - "7474:7474"
       - "7687:7687"
     environment:
-      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
     volumes:
       - neo4j-quarkus-i5-data:/data
       - neo4j-quarkus-i5-logs:/logs

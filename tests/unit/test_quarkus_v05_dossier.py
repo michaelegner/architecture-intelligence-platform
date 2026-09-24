@@ -6,6 +6,7 @@ against the target, so they produce no qualifying output (I5 §6).
 
 import hashlib
 import importlib.util
+import re
 from pathlib import Path
 
 import yaml
@@ -197,3 +198,20 @@ def test_compose_runs_only_digest_pinned_or_run_built_images():
             assert image.endswith(":8ea0337"), name
         else:
             assert "@sha256:" in image, name
+
+
+def test_compose_interpolates_only_the_three_required_variables():
+    # Post-freeze hardening (profile.md "Revision history"): any `${VAR:-default}` would let the
+    # environment change the run's bytes without changing its reported identity.
+    # Compose never interpolates comment lines, so only configuration lines are checked.
+    text = "\n".join(
+        line
+        for line in (RUNTIME / "docker-compose.yml").read_text().splitlines()
+        if not line.lstrip().startswith("#")
+    )
+    names = set(re.findall(r"(?<!\$)\$\{([A-Za-z_][A-Za-z0-9_]*)", text))
+    assert names == {"NEO4J_PASSWORD", "AIP_CANDIDATE_SHA", "QUARKUS_SUPERHEROES_CHECKOUT"}
+    assert all(
+        re.fullmatch(r"\$\{[A-Z0-9_]+:\?[^}]*\}", m)
+        for m in re.findall(r"(?<!\$)\$\{[^}]*\}", text)
+    ), "every interpolation must be a required (:?) variable, never a default (:-)"
