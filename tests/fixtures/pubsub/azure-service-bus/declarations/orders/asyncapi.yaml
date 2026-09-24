@@ -1,0 +1,41 @@
+asyncapi: '2.6.0'
+info:
+  title: orders
+  version: "1.0.0"
+x-aip-service-id: service:orders
+servers:
+  sb:
+    url: amqps://commerce.servicebus.windows.net
+    protocol: amqp
+    x-aip-broker-id: azure-sb:commerce
+channels:
+  payments:
+    x-aip-destination-kind: queue
+    publish:
+      operationId: sendPaymentRequested
+      message:
+        $ref: '#/components/messages/PaymentRequested'
+  order-events:
+    x-aip-destination-kind: topic
+    publish:
+      operationId: publishOrderPlaced
+      message:
+        $ref: '#/components/messages/OrderPlaced'
+components:
+  messages:
+    PaymentRequested:
+      name: PaymentRequested
+      x-version: v1
+      payload:
+        type: object
+        properties:
+          orderId:
+            type: string
+    OrderPlaced:
+      name: OrderPlaced
+      x-version: v1
+      payload:
+        type: object
+        properties:
+          orderId:
+            type: string

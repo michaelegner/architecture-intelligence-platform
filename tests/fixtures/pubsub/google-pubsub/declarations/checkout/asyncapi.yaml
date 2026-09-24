@@ -1,0 +1,27 @@
+asyncapi: '2.6.0'
+info:
+  title: checkout
+  version: "1.0.0"
+x-aip-service-id: service:checkout
+servers:
+  gcp:
+    url: pubsub.googleapis.com
+    protocol: googlepubsub
+    x-aip-broker-id: gcp-pubsub:projects/shop
+channels:
+  orders:
+    x-aip-destination-kind: topic
+    publish:
+      operationId: publishOrderCreated
+      message:
+        $ref: '#/components/messages/OrderCreated'
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      x-version: v1
+      payload:
+        type: object
+        properties:
+          id:
+            type: string

@@ -1,0 +1,23 @@
+# Hand-authored from i4-decision-evidence.md §2 (S5, S7) - the negative consumer-group boundary.
+sources:
+  warehouse: {result: ACCEPTED, diagnostics: []}
+  stock-projector:
+    result: ACCEPTED_WITH_LIMITATIONS
+    diagnostics: [[SUBSCRIPTION_IDENTITY_MISSING, /channels/inventory/subscribe]]
+facts:
+  - [PUBLISHES_TO, "Service:warehouse", "Topic:inventory"]
+  - [CARRIES, "Topic:inventory", "Message:StockChanged"]
+  - [CARRIES, "Topic:inventory", "Message:StockChanged"]
+observed:
+  - [PUBLISHES_TO, "Service:warehouse", "Topic:inventory"]
+entities:
+  Queue: []
+  Topic: [inventory]
+  Subscription: []
+dead_letter_carriers: []
+unresolved_spans: 2
+answers:
+  warehouse:
+    claims:
+      - ["Topic:inventory", "Topic:inventory", null, DIRECT_TARGET_FALLBACK, CONFIRMED]
+    limitations: [UNRESOLVED_IDENTITY]
