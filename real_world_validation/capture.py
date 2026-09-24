@@ -186,10 +186,14 @@ def capture_deployment_facts(
     through `ArchitectureIntelligenceService`'s public deployment projection. `DEPLOYED_AS` is never
     a graph edge (I3), so it is never read from Neo4j directly.
 
-    Each public `DeploymentResolution` becomes one `DeploymentFact`. A `RESOLVED_*` resolution
-    always names the same (Service, Workload) as its `DeploymentClaim`, so resolutions cover the
-    claims too."""
-    facts: list[DeploymentFact] = []
+    Each public `DeploymentResolution`, one per I3 §13.1 reconciliation candidate group, becomes
+    one `DeploymentFact`. A `RESOLVED_*` resolution always names the same (Service, Workload) as its
+    `DeploymentClaim`, so resolutions cover the claims too.
+
+    A resolution whose `candidate_service_ids` names several scoped Services is returned in each of
+    those Services' answers (I3 §13.4). It is recorded once, keyed by its `resolution_id`, because
+    every answer here is read at the same snapshot and context."""
+    facts: dict[str, DeploymentFact] = {}
     for service_id in sorted(e for e in scope.entities if e.startswith("service:")):
         answer = service.get_service_dependencies(
             ServiceDependenciesRequest.model_validate(
@@ -207,7 +211,8 @@ def capture_deployment_facts(
             continue
         for resolution in answer.data.deployment_resolutions:
             workload = resolution.workload
-            facts.append(
+            facts.setdefault(
+                resolution.resolution_id,
                 DeploymentFact(
                     service=resolution.service_id,
                     workload=(
@@ -221,14 +226,17 @@ def capture_deployment_facts(
                     ),
                     status=resolution.status.value,
                     supporting_methods=tuple(m.value for m in resolution.supporting_methods),
-                )
+                    candidate_service_ids=tuple(resolution.candidate_service_ids),
+                    resolution_id=resolution.resolution_id,
+                ),
             )
-    return facts
+    return [facts[resolution_id] for resolution_id in sorted(facts)]
 
 
 def _deployment_dict(fact: DeploymentFact) -> dict:
     workload = fact.workload
     return {
+        "resolution_id": fact.resolution_id,
         "service": fact.service,
         "workload": (
             {"namespace": workload.namespace, "kind": workload.kind, "name": workload.name}
@@ -237,6 +245,7 @@ def _deployment_dict(fact: DeploymentFact) -> dict:
         ),
         "status": fact.status,
         "supporting_methods": list(fact.supporting_methods or ()),
+        "candidate_service_ids": list(fact.candidate_service_ids or ()),
     }
 
 
@@ -265,6 +274,9 @@ def write_actual_facts(
     document: dict = {"relations": [_relation_dict(f) for f in sorted_facts]}
     if deployments is not None:
         document["deployments"] = [
-            _deployment_dict(d) for d in sorted(deployments, key=lambda d: (d.identity, d.status))
+            _deployment_dict(d)
+            for d in sorted(
+                deployments, key=lambda d: (d.identity, d.status, d.resolution_id or "")
+            )
         ]
     path.write_text(yaml.safe_dump(document, sort_keys=False))

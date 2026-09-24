@@ -50,13 +50,27 @@ _TOP_LEVEL_ALLOWED_KEYS = {
 _SCOPE_ALLOWED_KEYS = {"entities", "relation_types"}
 _EXPECTED_ALLOWED_KEYS = {"relations", "deployments"}
 # v0.5.0 I5 §7 additions.
-_DEPLOYMENT_ALLOWED_KEYS = {"id", "service", "workload", "status", "supporting_methods"}
+_DEPLOYMENT_ALLOWED_KEYS = {
+    "id",
+    "service",
+    "workload",
+    "status",
+    "supporting_methods",
+    "candidate_service_ids",
+}
 _WORKLOAD_ALLOWED_KEYS = {"namespace", "kind", "name"}
 _FORBIDDEN_ALLOWED_KEYS = {"relations", "deployments"}
 _FORBIDDEN_RELATION_ALLOWED_KEYS = {"id", "type", "source", "target"}
 _FORBIDDEN_DEPLOYMENT_ALLOWED_KEYS = {"id", "service", "workload"}
 _ACTUAL_DEPLOYMENTS_TOP_LEVEL_ALLOWED_KEYS = {"relations", "deployments"}
-_ACTUAL_DEPLOYMENT_ALLOWED_KEYS = {"service", "workload", "status", "supporting_methods"}
+_ACTUAL_DEPLOYMENT_ALLOWED_KEYS = {
+    "resolution_id",
+    "service",
+    "workload",
+    "status",
+    "supporting_methods",
+    "candidate_service_ids",
+}
 _RELATION_ALLOWED_KEYS = {"id", "type", "source", "target", "status", "evidence"}
 _EVIDENCE_ALLOWED_KEYS = {"declared", "observed"}
 _UNSUPPORTED_ALLOWED_KEYS = {"id", "mechanism", "description"}
@@ -260,6 +274,19 @@ def _parse_supporting_methods(
     return methods
 
 
+def _parse_candidate_service_ids(
+    raw: Any, *, system: str, file: Path, field: str
+) -> tuple[str, ...] | None:
+    if raw is None:
+        return None
+    raw = _require_list(raw, system=system, file=file, field=field)
+    if any(not isinstance(v, str) or not v.startswith("service:") for v in raw):
+        raise _error(system, file, field, f"must be service: identifiers: {raw!r}")
+    if raw != sorted(set(raw)):
+        raise _error(system, file, field, "must be sorted and duplicate-free (I3 §13.3)")
+    return tuple(raw)
+
+
 def _parse_deployment_fact(
     raw: Any, *, system: str, file: Path, field: str, allowed_keys: set[str]
 ) -> DeploymentFact:
@@ -282,6 +309,13 @@ def _parse_deployment_fact(
             file=file,
             field=f"{field}.supporting_methods",
         ),
+        candidate_service_ids=_parse_candidate_service_ids(
+            raw.get("candidate_service_ids"),
+            system=system,
+            file=file,
+            field=f"{field}.candidate_service_ids",
+        ),
+        resolution_id=raw.get("resolution_id"),
     )
 
 
@@ -289,8 +323,10 @@ def _parse_expected_deployments(
     raw: Any, scope: ScopeDeclaration, *, system: str, file: Path
 ) -> tuple[ExpectedDeployment, ...]:
     field = "expected.deployments"
+    # Several expected outcomes MAY share one (Service, Workload) key: I3 §13.1 allows more than one
+    # non-resolved candidate group with a null Service and Workload for the same scoped Service. The
+    # comparator matches them one-to-one, so no duplicate-identity check applies here.
     deployments = []
-    identities: set = set()
     for entry in _require_list(raw, system=system, file=file, field=field):
         entry = _require_mapping(entry, system=system, file=file, field=field)
         finding_id = _validate_id(
@@ -306,11 +342,6 @@ def _parse_expected_deployments(
             raise _error(
                 system, file, field, f"expected deployment {finding_id!r} names an unscoped Service"
             )
-        if fact.identity in identities:
-            raise _error(
-                system, file, field, f"duplicate expected deployment identity: {fact.identity!r}"
-            )
-        identities.add(fact.identity)
         deployments.append(ExpectedDeployment(id=finding_id, fact=fact))
     return tuple(deployments)
 

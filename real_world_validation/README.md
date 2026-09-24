@@ -110,7 +110,18 @@ expected:
       workload: {namespace: heroes, kind: DEPLOYMENT, name: rest-fights}   # or null
       status: RESOLVED_CONFIGURED           # RESOLVED_EXPLICIT | RESOLVED_CONFIGURED | RESOLVED_OBSERVED | CONFLICT | AMBIGUOUS | UNRESOLVED
       supporting_methods: [RESOLVED_CONFIGURED]   # optional; canonical strength order
+      candidate_service_ids: [service:rest-fights] # optional; sorted, duplicate-free
 ```
+
+Each public resolution is one I3 §13.1 reconciliation candidate group. Several groups MAY share a
+(Service, Workload) key, for example two non-resolved groups with a null Service and Workload. So
+the comparator matches outcomes one-to-one within a key:
+- expectations are taken most-specific first, and each takes the first unused outcome that
+  satisfies its asserted fields;
+- every outcome that no expectation uses is reported as `unexpected:`, with its `resolution_id`.
+
+Captured outcomes carry `resolution_id` for audit, and a group returned for several scoped Services
+is captured once. A dossier never authors `resolution_id`, because it hashes the snapshot id.
 
 **`forbidden`.** These are negative expectations. A present forbidden fact is `INCORRECT_SUPPORTED`
 (CRITICAL), reported under the forbidden entry's id. An absent one is `CORRECT`, so the negative
@@ -133,7 +144,9 @@ forbidden:
   example `RECEIVES_FROM` to both Queue and Subscription.
 - `PUBLISHES_TO` carries the same runtime status as `SENDS`.
 - `--aip-config <config.yaml>` (which requires `--until`) also captures public `DEPLOYED_AS`
-  outcomes for the scoped services. They are read through `ArchitectureIntelligenceService`, built
+  outcomes for the scoped services. It validates the config and mapping artifact before
+  connecting, and a failure there exits `2`. The outcomes are read through
+  `ArchitectureIntelligenceService`, built
   exactly as the app builds it (`app.mcp.wiring.production_service_kwargs`), and written under
   `deployments:`. Without `--aip-config` the capture has no `deployments:` key, and `compare`
   rejects a dossier with deployment expectations against it (exit `2`) rather than reporting them

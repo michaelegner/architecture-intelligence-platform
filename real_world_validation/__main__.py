@@ -17,10 +17,13 @@ from datetime import datetime
 from pathlib import Path
 
 import neo4j
+import pydantic
+import yaml
 
 from app.graph.repository import build_driver, open_session
 from app.mcp.wiring import build_production_service, production_service_kwargs
 from app.settings import load_config
+from app.sources.service_workload_mapping import load_service_workload_mapping
 from real_world_validation.capture import (
     capture_actual_facts,
     capture_deployment_facts,
@@ -88,6 +91,30 @@ def _capture(args: argparse.Namespace) -> int:
         )
         return EXIT_INVALID
 
+    # --aip-config is validated before any connection is opened. A config or mapping-artifact problem
+    # is invalid configuration (exit 2), never a traceback. Only the specific failures
+    # `load_config` can raise are caught. The mapping artifact is loaded through its own diagnosing
+    # loader, so `build_production_service` below never reaches its raise-on-diagnostics path.
+    service_kwargs = None
+    if args.aip_config is not None:
+        try:
+            config = load_config(args.aip_config)
+        except (OSError, yaml.YAMLError, pydantic.ValidationError) as exc:
+            print(f"invalid validation configuration: --aip-config: {exc}", file=sys.stderr)
+            return EXIT_INVALID
+        _document, diagnostics = load_service_workload_mapping(
+            config.sources.service_workload_mapping
+        )
+        if diagnostics:
+            detail = "; ".join(f"{d.code.value}: {d.message}" for d in diagnostics)
+            print(
+                f"invalid validation configuration: service-workload mapping artifact: {detail}",
+                file=sys.stderr,
+            )
+            return EXIT_INVALID
+        service_kwargs = production_service_kwargs(config)
+        service_kwargs["database"] = args.database
+
     driver = build_driver(args.neo4j_uri, args.neo4j_user, password)
     deployments = None
     try:
@@ -99,13 +126,11 @@ def _capture(args: argparse.Namespace) -> int:
                 since=args.since,
                 until=args.until,
             )
-        if args.aip_config is not None:
+        if service_kwargs is not None:
             # v0.5.0 I5 §7: DEPLOYED_AS only through the public projection, from a service built
-            # exactly as the app builds it. --database here overrides the config's graph database,
+            # exactly as the app builds it. --database overrides the config's graph database,
             # matching the relation capture above.
-            kwargs = production_service_kwargs(load_config(args.aip_config))
-            kwargs["database"] = args.database
-            service = build_production_service(driver, **kwargs)
+            service = build_production_service(driver, **service_kwargs)
             deployments = capture_deployment_facts(
                 service,
                 scope=scope,

@@ -123,15 +123,23 @@ class WorkloadKey:
 
 @dataclass(frozen=True, order=True)
 class DeploymentFact:
-    """One public `Service -[DEPLOYED_AS]-> Workload` outcome (I5 §7), taken from a public
-    `DeploymentResolution` and never from a graph edge. `service`/`workload` are None exactly when
-    the public resolution leaves them null. `supporting_methods` is None in an expectation that
-    doesn't assert it."""
+    """One public `Service -[DEPLOYED_AS]-> Workload` outcome (I5 §7), taken from one public
+    `DeploymentResolution`, never from a graph edge.
+
+    - `service`/`workload` are None exactly when the public resolution leaves them null.
+    - `supporting_methods` and `candidate_service_ids` are None in an expectation that doesn't
+      assert them.
+    - `resolution_id` is set only on an actual (captured) outcome. It hashes the snapshot id (I3
+      §13.2), so a dossier can never author it. It keeps every captured reconciliation candidate
+      group (I3 §13.1) distinct and auditable, even when several share the same null
+      (Service, Workload) pair."""
 
     service: str | None
     workload: WorkloadKey | None
     status: str
     supporting_methods: tuple[str, ...] | None = None
+    candidate_service_ids: tuple[str, ...] | None = None
+    resolution_id: str | None = None
 
     @property
     def identity(self) -> tuple[str, tuple[str, str, str]]:

@@ -292,7 +292,9 @@ def test_unexpected_captured_deployment_is_incorrect_supported():
     findings = compare(_document(), [], [_deployment()])
     [finding] = findings
     assert finding.classification == "INCORRECT_SUPPORTED"
-    assert finding.id == "unexpected:DEPLOYED_AS:service:rest-fights:heroes/DEPLOYMENT/rest-fights"
+    assert (
+        finding.id == "unexpected:DEPLOYED_AS:service:rest-fights:heroes/DEPLOYMENT/rest-fights:-"
+    )
 
 
 def test_forbidden_relation_present_or_absent():
@@ -402,9 +404,17 @@ def test_aip_config_captures_deployments_with_the_app_service_factory(tmp_path, 
     monkeypatch.setattr("real_world_validation.__main__.open_session", _fake_session)
     monkeypatch.setattr("real_world_validation.__main__.capture_actual_facts", lambda *a, **k: [])
     monkeypatch.setattr("real_world_validation.__main__.build_production_service", _build)
+    captured = DeploymentFact(
+        service="service:rest-fights",
+        workload=WORKLOAD,
+        status="RESOLVED_CONFIGURED",
+        supporting_methods=("RESOLVED_CONFIGURED",),
+        candidate_service_ids=("service:rest-fights",),
+        resolution_id="aip:deployment-resolution:v1:" + "a" * 64,
+    )
     monkeypatch.setattr(
         "real_world_validation.__main__.capture_deployment_facts",
-        lambda service, **kwargs: [_deployment()] if service == "service" else [],
+        lambda service, **kwargs: [captured] if service == "service" else [],
     )
     out = tmp_path / "actual.yaml"
 
@@ -425,7 +435,7 @@ def test_aip_config_captures_deployments_with_the_app_service_factory(tmp_path, 
     assert code == EXIT_OK
     assert built["service_aliases"] == {"x": "service:y"}
     assert built["database"] == "qualification"
-    assert load_actual_deployments(out) == [_deployment()]
+    assert load_actual_deployments(out) == [captured]
 
 
 def test_capture_without_aip_config_writes_no_deployments_section(tmp_path, monkeypatch):
@@ -452,3 +462,143 @@ def test_production_service_kwargs_mirror_the_app_configuration():
         "configured_kubernetes_sources": [],
         "service_aliases": {"a": "service:b"},
     }
+
+
+# --- PR #237 review: several candidate groups on one (Service, Workload) key -------------------
+
+
+def _unresolved(resolution_id: str, candidates=("service:rest-fights",)) -> DeploymentFact:
+    return DeploymentFact(
+        service=None,
+        workload=None,
+        status="UNRESOLVED",
+        supporting_methods=(),
+        candidate_service_ids=candidates,
+        resolution_id=resolution_id,
+    )
+
+
+def test_two_null_null_groups_are_matched_one_to_one_not_collapsed():
+    """I3 §13.1: two unmatched Path B mappings for the same Service are two non-resolved groups,
+    both with a null Service and Workload. They must not collapse into one."""
+    expected_one = DeploymentFact(service=None, workload=None, status="UNRESOLVED")
+    two_expected = _document(
+        expected_deployments=(
+            ExpectedDeployment(id="g1", fact=expected_one),
+            ExpectedDeployment(id="g2", fact=expected_one),
+        )
+    )
+    actual = [_unresolved("r1"), _unresolved("r2")]
+
+    assert _classes(compare(two_expected, [], actual)) == {"g1": "CORRECT", "g2": "CORRECT"}
+    # one actual group can't satisfy two expected groups
+    assert _classes(compare(two_expected, [], actual[:1])) == {
+        "g1": "CORRECT",
+        "g2": "MISSING_SUPPORTED",
+    }
+    # and a second actual group is never silently lost
+    one_expected = _document(expected_deployments=(ExpectedDeployment(id="g1", fact=expected_one),))
+    classes = _classes(compare(one_expected, [], actual))
+    assert classes["g1"] == "CORRECT"
+    assert [k for k, v in classes.items() if v == "INCORRECT_SUPPORTED"] == [
+        "unexpected:DEPLOYED_AS:-:-:r2"
+    ]
+
+
+def test_candidate_context_distinguishes_groups_on_the_same_key():
+    alt = ("service:rest-fights", "service:rest-fights-alt")
+    document = _document(
+        expected_deployments=(
+            ExpectedDeployment(
+                id="plain",
+                fact=DeploymentFact(
+                    service=None,
+                    workload=None,
+                    status="UNRESOLVED",
+                    candidate_service_ids=("service:rest-fights",),
+                ),
+            ),
+            ExpectedDeployment(
+                id="alt",
+                fact=DeploymentFact(
+                    service=None, workload=None, status="UNRESOLVED", candidate_service_ids=alt
+                ),
+            ),
+        )
+    )
+    # the actual order is the reverse of the expected order; matching is by asserted fields
+    actual = [_unresolved("r1", alt), _unresolved("r2")]
+    assert _classes(compare(document, [], actual)) == {"plain": "CORRECT", "alt": "CORRECT"}
+
+
+def test_loader_accepts_duplicate_keys_and_validates_candidate_ids(tmp_path):
+    group = {"status": "UNRESOLVED", "candidate_service_ids": ["service:rest-fights"]}
+    document = load_expected(
+        _write(
+            tmp_path,
+            _expected(expected={"deployments": [{"id": "g1", **group}, {"id": "g2", **group}]}),
+        )
+    )
+    assert len(document.expected_deployments) == 2
+    with pytest.raises(ExpectedValidationError, match="sorted and duplicate-free"):
+        load_expected(
+            _write(
+                tmp_path,
+                _expected(
+                    expected={
+                        "deployments": [
+                            {
+                                "id": "g",
+                                "status": "UNRESOLVED",
+                                "candidate_service_ids": ["service:b", "service:a"],
+                            }
+                        ]
+                    }
+                ),
+                "bad.yaml",
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    ("config_text", "reason"),
+    [
+        (None, "--aip-config"),  # missing file
+        ("architecture_intelligence: [unclosed", "--aip-config"),  # YAML error
+        (
+            "architecture_intelligence:\n  graph: {database: [not-a-string]}\n",
+            "--aip-config",
+        ),  # validation error
+        (
+            "architecture_intelligence:\n  sources: {service_workload_mapping: missing.yaml}\n",
+            "mapping artifact",
+        ),  # diagnosed mapping artifact
+    ],
+)
+def test_aip_config_failures_are_invalid_configuration_not_tracebacks(
+    tmp_path, monkeypatch, capsys, config_text, reason
+):
+    monkeypatch.chdir(tmp_path)
+    config_path = tmp_path / "config.yaml"
+    if config_text is not None:
+        config_path.write_text(config_text)
+    connected = []
+    monkeypatch.setattr(
+        "real_world_validation.__main__.build_driver", lambda *a, **k: connected.append(1)
+    )
+
+    code = main(
+        [
+            *_CAPTURE_ARGS,
+            "--until",
+            "2026-09-24T23:59:59+00:00",
+            "--out",
+            str(tmp_path / "a.yaml"),
+            "--aip-config",
+            str(config_path),
+        ]
+    )
+
+    assert code == EXIT_INVALID
+    assert reason in capsys.readouterr().err
+    assert connected == []  # validated before any connection is opened

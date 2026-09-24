@@ -186,8 +186,11 @@ def test_deployment_capture_reports_conflict_without_a_claim(driver):
 
     facts = _deployment_capture(service, ["service:runtime-demo", "service:runtime-demo-alt"])
 
-    assert facts
-    assert {f.status for f in facts} == {"CONFLICT"}
+    # PR #237 review: the one CONFLICT group names both scoped Services, so both answers return it.
+    # It is still captured exactly once.
+    [fact] = facts
+    assert fact.status == "CONFLICT"
+    assert fact.candidate_service_ids == ("service:runtime-demo", "service:runtime-demo-alt")
 
 
 def test_deployment_capture_round_trips_through_the_comparator(driver, tmp_path):
@@ -240,6 +243,97 @@ def test_deployment_capture_round_trips_through_the_comparator(driver, tmp_path)
         ("deploy", "CORRECT"),
         ("no-name-only", "CORRECT"),
     }
+
+
+_TWO_ABSENT_TARGET_MAPPINGS = """\
+apiVersion: aip.dev/v1
+kind: ServiceWorkloadIdentityMappings
+metadata:
+  id: i5-two-absent-targets
+  revision: v1
+mappings:
+  - mappingId: absent-one
+    serviceId: service:runtime-demo
+    kubernetesSourceId: aip-i2-independent-capture
+    clusterUid: 599e90a5-7ab8-426f-807f-92a65dcc8822
+    workload: {apiGroup: apps, kind: Deployment, namespace: aip-runtime-demo, name: absent-one}
+  - mappingId: absent-two
+    serviceId: service:runtime-demo
+    kubernetesSourceId: aip-i2-independent-capture
+    clusterUid: 599e90a5-7ab8-426f-807f-92a65dcc8822
+    workload: {apiGroup: apps, kind: Deployment, namespace: aip-runtime-demo, name: absent-two}
+"""
+
+
+def test_two_same_service_unresolved_groups_are_captured_and_compared_one_to_one(driver, tmp_path):
+    """PR #237 review blocker. I3 §13.1: each configured mapping whose Workload target is absent
+    is its own `mapping:` candidate group. Two of them for the same Service are two public
+    resolutions, both with a null Service and Workload. They must survive capture and comparison
+    as two outcomes."""
+    from app.sources.service_workload_mapping import load_service_workload_mapping
+
+    i3._reset_graph(driver)
+    i3._declare_service(driver, service_id="service:runtime-demo", name="runtime-demo")
+    i3._import_real_kubernetes_bundle(driver)
+    mapping_path = tmp_path / "mappings.yaml"
+    mapping_path.write_text(_TWO_ABSENT_TARGET_MAPPINGS)
+    document, diagnostics = load_service_workload_mapping(mapping_path)
+    assert diagnostics == ()
+    service = i3._service(driver, document=document)
+
+    facts = _deployment_capture(service, ["service:runtime-demo"])
+    unresolved = [f for f in facts if f.service is None and f.workload is None]
+    assert len(unresolved) == 2
+    assert len({f.resolution_id for f in unresolved}) == 2
+
+    actual_path = tmp_path / "actual.yaml"
+    write_actual_facts(actual_path, [], facts)
+    group = {"status": unresolved[0].status}
+
+    def _findings(expected_groups: int):
+        expected_path = tmp_path / f"expected-{expected_groups}.yaml"
+        expected_path.write_text(
+            yaml.safe_dump(
+                {
+                    "system": "tooling",
+                    "upstream_revision": "n/a",
+                    "scope": {"entities": ["service:runtime-demo"]},
+                    "expected": {
+                        "deployments": [{"id": f"g{i}", **group} for i in range(expected_groups)]
+                        + [
+                            {
+                                "id": f"other-{i}",
+                                "service": f.service,
+                                "workload": {
+                                    "namespace": f.workload.namespace,
+                                    "kind": f.workload.kind,
+                                    "name": f.workload.name,
+                                }
+                                if f.workload
+                                else None,
+                                "status": f.status,
+                            }
+                            for i, f in enumerate(x for x in facts if x not in unresolved)
+                        ]
+                    },
+                }
+            )
+        )
+        return compare(
+            load_expected(expected_path),
+            load_actual(actual_path),
+            load_actual_deployments(actual_path),
+        )
+
+    two = _findings(2)
+    assert {f.id: f.classification for f in two if f.id.startswith("g")} == {
+        "g0": "CORRECT",
+        "g1": "CORRECT",
+    }
+    assert not [f for f in two if f.id.startswith("unexpected:")]
+    # expecting only one group leaves the second one visible, never silently dropped
+    one = _findings(1)
+    assert len([f for f in one if f.id.startswith("unexpected:DEPLOYED_AS:-:-:")]) == 1
 
 
 # --- §3 gap 3 / §12: reference canonicalization reproduces production v3 -------------------------

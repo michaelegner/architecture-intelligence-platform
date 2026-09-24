@@ -41,13 +41,23 @@ def _matches(expected: RelationFact, actual: RelationFact) -> bool:
 
 
 def _deployment_matches(expected: DeploymentFact, actual: DeploymentFact) -> bool:
-    """Same rule as `_matches`: status always, `supporting_methods` only when the dossier sets it."""
+    """Same rule as `_matches`: status always, and `supporting_methods`/`candidate_service_ids` only
+    when the dossier sets them."""
     if expected.status != actual.status:
         return False
+    if (
+        expected.supporting_methods is not None
+        and expected.supporting_methods != actual.supporting_methods
+    ):
+        return False
     return (
-        expected.supporting_methods is None
-        or expected.supporting_methods == actual.supporting_methods
+        expected.candidate_service_ids is None
+        or expected.candidate_service_ids == actual.candidate_service_ids
     )
+
+
+def _asserted_field_count(fact: DeploymentFact) -> int:
+    return (fact.supporting_methods is not None) + (fact.candidate_service_ids is not None)
 
 
 def _finding(
@@ -174,23 +184,44 @@ def compare(
 
 
 def _compare_deployments(expected: ExpectedDocument, actual: list[DeploymentFact]) -> list[Finding]:
-    """v0.5.0 I5 §7: public `DEPLOYED_AS` outcomes, keyed by (Service, Workload). Capture only
-    queries scoped Services, so every captured deployment is in scope."""
+    """v0.5.0 I5 §7: public `DEPLOYED_AS` outcomes, one per I3 §13.1 reconciliation candidate group.
+
+    Several groups MAY share a (Service, Workload) key, for example two non-resolved groups with a
+    null Service and Workload. So matching is one-to-one within each key, never a dict lookup that
+    would collapse them:
+    - expectations are taken most-specific first (most asserted fields), then by finding id;
+    - each takes the first unused actual outcome of its key (in `resolution_id` order) that
+      satisfies every asserted field;
+    - if none does, the expectation is INCORRECT_SUPPORTED against the first unused actual of its
+      key, or MISSING_SUPPORTED if the key has none left;
+    - every actual outcome no expectation used is reported as unexpected.
+
+    Capture only queries scoped Services, so every captured outcome is in scope."""
     findings: list[Finding] = []
-    actual_by_identity = {fact.identity: fact for fact in actual}
-    matched: set = set()
-    for deployment in expected.expected_deployments:
-        matched.add(deployment.fact.identity)
-        found = actual_by_identity.get(deployment.fact.identity)
-        if found is None:
-            classification = "MISSING_SUPPORTED"
-        elif _deployment_matches(deployment.fact, found):
+    unused: dict[tuple, list[DeploymentFact]] = {}
+    for fact in sorted(actual, key=lambda f: (f.identity, f.resolution_id or "", f.status)):
+        unused.setdefault(fact.identity, []).append(fact)
+
+    ordered = sorted(
+        expected.expected_deployments,
+        key=lambda d: (-_asserted_field_count(d.fact), d.id),
+    )
+    for deployment in ordered:
+        candidates = unused.get(deployment.fact.identity, [])
+        found = next((f for f in candidates if _deployment_matches(deployment.fact, f)), None)
+        if found is not None:
             classification = "CORRECT"
-        else:
+        elif candidates:
+            found = candidates[0]
             classification = "INCORRECT_SUPPORTED"
+        else:
+            classification = "MISSING_SUPPORTED"
+        if found is not None:
+            candidates.remove(found)
         findings.append(
             _finding(deployment.id, classification, expected=deployment.fact, actual=found)
         )
+
     for forbidden in expected.forbidden_deployments:
         pattern = (
             f"{DEPLOYED_AS} {forbidden.service} -> {forbidden.workload.render()} (any RESOLVED_*)"
@@ -199,29 +230,35 @@ def _compare_deployments(expected: ExpectedDocument, actual: list[DeploymentFact
             forbidden.service,
             (forbidden.workload.namespace, forbidden.workload.kind, forbidden.workload.name),
         )
-        found = actual_by_identity.get(identity)
-        violated = found is not None and found.status in DEPLOYMENT_METHODS
-        if found is not None:
-            matched.add(identity)
+        pair = [f for f in actual if f.identity == identity]
+        violating = next((f for f in pair if f.status in DEPLOYMENT_METHODS), None)
+        shown = violating or (pair[0] if pair else None)
+        # Outcomes for a forbidden pair are accounted for by this finding, not reported as
+        # unexpected.
+        remaining = unused.get(identity, [])
+        for fact in pair:
+            if fact in remaining:
+                remaining.remove(fact)
         findings.append(
             _finding(
                 forbidden.id,
-                "INCORRECT_SUPPORTED" if violated else "CORRECT",
+                "INCORRECT_SUPPORTED" if violating is not None else "CORRECT",
                 expected=None,
-                actual=found,
+                actual=shown,
                 forbidden=pattern,
             )
         )
-    for fact in actual:
-        if fact.identity in matched:
-            continue
-        workload = fact.workload.render() if fact.workload else "-"
-        findings.append(
-            _finding(
-                f"unexpected:{DEPLOYED_AS}:{fact.service or '-'}:{workload}",
-                "INCORRECT_SUPPORTED",
-                expected=None,
-                actual=fact,
+
+    for facts in unused.values():
+        for fact in facts:
+            workload = fact.workload.render() if fact.workload else "-"
+            findings.append(
+                _finding(
+                    f"unexpected:{DEPLOYED_AS}:{fact.service or '-'}:{workload}:"
+                    f"{fact.resolution_id or '-'}",
+                    "INCORRECT_SUPPORTED",
+                    expected=None,
+                    actual=fact,
+                )
             )
-        )
     return findings
