@@ -16,10 +16,17 @@ from evaluation.architecture_answers.reference.canonical_json import (
 
 
 def claim_id(
-    *, subject_id: str, predicate: str, object_id: str, delivery_kind: str, delivery_via_id: str
+    *,
+    subject_id: str,
+    predicate: str,
+    object_id: str,
+    delivery_kind: str,
+    delivery_via_id: str,
+    subscription_id: str | None = None,
 ) -> str:
     """spec §12.1: aip:claim:v1:sha256(canonical-json({subject_id, predicate, object_id,
-    delivery_kind, delivery_via_id}))."""
+    delivery_kind, delivery_via_id})); v0.5.0 I4 §12.4 adds `subscription_id` to the payload only
+    for a Subscription route and omits the key entirely otherwise."""
     payload = {
         "subject_id": subject_id,
         "predicate": predicate,
@@ -27,6 +34,8 @@ def claim_id(
         "delivery_kind": delivery_kind,
         "delivery_via_id": delivery_via_id,
     }
+    if subscription_id is not None:
+        payload["subscription_id"] = subscription_id
     digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
     return f"aip:claim:v1:{digest}"
 

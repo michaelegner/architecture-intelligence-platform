@@ -72,6 +72,9 @@ EMPTY_ROWS = {
     "provides": [],
     "sends": [],
     "receives": [],
+    "publishes": [],
+    "subscriptions": [],
+    "subscription_receives": [],
     "evidence": {},
     "coverage": _NO_COVERAGE,
 }
