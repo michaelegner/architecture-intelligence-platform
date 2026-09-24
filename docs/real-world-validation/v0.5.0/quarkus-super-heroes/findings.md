@@ -1,5 +1,13 @@
-# Findings: `quarkus-super-heroes` (v0.5.0)
+# Findings: `quarkus-super-heroes` (v0.5.0, I5 Slice 5)
 
-There are no findings yet. The dossier was frozen in I5 Slice 2, before any qualifying comparison.
-Slice 5 records every material mismatch or limitation here, using the fields and exactly one of the
-four dispositions from I5 §11.
+These are the findings at candidate `174a17c5d0f8be35291032c677585291c330cc0a`. The full §11 fields
+and the proposed dispositions are in `../finding-ledger.md`.
+
+| Id | Finding | Proposed disposition |
+| --- | --- | --- |
+| F1 | Lifecycle L2, L5 and L3 end in HTTP 500 (`CanonicalValidationError`: manifest CALLS from `service:rest-fights` once its OpenAPI is omitted). It also needs an owner decision on whether a manifest's `x-aip-service-id` establishes the Service. | FIX |
+| F2 | The import report has no inventory status or diagnostics, so the Kubernetes rejection code and the frozen limitation list cannot be observed | FIX |
+| F4 | An OBSERVED_ONLY `service:grpc-locations` entity with no relations | NO_CHANGE |
+| F5 | The discoverer silently skipped the root-level, non-candidate bindings file (attempt 1 at `34067b7`; dossier corrected in #246) | DEFER |
+
+The qualifying comparison itself has no mismatch: 45/45 `CORRECT`, and 4/4 forbidden facts absent.

@@ -1,0 +1,310 @@
+{
+  "claims": [],
+  "data": {
+    "missing_evidence_refs": [],
+    "records": [
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:manifest:urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a",
+        "observation": null,
+        "source_locator": "declarations/rest-fights/architecture.yaml",
+        "source_revision": null,
+        "source_type": "MANIFEST",
+        "supports": [
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes/hello"
+          },
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes/random"
+          },
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-narration:GET:/api/narration/hello"
+          },
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-narration:POST:/api/narration"
+          },
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-narration:POST:/api/narration/image"
+          },
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-villains:GET:/api/villains/hello"
+          },
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-villains:GET:/api/villains/random"
+          }
+        ]
+      },
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:mapping:v1:5abcfb14a391738519af257da06c7752a5f336d970f4a9a4584f9bcf2fd4d507",
+        "observation": null,
+        "source_locator": "mapping.yaml",
+        "source_revision": "qsh-v0.5-service-workload-identities@v1:qsh-rest-fights:sha256=2d60b709e5b0",
+        "source_type": "CONFIGURATION",
+        "supports": [
+          {
+            "relation_type": "DEPLOYED_AS",
+            "source_id": "service:rest-fights",
+            "target_id": "urn:aip:k8s-resource:3e27d8e46f425f89d9303f9b8fa045ac9d5cd1a8ebf5e27300240aa7e2671148"
+          }
+        ]
+      },
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:openapi:urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832",
+        "observation": null,
+        "source_locator": "declarations/rest-villains/openapi.yml",
+        "source_revision": null,
+        "source_type": "OPENAPI",
+        "supports": [
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:DELETE:/api/villains"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:DELETE:/api/villains/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:GET:/api/villains"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:GET:/api/villains/hello"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:GET:/api/villains/random"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:GET:/api/villains/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:PATCH:/api/villains/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:POST:/api/villains"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:PUT:/api/villains"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-villains",
+            "target_id": "operation:service:rest-villains:PUT:/api/villains/{id}"
+          }
+        ]
+      },
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:openapi:urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f",
+        "observation": null,
+        "source_locator": "declarations/rest-narration/openapi.yml",
+        "source_revision": null,
+        "source_type": "OPENAPI",
+        "supports": [
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-narration",
+            "target_id": "operation:service:rest-narration:GET:/api/narration/hello"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-narration",
+            "target_id": "operation:service:rest-narration:POST:/api/narration"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-narration",
+            "target_id": "operation:service:rest-narration:POST:/api/narration/image"
+          }
+        ]
+      },
+      {
+        "evidence_type": "DECLARED",
+        "id": "evidence:openapi:urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253",
+        "observation": null,
+        "source_locator": "declarations/rest-heroes/openapi.yml",
+        "source_revision": null,
+        "source_type": "OPENAPI",
+        "supports": [
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:DELETE:/api/heroes"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:DELETE:/api/heroes/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes/hello"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes/random"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:PATCH:/api/heroes/{id}"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:POST:/api/heroes"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:PUT:/api/heroes"
+          },
+          {
+            "relation_type": "PROVIDES",
+            "source_id": "service:rest-heroes",
+            "target_id": "operation:service:rest-heroes:PUT:/api/heroes/{id}"
+          }
+        ]
+      },
+      {
+        "evidence_type": "OBSERVED",
+        "id": "evidence:otel:quarkus-i5:2026-09-24:30e26b9f3dc5",
+        "observation": {
+          "bucket_end": "2026-09-25T00:00:00Z",
+          "bucket_start": "2026-09-24T00:00:00Z",
+          "correlation_mode": "CLIENT_SERVER",
+          "environment": "quarkus-i5",
+          "first_seen": "2026-09-24T21:44:49.569885Z",
+          "last_seen": "2026-09-24T21:44:49.569885Z",
+          "observation_count": 1,
+          "service_version": "1.0"
+        },
+        "source_locator": "opentelemetry",
+        "source_revision": null,
+        "source_type": "OPENTELEMETRY",
+        "supports": [
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-villains:GET:/api/villains/random"
+          }
+        ]
+      },
+      {
+        "evidence_type": "OBSERVED",
+        "id": "evidence:otel:quarkus-i5:2026-09-24:4878531641e8",
+        "observation": {
+          "bucket_end": "2026-09-25T00:00:00Z",
+          "bucket_start": "2026-09-24T00:00:00Z",
+          "correlation_mode": "CLIENT_SERVER",
+          "environment": "quarkus-i5",
+          "first_seen": "2026-09-24T21:44:49.669982Z",
+          "last_seen": "2026-09-24T21:44:49.669982Z",
+          "observation_count": 1,
+          "service_version": "1.0"
+        },
+        "source_locator": "opentelemetry",
+        "source_revision": null,
+        "source_type": "OPENTELEMETRY",
+        "supports": [
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-heroes:GET:/api/heroes/random"
+          }
+        ]
+      },
+      {
+        "evidence_type": "OBSERVED",
+        "id": "evidence:otel:quarkus-i5:2026-09-24:908f6fc7d0b9",
+        "observation": {
+          "bucket_end": "2026-09-25T00:00:00Z",
+          "bucket_start": "2026-09-24T00:00:00Z",
+          "correlation_mode": "CLIENT_SERVER",
+          "environment": "quarkus-i5",
+          "first_seen": "2026-09-24T21:44:51.251644Z",
+          "last_seen": "2026-09-24T21:44:51.251644Z",
+          "observation_count": 1,
+          "service_version": "1.0"
+        },
+        "source_locator": "opentelemetry",
+        "source_revision": null,
+        "source_type": "OPENTELEMETRY",
+        "supports": [
+          {
+            "relation_type": "CALLS",
+            "source_id": "service:rest-fights",
+            "target_id": "operation:service:rest-narration:POST:/api/narration"
+          }
+        ]
+      }
+    ],
+    "requested_evidence_refs": [
+      "evidence:manifest:urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a",
+      "evidence:mapping:v1:5abcfb14a391738519af257da06c7752a5f336d970f4a9a4584f9bcf2fd4d507",
+      "evidence:openapi:urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832",
+      "evidence:openapi:urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f",
+      "evidence:openapi:urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253",
+      "evidence:otel:quarkus-i5:2026-09-24:30e26b9f3dc5",
+      "evidence:otel:quarkus-i5:2026-09-24:4878531641e8",
+      "evidence:otel:quarkus-i5:2026-09-24:908f6fc7d0b9"
+    ]
+  },
+  "evidence_refs": [],
+  "limitations": [],
+  "observation_context": null,
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "174a17c5d0f8be35291032c677585291c330cc0a",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.2"
+  },
+  "schema_version": "0.5",
+  "snapshot": {
+    "model_revision": "sha256:92bfd2f42d712441a0f0b29c46c826aff021fe0a038e48e9593825e182448023",
+    "snapshot_id": "aip:snapshot:v1:92bfd2f42d712441a0f0b29c46c826aff021fe0a038e48e9593825e182448023"
+  },
+  "tool": "get_evidence"
+}

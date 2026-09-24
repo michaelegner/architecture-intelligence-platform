@@ -37,4 +37,9 @@ v0.5.0/
   queries/                  I5 Slice 4: frozen read-only Cypher verification queries
   public-surfaces.md        I5 Slice 4: Service = REST = MCP parity and zero-write checks
   coverage-matrix.md        I5 Slice 4: the §9 matrix with frozen revisions
+  finding-ledger.md         I5 Slice 5: row-by-row matrix outcome, findings F1-F6, proposed dispositions
+  parity.py                 I5 Slice 5: the public-surfaces parity checker as run (provenance in its docstring)
+  evaluation-artifacts/     I5 Slice 5: the two byte-identical evaluation runs (summary and one result copy)
+  <target>/results.md       I5 Slice 5: each target's qualifying run; raw records in <target>/artifacts/
+  lifecycle/results.md      I5 Slice 5: the lifecycle verdicts; raw records in lifecycle/artifacts/
 ```
