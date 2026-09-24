@@ -231,7 +231,7 @@ I5 extends the v0.3 `expected.yaml` vocabulary to the v0.5 supported fact classe
 | `SUBSCRIPTION_OF` | Subscription -> Topic | declared evidence |
 | `RECEIVES_FROM` | Service -> Subscription | declared/observed evidence |
 | `CARRIES` | Queue or Topic -> Message | declared evidence |
-| `DEPLOYED_AS` | Service -> Workload | public claim `resolution_method`, or public resolution status (`RESOLVED_*` / `CONFLICT` / `AMBIGUOUS` / `UNRESOLVED`) |
+| `DEPLOYED_AS` | Service -> Workload | public claim `resolution_method` and `supporting_methods` (`RESOLVED_EXPLICIT` / `RESOLVED_CONFIGURED` / `RESOLVED_OBSERVED`), or public resolution status (`RESOLVED_EXPLICIT` / `RESOLVED_CONFIGURED` / `RESOLVED_OBSERVED` / `CONFLICT` / `AMBIGUOUS` / `UNRESOLVED`) |
 
 **How facts are compared.**
 - Relation facts are captured from the graph with every admitted label of each endpoint considered
@@ -272,16 +272,29 @@ I5 extends the v0.3 `expected.yaml` vocabulary to the v0.5 supported fact classe
 - **Kubernetes (I2).** The Workloads (and, where present, Kubernetes Services and Ingresses) are
   discovered offline from the upstream manifests as `DECLARED_MANIFEST`. There is no interaction
   fact from Kubernetes alone.
-- **`DEPLOYED_AS` (I3), negative.**
-  - Without an explicit `architecture-intelligence.io/service-id` annotation, a matching name
-    SHALL NOT produce a `DEPLOYED_AS` claim.
-  - Slice 2 SHALL record whether the upstream manifests carry that annotation. The dossier freezes
-    the expected resolution outcome per I3 §13.
-- **`DEPLOYED_AS` (I3), positive.**
-  - Exactly one disclosed Path B configured-mapping artifact MAY bind declared Quarkus Services to
-    their upstream Workloads.
-  - It is AIP operator configuration (§6). The expected `RESOLVED_CONFIGURED` outcome is frozen from
-    the upstream manifest identities, not from AIP output.
+- **`DEPLOYED_AS` (I3), per Workload and conditional on the frozen manifest evidence.**
+  - Slice 2 SHALL record, for each in-scope upstream Workload, whether it carries an
+    `architecture-intelligence.io/service-id` annotation that Path A evaluates to a declared Service
+    id (I3 §7).
+  - Slice 2 SHALL freeze the expected outcome from that recorded evidence, applying I3 §10's
+    agreement and precedence rules. The table gives the outcome for each combination:
+
+    | Frozen upstream evidence for a Workload | Disclosed Path B mapping for it | Expected public outcome |
+    | --- | --- | --- |
+    | No Path A-evaluable annotation | none | No `DEPLOYED_AS` claim from name similarity. The frozen resolution outcome follows I3 §13. This is the real-target name-only negative. |
+    | No Path A-evaluable annotation | agreeing | `RESOLVED_CONFIGURED`, `supporting_methods = [RESOLVED_CONFIGURED]` |
+    | Path A-evaluable annotation | none | `RESOLVED_EXPLICIT`, `supporting_methods = [RESOLVED_EXPLICIT]` |
+    | Path A-evaluable annotation | agreeing | `RESOLVED_EXPLICIT`, `supporting_methods = [RESOLVED_EXPLICIT, RESOLVED_CONFIGURED]` |
+
+  - At most one disclosed Path B configured-mapping artifact MAY bind declared Quarkus Services to
+    their upstream Workloads. It is AIP operator configuration (§6), not ground truth.
+  - The artifact SHALL be authored from the upstream manifest identities so that it agrees with any
+    Path A evidence. A disagreeing mapping would be I3 `CONFLICT` and is not a Quarkus qualification
+    case. Conflict is covered by supporting fixtures (§9).
+  - If every in-scope Workload carries a Path A-evaluable annotation, both real-target cases that
+    need a Workload without one become unavailable: the name-only negative and the configured-only
+    `RESOLVED_CONFIGURED` positive. Each is then recorded as a §9 gap covered only by supporting
+    fixtures.
 - **Path C** is not exercised on this target. The Compose runtime has no Pod UID. It is covered by
   supporting fixtures (§9).
 - **Unsupported.** gRPC (`grpc-locations`).
@@ -317,7 +330,7 @@ eligible evidence is recorded as a gap and SHALL NOT be claimed qualified.
 | I1 lifecycle (not safely inducible upstream) | Negative fixture | Existing I1 tests, reused with disclosure | Regression evidence only |
 | I2 offline discovery | Upstream-sourced input | Quarkus upstream `deploy/k8s` at the pin (§5) | Workloads/claims per §8.1; no interaction |
 | I2 captured resources and owner chain | Independent capture | [`tests/fixtures/kubernetes/i2-independent-capture/`](../../../tests/fixtures/kubernetes/i2-independent-capture/) | Supporting evidence: an AIP-operated `kind` capture, not a third target |
-| I3 Path A/B | Real target plus disclosed mapping | Quarkus (§8.1) | Negative name-only; positive `RESOLVED_CONFIGURED` |
+| I3 Path A/B | Real target plus disclosed mapping | Quarkus (§8.1) | The §8.1 per-Workload outcomes frozen in Slice 2. A real-target case the upstream evidence cannot provide (name-only negative, or configured-only positive) is a gap covered by the I3 supporting fixture |
 | I3 Path C, conflict, ambiguity | Hand-authored fixture over a real capture | [`tests/fixtures/deployment/i3-cross-source/`](../../../tests/fixtures/deployment/i3-cross-source/) | Supporting evidence |
 | I4 positive (fan-out, competing consumers, scoped DLQ) | Hand-authored fixtures | [`tests/fixtures/pubsub/`](../../../tests/fixtures/pubsub/README.md) (ASB, GCP) | Supporting evidence; no live broker claimed |
 | I4 negative (consumer group ≠ Subscription) | Real target plus fixture | Quarkus Kafka (§8.1) and the `kafka/` fixture | No Pub/Sub or Queue fact is minted |
@@ -451,9 +464,9 @@ At minimum:
 - **Quarkus Kubernetes.** The upstream-manifest Workloads are discovered offline as
   `DECLARED_MANIFEST`, and no interaction fact comes from Kubernetes.
 - **Quarkus `DEPLOYED_AS`.**
-  - Name-only never resolves.
-  - The disclosed Path B mapping yields `RESOLVED_CONFIGURED` for exactly the frozen pairs.
-  - Its evidence drills down at the same snapshot.
+  - Every in-scope Workload yields exactly its §8.1 outcome as frozen in Slice 2.
+  - Name similarity never resolves.
+  - Every claim's and resolution's evidence drills down at the same snapshot.
 - **Airflow.**
   - The selected `PROVIDES` are `CORRECT`.
   - Postgres is `UNSUPPORTED`.
@@ -614,7 +627,9 @@ Implementation SHALL stop for specification review if any of these becomes neces
 - [ ] The §7 vocabulary covers every v0.5 supported fact class, including `DEPLOYED_AS` through the
       public projection.
 - [ ] Quarkus Kafka is a negative case, and the consumer group is never a Subscription.
-- [ ] Name-only `DEPLOYED_AS` never resolves, and a Path B mapping is disclosed as AIP configuration.
+- [ ] Quarkus `DEPLOYED_AS` expectations are per Workload and conditional on the frozen upstream
+      annotation evidence (I3 §10 precedence). Name similarity never resolves, and any Path B mapping
+      is disclosed AIP configuration that agrees with Path A.
 - [ ] Every §9 matrix row names its evidence type, and supporting fixtures are not called real-system
       evidence.
 - [ ] The §10 lifecycle scenarios cover inventory, tombstone, failure, scope, reimport and conflict.
