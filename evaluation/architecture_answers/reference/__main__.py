@@ -57,7 +57,12 @@ def _print_context_id(environment: str, window_start: str, window_end: str) -> N
 
 
 def _print_claim_id(
-    subject_id: str, predicate: str, object_id: str, delivery_kind: str, delivery_via_id: str
+    subject_id: str,
+    predicate: str,
+    object_id: str,
+    delivery_kind: str,
+    delivery_via_id: str,
+    subscription_id: str | None = None,
 ) -> None:
     print(
         identities.claim_id(
@@ -66,6 +71,7 @@ def _print_claim_id(
             object_id=object_id,
             delivery_kind=delivery_kind,
             delivery_via_id=delivery_via_id,
+            subscription_id=subscription_id,
         )
     )
 
@@ -110,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     claim.add_argument("object_id")
     claim.add_argument("delivery_kind")
     claim.add_argument("delivery_via_id")
+    claim.add_argument("--subscription-id", default=None)
 
     declared = subparsers.add_parser("declared-evidence-id")
     declared.add_argument("source_type")
@@ -135,6 +142,7 @@ def main(argv: list[str] | None = None) -> int:
             args.object_id,
             args.delivery_kind,
             args.delivery_via_id,
+            args.subscription_id,
         )
     elif args.command == "declared-evidence-id":
         _print_declared_evidence_id(args.source_type, args.service_slug, args.revision)

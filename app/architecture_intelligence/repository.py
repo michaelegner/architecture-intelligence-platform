@@ -442,6 +442,26 @@ _RECEIVES_FOR_QUEUES_QUERY = (
     "RETURN q.id AS queue_id, c.id AS consumer_id, c.name AS consumer_name, "
     "coalesce(r.evidence_ids, []) AS evidence_ids"
 )
+# v0.5.0 I4 slice 4 (spec §12.3): the Pub/Sub counterparts of `_SENDS_QUERY`/
+# `_RECEIVES_FOR_QUEUES_QUERY`. Label-typed on both ends, so a Queue `RECEIVES_FROM` never enters the
+# Subscription path and vice versa. A Subscription route additionally needs its own evidenced
+# `SUBSCRIPTION_OF` (Subscription -> Topic) row - the projection decides usability, this only reads.
+_PUBLISHES_QUERY = (
+    "MATCH (a:Service {id: $service_id})-[r:PUBLISHES_TO]->(t:Topic) "
+    "RETURN t.id AS topic_id, t.name AS topic_name, t.protocol AS protocol, "
+    "t.namespace AS namespace, coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+_SUBSCRIPTIONS_FOR_TOPICS_QUERY = (
+    "MATCH (s:Subscription)-[r:SUBSCRIPTION_OF]->(t:Topic) WHERE t.id IN $topic_ids "
+    "RETURN t.id AS topic_id, s.id AS subscription_id, s.name AS subscription_name, "
+    "s.protocol AS protocol, s.namespace AS namespace, "
+    "coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+_RECEIVES_FOR_SUBSCRIPTIONS_QUERY = (
+    "MATCH (c:Service)-[r:RECEIVES_FROM]->(s:Subscription) WHERE s.id IN $subscription_ids "
+    "RETURN s.id AS subscription_id, c.id AS consumer_id, c.name AS consumer_name, "
+    "coalesce(r.evidence_ids, []) AS evidence_ids"
+)
 _EVIDENCE_FOR_IDS_QUERY = (
     "MATCH (e:Evidence) WHERE e.id IN $evidence_ids "
     "RETURN e.id AS id, e.evidence_type AS evidence_type, e.environment AS environment, "
@@ -483,7 +503,8 @@ _EVIDENCE_BY_ID_QUERY = (
     "e.observation_count AS observation_count, e.service_version AS service_version, "
     "e.correlation_mode AS correlation_mode"
 )
-# Restricted to the 7 canonical relation kinds `EvidenceRelationType` closes over (spec §11.2) -
+# Restricted to the canonical relation kinds `EvidenceRelationType` closes over (spec §11.2; v0.5.0
+# I4 adds PUBLISHES_TO/SUBSCRIPTION_OF) -
 # REQUEST_SCHEMA/RESPONSE_SCHEMA also carry evidence_ids but describe Operation->Schema payload
 # wiring, not a "supported fact" this contract exposes; excluding them here (rather than filtering
 # in Python) keeps the query itself the single source of truth for what counts as a supporting
@@ -609,8 +630,8 @@ def read_service_dependency_rows(
     window_end: datetime,
 ) -> dict:
     """The raw rows `dependency_projection.project_service_dependencies` needs for one service:
-    its own outgoing `CALLS`/`SENDS` relations, the evidenced `PROVIDES`/`RECEIVES_FROM` relations
-    that could resolve each destination, the referenced `Evidence` rows' qualification-relevant
+    its own outgoing `CALLS`/`SENDS`/`PUBLISHES_TO` relations, the `PROVIDES`/`RECEIVES_FROM`/
+    `SUBSCRIPTION_OF` relations that could resolve each destination, the referenced `Evidence` rows' qualification-relevant
     fields, and the existing O5 telemetry-coverage signal (spec §14 reuses the existing runtime
     evidence rules unchanged - `app.analysis.runtime.telemetry_coverage` *is* that rule, not a
     reimplementation of it). `service_name` is `None` when the service doesn't exist at all - the
@@ -637,7 +658,31 @@ def read_service_dependency_rows(
         else []
     )
 
-    evidence_ids = _referenced_evidence_ids(calls, provides, sends, receives)
+    publishes = [dict(record) for record in session.run(_PUBLISHES_QUERY, service_id=service_id)]
+    topic_ids = sorted({publish["topic_id"] for publish in publishes})
+    subscriptions = (
+        [
+            dict(record)
+            for record in session.run(_SUBSCRIPTIONS_FOR_TOPICS_QUERY, topic_ids=topic_ids)
+        ]
+        if topic_ids
+        else []
+    )
+    subscription_ids = sorted({row["subscription_id"] for row in subscriptions})
+    subscription_receives = (
+        [
+            dict(record)
+            for record in session.run(
+                _RECEIVES_FOR_SUBSCRIPTIONS_QUERY, subscription_ids=subscription_ids
+            )
+        ]
+        if subscription_ids
+        else []
+    )
+
+    evidence_ids = _referenced_evidence_ids(
+        calls, provides, sends, receives, publishes, subscriptions, subscription_receives
+    )
     evidence = {}
     if evidence_ids:
         for record in session.run(_EVIDENCE_FOR_IDS_QUERY, evidence_ids=evidence_ids):
@@ -660,6 +705,9 @@ def read_service_dependency_rows(
         "provides": provides,
         "sends": sends,
         "receives": receives,
+        "publishes": publishes,
+        "subscriptions": subscriptions,
+        "subscription_receives": subscription_receives,
         "evidence": evidence,
         "coverage": coverage,
     }

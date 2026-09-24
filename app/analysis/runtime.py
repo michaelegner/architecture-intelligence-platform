@@ -304,12 +304,19 @@ _HTTP_PROVIDER_OBSERVED_QUERY = (
     "MATCH (s:Service {id: $service_id})-[:PROVIDES]->(:Operation)<-[r:CALLS]-(:Service) "
     f"WHERE {_OBSERVED_EXISTS} RETURN count(r) > 0 AS observed"
 )
+# v0.5.0 I4 slice 4 (spec §12.5): one shared messaging-coverage rule, widened to the Pub/Sub
+# relations - observed `PUBLISHES_TO -> Topic` counts like `SENDS -> Queue`, and observed
+# `RECEIVES_FROM -> Subscription` like `RECEIVES_FROM -> Queue`. Target labels stay explicit so no
+# other relation/label pairing silently becomes messaging coverage.
 _SENDS_OBSERVED_QUERY = (
-    f"MATCH (s:Service {{id: $service_id}})-[r:SENDS]->(:Queue) WHERE {_OBSERVED_EXISTS} "
+    "MATCH (s:Service {id: $service_id})-[r:SENDS|PUBLISHES_TO]->(t) "
+    "WHERE ((type(r) = 'SENDS' AND t:Queue) OR (type(r) = 'PUBLISHES_TO' AND t:Topic)) "
+    f"AND {_OBSERVED_EXISTS} "
     "RETURN count(r) > 0 AS observed"
 )
 _RECEIVES_OBSERVED_QUERY = (
-    f"MATCH (s:Service {{id: $service_id}})-[r:RECEIVES_FROM]->(:Queue) WHERE {_OBSERVED_EXISTS} "
+    "MATCH (s:Service {id: $service_id})-[r:RECEIVES_FROM]->(t) "
+    f"WHERE (t:Queue OR t:Subscription) AND {_OBSERVED_EXISTS} "
     "RETURN count(r) > 0 AS observed"
 )
 

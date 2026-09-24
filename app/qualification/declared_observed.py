@@ -34,7 +34,9 @@ COVERAGE_UNKNOWN = "UNKNOWN"
 _DECLARED = "DECLARED"
 _OBSERVED = "OBSERVED"
 
-_MESSAGING_RELATION_TYPES = frozenset({"SENDS", "RECEIVES_FROM"})
+# v0.5.0 I4 slice 4 (spec §12.5): a declared `PUBLISHES_TO` route is NOT_OBSERVED_IN_WINDOW "only
+# under the existing messaging-coverage rule" - it is a messaging relation, not a new relation kind.
+_MESSAGING_RELATION_TYPES = frozenset({"SENDS", "RECEIVES_FROM", "PUBLISHES_TO"})
 
 
 def matches_declared_evidence(
@@ -86,7 +88,7 @@ def relevant_coverage_signal(
     relation_type: str, *, http_observed: bool, messaging_observed: bool
 ) -> bool:
     """Spec §12.1's relation-kind -> telemetry mapping: CALLS -> http_observed;
-    SENDS/RECEIVES_FROM -> messaging_observed. Exhaustive - an unrecognized relation_type raises
+    SENDS/RECEIVES_FROM/PUBLISHES_TO -> messaging_observed. Exhaustive - an unrecognized relation_type raises
     rather than silently falling through to "messaging", since I1 introduces no new relation
     families (spec §31) and a caller passing anything else is a programming error, not a valid
     input to classify."""

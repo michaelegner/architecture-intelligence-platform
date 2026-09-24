@@ -301,6 +301,18 @@ def test_coverage_is_unknown_when_qualification_is_disabled():
     )
 
 
+@pytest.mark.parametrize("relation_type", ["SENDS", "RECEIVES_FROM", "PUBLISHES_TO"])
+def test_messaging_relations_read_the_messaging_signal(relation_type):
+    """v0.5.0 I4 slice 4 (spec §12.5): a declared `PUBLISHES_TO` route uses the existing
+    messaging-coverage rule, exactly like `SENDS`/`RECEIVES_FROM`."""
+    assert relevant_coverage_signal(
+        relation_type, http_observed=True, messaging_observed=False
+    ) is (False)
+    assert relevant_coverage_signal(
+        relation_type, http_observed=False, messaging_observed=True
+    ) is (True)
+
+
 def test_relevant_coverage_signal_rejects_an_unsupported_relation_type():
     try:
         relevant_coverage_signal("PROVIDES", http_observed=True, messaging_observed=True)

@@ -51,6 +51,9 @@ def _project(rows: dict, *, coverage_enabled: bool = True) -> proj.ProjectionRes
         "provides": [],
         "sends": [],
         "receives": [],
+        "publishes": [],
+        "subscriptions": [],
+        "subscription_receives": [],
         "evidence": {},
         "coverage": _coverage(),
     }

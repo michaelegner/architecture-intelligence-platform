@@ -31,11 +31,21 @@ from app.qualification.declared_observed import qualify_relation as _kernel_qual
 
 
 def compute_claim_id(
-    *, subject_id: str, predicate: str, object_id: str, delivery_kind: str, delivery_via_id: str
+    *,
+    subject_id: str,
+    predicate: str,
+    object_id: str,
+    delivery_kind: str,
+    delivery_via_id: str,
+    subscription_id: str | None = None,
 ) -> str:
     """`aip:claim:v1:sha256(canonical-json({subject_id, predicate, object_id, delivery_kind,
-    delivery_via_id}))` (spec §12.1). Qualification, evidence ids, snapshot id, display names and
-    observation times are deliberately excluded from the hashed payload."""
+    delivery_via_id[, subscription_id]}))` (spec §12.1). Qualification, evidence ids, snapshot id,
+    display names and observation times are deliberately excluded from the hashed payload.
+
+    v0.5.0 I4 §12.4: `subscription_id` is present only for a Pub/Sub route through a Subscription
+    and is *omitted entirely* otherwise - `canonical_json_bytes` does not drop `None`, so adding the
+    key unconditionally would change every existing HTTP/Queue claim id."""
     payload = {
         "subject_id": subject_id,
         "predicate": predicate,
@@ -43,6 +53,8 @@ def compute_claim_id(
         "delivery_kind": delivery_kind,
         "delivery_via_id": delivery_via_id,
     }
+    if subscription_id is not None:
+        payload["subscription_id"] = subscription_id
     digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
     return f"aip:claim:v1:{digest}"
 
@@ -111,6 +123,26 @@ def _queue_ref(send: dict) -> EntityRef:
     )
 
 
+def _topic_ref(publish: dict) -> EntityRef:
+    return EntityRef(
+        id=publish["topic_id"],
+        type=EntityType.TOPIC,
+        name=publish["topic_name"],
+        protocol=publish.get("protocol"),
+        namespace=publish.get("namespace"),
+    )
+
+
+def _subscription_ref(subscription: dict) -> EntityRef:
+    return EntityRef(
+        id=subscription["subscription_id"],
+        type=EntityType.SUBSCRIPTION,
+        name=subscription["subscription_name"],
+        protocol=subscription.get("protocol"),
+        namespace=subscription.get("namespace"),
+    )
+
+
 def _accepted_evidence_ids(evidence_ids: list[str], evidence_by_id: dict[str, dict]) -> list[str]:
     """Spec §15: every emitted evidence reference must point to an Evidence node included in the
     accepted snapshot. A relation's raw `evidence_ids` can be non-empty yet dangling (the id no
@@ -174,6 +206,71 @@ def _resolve_async_destinations(
     ]
 
 
+def _usable_subscriptions(
+    subscriptions: list[dict], evidence_by_id: dict[str, dict]
+) -> list[tuple[dict, list[str]]]:
+    """v0.5.0 I4 §12.3: a Subscription route is usable only when its `SUBSCRIPTION_OF` relation to
+    the published Topic carries accepted (non-dangling) evidence - the same rule
+    `_group_evidenced_rows` applies to consumers. Rows for one Subscription id are unioned, never
+    overwritten, and the result is sorted by Subscription id for deterministic claim order."""
+    grouped: dict[str, tuple[dict, set[str]]] = {}
+    for row in subscriptions:
+        accepted = _accepted_evidence_ids(row["evidence_ids"], evidence_by_id)
+        if not accepted:
+            continue
+        _first_row, evidence_ids = grouped.setdefault(row["subscription_id"], (row, set()))
+        evidence_ids.update(accepted)
+    return [(row, sorted(evidence_ids)) for _sid, (row, evidence_ids) in sorted(grouped.items())]
+
+
+def _resolve_pubsub_destinations(
+    publish: dict,
+    subscriptions: list[dict],
+    receivers_by_subscription: dict[str, list[dict]],
+    evidence_by_id: dict[str, dict],
+) -> list[tuple[DestinationResolution, EntityRef, EntityRef | None, list[str]]]:
+    """v0.5.0 I4 §12.3, one entry per claim as `(resolution, object, subscription route,
+    resolution evidence)`:
+
+    - no usable Subscription -> the Topic itself, `DIRECT_TARGET_FALLBACK`, no route;
+    - a usable Subscription with no evidenced consumer -> that Subscription,
+      `DIRECT_TARGET_FALLBACK`, routed through it;
+    - otherwise one `RESOLVED_SERVICE` entry per distinct evidenced consumer Service on that
+      Subscription (competing consumers, not fan-out - §6.3), all sharing its route.
+
+    Fan-out is expressed only by distinct Subscription routes. A resolved claim's resolution
+    evidence is its route's own `SUBSCRIPTION_OF` evidence plus that consumer's `RECEIVES_FROM`
+    evidence, so evidence for one Subscription never reaches a sibling Subscription's claim."""
+    usable = _usable_subscriptions(subscriptions, evidence_by_id)
+    if not usable:
+        return [(DestinationResolution.DIRECT_TARGET_FALLBACK, _topic_ref(publish), None, [])]
+    destinations: list[tuple[DestinationResolution, EntityRef, EntityRef | None, list[str]]] = []
+    for subscription_row, subscription_of_evidence in usable:
+        route = _subscription_ref(subscription_row)
+        evidenced = _group_evidenced_rows(
+            receivers_by_subscription.get(route.id, []),
+            "consumer_id",
+            "consumer_name",
+            evidence_by_id,
+        )
+        if not evidenced:
+            # The frozen claim contract keeps `resolution_evidence_refs` empty for every
+            # DIRECT_TARGET_FALLBACK (spec §15), so the route's SUBSCRIPTION_OF evidence gates
+            # usability here but is referenced only from resolved claims.
+            destinations.append((DestinationResolution.DIRECT_TARGET_FALLBACK, route, route, []))
+            continue
+        destinations.extend(
+            (
+                DestinationResolution.RESOLVED_SERVICE,
+                EntityRef(id=consumer_id, type=EntityType.SERVICE, name=name),
+                route,
+                sorted(set(subscription_of_evidence) | accepted_ids),
+            )
+            for consumer_id, (name, accepted_ids) in sorted(evidenced.items())
+        )
+    return destinations
+
+
 def _build_claim(
     *,
     subject: EntityRef,
@@ -191,6 +288,7 @@ def _build_claim(
         object_id=object_ref.id,
         delivery_kind=delivery.kind.value,
         delivery_via_id=delivery.via.id,
+        subscription_id=delivery.subscription.id if delivery.subscription is not None else None,
     )
     return DependencyClaim(
         claim_id=claim_id,
@@ -206,12 +304,18 @@ def _build_claim(
     )
 
 
+_FALLBACK_TARGET_NOUNS = {
+    EntityType.OPERATION: ("provider service", "operation"),
+    EntityType.QUEUE: ("consumer service", "queue"),
+    EntityType.TOPIC: ("subscription", "topic"),
+    EntityType.SUBSCRIPTION: ("consumer service", "subscription"),
+}
+
+
 def _unresolved_identity_limitation(target_ref: EntityRef, claim_id: str) -> Limitation:
-    noun, target_noun = (
-        ("provider service", "operation")
-        if target_ref.type == EntityType.OPERATION
-        else ("consumer service", "queue")
-    )
+    """`target_ref` is the fallback claim's own object (the retained direct target). The Operation
+    and Queue wording is unchanged from before v0.5.0 I4."""
+    noun, target_noun = _FALLBACK_TARGET_NOUNS[target_ref.type]
     return Limitation(
         code=LimitationCode.UNRESOLVED_IDENTITY,
         message=(
@@ -273,7 +377,8 @@ def project_service_dependencies(
     window_end: datetime,
     coverage_enabled: bool,
 ) -> ProjectionResult:
-    """Spec §13/§14/§15 end to end for one service's outgoing `CALLS`/`SENDS` relations. `rows` is
+    """Spec §13/§14/§15 end to end for one service's outgoing `CALLS`/`SENDS` relations, plus
+    v0.5.0 I4 §12.3's `PUBLISHES_TO` routes. `rows` is
     exactly what `app.architecture_intelligence.repository.read_service_dependency_rows` returns;
     the caller is responsible for the `UNKNOWN_ENTITY` check (`rows["service_name"] is None`)
     before calling this."""
@@ -324,7 +429,7 @@ def project_service_dependencies(
         )
         claims.append(claim)
         if destination_resolution == DestinationResolution.DIRECT_TARGET_FALLBACK:
-            limitations.append(_unresolved_identity_limitation(claim.delivery.via, claim.claim_id))
+            limitations.append(_unresolved_identity_limitation(claim.object, claim.claim_id))
 
     receivers_by_queue: dict[str, list[dict]] = defaultdict(list)
     for row in rows["receives"]:
@@ -367,8 +472,59 @@ def project_service_dependencies(
             )
             claims.append(claim)
             if destination_resolution == DestinationResolution.DIRECT_TARGET_FALLBACK:
-                limitations.append(
-                    _unresolved_identity_limitation(claim.delivery.via, claim.claim_id)
-                )
+                limitations.append(_unresolved_identity_limitation(claim.object, claim.claim_id))
+
+    subscriptions_by_topic: dict[str, list[dict]] = defaultdict(list)
+    for row in rows["subscriptions"]:
+        subscriptions_by_topic[row["topic_id"]].append(row)
+    receivers_by_subscription: dict[str, list[dict]] = defaultdict(list)
+    for row in rows["subscription_receives"]:
+        receivers_by_subscription[row["subscription_id"]].append(row)
+
+    # v0.5.0 I4 §12.3/§12.5: qualification comes only from the subject's own `PUBLISHES_TO`
+    # evidence, exactly as Queue claims qualify from `SENDS` alone; consumer-side evidence only
+    # resolves (and is attributed to) its own Subscription route.
+    for publish in rows["publishes"]:
+        qualified = _qualify(
+            publish["evidence_ids"],
+            evidence_by_id,
+            environment=environment,
+            window_start=window_start,
+            window_end=window_end,
+            relation_type="PUBLISHES_TO",
+            coverage=coverage,
+            coverage_enabled=coverage_enabled,
+        )
+        if qualified is None:
+            limitations.append(
+                _insufficient_evidence_limitation("PUBLISHES_TO", service_id, publish["topic_id"])
+            )
+            continue
+        qualification, coverage_class, evidence_refs = qualified
+        destinations = _resolve_pubsub_destinations(
+            publish,
+            subscriptions_by_topic.get(publish["topic_id"], []),
+            receivers_by_subscription,
+            evidence_by_id,
+        )
+        for destination_resolution, object_ref, route, resolution_evidence_refs in destinations:
+            claim = _build_claim(
+                subject=subject,
+                object_ref=object_ref,
+                delivery=DeliveryRef(
+                    kind=DeliveryKind.ASYNC_MESSAGE,
+                    relation_type=DeliveryRelationType.PUBLISHES_TO,
+                    via=_topic_ref(publish),
+                    subscription=route,
+                ),
+                destination_resolution=destination_resolution,
+                qualification=qualification,
+                coverage=coverage_class,
+                evidence_refs=evidence_refs,
+                resolution_evidence_refs=resolution_evidence_refs,
+            )
+            claims.append(claim)
+            if destination_resolution == DestinationResolution.DIRECT_TARGET_FALLBACK:
+                limitations.append(_unresolved_identity_limitation(claim.object, claim.claim_id))
 
     return ProjectionResult(claims=_merge_duplicate_claims(claims), limitations=limitations)
