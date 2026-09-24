@@ -121,7 +121,7 @@ def test_identity_bindings_target_the_configured_openapi_sources():
         yaml.safe_load(
             (DECLARATIONS / "bindings" / "architecture-identity-bindings.yaml").read_text()
         ),
-        locator="architecture-identity-bindings.yaml",
+        locator="bindings/architecture-identity-bindings.yaml",
     )
 
     assert diagnostics == []

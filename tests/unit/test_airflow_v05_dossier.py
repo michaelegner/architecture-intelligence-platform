@@ -53,7 +53,7 @@ def test_identity_binding_targets_the_configured_openapi_source():
                 RUNTIME / "declarations" / "bindings" / "architecture-identity-bindings.yaml"
             ).read_text()
         ),
-        locator="architecture-identity-bindings.yaml",
+        locator="bindings/architecture-identity-bindings.yaml",
     )
 
     assert diagnostics == []

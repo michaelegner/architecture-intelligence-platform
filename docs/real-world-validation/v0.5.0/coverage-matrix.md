@@ -7,14 +7,23 @@ qualified.** Supporting fixtures are never called real-system evidence (I5 §9).
 
 **Revisions:**
 - The real-target dossiers are frozen at their merge commits: Quarkus #240 `ef503a5`, Airflow #242
-  `1760786`, with the post-freeze profile hardening in #243 `8b5e6f2`.
+  `1760786`. Two post-freeze corrections apply. Neither changes an expected fact, the scope or a
+  comparison rule (see each `profile.md` "Revision history"):
+  - the profile hardening in #243 `8b5e6f2`;
+  - the input-layout correction in #246. It moves each dossier's bindings document, with unchanged
+    bytes, to `runtime/declarations/bindings/architecture-identity-bindings.yaml`, the path that
+    `FilesystemSourceDiscoverer` enumerates. It also moves the lifecycle `mutate.py` `BINDINGS`
+    path, which re-pins the lifecycle step digests.
+- The Slice 5 candidate is #246's merge commit. The Slice 5 results record it, because a merge
+  commit is only known after the merge. An earlier Slice 5 attempt at `34067b7` aborted on the
+  defect #246 corrects. It is disclosed in the Slice 5 results and is not a qualifying run.
 - Each fixture is pinned by a content digest: sha256 over the sorted `relative-path NUL
   sha256(bytes)` lines of every file (`lifecycle/mutate.py::tree_digest`), plus its git tree at
   `8b5e6f2`. `tests/unit/test_i5_lifecycle_freeze.py` asserts every digest.
 
 | # | Area | Evidence type | Source and frozen revision | Qualifying step or test | Required outcome |
 | --- | --- | --- | --- | --- | --- |
-| 1 | I1 lifecycle | Real declarations | Both dossiers' declarations, mutated per `lifecycle/` (this PR) | `lifecycle/runbook.md`, steps S0-L3 per target | Every `lifecycle/README.md` expected outcome |
+| 1 | I1 lifecycle | Real declarations | Both dossiers' declarations, mutated per `lifecycle/` (#244; bindings path corrected in #246) | `lifecycle/runbook.md`, steps S0-L3 per target | Every `lifecycle/README.md` expected outcome |
 | 2 | I1 lifecycle (not safely inducible upstream) | Regression (existing I1 tests) | `tests/integration/test_importer.py`, `tests/unit/test_orchestrator.py`, `test_sources_tombstones.py`, `test_sources_removal_authority.py`, `test_sources_replay.py` at the candidate | The full `tests/unit` + `tests/integration` suites | Pass. Regression evidence only. |
 | 3 | I2 offline discovery | Upstream-derived input | Quarkus `runtime/k8s/namespaced/` (sha256 `4ba52254…`), #240 | Quarkus runbook steps 6 and 11, and the `ground-truth.md` manual checks 1-2 | `ACCEPTED_WITH_LIMITATIONS` with exactly the frozen limitation list. 13 Workloads, 13 Kubernetes Services, 1 Ingress and 2 routes, all `DECLARED_MANIFEST`. No interaction fact. |
 | 4 | I2 namespace-less rejection | Upstream-supplied input | Quarkus `runtime/k8s/unmodified/` (sha256 `a1cd8183…`), #240 | Quarkus runbook step 6 | `REJECTED_INVALID` (`K8S_RESOURCE_INVALID`), and nothing commits |
