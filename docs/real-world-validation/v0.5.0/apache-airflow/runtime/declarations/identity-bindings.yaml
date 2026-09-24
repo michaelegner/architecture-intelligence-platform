@@ -1,0 +1,21 @@
+# AIP operator configuration (I5 §6), not ground truth and not upstream evidence.
+#
+# The upstream OpenAPI document in this directory is byte-identical to the pinned upstream file,
+# and it carries no `x-aip-service-id`. I1 §4.1 forbids deriving Service identity from a
+# directory name, filename or `info.title`. This document binds the OpenAPI source to its Service
+# instead, using I1 §4.1 resolution path 3 and the §4.2 format. The Service id equals the official
+# Compose component that serves the API (ground-truth.md, "Service identity").
+#
+# The sourceInstanceId is app.sources.identity.source_instance_id(configured_source_id=
+# "airflow-v0.5-declarations", source_kind=filesystem, normalized_root_document_path=
+# "airflow-apiserver/openapi.yml"). It therefore depends on the `sources.directories[].id` in
+# ../config.airflow-i5.yaml.
+apiVersion: aip.dev/v1
+kind: ArchitectureIdentityBindings
+metadata:
+  id: airflow-v0.5-openapi-identity-bindings
+  revision: v1
+bindings:
+  - sourceInstanceId: urn:aip:source:filesystem:21a69bfc5c33d4aa647f87cf9899d7bcdf3a0da54841449162f021d9da7043ae
+    pointerPrefix: ""
+    serviceId: service:airflow-apiserver

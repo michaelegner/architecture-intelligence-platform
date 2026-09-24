@@ -1,0 +1,139 @@
+# Frozen expected facts for apache-airflow (v0.5.0 I5 §§6-8.2, spec Draft 0.3).
+#
+# This file was drafted from ground-truth.md alone, from upstream evidence at the pin, before any
+# qualifying AIP output for this target was inspected. The owner's merge of the dossier PR freezes
+# it (I5 §6). Every entry cites its upstream source in ground-truth.md, under the same id.
+#
+# Scope (I5 §8.2: "bounded to the operations the dossier selects"). The scope entities are the nine
+# selected operations and `queue:default`. `service:airflow-apiserver` is deliberately not a scope
+# entity: that would put all 128 operations of the imported upstream document in scope.
+#
+# Scope closure (I5 §7):
+# - CALLS is in scope with no expected fact. A CALLS into any selected operation is unexpected, and
+#   so INCORRECT_SUPPORTED. The external traffic client is not a Service (ground-truth.md, "REST
+#   callers").
+# - SENDS, PUBLISHES_TO and RECEIVES_FROM are in scope over `queue:default`, the Celery default
+#   queue, with no expected fact. Any Queue fact AIP emits for the Celery queue, from any role or
+#   Service, is therefore INCORRECT_SUPPORTED.
+# - Topic and Subscription ids are opaque owner hashes, so their absence is a manual check
+#   (ground-truth.md, "Checks the comparator cannot express").
+
+system: apache-airflow
+upstream_revision: "3adbbe1c58e4532df1964cb7794805e763816ee8"
+
+scope:
+  entities:
+    - "operation:service:airflow-apiserver:GET:/api/v2/monitor/health"
+    - "operation:service:airflow-apiserver:GET:/api/v2/dags"
+    - "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}"
+    - "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns"
+    - "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns"
+    - "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}"
+    - "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances"
+    - "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}"
+    - "operation:service:airflow-apiserver:GET:/api/v2/variables"
+    - "queue:default"
+  relation_types:
+    - PROVIDES
+    - CALLS
+    - SENDS
+    - PUBLISHES_TO
+    - RECEIVES_FROM
+
+expected:
+  relations:
+    # PROVIDES: the nine selected operations, re-verified at the pin (ground-truth.md, "Selected
+    # operations"). Only `declared: true` is asserted. Whether a served request also marks a
+    # declared operation as observed is AIP runtime semantics, not an upstream fact.
+    - id: airflow-provides-get_health
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: "operation:service:airflow-apiserver:GET:/api/v2/monitor/health"
+      evidence: {declared: true}
+    - id: airflow-provides-get_dags
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: "operation:service:airflow-apiserver:GET:/api/v2/dags"
+      evidence: {declared: true}
+    - id: airflow-provides-get_dag
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}"
+      evidence: {declared: true}
+    - id: airflow-provides-trigger_dag_run
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns"
+      evidence: {declared: true}
+    - id: airflow-provides-get_dag_runs
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns"
+      evidence: {declared: true}
+    - id: airflow-provides-get_dag_run
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}"
+      evidence: {declared: true}
+    - id: airflow-provides-get_task_instances
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances"
+      evidence: {declared: true}
+    - id: airflow-provides-get_task_instance
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}"
+      evidence: {declared: true}
+    - id: airflow-provides-get_variables
+      type: PROVIDES
+      source: service:airflow-apiserver
+      target: "operation:service:airflow-apiserver:GET:/api/v2/variables"
+      evidence: {declared: true}
+
+forbidden:
+  relations:
+    # Celery/Redis must never be coerced into a Queue fact without independently established
+    # sender and receiver identity (I5 §8.2). See also the scope closure above.
+    - {id: airflow-no-default-queue-send, type: SENDS, source: service:airflow-apiserver, target: "queue:default"}
+    - {id: airflow-no-default-queue-receive, type: RECEIVES_FROM, source: service:airflow-apiserver, target: "queue:default"}
+
+unsupported:
+  - id: airflow-apiserver-postgres-dependency
+    mechanism: database-dependency
+    description: >
+      airflow-apiserver uses PostgreSQL as its metadata database
+      (AIRFLOW__DATABASE__SQL_ALCHEMY_CONN). Database dependencies are outside the v0.5 relation
+      vocabulary.
+  - id: airflow-scheduler-postgres-dependency
+    mechanism: database-dependency
+    description: >
+      airflow-scheduler uses the same PostgreSQL metadata database. It is outside the v0.5
+      relation vocabulary.
+  - id: airflow-celery-result-backend-postgres-dependency
+    mechanism: database-dependency
+    description: >
+      The Celery result backend is PostgreSQL (AIRFLOW__CELERY__RESULT_BACKEND). It is outside the
+      v0.5 relation vocabulary.
+
+unresolved_identity:
+  - id: airflow-runtime-role-identity
+    description: >
+      The scheduler, dag-processor, worker and triggerer are distinct process roles of one
+      airflow image. The profile sets no per-role OTEL_SERVICE_NAME, so no role has an admitted
+      runtime identity, and none is asserted as a canonical Service. The two worker replicas are
+      runtime instances of one role, not two Services.
+  - id: airflow-execution-api-boundary
+    description: >
+      airflow-apiserver also serves the private Execution API (/execution/, execution_api/), which
+      task runners call through AIRFLOW__CORE__EXECUTION_API_SERVER_URL. The caller is a worker
+      or task-runner role with no admitted identity (see airflow-runtime-role-identity), so no
+      CALLS fact is established. The Execution API is not in the selected scope.
+
+insufficient_evidence:
+  - id: airflow-celery-messaging
+    description: >
+      CeleryExecutor sends task messages to the Redis broker on the "default" queue, and the
+      workers consume them. Native Airflow OTel (the only telemetry in this profile, I5 §8.2) gives
+      no admitted sender or receiver identity for that exchange, and there is no declaration. No
+      SENDS, RECEIVES_FROM, PUBLISHES_TO, Queue or Topic fact can be established.
