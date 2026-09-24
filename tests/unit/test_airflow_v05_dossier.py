@@ -5,6 +5,7 @@ against the target, so they produce no qualifying output (I5 §6).
 """
 
 import hashlib
+import re
 from pathlib import Path
 
 import yaml
@@ -93,3 +94,24 @@ def test_compose_runs_only_digest_pinned_or_run_built_images():
         else:
             assert "@sha256:" in image, name
             assert "${" not in image, name  # no environment override (e.g. AIRFLOW_IMAGE_NAME)
+
+
+def test_compose_interpolates_only_the_three_required_variables():
+    # PR #242 review: any `${VAR:-default}` would let the environment change the run's bytes (for
+    # example AIRFLOW_PROJ_DIR re-pointing the Dag mount) without changing its reported identity.
+    text = (RUNTIME / "docker-compose.yml").read_text()
+    names = set(re.findall(r"(?<!\$)\$\{([A-Za-z_][A-Za-z0-9_]*)", text))
+    assert names == {"FERNET_KEY", "NEO4J_PASSWORD", "AIP_CANDIDATE_SHA"}
+    assert all(
+        re.fullmatch(r"\$\{[A-Z0-9_]+:\?[^}]*\}", m)
+        for m in re.findall(r"(?<!\$)\$\{[^}]*\}", text)
+    ), "every interpolation must be a required (:?) variable, never a default (:-)"
+
+    compose = yaml.safe_load(text)
+    dag_mounts = {
+        volume
+        for service in compose["services"].values()
+        for volume in service.get("volumes", [])
+        if volume.endswith(":/opt/airflow/dags")
+    }
+    assert dag_mounts == {"./dags:/opt/airflow/dags"}

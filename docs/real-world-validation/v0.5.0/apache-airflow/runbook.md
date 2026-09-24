@@ -14,14 +14,18 @@ export NEO4J_PASSWORD='replace-with-a-local-password'
 export FERNET_KEY="$(python3 -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())")"
 ```
 
-`docker-compose.yml` requires `NEO4J_PASSWORD`, `FERNET_KEY` and `AIP_CANDIDATE_SHA`. Compose checks
-them for every command, including `down`. Step 2 exports `AIP_CANDIDATE_SHA`. Run every step in this
+`docker-compose.yml` requires `NEO4J_PASSWORD`, `FERNET_KEY` and `AIP_CANDIDATE_SHA`, and it
+interpolates no other variable (PR #242 review). Compose checks them for every command, including
+`down`. Step 2 exports `AIP_CANDIDATE_SHA`. Run every step in this
 one shell, including the step 12 teardown. `FERNET_KEY` is generated per run and never committed.
 
 ## 1. Prerequisites
 
-These are the same as v0.3 step 1: Docker with Compose v2, curl, jq, `uv`, internet access, and
-free ports 7474, 7687, 8000, 8080, 4317 and 4318.
+These are the same as v0.3 step 1:
+- Docker with Compose v2, curl, jq and `uv`;
+- `python3` (standard library only; used for `FERNET_KEY` and by `traffic.sh` for JSON parsing);
+- internet access;
+- free ports 7474, 7687, 8000, 8080, 4317 and 4318.
 
 ## 2. Verify the candidate checkout and the frozen input
 
@@ -47,6 +51,13 @@ A dirty checkout, a different location, or a mismatch stops the run (I5 §§5, 1
 ```bash
 cd "$RUNTIME"
 : "${NEO4J_PASSWORD:?}" "${FERNET_KEY:?}" "${AIP_CANDIDATE_SHA:?}"
+unset COMPOSE_FILE COMPOSE_PROFILES   # only this dossier's docker-compose.yml, no extra profiles
+
+# PR #242 review: the run must mount exactly this dossier's frozen Dag directory. The Compose file
+# has no environment override for it, and this check proves it on the resolved configuration.
+[ "$(docker compose config --format json | jq -r '
+    [.services[] | .volumes[]? | select(.target == "/opt/airflow/dags") | .source] | unique | .[]')"   = "$RUNTIME/dags" ] || { echo "Dag mount is not $RUNTIME/dags" >&2; exit 1; }
+
 docker compose pull --ignore-buildable   # every third-party image is referenced as tag@digest
 ```
 
