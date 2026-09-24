@@ -2,8 +2,14 @@
 
 ## Node labels
 
-`Service`, `Operation`, `Queue`, `Message`, `Schema`, `Evidence` — each with a Neo4j uniqueness
-constraint on `id` (`app/graph/schema.py`).
+`Service`, `Operation`, `Queue`, `Topic`, `Subscription`, `Message`, `Schema`, `Evidence` — each
+with a Neo4j uniqueness constraint on `id` (`app/graph/schema.py`). `Topic` and `Subscription` were
+added in v0.5.0 I4.
+
+`PubSubDeclaration` and `SubscriptionDeadLetterConfiguration` (v0.5.0 I4) are internal,
+source-owned carrier nodes with their own uniqueness constraints. Like the Infrastructure labels
+below, they have no relationships, are never exposed through REST or MCP, and are not snapshot
+inputs. See [Pub/Sub](#pubsub-v050-i4) below.
 
 `InfrastructureEntity`, `InfrastructureContribution`, `InfrastructureClaim`, and
 `InfrastructureClaimContribution` (v0.5.0 I2, Kubernetes discovery) also exist as real Neo4j node
@@ -22,7 +28,10 @@ excluded too.
 | `REQUEST_SCHEMA` / `RESPONSE_SCHEMA` | Operation -> Schema | REST payloads |
 | `SENDS` | Service -> Queue | async sender |
 | `RECEIVES_FROM` | Service -> Queue | async consumer |
-| `CARRIES` | Queue -> Message | message type on queue |
+| `RECEIVES_FROM` | Service -> Subscription | Pub/Sub consumer (v0.5.0 I4) |
+| `PUBLISHES_TO` | Service -> Topic | Pub/Sub publisher (v0.5.0 I4) |
+| `SUBSCRIPTION_OF` | Subscription -> Topic | the one Topic a Subscription belongs to (v0.5.0 I4) |
+| `CARRIES` | Queue -> Message, Topic -> Message | message type on the destination |
 | `CONFORMS_TO` | Message -> Schema | message payload schema |
 | `DEAD_LETTERS_TO` | Queue -> Queue | DLQ relationship |
 
@@ -37,6 +46,26 @@ declared or observed it. There is no direct graph edge from a relation to `Evide
 up via `MATCH (e:Evidence) WHERE e.id IN r.evidence_ids`, or use `GET /api/services/{id}/evidence` /
 `GET /api/queues/{id}/evidence` / `GET /api/evidence/{id}`. See [`evidence.md`](evidence.md) for the
 full `Evidence` shape.
+
+## Pub/Sub (v0.5.0 I4)
+
+`A -[:PUBLISHES_TO]-> Topic <-[:SUBSCRIPTION_OF]- Subscription <-[:RECEIVES_FROM]- B` means a
+message flow from A to B through that Subscription. The model keeps three shapes apart:
+- **Fan-out** is expressed only by distinct Subscriptions on one Topic.
+- **Competing consumers:** several instances of one Service, or several Services, behind one
+  Subscription compete for its messages. That is not fan-out.
+- **No Topic-level consumer:** no Service ever `RECEIVES_FROM` a Topic directly.
+
+A Queue's `SENDS`/`RECEIVES_FROM` semantics are unchanged, and a Queue is never reclassified as a
+Topic. There is no generic `Destination` label, and a Subscription dead-letter configuration never
+creates a `DEAD_LETTERS_TO` relation. It stays an opaque token on the internal
+`SubscriptionDeadLetterConfiguration` node.
+
+All four Pub/Sub relations go through the same MERGE, ownership, replay and expiry engine as every
+other relation. Runtime evidence can attach OBSERVED evidence to a declared `PUBLISHES_TO` or
+`RECEIVES_FROM -> Subscription` relation, but it never creates a Topic or Subscription node (see
+[`opentelemetry.md`](opentelemetry.md)). Topic and Subscription nodes and their relations are part of
+the snapshot fingerprint (canonicalization version 3). The two internal carrier labels are not.
 
 ## `DEPLOYED_AS` (v0.5.0 I3) — computed, not a stored graph edge
 

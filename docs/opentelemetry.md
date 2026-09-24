@@ -37,7 +37,14 @@ target).
 
 **Messaging** (`app/telemetry/semconv/messaging.py`): `messaging.system`,
 `messaging.destination.name`, `messaging.destination.template`, `messaging.operation.name`,
-`messaging.operation.type`.
+`messaging.operation.type`. `messaging.destination_kind` (v0.4.1) is read only as destination-kind
+safety evidence. v0.5.0 I4 widened the destination side by exactly two keys:
+- `messaging.destination.subscription.name` resolves a declared Subscription, but only within an
+  already-resolved declared Topic.
+- `messaging.consumer.group.name` is read only so that its refusal to act as Subscription identity is
+  enforced and testable. It is never retained.
+
+See [Pub/Sub observations](#pubsub-observations-v050-i4).
 
 Never read, never persisted: authorization headers, cookies, request/response bodies, message
 bodies, query parameters, full URLs, or any other raw span attribute. `server.address`/
@@ -130,6 +137,47 @@ it never fabricates one. The fixed reason-code set (`app/telemetry/adapter.py`):
 | `missing_caller_identity` | A SERVER-only span — its caller can never be identified from the current allowlist |
 | `correlation_expired` | A CLIENT-only span that aged out of the buffer with not even method/route present |
 
+## Pub/Sub observations (v0.5.0 I4)
+
+Runtime evidence can only *qualify* declared Topic and Subscription topology. It never creates an
+observed-only Topic or Subscription.
+
+**Topic resolution** (`app/telemetry/messaging_guards.py::decide_messaging_destination`, a front
+guard over the unchanged v0.4.1 Queue guard). A Topic resolves only when:
+- `messaging.destination.name` is present;
+- exactly one declared Topic candidate matches it, using the same precedence as for Queues:
+  1. an exact name plus a compatible `messaging.system`;
+  2. an exact name with no conflicting namespace;
+  3. a configured `telemetry.topic_aliases` entry, consulted only when there is no unique direct
+     match;
+- any present `messaging.destination_kind` is compatible;
+- the existing Service-identity guard accepts the span.
+
+Around that rule:
+- **Aliases never cross kinds:** Queue aliases never select a Topic, Topic aliases never select a
+  Queue, and Subscription aliases do not exist.
+- **Ambiguity:** a bare name that matches both a declared Queue and a declared Topic is unresolved.
+- **`messaging.destination_kind`:**
+  - `topic` with no declared Topic keeps v0.4.1's `unsupported_destination_semantics`.
+  - `subscription` is unsupported.
+
+**Consumer spans.** A consumer span supports `Service -[RECEIVES_FROM]-> Subscription` only when all
+of these hold:
+- `messaging.destination.name` resolves the declared Topic;
+- `messaging.destination.subscription.name` matches a declared Subscription of that Topic exactly
+  (NFC, with no case folding or trimming);
+- `SUBSCRIPTION_OF` links the two.
+
+This is the Google Cloud Pub/Sub and Azure Service Bus consumer shape. A consumer group, even one
+equal to a Subscription name, never resolves, creates or aliases a Subscription. That makes Kafka
+consumer-group spans unresolved by design.
+
+**Publisher spans.** A `send` to a resolved Topic attaches OBSERVED evidence to the declared
+`PUBLISHES_TO`.
+
+**Unmatched spans.** An unmatched Pub/Sub span stays an in-memory `UnresolvedObservation` on its
+batch. It is never persisted, never enters the snapshot, and is never exposed publicly.
+
 ## Declared vs. observed, and coverage qualification
 
 See [`graph-model.md`](graph-model.md) for the full `CONFIRMED`/`OBSERVED_ONLY`/
@@ -147,6 +195,13 @@ telemetry coverage to judge by" — so it can be qualified with a coverage class
 
 This is a coarse, deliberately non-numeric classification — never interpreted as `obsolete`,
 `unused`, or `dead`.
+
+Since v0.5.0 I4, "messaging" covers Pub/Sub as well as Queues. Observed `PUBLISHES_TO -> Topic`
+counts toward a service's messaging coverage just like `SENDS -> Queue`, and observed
+`RECEIVES_FROM -> Subscription` counts like `RECEIVES_FROM -> Queue`. A declared-only
+`PUBLISHES_TO` route is qualified by the same messaging signal. There is one shared rule,
+`app/analysis/runtime.py::telemetry_coverage`, so O5's `messaging_observed` is also true for a
+service whose only telemetry is Pub/Sub.
 
 ## `observation_count` is not a request counter
 

@@ -1,7 +1,7 @@
 # 17. Source-independent Topic/Subscription semantics, with both ADR 0013 guards retained
 
-Status: Proposed. The `GO` decision was recorded in `v0.5.0` I4 Slice 1. This ADR moves to
-Accepted when the I4 work it describes lands (I4 Slice 6). It supersedes
+Status: Accepted — implemented in `v0.5.0` I4 (Slices 1-6, #228-#234; see [`i4-completion-record.md`](../specifications/0.5.0/i4-completion-record.md)). The `GO`
+decision was recorded in I4 Slice 1. It supersedes
 [ADR 0013](0013-no-topic-family-without-guards.md) **only** with respect to ADR 0013's
 Topic/Subscription prohibition.
 

@@ -88,6 +88,34 @@ from that group's own persisted `first_seen`/`last_seen`/`capturedAt`, so a Path
 at the same snapshot, per spec §16.2's unconditional drill-down requirement — never by skipping
 Path C's own window check.
 
+## Pub/Sub evidence (v0.5.0 I4)
+
+**Declared.** A declared Topic, Subscription or Pub/Sub relation carries the declaring AsyncAPI
+document's ordinary `DECLARED` evidence, exactly like a Queue. The fuller per-artifact retention the
+I4 spec requires (§11) is kept on an internal `PubSubDeclaration` node, one per declaring source and
+pointer. It records:
+- the source instance, revision, locator and pointer;
+- the semantic digest;
+- the adapter and mapping rule;
+- the broker, namespace and kind evidence;
+- the identity inputs and methods.
+
+That node is not an `Evidence` node, it is never publicly resolvable, and it is not a snapshot input.
+The same holds for `SubscriptionDeadLetterConfiguration`.
+
+**Observed.** Runtime evidence for a resolved Pub/Sub span is an ordinary `OBSERVED` evidence record
+(`MESSAGING_SEND`/`MESSAGING_RECEIVE`/`MESSAGING_PROCESS`, below). It attaches to the declared
+`PUBLISHES_TO` or `RECEIVES_FROM -> Subscription` relation. It never captures payloads, headers,
+credentials, broker configuration or filters, and never a consumer-group name.
+
+**Public drill-down.** `get_evidence` resolves any Pub/Sub claim's refs and lists the supported
+`PUBLISHES_TO`/`SUBSCRIPTION_OF`/`RECEIVES_FROM`/`CARRIES` facts at the answer's snapshot.
+
+**Snapshot identity.** A declared record's `source_file` is the document's absolute path, and it is
+part of the snapshot fingerprint. The same inputs imported from a different checkout location
+therefore produce the same claims, claim ids and evidence ids, but a different `snapshot_id`. This
+predates I4 and was disclosed during I4 qualification.
+
 ## `correlation_mode`
 
 For `OBSERVED` evidence produced by the OpenTelemetry pipeline, `correlation_mode` records *how*

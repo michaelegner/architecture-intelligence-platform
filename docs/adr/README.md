@@ -18,11 +18,11 @@ project's stated architecture principles.
 | [0010](0010-single-qualification-rule.md) | The declared-vs-observed rule has one owner and one executable cross-check (Accepted) |
 | [0011](0011-snapshot-identity-read-cost.md) | Snapshot identity must not cost a full-graph read per call (Proposed) |
 | [0012](0012-observed-evidence-retention.md) | Observed evidence is compacted on a retention policy, never silently dropped (Proposed) |
-| [0013](0013-no-topic-family-without-guards.md) | No topic/pub-sub family in the Canonical Model without both safety guards |
+| [0013](0013-no-topic-family-without-guards.md) | No topic/pub-sub family in the Canonical Model without both safety guards (Accepted; superseded in part by 0017) |
 | [0014](0014-negotiated-mcp-client-interoperability.md) | Support negotiated MCP client interoperability without weakening the direct 2026-07-28 contract (Accepted) |
 | [0015](0015-bounded-reference-resolution.md) | Bounded multi-file `$ref` resolution is hand-rolled, not delegated to `referencing` (Accepted) |
-| [0016](0016-public-architecture-knowledge-adapters.md) | Use REST and standard negotiated MCP as the public Architecture Knowledge adapters (Proposed) |
-| [0017](0017-source-independent-pubsub-semantics.md) | Source-independent Topic/Subscription semantics, with both ADR 0013 guards retained (Proposed; supersedes 0013 in part) |
+| [0016](0016-public-architecture-knowledge-adapters.md) | Use REST and standard negotiated MCP as the public Architecture Knowledge adapters (Accepted) |
+| [0017](0017-source-independent-pubsub-semantics.md) | Source-independent Topic/Subscription semantics, with both ADR 0013 guards retained (Accepted; supersedes 0013 in part) |
 
 A new ADR is numbered sequentially and never renumbered or deleted — if a decision is superseded,
 add a new ADR and mark the old one's Status as `Superseded by NNNN`.

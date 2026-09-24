@@ -310,6 +310,8 @@ per-service telemetry coverage). None of these involve the LLM — see
 
 - Evidence-qualified service dependencies and architecture drift, via three read-only MCP tools
 - OpenAPI, AsyncAPI and OpenTelemetry evidence, reconciled into one graph
+- Queue *and* source-independent Pub/Sub semantics. Topic fan-out is expressed only through
+  explicitly declared Subscriptions, and a Kafka consumer group is never treated as a Subscription.
 - Snapshot-bound provenance — every claim traces back to the spec file, manifest, or observation
   window that produced it
 - Deterministic declared-vs-observed reconciliation, with cross-batch OTel correlation
@@ -425,6 +427,11 @@ observation-context-free and requires an explicit `snapshot_id`.
 
 **Direct dependencies only.** One hop — no transitive traversal, and no generic Cypher or graph
 query surface behind the tools.
+
+**Declared Pub/Sub only.** Topics and Subscriptions come only from declared AsyncAPI (or configured
+mappings). Runtime telemetry can confirm them but never invents them, and AIP has no live broker
+discovery for Kafka, Azure Service Bus, Google Pub/Sub or RabbitMQ (see
+[`docs/ingestion.md`](docs/ingestion.md#topic-and-subscription-v050-i4)).
 
 **One path, two connection modes.** `/mcp` speaks the strict `2026-07-28` per-request envelope as
 before, and also accepts standard negotiated MCP client initialization on that same path — both
