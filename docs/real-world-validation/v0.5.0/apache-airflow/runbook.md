@@ -10,6 +10,13 @@ export AIP_CHECKOUT=/home/michael/code/ArchitectureIntelligencePlatform   # froz
 export DOSSIER="$AIP_CHECKOUT/docs/real-world-validation/v0.5.0/apache-airflow"
 export RUNTIME="$DOSSIER/runtime"
 export RUN_DIR="$(mktemp -d)"                                             # this run's records
+# Every Compose call goes through frozen_compose (PR #243 review). It uses exactly the frozen
+# file, a fixed project name and no env file. So it ignores any gitignored .env (which could set
+# COMPOSE_FILE) and any docker-compose.override.yml; the clean-checkout gate can see neither.
+frozen_compose() {
+  docker compose -p airflow-i5 --project-directory "$RUNTIME" -f "$RUNTIME/docker-compose.yml" \
+    --env-file /dev/null "$@"
+}
 export NEO4J_PASSWORD='replace-with-a-local-password'
 export FERNET_KEY="$(python3 -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())")"
 ```
@@ -51,21 +58,21 @@ A dirty checkout, a different location, or a mismatch stops the run (I5 §§5, 1
 ```bash
 cd "$RUNTIME"
 : "${NEO4J_PASSWORD:?}" "${FERNET_KEY:?}" "${AIP_CANDIDATE_SHA:?}"
-unset COMPOSE_FILE COMPOSE_PROFILES   # only this dossier's docker-compose.yml, no extra profiles
+unset COMPOSE_PROFILES   # no extra profiles; frozen_compose already fixes the file and ignores .env
 
 # PR #242 review: the run must mount exactly this dossier's frozen Dag directory. The Compose file
 # has no environment override for it, and this check proves it on the resolved configuration.
-[ "$(docker compose config --format json | jq -r '
+[ "$(frozen_compose config --format json | jq -r '
     [.services[] | .volumes[]? | select(.target == "/opt/airflow/dags") | .source] | unique | .[]')"   = "$RUNTIME/dags" ] || { echo "Dag mount is not $RUNTIME/dags" >&2; exit 1; }
 
-docker compose pull --ignore-buildable   # every third-party image is referenced as tag@digest
+frozen_compose pull --ignore-buildable   # every third-party image is referenced as tag@digest
 ```
 
 ## 4. Clean state, then build the AIP candidate image from the verified checkout
 
 ```bash
-docker compose down -v            # I5 §11: every run begins from clean AIP and upstream state
-docker compose build --no-cache architecture-intelligence
+frozen_compose down -v            # I5 §11: every run begins from clean AIP and upstream state
+frozen_compose build --no-cache architecture-intelligence
 docker image inspect --format '{{.Id}}' "aip-i5-candidate:$AIP_CANDIDATE_SHA" > "$RUN_DIR/aip-image"
 ```
 
@@ -76,21 +83,21 @@ recorded AIP image id.
 ## 5. Start the system, verify what runs, and wait for readiness
 
 ```bash
-docker compose up -d --no-build --force-recreate --scale airflow-worker=2
+frozen_compose up -d --no-build --force-recreate --scale airflow-worker=2
 
 check_image() {  # <container id> <expected image id>
   local actual
   actual="$(docker inspect --format '{{.Image}}' "$1")"
   [ "$actual" = "$2" ] || { echo "$1 runs $actual, expected $2" >&2; exit 1; }
 }
-check_image "$(docker compose ps -q architecture-intelligence)" "$(cat "$RUN_DIR/aip-image")"
-[ "$(docker compose exec -T architecture-intelligence printenv AIP_BUILD_REVISION)" = \
+check_image "$(frozen_compose ps -q architecture-intelligence)" "$(cat "$RUN_DIR/aip-image")"
+[ "$(frozen_compose exec -T architecture-intelligence printenv AIP_BUILD_REVISION)" = \
   "$AIP_CANDIDATE_SHA" ]
-[ "$(docker compose ps -q airflow-worker | wc -l)" -eq 2 ]
+[ "$(frozen_compose ps -q airflow-worker | wc -l)" -eq 2 ]
 
 # Every other image is referenced by digest in docker-compose.yml, so Docker cannot run other
 # bytes. Record them anyway.
-docker compose images --format json > "$RUN_DIR/compose-images.json"
+frozen_compose images --format json > "$RUN_DIR/compose-images.json"
 [ -z "$(git -C "$AIP_CHECKOUT" status --porcelain)" ]   # still the clean candidate
 ```
 
@@ -116,7 +123,7 @@ comparator cannot express", item 1.
 
 ## 7. Verify the OTLP path
 
-This is the same as v0.3 step 5: `docker compose logs -f otel-collector`.
+This is the same as v0.3 step 5: `frozen_compose logs -f otel-collector`.
 
 ## 8. Start the observation window and run the frozen traffic
 
@@ -134,7 +141,7 @@ relation, so the drain signal is AIP's own successful `/v1/traces` ingestion:
 sleep 15   # longer than otel-collector-config.yaml's 5s batch timeout
 RECEIVED=0
 for i in $(seq 1 15); do
-  RECEIVED="$(docker compose logs --since "$WINDOW_START" architecture-intelligence 2>/dev/null \
+  RECEIVED="$(frozen_compose logs --since "$WINDOW_START" architecture-intelligence 2>/dev/null \
     | grep -c 'POST /v1/traces HTTP/1.1" 200' || true)"
   [ "${RECEIVED:-0}" -gt 0 ] && break
   sleep 2
@@ -185,7 +192,7 @@ with exactly one disposition (I5 §11).
 ## 12. Tear down
 
 ```bash
-cd "$RUNTIME" && docker compose down -v
+cd "$RUNTIME" && frozen_compose down -v
 ```
 
 A paired rerun for I5 §12 sets a new `RUN_DIR="$(mktemp -d)"` and a new `FERNET_KEY`. It then

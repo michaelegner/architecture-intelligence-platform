@@ -115,3 +115,18 @@ def test_compose_interpolates_only_the_three_required_variables():
         if volume.endswith(":/opt/airflow/dags")
     }
     assert dag_mounts == {"./dags:/opt/airflow/dags"}
+
+
+def test_runbook_invokes_compose_only_through_the_frozen_helper():
+    # PR #243 review: a bare `docker compose` would honor a gitignored .env (e.g. COMPOSE_FILE) or a
+    # docker-compose.override.yml that the clean-checkout gate cannot see.
+    runbook = (DOSSIER / "runbook.md").read_text()
+    helper = re.search(r"^frozen_compose\(\) \{\n(.*?)\n\}", runbook, re.DOTALL | re.MULTILINE)
+
+    assert helper is not None
+    body = " ".join(helper.group(1).split())
+    assert body == (
+        'docker compose -p airflow-i5 --project-directory "$RUNTIME" '
+        '-f "$RUNTIME/docker-compose.yml" \\ --env-file /dev/null "$@"'
+    )
+    assert runbook.count("docker compose") == 1  # only inside the helper

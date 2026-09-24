@@ -20,11 +20,19 @@ export AIP_CHECKOUT=/home/michael/code/ArchitectureIntelligencePlatform   # froz
 export DOSSIER="$AIP_CHECKOUT/docs/real-world-validation/v0.5.0/quarkus-super-heroes"
 export RUNTIME="$DOSSIER/runtime"
 export RUN_DIR="$(mktemp -d)"                                             # this run's records
+# Every Compose call goes through frozen_compose (PR #243 review). It uses exactly the frozen
+# file, a fixed project name and no env file. So it ignores any gitignored .env (which could set
+# COMPOSE_FILE) and any docker-compose.override.yml; the clean-checkout gate can see neither.
+frozen_compose() {
+  docker compose -p qsh-i5 --project-directory "$RUNTIME" -f "$RUNTIME/docker-compose.yml" \
+    --env-file /dev/null "$@"
+}
 export NEO4J_PASSWORD='replace-with-a-local-password'
 ```
 
 `docker-compose.yml` requires `NEO4J_PASSWORD`, `AIP_CANDIDATE_SHA` and
-`QUARKUS_SUPERHEROES_CHECKOUT`. Compose checks them for every command, including `down`. The last two
+`QUARKUS_SUPERHEROES_CHECKOUT`, and it interpolates no other variable. Compose checks them for every
+command, including `down`. The last two
 are exported by step 2. Run every step in this one shell, including the step 12 teardown.
 
 ## 1. Prerequisites
@@ -99,8 +107,20 @@ done
 ```bash
 cd "$RUNTIME"
 : "${NEO4J_PASSWORD:?}" "${AIP_CANDIDATE_SHA:?}" "${QUARKUS_SUPERHEROES_CHECKOUT:?}"  # PR #240 review
-docker compose down -v            # I5 §11: every run begins from clean AIP and upstream state
-docker compose build --no-cache architecture-intelligence
+unset COMPOSE_PROFILES   # no extra profiles; frozen_compose already fixes the file and ignores .env
+
+# Every bind mount must come from this dossier's runtime/ or from the verified pinned clone (step 2).
+frozen_compose config --format json | jq -r \
+  '.services[] | .volumes[]? | select(.type == "bind") | .source' | sort -u |
+  while read -r src; do
+    case "$src" in
+      "$RUNTIME"/*|"$QUARKUS_SUPERHEROES_CHECKOUT"/*) ;;
+      *) echo "unexpected bind mount source: $src" >&2; exit 1 ;;
+    esac
+  done
+
+frozen_compose down -v            # I5 §11: every run begins from clean AIP and upstream state
+frozen_compose build --no-cache architecture-intelligence
 docker image inspect --format '{{.Id}}' "aip-i5-candidate:$AIP_CANDIDATE_SHA" > "$RUN_DIR/aip-image"
 ```
 
@@ -118,22 +138,22 @@ Nothing in the frozen configuration is edited: `config.quarkus-i5.yaml`, `mappin
 ## 5. Start the system, verify what runs, and wait for readiness
 
 ```bash
-docker compose up -d --no-build --force-recreate
+frozen_compose up -d --no-build --force-recreate
 
 # Every running container must use exactly the image this run built or pinned.
 check_image() {  # <compose service> <expected image id>
   local actual
-  actual="$(docker inspect --format '{{.Image}}' "$(docker compose ps -q "$1")")"
+  actual="$(docker inspect --format '{{.Image}}' "$(frozen_compose ps -q "$1")")"
   [ "$actual" = "$2" ] || { echo "$1 runs $actual, expected $2" >&2; exit 1; }
 }
 check_image architecture-intelligence "$(cat "$RUN_DIR/aip-image")"
 while read -r svc id; do check_image "$svc-java25" "$id"; done < "$RUN_DIR/service-images"
-[ "$(docker compose exec -T architecture-intelligence printenv AIP_BUILD_REVISION)" = \
+[ "$(frozen_compose exec -T architecture-intelligence printenv AIP_BUILD_REVISION)" = \
   "$AIP_CANDIDATE_SHA" ]
 
 # The third-party images are referenced by digest in docker-compose.yml, so Docker cannot run
 # other bytes. Record them anyway.
-docker compose images --format json > "$RUN_DIR/compose-images.json"
+frozen_compose images --format json > "$RUN_DIR/compose-images.json"
 [ -z "$(git -C "$AIP_CHECKOUT" status --porcelain)" ]   # still the clean candidate
 ```
 
@@ -163,7 +183,7 @@ configured source is its own atomic run, so this is expected.
 
 ## 7. Verify the OTLP path
 
-This is the same as v0.3 step 7: `docker compose logs -f otel-collector`.
+This is the same as v0.3 step 7: `frozen_compose logs -f otel-collector`.
 
 ## 8. Start the observation window and run the frozen traffic
 
@@ -246,7 +266,7 @@ entities) from public reads at the captured snapshot. Every material mismatch be
 ## 12. Tear down
 
 ```bash
-cd "$RUNTIME" && docker compose down -v
+cd "$RUNTIME" && frozen_compose down -v
 ```
 
 A paired rerun for I5 §12 sets a new `RUN_DIR="$(mktemp -d)"` and repeats steps 2-12 from this
