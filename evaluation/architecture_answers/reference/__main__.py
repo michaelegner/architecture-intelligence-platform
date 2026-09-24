@@ -24,7 +24,9 @@ from evaluation.architecture_answers.reference import identities, snapshot
 _DATABASE = "neo4j"
 
 
-def _print_snapshot(scenario_dir: str) -> None:
+def _print_snapshot(
+    scenario_dir: str, mapping_artifact: snapshot.MappingArtifactIdentity | None = None
+) -> None:
     # Evidence.source_file (spec §18's allowlist) reflects the exact path string import_all_sources
     # was given verbatim - deliberately NOT resolved to an absolute path. An absolute,
     # checkout-location-specific path would make the printed fingerprint (and any expected_answer
@@ -38,7 +40,9 @@ def _print_snapshot(scenario_dir: str) -> None:
             fixture_setup.prepare_scenario(driver, database=_DATABASE, scenario_path=scenario_path)
             with driver.session(database=_DATABASE) as session:
                 snapshot_id, model_revision = snapshot.fingerprint(
-                    session, coverage_qualification_enabled=True
+                    session,
+                    coverage_qualification_enabled=True,
+                    mapping_artifact=mapping_artifact,
                 )
         finally:
             driver.close()
@@ -104,6 +108,11 @@ def main(argv: list[str] | None = None) -> int:
         "snapshot", help="prepare a scenario fixture, print its fingerprint"
     )
     snap.add_argument("scenario_dir")
+    # I3 §8.3: only for a scenario whose answers run with a configured Service-Workload mapping
+    # artifact. Give all three or none.
+    snap.add_argument("--mapping-artifact-id", default=None)
+    snap.add_argument("--mapping-artifact-revision", default=None)
+    snap.add_argument("--mapping-content-digest", default=None)
 
     ctx = subparsers.add_parser("context-id")
     ctx.add_argument("environment")
@@ -132,7 +141,19 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command == "snapshot":
-        _print_snapshot(args.scenario_dir)
+        artifact_fields = (
+            args.mapping_artifact_id,
+            args.mapping_artifact_revision,
+            args.mapping_content_digest,
+        )
+        if any(field is not None for field in artifact_fields) and None in artifact_fields:
+            parser.error("give all three --mapping-* flags or none")
+        mapping_artifact = (
+            snapshot.MappingArtifactIdentity(*artifact_fields)
+            if artifact_fields[0] is not None
+            else None
+        )
+        _print_snapshot(args.scenario_dir, mapping_artifact)
     elif args.command == "context-id":
         _print_context_id(args.environment, args.window_start, args.window_end)
     elif args.command == "claim-id":

@@ -6,7 +6,7 @@ No composite/weighted score - only concrete counts (I1 §22), using the field na
 
 from __future__ import annotations
 
-from real_world_validation.model import Finding
+from real_world_validation.model import DeploymentFact, Finding
 
 CRITICAL_SEVERITY = "CRITICAL"
 
@@ -19,6 +19,9 @@ def _fact_lines(label: str, finding: Finding) -> list[str]:
     fact = finding.expected if label == "Expected" else finding.actual
     if fact is None:
         return [f"{label}: (none)"]
+    if isinstance(fact, DeploymentFact):
+        methods = ",".join(fact.supporting_methods) if fact.supporting_methods is not None else "?"
+        return [f"{label}:", f"  {fact.render()}", f"  status: {fact.status}  methods: {methods}"]
     lines = [f"{label}:", f"  {fact.type}", f"  {fact.source}", f"    -> {fact.target}"]
     if (
         fact.status is not None
@@ -34,6 +37,8 @@ def _fact_lines(label: str, finding: Finding) -> list[str]:
 
 def _format_finding(finding: Finding) -> list[str]:
     lines = ["", f"[{finding.classification}/{finding.severity}] {finding.id}"]
+    if finding.forbidden is not None:
+        lines.append(f"Forbidden: {finding.forbidden}")
     if finding.expected is not None:
         lines += _fact_lines("Expected", finding)
     if finding.actual is not None:
@@ -52,13 +57,18 @@ def render(findings: list[Finding]) -> str:
     for finding in findings:
         lines.extend(_format_finding(finding))
 
+    # Forbidden-fact findings (v0.5.0 I5 §7) are negative expectations. They get their own counts
+    # and are never counted as expected supported or correct facts.
+    positive = [f for f in findings if f.forbidden is None]
+    forbidden = [f for f in findings if f.forbidden is not None]
+
     def _count(classification: str) -> int:
-        return sum(1 for f in findings if f.classification == classification)
+        return sum(1 for f in positive if f.classification == classification)
 
     expected_supported = sum(
-        1 for f in findings if f.classification in {"CORRECT", "MISSING_SUPPORTED"}
+        1 for f in positive if f.classification in {"CORRECT", "MISSING_SUPPORTED"}
     ) + sum(
-        1 for f in findings if f.classification == "INCORRECT_SUPPORTED" and f.expected is not None
+        1 for f in positive if f.classification == "INCORRECT_SUPPORTED" and f.expected is not None
     )
     correct = _count("CORRECT")
     missing_supported = _count("MISSING_SUPPORTED")
@@ -67,6 +77,8 @@ def render(findings: list[Finding]) -> str:
     unresolved_identities = _count("UNRESOLVED_IDENTITY")
     insufficient_evidence = _count("INSUFFICIENT_EVIDENCE")
     critical = sum(1 for f in findings if f.severity == CRITICAL_SEVERITY)
+    forbidden_absent = sum(1 for f in forbidden if f.classification == "CORRECT")
+    forbidden_present = sum(1 for f in forbidden if f.classification == "INCORRECT_SUPPORTED")
 
     lines += [
         "",
@@ -77,6 +89,8 @@ def render(findings: list[Finding]) -> str:
         f"Unsupported constructs:        {unsupported}",
         f"Unresolved identities:         {unresolved_identities}",
         f"Insufficient evidence:         {insufficient_evidence}",
+        f"Forbidden facts proven absent: {forbidden_absent}",
+        f"Forbidden facts present:       {forbidden_present}",
         f"Critical semantic errors:      {critical}",
     ]
     return "\n".join(lines)

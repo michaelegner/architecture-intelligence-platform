@@ -99,6 +99,53 @@ class RelationFact:
     observed_evidence: bool | None = None
 
 
+# v0.5.0 I5 §7: the public `DeploymentResolution.status` values (I3 §13) and the three successful
+# methods, in I3 §10.1's canonical strength order. They are restated here rather than imported from
+# app code, the same way this module keeps its expectation vocabulary self-contained.
+DEPLOYMENT_METHODS = ("RESOLVED_EXPLICIT", "RESOLVED_CONFIGURED", "RESOLVED_OBSERVED")
+DEPLOYMENT_STATUSES = frozenset({*DEPLOYMENT_METHODS, "CONFLICT", "AMBIGUOUS", "UNRESOLVED"})
+DEPLOYED_AS = "DEPLOYED_AS"
+WORKLOAD_KINDS = frozenset({"DEPLOYMENT", "STATEFULSET", "DAEMONSET"})
+
+
+@dataclass(frozen=True, order=True)
+class WorkloadKey:
+    """A Workload named the way an upstream manifest names it: never a production id, so a dossier
+    can author it from the upstream manifests alone (I5 §6)."""
+
+    namespace: str
+    kind: str
+    name: str
+
+    def render(self) -> str:
+        return f"{self.namespace}/{self.kind}/{self.name}"
+
+
+@dataclass(frozen=True, order=True)
+class DeploymentFact:
+    """One public `Service -[DEPLOYED_AS]-> Workload` outcome (I5 §7), taken from a public
+    `DeploymentResolution` and never from a graph edge. `service`/`workload` are None exactly when
+    the public resolution leaves them null. `supporting_methods` is None in an expectation that
+    doesn't assert it."""
+
+    service: str | None
+    workload: WorkloadKey | None
+    status: str
+    supporting_methods: tuple[str, ...] | None = None
+
+    @property
+    def identity(self) -> tuple[str, tuple[str, str, str]]:
+        workload = self.workload
+        return (
+            self.service or "",
+            (workload.namespace, workload.kind, workload.name) if workload else ("", "", ""),
+        )
+
+    def render(self) -> str:
+        workload = self.workload.render() if self.workload else "(no workload)"
+        return f"{DEPLOYED_AS} {self.service or '(no service)'} -> {workload}"
+
+
 @dataclass(frozen=True)
 class ScopeDeclaration:
     """The dossier's declared supported comparison scope (I1 §11/§17 `scope:`). A fact is in scope
@@ -118,6 +165,33 @@ class ScopeDeclaration:
 class ExpectedRelation:
     id: str
     fact: RelationFact
+
+
+@dataclass(frozen=True)
+class ExpectedDeployment:
+    id: str
+    fact: DeploymentFact
+
+
+@dataclass(frozen=True)
+class ForbiddenRelation:
+    """v0.5.0 I5 §7: a relation that must be absent. Present means INCORRECT_SUPPORTED; absent means
+    CORRECT, so the negative proof is visible in the report."""
+
+    id: str
+    type: str
+    source: str
+    target: str
+
+
+@dataclass(frozen=True)
+class ForbiddenDeployment:
+    """v0.5.0 I5 §7: a (Service, Workload) pair that must not resolve. It is violated by any
+    `RESOLVED_*` public resolution for that pair."""
+
+    id: str
+    service: str
+    workload: WorkloadKey
 
 
 @dataclass(frozen=True)
@@ -158,6 +232,18 @@ class ExpectedDocument:
     unsupported: tuple[UnsupportedItem, ...] = field(default=())
     unresolved_identity: tuple[UnresolvedIdentityItem, ...] = field(default=())
     insufficient_evidence: tuple[InsufficientEvidenceItem, ...] = field(default=())
+    # v0.5.0 I5 §7 additions, all optional, so a v0.3 expected.yaml stays valid unchanged.
+    expected_deployments: tuple[ExpectedDeployment, ...] = field(default=())
+    forbidden_relations: tuple[ForbiddenRelation, ...] = field(default=())
+    forbidden_deployments: tuple[ForbiddenDeployment, ...] = field(default=())
+
+
+@dataclass(frozen=True)
+class ActualCapture:
+    """One AIP result capture: relation facts, plus the public deployment outcomes when captured."""
+
+    relations: tuple[RelationFact, ...]
+    deployments: tuple[DeploymentFact, ...] = field(default=())
 
 
 @dataclass(frozen=True)
@@ -167,5 +253,9 @@ class Finding:
     id: str
     classification: str
     severity: str
-    expected: RelationFact | None
-    actual: RelationFact | None
+    expected: RelationFact | DeploymentFact | None
+    actual: RelationFact | DeploymentFact | None
+    # v0.5.0 I5 §7: set only for a forbidden-fact finding. It holds the rendered forbidden pattern,
+    # so a forbidden fact is reported (and counted) as a negative expectation, never as an expected
+    # supported fact.
+    forbidden: str | None = None

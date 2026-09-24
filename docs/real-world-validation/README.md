@@ -26,6 +26,11 @@ I4 adds `cross-system/`: it converts the I2 and I3 dossiers' independent results
 model-hardening decision rather than running a new system profile. I4.1 (finding consolidation and
 decision freeze) is complete — see [`cross-system/README.md`](cross-system/README.md).
 
+**v0.5.0.** The v0.5.0 I5 cross-system qualification lives under [`v0.5.0/`](v0.5.0/README.md). It
+reuses this method and adds the v0.5 vocabulary, the ground-truth authorship rule, and the
+one-checkout-location determinism rule
+([`i5-cross-system-qualification.md`](../specifications/0.5.0/i5-cross-system-qualification.md)).
+
 ## Purpose
 
 AIP `v0.1`/`v0.2` proved architecture intelligence exists and is reproducibly correct against

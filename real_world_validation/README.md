@@ -94,6 +94,51 @@ relations:
       observed: true
 ```
 
+## v0.5.0 additions (I5 Slice 1)
+
+For v0.5.0 I5 ([`i5-cross-system-qualification.md`](../docs/specifications/0.5.0/i5-cross-system-qualification.md)
+§7) the vocabulary gains two optional sections, so every v0.3 `expected.yaml` stays valid unchanged.
+
+**`expected.deployments`.** These are public `Service -[DEPLOYED_AS]-> Workload` outcomes. The
+Workload is named the way an upstream manifest names it, never by a production id:
+
+```yaml
+expected:
+  deployments:
+    - id: qsh-rest-fights-deployment
+      service: service:rest-fights          # or null
+      workload: {namespace: heroes, kind: DEPLOYMENT, name: rest-fights}   # or null
+      status: RESOLVED_CONFIGURED           # RESOLVED_EXPLICIT | RESOLVED_CONFIGURED | RESOLVED_OBSERVED | CONFLICT | AMBIGUOUS | UNRESOLVED
+      supporting_methods: [RESOLVED_CONFIGURED]   # optional; canonical strength order
+```
+
+**`forbidden`.** These are negative expectations. A present forbidden fact is `INCORRECT_SUPPORTED`
+(CRITICAL), reported under the forbidden entry's id. An absent one is `CORRECT`, so the negative
+proof is visible in the report.
+- A forbidden relation must be in scope.
+- A forbidden deployment is violated by any `RESOLVED_*` outcome for its (Service, Workload) pair.
+
+```yaml
+forbidden:
+  relations:
+    - {id: qsh-no-fights-queue, type: SENDS, source: service:rest-fights, target: queue:fights}
+  deployments:
+    - id: qsh-no-name-only
+      service: service:rest-fights
+      workload: {namespace: heroes, kind: DEPLOYMENT, name: rest-fights}
+```
+
+**Capture.**
+- `capture` covers every admitted endpoint-label pair of each relation type deterministically, for
+  example `RECEIVES_FROM` to both Queue and Subscription.
+- `PUBLISHES_TO` carries the same runtime status as `SENDS`.
+- `--aip-config <config.yaml>` (which requires `--until`) also captures public `DEPLOYED_AS`
+  outcomes for the scoped services. They are read through `ArchitectureIntelligenceService`, built
+  exactly as the app builds it (`app.mcp.wiring.production_service_kwargs`), and written under
+  `deployments:`. Without `--aip-config` the capture has no `deployments:` key, and `compare`
+  rejects a dossier with deployment expectations against it (exit `2`) rather than reporting them
+  missing.
+
 ## Classification rules
 
 - Every `expected.relations` entry is matched by canonical identity (`type`, `source`, `target`)
@@ -118,5 +163,6 @@ model.py        the six classifications, severity, RelationFact/ExpectedDocument
 loader.py       strict expected.yaml / actual-facts-capture parsing (I1 §17/§31/§43)
 comparator.py   deterministic classification + sort (I1 §16/§19-21/§34-35)
 reporter.py     plaintext report with I1 §22-23's count fields, no composite score
-__main__.py     `compare` CLI subcommand and exit codes (I1 §32-33)
+capture.py      live Neo4j relation capture, plus public DEPLOYED_AS capture (v0.5.0 I5)
+__main__.py     `compare`/`capture` CLI subcommands and exit codes (I1 §32-33)
 ```
