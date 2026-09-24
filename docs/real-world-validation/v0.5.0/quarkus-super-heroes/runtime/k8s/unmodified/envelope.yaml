@@ -1,0 +1,35 @@
+# I2 §4.2 snapshot envelope for java25-kubernetes.yml (I5 §5; see ../../profile.md, "Input classification").
+# The cluster identity, producer and authority are AIP operator configuration, and they match
+# the `sources.clusters` registration in ../../config.quarkus-i5.yaml.
+apiVersion: aip.dev/v1
+kind: KubernetesSourceSnapshot
+metadata:
+  id: qsh-k8s-upstream-unmodified-snapshot
+  revision: upstream-8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce
+  producer: aip-i5-quarkus-dossier
+  capturedAt: "2026-08-31T11:49:10Z"
+source:
+  configuredSourceId: qsh-k8s-upstream-unmodified
+  configuredScopeId: qsh-k8s-upstream-unmodified-scope
+  clusterUid: qsh-i5-declared-deployment-target
+  clusterIdentityEvidenceRef: qsh-i5-profile-declared-cluster-identity
+  mode: DECLARED_MANIFEST
+scope:
+  namespaces:
+    - quarkus-super-heroes
+  resourceTypes:
+    - apps/v1/DaemonSet
+    - apps/v1/Deployment
+    - apps/v1/ReplicaSet
+    - apps/v1/StatefulSet
+    - networking.k8s.io/v1/Ingress
+    - v1/Namespace
+    - v1/Pod
+    - v1/Service
+completeness:
+  status: COMPLETE
+  authorityRef: qsh-i5-dossier-freeze-authority
+  expectedPriorInventoryRevision: null
+files:
+  - path: java25-kubernetes.yml
+    sha256: a1cd818385b3bbb582be12d5e43960f3f1ce85a619e5a974bc5c3b03c94d2c25

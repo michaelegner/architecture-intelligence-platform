@@ -1,0 +1,329 @@
+---
+openapi: 3.1.2
+info:
+  title: Villain API
+  description: This API allows CRUD operations on a villain
+  contact:
+    name: Quarkus
+    url: https://github.com/quarkusio
+  version: "1.0"
+tags:
+- name: hello
+- name: villains
+paths:
+  /api/villains:
+    get:
+      tags:
+      - villains
+      summary: Returns all the villains from the database
+      operationId: getAllVillains
+      parameters:
+      - name: name_filter
+        in: query
+        description: An optional filter parameter to filter results by name
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Gets all villains
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Villain'
+              examples:
+                villains:
+                  value:
+                  - id: 1
+                    name: Darth Vader
+                    level: 5
+                    picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                    powers: "Uses light sabre, dark side of the force"
+    put:
+      tags:
+      - villains
+      summary: Completely replace all villains with the passed-in villains
+      operationId: replaceAllVillains
+      x-return-type: jakarta.ws.rs.core.Response
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Villain'
+            examples:
+              villains:
+                value:
+                - id: 1
+                  name: Darth Vader
+                  level: 5
+                  picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                  powers: "Uses light sabre, dark side of the force"
+        required: true
+      responses:
+        "201":
+          description: The URI to retrieve all the created villains
+          headers:
+            Location:
+              style: simple
+              schema:
+                format: uri
+                type: string
+        "400":
+          description: Invalid villains passed in (or no request body found)
+    post:
+      tags:
+      - villains
+      summary: Creates a valid villain
+      operationId: createVillain
+      x-return-type: jakarta.ws.rs.core.Response
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Villain'
+            examples:
+              valid_villain:
+                value:
+                  name: Darth Vader
+                  level: 5
+                  picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                  powers: "Uses light sabre, dark side of the force"
+        required: true
+      responses:
+        "201":
+          description: The URI of the created villain
+          headers:
+            Location:
+              style: simple
+              schema:
+                format: uri
+                type: string
+        "400":
+          description: Invalid villain passed in (or no request body found)
+    delete:
+      tags:
+      - villains
+      summary: Delete all villains
+      operationId: deleteAllVillains
+      responses:
+        "204":
+          description: Deletes all villains
+  /api/villains/hello:
+    get:
+      tags:
+      - hello
+      summary: Ping hello
+      operationId: hello
+      responses:
+        "200":
+          description: Ping hello
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                hello_success:
+                  value: Hello Villain Resource
+  /api/villains/random:
+    get:
+      tags:
+      - villains
+      summary: Returns a random villain
+      operationId: getRandomVillain
+      x-return-type: jakarta.ws.rs.core.Response
+      responses:
+        "200":
+          description: Gets random villain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Villain'
+              examples:
+                villain:
+                  value:
+                    id: 1
+                    name: Darth Vader
+                    level: 5
+                    picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                    powers: "Uses light sabre, dark side of the force"
+        "404":
+          description: No villain found
+  /api/villains/{id}:
+    get:
+      tags:
+      - villains
+      summary: Returns a villain for a given identifier
+      operationId: getVillain
+      x-return-type: jakarta.ws.rs.core.Response
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          format: int64
+          type: integer
+      responses:
+        "200":
+          description: Gets a villain for a given id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Villain'
+              examples:
+                villain:
+                  value:
+                    id: 1
+                    name: Darth Vader
+                    level: 5
+                    picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                    powers: "Uses light sabre, dark side of the force"
+        "404":
+          description: The villain is not found for a given identifier
+    put:
+      tags:
+      - villains
+      summary: Completely updates/replaces an exiting villain by replacing it with
+        the passed-in villain
+      operationId: fullyUpdateVillain
+      x-return-type: jakarta.ws.rs.core.Response
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          format: int64
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Villain'
+            examples:
+              valid_villain:
+                value:
+                  id: 1
+                  name: Darth Vader
+                  level: 5
+                  picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                  powers: "Uses light sabre, dark side of the force"
+        required: true
+      responses:
+        "204":
+          description: Replaced the villain
+        "400":
+          description: Invalid villain passed in (or no request body found)
+        "404":
+          description: No villain found
+    delete:
+      tags:
+      - villains
+      summary: Deletes an exiting villain
+      operationId: deleteVillain
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          format: int64
+          type: integer
+      responses:
+        "204":
+          description: Delete a villain
+    patch:
+      tags:
+      - villains
+      summary: Partially updates an exiting villain
+      operationId: partiallyUpdateVillain
+      x-return-type: jakarta.ws.rs.core.Response
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          format: int64
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VillainPatch'
+            examples:
+              valid_villain:
+                value:
+                  id: 1
+                  name: Darth Vader
+                  level: 5
+                  picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                  powers: "Uses light sabre, dark side of the force"
+        required: true
+      responses:
+        "200":
+          description: Updated the villain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Villain'
+              examples:
+                villain:
+                  value:
+                    id: 1
+                    name: Darth Vader
+                    level: 5
+                    picture: https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg
+                    powers: "Uses light sabre, dark side of the force"
+        "400":
+          description: Null villain passed in (or no request body found)
+        "404":
+          description: No villain found
+components:
+  schemas:
+    Villain:
+      required:
+      - name
+      - level
+      type: object
+      properties:
+        id:
+          format: int64
+          type: integer
+        name:
+          maxLength: 50
+          minLength: 3
+          type: string
+        otherName:
+          type: string
+        level:
+          format: int32
+          minimum: 0
+          exclusiveMinimum: true
+          type: integer
+        picture:
+          type: string
+        powers:
+          type: string
+    VillainPatch:
+      description: Partial villain update - all fields are optional
+      type: object
+      properties:
+        id:
+          format: int64
+          type: integer
+        name:
+          maxLength: 50
+          minLength: 3
+          type: string
+        otherName:
+          type: string
+        level:
+          format: int32
+          minimum: 0
+          exclusiveMinimum: true
+          type: integer
+        picture:
+          type: string
+        powers:
+          type: string

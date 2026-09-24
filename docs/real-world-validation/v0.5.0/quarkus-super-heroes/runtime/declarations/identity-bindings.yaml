@@ -1,0 +1,30 @@
+# AIP operator configuration (I5 §6), not ground truth and not upstream evidence.
+#
+# The upstream OpenAPI documents in this directory are byte-identical to the pinned upstream files,
+# and they carry no `x-aip-service-id`. I1 §4.1 forbids deriving Service identity from a
+# directory name, filename or `info.title`. This document binds each OpenAPI source to its Service
+# instead, using I1 §4.1 resolution path 3 and the §4.2 format. Each Service id equals the
+# service's own upstream `quarkus.application.name` (ground-truth.md, "Service identity").
+#
+# Each sourceInstanceId is app.sources.identity.source_instance_id(configured_source_id=
+# "qsh-v0.5-declarations", source_kind=filesystem, normalized_root_document_path=
+# "<service>/openapi.yml"). It therefore depends on the `sources.directories[].id` in
+# ../config.quarkus-i5.yaml.
+apiVersion: aip.dev/v1
+kind: ArchitectureIdentityBindings
+metadata:
+  id: qsh-v0.5-openapi-identity-bindings
+  revision: v1
+bindings:
+  - sourceInstanceId: urn:aip:source:filesystem:d558abaacf8857b0b45b6c0b293edd7b51b2d50898c6df9a33bf46264d37b25f
+    pointerPrefix: ""
+    serviceId: service:rest-fights
+  - sourceInstanceId: urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253
+    pointerPrefix: ""
+    serviceId: service:rest-heroes
+  - sourceInstanceId: urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f
+    pointerPrefix: ""
+    serviceId: service:rest-narration
+  - sourceInstanceId: urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832
+    pointerPrefix: ""
+    serviceId: service:rest-villains
