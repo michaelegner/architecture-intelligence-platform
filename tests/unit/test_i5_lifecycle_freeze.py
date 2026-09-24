@@ -5,7 +5,6 @@ Nothing here imports into AIP. The tests materialize each frozen lifecycle step 
 directory and check its content digest, and they check that the frozen dossiers stay untouched.
 """
 
-import hashlib
 import importlib.util
 import re
 from pathlib import Path
@@ -165,10 +164,51 @@ def test_lifecycle_runbook_invokes_compose_only_through_the_frozen_helper():
 
 
 def test_frozen_queries_are_read_only():
-    for query in sorted((V05 / "queries").glob("*.cypher")):
+    # Word boundaries, so a write clause followed by a newline or a tab is still caught (PR #244).
+    writes = re.compile(r"\b(CREATE|MERGE|SET|DELETE|REMOVE|DETACH|LOAD\s+CSV|FOREACH)\b")
+    queries = sorted((V05 / "queries").glob("*.cypher"))
+    assert {q.stem for q in queries} == {
+        "Q-INV",
+        "Q-SRC",
+        "Q-SRC-SEM",
+        "Q-OWN",
+        "Q-SVC",
+        "Q-REL",
+        "Q-GRAPH",
+    }
+    for query in queries:
         text = re.sub(r"//.*", "", query.read_text()).upper()
-        for write in ("CREATE", "MERGE", "SET ", "DELETE", "REMOVE ", "DETACH"):
-            assert write not in text, (query.name, write)
+        assert writes.search(text) is None, query.name
+
+
+def test_q_graph_orders_the_combined_union_once():
+    # PR #244 review: branch-local ORDER BYs do not order a UNION ALL's combined rows.
+    text = re.sub(r"//.*", "", (V05 / "queries" / "Q-GRAPH.cypher").read_text())
+    assert re.search(r"\}\s*RETURN kind, id, entity\s*ORDER BY kind, id;\s*$", text)
+    assert text.count("ORDER BY") == 1
+
+
+def test_without_x_is_the_exact_owned_graph_projection():
+    spec = importlib.util.spec_from_file_location("i5_without_x", LIFECYCLE / "without_x.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    q_rel = (
+        "type, source, target, key, owners\n"
+        '"CALLS", "service:a", "op:b", "k1", ["s1", "sx"]\n'
+        '"PROVIDES", "service:x", "op:x", "k2", ["sx"]\n'
+        '"PROVIDES", "service:a", "op:a", NULL, ["s1"]\n'
+    )
+    assert module.without_x(q_rel, "sx") == (
+        "type, source, target, key, owners\n"
+        '"CALLS", "service:a", "op:b", "k1", ["s1"]\n'
+        '"PROVIDES", "service:a", "op:a", NULL, ["s1"]\n'
+    )
+
+
+def test_lifecycle_runbook_queries_every_frozen_state_query():
+    runbook = (LIFECYCLE / "runbook.md").read_text()
+    assert "for q in Q-INV Q-SRC Q-SRC-SEM Q-OWN Q-SVC Q-REL; do" in runbook
 
 
 def test_coverage_matrix_fixture_digests_match_the_files_on_disk():
@@ -183,11 +223,5 @@ def test_coverage_matrix_fixture_digests_match_the_files_on_disk():
         "evaluation/architecture_answers/scenarios",
     }
     for path, digest in pinned:
-        tree = ROOT / path
-        files = [p for p in tree.rglob("*") if p.is_file() and "__pycache__" not in p.parts]
-        lines = [
-            f"{p.relative_to(tree).as_posix()}\0{hashlib.sha256(p.read_bytes()).hexdigest()}"
-            for p in sorted(files)
-        ]
-        assert hashlib.sha256("\n".join(lines).encode()).hexdigest() == digest, path
-    assert mutate.tree_digest  # the matrix names this algorithm
+        # The one documented algorithm (coverage-matrix.md names mutate.py::tree_digest).
+        assert mutate.tree_digest(ROOT / path, exclude=frozenset()) == digest, path

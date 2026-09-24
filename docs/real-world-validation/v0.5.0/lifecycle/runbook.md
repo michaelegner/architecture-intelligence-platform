@@ -65,8 +65,12 @@ run_step() {  # <step>; any extra arguments go to mutate.py
   local since; since="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   curl -s -X POST http://localhost:8000/api/import > "$out/import.json"   # also kept when not committed
   frozen_compose logs --since "$since" architecture-intelligence > "$out/aip.log" 2>&1
-  for q in Q-INV Q-SRC Q-OWN Q-SVC; do query "$q" "$out/$q.txt"; done
+  for q in Q-INV Q-SRC Q-SRC-SEM Q-OWN Q-SVC Q-REL; do query "$q" "$out/$q.txt"; done
 }
+
+# X's source instance id, from AIP's own identity function (mutate.x_source_instance_id).
+export X_SOURCE_INSTANCE_ID="$(cd "$LIFECYCLE" && uv run --project "$AIP_CHECKOUT" python -c \
+  "import mutate; print(mutate.x_source_instance_id(mutate.load_scenario('$TARGET')))")"
 
 frozen_compose down -v
 frozen_compose up -d --no-build neo4j
@@ -81,6 +85,20 @@ Each step's `workdir-digest` must equal its pinned digest in
 time; its digest excludes `tombstones.yaml` and is pinned too.
 
 ## 4. Evaluate every step against the frozen expectations
+
+For the removal steps, derive the exact expected owned graph from the predecessor state, then diff
+it against the step's own output. X's source instance id is the tombstone target, or it can be
+computed with `mutate.x_source_instance_id`.
+
+```bash
+for pair in L2:L1 L3:L5; do step=${pair%%:*}; pred=${pair##*:}
+  for q in Q-SVC Q-REL; do
+    uv run --project "$AIP_CHECKOUT" python "$LIFECYCLE/without_x.py" \
+      "$RUN_DIR/$TARGET/$pred/$q.txt" "$X_SOURCE_INSTANCE_ID" > "$RUN_DIR/$TARGET/$step/$q.expected"
+    diff "$RUN_DIR/$TARGET/$step/$q.expected" "$RUN_DIR/$TARGET/$step/$q.txt"
+  done
+done
+```
 
 **Manual:** for each target and step, compare `$RUN_DIR/<target>/<step>/` with the expected
 outcome in `README.md`. Record in the target's `results.md`:

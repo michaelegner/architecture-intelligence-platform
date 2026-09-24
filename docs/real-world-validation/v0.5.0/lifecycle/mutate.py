@@ -159,11 +159,14 @@ def materialize(target: str, step_id: str, workdir: Path, inventory: Path | None
 
 
 def tree_digest(workdir: Path, *, exclude: frozenset[str] = frozenset({TOMBSTONES})) -> str:
-    """sha256 over the sorted `relative-path NUL sha256(bytes)` lines of every file in the tree."""
+    """sha256 over the sorted `relative-path NUL sha256(bytes)` lines of every file in the tree,
+    ignoring `__pycache__`."""
     lines = [
         f"{path.relative_to(workdir).as_posix()}\0{hashlib.sha256(path.read_bytes()).hexdigest()}"
         for path in sorted(workdir.rglob("*"))
-        if path.is_file() and path.relative_to(workdir).as_posix() not in exclude
+        if path.is_file()
+        and "__pycache__" not in path.parts
+        and path.relative_to(workdir).as_posix() not in exclude
     ]
     return hashlib.sha256("\n".join(lines).encode()).hexdigest()
 

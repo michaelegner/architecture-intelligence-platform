@@ -39,23 +39,35 @@ For the L4b unbound copy and the L6 injected identity:
 
 ## Scenario sequence and expected outcomes
 
-The steps run in this order, per target, on one clean state. "State(P)" means the Q-INV, Q-SRC,
-Q-OWN and Q-SVC outputs recorded after step P. "Unchanged" means byte-identical query outputs.
+The steps run in this order, per target, on one clean state.
+- **State(P)** means the outputs of the frozen queries (`../queries/`: Q-INV, Q-SRC, Q-SRC-SEM,
+  Q-OWN, Q-SVC, Q-REL) recorded after step P. "Equals" means byte-identical outputs.
+- **Owned graph** means Q-SVC (owned node ids with their sorted owners) together with Q-REL (owned
+  relationship type, endpoints and key, with sorted owners).
+- **Without_X(P)** is State(P)'s owned graph with X removed from every owner list, and every row
+  whose owner list is then empty dropped. This is I1 §6's rule that a claim expires only when no
+  other source owns it. For a removal step, it is the **exact** expected owned graph. So a
+  relationship that is replaced, re-keyed or re-owned is caught even when the counts match.
+  `without_x.py` computes it deterministically from the predecessor's Q-SVC and Q-REL outputs.
+- **Q-SRC-SEM** holds each source's `semantic_input_digest`. That digest binds the common mapping
+  context, including the identity-bindings index (I1 §5.3). When a step changes the bindings
+  document, the remaining sources' values may legitimately change. The ledger asserts them only
+  where the inputs and the bindings are unchanged (PR #244 review).
 
 | Step | I5 §10 scenario | Mutation | Expected outcome | Basis |
 | --- | --- | --- | --- | --- |
 | S0 | baseline | none (root `declarations`) | `committed:true`. Every source is `ACCEPTED`/`ACCEPTED_WITH_LIMITATIONS`. This establishes State(S0). | I1 §6 |
-| L1 | Reimport | none | No-op. Every `sources[*].graph_revision_advanced` is `false`, and all `nodes_expired`/`relations_expired` are `0`. State(L1) equals State(S0), including `inventory_revision`. The dependencies `snapshot_id` of one declared Service equals its S0 value. | I1 §10 replay |
-| L4a | Failed discovery | root → `declarations-missing` (absent) | `committed:false`, `sources:{}`. State(L4a) equals State(L1). No `Removed` log line. | I1 §6: missing roots preserve the prior inventory |
-| L4b | Incomplete discovery | omit X, and add an unbound copy | `committed:false`, `sources:{}`. State(L4b) equals State(L1), so **X is still owned**, and no `Removed` line appears. | I1 §6: a run with a source failing validation is PARTIAL, nothing commits, and absence never removes ownership |
-| L6 | Conflicting source | inject a disagreeing `x-aip-service-id` into X | `committed:false`, `sources:{}`. State(L6) equals State(L1). | I1 §4.1 (disagreeing identities → `REJECTED_CONFLICT`) and §6 (nothing commits) |
-| L2 | Complete same-scope inventory without one source | omit X | `committed:true`. The `Removed` log line names X only. Q-SRC is State(L1) minus X's row. In Q-OWN and Q-SVC, X appears nowhere, and every other source's owned counts and ids are unchanged. | I1 §6 removal path 2 |
-| R | (restore) | none | `committed:true`. Q-SRC and Q-OWN equal State(L1), so X is owned again. | setup for L5/L3 |
-| L5 | Changed scope | relocate, and omit X | `committed:true`. No `Removed` line. X's Q-SRC row and its Q-OWN counts are unchanged from State(R), so **X is not removed**. Q-INV has the same `discovery_scope_id` and a new `scope_definition_digest`. | I1 §6: changed scopes preserve claims of undiscovered sources; the scope id excludes roots |
-| L3 | Explicit tombstone | relocate, omit X, and tombstone X (bound to State(L5) Q-INV) | `committed:true`. The `Removed` log line names X only. Q-SRC is State(L5) minus X. X appears in no Q-OWN or Q-SVC owner list, and every other source is unchanged from State(L5). | I1 §6: removal authorized by an explicit tombstone matching the committed inventory |
+| L1 | Reimport | none | No-op. Every `sources[*].graph_revision_advanced` is `false`, and all `nodes_expired`/`relations_expired` are `0`. **All** of State(L1) equals State(S0), including `inventory_revision` and Q-SRC-SEM. The dependencies `snapshot_id` of one declared Service equals its S0 value. | I1 §10 replay (identical inputs and mapping context) |
+| L4a | Failed discovery | root → `declarations-missing` (absent) | `committed:false`, `sources:{}`. All of State(L4a) equals State(L1). No `Removed` log line. | I1 §6: missing roots preserve the prior inventory |
+| L4b | Incomplete discovery | omit X, and add an unbound copy | `committed:false`, `sources:{}`. All of State(L4b) equals State(L1), so **X is still owned**, and no `Removed` line appears. | I1 §6: a run with a source failing validation is PARTIAL, nothing commits, and absence never removes ownership |
+| L6 | Conflicting source | inject a disagreeing `x-aip-service-id` into X | `committed:false`, `sources:{}`. All of State(L6) equals State(L1). | I1 §4.1 (disagreeing identities → `REJECTED_CONFLICT`) and §6 (nothing commits) |
+| L2 | Complete same-scope inventory without one source | omit X | `committed:true`. The `Removed` log line names X only. Q-SRC equals State(L1) minus X's row. The owned graph equals **Without_X(L1)**. X appears in no Q-OWN row. X has no Q-SRC-SEM row; the other rows are not asserted, because the bindings changed. | I1 §6 removal path 2 |
+| R | (restore) | none | `committed:true`. Q-SRC, Q-SRC-SEM, Q-OWN and the owned graph all equal State(L1), so X is owned again. The inputs and bindings are identical to L1. | setup for L5/L3 |
+| L5 | Changed scope | relocate, and omit X | `committed:true`. No `Removed` line. **X is not removed:** X's Q-SRC and Q-SRC-SEM rows equal State(R), and the owned graph equals State(R). Q-INV has the same `discovery_scope_id` and a new `scope_definition_digest`, and the other sources' Q-SRC rows carry that new digest. | I1 §6: changed scopes preserve claims of undiscovered sources; the scope id excludes roots |
+| L3 | Explicit tombstone | relocate, omit X, and tombstone X (bound to State(L5) Q-INV) | `committed:true`. The `Removed` log line names X only. Q-SRC equals State(L5) minus X's row. The owned graph equals **Without_X(L5)**. X appears in no Q-OWN row. | I1 §6: removal authorized by an explicit tombstone matching the committed inventory |
 
 Every non-committing step (L4a, L4b, L6) is compared with State(L1), which equals State(S0). After
-L2, R and L5, the comparisons stay relative to each step's own predecessor. So nothing depends on
+L2, R and L5, each comparison is relative to the step's own predecessor. So nothing depends on
 absolute AIP values that could only be learned by running AIP.
 
 ## Verification method (owner decision, 2026-09-24)
@@ -68,9 +80,12 @@ Each step's outcome is checked through three things only:
 3. **Frozen read-only Cypher** (`../queries/`), run with `cypher-shell --access-mode read` in the
    lifecycle Neo4j:
    - **Q-INV** reads `CurrentInventory`;
-   - **Q-SRC** reads `SourceState`;
+   - **Q-SRC** reads the `SourceState` identity and scope fields;
+   - **Q-SRC-SEM** reads each `SourceState`'s semantic input digest;
    - **Q-OWN** gives owned node and relation counts per owner;
-   - **Q-SVC** gives owned ids with their owners.
+   - **Q-SVC** gives owned node ids with their sorted owners;
+   - **Q-REL** gives owned relationship identities (type, endpoints, key) with their sorted
+     owners.
 
    These read AIP's internal state, the same way the comparator's capture reads the graph. They are
    verification, never ground truth.
