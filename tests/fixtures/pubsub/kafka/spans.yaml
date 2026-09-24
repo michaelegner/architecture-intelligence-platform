@@ -1,0 +1,13 @@
+# Authored OpenTelemetry messaging spans (see PROVENANCE.md). The consumer carries only a consumer
+# group - never a Subscription (S5, S7).
+environment: production
+time: "2026-09-23T12:00:00Z"
+spans:
+  - {trace: "c1", service: warehouse, instance: warehouse-1, operation: send,
+     attributes: {messaging.system: kafka, messaging.destination.name: inventory}}
+  - {trace: "c2", service: stock-projector, instance: stock-projector-1, operation: receive,
+     attributes: {messaging.system: kafka, messaging.destination.name: inventory,
+                  messaging.consumer.group.name: stock-projector}}
+  - {trace: "c3", service: stock-projector, instance: stock-projector-2, operation: process,
+     attributes: {messaging.system: kafka, messaging.destination.name: inventory,
+                  messaging.consumer.group.name: stock-projector}}

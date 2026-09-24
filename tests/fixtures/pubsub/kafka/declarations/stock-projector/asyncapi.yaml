@@ -1,0 +1,28 @@
+asyncapi: '2.6.0'
+info:
+  title: stock-projector
+  version: "1.0.0"
+x-aip-service-id: service:stock-projector
+servers:
+  kafka:
+    url: kafka-a.example.com:9092
+    protocol: kafka
+    x-aip-broker-id: kafka:cluster-a
+channels:
+  inventory:
+    x-aip-destination-kind: topic
+    subscribe:
+      operationId: projectStock
+      x-aip-consumer-group: stock-projector
+      message:
+        $ref: '#/components/messages/StockChanged'
+components:
+  messages:
+    StockChanged:
+      name: StockChanged
+      x-version: v1
+      payload:
+        type: object
+        properties:
+          id:
+            type: string

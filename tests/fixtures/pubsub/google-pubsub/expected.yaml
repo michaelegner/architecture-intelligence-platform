@@ -1,0 +1,29 @@
+# Hand-authored from i4-decision-evidence.md §2 (S3, S4) - names only, never production ids.
+sources:
+  checkout: {result: ACCEPTED, diagnostics: []}
+  fulfillment: {result: ACCEPTED, diagnostics: []}
+  analytics: {result: ACCEPTED, diagnostics: []}
+facts:
+  - [PUBLISHES_TO, "Service:checkout", "Topic:orders"]
+  - [SUBSCRIPTION_OF, "Subscription:fulfillment", "Topic:orders"]
+  - [SUBSCRIPTION_OF, "Subscription:analytics", "Topic:orders"]
+  - [RECEIVES_FROM, "Service:fulfillment", "Subscription:fulfillment"]
+  - [RECEIVES_FROM, "Service:analytics", "Subscription:analytics"]
+  - [CARRIES, "Topic:orders", "Message:OrderCreated"]
+  - [CARRIES, "Topic:orders", "Message:OrderCreated"]
+  - [CARRIES, "Topic:orders", "Message:OrderCreated"]
+observed:
+  - [RECEIVES_FROM, "Service:fulfillment", "Subscription:fulfillment"]
+entities:
+  Queue: []
+  Topic: [orders]
+  Subscription: [analytics, fulfillment]
+dead_letter_carriers:
+  - [fulfillment, orders-dead-letter, topic]
+unresolved_spans: 1
+answers:
+  checkout:
+    claims:
+      - ["Service:fulfillment", "Topic:orders", fulfillment, RESOLVED_SERVICE, NOT_OBSERVED_IN_WINDOW]
+      - ["Service:analytics", "Topic:orders", analytics, RESOLVED_SERVICE, NOT_OBSERVED_IN_WINDOW]
+    limitations: []

@@ -1,0 +1,19 @@
+# Authored OpenTelemetry messaging spans (see PROVENANCE.md). The publisher is deliberately left
+# unobserved so the declared routes surface as drift.
+environment: production
+time: "2026-09-23T12:00:00Z"
+spans:
+  # three subscriber instances load-balancing inside one Subscription (S3)
+  - {trace: "b1", service: fulfillment, instance: fulfillment-1, operation: receive,
+     attributes: {messaging.system: gcp_pubsub, messaging.destination.name: orders,
+                  messaging.destination.subscription.name: fulfillment}}
+  - {trace: "b2", service: fulfillment, instance: fulfillment-2, operation: receive,
+     attributes: {messaging.system: gcp_pubsub, messaging.destination.name: orders,
+                  messaging.destination.subscription.name: fulfillment}}
+  - {trace: "b3", service: fulfillment, instance: fulfillment-3, operation: receive,
+     attributes: {messaging.system: gcp_pubsub, messaging.destination.name: orders,
+                  messaging.destination.subscription.name: fulfillment}}
+  # an undeclared Subscription name: unresolved, never minted
+  - {trace: "b4", service: analytics, instance: analytics-1, operation: receive,
+     attributes: {messaging.system: gcp_pubsub, messaging.destination.name: orders,
+                  messaging.destination.subscription.name: ghost}}

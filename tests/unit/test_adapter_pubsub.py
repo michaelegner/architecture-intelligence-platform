@@ -108,10 +108,21 @@ def test_consumer_group_equal_to_subscription_name_is_still_not_an_implicit_matc
         ),
     ],
 )
+@pytest.mark.parametrize(
+    ("operation", "attributes"),
+    [
+        ("send", {}),
+        # §13.2: the consumer path too - a resolvable Topic + Subscription never rescues a
+        # placeholder/ambiguous Service
+        ("process", {"messaging.destination.subscription.name": "billing"}),
+    ],
+)
 def test_placeholder_or_ambiguous_service_creates_zero_pubsub_fact(
-    service_name, candidates, reason
+    service_name, candidates, reason, operation, attributes
 ):
-    span = _messaging_span("send").model_copy(update={"service_name": service_name})
+    span = _messaging_span(operation, **attributes).model_copy(
+        update={"service_name": service_name}
+    )
     batch = _correlate([span], service_candidates=candidates)
     assert batch.facts == [] and batch.entities == []
     assert [u.reason for u in batch.unresolved] == [reason]

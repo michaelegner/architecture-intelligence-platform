@@ -1,0 +1,42 @@
+# Hand-authored from i4-decision-evidence.md §2 (S1, S2) - names only, never production ids.
+sources:
+  orders: {result: ACCEPTED, diagnostics: []}
+  payment-worker-a: {result: ACCEPTED, diagnostics: []}
+  payment-worker-b: {result: ACCEPTED, diagnostics: []}
+  billing: {result: ACCEPTED, diagnostics: []}
+  audit: {result: ACCEPTED, diagnostics: []}
+facts:
+  - [SENDS, "Service:orders", "Queue:payments"]
+  - [RECEIVES_FROM, "Service:payment-worker-a", "Queue:payments"]
+  - [RECEIVES_FROM, "Service:payment-worker-b", "Queue:payments"]
+  - [PUBLISHES_TO, "Service:orders", "Topic:order-events"]
+  - [SUBSCRIPTION_OF, "Subscription:billing", "Topic:order-events"]
+  - [SUBSCRIPTION_OF, "Subscription:audit", "Topic:order-events"]
+  - [RECEIVES_FROM, "Service:billing", "Subscription:billing"]
+  - [RECEIVES_FROM, "Service:audit", "Subscription:audit"]
+  - [CARRIES, "Queue:payments", "Message:PaymentRequested"]
+  - [CARRIES, "Queue:payments", "Message:PaymentRequested"]
+  - [CARRIES, "Queue:payments", "Message:PaymentRequested"]
+  - [CARRIES, "Topic:order-events", "Message:OrderPlaced"]
+  - [CARRIES, "Topic:order-events", "Message:OrderPlaced"]
+  - [CARRIES, "Topic:order-events", "Message:OrderPlaced"]
+observed:
+  - [SENDS, "Service:orders", "Queue:payments"]
+  - [RECEIVES_FROM, "Service:payment-worker-a", "Queue:payments"]
+  - [PUBLISHES_TO, "Service:orders", "Topic:order-events"]
+  - [RECEIVES_FROM, "Service:billing", "Subscription:billing"]
+entities:
+  Queue: [payments]
+  Topic: [order-events]
+  Subscription: [audit, billing]
+dead_letter_carriers:
+  - [billing, "order-events/Subscriptions/billing/$deadletterqueue", queue]
+unresolved_spans: 0
+answers:
+  orders:
+    claims:
+      - ["Service:payment-worker-a", "Queue:payments", null, RESOLVED_SERVICE, CONFIRMED]
+      - ["Service:payment-worker-b", "Queue:payments", null, RESOLVED_SERVICE, CONFIRMED]
+      - ["Service:billing", "Topic:order-events", billing, RESOLVED_SERVICE, CONFIRMED]
+      - ["Service:audit", "Topic:order-events", audit, RESOLVED_SERVICE, CONFIRMED]
+    limitations: []

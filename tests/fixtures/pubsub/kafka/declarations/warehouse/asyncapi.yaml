@@ -1,0 +1,27 @@
+asyncapi: '2.6.0'
+info:
+  title: warehouse
+  version: "1.0.0"
+x-aip-service-id: service:warehouse
+servers:
+  kafka:
+    url: kafka-a.example.com:9092
+    protocol: kafka
+    x-aip-broker-id: kafka:cluster-a
+channels:
+  inventory:
+    x-aip-destination-kind: topic
+    publish:
+      operationId: publishStockChanged
+      message:
+        $ref: '#/components/messages/StockChanged'
+components:
+  messages:
+    StockChanged:
+      name: StockChanged
+      x-version: v1
+      payload:
+        type: object
+        properties:
+          id:
+            type: string

@@ -1,0 +1,21 @@
+# Authored OpenTelemetry messaging spans (see PROVENANCE.md). Topic in messaging.destination.name,
+# Subscription in messaging.destination.subscription.name - the OTel shape for Service Bus (S5).
+environment: production
+time: "2026-09-23T12:00:00Z"
+spans:
+  - {trace: "a1", service: orders, instance: orders-1, operation: send,
+     attributes: {messaging.system: servicebus, messaging.destination.name: payments}}
+  - {trace: "a2", service: orders, instance: orders-1, operation: send,
+     attributes: {messaging.system: servicebus, messaging.destination.name: order-events}}
+  # two instances of one logical Service competing on the Queue
+  - {trace: "a3", service: payment-worker-a, instance: payment-worker-a-1, operation: receive,
+     attributes: {messaging.system: servicebus, messaging.destination.name: payments}}
+  - {trace: "a4", service: payment-worker-a, instance: payment-worker-a-2, operation: receive,
+     attributes: {messaging.system: servicebus, messaging.destination.name: payments}}
+  # two instances of one logical Service load-balancing inside one Subscription
+  - {trace: "a5", service: billing, instance: billing-1, operation: process,
+     attributes: {messaging.system: servicebus, messaging.destination.name: order-events,
+                  messaging.destination.subscription.name: billing}}
+  - {trace: "a6", service: billing, instance: billing-2, operation: process,
+     attributes: {messaging.system: servicebus, messaging.destination.name: order-events,
+                  messaging.destination.subscription.name: billing}}

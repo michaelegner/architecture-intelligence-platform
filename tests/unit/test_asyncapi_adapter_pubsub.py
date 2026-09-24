@@ -289,6 +289,32 @@ def test_same_name_queue_and_topic_have_distinct_ids():
     assert queue_id not in {t.id for t in outcome.model.topics}
 
 
+def _amqp_topic_document(*, broker: str, virtual_host: str | None) -> dict:
+    document = _topic_document()
+    server = {"url": "amqps://broker.example.com", "protocol": "amqp", "x-aip-broker-id": broker}
+    if virtual_host is not None:
+        server["bindings"] = {"amqp": {"virtualHost": virtual_host}}
+    document["servers"] = {"amqp": server}
+    return document
+
+
+def test_same_topic_name_under_different_brokers_or_namespaces_is_distinct():
+    """§13.1: same names across brokers/namespaces remain distinct - at the adapter level, not only
+    in the id formula."""
+    ids = {}
+    for broker, virtual_host in (
+        ("broker-a", None),
+        ("broker-b", None),
+        ("broker-a", "commerce"),
+        ("broker-a", "billing"),
+    ):
+        [topic] = _map(_amqp_topic_document(broker=broker, virtual_host=virtual_host)).model.topics
+        assert topic.name == "orders"
+        assert topic.namespace == virtual_host
+        ids[(broker, virtual_host)] = topic.id
+    assert len(set(ids.values())) == 4
+
+
 def test_parameterized_channel_address_is_a_literal_identity_input():
     document = _topic_document()
     document["channels"] = {"orders/{region}": document["channels"]["orders"]}

@@ -1,9 +1,11 @@
+import inspect
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from app.settings import load_config, load_secrets, load_settings
+from app.settings import TelemetryConfig, load_config, load_secrets, load_settings
+from app.telemetry.adapter import adapt
 
 CONFIG_YAML = """
 architecture_intelligence:
@@ -253,3 +255,14 @@ def test_load_settings_combines_config_and_secrets(tmp_path, monkeypatch):
 
     assert settings.config.graph.database == "neo4j"
     assert settings.secrets.neo4j_password == "secret"
+
+
+def test_no_subscription_alias_input_is_admitted():
+    """v0.5.0 I4 spec §9/§13.2: Topic aliases are admitted, Subscription aliases are not - pinned
+    structurally, since neither the telemetry config nor the adapter has anywhere to accept one."""
+    fields = set(TelemetryConfig.model_fields)
+    assert {"queue_aliases", "topic_aliases"} <= fields
+    assert not {name for name in fields if "subscription" in name}
+    parameters = set(inspect.signature(adapt).parameters)
+    assert "topic_aliases" in parameters
+    assert not {name for name in parameters if "subscription" in name and "alias" in name}
