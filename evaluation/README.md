@@ -520,10 +520,15 @@ the live loader/runner/comparator:
 ```bash
 uv run python -m evaluation.architecture_answers.reference snapshot evaluation/architecture_answers/scenarios/sync-confirmed
 uv run python -m evaluation.architecture_answers.reference context-id test 2026-08-26T00:00:00Z 2026-08-27T00:00:00Z
-uv run python -m evaluation.architecture_answers.reference claim-id <subject_id> DIRECT_DEPENDENCY <object_id> <delivery_kind> <delivery_via_id>
+uv run python -m evaluation.architecture_answers.reference snapshot <scenario> --mapping-artifact-id <id> --mapping-artifact-revision <rev> --mapping-content-digest <digest>   # only with a configured I3 mapping artifact
+uv run python -m evaluation.architecture_answers.reference claim-id <subject_id> DIRECT_DEPENDENCY <object_id> <delivery_kind> <delivery_via_id> [--subscription-id <id>]
 uv run python -m evaluation.architecture_answers.reference declared-evidence-id <source_type> <service_slug> [revision]
 uv run python -m evaluation.architecture_answers.reference observed-evidence-id <environment> <bucket_start> <subject_id> <relation_type> <object_id>
 ```
+
+`snapshot` computes canonicalization version 3, the same version as the candidate (v0.5.0 I5 Slice 1).
+`tests/integration/test_i5_qualification_tooling.py` checks it for exact parity with production on
+Queue, Pub/Sub and deployment graphs.
 
 An author runs this against a scenario's prepared fixture, hand-verifies the printed literals
 against the fixture's own topology, and freezes them into `expected_answer.json`. **Regenerate a

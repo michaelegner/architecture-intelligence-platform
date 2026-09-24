@@ -17,15 +17,23 @@ from typing import Any
 import yaml
 
 from real_world_validation.model import (
+    DEPLOYMENT_METHODS,
+    DEPLOYMENT_STATUSES,
     KNOWN_RELATION_TYPES,
+    WORKLOAD_KINDS,
+    DeploymentFact,
+    ExpectedDeployment,
     ExpectedDocument,
     ExpectedRelation,
     ExpectedValidationError,
+    ForbiddenDeployment,
+    ForbiddenRelation,
     InsufficientEvidenceItem,
     RelationFact,
     ScopeDeclaration,
     UnresolvedIdentityItem,
     UnsupportedItem,
+    WorkloadKey,
     is_canonical_id,
 )
 
@@ -37,16 +45,38 @@ _TOP_LEVEL_ALLOWED_KEYS = {
     "unsupported",
     "unresolved_identity",
     "insufficient_evidence",
+    "forbidden",
 }
 _SCOPE_ALLOWED_KEYS = {"entities", "relation_types"}
-_EXPECTED_ALLOWED_KEYS = {"relations"}
+_EXPECTED_ALLOWED_KEYS = {"relations", "deployments"}
+# v0.5.0 I5 §7 additions.
+_DEPLOYMENT_ALLOWED_KEYS = {
+    "id",
+    "service",
+    "workload",
+    "status",
+    "supporting_methods",
+    "candidate_service_ids",
+}
+_WORKLOAD_ALLOWED_KEYS = {"namespace", "kind", "name"}
+_FORBIDDEN_ALLOWED_KEYS = {"relations", "deployments"}
+_FORBIDDEN_RELATION_ALLOWED_KEYS = {"id", "type", "source", "target"}
+_FORBIDDEN_DEPLOYMENT_ALLOWED_KEYS = {"id", "service", "workload"}
+_ACTUAL_DEPLOYMENTS_TOP_LEVEL_ALLOWED_KEYS = {"relations", "deployments"}
+_ACTUAL_DEPLOYMENT_ALLOWED_KEYS = {
+    "resolution_id",
+    "service",
+    "workload",
+    "status",
+    "supporting_methods",
+    "candidate_service_ids",
+}
 _RELATION_ALLOWED_KEYS = {"id", "type", "source", "target", "status", "evidence"}
 _EVIDENCE_ALLOWED_KEYS = {"declared", "observed"}
 _UNSUPPORTED_ALLOWED_KEYS = {"id", "mechanism", "description"}
 _ID_DESCRIPTION_ALLOWED_KEYS = {"id", "description"}
 _KNOWN_STATUSES = {"CONFIRMED", "OBSERVED_ONLY", "NOT_OBSERVED_IN_WINDOW"}
 
-_ACTUAL_TOP_LEVEL_ALLOWED_KEYS = {"relations"}
 _ACTUAL_RELATION_ALLOWED_KEYS = {"type", "source", "target", "status", "evidence"}
 
 
@@ -203,6 +233,200 @@ def _parse_id_description_item(raw: Any, cls: type, *, system: str, file: Path, 
     )
 
 
+def _parse_workload(raw: Any, *, system: str, file: Path, field: str) -> WorkloadKey | None:
+    if raw is None:
+        return None
+    raw = _require_mapping(raw, system=system, file=file, field=field)
+    _reject_unknown_keys(raw, _WORKLOAD_ALLOWED_KEYS, system=system, file=file, field=field)
+    values = {}
+    for key in ("namespace", "kind", "name"):
+        value = _require(raw, key, system=system, file=file, prefix=f"{field}.")
+        if not isinstance(value, str) or not value:
+            raise _error(system, file, f"{field}.{key}", f"must be a non-empty string: {value!r}")
+        values[key] = value
+    if values["kind"] not in WORKLOAD_KINDS:
+        raise _error(system, file, f"{field}.kind", f"unknown workload kind: {values['kind']!r}")
+    return WorkloadKey(**values)
+
+
+def _parse_optional_service(raw: Any, *, system: str, file: Path, field: str) -> str | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, str) or not raw.startswith("service:"):
+        raise _error(system, file, field, f"must be a service: identifier or null: {raw!r}")
+    return raw
+
+
+def _parse_supporting_methods(
+    raw: Any, *, system: str, file: Path, field: str
+) -> tuple[str, ...] | None:
+    if raw is None:
+        return None
+    raw = _require_list(raw, system=system, file=file, field=field)
+    if any(method not in DEPLOYMENT_METHODS for method in raw):
+        raise _error(system, file, field, f"unknown supporting method in {raw!r}")
+    methods = tuple(raw)
+    canonical = tuple(m for m in DEPLOYMENT_METHODS if m in methods)
+    if methods != canonical:
+        raise _error(
+            system, file, field, "must be duplicate-free, in canonical strength order (I3 §10.1)"
+        )
+    return methods
+
+
+def _parse_candidate_service_ids(
+    raw: Any, *, system: str, file: Path, field: str
+) -> tuple[str, ...] | None:
+    if raw is None:
+        return None
+    raw = _require_list(raw, system=system, file=file, field=field)
+    if any(not isinstance(v, str) or not v.startswith("service:") for v in raw):
+        raise _error(system, file, field, f"must be service: identifiers: {raw!r}")
+    if raw != sorted(set(raw)):
+        raise _error(system, file, field, "must be sorted and duplicate-free (I3 §13.3)")
+    return tuple(raw)
+
+
+def _parse_deployment_fact(
+    raw: Any, *, system: str, file: Path, field: str, allowed_keys: set[str]
+) -> DeploymentFact:
+    raw = _require_mapping(raw, system=system, file=file, field=field)
+    _reject_unknown_keys(raw, allowed_keys, system=system, file=file, field=field)
+    status = _require(raw, "status", system=system, file=file, prefix=f"{field}.")
+    if status not in DEPLOYMENT_STATUSES:
+        raise _error(system, file, f"{field}.status", f"unknown deployment status: {status!r}")
+    return DeploymentFact(
+        service=_parse_optional_service(
+            raw.get("service"), system=system, file=file, field=f"{field}.service"
+        ),
+        workload=_parse_workload(
+            raw.get("workload"), system=system, file=file, field=f"{field}.workload"
+        ),
+        status=status,
+        supporting_methods=_parse_supporting_methods(
+            raw.get("supporting_methods"),
+            system=system,
+            file=file,
+            field=f"{field}.supporting_methods",
+        ),
+        candidate_service_ids=_parse_candidate_service_ids(
+            raw.get("candidate_service_ids"),
+            system=system,
+            file=file,
+            field=f"{field}.candidate_service_ids",
+        ),
+        resolution_id=raw.get("resolution_id"),
+    )
+
+
+def _parse_expected_deployments(
+    raw: Any, scope: ScopeDeclaration, *, system: str, file: Path
+) -> tuple[ExpectedDeployment, ...]:
+    field = "expected.deployments"
+    # Several expected outcomes MAY share one (Service, Workload) key: I3 §13.1 allows more than one
+    # non-resolved candidate group with a null Service and Workload for the same scoped Service. The
+    # comparator matches them one-to-one, so no duplicate-identity check applies here.
+    deployments = []
+    for entry in _require_list(raw, system=system, file=file, field=field):
+        entry = _require_mapping(entry, system=system, file=file, field=field)
+        finding_id = _validate_id(
+            _require(entry, "id", system=system, file=file, prefix=f"{field}."),
+            system=system,
+            file=file,
+            field=f"{field}.id",
+        )
+        fact = _parse_deployment_fact(
+            entry, system=system, file=file, field=field, allowed_keys=_DEPLOYMENT_ALLOWED_KEYS
+        )
+        if fact.service is not None and fact.service not in scope.entities:
+            raise _error(
+                system, file, field, f"expected deployment {finding_id!r} names an unscoped Service"
+            )
+        deployments.append(ExpectedDeployment(id=finding_id, fact=fact))
+    return tuple(deployments)
+
+
+def _parse_forbidden(
+    raw: Any, scope: ScopeDeclaration, *, system: str, file: Path
+) -> tuple[tuple[ForbiddenRelation, ...], tuple[ForbiddenDeployment, ...]]:
+    raw = _optional_mapping(raw, system=system, file=file, field="forbidden")
+    _reject_unknown_keys(raw, _FORBIDDEN_ALLOWED_KEYS, system=system, file=file, field="forbidden")
+    relations = []
+    field = "forbidden.relations"
+    for entry in _require_list(raw.get("relations", []), system=system, file=file, field=field):
+        entry = _require_mapping(entry, system=system, file=file, field=field)
+        _reject_unknown_keys(
+            entry, _FORBIDDEN_RELATION_ALLOWED_KEYS, system=system, file=file, field=field
+        )
+        relation = ForbiddenRelation(
+            id=_validate_id(
+                _require(entry, "id", system=system, file=file, prefix=f"{field}."),
+                system=system,
+                file=file,
+                field=f"{field}.id",
+            ),
+            type=_validate_relation_type(
+                _require(entry, "type", system=system, file=file, prefix=f"{field}."),
+                system=system,
+                file=file,
+                field=f"{field}.type",
+            ),
+            source=_validate_entity_id(
+                _require(entry, "source", system=system, file=file, prefix=f"{field}."),
+                system=system,
+                file=file,
+                field=f"{field}.source",
+            ),
+            target=_validate_entity_id(
+                _require(entry, "target", system=system, file=file, prefix=f"{field}."),
+                system=system,
+                file=file,
+                field=f"{field}.target",
+            ),
+        )
+        # Capture only projects in-scope facts, so an out-of-scope forbidden relation could never
+        # be observed: it would be "proven absent" vacuously.
+        if not scope.contains(RelationFact(relation.type, relation.source, relation.target)):
+            raise _error(
+                system, file, field, f"forbidden relation {relation.id!r} is outside the scope"
+            )
+        relations.append(relation)
+    deployments = []
+    field = "forbidden.deployments"
+    for entry in _require_list(raw.get("deployments", []), system=system, file=file, field=field):
+        entry = _require_mapping(entry, system=system, file=file, field=field)
+        _reject_unknown_keys(
+            entry, _FORBIDDEN_DEPLOYMENT_ALLOWED_KEYS, system=system, file=file, field=field
+        )
+        service = _parse_optional_service(
+            _require(entry, "service", system=system, file=file, prefix=f"{field}."),
+            system=system,
+            file=file,
+            field=f"{field}.service",
+        )
+        if service not in scope.entities:
+            raise _error(system, file, field, "forbidden deployment names an unscoped Service")
+        workload = _parse_workload(
+            _require(entry, "workload", system=system, file=file, prefix=f"{field}."),
+            system=system,
+            file=file,
+            field=f"{field}.workload",
+        )
+        deployments.append(
+            ForbiddenDeployment(
+                id=_validate_id(
+                    _require(entry, "id", system=system, file=file, prefix=f"{field}."),
+                    system=system,
+                    file=file,
+                    field=f"{field}.id",
+                ),
+                service=service,
+                workload=workload,
+            )
+        )
+    return tuple(relations), tuple(deployments)
+
+
 def load_expected(path: Path) -> ExpectedDocument:
     """Loads and validates one system's frozen expected.yaml (I1 §17)."""
     raw = yaml.safe_load(path.read_text())
@@ -299,6 +523,13 @@ def load_expected(path: Path) -> ExpectedDocument:
                 f"expected relation {relation.id!r} is outside the declared scope",
             )
 
+    expected_deployments = _parse_expected_deployments(
+        expected_raw.get("deployments", []), scope, system=system, file=path
+    )
+    forbidden_relations, forbidden_deployments = _parse_forbidden(
+        raw.get("forbidden"), scope, system=system, file=path
+    )
+
     unsupported_raw = raw.get("unsupported")
     unsupported = ()
     if unsupported_raw is not None:
@@ -350,6 +581,9 @@ def load_expected(path: Path) -> ExpectedDocument:
         + [u.id for u in unsupported]
         + [u.id for u in unresolved_identity]
         + [u.id for u in insufficient_evidence]
+        + [d.id for d in expected_deployments]
+        + [f.id for f in forbidden_relations]
+        + [f.id for f in forbidden_deployments]
     )
     seen: set[str] = set()
     for finding_id in all_ids:
@@ -365,6 +599,9 @@ def load_expected(path: Path) -> ExpectedDocument:
         unsupported=unsupported,
         unresolved_identity=unresolved_identity,
         insufficient_evidence=insufficient_evidence,
+        expected_deployments=expected_deployments,
+        forbidden_relations=forbidden_relations,
+        forbidden_deployments=forbidden_deployments,
     )
 
 
@@ -379,7 +616,7 @@ def load_actual(path: Path) -> list[RelationFact]:
     if not isinstance(raw, dict):
         raise _error(system, path, "<root>", f"expected a mapping, got {raw!r}")
     _reject_unknown_keys(
-        raw, _ACTUAL_TOP_LEVEL_ALLOWED_KEYS, system=system, file=path, field="<root>"
+        raw, _ACTUAL_DEPLOYMENTS_TOP_LEVEL_ALLOWED_KEYS, system=system, file=path, field="<root>"
     )
     relations_raw = _require_list(
         raw.get("relations", []), system=system, file=path, field="relations"
@@ -393,4 +630,27 @@ def load_actual(path: Path) -> list[RelationFact]:
             allowed_keys=_ACTUAL_RELATION_ALLOWED_KEYS,
         )
         for r in relations_raw
+    ]
+
+
+def load_actual_deployments(path: Path) -> list[DeploymentFact] | None:
+    """v0.5.0 I5 §7: the public `DEPLOYED_AS` outcomes of a capture (its optional `deployments:`
+    list). They are read separately so `load_actual`'s relation-list contract stays unchanged for
+    every v0.3 caller. Returns None when the capture has no `deployments:` key, meaning deployment
+    capture didn't run. That is not the same as an empty list."""
+    raw = yaml.safe_load(path.read_text()) or {}
+    system = "<actual>"
+    if not isinstance(raw, dict):
+        raise _error(system, path, "<root>", f"expected a mapping, got {raw!r}")
+    if "deployments" not in raw:
+        return None
+    return [
+        _parse_deployment_fact(
+            d,
+            system=system,
+            file=path,
+            field="deployments",
+            allowed_keys=_ACTUAL_DEPLOYMENT_ALLOWED_KEYS,
+        )
+        for d in _require_list(raw["deployments"], system=system, file=path, field="deployments")
     ]

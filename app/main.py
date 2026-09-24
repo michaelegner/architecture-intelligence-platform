@@ -49,13 +49,7 @@ async def lifespan(app: FastAPI):
     # construction - see ADR 0016 decision #1/#2 (ArchitectureIntelligenceService is the single
     # semantic owner behind both public adapters).
     architecture_intelligence_service = mcp_wiring.build_production_service(
-        app.state.driver,
-        database=settings.config.graph.database,
-        service_workload_mapping_path=settings.config.sources.service_workload_mapping,
-        configured_kubernetes_sources=[
-            (cluster.id, cluster.cluster_uid) for cluster in settings.config.sources.clusters
-        ],
-        service_aliases=settings.config.telemetry.service_aliases,
+        app.state.driver, **mcp_wiring.production_service_kwargs(settings.config)
     )
     mcp_wiring.configure(architecture_intelligence_service)
     app.state.architecture_intelligence_service = architecture_intelligence_service

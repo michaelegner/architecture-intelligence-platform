@@ -51,6 +51,7 @@ import neo4j
 
 from app.architecture_intelligence.contracts import PRODUCER_NAME, Producer
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
+from app.settings import AppConfig
 from app.sources.service_workload_mapping import load_service_workload_mapping
 from app.version import package_version
 
@@ -105,6 +106,21 @@ def _resolve_build_revision() -> str:
             _BUILD_REVISION_ENV_VAR,
         )
         return _UNKNOWN_BUILD_REVISION
+
+
+def production_service_kwargs(config: AppConfig) -> dict:
+    """The one Settings -> `build_production_service` keyword derivation. The app's startup and the
+    real-world validation capture tool both use it (v0.5.0 I5 Slice 1), so a qualification capture
+    builds its `ArchitectureIntelligenceService` from exactly the same configuration as the running
+    app."""
+    return {
+        "database": config.graph.database,
+        "service_workload_mapping_path": config.sources.service_workload_mapping,
+        "configured_kubernetes_sources": [
+            (cluster.id, cluster.cluster_uid) for cluster in config.sources.clusters
+        ],
+        "service_aliases": config.telemetry.service_aliases,
+    }
 
 
 def build_production_service(

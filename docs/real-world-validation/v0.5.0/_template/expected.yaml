@@ -1,0 +1,61 @@
+# Frozen expected facts for <system-id> (v0.5.0 I5 §§6-8).
+#
+# Draft this file from ground-truth.md ALONE, from upstream evidence, before inspecting any
+# qualifying AIP output. The owner's merge freezes it.
+#
+# Schema reference: real_world_validation/README.md ("v0.5.0 additions") and
+# real_world_validation/loader.py.
+
+system: <system-id>
+upstream_revision: "<full-commit-sha>"
+
+scope:
+  entities:
+    - service:<example-service>
+  # relation_types:   # optional; omit to scope every relation type touching the entities
+  #   - PROVIDES
+  #   - CALLS
+
+expected:
+  relations:
+    - id: <system-id>-<stable-slug>
+      type: CALLS
+      source: service:<caller>
+      target: operation:service:<callee>:GET:/<path>
+      status: CONFIRMED # optional: CONFIRMED | OBSERVED_ONLY | NOT_OBSERVED_IN_WINDOW
+      evidence:
+        declared: true
+        observed: true
+  # Public Service -[DEPLOYED_AS]-> Workload outcomes (I5 §7, §8.1), named from the upstream
+  # manifests.
+  # deployments:
+  #   - id: <system-id>-<workload-slug>
+  #     service: service:<service>
+  #     workload: {namespace: <ns>, kind: DEPLOYMENT, name: <name>}
+  #     status: RESOLVED_CONFIGURED
+  #     supporting_methods: [RESOLVED_CONFIGURED]
+
+# Negative expectations (I5 §7). Present is INCORRECT_SUPPORTED/CRITICAL, absent is CORRECT.
+# forbidden:
+#   relations:
+#     - {id: <system-id>-no-<slug>, type: SENDS, source: service:<svc>, target: queue:<name>}
+#   deployments:
+#     - id: <system-id>-no-name-only-<slug>
+#       service: service:<service>
+#       workload: {namespace: <ns>, kind: DEPLOYMENT, name: <name>}
+
+# unsupported:
+#   - id: <system-id>-<mechanism-slug>
+#     mechanism: <name, e.g. grpc>
+#     description: >
+#       Present upstream but outside the admitted v0.5 semantics.
+
+# unresolved_identity:
+#   - id: <system-id>-<identity-slug>
+#     description: >
+#       Why this identity cannot be resolved safely.
+
+# insufficient_evidence:
+#   - id: <system-id>-<evidence-slug>
+#     description: >
+#       Why the available evidence is insufficient.
