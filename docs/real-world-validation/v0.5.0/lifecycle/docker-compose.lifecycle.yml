@@ -1,0 +1,52 @@
+# I5 §10 lifecycle profile (Slice 4; runbook.md). This is an import-only stack: the AIP candidate plus
+# Neo4j. There is no target system and no telemetry.
+#
+# Run identity follows the frozen target profiles (PR #240/#242/#243 reviews):
+# - AIP is rebuilt with --no-cache from the verified clean candidate checkout as
+#   aip-i5-candidate:<SHA>;
+# - Neo4j is pinned by digest;
+# - every interpolated variable is required (:?). None has a default the environment could
+#   override.
+#
+# LIFECYCLE_WORKDIR is the scratch directory that mutate.py fills for each step. It is mounted
+# read-only at /app/lifecycle, and each step's config.yaml there names its own declarations root and
+# any tombstone file.
+
+services:
+  architecture-intelligence:
+    image: aip-i5-candidate:${AIP_CANDIDATE_SHA:?set AIP_CANDIDATE_SHA (runbook.md step 1)}
+    build:
+      context: ../../../..
+      args:
+        AIP_BUILD_REVISION: ${AIP_CANDIDATE_SHA:?set AIP_CANDIDATE_SHA (runbook.md step 1)}
+    ports:
+      - "8000:8000"
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?export NEO4J_PASSWORD (runbook.md)}
+      OPENAI_API_KEY: ""
+      CONFIG_PATH: lifecycle/config.yaml
+    volumes:
+      - ${LIFECYCLE_WORKDIR:?set LIFECYCLE_WORKDIR (runbook.md step 1)}:/app/lifecycle:ro
+    depends_on:
+      neo4j:
+        condition: service_healthy
+
+  neo4j:
+    image: neo4j:5.26.0@sha256:5a015e53de1895e7eee1574ae0325cf8c4b89587222778108c594bdd45a474b5
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?export NEO4J_PASSWORD (runbook.md)}
+    volumes:
+      - neo4j-i5-lifecycle-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  neo4j-i5-lifecycle-data:

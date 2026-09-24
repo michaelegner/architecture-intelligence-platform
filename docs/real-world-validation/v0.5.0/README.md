@@ -31,6 +31,10 @@ uv run python -m real_world_validation compare --expected expected.yaml --actual
 v0.5.0/
   README.md                 this file
   _template/                copy per target, then fill in
-  quarkus-super-heroes/     I5 Slice 2
-  apache-airflow/           I5 Slice 3
+  quarkus-super-heroes/     I5 Slice 2 (frozen, #240; hardened #243)
+  apache-airflow/           I5 Slice 3 (frozen, #242; hardened #243)
+  lifecycle/                I5 Slice 4: §10 lifecycle scenarios (mutations, runbook, expected outcomes)
+  queries/                  I5 Slice 4: frozen read-only Cypher verification queries
+  public-surfaces.md        I5 Slice 4: Service = REST = MCP parity and zero-write checks
+  coverage-matrix.md        I5 Slice 4: the §9 matrix with frozen revisions
 ```
