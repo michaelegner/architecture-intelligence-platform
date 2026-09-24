@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-22_
+_Last reviewed: 2026-09-24_
 
 ## AIP anchor
 
@@ -94,7 +94,7 @@ visualization, provenance, or retrieval?
 [Agent API Profile](#christian-posta--agent-api-profile) ·
 [MCP](#model-context-protocol-mcp) ·
 [Procedural Graphs](#lu-et-al--procedural-graphs) ·
-[Agent-ready bounded context](#daniel-kocot--agent-ready-apis-and-bounded-context) ·
+[Agent-ready traceability](#daniel-kocot--agent-ready-apis-traceability-and-preserved-intent) ·
 [BootUI](#bootui--runtime-context-for-coding-agents) ·
 [Deterministic integration](#kin-lane--agents-should-write-code-to-integrate-not-infer-it-at-runtime) ·
 [UI Atlas](#ui-atlas--ai-successors) ·
@@ -1121,6 +1121,35 @@ of qualified Architecture Knowledge
 better bounded context
 ```
 
+#### Agent-ready API products as a moldable-view example
+
+Recent work on agent-ready API products provides a concrete example of why Architecture Knowledge
+should not be flattened into one large context representation. Discovery metadata, agent guidance,
+executable contracts, workflows, runtime affordances, observed behavior, deployment evidence, and
+authorization each answer different questions and may carry different authority.
+
+Conceptually, a consumer exploring one API product or architecture component may need several
+question-specific views:
+
+```text
+API product / architecture component
+        ├── capability / intent view
+        ├── executable-contract view
+        ├── workflow view
+        ├── runtime-evidence view
+        ├── deployment view
+        └── provenance / conflict / limitation view
+```
+
+This is a natural fit for Moldable Architecture Knowledge. Glamorous Toolkit can make these
+responsibilities inspectable through different contextual views rather than forcing them into one
+agent-context blob. AIP still owns only the architecture knowledge it can establish and qualify;
+moldability changes the question and representation, not the semantic role or authority of the
+underlying source.
+
+This is a design connection, not a claim that the current AIP × GT reference integration ingests
+`apis.json`, `AGENTS.md`, Arazzo, hypermedia, or policy artifacts.
+
 #### Relationship to the validated AIP × GT reference integration
 
 The [AIP × Glamorous Toolkit reference integration](reference-integrations/glamorous-toolkit/README.md)
@@ -1483,37 +1512,102 @@ or an agent's chosen action must not become canonical architecture truth. If pro
 ever linked to AIP, its evidence, validation state, version, and authority need to remain distinct
 from the Current-State graph.
 
-### Daniel Kocot — Agent-Ready APIs and Bounded Context
+### Daniel Kocot — Agent-Ready APIs, Traceability, and Preserved Intent
 
 **Sources**
 
 - [Agent-Ready APIs Start Before an Agent Sees the API](https://www.linkedin.com/pulse/agent-ready-apis-start-before-agent-sees-api-daniel-kocot-twnbe/)
 - [Context Is Not More Information. It Shapes the Conditions for Interpretation and Action](https://www.linkedin.com/pulse/context-more-information-shapes-conditions-action-daniel-kocot-z55ze/)
+- [What Does an Agent Actually Need to Use an API Product?](https://www.linkedin.com/pulse/what-does-agent-actually-need-use-api-product-daniel-kocot-bvcke)
+- [What Gets Lost Between API Design and OpenAPI](https://www.linkedin.com/pulse/what-gets-lost-between-api-design-openapi-daniel-kocot-ispqe)
+- [Looking at Arazzo from the Business Side](https://www.linkedin.com/pulse/looking-arazzo-from-business-side-daniel-kocot-mqvke)
 
 **Core idea**
 
-Kocot argues that agent-readiness begins before OpenAPI, MCP, retrieval, or the context window.
-Machine-readable artifacts describe parts of a system, but useful context also depends on purpose,
-semantics, boundaries, relationships, authority, and relevance. A knowledge graph is therefore
-infrastructure from which context can be assembled, not context by itself.
+Kocot frames agent-readiness as a traceability problem that starts before OpenAPI, MCP, retrieval,
+or the context window. Purpose, capability, semantics, constraints, design rationale, workflows,
+runtime state, and authority originate in different places and should not be collapsed into one
+artifact.
+
+His recent API-product work makes the separation concrete:
+
+```text
+apis.json   -> discovery
+AGENTS.md   -> possible agent-facing guidance
+OpenAPI     -> executable HTTP contract
+Arazzo      -> interaction workflow
+Hypermedia  -> runtime affordance
+telemetry   -> observed behavior
+policy      -> execution authority
+```
+
+The useful distinctions are therefore:
+
+```text
+guidance != contract
+intent != operation
+workflow != capability
+protocol != outcome
+runtime affordance != authorization
+graph != authority
+inference != explicit intent
+```
+
+A capability or design decision that existed upstream should not have to be reconstructed later
+from paths, schemas, runtime frequency, or agent guesses. At the same time, an explicit workflow
+such as Arazzo remains a description of interactions toward an outcome; it does not automatically
+become the business capability, observed Current State, or authorization decision.
 
 **Why this matters to AIP**
 
+This aligns closely with AIP's source-specific semantics and future separation of Current State,
+Intent, and assessment:
+
 ```text
-complete architecture graph
-        ≠
-bounded architecture context needed for this question
+source-specific artifact / observation
+        ↓
+provenance + identity + qualification
+        ↓
+bounded Architecture Knowledge
 ```
 
-AIP's agent-facing value lies in returning the smallest useful qualified answer while preserving
-evidence, provenance, observation context, conflicts, and limitations. Its narrow per-question MCP
-tools support that boundary by avoiding generic graph dumps or unrestricted Cypher access.
+AIP should preserve what each source actually establishes rather than manufacture a universal
+"source of truth." OpenAPI may establish executable interface structure, telemetry may establish
+observed interaction, Kubernetes may establish deployment evidence, and future explicit artifacts
+may carry attributable Intent. Where sources disagree, the disagreement should remain inspectable
+instead of being delegated to an agent to choose the most convenient interpretation.
 
-Kocot's distinction between what exists, what it means, why it should exist, and what is permitted
-also protects AIP's scope: evidence-backed Current State primarily establishes the first; the other
-questions require explicit semantics, intent, and authority.
+The same discipline applies to workflow and intent. Arazzo is a plausible future carrier of
+explicit interaction-sequence intent, but:
+
+```text
+declared workflow
+        !=
+observed runtime path
+        !=
+business outcome
+```
+
+Kocot's work also reinforces the boundary between storage and context:
+
+```text
+connected artifacts / knowledge graph
+        ≠
+evidence-qualified answer for this question
+```
+
+The graph connects potentially relevant material. AIP's differentiating work is establishing which
+architecture claims that material supports, under which context, with which provenance,
+qualification, conflicts, and limits.
 
 > **The graph is infrastructure. The qualified answer is the context.**
+
+**AIP stance**
+
+Strong landscape reference for agent-facing context and future Intent/assessment semantics, but not
+a roadmap commitment to ingest `AGENTS.md`, Arazzo, `apis.json`, hypermedia, or policy engines.
+The carrier must not become the semantic model, and execution authorization remains outside AIP's
+Architecture Knowledge core.
 
 ### BootUI — Runtime Context for Coding Agents
 
