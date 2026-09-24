@@ -32,7 +32,7 @@ sys.path.insert(0, str(LIFECYCLE_DIR.parents[3]))
 from app.sources.identity import source_instance_id
 from app.sources.model import SourceKind
 
-BINDINGS = "identity-bindings.yaml"
+BINDINGS = "bindings/architecture-identity-bindings.yaml"
 CONTAINER_PREFIX = "lifecycle"  # the workdir is mounted at /app/lifecycle; AIP's cwd is /app
 TOMBSTONES = "tombstones.yaml"
 

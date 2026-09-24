@@ -21,26 +21,26 @@ STEPS = ("S0", "L1", "L4a", "L4b", "L6", "L2", "R", "L5", "L3")
 # tombstones.yaml.
 PINNED = {
     "quarkus-super-heroes": {
-        "S0": "d69aa4f315510419436b2f0b7cb772cf09e63bbf746dea8da1c1d9452aa55cf0",
-        "L1": "d69aa4f315510419436b2f0b7cb772cf09e63bbf746dea8da1c1d9452aa55cf0",
+        "S0": "72052574a730100a29ff2da60f602cb74147950ad1b344c1ef752045488e4cb6",
+        "L1": "72052574a730100a29ff2da60f602cb74147950ad1b344c1ef752045488e4cb6",
         "L4a": "b21aa1fa456453ab04287f3789149025580b1196f5fdb03d5df6b03e30486e8b",
-        "L4b": "79b9879c4cff171cda93262f18db8fb930189ff591898c90a02c4b64939d4835",
-        "L6": "b69899848356e23859cb0080939c0047f4ed907983b4638723355af87341bde5",
-        "L2": "76296104e4cb476fc6d0fc2be0e47a4d423e6743a9f0e51bbbb0b864faef964e",
-        "R": "d69aa4f315510419436b2f0b7cb772cf09e63bbf746dea8da1c1d9452aa55cf0",
-        "L5": "6a1f752d19e7544791828b46409298bbcf56da5e3be192c8d8a03c10ebbfcf85",
-        "L3": "6385797a8cd917110b68c4f2edf33f69d2ad13f00089902a406aec10dd429f2c",
+        "L4b": "02177b77c19886572361e173f6258f38aa6caa22f5e832ad4994eaa2762140d0",
+        "L6": "b3dbede5f9f8f988048333805ccce8d0aa10b62f28cea728abfb824458d43175",
+        "L2": "30887ab9ac5960b80312ee85ee197a916bf8a3aa02a569bd3c01ec7f78c905ff",
+        "R": "72052574a730100a29ff2da60f602cb74147950ad1b344c1ef752045488e4cb6",
+        "L5": "ffaf3dbcfdf7ec756b6a711e2f086cfab066cf0fc0c272295793e1e81fa2ef36",
+        "L3": "fde01aa4afc906900e516a7a2f80048f76d2be03ff2f1f9a06720839605c5b7d",
     },
     "apache-airflow": {
-        "S0": "05013f2a477972a8d9bf7d13a351160323f8a5e31b7aa882f2ac6b63521bf89a",
-        "L1": "05013f2a477972a8d9bf7d13a351160323f8a5e31b7aa882f2ac6b63521bf89a",
+        "S0": "e6e00555f1805f00d464aab8b2a45a738afc570abfce378ddcff4dfc0fc96011",
+        "L1": "e6e00555f1805f00d464aab8b2a45a738afc570abfce378ddcff4dfc0fc96011",
         "L4a": "3de2defbd233cf4df7c9b92ee25639bed98437a03d4d10e00d727b1108f38446",
-        "L4b": "cbab3c8218760f734cbe0c3fc30a0f40625e6676b591c9d7b1475bd6363c0661",
-        "L6": "10406f3ce0d324bd87a9a1096bfeb5cfa9f128ae843815ecab461b18b4a8c571",
-        "L2": "ef5c539c7f7dc0d2ead2847a1595cdcdcc94d114daa402a2ac7d2968fff3ed87",
-        "R": "05013f2a477972a8d9bf7d13a351160323f8a5e31b7aa882f2ac6b63521bf89a",
-        "L5": "1357ac5639e1e613b5f64074ddfb5e47c28ff60f553345d54e01c015dbc5f098",
-        "L3": "66c00f645fae7ba81d8e8cea11f5d3277c83c2ad07fa11108ff2d3facef3c9e5",
+        "L4b": "6b72961e8d7145394c72d6f263d828191558a46594bfa206776bf5246b86c8c7",
+        "L6": "a78c6e16df7eae8d8506a0e9b4e3aef40ccc5b0d3962927e9777d7ac9ef970d0",
+        "L2": "3a728ad38910c61a8fb7283c41ba4333eb8c37d667a94965df130c4b621d1ebf",
+        "R": "e6e00555f1805f00d464aab8b2a45a738afc570abfce378ddcff4dfc0fc96011",
+        "L5": "fb829f2990f2846a1f8af5e6e51b9963eeed0186acd0df84fefad117abd54d28",
+        "L3": "4e4b72fdfab1bb4a52da7a8bc221a71139f818686badd3b57f00d789bef935de",
     },
 }
 Q_INV_SAMPLE = (
@@ -90,7 +90,9 @@ def test_each_mutation_is_exactly_the_frozen_edit(tmp_path, target):
     frozen = V05 / target / "runtime" / "declarations"
 
     def bindings(root: Path) -> set[str]:
-        document = yaml.safe_load((root / "identity-bindings.yaml").read_text())
+        document = yaml.safe_load(
+            (root / "bindings" / "architecture-identity-bindings.yaml").read_text()
+        )
         return {b["sourceInstanceId"] for b in document["bindings"]}
 
     s0 = _materialize(tmp_path, target, "S0") / "declarations"
@@ -225,3 +227,19 @@ def test_coverage_matrix_fixture_digests_match_the_files_on_disk():
     for path, digest in pinned:
         # The one documented algorithm (coverage-matrix.md names mutate.py::tree_digest).
         assert mutate.tree_digest(ROOT / path, exclude=frozenset()) == digest, path
+
+
+@pytest.mark.parametrize("target", sorted(PINNED))
+def test_every_materialized_declaration_is_an_enumerated_candidate_name(tmp_path, target):
+    # Slice 5 attempt 1 stopped because a bindings document name was not enumerated (see the
+    # dossiers' profile.md "Revision history").
+    from app.ingestion.filesystem_discoverer import CANDIDATE_FILENAMES
+
+    for step in STEPS:
+        workdir = _materialize(tmp_path, target, step)
+        for path in workdir.rglob("*"):
+            if path.is_file() and path.name not in {"config.yaml", "tombstones.yaml"}:
+                relative = path.relative_to(workdir)
+                assert path.name in CANDIDATE_FILENAMES, (step, relative)
+                # <workdir>/<root>/<subdirectory>/<candidate name>: the discoverer's layout.
+                assert len(relative.parts) == 3, (step, relative)

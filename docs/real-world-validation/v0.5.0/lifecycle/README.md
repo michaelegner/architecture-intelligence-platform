@@ -14,7 +14,7 @@ merge of this PR is the freeze.
 ## Mutations
 
 Only the following edits are permitted, and each is applied to the copy:
-- **Omit X.** Delete X's file, and drop X's entry from the copy of `identity-bindings.yaml`. That
+- **Omit X.** Delete X's file, and drop X's entry from the copy of `bindings/architecture-identity-bindings.yaml`. That
   file is AIP operator configuration. Without this edit, it would reference an absent source, which
   is a separate phase-1 failure.
 - **Unbound copy.** Add a byte-identical copy of one declaration under a new path, with no binding.
