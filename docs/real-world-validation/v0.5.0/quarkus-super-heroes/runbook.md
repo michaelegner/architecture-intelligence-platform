@@ -20,7 +20,12 @@ export AIP_CHECKOUT=/home/michael/code/ArchitectureIntelligencePlatform   # froz
 export DOSSIER="$AIP_CHECKOUT/docs/real-world-validation/v0.5.0/quarkus-super-heroes"
 export RUNTIME="$DOSSIER/runtime"
 export RUN_DIR="$(mktemp -d)"                                             # this run's records
+export NEO4J_PASSWORD='replace-with-a-local-password'
 ```
+
+`docker-compose.yml` requires `NEO4J_PASSWORD`, `AIP_CANDIDATE_SHA` and
+`QUARKUS_SUPERHEROES_CHECKOUT`. Compose checks them for every command, including `down`. The last two
+are exported by step 2. Run every step in this one shell, including the step 12 teardown.
 
 ## 1. Prerequisites
 
@@ -93,8 +98,8 @@ done
 
 ```bash
 cd "$RUNTIME"
+: "${NEO4J_PASSWORD:?}" "${AIP_CANDIDATE_SHA:?}" "${QUARKUS_SUPERHEROES_CHECKOUT:?}"  # PR #240 review
 docker compose down -v            # I5 §11: every run begins from clean AIP and upstream state
-export NEO4J_PASSWORD='replace-with-a-local-password'
 docker compose build --no-cache architecture-intelligence
 docker image inspect --format '{{.Id}}' "aip-i5-candidate:$AIP_CANDIDATE_SHA" > "$RUN_DIR/aip-image"
 ```
