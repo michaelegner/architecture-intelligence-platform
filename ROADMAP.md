@@ -303,7 +303,7 @@ historical trajectories, and distributed local-assessor deployment are outside v
 
 ## v0.5.1 — Realistic Architecture Demo (proposed)
 
-**Goal:** Provide a reproducible, evidence-rich demo based on the v0.5.0-qualified Quarkus Super Heroes system.
+**Goal: Provide a reproducible, evidence-rich demo based on the v0.5.0-qualified Quarkus Super Heroes system.**
 
 - reuse the final I5 Quarkus dossier and qualified evidence;
 - add deterministic demo preparation/replay over existing REST and MCP surfaces;
