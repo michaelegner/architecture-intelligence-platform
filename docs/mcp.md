@@ -58,6 +58,49 @@ Schemas live at `schemas/architecture_intelligence/v0.5/`:
 `architecture-answer.schema.json` (`get_service_dependencies`), `drift-answer.schema.json`
 (`get_architecture_drift`), `evidence-answer.schema.json` (`get_evidence`).
 
+## Pub/Sub in dependency and drift answers (v0.5.0 I4)
+
+I4 adds no MCP tool, transport mode or REST endpoint. Declared Topic/Subscription topology surfaces
+inside the existing `get_service_dependencies`/`get_architecture_drift` claims (and the matching
+`GET /api/services/{id}/dependencies`/`/drift`). `ArchitectureIntelligenceService` is the only
+semantic owner, and REST and MCP never derive Pub/Sub topology on their own.
+
+**The delivery.** A Pub/Sub dependency claim has `delivery.kind = ASYNC_MESSAGE`, `relation_type =
+PUBLISHES_TO`, and `via` = the Topic. `DeliveryRef.subscription` is either `null` or the Subscription
+the route runs through. That Subscription is always `SUBSCRIPTION_OF` the `via` Topic in the same
+snapshot. HTTP and Queue deliveries always carry `subscription = null`. `EntityType` gains `TOPIC` and
+`SUBSCRIPTION`.
+
+**Projection** (`app/architecture_intelligence/dependency_projection.py`):
+
+| Declared situation | Claim `object` | `destination_resolution` |
+|---|---|---|
+| Topic with no usable Subscription | the Topic | `DIRECT_TARGET_FALLBACK` + `UNRESOLVED_IDENTITY` |
+| Subscription with no evidenced consumer | the Subscription (routed through it) | `DIRECT_TARGET_FALLBACK` + `UNRESOLVED_IDENTITY` |
+| Subscription with consumer Service(s) | one claim per distinct consumer Service, each routed through that Subscription | `RESOLVED_SERVICE` |
+
+Rules behind the table:
+- **Instances collapse:** several instances of one Service collapse into one claim with unioned
+  evidence.
+- **Competing consumers:** several Services on one Subscription are competing consumers, not fan-out.
+- **Fan-out:** fan-out appears only as distinct Subscription routes, meaning distinct claims.
+- **Usable route:** a route is usable only when its `SUBSCRIPTION_OF` carries accepted evidence.
+  That evidence joins `resolution_evidence_refs` on resolved claims only, because fallback claims
+  keep empty resolution refs.
+- **Qualification:** qualification comes only from the publisher's own `PUBLISHES_TO` evidence, the
+  same as a Queue claim's `SENDS`. A consumer's evidence appears only in its own route's
+  `resolution_evidence_refs`, so evidence for one Subscription never touches a sibling.
+- **No Pub/Sub drift from unmatched spans:** runtime-only Topics and Subscriptions are never minted.
+  So an unmatched consumer span creates no `OBSERVED_ONLY` Pub/Sub claim.
+
+**Claim identity.** The claim-id payload gains an optional `subscription_id`. It is present only for a
+Subscription route and omitted entirely otherwise, so every pre-I4 HTTP and Queue claim id is
+byte-identical.
+
+**Evidence and schema.** `get_evidence` reports `PUBLISHES_TO` and `SUBSCRIPTION_OF` (new
+`EvidenceRelationType` members), plus the reused `RECEIVES_FROM`/`CARRIES`, as supported facts. The
+internal dead-letter carrier is never publicly resolvable. `schema_version` stays `"0.5"`.
+
 ## `DEPLOYED_AS` deployment claims (v0.5.0 I3)
 
 I3 adds zero new MCP tools — `tools/list` still returns exactly the three above, in the same fixed

@@ -12,14 +12,26 @@ and different data sources from one another.
 | `Service` | `id`, `name`, `version` |
 | `Operation` | `id`, `service_id`, `operation_id` (the OpenAPI `operationId`, optional), `method`, `path`, `request_schema_ids`, `response_schema_ids` |
 | `Queue` | `id`, `name`, `protocol`, `namespace`, `queue_type` |
+| `Topic` | `id`, `name`, `protocol`, `namespace`. This is a v0.5.0 I4 publish destination. Its downstream fan-out is expressed only by distinct Subscriptions. |
+| `Subscription` | `id`, `name`, `protocol`, `namespace`. This is a v0.5.0 I4 named logical delivery entity that belongs to exactly one Topic. It has no consumer-instance, consumer-group, partition, offset, filter or delivery-guarantee field. |
 | `Message` | `id`, `name`, `version`, `schema_id` |
 | `Schema` | `id`, `name`, `version`, `format`, `canonical_hash` (a content hash used to detect payload drift) |
 | `Relation` | `type`, `source_id`, `target_id`, `evidence_ids` |
 | `Provenance` / `Evidence` | see [`evidence.md`](evidence.md) |
 
 `ArchitectureModel` is the container all of the above are collected into and passed between
-pipeline stages: `services`, `operations`, `queues`, `messages`, `schemas`, `relations`,
-`provenance`.
+pipeline stages: `services`, `operations`, `queues`, `topics`, `subscriptions`, `messages`,
+`schemas`, `relations`, `provenance`. It also carries two internal Pub/Sub lists that are never
+canonical entities, relations or public properties:
+- `pubsub_declarations` holds one `PubSubDeclaration` per declaring source and pointer. It carries the
+  source instance, revision, locator and pointer, the semantic digest, the adapter, the broker and
+  namespace, the kind evidence, the identity inputs and methods, and the mapping rule.
+- `subscription_dead_letter_configurations` holds one `SubscriptionDeadLetterConfiguration` per
+  Subscription. It carries the exact declared dead-letter target token and the optional target-kind
+  token, and is never resolved into an entity (`app/canonical/pubsub.py`, I4 spec §10/§11).
+
+Topic and Subscription are source-independent. There is no generic `Destination` supertype, no
+broker-specific entity, and a consumer group is never a Subscription (ADR 0017).
 
 ## Infrastructure entities and claims (`app/canonical/infrastructure.py`) — internal-only
 
@@ -85,10 +97,22 @@ merge conflict-free and lets a repeated import of the same source not create dup
 | Service | `service:<slug>` or `service:<namespace>:<slug>` | `service:order-service` |
 | Operation | `operation:<full-service-id>:<METHOD>:<path>` | `operation:service:product-service:GET:/products/{id}` |
 | Queue | `queue:<name>` or `queue:<namespace>:<name>` | `queue:payment-q` |
+| Topic (v0.5.0 I4) | `topic:owned:<sha256(length-delimited(broker id, namespace-or-empty, exact channel address))>` | `topic:owned:9f2c…` |
+| Subscription (v0.5.0 I4) | `subscription:owned:<sha256(length-delimited(broker id, namespace-or-empty, Topic id, exact subscription name))>` | `subscription:owned:4a1e…` |
 | Message | `message:<name>` or `message:<name>:<version>` | `message:PaymentRequested:v2` |
 | Schema | `schema:<name>` or `schema:<name>:<version>` | `schema:PaymentRequested:v2` |
 | Evidence (declared) | `evidence:<source_type>:<service_slug>[:<revision>]` | `evidence:manifest:order-service` |
 | Evidence (observed) | `evidence:otel:<environment>:<day>:<fact-hash>` | `evidence:otel:production:2026-08-26:b1d283d583bd` |
+
+Topic and Subscription ids come from `app/sources/owner_ids.py` (`topic_owned_id`,
+`subscription_owned_id`), not from `ids.py`:
+- **Distinct prefixes:** a Queue, a Topic and a Subscription never alias, even when their names match.
+- **Topic binding:** a Subscription id binds its canonical Topic id, so the same Subscription name on
+  two Topics stays distinct.
+- **No consumer-group input:** no consumer group feeds the Subscription formula.
+- **Configured ids:** a versioned `topicMappings`/`subscriptionMappings` entry may instead supply a
+  full canonical id. It must agree with the derived id, or the source is rejected with
+  `TOPIC_IDENTITY_CONFLICT`/`SUBSCRIPTION_IDENTITY_CONFLICT` (see [`ingestion.md`](ingestion.md)).
 
 One detail worth calling out because it was the source of a real bug this project fixed
 (11H-D): the `operation:` id is **always built from the full opaque service id** (e.g.

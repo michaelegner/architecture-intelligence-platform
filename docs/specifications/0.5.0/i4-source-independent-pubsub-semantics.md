@@ -1,6 +1,6 @@
 # AIP v0.5.0 I4 Specification — Conditional Source-Independent Pub/Sub Semantics
 
-**Status:** Draft 0.3 — `GO` candidate, amended during PR review; implementation is not authorized until this specification and the corresponding ADR are reviewed and merged<br>
+**Status:** Draft 0.4 — `GO`; implemented in Slices 1-6 (#228-#233 plus the Slice 6 completion PR) and recorded in [`i4-completion-record.md`](i4-completion-record.md). Draft 0.3 (#226, #227 → `f98e48b`) is the text that was implemented; Draft 0.4 only folds in the decisions settled during implementation (§20) and changes no already-merged behavior<br>
 **Target release:** `v0.5.0`<br>
 **Release increment:** I4 — Conditional Source-Independent Pub/Sub Semantics<br>
 **Parent:** `docs/specifications/0.5.0/specification.md`, especially §§4–5, 19–21, 28–31<br>
@@ -30,7 +30,9 @@ DEFER
   -> continue v0.5.0 without Pub/Sub semantics
 ```
 
-This document is a `GO` candidate, not an implementation authorization. Until the decision and ADR are reviewed, ADR 0013 remains authoritative.
+Draft 0.3 of this document was a `GO` candidate, not an implementation authorization. The `GO`
+decision was recorded in Slice 1 ([`i4-decision-evidence.md`](i4-decision-evidence.md)) and ADR 0017
+is Accepted, so ADR 0013 is now superseded in part (see §5).
 
 ---
 
@@ -913,30 +915,87 @@ If I4 = DEFER, I5 treats Pub/Sub as unsupported/deferred and SHALL NOT reopen it
 
 ## 19. Review checklist before implementation
 
-- [ ] I4 decision is explicit GO or DEFER.
-- [ ] Azure Service Bus and Google Pub/Sub independently support the abstraction.
-- [ ] Kafka consumer group is not normalized to Subscription.
-- [ ] Queue remains competing-consumer semantics.
-- [ ] Queue and Subscription each preserve one resolved dependency claim per distinct evidenced
+- [x] I4 decision is explicit GO or DEFER.
+- [x] Azure Service Bus and Google Pub/Sub independently support the abstraction.
+- [x] Kafka consumer group is not normalized to Subscription.
+- [x] Queue remains competing-consumer semantics.
+- [x] Queue and Subscription each preserve one resolved dependency claim per distinct evidenced
       logical consumer without calling that cardinality fan-out.
-- [ ] Topic fan-out is represented by distinct Subscriptions.
-- [ ] multiple instances on one Subscription are not fan-out.
-- [ ] AsyncAPI Channel is not automatically Queue/Topic.
-- [ ] `x-aip-destination-kind` is bounded to `queue|topic`.
-- [ ] Topic identity requires stable broker/namespace evidence.
-- [ ] Subscription identity includes Topic id.
-- [ ] `subscribe` direction alone cannot mint Subscription.
-- [ ] runtime cannot mint Topic/Subscription.
-- [ ] consumer-group name cannot resolve Subscription.
-- [ ] existing v0.4.1 destination/service guards remain active.
-- [ ] I3 `DEPLOYED_AS` and Kubernetes placement are not Pub/Sub evidence.
-- [ ] exactly three MCP tools remain.
-- [ ] `ArchitectureIntelligenceService` remains semantic owner.
-- [ ] Queue claim ids remain unchanged.
-- [ ] canonicalization version bumps to 3, with Topic/Subscription node queries, in the first slice
+- [x] Topic fan-out is represented by distinct Subscriptions.
+- [x] multiple instances on one Subscription are not fan-out.
+- [x] AsyncAPI Channel is not automatically Queue/Topic.
+- [x] `x-aip-destination-kind` is bounded to `queue|topic`.
+- [x] Topic identity requires stable broker/namespace evidence.
+- [x] Subscription identity includes Topic id.
+- [x] `subscribe` direction alone cannot mint Subscription.
+- [x] runtime cannot mint Topic/Subscription.
+- [x] consumer-group name cannot resolve Subscription.
+- [x] existing v0.4.1 destination/service guards remain active.
+- [x] I3 `DEPLOYED_AS` and Kubernetes placement are not Pub/Sub evidence.
+- [x] exactly three MCP tools remain.
+- [x] `ArchitectureIntelligenceService` remains semantic owner.
+- [x] Queue claim ids remain unchanged.
+- [x] canonicalization version bumps to 3, with Topic/Subscription node queries, in the first slice
       that persists new public state.
-- [ ] schema version remains `0.5`.
-- [ ] no live broker adapter is added.
-- [ ] no broker-specific production branch is required.
+- [x] schema version remains `0.5`.
+- [x] no live broker adapter is added.
+- [x] no broker-specific production branch is required.
 
-Acceptance of this checklist is the implementation entry gate.
+Acceptance of this checklist is the implementation entry gate. All items were satisfied at the Slice 1
+decision. [`i4-completion-record.md`](i4-completion-record.md) maps each one to the implementation
+and test evidence.
+
+---
+
+## 20. Amendments at I4 closure (Draft 0.4)
+
+Draft 0.3 left the following decisions open. Each was returned to review during implementation per
+the implementation workflow's stop rule, settled by the owner, disclosed in the named PR, and is
+recorded here as normative. None changes behavior that had already merged before its PR.
+
+1. **§7.3 mapping-context digest (#229).** The `mapping_context_digest` projection always carries the
+   `sharedTopicMappings` and `sharedSubscriptionMappings` keys, even when they are empty. Adopting I4
+   therefore changes every pre-I4 context digest exactly once. That is a one-time same-scope
+   re-evaluation, not a new identity.
+2. **§8.1 unrecognized kind plus `topicMappings` (#230).** An unrecognized `x-aip-destination-kind`
+   value is only a non-Queue vote. It neither supports nor contradicts Topic-kind evidence. A valid
+   `topicMappings` entry at the same Channel therefore still establishes the Topic.
+3. **§10 dead-letter declaration shape (#230).** Subscription-specific dead-letter configuration is
+   declared on the subscribe operation as `x-aip-subscription-dead-letter: {target: <non-empty
+   string>, targetKind: <non-empty string, optional>}`. Any other shape is `REJECTED_INVALID`.
+4. **§11 per-artifact evidence carrier (#230).** The per-artifact declared evidence §11 requires is
+   retained on internal, source-owned `PubSubDeclaration` nodes, one per (entity, source, pointer). They
+   follow I2's `InfrastructureContribution` pattern and the existing ownership engine. They are never
+   canonical entities, relations, public properties, public evidence, or snapshot inputs.
+5. **§9 `messaging.destination_kind=topic` with no declared Topic (#231).** The span is refused with
+   v0.4.1's unchanged `unsupported_destination_semantics` reason, so pre-I4 runtime outcomes are
+   byte-identical when no Topic is declared.
+6. **§12.3/§12.5 qualification source (#232).** A Pub/Sub dependency claim's qualification,
+   coverage, and `evidence_refs` come only from the subject's own `PUBLISHES_TO` evidence, exactly as
+   a Queue claim's come from `SENDS`.
+   - Consumer-side `RECEIVES_FROM -> Subscription` evidence appears only in its own route's
+     `resolution_evidence_refs`.
+   - §12.5's "evidence for one Subscription does not confirm a sibling Subscription" is therefore
+     satisfied by attribution: a consumer's evidence never appears on a sibling route, and consumer
+     evidence never changes any claim's qualification.
+7. **§12.3 usable Subscription route (#232).**
+   - A Subscription route is usable only when its `SUBSCRIPTION_OF` relation carries accepted
+     (non-dangling) evidence. Otherwise the Topic-fallback row applies.
+   - On a `RESOLVED_SERVICE` claim, `resolution_evidence_refs` is the route's `SUBSCRIPTION_OF`
+     evidence plus that consumer's `RECEIVES_FROM` evidence.
+   - A Subscription `DIRECT_TARGET_FALLBACK` claim keeps empty `resolution_evidence_refs`. This
+     follows the frozen v0.5 `DependencyClaim` invariant that every fallback claim carries none.
+8. **§12.5 messaging-coverage rule (#232).** There is one shared rule
+   (`app/analysis/runtime.py::telemetry_coverage`).
+   - Observed `PUBLISHES_TO -> Topic` counts like `SENDS -> Queue`, and observed
+     `RECEIVES_FROM -> Subscription` counts like `RECEIVES_FROM -> Queue`.
+   - `PUBLISHES_TO` is a messaging relation for coverage classification.
+   - Consequently, O5 and REST `messagingObserved` are also true for a service whose only telemetry
+     is Pub/Sub. The O1-O4 runtime analyses remain Queue-only.
+9. **§13.4 "identical state" (#233).** Declared `Evidence.source_file` is the absolute document path
+   and is part of the snapshot fingerprint. This predates I4.
+   - "Identical state" therefore includes the checkout location.
+   - The same fixtures imported from another path yield identical claims, claim ids, evidence ids,
+     evidence records and diagnostics, but a different `snapshot_id`.
+   - I4 qualification proves byte-identity for identical state and snapshot-only divergence across
+     locations.

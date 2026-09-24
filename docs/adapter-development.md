@@ -48,8 +48,9 @@ REJECTED_UNSUPPORTED / REJECTED_CONFLICT — I1 spec §10: "each source receives
 In practice that means:
 
 - Every entity id must be built with `app/canonical/ids.py`'s deterministic formatters (or, for
-  Schema/Message/Queue, `app/sources/owner_ids.py`'s owner-scoped RFC 8785 identity — I1 spec §8/§9)
-  — never an ad-hoc string and never anything derived from a local filesystem path (see
+  Schema/Message/Queue, `app/sources/owner_ids.py`'s owner-scoped RFC 8785 identity — I1 spec §8/§9;
+  for Topic/Subscription, `topic_owned_id`/`subscription_owned_id` in the same module — v0.5.0 I4
+  spec §7) — never an ad-hoc string and never anything derived from a local filesystem path (see
   [`canonical-model.md`](canonical-model.md) for why, including the specific bug class this
   prevents).
 - Every construct's Service identity must be resolved through the injected `service_identity`
