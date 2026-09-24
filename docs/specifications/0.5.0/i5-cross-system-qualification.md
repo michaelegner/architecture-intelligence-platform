@@ -70,7 +70,8 @@ Before the first qualifying AIP comparison for each target, a versioned I5 dossi
 3. the capture origin and completeness bounds for declarations, Kubernetes resources, OTel data,
    inventories, tombstones, and any mapping artifact used;
 4. the supported expectation vocabulary, comparison projection, observation-window and clean-state
-   procedure, deterministic ordering/serialization policy, and rerun criteria;
+   procedure, one absolute checkout location for the paired byte-identity runs, deterministic
+   ordering/serialization policy, and rerun criteria;
 5. the profile revision and content digests, plus the first eligible candidate comparison point.
 
 The dossier SHALL identify which evidence is independently supplied by the upstream system, which
@@ -162,10 +163,16 @@ tests or observed output cannot decide what the contract should mean.
 After all accepted fixes, I5 SHALL rerun both real-system targets and every supporting positive
 and negative scenario from clean state against one candidate. It SHALL run deterministic
 Architecture Answer evaluation twice at that same candidate and frozen input/profile revisions,
-with byte-identical output. Ordering, capture, and time-dependent fields in the comparison must
-follow the pre-frozen normalization policy; the report retains the raw evidence needed to audit
-that normalization. Any executable or qualification-relevant change after the run creates a new
-candidate and reopens affected I5 gates.
+from clean state at the same absolute checkout location, with byte-identical output. Declared
+`Evidence.source_file` currently carries an absolute path into `snapshot_id` and
+`model_revision` (I4 §20 item 9); the paired runs SHALL therefore retain and report their raw
+paths and snapshot values, without location normalization. A rerun at another checkout location
+starts a new pair and is not byte-compared with the former pair. Ordering, capture, and
+time-dependent fields in the comparison must follow the pre-frozen normalization policy; the
+report retains the raw evidence needed to audit that normalization. The evaluator's reference
+canonicalization must match the candidate's qualified v0.5 semantics before these I5 runs; I6
+owns refreshing the committed release evaluation report. Any executable or
+qualification-relevant change after the run creates a new candidate and reopens affected I5 gates.
 
 The final I5 report SHALL contain:
 
