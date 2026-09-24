@@ -48,7 +48,7 @@ The same names label each service's Deployment and Kubernetes Service in the ups
 service's OTel resource attributes (`rest-fights/src/main/resources/application.properties:95`).
 
 The upstream OpenAPI documents carry no `x-aip-service-id`, and I1 §4.1 forbids deriving identity
-from a directory name or `info.title`. So `runtime/declarations/identity-bindings.yaml` binds each
+from a directory name or `info.title`. So `runtime/declarations/bindings/architecture-identity-bindings.yaml` binds each
 OpenAPI source to its Service (I1 §4.1 path 3). That file is disclosed AIP operator configuration,
 not ground truth.
 

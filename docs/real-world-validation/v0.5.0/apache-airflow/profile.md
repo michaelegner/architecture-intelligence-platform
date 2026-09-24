@@ -10,7 +10,7 @@ below. The owner's merge of this dossier freezes it.
 | --- | --- | --- | --- |
 | Airflow public REST OpenAPI | upstream-supplied | `runtime/declarations/airflow-apiserver/openapi.yml` | sha256 `2c57114da43a131f68772f1660ed52ca7116089a20893ac5e5f6225ffde3abd9`, byte-identical to upstream `airflow-core/src/airflow/api_fastapi/core_api/openapi/v2-rest-api-generated.yaml` |
 | OTLP traces from the running Airflow components (native Airflow OTel only) | independently captured | via `runtime/otel-collector-config.yaml` | The observation window of the qualifying run |
-| OpenAPI identity binding (I1 §4.1 path 3) | AIP operator configuration | `runtime/declarations/identity-bindings.yaml` | Freeze commit |
+| OpenAPI identity binding (I1 §4.1 path 3) | AIP operator configuration | `runtime/declarations/bindings/architecture-identity-bindings.yaml` | Freeze commit |
 | Validation Dag `i3_validation` (the profile workload, carried over unchanged from v0.3) | AIP operator configuration | `runtime/dags/i3_validation.py` | Freeze commit |
 | Traffic script | AIP operator configuration | `runtime/traffic.sh` | Freeze commit |
 | AIP configuration | AIP operator configuration | `runtime/config.airflow-i5.yaml` | Freeze commit |
@@ -118,6 +118,18 @@ rerun criteria:             A comparison is rerun only after a documented clean-
   `frozen_compose`. It passes a fixed project name, `--project-directory`,
   `-f runtime/docker-compose.yml` and `--env-file /dev/null`, so a gitignored `.env` (which could
   set `COMPOSE_FILE`) or a `docker-compose.override.yml` cannot change the run.
+- **Post-freeze input-layout correction** (Slice 5 stop, this PR). The Service identity bindings
+  document moves from `runtime/declarations/identity-bindings.yaml` to
+  `runtime/declarations/bindings/architecture-identity-bindings.yaml`, and its bytes are unchanged.
+  The filesystem discoverer enumerates only `<root>/<subdirectory>/<candidate name>`, and the
+  bindings candidate name is `architecture-identity-bindings.yaml`
+  (`app/ingestion/filesystem_discoverer.py`, `CANDIDATE_FILENAMES` and its subdirectory loop). The
+  old file had both a non-candidate name and a root-level location, so it was skipped silently. The
+  first Slice 5 attempt, at candidate `34067b7`, therefore never read the bindings: every OpenAPI
+  source was `SERVICE_IDENTITY_UNRESOLVED`, and the declarations run did not commit. The expected
+  facts, components, scope, traffic, capture authority and comparison rules are unchanged
+  (I5 §6). Tests now guard that every declaration file is exactly one subdirectory deep and has an
+  enumerated candidate name.
 
 ## Startup, traffic, and shutdown procedures
 

@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | `declarations/rest-*/openapi.yml` | The four upstream OpenAPI documents, byte-identical to the pin | upstream-supplied |
 | `declarations/rest-fights/architecture.yaml` | The seven rest-fights `CALLS`, transcribed from `../ground-truth.md` | AIP operator configuration |
-| `declarations/identity-bindings.yaml` | The I1 §4.1 path 3 Service bindings for the four OpenAPI sources | AIP operator configuration |
+| `declarations/bindings/architecture-identity-bindings.yaml` | The I1 §4.1 path 3 Service bindings for the four OpenAPI sources | AIP operator configuration |
 | `k8s/unmodified/` | The upstream `deploy/k8s/java25-kubernetes.yml`, byte-identical to the pin, with its I2 envelope. It is the negative case (I5 §5 item 1). | upstream-supplied |
 | `k8s/namespaced/` | The namespace-derived copy, with its I2 envelope. It is the positive I2/I3 input (I5 §5 item 2). | upstream-derived |
 | `k8s/derive_namespaced.py` | The one permitted transform. It is deterministic and self-verifying. | AIP operator configuration |

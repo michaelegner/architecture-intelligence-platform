@@ -18,7 +18,7 @@ Every input falls into exactly one of four kinds, and no input is presented as a
 | Kubernetes manifest, namespace-derived | **upstream-derived** (I5 §5) | `runtime/k8s/namespaced/java25-kubernetes.namespaced.yml` | sha256 `4ba52254b4a331590f1f7b1a43ae9f89a813dc7885938769bcdac8cd907d1cd2`. Produced from the unmodified file by `runtime/k8s/derive_namespaced.py`, namespace `quarkus-super-heroes`. |
 | OTLP traces from the running services | independently captured | via `runtime/otel-collector-config.yaml` | The observation window of the qualifying run |
 | rest-fights Architecture Manifest (7 `CALLS`) | AIP operator configuration | `runtime/declarations/rest-fights/architecture.yaml` | Freeze commit |
-| OpenAPI identity bindings (I1 §4.1 path 3) | AIP operator configuration | `runtime/declarations/identity-bindings.yaml` | Freeze commit |
+| OpenAPI identity bindings (I1 §4.1 path 3) | AIP operator configuration | `runtime/declarations/bindings/architecture-identity-bindings.yaml` | Freeze commit |
 | Path B mapping artifact (3 entries) | AIP operator configuration | `runtime/mapping.yaml` | Freeze commit |
 | Kubernetes snapshot envelopes, cluster identity, producer, authority | AIP operator configuration | `runtime/k8s/{namespaced,unmodified}/envelope.yaml`, `runtime/config.quarkus-i5.yaml` | Freeze commit |
 | Namespace name `quarkus-super-heroes` | AIP operator configuration | `runtime/k8s/derive_namespaced.py` | Freeze commit |
@@ -145,6 +145,18 @@ rerun criteria:             A comparison is rerun only after a documented clean-
   - Every Compose call goes through `frozen_compose` (PR #243 review). It passes a fixed project
     name, `--project-directory`, `-f runtime/docker-compose.yml` and `--env-file /dev/null`, so a
     gitignored `.env` or a `docker-compose.override.yml` cannot change the run.
+- **Post-freeze input-layout correction** (Slice 5 stop, this PR). The Service identity bindings
+  document moves from `runtime/declarations/identity-bindings.yaml` to
+  `runtime/declarations/bindings/architecture-identity-bindings.yaml`, and its bytes are unchanged.
+  The filesystem discoverer enumerates only `<root>/<subdirectory>/<candidate name>`, and the
+  bindings candidate name is `architecture-identity-bindings.yaml`
+  (`app/ingestion/filesystem_discoverer.py`, `CANDIDATE_FILENAMES` and its subdirectory loop). The
+  old file had both a non-candidate name and a root-level location, so it was skipped silently. The
+  first Slice 5 attempt, at candidate `34067b7`, therefore never read the bindings: every OpenAPI
+  source was `SERVICE_IDENTITY_UNRESOLVED`, and the declarations run did not commit. The expected
+  facts, components, scope, traffic, capture authority and comparison rules are unchanged
+  (I5 §6). Tests now guard that every declaration file is exactly one subdirectory deep and has an
+  enumerated candidate name.
 
 ## Startup, traffic, and shutdown procedures
 

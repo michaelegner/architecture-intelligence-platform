@@ -56,7 +56,7 @@ All Airflow components share one image and one environment block (`x-airflow-com
 The canonical Service id is `service:airflow-apiserver`, the official Compose component that
 serves the REST API (`airflow-core/docs/howto/docker-compose/docker-compose.yaml:122-124`). The upstream OpenAPI carries no `x-aip-service-id`, and I1
 §4.1 forbids deriving identity from a directory name or `info.title`. So
-`runtime/declarations/identity-bindings.yaml` binds the OpenAPI source to this Service
+`runtime/declarations/bindings/architecture-identity-bindings.yaml` binds the OpenAPI source to this Service
 (I1 §4.1 path 3). That file is disclosed AIP operator configuration, not ground truth.
 
 ## Selected operations: PROVIDES (9)

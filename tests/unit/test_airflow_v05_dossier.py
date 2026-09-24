@@ -48,8 +48,12 @@ def test_identity_binding_targets_the_configured_openapi_source():
     config = load_config(RUNTIME / "config.airflow-i5.yaml")
     (directory,) = config.sources.directories
     document, diagnostics = parse_architecture_identity_bindings(
-        yaml.safe_load((RUNTIME / "declarations" / "identity-bindings.yaml").read_text()),
-        locator="identity-bindings.yaml",
+        yaml.safe_load(
+            (
+                RUNTIME / "declarations" / "bindings" / "architecture-identity-bindings.yaml"
+            ).read_text()
+        ),
+        locator="bindings/architecture-identity-bindings.yaml",
     )
 
     assert diagnostics == []
@@ -130,3 +134,18 @@ def test_runbook_invokes_compose_only_through_the_frozen_helper():
         '-f "$RUNTIME/docker-compose.yml" \\ --env-file /dev/null "$@"'
     )
     assert runbook.count("docker compose") == 1  # only inside the helper
+
+
+def test_every_declaration_file_is_a_name_the_filesystem_discoverer_enumerates():
+    # The first Slice 5 attempt at 34067b7 stopped because the bindings document had a name that
+    # CANDIDATE_FILENAMES does not contain, at the root level the discoverer never scans. It was skipped silently, and every OpenAPI
+    # source was SERVICE_IDENTITY_UNRESOLVED.
+    from app.ingestion.filesystem_discoverer import CANDIDATE_FILENAMES
+
+    declarations = RUNTIME / "declarations"
+    files = [p for p in declarations.rglob("*") if p.is_file()]
+    assert files
+    assert {p.name for p in files} <= set(CANDIDATE_FILENAMES)
+    # FilesystemSourceDiscoverer enumerates only <root>/<subdirectory>/<candidate name>.
+    assert all(len(p.relative_to(declarations).parts) == 2 for p in files)
+    assert (declarations / "bindings" / "architecture-identity-bindings.yaml").is_file()
