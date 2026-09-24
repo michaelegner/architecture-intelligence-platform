@@ -1,8 +1,10 @@
 # AIP v0.5.0 I5 Specification — Cross-System Qualification and Model Hardening
 
-**Status:** Draft 0.2. This draft restructures the increment specification to the I2-I4 form and adds
-the decisions the parent's §33 decision register assigns to I5. It supersedes Draft 0.1 (#235,
-`3f413f6`). No I5 target has been qualified yet<br>
+**Status:** Draft 0.3. Draft 0.2 (#236, `b868732`) restructured the increment specification to the
+I2-I4 form and added the decisions the parent's §33 decision register assigns to I5; it superseded
+Draft 0.1 (#235, `3f413f6`). Draft 0.3 settles one question Slice 2 found: the upstream Quarkus
+manifests carry no `metadata.namespace`, which I2 §5 rejects (§5, §6, §8.1, §9). No I5 target has
+been qualified yet<br>
 **Target release:** `v0.5.0`<br>
 **Release increment:** I5 — Cross-System Qualification and Model Hardening<br>
 **Parent:** [`specification.md`](specification.md), Draft 0.2, git blob
@@ -148,11 +150,37 @@ mechanism. Quarkus is a reference application, not production software.
 
 **Quarkus Kubernetes input.**
 - The Quarkus target SHALL include the upstream project's own Kubernetes manifests at the pinned
-  commit (upstream `deploy/k8s`). They are imported offline through the I2 envelope as
-  `DECLARED_MANIFEST`. This is I5's only real-target Kubernetes and `DEPLOYED_AS` evidence.
+  commit (upstream `deploy/k8s`). Only their namespace-derived copy (below) is imported offline
+  through the I2 envelope as `DECLARED_MANIFEST`. The unmodified upstream file is a rejection-only
+  negative case. This is I5's only real-target Kubernetes and `DEPLOYED_AS` evidence.
 - Slice 2 SHALL confirm that the manifests exist at the pin and record their paths and digests. If
   they do not exist, the freeze records a coverage gap (§9). I5 SHALL NOT author substitute manifests.
 - Airflow has no Kubernetes input in I5.
+
+**Namespace-less upstream manifests (Draft 0.3).** The upstream manifests declare no
+`metadata.namespace`. The upstream deployment guide applies them with `kubectl apply -f`, so the
+namespace comes from the operator's deployment context, not from upstream. I2 §5 rejects a
+namespaced resource without a namespace. I5 therefore freezes two Kubernetes inputs from the same
+upstream file:
+
+1. **The unmodified upstream file** is a negative case. Its frozen expected outcome is I2
+   `REJECTED_INVALID` (`K8S_RESOURCE_INVALID`), and nothing commits.
+2. **One namespace-derived copy** is the input for the Workload and `DEPLOYED_AS` expectations. It is
+   produced by one disclosed, deterministic transform that sets `metadata.namespace` on every
+   namespaced object and changes nothing else. The namespace is explicit operator deployment
+   context (§6), equivalent to the one `kubectl apply` would use.
+   - The dossier SHALL freeze the transform, the namespace name, and the digests of both files. The
+     copy SHALL be reproducible from the pinned upstream file.
+   - The copy is **upstream-derived input** (§6). It is never presented as upstream-supplied.
+   - Any edit beyond namespace injection is an AIP-authored manifest, so §19 item 2 applies.
+   - Its frozen expected outcome is I2 `ACCEPTED_WITH_LIMITATIONS` whenever the file contains objects
+     outside I2 §5's admitted kinds (for example Secret, ConfigMap, ServiceAccount, Role, RoleBinding
+     or Job). The dossier SHALL freeze the exact list of those objects by API version, kind and name,
+     each with its expected `K8S_RESOURCE_UNSUPPORTED` limitation. An unsupported object that is not
+     on the frozen list, or a listed one without its limitation, is a finding. This keeps §13's
+     "zero silent unsupported cases" gate exact.
+   - Duplicate resources in the file follow I2 §5. The dossier SHALL record each duplicate and
+     whether its I2 projection is identical (merged) or conflicting (rejected).
 
 **Pins and prior results.**
 - Each target's dossier SHALL reconfirm the pin, image digests, and dependency and runtime
@@ -203,12 +231,15 @@ fixture before its first qualifying use:
    and rerun criteria;
 5. the profile revision and content digests, and the first eligible candidate.
 
-Each dossier SHALL classify every input into exactly one of three kinds, and SHALL NOT present one
+Each dossier SHALL classify every input into exactly one of four kinds, and SHALL NOT present one
 kind as another:
 - **upstream-supplied:** evidence supplied by the upstream system;
+- **upstream-derived:** an upstream-supplied file changed only by a transform this specification
+  permits, frozen with the source digest, the transform and the result digest. The only such
+  transform in I5 is §5's namespace injection;
 - **independently captured:** evidence captured from a running system;
-- **AIP operator configuration:** for example a Path B mapping artifact (§8.1). This is AIP input,
-  never ground truth.
+- **AIP operator configuration:** for example a Path B mapping artifact (§8.1) or the namespace name
+  chosen for §5's transform. This is AIP input, never ground truth.
 
 **Changing expected facts after the freeze.**
 - It requires a cited upstream-evidence correction, a new freeze revision, and rerunning the affected
@@ -270,8 +301,10 @@ I5 extends the v0.3 `expected.yaml` vocabulary to the v0.5 supported fact classe
   - The producer's legacy `messaging.operation` key stays unsupported, as I4 §9 requires.
   - The mechanism is classified `UNSUPPORTED`.
 - **Kubernetes (I2).** The Workloads (and, where present, Kubernetes Services and Ingresses) are
-  discovered offline from the upstream manifests as `DECLARED_MANIFEST`. There is no interaction
-  fact from Kubernetes alone.
+  discovered offline from the namespace-derived copy of the upstream manifests (§5) as
+  `DECLARED_MANIFEST`, with the result `ACCEPTED_WITH_LIMITATIONS` and the frozen unsupported-object
+  list (§5). There is no interaction fact from Kubernetes alone. The unmodified upstream file is
+  rejected as `REJECTED_INVALID` and commits nothing (§5).
 - **`DEPLOYED_AS` (I3), per Workload and conditional on the frozen manifest evidence.**
   - Slice 2 SHALL record, for each in-scope upstream Workload, whether it carries an
     `architecture-intelligence.io/service-id` annotation that Path A evaluates to a declared Service
@@ -328,7 +361,8 @@ eligible evidence is recorded as a gap and SHALL NOT be claimed qualified.
 | --- | --- | --- | --- |
 | I1 lifecycle | Real declarations | Quarkus and Airflow declarations through the I1 seam | §10 scenarios |
 | I1 lifecycle (not safely inducible upstream) | Negative fixture | Existing I1 tests, reused with disclosure | Regression evidence only |
-| I2 offline discovery | Upstream-sourced input | Quarkus upstream `deploy/k8s` at the pin (§5) | Workloads/claims per §8.1; no interaction |
+| I2 offline discovery | Upstream-derived input | The namespace-derived copy of Quarkus upstream `deploy/k8s` at the pin (§5) | Workloads/claims per §8.1; `ACCEPTED_WITH_LIMITATIONS` with exactly the frozen unsupported-object limitations; no interaction |
+| I2 namespace-less rejection | Upstream-supplied input | The unmodified Quarkus upstream `deploy/k8s` file (§5) | `REJECTED_INVALID`; nothing commits |
 | I2 captured resources and owner chain | Independent capture | [`tests/fixtures/kubernetes/i2-independent-capture/`](../../../tests/fixtures/kubernetes/i2-independent-capture/) | Supporting evidence: an AIP-operated `kind` capture, not a third target |
 | I3 Path A/B | Real target plus disclosed mapping | Quarkus (§8.1) | The §8.1 per-Workload outcomes frozen in Slice 2. A real-target case the upstream evidence cannot provide (name-only negative, or configured-only positive) is a gap covered by the I3 supporting fixture |
 | I3 Path C, conflict, ambiguity | Hand-authored fixture over a real capture | [`tests/fixtures/deployment/i3-cross-source/`](../../../tests/fixtures/deployment/i3-cross-source/) | Supporting evidence |
@@ -461,8 +495,10 @@ At minimum:
   `INCORRECT_SUPPORTED`.
 - **Quarkus Kafka `fights`.** It yields no Queue, Topic, Subscription, `SENDS`, `PUBLISHES_TO` or
   `RECEIVES_FROM` fact. The legacy operation key creates no fact.
-- **Quarkus Kubernetes.** The upstream-manifest Workloads are discovered offline as
-  `DECLARED_MANIFEST`, and no interaction fact comes from Kubernetes.
+- **Quarkus Kubernetes.** The unmodified upstream file is `REJECTED_INVALID` and commits nothing.
+  The namespace-derived copy is `ACCEPTED_WITH_LIMITATIONS` with exactly its frozen
+  `K8S_RESOURCE_UNSUPPORTED` limitations. Its Workloads are discovered offline as
+  `DECLARED_MANIFEST`, and no interaction fact comes from Kubernetes (§5).
 - **Quarkus `DEPLOYED_AS`.**
   - Every in-scope Workload yields exactly its §8.1 outcome as frozen in Slice 2.
   - Name similarity never resolves.
@@ -509,6 +545,9 @@ Exit: the owner has reviewed and merged a dossier under
 `docs/real-world-validation/v0.5.0/quarkus-super-heroes/`. It contains:
 - the pin reconfirmation;
 - the upstream `deploy/k8s` confirmation (paths and digests, or a recorded gap);
+- the §5 namespace transform, its namespace name, and the digests of the unmodified file and the
+  derived copy;
+- the derived copy's frozen unsupported-object list and duplicate record (§5);
 - the cited expected and forbidden facts per §8.1;
 - any disclosed Path B mapping artifact;
 - the profile and runbook.
@@ -621,7 +660,7 @@ Implementation SHALL stop for specification review if any of these becomes neces
 
 - [ ] The two targets and their pins are fixed, and v0.3 results are research input only.
 - [ ] The Quarkus upstream Kubernetes manifests are the only real-target Kubernetes input, and I5
-      authors no substitute.
+      authors no substitute. The only permitted change is §5's frozen namespace injection.
 - [ ] An agent-drafted fact is cited to upstream evidence, and the owner's merge is the freeze.
 - [ ] No AIP output influences ground truth.
 - [ ] The §7 vocabulary covers every v0.5 supported fact class, including `DEPLOYED_AS` through the

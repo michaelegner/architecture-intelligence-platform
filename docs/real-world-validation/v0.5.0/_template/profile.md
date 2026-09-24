@@ -4,12 +4,13 @@ The bounded, reproducible profile actually exercised (I5 §6 item 1).
 
 ## Input classification (I5 §6)
 
-Each input must fall into exactly one of three kinds. An input of one kind is never presented as
+Each input must fall into exactly one of four kinds. An input of one kind is never presented as
 another kind.
 
 | Input | Kind | Path / digest |
 | --- | --- | --- |
 | <e.g. upstream OpenAPI> | upstream-supplied | <path, sha256> |
+| <e.g. namespace-injected upstream manifest (I5 §5)> | upstream-derived | <source sha256, transform, result sha256> |
 | <e.g. OTLP from the running system> | independently captured | <collector config, window> |
 | <e.g. Path B mapping artifact> | AIP operator configuration (never ground truth) | <path, sha256> |
 

@@ -12,7 +12,7 @@ v0.5 changes.
 | --- | --- | --- |
 | Targets | Quarkus Super Heroes (plus its upstream Kubernetes manifests) and Apache Airflow 3.3.1, pinned. v0.3 results are research input only. | §5 |
 | Ground truth | An agent may draft facts, but only from upstream evidence, with a citation per fact. The owner's merge freezes them before any qualifying output is inspected. | §6 |
-| Inputs | Every input is classified as upstream-supplied, independently captured, or AIP operator configuration. Configuration is never ground truth. | §6 |
+| Inputs | Every input is classified as upstream-supplied, upstream-derived (only I5 §5's namespace injection), independently captured, or AIP operator configuration. Configuration is never ground truth. | §6 |
 | Vocabulary | v0.3 relations, plus `PUBLISHES_TO`, `SUBSCRIPTION_OF`, `RECEIVES_FROM -> Subscription`, `CARRIES` from a Topic, public `DEPLOYED_AS` outcomes (`expected.deployments`), and negative expectations (`forbidden`). | §7 |
 | Determinism | Paired byte-identity runs use one absolute checkout location. Location-dependent values are never normalized. | §12 |
 
