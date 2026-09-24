@@ -1,0 +1,54 @@
+# AIP configuration for the Quarkus Super Heroes v0.5.0 I5 profile (profile.md). Every value here is
+# AIP operator configuration (I5 §6). Paths are relative to the AIP container's working directory
+# (/app), where docker-compose.yml mounts them.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: qsh-v0.5-declarations
+        root: declarations
+    clusters:
+      # The positive I2/I3 input: the namespace-derived copy (I5 §5 item 2).
+      - id: qsh-k8s-namespaced
+        root: k8s/namespaced
+        envelope_relative_path: envelope.yaml
+        configured_scope_id: qsh-k8s-namespaced-scope
+        cluster_uid: qsh-i5-declared-deployment-target
+        evidence_mode: DECLARED_MANIFEST
+        authorized_producer: aip-i5-quarkus-dossier
+        authority_record: qsh-i5-dossier-freeze-authority
+      # The negative I2 input: the unmodified upstream file (I5 §5 item 1). The expected result is
+      # REJECTED_INVALID, and nothing commits.
+      - id: qsh-k8s-upstream-unmodified
+        root: k8s/unmodified
+        envelope_relative_path: envelope.yaml
+        configured_scope_id: qsh-k8s-upstream-unmodified-scope
+        cluster_uid: qsh-i5-declared-deployment-target
+        evidence_mode: DECLARED_MANIFEST
+        authorized_producer: aip-i5-quarkus-dossier
+        authority_record: qsh-i5-dossier-freeze-authority
+    service_workload_mapping: mapping.yaml
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+    max_traversal_depth: 5
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  intent_router:
+    deterministic_threshold: 0.9
+  telemetry:
+    service_aliases: {}
+    queue_aliases: {}
+    topic_aliases: {}
+    http-correlation:
+      enabled: true
+      ttl-seconds: 60
+      max-pending-spans: 10000
+    coverage:
+      qualification-enabled: true
+  runtime_analysis:
+    default_window_hours: 24
+    default_environment: quarkus-i5

@@ -1,0 +1,362 @@
+# Frozen expected facts for quarkus-super-heroes (v0.5.0 I5 §§6-8, spec Draft 0.3).
+#
+# This file was drafted from ground-truth.md alone, from upstream evidence at the pin, before any
+# qualifying AIP output for this target was inspected. The owner's merge of the dossier PR freezes
+# it (I5 §6). Every entry cites its upstream source in ground-truth.md, under the same id.
+#
+# Schema: real_world_validation/README.md ("v0.5.0 additions") and real_world_validation/loader.py.
+#
+# Scope closure (I5 §7). SENDS, PUBLISHES_TO and RECEIVES_FROM are in scope for all five services,
+# but this file expects no fact of those types. Any such fact AIP emits for these services, whatever
+# its Queue, Topic or Subscription target id, is therefore an unexpected in-scope fact, and so
+# INCORRECT_SUPPORTED. That covers the Kafka `fights` negative for Topic and Subscription targets,
+# whose ids are opaque owner hashes a dossier cannot name. The explicit `forbidden.relations`
+# entries add a named negative proof for the name-derived `queue:fights` id.
+
+system: quarkus-super-heroes
+upstream_revision: "8ea03377bfe7a89c49e1ccc0e501bf5fafbc2cce"
+
+scope:
+  entities:
+    - service:rest-fights
+    - service:rest-heroes
+    - service:rest-villains
+    - service:rest-narration
+    - service:event-statistics
+  relation_types:
+    - PROVIDES
+    - CALLS
+    - SENDS
+    - PUBLISHES_TO
+    - RECEIVES_FROM
+
+expected:
+  relations:
+    # PROVIDES: the complete operation inventory of the four upstream OpenAPI documents (35).
+    # Only `declared: true` is asserted. Whether a served request also marks a declared operation
+    # as observed is AIP runtime semantics, not an upstream fact (ground-truth.md, "REST").
+    - id: qsh-heroes-provides-getAllHeroes
+      type: PROVIDES
+      source: service:rest-heroes
+      target: "operation:service:rest-heroes:GET:/api/heroes"
+      evidence:
+        declared: true
+    - id: qsh-heroes-provides-replaceAllHeroes
+      type: PROVIDES
+      source: service:rest-heroes
+      target: "operation:service:rest-heroes:PUT:/api/heroes"
+      evidence:
+        declared: true
+    - id: qsh-heroes-provides-createHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: "operation:service:rest-heroes:POST:/api/heroes"
+      evidence:
+        declared: true
+    - id: qsh-heroes-provides-deleteAllHeroes
+      type: PROVIDES
+      source: service:rest-heroes
+      target: "operation:service:rest-heroes:DELETE:/api/heroes"
+      evidence:
+        declared: true
+    - id: qsh-heroes-provides-hello
+      type: PROVIDES
+      source: service:rest-heroes
+      target: "operation:service:rest-heroes:GET:/api/heroes/hello"
+      evidence:
+        declared: true
+    - id: qsh-heroes-provides-getRandomHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: "operation:service:rest-heroes:GET:/api/heroes/random"
+      evidence:
+        declared: true
+    - id: qsh-heroes-provides-getHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: "operation:service:rest-heroes:GET:/api/heroes/{id}"
+      evidence:
+        declared: true
+    - id: qsh-heroes-provides-fullyUpdateHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: "operation:service:rest-heroes:PUT:/api/heroes/{id}"
+      evidence:
+        declared: true
+    - id: qsh-heroes-provides-deleteHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: "operation:service:rest-heroes:DELETE:/api/heroes/{id}"
+      evidence:
+        declared: true
+    - id: qsh-heroes-provides-partiallyUpdateHero
+      type: PROVIDES
+      source: service:rest-heroes
+      target: "operation:service:rest-heroes:PATCH:/api/heroes/{id}"
+      evidence:
+        declared: true
+    - id: qsh-villains-provides-getAllVillains
+      type: PROVIDES
+      source: service:rest-villains
+      target: "operation:service:rest-villains:GET:/api/villains"
+      evidence:
+        declared: true
+    - id: qsh-villains-provides-replaceAllVillains
+      type: PROVIDES
+      source: service:rest-villains
+      target: "operation:service:rest-villains:PUT:/api/villains"
+      evidence:
+        declared: true
+    - id: qsh-villains-provides-createVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: "operation:service:rest-villains:POST:/api/villains"
+      evidence:
+        declared: true
+    - id: qsh-villains-provides-deleteAllVillains
+      type: PROVIDES
+      source: service:rest-villains
+      target: "operation:service:rest-villains:DELETE:/api/villains"
+      evidence:
+        declared: true
+    - id: qsh-villains-provides-hello
+      type: PROVIDES
+      source: service:rest-villains
+      target: "operation:service:rest-villains:GET:/api/villains/hello"
+      evidence:
+        declared: true
+    - id: qsh-villains-provides-getRandomVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: "operation:service:rest-villains:GET:/api/villains/random"
+      evidence:
+        declared: true
+    - id: qsh-villains-provides-getVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: "operation:service:rest-villains:GET:/api/villains/{id}"
+      evidence:
+        declared: true
+    - id: qsh-villains-provides-fullyUpdateVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: "operation:service:rest-villains:PUT:/api/villains/{id}"
+      evidence:
+        declared: true
+    - id: qsh-villains-provides-deleteVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: "operation:service:rest-villains:DELETE:/api/villains/{id}"
+      evidence:
+        declared: true
+    - id: qsh-villains-provides-partiallyUpdateVillain
+      type: PROVIDES
+      source: service:rest-villains
+      target: "operation:service:rest-villains:PATCH:/api/villains/{id}"
+      evidence:
+        declared: true
+    - id: qsh-narration-provides-narrate
+      type: PROVIDES
+      source: service:rest-narration
+      target: "operation:service:rest-narration:POST:/api/narration"
+      evidence:
+        declared: true
+    - id: qsh-narration-provides-hello
+      type: PROVIDES
+      source: service:rest-narration
+      target: "operation:service:rest-narration:GET:/api/narration/hello"
+      evidence:
+        declared: true
+    - id: qsh-narration-provides-generateImageFromNarration
+      type: PROVIDES
+      source: service:rest-narration
+      target: "operation:service:rest-narration:POST:/api/narration/image"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-getAllFights
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:GET:/api/fights"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-performFight
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:POST:/api/fights"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-hello
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:GET:/api/fights/hello"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-helloHeroes
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:GET:/api/fights/hello/heroes"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-helloLocations
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:GET:/api/fights/hello/locations"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-helloNarration
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:GET:/api/fights/hello/narration"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-helloVillains
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:GET:/api/fights/hello/villains"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-narrateFight
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:POST:/api/fights/narrate"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-generateImageFromNarration
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:POST:/api/fights/narrate/image"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-getRandomFighters
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:GET:/api/fights/randomfighters"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-getRandomLocation
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:GET:/api/fights/randomlocation"
+      evidence:
+        declared: true
+    - id: qsh-fights-provides-getFight
+      type: PROVIDES
+      source: service:rest-fights
+      target: "operation:service:rest-fights:GET:/api/fights/{id}"
+      evidence:
+        declared: true
+
+    # CALLS: all seven rest-fights REST client calls (ground-truth.md, "REST calls"). They are
+    # declared through the disclosed manifest runtime/declarations/rest-fights/architecture.yaml.
+    # runtime/traffic.sh exercises three of them, so those are CONFIRMED. The other four are
+    # never exercised by the frozen traffic, so they are NOT_OBSERVED_IN_WINDOW.
+    - id: qsh-fights-calls-heroes-random
+      type: CALLS
+      source: service:rest-fights
+      target: "operation:service:rest-heroes:GET:/api/heroes/random"
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+    - id: qsh-fights-calls-villains-random
+      type: CALLS
+      source: service:rest-fights
+      target: "operation:service:rest-villains:GET:/api/villains/random"
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+    - id: qsh-fights-calls-narration-narrate
+      type: CALLS
+      source: service:rest-fights
+      target: "operation:service:rest-narration:POST:/api/narration"
+      status: CONFIRMED
+      evidence:
+        declared: true
+        observed: true
+    - id: qsh-fights-calls-heroes-hello
+      type: CALLS
+      source: service:rest-fights
+      target: "operation:service:rest-heroes:GET:/api/heroes/hello"
+      status: NOT_OBSERVED_IN_WINDOW
+      evidence:
+        declared: true
+        observed: false
+    - id: qsh-fights-calls-villains-hello
+      type: CALLS
+      source: service:rest-fights
+      target: "operation:service:rest-villains:GET:/api/villains/hello"
+      status: NOT_OBSERVED_IN_WINDOW
+      evidence:
+        declared: true
+        observed: false
+    - id: qsh-fights-calls-narration-hello
+      type: CALLS
+      source: service:rest-fights
+      target: "operation:service:rest-narration:GET:/api/narration/hello"
+      status: NOT_OBSERVED_IN_WINDOW
+      evidence:
+        declared: true
+        observed: false
+    - id: qsh-fights-calls-narration-image
+      type: CALLS
+      source: service:rest-fights
+      target: "operation:service:rest-narration:POST:/api/narration/image"
+      status: NOT_OBSERVED_IN_WINDOW
+      evidence:
+        declared: true
+        observed: false
+
+  # DEPLOYED_AS (I5 §8.1): no upstream Workload carries a Path A annotation. The three mapped
+  # Deployments therefore resolve only through the disclosed Path B mapping (runtime/mapping.yaml).
+  # No other reconciliation group exists (I3 §13.1), so these are the only three public outcomes.
+  deployments:
+    - id: qsh-rest-fights-deployment
+      service: service:rest-fights
+      workload: {namespace: quarkus-super-heroes, kind: DEPLOYMENT, name: rest-fights}
+      status: RESOLVED_CONFIGURED
+      supporting_methods: [RESOLVED_CONFIGURED]
+    - id: qsh-rest-heroes-deployment
+      service: service:rest-heroes
+      workload: {namespace: quarkus-super-heroes, kind: DEPLOYMENT, name: rest-heroes}
+      status: RESOLVED_CONFIGURED
+      supporting_methods: [RESOLVED_CONFIGURED]
+    - id: qsh-rest-villains-deployment
+      service: service:rest-villains
+      workload: {namespace: quarkus-super-heroes, kind: DEPLOYMENT, name: rest-villains}
+      status: RESOLVED_CONFIGURED
+      supporting_methods: [RESOLVED_CONFIGURED]
+
+forbidden:
+  relations:
+    # Kafka `fights` must never be coerced into a Queue (I5 §8.1). See also the scope closure above.
+    - {id: qsh-no-fights-queue-send, type: SENDS, source: service:rest-fights, target: "queue:fights"}
+    - {id: qsh-no-fights-queue-receive, type: RECEIVES_FROM, source: service:event-statistics, target: "queue:fights"}
+  deployments:
+    # The real-target name-only negative (I5 §8.1): same name, no annotation, no mapping.
+    - id: qsh-no-name-only-rest-narration
+      service: service:rest-narration
+      workload: {namespace: quarkus-super-heroes, kind: DEPLOYMENT, name: rest-narration}
+    # event-statistics is not a declared Service, and its Deployment has no annotation or mapping.
+    - id: qsh-no-name-only-event-statistics
+      service: service:event-statistics
+      workload: {namespace: quarkus-super-heroes, kind: DEPLOYMENT, name: event-statistics}
+
+unsupported:
+  - id: qsh-grpc-locations
+    mechanism: grpc
+    description: >
+      rest-fights calls grpc-locations over gRPC (LocationClient, @GrpcClient("locations")). v0.5
+      has no gRPC semantics, so this must never become an HTTP CALLS, Queue or Pub/Sub fact.
+  - id: qsh-kafka-fights-topic
+    mechanism: kafka-topic
+    description: >
+      rest-fights emits to Kafka topic "fights" and event-statistics consumes it, with no upstream
+      AsyncAPI. v0.5 admits Pub/Sub only from declarations, and runtime observation never mints a
+      Topic or Subscription (I4). The consumer group is never a Subscription. So there is no Queue,
+      Topic, Subscription, SENDS, PUBLISHES_TO or RECEIVES_FROM fact for "fights".
+  - id: qsh-kafka-legacy-operation-key
+    mechanism: otel-messaging-operation-legacy-key
+    description: >
+      The producer's spans carry only the legacy `messaging.operation` key. The I4 §9 operation key
+      is not widened, so these spans stay unsupported and create no fact.

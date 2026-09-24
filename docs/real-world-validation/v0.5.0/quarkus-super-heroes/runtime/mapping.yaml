@@ -1,0 +1,43 @@
+# The Path B configured-mapping artifact (I3 §8.1; I5 §8.1). It is AIP operator configuration
+# (I5 §6), never ground truth.
+#
+# It binds three declared Services to their same-named upstream Deployments in the
+# namespace-derived manifest (k8s/namespaced/). No upstream Workload carries a Path A
+# annotation, so nothing can disagree with these entries.
+#
+# `rest-narration` is deliberately left unmapped. It is the real-target name-only negative
+# (I5 §8.1): its Deployment name equals the declared Service name, and that must never resolve.
+# `event-statistics` is also unmapped, because no declaration mints it as a Service.
+apiVersion: aip.dev/v1
+kind: ServiceWorkloadIdentityMappings
+metadata:
+  id: qsh-v0.5-service-workload-identities
+  revision: v1
+mappings:
+  - mappingId: qsh-rest-fights
+    serviceId: service:rest-fights
+    kubernetesSourceId: qsh-k8s-namespaced
+    clusterUid: qsh-i5-declared-deployment-target
+    workload:
+      apiGroup: apps
+      kind: Deployment
+      namespace: quarkus-super-heroes
+      name: rest-fights
+  - mappingId: qsh-rest-heroes
+    serviceId: service:rest-heroes
+    kubernetesSourceId: qsh-k8s-namespaced
+    clusterUid: qsh-i5-declared-deployment-target
+    workload:
+      apiGroup: apps
+      kind: Deployment
+      namespace: quarkus-super-heroes
+      name: rest-heroes
+  - mappingId: qsh-rest-villains
+    serviceId: service:rest-villains
+    kubernetesSourceId: qsh-k8s-namespaced
+    clusterUid: qsh-i5-declared-deployment-target
+    workload:
+      apiGroup: apps
+      kind: Deployment
+      namespace: quarkus-super-heroes
+      name: rest-villains

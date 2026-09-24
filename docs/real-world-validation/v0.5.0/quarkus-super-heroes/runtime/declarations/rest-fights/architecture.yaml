@@ -1,0 +1,21 @@
+# Disclosed AIP input (I5 §8.1), authored by AIP from upstream evidence. It is not upstream evidence
+# and not ground truth. It transcribes the seven REST calls that ground-truth.md establishes from
+# rest-fights' own client source at the pin. The v0.3 manifest froze three of them; v0.5 re-reviewed
+# the client code and the owner decided on all seven (2026-09-24).
+service: rest-fights
+x-aip-service-id: service:rest-fights
+calls:
+  - service: service:rest-heroes
+    operationId: getRandomHero
+  - service: service:rest-heroes
+    operationId: hello
+  - service: service:rest-villains
+    operationId: getRandomVillain
+  - service: service:rest-villains
+    operationId: hello
+  - service: service:rest-narration
+    operationId: narrate
+  - service: service:rest-narration
+    operationId: generateImageFromNarration
+  - service: service:rest-narration
+    operationId: hello
