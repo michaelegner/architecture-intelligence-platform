@@ -1,0 +1,34 @@
+# AIP configuration for the `pubsub` golden-path phase (I6 §7.1). Paths are relative to the AIP
+# container's working directory (/app); ./phase.yaml lists the mounts.
+architecture_intelligence:
+  sources:
+    directories:
+      # tests/fixtures/pubsub/google-pubsub/declarations, unmodified. The id and stable target
+      # identity are copied from tests/integration/test_i4_pubsub_qualification.py `_qualify_fixture`.
+      - id: i4-qualification-google-pubsub
+        root: golden-path/declarations
+        stable_target_identity: urn:aip:logical-root:i4-qualification-google-pubsub
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+    max_traversal_depth: 5
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  intent_router:
+    deterministic_threshold: 0.9
+  telemetry:
+    # The component tests pass no aliases and no HTTP correlation buffer to `adapt`.
+    service_aliases: {}
+    queue_aliases: {}
+    topic_aliases: {}
+    http-correlation:
+      enabled: false
+    coverage:
+      qualification-enabled: true
+  runtime_analysis:
+    default_window_hours: 24
+    default_environment: production

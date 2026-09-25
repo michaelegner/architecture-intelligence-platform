@@ -1,0 +1,11 @@
+# Transcribed input (I6 §7.2). Source: tests/integration/test_i3_cross_source_qualification.py
+# `_declare_service(driver, service_id="service:runtime-demo", name="runtime-demo")`, which declares
+# `Service(id="service:runtime-demo", name="runtime-demo", version="1")` in memory. The OpenAPI adapter maps
+# `x-aip-service-id`, `info.title` and `info.version` to exactly that Service. With `paths: {}`
+# it emits no operation, schema or relation. tests/unit/test_release_golden_path_profile.py proves it.
+openapi: 3.1.0
+info:
+  title: runtime-demo
+  version: "1"
+x-aip-service-id: service:runtime-demo
+paths: {}

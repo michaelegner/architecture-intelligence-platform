@@ -1,0 +1,643 @@
+{
+  "format": "aip-release-golden-path-expected/1",
+  "governing_spec": "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a77 (Draft 0.3)",
+  "conventions": {
+    "placeholders": {
+      "${RELEASE_CANDIDATE_SHA}": "the full 40-character candidate SHA",
+      "${PACKAGE_VERSION}": "pyproject.toml [project].version at the candidate"
+    },
+    "claim_shape": "[Object type:name, Via type:name, subscription name|null, destination_resolution, qualification], as in tests/integration/test_i4_pubsub_qualification.py:241-249",
+    "not_frozen": "claim ids, evidence ids, resolution ids and snapshot ids, except the demo phase's expected_snapshot_id (I6 \u00a77.1)"
+  },
+  "phases": {
+    "demo": {
+      "observation_context": {
+        "environment": "demo",
+        "window_start": "2026-08-26T00:00:00.000000Z",
+        "window_end": "2026-08-27T00:00:00.000000Z"
+      },
+      "checks": [
+        {
+          "id": "import",
+          "surface": "POST /api/import",
+          "expect": {
+            "committed": true,
+            "sources_count": 6,
+            "report_version": "aip-import-report/1",
+            "runs": [
+              {
+                "inventory_status": "COMPLETE",
+                "committed": true,
+                "source_result_ids": "== keys of sources"
+              }
+            ]
+          },
+          "source": [
+            "tests/integration/test_api.py:312-321"
+          ]
+        },
+        {
+          "id": "fixture-state",
+          "surface": "check_fixture_state.py --json (read-only, in the AIP container), after the seed",
+          "expect": {
+            "classification": "COMPLETE",
+            "mismatches": [],
+            "actual_snapshot_id": "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f"
+          },
+          "source": [
+            "examples/runtime-demo/fixture-state.json:521-559",
+            "tests/integration/test_mcp_demo_script.py:332,351"
+          ]
+        },
+        {
+          "id": "drift",
+          "surface": "REST GET /api/services/service:order-service/drift and MCP get_architecture_drift",
+          "expect": {
+            "projected_claims": "== examples/runtime-demo/fixture-state.json expected_drift_claims",
+            "projection": "examples/runtime-demo/check_fixture_state.py project_drift_claims",
+            "snapshot_id": "== fixture-state actual_snapshot_id"
+          },
+          "source": [
+            "examples/runtime-demo/fixture-state.json:522-550",
+            "examples/runtime-demo/check_fixture_state.py:251-267"
+          ]
+        },
+        {
+          "id": "dependencies",
+          "surface": "REST GET /api/services/service:order-service/dependencies and MCP get_service_dependencies",
+          "expect": {
+            "drift_claims": "== the dependency claims qualified OBSERVED_ONLY or NOT_OBSERVED_IN_WINDOW",
+            "snapshot_id": "== fixture-state actual_snapshot_id"
+          },
+          "source": [
+            "evaluation/architecture_answers/invariants.py:89",
+            "tests/integration/test_i4_pubsub_qualification.py:284-289"
+          ]
+        },
+        {
+          "id": "evidence",
+          "surface": "REST POST /api/evidence/resolve and MCP get_evidence, the drift answer's evidence_refs at its snapshot",
+          "expect": {
+            "outcome": "ANSWERED",
+            "missing_evidence_refs": []
+          },
+          "source": [
+            "evaluation/architecture_answers/invariants.py:46-87"
+          ]
+        },
+        {
+          "id": "mcp-tools",
+          "surface": "negotiated MCP initialize, notifications/initialized, tools/list",
+          "expect": {
+            "tools": [
+              "get_architecture_drift",
+              "get_evidence",
+              "get_service_dependencies"
+            ]
+          },
+          "source": [
+            "tests/integration/test_i4_pubsub_qualification.py:377-381",
+            "app/architecture_intelligence/contracts.py:39-40"
+          ]
+        },
+        {
+          "id": "cross-surface",
+          "surface": "each MCP tool's structuredContent vs the REST response for the same request",
+          "expect": {
+            "equal": true
+          },
+          "source": [
+            "tests/integration/test_i4_pubsub_qualification.py:349-350,384"
+          ]
+        },
+        {
+          "id": "reconnect",
+          "surface": "a fresh negotiated MCP initialize, then get_service_dependencies",
+          "expect": {
+            "claims": "== the first session's dependencies claims",
+            "snapshot_id": "unchanged"
+          },
+          "source": [
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a720",
+            "docs/specifications/0.5.0/specification.md \u00a726"
+          ]
+        },
+        {
+          "id": "zero-writes",
+          "surface": "revision fence (examples/runtime-demo/read_revision_fence.py) before the first and after the last public read",
+          "expect": {
+            "revision_after": "== revision_before"
+          },
+          "source": [
+            "tests/integration/test_i4_pubsub_qualification.py:392",
+            "tests/integration/test_i3_cross_source_qualification.py:441-458"
+          ]
+        },
+        {
+          "id": "fixture-state-after",
+          "surface": "check_fixture_state.py --json after every read",
+          "expect": {
+            "classification": "COMPLETE",
+            "actual_snapshot_id": "unchanged"
+          },
+          "source": [
+            "examples/runtime-demo/fixture-state.json:551",
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a77.3, \u00a720"
+          ]
+        },
+        {
+          "id": "producer-identity",
+          "surface": "every Architecture Answer in the phase",
+          "expect": {
+            "schema_version": "0.5",
+            "producer.version": "${PACKAGE_VERSION}",
+            "producer.build_revision": "${RELEASE_CANDIDATE_SHA}"
+          },
+          "source": [
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a74.3, \u00a720"
+          ]
+        }
+      ]
+    },
+    "pubsub": {
+      "observation_context": {
+        "environment": "production",
+        "window_start": "2026-09-23T00:00:00.000000Z",
+        "window_end": "2026-09-24T00:00:00.000000Z"
+      },
+      "checks": [
+        {
+          "id": "import",
+          "surface": "POST /api/import; source results keyed by the parent directory of their locator",
+          "expect": {
+            "committed": true,
+            "inventory_status": "COMPLETE",
+            "sources": {
+              "checkout": {
+                "result": "ACCEPTED",
+                "diagnostics": []
+              },
+              "fulfillment": {
+                "result": "ACCEPTED",
+                "diagnostics": []
+              },
+              "analytics": {
+                "result": "ACCEPTED",
+                "diagnostics": []
+              }
+            }
+          },
+          "source": [
+            "tests/fixtures/pubsub/google-pubsub/expected.yaml:2-5",
+            "tests/integration/test_i4_pubsub_qualification.py:159-178,260-263",
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a77.3"
+          ]
+        },
+        {
+          "id": "graph-facts",
+          "surface": "read-only Cypher, the component's own queries (tests/integration/test_i4_pubsub_qualification.py:80-91,196-205), after the OTLP payload",
+          "expect": {
+            "facts": [
+              [
+                "CARRIES",
+                "Topic:orders",
+                "Message:OrderCreated"
+              ],
+              [
+                "CARRIES",
+                "Topic:orders",
+                "Message:OrderCreated"
+              ],
+              [
+                "CARRIES",
+                "Topic:orders",
+                "Message:OrderCreated"
+              ],
+              [
+                "PUBLISHES_TO",
+                "Service:checkout",
+                "Topic:orders"
+              ],
+              [
+                "RECEIVES_FROM",
+                "Service:analytics",
+                "Subscription:analytics"
+              ],
+              [
+                "RECEIVES_FROM",
+                "Service:fulfillment",
+                "Subscription:fulfillment"
+              ],
+              [
+                "SUBSCRIPTION_OF",
+                "Subscription:analytics",
+                "Topic:orders"
+              ],
+              [
+                "SUBSCRIPTION_OF",
+                "Subscription:fulfillment",
+                "Topic:orders"
+              ]
+            ],
+            "observed": [
+              [
+                "RECEIVES_FROM",
+                "Service:fulfillment",
+                "Subscription:fulfillment"
+              ]
+            ],
+            "entities": {
+              "Queue": [],
+              "Topic": [
+                "orders"
+              ],
+              "Subscription": [
+                "analytics",
+                "fulfillment"
+              ]
+            },
+            "dead_letter_carriers": [
+              [
+                "fulfillment",
+                "orders-dead-letter",
+                "topic"
+              ]
+            ]
+          },
+          "source": [
+            "tests/fixtures/pubsub/google-pubsub/expected.yaml:6-22",
+            "tests/integration/test_i4_pubsub_qualification.py:266-269"
+          ]
+        },
+        {
+          "id": "answers",
+          "surface": "REST dependencies/drift/evidence and MCP tools, for service:checkout, service:fulfillment, service:analytics",
+          "expect": {
+            "checkout": {
+              "claims": [
+                [
+                  "Service:analytics",
+                  "Topic:orders",
+                  "analytics",
+                  "RESOLVED_SERVICE",
+                  "NOT_OBSERVED_IN_WINDOW"
+                ],
+                [
+                  "Service:fulfillment",
+                  "Topic:orders",
+                  "fulfillment",
+                  "RESOLVED_SERVICE",
+                  "NOT_OBSERVED_IN_WINDOW"
+                ]
+              ],
+              "limitations": []
+            },
+            "fulfillment": {
+              "claims": [],
+              "limitations": []
+            },
+            "analytics": {
+              "claims": [],
+              "limitations": []
+            },
+            "drift": "== the dependency claims qualified OBSERVED_ONLY or NOT_OBSERVED_IN_WINDOW",
+            "evidence": {
+              "missing_evidence_refs": []
+            },
+            "schemas": "every answer validates against schemas/architecture_intelligence/v0.5"
+          },
+          "source": [
+            "tests/fixtures/pubsub/google-pubsub/expected.yaml:24-29",
+            "tests/integration/test_i4_pubsub_qualification.py:271-292"
+          ]
+        },
+        {
+          "id": "mcp-tools",
+          "surface": "negotiated MCP tools/list",
+          "expect": {
+            "tools": [
+              "get_architecture_drift",
+              "get_evidence",
+              "get_service_dependencies"
+            ]
+          },
+          "source": [
+            "tests/integration/test_i4_pubsub_qualification.py:377-381"
+          ]
+        },
+        {
+          "id": "cross-surface",
+          "surface": "service:checkout: each MCP tool's structuredContent vs the REST response",
+          "expect": {
+            "equal": true
+          },
+          "source": [
+            "tests/integration/test_i4_pubsub_qualification.py:349-350,384"
+          ]
+        },
+        {
+          "id": "zero-writes",
+          "surface": "revision fence (examples/runtime-demo/read_revision_fence.py) before the first and after the last public read",
+          "expect": {
+            "revision_after": "== revision_before"
+          },
+          "source": [
+            "tests/integration/test_i4_pubsub_qualification.py:392"
+          ]
+        },
+        {
+          "id": "producer-identity",
+          "surface": "every Architecture Answer in the phase",
+          "expect": {
+            "schema_version": "0.5",
+            "producer.version": "${PACKAGE_VERSION}",
+            "producer.build_revision": "${RELEASE_CANDIDATE_SHA}"
+          },
+          "source": [
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a74.3, \u00a720"
+          ]
+        }
+      ],
+      "not_observable": {
+        "unresolved_spans": {
+          "frozen_value": 1,
+          "source": "tests/fixtures/pubsub/google-pubsub/expected.yaml:23",
+          "reason": "an adapter-internal batch count that no public interface or graph query exposes; it stays covered by tests/integration/test_i4_pubsub_qualification.py:270"
+        }
+      }
+    },
+    "k8s-agree": {
+      "observation_context": {
+        "environment": "prod",
+        "window_start": "2026-09-18T00:00:00Z",
+        "window_end": "2026-09-18T23:59:59Z"
+      },
+      "checks": [
+        {
+          "id": "import",
+          "surface": "POST /api/import",
+          "expect": {
+            "committed": true,
+            "report_version": "aip-import-report/1",
+            "runs": [
+              {
+                "kind": "filesystem",
+                "inventory_status": "COMPLETE",
+                "committed": true,
+                "every_source_result": "ACCEPTED",
+                "diagnostics": []
+              },
+              {
+                "configured_source_id": "aip-i2-independent-capture",
+                "inventory_status": "COMPLETE",
+                "committed": true,
+                "source_results": [
+                  {
+                    "result": "ACCEPTED",
+                    "diagnostics": []
+                  }
+                ]
+              }
+            ]
+          },
+          "source": [
+            "tests/integration/test_kubernetes_independent_capture.py:44-56",
+            "tests/unit/test_release_golden_path_profile.py (declaration transcription: ACCEPTED, COMPLETE)",
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a77.3"
+          ]
+        },
+        {
+          "id": "deployment",
+          "surface": "REST GET /api/services/service:runtime-demo/deployments and MCP get_service_dependencies (service:runtime-demo), after the OTLP payload",
+          "expect": {
+            "outcome": "ANSWERED",
+            "deployment_claim_count": 1,
+            "dependency_claim_ids": [],
+            "resolutions": [
+              {
+                "status": "RESOLVED_EXPLICIT",
+                "service_id": "service:runtime-demo",
+                "workload.name": "runtime-demo"
+              }
+            ],
+            "deployment_claim": {
+              "resolution_method": "RESOLVED_EXPLICIT",
+              "supporting_methods": [
+                "RESOLVED_EXPLICIT",
+                "RESOLVED_CONFIGURED",
+                "RESOLVED_OBSERVED"
+              ],
+              "evidence_ref_prefixes": [
+                "evidence:kubernetes:",
+                "evidence:mapping:",
+                "evidence:otel:"
+              ]
+            }
+          },
+          "source": [
+            "tests/integration/test_i3_cross_source_qualification.py:219-255"
+          ]
+        },
+        {
+          "id": "evidence",
+          "surface": "REST POST /api/evidence/resolve and MCP get_evidence, the deployment claim's evidence_refs at its snapshot",
+          "expect": {
+            "missing_evidence_refs": []
+          },
+          "source": [
+            "tests/integration/test_i3_cross_source_qualification.py:493,503-504"
+          ]
+        },
+        {
+          "id": "zero-writes",
+          "surface": "revision fence (examples/runtime-demo/read_revision_fence.py) before the first and after the last public read",
+          "expect": {
+            "revision_after": "== revision_before"
+          },
+          "source": [
+            "tests/integration/test_i3_cross_source_qualification.py:441-458"
+          ]
+        },
+        {
+          "id": "producer-identity",
+          "surface": "every Architecture Answer in the phase",
+          "expect": {
+            "schema_version": "0.5",
+            "producer.version": "${PACKAGE_VERSION}",
+            "producer.build_revision": "${RELEASE_CANDIDATE_SHA}"
+          },
+          "source": [
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a74.3, \u00a720"
+          ]
+        }
+      ]
+    },
+    "k8s-conflict": {
+      "observation_context": {
+        "environment": "prod",
+        "window_start": "2026-09-18T00:00:00Z",
+        "window_end": "2026-09-18T23:59:59Z"
+      },
+      "checks": [
+        {
+          "id": "import",
+          "surface": "POST /api/import",
+          "expect": {
+            "committed": true,
+            "report_version": "aip-import-report/1",
+            "runs": [
+              {
+                "kind": "filesystem",
+                "inventory_status": "COMPLETE",
+                "committed": true,
+                "every_source_result": "ACCEPTED",
+                "diagnostics": []
+              },
+              {
+                "configured_source_id": "aip-i2-independent-capture",
+                "inventory_status": "COMPLETE",
+                "committed": true,
+                "source_results": [
+                  {
+                    "result": "ACCEPTED",
+                    "diagnostics": []
+                  }
+                ]
+              }
+            ]
+          },
+          "source": [
+            "tests/integration/test_kubernetes_independent_capture.py:44-56",
+            "tests/unit/test_release_golden_path_profile.py (declaration transcription: ACCEPTED, COMPLETE)",
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a77.3"
+          ]
+        },
+        {
+          "id": "deployment",
+          "surface": "REST GET /api/services/{id}/deployments and MCP get_service_dependencies, for service:runtime-demo and service:runtime-demo-alt",
+          "expect": {
+            "each": {
+              "outcome": "ANSWERED",
+              "deployment_claim_ids": [],
+              "resolutions": [
+                {
+                  "status": "CONFLICT",
+                  "candidate_service_ids": [
+                    "service:runtime-demo",
+                    "service:runtime-demo-alt"
+                  ]
+                }
+              ],
+              "deployment_claims": []
+            }
+          },
+          "source": [
+            "tests/integration/test_i3_cross_source_qualification.py:258-278"
+          ]
+        },
+        {
+          "id": "zero-writes",
+          "surface": "revision fence (examples/runtime-demo/read_revision_fence.py) before the first and after the last public read",
+          "expect": {
+            "revision_after": "== revision_before"
+          },
+          "source": [
+            "tests/integration/test_i3_cross_source_qualification.py:441-458"
+          ]
+        },
+        {
+          "id": "producer-identity",
+          "surface": "every Architecture Answer in the phase",
+          "expect": {
+            "schema_version": "0.5",
+            "producer.version": "${PACKAGE_VERSION}",
+            "producer.build_revision": "${RELEASE_CANDIDATE_SHA}"
+          },
+          "source": [
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a74.3, \u00a720"
+          ]
+        }
+      ]
+    },
+    "k8s-unresolved": {
+      "observation_context": {
+        "environment": "prod",
+        "window_start": "2026-09-18T00:00:00Z",
+        "window_end": "2026-09-18T23:59:59Z"
+      },
+      "checks": [
+        {
+          "id": "import",
+          "surface": "POST /api/import",
+          "expect": {
+            "committed": true,
+            "report_version": "aip-import-report/1",
+            "runs": [
+              {
+                "kind": "filesystem",
+                "inventory_status": "COMPLETE",
+                "committed": true,
+                "every_source_result": "ACCEPTED",
+                "diagnostics": []
+              },
+              {
+                "configured_source_id": "aip-i2-independent-capture",
+                "inventory_status": "COMPLETE",
+                "committed": true,
+                "source_results": [
+                  {
+                    "result": "ACCEPTED",
+                    "diagnostics": []
+                  }
+                ]
+              }
+            ]
+          },
+          "source": [
+            "tests/integration/test_kubernetes_independent_capture.py:44-56",
+            "tests/unit/test_release_golden_path_profile.py (declaration transcription: ACCEPTED, COMPLETE)",
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a77.3"
+          ]
+        },
+        {
+          "id": "deployment",
+          "surface": "MCP get_service_dependencies and REST GET /api/services/service:runtime-demo/deployments",
+          "expect": {
+            "unresolved_resolutions": {
+              "filter": "service_id == null and workload == null",
+              "count": 2,
+              "distinct_resolution_ids": 2
+            }
+          },
+          "note": "Only these two resolutions are frozen. The capture's Path A resolution for the same Service is not frozen by the component (I6 \u00a77.1).",
+          "source": [
+            "tests/integration/test_i5_qualification_tooling.py:268-287",
+            "real_world_validation/capture.py:190-198"
+          ]
+        },
+        {
+          "id": "zero-writes",
+          "surface": "revision fence (examples/runtime-demo/read_revision_fence.py) before the first and after the last public read",
+          "expect": {
+            "revision_after": "== revision_before"
+          },
+          "source": [
+            "tests/integration/test_i3_cross_source_qualification.py:441-458"
+          ]
+        },
+        {
+          "id": "producer-identity",
+          "surface": "every Architecture Answer in the phase",
+          "expect": {
+            "schema_version": "0.5",
+            "producer.version": "${PACKAGE_VERSION}",
+            "producer.build_revision": "${RELEASE_CANDIDATE_SHA}"
+          },
+          "source": [
+            "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a74.3, \u00a720"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,45 @@
+# AIP configuration for the `k8s-conflict` golden-path phase (I6 §7.1). Paths are relative to the AIP
+# container's working directory (/app); ./phase.yaml lists the mounts.
+architecture_intelligence:
+  sources:
+    directories:
+      # ./declarations: the transcribed Service declarations (I6 §7.2).
+      - id: i6-golden-path-k8s-conflict-declarations
+        root: golden-path/declarations
+    clusters:
+      # The I2 independent capture, unmodified. These values are copied from
+      # tests/integration/test_i3_cross_source_qualification.py `_kubernetes_config()` and equal the
+      # capture's own envelope.yaml.
+      - id: aip-i2-independent-capture
+        root: golden-path/i2-capture
+        envelope_relative_path: envelope.yaml
+        configured_scope_id: aip-i2-independent-capture-scope
+        cluster_uid: 599e90a5-7ab8-426f-807f-92a65dcc8822
+        evidence_mode: CAPTURED_RESOURCE
+        authorized_producer: aip-i2-independent-capture-runbook
+        authority_record: aip-i2-independent-capture-self-declared-authority
+    service_workload_mapping: golden-path/mapping.yaml   # tests/fixtures/deployment/i3-cross-source/service-workload-mapping-conflict.yaml, unmodified
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+    max_traversal_depth: 5
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  intent_router:
+    deterministic_threshold: 0.9
+  telemetry:
+    # The component tests pass no aliases and no HTTP correlation buffer to `adapt`.
+    service_aliases: {}
+    queue_aliases: {}
+    topic_aliases: {}
+    http-correlation:
+      enabled: false
+    coverage:
+      qualification-enabled: true
+  runtime_analysis:
+    default_window_hours: 24
+    default_environment: prod

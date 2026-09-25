@@ -1,0 +1,16 @@
+# Golden-path phase `k8s-agree` (I6 §7.1). It reproduces tests/integration/test_i3_cross_source_qualification.py
+# `test_cross_source_all_three_paths_agree_produces_one_resolved_explicit_claim` through the container.
+phase: k8s-agree
+config_path: golden-path/config.yaml
+mounts:
+  - {from: examples/release-golden-path/profile/k8s-agree/config.yaml, to: /app/golden-path/config.yaml}
+  - {from: examples/release-golden-path/profile/k8s-agree/declarations, to: /app/golden-path/declarations}   # transcriptions
+  - {from: tests/fixtures/kubernetes/i2-independent-capture, to: /app/golden-path/i2-capture}   # unmodified
+  - {from: tests/fixtures/deployment/i3-cross-source/service-workload-mapping-agree.yaml, to: /app/golden-path/mapping.yaml}   # unmodified
+steps:
+  - import: POST /api/import
+  - otlp: examples/release-golden-path/profile/k8s-agree/otlp.json   # transcription of _runtime_demo_span(service_name="runtime-demo"), via the collector
+observation_context:
+  environment: prod
+  window_start: "2026-09-18T00:00:00Z"
+  window_end: "2026-09-18T23:59:59Z"

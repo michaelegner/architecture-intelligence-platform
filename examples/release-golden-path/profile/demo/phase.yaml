@@ -1,0 +1,16 @@
+# Golden-path phase `demo` (I6 §7.1). It reproduces the runtime demo exactly as
+# docker-compose.demo.yml and examples/runtime-demo/mcp-demo.sh do, with no transcription.
+# Mount sources are repository-relative, and every one is an unmodified component file.
+phase: demo
+config_path: config.demo.yaml
+mounts:
+  - {from: examples, to: /app/examples}
+  - {from: config.demo.yaml, to: /app/config.demo.yaml}
+steps:
+  - import: POST /api/import
+  - seed: examples/runtime-demo/seed_frozen_evidence.py   # the frozen OTLP batch, via the collector
+observation_context:
+  environment: demo
+  window_start: "2026-08-26T00:00:00.000000Z"
+  window_end: "2026-08-27T00:00:00.000000Z"
+oracle: python examples/runtime-demo/check_fixture_state.py --json   # run inside the AIP container, as mcp-demo.sh does (mcp-demo.sh:179)
