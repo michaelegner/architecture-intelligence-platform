@@ -150,6 +150,45 @@ are normalized deterministically, never treated as two separate mappings. See
 combines with Path A/C into the public `DEPLOYED_AS` claim, and [`evidence.md`](evidence.md) for how
 a mapping entry's own evidence is encoded and exposed.
 
+## Import report (v1)
+
+`POST /api/import` and `POST /api/import/service/{serviceId}` return the versioned I1 §10 import
+report, `report_version: "aip-import-report/1"` (v0.5.0 I5 finding F2). Its models are in
+`app/ingestion/import_report.py`, and the JSON Schemas are committed under `schemas/import/v0.5/`.
+The schemas are regenerated with `uv run python -m app.ingestion.import_report_schema`, and a test
+fails if the committed schemas drift from the models.
+
+The report is **additive**. `import_id`, `committed` (true only if every configured run committed)
+and `sources` (the per-source reconciliation stats) keep their pre-v1 meaning. `runs` adds one
+entry per configured source run, ordered by `(kind, configured_source_id)`:
+
+| Field | Meaning |
+| --- | --- |
+| `kind`, `configured_source_id` | `filesystem` or `kubernetes`, and the configured source's id |
+| `discovery_scope_id`, `scope_definition_digest` | the run's scope identity (I1 §6), or null when discovery could not compute it |
+| `inventory_status`, `committed` | `COMPLETE`, `PARTIAL` or `FAILED`, and whether the run committed |
+| `inventory_revision` | the inventory revision the run committed; null when it did not commit |
+| `source_results` | **every** discovered source's own result (I1 §10: exactly one per source), including the rejected sources of a run that did not commit. Each has `source_instance_id`, a root-relative `locator`, `result` and its `diagnostics`. |
+| `removed_source_instance_ids` | the sources whose ownership the run removed |
+| `tombstones` | each in-scope tombstone's decision: `accepted`, and `reason` (`STALE_PRIOR_REVISION`, `NO_COMMITTED_INVENTORY` or `SCOPE_MISMATCH`) when it was rejected |
+| `diagnostics` | the run-level diagnostics |
+
+So a FAILED run (for example a missing root: no source results and a `SOURCE_ROOT_UNAVAILABLE`
+diagnostic), a PARTIAL run (a rejected source) and a `REJECTED_CONFLICT` can be told apart, and
+each names the source it concerns.
+
+**What a diagnostic exposes.** Only a stable `code`, the `source_instance_id`, and a sanitized
+`source_pointer` are exposed:
+- a JSON Pointer or an id is kept;
+- a path under the configured root becomes relative to it;
+- any other absolute host path becomes null.
+
+Diagnostic messages are never part of the report, because they can contain absolute paths and
+snippets of rejected input (the I2 §5 sanitization rule). The server log keeps them.
+
+`runs` carries no capture ids or timestamps, and every list in it is sorted. It is the deterministic
+semantic projection of I1 §10. MCP has no import tool (I1 §12).
+
 ## Runtime observation adapter
 
 Independently of the three above, `app/telemetry/adapter.py` maps OpenTelemetry spans into observed

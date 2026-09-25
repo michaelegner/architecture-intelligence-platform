@@ -57,6 +57,7 @@ from app.sources.migration_mappings import load_migration_mappings
 from app.sources.model import (
     DiagnosticCode,
     FilesystemSourceConfig,
+    IngestionResult,
     KubernetesSourceConfig,
     NotSupplied,
     SourceKind,
@@ -1525,6 +1526,9 @@ def test_two_kubernetes_sources_with_conflicting_content_for_one_logical_resourc
     stats = import_discovery_run(driver, database=DATABASE, run_result=run_result)
     assert stats.committed is False
     assert stats.per_source == {}
+    # v0.5.0 I5 F2: the rejected sources' own results are reported although nothing commits.
+    assert len(stats.source_results) == 2
+    assert {r.result for r in stats.source_results} == {IngestionResult.REJECTED_CONFLICT}
     assert _count(driver, "MATCH (e:InfrastructureEntity) RETURN count(e) AS c") == 0
     assert _count(driver, "MATCH (i:CurrentInventory) RETURN count(i) AS c") == 0
 

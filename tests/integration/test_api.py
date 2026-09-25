@@ -316,6 +316,11 @@ def test_post_import_all(client):
     assert "import_id" in body
     assert body["committed"] is True
     assert len(body["sources"]) == 6  # order-service (x3), product/payment/invoice-service
+    # v0.5.0 I5 F2: the versioned I1 §10 report rides alongside the unchanged `sources`.
+    assert body["report_version"] == "aip-import-report/1"
+    [run] = body["runs"]
+    assert run["inventory_status"] == "COMPLETE" and run["committed"] is True
+    assert {r["source_instance_id"] for r in run["source_results"]} == set(body["sources"])
 
 
 def test_post_import_service(client):

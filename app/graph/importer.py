@@ -286,12 +286,45 @@ class SourceImportStats:
 
 
 @dataclass(frozen=True)
+class SourceRunResult:
+    """I1 spec §10: "Each source receives exactly one result" - one discovered source's own result
+    and diagnostics for a discovery run, recorded whether or not the run committed (unlike
+    `SourceImportStats`, which only exists for sources actually reconciled into the graph). v0.5.0
+    I5 finding F2: a non-committing run previously dropped every per-source result."""
+
+    source_instance_id: str
+    locator: str
+    result: IngestionResult
+    diagnostics: tuple[IngestionDiagnostic, ...]
+
+
+@dataclass(frozen=True)
+class TombstoneDecision:
+    """I1 spec §10's report entry for one in-scope explicit tombstone evaluated by a committing run:
+    whether it was accepted against the committed inventory, and the rejection reason if not."""
+
+    target_source_instance_id: str
+    tombstone_revision: str
+    accepted: bool
+    reason: str | None
+
+
+@dataclass(frozen=True)
 class ImportRunStats:
     inventory_status: InventoryStatus
     committed: bool
     per_source: dict[str, SourceImportStats]
     removed_source_instance_ids: tuple[str, ...]
     diagnostics: tuple[IngestionDiagnostic, ...]
+    # v0.5.0 I5 finding F2 (I1 spec §10 import report) - defaulted so existing constructors keep
+    # working. `source_results` holds every discovered source's own result on every return path,
+    # committing or not; `inventory_revision` is the committed revision this run wrote (None when
+    # the run did not commit).
+    source_results: tuple[SourceRunResult, ...] = ()
+    discovery_scope_id: str | None = None
+    scope_definition_digest: str | None = None
+    inventory_revision: str | None = None
+    tombstone_decisions: tuple[TombstoneDecision, ...] = ()
 
 
 def _write_nodes(
@@ -813,7 +846,12 @@ def _import_all_sources_tx(
     *,
     run_result: DiscoveryRunResult,
     expected_prior_inventory_revision: str | None | NotSupplied = NOT_SUPPLIED,
-) -> tuple[dict[str, SourceImportStats], tuple[str, ...], tuple[IngestionDiagnostic, ...]]:
+) -> tuple[
+    dict[str, SourceImportStats],
+    tuple[str, ...],
+    tuple[IngestionDiagnostic, ...],
+    tuple[TombstoneDecision, ...],
+]:
     """Pre-merge, per-source reconciliation, and removal for one whole discovery run, all against
     the same transaction - a run either commits in full or (on any error, including a driver/
     infrastructure failure partway through) rolls back in full. Previously these were separate
@@ -874,6 +912,7 @@ def _import_all_sources_tx(
 
     tombstone_validations: dict[str, TombstoneValidation] = {}
     tombstone_diagnostics: list[IngestionDiagnostic] = []
+    tombstone_decisions: list[TombstoneDecision] = []
     for tombstone in run_result.inventory_snapshot.tombstones:
         validation = validate_tombstone_against_committed_inventory(
             tombstone=tombstone,
@@ -882,6 +921,18 @@ def _import_all_sources_tx(
             committed_inventory_revision=persisted_inventory["inventory_revision"],
         )
         tombstone_validations[tombstone.target_source_instance_id] = validation
+        tombstone_decisions.append(
+            TombstoneDecision(
+                target_source_instance_id=tombstone.target_source_instance_id,
+                tombstone_revision=tombstone.tombstone_revision,
+                accepted=validation.accepted,
+                reason=(
+                    validation.rejection_reason.value
+                    if validation.rejection_reason is not None
+                    else None
+                ),
+            )
+        )
         # A rejected tombstone must not silently no-op from the caller's perspective (no removal,
         # no explanation) - a real finding from PR review.
         if not validation.accepted and validation.diagnostic is not None:
@@ -969,7 +1020,26 @@ def _import_all_sources_tx(
         scope_definition_digest=run_result.scope_definition_digest,
     )
 
-    return per_source, tuple(removed_source_instance_ids), tuple(tombstone_diagnostics)
+    return (
+        per_source,
+        tuple(removed_source_instance_ids),
+        tuple(tombstone_diagnostics),
+        tuple(tombstone_decisions),
+    )
+
+
+def _source_run_results(run_result: DiscoveryRunResult) -> tuple[SourceRunResult, ...]:
+    """Every discovered source's own I1 §10 result, sorted by source instance id - taken from the
+    discovery run itself, so it exists whether or not the run commits."""
+    return tuple(
+        SourceRunResult(
+            source_instance_id=source_instance_id,
+            locator=run_outcome.descriptor_locator,
+            result=run_outcome.outcome.result,
+            diagnostics=tuple(run_outcome.outcome.diagnostics),
+        )
+        for source_instance_id, run_outcome in sorted(run_result.source_outcomes.items())
+    )
 
 
 def import_discovery_run(
@@ -991,6 +1061,7 @@ def import_discovery_run(
     `_import_all_sources_tx`), so a failure partway through the run - including a stale
     `expected_prior_inventory_revision` - leaves nothing committed.
     """
+    source_results = _source_run_results(run_result)
     if not run_result.commit_eligible:
         return ImportRunStats(
             inventory_status=run_result.inventory_status,
@@ -998,6 +1069,9 @@ def import_discovery_run(
             per_source={},
             removed_source_instance_ids=(),
             diagnostics=run_result.diagnostics,
+            source_results=source_results,
+            discovery_scope_id=run_result.discovery_scope_id,
+            scope_definition_digest=run_result.scope_definition_digest,
         )
 
     validate_canonical_model(run_result.merged_model)
@@ -1005,7 +1079,12 @@ def import_discovery_run(
     with open_session(driver, database=database) as session:
         ensure_schema(session)
         try:
-            per_source, removed_source_instance_ids, tombstone_diagnostics = session.execute_write(
+            (
+                per_source,
+                removed_source_instance_ids,
+                tombstone_diagnostics,
+                tombstone_decisions,
+            ) = session.execute_write(
                 _import_all_sources_tx,
                 run_result=run_result,
                 expected_prior_inventory_revision=expected_prior_inventory_revision,
@@ -1023,6 +1102,9 @@ def import_discovery_run(
                         message=str(exc),
                     ),
                 ),
+                source_results=source_results,
+                discovery_scope_id=run_result.discovery_scope_id,
+                scope_definition_digest=run_result.scope_definition_digest,
             )
 
         return ImportRunStats(
@@ -1031,6 +1113,11 @@ def import_discovery_run(
             per_source=per_source,
             removed_source_instance_ids=removed_source_instance_ids,
             diagnostics=(*run_result.diagnostics, *tombstone_diagnostics),
+            source_results=source_results,
+            discovery_scope_id=run_result.discovery_scope_id,
+            scope_definition_digest=run_result.scope_definition_digest,
+            inventory_revision=run_result.inventory_snapshot.inventory_revision,
+            tombstone_decisions=tombstone_decisions,
         )
 
 
@@ -1111,6 +1198,10 @@ def import_kubernetes_source(
         stats = replace(
             stats,
             per_source=stale_per_source,
+            source_results=tuple(
+                replace(source_result, result=IngestionResult.REJECTED_CONFLICT)
+                for source_result in stats.source_results
+            ),
             diagnostics=(
                 *stats.diagnostics,
                 IngestionDiagnostic(
