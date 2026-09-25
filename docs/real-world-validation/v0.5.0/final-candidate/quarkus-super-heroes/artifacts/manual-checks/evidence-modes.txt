@@ -1,0 +1,3 @@
+// evidence-modes
+mode, n
+"DECLARED_MANIFEST", 27

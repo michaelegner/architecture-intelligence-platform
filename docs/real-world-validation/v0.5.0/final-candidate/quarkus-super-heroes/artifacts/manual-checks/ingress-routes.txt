@@ -1,0 +1,4 @@
+// ingress-routes
+ingress, service
+"ui-super-heroes", "rest-fights"
+"ui-super-heroes", "ui-super-heroes"

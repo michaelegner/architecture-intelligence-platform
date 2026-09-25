@@ -1,0 +1,7 @@
+// services
+s.id
+"service:grpc-locations"
+"service:rest-fights"
+"service:rest-heroes"
+"service:rest-narration"
+"service:rest-villains"

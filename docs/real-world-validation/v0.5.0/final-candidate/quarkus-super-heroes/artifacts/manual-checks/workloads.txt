@@ -1,0 +1,15 @@
+// workloads
+e.namespace, e.resource_kind, e.name
+"quarkus-super-heroes", "Deployment", "apicurio"
+"quarkus-super-heroes", "Deployment", "event-statistics"
+"quarkus-super-heroes", "Deployment", "fights-db"
+"quarkus-super-heroes", "Deployment", "fights-kafka"
+"quarkus-super-heroes", "Deployment", "grpc-locations"
+"quarkus-super-heroes", "Deployment", "heroes-db"
+"quarkus-super-heroes", "Deployment", "locations-db"
+"quarkus-super-heroes", "Deployment", "rest-fights"
+"quarkus-super-heroes", "Deployment", "rest-heroes"
+"quarkus-super-heroes", "Deployment", "rest-narration"
+"quarkus-super-heroes", "Deployment", "rest-villains"
+"quarkus-super-heroes", "Deployment", "ui-super-heroes"
+"quarkus-super-heroes", "Deployment", "villains-db"

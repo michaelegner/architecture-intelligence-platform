@@ -1,0 +1,35 @@
+{
+  "all_equal": true,
+  "reads": [
+    {
+      "read": "tools/list",
+      "tools": [
+        "get_architecture_drift",
+        "get_evidence",
+        "get_service_dependencies"
+      ],
+      "equal": true
+    },
+    {
+      "read": "dependencies service:rest-fights",
+      "equal": true,
+      "snapshot_ids": [
+        "aip:snapshot:v1:f01a35de39f1c59f858447d028486298c70c38384064667247c58f99d20c6ae3"
+      ]
+    },
+    {
+      "read": "drift service:rest-fights",
+      "equal": true,
+      "snapshot_ids": [
+        "aip:snapshot:v1:f01a35de39f1c59f858447d028486298c70c38384064667247c58f99d20c6ae3"
+      ]
+    },
+    {
+      "read": "evidence service:rest-fights batch 0",
+      "equal": true,
+      "snapshot_ids": [
+        "aip:snapshot:v1:f01a35de39f1c59f858447d028486298c70c38384064667247c58f99d20c6ae3"
+      ]
+    }
+  ]
+}

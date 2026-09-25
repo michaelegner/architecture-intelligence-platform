@@ -1,0 +1,431 @@
+{
+  "claims": [
+    {
+      "claim_id": "aip:claim:v1:5eeaf13a9abc27be41c60d540c59d30be96a4375feb5691b1e61c43fb8ef817a",
+      "coverage": "SUFFICIENT",
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "subscription": null,
+        "via": {
+          "id": "operation:service:rest-heroes:GET:/api/heroes/hello",
+          "method": "GET",
+          "name": "GET /api/heroes/hello",
+          "namespace": null,
+          "path": "/api/heroes/hello",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a"
+      ],
+      "object": {
+        "id": "service:rest-heroes",
+        "method": null,
+        "name": "Hero API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "NOT_OBSERVED_IN_WINDOW",
+      "resolution_evidence_refs": [
+        "evidence:openapi:urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253"
+      ],
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:a669b8dd1dd4a8d7c17c45759e3137520b6462d803f9afadc51ec9222126fa4f",
+      "coverage": null,
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "subscription": null,
+        "via": {
+          "id": "operation:service:rest-heroes:GET:/api/heroes/random",
+          "method": "GET",
+          "name": "GET /api/heroes/random",
+          "namespace": null,
+          "path": "/api/heroes/random",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a",
+        "evidence:otel:quarkus-i5:2026-09-25:4878531641e8"
+      ],
+      "object": {
+        "id": "service:rest-heroes",
+        "method": null,
+        "name": "Hero API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "CONFIRMED",
+      "resolution_evidence_refs": [
+        "evidence:openapi:urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253"
+      ],
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:56889d1453d02cffb6400be6247f16488d34da504eea89142107bd223ca41bf6",
+      "coverage": "SUFFICIENT",
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "subscription": null,
+        "via": {
+          "id": "operation:service:rest-narration:GET:/api/narration/hello",
+          "method": "GET",
+          "name": "GET /api/narration/hello",
+          "namespace": null,
+          "path": "/api/narration/hello",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a"
+      ],
+      "object": {
+        "id": "service:rest-narration",
+        "method": null,
+        "name": "Narration API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "NOT_OBSERVED_IN_WINDOW",
+      "resolution_evidence_refs": [
+        "evidence:openapi:urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f"
+      ],
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:a8a00df70b4d864fa5dc3b27e9d6d8fa2cb416c4ac636931f5383a02389e41a9",
+      "coverage": null,
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "subscription": null,
+        "via": {
+          "id": "operation:service:rest-narration:POST:/api/narration",
+          "method": "POST",
+          "name": "POST /api/narration",
+          "namespace": null,
+          "path": "/api/narration",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a",
+        "evidence:otel:quarkus-i5:2026-09-25:908f6fc7d0b9"
+      ],
+      "object": {
+        "id": "service:rest-narration",
+        "method": null,
+        "name": "Narration API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "CONFIRMED",
+      "resolution_evidence_refs": [
+        "evidence:openapi:urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f"
+      ],
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:740f90695612e937dc37e1918a9f6582ca6aef130ab746a0b40d6fa04cf007bf",
+      "coverage": "SUFFICIENT",
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "subscription": null,
+        "via": {
+          "id": "operation:service:rest-narration:POST:/api/narration/image",
+          "method": "POST",
+          "name": "POST /api/narration/image",
+          "namespace": null,
+          "path": "/api/narration/image",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a"
+      ],
+      "object": {
+        "id": "service:rest-narration",
+        "method": null,
+        "name": "Narration API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "NOT_OBSERVED_IN_WINDOW",
+      "resolution_evidence_refs": [
+        "evidence:openapi:urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f"
+      ],
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:04eddf961fec3edaf5f0e1ca665931eec979d27c5cff7d66897a7dc7a6a277da",
+      "coverage": "SUFFICIENT",
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "subscription": null,
+        "via": {
+          "id": "operation:service:rest-villains:GET:/api/villains/hello",
+          "method": "GET",
+          "name": "GET /api/villains/hello",
+          "namespace": null,
+          "path": "/api/villains/hello",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a"
+      ],
+      "object": {
+        "id": "service:rest-villains",
+        "method": null,
+        "name": "Villain API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "NOT_OBSERVED_IN_WINDOW",
+      "resolution_evidence_refs": [
+        "evidence:openapi:urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832"
+      ],
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:42e73cd9f0ed6f067bdc064094dd632ffe53c2bedf03340ab3dedea432453a0f",
+      "coverage": null,
+      "delivery": {
+        "kind": "SYNC_HTTP",
+        "relation_type": "CALLS",
+        "subscription": null,
+        "via": {
+          "id": "operation:service:rest-villains:GET:/api/villains/random",
+          "method": "GET",
+          "name": "GET /api/villains/random",
+          "namespace": null,
+          "path": "/api/villains/random",
+          "protocol": null,
+          "type": "OPERATION"
+        }
+      },
+      "destination_resolution": "RESOLVED_SERVICE",
+      "evidence_refs": [
+        "evidence:manifest:urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a",
+        "evidence:otel:quarkus-i5:2026-09-25:30e26b9f3dc5"
+      ],
+      "object": {
+        "id": "service:rest-villains",
+        "method": null,
+        "name": "Villain API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "DIRECT_DEPENDENCY",
+      "qualification": "CONFIRMED",
+      "resolution_evidence_refs": [
+        "evidence:openapi:urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832"
+      ],
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      }
+    },
+    {
+      "claim_id": "aip:claim:v1:27a352c8a17e2668e431a7f6e5e81c94723454cf88d56c97e1795066babd290e",
+      "evidence_refs": [
+        "evidence:mapping:v1:5abcfb14a391738519af257da06c7752a5f336d970f4a9a4584f9bcf2fd4d507"
+      ],
+      "object": {
+        "id": "urn:aip:k8s-resource:3e27d8e46f425f89d9303f9b8fa045ac9d5cd1a8ebf5e27300240aa7e2671148",
+        "name": "rest-fights",
+        "namespace": "quarkus-super-heroes",
+        "type": "WORKLOAD",
+        "workload_kind": "DEPLOYMENT"
+      },
+      "predicate": "DEPLOYED_AS",
+      "reconciliation_rule_id": "service-workload-reconciliation",
+      "reconciliation_rule_version": 1,
+      "resolution_method": "RESOLVED_CONFIGURED",
+      "subject": {
+        "id": "service:rest-fights",
+        "method": null,
+        "name": "Fights API",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "supporting_methods": [
+        "RESOLVED_CONFIGURED"
+      ]
+    }
+  ],
+  "data": {
+    "dependency_claim_ids": [
+      "aip:claim:v1:5eeaf13a9abc27be41c60d540c59d30be96a4375feb5691b1e61c43fb8ef817a",
+      "aip:claim:v1:a669b8dd1dd4a8d7c17c45759e3137520b6462d803f9afadc51ec9222126fa4f",
+      "aip:claim:v1:56889d1453d02cffb6400be6247f16488d34da504eea89142107bd223ca41bf6",
+      "aip:claim:v1:a8a00df70b4d864fa5dc3b27e9d6d8fa2cb416c4ac636931f5383a02389e41a9",
+      "aip:claim:v1:740f90695612e937dc37e1918a9f6582ca6aef130ab746a0b40d6fa04cf007bf",
+      "aip:claim:v1:04eddf961fec3edaf5f0e1ca665931eec979d27c5cff7d66897a7dc7a6a277da",
+      "aip:claim:v1:42e73cd9f0ed6f067bdc064094dd632ffe53c2bedf03340ab3dedea432453a0f"
+    ],
+    "deployment_claim_ids": [
+      "aip:claim:v1:27a352c8a17e2668e431a7f6e5e81c94723454cf88d56c97e1795066babd290e"
+    ],
+    "deployment_resolutions": [
+      {
+        "candidate_service_ids": [
+          "service:rest-fights"
+        ],
+        "claim_id": "aip:claim:v1:27a352c8a17e2668e431a7f6e5e81c94723454cf88d56c97e1795066babd290e",
+        "conflicting_evidence_refs": [],
+        "limitation_codes": [],
+        "reconciliation_rule_id": "service-workload-reconciliation",
+        "reconciliation_rule_version": 1,
+        "resolution_id": "aip:deployment-resolution:v1:91699b06c1f0f03c4492eaec76ab7c2c145f9b20d46432e42d3e77f8becb230e",
+        "service_id": "service:rest-fights",
+        "status": "RESOLVED_CONFIGURED",
+        "supporting_evidence_refs": [
+          "evidence:mapping:v1:5abcfb14a391738519af257da06c7752a5f336d970f4a9a4584f9bcf2fd4d507"
+        ],
+        "supporting_methods": [
+          "RESOLVED_CONFIGURED"
+        ],
+        "workload": {
+          "id": "urn:aip:k8s-resource:3e27d8e46f425f89d9303f9b8fa045ac9d5cd1a8ebf5e27300240aa7e2671148",
+          "name": "rest-fights",
+          "namespace": "quarkus-super-heroes",
+          "type": "WORKLOAD",
+          "workload_kind": "DEPLOYMENT"
+        }
+      }
+    ],
+    "service": {
+      "id": "service:rest-fights",
+      "method": null,
+      "name": "Fights API",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [
+    "evidence:manifest:urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a",
+    "evidence:mapping:v1:5abcfb14a391738519af257da06c7752a5f336d970f4a9a4584f9bcf2fd4d507",
+    "evidence:openapi:urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832",
+    "evidence:openapi:urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f",
+    "evidence:openapi:urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253",
+    "evidence:otel:quarkus-i5:2026-09-25:30e26b9f3dc5",
+    "evidence:otel:quarkus-i5:2026-09-25:4878531641e8",
+    "evidence:otel:quarkus-i5:2026-09-25:908f6fc7d0b9"
+  ],
+  "limitations": [],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:ca9f8ca81d6d15de11de39893d1cf68e0188bbb10ca2989d44f65c8dd1ee6ff6",
+    "environment": "quarkus-i5",
+    "window_end": "2026-09-25T13:06:54Z",
+    "window_start": "2026-09-25T13:06:47Z"
+  },
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "aa04a150965924bd23ecf0125bcf7095a3cf72d9",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.2"
+  },
+  "schema_version": "0.5",
+  "snapshot": {
+    "model_revision": "sha256:f01a35de39f1c59f858447d028486298c70c38384064667247c58f99d20c6ae3",
+    "snapshot_id": "aip:snapshot:v1:f01a35de39f1c59f858447d028486298c70c38384064667247c58f99d20c6ae3"
+  },
+  "tool": "get_service_dependencies"
+}

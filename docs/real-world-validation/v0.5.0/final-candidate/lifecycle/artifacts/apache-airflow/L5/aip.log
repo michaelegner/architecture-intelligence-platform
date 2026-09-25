@@ -1,0 +1,8 @@
+# Filtered for the repository: 18 noise lines removed (Neo4j 'Received notification' warnings, image-pull and Maven download progress). All other lines are verbatim.
+architecture-intelligence-1  | INFO:     Started server process [1]
+architecture-intelligence-1  | INFO:     Waiting for application startup.
+architecture-intelligence-1  | StreamableHTTP session manager started
+architecture-intelligence-1  | INFO:     Application startup complete.
+architecture-intelligence-1  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+architecture-intelligence-1  | INFO:     172.19.0.1:39616 - "GET /health HTTP/1.1" 200 OK
+architecture-intelligence-1  | INFO:     172.19.0.1:39626 - "POST /api/import HTTP/1.1" 200 OK

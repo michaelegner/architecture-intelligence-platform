@@ -1,0 +1,2 @@
+i.discovery_scope_id, i.scope_definition_digest, i.inventory_revision
+"urn:aip:discovery-scope:255a717634441754940079676da8bcbb8402f9a68db6f315df207dbb61e07f69", "565a76daedd947cad095ea4fd9ed94e17e8a06b4560f4076c3cfac52fbd733ff", "urn:aip:inventory-revision:3293487ec104a3184d268e067593e0e07b1adcc6f1cbd2c8a7f09f999538338f"

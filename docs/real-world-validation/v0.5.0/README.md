@@ -42,4 +42,15 @@ v0.5.0/
   evaluation-artifacts/     I5 Slice 5: the two byte-identical evaluation runs (summary and one result copy)
   <target>/results.md       I5 Slice 5: each target's qualifying run; raw records in <target>/artifacts/
   lifecycle/results.md      I5 Slice 5: the lifecycle verdicts; raw records in lifecycle/artifacts/
+  final-candidate/          I5 Slice 7: the §12 revalidation at the final candidate aa04a15
+    finding-ledger.md         every §9 row and §13 item at that candidate, final dispositions F1-F8,
+                              and the exit decision
+    <target>/results.md       each target's final run; raw records in <target>/artifacts/
+    lifecycle/results.md      the lifecycle verdicts (all 9 steps, both targets); raw records in artifacts/
+    evaluation-artifacts/     the two byte-identical evaluation runs
+    suites/                   the test-suite output at the candidate and its CI check-runs
 ```
+
+The Slice 5 records above are the record of candidate `174a17c` and are never rewritten. The I5
+completion record is
+[`i5-completion-record.md`](../../specifications/0.5.0/i5-completion-record.md).

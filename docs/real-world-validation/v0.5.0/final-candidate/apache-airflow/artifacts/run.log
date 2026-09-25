@@ -1,0 +1,1281 @@
+# Filtered for the repository: 0 noise lines removed (Neo4j 'Received notification' warnings, image-pull and Maven download progress). All other lines are verbatim.
+==> runbook block 2
+==> runbook block 3
+ Image aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9 Skipped Image can be built
+ Image apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339 Pulling 
+ Image postgres:16.15@sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6 Pulling 
+ Image neo4j:5.26.0@sha256:5a015e53de1895e7eee1574ae0325cf8c4b89587222778108c594bdd45a474b5 Pulling 
+ Image otel/opentelemetry-collector:0.159.0@sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2 Pulling 
+ Image redis:7.2-bookworm@sha256:74566c6910d13ae61e7ce73ebd3127438a1fe805b309b097c323142719ec8a5b Pulling 
+ Image otel/opentelemetry-collector:0.159.0@sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2 Pulled 
+ Image redis:7.2-bookworm@sha256:74566c6910d13ae61e7ce73ebd3127438a1fe805b309b097c323142719ec8a5b Pulled 
+ Image apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339 Pulled 
+ Image postgres:16.15@sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6 Pulled 
+ Image neo4j:5.26.0@sha256:5a015e53de1895e7eee1574ae0325cf8c4b89587222778108c594bdd45a474b5 Pulled 
+==> runbook block 4
+ Image aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9 Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 779B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.37kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.14-slim
+#3 ...
+
+#4 [internal] load metadata for ghcr.io/astral-sh/uv:latest
+#4 DONE 1.1s
+
+#3 [internal] load metadata for docker.io/library/python:3.14-slim
+#3 DONE 1.3s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 333B 0.0s done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 DONE 0.0s
+
+#7 FROM ghcr.io/astral-sh/uv:latest@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424
+#7 resolve ghcr.io/astral-sh/uv:latest@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424 0.1s done
+#7 DONE 0.1s
+
+#8 [stage-0  1/10] FROM docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2
+#8 resolve docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2
+#8 resolve docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2 0.1s done
+#8 CACHED
+
+#7 FROM ghcr.io/astral-sh/uv:latest@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424
+#7 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 20.17kB 0.0s done
+#6 DONE 0.0s
+
+#9 [stage-0  2/10] COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+#9 DONE 0.3s
+
+#10 [stage-0  3/10] RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --create-home --shell /usr/sbin/nologin app
+#10 DONE 0.7s
+
+#11 [stage-0  4/10] WORKDIR /app
+#11 DONE 0.1s
+
+#12 [stage-0  5/10] COPY --chown=app:app pyproject.toml uv.lock ./
+#12 DONE 1.2s
+
+#13 [stage-0  6/10] RUN uv sync --frozen --no-install-project --no-dev
+#13 0.808 Using CPython 3.14.7 interpreter at: /usr/local/bin/python3
+#13 0.808 Creating virtual environment at: .venv
+#13 1.239 Downloading cryptography (4.5MiB)
+#13 1.260 Downloading openai (1.9MiB)
+#13 1.280 Downloading pydantic-core (2.0MiB)
+#13 1.343 Downloading uvloop (4.1MiB)
+#13 3.891  Downloaded openai
+#13 3.934  Downloaded pydantic-core
+#13 4.692  Downloaded uvloop
+#13 4.787  Downloaded cryptography
+#13 4.788 Prepared 46 packages in 3.97s
+#13 5.136 Installed 46 packages in 347ms
+#13 7.082 Bytecode compiled 2929 files in 1.93s
+#13 7.082  + annotated-doc==0.0.5
+#13 7.082  + annotated-types==0.8.0
+#13 7.082  + anyio==4.14.2
+#13 7.082  + attrs==26.1.0
+#13 7.082  + cffi==2.1.1
+#13 7.082  + click==8.4.2
+#13 7.082  + cryptography==50.0.1
+#13 7.082  + fastapi==0.141.1
+#13 7.082  + h11==0.16.0
+#13 7.082  + httpcore2==2.12.0
+#13 7.082  + httptools==0.8.0
+#13 7.082  + httpx2==2.12.0
+#13 7.082  + idna==3.19
+#13 7.082  + jinja2==3.1.6
+#13 7.082  + jiter==0.16.0
+#13 7.082  + jsonschema==4.26.0
+#13 7.083  + jsonschema-specifications==2025.9.1
+#13 7.083  + markupsafe==3.0.3
+#13 7.083  + mcp==2.2.0
+#13 7.083  + mcp-types==2.2.0
+#13 7.083  + neo4j==6.3.0
+#13 7.083  + openai==3.14.0
+#13 7.083  + opentelemetry-api==1.44.0
+#13 7.083  + opentelemetry-proto==1.44.0
+#13 7.083  + protobuf==7.36.0
+#13 7.083  + pycparser==3.0
+#13 7.083  + pydantic==2.13.5
+#13 7.083  + pydantic-core==2.46.5
+#13 7.083  + pyjwt==2.13.0
+#13 7.083  + python-dotenv==1.2.3
+#13 7.083  + python-multipart==0.0.32
+#13 7.083  + pytz==2026.3.post1
+#13 7.083  + pyyaml==6.0.3
+#13 7.083  + referencing==0.37.0
+#13 7.083  + rfc8785==0.1.4
+#13 7.083  + rpds-py==2026.6.3
+#13 7.083  + sniffio==1.3.1
+#13 7.083  + sse-starlette==3.4.10
+#13 7.083  + starlette==1.6.0
+#13 7.083  + truststore==0.10.4
+#13 7.083  + typing-extensions==4.16.0
+#13 7.084  + typing-inspection==0.4.4
+#13 7.084  + uvicorn==0.52.4
+#13 7.084  + uvloop==0.22.1
+#13 7.084  + watchfiles==1.2.0
+#13 7.084  + websockets==17.0.1
+#13 DONE 7.3s
+
+#14 [stage-0  7/10] COPY --chown=app:app app ./app
+#14 DONE 0.2s
+
+#15 [stage-0  8/10] COPY --chown=app:app config.yaml ./
+#15 DONE 0.1s
+
+#16 [stage-0  9/10] COPY --chown=app:app examples ./examples
+#16 DONE 0.1s
+
+#17 [stage-0 10/10] RUN uv sync --frozen --no-dev
+#17 0.847 Bytecode compiled 2929 files in 343ms
+#17 DONE 0.9s
+
+#18 exporting to image
+#18 exporting layers
+#18 exporting layers 8.3s done
+#18 exporting manifest sha256:7170d9131e7cc57bf8078d237ba0704688c9d0d37a8b0de8dd569978b8b991e6 0.0s done
+#18 exporting config sha256:311041030bb79b7df1416267a8287564ff27dc17ef7b2249c1b630c966f4bc18 0.0s done
+#18 exporting attestation manifest sha256:22824ea4ee9a2089481454b0c6c6d86d801a632e540c480f31045460a82fa079 0.0s done
+#18 exporting manifest list sha256:b8975d29964e1aa414e8e62fa0a74c655b150cf5dc4b6b2b12993d9956a40fcf 0.0s done
+#18 naming to docker.io/library/aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9 done
+#18 unpacking to docker.io/library/aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9
+#18 unpacking to docker.io/library/aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9 3.7s done
+#18 DONE 12.2s
+
+#19 resolving provenance for metadata file
+#19 DONE 0.0s
+ Image aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9 Built 
+==> runbook block 5
+ Network airflow-i5_default Creating 
+ Network airflow-i5_default Creating 
+ Volume airflow-i5_airflow-i5-config Creating 
+ Volume airflow-i5_airflow-i5-config Creating 
+ Volume airflow-i5_airflow-i5-logs Creating 
+ Volume airflow-i5_airflow-i5-logs Creating 
+ Volume airflow-i5_airflow-i5-plugins Creating 
+ Volume airflow-i5_airflow-i5-plugins Creating 
+ Volume airflow-i5_neo4j-airflow-i5-data Creating 
+ Volume airflow-i5_neo4j-airflow-i5-data Creating 
+ Volume airflow-i5_neo4j-airflow-i5-logs Creating 
+ Volume airflow-i5_neo4j-airflow-i5-logs Creating 
+ Volume airflow-i5_postgres-db-volume Creating 
+ Volume airflow-i5_postgres-db-volume Creating 
+ Volume airflow-i5_neo4j-airflow-i5-logs Created 
+ Volume airflow-i5_neo4j-airflow-i5-logs Created 
+ Volume airflow-i5_airflow-i5-plugins Created 
+ Volume airflow-i5_airflow-i5-plugins Created 
+ Volume airflow-i5_neo4j-airflow-i5-data Created 
+ Volume airflow-i5_neo4j-airflow-i5-data Created 
+ Volume airflow-i5_airflow-i5-config Created 
+ Volume airflow-i5_airflow-i5-config Created 
+ Volume airflow-i5_postgres-db-volume Created 
+ Volume airflow-i5_postgres-db-volume Created 
+ Volume airflow-i5_airflow-i5-logs Created 
+ Volume airflow-i5_airflow-i5-logs Created 
+ Network airflow-i5_default Created 
+ Network airflow-i5_default Created 
+ Container airflow-i5-redis-1 Creating 
+ Container airflow-i5-postgres-1 Creating 
+ Container airflow-i5-neo4j-1 Creating 
+ Container airflow-i5-neo4j-1 Created 
+ Container airflow-i5-architecture-intelligence-1 Creating 
+ Container airflow-i5-redis-1 Created 
+ Container airflow-i5-postgres-1 Created 
+ Container airflow-i5-airflow-init-1 Creating 
+ Container airflow-i5-airflow-init-1 Created 
+ Container airflow-i5-airflow-scheduler-1 Creating 
+ Container airflow-i5-airflow-apiserver-1 Creating 
+ Container airflow-i5-airflow-dag-processor-1 Creating 
+ Container airflow-i5-airflow-triggerer-1 Creating 
+ Container airflow-i5-architecture-intelligence-1 Created 
+ Container airflow-i5-otel-collector-1 Creating 
+ Container airflow-i5-airflow-scheduler-1 Created 
+ Container airflow-i5-airflow-apiserver-1 Created 
+ Container airflow-i5-airflow-worker-2 Creating 
+ Container airflow-i5-airflow-worker-1 Creating 
+ Container airflow-i5-airflow-triggerer-1 Created 
+ Container airflow-i5-airflow-dag-processor-1 Created 
+ Container airflow-i5-otel-collector-1 Created 
+ Container airflow-i5-airflow-worker-2 Created 
+ Container airflow-i5-airflow-worker-1 Created 
+ Container airflow-i5-redis-1 Starting 
+ Container airflow-i5-postgres-1 Starting 
+ Container airflow-i5-neo4j-1 Starting 
+ Container airflow-i5-redis-1 Started 
+ Container airflow-i5-postgres-1 Started 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-neo4j-1 Started 
+ Container airflow-i5-neo4j-1 Waiting 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-airflow-init-1 Starting 
+ Container airflow-i5-airflow-init-1 Started 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-airflow-init-1 Waiting 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-airflow-init-1 Waiting 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-airflow-init-1 Waiting 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-airflow-init-1 Waiting 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-neo4j-1 Healthy 
+ Container airflow-i5-architecture-intelligence-1 Starting 
+ Container airflow-i5-architecture-intelligence-1 Started 
+ Container airflow-i5-architecture-intelligence-1 Waiting 
+ Container airflow-i5-architecture-intelligence-1 Healthy 
+ Container airflow-i5-otel-collector-1 Starting 
+ Container airflow-i5-otel-collector-1 Started 
+ Container airflow-i5-airflow-init-1 Exited 
+ Container airflow-i5-airflow-dag-processor-1 Starting 
+ Container airflow-i5-airflow-init-1 Exited 
+ Container airflow-i5-airflow-apiserver-1 Starting 
+ Container airflow-i5-airflow-init-1 Exited 
+ Container airflow-i5-airflow-scheduler-1 Starting 
+ Container airflow-i5-airflow-init-1 Exited 
+ Container airflow-i5-airflow-triggerer-1 Starting 
+ Container airflow-i5-airflow-dag-processor-1 Started 
+ Container airflow-i5-airflow-apiserver-1 Started 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-airflow-apiserver-1 Waiting 
+ Container airflow-i5-airflow-init-1 Waiting 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-airflow-scheduler-1 Started 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-airflow-init-1 Exited 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-airflow-triggerer-1 Started 
+ Container airflow-i5-airflow-apiserver-1 Healthy 
+ Container airflow-i5-airflow-worker-1 Starting 
+ Container airflow-i5-airflow-worker-1 Started 
+ Container airflow-i5-airflow-worker-2 Starting 
+ Container airflow-i5-airflow-worker-2 Started 
+==> readiness (v0.3 helpers)
+architecture-intelligence ready after 0s
+airflow-apiserver ready after 0s
+otel-collector ready after 0s
+airflow-scheduler (37c15cb76fe3deb6bb4063ec2d27762c959cf02617b5bbf66c73c2eafccbd519) healthy after 0s
+airflow-dag-processor (1cad9fc2cf01c0e896bc2983094fbbaaa898b21b50c796d0e6212de679317b05) healthy after 0s
+airflow-triggerer (c2e24f43b678eca0ef74d8b54dadb9189bfdcc44894951fee812fcec9074b21b) healthy after 0s
+airflow-worker (caa21a513e635b6809654d436ea3d6540707219782d8ce6d1d1c468c5a52fe56) healthy after 60s
+airflow-worker (bf954d8e3d724b367cf7eb85f51fcc03fbc651d1595eba7c02e312668207dcba) healthy after 2s
+i3_validation registered after 0s
+==> runbook block 6
+{
+  "import_id": "96700fa958244335807b4156bdbab825",
+  "committed": true,
+  "sources": {
+    "urn:aip:source:filesystem:21a69bfc5c33d4aa647f87cf9899d7bcdf3a0da54841449162f021d9da7043ae": {
+      "source_instance_id": "urn:aip:source:filesystem:21a69bfc5c33d4aa647f87cf9899d7bcdf3a0da54841449162f021d9da7043ae",
+      "locator": "declarations/airflow-apiserver/openapi.yml",
+      "result": "ACCEPTED_WITH_LIMITATIONS",
+      "nodes_written": 232,
+      "relations_written": 521,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    }
+  },
+  "report_version": "aip-import-report/1",
+  "runs": [
+    {
+      "kind": "filesystem",
+      "configured_source_id": "airflow-v0.5-declarations",
+      "discovery_scope_id": "urn:aip:discovery-scope:d4eb92e0c11865b169460d60ff34a77204743146d040db226c97331d6438ac30",
+      "scope_definition_digest": "ba18a5c7c7c5f2384129605529c8fe222105f006ef233f8ec8b3d04f53f79db3",
+      "inventory_status": "COMPLETE",
+      "committed": true,
+      "inventory_revision": "urn:aip:inventory-revision:761f21c88e9b4d31325165567567a744889673a0b986c1460fd57665bec83d55",
+      "source_results": [
+        {
+          "source_instance_id": "urn:aip:source:filesystem:21a69bfc5c33d4aa647f87cf9899d7bcdf3a0da54841449162f021d9da7043ae",
+          "source_kind": "filesystem",
+          "locator": "airflow-apiserver/openapi.yml",
+          "result": "ACCEPTED_WITH_LIMITATIONS",
+          "adapter_identity": "openapi-adapter@1",
+          "mapping_rule_version": "v1",
+          "dialect_version": "3.1.0",
+          "semantic_input_digest": "fc96e94c975643df711884c4dba7eaf7d86bc4680cbb1ed6319a23591398b06a",
+          "service_ids": [
+            "service:airflow-apiserver"
+          ],
+          "emitted": {
+            "services": 1,
+            "operations": 128,
+            "schemas": 102,
+            "messages": 0,
+            "queues": 0,
+            "topics": 0,
+            "subscriptions": 0,
+            "relations": 521,
+            "infrastructure_entities": 0,
+            "infrastructure_claims": 0
+          },
+          "effects": {
+            "graph_revision_advanced": true,
+            "added": {
+              "node_ids": [
+                "operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/queuedEvents",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/state-store",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/state-store/{key}",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/connections/{connection_id}",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/assets/queuedEvents",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/assets/{asset_id}/queuedEvents",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/pools/{pool_name}",
+                "operation:service:airflow-apiserver:DELETE:/api/v2/variables/{variable_key}",
+                "operation:service:airflow-apiserver:GET:/api/v2/assets",
+                "operation:service:airflow-apiserver:GET:/api/v2/assets/aliases",
+                "operation:service:airflow-apiserver:GET:/api/v2/assets/aliases/{asset_alias_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/assets/events",
+                "operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/queuedEvents",
+                "operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/state-store",
+                "operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/state-store/{key}",
+                "operation:service:airflow-apiserver:GET:/api/v2/auth/login",
+                "operation:service:airflow-apiserver:GET:/api/v2/auth/logout",
+                "operation:service:airflow-apiserver:GET:/api/v2/backfills",
+                "operation:service:airflow-apiserver:GET:/api/v2/backfills/{backfill_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/config",
+                "operation:service:airflow-apiserver:GET:/api/v2/config/section/{section}/option/{option}",
+                "operation:service:airflow-apiserver:GET:/api/v2/connections",
+                "operation:service:airflow-apiserver:GET:/api/v2/connections/enqueue-test",
+                "operation:service:airflow-apiserver:GET:/api/v2/connections/{connection_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dagSources/{dag_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dagStats",
+                "operation:service:airflow-apiserver:GET:/api/v2/dagTags",
+                "operation:service:airflow-apiserver:GET:/api/v2/dagWarnings",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/assets/queuedEvents",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/assets/{asset_id}/queuedEvents",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/hitlDetails",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dependencies",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/externalLogUrl/{try_number}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/links",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/listMapped",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/logs/{try_number}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries/{task_try_number}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dependencies",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails/tries/{try_number}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/tries",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/tries/{task_try_number}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/upstreamAssetEvents",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/wait",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagVersions",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagVersions/{version_number}",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/details",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/tasks",
+                "operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/tasks/{task_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/eventLogs",
+                "operation:service:airflow-apiserver:GET:/api/v2/eventLogs/{event_log_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/importErrors",
+                "operation:service:airflow-apiserver:GET:/api/v2/importErrors/{import_error_id}",
+                "operation:service:airflow-apiserver:GET:/api/v2/jobs",
+                "operation:service:airflow-apiserver:GET:/api/v2/monitor/health",
+                "operation:service:airflow-apiserver:GET:/api/v2/plugins",
+                "operation:service:airflow-apiserver:GET:/api/v2/plugins/importErrors",
+                "operation:service:airflow-apiserver:GET:/api/v2/pools",
+                "operation:service:airflow-apiserver:GET:/api/v2/pools/{pool_name}",
+                "operation:service:airflow-apiserver:GET:/api/v2/providers",
+                "operation:service:airflow-apiserver:GET:/api/v2/variables",
+                "operation:service:airflow-apiserver:GET:/api/v2/variables/{variable_key}",
+                "operation:service:airflow-apiserver:GET:/api/v2/version",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/connections",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/connections/{connection_id}",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}/dry_run",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dry_run",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dry_run",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/pools",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/pools/{pool_name}",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/variables",
+                "operation:service:airflow-apiserver:PATCH:/api/v2/variables/{variable_key}",
+                "operation:service:airflow-apiserver:POST:/api/v2/assets/events",
+                "operation:service:airflow-apiserver:POST:/api/v2/assets/{asset_id}/materialize",
+                "operation:service:airflow-apiserver:POST:/api/v2/backfills",
+                "operation:service:airflow-apiserver:POST:/api/v2/backfills/dry_run",
+                "operation:service:airflow-apiserver:POST:/api/v2/connections",
+                "operation:service:airflow-apiserver:POST:/api/v2/connections/defaults",
+                "operation:service:airflow-apiserver:POST:/api/v2/connections/enqueue-test",
+                "operation:service:airflow-apiserver:POST:/api/v2/connections/test",
+                "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearDagRuns",
+                "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearPartitions",
+                "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearTaskInstances",
+                "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns",
+                "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/list",
+                "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/clear",
+                "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/list",
+                "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries",
+                "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/favorite",
+                "operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/unfavorite",
+                "operation:service:airflow-apiserver:POST:/api/v2/pools",
+                "operation:service:airflow-apiserver:POST:/api/v2/variables",
+                "operation:service:airflow-apiserver:PUT:/api/v2/assets/{asset_id}/state-store/{key}",
+                "operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/cancel",
+                "operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/pause",
+                "operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/unpause",
+                "operation:service:airflow-apiserver:PUT:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}",
+                "operation:service:airflow-apiserver:PUT:/api/v2/parseDagFile/{file_token}",
+                "schema:owned:0294f7e3432dffc454b6d4ae5e089c1549ba8c67ef5c2cac66a3c95bcdf5c9e1",
+                "schema:owned:08127cbb551db8a5a74dd33c97859567c23d34b788956734dd0c6f65d9b81e5d",
+                "schema:owned:0b2af190c418f26b430f264b53b58af093eaaa2ac3fb5fb010ae5abee8ed83a9",
+                "schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "schema:owned:146700cbf286eef83c695e0ffc1d18ef75fe264c56dc2f9345770d674f83c83a",
+                "schema:owned:14ce9bb98ca5b2387bd24267b3701205433e6bdaa4bc536255e8c13a3d0fcf2e",
+                "schema:owned:154268a4bfc760b628c02bd0f81a3c121c191543d1448dc71773ccb687432889",
+                "schema:owned:1838c82e275832c24b5d4fef6e61d0e230e383db7210ed6b08583659028fbd3a",
+                "schema:owned:18a9624a23d27dc9fd679d506d59c608c95e4a84dc5f78539468979c4fe76aa0",
+                "schema:owned:1bf2a9c24b286319b8b017afc3cd779bd023233c28c882c7d4c1569c17a85e94",
+                "schema:owned:2048d23431f26694beb3a2011624d281577821923037b7fff126db3d8009b3fe",
+                "schema:owned:20db3b2efc5c40825fe762d127102ad207b1b448b1143d54f4af6aabd512f881",
+                "schema:owned:289fc50c052ea262b6db2a7e179b6f6ed18fb4268621f2fea65aad52d879db27",
+                "schema:owned:2924e801a3fb88bb4a6a3607f6852479e5ddb58c95fa8bd81a632979225a77c8",
+                "schema:owned:35bd1d6343b21ce5bdc3442ec14547d39a41223e073122bb51fe767ccfd3275a",
+                "schema:owned:37a246c9cb8247e4b767517cebdc2d042b6eabcd5a119de6bcc9181ecfbc5d91",
+                "schema:owned:399c31cb07011a4bc322853e66dca585ede86e568d9cbaba2a3ab25447e47e0a",
+                "schema:owned:39e06592e7ab0b27d6ec3c0e57ac5feba37a139a1569ac9650670508ddb811ec",
+                "schema:owned:3db1829c1549bcbcd9784313a2025ebc893ee1a3842cf0565dab17d4f87898dc",
+                "schema:owned:42ce891722af28feae4e14e39d2c390723a522b560f291102912498f490cd9e6",
+                "schema:owned:4430e734a85ac29956092b08ecba3e0a7ad2ec93ce1c59e32a7f126ed473bff6",
+                "schema:owned:47329aed65d9e6ac6514b8e459a071e08e3697d5295a6f1838f2ead2cf8cd459",
+                "schema:owned:4766448e87ffdcb29cc99c97fdc0f84f3da885de4d971d24a9385e0a05143817",
+                "schema:owned:4f6d83ef4386ca73ff72790b23d2cbd1d6c9aebbbb548b4b3471d116d02dd6ac",
+                "schema:owned:52ec4342ffebeec003aadfec13cae46ddea048ec22171a07a80704323e9e4d8b",
+                "schema:owned:557359e2bd3075f6d60c12f10f8a0d3e99b5cba52716afe633b0ab6794f0ea9a",
+                "schema:owned:55cd5d01c62eb29886af5b60774d42e2f769cd46fc1c9fbb3c329557bd4e6fc1",
+                "schema:owned:57643d8679e8e6f49c1458f9a09325bed9004f6481f15517932f9891de65a19f",
+                "schema:owned:577cb98424cde5de5e6940db5fe5144592b8d19c4c7522d3f9c1378d888f32f5",
+                "schema:owned:57f00a6dd5a0dc99d753f549f08c269dcf0d97276beead40c2a740ed9179b786",
+                "schema:owned:592016beab2481ec05838a1d613791ce65ef3e9b4f84f70759cd3eaf777c67a5",
+                "schema:owned:5b34ea22e9fcb09f5f16573265fccabe579ff2d0af544bebb8a349cab3ab65fc",
+                "schema:owned:609825570ec5805a99183a5e192f196796dd8c95cbe51a0fbc9d1f14af887a44",
+                "schema:owned:64f5352c621735cc7ac96a4e27819fb79cb17c02b31b69b088a09346d77792a0",
+                "schema:owned:660e7ef94a9b721ac27b18ca33411b9c0ffdf6cf377b867637de67a2027906d2",
+                "schema:owned:6668b7a8054c78d3b69d4af3779f36f32e0aaaa9c8fbbe1db809ef8718f07721",
+                "schema:owned:68a0f394ced459f79576dc71896204688f44a5b739e18b5d0a74310d7e7786b7",
+                "schema:owned:69e8e41e4d09d3a75c11ca3d98e237d2b8a04dd04733a5ec1953b124d7d1690f",
+                "schema:owned:6b25cc62010dc1936b69e45ffc162b38220a2444a403a9ddcbaa2c97e5cf37b7",
+                "schema:owned:6d3838aab0ea0f670eae4d7a9b66b04b4ac42b6a348962bf2a9aabcc86cb8772",
+                "schema:owned:6e2a39076e8400f9611ad3bed13e0a7c3bc8ac49dcd886a676c9ec17e625c721",
+                "schema:owned:6e79c98dcda6cf6f194439ec1d1d38f1d87dd0e8de014b179ede9b9903a12f30",
+                "schema:owned:6eb480158278fc5ce6db513f1643d05188aec917c2973711eee6e28f478d9a2e",
+                "schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "schema:owned:75a5d5968474f9de2bd5de201db707c51f51642bf5330b2f5a4ec4320404e849",
+                "schema:owned:792423ee496208f8945b1e041c58cb0220e5795cd00ddaf3dc46fa0e3abfe843",
+                "schema:owned:7aa7d3706712ed03b68129e82895bea43f6529db08ddab4942747334f6c5ac0d",
+                "schema:owned:7c08151e9410f431efed0ea445784b75eefc17c4fb26f6d868a120598246af92",
+                "schema:owned:7d20fa4e63bbc158f1b2b8bed02d00c61cd2927ad6a2ac17c66c92fad303a989",
+                "schema:owned:7d7852f44a6b702b8f6e6d36628b37d30bfd94e36ad5bb6b27abc9ff6c0ef5c7",
+                "schema:owned:8087186342de6a00f89ec41f514ca1640a9554d50ae47db22c10a862a6348820",
+                "schema:owned:840d1e154a4e1bbf02d4c4548a9495c47f259ebf5b4356bfd244072b39227d59",
+                "schema:owned:857aaa99ea76af2770b38f12a57c768690ba3d8f09d56e2f7190864321fd6659",
+                "schema:owned:88f4f8239ab86c62056ea33a199c2899f6fc1146f07cdf80f995d86bb20d049b",
+                "schema:owned:906b6a0150e3cb7b558550a7ebcd45b1e804245e74166b89f9a8e08ecb415fd3",
+                "schema:owned:92ed056be84f2f241ecf63cc9f629fb7188e04e9a5f6db6c522d201be0f2bc50",
+                "schema:owned:9431abaaa16f4ab39a1815d8ffb6a913d7c66ee7644443cf341300d3e6c200e5",
+                "schema:owned:95541b25b11870268c06b1bf3387c94108dcba61715c301e26e1c8c6add6b5ed",
+                "schema:owned:96a8a57f8c0aea7f2ff339a823bed9fea452280e8c0ef8015e991d783f9eb931",
+                "schema:owned:978cc2397a2cd918c29e795418276de89bdd1af1cc9681346c9230497cb25eb7",
+                "schema:owned:98d478bd47924d11275c5a4d08ce23c94ffe103076355dede1379c607a6dd378",
+                "schema:owned:99e0b9801d62892f43050bd29f2a72039193608f8b3902658233a03d724b2166",
+                "schema:owned:9bf8ca89cb760f827a3a1e9e9b6beaa6c33f03e403821bcb27f470e67ddf28ba",
+                "schema:owned:9c1ef03f218895f4e108920d0e2204ad75fe56dfae3d7d23262350fe0add159f",
+                "schema:owned:9cc61a6f0b2dcc00585f7edbc87744a540e2b77f82685bf0f8719d339b425e44",
+                "schema:owned:9e8886a56aa5d9f4f35c3bb9c312bb0ec1b064dfcda2f551885cda902e1f5b5e",
+                "schema:owned:a0102046f01961ae40fc504707aadbc639a3764ac445ceb77af57fd9f0bdbdd9",
+                "schema:owned:a0737c23ede638eab37f36e30ab5e1e773abaff73f5df55bc10994895d14a8d0",
+                "schema:owned:a0a4824fc3b506cf9e6b9212564d9f15c6658df29c7eb5d2c8d32c9b47b3176a",
+                "schema:owned:a1c34661a94201a4bcee1b535994bb50be4faa32290e904863a6390d9f7846c3",
+                "schema:owned:a3f83be383cadb378725a12e47a79d96bca53876d8d37ec815a8ab2b54fe7dbb",
+                "schema:owned:a78c0a5861917456a5f7300d2f597650d20bc9e39211d22401004d651d40cc03",
+                "schema:owned:ac14cdfbfda6ae592dfc17f6fd6bfd9c332b341529774e46f9a2e6ceccc75bdc",
+                "schema:owned:b333e7ecb14b90470b77f068ca7eaa09b2ac457ec7fdd8cdeec53395b7bf4617",
+                "schema:owned:b40026135effd78c4a735bbf4b9d63c4b259010e395450eef34ec185012eed57",
+                "schema:owned:b418960a3e9e365708c92af67e7fe3e0c4a4f0874cce02323735b4f4c6ea515b",
+                "schema:owned:b5c2fe100206a2d454601be84b6da9ef15ec95ccd6dc58153d94f22804141cf7",
+                "schema:owned:b80b05df971c3adfbfc8c3c3858297accf90c58edeeb533c365979bcd1c1fff2",
+                "schema:owned:bb5d21811b21690468dcf284acdd448de281ae5fe861a2339919fd6312036f79",
+                "schema:owned:bc6a5a00160ecfbb094b0c95056aeebeeee0374fc5f179b809dd3b5916c7ccc8",
+                "schema:owned:beb56240eb5d784ab4fbd7a2f4186b60c6339db2be182a3395af35fbac27d9a9",
+                "schema:owned:c009d062ddc039663ea1c1e2dd8ea264a16184c9053748fae0af480e2ca6e613",
+                "schema:owned:c162ef82f2b44385368bcb8c4057acef9198adb8c17ad29cdb5722320fb3719f",
+                "schema:owned:c422d3e67a42f22056709fc58d4383797c17582e022507a8d37d98a30ccdb844",
+                "schema:owned:c7f2be4a9ab774fb1a1972b17581abea57fc629099eabde0f1f00905d5e8b62d",
+                "schema:owned:ca82b946b0c067bfc2d5065fe7be831869f982acb00b3b1a512e9ddda0fb329e",
+                "schema:owned:cdbab5b3da46da3a589e0eb8f97fa02346863a5402f158253d9d665406c0cf9c",
+                "schema:owned:d5d94a4a552eaa529a9f4795f48d5651ea76d8f77437f7ccf80c2895a8754b8f",
+                "schema:owned:d834b892c3e05a239fe6a5f095eddf985d43aab59b0b832dd54602823d5f7907",
+                "schema:owned:da447ffbc24af8e9ddb8b4614c30bb9e1128df96cd37621be777f1dd2af1e898",
+                "schema:owned:dc430e0a4b82f2ba2f7dd279f42a7b6fa03ff8d803dad43264b9d9a5542064a1",
+                "schema:owned:dc965098d81e9362bac56603370c889e1c33fd53865b632677fa63bcc141e9e2",
+                "schema:owned:e10d783cd12f173a0f781e8b6e48071dbba69a2028f1fe0d9b51c7aa7992bc40",
+                "schema:owned:e39e6afdeae44435b2dfbd079418c09ccedf992d52e9800dc3a9c53602f4a620",
+                "schema:owned:e8b5830729a4fce7802ed8a7c99a13b8d3e8d6b9d0812da93382009a43d93ab5",
+                "schema:owned:f1115216ebc90469d1c742905cd9ad7c67d1f8b2a3e0251356975ba395e91c46",
+                "schema:owned:f33fed2997e9e72ca6c0e4203ea6cc87fb0161f397daeb0de963bbba793082c4",
+                "schema:owned:f429fcd9229e56f2ad7c59c0695e7c3316609f9f54fe6f7e5b821388bc9d8893",
+                "schema:owned:f5210200dba3401f4033a14c6ba8ba48b4abe59c87863bf6c1545c1fd291bf29",
+                "schema:owned:f7c5d8d228fbc0b07ffc8740cbc251fe9a1b2912955769bf45678da5ffa362cd",
+                "schema:owned:fd580b6f80c42c84eb8e20e9b5692f99b0173cc330d960bfedce21f1754cbe9f",
+                "service:airflow-apiserver"
+              ],
+              "relation_keys": [
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/queuedEvents",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/state-store",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/state-store/{key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/connections/{connection_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/assets/queuedEvents",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/assets/{asset_id}/queuedEvents",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/pools/{pool_name}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:DELETE:/api/v2/variables/{variable_key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/assets",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/assets/aliases",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/assets/aliases/{asset_alias_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/assets/events",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/queuedEvents",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/state-store",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/state-store/{key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/auth/login",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/auth/logout",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/backfills",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/backfills/{backfill_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/config",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/config/section/{section}/option/{option}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/connections",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/connections/enqueue-test",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/connections/{connection_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dagSources/{dag_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dagStats",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dagTags",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dagWarnings",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/assets/queuedEvents",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/assets/{asset_id}/queuedEvents",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/hitlDetails",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dependencies",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/externalLogUrl/{try_number}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/links",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/listMapped",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/logs/{try_number}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries/{task_try_number}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dependencies",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails/tries/{try_number}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/tries",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/tries/{task_try_number}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/upstreamAssetEvents",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/wait",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagVersions",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagVersions/{version_number}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/details",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/tasks",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/tasks/{task_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/eventLogs",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/eventLogs/{event_log_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/importErrors",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/importErrors/{import_error_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/jobs",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/monitor/health",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/plugins",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/plugins/importErrors",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/pools",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/pools/{pool_name}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/providers",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/variables",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/variables/{variable_key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:GET:/api/v2/version",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/connections",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/connections/{connection_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}/dry_run",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dry_run",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dry_run",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/pools",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/pools/{pool_name}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/variables",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PATCH:/api/v2/variables/{variable_key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/assets/events",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/assets/{asset_id}/materialize",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/backfills",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/backfills/dry_run",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/connections",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/connections/defaults",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/connections/enqueue-test",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/connections/test",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearDagRuns",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearPartitions",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearTaskInstances",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/list",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/clear",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/list",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/favorite",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/unfavorite",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/pools",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:POST:/api/v2/variables",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PUT:/api/v2/assets/{asset_id}/state-store/{key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/cancel",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/pause",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/unpause",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PUT:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}",
+                "PROVIDES:service:airflow-apiserver:operation:service:airflow-apiserver:PUT:/api/v2/parseDagFile/{file_token}",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/connections/{connection_id}:schema:owned:bb5d21811b21690468dcf284acdd448de281ae5fe861a2339919fd6312036f79",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/connections:schema:owned:fd580b6f80c42c84eb8e20e9b5692f99b0173cc330d960bfedce21f1754cbe9f",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}/dry_run:schema:owned:08127cbb551db8a5a74dd33c97859567c23d34b788956734dd0c6f65d9b81e5d",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}:schema:owned:08127cbb551db8a5a74dd33c97859567c23d34b788956734dd0c6f65d9b81e5d",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dry_run:schema:owned:08127cbb551db8a5a74dd33c97859567c23d34b788956734dd0c6f65d9b81e5d",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:75a5d5968474f9de2bd5de201db707c51f51642bf5330b2f5a4ec4320404e849",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}:schema:owned:c7f2be4a9ab774fb1a1972b17581abea57fc629099eabde0f1f00905d5e8b62d",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dry_run:schema:owned:08127cbb551db8a5a74dd33c97859567c23d34b788956734dd0c6f65d9b81e5d",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails:schema:owned:e39e6afdeae44435b2dfbd079418c09ccedf992d52e9800dc3a9c53602f4a620",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}:schema:owned:08127cbb551db8a5a74dd33c97859567c23d34b788956734dd0c6f65d9b81e5d",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}:schema:owned:08127cbb551db8a5a74dd33c97859567c23d34b788956734dd0c6f65d9b81e5d",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances:schema:owned:154268a4bfc760b628c02bd0f81a3c121c191543d1448dc71773ccb687432889",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}:schema:owned:c422d3e67a42f22056709fc58d4383797c17582e022507a8d37d98a30ccdb844",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns:schema:owned:7aa7d3706712ed03b68129e82895bea43f6529db08ddab4942747334f6c5ac0d",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}:schema:owned:ca82b946b0c067bfc2d5065fe7be831869f982acb00b3b1a512e9ddda0fb329e",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags:schema:owned:ca82b946b0c067bfc2d5065fe7be831869f982acb00b3b1a512e9ddda0fb329e",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/pools/{pool_name}:schema:owned:792423ee496208f8945b1e041c58cb0220e5795cd00ddaf3dc46fa0e3abfe843",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/pools:schema:owned:42ce891722af28feae4e14e39d2c390723a522b560f291102912498f490cd9e6",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/variables/{variable_key}:schema:owned:a1c34661a94201a4bcee1b535994bb50be4faa32290e904863a6390d9f7846c3",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/variables:schema:owned:52ec4342ffebeec003aadfec13cae46ddea048ec22171a07a80704323e9e4d8b",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/assets/events:schema:owned:6b25cc62010dc1936b69e45ffc162b38220a2444a403a9ddcbaa2c97e5cf37b7",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/assets/{asset_id}/materialize:schema:owned:7c08151e9410f431efed0ea445784b75eefc17c4fb26f6d868a120598246af92",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/backfills/dry_run:schema:owned:1bf2a9c24b286319b8b017afc3cd779bd023233c28c882c7d4c1569c17a85e94",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/backfills:schema:owned:1bf2a9c24b286319b8b017afc3cd779bd023233c28c882c7d4c1569c17a85e94",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections/enqueue-test:schema:owned:146700cbf286eef83c695e0ffc1d18ef75fe264c56dc2f9345770d674f83c83a",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections/test:schema:owned:bb5d21811b21690468dcf284acdd448de281ae5fe861a2339919fd6312036f79",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections:schema:owned:bb5d21811b21690468dcf284acdd448de281ae5fe861a2339919fd6312036f79",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearDagRuns:schema:owned:978cc2397a2cd918c29e795418276de89bdd1af1cc9681346c9230497cb25eb7",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearPartitions:schema:owned:96a8a57f8c0aea7f2ff339a823bed9fea452280e8c0ef8015e991d783f9eb931",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearTaskInstances:schema:owned:f7c5d8d228fbc0b07ffc8740cbc251fe9a1b2912955769bf45678da5ffa362cd",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/list:schema:owned:14ce9bb98ca5b2387bd24267b3701205433e6bdaa4bc536255e8c13a3d0fcf2e",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/clear:schema:owned:c009d062ddc039663ea1c1e2dd8ea264a16184c9053748fae0af480e2ca6e613",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/list:schema:owned:ac14cdfbfda6ae592dfc17f6fd6bfd9c332b341529774e46f9a2e6ceccc75bdc",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries:schema:owned:2048d23431f26694beb3a2011624d281577821923037b7fff126db3d8009b3fe",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns:schema:owned:f429fcd9229e56f2ad7c59c0695e7c3316609f9f54fe6f7e5b821388bc9d8893",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/pools:schema:owned:da447ffbc24af8e9ddb8b4614c30bb9e1128df96cd37621be777f1dd2af1e898",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/variables:schema:owned:a1c34661a94201a4bcee1b535994bb50be4faa32290e904863a6390d9f7846c3",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/assets/{asset_id}/state-store/{key}:schema:owned:35bd1d6343b21ce5bdc3442ec14547d39a41223e073122bb51fe767ccfd3275a",
+                "REQUEST_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:b418960a3e9e365708c92af67e7fe3e0c4a4f0874cce02323735b4f4c6ea515b",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/queuedEvents:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/queuedEvents:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/state-store/{key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/state-store/{key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/state-store:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/assets/{asset_id}/state-store:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/connections/{connection_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/connections/{connection_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/assets/queuedEvents:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/assets/queuedEvents:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/assets/{asset_id}/queuedEvents:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/assets/{asset_id}/queuedEvents:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/dags/{dag_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/pools/{pool_name}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/pools/{pool_name}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/variables/{variable_key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:DELETE:/api/v2/variables/{variable_key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/aliases/{asset_alias_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/aliases/{asset_alias_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/aliases:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/aliases:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/aliases:schema:owned:8087186342de6a00f89ec41f514ca1640a9554d50ae47db22c10a862a6348820",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/events:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/events:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/events:schema:owned:6eb480158278fc5ce6db513f1643d05188aec917c2973711eee6e28f478d9a2e",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/queuedEvents:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/queuedEvents:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/queuedEvents:schema:owned:840d1e154a4e1bbf02d4c4548a9495c47f259ebf5b4356bfd244072b39227d59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/state-store/{key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/state-store/{key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/state-store/{key}:schema:owned:6668b7a8054c78d3b69d4af3779f36f32e0aaaa9c8fbbe1db809ef8718f07721",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/state-store:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/state-store:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}/state-store:schema:owned:88f4f8239ab86c62056ea33a199c2899f6fc1146f07cdf80f995d86bb20d049b",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets/{asset_id}:schema:owned:a0a4824fc3b506cf9e6b9212564d9f15c6658df29c7eb5d2c8d32c9b47b3176a",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/assets:schema:owned:e8b5830729a4fce7802ed8a7c99a13b8d3e8d6b9d0812da93382009a43d93ab5",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/auth/login:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/auth/login:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/auth/logout:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/backfills/{backfill_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/backfills/{backfill_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/backfills/{backfill_id}:schema:owned:9c1ef03f218895f4e108920d0e2204ad75fe56dfae3d7d23262350fe0add159f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/backfills:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/backfills:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/backfills:schema:owned:7d20fa4e63bbc158f1b2b8bed02d00c61cd2927ad6a2ac17c66c92fad303a989",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/config/section/{section}/option/{option}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/config/section/{section}/option/{option}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/config/section/{section}/option/{option}:schema:owned:3db1829c1549bcbcd9784313a2025ebc893ee1a3842cf0565dab17d4f87898dc",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/config/section/{section}/option/{option}:schema:owned:95541b25b11870268c06b1bf3387c94108dcba61715c301e26e1c8c6add6b5ed",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/config:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/config:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/config:schema:owned:95541b25b11870268c06b1bf3387c94108dcba61715c301e26e1c8c6add6b5ed",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/config:schema:owned:9bf8ca89cb760f827a3a1e9e9b6beaa6c33f03e403821bcb27f470e67ddf28ba",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/connections/enqueue-test:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/connections/enqueue-test:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/connections/enqueue-test:schema:owned:92ed056be84f2f241ecf63cc9f629fb7188e04e9a5f6db6c522d201be0f2bc50",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/connections/{connection_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/connections/{connection_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/connections/{connection_id}:schema:owned:bc6a5a00160ecfbb094b0c95056aeebeeee0374fc5f179b809dd3b5916c7ccc8",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/connections:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/connections:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/connections:schema:owned:b40026135effd78c4a735bbf4b9d63c4b259010e395450eef34ec185012eed57",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagSources/{dag_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagSources/{dag_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagSources/{dag_id}:schema:owned:57643d8679e8e6f49c1458f9a09325bed9004f6481f15517932f9891de65a19f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagSources/{dag_id}:schema:owned:f1115216ebc90469d1c742905cd9ad7c67d1f8b2a3e0251356975ba395e91c46",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagStats:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagStats:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagStats:schema:owned:b5c2fe100206a2d454601be84b6da9ef15ec95ccd6dc58153d94f22804141cf7",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagTags:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagTags:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagTags:schema:owned:660e7ef94a9b721ac27b18ca33411b9c0ffdf6cf377b867637de67a2027906d2",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagWarnings:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagWarnings:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dagWarnings:schema:owned:39e06592e7ab0b27d6ec3c0e57ac5feba37a139a1569ac9650670508ddb811ec",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/assets/queuedEvents:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/assets/queuedEvents:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/assets/queuedEvents:schema:owned:840d1e154a4e1bbf02d4c4548a9495c47f259ebf5b4356bfd244072b39227d59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/assets/{asset_id}/queuedEvents:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/assets/{asset_id}/queuedEvents:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/assets/{asset_id}/queuedEvents:schema:owned:c162ef82f2b44385368bcb8c4057acef9198adb8c17ad29cdb5722320fb3719f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/hitlDetails:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/hitlDetails:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/hitlDetails:schema:owned:5b34ea22e9fcb09f5f16573265fccabe579ff2d0af544bebb8a349cab3ab65fc",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dependencies:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dependencies:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dependencies:schema:owned:609825570ec5805a99183a5e192f196796dd8c95cbe51a0fbc9d1f14af887a44",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/externalLogUrl/{try_number}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/externalLogUrl/{try_number}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/externalLogUrl/{try_number}:schema:owned:6e2a39076e8400f9611ad3bed13e0a7c3bc8ac49dcd886a676c9ec17e625c721",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/links:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/links:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/links:schema:owned:906b6a0150e3cb7b558550a7ebcd45b1e804245e74166b89f9a8e08ecb415fd3",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/listMapped:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/listMapped:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/listMapped:schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/logs/{try_number}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/logs/{try_number}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/logs/{try_number}:schema:owned:a0102046f01961ae40fc504707aadbc639a3764ac445ceb77af57fd9f0bdbdd9",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/logs/{try_number}:schema:owned:f33fed2997e9e72ca6c0e4203ea6cc87fb0161f397daeb0de963bbba793082c4",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:69e8e41e4d09d3a75c11ca3d98e237d2b8a04dd04733a5ec1953b124d7d1690f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store:schema:owned:dc965098d81e9362bac56603370c889e1c33fd53865b632677fa63bcc141e9e2",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries/{task_try_number}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries/{task_try_number}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries/{task_try_number}:schema:owned:6d3838aab0ea0f670eae4d7a9b66b04b4ac42b6a348962bf2a9aabcc86cb8772",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries:schema:owned:a3f83be383cadb378725a12e47a79d96bca53876d8d37ec815a8ab2b54fe7dbb",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}:schema:owned:9cc61a6f0b2dcc00585f7edbc87744a540e2b77f82685bf0f8719d339b425e44",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries:schema:owned:b80b05df971c3adfbfc8c3c3858297accf90c58edeeb533c365979bcd1c1fff2",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dependencies:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dependencies:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dependencies:schema:owned:609825570ec5805a99183a5e192f196796dd8c95cbe51a0fbc9d1f14af887a44",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails/tries/{try_number}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails/tries/{try_number}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails/tries/{try_number}:schema:owned:7d7852f44a6b702b8f6e6d36628b37d30bfd94e36ad5bb6b27abc9ff6c0ef5c7",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails:schema:owned:d834b892c3e05a239fe6a5f095eddf985d43aab59b0b832dd54602823d5f7907",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/tries/{task_try_number}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/tries/{task_try_number}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/tries/{task_try_number}:schema:owned:6d3838aab0ea0f670eae4d7a9b66b04b4ac42b6a348962bf2a9aabcc86cb8772",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/tries:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/tries:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/tries:schema:owned:a3f83be383cadb378725a12e47a79d96bca53876d8d37ec815a8ab2b54fe7dbb",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}:schema:owned:beb56240eb5d784ab4fbd7a2f4186b60c6339db2be182a3395af35fbac27d9a9",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}:schema:owned:beb56240eb5d784ab4fbd7a2f4186b60c6339db2be182a3395af35fbac27d9a9",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances:schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/upstreamAssetEvents:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/upstreamAssetEvents:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/upstreamAssetEvents:schema:owned:6eb480158278fc5ce6db513f1643d05188aec917c2973711eee6e28f478d9a2e",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/wait:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/wait:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/wait:schema:owned:d5d94a4a552eaa529a9f4795f48d5651ea76d8f77437f7ccf80c2895a8754b8f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}:schema:owned:577cb98424cde5de5e6940db5fe5144592b8d19c4c7522d3f9c1378d888f32f5",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns:schema:owned:b333e7ecb14b90470b77f068ca7eaa09b2ac457ec7fdd8cdeec53395b7bf4617",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagVersions/{version_number}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagVersions/{version_number}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagVersions/{version_number}:schema:owned:9e8886a56aa5d9f4f35c3bb9c312bb0ec1b064dfcda2f551885cda902e1f5b5e",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagVersions:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagVersions:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagVersions:schema:owned:99e0b9801d62892f43050bd29f2a72039193608f8b3902658233a03d724b2166",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/details:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/details:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/details:schema:owned:e10d783cd12f173a0f781e8b6e48071dbba69a2028f1fe0d9b51c7aa7992bc40",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/tasks/{task_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/tasks/{task_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/tasks/{task_id}:schema:owned:4f6d83ef4386ca73ff72790b23d2cbd1d6c9aebbbb548b4b3471d116d02dd6ac",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/tasks:schema:owned:0294f7e3432dffc454b6d4ae5e089c1549ba8c67ef5c2cac66a3c95bcdf5c9e1",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/tasks:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/tasks:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}:schema:owned:dc430e0a4b82f2ba2f7dd279f42a7b6fa03ff8d803dad43264b9d9a5542064a1",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/dags:schema:owned:6e79c98dcda6cf6f194439ec1d1d38f1d87dd0e8de014b179ede9b9903a12f30",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/eventLogs/{event_log_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/eventLogs/{event_log_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/eventLogs/{event_log_id}:schema:owned:399c31cb07011a4bc322853e66dca585ede86e568d9cbaba2a3ab25447e47e0a",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/eventLogs:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/eventLogs:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/eventLogs:schema:owned:cdbab5b3da46da3a589e0eb8f97fa02346863a5402f158253d9d665406c0cf9c",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/importErrors/{import_error_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/importErrors/{import_error_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/importErrors/{import_error_id}:schema:owned:1838c82e275832c24b5d4fef6e61d0e230e383db7210ed6b08583659028fbd3a",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/importErrors:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/importErrors:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/importErrors:schema:owned:68a0f394ced459f79576dc71896204688f44a5b739e18b5d0a74310d7e7786b7",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/jobs:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/jobs:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/jobs:schema:owned:a0737c23ede638eab37f36e30ab5e1e773abaff73f5df55bc10994895d14a8d0",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/monitor/health:schema:owned:592016beab2481ec05838a1d613791ce65ef3e9b4f84f70759cd3eaf777c67a5",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/plugins/importErrors:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/plugins/importErrors:schema:owned:57f00a6dd5a0dc99d753f549f08c269dcf0d97276beead40c2a740ed9179b786",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/plugins:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/plugins:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/plugins:schema:owned:18a9624a23d27dc9fd679d506d59c608c95e4a84dc5f78539468979c4fe76aa0",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/pools/{pool_name}:schema:owned:0b2af190c418f26b430f264b53b58af093eaaa2ac3fb5fb010ae5abee8ed83a9",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/pools/{pool_name}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/pools/{pool_name}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/pools:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/pools:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/pools:schema:owned:557359e2bd3075f6d60c12f10f8a0d3e99b5cba52716afe633b0ab6794f0ea9a",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/providers:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/providers:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/providers:schema:owned:4430e734a85ac29956092b08ecba3e0a7ad2ec93ce1c59e32a7f126ed473bff6",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/variables/{variable_key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/variables/{variable_key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/variables/{variable_key}:schema:owned:a78c0a5861917456a5f7300d2f597650d20bc9e39211d22401004d651d40cc03",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/variables:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/variables:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/variables:schema:owned:47329aed65d9e6ac6514b8e459a071e08e3697d5295a6f1838f2ead2cf8cd459",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:GET:/api/v2/version:schema:owned:857aaa99ea76af2770b38f12a57c768690ba3d8f09d56e2f7190864321fd6659",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/connections/{connection_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/connections/{connection_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/connections/{connection_id}:schema:owned:bc6a5a00160ecfbb094b0c95056aeebeeee0374fc5f179b809dd3b5916c7ccc8",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/connections:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/connections:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/connections:schema:owned:37a246c9cb8247e4b767517cebdc2d042b6eabcd5a119de6bcc9181ecfbc5d91",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}/dry_run:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}/dry_run:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}/dry_run:schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskGroupInstances/{group_id}:schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dry_run:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dry_run:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/dry_run:schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}:schema:owned:98d478bd47924d11275c5a4d08ce23c94ffe103076355dede1379c607a6dd378",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dry_run:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dry_run:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/dry_run:schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}/hitlDetails:schema:owned:20db3b2efc5c40825fe762d127102ad207b1b448b1143d54f4af6aabd512f881",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/{map_index}:schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}:schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances:schema:owned:37a246c9cb8247e4b767517cebdc2d042b6eabcd5a119de6bcc9181ecfbc5d91",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}:schema:owned:577cb98424cde5de5e6940db5fe5144592b8d19c4c7522d3f9c1378d888f32f5",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}/dagRuns:schema:owned:37a246c9cb8247e4b767517cebdc2d042b6eabcd5a119de6bcc9181ecfbc5d91",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags/{dag_id}:schema:owned:dc430e0a4b82f2ba2f7dd279f42a7b6fa03ff8d803dad43264b9d9a5542064a1",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/dags:schema:owned:6e79c98dcda6cf6f194439ec1d1d38f1d87dd0e8de014b179ede9b9903a12f30",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/pools/{pool_name}:schema:owned:0b2af190c418f26b430f264b53b58af093eaaa2ac3fb5fb010ae5abee8ed83a9",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/pools/{pool_name}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/pools/{pool_name}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/pools:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/pools:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/pools:schema:owned:37a246c9cb8247e4b767517cebdc2d042b6eabcd5a119de6bcc9181ecfbc5d91",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/variables/{variable_key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/variables/{variable_key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/variables/{variable_key}:schema:owned:a78c0a5861917456a5f7300d2f597650d20bc9e39211d22401004d651d40cc03",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/variables:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/variables:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PATCH:/api/v2/variables:schema:owned:37a246c9cb8247e4b767517cebdc2d042b6eabcd5a119de6bcc9181ecfbc5d91",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/assets/events:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/assets/events:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/assets/events:schema:owned:9431abaaa16f4ab39a1815d8ffb6a913d7c66ee7644443cf341300d3e6c200e5",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/assets/{asset_id}/materialize:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/assets/{asset_id}/materialize:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/assets/{asset_id}/materialize:schema:owned:577cb98424cde5de5e6940db5fe5144592b8d19c4c7522d3f9c1378d888f32f5",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/backfills/dry_run:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/backfills/dry_run:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/backfills/dry_run:schema:owned:f5210200dba3401f4033a14c6ba8ba48b4abe59c87863bf6c1545c1fd291bf29",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/backfills:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/backfills:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/backfills:schema:owned:9c1ef03f218895f4e108920d0e2204ad75fe56dfae3d7d23262350fe0add159f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections/defaults:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections/enqueue-test:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections/enqueue-test:schema:owned:289fc50c052ea262b6db2a7e179b6f6ed18fb4268621f2fea65aad52d879db27",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections/test:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections/test:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections/test:schema:owned:55cd5d01c62eb29886af5b60774d42e2f769cd46fc1c9fbb3c329557bd4e6fc1",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/connections:schema:owned:bc6a5a00160ecfbb094b0c95056aeebeeee0374fc5f179b809dd3b5916c7ccc8",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearDagRuns:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearDagRuns:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearDagRuns:schema:owned:4766448e87ffdcb29cc99c97fdc0f84f3da885de4d971d24a9385e0a05143817",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearPartitions:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearPartitions:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearPartitions:schema:owned:2924e801a3fb88bb4a6a3607f6852479e5ddb58c95fa8bd81a632979225a77c8",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearTaskInstances:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearTaskInstances:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/clearTaskInstances:schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/list:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/list:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/list:schema:owned:b333e7ecb14b90470b77f068ca7eaa09b2ac457ec7fdd8cdeec53395b7bf4617",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/clear:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/clear:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/clear:schema:owned:64f5352c621735cc7ac96a4e27819fb79cb17c02b31b69b088a09346d77792a0",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/list:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/list:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/list:schema:owned:74ce6b1ad99060337501bb84b05b2a79e4aeab759698544c8c6fc795783f1b59",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries:schema:owned:98d478bd47924d11275c5a4d08ce23c94ffe103076355dede1379c607a6dd378",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns:schema:owned:577cb98424cde5de5e6940db5fe5144592b8d19c4c7522d3f9c1378d888f32f5",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/favorite:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/favorite:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/unfavorite:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/unfavorite:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/pools:schema:owned:0b2af190c418f26b430f264b53b58af093eaaa2ac3fb5fb010ae5abee8ed83a9",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/pools:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/pools:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/variables:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/variables:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:POST:/api/v2/variables:schema:owned:a78c0a5861917456a5f7300d2f597650d20bc9e39211d22401004d651d40cc03",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/assets/{asset_id}/state-store/{key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/assets/{asset_id}/state-store/{key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/cancel:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/cancel:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/cancel:schema:owned:9c1ef03f218895f4e108920d0e2204ad75fe56dfae3d7d23262350fe0add159f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/pause:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/pause:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/pause:schema:owned:9c1ef03f218895f4e108920d0e2204ad75fe56dfae3d7d23262350fe0add159f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/unpause:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/unpause:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/backfills/{backfill_id}/unpause:schema:owned:9c1ef03f218895f4e108920d0e2204ad75fe56dfae3d7d23262350fe0add159f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/state-store/{key}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/parseDagFile/{file_token}:schema:owned:0beb70b31d43d752c248401439286932e95c6b837cc22304e3eaae7e792c6f5f",
+                "RESPONSE_SCHEMA:operation:service:airflow-apiserver:PUT:/api/v2/parseDagFile/{file_token}:schema:owned:0d0fa2e312222868e8fe71887f1c13bae087f982b2a4056f91ee4e822080b2cf"
+              ],
+              "internal_count": 1
+            },
+            "changed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "expired": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "ownership_removed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            }
+          },
+          "diagnostics": [
+            {
+              "code": "SCHEMA_COMPOSITION_UNINTERPRETED",
+              "source_instance_id": null,
+              "source_pointer": "airflow-apiserver/openapi.yml"
+            }
+          ]
+        }
+      ],
+      "removals": [],
+      "tombstones": [],
+      "diagnostics": [
+        {
+          "code": "SCHEMA_COMPOSITION_UNINTERPRETED",
+          "source_instance_id": null,
+          "source_pointer": "airflow-apiserver/openapi.yml"
+        }
+      ]
+    }
+  ]
+}
+==> runbook block 7
+==> runbook block 8
+environment=airflow-i5 window_start=2026-09-25T13:18:45Z window_end=2026-09-25T13:19:14Z
+==> runbook block 9
+captured 9 facts to /tmp/claude-1001/-home-michael-code-ArchitectureIntelligencePlatform/dea4adeb-9305-40aa-944d-829d6415b869/scratchpad/i5-s7/airflow/actual.yaml
+==> runbook block 10
+AIP Real-World Validation — I1 contract
+
+
+[UNRESOLVED_IDENTITY/MINOR] airflow-execution-api-boundary
+
+[UNRESOLVED_IDENTITY/MINOR] airflow-runtime-role-identity
+
+[INSUFFICIENT_EVIDENCE/MINOR] airflow-celery-messaging
+
+[UNSUPPORTED/INFO] airflow-apiserver-postgres-dependency
+
+[UNSUPPORTED/INFO] airflow-celery-result-backend-postgres-dependency
+
+[UNSUPPORTED/INFO] airflow-scheduler-postgres-dependency
+
+[CORRECT/INFO] airflow-no-default-queue-receive
+Forbidden: RECEIVES_FROM service:airflow-apiserver -> queue:default
+
+[CORRECT/INFO] airflow-no-default-queue-send
+Forbidden: SENDS service:airflow-apiserver -> queue:default
+
+[CORRECT/INFO] airflow-provides-get_dags
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_dag
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_dag_runs
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_dag_run
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_task_instances
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_task_instance
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_health
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_variables
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/variables
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/variables
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-trigger_dag_run
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=false
+
+Expected supported facts:      9
+Correct:                       9
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         2
+Insufficient evidence:         1
+Forbidden facts proven absent: 2
+Forbidden facts present:       0
+Critical semantic errors:      0
+==> DONE (stack left running for public-surfaces and manual checks)
+run.sh exit=0

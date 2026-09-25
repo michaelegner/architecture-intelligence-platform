@@ -1,0 +1,4 @@
+result ACCEPTED_WITH_LIMITATIONS
+K8S_RESOURCE_UNSUPPORTED per kind {'ConfigMap': 10, 'Job': 1, 'Role': 1, 'RoleBinding': 3, 'Secret': 9, 'ServiceAccount': 1} total 25
+NO_QUALIFIED_POD_MATCH 13
+other codes []

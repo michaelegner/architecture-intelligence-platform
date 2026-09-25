@@ -1,0 +1,3 @@
+// grpc-locations-node
+properties(s)
+{name: "grpc-locations", id: "service:grpc-locations", discovery_status: "OBSERVED_ONLY"}

@@ -1,0 +1,4 @@
+// claims-by-kind
+kind, n
+"INGRESS_ROUTES_TO_NETWORK_SERVICE", 2
+"WORKLOAD_EXISTS", 13
