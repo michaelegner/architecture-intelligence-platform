@@ -1,0 +1,10 @@
+# Filtered for the repository: 527 noise lines removed (Neo4j 'Received notification' warnings, image-pull and Maven download progress). All other lines are verbatim.
+architecture-intelligence-1  | INFO:     Started server process [1]
+architecture-intelligence-1  | INFO:     Waiting for application startup.
+architecture-intelligence-1  | StreamableHTTP session manager started
+architecture-intelligence-1  | INFO:     Application startup complete.
+architecture-intelligence-1  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+architecture-intelligence-1  | INFO:     172.19.0.1:43342 - "GET /health HTTP/1.1" 200 OK
+architecture-intelligence-1  | INFO:     127.0.0.1:36924 - "GET /health HTTP/1.1" 200 OK
+architecture-intelligence-1  | Imported import_id=effac5eb233f41ba8879b98dc9a189bd source=urn:aip:source:filesystem:21a69bfc5c33d4aa647f87cf9899d7bcdf3a0da54841449162f021d9da7043ae locator=lifecycle/declarations/airflow-apiserver/openapi.yml result=ACCEPTED_WITH_LIMITATIONS nodes_written=232 relations_written=521 nodes_expired=0 relations_expired=0 graph_revision_advanced=True duration_ms=12063
+architecture-intelligence-1  | INFO:     172.19.0.1:43354 - "POST /api/import HTTP/1.1" 200 OK

@@ -30,6 +30,30 @@ decision freeze) is complete — see [`cross-system/README.md`](cross-system/REA
 reuses this method and adds the v0.5 vocabulary, the ground-truth authorship rule, and the
 one-checkout-location determinism rule
 ([`i5-cross-system-qualification.md`](../specifications/0.5.0/i5-cross-system-qualification.md)).
+Candidate `aa04a15` is `FINAL_CANDIDATE_QUALIFIED`
+([`v0.5.0/final-candidate/finding-ledger.md`](v0.5.0/final-candidate/finding-ledger.md),
+[`i5-completion-record.md`](../specifications/0.5.0/i5-completion-record.md)).
+
+The v0.5 method adds the following to the v0.3 method:
+- **Frozen before inspected.** Each target's expected and forbidden facts, the lifecycle mutations,
+  and even the result labels were frozen by the owner's merge before any qualifying output was
+  read. A defective frozen input is corrected by a cited I5 §6 re-freeze; the failed comparison
+  stays on record.
+- **Pinned run identity.** Every run uses one clean checkout at one absolute location, a
+  `--no-cache` candidate image, digest-pinned third-party images, and Compose invocations that
+  ignore environment and override files.
+- **Findings and dispositions.** Every material result gets exactly one of `FIX`, `DEFER`,
+  `DOCUMENT_UNSUPPORTED` or `NO_CHANGE`. Each `FIX` is its own PR with regression coverage and a
+  two-target impact check, and it creates a new candidate that is revalidated in full.
+- **Public observability.** From v0.5.0, the import's result labels and diagnostic codes are read
+  from the versioned import report (`aip-import-report/1`), not from logs or internal state.
+
+The docs distinguish these categories of behavior:
+- **Qualified behavior:** the real-system rows.
+- **Supporting-evidence-only behavior:** the fixture-only rows 7, 8, 9 and 13.
+- **Unsupported, unresolved and deferred behavior:** F3, F5 and F8, and the dossiers'
+  `UNSUPPORTED`, `UNRESOLVED_IDENTITY` and `INSUFFICIENT_EVIDENCE` entries.
+- **Coverage gaps:** I3 Path A and messaging-claim parity on the real targets.
 
 ## Purpose
 

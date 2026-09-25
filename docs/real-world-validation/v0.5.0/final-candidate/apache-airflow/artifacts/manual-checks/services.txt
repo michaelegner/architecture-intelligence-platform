@@ -1,0 +1,3 @@
+// services
+s.id, s.discovery_status
+"service:airflow-apiserver", NULL

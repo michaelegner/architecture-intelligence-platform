@@ -276,7 +276,8 @@ decided from its text and code alone, never from what exists on the host:
 - anything else (a relative locator, an entity or resource id) is kept.
 
 Diagnostic messages are never part of the report, because they can contain absolute paths and
-snippets of rejected input (the I2 §5 sanitization rule). The server log keeps them. Every value
+snippets of rejected input (the I2 §5 sanitization rule). They are not logged either: the import
+log records only per-source results and counts (v0.5.0 I5 finding F8, deferred). Every value
 the report copies from operator input is sanitized rather than validated, so building the report
 cannot fail after a run has committed.
 

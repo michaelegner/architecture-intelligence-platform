@@ -3,8 +3,8 @@
 **Status:** Draft 0.3. Draft 0.2 (#236, `b868732`) restructured the increment specification to the
 I2-I4 form and added the decisions the parent's §33 decision register assigns to I5; it superseded
 Draft 0.1 (#235, `3f413f6`). Draft 0.3 settles one question Slice 2 found: the upstream Quarkus
-manifests carry no `metadata.namespace`, which I2 §5 rejects (§5, §6, §8.1, §9). No I5 target has
-been qualified yet<br>
+manifests carry no `metadata.namespace`, which I2 §5 rejects (§5, §6, §8.1, §9). **I5 is complete:**
+candidate `aa04a15` is `FINAL_CANDIDATE_QUALIFIED` ([`i5-completion-record.md`](i5-completion-record.md))<br>
 **Target release:** `v0.5.0`<br>
 **Release increment:** I5 — Cross-System Qualification and Model Hardening<br>
 **Parent:** [`specification.md`](specification.md), Draft 0.2, git blob

@@ -1,0 +1,14 @@
+# Filtered for the repository: 91 noise lines removed (Neo4j 'Received notification' warnings, image-pull and Maven download progress). All other lines are verbatim.
+architecture-intelligence-1  | INFO:     Started server process [1]
+architecture-intelligence-1  | INFO:     Waiting for application startup.
+architecture-intelligence-1  | StreamableHTTP session manager started
+architecture-intelligence-1  | INFO:     Application startup complete.
+architecture-intelligence-1  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+architecture-intelligence-1  | INFO:     172.19.0.1:36006 - "GET /health HTTP/1.1" 200 OK
+architecture-intelligence-1  | INFO:     127.0.0.1:43950 - "GET /health HTTP/1.1" 200 OK
+architecture-intelligence-1  | Imported import_id=9a8d92ef63304b65853bd0a2ea096eb5 source=urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832 locator=lifecycle/declarations/rest-villains/openapi.yml result=ACCEPTED nodes_written=17 relations_written=19 nodes_expired=0 relations_expired=0 graph_revision_advanced=False duration_ms=1645
+architecture-intelligence-1  | Imported import_id=9a8d92ef63304b65853bd0a2ea096eb5 source=urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f locator=lifecycle/declarations/rest-narration/openapi.yml result=ACCEPTED nodes_written=10 relations_written=8 nodes_expired=0 relations_expired=0 graph_revision_advanced=False duration_ms=1645
+architecture-intelligence-1  | Imported import_id=9a8d92ef63304b65853bd0a2ea096eb5 source=urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253 locator=lifecycle/declarations/rest-heroes/openapi.yml result=ACCEPTED nodes_written=17 relations_written=19 nodes_expired=0 relations_expired=0 graph_revision_advanced=False duration_ms=1645
+architecture-intelligence-1  | Imported import_id=9a8d92ef63304b65853bd0a2ea096eb5 source=urn:aip:source:filesystem:d558abaacf8857b0b45b6c0b293edd7b51b2d50898c6df9a33bf46264d37b25f locator=lifecycle/declarations/rest-fights/openapi.yml result=ACCEPTED nodes_written=28 relations_written=27 nodes_expired=0 relations_expired=0 graph_revision_advanced=False duration_ms=1645
+architecture-intelligence-1  | Removed import_id=9a8d92ef63304b65853bd0a2ea096eb5 sources=urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a
+architecture-intelligence-1  | INFO:     172.19.0.1:36010 - "POST /api/import HTTP/1.1" 200 OK

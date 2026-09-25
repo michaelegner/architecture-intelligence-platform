@@ -1,0 +1,2242 @@
+# Filtered for the repository: 242 noise lines removed (Neo4j 'Received notification' warnings, image-pull and Maven download progress). All other lines are verbatim.
+==> runbook block 2
+Cloning into '/tmp/claude-1001/-home-michael-code-ArchitectureIntelligencePlatform/dea4adeb-9305-40aa-944d-829d6415b869/scratchpad/i5-s7/quarkus/quarkus-super-heroes'...
+HEAD is now at 8ea03377b Bump quarkus.platform.version from 3.38.3 to 3.39.1 (#2262)
+4ba52254b4a331590f1f7b1a43ae9f89a813dc7885938769bcdac8cd907d1cd2
+==> runbook block 3
+docker.io/library/maven@sha256:dd8e01b3be719853578c07b57ff8d9bbbbfe746f802226f05b19689420815221: Pulling from library/maven
+Digest: sha256:dd8e01b3be719853578c07b57ff8d9bbbbfe746f802226f05b19689420815221
+Status: Image is up to date for maven@sha256:dd8e01b3be719853578c07b57ff8d9bbbbfe746f802226f05b19689420815221
+docker.io/library/maven@sha256:dd8e01b3be719853578c07b57ff8d9bbbbfe746f802226f05b19689420815221
+registry.access.redhat.com/ubi10/openjdk-25-runtime@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626: Pulling from ubi10/openjdk-25-runtime
+Digest: sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+Status: Image is up to date for registry.access.redhat.com/ubi10/openjdk-25-runtime@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+registry.access.redhat.com/ubi10/openjdk-25-runtime@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+############################################################################################
+# Thanks for using OpenAPI Generator.                                                      #
+# We appreciate your support! Please consider donation to help us maintain this project.   #
+# https://opencollective.com/openapi_generator/donate                                      #
+############################################################################################
+[INFO] Adding existing ConfigMap with name: rest-fights-config.
+[INFO] Adding existing ConfigMap with name: rest-fights-config.
+[INFO] Adding existing RoleBinding with name: default_view.
+[INFO] Adding existing Secret with name: rest-fights-config-creds.
+[INFO] Adding existing Secret with name: fights-db-config.
+[INFO] Adding existing ConfigMap with name: fights-db-init.
+[INFO] Adding existing Deployment with name: fights-db.
+[INFO] Adding existing Service with name: fights-db.
+[INFO] Adding existing Deployment with name: fights-kafka.
+[INFO] Adding existing Service with name: fights-kafka.
+[INFO] Adding existing Deployment with name: apicurio.
+[INFO] Adding existing Service with name: apicurio.
+[INFO] Adding existing ConfigMap with name: rest-fights-config.
+[INFO] Adding existing Route with name: apicurio.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.04kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.1s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 115B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 3.80MB 0.1s done
+#5 DONE 0.1s
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.769 
+#6 0.769 (microdnf:7): librhsm-WARNING **: 12:51:34.616: Found 0 entitlement certificates
+#6 0.775 
+#6 0.775 (microdnf:7): librhsm-WARNING **: 12:51:34.622: Found 0 entitlement certificates
+#6 0.831 Downloading metadata...
+#6 1.321 Downloading metadata...
+#6 1.886 Downloading metadata...
+#6 2.412 Package                                                        Repository                Size
+#6 2.412 Installing:                                                                                  
+#6 2.412  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 2.412  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 2.412  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 2.412  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 2.412  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 2.412  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 2.412  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 2.412  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 2.412  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 2.412 Transaction Summary:
+#6 2.412  Installing:        9 packages
+#6 2.412  Reinstalling:      0 packages
+#6 2.412  Upgrading:         0 packages
+#6 2.412  Obsoleting:        0 packages
+#6 2.412  Removing:          0 packages
+#6 2.412  Downgrading:       0 packages
+#6 2.414 Downloading packages...
+#6 4.810 Running transaction test...
+#6 5.055 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 5.307 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 5.327 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 5.342 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 5.355 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 5.373 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 5.380 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 5.398 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 5.959 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 6.469 Complete.
+#6 6.784 Setting system policy to LEGACY
+#6 6.784 Note: System-wide crypto policies are applied on application start-up.
+#6 6.784 It is recommended to restart the system for the change of policies
+#6 6.784 to fully take place.
+#6 6.823 
+#6 6.823 (microdnf:1): librhsm-WARNING **: 12:51:40.670: Found 0 entitlement certificates
+#6 6.826 
+#6 6.826 (microdnf:1): librhsm-WARNING **: 12:51:40.673: Found 0 entitlement certificates
+#6 6.835 Complete.
+#6 DONE 6.9s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.5s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.0s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.0s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.1s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 5.7s done
+#11 exporting manifest sha256:d8c852155370bfdd7ea64be8a0b96bdd719fe4e25b1f32a581520675b677f8ba 0.0s done
+#11 exporting config sha256:7c1cc702222cadd2d1f17c4e7279b1cb90f7a5ae854a6275dc61fca88247cd4d 0.0s done
+#11 exporting attestation manifest sha256:358dd773548aeb12882a9dec466a35a403e8dda76c3d1ab4c9db45d93dd0cb67 0.0s done
+#11 exporting manifest list sha256:a86b0975122b83174567a064283b16b559617733a7438d44720dbbc7045e5157 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/rest-fights:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/rest-fights:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/rest-fights:8ea0337 1.8s done
+#11 DONE 7.6s
+############################################################################################
+# Thanks for using OpenAPI Generator.                                                      #
+# We appreciate your support! Please consider donation to help us maintain this project.   #
+# https://opencollective.com/openapi_generator/donate                                      #
+############################################################################################
+[INFO] Adding existing ConfigMap with name: rest-heroes-config.
+[INFO] Adding existing Secret with name: rest-heroes-config-creds.
+[INFO] Adding existing Secret with name: heroes-db-config.
+[INFO] Adding existing ConfigMap with name: heroes-db-init.
+[INFO] Adding existing Deployment with name: heroes-db.
+[INFO] Adding existing Service with name: heroes-db.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 DONE 0.0s
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.04kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.1s
+
+#3 [internal] load .dockerignore
+#3 transferring context:
+#3 transferring context: 115B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 9.20MB 0.1s done
+#5 DONE 0.1s
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.445 
+#6 0.445 (microdnf:7): librhsm-WARNING **: 12:54:32.833: Found 0 entitlement certificates
+#6 0.449 
+#6 0.449 (microdnf:7): librhsm-WARNING **: 12:54:32.836: Found 0 entitlement certificates
+#6 0.484 Downloading metadata...
+#6 0.893 Downloading metadata...
+#6 1.380 Downloading metadata...
+#6 1.826 Package                                                        Repository                Size
+#6 1.826 Installing:                                                                                  
+#6 1.826  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.826  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.826  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.826  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.826  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.826  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.826  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.826  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.826  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.826 Transaction Summary:
+#6 1.826  Installing:        9 packages
+#6 1.826  Reinstalling:      0 packages
+#6 1.826  Upgrading:         0 packages
+#6 1.826  Obsoleting:        0 packages
+#6 1.826  Removing:          0 packages
+#6 1.826  Downgrading:       0 packages
+#6 1.830 Downloading packages...
+#6 4.451 Running transaction test...
+#6 4.680 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.925 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.940 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.955 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.968 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.982 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.991 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 5.010 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 5.530 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.950 Complete.
+#6 6.307 Setting system policy to LEGACY
+#6 6.307 Note: System-wide crypto policies are applied on application start-up.
+#6 6.307 It is recommended to restart the system for the change of policies
+#6 6.307 to fully take place.
+#6 6.359 
+#6 6.359 (microdnf:1): librhsm-WARNING **: 12:54:38.746: Found 0 entitlement certificates
+#6 6.362 
+#6 6.362 (microdnf:1): librhsm-WARNING **: 12:54:38.750: Found 0 entitlement certificates
+#6 6.370 Complete.
+#6 DONE 6.5s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.4s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.0s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.1s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.0s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 3.1s done
+#11 exporting manifest sha256:be7a61fea5021f3bb4d39d12b305c1ab44dfef87529a4643c9d43d24ea4ecea4 0.0s done
+#11 exporting config sha256:f7e1d38c05342226d943f59673b737a63dcffa2fe23a75e66267f0b353d5f95e 0.0s done
+#11 exporting attestation manifest sha256:eba537d5636518990e1bc636c956813b4891efa091512b420bcc69ddbce74189 0.0s done
+#11 exporting manifest list sha256:7d834e29c97d2f28fefcbe18d99fcb1d13602904083e03e4bcd0f66e3e44359b 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/rest-heroes:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/rest-heroes:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/rest-heroes:8ea0337 1.4s done
+#11 DONE 4.6s
+############################################################################################
+# Thanks for using OpenAPI Generator.                                                      #
+# We appreciate your support! Please consider donation to help us maintain this project.   #
+# https://opencollective.com/openapi_generator/donate                                      #
+############################################################################################
+[INFO] Adding existing ConfigMap with name: rest-villains-config.
+[INFO] Adding existing Secret with name: rest-villains-config-creds.
+[INFO] Adding existing Secret with name: villains-db-config.
+[INFO] Adding existing ConfigMap with name: villains-db-init.
+[INFO] Adding existing Deployment with name: villains-db.
+[INFO] Adding existing Service with name: villains-db.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.04kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 115B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 9.28MB 0.1s done
+#5 DONE 0.1s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 CACHED
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.472 
+#6 0.472 (microdnf:7): librhsm-WARNING **: 12:57:25.612: Found 0 entitlement certificates
+#6 0.474 
+#6 0.474 (microdnf:7): librhsm-WARNING **: 12:57:25.615: Found 0 entitlement certificates
+#6 0.517 Downloading metadata...
+#6 1.022 Downloading metadata...
+#6 1.477 Downloading metadata...
+#6 1.871 Package                                                        Repository                Size
+#6 1.871 Installing:                                                                                  
+#6 1.871  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.871  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.871  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.871  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.871  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.871  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.871  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.871  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.871  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.871 Transaction Summary:
+#6 1.871  Installing:        9 packages
+#6 1.871  Reinstalling:      0 packages
+#6 1.871  Upgrading:         0 packages
+#6 1.871  Obsoleting:        0 packages
+#6 1.871  Removing:          0 packages
+#6 1.871  Downgrading:       0 packages
+#6 1.872 Downloading packages...
+#6 4.429 Running transaction test...
+#6 4.657 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.849 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.861 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.871 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.882 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.897 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.903 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.919 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 5.469 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.891 Complete.
+#6 6.241 Setting system policy to LEGACY
+#6 6.241 Note: System-wide crypto policies are applied on application start-up.
+#6 6.241 It is recommended to restart the system for the change of policies
+#6 6.241 to fully take place.
+#6 6.286 
+#6 6.286 (microdnf:1): librhsm-WARNING **: 12:57:31.426: Found 0 entitlement certificates
+#6 6.290 
+#6 6.290 (microdnf:1): librhsm-WARNING **: 12:57:31.430: Found 0 entitlement certificates
+#6 6.297 Complete.
+#6 DONE 6.4s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.4s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.0s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.1s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.1s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 3.0s done
+#11 exporting manifest sha256:0da2267bc7df5661088a2649b5b0b580b5029d554e73090be8632c2f6f3fa2e1 0.0s done
+#11 exporting config sha256:2926cfc5a05fc0498259a0abb7c5edb2c4fdd983b0098be56ab87ab2e0ca0e7b 0.0s done
+#11 exporting attestation manifest sha256:694b5231374a881f3fe7ecc0a13fb45e98f2e4b43404bc4932ed478702855b80 0.0s done
+#11 exporting manifest list sha256:9fc8fadf43bbdce5cddcb5b9e5dd039ea850579fac0d15d57953f868becc1fad 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/rest-villains:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/rest-villains:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/rest-villains:8ea0337 1.5s done
+#11 DONE 4.7s
+############################################################################################
+# Thanks for using OpenAPI Generator.                                                      #
+# We appreciate your support! Please consider donation to help us maintain this project.   #
+# https://opencollective.com/openapi_generator/donate                                      #
+############################################################################################
+[INFO] Adding existing ConfigMap with name: rest-narration-config.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.05kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.1s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 116B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 2.87MB 0.0s done
+#5 DONE 0.1s
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.387 
+#6 0.387 (microdnf:7): librhsm-WARNING **: 12:59:49.621: Found 0 entitlement certificates
+#6 0.390 
+#6 0.390 (microdnf:7): librhsm-WARNING **: 12:59:49.624: Found 0 entitlement certificates
+#6 0.432 Downloading metadata...
+#6 0.760 Downloading metadata...
+#6 1.143 Downloading metadata...
+#6 1.462 Package                                                        Repository                Size
+#6 1.462 Installing:                                                                                  
+#6 1.462  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.462  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.462  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.462  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.462  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.462  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.462  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.462  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.462  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.462 Transaction Summary:
+#6 1.462  Installing:        9 packages
+#6 1.462  Reinstalling:      0 packages
+#6 1.462  Upgrading:         0 packages
+#6 1.462  Obsoleting:        0 packages
+#6 1.462  Removing:          0 packages
+#6 1.462  Downgrading:       0 packages
+#6 1.463 Downloading packages...
+#6 4.019 Running transaction test...
+#6 4.263 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.461 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.475 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.486 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.496 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.512 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.519 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.535 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 5.058 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.540 Complete.
+#6 5.905 Setting system policy to LEGACY
+#6 5.905 Note: System-wide crypto policies are applied on application start-up.
+#6 5.905 It is recommended to restart the system for the change of policies
+#6 5.905 to fully take place.
+#6 5.950 
+#6 5.950 (microdnf:1): librhsm-WARNING **: 12:59:55.184: Found 0 entitlement certificates
+#6 5.952 
+#6 5.952 (microdnf:1): librhsm-WARNING **: 12:59:55.187: Found 0 entitlement certificates
+#6 5.958 Complete.
+#6 DONE 6.0s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.4s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.1s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.0s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.0s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 2.9s done
+#11 exporting manifest sha256:25b428dc0242cffe5b0462d80fe03c57b8d714fd7bae50297643bb733e190254 0.0s done
+#11 exporting config sha256:44c574df9cdb9fcd3036a3801b55f150688c34e9378fdd86ef1e46c3bac55fb1 0.0s done
+#11 exporting attestation manifest sha256:341dec6346ba911eda1a9beed33a92528629df914d646b1b4795c941b9b74a81 0.0s done
+#11 exporting manifest list sha256:d32b0d6510f29dd7a03277111971ed7b3022acf4b21eec76d18bdc28d20f1a55 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/rest-narration:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/rest-narration:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/rest-narration:8ea0337 1.3s done
+#11 DONE 4.4s
+[INFO] Adding existing ConfigMap with name: event-statistics-config.
+[INFO] Adding existing Secret with name: event-statistics-config-creds.
+[INFO] Adding existing Deployment with name: fights-kafka.
+[INFO] Adding existing Service with name: fights-kafka.
+[INFO] Adding existing Deployment with name: apicurio.
+[INFO] Adding existing Service with name: apicurio.
+[INFO] Adding existing Route with name: apicurio.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.05kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 115B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 1.39MB 0.0s done
+#5 DONE 0.1s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 CACHED
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.362 
+#6 0.362 (microdnf:7): librhsm-WARNING **: 13:01:43.027: Found 0 entitlement certificates
+#6 0.365 
+#6 0.365 (microdnf:7): librhsm-WARNING **: 13:01:43.030: Found 0 entitlement certificates
+#6 0.408 Downloading metadata...
+#6 0.770 Downloading metadata...
+#6 1.179 Downloading metadata...
+#6 1.436 Package                                                        Repository                Size
+#6 1.436 Installing:                                                                                  
+#6 1.436  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.436  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.436  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.436  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.436  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.436  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.436  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.436  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.436  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.436 Transaction Summary:
+#6 1.436  Installing:        9 packages
+#6 1.436  Reinstalling:      0 packages
+#6 1.436  Upgrading:         0 packages
+#6 1.436  Obsoleting:        0 packages
+#6 1.436  Removing:          0 packages
+#6 1.436  Downgrading:       0 packages
+#6 1.438 Downloading packages...
+#6 4.121 Running transaction test...
+#6 4.330 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.496 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.512 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.521 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.531 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.541 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.547 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.561 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.945 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.296 Complete.
+#6 5.582 Setting system policy to LEGACY
+#6 5.582 Note: System-wide crypto policies are applied on application start-up.
+#6 5.582 It is recommended to restart the system for the change of policies
+#6 5.582 to fully take place.
+#6 5.627 
+#6 5.627 (microdnf:1): librhsm-WARNING **: 13:01:48.292: Found 0 entitlement certificates
+#6 5.630 
+#6 5.630 (microdnf:1): librhsm-WARNING **: 13:01:48.295: Found 0 entitlement certificates
+#6 5.638 Complete.
+#6 DONE 5.7s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.3s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.0s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.0s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.0s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 3.1s done
+#11 exporting manifest sha256:cc92d250d6780f632053b3091242c1eaa24a5137c50a433a4d3598ff705a7e20 0.0s done
+#11 exporting config sha256:d22ef115600c812026a5bd21936a46a30bb3233ec06a9b892f2e2298c70209a8 0.0s done
+#11 exporting attestation manifest sha256:a09fcc5c19e0ea83d6ad20fa111cbb6e7f3ac2c3d7d63387a5b39b845d7241e7 0.0s done
+#11 exporting manifest list sha256:7cc5935ab76d741d25cab93d28610dc236472fae4cd7cf14878f1d493ed15913 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/event-statistics:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/event-statistics:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/event-statistics:8ea0337 1.5s done
+#11 DONE 4.7s
+[INFO] Adding existing ConfigMap with name: grpc-locations-config.
+[INFO] Adding existing Secret with name: grpc-locations-config-creds.
+[INFO] Adding existing Secret with name: locations-db-config.
+[INFO] Adding existing ConfigMap with name: locations-db-init.
+[INFO] Adding existing Deployment with name: locations-db.
+[INFO] Adding existing Service with name: locations-db.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.05kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.1s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 115B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 1.48MB 0.0s done
+#5 DONE 0.1s
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.309 
+#6 0.309 (microdnf:7): librhsm-WARNING **: 13:05:04.044: Found 0 entitlement certificates
+#6 0.312 
+#6 0.312 (microdnf:7): librhsm-WARNING **: 13:05:04.047: Found 0 entitlement certificates
+#6 0.355 Downloading metadata...
+#6 0.692 Downloading metadata...
+#6 1.024 Downloading metadata...
+#6 1.293 Package                                                        Repository                Size
+#6 1.293 Installing:                                                                                  
+#6 1.293  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.293  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.293  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.293  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.293  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.293  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.293  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.293  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.293  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.293 Transaction Summary:
+#6 1.293  Installing:        9 packages
+#6 1.293  Reinstalling:      0 packages
+#6 1.293  Upgrading:         0 packages
+#6 1.293  Obsoleting:        0 packages
+#6 1.293  Removing:          0 packages
+#6 1.293  Downgrading:       0 packages
+#6 1.294 Downloading packages...
+#6 3.915 Running transaction test...
+#6 4.283 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.573 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.592 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.604 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.618 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.637 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.648 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.668 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 5.320 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.953 Complete.
+#6 6.371 Setting system policy to LEGACY
+#6 6.371 Note: System-wide crypto policies are applied on application start-up.
+#6 6.371 It is recommended to restart the system for the change of policies
+#6 6.371 to fully take place.
+#6 6.425 
+#6 6.425 (microdnf:1): librhsm-WARNING **: 13:05:10.160: Found 0 entitlement certificates
+#6 6.428 
+#6 6.428 (microdnf:1): librhsm-WARNING **: 13:05:10.163: Found 0 entitlement certificates
+#6 6.440 Complete.
+#6 DONE 6.6s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.5s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.1s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.1s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.2s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 3.6s done
+#11 exporting manifest sha256:f941f3a8811e1ae243de1cf3739324647924a172aee4f4aff5c620905af8b7c3 0.0s done
+#11 exporting config sha256:96eb8869c4fe6490a333a73393aae2d8ed8b615e051cb06b1de4c7d40f4e62b0 0.0s done
+#11 exporting attestation manifest sha256:9b0345efb7df535b7de50b49dae90b3edc04947c84cfa386e96f5b3b8bd003e7 0.0s done
+#11 exporting manifest list sha256:17160d574fbdbcff3d13249d5374d0a5a8ee527cc6f532347948d4f682f8f275 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/grpc-locations:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/grpc-locations:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/grpc-locations:8ea0337 1.6s done
+#11 DONE 5.3s
+==> runbook block 4
+ Image aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9 Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 775B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.37kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.14-slim
+#3 ...
+
+#4 [internal] load metadata for ghcr.io/astral-sh/uv:latest
+#4 DONE 1.3s
+
+#3 [internal] load metadata for docker.io/library/python:3.14-slim
+#3 DONE 1.5s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 333B 0.0s done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 DONE 0.0s
+
+#7 [stage-0  1/10] FROM docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2
+#7 resolve docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2 0.1s done
+#7 DONE 0.1s
+
+#8 FROM ghcr.io/astral-sh/uv:latest@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424
+#8 resolve ghcr.io/astral-sh/uv:latest@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424
+#8 resolve ghcr.io/astral-sh/uv:latest@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424 0.1s done
+#8 CACHED
+
+#7 [stage-0  1/10] FROM docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2
+#7 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 20.17kB 0.0s done
+#6 DONE 0.0s
+
+#9 [stage-0  2/10] COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+#9 DONE 0.5s
+
+#10 [stage-0  3/10] RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --create-home --shell /usr/sbin/nologin app
+#10 DONE 0.7s
+
+#11 [stage-0  4/10] WORKDIR /app
+#11 DONE 0.1s
+
+#12 [stage-0  5/10] COPY --chown=app:app pyproject.toml uv.lock ./
+#12 DONE 0.1s
+
+#13 [stage-0  6/10] RUN uv sync --frozen --no-install-project --no-dev
+#13 1.171 Using CPython 3.14.7 interpreter at: /usr/local/bin/python3
+#13 1.171 Creating virtual environment at: .venv
+#13 1.673 Downloading pydantic-core (2.0MiB)
+#13 1.683 Downloading openai (1.9MiB)
+#13 1.692 Downloading cryptography (4.5MiB)
+#13 1.745 Downloading uvloop (4.1MiB)
+#13 4.505  Downloaded openai
+#13 4.582  Downloaded pydantic-core
+#13 5.271  Downloaded uvloop
+#13 5.355  Downloaded cryptography
+#13 5.355 Prepared 46 packages in 4.17s
+#13 5.717 Installed 46 packages in 361ms
+#13 7.548 Bytecode compiled 2929 files in 1.83s
+#13 7.548  + annotated-doc==0.0.5
+#13 7.548  + annotated-types==0.8.0
+#13 7.548  + anyio==4.14.2
+#13 7.548  + attrs==26.1.0
+#13 7.548  + cffi==2.1.1
+#13 7.548  + click==8.4.2
+#13 7.548  + cryptography==50.0.1
+#13 7.548  + fastapi==0.141.1
+#13 7.548  + h11==0.16.0
+#13 7.548  + httpcore2==2.12.0
+#13 7.548  + httptools==0.8.0
+#13 7.548  + httpx2==2.12.0
+#13 7.548  + idna==3.19
+#13 7.548  + jinja2==3.1.6
+#13 7.548  + jiter==0.16.0
+#13 7.548  + jsonschema==4.26.0
+#13 7.548  + jsonschema-specifications==2025.9.1
+#13 7.548  + markupsafe==3.0.3
+#13 7.548  + mcp==2.2.0
+#13 7.548  + mcp-types==2.2.0
+#13 7.548  + neo4j==6.3.0
+#13 7.548  + openai==3.14.0
+#13 7.548  + opentelemetry-api==1.44.0
+#13 7.548  + opentelemetry-proto==1.44.0
+#13 7.548  + protobuf==7.36.0
+#13 7.548  + pycparser==3.0
+#13 7.548  + pydantic==2.13.5
+#13 7.548  + pydantic-core==2.46.5
+#13 7.548  + pyjwt==2.13.0
+#13 7.548  + python-dotenv==1.2.3
+#13 7.548  + python-multipart==0.0.32
+#13 7.548  + pytz==2026.3.post1
+#13 7.548  + pyyaml==6.0.3
+#13 7.548  + referencing==0.37.0
+#13 7.548  + rfc8785==0.1.4
+#13 7.548  + rpds-py==2026.6.3
+#13 7.548  + sniffio==1.3.1
+#13 7.548  + sse-starlette==3.4.10
+#13 7.548  + starlette==1.6.0
+#13 7.548  + truststore==0.10.4
+#13 7.549  + typing-extensions==4.16.0
+#13 7.549  + typing-inspection==0.4.4
+#13 7.549  + uvicorn==0.52.4
+#13 7.549  + uvloop==0.22.1
+#13 7.549  + watchfiles==1.2.0
+#13 7.549  + websockets==17.0.1
+#13 DONE 7.7s
+
+#14 [stage-0  7/10] COPY --chown=app:app app ./app
+#14 DONE 0.3s
+
+#15 [stage-0  8/10] COPY --chown=app:app config.yaml ./
+#15 DONE 0.1s
+
+#16 [stage-0  9/10] COPY --chown=app:app examples ./examples
+#16 DONE 0.1s
+
+#17 [stage-0 10/10] RUN uv sync --frozen --no-dev
+#17 0.744 Bytecode compiled 2929 files in 258ms
+#17 DONE 0.8s
+
+#18 exporting to image
+#18 exporting layers
+#18 exporting layers 8.3s done
+#18 exporting manifest sha256:e8579acfe79e8a8f8899601261d3c543c0667b883e71ea766e68566636577a08 0.0s done
+#18 exporting config sha256:691ddb20c78dd48357ea213b54421ac9ebe2ad00908e587ae8aaad3c42a10561 0.0s done
+#18 exporting attestation manifest sha256:4b916298044715ae9325459963ad214e03437e76227d2dd879a70ae2fe18eabe 0.0s done
+#18 exporting manifest list sha256:5573927999a4b845d11b485c0206063649f4c6fa67aee6e82b4bffc468587a09 0.0s done
+#18 naming to docker.io/library/aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9 done
+#18 unpacking to docker.io/library/aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9
+#18 unpacking to docker.io/library/aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9 3.7s done
+#18 DONE 12.2s
+
+#19 resolving provenance for metadata file
+#19 DONE 0.0s
+ Image aip-i5-candidate:aa04a150965924bd23ecf0125bcf7095a3cf72d9 Built 
+==> runbook block 5
+ Network qsh-i5_default Creating 
+ Network qsh-i5_default Creating 
+ Volume qsh-i5_neo4j-quarkus-i5-data Creating 
+ Volume qsh-i5_neo4j-quarkus-i5-data Creating 
+ Volume qsh-i5_neo4j-quarkus-i5-logs Creating 
+ Volume qsh-i5_neo4j-quarkus-i5-logs Creating 
+ Volume qsh-i5_neo4j-quarkus-i5-data Created 
+ Volume qsh-i5_neo4j-quarkus-i5-data Created 
+ Volume qsh-i5_neo4j-quarkus-i5-logs Created 
+ Volume qsh-i5_neo4j-quarkus-i5-logs Created 
+ Network qsh-i5_default Created 
+ Network qsh-i5_default Created 
+ Container villains-db Creating 
+ Container rest-narration-java25 Creating 
+ Container locations-db Creating 
+ Container heroes-db Creating 
+ Container qsh-i5-neo4j-1 Creating 
+ Container apicurio Creating 
+ Container fights-db Creating 
+ Container apicurio Created 
+ Container fights-kafka Creating 
+ Container locations-db Created 
+ Container grpc-locations-java25 Creating 
+ Container rest-narration-java25 Created 
+ Container qsh-i5-neo4j-1 Created 
+ Container qsh-i5-architecture-intelligence-1 Creating 
+ Container fights-db Created 
+ Container villains-db Created 
+ Container rest-villains-java25 Creating 
+ Container heroes-db Created 
+ Container rest-heroes-java25 Creating 
+ Container fights-kafka Created 
+ Container event-statistics-java25 Creating 
+ Container rest-fights-java25 Creating 
+ Container grpc-locations-java25 Created 
+ Container rest-villains-java25 Created 
+ Container rest-heroes-java25 Created 
+ Container rest-fights-java25 Created 
+ Container event-statistics-java25 Created 
+ Container qsh-i5-architecture-intelligence-1 Created 
+ Container qsh-i5-otel-collector-1 Creating 
+ Container qsh-i5-otel-collector-1 Created 
+ Container villains-db Starting 
+ Container locations-db Starting 
+ Container rest-narration-java25 Starting 
+ Container apicurio Starting 
+ Container qsh-i5-neo4j-1 Starting 
+ Container fights-db Starting 
+ Container heroes-db Starting 
+ Container villains-db Started 
+ Container rest-villains-java25 Starting 
+ Container locations-db Started 
+ Container grpc-locations-java25 Starting 
+ Container grpc-locations-java25 Started 
+ Container rest-narration-java25 Started 
+ Container apicurio Started 
+ Container fights-kafka Starting 
+ Container qsh-i5-neo4j-1 Started 
+ Container qsh-i5-neo4j-1 Waiting 
+ Container fights-db Started 
+ Container heroes-db Started 
+ Container rest-heroes-java25 Starting 
+ Container rest-villains-java25 Started 
+ Container fights-kafka Started 
+ Container rest-fights-java25 Starting 
+ Container event-statistics-java25 Starting 
+ Container rest-heroes-java25 Started 
+ Container rest-fights-java25 Started 
+ Container event-statistics-java25 Started 
+ Container qsh-i5-neo4j-1 Healthy 
+ Container qsh-i5-architecture-intelligence-1 Starting 
+ Container qsh-i5-architecture-intelligence-1 Started 
+ Container qsh-i5-architecture-intelligence-1 Waiting 
+ Container qsh-i5-architecture-intelligence-1 Healthy 
+ Container qsh-i5-otel-collector-1 Starting 
+ Container qsh-i5-otel-collector-1 Started 
+==> readiness (v0.3 helpers)
+architecture-intelligence ready after 0s
+rest-fights-java25 ready after 0s
+rest-heroes-java25 ready after 0s
+rest-villains-java25 ready after 0s
+rest-narration-java25 ready after 0s
+event-statistics-java25 ready after 0s
+grpc-locations-java25 ready after 0s
+otel-collector ready after 0s
+==> runbook block 6
+{
+  "import_id": "3698f64f610e49588d6893dd0d91cd9a",
+  "committed": false,
+  "sources": {
+    "urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832": {
+      "source_instance_id": "urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832",
+      "locator": "declarations/rest-villains/openapi.yml",
+      "result": "ACCEPTED",
+      "nodes_written": 17,
+      "relations_written": 19,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    },
+    "urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f": {
+      "source_instance_id": "urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f",
+      "locator": "declarations/rest-narration/openapi.yml",
+      "result": "ACCEPTED",
+      "nodes_written": 10,
+      "relations_written": 8,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    },
+    "urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253": {
+      "source_instance_id": "urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253",
+      "locator": "declarations/rest-heroes/openapi.yml",
+      "result": "ACCEPTED",
+      "nodes_written": 17,
+      "relations_written": 19,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    },
+    "urn:aip:source:filesystem:d558abaacf8857b0b45b6c0b293edd7b51b2d50898c6df9a33bf46264d37b25f": {
+      "source_instance_id": "urn:aip:source:filesystem:d558abaacf8857b0b45b6c0b293edd7b51b2d50898c6df9a33bf46264d37b25f",
+      "locator": "declarations/rest-fights/openapi.yml",
+      "result": "ACCEPTED",
+      "nodes_written": 28,
+      "relations_written": 27,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    },
+    "urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a": {
+      "source_instance_id": "urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a",
+      "locator": "declarations/rest-fights/architecture.yaml",
+      "result": "ACCEPTED",
+      "nodes_written": 1,
+      "relations_written": 7,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    },
+    "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0": {
+      "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+      "locator": "k8s/namespaced/envelope.yaml",
+      "result": "ACCEPTED_WITH_LIMITATIONS",
+      "nodes_written": 111,
+      "relations_written": 0,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    }
+  },
+  "report_version": "aip-import-report/1",
+  "runs": [
+    {
+      "kind": "filesystem",
+      "configured_source_id": "qsh-v0.5-declarations",
+      "discovery_scope_id": "urn:aip:discovery-scope:255a717634441754940079676da8bcbb8402f9a68db6f315df207dbb61e07f69",
+      "scope_definition_digest": "b56c3afb76025137bd891ff62f541a3a10183996827f5902637d7edc8cfae6d5",
+      "inventory_status": "COMPLETE",
+      "committed": true,
+      "inventory_revision": "urn:aip:inventory-revision:2a4193a48e82ad28e2e78864384cdb8d045bd743edebe842cef1bf1375604111",
+      "source_results": [
+        {
+          "source_instance_id": "urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832",
+          "source_kind": "filesystem",
+          "locator": "rest-villains/openapi.yml",
+          "result": "ACCEPTED",
+          "adapter_identity": "openapi-adapter@1",
+          "mapping_rule_version": "v1",
+          "dialect_version": "3.1.2",
+          "semantic_input_digest": "7fe98602c70729211a310f5bbedbf2530a3a8928ceb6686f7097607ee69895b0",
+          "service_ids": [
+            "service:rest-villains"
+          ],
+          "emitted": {
+            "services": 1,
+            "operations": 10,
+            "schemas": 5,
+            "messages": 0,
+            "queues": 0,
+            "topics": 0,
+            "subscriptions": 0,
+            "relations": 19,
+            "infrastructure_entities": 0,
+            "infrastructure_claims": 0
+          },
+          "effects": {
+            "graph_revision_advanced": true,
+            "added": {
+              "node_ids": [
+                "operation:service:rest-villains:DELETE:/api/villains",
+                "operation:service:rest-villains:DELETE:/api/villains/{id}",
+                "operation:service:rest-villains:GET:/api/villains",
+                "operation:service:rest-villains:GET:/api/villains/hello",
+                "operation:service:rest-villains:GET:/api/villains/random",
+                "operation:service:rest-villains:GET:/api/villains/{id}",
+                "operation:service:rest-villains:PATCH:/api/villains/{id}",
+                "operation:service:rest-villains:POST:/api/villains",
+                "operation:service:rest-villains:PUT:/api/villains",
+                "operation:service:rest-villains:PUT:/api/villains/{id}",
+                "schema:owned:a7dd0c783f10a7444ce50c0bcc4543133ed88d90aba00f7f00b6baed78002b86",
+                "schema:owned:bfb351694fcf36cc7766a705aa5e45a8452190658769263ea99be82eb3ea3916",
+                "schema:owned:c2935dcd7aac6a6ccd32c363adf939143b8e2669f6f87685d43545f0bb0ce5c4",
+                "schema:owned:d1233087141525f844e6f4c317964b7db8d451915f6790f85376e666f5b9e9ff",
+                "schema:owned:d4220a038d7fc1975220dd0886149bc27f3f722dff431377c625425973428de8",
+                "service:rest-villains"
+              ],
+              "relation_keys": [
+                "PROVIDES:service:rest-villains:operation:service:rest-villains:DELETE:/api/villains",
+                "PROVIDES:service:rest-villains:operation:service:rest-villains:DELETE:/api/villains/{id}",
+                "PROVIDES:service:rest-villains:operation:service:rest-villains:GET:/api/villains",
+                "PROVIDES:service:rest-villains:operation:service:rest-villains:GET:/api/villains/hello",
+                "PROVIDES:service:rest-villains:operation:service:rest-villains:GET:/api/villains/random",
+                "PROVIDES:service:rest-villains:operation:service:rest-villains:GET:/api/villains/{id}",
+                "PROVIDES:service:rest-villains:operation:service:rest-villains:PATCH:/api/villains/{id}",
+                "PROVIDES:service:rest-villains:operation:service:rest-villains:POST:/api/villains",
+                "PROVIDES:service:rest-villains:operation:service:rest-villains:PUT:/api/villains",
+                "PROVIDES:service:rest-villains:operation:service:rest-villains:PUT:/api/villains/{id}",
+                "REQUEST_SCHEMA:operation:service:rest-villains:PATCH:/api/villains/{id}:schema:owned:bfb351694fcf36cc7766a705aa5e45a8452190658769263ea99be82eb3ea3916",
+                "REQUEST_SCHEMA:operation:service:rest-villains:POST:/api/villains:schema:owned:c2935dcd7aac6a6ccd32c363adf939143b8e2669f6f87685d43545f0bb0ce5c4",
+                "REQUEST_SCHEMA:operation:service:rest-villains:PUT:/api/villains/{id}:schema:owned:c2935dcd7aac6a6ccd32c363adf939143b8e2669f6f87685d43545f0bb0ce5c4",
+                "REQUEST_SCHEMA:operation:service:rest-villains:PUT:/api/villains:schema:owned:d1233087141525f844e6f4c317964b7db8d451915f6790f85376e666f5b9e9ff",
+                "RESPONSE_SCHEMA:operation:service:rest-villains:GET:/api/villains/hello:schema:owned:d4220a038d7fc1975220dd0886149bc27f3f722dff431377c625425973428de8",
+                "RESPONSE_SCHEMA:operation:service:rest-villains:GET:/api/villains/random:schema:owned:c2935dcd7aac6a6ccd32c363adf939143b8e2669f6f87685d43545f0bb0ce5c4",
+                "RESPONSE_SCHEMA:operation:service:rest-villains:GET:/api/villains/{id}:schema:owned:c2935dcd7aac6a6ccd32c363adf939143b8e2669f6f87685d43545f0bb0ce5c4",
+                "RESPONSE_SCHEMA:operation:service:rest-villains:GET:/api/villains:schema:owned:a7dd0c783f10a7444ce50c0bcc4543133ed88d90aba00f7f00b6baed78002b86",
+                "RESPONSE_SCHEMA:operation:service:rest-villains:PATCH:/api/villains/{id}:schema:owned:c2935dcd7aac6a6ccd32c363adf939143b8e2669f6f87685d43545f0bb0ce5c4"
+              ],
+              "internal_count": 1
+            },
+            "changed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "expired": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "ownership_removed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            }
+          },
+          "diagnostics": []
+        },
+        {
+          "source_instance_id": "urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a",
+          "source_kind": "filesystem",
+          "locator": "rest-fights/architecture.yaml",
+          "result": "ACCEPTED",
+          "adapter_identity": "manifest-adapter@1",
+          "mapping_rule_version": "v1",
+          "dialect_version": null,
+          "semantic_input_digest": "a5e8e380d11ca8292e13f1fb209b777261374e1730bab7dce49823c75ff593d6",
+          "service_ids": [],
+          "emitted": {
+            "services": 0,
+            "operations": 0,
+            "schemas": 0,
+            "messages": 0,
+            "queues": 0,
+            "topics": 0,
+            "subscriptions": 0,
+            "relations": 7,
+            "infrastructure_entities": 0,
+            "infrastructure_claims": 0
+          },
+          "effects": {
+            "graph_revision_advanced": true,
+            "added": {
+              "node_ids": [],
+              "relation_keys": [
+                "CALLS:service:rest-fights:operation:service:rest-heroes:GET:/api/heroes/hello",
+                "CALLS:service:rest-fights:operation:service:rest-heroes:GET:/api/heroes/random",
+                "CALLS:service:rest-fights:operation:service:rest-narration:GET:/api/narration/hello",
+                "CALLS:service:rest-fights:operation:service:rest-narration:POST:/api/narration",
+                "CALLS:service:rest-fights:operation:service:rest-narration:POST:/api/narration/image",
+                "CALLS:service:rest-fights:operation:service:rest-villains:GET:/api/villains/hello",
+                "CALLS:service:rest-fights:operation:service:rest-villains:GET:/api/villains/random"
+              ],
+              "internal_count": 1
+            },
+            "changed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "expired": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "ownership_removed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            }
+          },
+          "diagnostics": []
+        },
+        {
+          "source_instance_id": "urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f",
+          "source_kind": "filesystem",
+          "locator": "rest-narration/openapi.yml",
+          "result": "ACCEPTED",
+          "adapter_identity": "openapi-adapter@1",
+          "mapping_rule_version": "v1",
+          "dialect_version": "3.1.2",
+          "semantic_input_digest": "451b321e3dd25331793ca236c916c8749e0d3f8a90891baade0a1ecd44d78a88",
+          "service_ids": [
+            "service:rest-narration"
+          ],
+          "emitted": {
+            "services": 1,
+            "operations": 3,
+            "schemas": 5,
+            "messages": 0,
+            "queues": 0,
+            "topics": 0,
+            "subscriptions": 0,
+            "relations": 8,
+            "infrastructure_entities": 0,
+            "infrastructure_claims": 0
+          },
+          "effects": {
+            "graph_revision_advanced": true,
+            "added": {
+              "node_ids": [
+                "operation:service:rest-narration:GET:/api/narration/hello",
+                "operation:service:rest-narration:POST:/api/narration",
+                "operation:service:rest-narration:POST:/api/narration/image",
+                "schema:owned:1fbfad6e8244610c6fae7f8cba46f82dc9d1a995e10a49910bdf3c376e4c862d",
+                "schema:owned:2519c64dcc248159d95f73bea3fe2f8f41801dfe9ba1b8031e07aa45e977ff09",
+                "schema:owned:53691b48cc95dffbab8fc20bdb78a85a35d9989767d0223aed0184743b94bbe4",
+                "schema:owned:71a057777aed5c7673238175759455e9f0c6608fd23077dc3d7cd4053cd7b32e",
+                "schema:owned:7ae0d48a9c0f5cb4623db3ba606f2766f808ae2e36a7d3411aa85e8b9bd4b7d5",
+                "service:rest-narration"
+              ],
+              "relation_keys": [
+                "PROVIDES:service:rest-narration:operation:service:rest-narration:GET:/api/narration/hello",
+                "PROVIDES:service:rest-narration:operation:service:rest-narration:POST:/api/narration",
+                "PROVIDES:service:rest-narration:operation:service:rest-narration:POST:/api/narration/image",
+                "REQUEST_SCHEMA:operation:service:rest-narration:POST:/api/narration/image:schema:owned:71a057777aed5c7673238175759455e9f0c6608fd23077dc3d7cd4053cd7b32e",
+                "REQUEST_SCHEMA:operation:service:rest-narration:POST:/api/narration:schema:owned:7ae0d48a9c0f5cb4623db3ba606f2766f808ae2e36a7d3411aa85e8b9bd4b7d5",
+                "RESPONSE_SCHEMA:operation:service:rest-narration:GET:/api/narration/hello:schema:owned:2519c64dcc248159d95f73bea3fe2f8f41801dfe9ba1b8031e07aa45e977ff09",
+                "RESPONSE_SCHEMA:operation:service:rest-narration:POST:/api/narration/image:schema:owned:1fbfad6e8244610c6fae7f8cba46f82dc9d1a995e10a49910bdf3c376e4c862d",
+                "RESPONSE_SCHEMA:operation:service:rest-narration:POST:/api/narration:schema:owned:53691b48cc95dffbab8fc20bdb78a85a35d9989767d0223aed0184743b94bbe4"
+              ],
+              "internal_count": 1
+            },
+            "changed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "expired": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "ownership_removed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            }
+          },
+          "diagnostics": []
+        },
+        {
+          "source_instance_id": "urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253",
+          "source_kind": "filesystem",
+          "locator": "rest-heroes/openapi.yml",
+          "result": "ACCEPTED",
+          "adapter_identity": "openapi-adapter@1",
+          "mapping_rule_version": "v1",
+          "dialect_version": "3.1.2",
+          "semantic_input_digest": "5c9e6dffc50704be91a23fd8e0285b087a175e24a8834d4b381f0a0667279976",
+          "service_ids": [
+            "service:rest-heroes"
+          ],
+          "emitted": {
+            "services": 1,
+            "operations": 10,
+            "schemas": 5,
+            "messages": 0,
+            "queues": 0,
+            "topics": 0,
+            "subscriptions": 0,
+            "relations": 19,
+            "infrastructure_entities": 0,
+            "infrastructure_claims": 0
+          },
+          "effects": {
+            "graph_revision_advanced": true,
+            "added": {
+              "node_ids": [
+                "operation:service:rest-heroes:DELETE:/api/heroes",
+                "operation:service:rest-heroes:DELETE:/api/heroes/{id}",
+                "operation:service:rest-heroes:GET:/api/heroes",
+                "operation:service:rest-heroes:GET:/api/heroes/hello",
+                "operation:service:rest-heroes:GET:/api/heroes/random",
+                "operation:service:rest-heroes:GET:/api/heroes/{id}",
+                "operation:service:rest-heroes:PATCH:/api/heroes/{id}",
+                "operation:service:rest-heroes:POST:/api/heroes",
+                "operation:service:rest-heroes:PUT:/api/heroes",
+                "operation:service:rest-heroes:PUT:/api/heroes/{id}",
+                "schema:owned:09f9ca977f4846edec22e21292424b3dea0862909005f221952896bff5104763",
+                "schema:owned:30928b6554588e190f064e7f27fcd3e290bd2edc91bd8a7007a883672eaedd7b",
+                "schema:owned:51799e13ef50336291d24d87a8b882e52308ba2d5a22cf692cd954791ac6f06e",
+                "schema:owned:626dd0118b82c6d70bd700358d6fe823bab7c6d4c5095055a5bc3ae7485d6559",
+                "schema:owned:9283f66d07732076d057e2956ff6d34abeff20b2ba9be5e1be83a15d73498bdf",
+                "service:rest-heroes"
+              ],
+              "relation_keys": [
+                "PROVIDES:service:rest-heroes:operation:service:rest-heroes:DELETE:/api/heroes",
+                "PROVIDES:service:rest-heroes:operation:service:rest-heroes:DELETE:/api/heroes/{id}",
+                "PROVIDES:service:rest-heroes:operation:service:rest-heroes:GET:/api/heroes",
+                "PROVIDES:service:rest-heroes:operation:service:rest-heroes:GET:/api/heroes/hello",
+                "PROVIDES:service:rest-heroes:operation:service:rest-heroes:GET:/api/heroes/random",
+                "PROVIDES:service:rest-heroes:operation:service:rest-heroes:GET:/api/heroes/{id}",
+                "PROVIDES:service:rest-heroes:operation:service:rest-heroes:PATCH:/api/heroes/{id}",
+                "PROVIDES:service:rest-heroes:operation:service:rest-heroes:POST:/api/heroes",
+                "PROVIDES:service:rest-heroes:operation:service:rest-heroes:PUT:/api/heroes",
+                "PROVIDES:service:rest-heroes:operation:service:rest-heroes:PUT:/api/heroes/{id}",
+                "REQUEST_SCHEMA:operation:service:rest-heroes:PATCH:/api/heroes/{id}:schema:owned:09f9ca977f4846edec22e21292424b3dea0862909005f221952896bff5104763",
+                "REQUEST_SCHEMA:operation:service:rest-heroes:POST:/api/heroes:schema:owned:30928b6554588e190f064e7f27fcd3e290bd2edc91bd8a7007a883672eaedd7b",
+                "REQUEST_SCHEMA:operation:service:rest-heroes:PUT:/api/heroes/{id}:schema:owned:30928b6554588e190f064e7f27fcd3e290bd2edc91bd8a7007a883672eaedd7b",
+                "REQUEST_SCHEMA:operation:service:rest-heroes:PUT:/api/heroes:schema:owned:9283f66d07732076d057e2956ff6d34abeff20b2ba9be5e1be83a15d73498bdf",
+                "RESPONSE_SCHEMA:operation:service:rest-heroes:GET:/api/heroes/hello:schema:owned:51799e13ef50336291d24d87a8b882e52308ba2d5a22cf692cd954791ac6f06e",
+                "RESPONSE_SCHEMA:operation:service:rest-heroes:GET:/api/heroes/random:schema:owned:30928b6554588e190f064e7f27fcd3e290bd2edc91bd8a7007a883672eaedd7b",
+                "RESPONSE_SCHEMA:operation:service:rest-heroes:GET:/api/heroes/{id}:schema:owned:30928b6554588e190f064e7f27fcd3e290bd2edc91bd8a7007a883672eaedd7b",
+                "RESPONSE_SCHEMA:operation:service:rest-heroes:GET:/api/heroes:schema:owned:626dd0118b82c6d70bd700358d6fe823bab7c6d4c5095055a5bc3ae7485d6559",
+                "RESPONSE_SCHEMA:operation:service:rest-heroes:PATCH:/api/heroes/{id}:schema:owned:30928b6554588e190f064e7f27fcd3e290bd2edc91bd8a7007a883672eaedd7b"
+              ],
+              "internal_count": 1
+            },
+            "changed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "expired": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "ownership_removed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            }
+          },
+          "diagnostics": []
+        },
+        {
+          "source_instance_id": "urn:aip:source:filesystem:d558abaacf8857b0b45b6c0b293edd7b51b2d50898c6df9a33bf46264d37b25f",
+          "source_kind": "filesystem",
+          "locator": "rest-fights/openapi.yml",
+          "result": "ACCEPTED",
+          "adapter_identity": "openapi-adapter@1",
+          "mapping_rule_version": "v1",
+          "dialect_version": "3.1.2",
+          "semantic_input_digest": "7657f3724efe22e22f32dd6dc434c7009f3650f3259685d1ebf3dc7457e2812f",
+          "service_ids": [
+            "service:rest-fights"
+          ],
+          "emitted": {
+            "services": 1,
+            "operations": 12,
+            "schemas": 14,
+            "messages": 0,
+            "queues": 0,
+            "topics": 0,
+            "subscriptions": 0,
+            "relations": 27,
+            "infrastructure_entities": 0,
+            "infrastructure_claims": 0
+          },
+          "effects": {
+            "graph_revision_advanced": true,
+            "added": {
+              "node_ids": [
+                "operation:service:rest-fights:GET:/api/fights",
+                "operation:service:rest-fights:GET:/api/fights/hello",
+                "operation:service:rest-fights:GET:/api/fights/hello/heroes",
+                "operation:service:rest-fights:GET:/api/fights/hello/locations",
+                "operation:service:rest-fights:GET:/api/fights/hello/narration",
+                "operation:service:rest-fights:GET:/api/fights/hello/villains",
+                "operation:service:rest-fights:GET:/api/fights/randomfighters",
+                "operation:service:rest-fights:GET:/api/fights/randomlocation",
+                "operation:service:rest-fights:GET:/api/fights/{id}",
+                "operation:service:rest-fights:POST:/api/fights",
+                "operation:service:rest-fights:POST:/api/fights/narrate",
+                "operation:service:rest-fights:POST:/api/fights/narrate/image",
+                "schema:owned:0258665d30e557f06e2deb0e1bac37de433f1dae9f7b867b97a6154ff7b15751",
+                "schema:owned:108f6ab89cc27c2cc5a6020e4380d97d255b692de608a15a6eaf61aae78dae34",
+                "schema:owned:137f16b745386d9b5016fe86ea73e81888738947e046213509364a5de56cad24",
+                "schema:owned:3470bee98cd74e3c0d891c82fe64ad9b06b301a4dd5189b420cea8671b25d2eb",
+                "schema:owned:39be4fd523d0b6f681bcb73d0edb6398284f4acfe58366aac1350ac1166f1430",
+                "schema:owned:4922df5e36b5f4cfca82074f4708b1c0502a83e56805d5132f55dbe1d5a8e029",
+                "schema:owned:65e350d16d49401819d652023759112d9b40b338bf176e977621df8cc1435ed8",
+                "schema:owned:7939a2435898affe0364467df942d6568742db0ca981287771ae08ca329017ff",
+                "schema:owned:8a29ffb957eeeef711a040277bfb8fc4746c2c0a15aada9c9bf40b04107b1a98",
+                "schema:owned:92adbd188f0484fdaccc0b156ea8bb471edd0d2380633aca0cae270743a48544",
+                "schema:owned:9a45298834ab9f1bb6f55b6dab87a2a0e7a4ca28fb04f85e24dbdbcd7e0bbc40",
+                "schema:owned:9e572a1a5d02eda180b605db22e8ce1fcd8192ba485b32c17d2c243af9522d6a",
+                "schema:owned:a689526ec512eb66e871960e217966c90950f96b8cf0905a3f21b40eafebf3d0",
+                "schema:owned:e6bf3ab37dfd5989028565340350b359a7958c8b80b28bb82348eae970f7917d",
+                "service:rest-fights"
+              ],
+              "relation_keys": [
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:GET:/api/fights",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:GET:/api/fights/hello",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:GET:/api/fights/hello/heroes",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:GET:/api/fights/hello/locations",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:GET:/api/fights/hello/narration",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:GET:/api/fights/hello/villains",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:GET:/api/fights/randomfighters",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:GET:/api/fights/randomlocation",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:GET:/api/fights/{id}",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:POST:/api/fights",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:POST:/api/fights/narrate",
+                "PROVIDES:service:rest-fights:operation:service:rest-fights:POST:/api/fights/narrate/image",
+                "REQUEST_SCHEMA:operation:service:rest-fights:POST:/api/fights/narrate/image:schema:owned:8a29ffb957eeeef711a040277bfb8fc4746c2c0a15aada9c9bf40b04107b1a98",
+                "REQUEST_SCHEMA:operation:service:rest-fights:POST:/api/fights/narrate:schema:owned:92adbd188f0484fdaccc0b156ea8bb471edd0d2380633aca0cae270743a48544",
+                "REQUEST_SCHEMA:operation:service:rest-fights:POST:/api/fights:schema:owned:137f16b745386d9b5016fe86ea73e81888738947e046213509364a5de56cad24",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:GET:/api/fights/hello/heroes:schema:owned:a689526ec512eb66e871960e217966c90950f96b8cf0905a3f21b40eafebf3d0",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:GET:/api/fights/hello/locations:schema:owned:9e572a1a5d02eda180b605db22e8ce1fcd8192ba485b32c17d2c243af9522d6a",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:GET:/api/fights/hello/narration:schema:owned:108f6ab89cc27c2cc5a6020e4380d97d255b692de608a15a6eaf61aae78dae34",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:GET:/api/fights/hello/villains:schema:owned:7939a2435898affe0364467df942d6568742db0ca981287771ae08ca329017ff",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:GET:/api/fights/hello:schema:owned:39be4fd523d0b6f681bcb73d0edb6398284f4acfe58366aac1350ac1166f1430",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:GET:/api/fights/randomfighters:schema:owned:4922df5e36b5f4cfca82074f4708b1c0502a83e56805d5132f55dbe1d5a8e029",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:GET:/api/fights/randomlocation:schema:owned:65e350d16d49401819d652023759112d9b40b338bf176e977621df8cc1435ed8",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:GET:/api/fights/{id}:schema:owned:9a45298834ab9f1bb6f55b6dab87a2a0e7a4ca28fb04f85e24dbdbcd7e0bbc40",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:GET:/api/fights:schema:owned:e6bf3ab37dfd5989028565340350b359a7958c8b80b28bb82348eae970f7917d",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:POST:/api/fights/narrate/image:schema:owned:0258665d30e557f06e2deb0e1bac37de433f1dae9f7b867b97a6154ff7b15751",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:POST:/api/fights/narrate:schema:owned:3470bee98cd74e3c0d891c82fe64ad9b06b301a4dd5189b420cea8671b25d2eb",
+                "RESPONSE_SCHEMA:operation:service:rest-fights:POST:/api/fights:schema:owned:9a45298834ab9f1bb6f55b6dab87a2a0e7a4ca28fb04f85e24dbdbcd7e0bbc40"
+              ],
+              "internal_count": 1
+            },
+            "changed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "expired": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "ownership_removed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            }
+          },
+          "diagnostics": []
+        }
+      ],
+      "removals": [],
+      "tombstones": [],
+      "diagnostics": []
+    },
+    {
+      "kind": "kubernetes",
+      "configured_source_id": "qsh-k8s-namespaced",
+      "discovery_scope_id": "urn:aip:discovery-scope:abf664559c9427d893a0aa095e05a1b0c2f4a25278bc0114b27aaa51124fa776",
+      "scope_definition_digest": "d4df5f9eaa579fbcde3e6fd428313bae5bb795f3a9853692a41d1410007c10e1",
+      "inventory_status": "COMPLETE",
+      "committed": true,
+      "inventory_revision": "urn:aip:inventory-revision:a30adf0f5d7c2c8dd3f15cb078649f5edb7df7778d0a1ea0cbfa57703fe292ed",
+      "source_results": [
+        {
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_kind": "kubernetes",
+          "locator": "envelope.yaml",
+          "result": "ACCEPTED_WITH_LIMITATIONS",
+          "adapter_identity": "kubernetes-adapter@1",
+          "mapping_rule_version": "1",
+          "dialect_version": null,
+          "semantic_input_digest": "9164f25126598c0dd94aae62580da49077382b017af3c414c363601abaafdbee",
+          "service_ids": [],
+          "emitted": {
+            "services": 0,
+            "operations": 0,
+            "schemas": 0,
+            "messages": 0,
+            "queues": 0,
+            "topics": 0,
+            "subscriptions": 0,
+            "relations": 0,
+            "infrastructure_entities": 27,
+            "infrastructure_claims": 15
+          },
+          "effects": {
+            "graph_revision_advanced": true,
+            "added": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 111
+            },
+            "changed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "expired": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            },
+            "ownership_removed": {
+              "node_ids": [],
+              "relation_keys": [],
+              "internal_count": 0
+            }
+          },
+          "diagnostics": [
+            {
+              "code": "K8S_RESOURCE_UNSUPPORTED",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:batch/v1/Job"
+            },
+            {
+              "code": "K8S_RESOURCE_UNSUPPORTED",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:rbac.authorization.k8s.io/v1/Role"
+            },
+            {
+              "code": "K8S_RESOURCE_UNSUPPORTED",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:rbac.authorization.k8s.io/v1/RoleBinding"
+            },
+            {
+              "code": "K8S_RESOURCE_UNSUPPORTED",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/ConfigMap"
+            },
+            {
+              "code": "K8S_RESOURCE_UNSUPPORTED",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Secret"
+            },
+            {
+              "code": "K8S_RESOURCE_UNSUPPORTED",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/ServiceAccount"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/apicurio"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/event-statistics"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/fights-db"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/fights-kafka"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/grpc-locations"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/heroes-db"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/locations-db"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/rest-fights"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/rest-heroes"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/rest-narration"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/rest-villains"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/ui-super-heroes"
+            },
+            {
+              "code": "NO_QUALIFIED_POD_MATCH",
+              "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+              "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/villains-db"
+            }
+          ]
+        }
+      ],
+      "removals": [],
+      "tombstones": [],
+      "diagnostics": [
+        {
+          "code": "K8S_RESOURCE_UNSUPPORTED",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:batch/v1/Job"
+        },
+        {
+          "code": "K8S_RESOURCE_UNSUPPORTED",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:rbac.authorization.k8s.io/v1/Role"
+        },
+        {
+          "code": "K8S_RESOURCE_UNSUPPORTED",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:rbac.authorization.k8s.io/v1/RoleBinding"
+        },
+        {
+          "code": "K8S_RESOURCE_UNSUPPORTED",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/ConfigMap"
+        },
+        {
+          "code": "K8S_RESOURCE_UNSUPPORTED",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Secret"
+        },
+        {
+          "code": "K8S_RESOURCE_UNSUPPORTED",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/ServiceAccount"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/apicurio"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/event-statistics"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/fights-db"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/fights-kafka"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/grpc-locations"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/heroes-db"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/locations-db"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/rest-fights"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/rest-heroes"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/rest-narration"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/rest-villains"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/ui-super-heroes"
+        },
+        {
+          "code": "NO_QUALIFIED_POD_MATCH",
+          "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+          "source_pointer": "java25-kubernetes.namespaced.yml:v1/Service/quarkus-super-heroes/villains-db"
+        }
+      ]
+    },
+    {
+      "kind": "kubernetes",
+      "configured_source_id": "qsh-k8s-upstream-unmodified",
+      "discovery_scope_id": "urn:aip:discovery-scope:edf885e18631ab416c3d276c96e704633c66c9c140116284008c445835ee8e95",
+      "scope_definition_digest": "e6699315e82b9390715d0c4a6b5bfd5b0302ae9f6356cc279780a6e73ebadad3",
+      "inventory_status": "PARTIAL",
+      "committed": false,
+      "inventory_revision": null,
+      "source_results": [
+        {
+          "source_instance_id": "urn:aip:source:kubernetes:6f01618c2640e24dfb5577658e396cb8880c7901b6dbf79f0efceb7f3154a696",
+          "source_kind": "kubernetes",
+          "locator": "envelope.yaml",
+          "result": "REJECTED_INVALID",
+          "adapter_identity": "kubernetes-adapter@1",
+          "mapping_rule_version": "1",
+          "dialect_version": null,
+          "semantic_input_digest": null,
+          "service_ids": [],
+          "emitted": {
+            "services": 0,
+            "operations": 0,
+            "schemas": 0,
+            "messages": 0,
+            "queues": 0,
+            "topics": 0,
+            "subscriptions": 0,
+            "relations": 0,
+            "infrastructure_entities": 0,
+            "infrastructure_claims": 0
+          },
+          "effects": null,
+          "diagnostics": [
+            {
+              "code": "K8S_RESOURCE_INVALID",
+              "source_instance_id": null,
+              "source_pointer": "java25-kubernetes.yml:v1/Service//locations-db"
+            }
+          ]
+        }
+      ],
+      "removals": [],
+      "tombstones": [],
+      "diagnostics": [
+        {
+          "code": "K8S_RESOURCE_INVALID",
+          "source_instance_id": null,
+          "source_pointer": "java25-kubernetes.yml:v1/Service//locations-db"
+        }
+      ]
+    }
+  ]
+}
+==> runbook block 7
+==> GET /api/fights/randomfighters (triggers rest-heroes + rest-villains calls)
+{"hero":{"name":"Marisa","level":177000,"picture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/marisa-kirisame-8822306826647191835.jpg","powers":"Arcane Magic, Danmaku, Energy Manipulation, Fire Control, Flight, Force Fields, Heat Generation, Homing Attack, Levitation, Light Control, Magic, Mind Control Resistance, Non-Physical Interaction, Power Mimicry, Projection, Summoning, Super Speed, Toxin and Disease Resistance, Weapons Master, Clairvoyance, Explosion Manipulation, Immortality, Marksmanship, Precognition, Rune Magic, Time Manipulation, Toxin and Disease Control"},"villain":{"name":"Cell","level":68000,"picture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/cell--3084562035465629991.jpg","powers":"Absorption, Agility, Durability, Energy Absorption, Energy Beams, Energy Blasts, Energy Manipulation, Flight, Intelligence, Master Martial Artist, Peak Human Condition, Power Mimicry, Power Sense, Reactive Power Level, Reflexes, Regeneration, Stamina, Super Speed, Super Strength, Transformation, Vision - Heat, Accelerated Development, Acrobatics, Adaptation, Afterimage Creation, Aura, Berserk Mode, Biokinesis, Chi Manipulation, Cold Resistance, Danger Sense, Dexterity, Dimensional Awareness, Dimensional Travel, Elasticity, Endurance, Energy Resistance, Enhanced Hearing, Enhanced Senses, Enhanced Sight, Explosion Manipulation, Extrasensory Perception, Fire Resistance, Heat Resistance, Immortality, Indomitable Will, Invulnerability, Jump, Levitation, Light Control, Longevity, Master Tactician, Natural Armor, Power Augmentation, Radiation Immunity, Seismic Power, Self-Destruction, Self-Sustenance, Shockwaves Generation, Size Changing, Sound Manipulation, Spaceflight, Super Breath, Telekinesis, Telepathy, Teleportation, Toxin and Disease Resistance, Vibration Manipulation, Life Manipulation"}}
+==> GET /api/fights/randomlocation (triggers grpc-locations - UNSUPPORTED boundary)
+{"name":"Greyhawk","description":"Greyhawk is one of the earliest and most iconic campaign settings for D&D. The World of Greyhawk is a rich, medieval fantasy world filled with a diverse array of nations, cultures, and adventures. Castle Greyhawk, the setting's namesake, and the Free City of Greyhawk are central to the campaign setting.","picture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/locations/greyhawkcity.jpg"}
+==> POST /api/fights (persists the fight, publishes to Kafka topic "fights")
+{"id":"6ab671eaee5d1ff51a2dfd29","fightDate":"2026-09-25T13:06:50.03257262Z","winnerName":"Luke Skywalker","winnerLevel":10,"winnerPowers":"Uses light sabre, The force","winnerPicture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg","loserName":"Darth Vader","loserLevel":3,"loserPowers":"Uses light sabre, dark side of the force","loserPicture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg","winnerTeam":"heroes","loserTeam":"villains","location":{"name":"Gotham City","description":"An American city rife with corruption and crime, the home of its iconic protector Batman.","picture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/locations/gotham_city.jpg"}}
+==> POST /api/fights/narrate (triggers rest-narration call)
+High above a bustling city, a symbol of hope and justice soared through the sky, while chaos reigned below, with malevolent laughter echoing through the streets.
+With unwavering determination, the figure swiftly descended, effortlessly evading explosive attacks, closing the gap, and delivering a decisive blow that silenced the wicked laughter.
+
+In the end, the battle concluded with a clear victory for the forces of good, as their commitment to peace triumphed over the chaos and villainy that had threatened the city.
+The people knew that their protector had once again ensured their safety.
+
+
+==> traffic complete
+==> runbook block 8
+environment=quarkus-i5 window_start=2026-09-25T13:06:47Z window_end=2026-09-25T13:06:54Z
+==> runbook block 9
+captured 42 facts and 3 deployments to /tmp/claude-1001/-home-michael-code-ArchitectureIntelligencePlatform/dea4adeb-9305-40aa-944d-829d6415b869/scratchpad/i5-s7/quarkus/actual.yaml
+==> runbook block 10
+AIP Real-World Validation — I1 contract
+
+
+[UNSUPPORTED/INFO] qsh-grpc-locations
+
+[UNSUPPORTED/INFO] qsh-kafka-fights-topic
+
+[UNSUPPORTED/INFO] qsh-kafka-legacy-operation-key
+
+[CORRECT/INFO] qsh-no-fights-queue-receive
+Forbidden: RECEIVES_FROM service:event-statistics -> queue:fights
+
+[CORRECT/INFO] qsh-no-fights-queue-send
+Forbidden: SENDS service:rest-fights -> queue:fights
+
+[CORRECT/INFO] qsh-no-name-only-event-statistics
+Forbidden: DEPLOYED_AS service:event-statistics -> quarkus-super-heroes/DEPLOYMENT/event-statistics (any RESOLVED_*)
+
+[CORRECT/INFO] qsh-no-name-only-rest-narration
+Forbidden: DEPLOYED_AS service:rest-narration -> quarkus-super-heroes/DEPLOYMENT/rest-narration (any RESOLVED_*)
+
+[CORRECT/INFO] qsh-fights-calls-heroes-hello
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-heroes:GET:/api/heroes/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-heroes:GET:/api/heroes/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-calls-heroes-random
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: CONFIRMED  evidence: declared=true observed=true
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: CONFIRMED  evidence: declared=true observed=true
+
+[CORRECT/INFO] qsh-fights-calls-narration-hello
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:GET:/api/narration/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:GET:/api/narration/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-calls-narration-narrate
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:POST:/api/narration
+  status: CONFIRMED  evidence: declared=true observed=true
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:POST:/api/narration
+  status: CONFIRMED  evidence: declared=true observed=true
+
+[CORRECT/INFO] qsh-fights-calls-narration-image
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:POST:/api/narration/image
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:POST:/api/narration/image
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-calls-villains-hello
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-villains:GET:/api/villains/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-villains:GET:/api/villains/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-calls-villains-random
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: CONFIRMED  evidence: declared=true observed=true
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: CONFIRMED  evidence: declared=true observed=true
+
+[CORRECT/INFO] qsh-rest-fights-deployment
+Expected:
+  DEPLOYED_AS service:rest-fights -> quarkus-super-heroes/DEPLOYMENT/rest-fights
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+Actual:
+  DEPLOYED_AS service:rest-fights -> quarkus-super-heroes/DEPLOYMENT/rest-fights
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+
+[CORRECT/INFO] qsh-rest-heroes-deployment
+Expected:
+  DEPLOYED_AS service:rest-heroes -> quarkus-super-heroes/DEPLOYMENT/rest-heroes
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+Actual:
+  DEPLOYED_AS service:rest-heroes -> quarkus-super-heroes/DEPLOYMENT/rest-heroes
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+
+[CORRECT/INFO] qsh-rest-villains-deployment
+Expected:
+  DEPLOYED_AS service:rest-villains -> quarkus-super-heroes/DEPLOYMENT/rest-villains
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+Actual:
+  DEPLOYED_AS service:rest-villains -> quarkus-super-heroes/DEPLOYMENT/rest-villains
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+
+[CORRECT/INFO] qsh-fights-provides-getAllFights
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-hello
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloHeroes
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloLocations
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/locations
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/locations
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloNarration
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/narration
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/narration
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloVillains
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-getRandomFighters
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomfighters
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomfighters
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-getRandomLocation
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomlocation
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomlocation
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-getFight
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-performFight
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-narrateFight
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-generateImageFromNarration
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate/image
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate/image
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-deleteAllHeroes
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-deleteHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-getAllHeroes
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-hello
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-getRandomHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-getHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-partiallyUpdateHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PATCH:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PATCH:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-createHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:POST:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:POST:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-replaceAllHeroes
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-fullyUpdateHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-narration-provides-hello
+Expected:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:GET:/api/narration/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:GET:/api/narration/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-narration-provides-narrate
+Expected:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-narration-provides-generateImageFromNarration
+Expected:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration/image
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration/image
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-deleteAllVillains
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-deleteVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-getAllVillains
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-hello
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-getRandomVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-getVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-partiallyUpdateVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PATCH:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PATCH:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-createVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:POST:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:POST:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-replaceAllVillains
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-fullyUpdateVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+Expected supported facts:      45
+Correct:                       45
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         0
+Insufficient evidence:         0
+Forbidden facts proven absent: 4
+Forbidden facts present:       0
+Critical semantic errors:      0
+==> DONE (stack left running for public-surfaces and manual checks)
+run.sh exit=0

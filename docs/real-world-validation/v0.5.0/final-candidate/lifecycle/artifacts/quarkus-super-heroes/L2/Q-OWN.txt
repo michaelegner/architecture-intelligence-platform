@@ -1,0 +1,9 @@
+owner, kind, owned
+"urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832", "node", 17
+"urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832", "relation", 19
+"urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f", "node", 10
+"urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f", "relation", 8
+"urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253", "node", 17
+"urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253", "relation", 19
+"urn:aip:source:filesystem:d558abaacf8857b0b45b6c0b293edd7b51b2d50898c6df9a33bf46264d37b25f", "node", 28
+"urn:aip:source:filesystem:d558abaacf8857b0b45b6c0b293edd7b51b2d50898c6df9a33bf46264d37b25f", "relation", 27

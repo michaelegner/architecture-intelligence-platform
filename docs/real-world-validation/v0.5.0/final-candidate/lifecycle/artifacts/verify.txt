@@ -1,0 +1,87 @@
+== apache-airflow
+  ok   S0   workdir-digest = pinned
+  ok   L1   workdir-digest = pinned
+  ok   L4a  workdir-digest = pinned
+  ok   L4b  workdir-digest = pinned
+  ok   L6   workdir-digest = pinned
+  ok   L2   workdir-digest = pinned
+  ok   R    workdir-digest = pinned
+  ok   L5   workdir-digest = pinned
+  ok   L3   workdir-digest = pinned
+  ok   S0   committed, every source ACCEPTED*
+  ok   L1   no revision advance, 0 expirations
+  ok   L1   all of State(L1) = State(S0)
+  ok   L4a  committed:false, sources:{}
+  ok   L4a  all of State = State(L1)
+  ok   L4a  no Removed line
+  ok   L4b  committed:false, sources:{}
+  ok   L4b  all of State = State(L1)
+  ok   L4b  no Removed line
+  ok   L6   committed:false, sources:{}
+  ok   L6   all of State = State(L1)
+  ok   L6   no Removed line
+  ok   L4a  label: FAILED, no source results, SOURCE_ROOT_UNAVAILABLE
+  ok   L4b  label: PARTIAL; unbound copy REJECTED_UNSUPPORTED/SERVICE_IDENTITY_UNRESOLVED; 0 others accepted
+  ok   L6   label: PARTIAL; airflow-apiserver/openapi.yml REJECTED_CONFLICT/SERVICE_IDENTITY_CONFLICT
+  ok   L2   committed:true
+  ok   L2   Removed line names X only
+  ok   L2   Q-SRC = State(L1) minus X's row
+  ok   L2   Q-SVC = Without_X(L1) (empty diff)
+  ok   L2   Q-REL = Without_X(L1) (empty diff)
+  ok   L2   X in no Q-OWN / Q-SRC-SEM row
+  ok   R    committed:true
+  ok   R    Q-SRC, Q-SRC-SEM, Q-OWN, owned graph = State(L1)
+  ok   L5   committed:true, no Removed line
+  ok   L5   X's Q-SRC and Q-SRC-SEM rows = State(R)
+  ok   L5   owned graph = State(R)
+  ok   L5   Q-INV: same discovery_scope_id, new scope_definition_digest
+  ok   L5   other sources' Q-SRC rows carry the new digest (Airflow: no other source)
+  ok   L3   committed:true; Removed line names X only
+  ok   L3   Q-SRC = State(L5) minus X's row
+  ok   L3   Q-SVC = Without_X(L5) (empty diff)
+  ok   L3   Q-REL = Without_X(L5) (empty diff)
+  ok   L3   X in no Q-OWN row
+== quarkus-super-heroes
+  ok   S0   workdir-digest = pinned
+  ok   L1   workdir-digest = pinned
+  ok   L4a  workdir-digest = pinned
+  ok   L4b  workdir-digest = pinned
+  ok   L6   workdir-digest = pinned
+  ok   L2   workdir-digest = pinned
+  ok   R    workdir-digest = pinned
+  ok   L5   workdir-digest = pinned
+  ok   L3   workdir-digest = pinned
+  ok   S0   committed, every source ACCEPTED*
+  ok   L1   no revision advance, 0 expirations
+  ok   L1   all of State(L1) = State(S0)
+  ok   L4a  committed:false, sources:{}
+  ok   L4a  all of State = State(L1)
+  ok   L4a  no Removed line
+  ok   L4b  committed:false, sources:{}
+  ok   L4b  all of State = State(L1)
+  ok   L4b  no Removed line
+  ok   L6   committed:false, sources:{}
+  ok   L6   all of State = State(L1)
+  ok   L6   no Removed line
+  ok   L4a  label: FAILED, no source results, SOURCE_ROOT_UNAVAILABLE
+  ok   L4b  label: PARTIAL; unbound copy REJECTED_UNSUPPORTED/SERVICE_IDENTITY_UNRESOLVED; 4 others accepted
+  ok   L6   label: PARTIAL; rest-fights/openapi.yml REJECTED_CONFLICT/SERVICE_IDENTITY_CONFLICT; manifest REJECTED_UNSUPPORTED/MANIFEST_CALL_SOURCE_UNRESOLVED
+  ok   L2   committed:true
+  ok   L2   Removed line names X only
+  ok   L2   Q-SRC = State(L1) minus X's row
+  ok   L2   Q-SVC = Without_X(L1) (empty diff)
+  ok   L2   Q-REL = Without_X(L1) (empty diff)
+  ok   L2   X in no Q-OWN / Q-SRC-SEM row
+  ok   R    committed:true
+  ok   R    Q-SRC, Q-SRC-SEM, Q-OWN, owned graph = State(L1)
+  ok   L5   committed:true, no Removed line
+  ok   L5   X's Q-SRC and Q-SRC-SEM rows = State(R)
+  ok   L5   owned graph = State(R)
+  ok   L5   Q-INV: same discovery_scope_id, new scope_definition_digest
+  ok   L5   other sources' Q-SRC rows carry the new digest
+  ok   L3   committed:true; Removed line names X only
+  ok   L3   Q-SRC = State(L5) minus X's row
+  ok   L3   Q-SVC = Without_X(L5) (empty diff)
+  ok   L3   Q-REL = Without_X(L5) (empty diff)
+  ok   L3   X in no Q-OWN row
+FAILURES: none

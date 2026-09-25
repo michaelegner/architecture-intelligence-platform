@@ -1,0 +1,28 @@
+{
+  "all_equal": true,
+  "reads": [
+    {
+      "read": "tools/list",
+      "tools": [
+        "get_architecture_drift",
+        "get_evidence",
+        "get_service_dependencies"
+      ],
+      "equal": true
+    },
+    {
+      "read": "dependencies service:airflow-apiserver",
+      "equal": true,
+      "snapshot_ids": [
+        "aip:snapshot:v1:622470bbb7a75c63bf3402b93a0d9674b9e11bcd69625a01778ef13df8d2a318"
+      ]
+    },
+    {
+      "read": "drift service:airflow-apiserver",
+      "equal": true,
+      "snapshot_ids": [
+        "aip:snapshot:v1:622470bbb7a75c63bf3402b93a0d9674b9e11bcd69625a01778ef13df8d2a318"
+      ]
+    }
+  ]
+}

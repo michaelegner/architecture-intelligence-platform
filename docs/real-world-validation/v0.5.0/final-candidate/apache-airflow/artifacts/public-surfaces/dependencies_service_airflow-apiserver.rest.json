@@ -1,0 +1,37 @@
+{
+  "claims": [],
+  "data": {
+    "dependency_claim_ids": [],
+    "deployment_claim_ids": [],
+    "deployment_resolutions": [],
+    "service": {
+      "id": "service:airflow-apiserver",
+      "method": null,
+      "name": "Airflow API",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [],
+  "limitations": [],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:c810bda4883ebbfb85bfec7f42a2ec4ab4ae5a568f43c50113c0278a56902706",
+    "environment": "airflow-i5",
+    "window_end": "2026-09-25T13:19:14Z",
+    "window_start": "2026-09-25T13:18:45Z"
+  },
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "aa04a150965924bd23ecf0125bcf7095a3cf72d9",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.2"
+  },
+  "schema_version": "0.5",
+  "snapshot": {
+    "model_revision": "sha256:622470bbb7a75c63bf3402b93a0d9674b9e11bcd69625a01778ef13df8d2a318",
+    "snapshot_id": "aip:snapshot:v1:622470bbb7a75c63bf3402b93a0d9674b9e11bcd69625a01778ef13df8d2a318"
+  },
+  "tool": "get_service_dependencies"
+}
