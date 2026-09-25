@@ -14,11 +14,13 @@ merge of this PR is the freeze.
 ## Mutations
 
 Only the following edits are permitted, and each is applied to the copy:
-- **Omit X.** Delete X's file, and drop X's entry from the copy of `bindings/architecture-identity-bindings.yaml`. That
-  file is AIP operator configuration. Without this edit, it would reference an absent source, which
-  is a separate phase-1 failure.
+- **Omit X.** Delete X's file. If X has an entry in `bindings/architecture-identity-bindings.yaml`,
+  drop it from the copy. That file is AIP operator configuration, and without this edit it would
+  reference an absent source, which is a separate phase-1 failure. An X without an entry leaves the
+  copy byte-identical.
 - **Unbound copy.** Add a byte-identical copy of one declaration under a new path, with no binding.
-- **Inject.** Insert one root line, `x-aip-service-id: <id>`, before `info:` in X's copy.
+- **Inject.** Insert one root line, `x-aip-service-id: <id>`, before `info:` in the copy of the
+  step's `inject` file.
 - **Relocate.** Materialize the copy under the root `declarations-relocated` instead of
   `declarations`.
 - **Tombstone X.** Add an I1 §6 tombstone for X. The frozen fields are in `tombstone.template.yaml`.
@@ -28,14 +30,16 @@ Only the following edits are permitted, and each is applied to the copy:
 
 | Target | X | Why |
 | --- | --- | --- |
-| quarkus-super-heroes | `rest-fights/openapi.yml` | No other declaration depends on it. The rest-fights manifest calls only heroes, villains and narration operations. |
+| quarkus-super-heroes | `rest-fights/architecture.yaml` (corrected; see "Revision history") | No other declaration depends on it: it emits only CALLS, nothing refers to it, and it has no binding (its own `x-aip-service-id` resolves it). |
 | apache-airflow | `airflow-apiserver/openapi.yml` | Airflow's only OpenAPI. Omitting it leaves a valid bindings document with an empty list. |
 
 For the L4b unbound copy and the L6 injected identity:
-- **quarkus-super-heroes:** the copy is of `rest-heroes/openapi.yml`, and the injected id is
-  `service:rest-villains`, which disagrees with X's binding `service:rest-fights`.
-- **apache-airflow:** the copy is of `airflow-apiserver/openapi.yml`, and the injected id is
-  `service:airflow-scheduler`, which disagrees with X's binding `service:airflow-apiserver`.
+- **quarkus-super-heroes:** the copy is of `rest-heroes/openapi.yml`. The injected id is
+  `service:rest-villains`, injected into `rest-fights/openapi.yml`, where it disagrees with that
+  file's binding `service:rest-fights`. This is the #244 L6 input, byte for byte.
+- **apache-airflow:** the copy is of `airflow-apiserver/openapi.yml`. The injected id is
+  `service:airflow-scheduler`, injected into X, where it disagrees with X's binding
+  `service:airflow-apiserver`.
 
 ## Scenario sequence and expected outcomes
 
@@ -60,8 +64,8 @@ The steps run in this order, per target, on one clean state.
 | L1 | Reimport | none | No-op. Every `sources[*].graph_revision_advanced` is `false`, and all `nodes_expired`/`relations_expired` are `0`. **All** of State(L1) equals State(S0), including `inventory_revision` and Q-SRC-SEM. The dependencies `snapshot_id` of one declared Service equals its S0 value. | I1 §10 replay (identical inputs and mapping context) |
 | L4a | Failed discovery | root → `declarations-missing` (absent) | `committed:false`, `sources:{}`. All of State(L4a) equals State(L1). No `Removed` log line. | I1 §6: missing roots preserve the prior inventory |
 | L4b | Incomplete discovery | omit X, and add an unbound copy | `committed:false`, `sources:{}`. All of State(L4b) equals State(L1), so **X is still owned**, and no `Removed` line appears. | I1 §6: a run with a source failing validation is PARTIAL, nothing commits, and absence never removes ownership |
-| L6 | Conflicting source | inject a disagreeing `x-aip-service-id` into X | `committed:false`, `sources:{}`. All of State(L6) equals State(L1). | I1 §4.1 (disagreeing identities → `REJECTED_CONFLICT`) and §6 (nothing commits) |
-| L2 | Complete same-scope inventory without one source | omit X | `committed:true`. The `Removed` log line names X only. Q-SRC equals State(L1) minus X's row. The owned graph equals **Without_X(L1)**. X appears in no Q-OWN row. X has no Q-SRC-SEM row; the other rows are not asserted, because the bindings changed. | I1 §6 removal path 2 |
+| L6 | Conflicting source | inject a disagreeing `x-aip-service-id` into the step's `inject` file (see above) | `committed:false`, `sources:{}`. All of State(L6) equals State(L1). | I1 §4.1 (disagreeing identities → `REJECTED_CONFLICT`) and §6 (nothing commits) |
+| L2 | Complete same-scope inventory without one source | omit X | `committed:true`. The `Removed` log line names X only. Q-SRC equals State(L1) minus X's row. The owned graph equals **Without_X(L1)**. X appears in no Q-OWN row. X has no Q-SRC-SEM row; the other rows are not asserted (on Airflow the bindings change). | I1 §6 removal path 2 |
 | R | (restore) | none | `committed:true`. Q-SRC, Q-SRC-SEM, Q-OWN and the owned graph all equal State(L1), so X is owned again. The inputs and bindings are identical to L1. | setup for L5/L3 |
 | L5 | Changed scope | relocate, and omit X | `committed:true`. No `Removed` line. **X is not removed:** X's Q-SRC and Q-SRC-SEM rows equal State(R), and the owned graph equals State(R). Q-INV has the same `discovery_scope_id` and a new `scope_definition_digest`, and the other sources' Q-SRC rows carry that new digest. | I1 §6: changed scopes preserve claims of undiscovered sources; the scope id excludes roots |
 | L3 | Explicit tombstone | relocate, omit X, and tombstone X (bound to State(L5) Q-INV) | `committed:true`. The `Removed` log line names X only. Q-SRC equals State(L5) minus X's row. The owned graph equals **Without_X(L5)**. X appears in no Q-OWN row. | I1 §6: removal authorized by an explicit tombstone matching the committed inventory |
@@ -117,3 +121,32 @@ evidence only (I5 §9):
   `test_sources_replay.py`.
 
 These are fixtures, and they never stand in for the real-declaration runs above.
+
+## Revision history
+
+**2026-09-25: I5 §6 correction of the Quarkus X (finding F7, #253).** Slice 5 showed that the #244
+choice of X = `rest-fights/openapi.yml` rested on a false premise, "no other declaration depends on
+it". The rest-fights manifest emits CALLS from `service:rest-fights`, and only that OpenAPI declares
+the Service. So L2, L5 and L3 were inputs the contract rejects, while this ledger expected them to
+commit. The correction changes the **input design only**; every expected outcome above is the same
+I1 §6 / §10 rule, applied to the corrected X:
+- X is now `rest-fights/architecture.yaml`, which no declaration depends on.
+- L6's disagreeing identity names its own `inject` file. Its input is unchanged (same digest), and so
+  is Airflow's whole scenario (every digest is unchanged).
+- `mutate.py` drops X's binding only when X has one.
+- The re-pinned digests are Quarkus L4b, L2, L5 and L3 (`tests/unit/test_i5_lifecycle_freeze.py`).
+  A new test runs AIP's discovery over every step of both targets and requires each committing
+  step's input to be commit-eligible and each non-committing step's not to be, so an input like
+  F7's is caught before any run.
+
+The failed Slice 5 comparison stays on record unchanged (`results.md`, `artifacts/`): a correction
+cannot replace a failed comparison. The owner's merge of this correction is the re-freeze, and
+Slice 7 reruns the Quarkus lifecycle on the corrected input.
+
+**Same date: `without_x.py` (finding F6, #253).** When every row is removed, it now prints nothing,
+exactly as `cypher-shell` prints an empty result, instead of a lone header line. No expected outcome
+changes.
+
+The observability limitation above predates finding F2. Since #254, the import report exposes each
+step's result labels and diagnostics. This ledger does not add expectations for them, because they
+would have to be authored from I1 alone before any run.

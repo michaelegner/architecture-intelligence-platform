@@ -15,7 +15,9 @@ steps:
     root: declarations
     omit_x: true
     unbound_copy: {from: airflow-apiserver/openapi.yml, to: lifecycle-unbound-copy/openapi.yml}
-  - {id: L6, root: declarations, inject_x_service_id: service:airflow-scheduler}
+  - id: L6
+    root: declarations
+    inject: {file: airflow-apiserver/openapi.yml, service_id: service:airflow-scheduler}
   - {id: L2, root: declarations, omit_x: true}
   - {id: R, root: declarations}
   - {id: L5, root: declarations-relocated, omit_x: true}
