@@ -73,6 +73,30 @@ class ManifestSourceAdapter:
             return rejected_outcome_for_identity(root_resolution)
         caller_service_id = root_resolution.service_id
 
+        # v0.5.0 I5 finding F1: the manifest declares CALLS from its caller, but never the caller
+        # Service itself - that comes from a phase-0 source (the caller's own OpenAPI/AsyncAPI).
+        # Without one, every CALLS relation would have an unknown source, so the manifest is
+        # rejected here exactly like an unresolved call target, and it mints nothing.
+        known_service_ids = {service.id for service in upstream_model.services}
+        if document.get("calls") and caller_service_id not in known_service_ids:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_UNSUPPORTED,
+                model=ArchitectureModel(),
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.MANIFEST_CALL_SOURCE_UNRESOLVED,
+                        message=(
+                            f"caller service {caller_service_id!r} is not declared by any "
+                            "discovered source"
+                        ),
+                        source_pointer=(
+                            "/x-aip-service-id" if "x-aip-service-id" in document else ""
+                        ),
+                    ),
+                ),
+                semantic_input_digest=None,
+            )
+
         # (service, operationId) -> full canonical Operation id, built from the merged phase-0
         # model instead of pipeline.py's separately-scanned index.
         operation_index: dict[tuple[str, str], str] = {

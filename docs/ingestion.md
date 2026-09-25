@@ -87,6 +87,30 @@ an `operation_index` it builds from `upstream_model` — every phase-0 adapter's
 `Operation.id` values — the manifest adapter itself never constructs an operation id independently,
 so it can never drift out of sync with however operation ids are actually minted.
 
+The manifest never mints a Service either. Its caller (resolved from its own `x-aip-service-id`,
+a configured mapping, or an identity binding) must be declared by a phase-0 source, normally the
+caller's own OpenAPI or AsyncAPI. If no discovered source declares it, the manifest is
+`REJECTED_UNSUPPORTED` with `MANIFEST_CALL_SOURCE_UNRESOLVED` (pointer `/x-aip-service-id`, or `""`
+when the identity came from elsewhere), exactly like an unresolved call target
+(`MANIFEST_CALL_TARGET_UNRESOLVED`). A manifest without calls emits no CALLS and is not checked.
+
+## Canonical validation
+
+After every source is mapped and merged, discovery validates the merged model against the canonical
+invariants (V1-V8, `app/validation/canonical_validation.py`) before any reconciliation plan exists
+(I1 §7). Each violation names the elements it implicates: entity ids, and relations as
+`TYPE:source_id:target_id`. It is attributed to every source that emitted one of them:
+- each such source gets a `CANONICAL_MODEL_INVALID` diagnostic per violation, pointing at the
+  lowest implicated element it emitted, and becomes `REJECTED_INVALID` (unless it was already
+  rejected);
+- the run is `PARTIAL`, or `FAILED` if some violation cannot be attributed to any source (it is then
+  a run-level diagnostic);
+- nothing commits, and every source keeps exactly one result (I1 §6, §10).
+
+This is a safety net behind the adapters' own checks. Before v0.5.0 I5 finding F1, the importer ran
+the validation after the commit gate, and a violation escaped `POST /api/import` as HTTP 500 with no
+per-source result.
+
 ## Kubernetes adapter (`app/ingestion/kubernetes_adapter.py`)
 
 `OFFLINE_ONLY` (v0.5.0 I2): maps a frozen, versioned Kubernetes resource snapshot envelope — never a

@@ -84,6 +84,11 @@ from app.sources.service_identity import (
     resolve_service_identity,
 )
 from app.sources.tombstones import Tombstone
+from app.validation.canonical_validation import (
+    CanonicalValidationIssue,
+    canonical_validation_issues,
+    relation_element_id,
+)
 
 _DEFAULT_ADAPTERS = (
     OpenApiSourceAdapter(),
@@ -443,6 +448,97 @@ def _rejected_conflict(run_outcome: SourceRunOutcome) -> SourceRunOutcome:
     )
 
 
+_MODEL_ENTITY_FIELDS = (
+    "services",
+    "operations",
+    "queues",
+    "messages",
+    "schemas",
+    "provenance",
+    "topics",
+    "subscriptions",
+    "pubsub_declarations",
+    "subscription_dead_letter_configurations",
+    "infrastructure_entities",
+    "infrastructure_contributions",
+    "infrastructure_claims",
+)
+
+
+def _model_element_ids(model: ArchitectureModel) -> frozenset[str]:
+    """Every entity id and relation element id a source's model emits - the vocabulary of
+    `CanonicalValidationIssue.element_ids`."""
+    return frozenset(
+        {entity.id for field in _MODEL_ENTITY_FIELDS for entity in getattr(model, field)}
+        | {relation_element_id(relation) for relation in model.relations}
+    )
+
+
+_REJECTABLE_RESULTS = (IngestionResult.ACCEPTED, IngestionResult.ACCEPTED_WITH_LIMITATIONS)
+
+
+def _reject_canonically_invalid(
+    source_outcomes: dict[str, SourceRunOutcome], issues: Sequence[CanonicalValidationIssue]
+) -> tuple[dict[str, SourceRunOutcome], list[IngestionDiagnostic], list[CanonicalValidationIssue]]:
+    """Attributes each canonical-validation issue to every source that emitted one of its
+    implicated elements. Such a source gets one `CANONICAL_MODEL_INVALID` diagnostic per issue
+    (pointing at the lowest implicated element it emitted) and, unless it was already rejected,
+    becomes REJECTED_INVALID; its mapped model is kept, since nothing commits. Returns the rewritten
+    outcomes, the new diagnostics (per-source and run-level), and the unattributed issues."""
+    elements = {
+        source_instance_id: _model_element_ids(run_outcome.outcome.model)
+        for source_instance_id, run_outcome in source_outcomes.items()
+    }
+    per_source: dict[str, list[IngestionDiagnostic]] = {}
+    unattributed: list[CanonicalValidationIssue] = []
+    for issue in issues:
+        implicated = set(issue.element_ids)
+        attributed = False
+        for source_instance_id in sorted(source_outcomes):
+            emitted = implicated & elements[source_instance_id]
+            if not emitted:
+                continue
+            attributed = True
+            per_source.setdefault(source_instance_id, []).append(
+                IngestionDiagnostic(
+                    code=DiagnosticCode.CANONICAL_MODEL_INVALID,
+                    message=issue.message,
+                    source_pointer=min(emitted),
+                    source_instance_id=source_instance_id,
+                )
+            )
+        if not attributed:
+            unattributed.append(issue)
+
+    rewritten = dict(source_outcomes)
+    for source_instance_id, diagnostics in per_source.items():
+        run_outcome = rewritten[source_instance_id]
+        outcome = run_outcome.outcome
+        rewritten[source_instance_id] = replace(
+            run_outcome,
+            outcome=replace(
+                outcome,
+                result=(
+                    IngestionResult.REJECTED_INVALID
+                    if outcome.result in _REJECTABLE_RESULTS
+                    else outcome.result
+                ),
+                diagnostics=(*outcome.diagnostics, *diagnostics),
+            ),
+        )
+
+    new_diagnostics = [d for sid in sorted(per_source) for d in per_source[sid]]
+    new_diagnostics.extend(
+        IngestionDiagnostic(
+            code=DiagnosticCode.CANONICAL_MODEL_INVALID,
+            message=issue.message,
+            source_pointer=min(issue.element_ids) if issue.element_ids else None,
+        )
+        for issue in unattributed
+    )
+    return rewritten, new_diagnostics, unattributed
+
+
 @dataclass(frozen=True)
 class DiscoveryRunResult:
     inventory_status: InventoryStatus
@@ -763,6 +859,40 @@ def run_discovery(
         )
 
     merged_model = merge_models(source_models)
+
+    # I1 §7: canonical validation precedes the reconciliation plan. v0.5.0 I5 finding F1: a
+    # violation used to escape the import as an exception (an HTTP 500) with no per-source result.
+    # Each issue is attributed to the sources whose emitted elements it implicates; those sources
+    # are REJECTED_INVALID and the run is PARTIAL. An issue no source can be attributed to makes the
+    # run FAILED. Either way nothing commits, and every source keeps exactly one result (I1 §10).
+    validation_issues = canonical_validation_issues(merged_model)
+    if validation_issues:
+        source_outcomes, validation_diagnostics, unattributed = _reject_canonically_invalid(
+            source_outcomes, validation_issues
+        )
+        run_diagnostics.extend(validation_diagnostics)
+        status = InventoryStatus.FAILED if unattributed else InventoryStatus.PARTIAL
+        return DiscoveryRunResult(
+            inventory_status=status,
+            commit_eligible=False,
+            discovery_scope_id=discovery_outcome.discovery_scope_id,
+            scope_definition_digest=discovery_outcome.scope_definition_digest,
+            merged_model=ArchitectureModel(),
+            source_outcomes=source_outcomes,
+            diagnostics=tuple(run_diagnostics),
+            inventory_snapshot=_build_inventory_snapshot(
+                discoverer_identity=discoverer.discoverer_identity,
+                registry=registry,
+                discovery_scope_id=discovery_outcome.discovery_scope_id,
+                scope_definition_digest=discovery_outcome.scope_definition_digest,
+                status=status,
+                source_outcomes=source_outcomes,
+                diagnostics=run_diagnostics,
+                tombstones=tombstones,
+            ),
+            expected_prior_inventory_revision=discovery_outcome.expected_prior_inventory_revision,
+        )
+
     status = classify_inventory_status(
         source_results=[o.outcome.result for o in source_outcomes.values()],
         discoverer_enumeration_complete=True,

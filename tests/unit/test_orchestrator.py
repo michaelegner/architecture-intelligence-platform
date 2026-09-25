@@ -4,6 +4,7 @@ import pytest
 import yaml
 
 from app.canonical.infrastructure import (
+    KUBERNETES_SOURCE_TYPE,
     InfrastructureClaim,
     InfrastructureClaimKind,
     InfrastructureContribution,
@@ -11,8 +12,15 @@ from app.canonical.infrastructure import (
     InfrastructureEntityKind,
     KubernetesEvidenceMode,
 )
-from app.canonical.model import ArchitectureModel
-from app.ingestion.orchestrator import merge_models, run_discovery, run_filesystem_discovery
+from app.canonical.model import ArchitectureModel, Relation, Service
+from app.ingestion.orchestrator import (
+    SourceRunOutcome,
+    _reject_canonically_invalid,
+    merge_models,
+    run_discovery,
+    run_filesystem_discovery,
+)
+from app.provenance.model import Provenance
 from app.sources.identity import source_instance_id
 from app.sources.inventory import InventoryStatus
 from app.sources.migration_mappings import (
@@ -32,6 +40,7 @@ from app.sources.model import (
 )
 from app.sources.registry import AdapterOutcome, DiscoveryOutcome, SourceAdapterRegistry
 from app.sources.tombstones import Tombstone
+from app.validation.canonical_validation import CanonicalValidationIssue
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 
@@ -136,6 +145,16 @@ def test_manifest_call_resolves_across_services(tmp_path):
             "service": "caller",
             "x-aip-service-id": "service:caller",
             "calls": [{"service": "service:callee", "operationId": "getThing"}],
+        },
+    )
+    # The caller Service comes from the caller's own OpenAPI; the manifest never mints it.
+    _write(
+        tmp_path / "caller" / "openapi.yaml",
+        {
+            "openapi": "3.1.0",
+            "info": {"title": "Caller"},
+            "x-aip-service-id": "service:caller",
+            "paths": {"/c": {"get": {"operationId": "getC", "responses": {"200": {}}}}},
         },
     )
     _write(
@@ -953,7 +972,17 @@ class _FakeInfrastructureAdapter:
         return AdapterOutcome(
             result=IngestionResult.ACCEPTED,
             model=ArchitectureModel(
-                infrastructure_entities=[entity], infrastructure_contributions=[contribution]
+                infrastructure_entities=[entity],
+                infrastructure_contributions=[contribution],
+                # The evidence the contribution references, internal-only per I2 §9, so the merged
+                # model passes canonical validation.
+                provenance=[
+                    Provenance(
+                        id="evidence:kubernetes:1",
+                        source_type=KUBERNETES_SOURCE_TYPE,
+                        source_file="fake.yaml",
+                    )
+                ],
             ),
             diagnostics=(),
             semantic_input_digest=loaded.descriptor.semantic_input_digest,
@@ -1171,3 +1200,86 @@ def test_one_source_reusing_a_configured_subscription_id_across_two_topics_rejec
     [outcome] = run.source_outcomes.values()
     assert outcome.outcome.result is IngestionResult.REJECTED_CONFLICT
     assert DiagnosticCode.SUBSCRIPTION_IDENTITY_CONFLICT in {d.code for d in run.diagnostics}
+
+
+class _FakeRelationAdapter:
+    """v0.5.0 I5 finding F1: emits whatever model the test assigns to each source - here a
+    Service, or a CALLS relation whose source Service no source declares (a defective adapter)."""
+
+    adapter_identity = "fake-relation-adapter@1"
+    mapping_rule_version = "v1"
+    dependency_phase = 0
+
+    def __init__(self, models_by_source: dict[str, ArchitectureModel]):
+        self._models_by_source = models_by_source
+
+    def supports(self, loaded) -> bool:
+        return "fakeInfrastructureSource" in loaded.document
+
+    def map(self, loaded, **_kwargs):
+        return AdapterOutcome(
+            result=IngestionResult.ACCEPTED,
+            model=self._models_by_source[loaded.descriptor.source_instance_id],
+            diagnostics=(),
+            semantic_input_digest=loaded.descriptor.semantic_input_digest,
+        )
+
+
+def _run_with_models(models_by_source: dict[str, ArchitectureModel]):
+    outcome = DiscoveryOutcome(
+        loaded_sources=tuple(_loaded_source(sid) for sid in models_by_source),
+        enumeration_complete=True,
+        diagnostics=(),
+        discovery_scope_id="urn:aip:discovery-scope:fake",
+        scope_definition_digest="fake-scope-digest",
+    )
+    registry = SourceAdapterRegistry([_FakeRelationAdapter(models_by_source)])
+    return run_discovery(_FakeDiscoverer(outcome), registry=registry)
+
+
+def test_a_canonically_invalid_source_is_rejected_invalid_and_the_run_partial():
+    """The F1 safety net: a violation is attributed to the source that emitted the offending
+    element, which becomes REJECTED_INVALID; the other source keeps its own result, and the run is
+    PARTIAL instead of the validation error escaping."""
+    dangling = Relation(type="CALLS", source_id="service:ghost", target_id="operation:x")
+    result = _run_with_models(
+        {
+            "urn:aip:source:filesystem:good": ArchitectureModel(
+                services=[Service(id="service:good", name="good")]
+            ),
+            "urn:aip:source:filesystem:bad": ArchitectureModel(relations=[dangling]),
+        }
+    )
+    assert result.inventory_status is InventoryStatus.PARTIAL
+    assert result.commit_eligible is False
+    good = result.source_outcomes["urn:aip:source:filesystem:good"].outcome
+    bad = result.source_outcomes["urn:aip:source:filesystem:bad"].outcome
+    assert good.result is IngestionResult.ACCEPTED and good.diagnostics == ()
+    assert bad.result is IngestionResult.REJECTED_INVALID
+    assert {d.code for d in bad.diagnostics} == {DiagnosticCode.CANONICAL_MODEL_INVALID}
+    assert {d.source_pointer for d in bad.diagnostics} == {"CALLS:service:ghost:operation:x"}
+    assert all(d.source_instance_id == "urn:aip:source:filesystem:bad" for d in bad.diagnostics)
+    run_codes = [d.code for d in result.diagnostics]
+    assert run_codes.count(DiagnosticCode.CANONICAL_MODEL_INVALID) == len(bad.diagnostics)
+
+
+def test_an_unattributable_canonical_issue_fails_the_run_without_rejecting_sources():
+    outcomes = {
+        "urn:aip:source:filesystem:good": SourceRunOutcome(
+            descriptor_locator="good.yaml",
+            outcome=AdapterOutcome(
+                result=IngestionResult.ACCEPTED,
+                model=ArchitectureModel(services=[Service(id="service:good", name="good")]),
+                diagnostics=(),
+                semantic_input_digest=None,
+            ),
+        )
+    }
+    issue = CanonicalValidationIssue(message="nobody emitted this", element_ids=("service:ghost",))
+    rewritten, diagnostics, unattributed = _reject_canonically_invalid(outcomes, [issue])
+    assert rewritten == outcomes
+    assert unattributed == [issue]
+    [diagnostic] = diagnostics
+    assert diagnostic.code is DiagnosticCode.CANONICAL_MODEL_INVALID
+    assert diagnostic.source_instance_id is None
+    assert diagnostic.source_pointer == "service:ghost"

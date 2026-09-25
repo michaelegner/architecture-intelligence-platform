@@ -77,12 +77,32 @@ def ingest_declarations(driver: neo4j.Driver, *, database: str, scenario_path: P
         if staging_root.exists():
             shutil.rmtree(staging_root)
         shutil.copytree(declarations_dir, staging_root)
-        import_all_sources(
-            driver,
-            database=database,
-            source_config=FilesystemSourceConfig(
-                id=f"evaluation-{scenario_path.name}", root=staging_root
-            ),
+        _import_committed(driver, database=database, scenario_path=scenario_path, root=staging_root)
+
+
+def _import_committed(
+    driver: neo4j.Driver, *, database: str, scenario_path: Path, root: Path
+) -> None:
+    """Imports a scenario's staged declarations and requires the run to commit. Since v0.5.0 I5
+    finding F1 an invalid declaration set is a non-committing run with per-source results instead
+    of an exception, so without this check a broken fixture would silently evaluate an empty or
+    stale graph."""
+    stats = import_all_sources(
+        driver,
+        database=database,
+        source_config=FilesystemSourceConfig(id=f"evaluation-{scenario_path.name}", root=root),
+    )
+    if not stats.committed:
+        rejected = sorted(
+            f"{result.locator}: {result.result.value} "
+            f"{sorted({d.code.value for d in result.diagnostics})}"
+            for result in stats.source_results
+            if result.result.value.startswith("REJECTED")
+        )
+        raise RuntimeError(
+            f"scenario {scenario_path.name}: declaration import did not commit "
+            f"({stats.inventory_status.value}; run diagnostics "
+            f"{sorted({d.code.value for d in stats.diagnostics})}; rejected sources {rejected})"
         )
 
 
@@ -143,13 +163,7 @@ def apply_reconciliation(driver: neo4j.Driver, *, database: str, scenario_path: 
     if reconciliation_dir.is_dir() and any(reconciliation_dir.iterdir()):
         staging_root = _staging_root(scenario_path)
         shutil.copytree(reconciliation_dir, staging_root, dirs_exist_ok=True)
-        import_all_sources(
-            driver,
-            database=database,
-            source_config=FilesystemSourceConfig(
-                id=f"evaluation-{scenario_path.name}", root=staging_root
-            ),
-        )
+        _import_committed(driver, database=database, scenario_path=scenario_path, root=staging_root)
 
 
 def prepare_scenario(driver: neo4j.Driver, *, database: str, scenario_path: Path) -> None:

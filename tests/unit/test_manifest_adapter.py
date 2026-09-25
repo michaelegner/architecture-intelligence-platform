@@ -1,9 +1,10 @@
 from pathlib import Path
 
-from app.canonical.model import ArchitectureModel, Operation
+from app.canonical.model import ArchitectureModel, Operation, Service
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.manifest_adapter import ManifestSourceAdapter
 from app.ingestion.openapi_adapter import OpenApiSourceAdapter
+from app.ingestion.orchestrator import merge_models
 from app.sources.migration_mappings import EMPTY_SHARED_IDENTITY_INDEX
 from app.sources.model import (
     DiagnosticCode,
@@ -17,6 +18,8 @@ from app.sources.service_identity import resolve_service_identity
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 SOURCE_INSTANCE_ID = "urn:aip:source:filesystem:" + "a" * 64
+# The manifest's caller is declared by a phase-0 source (its own OpenAPI), never by the manifest.
+CALLER = Service(id="service:order-service", name="order-service")
 
 
 class _StubResolver:
@@ -52,13 +55,16 @@ def _map(document: dict, upstream_model: ArchitectureModel | None = None):
         _loaded(document),
         service_identity=_StubResolver(),
         shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
-        upstream_model=upstream_model if upstream_model is not None else ArchitectureModel(),
+        upstream_model=(
+            upstream_model if upstream_model is not None else ArchitectureModel(services=[CALLER])
+        ),
         mapping_context_digest="e" * 64,
     )
 
 
 def _upstream_with_operation(service_id: str, operation_id: str, target_operation_full_id: str):
     return ArchitectureModel(
+        services=[CALLER],
         operations=[
             Operation(
                 id=target_operation_full_id,
@@ -67,7 +73,7 @@ def _upstream_with_operation(service_id: str, operation_id: str, target_operatio
                 method="GET",
                 path="/x",
             )
-        ]
+        ],
     )
 
 
@@ -112,6 +118,27 @@ def test_malformed_call_target_service_id_is_rejected_invalid():
     outcome = _map(document)
     assert outcome.result is IngestionResult.REJECTED_INVALID
     assert outcome.diagnostics[0].code is DiagnosticCode.SERVICE_IDENTITY_INVALID
+
+
+def test_undeclared_caller_service_is_rejected_unsupported_and_mints_nothing():
+    """v0.5.0 I5 finding F1: no phase-0 source declares the caller Service, so every CALLS would
+    have an unknown source. The manifest is rejected; it never mints the Service."""
+    upstream = _upstream_with_operation(
+        "service:product-service",
+        "getProduct",
+        "operation:service:product-service:GET:/products/{id}",
+    ).model_copy(update={"services": []})
+    document = {
+        "service": "order-service",
+        "x-aip-service-id": "service:order-service",
+        "calls": [{"service": "service:product-service", "operationId": "getProduct"}],
+    }
+    outcome = _map(document, upstream)
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    [diagnostic] = outcome.diagnostics
+    assert diagnostic.code is DiagnosticCode.MANIFEST_CALL_SOURCE_UNRESOLVED
+    assert diagnostic.source_pointer == "/x-aip-service-id"
+    assert outcome.model == ArchitectureModel()
 
 
 def test_no_calls_produces_no_relations():
@@ -163,6 +190,20 @@ def test_real_manifest_fixture_resolves_against_real_openapi_fixture():
     )
     assert openapi_outcome.result is IngestionResult.ACCEPTED
 
+    order_openapi = next(
+        s
+        for s in loaded_sources
+        if Path(s.descriptor.locator) == EXAMPLES_DIR / "order-service" / "openapi.yaml"
+    )
+    caller_outcome = OpenApiSourceAdapter().map(
+        order_openapi,
+        service_identity=_StubResolver(),
+        shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
+        upstream_model=ArchitectureModel(),
+        mapping_context_digest="e" * 64,
+    )
+    assert caller_outcome.result is IngestionResult.ACCEPTED
+
     manifest_source = next(
         s
         for s in loaded_sources
@@ -172,7 +213,7 @@ def test_real_manifest_fixture_resolves_against_real_openapi_fixture():
         manifest_source,
         service_identity=_StubResolver(),
         shared_identity=EMPTY_SHARED_IDENTITY_INDEX,
-        upstream_model=openapi_outcome.model,
+        upstream_model=merge_models([openapi_outcome.model, caller_outcome.model]),
         mapping_context_digest="e" * 64,
     )
     assert outcome.result is IngestionResult.ACCEPTED
