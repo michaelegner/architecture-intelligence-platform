@@ -15,9 +15,11 @@ scan -> parse -> source-level validate -> map to Canonical Model -> canonical va
      -> reconcile/diff -> transactional graph write
 ```
 
-`app/ingestion/orchestrator.py` drives discovery, mapping, and merge, via a registered
-`SourceAdapter` seam (`app/sources/registry.py` — see [ADR 0009](adr/0009-source-adapter-seam.md));
-`app/graph/importer.py` drives reconciliation and the write. A source's import is **atomic**: it
+`app/ingestion/orchestrator.py` drives discovery, mapping, merge, and canonical validation, via a
+registered `SourceAdapter` seam (`app/sources/registry.py` — see
+[ADR 0009](adr/0009-source-adapter-seam.md)); `app/graph/importer.py` drives reconciliation and the
+write. A canonical-validation violation is a per-source result, not an exception: see
+[`ingestion.md`](ingestion.md#canonical-validation). A source's import is **atomic**: it
 either fully succeeds or is entirely discarded — a partial import is never left in the graph (this
 is validation rule V9 / acceptance criterion AC14 of the original PoC spec, now scoped per source
 instance rather than per service — one service may be declared by more than one source, and one

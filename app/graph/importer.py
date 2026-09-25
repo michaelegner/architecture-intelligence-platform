@@ -43,7 +43,6 @@ from app.sources.tombstones import (
     TombstoneValidation,
     validate_tombstone_against_committed_inventory,
 )
-from app.validation.canonical_validation import validate_canonical_model
 
 # NotSupplied/NOT_SUPPLIED were relocated to app.sources.model in I2 Draft 0.2 slice 2b-ii - see
 # that module's own docstring for why (app.sources.registry/app.ingestion.orchestrator, both lower
@@ -1370,8 +1369,6 @@ def import_discovery_run(
             discovery_scope_id=run_result.discovery_scope_id,
             scope_definition_digest=run_result.scope_definition_digest,
         )
-
-    validate_canonical_model(run_result.merged_model)
 
     with open_session(driver, database=database) as session:
         ensure_schema(session)

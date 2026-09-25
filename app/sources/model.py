@@ -160,6 +160,13 @@ class DiagnosticCode(StrEnum):
     # Not named by the spec text; introduced here for the Architecture Manifest CALLS-relation
     # adapter, distinct from the ArchitectureIdentityBindings manifest's own diagnostic codes above.
     MANIFEST_CALL_TARGET_UNRESOLVED = "MANIFEST_CALL_TARGET_UNRESOLVED"
+    # v0.5.0 I5 finding F1: the manifest's own caller Service is not declared by any discovered
+    # source. The manifest never mints a Service, so its CALLS would have no source entity.
+    MANIFEST_CALL_SOURCE_UNRESOLVED = "MANIFEST_CALL_SOURCE_UNRESOLVED"
+    # v0.5.0 I5 finding F1: the merged canonical model violates a canonical invariant (V1-V8) that
+    # this source's emitted elements take part in. The source is REJECTED_INVALID and the run does
+    # not commit, instead of the validation failure escaping the import.
+    CANONICAL_MODEL_INVALID = "CANONICAL_MODEL_INVALID"
     # Not named by the spec text; introduced here for PR3b's bounded multi-file $ref resolution
     # (I1 spec §8.1/§9). REFERENCE_LIMIT_EXCEEDED/REFERENCE_CYCLE_UNSUPPORTED already existed above
     # (added ahead of their real use); these three cover the remaining §8.1 resolution-order

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from dataclasses import dataclass
 
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE, UNARY_CLAIM_KINDS
 from app.canonical.model import ArchitectureModel
@@ -12,17 +13,48 @@ class CanonicalValidationError(ValueError):
         super().__init__("; ".join(errors))
 
 
-def _check_unique(entity_ids: list[str], label: str, errors: list[str]) -> None:
+@dataclass(frozen=True)
+class CanonicalValidationIssue:
+    """One canonical-model invariant violation, with the elements it implicates: the ids of the
+    offending entities and the `TYPE:source_id:target_id` keys of the offending relations. A
+    discovery run uses them to attribute the issue to the sources that emitted those elements
+    (v0.5.0 I5 finding F1)."""
+
+    message: str
+    element_ids: tuple[str, ...]
+
+
+def relation_element_id(relation) -> str:
+    """A relation's element id - the same `TYPE:source_id:target_id` form as the importer's
+    `relation_key`."""
+    return f"{relation.type}:{relation.source_id}:{relation.target_id}"
+
+
+def _issue(message: str, *element_ids: str) -> CanonicalValidationIssue:
+    return CanonicalValidationIssue(message=message, element_ids=tuple(element_ids))
+
+
+def _check_unique(
+    entity_ids: list[str], label: str, errors: list[CanonicalValidationIssue]
+) -> None:
     seen: set[str] = set()
     for entity_id in entity_ids:
         if entity_id in seen:
-            errors.append(f"{label} id is not unique: {entity_id}")
+            errors.append(_issue(f"{label} id is not unique: {entity_id}", entity_id))
         seen.add(entity_id)
 
 
 def validate_canonical_model(model: ArchitectureModel) -> None:
     """Enforces V1-V8 (spec §10) against a fully merged ArchitectureModel."""
-    errors: list[str] = []
+    issues = canonical_validation_issues(model)
+    if issues:
+        raise CanonicalValidationError([issue.message for issue in issues])
+
+
+def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValidationIssue]:
+    """Every V1-V8 (spec §10) violation in a merged ArchitectureModel, in a deterministic order.
+    Empty when the model is valid."""
+    errors: list[CanonicalValidationIssue] = []
 
     service_ids = {s.id for s in model.services}
     queue_ids = {q.id for q in model.queues}
@@ -46,41 +78,74 @@ def validate_canonical_model(model: ArchitectureModel) -> None:
             provides_sources_by_target[relation.target_id].append(relation.source_id)
     for operation in model.operations:
         providers = provides_sources_by_target.get(operation.id, [])
+        provides_ids = [f"PROVIDES:{provider}:{operation.id}" for provider in providers]
         if len(providers) != 1:
             errors.append(
-                f"Operation {operation.id} must have exactly one PROVIDES relation, found {len(providers)}"
+                _issue(
+                    f"Operation {operation.id} must have exactly one PROVIDES relation, found "
+                    f"{len(providers)}",
+                    operation.id,
+                    *provides_ids,
+                )
             )
         elif providers[0] != operation.service_id:
             errors.append(
-                f"Operation {operation.id} is provided by {providers[0]} but declares "
-                f"service_id {operation.service_id}"
+                _issue(
+                    f"Operation {operation.id} is provided by {providers[0]} but declares "
+                    f"service_id {operation.service_id}",
+                    operation.id,
+                    *provides_ids,
+                )
             )
 
     # V5: every CALLS relation references an existing operation
     for relation in model.relations:
         if relation.type == "CALLS" and relation.target_id not in operation_ids:
             errors.append(
-                f"CALLS {relation.source_id} -> {relation.target_id} references unknown operation"
+                _issue(
+                    f"CALLS {relation.source_id} -> {relation.target_id} references unknown "
+                    "operation",
+                    relation_element_id(relation),
+                )
             )
 
     # V6: schema references point to an existing schema
     for relation in model.relations:
         if relation.type in SCHEMA_RELATION_TYPES and relation.target_id not in schema_ids:
             errors.append(
-                f"{relation.type} {relation.source_id} -> {relation.target_id} references unknown schema"
+                _issue(
+                    f"{relation.type} {relation.source_id} -> {relation.target_id} references "
+                    "unknown schema",
+                    relation_element_id(relation),
+                )
             )
     for operation in model.operations:
         for schema_id in (*operation.request_schema_ids, *operation.response_schema_ids):
             if schema_id not in schema_ids:
-                errors.append(f"Operation {operation.id} references unknown schema {schema_id}")
+                errors.append(
+                    _issue(
+                        f"Operation {operation.id} references unknown schema {schema_id}",
+                        operation.id,
+                    )
+                )
     for message in model.messages:
         if message.schema_id and message.schema_id not in schema_ids:
-            errors.append(f"Message {message.id} references unknown schema {message.schema_id}")
+            errors.append(
+                _issue(
+                    f"Message {message.id} references unknown schema {message.schema_id}",
+                    message.id,
+                )
+            )
 
     # V7: a DLQ must not point to itself
     for relation in model.relations:
         if relation.type == "DEAD_LETTERS_TO" and relation.source_id == relation.target_id:
-            errors.append(f"Queue {relation.source_id} cannot be its own DLQ")
+            errors.append(
+                _issue(
+                    f"Queue {relation.source_id} cannot be its own DLQ",
+                    relation_element_id(relation),
+                )
+            )
 
     # V8: relations only reference existing source/target entities
     known_ids = (
@@ -88,9 +153,19 @@ def validate_canonical_model(model: ArchitectureModel) -> None:
     ) | subscription_ids
     for relation in model.relations:
         if relation.source_id not in known_ids:
-            errors.append(f"Relation {relation.type} has unknown source {relation.source_id}")
+            errors.append(
+                _issue(
+                    f"Relation {relation.type} has unknown source {relation.source_id}",
+                    relation_element_id(relation),
+                )
+            )
         if relation.target_id not in known_ids:
-            errors.append(f"Relation {relation.type} has unknown target {relation.target_id}")
+            errors.append(
+                _issue(
+                    f"Relation {relation.type} has unknown target {relation.target_id}",
+                    relation_element_id(relation),
+                )
+            )
 
     _validate_pubsub(
         model,
@@ -106,15 +181,17 @@ def validate_canonical_model(model: ArchitectureModel) -> None:
         for evidence_id in relation.evidence_ids:
             if evidence_id not in evidence_ids:
                 errors.append(
-                    f"Relation {relation.type} {relation.source_id} -> {relation.target_id} "
-                    f"references unknown evidence {evidence_id}"
+                    _issue(
+                        f"Relation {relation.type} {relation.source_id} -> {relation.target_id} "
+                        f"references unknown evidence {evidence_id}",
+                        relation_element_id(relation),
+                    )
                 )
 
     provenance_by_id = {p.id: p for p in model.provenance}
     _validate_infrastructure(model, provenance_by_id=provenance_by_id, errors=errors)
 
-    if errors:
-        raise CanonicalValidationError(errors)
+    return errors
 
 
 # v0.5.0 I4 spec §6.3: the only generic Pub/Sub relation triples. RECEIVES_FROM/CARRIES keep their
@@ -131,7 +208,7 @@ def _validate_pubsub(
     service_ids: set[str],
     topic_ids: set[str],
     subscription_ids: set[str],
-    errors: list[str],
+    errors: list[CanonicalValidationIssue],
 ) -> None:
     ids_by_kind = {"service": service_ids, "topic": topic_ids, "subscription": subscription_ids}
     topics_by_subscription: dict[str, set[str]] = defaultdict(set)
@@ -139,44 +216,77 @@ def _validate_pubsub(
         if relation.type in _PUBSUB_TRIPLES:
             source_kind, target_kind = _PUBSUB_TRIPLES[relation.type]
             if relation.source_id not in ids_by_kind[source_kind]:
-                errors.append(f"{relation.type} source {relation.source_id} is not a {source_kind}")
+                errors.append(
+                    _issue(
+                        f"{relation.type} source {relation.source_id} is not a {source_kind}",
+                        relation_element_id(relation),
+                    )
+                )
             if relation.target_id not in ids_by_kind[target_kind]:
-                errors.append(f"{relation.type} target {relation.target_id} is not a {target_kind}")
+                errors.append(
+                    _issue(
+                        f"{relation.type} target {relation.target_id} is not a {target_kind}",
+                        relation_element_id(relation),
+                    )
+                )
             if relation.type == "SUBSCRIPTION_OF":
                 topics_by_subscription[relation.source_id].add(relation.target_id)
         elif relation.type == "RECEIVES_FROM" and relation.target_id in topic_ids:
             errors.append(
-                f"RECEIVES_FROM target {relation.target_id} is a Topic, not a Subscription"
+                _issue(
+                    f"RECEIVES_FROM target {relation.target_id} is a Topic, not a Subscription",
+                    relation_element_id(relation),
+                )
             )
         elif relation.type == "CARRIES" and relation.source_id in subscription_ids:
-            errors.append(f"CARRIES source {relation.source_id} is a Subscription, not a Topic")
+            errors.append(
+                _issue(
+                    f"CARRIES source {relation.source_id} is a Subscription, not a Topic",
+                    relation_element_id(relation),
+                )
+            )
 
     # §4.2/§6.2: a Subscription is associated with exactly one Topic.
     for subscription_id in sorted(subscription_ids):
         bound = topics_by_subscription.get(subscription_id, set())
         if len(bound) != 1:
             errors.append(
-                f"Subscription {subscription_id} must be SUBSCRIPTION_OF exactly one Topic, found "
-                f"{sorted(bound)!r}"
+                _issue(
+                    f"Subscription {subscription_id} must be SUBSCRIPTION_OF exactly one Topic, "
+                    f"found {sorted(bound)!r}",
+                    subscription_id,
+                    *(f"SUBSCRIPTION_OF:{subscription_id}:{topic}" for topic in sorted(bound)),
+                )
             )
 
     for declaration in model.pubsub_declarations:
         expected = topic_ids if declaration.entity_kind == "TOPIC" else subscription_ids
         if declaration.entity_id not in expected:
             errors.append(
-                f"PubSubDeclaration {declaration.id} references unknown "
-                f"{declaration.entity_kind} {declaration.entity_id}"
+                _issue(
+                    f"PubSubDeclaration {declaration.id} references unknown "
+                    f"{declaration.entity_kind} {declaration.entity_id}",
+                    declaration.id,
+                )
             )
     for configuration in model.subscription_dead_letter_configurations:
         if configuration.subscription_id not in subscription_ids:
             errors.append(
-                f"SubscriptionDeadLetterConfiguration {configuration.id} references unknown "
-                f"Subscription {configuration.subscription_id}"
+                _issue(
+                    f"SubscriptionDeadLetterConfiguration {configuration.id} references unknown "
+                    f"Subscription {configuration.subscription_id}",
+                    configuration.id,
+                )
             )
 
 
 def _check_infrastructure_evidence_ref(
-    evidence_ref: str, *, provenance_by_id: dict, owner_description: str, errors: list[str]
+    evidence_ref: str,
+    *,
+    provenance_by_id: dict,
+    owner_description: str,
+    owner_id: str,
+    errors: list[CanonicalValidationIssue],
 ) -> None:
     """§7.2: "resolve within the selected snapshot." §9 (as amended): a Kubernetes source's
     evidence is internal-only, exactly like the facts it supports - if it were ever stamped with a
@@ -187,17 +297,23 @@ def _check_infrastructure_evidence_ref(
     """
     provenance = provenance_by_id.get(evidence_ref)
     if provenance is None:
-        errors.append(f"{owner_description} references unknown evidence {evidence_ref}")
+        errors.append(
+            _issue(f"{owner_description} references unknown evidence {evidence_ref}", owner_id)
+        )
     elif provenance.source_type != KUBERNETES_SOURCE_TYPE:
         errors.append(
-            f"{owner_description} references evidence {evidence_ref} stamped source_type "
-            f"{provenance.source_type!r}, expected {KUBERNETES_SOURCE_TYPE!r} (§9: infrastructure "
-            "evidence must be internal-only)"
+            _issue(
+                f"{owner_description} references evidence {evidence_ref} stamped source_type "
+                f"{provenance.source_type!r}, expected {KUBERNETES_SOURCE_TYPE!r} (§9: "
+                "infrastructure evidence must be internal-only)",
+                owner_id,
+                evidence_ref,
+            )
         )
 
 
 def _validate_infrastructure(
-    model: ArchitectureModel, *, provenance_by_id: dict, errors: list[str]
+    model: ArchitectureModel, *, provenance_by_id: dict, errors: list[CanonicalValidationIssue]
 ) -> None:
     """I2 Draft 0.2 §3 item 6: infrastructure facts pass through the same *validation* path as every
     other canonical fact. The per-object §7 invariants (arity, sortedness, kind-specific fields) are
@@ -214,30 +330,40 @@ def _validate_infrastructure(
     for contribution in model.infrastructure_contributions:
         if contribution.entity_id not in entity_ids:
             errors.append(
-                f"Infrastructure contribution from {contribution.source_instance_id} references "
-                f"unknown entity {contribution.entity_id}"
+                _issue(
+                    f"Infrastructure contribution from {contribution.source_instance_id} "
+                    f"references unknown entity {contribution.entity_id}",
+                    contribution.id,
+                )
             )
         for evidence_ref in contribution.evidence_refs:
             _check_infrastructure_evidence_ref(
                 evidence_ref,
                 provenance_by_id=provenance_by_id,
                 owner_description=f"Infrastructure contribution for {contribution.entity_id}",
+                owner_id=contribution.id,
                 errors=errors,
             )
 
     for claim in model.infrastructure_claims:
         if claim.subject_id not in entity_ids:
             errors.append(
-                f"Infrastructure claim {claim.kind.value} references unknown subject "
-                f"{claim.subject_id}"
+                _issue(
+                    f"Infrastructure claim {claim.kind.value} references unknown subject "
+                    f"{claim.subject_id}",
+                    claim.id,
+                )
             )
         # A unary claim's absent object is validated by the model itself; only a binary claim's
         # object has to resolve here (§7.2: "the other three claim kinds are binary and both
         # referenced entity IDs must resolve in the canonical model").
         if claim.kind not in UNARY_CLAIM_KINDS and claim.object_id not in entity_ids:
             errors.append(
-                f"Infrastructure claim {claim.kind.value} references unknown object "
-                f"{claim.object_id}"
+                _issue(
+                    f"Infrastructure claim {claim.kind.value} references unknown object "
+                    f"{claim.object_id}",
+                    claim.id,
+                )
             )
         for evidence_ref in claim.evidence_refs:
             _check_infrastructure_evidence_ref(
@@ -246,5 +372,6 @@ def _validate_infrastructure(
                 owner_description=(
                     f"Infrastructure claim {claim.kind.value} on {claim.subject_id}"
                 ),
+                owner_id=claim.id,
                 errors=errors,
             )
