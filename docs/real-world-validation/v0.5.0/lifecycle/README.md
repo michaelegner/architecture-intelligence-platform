@@ -90,7 +90,7 @@ scenario. These are **in addition to** the outcomes in the table above, which ar
 
 | Step | Target | Frozen expectation (in the step's `import.json` `runs[]` entry for the declarations source) | Basis |
 | --- | --- | --- | --- |
-| L4a | both | `inventory_status: FAILED`, `committed: false`, no `source_results`, and the run's `diagnostics` include `SOURCE_ROOT_UNAVAILABLE` | I1 §6: a missing root is a failed enumeration and preserves the prior inventory |
+| L4a | both | `inventory_status: FAILED`, `committed: false`, `source_results: []`, and the run's `diagnostics` include `SOURCE_ROOT_UNAVAILABLE` | I1 §6: a missing root is a failed enumeration and preserves the prior inventory |
 | L4b | quarkus-super-heroes | `inventory_status: PARTIAL`, `committed: false`. The added `lifecycle-unbound-copy/openapi.yml` is `REJECTED_UNSUPPORTED` with `SERVICE_IDENTITY_UNRESOLVED`. The four remaining OpenAPI sources are `ACCEPTED` or `ACCEPTED_WITH_LIMITATIONS`. | I1 §4.1: an unresolved Service identity emits no owner-scoped entities; §6: one rejected source makes the run PARTIAL, and nothing commits |
 | L4b | apache-airflow | `inventory_status: PARTIAL`, `committed: false`. The added `lifecycle-unbound-copy/openapi.yml` is `REJECTED_UNSUPPORTED` with `SERVICE_IDENTITY_UNRESOLVED`. It is the only source, because X is Airflow's only OpenAPI. | same |
 | L6 | apache-airflow | `inventory_status: PARTIAL`, `committed: false`. `airflow-apiserver/openapi.yml` is `REJECTED_CONFLICT` with `SERVICE_IDENTITY_CONFLICT`. | I1 §4.1: an extension that disagrees with a binding is a conflict, and no source wins |
