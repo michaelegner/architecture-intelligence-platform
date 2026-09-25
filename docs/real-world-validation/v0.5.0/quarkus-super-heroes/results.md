@@ -89,8 +89,9 @@ the MCP `structuredContent` via `tests/integration/independent_mcp_client.py`.
 ## Lifecycle
 
 The lifecycle results for both targets are in `../lifecycle/results.md`. For this target, steps S0,
-L1, L4a, L4b, L6 and R match the frozen ledger. **L2, L5 and L3 failed with HTTP 500**, which is
-finding **F1**.
+L1, L4a, L4b, L6 and R match the frozen ledger. **L2, L5 and L3 failed with HTTP 500.** The
+frozen mutation for those steps is invalid (**F7**), and AIP crashes on it instead of rejecting it
+(**F1**).
 
 ## Aborted attempt (disclosed, non-qualifying)
 

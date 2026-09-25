@@ -38,7 +38,7 @@ Every step's `workdir-digest` equals its pinned digest in `tests/unit/test_i5_li
 header line when every row is dropped. `cypher-shell` prints nothing at all for an empty result.
 The row sets are identical: both are empty.
 
-### quarkus-super-heroes: six steps match, and the three X-omission steps fail with HTTP 500
+### quarkus-super-heroes: six steps match; the three X-omission steps are not qualifiable (F7, F1)
 
 | Step | Observed | Verdict |
 | --- | --- | --- |
@@ -47,10 +47,10 @@ The row sets are identical: both are empty.
 | L4a | `committed:false`, `sources:{}`; = State(L1) | match |
 | L4b | `committed:false`, `sources:{}`; = State(L1), so X is still owned | match |
 | L6 | `committed:false`, `sources:{}`; = State(L1) | match |
-| L2 | **`POST /api/import` → HTTP 500.** `CanonicalValidationError: Relation CALLS has unknown source service:rest-fights` (×7) is raised by `validate_canonical_model` in `import_discovery_run` (`artifacts/quarkus-super-heroes/L2/aip.log`). Nothing committed, and the state stayed = State(L1). | **mismatch (F1)** |
+| L2 | **`POST /api/import` → HTTP 500.** `CanonicalValidationError: Relation CALLS has unknown source service:rest-fights` (×7) is raised by `validate_canonical_model` in `import_discovery_run` (`artifacts/quarkus-super-heroes/L2/aip.log`). Nothing committed, and the state stayed = State(L1). | **mismatch (F7, F1)** |
 | R | = State(L1) | match |
-| L5 | HTTP 500, same cause | **mismatch (F1)** |
-| L3 | HTTP 500, same cause | **mismatch (F1)** |
+| L5 | HTTP 500, same cause | **mismatch (F7, F1)** |
+| L3 | HTTP 500, same cause | **mismatch (F7, F1)** |
 
 **The cause.** Omitting X (`rest-fights/openapi.yml`) leaves no remaining source that mints the
 `service:rest-fights` entity. The rest-fights architecture manifest still resolves its caller from
@@ -58,7 +58,11 @@ its own `x-aip-service-id` and emits 7 CALLS from that Service. The merged model
 validation, and the exception escapes as an unhandled 500.
 
 The frozen ledger chose X on the assumption that "no other declaration depends on it". That
-assumption was wrong: the manifest depends on X's Service entity. So the real-declaration
+assumption was wrong: the manifest depends on X's Service entity. This is a qualification-input
+defect (**F7**). Under the current contract, the manifest deliberately emits only `CALLS` and does
+not mint its caller Service, so a rejected run would be correct for this input. The frozen
+expectation needs an I5 §6 correction and re-freeze. Separately, AIP crashes on the input instead
+of rejecting it (**F1**). So the real-declaration
 omission, changed-scope and tombstone outcomes for Quarkus are **not qualified at this candidate**.
 The same three semantics are qualified on Airflow's real declarations, and by the I1 regression
 tests.

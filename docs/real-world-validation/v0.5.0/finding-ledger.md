@@ -12,7 +12,7 @@ Slice 6 PR.
 
 | # | Area | Outcome at this candidate | Evidence |
 | --- | --- | --- | --- |
-| 1 | I1 lifecycle (real declarations) | **Airflow: all 9 steps match. Quarkus: 6 of 9 match; L2, L5 and L3 fail with HTTP 500 (F1).** Not fully qualified. | `lifecycle/results.md` |
+| 1 | I1 lifecycle (real declarations) | **Airflow: all 9 steps match. Quarkus: 6 of 9 match. L2, L5 and L3 cannot be qualified, because the frozen mutation is invalid (F7) and AIP crashes on it (F1).** Not fully qualified. | `lifecycle/results.md` |
 | 2 | I1 lifecycle (regression) | Pass: `tests/unit` 2206 passed, `tests/integration` 448 passed | test-suite run at the candidate |
 | 3 | I2 offline discovery (upstream-derived) | Pass for the result label and the complete inventory (13/13/1, 2 routes, all `DECLARED_MANIFEST`, no interaction). **The exact frozen limitation list cannot be observed** (F2). | `quarkus-super-heroes/results.md` |
 | 4 | I2 namespace-less rejection | The source is absent from the import response, and nothing from it committed. **`K8S_RESOURCE_INVALID` cannot be observed** (F2). | same |
@@ -30,19 +30,17 @@ Slice 6 PR.
 
 ## Findings
 
-### F1: HTTP 500 when a manifest's caller Service loses its only minting source. Proposed disposition: **FIX**, plus an owner decision on semantics.
+### F1: A canonical-validation failure of a discovery run escapes as HTTP 500. Proposed disposition: **FIX**.
 
 | Field | Value |
 | --- | --- |
-| Target and scenario | quarkus-super-heroes, lifecycle L2, L5 and L3 (every step that omits `rest-fights/openapi.yml`) |
-| Expected | Per I1 §6: commit; only X's ownership is removed (L2 and L3); X is preserved on the scope change (L5) |
-| Actual | `POST /api/import` → **HTTP 500**. `CanonicalValidationError: Relation CALLS has unknown source service:rest-fights` (×7) escapes `import_discovery_run` → `validate_canonical_model`. Nothing commits. |
-| Evidence | `lifecycle/artifacts/quarkus-super-heroes/{L2,L5,L3}/aip.log` and `import.json` |
-| Affected contract | I1 §10: "Each source receives exactly one result", and conflicts lead to a "deterministic conflict diagnostic; affected import rejected". An unhandled exception is neither. |
-| Severity | MAJOR. The trigger is an ordinary operator action (removing an OpenAPI whose Service a manifest still names), and the failure hides its reason (F2). |
-| Proposed disposition | **FIX**: map a canonical-validation failure of the merged model to a per-run rejection with a deterministic diagnostic, never an unhandled exception. |
-| **Open owner decision** | Should a manifest's own resolved `x-aip-service-id` **establish** the caller Service entity when no OpenAPI or AsyncAPI source mints it? If yes, the frozen expectation (commit and removal) holds, and the FIX also changes the manifest adapter's output. If no, the correct outcome is a rejection. The frozen lifecycle ledger then needs an amended expected outcome, and X must be re-chosen or the scenario redefined, under I5 §6's correction rule. The I1 spec does not state which applies (§19 item 9). |
-| Also | The dossier assumption "no other declaration depends on X" (`lifecycle/README.md`) was wrong. The manifest depends on X's Service entity. |
+| Target and scenario | quarkus-super-heroes, lifecycle L2, L5 and L3. These are the frozen steps that omit `rest-fights/openapi.yml` while the rest-fights manifest remains. |
+| Expected | Whatever the correct semantic outcome for such an input is, the import yields **an I1 result**: each source gets exactly one result, and a rejected run gets a deterministic diagnostic (I1 §10). |
+| Actual | `POST /api/import` → **HTTP 500**. `CanonicalValidationError: Relation CALLS has unknown source service:rest-fights` (×7) is raised by `validate_canonical_model` in `import_discovery_run` and escapes unhandled. Nothing commits, and no diagnostic reaches the caller. |
+| Evidence | `lifecycle/artifacts/quarkus-super-heroes/{L2,L5,L3}/aip.log` (the traceback) and `import.json` (`Internal Server Error`) |
+| Affected contract | I1 §10: "Each source receives exactly one result"; a conflicting identity or property leads to a "deterministic conflict diagnostic; affected import rejected" |
+| Severity | MAJOR. An ordinary operator input crashes the import endpoint, and its reason is hidden (F2). |
+| Proposed disposition | **FIX**: map a canonical-validation failure of the merged model to a deterministic per-run rejection with a diagnostic, never an unhandled exception. The FIX does **not** change what the manifest adapter emits. `ManifestSourceAdapter` resolves the caller identity but deliberately emits only `CALLS` plus provenance (`docs/ingestion.md`, `docs/adapter-development.md`). Letting a manifest mint the caller Service would be a semantic expansion that needs a spec change, so it is out of I5's scope. |
 
 ### F2: The import report omits what I1 §10 requires. Proposed disposition: **FIX**.
 
@@ -80,17 +78,17 @@ Slice 6 PR.
 | Severity | INFO |
 | Proposed disposition | **NO_CHANGE**: correct for its claimed scope. The unsupported boundary held. The entity is explained, not guessed. |
 
-### F5: The discoverer silently skips non-candidate and root-level declaration files. Proposed disposition: **DEFER**.
+### F5: A dossier input-authoring defect (bindings layout), and no diagnostic for skipped files. Proposed disposition: **DEFER**.
 
 | Field | Value |
 | --- | --- |
 | Target and scenario | Slice 5 attempt 1 at `34067b7` (non-qualifying) |
-| Expected | A declaration file in the configured root is either enumerated or diagnosed |
-| Actual | `runtime/declarations/identity-bindings.yaml` was ignored with no diagnostic, because it had a non-candidate name at root level. Every OpenAPI source was then `SERVICE_IDENTITY_UNRESOLVED`, and the run was PARTIAL. The API showed only `committed:false` (F2). |
-| Evidence | The attempt's test-suite results passed (2202 unit, 448 integration). The dossier defect is corrected in #246 (see its `profile.md` revision histories). |
-| Affected contract | `FilesystemSourceDiscoverer`'s documented enumeration convention (ADR 0009) |
-| Severity | MINOR. The root cause was an input-authoring defect, now guarded by tests. |
-| Proposed disposition | **DEFER**: a diagnostic for skipped files would be a behavior change outside I5's safely evidenced scope |
+| Expected | The dossier's inputs follow the discoverer's documented enumeration convention: `<root>/<subdirectory>/<CANDIDATE_FILENAMES>` (ADR 0009) |
+| Actual | **Primarily a dossier defect.** `runtime/declarations/identity-bindings.yaml` violated that convention, both name and depth, so discovery did not enumerate it. Every OpenAPI source was then `SERVICE_IDENTITY_UNRESOLVED`, and the run was PARTIAL. The discoverer behaved as documented. The API showed only `committed:false` (F2). |
+| Evidence | The attempt's test suites passed (2202 unit, 448 integration). #246 corrected the dossier and added layout guards (see the revision histories in each `profile.md`). |
+| Affected contract | None violated by AIP. The dossier violated the documented convention. |
+| Severity | MINOR |
+| Proposed disposition | **DEFER**: a possible future diagnostic for files that are present but not enumerated. That would be an enhancement, not a correction of a demonstrated product defect, and it is outside I5's safely evidenced scope. |
 
 ### F6: `without_x.py` keeps the header line when every row is removed. Proposed disposition: **NO_CHANGE** (AIP).
 
@@ -104,9 +102,21 @@ Slice 6 PR.
 | Severity | INFO |
 | Proposed disposition | **NO_CHANGE** for AIP. The harness is corrected in the Slice 6/7 tooling update, and no verdict depends on it. |
 
+### F7: The frozen Quarkus lifecycle mutation is invalid (qualification-input defect). Proposed disposition: **NO_CHANGE** for AIP; the dossier needs a correction and re-freeze.
+
+| Field | Value |
+| --- | --- |
+| Target and scenario | quarkus-super-heroes, lifecycle L2, L5 and L3 as frozen in #244 |
+| Expected | The ledger chose X = `rest-fights/openapi.yml` on the assumption that "no other declaration depends on it" (`lifecycle/README.md`) |
+| Actual | That assumption is false. The rest-fights architecture manifest emits `CALLS` from `service:rest-fights`, a Service entity that only X mints. Omitting X therefore produces an input for which the frozen expected outcome (commit, and removal of only X) is not the contract's outcome. Under the current contract, a rejected run is correct (F1 covers the crash). |
+| Evidence | `lifecycle/results.md` (Quarkus); `lifecycle/artifacts/quarkus-super-heroes/{L2,L5,L3}/` |
+| Affected contract | I5 §6 (frozen inputs and expectations) and §10 (the scenario mutations) |
+| Severity | MAJOR for qualification coverage (row 1, Quarkus). No AIP defect beyond F1. |
+| Proposed disposition | **NO_CHANGE** for AIP. The frozen lifecycle ledger needs an **I5 §6 correction and re-freeze** before Slice 7, for example by choosing an X that no declaration depends on, or by redefining the Quarkus scenario, followed by a rerun of the Quarkus lifecycle. This is a cited correction of the input design, never a change of expectations to make AIP pass. |
+
 ## Exit status of Slice 5
 
 Both targets and every §9 row ran against one candidate, and every material result has a finding
 with one proposed disposition. The candidate is **not** yet `FINAL_CANDIDATE_QUALIFIED`: row 1 is
-incomplete for Quarkus (F1), and the proposed FIXes (F1 and F2) create a new candidate. Slice 7
+incomplete for Quarkus (F7, with F1), and the proposed FIXes (F1 and F2) create a new candidate. Slice 7
 reruns every row at the final candidate (I5 §12).

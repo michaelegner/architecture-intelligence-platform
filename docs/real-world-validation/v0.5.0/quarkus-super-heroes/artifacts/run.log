@@ -1,0 +1,1510 @@
+# Filtered for the repository: 242 noise lines removed (Neo4j 'Received notification' warnings, image-pull and Maven download progress). All other lines are verbatim.
+==> runbook block 2
+Cloning into '/tmp/claude-1001/-home-michael-code-ArchitectureIntelligencePlatform/dea4adeb-9305-40aa-944d-829d6415b869/scratchpad/i5-s5/quarkus/quarkus-super-heroes'...
+HEAD is now at 8ea03377b Bump quarkus.platform.version from 3.38.3 to 3.39.1 (#2262)
+4ba52254b4a331590f1f7b1a43ae9f89a813dc7885938769bcdac8cd907d1cd2
+==> runbook block 3
+docker.io/library/maven@sha256:dd8e01b3be719853578c07b57ff8d9bbbbfe746f802226f05b19689420815221: Pulling from library/maven
+Digest: sha256:dd8e01b3be719853578c07b57ff8d9bbbbfe746f802226f05b19689420815221
+Status: Image is up to date for maven@sha256:dd8e01b3be719853578c07b57ff8d9bbbbfe746f802226f05b19689420815221
+docker.io/library/maven@sha256:dd8e01b3be719853578c07b57ff8d9bbbbfe746f802226f05b19689420815221
+registry.access.redhat.com/ubi10/openjdk-25-runtime@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626: Pulling from ubi10/openjdk-25-runtime
+Digest: sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+Status: Image is up to date for registry.access.redhat.com/ubi10/openjdk-25-runtime@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+registry.access.redhat.com/ubi10/openjdk-25-runtime@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+############################################################################################
+# Thanks for using OpenAPI Generator.                                                      #
+# We appreciate your support! Please consider donation to help us maintain this project.   #
+# https://opencollective.com/openapi_generator/donate                                      #
+############################################################################################
+[INFO] Adding existing ConfigMap with name: rest-fights-config.
+[INFO] Adding existing ConfigMap with name: rest-fights-config.
+[INFO] Adding existing RoleBinding with name: default_view.
+[INFO] Adding existing Secret with name: rest-fights-config-creds.
+[INFO] Adding existing Secret with name: fights-db-config.
+[INFO] Adding existing ConfigMap with name: fights-db-init.
+[INFO] Adding existing Deployment with name: fights-db.
+[INFO] Adding existing Service with name: fights-db.
+[INFO] Adding existing Deployment with name: fights-kafka.
+[INFO] Adding existing Service with name: fights-kafka.
+[INFO] Adding existing Deployment with name: apicurio.
+[INFO] Adding existing Service with name: apicurio.
+[INFO] Adding existing ConfigMap with name: rest-fights-config.
+[INFO] Adding existing Route with name: apicurio.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.04kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.2s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 115B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 3.80MB 0.1s done
+#5 DONE 0.1s
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.396 
+#6 0.396 (microdnf:7): librhsm-WARNING **: 21:30:00.260: Found 0 entitlement certificates
+#6 0.400 
+#6 0.400 (microdnf:7): librhsm-WARNING **: 21:30:00.264: Found 0 entitlement certificates
+#6 0.440 Downloading metadata...
+#6 0.844 Downloading metadata...
+#6 1.233 Downloading metadata...
+#6 1.490 Package                                                        Repository                Size
+#6 1.490 Installing:                                                                                  
+#6 1.490  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.490  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.490  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.490  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.490  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.490  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.490  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.490  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.490  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.490 Transaction Summary:
+#6 1.490  Installing:        9 packages
+#6 1.490  Reinstalling:      0 packages
+#6 1.490  Upgrading:         0 packages
+#6 1.490  Obsoleting:        0 packages
+#6 1.490  Removing:          0 packages
+#6 1.490  Downgrading:       0 packages
+#6 1.491 Downloading packages...
+#6 3.862 Running transaction test...
+#6 4.041 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.158 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.168 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.178 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.188 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.201 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.208 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.222 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.633 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.017 Complete.
+#6 5.229 Setting system policy to LEGACY
+#6 5.229 Note: System-wide crypto policies are applied on application start-up.
+#6 5.229 It is recommended to restart the system for the change of policies
+#6 5.229 to fully take place.
+#6 5.253 
+#6 5.253 (microdnf:1): librhsm-WARNING **: 21:30:05.117: Found 0 entitlement certificates
+#6 5.254 
+#6 5.254 (microdnf:1): librhsm-WARNING **: 21:30:05.119: Found 0 entitlement certificates
+#6 5.258 Complete.
+#6 DONE 5.3s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.5s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.0s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.0s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.0s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 4.6s done
+#11 exporting manifest sha256:fbb2a4cca0596095d977e6dbdee65ef5d500b7b1c2afbd00aed9954ecabe8a53 0.0s done
+#11 exporting config sha256:525f858fadd1e2fd710ad874a0800c1f5d8b9a15616d5af1b84e4a464c82a931 0.0s done
+#11 exporting attestation manifest sha256:87505ee3ae06508d1f285e3af9d629d71e00cb3aaab61aa12665c3b576c8da8a 0.0s done
+#11 exporting manifest list sha256:8f369929c7c9a2b015bd8b650247e10c771632793a314dd923432937d2213c9f 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/rest-fights:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/rest-fights:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/rest-fights:8ea0337 2.1s done
+#11 DONE 6.8s
+############################################################################################
+# Thanks for using OpenAPI Generator.                                                      #
+# We appreciate your support! Please consider donation to help us maintain this project.   #
+# https://opencollective.com/openapi_generator/donate                                      #
+############################################################################################
+[INFO] Adding existing ConfigMap with name: rest-heroes-config.
+[INFO] Adding existing Secret with name: rest-heroes-config-creds.
+[INFO] Adding existing Secret with name: heroes-db-config.
+[INFO] Adding existing ConfigMap with name: heroes-db-init.
+[INFO] Adding existing Deployment with name: heroes-db.
+[INFO] Adding existing Service with name: heroes-db.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.04kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 115B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 9.20MB 0.1s done
+#5 DONE 0.1s
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.274 
+#6 0.274 (microdnf:7): librhsm-WARNING **: 21:32:51.757: Found 0 entitlement certificates
+#6 0.276 
+#6 0.276 (microdnf:7): librhsm-WARNING **: 21:32:51.758: Found 0 entitlement certificates
+#6 0.299 Downloading metadata...
+#6 0.916 Downloading metadata...
+#6 1.421 Downloading metadata...
+#6 1.751 Package                                                        Repository                Size
+#6 1.751 Installing:                                                                                  
+#6 1.751  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.751  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.751  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.751  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.751  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.751  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.751  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.751  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.751  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.751 Transaction Summary:
+#6 1.751  Installing:        9 packages
+#6 1.751  Reinstalling:      0 packages
+#6 1.751  Upgrading:         0 packages
+#6 1.751  Obsoleting:        0 packages
+#6 1.751  Removing:          0 packages
+#6 1.751  Downgrading:       0 packages
+#6 1.752 Downloading packages...
+#6 4.355 Running transaction test...
+#6 4.554 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.720 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.734 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.742 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.752 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.768 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.776 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.790 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 5.251 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.526 Complete.
+#6 5.712 Setting system policy to LEGACY
+#6 5.712 Note: System-wide crypto policies are applied on application start-up.
+#6 5.712 It is recommended to restart the system for the change of policies
+#6 5.712 to fully take place.
+#6 5.736 
+#6 5.736 (microdnf:1): librhsm-WARNING **: 21:32:57.219: Found 0 entitlement certificates
+#6 5.739 
+#6 5.739 (microdnf:1): librhsm-WARNING **: 21:32:57.222: Found 0 entitlement certificates
+#6 5.746 Complete.
+#6 DONE 5.8s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.3s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.0s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.0s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.0s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 2.6s done
+#11 exporting manifest sha256:0385ac7082954d31ef36685b00c3eff50eeb9018972544e48cffb0213acf30c1 0.0s done
+#11 exporting config sha256:6674a6b0dd9278f97373e1f0464f274c1fb36176bac0eeddd21a4bf414170199 0.0s done
+#11 exporting attestation manifest sha256:ff90cd2b637df9103f425106455160f37b0d8038e74620112b7ab777f43208cb 0.0s done
+#11 exporting manifest list sha256:bc6f3bb57355d875260e1e056d22ef31611b383920f2f30f279d5c9a83ee819a 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/rest-heroes:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/rest-heroes:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/rest-heroes:8ea0337 1.2s done
+#11 DONE 4.0s
+############################################################################################
+# Thanks for using OpenAPI Generator.                                                      #
+# We appreciate your support! Please consider donation to help us maintain this project.   #
+# https://opencollective.com/openapi_generator/donate                                      #
+############################################################################################
+[INFO] Adding existing ConfigMap with name: rest-villains-config.
+[INFO] Adding existing Secret with name: rest-villains-config-creds.
+[INFO] Adding existing Secret with name: villains-db-config.
+[INFO] Adding existing ConfigMap with name: villains-db-init.
+[INFO] Adding existing Deployment with name: villains-db.
+[INFO] Adding existing Service with name: villains-db.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.04kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.2s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 115B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 9.28MB 0.1s done
+#5 DONE 0.1s
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.312 
+#6 0.312 (microdnf:7): librhsm-WARNING **: 21:35:37.495: Found 0 entitlement certificates
+#6 0.314 
+#6 0.314 (microdnf:7): librhsm-WARNING **: 21:35:37.497: Found 0 entitlement certificates
+#6 0.353 Downloading metadata...
+#6 0.657 Downloading metadata...
+#6 1.011 Downloading metadata...
+#6 1.295 Package                                                        Repository                Size
+#6 1.295 Installing:                                                                                  
+#6 1.295  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.295  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.295  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.295  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.295  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.295  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.295  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.295  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.295  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.295 Transaction Summary:
+#6 1.295  Installing:        9 packages
+#6 1.295  Reinstalling:      0 packages
+#6 1.295  Upgrading:         0 packages
+#6 1.295  Obsoleting:        0 packages
+#6 1.295  Removing:          0 packages
+#6 1.295  Downgrading:       0 packages
+#6 1.297 Downloading packages...
+#6 4.121 Running transaction test...
+#6 4.342 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.555 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.570 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.581 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.592 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.606 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.614 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.632 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 5.146 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.563 Complete.
+#6 5.890 Setting system policy to LEGACY
+#6 5.890 Note: System-wide crypto policies are applied on application start-up.
+#6 5.890 It is recommended to restart the system for the change of policies
+#6 5.890 to fully take place.
+#6 5.928 
+#6 5.928 (microdnf:1): librhsm-WARNING **: 21:35:43.111: Found 0 entitlement certificates
+#6 5.931 
+#6 5.931 (microdnf:1): librhsm-WARNING **: 21:35:43.114: Found 0 entitlement certificates
+#6 5.940 Complete.
+#6 DONE 6.0s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.3s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.0s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.1s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.0s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 2.9s done
+#11 exporting manifest sha256:2a90c573d7749f31ce3d4ada0cd07c659ae0147eaab5d45595d7f1ecf01430d9 0.0s done
+#11 exporting config sha256:429c07f55c5bd205179edd30ad5aeec5449d54e3e20d48fb4288346a5a7423bb 0.1s done
+#11 exporting attestation manifest sha256:37ccce5d680444f4e25959f51f4e50123b30757789fad117b3302cbf092d84ef 0.0s done
+#11 exporting manifest list sha256:58af44c1ce3fa79f22df1d46d64d7ac0f5f2e0dcd876d04cb505218b16c04e54 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/rest-villains:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/rest-villains:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/rest-villains:8ea0337 1.2s done
+#11 DONE 4.3s
+############################################################################################
+# Thanks for using OpenAPI Generator.                                                      #
+# We appreciate your support! Please consider donation to help us maintain this project.   #
+# https://opencollective.com/openapi_generator/donate                                      #
+############################################################################################
+[INFO] Adding existing ConfigMap with name: rest-narration-config.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.05kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 116B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 2.87MB 0.1s done
+#4 DONE 0.1s
+
+#5 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#5 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#5 CACHED
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.308 
+#6 0.308 (microdnf:7): librhsm-WARNING **: 21:37:51.373: Found 0 entitlement certificates
+#6 0.309 
+#6 0.309 (microdnf:7): librhsm-WARNING **: 21:37:51.375: Found 0 entitlement certificates
+#6 0.339 Downloading metadata...
+#6 0.668 Downloading metadata...
+#6 1.013 Downloading metadata...
+#6 1.269 Package                                                        Repository                Size
+#6 1.269 Installing:                                                                                  
+#6 1.269  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.269  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.269  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.269  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.269  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.269  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.269  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.269  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.269  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.269 Transaction Summary:
+#6 1.269  Installing:        9 packages
+#6 1.269  Reinstalling:      0 packages
+#6 1.269  Upgrading:         0 packages
+#6 1.269  Obsoleting:        0 packages
+#6 1.269  Removing:          0 packages
+#6 1.269  Downgrading:       0 packages
+#6 1.271 Downloading packages...
+#6 3.905 Running transaction test...
+#6 4.131 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.303 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.320 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.334 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.346 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.359 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.367 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.385 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.956 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.409 Complete.
+#6 5.709 Setting system policy to LEGACY
+#6 5.709 Note: System-wide crypto policies are applied on application start-up.
+#6 5.709 It is recommended to restart the system for the change of policies
+#6 5.709 to fully take place.
+#6 5.751 
+#6 5.751 (microdnf:1): librhsm-WARNING **: 21:37:56.817: Found 0 entitlement certificates
+#6 5.753 
+#6 5.753 (microdnf:1): librhsm-WARNING **: 21:37:56.819: Found 0 entitlement certificates
+#6 5.760 Complete.
+#6 DONE 5.9s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.4s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.1s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.0s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.1s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 3.6s done
+#11 exporting manifest sha256:9ab465bf6ad258a09bc8594947ba13ad6b82e2691ab5fdbd2c0f7c01dab01f9d 0.0s done
+#11 exporting config sha256:df0b79ad4b55fd41a67df93ef2282a04666a5eab06fa1bf290e2418db5b74795 0.0s done
+#11 exporting attestation manifest sha256:e8fa318e0cbe4752d812d1df1c4cda6e35ca1e4124478d5404664378b3101727 0.0s done
+#11 exporting manifest list sha256:94ae5ea233a86e455328a3afcdd3fb2f313b10ec2c6378441175815b51eb3957 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/rest-narration:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/rest-narration:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/rest-narration:8ea0337 1.3s done
+#11 DONE 5.1s
+[INFO] Adding existing ConfigMap with name: event-statistics-config.
+[INFO] Adding existing Secret with name: event-statistics-config-creds.
+[INFO] Adding existing Deployment with name: fights-kafka.
+[INFO] Adding existing Service with name: fights-kafka.
+[INFO] Adding existing Deployment with name: apicurio.
+[INFO] Adding existing Service with name: apicurio.
+[INFO] Adding existing Route with name: apicurio.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.05kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.2s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 115B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 1.39MB 0.0s done
+#4 DONE 0.0s
+
+#5 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#5 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#5 CACHED
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.296 
+#6 0.296 (microdnf:7): librhsm-WARNING **: 21:39:44.636: Found 0 entitlement certificates
+#6 0.298 
+#6 0.298 (microdnf:7): librhsm-WARNING **: 21:39:44.637: Found 0 entitlement certificates
+#6 0.330 Downloading metadata...
+#6 0.637 Downloading metadata...
+#6 1.021 Downloading metadata...
+#6 1.238 Package                                                        Repository                Size
+#6 1.238 Installing:                                                                                  
+#6 1.238  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.238  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.238  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.238  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.238  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.238  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.238  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.238  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.238  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.238 Transaction Summary:
+#6 1.238  Installing:        9 packages
+#6 1.238  Reinstalling:      0 packages
+#6 1.238  Upgrading:         0 packages
+#6 1.238  Obsoleting:        0 packages
+#6 1.238  Removing:          0 packages
+#6 1.238  Downgrading:       0 packages
+#6 1.239 Downloading packages...
+#6 4.037 Running transaction test...
+#6 4.215 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.344 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.356 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.368 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.376 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.385 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.391 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.404 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.768 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.069 Complete.
+#6 5.335 Setting system policy to LEGACY
+#6 5.335 Note: System-wide crypto policies are applied on application start-up.
+#6 5.335 It is recommended to restart the system for the change of policies
+#6 5.335 to fully take place.
+#6 5.359 
+#6 5.359 (microdnf:1): librhsm-WARNING **: 21:39:49.698: Found 0 entitlement certificates
+#6 5.363 
+#6 5.363 (microdnf:1): librhsm-WARNING **: 21:39:49.702: Found 0 entitlement certificates
+#6 5.368 Complete.
+#6 DONE 5.4s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.3s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.0s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.0s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.0s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 3.0s done
+#11 exporting manifest sha256:7d3b88091c7bc691428440708301b8041016cb92f10deabb24c363dd9886c4ec 0.0s done
+#11 exporting config sha256:aaf0e7e13037cd86b1e814b04e3abfb0114b9f80e9d83326cf13dd597387f288 0.0s done
+#11 exporting attestation manifest sha256:0a3a3ae238a508c9e70a90fa4fe7b6249f08412f67edb7ab91947e5a53987a18 0.0s done
+#11 exporting manifest list sha256:dc3bded498b70b010442daedd1aaf02b1a69f07265ad11c960647bdf86db65e5 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/event-statistics:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/event-statistics:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/event-statistics:8ea0337 1.4s done
+#11 DONE 4.5s
+[INFO] Adding existing ConfigMap with name: grpc-locations-config.
+[INFO] Adding existing Secret with name: grpc-locations-config-creds.
+[INFO] Adding existing Secret with name: locations-db-config.
+[INFO] Adding existing ConfigMap with name: locations-db-init.
+[INFO] Adding existing Deployment with name: locations-db.
+[INFO] Adding existing Service with name: locations-db.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.jvm
+#1 transferring dockerfile: 6.05kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 115B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 resolve registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626 0.0s done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 1.48MB 0.1s done
+#5 DONE 0.1s
+
+#4 [1/6] FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24@sha256:c49d36c03d0a9472935b9f318f709c4cf158afa2dc204099f1f463cfbf9d4626
+#4 CACHED
+
+#6 [2/6] RUN microdnf install -y crypto-policies-scripts &&     update-crypto-policies --set LEGACY &&     microdnf clean all
+#6 0.391 
+#6 0.391 (microdnf:7): librhsm-WARNING **: 21:43:15.666: Found 0 entitlement certificates
+#6 0.394 
+#6 0.394 (microdnf:7): librhsm-WARNING **: 21:43:15.669: Found 0 entitlement certificates
+#6 0.429 Downloading metadata...
+#6 0.782 Downloading metadata...
+#6 1.198 Downloading metadata...
+#6 1.521 Package                                                        Repository                Size
+#6 1.521 Installing:                                                                                  
+#6 1.521  crypto-policies-scripts-20260216-1.git0e54016.el10_2.2.noarch ubi-10-baseos-rpms    138.5 kB
+#6 1.521  expat-2.7.3-1.el10_2.3.x86_64                                 ubi-10-baseos-rpms    130.3 kB
+#6 1.521  gdbm-libs-1:1.23-12.el10_0.x86_64                             ubi-10-baseos-rpms     61.3 kB
+#6 1.521  mpdecimal-2.5.1-12.el10.x86_64                                ubi-10-baseos-rpms     94.0 kB
+#6 1.521  python-unversioned-command-3.12.14-1.el10_2.noarch            ubi-10-appstream-rpms  16.7 kB
+#6 1.521  python3-3.12.14-1.el10_2.x86_64                               ubi-10-baseos-rpms     34.3 kB
+#6 1.521  python3-libs-3.12.14-1.el10_2.x86_64                          ubi-10-baseos-rpms      9.9 MB
+#6 1.521  python3-pip-wheel-23.3.2-11.el10_2.noarch                     ubi-10-baseos-rpms      1.5 MB
+#6 1.521  tzdata-2026c-1.el10_2.noarch                                  ubi-10-baseos-rpms    933.3 kB
+#6 1.521 Transaction Summary:
+#6 1.521  Installing:        9 packages
+#6 1.521  Reinstalling:      0 packages
+#6 1.521  Upgrading:         0 packages
+#6 1.521  Obsoleting:        0 packages
+#6 1.521  Removing:          0 packages
+#6 1.521  Downgrading:       0 packages
+#6 1.522 Downloading packages...
+#6 4.052 Running transaction test...
+#6 4.321 Installing: tzdata;2026c-1.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.552 Installing: python3-pip-wheel;23.3.2-11.el10_2;noarch;ubi-10-baseos-rpms
+#6 4.570 Installing: mpdecimal;2.5.1-12.el10;x86_64;ubi-10-baseos-rpms
+#6 4.584 Installing: gdbm-libs;1:1.23-12.el10_0;x86_64;ubi-10-baseos-rpms
+#6 4.597 Installing: expat;2.7.3-1.el10_2.3;x86_64;ubi-10-baseos-rpms
+#6 4.616 Installing: python-unversioned-command;3.12.14-1.el10_2;noarch;ubi-10-appstream-rpms
+#6 4.624 Installing: python3;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 4.643 Installing: python3-libs;3.12.14-1.el10_2;x86_64;ubi-10-baseos-rpms
+#6 5.205 Installing: crypto-policies-scripts;20260216-1.git0e54016.el10_2.2;noarch;ubi-10-baseos-rpms
+#6 5.677 Complete.
+#6 6.034 Setting system policy to LEGACY
+#6 6.034 Note: System-wide crypto policies are applied on application start-up.
+#6 6.034 It is recommended to restart the system for the change of policies
+#6 6.034 to fully take place.
+#6 6.077 
+#6 6.077 (microdnf:1): librhsm-WARNING **: 21:43:21.353: Found 0 entitlement certificates
+#6 6.080 
+#6 6.080 (microdnf:1): librhsm-WARNING **: 21:43:21.355: Found 0 entitlement certificates
+#6 6.089 Complete.
+#6 DONE 6.2s
+
+#7 [3/6] COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
+#7 DONE 0.4s
+
+#8 [4/6] COPY --chown=185 target/quarkus-app/*.jar /deployments/
+#8 DONE 0.1s
+
+#9 [5/6] COPY --chown=185 target/quarkus-app/app/ /deployments/app/
+#9 DONE 0.0s
+
+#10 [6/6] COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+#10 DONE 0.1s
+
+#11 exporting to image
+#11 exporting layers
+#11 exporting layers 3.1s done
+#11 exporting manifest sha256:ff20c9beab598f9d703fec663dca1e584a4ece15195a8571ced8421825e8d248 0.0s done
+#11 exporting config sha256:8567e2ec8b756aba6ed744a50e8757050c8a50dcf68f8b5279cbf719a3c5c6c1 0.0s done
+#11 exporting attestation manifest sha256:2081a86cdd0c0203f51a959225e8413bc4318f9cab773663acbb7b15e9c691f1 0.0s done
+#11 exporting manifest list sha256:e030be5a2d77207f2c44e9fe955bb992b78d4a0e70bb132bddeb5beeb6642432 0.0s done
+#11 naming to docker.io/quarkus-super-heroes/grpc-locations:8ea0337 done
+#11 unpacking to docker.io/quarkus-super-heroes/grpc-locations:8ea0337
+#11 unpacking to docker.io/quarkus-super-heroes/grpc-locations:8ea0337 1.4s done
+#11 DONE 4.6s
+==> runbook block 4
+ Image aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 775B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.37kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.14-slim
+#3 ...
+
+#4 [internal] load metadata for ghcr.io/astral-sh/uv:latest
+#4 DONE 1.3s
+
+#3 [internal] load metadata for docker.io/library/python:3.14-slim
+#3 DONE 1.3s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 333B done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 DONE 0.0s
+
+#7 [stage-0  1/10] FROM docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2
+#7 resolve docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2 0.1s done
+#7 CACHED
+
+#8 FROM ghcr.io/astral-sh/uv:latest@sha256:3adc3706091ce7c2fe595e669628caedd6d951551b92b258b7e7dbe06d9440bc
+#8 resolve ghcr.io/astral-sh/uv:latest@sha256:3adc3706091ce7c2fe595e669628caedd6d951551b92b258b7e7dbe06d9440bc 0.1s done
+#8 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 19.90kB 0.0s done
+#6 DONE 0.1s
+
+#9 [stage-0  2/10] COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+#9 DONE 0.5s
+
+#10 [stage-0  3/10] RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --create-home --shell /usr/sbin/nologin app
+#10 DONE 0.6s
+
+#11 [stage-0  4/10] WORKDIR /app
+#11 DONE 0.1s
+
+#12 [stage-0  5/10] COPY --chown=app:app pyproject.toml uv.lock ./
+#12 DONE 0.1s
+
+#13 [stage-0  6/10] RUN uv sync --frozen --no-install-project --no-dev
+#13 1.076 Using CPython 3.14.7 interpreter at: /usr/local/bin/python3
+#13 1.076 Creating virtual environment at: .venv
+#13 1.559 Downloading pydantic-core (2.0MiB)
+#13 1.602 Downloading openai (1.9MiB)
+#13 1.630 Downloading uvloop (4.1MiB)
+#13 1.635 Downloading cryptography (4.5MiB)
+#13 4.477  Downloaded openai
+#13 4.495  Downloaded pydantic-core
+#13 5.220  Downloaded uvloop
+#13 5.319  Downloaded cryptography
+#13 5.319 Prepared 46 packages in 4.22s
+#13 5.634 Installed 46 packages in 314ms
+#13 7.347 Bytecode compiled 2929 files in 1.71s
+#13 7.347  + annotated-doc==0.0.5
+#13 7.347  + annotated-types==0.8.0
+#13 7.347  + anyio==4.14.2
+#13 7.347  + attrs==26.1.0
+#13 7.348  + cffi==2.1.1
+#13 7.348  + click==8.4.2
+#13 7.348  + cryptography==50.0.1
+#13 7.348  + fastapi==0.141.1
+#13 7.348  + h11==0.16.0
+#13 7.348  + httpcore2==2.12.0
+#13 7.348  + httptools==0.8.0
+#13 7.348  + httpx2==2.12.0
+#13 7.348  + idna==3.19
+#13 7.348  + jinja2==3.1.6
+#13 7.348  + jiter==0.16.0
+#13 7.348  + jsonschema==4.26.0
+#13 7.348  + jsonschema-specifications==2025.9.1
+#13 7.348  + markupsafe==3.0.3
+#13 7.348  + mcp==2.2.0
+#13 7.348  + mcp-types==2.2.0
+#13 7.348  + neo4j==6.3.0
+#13 7.348  + openai==3.14.0
+#13 7.348  + opentelemetry-api==1.44.0
+#13 7.348  + opentelemetry-proto==1.44.0
+#13 7.348  + protobuf==7.36.0
+#13 7.348  + pycparser==3.0
+#13 7.348  + pydantic==2.13.5
+#13 7.348  + pydantic-core==2.46.5
+#13 7.348  + pyjwt==2.13.0
+#13 7.348  + python-dotenv==1.2.3
+#13 7.348  + python-multipart==0.0.32
+#13 7.349  + pytz==2026.3.post1
+#13 7.350  + pyyaml==6.0.3
+#13 7.350  + referencing==0.37.0
+#13 7.350  + rfc8785==0.1.4
+#13 7.350  + rpds-py==2026.6.3
+#13 7.350  + sniffio==1.3.1
+#13 7.350  + sse-starlette==3.4.10
+#13 7.350  + starlette==1.6.0
+#13 7.351  + truststore==0.10.4
+#13 7.351  + typing-extensions==4.16.0
+#13 7.351  + typing-inspection==0.4.4
+#13 7.351  + uvicorn==0.52.4
+#13 7.351  + uvloop==0.22.1
+#13 7.351  + watchfiles==1.2.0
+#13 7.351  + websockets==17.0.1
+#13 DONE 7.7s
+
+#14 [stage-0  7/10] COPY --chown=app:app app ./app
+#14 DONE 0.2s
+
+#15 [stage-0  8/10] COPY --chown=app:app config.yaml ./
+#15 DONE 0.1s
+
+#16 [stage-0  9/10] COPY --chown=app:app examples ./examples
+#16 DONE 0.1s
+
+#17 [stage-0 10/10] RUN uv sync --frozen --no-dev
+#17 0.838 Bytecode compiled 2929 files in 296ms
+#17 DONE 0.9s
+
+#18 exporting to image
+#18 exporting layers
+#18 exporting layers 7.0s done
+#18 exporting manifest sha256:416989161f0a868da184edf3abe714cb6ed0bd769ce46e8d0bd1e54339c5fef8 0.0s done
+#18 exporting config sha256:f45f26132f8740e3ce5e0f6b726593c6234c2e20e528ac864d88613f0b558786 0.0s done
+#18 exporting attestation manifest sha256:69d7fc3cfb7c316b861017a4b812b859a292439d53902326d19d9c7e1e5631f0 0.0s done
+#18 exporting manifest list sha256:b4deaee8ec3f5f47c561263bbb5f8454ab54f9ecc9568428cf2a7767e582bc49 0.0s done
+#18 naming to docker.io/library/aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a done
+#18 unpacking to docker.io/library/aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a
+#18 unpacking to docker.io/library/aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a 2.8s done
+#18 DONE 10.0s
+
+#19 resolving provenance for metadata file
+#19 DONE 0.0s
+ Image aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a Built 
+==> runbook block 5
+ Network qsh-i5_default Creating 
+ Network qsh-i5_default Creating 
+ Volume qsh-i5_neo4j-quarkus-i5-data Creating 
+ Volume qsh-i5_neo4j-quarkus-i5-logs Creating 
+ Volume qsh-i5_neo4j-quarkus-i5-data Creating 
+ Volume qsh-i5_neo4j-quarkus-i5-logs Creating 
+ Volume qsh-i5_neo4j-quarkus-i5-logs Created 
+ Volume qsh-i5_neo4j-quarkus-i5-logs Created 
+ Volume qsh-i5_neo4j-quarkus-i5-data Created 
+ Volume qsh-i5_neo4j-quarkus-i5-data Created 
+ Network qsh-i5_default Created 
+ Network qsh-i5_default Created 
+ Container fights-db Creating 
+ Container apicurio Creating 
+ Container heroes-db Creating 
+ Container locations-db Creating 
+ Container villains-db Creating 
+ Container qsh-i5-neo4j-1 Creating 
+ Container rest-narration-java25 Creating 
+ Container rest-narration-java25 Created 
+ Container heroes-db Created 
+ Container rest-heroes-java25 Creating 
+ Container locations-db Created 
+ Container grpc-locations-java25 Creating 
+ Container qsh-i5-neo4j-1 Created 
+ Container qsh-i5-architecture-intelligence-1 Creating 
+ Container fights-db Created 
+ Container apicurio Created 
+ Container fights-kafka Creating 
+ Container villains-db Created 
+ Container rest-villains-java25 Creating 
+ Container rest-heroes-java25 Created 
+ Container grpc-locations-java25 Created 
+ Container rest-villains-java25 Created 
+ Container fights-kafka Created 
+ Container rest-fights-java25 Creating 
+ Container event-statistics-java25 Creating 
+ Container qsh-i5-architecture-intelligence-1 Created 
+ Container qsh-i5-otel-collector-1 Creating 
+ Container event-statistics-java25 Created 
+ Container rest-fights-java25 Created 
+ Container qsh-i5-otel-collector-1 Created 
+ Container fights-db Starting 
+ Container villains-db Starting 
+ Container qsh-i5-neo4j-1 Starting 
+ Container apicurio Starting 
+ Container rest-narration-java25 Starting 
+ Container locations-db Starting 
+ Container heroes-db Starting 
+ Container fights-db Started 
+ Container villains-db Started 
+ Container rest-villains-java25 Starting 
+ Container rest-villains-java25 Started 
+ Container qsh-i5-neo4j-1 Started 
+ Container qsh-i5-neo4j-1 Waiting 
+ Container apicurio Started 
+ Container fights-kafka Starting 
+ Container rest-narration-java25 Started 
+ Container locations-db Started 
+ Container grpc-locations-java25 Starting 
+ Container heroes-db Started 
+ Container rest-heroes-java25 Starting 
+ Container fights-kafka Started 
+ Container event-statistics-java25 Starting 
+ Container rest-fights-java25 Starting 
+ Container grpc-locations-java25 Started 
+ Container rest-heroes-java25 Started 
+ Container event-statistics-java25 Started 
+ Container rest-fights-java25 Started 
+ Container qsh-i5-neo4j-1 Healthy 
+ Container qsh-i5-architecture-intelligence-1 Starting 
+ Container qsh-i5-architecture-intelligence-1 Started 
+ Container qsh-i5-architecture-intelligence-1 Waiting 
+ Container qsh-i5-architecture-intelligence-1 Healthy 
+ Container qsh-i5-otel-collector-1 Starting 
+ Container qsh-i5-otel-collector-1 Started 
+==> readiness (v0.3 helpers)
+architecture-intelligence ready after 0s
+rest-fights-java25 ready after 0s
+rest-heroes-java25 ready after 0s
+rest-villains-java25 ready after 0s
+rest-narration-java25 ready after 0s
+event-statistics-java25 ready after 0s
+grpc-locations-java25 ready after 2s
+otel-collector ready after 0s
+==> runbook block 6
+{
+  "import_id": "2d645875ccd641c288b2d9545e2de192",
+  "committed": false,
+  "sources": {
+    "urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832": {
+      "source_instance_id": "urn:aip:source:filesystem:1d9c1bfd0896d889bf1553308813bfd21fc228ef7067355b21c8b5d63b6a6832",
+      "locator": "declarations/rest-villains/openapi.yml",
+      "result": "ACCEPTED",
+      "nodes_written": 17,
+      "relations_written": 19,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    },
+    "urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f": {
+      "source_instance_id": "urn:aip:source:filesystem:6615da512e0e1f6bf00b8c7fed8f29727333ccda7f0af106aeba7647737dea9f",
+      "locator": "declarations/rest-narration/openapi.yml",
+      "result": "ACCEPTED",
+      "nodes_written": 10,
+      "relations_written": 8,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    },
+    "urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253": {
+      "source_instance_id": "urn:aip:source:filesystem:9e809db04be2edffd962e1698e0068427b7fc3436116370d30ec6f34cecbc253",
+      "locator": "declarations/rest-heroes/openapi.yml",
+      "result": "ACCEPTED",
+      "nodes_written": 17,
+      "relations_written": 19,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    },
+    "urn:aip:source:filesystem:d558abaacf8857b0b45b6c0b293edd7b51b2d50898c6df9a33bf46264d37b25f": {
+      "source_instance_id": "urn:aip:source:filesystem:d558abaacf8857b0b45b6c0b293edd7b51b2d50898c6df9a33bf46264d37b25f",
+      "locator": "declarations/rest-fights/openapi.yml",
+      "result": "ACCEPTED",
+      "nodes_written": 28,
+      "relations_written": 27,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    },
+    "urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a": {
+      "source_instance_id": "urn:aip:source:filesystem:3f01cbac863656630a4801f5c71d2ab18081a48b46fab36db11d2eb17ab31b0a",
+      "locator": "declarations/rest-fights/architecture.yaml",
+      "result": "ACCEPTED",
+      "nodes_written": 1,
+      "relations_written": 7,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    },
+    "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0": {
+      "source_instance_id": "urn:aip:source:kubernetes:f5318f08467af57a2ffa4d63afbf91dac4488b7565748ade13300c93c6cdd9d0",
+      "locator": "k8s/namespaced/envelope.yaml",
+      "result": "ACCEPTED_WITH_LIMITATIONS",
+      "nodes_written": 111,
+      "relations_written": 0,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    }
+  }
+}
+==> runbook block 7
+==> GET /api/fights/randomfighters (triggers rest-heroes + rest-villains calls)
+{"hero":{"name":"Michael","level":230000,"picture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/michael-4412060010859875452.jpg","powers":"Accelerated Healing, Angel Physiology, Cold Resistance, Divinity, Durability, Endurance, Enhanced Senses, Flight, Heat Generation, Immortality, Intelligence, Master Martial Artist, Reflexes, Self-Sustenance, Stamina, Super Speed, Super Strength, Toxin and Disease Resistance, Weapons Master, Agility, Aura, Dexterity, Fire Resistance, Heat Resistance, Indomitable Will, Interstellar Travel, Invulnerability, Jump, Marksmanship, Master Tactician, Mind Control Resistance, Radiation Immunity, Regeneration, Telepathy Resistance, Dimensional Travel"},"villain":{"name":"Lady Mastermind","level":156,"picture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/regan-wyngarde--5188327113135996419.jpg","powers":"Illusions, Mind Control, Telepathy, Illusion Resistance, Mind Control Resistance, Telepathy Resistance, Agility, Endurance"}}
+==> GET /api/fights/randomlocation (triggers grpc-locations - UNSUPPORTED boundary)
+{"name":"Baldur's Gate","description":"Baldur's Gate is a coastal city on the Sword Coast, part of the Forgotten Realms campaign setting. Known for its strategic location and thriving trade, Baldur's Gate is a bustling and politically charged city on the verge of the Sea of Swords. The Upper and Lower cities, the Seatower of Balduran, and the Basilisk Gate are prominent landmarks in Baldur's Gate.","picture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/locations/baldurs_gate.png"}
+==> POST /api/fights (persists the fight, publishes to Kafka topic "fights")
+{"id":"6ab599d2aa8e8a4e2f24b154","fightDate":"2026-09-24T21:44:50.521900854Z","winnerName":"Luke Skywalker","winnerLevel":10,"winnerPowers":"Uses light sabre, The force","winnerPicture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/luke-skywalker-2563509063968639219.jpg","loserName":"Darth Vader","loserLevel":3,"loserPowers":"Uses light sabre, dark side of the force","loserPicture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/anakin-skywalker--8429855148488965479.jpg","winnerTeam":"heroes","loserTeam":"villains","location":{"name":"Gotham City","description":"An American city rife with corruption and crime, the home of its iconic protector Batman.","picture":"https://raw.githubusercontent.com/quarkusio/quarkus-super-heroes/characterdata/images/locations/gotham_city.jpg"}}
+==> POST /api/fights/narrate (triggers rest-narration call)
+High above a bustling city, a symbol of hope and justice soared through the sky, while chaos reigned below, with malevolent laughter echoing through the streets.
+With unwavering determination, the figure swiftly descended, effortlessly evading explosive attacks, closing the gap, and delivering a decisive blow that silenced the wicked laughter.
+
+In the end, the battle concluded with a clear victory for the forces of good, as their commitment to peace triumphed over the chaos and villainy that had threatened the city.
+The people knew that their protector had once again ensured their safety.
+
+
+==> traffic complete
+==> runbook block 8
+environment=quarkus-i5 window_start=2026-09-24T21:44:48Z window_end=2026-09-24T21:44:59Z
+==> runbook block 9
+captured 42 facts and 3 deployments to /tmp/claude-1001/-home-michael-code-ArchitectureIntelligencePlatform/dea4adeb-9305-40aa-944d-829d6415b869/scratchpad/i5-s5/quarkus/actual.yaml
+==> runbook block 10
+AIP Real-World Validation — I1 contract
+
+
+[UNSUPPORTED/INFO] qsh-grpc-locations
+
+[UNSUPPORTED/INFO] qsh-kafka-fights-topic
+
+[UNSUPPORTED/INFO] qsh-kafka-legacy-operation-key
+
+[CORRECT/INFO] qsh-no-fights-queue-receive
+Forbidden: RECEIVES_FROM service:event-statistics -> queue:fights
+
+[CORRECT/INFO] qsh-no-fights-queue-send
+Forbidden: SENDS service:rest-fights -> queue:fights
+
+[CORRECT/INFO] qsh-no-name-only-event-statistics
+Forbidden: DEPLOYED_AS service:event-statistics -> quarkus-super-heroes/DEPLOYMENT/event-statistics (any RESOLVED_*)
+
+[CORRECT/INFO] qsh-no-name-only-rest-narration
+Forbidden: DEPLOYED_AS service:rest-narration -> quarkus-super-heroes/DEPLOYMENT/rest-narration (any RESOLVED_*)
+
+[CORRECT/INFO] qsh-fights-calls-heroes-hello
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-heroes:GET:/api/heroes/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-heroes:GET:/api/heroes/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-calls-heroes-random
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: CONFIRMED  evidence: declared=true observed=true
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: CONFIRMED  evidence: declared=true observed=true
+
+[CORRECT/INFO] qsh-fights-calls-narration-hello
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:GET:/api/narration/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:GET:/api/narration/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-calls-narration-narrate
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:POST:/api/narration
+  status: CONFIRMED  evidence: declared=true observed=true
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:POST:/api/narration
+  status: CONFIRMED  evidence: declared=true observed=true
+
+[CORRECT/INFO] qsh-fights-calls-narration-image
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:POST:/api/narration/image
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-narration:POST:/api/narration/image
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-calls-villains-hello
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-villains:GET:/api/villains/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-villains:GET:/api/villains/hello
+  status: NOT_OBSERVED_IN_WINDOW  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-calls-villains-random
+Expected:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: CONFIRMED  evidence: declared=true observed=true
+Actual:
+  CALLS
+  service:rest-fights
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: CONFIRMED  evidence: declared=true observed=true
+
+[CORRECT/INFO] qsh-rest-fights-deployment
+Expected:
+  DEPLOYED_AS service:rest-fights -> quarkus-super-heroes/DEPLOYMENT/rest-fights
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+Actual:
+  DEPLOYED_AS service:rest-fights -> quarkus-super-heroes/DEPLOYMENT/rest-fights
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+
+[CORRECT/INFO] qsh-rest-heroes-deployment
+Expected:
+  DEPLOYED_AS service:rest-heroes -> quarkus-super-heroes/DEPLOYMENT/rest-heroes
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+Actual:
+  DEPLOYED_AS service:rest-heroes -> quarkus-super-heroes/DEPLOYMENT/rest-heroes
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+
+[CORRECT/INFO] qsh-rest-villains-deployment
+Expected:
+  DEPLOYED_AS service:rest-villains -> quarkus-super-heroes/DEPLOYMENT/rest-villains
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+Actual:
+  DEPLOYED_AS service:rest-villains -> quarkus-super-heroes/DEPLOYMENT/rest-villains
+  status: RESOLVED_CONFIGURED  methods: RESOLVED_CONFIGURED
+
+[CORRECT/INFO] qsh-fights-provides-getAllFights
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-hello
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloHeroes
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloLocations
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/locations
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/locations
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloNarration
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/narration
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/narration
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-helloVillains
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/hello/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-getRandomFighters
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomfighters
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomfighters
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-getRandomLocation
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomlocation
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/randomlocation
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-getFight
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:GET:/api/fights/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-performFight
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-narrateFight
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-fights-provides-generateImageFromNarration
+Expected:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate/image
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-fights
+    -> operation:service:rest-fights:POST:/api/fights/narrate/image
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-deleteAllHeroes
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-deleteHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:DELETE:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-getAllHeroes
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-hello
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-getRandomHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/random
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-getHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:GET:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-partiallyUpdateHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PATCH:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PATCH:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-createHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:POST:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:POST:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-replaceAllHeroes
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-heroes-provides-fullyUpdateHero
+Expected:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-heroes
+    -> operation:service:rest-heroes:PUT:/api/heroes/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-narration-provides-hello
+Expected:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:GET:/api/narration/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:GET:/api/narration/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-narration-provides-narrate
+Expected:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-narration-provides-generateImageFromNarration
+Expected:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration/image
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-narration
+    -> operation:service:rest-narration:POST:/api/narration/image
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-deleteAllVillains
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-deleteVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:DELETE:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-getAllVillains
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-hello
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/hello
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/hello
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-getRandomVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/random
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-getVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:GET:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-partiallyUpdateVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PATCH:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PATCH:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-createVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:POST:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:POST:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-replaceAllVillains
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] qsh-villains-provides-fullyUpdateVillain
+Expected:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains/{id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:rest-villains
+    -> operation:service:rest-villains:PUT:/api/villains/{id}
+  status: None  evidence: declared=true observed=false
+
+Expected supported facts:      45
+Correct:                       45
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         0
+Insufficient evidence:         0
+Forbidden facts proven absent: 4
+Forbidden facts present:       0
+Critical semantic errors:      0
+==> DONE (stack left running for public-surfaces and manual checks)
+exit=0

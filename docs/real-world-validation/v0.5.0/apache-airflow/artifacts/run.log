@@ -1,0 +1,724 @@
+# Filtered for the repository: 0 noise lines removed (Neo4j 'Received notification' warnings, image-pull and Maven download progress). All other lines are verbatim.
+==> runbook block 2
+==> runbook block 3
+ Image aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a Skipped Image can be built
+ Image postgres:16.15@sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6 Pulling 
+ Image neo4j:5.26.0@sha256:5a015e53de1895e7eee1574ae0325cf8c4b89587222778108c594bdd45a474b5 Pulling 
+ Image otel/opentelemetry-collector:0.159.0@sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2 Pulling 
+ Image apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339 Pulling 
+ Image redis:7.2-bookworm@sha256:74566c6910d13ae61e7ce73ebd3127438a1fe805b309b097c323142719ec8a5b Pulling 
+ Image neo4j:5.26.0@sha256:5a015e53de1895e7eee1574ae0325cf8c4b89587222778108c594bdd45a474b5 Pulled 
+ Image apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339 Pulled 
+ Image redis:7.2-bookworm@sha256:74566c6910d13ae61e7ce73ebd3127438a1fe805b309b097c323142719ec8a5b Pulled 
+ 6ad4758748c1 Pulling fs layer 0B
+ b1fdda8975a0 Pulling fs layer 0B
+ 359ae0fc975d Pulling fs layer 0B
+ ba0e979d0818 Pulling fs layer 0B
+ f7c7d4dd80ba Pulling fs layer 0B
+ 483fb6941c15 Pulling fs layer 0B
+ 749acf6dc637 Pulling fs layer 0B
+ 4d848243a73e Pulling fs layer 0B
+ 56d4d190ef07 Pulling fs layer 0B
+ 3a749597affc Pulling fs layer 0B
+ 106e7e3cf19a Pulling fs layer 0B
+ ad29720ebbb9 Pulling fs layer 0B
+ 74156cf9f063 Pulling fs layer 0B
+ 6ad4758748c1 Downloading 184B
+ 74156cf9f063 Download complete 0B
+ 6ad4758748c1 Download complete 0B
+ b1fdda8975a0 Download complete 0B
+ 749acf6dc637 Download complete 0B
+ ba0e979d0818 Downloading 1.049MB
+ b1fdda8975a0 Extracting 1B
+ 359ae0fc975d Download complete 0B
+ f7c7d4dd80ba Download complete 0B
+ ba0e979d0818 Download complete 0B
+ b1fdda8975a0 Extracting 1B
+ 483fb6941c15 Download complete 0B
+ b1fdda8975a0 Extracting 1B
+ 106e7e3cf19a Downloading 1.049MB
+ b1fdda8975a0 Extracting 1B
+ 106e7e3cf19a Downloading 2.097MB
+ b1fdda8975a0 Extracting 1B
+ 3a749597affc Downloading 1.312MB
+ 106e7e3cf19a Downloading 3.146MB
+ b1fdda8975a0 Extracting 2B
+ 3a749597affc Download complete 0B
+ 106e7e3cf19a Downloading 4.194MB
+ ad29720ebbb9 Downloading 1.049MB
+ b1fdda8975a0 Extracting 2B
+ 106e7e3cf19a Downloading 5.243MB
+ ad29720ebbb9 Downloading 1.049MB
+ b1fdda8975a0 Extracting 2B
+ 56d4d190ef07 Downloading 1.049MB
+ 106e7e3cf19a Download complete 0B
+ ad29720ebbb9 Downloading 2.097MB
+ b1fdda8975a0 Extracting 3B
+ 106e7e3cf19a Extracting 1B
+ 4d848243a73e Download complete 0B
+ ad29720ebbb9 Downloading 3.146MB
+ 56d4d190ef07 Downloading 3.146MB
+ b1fdda8975a0 Pull complete 0B
+ 106e7e3cf19a Pull complete 0B
+ ad29720ebbb9 Downloading 4.194MB
+ 56d4d190ef07 Downloading 4.194MB
+ 985a98bdc168 Download complete 0B
+ ba0e979d0818 Pull complete 0B
+ 56d4d190ef07 Downloading 4.194MB
+ ad29720ebbb9 Downloading 4.194MB
+ ad29720ebbb9 Downloading 5.243MB
+ 56d4d190ef07 Downloading 5.243MB
+ 56d4d190ef07 Downloading 6.291MB
+ ad29720ebbb9 Downloading 5.243MB
+ 18528ee5b7b5 Downloading 1.049MB
+ ad29720ebbb9 Downloading 6.291MB
+ 18528ee5b7b5 Downloading 1.049MB
+ 56d4d190ef07 Downloading 7.34MB
+ Image otel/opentelemetry-collector:0.159.0@sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2 Pulled 
+ 56d4d190ef07 Downloading 7.34MB
+ ad29720ebbb9 Downloading 6.291MB
+ 18528ee5b7b5 Downloading 2.097MB
+ 56d4d190ef07 Downloading 8.389MB
+ ad29720ebbb9 Downloading 7.34MB
+ 18528ee5b7b5 Downloading 2.097MB
+ ad29720ebbb9 Download complete 0B
+ 18528ee5b7b5 Downloading 3.146MB
+ 56d4d190ef07 Downloading 9.437MB
+ ad29720ebbb9 Extracting 1B
+ 18528ee5b7b5 Downloading 4.194MB
+ 56d4d190ef07 Downloading 10.49MB
+ ad29720ebbb9 Pull complete 0B
+ 56d4d190ef07 Downloading 11.53MB
+ 18528ee5b7b5 Downloading 5.243MB
+ 483fb6941c15 Extracting 1B
+ 3a749597affc Pull complete 0B
+ 18528ee5b7b5 Download complete 0B
+ 56d4d190ef07 Downloading 12.58MB
+ 359ae0fc975d Pull complete 0B
+ 483fb6941c15 Pull complete 0B
+ 56d4d190ef07 Downloading 12.58MB
+ 56d4d190ef07 Downloading 13.63MB
+ 56d4d190ef07 Downloading 14.68MB
+ 56d4d190ef07 Downloading 15.73MB
+ 56d4d190ef07 Downloading 16.78MB
+ 56d4d190ef07 Downloading 16.78MB
+ 56d4d190ef07 Downloading 17.83MB
+ 56d4d190ef07 Downloading 18.87MB
+ 56d4d190ef07 Downloading 19.92MB
+ 56d4d190ef07 Downloading 20.97MB
+ 56d4d190ef07 Downloading 22.02MB
+ 56d4d190ef07 Downloading 23.07MB
+ 56d4d190ef07 Downloading 24.12MB
+ 56d4d190ef07 Downloading 25.17MB
+ 56d4d190ef07 Downloading 26.21MB
+ 56d4d190ef07 Downloading 27.26MB
+ 56d4d190ef07 Downloading 28.31MB
+ 56d4d190ef07 Downloading 29.36MB
+ 56d4d190ef07 Downloading 30.41MB
+ 56d4d190ef07 Downloading 31.46MB
+ 56d4d190ef07 Downloading 32.51MB
+ 56d4d190ef07 Downloading 33.55MB
+ 56d4d190ef07 Downloading 34.6MB
+ 56d4d190ef07 Downloading 35.65MB
+ 56d4d190ef07 Downloading 37.75MB
+ 56d4d190ef07 Downloading 38.8MB
+ 56d4d190ef07 Downloading 39.85MB
+ 56d4d190ef07 Downloading 39.85MB
+ 56d4d190ef07 Downloading 41.94MB
+ 56d4d190ef07 Downloading 42.99MB
+ 56d4d190ef07 Downloading 42.99MB
+ 56d4d190ef07 Downloading 44.04MB
+ 56d4d190ef07 Downloading 45.09MB
+ 56d4d190ef07 Downloading 45.09MB
+ 56d4d190ef07 Downloading 46.14MB
+ 56d4d190ef07 Downloading 46.14MB
+ 56d4d190ef07 Downloading 47.19MB
+ 56d4d190ef07 Downloading 48.23MB
+ 56d4d190ef07 Downloading 48.23MB
+ 56d4d190ef07 Downloading 49.28MB
+ 56d4d190ef07 Downloading 49.28MB
+ 56d4d190ef07 Downloading 50.33MB
+ 56d4d190ef07 Downloading 51.38MB
+ 56d4d190ef07 Downloading 51.38MB
+ 56d4d190ef07 Downloading 52.43MB
+ 56d4d190ef07 Downloading 52.43MB
+ 56d4d190ef07 Downloading 53.48MB
+ 56d4d190ef07 Downloading 54.53MB
+ 56d4d190ef07 Downloading 54.53MB
+ 56d4d190ef07 Downloading 55.57MB
+ 56d4d190ef07 Downloading 55.57MB
+ 56d4d190ef07 Downloading 56.62MB
+ 56d4d190ef07 Downloading 57.67MB
+ 56d4d190ef07 Downloading 57.67MB
+ 56d4d190ef07 Downloading 58.72MB
+ 56d4d190ef07 Downloading 58.72MB
+ 56d4d190ef07 Downloading 59.77MB
+ 56d4d190ef07 Downloading 59.77MB
+ 56d4d190ef07 Downloading 60.82MB
+ 56d4d190ef07 Downloading 60.82MB
+ 56d4d190ef07 Downloading 61.87MB
+ 56d4d190ef07 Downloading 61.87MB
+ 56d4d190ef07 Downloading 61.87MB
+ 56d4d190ef07 Downloading 62.91MB
+ 56d4d190ef07 Downloading 62.91MB
+ 56d4d190ef07 Downloading 62.91MB
+ 56d4d190ef07 Downloading 63.96MB
+ 56d4d190ef07 Downloading 63.96MB
+ 56d4d190ef07 Downloading 65.01MB
+ 56d4d190ef07 Downloading 65.01MB
+ 56d4d190ef07 Downloading 66.06MB
+ 56d4d190ef07 Downloading 67.11MB
+ 56d4d190ef07 Downloading 67.11MB
+ 56d4d190ef07 Downloading 68.16MB
+ 56d4d190ef07 Downloading 68.16MB
+ 56d4d190ef07 Downloading 69.21MB
+ 56d4d190ef07 Downloading 69.21MB
+ 56d4d190ef07 Downloading 70.25MB
+ 56d4d190ef07 Downloading 71.3MB
+ 56d4d190ef07 Downloading 71.3MB
+ 56d4d190ef07 Downloading 72.35MB
+ 56d4d190ef07 Downloading 73.4MB
+ 56d4d190ef07 Downloading 73.4MB
+ 56d4d190ef07 Downloading 74.45MB
+ 56d4d190ef07 Downloading 74.45MB
+ 56d4d190ef07 Downloading 74.45MB
+ 56d4d190ef07 Downloading 74.45MB
+ 56d4d190ef07 Downloading 74.45MB
+ 56d4d190ef07 Downloading 75.5MB
+ 56d4d190ef07 Downloading 75.5MB
+ 56d4d190ef07 Downloading 76.55MB
+ 56d4d190ef07 Downloading 76.55MB
+ 56d4d190ef07 Downloading 77.59MB
+ 56d4d190ef07 Downloading 77.59MB
+ 56d4d190ef07 Downloading 78.64MB
+ 56d4d190ef07 Downloading 79.69MB
+ 56d4d190ef07 Downloading 79.69MB
+ 56d4d190ef07 Downloading 80.74MB
+ 56d4d190ef07 Downloading 80.74MB
+ 56d4d190ef07 Downloading 81.79MB
+ 56d4d190ef07 Downloading 81.79MB
+ 56d4d190ef07 Downloading 81.79MB
+ 56d4d190ef07 Downloading 82.84MB
+ 56d4d190ef07 Downloading 82.84MB
+ 56d4d190ef07 Downloading 83.89MB
+ 56d4d190ef07 Downloading 84.93MB
+ 56d4d190ef07 Downloading 84.93MB
+ 56d4d190ef07 Downloading 85.98MB
+ 56d4d190ef07 Downloading 85.98MB
+ 56d4d190ef07 Downloading 87.03MB
+ 56d4d190ef07 Downloading 87.03MB
+ 56d4d190ef07 Downloading 88.08MB
+ 56d4d190ef07 Downloading 88.08MB
+ 56d4d190ef07 Downloading 89.13MB
+ 56d4d190ef07 Downloading 89.13MB
+ 56d4d190ef07 Downloading 89.13MB
+ 56d4d190ef07 Downloading 90.18MB
+ 56d4d190ef07 Downloading 90.18MB
+ 56d4d190ef07 Downloading 90.18MB
+ 56d4d190ef07 Downloading 91.23MB
+ 56d4d190ef07 Downloading 91.23MB
+ 56d4d190ef07 Downloading 92.27MB
+ 56d4d190ef07 Downloading 92.27MB
+ 56d4d190ef07 Downloading 93.32MB
+ 56d4d190ef07 Downloading 93.32MB
+ 56d4d190ef07 Downloading 94.37MB
+ 56d4d190ef07 Downloading 94.37MB
+ 56d4d190ef07 Downloading 95.42MB
+ 56d4d190ef07 Downloading 95.42MB
+ 56d4d190ef07 Downloading 96.47MB
+ 56d4d190ef07 Downloading 97.52MB
+ 56d4d190ef07 Downloading 97.52MB
+ 56d4d190ef07 Downloading 98.57MB
+ 56d4d190ef07 Downloading 98.57MB
+ 56d4d190ef07 Downloading 99.61MB
+ 56d4d190ef07 Downloading 99.61MB
+ 56d4d190ef07 Downloading 100.7MB
+ 56d4d190ef07 Downloading 100.7MB
+ 56d4d190ef07 Downloading 101.7MB
+ 56d4d190ef07 Downloading 101.7MB
+ 56d4d190ef07 Downloading 102.8MB
+ 56d4d190ef07 Downloading 102.8MB
+ 56d4d190ef07 Downloading 103.8MB
+ 56d4d190ef07 Downloading 103.8MB
+ 56d4d190ef07 Downloading 104.9MB
+ 56d4d190ef07 Downloading 104.9MB
+ 56d4d190ef07 Downloading 105.9MB
+ 56d4d190ef07 Downloading 107MB
+ 56d4d190ef07 Downloading 107MB
+ 56d4d190ef07 Downloading 108MB
+ 56d4d190ef07 Downloading 110.1MB
+ 56d4d190ef07 Downloading 111.1MB
+ 56d4d190ef07 Downloading 113.2MB
+ 56d4d190ef07 Download complete 0B
+ 56d4d190ef07 Extracting 1B
+ 56d4d190ef07 Extracting 1B
+ 56d4d190ef07 Extracting 1B
+ 56d4d190ef07 Extracting 1B
+ 56d4d190ef07 Extracting 1B
+ 56d4d190ef07 Extracting 1B
+ 56d4d190ef07 Extracting 1B
+ 56d4d190ef07 Extracting 1B
+ 56d4d190ef07 Extracting 1B
+ 56d4d190ef07 Extracting 2B
+ 56d4d190ef07 Extracting 2B
+ 56d4d190ef07 Extracting 2B
+ 56d4d190ef07 Extracting 2B
+ 56d4d190ef07 Extracting 2B
+ 56d4d190ef07 Extracting 2B
+ 56d4d190ef07 Extracting 2B
+ 56d4d190ef07 Extracting 2B
+ 56d4d190ef07 Extracting 2B
+ 56d4d190ef07 Extracting 3B
+ 56d4d190ef07 Extracting 3B
+ 56d4d190ef07 Extracting 3B
+ 56d4d190ef07 Extracting 3B
+ 56d4d190ef07 Extracting 3B
+ 56d4d190ef07 Extracting 3B
+ 56d4d190ef07 Extracting 3B
+ 56d4d190ef07 Pull complete 0B
+ 74156cf9f063 Pull complete 0B
+ 749acf6dc637 Pull complete 0B
+ f7c7d4dd80ba Pull complete 0B
+ 74156cf9f063 Pull complete 0B
+ 6ad4758748c1 Pull complete 0B
+ 749acf6dc637 Pull complete 0B
+ f7c7d4dd80ba Pull complete 0B
+ 4d848243a73e Pull complete 0B
+ Image postgres:16.15@sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6 Pulled 
+==> runbook block 4
+ Image aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 779B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.37kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.14-slim
+#3 ...
+
+#4 [internal] load metadata for ghcr.io/astral-sh/uv:latest
+#4 DONE 1.1s
+
+#3 [internal] load metadata for docker.io/library/python:3.14-slim
+#3 DONE 1.4s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 333B 0.0s done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 DONE 0.0s
+
+#7 FROM ghcr.io/astral-sh/uv:latest@sha256:3adc3706091ce7c2fe595e669628caedd6d951551b92b258b7e7dbe06d9440bc
+#7 resolve ghcr.io/astral-sh/uv:latest@sha256:3adc3706091ce7c2fe595e669628caedd6d951551b92b258b7e7dbe06d9440bc 0.1s done
+#7 DONE 0.1s
+
+#8 [stage-0  1/10] FROM docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2
+#8 resolve docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2 0.1s done
+#8 DONE 0.1s
+
+#7 FROM ghcr.io/astral-sh/uv:latest@sha256:3adc3706091ce7c2fe595e669628caedd6d951551b92b258b7e7dbe06d9440bc
+#7 CACHED
+
+#8 [stage-0  1/10] FROM docker.io/library/python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2
+#8 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 19.90kB 0.0s done
+#6 DONE 0.1s
+
+#9 [stage-0  2/10] COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+#9 DONE 1.7s
+
+#10 [stage-0  3/10] RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --create-home --shell /usr/sbin/nologin app
+#10 DONE 0.6s
+
+#11 [stage-0  4/10] WORKDIR /app
+#11 DONE 0.0s
+
+#12 [stage-0  5/10] COPY --chown=app:app pyproject.toml uv.lock ./
+#12 DONE 0.1s
+
+#13 [stage-0  6/10] RUN uv sync --frozen --no-install-project --no-dev
+#13 0.973 Using CPython 3.14.7 interpreter at: /usr/local/bin/python3
+#13 0.973 Creating virtual environment at: .venv
+#13 1.364 Downloading openai (1.9MiB)
+#13 1.391 Downloading cryptography (4.5MiB)
+#13 1.441 Downloading uvloop (4.1MiB)
+#13 1.449 Downloading pydantic-core (2.0MiB)
+#13 3.712  Downloaded openai
+#13 3.752  Downloaded pydantic-core
+#13 4.431  Downloaded uvloop
+#13 4.512  Downloaded cryptography
+#13 4.513 Prepared 46 packages in 3.53s
+#13 4.824 Installed 46 packages in 310ms
+#13 6.237 Bytecode compiled 2929 files in 1.41s
+#13 6.237  + annotated-doc==0.0.5
+#13 6.237  + annotated-types==0.8.0
+#13 6.237  + anyio==4.14.2
+#13 6.237  + attrs==26.1.0
+#13 6.237  + cffi==2.1.1
+#13 6.238  + click==8.4.2
+#13 6.238  + cryptography==50.0.1
+#13 6.238  + fastapi==0.141.1
+#13 6.238  + h11==0.16.0
+#13 6.238  + httpcore2==2.12.0
+#13 6.238  + httptools==0.8.0
+#13 6.238  + httpx2==2.12.0
+#13 6.238  + idna==3.19
+#13 6.238  + jinja2==3.1.6
+#13 6.238  + jiter==0.16.0
+#13 6.238  + jsonschema==4.26.0
+#13 6.238  + jsonschema-specifications==2025.9.1
+#13 6.238  + markupsafe==3.0.3
+#13 6.238  + mcp==2.2.0
+#13 6.238  + mcp-types==2.2.0
+#13 6.238  + neo4j==6.3.0
+#13 6.238  + openai==3.14.0
+#13 6.238  + opentelemetry-api==1.44.0
+#13 6.238  + opentelemetry-proto==1.44.0
+#13 6.238  + protobuf==7.36.0
+#13 6.238  + pycparser==3.0
+#13 6.238  + pydantic==2.13.5
+#13 6.238  + pydantic-core==2.46.5
+#13 6.238  + pyjwt==2.13.0
+#13 6.238  + python-dotenv==1.2.3
+#13 6.238  + python-multipart==0.0.32
+#13 6.238  + pytz==2026.3.post1
+#13 6.238  + pyyaml==6.0.3
+#13 6.238  + referencing==0.37.0
+#13 6.238  + rfc8785==0.1.4
+#13 6.238  + rpds-py==2026.6.3
+#13 6.238  + sniffio==1.3.1
+#13 6.238  + sse-starlette==3.4.10
+#13 6.238  + starlette==1.6.0
+#13 6.238  + truststore==0.10.4
+#13 6.238  + typing-extensions==4.16.0
+#13 6.238  + typing-inspection==0.4.4
+#13 6.238  + uvicorn==0.52.4
+#13 6.238  + uvloop==0.22.1
+#13 6.238  + watchfiles==1.2.0
+#13 6.238  + websockets==17.0.1
+#13 DONE 6.5s
+
+#14 [stage-0  7/10] COPY --chown=app:app app ./app
+#14 DONE 0.1s
+
+#15 [stage-0  8/10] COPY --chown=app:app config.yaml ./
+#15 DONE 0.0s
+
+#16 [stage-0  9/10] COPY --chown=app:app examples ./examples
+#16 DONE 0.0s
+
+#17 [stage-0 10/10] RUN uv sync --frozen --no-dev
+#17 0.740 Bytecode compiled 2929 files in 251ms
+#17 DONE 0.8s
+
+#18 exporting to image
+#18 exporting layers
+#18 exporting layers 6.7s done
+#18 exporting manifest sha256:b94e6276776ddcc4b673e2f7946108440c6964301655628d9a3fe3165b20233a 0.0s done
+#18 exporting config sha256:14f6b5c6d60ae57c62bacec10fdfb05d9ce6a5525faee1be75c99b5377ce64f1 0.0s done
+#18 exporting attestation manifest sha256:b870af79f0d4564b5012127a3331f6c4a94927155a651c14ca3cec4eb8cf7096 0.0s done
+#18 exporting manifest list sha256:092468e77cd54318a57ba7bb4702a2da21e82481f0319187e426b83ba9133f60 0.0s done
+#18 naming to docker.io/library/aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a done
+#18 unpacking to docker.io/library/aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a
+#18 unpacking to docker.io/library/aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a 3.3s done
+#18 DONE 10.2s
+
+#19 resolving provenance for metadata file
+#19 DONE 0.0s
+ Image aip-i5-candidate:174a17c5d0f8be35291032c677585291c330cc0a Built 
+==> runbook block 5
+ Network airflow-i5_default Creating 
+ Network airflow-i5_default Creating 
+ Volume airflow-i5_neo4j-airflow-i5-logs Creating 
+ Volume airflow-i5_airflow-i5-plugins Creating 
+ Volume airflow-i5_airflow-i5-logs Creating 
+ Volume airflow-i5_airflow-i5-logs Creating 
+ Volume airflow-i5_airflow-i5-plugins Creating 
+ Volume airflow-i5_neo4j-airflow-i5-data Creating 
+ Volume airflow-i5_neo4j-airflow-i5-data Creating 
+ Volume airflow-i5_postgres-db-volume Creating 
+ Volume airflow-i5_postgres-db-volume Creating 
+ Volume airflow-i5_neo4j-airflow-i5-logs Creating 
+ Volume airflow-i5_airflow-i5-config Creating 
+ Volume airflow-i5_airflow-i5-config Creating 
+ Volume airflow-i5_postgres-db-volume Created 
+ Volume airflow-i5_postgres-db-volume Created 
+ Volume airflow-i5_neo4j-airflow-i5-logs Created 
+ Volume airflow-i5_neo4j-airflow-i5-logs Created 
+ Volume airflow-i5_airflow-i5-plugins Created 
+ Volume airflow-i5_airflow-i5-plugins Created 
+ Volume airflow-i5_neo4j-airflow-i5-data Created 
+ Volume airflow-i5_neo4j-airflow-i5-data Created 
+ Volume airflow-i5_airflow-i5-logs Created 
+ Volume airflow-i5_airflow-i5-logs Created 
+ Volume airflow-i5_airflow-i5-config Created 
+ Volume airflow-i5_airflow-i5-config Created 
+ Network airflow-i5_default Created 
+ Network airflow-i5_default Created 
+ Container airflow-i5-neo4j-1 Creating 
+ Container airflow-i5-postgres-1 Creating 
+ Container airflow-i5-redis-1 Creating 
+ Container airflow-i5-neo4j-1 Created 
+ Container airflow-i5-architecture-intelligence-1 Creating 
+ Container airflow-i5-postgres-1 Created 
+ Container airflow-i5-redis-1 Created 
+ Container airflow-i5-airflow-init-1 Creating 
+ Container airflow-i5-airflow-init-1 Created 
+ Container airflow-i5-airflow-triggerer-1 Creating 
+ Container airflow-i5-airflow-apiserver-1 Creating 
+ Container airflow-i5-airflow-scheduler-1 Creating 
+ Container airflow-i5-airflow-dag-processor-1 Creating 
+ Container airflow-i5-architecture-intelligence-1 Created 
+ Container airflow-i5-otel-collector-1 Creating 
+ Container airflow-i5-airflow-scheduler-1 Created 
+ Container airflow-i5-airflow-triggerer-1 Created 
+ Container airflow-i5-airflow-apiserver-1 Created 
+ Container airflow-i5-airflow-worker-2 Creating 
+ Container airflow-i5-airflow-worker-1 Creating 
+ Container airflow-i5-airflow-dag-processor-1 Created 
+ Container airflow-i5-otel-collector-1 Created 
+ Container airflow-i5-airflow-worker-2 Created 
+ Container airflow-i5-airflow-worker-1 Created 
+ Container airflow-i5-neo4j-1 Starting 
+ Container airflow-i5-postgres-1 Starting 
+ Container airflow-i5-redis-1 Starting 
+ Container airflow-i5-neo4j-1 Started 
+ Container airflow-i5-neo4j-1 Waiting 
+ Container airflow-i5-postgres-1 Started 
+ Container airflow-i5-redis-1 Started 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-airflow-init-1 Starting 
+ Container airflow-i5-airflow-init-1 Started 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-airflow-init-1 Waiting 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-airflow-init-1 Waiting 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-airflow-init-1 Waiting 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-airflow-init-1 Waiting 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-neo4j-1 Healthy 
+ Container airflow-i5-architecture-intelligence-1 Starting 
+ Container airflow-i5-architecture-intelligence-1 Started 
+ Container airflow-i5-architecture-intelligence-1 Waiting 
+ Container airflow-i5-architecture-intelligence-1 Healthy 
+ Container airflow-i5-otel-collector-1 Starting 
+ Container airflow-i5-otel-collector-1 Started 
+ Container airflow-i5-airflow-init-1 Exited 
+ Container airflow-i5-airflow-triggerer-1 Starting 
+ Container airflow-i5-airflow-init-1 Exited 
+ Container airflow-i5-airflow-apiserver-1 Starting 
+ Container airflow-i5-airflow-init-1 Exited 
+ Container airflow-i5-airflow-dag-processor-1 Starting 
+ Container airflow-i5-airflow-init-1 Exited 
+ Container airflow-i5-airflow-scheduler-1 Starting 
+ Container airflow-i5-airflow-triggerer-1 Started 
+ Container airflow-i5-airflow-apiserver-1 Started 
+ Container airflow-i5-postgres-1 Waiting 
+ Container airflow-i5-airflow-apiserver-1 Waiting 
+ Container airflow-i5-airflow-init-1 Waiting 
+ Container airflow-i5-redis-1 Waiting 
+ Container airflow-i5-airflow-dag-processor-1 Started 
+ Container airflow-i5-airflow-scheduler-1 Started 
+ Container airflow-i5-redis-1 Healthy 
+ Container airflow-i5-airflow-init-1 Exited 
+ Container airflow-i5-postgres-1 Healthy 
+ Container airflow-i5-airflow-apiserver-1 Healthy 
+ Container airflow-i5-airflow-worker-2 Starting 
+ Container airflow-i5-airflow-worker-2 Started 
+ Container airflow-i5-airflow-worker-1 Starting 
+ Container airflow-i5-airflow-worker-1 Started 
+==> readiness (v0.3 helpers)
+architecture-intelligence ready after 0s
+airflow-apiserver ready after 0s
+otel-collector ready after 0s
+airflow-scheduler (efc92276788986f5570f6f4755bb3fd48f0670aa1995c11814126e9001d8bc9f) healthy after 0s
+airflow-dag-processor (7453d0f87a11875cff9c35d1ffe5eff5f595952a7486712802a716d8e6af1769) healthy after 0s
+airflow-triggerer (dd4e581b2a2613c0cef6380d0d9e916f05f93871b28d4dc282de58d45ecd78bc) healthy after 0s
+airflow-worker (bb30fba007c28cb3ec7b2c4b2381e9dd53a4d80175accac16dc4248cb8240032) healthy after 22s
+airflow-worker (d5f657b413dc161ec46b5be156ffd679f8cad3f4927df950fcb00f0d0f36636a) healthy after 0s
+i3_validation registered after 0s
+==> runbook block 6
+{
+  "import_id": "185ef103a5bc410ba43d6b43613310f9",
+  "committed": true,
+  "sources": {
+    "urn:aip:source:filesystem:21a69bfc5c33d4aa647f87cf9899d7bcdf3a0da54841449162f021d9da7043ae": {
+      "source_instance_id": "urn:aip:source:filesystem:21a69bfc5c33d4aa647f87cf9899d7bcdf3a0da54841449162f021d9da7043ae",
+      "locator": "declarations/airflow-apiserver/openapi.yml",
+      "result": "ACCEPTED_WITH_LIMITATIONS",
+      "nodes_written": 232,
+      "relations_written": 521,
+      "nodes_expired": 0,
+      "relations_expired": 0,
+      "graph_revision_advanced": true
+    }
+  }
+}
+==> runbook block 7
+==> runbook block 8
+environment=airflow-i5 window_start=2026-09-24T21:50:27Z window_end=2026-09-24T21:50:51Z
+==> runbook block 9
+captured 9 facts to /tmp/claude-1001/-home-michael-code-ArchitectureIntelligencePlatform/dea4adeb-9305-40aa-944d-829d6415b869/scratchpad/i5-s5/airflow/actual.yaml
+==> runbook block 10
+AIP Real-World Validation — I1 contract
+
+
+[UNRESOLVED_IDENTITY/MINOR] airflow-execution-api-boundary
+
+[UNRESOLVED_IDENTITY/MINOR] airflow-runtime-role-identity
+
+[INSUFFICIENT_EVIDENCE/MINOR] airflow-celery-messaging
+
+[UNSUPPORTED/INFO] airflow-apiserver-postgres-dependency
+
+[UNSUPPORTED/INFO] airflow-celery-result-backend-postgres-dependency
+
+[UNSUPPORTED/INFO] airflow-scheduler-postgres-dependency
+
+[CORRECT/INFO] airflow-no-default-queue-receive
+Forbidden: RECEIVES_FROM service:airflow-apiserver -> queue:default
+
+[CORRECT/INFO] airflow-no-default-queue-send
+Forbidden: SENDS service:airflow-apiserver -> queue:default
+
+[CORRECT/INFO] airflow-provides-get_dags
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_dag
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_dag_runs
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_dag_run
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_task_instances
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_task_instance
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_health
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/monitor/health
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-get_variables
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/variables
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:GET:/api/v2/variables
+  status: None  evidence: declared=true observed=false
+
+[CORRECT/INFO] airflow-provides-trigger_dag_run
+Expected:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=?
+Actual:
+  PROVIDES
+  service:airflow-apiserver
+    -> operation:service:airflow-apiserver:POST:/api/v2/dags/{dag_id}/dagRuns
+  status: None  evidence: declared=true observed=false
+
+Expected supported facts:      9
+Correct:                       9
+Missing supported:             0
+Incorrect supported:           0
+Unsupported constructs:        3
+Unresolved identities:         2
+Insufficient evidence:         1
+Forbidden facts proven absent: 2
+Forbidden facts present:       0
+Critical semantic errors:      0
+==> DONE (stack left running for public-surfaces and manual checks)
+exit=0
