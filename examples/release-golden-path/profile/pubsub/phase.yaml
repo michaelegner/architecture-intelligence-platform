@@ -1,0 +1,14 @@
+# Golden-path phase `pubsub` (I6 §7.1). It reproduces tests/integration/test_i4_pubsub_qualification.py
+# `_qualify_fixture` for google-pubsub through the container.
+phase: pubsub
+config_path: golden-path/config.yaml
+mounts:
+  - {from: examples/release-golden-path/profile/pubsub/config.yaml, to: /app/golden-path/config.yaml}
+  - {from: tests/fixtures/pubsub/google-pubsub/declarations, to: /app/golden-path/declarations}   # unmodified
+steps:
+  - import: POST /api/import
+  - otlp: examples/release-golden-path/profile/pubsub/otlp.json   # transcription of google-pubsub/spans.yaml, via the collector
+observation_context:
+  environment: production
+  window_start: "2026-09-23T00:00:00.000000Z"
+  window_end: "2026-09-24T00:00:00.000000Z"

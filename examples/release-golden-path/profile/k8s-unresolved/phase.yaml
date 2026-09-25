@@ -1,0 +1,15 @@
+# Golden-path phase `k8s-unresolved` (I6 §7.1). It reproduces tests/integration/test_i5_qualification_tooling.py
+# `test_two_same_service_unresolved_groups_are_captured_and_compared_one_to_one` through the container.
+phase: k8s-unresolved
+config_path: golden-path/config.yaml
+mounts:
+  - {from: examples/release-golden-path/profile/k8s-unresolved/config.yaml, to: /app/golden-path/config.yaml}
+  - {from: examples/release-golden-path/profile/k8s-unresolved/declarations, to: /app/golden-path/declarations}   # transcriptions
+  - {from: tests/fixtures/kubernetes/i2-independent-capture, to: /app/golden-path/i2-capture}   # unmodified
+  - {from: examples/release-golden-path/profile/k8s-unresolved/mapping.yaml, to: /app/golden-path/mapping.yaml}   # transcription of _TWO_ABSENT_TARGET_MAPPINGS
+steps:
+  - import: POST /api/import
+observation_context:
+  environment: prod
+  window_start: "2026-09-18T00:00:00Z"
+  window_end: "2026-09-18T23:59:59Z"
