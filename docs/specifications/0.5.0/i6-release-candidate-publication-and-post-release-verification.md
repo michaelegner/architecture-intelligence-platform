@@ -1,6 +1,6 @@
 # AIP v0.5.0 I6 — Release Candidate, Publication, and Post-Release Verification
 
-**Status:** Draft 0.2  
+**Status:** Draft 0.3  
 **Target release:** `v0.5.0`  
 **Increment:** I6 — Release Candidate, Publication, and Post-Release Verification  
 **Parent:** [`specification.md`](specification.md), especially §§23–31 and §33  
@@ -297,57 +297,115 @@ zero writes through public reads
 
 Because I4 completed as `GO`, Topic/Subscription behavior is mandatory in this release profile.
 
-### 7.1 Composition
+### 7.1 Phased composition
 
-No single existing fixture covers this list. The profile SHALL be composed from these
-already-qualified fixtures, each imported unmodified:
+No single existing fixture covers this list, and the fixtures cannot share one graph:
 
-~~~text
-examples/ (runtime-demo declarations + seed_frozen_evidence.py)
-    OpenAPI, AsyncAPI Queue, deterministic OTel observation
-tests/fixtures/deployment/i3-cross-source/ (+ the I2 capture it reuses)
-    Kubernetes, DEPLOYED_AS positive, UNRESOLVED and CONFLICT cases
-one tests/fixtures/pubsub/ AsyncAPI fixture
-    Topic and explicit Subscription
-~~~
+- The I3 cross-source fixture has exactly one Workload. Its positive case (agreeing mapping) and its
+  `CONFLICT` case (conflicting mapping) are mutually exclusive on that Workload.
+- `sources.service_workload_mapping` is one path, loaded at startup.
+- The runtime-demo oracle `examples/runtime-demo/fixture-state.json` compares whole-graph counts and
+  the whole-graph snapshot id, so it holds only in a graph containing the demo alone.
 
-Combining these in one import scope produces a graph that was never qualified as a whole. So:
+The golden path is therefore a fixed sequence of **phases**. Each phase starts from a clean graph,
+meaning a fresh Compose project and a fresh Neo4j volume, and has its own AIP configuration. Each
+phase reproduces one already-qualified component setup through public interfaces only:
+- configured sources plus `POST /api/import`;
+- OTLP through the pinned collector;
+- REST;
+- negotiated MCP.
 
-- every expected fact SHALL be derived from a component fixture's existing frozen expectation
-  (its qualification test or evaluation scenario), and SHALL cite that source;
-- a component SHALL NOT alter another component's expected facts. If composition changes a
-  component's expected facts, the fixtures SHALL be put in separate import scopes, or I6 stops
-  (§26);
-- the complete expected output SHALL be frozen and merged (Slice 1a) **before** the harness first
-  runs against any image, whether a development build or a candidate. Expectations SHALL NOT be captured from, or edited to match, candidate output.
-  That would repeat the prohibition in I5 §19 item 5.
+| Phase | Component inputs | Covers | Oracle |
+|---|---|---|---|
+| `demo` | `examples/`, `seed_frozen_evidence.py`, environment `demo` | OpenAPI, AsyncAPI Queue, deterministic OTel, positive declared identity, COMPLETE inventory, the full §20 REST and MCP workflow | `fixture-state.json` via `check_fixture_state.py`, plus the import report |
+| `pubsub` | `tests/fixtures/pubsub/google-pubsub/declarations/` (unmodified), with its `spans.yaml` transcribed to OTLP | AsyncAPI Topic, explicit Subscriptions, Pub/Sub observation | the fixture's `expected.yaml` |
+| `k8s-agree` | the I2 capture (unmodified), `service-workload-mapping-agree.yaml` (unmodified), a transcribed `service:runtime-demo` declaration and OTLP span | Kubernetes offline discovery; `RESOLVED_EXPLICIT` supported by all three paths | `test_i3_cross_source_qualification.py`, all-paths-agree case |
+| `k8s-conflict` | the I2 capture, `service-workload-mapping-conflict.yaml` (unmodified), transcribed `service:runtime-demo` and `service:runtime-demo-alt` declarations, no span | the conflicting-identity case | the same test, Path A vs Path B case |
+| `k8s-unresolved` | the I2 capture, a transcribed `service:runtime-demo` declaration, and a transcription of the two-absent-target mapping `_TWO_ABSENT_TARGET_MAPPINGS`; no span | the unresolved-identity case | `test_i5_qualification_tooling.py`, `test_two_same_service_unresolved_groups_are_captured_and_compared_one_to_one` |
 
-### 7.2 Named cases
+The rules for expectations:
+- Every expected fact SHALL be derived from a component's existing frozen expectation (its
+  qualification test, fixture `expected.yaml`, or frozen oracle) and SHALL cite that source by
+  path and line.
+- `k8s-unresolved` uses the only frozen `UNRESOLVED` expectation that goes through the public
+  Service-scoped projection (I3 §13.4). Rule-level tests that call the resolver directly are not
+  enough, because an `UNRESOLVED` resolution is public only when it names the requested, declared
+  Service. That frozen expectation is two `UNRESOLVED` resolutions for `service:runtime-demo`, each
+  with a null Service and Workload, with distinct resolution ids.
+- A phase SHALL NOT expect a fact its cited component does not freeze. Where the component asserts
+  over the whole graph, the phase expectation is scoped to the entities that component declares.
+- Identity-bearing values are not frozen, except where the component oracle already freezes them.
+  These include claim ids, evidence ids, and snapshot ids that depend on configured source ids or
+  absolute paths. The demo phase's `expected_snapshot_id` is the only such exception. Expectations
+  are statuses, qualifications, shapes, names and counts.
+- The complete expected output SHALL be frozen and merged (Slice 1a) **before** the harness first
+  runs against any image, whether a development build or a candidate. Expectations SHALL NOT be
+  captured from, or edited to match, any image's output. That would repeat the prohibition in I5
+  §19 item 5.
 
-- **Unresolved identity.** An I3 `DEPLOYED_AS` resolution of `UNRESOLVED`.
+### 7.2 Transcribed inputs
+
+Some component inputs exist only inside a test:
+- the I3 tests declare their Services in memory and build `RuntimeSpan` objects in Python;
+- the I5 tooling test's absent-target mapping is an inline YAML string;
+- the Pub/Sub `spans.yaml` uses a test-only format.
+
+A running container needs files, so such inputs MAY be **transcribed**. A transcription SHALL:
+1. be derived mechanically from the component test's own input, with nothing added or changed;
+2. live under `examples/release-golden-path/profile/<phase>/`, never inside the component fixture;
+3. be disclosed as a transcription in the profile README, naming its source test and lines;
+4. be pinned by a unit test that proves equivalence through production code:
+   - **Service declaration.** An OpenAPI document with `x-aip-service-id`, the test's `info.title`
+     and `info.version`, and `paths: {}`. The real OpenAPI adapter SHALL emit exactly the
+     test's Service (`id`, `name`, `version`) and no other entity or relation.
+   - **Mapping document.** The inline YAML is written out byte for byte. The unit test SHALL
+     compare the file's bytes with the test constant.
+   - **OTLP payload.** OTLP/HTTP JSON, which the pinned collector accepts and forwards to AIP as
+     protobuf. Parsing it into an `ExportTraceServiceRequest`, serializing it, and decoding it with
+     `app/telemetry/otlp_receiver.py`'s `decode_export_request` SHALL yield the same `RuntimeSpan`
+     fields the component test builds.
+
+A transcription that cannot be proven equivalent is a stop condition (§26).
+
+### 7.3 Named cases and "COMPLETE"
+
+- **Unresolved identity.** An I3 `DEPLOYED_AS` resolution of `UNRESOLVED` (phase `k8s-unresolved`).
 - **Conflicting identity.** An I3 `DEPLOYED_AS` resolution of `CONFLICT`, with no guessed
-  association. This is not an I1 source-level `REJECTED_CONFLICT`: every profile source SHALL be
-  accepted.
-- **"COMPLETE".** Both of the following SHALL hold:
-  1. every source-inventory run in the profile reports I1 inventory status `COMPLETE`;
-  2. the profile's own classifier reports `COMPLETE` with zero mismatches against the frozen
-     expected output.
+  association (phase `k8s-conflict`). This is not an I1 source-level `REJECTED_CONFLICT`: every
+  profile source SHALL be accepted, as its component expects.
+- **"COMPLETE".** In every phase, both of the following SHALL hold:
+  1. every source-inventory run reports I1 inventory status `COMPLETE`;
+  2. the phase oracle reports zero mismatches against the frozen expected output.
 
-  The v0.4 `examples/runtime-demo/check_fixture_state.py` does not cover the v0.5 profile and SHALL
-  NOT be reused as that classifier.
+  The demo phase MAY use `examples/runtime-demo/check_fixture_state.py` as its oracle, because its
+  graph holds the demo alone. The other phases' checks are part of the §7.4 harness.
+- **Full workflow placement.** The complete §20 REST and negotiated-MCP workflow runs in the `demo`
+  phase: initialize, `tools/list`, all three tools, evidence drill-down, disconnect and reconnect,
+  and a revision fence before and after.
+  - The `pubsub` phase repeats REST, `tools/list` and the three tools for its publisher.
+  - Each `k8s-*` phase reads its resolution through REST
+    `GET /api/services/{id}/deployments` and MCP `get_service_dependencies`.
+  - Every phase verifies zero writes through public reads.
 
-### 7.3 Location and command
+### 7.4 Location and command
 
 The profile and its harness live in:
 
 ~~~text
 examples/release-golden-path/
-  README.md          import order, observation window, component provenance
-  profile/           the composed inputs, or references to the unmodified components
-  expected.json      frozen expected output (§7.1)
-  SHA256SUMS         content digest of profile/ and expected.json
-  run.sh             the only entry point
+  README.md          phases, import order, observation windows, component provenance,
+                     transcription disclosure
+  profile/<phase>/   per-phase AIP config, mount list, transcriptions
+  expected.json      frozen expected output, keyed by phase (§7.1)
+  SHA256SUMS         digests of profile/, expected.json and every referenced component file
+  run.sh             the only entry point (Slice 1b)
 ~~~
+
+`examples/release-golden-path/` sits inside the bundled `examples` source root. The filesystem
+discoverer treats every direct subdirectory of that root as a service directory. So no discoverer
+candidate filename (`openapi.yaml`, `asyncapi.yaml`, `architecture.yaml`, …) may appear directly
+in `examples/release-golden-path/`. A unit test SHALL prove that the bundled-examples discovery
+result is unchanged.
 
 It is run as:
 
@@ -947,7 +1005,7 @@ The final image SHALL be pulled anonymously by immutable digest.
 
 A local rebuild SHALL NOT substitute.
 
-From clean state, run `examples/release-golden-path/run.sh` from the tagged-source clone (§7.3,
+From clean state, run `examples/release-golden-path/run.sh` from the tagged-source clone (§7.4,
 §21) against `ghcr.io/...@sha256:<FINAL_IMAGE_DIGEST>`, and verify:
 
 ~~~text
@@ -960,7 +1018,7 @@ producer.version == 0.5.0
 producer.build_revision == RELEASE_CANDIDATE_SHA
 schema_version == 0.5
 
-profile is COMPLETE (both conditions of §7.2)
+every phase is COMPLETE (both conditions of §7.3)
 expected OpenAPI facts exist
 expected AsyncAPI Queue facts exist
 expected Topic/Subscription facts exist
@@ -985,8 +1043,11 @@ tools/list returns exactly:
 MCP dependency/drift/evidence workflow succeeds
 disconnect/reconnect succeeds
 public reads cause zero graph writes
-post-run profile remains COMPLETE (§7.2)
+every phase remains COMPLETE after its reads (§7.3)
 ~~~
+
+These checks are distributed across the §7.1 phases as §7.3 places them. Each check passes only in
+the phase that covers it, and every phase SHALL pass.
 
 The final golden-path output SHALL be retained as release evidence.
 
@@ -1010,7 +1071,7 @@ working tree clean
 package version = 0.5.0
 uv sync --locked succeeds
 release schemas present
-release golden-path profile present and matching its SHA256SUMS (§7.3)
+release golden-path profile present and matching its SHA256SUMS (§7.4)
 exactly three MCP tools
 ~~~
 
@@ -1116,8 +1177,10 @@ Deliver, in one PR:
 
 ~~~text
 I5 handoff audit (§5)
-examples/release-golden-path/ README.md, profile/, expected.json, SHA256SUMS (§7)
+examples/release-golden-path/ README.md, profile/<phase>/, expected.json, SHA256SUMS (§7)
 the per-fact source citations required by §7.1
+the §7.2 transcriptions and their equivalence unit tests
+the §7.4 discovery-unchanged guard test
 ~~~
 
 No harness execution happens in this slice. Exit: the owner's merge freezes the profile.
@@ -1129,7 +1192,7 @@ Deliver:
 ~~~text
 0.5.0 version consistency (§6)
 release-version tests/fixtures
-examples/release-golden-path/run.sh and its classifier (§7.3)
+examples/release-golden-path/run.sh and its per-phase checks (§7.3, §7.4)
 release notes and CHANGELOG release content (§6.1), including the OFFLINE_ONLY
   and pre-refresh-report statements (§10.3, §10.7)
 docker.yml SBOM / digest-scan / full-report changes (§8), mandatory
@@ -1226,8 +1289,9 @@ I6 SHALL stop and require review if:
 14. anonymous pull by digest fails;
 15. published golden path fails;
 16. public release notes materially overclaim qualified behavior;
-17. composing the golden-path profile would change a component fixture's frozen expected facts
-    (§7.1), or the harness disagrees with the frozen `expected.json`;
+17. a golden-path phase would need a component fixture edited, or a fact its component does not
+    freeze (§7.1); a transcription cannot be proven equivalent (§7.2); or the harness disagrees
+    with the frozen `expected.json`;
 18. the release workflow's SBOM or scan cannot be tied to `FINAL_IMAGE_DIGEST` (§19);
 19. the tag or GitHub Release would have to be deleted, moved or re-created (§17.2).
 
@@ -1424,6 +1488,9 @@ Before accepting this specification:
 - [ ] A candidate-level `NO_GO` differs from the release-level terminal `NO_GO` (§4.1).
 - [ ] The golden-path `expected.json` is derived from component fixtures and frozen before the
       harness first runs (§7.1, Slice 1a).
+- [ ] The golden path is phased, one clean graph per phase. Transcribed inputs are proven
+      equivalent, and every phase expectation, including `k8s-unresolved`, cites a frozen
+      public-projection assertion (§7.1, §7.2).
 - [ ] The release workflow at the candidate produces a digest-bound SBOM and a full scan report (§8).
 - [ ] Parent §24 hygiene (§10.6) and `OFFLINE_ONLY` (§10.7) are covered.
 - [ ] The decision names both the candidate and the evidence commit (§15).
