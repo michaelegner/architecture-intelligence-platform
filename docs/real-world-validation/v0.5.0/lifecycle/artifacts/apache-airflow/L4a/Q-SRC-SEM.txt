@@ -1,0 +1,2 @@
+s.source_instance_id, s.semantic_input_digest
+"urn:aip:source:filesystem:21a69bfc5c33d4aa647f87cf9899d7bcdf3a0da54841449162f021d9da7043ae", "fc96e94c975643df711884c4dba7eaf7d86bc4680cbb1ed6319a23591398b06a"

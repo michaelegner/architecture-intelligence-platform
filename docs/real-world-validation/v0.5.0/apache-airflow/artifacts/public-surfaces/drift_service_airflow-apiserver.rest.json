@@ -1,0 +1,35 @@
+{
+  "claims": [],
+  "data": {
+    "drift_claim_ids": [],
+    "service": {
+      "id": "service:airflow-apiserver",
+      "method": null,
+      "name": "Airflow API",
+      "namespace": null,
+      "path": null,
+      "protocol": null,
+      "type": "SERVICE"
+    }
+  },
+  "evidence_refs": [],
+  "limitations": [],
+  "observation_context": {
+    "context_id": "aip:observation-context:v1:e3f412fd1348b019ba4c3473bfd8f1ee75658b777d677f41dd5ce650150766ae",
+    "environment": "airflow-i5",
+    "window_end": "2026-09-24T21:50:51Z",
+    "window_start": "2026-09-24T21:50:27Z"
+  },
+  "outcome": "ANSWERED",
+  "producer": {
+    "build_revision": "174a17c5d0f8be35291032c677585291c330cc0a",
+    "name": "architecture-intelligence-platform",
+    "version": "0.4.2"
+  },
+  "schema_version": "0.5",
+  "snapshot": {
+    "model_revision": "sha256:622470bbb7a75c63bf3402b93a0d9674b9e11bcd69625a01778ef13df8d2a318",
+    "snapshot_id": "aip:snapshot:v1:622470bbb7a75c63bf3402b93a0d9674b9e11bcd69625a01778ef13df8d2a318"
+  },
+  "tool": "get_architecture_drift"
+}

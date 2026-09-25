@@ -1,0 +1,5 @@
+# Filtered for the repository: 526 noise lines removed (Neo4j 'Received notification' warnings, image-pull and Maven download progress). All other lines are verbatim.
+architecture-intelligence-1  | INFO:     172.19.0.1:40480 - "GET /health HTTP/1.1" 200 OK
+architecture-intelligence-1  | INFO:     127.0.0.1:40630 - "GET /health HTTP/1.1" 200 OK
+architecture-intelligence-1  | Imported import_id=1897430feb954e5496e0e6dc9ef895f2 source=urn:aip:source:filesystem:21a69bfc5c33d4aa647f87cf9899d7bcdf3a0da54841449162f021d9da7043ae locator=lifecycle/declarations/airflow-apiserver/openapi.yml result=ACCEPTED_WITH_LIMITATIONS nodes_written=232 relations_written=521 nodes_expired=0 relations_expired=0 graph_revision_advanced=True duration_ms=9961
+architecture-intelligence-1  | INFO:     172.19.0.1:40484 - "POST /api/import HTTP/1.1" 200 OK

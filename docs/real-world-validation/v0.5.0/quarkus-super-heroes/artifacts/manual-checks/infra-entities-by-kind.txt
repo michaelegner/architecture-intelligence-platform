@@ -1,0 +1,5 @@
+// infra-entities-by-kind
+kind, n
+"KUBERNETES_INGRESS", 1
+"KUBERNETES_NETWORK_SERVICE", 13
+"KUBERNETES_WORKLOAD", 13

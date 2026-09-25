@@ -1,0 +1,4 @@
+# Filtered for the repository: 18 noise lines removed (Neo4j 'Received notification' warnings, image-pull and Maven download progress). All other lines are verbatim.
+architecture-intelligence-1  | INFO:     172.19.0.1:50270 - "GET /health HTTP/1.1" 200 OK
+architecture-intelligence-1  | Removed import_id=6abc6cbf59e84eba8aa47b068238c8bf sources=urn:aip:source:filesystem:21a69bfc5c33d4aa647f87cf9899d7bcdf3a0da54841449162f021d9da7043ae
+architecture-intelligence-1  | INFO:     172.19.0.1:50284 - "POST /api/import HTTP/1.1" 200 OK

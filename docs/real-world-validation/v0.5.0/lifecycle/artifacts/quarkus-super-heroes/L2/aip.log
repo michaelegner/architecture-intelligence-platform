@@ -1,0 +1,97 @@
+# Filtered for the repository: 0 noise lines removed (Neo4j 'Received notification' warnings, image-pull and Maven download progress). All other lines are verbatim.
+architecture-intelligence-1  | INFO:     172.19.0.1:49950 - "GET /health HTTP/1.1" 200 OK
+architecture-intelligence-1  | INFO:     172.19.0.1:49964 - "POST /api/import HTTP/1.1" 500 Internal Server Error
+architecture-intelligence-1  | ERROR:    Exception in ASGI application
+architecture-intelligence-1  | Traceback (most recent call last):
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+architecture-intelligence-1  |     result = await app(  # type: ignore[func-returns-value]
+architecture-intelligence-1  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |         self.scope, self.receive, self.send
+architecture-intelligence-1  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |     )
+architecture-intelligence-1  |     ^
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+architecture-intelligence-1  |     return await self.app(scope, receive, send)
+architecture-intelligence-1  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1163, in __call__
+architecture-intelligence-1  |     await super().__call__(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/starlette/applications.py", line 96, in __call__
+architecture-intelligence-1  |     await self.middleware_stack(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+architecture-intelligence-1  |     raise exc
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+architecture-intelligence-1  |     await self.app(scope, receive, _send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+architecture-intelligence-1  |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+architecture-intelligence-1  |     raise exc
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+architecture-intelligence-1  |     await app(scope, receive, sender)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+architecture-intelligence-1  |     await self.app(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/starlette/routing.py", line 670, in __call__
+architecture-intelligence-1  |     await self.middleware_stack(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 2734, in app
+architecture-intelligence-1  |     await route.handle(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 1780, in handle
+architecture-intelligence-1  |     await self.original_router.handle(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 2789, in handle
+architecture-intelligence-1  |     await included_router._handle_selected(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 1800, in _handle_selected
+architecture-intelligence-1  |     await original_route.handle(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 1279, in handle
+architecture-intelligence-1  |     await app(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 158, in app
+architecture-intelligence-1  |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+architecture-intelligence-1  |     raise exc
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+architecture-intelligence-1  |     await app(scope, receive, sender)
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 144, in app
+architecture-intelligence-1  |     response = await f(request)
+architecture-intelligence-1  |                ^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 706, in app
+architecture-intelligence-1  |     raw_response = await run_endpoint_function(
+architecture-intelligence-1  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |     ...<3 lines>...
+architecture-intelligence-1  |     )
+architecture-intelligence-1  |     ^
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 354, in run_endpoint_function
+architecture-intelligence-1  |     return await run_in_threadpool(dependant.call, **values)
+architecture-intelligence-1  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+architecture-intelligence-1  |     return await anyio.to_thread.run_sync(func)
+architecture-intelligence-1  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+architecture-intelligence-1  |     return await get_async_backend().run_sync_in_worker_thread(
+architecture-intelligence-1  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |         func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+architecture-intelligence-1  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |     )
+architecture-intelligence-1  |     ^
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+architecture-intelligence-1  |     return await future
+architecture-intelligence-1  |            ^^^^^^^^^^^^
+architecture-intelligence-1  |   File "/app/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+architecture-intelligence-1  |     result = context.run(func, *args)
+architecture-intelligence-1  |   File "/app/app/api/import_api.py", line 114, in import_all
+architecture-intelligence-1  |     import_id, run_results = _run_all_configured_sources(settings, driver)
+architecture-intelligence-1  |                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |   File "/app/app/api/import_api.py", line 84, in _run_all_configured_sources
+architecture-intelligence-1  |     run_stats = import_all_sources(
+architecture-intelligence-1  |         driver,
+architecture-intelligence-1  |     ...<3 lines>...
+architecture-intelligence-1  |         tombstones=tombstones,
+architecture-intelligence-1  |     )
+architecture-intelligence-1  |   File "/app/app/graph/importer.py", line 1051, in import_all_sources
+architecture-intelligence-1  |     return import_discovery_run(
+architecture-intelligence-1  |         driver,
+architecture-intelligence-1  |     ...<2 lines>...
+architecture-intelligence-1  |         expected_prior_inventory_revision=expected_prior_inventory_revision,
+architecture-intelligence-1  |     )
+architecture-intelligence-1  |   File "/app/app/graph/importer.py", line 1003, in import_discovery_run
+architecture-intelligence-1  |     validate_canonical_model(run_result.merged_model)
+architecture-intelligence-1  |     ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+architecture-intelligence-1  |   File "/app/app/validation/canonical_validation.py", line 117, in validate_canonical_model
+architecture-intelligence-1  |     raise CanonicalValidationError(errors)
+architecture-intelligence-1  | app.validation.canonical_validation.CanonicalValidationError: Relation CALLS has unknown source service:rest-fights; Relation CALLS has unknown source service:rest-fights; Relation CALLS has unknown source service:rest-fights; Relation CALLS has unknown source service:rest-fights; Relation CALLS has unknown source service:rest-fights; Relation CALLS has unknown source service:rest-fights; Relation CALLS has unknown source service:rest-fights

@@ -1,0 +1,6 @@
+// all-relation-types
+type(r), count(*)
+"PROVIDES", 35
+"RESPONSE_SCHEMA", 25
+"REQUEST_SCHEMA", 13
+"CALLS", 7

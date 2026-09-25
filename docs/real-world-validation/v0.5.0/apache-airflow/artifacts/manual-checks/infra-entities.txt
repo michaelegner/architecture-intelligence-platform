@@ -1,0 +1,3 @@
+// infra-entities
+count(e)
+0

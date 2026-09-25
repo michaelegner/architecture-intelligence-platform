@@ -1,0 +1,6 @@
+run 1 exit=0
+run 2 exit=0
+BYTE-IDENTICAL
+66943d70d87236b451c6ed7a0190205306ac442d2a89b6cce24246dfcd0bea01  /tmp/claude-1001/-home-michael-code-ArchitectureIntelligencePlatform/dea4adeb-9305-40aa-944d-829d6415b869/scratchpad/i5-s5/evaluation/eval-1.json
+66943d70d87236b451c6ed7a0190205306ac442d2a89b6cce24246dfcd0bea01  /tmp/claude-1001/-home-michael-code-ArchitectureIntelligencePlatform/dea4adeb-9305-40aa-944d-829d6415b869/scratchpad/i5-s5/evaluation/eval-2.json
+93e1d308418aea5c2c5550984384b800b0ca1cf6ec4250ef267a2c7371f55330  committed-report
