@@ -1218,35 +1218,11 @@ def _import_all_sources_tx(
     for source_instance_id, source_outcome in run_result.source_outcomes.items():
         _write_nodes(tx, source_instance_id, source_outcome.outcome.model)
 
-    run_node_emitters: dict[str, set[str]] = {}
-    run_relation_emitters: dict[str, set[str]] = {}
-    for source_instance_id, source_outcome in run_result.source_outcomes.items():
-        model = source_outcome.outcome.model
-        for node_id in _model_node_ids(model, source_instance_id=source_instance_id):
-            run_node_emitters.setdefault(node_id, set()).add(source_instance_id)
-        for key in _model_relation_keys(model):
-            run_relation_emitters.setdefault(key, set()).add(source_instance_id)
-
-    per_source: dict[str, SourceImportStats] = {}
-    for source_instance_id, source_outcome in run_result.source_outcomes.items():
-        per_source[source_instance_id] = _import_source_tx(
-            tx,
-            source_instance_id=source_instance_id,
-            locator=source_outcome.descriptor_locator,
-            model=source_outcome.outcome.model,
-            result=source_outcome.outcome.result,
-            semantic_input_digest=source_outcome.outcome.semantic_input_digest,
-            discovery_scope_id=run_result.discovery_scope_id,
-            scope_definition_digest=run_result.scope_definition_digest,
-            committed_nodes_before=committed_nodes_before,
-            committed_relations_before=committed_relations_before,
-            run_source_ids=frozenset(run_result.source_outcomes),
-            run_node_emitters=run_node_emitters,
-            run_relation_emitters=run_relation_emitters,
-        )
-
+    # Which absent sources this COMPLETE run removes is decided before any source is reconciled:
+    # they take part in the run too (they will own nothing after it), so a claim a present source
+    # drops and a removed source co-owned expires rather than surviving for an owner that is about
+    # to leave. Removing a source never changes another's authorization, so deciding early is safe.
     removed_source_instance_ids: list[str] = []
-    removal_stats: list[SourceImportStats] = []
     if run_result.inventory_status is InventoryStatus.COMPLETE:
         known_states = list(
             tx.run(
@@ -1273,15 +1249,44 @@ def _import_all_sources_tx(
             )
             if decision.authorized:
                 removed_source_instance_ids.append(source_instance_id)
-        # Decided before any is removed, so a claim several removed sources shared expires for each.
-        for source_instance_id in removed_source_instance_ids:
-            removal_stats.append(
-                _remove_source_tx(
-                    tx,
-                    source_instance_id=source_instance_id,
-                    removed_source_ids=frozenset(removed_source_instance_ids),
-                )
+
+    run_node_emitters: dict[str, set[str]] = {}
+    run_relation_emitters: dict[str, set[str]] = {}
+    for source_instance_id, source_outcome in run_result.source_outcomes.items():
+        model = source_outcome.outcome.model
+        for node_id in _model_node_ids(model, source_instance_id=source_instance_id):
+            run_node_emitters.setdefault(node_id, set()).add(source_instance_id)
+        for key in _model_relation_keys(model):
+            run_relation_emitters.setdefault(key, set()).add(source_instance_id)
+
+    per_source: dict[str, SourceImportStats] = {}
+    for source_instance_id, source_outcome in run_result.source_outcomes.items():
+        per_source[source_instance_id] = _import_source_tx(
+            tx,
+            source_instance_id=source_instance_id,
+            locator=source_outcome.descriptor_locator,
+            model=source_outcome.outcome.model,
+            result=source_outcome.outcome.result,
+            semantic_input_digest=source_outcome.outcome.semantic_input_digest,
+            discovery_scope_id=run_result.discovery_scope_id,
+            scope_definition_digest=run_result.scope_definition_digest,
+            committed_nodes_before=committed_nodes_before,
+            committed_relations_before=committed_relations_before,
+            run_source_ids=frozenset(run_result.source_outcomes) | set(removed_source_instance_ids),
+            run_node_emitters=run_node_emitters,
+            run_relation_emitters=run_relation_emitters,
+        )
+
+    # Decided before any is removed, so a claim several removed sources shared expires for each.
+    removal_stats: list[SourceImportStats] = []
+    for source_instance_id in removed_source_instance_ids:
+        removal_stats.append(
+            _remove_source_tx(
+                tx,
+                source_instance_id=source_instance_id,
+                removed_source_ids=frozenset(removed_source_instance_ids),
             )
+        )
 
     new_event_id = compute_inventory_event_id(
         previous_event_id=persisted_inventory["inventory_event_id"],

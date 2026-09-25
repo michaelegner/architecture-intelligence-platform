@@ -350,6 +350,32 @@ def test_removing_a_co_owning_source_reports_ownership_removed(driver, tmp_path)
     assert sid_a in evidence and sid_b not in evidence
 
 
+def test_a_present_source_dropping_a_claim_a_removed_co_owner_shared_expires(driver, tmp_path):
+    """A stays but drops the shared claims while B is absent and removed by the same COMPLETE run.
+    B takes part in the run too, so A's drop is `expired` (nobody owns the claims afterwards), not
+    `ownership_removed` for an owner that is about to leave."""
+    root = tmp_path / "shared"
+    openapi_a, openapi_b = _two_sources_sharing_product_service(root)
+    config = {"directories": [{"id": "report-mixed", "root": str(root)}]}
+    first = {r["locator"]: r for r in _only_run(_post_import(driver, config))["source_results"]}
+    sid_b = first["b/openapi.yaml"]["source_instance_id"]
+
+    _rebind(openapi_a, "service:other")
+    shutil.rmtree(openapi_b.parent)
+    run = _only_run(_post_import(driver, config))
+
+    shared = {"service:product-service", "operation:service:product-service:GET:/products/{id}"}
+    [a] = run["source_results"]
+    assert shared <= set(a["effects"]["expired"]["node_ids"])
+    assert not shared & set(a["effects"]["ownership_removed"]["node_ids"])
+    [removal] = run["removals"]
+    assert removal["source_instance_id"] == sid_b
+    assert shared <= set(removal["effects"]["expired"]["node_ids"])
+    assert not shared & set(removal["effects"]["ownership_removed"]["node_ids"])
+    # The report agrees with what committed: nobody owns the claims, so they are gone.
+    assert _graph_node(driver, "service:product-service") is None
+
+
 def test_a_shared_claim_every_owner_drops_in_one_run_expires_for_each(driver, tmp_path):
     """Classification uses the owners after the whole run, so it cannot depend on the order the
     run's sources are reconciled in."""

@@ -201,8 +201,10 @@ replay also executes. It has `graph_revision_advanced` and four effect sets:
 
 Every set is attributed to its own source and does not depend on the order in which a run's
 sources are reconciled. Whether a dropped claim expires is decided by its owners **after the whole
-run**: its committed owners outside the run, plus the run's sources that still emit it. So a claim
-that two sources of one run both stop emitting expires for both. `graph_revision_advanced` is the
+run**: its committed owners outside the run, plus the run's sources that still emit it. The run's
+sources include those an authorized removal takes out in the same COMPLETE run, which are decided
+before any source is reconciled. So a claim that two sources of one run both stop emitting, or that
+one stops emitting while its co-owner is removed, expires for each. `graph_revision_advanced` is the
 importer's revision-fence decision for the source. It can also reflect a co-owner's change within
 the same run (for example, a shared Operation whose owner-scoped schema ids another co-owner last
 wrote).
