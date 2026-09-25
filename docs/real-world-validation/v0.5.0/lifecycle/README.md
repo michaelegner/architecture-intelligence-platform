@@ -74,12 +74,39 @@ Every non-committing step (L4a, L4b, L6) is compared with State(L1), which equal
 L2, R and L5, each comparison is relative to the step's own predecessor. So nothing depends on
 absolute AIP values that could only be learned by running AIP.
 
+## Result labels for the non-committing steps (pre-Slice-7 amendment, 2026-09-25)
+
+Following finding F2 (#254), the inventory status and the per-source results that I1 §10 requires
+are publicly observable in the import report's `runs[]`. Before Slice 7 runs, the previously
+unasserted L4a, L4b and L6 result expectations are therefore frozen here. They are derived from the
+existing I1 contracts and the already-frozen scenario inputs. No observed Slice 7 result was used
+to derive them. (#256 disclosed an offline discovery smoke over these inputs, which runs no import;
+every label below follows from the cited rule on its own.)
+
+The freeze is deliberately narrow. It covers the run's status and the source results that follow
+directly from the induced mutation. It does not cover messages, diagnostic ordering beyond the
+report's own deterministic order, counts of repeated diagnostics, or results unrelated to the
+scenario. These are **in addition to** the outcomes in the table above, which are unchanged.
+
+| Step | Target | Frozen expectation (in the step's `import.json` `runs[]` entry for the declarations source) | Basis |
+| --- | --- | --- | --- |
+| L4a | both | `inventory_status: FAILED`, `committed: false`, no `source_results`, and the run's `diagnostics` include `SOURCE_ROOT_UNAVAILABLE` | I1 §6: a missing root is a failed enumeration and preserves the prior inventory |
+| L4b | quarkus-super-heroes | `inventory_status: PARTIAL`, `committed: false`. The added `lifecycle-unbound-copy/openapi.yml` is `REJECTED_UNSUPPORTED` with `SERVICE_IDENTITY_UNRESOLVED`. The four remaining OpenAPI sources are `ACCEPTED` or `ACCEPTED_WITH_LIMITATIONS`. | I1 §4.1: an unresolved Service identity emits no owner-scoped entities; §6: one rejected source makes the run PARTIAL, and nothing commits |
+| L4b | apache-airflow | `inventory_status: PARTIAL`, `committed: false`. The added `lifecycle-unbound-copy/openapi.yml` is `REJECTED_UNSUPPORTED` with `SERVICE_IDENTITY_UNRESOLVED`. It is the only source, because X is Airflow's only OpenAPI. | same |
+| L6 | apache-airflow | `inventory_status: PARTIAL`, `committed: false`. `airflow-apiserver/openapi.yml` is `REJECTED_CONFLICT` with `SERVICE_IDENTITY_CONFLICT`. | I1 §4.1: an extension that disagrees with a binding is a conflict, and no source wins |
+| L6 | quarkus-super-heroes | `inventory_status: PARTIAL`, `committed: false`. `rest-fights/openapi.yml` is `REJECTED_CONFLICT` with `SERVICE_IDENTITY_CONFLICT`. Because that source no longer establishes `service:rest-fights`, `rest-fights/architecture.yaml` is also `REJECTED_UNSUPPORTED` with `MANIFEST_CALL_SOURCE_UNRESOLVED`. | I1 §4.1 as above; the manifest rule (#255, `docs/ingestion.md`): CALLS may reference a caller Service, but the manifest never mints it, so with the conflicting OpenAPI rejected the caller is absent from the phase-0 model |
+
+Each expectation is checked on the public import report only (`runs[].inventory_status`,
+`runs[].committed`, `runs[].source_results[].locator`, `.result` and `.diagnostics[].code`, and
+`runs[].diagnostics[].code`).
+
 ## Verification method (owner decision, 2026-09-24)
 
 Each step's outcome is checked through three things only:
 1. **Public reads.** The `POST /api/import` response (`committed`, per-source `result`,
    `graph_revision_advanced`, and the written and expired counts), and the dependencies
-   `snapshot_id` in L1.
+   `snapshot_id` in L1. Since #254 this includes the import report's `runs[]` entry, which carries
+   the result labels frozen for L4a, L4b and L6.
 2. **The AIP log.** The `Removed import_id=… sources=…` line (`app/api/import_api.py`).
 3. **Frozen read-only Cypher** (`../queries/`), run with `cypher-shell --access-mode read` in the
    lifecycle Neo4j:
@@ -95,6 +122,10 @@ Each step's outcome is checked through three things only:
    verification, never ground truth.
 
 ## Pre-identified observability limitation (for Slice 5 to record as a finding)
+
+*Superseded for Slice 7: since #254 the labels below are observable, and L4a, L4b and L6 carry the
+frozen result expectations in "Result labels for the non-committing steps". This section is kept as
+the Slice 4 record.*
 
 I1 §10 requires the import report to include inventory status, conflicts, planned expirations,
 tombstones and final commit status. `POST /api/import` returns only `import_id`, `committed` and
@@ -148,5 +179,10 @@ exactly as `cypher-shell` prints an empty result, instead of a lone header line.
 changes.
 
 The observability limitation above predates finding F2. Since #254, the import report exposes each
-step's result labels and diagnostics. This ledger does not add expectations for them, because they
-would have to be authored from I1 alone before any run.
+step's result labels and diagnostics. This correction adds no expectations for them; the amendment
+below does.
+
+**2026-09-25: pre-Slice-7 result labels (owner decision).** The L4a, L4b and L6 result expectations
+were frozen before Slice 7 ran, from the I1 contracts and the frozen inputs (see "Result labels for
+the non-committing steps"). No scenario input and no earlier expectation changed, and the Slice 5
+evidence is untouched.
