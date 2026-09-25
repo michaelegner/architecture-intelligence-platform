@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from app.api.import_api import _run_all_configured_sources
 from app.canonical.infrastructure import KubernetesEvidenceMode
 from app.graph.importer import ImportRunStats
+from app.ingestion.import_report import ConfiguredRun
 from app.settings import AppConfig, Secrets, Settings, SourcesConfig
 from app.sources.inventory import InventoryStatus
 from app.sources.model import KubernetesSourceConfig
@@ -68,4 +69,13 @@ def test_configured_clusters_are_imported_alongside_configured_directories(tmp_p
     mock_import_kubernetes_source.assert_called_once()
     call_kwargs = mock_import_kubernetes_source.call_args.kwargs
     assert call_kwargs["source_config"] is cluster_config
-    assert run_results == [stub_stats]
+    # v0.5.0 I5 F2: each run is carried with its kind, configured id and root, so the import
+    # report can say which configured source a run belongs to.
+    assert run_results == [
+        ConfiguredRun(
+            kind="kubernetes",
+            configured_source_id="checkout-cluster",
+            root=tmp_path,
+            stats=stub_stats,
+        )
+    ]

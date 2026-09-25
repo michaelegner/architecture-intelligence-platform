@@ -1,0 +1,634 @@
+{
+  "$defs": {
+    "DiagnosticCode": {
+      "enum": [
+        "SERVICE_IDENTITY_UNRESOLVED",
+        "SERVICE_IDENTITY_CONFLICT",
+        "SERVICE_IDENTITY_INVALID",
+        "REFERENCE_LIMIT_EXCEEDED",
+        "REFERENCE_CYCLE_UNSUPPORTED",
+        "SCHEMA_COMPOSITION_UNINTERPRETED",
+        "AMBIGUOUS",
+        "MANIFEST_BINDING_SHAPE_INVALID",
+        "MANIFEST_BINDING_POINTER_INVALID",
+        "MANIFEST_BINDING_UNKNOWN_SOURCE",
+        "TOMBSTONE_STALE",
+        "TOMBSTONE_SCOPE_MISMATCH",
+        "SOURCE_ROOT_UNAVAILABLE",
+        "DOCUMENT_PARSE_INVALID",
+        "QUEUE_KIND_CONFLICT",
+        "QUEUE_IDENTITY_CONFLICT",
+        "QUEUE_EVIDENCE_MISSING",
+        "MANIFEST_CALL_TARGET_UNRESOLVED",
+        "REMOTE_REFERENCE_UNSUPPORTED",
+        "REFERENCE_INVALID",
+        "UNSUPPORTED_DIALECT_VERSION",
+        "MIGRATION_MAPPING_SHAPE_INVALID",
+        "MIGRATION_MAPPING_TARGET_INVALID",
+        "MIGRATION_MAPPING_CONFLICT",
+        "MIGRATION_MAPPING_FILE_UNAVAILABLE",
+        "SCHEMA_CONTENT_CONFLICT",
+        "MESSAGE_CONTENT_CONFLICT",
+        "TOMBSTONE_FILE_UNAVAILABLE",
+        "TOMBSTONE_SHAPE_INVALID",
+        "STALE_INVENTORY_PREDECESSOR",
+        "K8S_RESOURCE_CONFLICT",
+        "K8S_CLUSTER_IDENTITY_UNRESOLVED",
+        "K8S_SNAPSHOT_INVALID",
+        "K8S_SNAPSHOT_INCOMPLETE",
+        "K8S_LIMIT_EXCEEDED",
+        "K8S_STALE_INVENTORY",
+        "K8S_RESOURCE_UNSUPPORTED",
+        "K8S_RESOURCE_INVALID",
+        "K8S_OWNER_UNRESOLVED",
+        "K8S_OWNER_INVALID",
+        "NO_QUALIFIED_POD_MATCH",
+        "K8S_BACKEND_UNRESOLVED",
+        "SERVICE_WORKLOAD_MAPPING_FILE_UNAVAILABLE",
+        "SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID",
+        "SERVICE_WORKLOAD_MAPPING_TARGET_INVALID",
+        "SERVICE_WORKLOAD_MAPPING_DUPLICATE_ID",
+        "TOPIC_IDENTITY_CONFLICT",
+        "SUBSCRIPTION_IDENTITY_CONFLICT",
+        "SUBSCRIPTION_IDENTITY_MISSING"
+      ],
+      "title": "DiagnosticCode",
+      "type": "string"
+    },
+    "IngestionResult": {
+      "description": "I1 spec \u00a710: \"Each source receives exactly one result.\" ",
+      "enum": [
+        "ACCEPTED",
+        "ACCEPTED_WITH_LIMITATIONS",
+        "REJECTED_INVALID",
+        "REJECTED_UNSUPPORTED",
+        "REJECTED_CONFLICT"
+      ],
+      "title": "IngestionResult",
+      "type": "string"
+    },
+    "InventoryStatus": {
+      "description": "I1 spec \u00a76: \"status (COMPLETE, PARTIAL, or FAILED)\".",
+      "enum": [
+        "COMPLETE",
+        "PARTIAL",
+        "FAILED"
+      ],
+      "title": "InventoryStatus",
+      "type": "string"
+    },
+    "ReportDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/DiagnosticCode"
+        },
+        "source_instance_id": {
+          "anyOf": [
+            {
+              "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Instance Id"
+        },
+        "source_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Pointer"
+        }
+      },
+      "required": [
+        "code",
+        "source_instance_id",
+        "source_pointer"
+      ],
+      "title": "ReportDiagnostic",
+      "type": "object"
+    },
+    "ReportEffectSet": {
+      "additionalProperties": false,
+      "description": "One category of canonical effects, by stable identity. Public canonical facts are listed\n(node ids and `TYPE:source:target` relation keys); internal-only facts (Kubernetes\ninfrastructure, Pub/Sub carriers, Evidence) are only counted, because I2 \u00a79 keeps them out of\nevery public payload.",
+      "properties": {
+        "internal_count": {
+          "minimum": 0,
+          "title": "Internal Count",
+          "type": "integer"
+        },
+        "node_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Node Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "relation_keys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Relation Keys",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "node_ids",
+        "relation_keys",
+        "internal_count"
+      ],
+      "title": "ReportEffectSet",
+      "type": "object"
+    },
+    "ReportEffects": {
+      "additionalProperties": false,
+      "description": "The canonical committed effects of one source's reconciliation (I1 \u00a710), from its claim\nreconciliation plan: claims it newly owns (`added`), retained claims it changed (`changed`),\ndropped claims no other source will own after the run (`expired`), and dropped claims that\nsurvive for another owner (`ownership_removed`). Each set is attributed to this source alone\nand does not depend on the order in which the run's sources are reconciled. An unchanged\nreplay has four empty sets and does not advance the graph revision. Null in a run that did not\ncommit: such a run changes nothing (I1 \u00a76).",
+      "properties": {
+        "added": {
+          "$ref": "#/$defs/ReportEffectSet"
+        },
+        "changed": {
+          "$ref": "#/$defs/ReportEffectSet"
+        },
+        "expired": {
+          "$ref": "#/$defs/ReportEffectSet"
+        },
+        "graph_revision_advanced": {
+          "title": "Graph Revision Advanced",
+          "type": "boolean"
+        },
+        "ownership_removed": {
+          "$ref": "#/$defs/ReportEffectSet"
+        }
+      },
+      "required": [
+        "graph_revision_advanced",
+        "added",
+        "changed",
+        "expired",
+        "ownership_removed"
+      ],
+      "title": "ReportEffects",
+      "type": "object"
+    },
+    "ReportEmittedCounts": {
+      "additionalProperties": false,
+      "description": "What the source's adapter mapped, before reconciliation (I1 \u00a710 \"emitted counts\").",
+      "properties": {
+        "infrastructure_claims": {
+          "minimum": 0,
+          "title": "Infrastructure Claims",
+          "type": "integer"
+        },
+        "infrastructure_entities": {
+          "minimum": 0,
+          "title": "Infrastructure Entities",
+          "type": "integer"
+        },
+        "messages": {
+          "minimum": 0,
+          "title": "Messages",
+          "type": "integer"
+        },
+        "operations": {
+          "minimum": 0,
+          "title": "Operations",
+          "type": "integer"
+        },
+        "queues": {
+          "minimum": 0,
+          "title": "Queues",
+          "type": "integer"
+        },
+        "relations": {
+          "minimum": 0,
+          "title": "Relations",
+          "type": "integer"
+        },
+        "schemas": {
+          "minimum": 0,
+          "title": "Schemas",
+          "type": "integer"
+        },
+        "services": {
+          "minimum": 0,
+          "title": "Services",
+          "type": "integer"
+        },
+        "subscriptions": {
+          "minimum": 0,
+          "title": "Subscriptions",
+          "type": "integer"
+        },
+        "topics": {
+          "minimum": 0,
+          "title": "Topics",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "services",
+        "operations",
+        "schemas",
+        "messages",
+        "queues",
+        "topics",
+        "subscriptions",
+        "relations",
+        "infrastructure_entities",
+        "infrastructure_claims"
+      ],
+      "title": "ReportEmittedCounts",
+      "type": "object"
+    },
+    "ReportRemoval": {
+      "additionalProperties": false,
+      "description": "One previously committed source removed by an authorized removal, with its effects (only\n`expired` and `ownership_removed` can be non-empty).",
+      "properties": {
+        "effects": {
+          "$ref": "#/$defs/ReportEffects"
+        },
+        "source_instance_id": {
+          "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+          "title": "Source Instance Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_instance_id",
+        "effects"
+      ],
+      "title": "ReportRemoval",
+      "type": "object"
+    },
+    "ReportRun": {
+      "additionalProperties": false,
+      "properties": {
+        "committed": {
+          "title": "Committed",
+          "type": "boolean"
+        },
+        "configured_source_id": {
+          "title": "Configured Source Id",
+          "type": "string"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/ReportDiagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "discovery_scope_id": {
+          "anyOf": [
+            {
+              "pattern": "^urn:aip:discovery-scope:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Discovery Scope Id"
+        },
+        "inventory_revision": {
+          "anyOf": [
+            {
+              "pattern": "^urn:aip:inventory-revision:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Inventory Revision"
+        },
+        "inventory_status": {
+          "$ref": "#/$defs/InventoryStatus"
+        },
+        "kind": {
+          "enum": [
+            "filesystem",
+            "kubernetes"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "removals": {
+          "items": {
+            "$ref": "#/$defs/ReportRemoval"
+          },
+          "title": "Removals",
+          "type": "array"
+        },
+        "scope_definition_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Scope Definition Digest"
+        },
+        "source_results": {
+          "items": {
+            "$ref": "#/$defs/ReportSourceResult"
+          },
+          "title": "Source Results",
+          "type": "array"
+        },
+        "tombstones": {
+          "items": {
+            "$ref": "#/$defs/ReportTombstoneDecision"
+          },
+          "title": "Tombstones",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "configured_source_id",
+        "discovery_scope_id",
+        "scope_definition_digest",
+        "inventory_status",
+        "committed",
+        "inventory_revision",
+        "source_results",
+        "removals",
+        "tombstones",
+        "diagnostics"
+      ],
+      "title": "ReportRun",
+      "type": "object"
+    },
+    "ReportSourceResult": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_identity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Adapter Identity"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/ReportDiagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "dialect_version": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dialect Version"
+        },
+        "effects": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReportEffects"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "emitted": {
+          "$ref": "#/$defs/ReportEmittedCounts"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "pattern": "^[^/\\\\?#][^\\\\?#]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Locator"
+        },
+        "mapping_rule_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mapping Rule Version"
+        },
+        "result": {
+          "$ref": "#/$defs/IngestionResult"
+        },
+        "semantic_input_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Semantic Input Digest"
+        },
+        "service_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Service Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "source_instance_id": {
+          "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "filesystem",
+            "kubernetes"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_instance_id",
+        "source_kind",
+        "locator",
+        "result",
+        "adapter_identity",
+        "mapping_rule_version",
+        "dialect_version",
+        "semantic_input_digest",
+        "service_ids",
+        "emitted",
+        "effects",
+        "diagnostics"
+      ],
+      "title": "ReportSourceResult",
+      "type": "object"
+    },
+    "ReportSourceStats": {
+      "additionalProperties": false,
+      "description": "The pre-existing `sources` entry shape (`SourceImportStats`), unchanged.",
+      "properties": {
+        "graph_revision_advanced": {
+          "title": "Graph Revision Advanced",
+          "type": "boolean"
+        },
+        "locator": {
+          "title": "Locator",
+          "type": "string"
+        },
+        "nodes_expired": {
+          "title": "Nodes Expired",
+          "type": "integer"
+        },
+        "nodes_written": {
+          "title": "Nodes Written",
+          "type": "integer"
+        },
+        "relations_expired": {
+          "title": "Relations Expired",
+          "type": "integer"
+        },
+        "relations_written": {
+          "title": "Relations Written",
+          "type": "integer"
+        },
+        "result": {
+          "$ref": "#/$defs/IngestionResult"
+        },
+        "source_instance_id": {
+          "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+          "title": "Source Instance Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_instance_id",
+        "locator",
+        "result",
+        "nodes_written",
+        "relations_written",
+        "nodes_expired",
+        "relations_expired",
+        "graph_revision_advanced"
+      ],
+      "title": "ReportSourceStats",
+      "type": "object"
+    },
+    "ReportTombstoneDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TombstoneRejectionReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_source_instance_id": {
+          "title": "Target Source Instance Id",
+          "type": "string"
+        },
+        "tombstone_revision": {
+          "title": "Tombstone Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_source_instance_id",
+        "tombstone_revision",
+        "accepted",
+        "reason"
+      ],
+      "title": "ReportTombstoneDecision",
+      "type": "object"
+    },
+    "TombstoneRejectionReason": {
+      "enum": [
+        "STALE_PRIOR_REVISION",
+        "NO_COMMITTED_INVENTORY",
+        "SCOPE_MISMATCH"
+      ],
+      "title": "TombstoneRejectionReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The full `POST /api/import` response.",
+  "properties": {
+    "committed": {
+      "title": "Committed",
+      "type": "boolean"
+    },
+    "import_id": {
+      "title": "Import Id",
+      "type": "string"
+    },
+    "report_version": {
+      "const": "aip-import-report/1",
+      "title": "Report Version",
+      "type": "string"
+    },
+    "runs": {
+      "items": {
+        "$ref": "#/$defs/ReportRun"
+      },
+      "title": "Runs",
+      "type": "array"
+    },
+    "sources": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ReportSourceStats"
+      },
+      "title": "Sources",
+      "type": "object"
+    }
+  },
+  "required": [
+    "import_id",
+    "committed",
+    "sources",
+    "report_version",
+    "runs"
+  ],
+  "title": "ImportReport",
+  "type": "object"
+}

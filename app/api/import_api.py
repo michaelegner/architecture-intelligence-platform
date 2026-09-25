@@ -1,18 +1,22 @@
 import logging
 import time
 import uuid
-from dataclasses import asdict
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.deps import get_driver, get_settings
 from app.graph.importer import (
     ImportRunStats,
-    SourceImportStats,
     import_all_sources,
     import_kubernetes_source,
 )
 from app.graph.repository import open_session
+from app.ingestion.import_report import (
+    ConfiguredRun,
+    ImportReport,
+    ServiceImportReport,
+    build_import_report,
+)
 from app.settings import Settings
 from app.sources.migration_mappings import load_migration_mappings
 from app.sources.tombstones import load_tombstones
@@ -46,7 +50,7 @@ def _log_run(import_id: str, run_stats: ImportRunStats, duration_ms: int) -> Non
         )
 
 
-def _run_all_configured_sources(settings: Settings, driver) -> tuple[str, list[ImportRunStats]]:
+def _run_all_configured_sources(settings: Settings, driver) -> tuple[str, list[ConfiguredRun]]:
     # I1 spec §5.1.1: "Missing or modified migration configuration is diagnosed and MUST NOT fall
     # back to a directory slug or name-derived identity" - loaded once per request (not once per
     # configured source directory) since the same shared-identity index applies uniformly across
@@ -90,7 +94,14 @@ def _run_all_configured_sources(settings: Settings, driver) -> tuple[str, list[I
         )
         duration_ms = int((time.perf_counter() - start) * 1000)
         _log_run(import_id, run_stats, duration_ms)
-        run_results.append(run_stats)
+        run_results.append(
+            ConfiguredRun(
+                kind="filesystem",
+                configured_source_id=source_config.id,
+                root=source_config.root,
+                stats=run_stats,
+            )
+        )
     for cluster_config in settings.config.sources.clusters:
         start = time.perf_counter()
         run_stats = import_kubernetes_source(
@@ -102,39 +113,40 @@ def _run_all_configured_sources(settings: Settings, driver) -> tuple[str, list[I
         )
         duration_ms = int((time.perf_counter() - start) * 1000)
         _log_run(import_id, run_stats, duration_ms)
-        run_results.append(run_stats)
+        run_results.append(
+            ConfiguredRun(
+                kind="kubernetes",
+                configured_source_id=cluster_config.id,
+                root=cluster_config.root,
+                stats=run_stats,
+            )
+        )
     return import_id, run_results
 
 
-@router.post("")
-def import_all(settings: Settings = Depends(get_settings), driver=Depends(get_driver)) -> dict:
+@router.post("", response_model=ImportReport)
+def import_all(
+    settings: Settings = Depends(get_settings), driver=Depends(get_driver)
+) -> ImportReport:
     """POST /api/import - imports every configured source (I1 spec §14). Each configured
     directory is its own atomic discovery run (I1 spec §6): one run's PARTIAL/FAILED status never
-    blocks another's commit."""
+    blocks another's commit. The response is the versioned I1 §10 import report
+    (`app.ingestion.import_report`)."""
     import_id, run_results = _run_all_configured_sources(settings, driver)
-    combined_per_source: dict[str, SourceImportStats] = {}
-    for run_stats in run_results:
-        combined_per_source.update(run_stats.per_source)
-    return {
-        "import_id": import_id,
-        "committed": all(run_stats.committed for run_stats in run_results),
-        "sources": {sid: asdict(s) for sid, s in combined_per_source.items()},
-    }
+    return build_import_report(import_id, run_results)
 
 
-@router.post("/service/{service_id}")
+@router.post("/service/{service_id}", response_model=ServiceImportReport)
 def import_one_service(
     service_id: str, settings: Settings = Depends(get_settings), driver=Depends(get_driver)
-) -> dict:
+) -> ServiceImportReport:
     """POST /api/import/service/{serviceId} reimports every configured source and reports the
     resulting stats, then confirms the requested canonical Service ID (e.g. "service:order-
     service") now exists. Under I1, a service may be declared by more than one source and a source
     may declare more than one service (ADR 0009), so a single-source-scoped reimport is no longer
     a meaningful unit - the whole configured scope is always reimported."""
     import_id, run_results = _run_all_configured_sources(settings, driver)
-    combined_per_source: dict[str, SourceImportStats] = {}
-    for run_stats in run_results:
-        combined_per_source.update(run_stats.per_source)
+    report = build_import_report(import_id, run_results)
 
     with open_session(driver, database=settings.config.graph.database) as session:
         exists = (
@@ -146,9 +158,4 @@ def import_one_service(
     if not exists:
         raise HTTPException(status_code=404, detail=f"no known service: {service_id}")
 
-    return {
-        "import_id": import_id,
-        "service_id": service_id,
-        "committed": all(run_stats.committed for run_stats in run_results),
-        "sources": {sid: asdict(s) for sid, s in combined_per_source.items()},
-    }
+    return ServiceImportReport(**report.model_dump(), service_id=service_id)

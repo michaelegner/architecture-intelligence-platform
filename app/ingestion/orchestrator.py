@@ -75,6 +75,7 @@ from app.sources.model import (
     IngestionResult,
     KubernetesSourceConfig,
     NotSupplied,
+    SourceDescriptor,
 )
 from app.sources.registry import AdapterOutcome, SourceAdapterRegistry, SourceDiscoverer
 from app.sources.service_identity import (
@@ -425,6 +426,10 @@ def _compute_mapping_context_digest(
 class SourceRunOutcome:
     descriptor_locator: str
     outcome: AdapterOutcome
+    # The source's descriptor as mapped (enriched with the claiming adapter's identity), so the I1
+    # §10 import report can name each source's adapter and dialect. `None` only for callers that
+    # construct an outcome without one.
+    descriptor: SourceDescriptor | None = None
 
 
 def _rejected_conflict(run_outcome: SourceRunOutcome) -> SourceRunOutcome:
@@ -659,7 +664,9 @@ def run_discovery(
                 mapping_context_digest=run_mapping_context_digest,
             )
             source_outcomes[source_instance_id] = SourceRunOutcome(
-                descriptor_locator=loaded.descriptor.locator, outcome=outcome
+                descriptor_locator=loaded.descriptor.locator,
+                outcome=outcome,
+                descriptor=enriched.descriptor,
             )
             # A matched adapter's own diagnostics (e.g. why it rejected this source) must be
             # visible at the run level too - `import_discovery_run`'s not-commit-eligible early
@@ -686,6 +693,7 @@ def run_discovery(
         unmatched_diagnostics.append(diagnostic)
         source_outcomes[source_instance_id] = SourceRunOutcome(
             descriptor_locator=loaded.descriptor.locator,
+            descriptor=loaded.descriptor,
             outcome=AdapterOutcome(
                 result=IngestionResult.REJECTED_UNSUPPORTED,
                 model=ArchitectureModel(),

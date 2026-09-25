@@ -150,6 +150,115 @@ are normalized deterministically, never treated as two separate mappings. See
 combines with Path A/C into the public `DEPLOYED_AS` claim, and [`evidence.md`](evidence.md) for how
 a mapping entry's own evidence is encoded and exposed.
 
+## Import report (v1)
+
+`POST /api/import` and `POST /api/import/service/{serviceId}` return the versioned I1 §10 import
+report, `report_version: "aip-import-report/1"` (v0.5.0 I5 finding F2). Its models are in
+`app/ingestion/import_report.py`, and the JSON Schemas are committed under `schemas/import/v0.5/`.
+The schemas are regenerated with `uv run python -m app.ingestion.import_report_schema`, and a test
+fails if the committed schemas drift from the models.
+
+The report is **additive**. `import_id`, `committed` (true only if every configured run committed)
+and `sources` (the per-source reconciliation stats) keep their pre-v1 meaning. `runs` adds one
+entry per configured source run, ordered by `(kind, configured_source_id)`:
+
+| Field | Meaning |
+| --- | --- |
+| `kind`, `configured_source_id` | `filesystem` or `kubernetes`, and the configured source's id |
+| `discovery_scope_id`, `scope_definition_digest` | the run's scope identity (I1 §6), or null when discovery could not compute it |
+| `inventory_status`, `committed` | `COMPLETE`, `PARTIAL` or `FAILED`, and whether the run committed |
+| `inventory_revision` | the inventory revision the run committed; null when it did not commit |
+| `source_results` | **every** discovered source's own result (I1 §10: exactly one per source), including the rejected sources of a run that did not commit. Each entry is described in the next table. |
+| `removals` | each source the run removed, with its `effects` (only `expired` and `ownership_removed` can be non-empty) |
+| `tombstones` | each in-scope tombstone's decision: `accepted`, and `reason` (`STALE_PRIOR_REVISION`, `NO_COMMITTED_INVENTORY` or `SCOPE_MISMATCH`) when it was rejected |
+| `diagnostics` | the run-level diagnostics |
+
+Each `source_results` entry, sorted by `source_instance_id`:
+
+| Field | Meaning |
+| --- | --- |
+| `source_instance_id`, `source_kind`, `locator` | the source's identity, its kind, and its root-relative locator (null if it has none) |
+| `result` | `ACCEPTED`, `ACCEPTED_WITH_LIMITATIONS`, `REJECTED_INVALID`, `REJECTED_UNSUPPORTED` or `REJECTED_CONFLICT` |
+| `adapter_identity`, `mapping_rule_version` | the adapter that claimed the source (for example `openapi-adapter@1`); null when no adapter claimed it |
+| `dialect_version` | the document's declared `openapi`/`asyncapi`/`apiVersion` value; null when it has none or it is not a short version token |
+| `semantic_input_digest` | the adapter's semantic input digest (I1 §5.3); null when the source never reached a normalized projection |
+| `service_ids` | the Service ids the source emits, sorted. An Architecture Manifest emits CALLS only, so its list is empty. |
+| `emitted` | what the adapter mapped, before reconciliation: counts of `services`, `operations`, `schemas`, `messages`, `queues`, `topics`, `subscriptions`, `relations`, `infrastructure_entities` and `infrastructure_claims` |
+| `effects` | the source's canonical committed effects, described below. Null when the run did not commit. |
+| `diagnostics` | the source's own diagnostics |
+
+**Canonical effects.** `effects` is built from the source's claim reconciliation, by stable
+identity. It is not a count of writes: `sources` still counts MERGE operations, which an unchanged
+replay also executes. It has `graph_revision_advanced` and four effect sets:
+- `added`: claims the source owns now but did not own before the run;
+- `changed`: retained claims this source changed. For a node, its properties differ (ignoring
+  the owner list, which is reported through the other sets). For a relation, it gained evidence
+  this source emits;
+- `expired`: claims the source stopped emitting that no other source will own after the run, so
+  they expire;
+- `ownership_removed`: claims the source stopped emitting that another source will still own after
+  the run; they survive for those owners, without this source's DECLARED evidence.
+
+Every set is attributed to its own source and does not depend on the order in which a run's
+sources are reconciled. Whether a dropped claim expires is decided by its owners **after the whole
+run**: its committed owners outside the run, plus the run's sources that still emit it. The run's
+sources include those an authorized removal takes out in the same COMPLETE run, which are decided
+before any source is reconciled. So a claim that two sources of one run both stop emitting, or that
+one stops emitting while its co-owner is removed, expires for each. `graph_revision_advanced` is the
+importer's revision-fence decision for the source. It can also reflect a co-owner's change within
+the same run (for example, a shared Operation whose owner-scoped schema ids another co-owner last
+wrote).
+
+Each set lists public canonical facts as sorted `node_ids` (Services, Operations, Schemas,
+Messages, Queues, Topics, Subscriptions) and `relation_keys` (`TYPE:source_id:target_id`).
+Internal-only facts (Kubernetes infrastructure entities, contributions and claims, Pub/Sub
+carriers, and Evidence) appear only as `internal_count`, because I2 §9 keeps them out of every
+public payload. An unchanged replay has four empty sets and `graph_revision_advanced: false`.
+
+Internal-only facts are reported only as counts, here and in `emitted`. I2 §9's exposure table
+routes scope and ingestion diagnostics to the I1 ingestion report, and a count exposes no id,
+property or evidence of the fact it counts.
+
+So a FAILED run (for example a missing root: no source results and a `SOURCE_ROOT_UNAVAILABLE`
+diagnostic), a PARTIAL run (a rejected source) and a `REJECTED_CONFLICT` can be told apart, and
+each names the source it concerns.
+
+**How I1 §10's report categories map onto v1:**
+- discovered sources and inventories: `source_results`, `inventory_status`, `inventory_revision`;
+- dialects and identities: `dialect_version`, `adapter_identity`, `mapping_rule_version`,
+  `source_instance_id`, `service_ids`, and the run's scope identity;
+- emitted counts: `emitted`;
+- unsupported constructs, unresolved references and conflicts: diagnostic codes (for example
+  `SCHEMA_COMPOSITION_UNINTERPRETED`, `K8S_RESOURCE_UNSUPPORTED`, `MANIFEST_CALL_TARGET_UNRESOLVED`,
+  `SERVICE_IDENTITY_UNRESOLVED`, `SERVICE_IDENTITY_CONFLICT`) and the `REJECTED_*` results;
+- planned mutations and expirations, and the canonical committed effects: `effects` and
+  `removals`. A run that does not commit has no planned mutations, because I1 §6 commits nothing
+  for a PARTIAL or FAILED run, so its `effects` are null and its `removals` empty;
+- tombstones: `tombstones`;
+- final commit status: `committed`.
+
+I1 §10's dry run (a SHOULD) is not implemented.
+
+**What a diagnostic exposes.** Only a stable `code`, the `source_instance_id`, and a sanitized
+`source_pointer` are exposed. A `source_instance_id` that is not a well-formed AIP source id (a
+rejected tombstone's operator-supplied target, for example) is reported as null. The pointer is
+decided from its text and code alone, never from what exists on the host:
+- the configured root, or a path under it, becomes relative to it (`.` for the root itself);
+- a Windows absolute or UNC path, any backslash, a URL, or a `..` segment becomes null;
+- a value starting with `/` is kept only for the codes whose pointer is always an RFC 6901 JSON
+  Pointer (`DOCUMENT_POINTER_CODES` in `app/ingestion/import_report.py`; a test re-checks every
+  site that emits them). For every other code, it could be an absolute host path, so it becomes
+  null;
+- anything else (a relative locator, an entity or resource id) is kept.
+
+Diagnostic messages are never part of the report, because they can contain absolute paths and
+snippets of rejected input (the I2 §5 sanitization rule). The server log keeps them. Every value
+the report copies from operator input is sanitized rather than validated, so building the report
+cannot fail after a run has committed.
+
+`runs` carries no capture ids, timestamps or byte-level content digests, and every list in it is
+sorted. It is the deterministic semantic projection of I1 §10. MCP has no import tool (I1 §12).
+
 ## Runtime observation adapter
 
 Independently of the three above, `app/telemetry/adapter.py` maps OpenTelemetry spans into observed

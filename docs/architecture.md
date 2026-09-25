@@ -53,7 +53,7 @@ Every endpoint is mounted in `app/main.py`; each router lives in its own `app/ap
 | `analysis.py` | `/api/analysis` | Deterministic A1-A5 (senders/consumers/orphan-queue/blast-radius) |
 | `runtime.py` (`runtime_router`) | `/api/runtime` | Observed relations, per-service runtime profile |
 | `runtime.py` (`runtime_analysis_router`) | `/api/analysis/runtime` | O1-O5 (confirmed/observed-only/declared-only/coverage) |
-| `import_api.py` | `/api/import` | Trigger a full or per-service (re)import from configured source directories |
+| `import_api.py` | `/api/import` | Trigger a full or per-service (re)import from the configured source directories and Kubernetes sources. The response is the versioned I1 §10 import report `aip-import-report/1` ([`ingestion.md`](ingestion.md#import-report-v1); schema `schemas/import/v0.5/`) |
 | `query.py` | `/api/query` | Natural-language question -> deterministic analysis or validated read-only Cypher |
 | `telemetry.py` | `/v1/traces` | OTLP/HTTP trace ingestion |
 | `ui.py` | `/`, `/services/{id}`, `/queues/{id}`, `/query` | Minimal server-rendered HTML UI |
