@@ -151,7 +151,7 @@
     },
     "ReportEffects": {
       "additionalProperties": false,
-      "description": "The canonical committed effects of one source's reconciliation (I1 \u00a710), from its claim\nreconciliation plan: claims it newly owns (`added`), retained claims whose committed properties\nchanged (`changed`), claims that expired, and shared claims it stopped owning. An unchanged\nreplay has four empty sets and does not advance the graph revision. A retained claim shared\nwith another source of the same run is `changed` for each source whose reconciliation saw it\nchange. Null in a run that did not commit: such a run changes nothing (I1 \u00a76).",
+      "description": "The canonical committed effects of one source's reconciliation (I1 \u00a710), from its claim\nreconciliation plan: claims it newly owns (`added`), retained claims it changed (`changed`),\ndropped claims no other source will own after the run (`expired`), and dropped claims that\nsurvive for another owner (`ownership_removed`). Each set is attributed to this source alone\nand does not depend on the order in which the run's sources are reconciled. An unchanged\nreplay has four empty sets and does not advance the graph revision. Null in a run that did not\ncommit: such a run changes nothing (I1 \u00a76).",
       "properties": {
         "added": {
           "$ref": "#/$defs/ReportEffectSet"

@@ -191,11 +191,21 @@ Each `source_results` entry, sorted by `source_instance_id`:
 identity. It is not a count of writes: `sources` still counts MERGE operations, which an unchanged
 replay also executes. It has `graph_revision_advanced` and four effect sets:
 - `added`: claims the source owns now but did not own before the run;
-- `changed`: retained claims whose committed properties differ before and after the source's
-  reconciliation. A claim shared with another source of the same run can be `changed` for both;
-- `expired`: claims the source stopped emitting and solely owned, which therefore expire;
-- `ownership_removed`: shared claims the source stopped emitting, which survive for their other
-  owners.
+- `changed`: retained claims this source changed. For a node, its properties differ (ignoring
+  the owner list, which is reported through the other sets). For a relation, it gained evidence
+  this source emits;
+- `expired`: claims the source stopped emitting that no other source will own after the run, so
+  they expire;
+- `ownership_removed`: claims the source stopped emitting that another source will still own after
+  the run; they survive for those owners, without this source's DECLARED evidence.
+
+Every set is attributed to its own source and does not depend on the order in which a run's
+sources are reconciled. Whether a dropped claim expires is decided by its owners **after the whole
+run**: its committed owners outside the run, plus the run's sources that still emit it. So a claim
+that two sources of one run both stop emitting expires for both. `graph_revision_advanced` is the
+importer's revision-fence decision for the source. It can also reflect a co-owner's change within
+the same run (for example, a shared Operation whose owner-scoped schema ids another co-owner last
+wrote).
 
 Each set lists public canonical facts as sorted `node_ids` (Services, Operations, Schemas,
 Messages, Queues, Topics, Subscriptions) and `relation_keys` (`TYPE:source_id:target_id`).

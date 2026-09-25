@@ -126,11 +126,12 @@ class ReportEffectSet(_Frozen):
 
 class ReportEffects(_Frozen):
     """The canonical committed effects of one source's reconciliation (I1 §10), from its claim
-    reconciliation plan: claims it newly owns (`added`), retained claims whose committed properties
-    changed (`changed`), claims that expired, and shared claims it stopped owning. An unchanged
-    replay has four empty sets and does not advance the graph revision. A retained claim shared
-    with another source of the same run is `changed` for each source whose reconciliation saw it
-    change. Null in a run that did not commit: such a run changes nothing (I1 §6)."""
+    reconciliation plan: claims it newly owns (`added`), retained claims it changed (`changed`),
+    dropped claims no other source will own after the run (`expired`), and dropped claims that
+    survive for another owner (`ownership_removed`). Each set is attributed to this source alone
+    and does not depend on the order in which the run's sources are reconciled. An unchanged
+    replay has four empty sets and does not advance the graph revision. Null in a run that did not
+    commit: such a run changes nothing (I1 §6)."""
 
     graph_revision_advanced: bool
     added: ReportEffectSet

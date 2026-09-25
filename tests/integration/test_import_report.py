@@ -231,6 +231,143 @@ def test_conflicting_identity_is_a_distinguishable_rejected_conflict(driver, tmp
     _assert_runs_leak_nothing(body, tmp_path)
 
 
+_SHARED_CONTRACT = """\
+openapi: 3.1.0
+info:
+  title: ProductService
+  version: "1.0.0"
+x-aip-service-id: service:product-service
+paths:
+  /products/{id}:
+    get:
+      operationId: getProduct
+      responses:
+        "204":
+          description: no content
+"""
+
+
+def _two_sources_sharing_product_service(root: Path) -> tuple[Path, Path]:
+    """Two OpenAPI sources declaring the identical product-service contract, so they co-own every
+    claim it maps to (I1 §4: multiple sources per service). The contract has no schemas: an
+    owner-scoped schema id is per source, and a shared Operation keeps whichever co-owner's schema
+    ids were written last, which would blur what this fixture isolates (ownership)."""
+    paths = []
+    for name in ("a", "b"):
+        openapi = root / name / "openapi.yaml"
+        openapi.parent.mkdir(parents=True)
+        openapi.write_text(_SHARED_CONTRACT)
+        paths.append(openapi)
+    return paths[0], paths[1]
+
+
+def _rebind(openapi: Path, service_id: str) -> None:
+    openapi.write_text(
+        openapi.read_text().replace(
+            "x-aip-service-id: service:product-service", f"x-aip-service-id: {service_id}"
+        )
+    )
+
+
+def _graph_node(driver, node_id: str) -> dict | None:
+    with driver.session(database=DATABASE) as session:
+        record = session.run(
+            "MATCH (n {id: $id}) RETURN n.owner_source_ids AS owners", id=node_id
+        ).single()
+    return None if record is None else {"owners": sorted(record["owners"])}
+
+
+def _provides_evidence(driver) -> list[str]:
+    with driver.session(database=DATABASE) as session:
+        record = session.run(
+            "MATCH (:Service {id: 'service:product-service'})-[r:PROVIDES]->() "
+            "RETURN r.evidence_ids AS evidence"
+        ).single()
+    return sorted(record["evidence"])
+
+
+@pytest.mark.parametrize("dropper", ["a", "b"])  # both reconcile orders of the two sources
+def test_a_shared_claim_one_source_drops_is_ownership_removed_and_survives(
+    driver, tmp_path, dropper
+):
+    keeper = "b" if dropper == "a" else "a"
+    root = tmp_path / "shared"
+    _two_sources_sharing_product_service(root)
+    config = {"directories": [{"id": "report-shared", "root": str(root)}]}
+    first = {r["locator"]: r for r in _only_run(_post_import(driver, config))["source_results"]}
+    sid_keeper = first[f"{keeper}/openapi.yaml"]["source_instance_id"]
+    sid_dropper = first[f"{dropper}/openapi.yaml"]["source_instance_id"]
+    assert _graph_node(driver, "service:product-service") == {
+        "owners": sorted([sid_keeper, sid_dropper])
+    }
+    assert len(_provides_evidence(driver)) == 2
+
+    # the dropper stops emitting every product-service claim
+    _rebind(root / dropper / "openapi.yaml", "service:other")
+    results = {r["locator"]: r for r in _only_run(_post_import(driver, config))["source_results"]}
+
+    b = results[f"{dropper}/openapi.yaml"]["effects"]
+    assert "service:product-service" in b["ownership_removed"]["node_ids"]
+    assert any(
+        k.startswith("PROVIDES:service:product-service:")
+        for k in b["ownership_removed"]["relation_keys"]
+    )
+    # Every product-service claim was shared, so none of them expires.
+    shared = {"service:product-service", "operation:service:product-service:GET:/products/{id}"}
+    assert shared <= set(b["ownership_removed"]["node_ids"])
+    assert not any("product-service" in i for i in b["expired"]["node_ids"])
+    assert not any("product-service" in k for k in b["expired"]["relation_keys"])
+    # The keeper changed nothing itself: the dropper leaving is not the keeper's effect, whatever the reconcile order.
+    a = results[f"{keeper}/openapi.yaml"]["effects"]
+    assert a["added"] == a["changed"] == a["expired"] == a["ownership_removed"] == _EMPTY
+    # What committed agrees with the report: the claims survive for the keeper alone, and the
+    # dropper's DECLARED evidence has left the shared relation.
+    assert _graph_node(driver, "service:product-service") == {"owners": [sid_keeper]}
+    [evidence] = _provides_evidence(driver)
+    assert sid_keeper in evidence and sid_dropper not in evidence
+
+
+def test_removing_a_co_owning_source_reports_ownership_removed(driver, tmp_path):
+    root = tmp_path / "shared"
+    _, openapi_b = _two_sources_sharing_product_service(root)
+    config = {"directories": [{"id": "report-remove", "root": str(root)}]}
+    first = {r["locator"]: r for r in _only_run(_post_import(driver, config))["source_results"]}
+    sid_a = first["a/openapi.yaml"]["source_instance_id"]
+    sid_b = first["b/openapi.yaml"]["source_instance_id"]
+
+    shutil.rmtree(openapi_b.parent)  # b leaves a COMPLETE enumeration of the same scope
+    run = _only_run(_post_import(driver, config))
+    [removal] = run["removals"]
+    assert removal["source_instance_id"] == sid_b
+    effects = removal["effects"]
+    assert {
+        "service:product-service",
+        "operation:service:product-service:GET:/products/{id}",
+    } <= set(effects["ownership_removed"]["node_ids"])
+    assert not any("product-service" in i for i in effects["expired"]["node_ids"])
+    assert _graph_node(driver, "service:product-service") == {"owners": [sid_a]}
+    [evidence] = _provides_evidence(driver)
+    assert sid_a in evidence and sid_b not in evidence
+
+
+def test_a_shared_claim_every_owner_drops_in_one_run_expires_for_each(driver, tmp_path):
+    """Classification uses the owners after the whole run, so it cannot depend on the order the
+    run's sources are reconciled in."""
+    root = tmp_path / "shared"
+    openapi_a, openapi_b = _two_sources_sharing_product_service(root)
+    config = {"directories": [{"id": "report-both", "root": str(root)}]}
+    _post_import(driver, config)
+
+    _rebind(openapi_a, "service:other")
+    _rebind(openapi_b, "service:other")
+    run = _only_run(_post_import(driver, config))
+    for result in run["source_results"]:
+        effects = result["effects"]
+        assert "service:product-service" in effects["expired"]["node_ids"], result["locator"]
+        assert not any("product-service" in i for i in effects["ownership_removed"]["node_ids"])
+    assert _graph_node(driver, "service:product-service") is None
+
+
 def test_removal_and_accepted_and_stale_tombstones_are_reported(driver, tmp_path):
     root_a = tmp_path / "root-a"
     shutil.copytree(EXAMPLES_DIR / "product-service", root_a / "product-service")
