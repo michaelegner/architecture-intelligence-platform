@@ -80,6 +80,10 @@ def test_quarkus_declarations_and_kubernetes_bundles(driver, monkeypatch):
     [bundle] = namespaced.source_results
     assert bundle.emitted.infrastructure_entities == 27
     assert bundle.emitted.infrastructure_claims == 15
+    # I2 §9: the bundle's canonical effects are internal-only, so they are counted, never listed.
+    added = namespaced.per_source[bundle.source_instance_id].effects.added
+    assert added.public_node_ids == () and added.relation_keys == ()
+    assert added.internal_count > 0
 
     unmodified = import_kubernetes_source(
         driver, database=DATABASE, source_config=clusters["qsh-k8s-upstream-unmodified"]

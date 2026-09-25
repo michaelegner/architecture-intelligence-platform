@@ -169,7 +169,7 @@ entry per configured source run, ordered by `(kind, configured_source_id)`:
 | `inventory_status`, `committed` | `COMPLETE`, `PARTIAL` or `FAILED`, and whether the run committed |
 | `inventory_revision` | the inventory revision the run committed; null when it did not commit |
 | `source_results` | **every** discovered source's own result (I1 §10: exactly one per source), including the rejected sources of a run that did not commit. Each entry is described in the next table. |
-| `removals` | each source the run removed, with the `nodes_expired` and `relations_expired` the removal committed |
+| `removals` | each source the run removed, with its `effects` (only `expired` and `ownership_removed` can be non-empty) |
 | `tombstones` | each in-scope tombstone's decision: `accepted`, and `reason` (`STALE_PRIOR_REVISION`, `NO_COMMITTED_INVENTORY` or `SCOPE_MISMATCH`) when it was rejected |
 | `diagnostics` | the run-level diagnostics |
 
@@ -184,8 +184,28 @@ Each `source_results` entry, sorted by `source_instance_id`:
 | `semantic_input_digest` | the adapter's semantic input digest (I1 §5.3); null when the source never reached a normalized projection |
 | `service_ids` | the Service ids the source emits, sorted. An Architecture Manifest emits CALLS only, so its list is empty. |
 | `emitted` | what the adapter mapped, before reconciliation: counts of `services`, `operations`, `schemas`, `messages`, `queues`, `topics`, `subscriptions`, `relations`, `infrastructure_entities` and `infrastructure_claims` |
-| `effects` | what the committed run did for this source: `nodes_written`, `relations_written`, `nodes_expired`, `relations_expired`, `graph_revision_advanced` (the same values as its `sources` entry). Null when the run did not commit. |
+| `effects` | the source's canonical committed effects, described below. Null when the run did not commit. |
 | `diagnostics` | the source's own diagnostics |
+
+**Canonical effects.** `effects` is built from the source's claim reconciliation, by stable
+identity. It is not a count of writes: `sources` still counts MERGE operations, which an unchanged
+replay also executes. It has `graph_revision_advanced` and four effect sets:
+- `added`: claims the source owns now but did not own before the run;
+- `changed`: retained claims whose committed properties differ before and after the source's
+  reconciliation. A claim shared with another source of the same run can be `changed` for both;
+- `expired`: claims the source stopped emitting and solely owned, which therefore expire;
+- `ownership_removed`: shared claims the source stopped emitting, which survive for their other
+  owners.
+
+Each set lists public canonical facts as sorted `node_ids` (Services, Operations, Schemas,
+Messages, Queues, Topics, Subscriptions) and `relation_keys` (`TYPE:source_id:target_id`).
+Internal-only facts (Kubernetes infrastructure entities, contributions and claims, Pub/Sub
+carriers, and Evidence) appear only as `internal_count`, because I2 §9 keeps them out of every
+public payload. An unchanged replay has four empty sets and `graph_revision_advanced: false`.
+
+Internal-only facts are reported only as counts, here and in `emitted`. I2 §9's exposure table
+routes scope and ingestion diagnostics to the I1 ingestion report, and a count exposes no id,
+property or evidence of the fact it counts.
 
 So a FAILED run (for example a missing root: no source results and a `SOURCE_ROOT_UNAVAILABLE`
 diagnostic), a PARTIAL run (a rejected source) and a `REJECTED_CONFLICT` can be told apart, and
@@ -199,9 +219,9 @@ each names the source it concerns.
 - unsupported constructs, unresolved references and conflicts: diagnostic codes (for example
   `SCHEMA_COMPOSITION_UNINTERPRETED`, `K8S_RESOURCE_UNSUPPORTED`, `MANIFEST_CALL_TARGET_UNRESOLVED`,
   `SERVICE_IDENTITY_UNRESOLVED`, `SERVICE_IDENTITY_CONFLICT`) and the `REJECTED_*` results;
-- planned mutations and expirations: `effects` and `removals`. A run that does not commit has no
-  planned mutations, because I1 §6 commits nothing for a PARTIAL or FAILED run, so its `effects`
-  are null and its `removals` empty;
+- planned mutations and expirations, and the canonical committed effects: `effects` and
+  `removals`. A run that does not commit has no planned mutations, because I1 §6 commits nothing
+  for a PARTIAL or FAILED run, so its `effects` are null and its `removals` empty;
 - tombstones: `tombstones`;
 - final commit status: `committed`.
 

@@ -6,7 +6,8 @@ exact meaning (`sources` is the per-source reconciliation stats of the configure
 `report_version` plus `runs` carry what I1 §10 requires the report to include: the discovered
 sources and inventories (every source's own result, including the rejected sources of a run that
 did not commit, and the inventory status and revision), each source's adapter, dialect and
-identities, its emitted counts, its committed effects, removals with their expirations, tombstone
+identities, its emitted counts, its canonical committed effects by claim identity, removals with
+their effects, tombstone
 decisions, and diagnostics. Unsupported constructs, unresolved references and conflicts are
 reported as diagnostic codes. A run that does not commit has no planned mutations (I1 §6), so its
 effects are null.
@@ -36,7 +37,13 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.architecture_intelligence.evidence_projection import sanitize_source_locator
-from app.graph.importer import EmittedCounts, ImportRunStats, SourceImportStats, SourceRunResult
+from app.graph.importer import (
+    ClaimEffectSet,
+    EmittedCounts,
+    ImportRunStats,
+    SourceImportStats,
+    SourceRunResult,
+)
 from app.sources.inventory import InventoryStatus
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult
 from app.sources.tombstones import TombstoneRejectionReason
@@ -91,15 +98,45 @@ class ReportEmittedCounts(_Frozen):
     infrastructure_claims: NonNegative
 
 
-class ReportEffects(_Frozen):
-    """What a committed run's reconciliation did to the graph for one source (I1 §10 "committed
-    effects"). Null in a run that did not commit: such a run changes nothing (I1 §6)."""
+def _sorted_unique(values: list[str], name: str) -> None:
+    if values != sorted(set(values)):
+        raise ValueError(f"{name} must be unique and sorted")
 
-    nodes_written: NonNegative
-    relations_written: NonNegative
-    nodes_expired: NonNegative
-    relations_expired: NonNegative
+
+class ReportEffectSet(_Frozen):
+    """One category of canonical effects, by stable identity. Public canonical facts are listed
+    (node ids and `TYPE:source:target` relation keys); internal-only facts (Kubernetes
+    infrastructure, Pub/Sub carriers, Evidence) are only counted, because I2 §9 keeps them out of
+    every public payload."""
+
+    node_ids: Annotated[list[str], Field(json_schema_extra={"uniqueItems": True})]
+    relation_keys: Annotated[list[str], Field(json_schema_extra={"uniqueItems": True})]
+    internal_count: NonNegative
+
+    @model_validator(mode="after")
+    def _sorted(self) -> ReportEffectSet:
+        _sorted_unique(self.node_ids, "node_ids")
+        _sorted_unique(self.relation_keys, "relation_keys")
+        return self
+
+    @property
+    def is_empty(self) -> bool:
+        return not (self.node_ids or self.relation_keys or self.internal_count)
+
+
+class ReportEffects(_Frozen):
+    """The canonical committed effects of one source's reconciliation (I1 §10), from its claim
+    reconciliation plan: claims it newly owns (`added`), retained claims whose committed properties
+    changed (`changed`), claims that expired, and shared claims it stopped owning. An unchanged
+    replay has four empty sets and does not advance the graph revision. A retained claim shared
+    with another source of the same run is `changed` for each source whose reconciliation saw it
+    change. Null in a run that did not commit: such a run changes nothing (I1 §6)."""
+
     graph_revision_advanced: bool
+    added: ReportEffectSet
+    changed: ReportEffectSet
+    expired: ReportEffectSet
+    ownership_removed: ReportEffectSet
 
 
 class ReportSourceResult(_Frozen):
@@ -118,17 +155,22 @@ class ReportSourceResult(_Frozen):
 
     @model_validator(mode="after")
     def _sorted_service_ids(self) -> ReportSourceResult:
-        if self.service_ids != sorted(set(self.service_ids)):
-            raise ValueError("service_ids must be unique and sorted")
+        _sorted_unique(self.service_ids, "service_ids")
         return self
 
 
 class ReportRemoval(_Frozen):
-    """One previously committed source removed by an authorized removal, with what it expired."""
+    """One previously committed source removed by an authorized removal, with its effects (only
+    `expired` and `ownership_removed` can be non-empty)."""
 
     source_instance_id: SourceId
-    nodes_expired: NonNegative
-    relations_expired: NonNegative
+    effects: ReportEffects
+
+    @model_validator(mode="after")
+    def _removal_only_removes(self) -> ReportRemoval:
+        if not (self.effects.added.is_empty and self.effects.changed.is_empty):
+            raise ValueError("a removal adds and changes nothing")
+        return self
 
 
 class ReportTombstoneDecision(_Frozen):
@@ -342,15 +384,23 @@ def _emitted(counts: EmittedCounts | None) -> ReportEmittedCounts:
     return ReportEmittedCounts(**asdict(counts))
 
 
+def _effect_set(effects: ClaimEffectSet) -> ReportEffectSet:
+    return ReportEffectSet(
+        node_ids=sorted(set(effects.public_node_ids)),
+        relation_keys=sorted(set(effects.relation_keys)),
+        internal_count=effects.internal_count,
+    )
+
+
 def _effects(stats: SourceImportStats | None) -> ReportEffects | None:
-    if stats is None:
+    if stats is None or stats.effects is None:
         return None
     return ReportEffects(
-        nodes_written=stats.nodes_written,
-        relations_written=stats.relations_written,
-        nodes_expired=stats.nodes_expired,
-        relations_expired=stats.relations_expired,
         graph_revision_advanced=stats.graph_revision_advanced,
+        added=_effect_set(stats.effects.added),
+        changed=_effect_set(stats.effects.changed),
+        expired=_effect_set(stats.effects.expired),
+        ownership_removed=_effect_set(stats.effects.ownership_removed),
     )
 
 
@@ -395,11 +445,10 @@ def build_run(configured: ConfiguredRun) -> ReportRun:
         removals=sorted(
             (
                 ReportRemoval(
-                    source_instance_id=removal.source_instance_id,
-                    nodes_expired=removal.nodes_expired,
-                    relations_expired=removal.relations_expired,
+                    source_instance_id=removal.source_instance_id, effects=_effects(removal)
                 )
                 for removal in stats.removal_stats
+                if removal.effects is not None
             ),
             key=lambda r: r.source_instance_id,
         ),

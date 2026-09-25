@@ -8,7 +8,9 @@ import pytest
 from pydantic import ValidationError
 
 from app.graph.importer import (
+    ClaimEffectSet,
     ImportRunStats,
+    SourceClaimEffects,
     SourceImportStats,
     SourceRunResult,
     TombstoneDecision,
@@ -214,17 +216,23 @@ def _source_result(sid: str, *, effects: dict | None) -> dict:
     }
 
 
+EMPTY_SET = {"node_ids": [], "relation_keys": [], "internal_count": 0}
 EFFECTS = {
-    "nodes_written": 1,
-    "relations_written": 0,
-    "nodes_expired": 0,
-    "relations_expired": 0,
     "graph_revision_advanced": True,
+    "added": {"node_ids": ["service:a"], "relation_keys": [], "internal_count": 1},
+    "changed": EMPTY_SET,
+    "expired": EMPTY_SET,
+    "ownership_removed": EMPTY_SET,
+}
+REMOVAL_EFFECTS = {
+    **EFFECTS,
+    "added": EMPTY_SET,
+    "expired": {"node_ids": ["service:a"], "relation_keys": ["CALLS:a:b"], "internal_count": 2},
 }
 
 
 def _removal(sid: str) -> dict:
-    return {"source_instance_id": sid, "nodes_expired": 1, "relations_expired": 2}
+    return {"source_instance_id": sid, "effects": REMOVAL_EFFECTS}
 
 
 def test_run_model_enforces_unique_sorted_lists_and_identity_formats():
@@ -253,6 +261,21 @@ def test_run_model_enforces_unique_sorted_lists_and_identity_formats():
         ReportRun(
             **{**common, "source_results": [_source_result(SID_B, effects=EFFECTS)] * 2},
             removals=[],
+        )
+    with pytest.raises(ValidationError):  # a removal adds nothing
+        ReportRun(**common, removals=[{"source_instance_id": SID_A, "effects": EFFECTS}])
+    with pytest.raises(ValidationError):  # effect identities are unique and sorted
+        ReportRun(
+            **common,
+            removals=[
+                {
+                    "source_instance_id": SID_A,
+                    "effects": {
+                        **REMOVAL_EFFECTS,
+                        "expired": {**EMPTY_SET, "node_ids": ["service:b", "service:a"]},
+                    },
+                }
+            ],
         )
     with pytest.raises(ValidationError):  # service ids are unique and sorted
         ReportRun(
@@ -311,7 +334,15 @@ def test_malformed_operator_source_ids_and_dialects_never_fail_the_report(tmp_pa
         ),
         per_source={
             SID_A: SourceImportStats(
-                SID_A, "a/openapi.yaml", IngestionResult.ACCEPTED, 1, 0, 0, 0, True
+                SID_A,
+                "a/openapi.yaml",
+                IngestionResult.ACCEPTED,
+                1,
+                0,
+                0,
+                0,
+                True,
+                effects=SourceClaimEffects(added=ClaimEffectSet(public_node_ids=("service:a",))),
             )
         },
         diagnostics=(
@@ -331,4 +362,4 @@ def test_malformed_operator_source_ids_and_dialects_never_fail_the_report(tmp_pa
     assert run.diagnostics[0].source_instance_id is None
     assert run.tombstones[0].target_source_instance_id == "../../not-a-source-id"
     assert run.source_results[0].dialect_version is None
-    assert run.source_results[0].effects.nodes_written == 1
+    assert run.source_results[0].effects.added.node_ids == ["service:a"]

@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, replace
 
 import neo4j
@@ -275,6 +276,41 @@ _WRITE_CURRENT_INVENTORY_QUERY = (
 
 
 @dataclass(frozen=True)
+class ClaimEffectSet:
+    """One category of a source's canonical reconciliation effects (I1 §10 "canonical planned/
+    committed effects"), by stable claim identity. Public canonical facts are listed by id or
+    relation key. Internal-only facts (Kubernetes infrastructure entities, contributions and claims,
+    Pub/Sub carriers, and Evidence) are only counted: I2 §9 forbids exposing them."""
+
+    public_node_ids: tuple[str, ...] = ()
+    relation_keys: tuple[str, ...] = ()
+    internal_count: int = 0
+
+    @property
+    def is_empty(self) -> bool:
+        return not (self.public_node_ids or self.relation_keys or self.internal_count)
+
+
+@dataclass(frozen=True)
+class SourceClaimEffects:
+    """What one source's reconciliation changed, from its claim-reconciliation plans and the
+    before/after property snapshots that also decide `graph_revision_advanced`. An unchanged replay
+    has empty effects, although the importer still executes idempotent MERGEs."""
+
+    added: ClaimEffectSet = ClaimEffectSet()
+    changed: ClaimEffectSet = ClaimEffectSet()
+    expired: ClaimEffectSet = ClaimEffectSet()
+    ownership_removed: ClaimEffectSet = ClaimEffectSet()
+
+    @property
+    def is_empty(self) -> bool:
+        return all(
+            category.is_empty
+            for category in (self.added, self.changed, self.expired, self.ownership_removed)
+        )
+
+
+@dataclass(frozen=True)
 class SourceImportStats:
     source_instance_id: str
     locator: str
@@ -284,6 +320,9 @@ class SourceImportStats:
     nodes_expired: int
     relations_expired: int
     graph_revision_advanced: bool
+    # `nodes_written`/`relations_written` count MERGE operations, which an unchanged replay also
+    # executes; `effects` is the canonical effect set (None only where no reconciliation ran).
+    effects: SourceClaimEffects | None = None
 
 
 @dataclass(frozen=True)
@@ -370,6 +409,41 @@ class ImportRunStats:
     tombstone_decisions: tuple[TombstoneDecision, ...] = ()
     # The expirations each authorized removal committed, one per `removed_source_instance_ids`.
     removal_stats: tuple[SourceImportStats, ...] = ()
+
+
+# The public canonical node labels (the `NODE_LABELS` entities, minus Evidence). Every other owned
+# node is internal-only, and appears in a `ClaimEffectSet` only as a count.
+_PUBLIC_NODE_LABELS = frozenset(label for label in NODE_LABELS.values() if label != "Evidence")
+_PUBLIC_MODEL_FIELDS = tuple(
+    field for field, label in NODE_LABELS.items() if label in _PUBLIC_NODE_LABELS
+)
+
+_NODE_LABELS_QUERY = "UNWIND $ids AS nid MATCH (n {id: nid}) RETURN n.id AS id, labels(n) AS labels"
+
+
+def _public_node_ids(
+    tx: neo4j.ManagedTransaction, node_ids: set[str], model: ArchitectureModel
+) -> frozenset[str]:
+    """The public canonical ids among `node_ids`: by the model's own fields for what this source
+    emits, and by committed label for what it owned before (which may no longer be emitted)."""
+    public = {entity.id for field in _PUBLIC_MODEL_FIELDS for entity in getattr(model, field)}
+    if node_ids:
+        public.update(
+            record["id"]
+            for record in tx.run(_NODE_LABELS_QUERY, ids=list(node_ids))
+            if _PUBLIC_NODE_LABELS.intersection(record["labels"])
+        )
+    return frozenset(public & node_ids)
+
+
+def _effect_set(
+    node_ids: AbstractSet[str], relation_keys: AbstractSet[str], public: AbstractSet[str]
+) -> ClaimEffectSet:
+    return ClaimEffectSet(
+        public_node_ids=tuple(sorted(node_ids & public)),
+        relation_keys=tuple(sorted(relation_keys)),
+        internal_count=len(node_ids - public),
+    )
 
 
 def _write_nodes(
@@ -742,6 +816,8 @@ def _import_source_tx(
     else:
         relations_before = _snapshot_relation_props(tx, new_relation_keys)
 
+    public_node_ids = _public_node_ids(tx, existing_node_ids | new_node_ids, model)
+
     nodes_written = _write_nodes(tx, source_instance_id, model)
     relations_written = _write_relations(tx, source_instance_id, model)
 
@@ -809,6 +885,46 @@ def _import_source_tx(
     if graph_revision_advanced:
         bump_revision(tx)
 
+    # Canonical effects by identity. Added-vs-retained is decided from the pre-run snapshot, not
+    # from `node_plan`: in `_import_all_sources_tx` every source's nodes are pre-merged (with their
+    # owner ids) before this function runs, so its ownership query already counts every emitted
+    # node as owned. A retained claim is `changed` when its committed properties differ before and
+    # after this source's reconciliation - the same comparison as `content_changed` above.
+    model_node_ids = _model_node_ids(model, source_instance_id=source_instance_id)
+    previously_owned_nodes = (existing_node_ids - model_node_ids) | {
+        node_id
+        for node_id in model_node_ids
+        if source_instance_id in (nodes_before.get(node_id) or {}).get("owner_source_ids", [])
+    }
+    model_relation_keys = _model_relation_keys(model)
+    previously_owned_relations = (existing_relation_keys - model_relation_keys) | {
+        key
+        for key in model_relation_keys
+        if source_instance_id in (relations_before.get(key) or {}).get("owner_source_ids", [])
+    }
+    retained_nodes = new_node_ids & previously_owned_nodes
+    retained_relations = new_relation_keys & previously_owned_relations
+    effects = SourceClaimEffects(
+        added=_effect_set(
+            new_node_ids - previously_owned_nodes,
+            new_relation_keys - previously_owned_relations,
+            public_node_ids,
+        ),
+        changed=_effect_set(
+            {i for i in retained_nodes if nodes_before.get(i) != nodes_after.get(i)},
+            {k for k in retained_relations if relations_before.get(k) != relations_after.get(k)},
+            public_node_ids,
+        ),
+        expired=_effect_set(
+            node_plan.expired_claim_keys, relation_plan.expired_claim_keys, public_node_ids
+        ),
+        ownership_removed=_effect_set(
+            node_plan.ownership_removed_claim_keys,
+            relation_plan.ownership_removed_claim_keys,
+            public_node_ids,
+        ),
+    )
+
     return SourceImportStats(
         source_instance_id=source_instance_id,
         locator=locator,
@@ -818,6 +934,7 @@ def _import_source_tx(
         nodes_expired=len(node_plan.expired_claim_keys),
         relations_expired=len(relation_plan.expired_claim_keys),
         graph_revision_advanced=graph_revision_advanced,
+        effects=effects,
     )
 
 
@@ -842,6 +959,8 @@ def _remove_source_tx(
         committed_claim_owners={key: {source_instance_id} for key in existing_relation_keys},
         newly_emitted_claim_keys=frozenset(),
     )
+    # Classified before anything expires: an expired node may be deleted.
+    public_node_ids = _public_node_ids(tx, existing_node_ids, ArchitectureModel())
 
     if relation_plan.expired_claim_keys:
         tx.run(
@@ -883,6 +1002,16 @@ def _remove_source_tx(
         nodes_expired=len(node_plan.expired_claim_keys),
         relations_expired=len(relation_plan.expired_claim_keys),
         graph_revision_advanced=True,
+        effects=SourceClaimEffects(
+            expired=_effect_set(
+                node_plan.expired_claim_keys, relation_plan.expired_claim_keys, public_node_ids
+            ),
+            ownership_removed=_effect_set(
+                node_plan.ownership_removed_claim_keys,
+                relation_plan.ownership_removed_claim_keys,
+                public_node_ids,
+            ),
+        ),
     )
 
 

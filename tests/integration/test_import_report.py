@@ -102,21 +102,58 @@ def test_complete_run_reports_every_source_result_and_the_committed_revision(dri
     assert len(product["semantic_input_digest"]) == 64
     assert product["service_ids"] == ["service:product-service"]
     assert product["emitted"]["services"] == 1 and product["emitted"]["operations"] > 0
-    assert product["effects"]["nodes_written"] > 0
-    assert product["effects"]["graph_revision_advanced"] is True
-    for result in run["source_results"]:
-        stats = body["sources"][result["source_instance_id"]]
-        assert result["effects"] == {
-            key: stats[key]
-            for key in (
-                "nodes_written",
-                "relations_written",
-                "nodes_expired",
-                "relations_expired",
-                "graph_revision_advanced",
-            )
-        }
+    # The first import adds every claim the source emits, by identity.
+    effects = product["effects"]
+    assert effects["graph_revision_advanced"] is True
+    assert "service:product-service" in effects["added"]["node_ids"]
+    assert any(
+        k.startswith("PROVIDES:service:product-service:") for k in effects["added"]["relation_keys"]
+    )
+    assert effects["added"]["internal_count"] > 0  # its Evidence, counted but never listed
+    assert not any(i.startswith("evidence:") for i in effects["added"]["node_ids"])
+    assert effects["changed"] == effects["expired"] == effects["ownership_removed"] == _EMPTY
     _assert_runs_leak_nothing(body, tmp_path)
+
+
+_EMPTY = {"node_ids": [], "relation_keys": [], "internal_count": 0}
+_NO_EFFECTS = {
+    "graph_revision_advanced": False,
+    "added": _EMPTY,
+    "changed": _EMPTY,
+    "expired": _EMPTY,
+    "ownership_removed": _EMPTY,
+}
+
+
+def test_unchanged_replay_has_an_empty_canonical_effect_set(driver, tmp_path):
+    """I1 §10: the report's effects are canonical, not write counts. An unchanged replay still
+    executes idempotent MERGEs (`sources` counts them), but its canonical effect set is empty."""
+    root = tmp_path / "examples"
+    shutil.copytree(EXAMPLES_DIR, root)
+    config = {"directories": [{"id": "report-replay", "root": str(root)}]}
+    _post_import(driver, config)
+
+    replay = _post_import(driver, config)
+    run = _only_run(replay)
+    assert run["committed"] is True
+    assert sum(stats["nodes_written"] for stats in replay["sources"].values()) > 0
+    for result in run["source_results"]:
+        assert result["effects"] == _NO_EFFECTS, result["locator"]
+
+
+def test_property_only_change_is_a_changed_effect_by_identity(driver, tmp_path):
+    root = tmp_path / "examples"
+    shutil.copytree(EXAMPLES_DIR / "product-service", root / "product-service")
+    config = {"directories": [{"id": "report-changed", "root": str(root)}]}
+    _post_import(driver, config)
+
+    openapi = root / "product-service" / "openapi.yaml"
+    openapi.write_text(openapi.read_text().replace('version: "1.0.0"', 'version: "2.0.0"'))
+    [result] = _only_run(_post_import(driver, config))["source_results"]
+    effects = result["effects"]
+    assert effects["graph_revision_advanced"] is True
+    assert effects["changed"]["node_ids"] == ["service:product-service"]
+    assert effects["added"] == effects["expired"] == effects["ownership_removed"] == _EMPTY
 
 
 def test_partial_run_reports_the_rejected_source_although_nothing_commits(driver, tmp_path):
@@ -253,8 +290,11 @@ def test_removal_and_accepted_and_stale_tombstones_are_reported(driver, tmp_path
     accepted = _only_run(body)
     [removal] = accepted["removals"]
     assert removal["source_instance_id"] == removed_sid
-    # The removal's expirations: everything the removed source had written (I1 §10).
-    assert removal["nodes_expired"] > 0 and removal["relations_expired"] > 0
+    # The removal's canonical effects: everything the removed source solely owned expires (I1 §10).
+    expired = removal["effects"]["expired"]
+    assert "service:product-service" in expired["node_ids"]
+    assert any(k.startswith("PROVIDES:service:product-service:") for k in expired["relation_keys"])
+    assert removal["effects"]["added"] == removal["effects"]["changed"] == _EMPTY
     assert accepted["tombstones"][0]["accepted"] is True
     assert accepted["tombstones"][0]["reason"] is None
     _assert_runs_leak_nothing(body, tmp_path)
