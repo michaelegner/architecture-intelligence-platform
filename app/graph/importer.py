@@ -13,6 +13,7 @@ from app.graph.revision_fence import bump_revision
 from app.graph.schema import ensure_schema
 from app.ingestion.orchestrator import (
     DiscoveryRunResult,
+    SourceRunOutcome,
     run_filesystem_discovery,
     run_kubernetes_discovery,
 )
@@ -286,6 +287,37 @@ class SourceImportStats:
 
 
 @dataclass(frozen=True)
+class EmittedCounts:
+    """What one source's adapter mapped (I1 §10 "emitted counts"), before any reconciliation."""
+
+    services: int
+    operations: int
+    schemas: int
+    messages: int
+    queues: int
+    topics: int
+    subscriptions: int
+    relations: int
+    infrastructure_entities: int
+    infrastructure_claims: int
+
+    @classmethod
+    def of(cls, model: ArchitectureModel) -> "EmittedCounts":
+        return cls(
+            services=len(model.services),
+            operations=len(model.operations),
+            schemas=len(model.schemas),
+            messages=len(model.messages),
+            queues=len(model.queues),
+            topics=len(model.topics),
+            subscriptions=len(model.subscriptions),
+            relations=len(model.relations),
+            infrastructure_entities=len(model.infrastructure_entities),
+            infrastructure_claims=len(model.infrastructure_claims),
+        )
+
+
+@dataclass(frozen=True)
 class SourceRunResult:
     """I1 spec §10: "Each source receives exactly one result" - one discovered source's own result
     and diagnostics for a discovery run, recorded whether or not the run committed (unlike
@@ -296,6 +328,17 @@ class SourceRunResult:
     locator: str
     result: IngestionResult
     diagnostics: tuple[IngestionDiagnostic, ...]
+    # I1 §10's "dialects, identities, emitted counts": the claiming adapter (None when no adapter
+    # claimed the source), the document's own declared dialect version, the adapter's semantic
+    # input digest, the Service ids the source emits, and what the adapter mapped - recorded
+    # whether or not the run commits.
+    source_kind: str = ""
+    adapter_identity: str | None = None
+    mapping_rule_version: str | None = None
+    dialect_version: str | None = None
+    semantic_input_digest: str | None = None
+    service_ids: tuple[str, ...] = ()
+    emitted: EmittedCounts | None = None
 
 
 @dataclass(frozen=True)
@@ -325,6 +368,8 @@ class ImportRunStats:
     scope_definition_digest: str | None = None
     inventory_revision: str | None = None
     tombstone_decisions: tuple[TombstoneDecision, ...] = ()
+    # The expirations each authorized removal committed, one per `removed_source_instance_ids`.
+    removal_stats: tuple[SourceImportStats, ...] = ()
 
 
 def _write_nodes(
@@ -851,6 +896,7 @@ def _import_all_sources_tx(
     tuple[str, ...],
     tuple[IngestionDiagnostic, ...],
     tuple[TombstoneDecision, ...],
+    tuple[SourceImportStats, ...],
 ]:
     """Pre-merge, per-source reconciliation, and removal for one whole discovery run, all against
     the same transaction - a run either commits in full or (on any error, including a driver/
@@ -979,6 +1025,7 @@ def _import_all_sources_tx(
         )
 
     removed_source_instance_ids: list[str] = []
+    removal_stats: list[SourceImportStats] = []
     if run_result.inventory_status is InventoryStatus.COMPLETE:
         known_states = list(
             tx.run(
@@ -1004,7 +1051,7 @@ def _import_all_sources_tx(
                 source_absent_from_enumeration=True,
             )
             if decision.authorized:
-                _remove_source_tx(tx, source_instance_id=source_instance_id)
+                removal_stats.append(_remove_source_tx(tx, source_instance_id=source_instance_id))
                 removed_source_instance_ids.append(source_instance_id)
 
     new_event_id = compute_inventory_event_id(
@@ -1025,6 +1072,7 @@ def _import_all_sources_tx(
         tuple(removed_source_instance_ids),
         tuple(tombstone_diagnostics),
         tuple(tombstone_decisions),
+        tuple(removal_stats),
     )
 
 
@@ -1032,13 +1080,28 @@ def _source_run_results(run_result: DiscoveryRunResult) -> tuple[SourceRunResult
     """Every discovered source's own I1 §10 result, sorted by source instance id - taken from the
     discovery run itself, so it exists whether or not the run commits."""
     return tuple(
-        SourceRunResult(
-            source_instance_id=source_instance_id,
-            locator=run_outcome.descriptor_locator,
-            result=run_outcome.outcome.result,
-            diagnostics=tuple(run_outcome.outcome.diagnostics),
-        )
+        _source_run_result(source_instance_id, run_outcome)
         for source_instance_id, run_outcome in sorted(run_result.source_outcomes.items())
+    )
+
+
+def _source_run_result(source_instance_id: str, run_outcome: SourceRunOutcome) -> SourceRunResult:
+    descriptor = run_outcome.descriptor
+    model = run_outcome.outcome.model
+    return SourceRunResult(
+        source_instance_id=source_instance_id,
+        locator=run_outcome.descriptor_locator,
+        result=run_outcome.outcome.result,
+        diagnostics=tuple(run_outcome.outcome.diagnostics),
+        source_kind=descriptor.source_kind.value if descriptor is not None else "",
+        adapter_identity=(descriptor.adapter_identity or None) if descriptor is not None else None,
+        mapping_rule_version=(
+            (descriptor.mapping_rule_version or None) if descriptor is not None else None
+        ),
+        dialect_version=descriptor.document_dialect_version if descriptor is not None else None,
+        semantic_input_digest=run_outcome.outcome.semantic_input_digest,
+        service_ids=tuple(sorted({service.id for service in model.services})),
+        emitted=EmittedCounts.of(model),
     )
 
 
@@ -1084,6 +1147,7 @@ def import_discovery_run(
                 removed_source_instance_ids,
                 tombstone_diagnostics,
                 tombstone_decisions,
+                removal_stats,
             ) = session.execute_write(
                 _import_all_sources_tx,
                 run_result=run_result,
@@ -1118,6 +1182,7 @@ def import_discovery_run(
             scope_definition_digest=run_result.scope_definition_digest,
             inventory_revision=run_result.inventory_snapshot.inventory_revision,
             tombstone_decisions=tombstone_decisions,
+            removal_stats=removal_stats,
         )
 
 

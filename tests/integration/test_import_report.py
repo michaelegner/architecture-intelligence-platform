@@ -93,6 +93,29 @@ def test_complete_run_reports_every_source_result_and_the_committed_revision(dri
     # Locators are relative to the configured root, never absolute host paths.
     assert all(not r["locator"].startswith("/") for r in run["source_results"])
     assert {r["source_instance_id"] for r in run["source_results"]} == set(body["sources"])
+    # I1 §10's dialects, identities, emitted counts and committed effects, per source.
+    results = {r["locator"]: r for r in run["source_results"]}
+    product = results["product-service/openapi.yaml"]
+    assert product["source_kind"] == "filesystem"
+    assert product["adapter_identity"] == "openapi-adapter@1"
+    assert product["dialect_version"].startswith("3.")
+    assert len(product["semantic_input_digest"]) == 64
+    assert product["service_ids"] == ["service:product-service"]
+    assert product["emitted"]["services"] == 1 and product["emitted"]["operations"] > 0
+    assert product["effects"]["nodes_written"] > 0
+    assert product["effects"]["graph_revision_advanced"] is True
+    for result in run["source_results"]:
+        stats = body["sources"][result["source_instance_id"]]
+        assert result["effects"] == {
+            key: stats[key]
+            for key in (
+                "nodes_written",
+                "relations_written",
+                "nodes_expired",
+                "relations_expired",
+                "graph_revision_advanced",
+            )
+        }
     _assert_runs_leak_nothing(body, tmp_path)
 
 
@@ -116,6 +139,11 @@ def test_partial_run_reports_the_rejected_source_although_nothing_commits(driver
     assert results["unbound/openapi.yaml"]["result"] == "REJECTED_UNSUPPORTED"
     assert _codes(results["unbound/openapi.yaml"]["diagnostics"]) == {"SERVICE_IDENTITY_UNRESOLVED"}
     assert results["product-service/openapi.yaml"]["result"] == "ACCEPTED"
+    # A run that does not commit still reports what each source emitted, but no effects (I1 §6).
+    assert results["product-service/openapi.yaml"]["emitted"]["services"] == 1
+    assert results["unbound/openapi.yaml"]["service_ids"] == []
+    assert all(r["effects"] is None for r in run["source_results"])
+    assert run["removals"] == []
     _assert_runs_leak_nothing(body, tmp_path)
 
 
@@ -177,7 +205,7 @@ def test_removal_and_accepted_and_stale_tombstones_are_reported(driver, tmp_path
 
     second = _only_run(_post_import(driver, {"directories": [{"id": "tomb", "root": str(root_b)}]}))
     assert second["committed"] is True
-    assert second["removed_source_instance_ids"] == []  # the scope changed: removal denied
+    assert second["removals"] == []  # the scope changed: removal denied
 
     def tombstone_file(name: str, expected_revision: str) -> Path:
         path = tmp_path / name
@@ -207,7 +235,7 @@ def test_removal_and_accepted_and_stale_tombstones_are_reported(driver, tmp_path
             {"directories": [{"id": "tomb", "root": str(root_b)}], "tombstones": [str(stale)]},
         )
     )
-    assert denied["removed_source_instance_ids"] == []
+    assert denied["removals"] == []
     assert denied["tombstones"] == [
         {
             "target_source_instance_id": removed_sid,
@@ -223,9 +251,53 @@ def test_removal_and_accepted_and_stale_tombstones_are_reported(driver, tmp_path
         driver, {"directories": [{"id": "tomb", "root": str(root_b)}], "tombstones": [str(valid)]}
     )
     accepted = _only_run(body)
-    assert accepted["removed_source_instance_ids"] == [removed_sid]
+    [removal] = accepted["removals"]
+    assert removal["source_instance_id"] == removed_sid
+    # The removal's expirations: everything the removed source had written (I1 §10).
+    assert removal["nodes_expired"] > 0 and removal["relations_expired"] > 0
     assert accepted["tombstones"][0]["accepted"] is True
     assert accepted["tombstones"][0]["reason"] is None
+    _assert_runs_leak_nothing(body, tmp_path)
+
+
+def test_malformed_tombstone_target_cannot_fail_the_committed_report(driver, tmp_path):
+    """A rejected tombstone's diagnostic carries its operator-supplied target. After the run has
+    committed, a target that is not a source id must be reported as null, not fail the report."""
+    root = tmp_path / "root"
+    shutil.copytree(EXAMPLES_DIR / "product-service", root / "product-service")
+    first = _only_run(
+        _post_import(driver, {"directories": [{"id": "malformed", "root": str(root)}]})
+    )
+
+    tombstones = tmp_path / "malformed.yaml"
+    tombstones.write_text(
+        yaml.safe_dump(
+            {
+                "tombstones": [
+                    {
+                        "target_source_instance_id": "../../not a source id",
+                        "discovery_scope_id": first["discovery_scope_id"],
+                        "expected_prior_inventory_revision": "urn:aip:inventory-revision:"
+                        + "0" * 64,
+                        "scope_definition_digest": first["scope_definition_digest"],
+                        "actor": "operator@example.com",
+                        "reason": "typo",
+                        "tombstone_revision": "1",
+                    }
+                ]
+            }
+        )
+    )
+    body = _post_import(
+        driver,
+        {"directories": [{"id": "malformed", "root": str(root)}], "tombstones": [str(tombstones)]},
+    )
+
+    run = _only_run(body)
+    assert run["committed"] is True
+    assert run["tombstones"][0]["target_source_instance_id"] == "../../not a source id"
+    [stale] = [d for d in run["diagnostics"] if d["code"] == "TOMBSTONE_STALE"]
+    assert stale["source_instance_id"] is None
     _assert_runs_leak_nothing(body, tmp_path)
 
 

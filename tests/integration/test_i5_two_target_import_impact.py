@@ -7,7 +7,9 @@ what Slice 5 could not observe:
 - the namespaced Quarkus bundle's exact frozen limitation set (`ground-truth.md`: 25
   `K8S_RESOURCE_UNSUPPORTED` and 13 `NO_QUALIFIED_POD_MATCH`);
 - the unmodified bundle's `K8S_RESOURCE_INVALID`;
-- Airflow's `SCHEMA_COMPOSITION_UNINTERPRETED`.
+- Airflow's `SCHEMA_COMPOSITION_UNINTERPRETED`;
+- each source's adapter, dialect and Service ids, and the emitted counts of the manifest and the
+  namespaced bundle.
 
 A later FIX that changes any of these must fail here first.
 """
@@ -55,6 +57,15 @@ def test_quarkus_declarations_and_kubernetes_bundles(driver, monkeypatch):
             "rest-villains/openapi.yml",
         )
     }
+    by_locator = {r.locator.removeprefix("declarations/"): r for r in declarations.source_results}
+    for name in ("fights", "heroes", "narration", "villains"):
+        openapi = by_locator[f"rest-{name}/openapi.yml"]
+        assert (openapi.adapter_identity, openapi.dialect_version) == ("openapi-adapter@1", "3.1.2")
+        assert openapi.service_ids == (f"service:rest-{name}",)
+    manifest = by_locator["rest-fights/architecture.yaml"]
+    assert manifest.adapter_identity == "manifest-adapter@1"
+    assert manifest.service_ids == ()
+    assert manifest.emitted.relations == 7  # the frozen 7 CALLS
 
     clusters = {cluster.id: cluster for cluster in config.sources.clusters}
     namespaced = import_kubernetes_source(
@@ -64,6 +75,11 @@ def test_quarkus_declarations_and_kubernetes_bundles(driver, monkeypatch):
     [(result, codes)] = _results(namespaced).values()
     assert result == "ACCEPTED_WITH_LIMITATIONS"
     assert codes == Counter({"K8S_RESOURCE_UNSUPPORTED": 25, "NO_QUALIFIED_POD_MATCH": 13})
+    # `ground-truth.md`: 13 Workloads, 13 Kubernetes Services and 1 Ingress; 13 WORKLOAD_EXISTS
+    # claims and 2 Ingress routes.
+    [bundle] = namespaced.source_results
+    assert bundle.emitted.infrastructure_entities == 27
+    assert bundle.emitted.infrastructure_claims == 15
 
     unmodified = import_kubernetes_source(
         driver, database=DATABASE, source_config=clusters["qsh-k8s-upstream-unmodified"]

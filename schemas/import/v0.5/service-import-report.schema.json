@@ -115,6 +115,143 @@
       "title": "ReportDiagnostic",
       "type": "object"
     },
+    "ReportEffects": {
+      "additionalProperties": false,
+      "description": "What a committed run's reconciliation did to the graph for one source (I1 \u00a710 \"committed\neffects\"). Null in a run that did not commit: such a run changes nothing (I1 \u00a76).",
+      "properties": {
+        "graph_revision_advanced": {
+          "title": "Graph Revision Advanced",
+          "type": "boolean"
+        },
+        "nodes_expired": {
+          "minimum": 0,
+          "title": "Nodes Expired",
+          "type": "integer"
+        },
+        "nodes_written": {
+          "minimum": 0,
+          "title": "Nodes Written",
+          "type": "integer"
+        },
+        "relations_expired": {
+          "minimum": 0,
+          "title": "Relations Expired",
+          "type": "integer"
+        },
+        "relations_written": {
+          "minimum": 0,
+          "title": "Relations Written",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "nodes_written",
+        "relations_written",
+        "nodes_expired",
+        "relations_expired",
+        "graph_revision_advanced"
+      ],
+      "title": "ReportEffects",
+      "type": "object"
+    },
+    "ReportEmittedCounts": {
+      "additionalProperties": false,
+      "description": "What the source's adapter mapped, before reconciliation (I1 \u00a710 \"emitted counts\").",
+      "properties": {
+        "infrastructure_claims": {
+          "minimum": 0,
+          "title": "Infrastructure Claims",
+          "type": "integer"
+        },
+        "infrastructure_entities": {
+          "minimum": 0,
+          "title": "Infrastructure Entities",
+          "type": "integer"
+        },
+        "messages": {
+          "minimum": 0,
+          "title": "Messages",
+          "type": "integer"
+        },
+        "operations": {
+          "minimum": 0,
+          "title": "Operations",
+          "type": "integer"
+        },
+        "queues": {
+          "minimum": 0,
+          "title": "Queues",
+          "type": "integer"
+        },
+        "relations": {
+          "minimum": 0,
+          "title": "Relations",
+          "type": "integer"
+        },
+        "schemas": {
+          "minimum": 0,
+          "title": "Schemas",
+          "type": "integer"
+        },
+        "services": {
+          "minimum": 0,
+          "title": "Services",
+          "type": "integer"
+        },
+        "subscriptions": {
+          "minimum": 0,
+          "title": "Subscriptions",
+          "type": "integer"
+        },
+        "topics": {
+          "minimum": 0,
+          "title": "Topics",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "services",
+        "operations",
+        "schemas",
+        "messages",
+        "queues",
+        "topics",
+        "subscriptions",
+        "relations",
+        "infrastructure_entities",
+        "infrastructure_claims"
+      ],
+      "title": "ReportEmittedCounts",
+      "type": "object"
+    },
+    "ReportRemoval": {
+      "additionalProperties": false,
+      "description": "One previously committed source removed by an authorized removal, with what it expired.",
+      "properties": {
+        "nodes_expired": {
+          "minimum": 0,
+          "title": "Nodes Expired",
+          "type": "integer"
+        },
+        "relations_expired": {
+          "minimum": 0,
+          "title": "Relations Expired",
+          "type": "integer"
+        },
+        "source_instance_id": {
+          "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+          "title": "Source Instance Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_instance_id",
+        "nodes_expired",
+        "relations_expired"
+      ],
+      "title": "ReportRemoval",
+      "type": "object"
+    },
     "ReportRun": {
       "additionalProperties": false,
       "properties": {
@@ -168,14 +305,12 @@
           "title": "Kind",
           "type": "string"
         },
-        "removed_source_instance_ids": {
+        "removals": {
           "items": {
-            "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
-            "type": "string"
+            "$ref": "#/$defs/ReportRemoval"
           },
-          "title": "Removed Source Instance Ids",
-          "type": "array",
-          "uniqueItems": true
+          "title": "Removals",
+          "type": "array"
         },
         "scope_definition_digest": {
           "anyOf": [
@@ -213,7 +348,7 @@
         "committed",
         "inventory_revision",
         "source_results",
-        "removed_source_instance_ids",
+        "removals",
         "tombstones",
         "diagnostics"
       ],
@@ -223,12 +358,48 @@
     "ReportSourceResult": {
       "additionalProperties": false,
       "properties": {
+        "adapter_identity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Adapter Identity"
+        },
         "diagnostics": {
           "items": {
             "$ref": "#/$defs/ReportDiagnostic"
           },
           "title": "Diagnostics",
           "type": "array"
+        },
+        "dialect_version": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dialect Version"
+        },
+        "effects": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReportEffects"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "emitted": {
+          "$ref": "#/$defs/ReportEmittedCounts"
         },
         "locator": {
           "anyOf": [
@@ -242,19 +413,66 @@
           ],
           "title": "Locator"
         },
+        "mapping_rule_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mapping Rule Version"
+        },
         "result": {
           "$ref": "#/$defs/IngestionResult"
+        },
+        "semantic_input_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Semantic Input Digest"
+        },
+        "service_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Service Ids",
+          "type": "array",
+          "uniqueItems": true
         },
         "source_instance_id": {
           "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
           "title": "Source Instance Id",
           "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "filesystem",
+            "kubernetes"
+          ],
+          "title": "Source Kind",
+          "type": "string"
         }
       },
       "required": [
         "source_instance_id",
+        "source_kind",
         "locator",
         "result",
+        "adapter_identity",
+        "mapping_rule_version",
+        "dialect_version",
+        "semantic_input_digest",
+        "service_ids",
+        "emitted",
+        "effects",
         "diagnostics"
       ],
       "title": "ReportSourceResult",

@@ -3,15 +3,22 @@
 
 The report is additive. The pre-existing `import_id`, `committed` and `sources` keys keep their
 exact meaning (`sources` is the per-source reconciliation stats of the configured runs), and
-`report_version` plus `runs` carry what I1 §10 requires the report to include: every source's own
-result (including the rejected sources of a run that did not commit), the inventory status and
-revision, removals, tombstone decisions, and diagnostics.
+`report_version` plus `runs` carry what I1 §10 requires the report to include: the discovered
+sources and inventories (every source's own result, including the rejected sources of a run that
+did not commit, and the inventory status and revision), each source's adapter, dialect and
+identities, its emitted counts, its committed effects, removals with their expirations, tombstone
+decisions, and diagnostics. Unsupported constructs, unresolved references and conflicts are
+reported as diagnostic codes. A run that does not commit has no planned mutations (I1 §6), so its
+effects are null.
 
-`runs` is the deterministic semantic projection of I1 §10: it carries no capture ids or
-timestamps, and every list in it is sorted. Diagnostics are public only as a stable `code`, the
-`source_instance_id`, and a sanitized `source_pointer`. Diagnostic messages are never exposed,
-because they can contain absolute host paths and snippets of rejected input (the I2 §5
-sanitization rule); the server log keeps them.
+`runs` is the deterministic semantic projection of I1 §10: it carries no capture ids, timestamps
+or byte-level content digests, and every list in it is sorted. Diagnostics are public only as a
+stable `code`, the `source_instance_id`, and a sanitized `source_pointer`. Diagnostic messages are
+never exposed, because they can contain absolute host paths and snippets of rejected input (the I2
+§5 sanitization rule); the server log keeps them.
+
+Every value the report copies from operator input or from a diagnostic is sanitized to null rather
+than validated, so building the report can never fail after a run has already committed.
 
 The committed JSON Schema (`schemas/import/v0.5/import-report.schema.json`) is generated from these
 models by `app.ingestion.import_report_schema` and pinned by a test.
@@ -20,15 +27,16 @@ models by `app.ingestion.import_report_schema` and pinned by a test.
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.architecture_intelligence.evidence_projection import sanitize_source_locator
-from app.graph.importer import ImportRunStats, SourceImportStats
+from app.graph.importer import EmittedCounts, ImportRunStats, SourceImportStats, SourceRunResult
 from app.sources.inventory import InventoryStatus
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult
 from app.sources.tombstones import TombstoneRejectionReason
@@ -47,8 +55,15 @@ _INVENTORY_REVISION = r"^urn:aip:inventory-revision:[0-9a-f]{64}$"
 _DIGEST = r"^[0-9a-f]{64}$"
 # A public locator is relative: never absolute, never a Windows path, never a URL query/fragment.
 _RELATIVE_LOCATOR = r"^[^/\\?#][^\\?#]*$"
+# A document's declared dialect version (`openapi: 3.1.0`, `asyncapi: 2.6.0`). It is document
+# content, so anything outside this short token form is reported as null.
+_DIALECT_VERSION = r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$"
+
+_SOURCE_ID_RE = re.compile(_SOURCE_ID)
+_DIALECT_VERSION_RE = re.compile(_DIALECT_VERSION)
 
 SourceId = Annotated[str, Field(pattern=_SOURCE_ID)]
+NonNegative = Annotated[int, Field(ge=0)]
 
 
 class _Frozen(BaseModel):
@@ -61,11 +76,59 @@ class ReportDiagnostic(_Frozen):
     source_pointer: str | None
 
 
+class ReportEmittedCounts(_Frozen):
+    """What the source's adapter mapped, before reconciliation (I1 §10 "emitted counts")."""
+
+    services: NonNegative
+    operations: NonNegative
+    schemas: NonNegative
+    messages: NonNegative
+    queues: NonNegative
+    topics: NonNegative
+    subscriptions: NonNegative
+    relations: NonNegative
+    infrastructure_entities: NonNegative
+    infrastructure_claims: NonNegative
+
+
+class ReportEffects(_Frozen):
+    """What a committed run's reconciliation did to the graph for one source (I1 §10 "committed
+    effects"). Null in a run that did not commit: such a run changes nothing (I1 §6)."""
+
+    nodes_written: NonNegative
+    relations_written: NonNegative
+    nodes_expired: NonNegative
+    relations_expired: NonNegative
+    graph_revision_advanced: bool
+
+
 class ReportSourceResult(_Frozen):
     source_instance_id: SourceId
+    source_kind: RunKind
     locator: Annotated[str, Field(pattern=_RELATIVE_LOCATOR)] | None
     result: IngestionResult
+    adapter_identity: str | None
+    mapping_rule_version: str | None
+    dialect_version: Annotated[str, Field(pattern=_DIALECT_VERSION)] | None
+    semantic_input_digest: Annotated[str, Field(pattern=_DIGEST)] | None
+    service_ids: Annotated[list[str], Field(json_schema_extra={"uniqueItems": True})]
+    emitted: ReportEmittedCounts
+    effects: ReportEffects | None
     diagnostics: list[ReportDiagnostic]
+
+    @model_validator(mode="after")
+    def _sorted_service_ids(self) -> ReportSourceResult:
+        if self.service_ids != sorted(set(self.service_ids)):
+            raise ValueError("service_ids must be unique and sorted")
+        return self
+
+
+class ReportRemoval(_Frozen):
+    """One previously committed source removed by an authorized removal, with what it expired."""
+
+    source_instance_id: SourceId
+    nodes_expired: NonNegative
+    relations_expired: NonNegative
 
 
 class ReportTombstoneDecision(_Frozen):
@@ -84,23 +147,26 @@ class ReportRun(_Frozen):
     committed: bool
     inventory_revision: Annotated[str, Field(pattern=_INVENTORY_REVISION)] | None
     source_results: list[ReportSourceResult]
-    removed_source_instance_ids: Annotated[
-        list[SourceId], Field(json_schema_extra={"uniqueItems": True})
-    ]
+    removals: list[ReportRemoval]
     tombstones: list[ReportTombstoneDecision]
     diagnostics: list[ReportDiagnostic]
 
     @model_validator(mode="after")
-    def _deterministic(self) -> ReportRun:
-        # The schema's uniqueItems, plus the ordering guarantees a JSON Schema cannot express: the
-        # run is the deterministic semantic projection of I1 §10, so every list has one order.
-        if len(set(self.removed_source_instance_ids)) != len(self.removed_source_instance_ids):
-            raise ValueError("removed_source_instance_ids must be unique")
-        if self.removed_source_instance_ids != sorted(self.removed_source_instance_ids):
-            raise ValueError("removed_source_instance_ids must be sorted")
+    def _consistent(self) -> ReportRun:
+        # Ordering guarantees a JSON Schema cannot express: the run is the deterministic semantic
+        # projection of I1 §10, so every list has one order.
+        removed = [r.source_instance_id for r in self.removals]
+        if removed != sorted(set(removed)):
+            raise ValueError("removals must be unique and sorted by source_instance_id")
         ids = [r.source_instance_id for r in self.source_results]
         if ids != sorted(set(ids)):
             raise ValueError("source_results must be unique and sorted by source_instance_id")
+        # I1 §6: only a committed run has effects or removals.
+        if self.committed:
+            if any(r.effects is None for r in self.source_results):
+                raise ValueError("every source of a committed run has effects")
+        elif self.removals or any(r.effects is not None for r in self.source_results):
+            raise ValueError("a run that did not commit has no effects and no removals")
         return self
 
 
@@ -176,26 +242,84 @@ def sanitize_locator(locator: str | None, *, root: Path) -> str | None:
     return sanitize_source_locator(locator)
 
 
-def sanitize_pointer(pointer: str | None, *, root: Path) -> str | None:
-    """A public diagnostic pointer. Diagnostic pointers are heterogeneous (RFC 6901 JSON Pointers,
-    entity or resource ids, and file locators), so the sanitizer uses the run's own context: a
-    locator under the configured root becomes relative to it, an absolute path that names
-    something on this host is dropped, and anything else (a JSON Pointer, an id) is kept."""
+# The diagnostic codes whose pointer is always an RFC 6901 JSON Pointer into a document, or an
+# entity or resource id - never a host file path. Every emitting site of these codes was checked,
+# and `tests/unit/test_import_report.py` re-checks them by scanning the source. Any other code may
+# carry a file locator (a tombstone or mapping file, a discovered document), so its pointer is
+# public only as a path relative to the configured root.
+DOCUMENT_POINTER_CODES = frozenset(
+    {
+        DiagnosticCode.AMBIGUOUS,
+        DiagnosticCode.MANIFEST_BINDING_POINTER_INVALID,
+        DiagnosticCode.MANIFEST_BINDING_UNKNOWN_SOURCE,
+        DiagnosticCode.MANIFEST_CALL_TARGET_UNRESOLVED,
+        DiagnosticCode.MIGRATION_MAPPING_CONFLICT,
+        DiagnosticCode.MIGRATION_MAPPING_TARGET_INVALID,
+        DiagnosticCode.QUEUE_EVIDENCE_MISSING,
+        DiagnosticCode.QUEUE_IDENTITY_CONFLICT,
+        DiagnosticCode.QUEUE_KIND_CONFLICT,
+        DiagnosticCode.SERVICE_IDENTITY_CONFLICT,
+        DiagnosticCode.SERVICE_IDENTITY_INVALID,
+        DiagnosticCode.SERVICE_IDENTITY_UNRESOLVED,
+        DiagnosticCode.SERVICE_WORKLOAD_MAPPING_TARGET_INVALID,
+        DiagnosticCode.SUBSCRIPTION_IDENTITY_CONFLICT,
+        DiagnosticCode.SUBSCRIPTION_IDENTITY_MISSING,
+        DiagnosticCode.TOPIC_IDENTITY_CONFLICT,
+    }
+)
+
+# Absolute forms on any platform: a Windows drive path (`C:\x`, `C:/x`) or a UNC or backslash
+# path. POSIX absolute paths are handled by the leading `/` rule in `sanitize_pointer`.
+_WINDOWS_ABSOLUTE = re.compile(r"^([A-Za-z]:[\\/]|[\\/]{2}|\\)")
+
+
+def sanitize_pointer(pointer: str | None, *, code: DiagnosticCode, root: Path) -> str | None:
+    """A public diagnostic pointer, decided syntactically (never by what exists on this host).
+
+    Diagnostic pointers are heterogeneous: RFC 6901 JSON Pointers, entity or resource ids, and
+    file locators. A JSON Pointer and an absolute POSIX path share the same form (`/a/b`), so a
+    value's own text cannot tell them apart; the diagnostic code does. In order:
+    1. the configured root, or a path under it, becomes relative to it (`.` for the root itself);
+    2. a Windows absolute or UNC path, any backslash, a URL, or a `..` segment becomes null;
+    3. a value starting with `/` is kept only for a `DOCUMENT_POINTER_CODES` code, and is null
+       otherwise, whether or not such a path exists;
+    4. anything else (a relative locator, an id, a resource pointer) is kept."""
     if pointer is None:
         return None
     relative = _relative_to_root(pointer, _root_forms(root))
     if relative is not None:
         return relative
-    if os.path.isabs(pointer) and os.path.lexists(pointer):
+    if (
+        _WINDOWS_ABSOLUTE.match(pointer)
+        or "\\" in pointer
+        or "://" in pointer
+        or ".." in pointer.split("/")
+    ):
+        return None
+    if pointer.startswith("/") and code not in DOCUMENT_POINTER_CODES:
         return None
     return pointer
+
+
+def _public_source_id(value: str | None) -> str | None:
+    """A diagnostic's source id, or null when it is not a well-formed AIP source id: a rejected
+    tombstone's diagnostic carries its operator-supplied target, which may be malformed."""
+    if value is None or _SOURCE_ID_RE.fullmatch(value) is None:
+        return None
+    return value
+
+
+def _public_dialect_version(value: str | None) -> str | None:
+    if value is None or _DIALECT_VERSION_RE.fullmatch(value) is None:
+        return None
+    return value
 
 
 def _diagnostic(diagnostic: IngestionDiagnostic, *, root: Path) -> ReportDiagnostic:
     return ReportDiagnostic(
         code=diagnostic.code,
-        source_instance_id=diagnostic.source_instance_id,
-        source_pointer=sanitize_pointer(diagnostic.source_pointer, root=root),
+        source_instance_id=_public_source_id(diagnostic.source_instance_id),
+        source_pointer=sanitize_pointer(diagnostic.source_pointer, code=diagnostic.code, root=root),
     )
 
 
@@ -212,6 +336,47 @@ def _sorted_diagnostics(
     )
 
 
+def _emitted(counts: EmittedCounts | None) -> ReportEmittedCounts:
+    if counts is None:
+        return ReportEmittedCounts(**dict.fromkeys(ReportEmittedCounts.model_fields, 0))
+    return ReportEmittedCounts(**asdict(counts))
+
+
+def _effects(stats: SourceImportStats | None) -> ReportEffects | None:
+    if stats is None:
+        return None
+    return ReportEffects(
+        nodes_written=stats.nodes_written,
+        relations_written=stats.relations_written,
+        nodes_expired=stats.nodes_expired,
+        relations_expired=stats.relations_expired,
+        graph_revision_advanced=stats.graph_revision_advanced,
+    )
+
+
+def _source_result(
+    source_result: SourceRunResult, *, kind: RunKind, stats: ImportRunStats, root: Path
+) -> ReportSourceResult:
+    return ReportSourceResult(
+        source_instance_id=source_result.source_instance_id,
+        source_kind=kind,
+        locator=sanitize_locator(source_result.locator, root=root),
+        result=source_result.result,
+        adapter_identity=source_result.adapter_identity,
+        mapping_rule_version=source_result.mapping_rule_version,
+        dialect_version=_public_dialect_version(source_result.dialect_version),
+        semantic_input_digest=source_result.semantic_input_digest,
+        service_ids=sorted(set(source_result.service_ids)),
+        emitted=_emitted(source_result.emitted),
+        effects=(
+            _effects(stats.per_source.get(source_result.source_instance_id))
+            if stats.committed
+            else None
+        ),
+        diagnostics=_sorted_diagnostics(source_result.diagnostics, root=root),
+    )
+
+
 def build_run(configured: ConfiguredRun) -> ReportRun:
     stats = configured.stats
     root = configured.root
@@ -224,15 +389,20 @@ def build_run(configured: ConfiguredRun) -> ReportRun:
         committed=stats.committed,
         inventory_revision=stats.inventory_revision,
         source_results=[
-            ReportSourceResult(
-                source_instance_id=source_result.source_instance_id,
-                locator=sanitize_locator(source_result.locator, root=root),
-                result=source_result.result,
-                diagnostics=_sorted_diagnostics(source_result.diagnostics, root=root),
-            )
+            _source_result(source_result, kind=configured.kind, stats=stats, root=root)
             for source_result in sorted(stats.source_results, key=lambda r: r.source_instance_id)
         ],
-        removed_source_instance_ids=sorted(stats.removed_source_instance_ids),
+        removals=sorted(
+            (
+                ReportRemoval(
+                    source_instance_id=removal.source_instance_id,
+                    nodes_expired=removal.nodes_expired,
+                    relations_expired=removal.relations_expired,
+                )
+                for removal in stats.removal_stats
+            ),
+            key=lambda r: r.source_instance_id,
+        ),
         tombstones=sorted(
             (
                 ReportTombstoneDecision(
