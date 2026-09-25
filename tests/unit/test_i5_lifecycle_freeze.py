@@ -18,18 +18,19 @@ LIFECYCLE = V05 / "lifecycle"
 STEPS = ("S0", "L1", "L4a", "L4b", "L6", "L2", "R", "L5", "L3")
 
 # `mutate.py <target> <step>` output digests, frozen in Slice 4. L3 excludes its run-time-bound
-# tombstones.yaml.
+# tombstones.yaml. The Quarkus L4b, L2, L5 and L3 digests were re-pinned by the I5 §6 correction of X
+# (finding F7; lifecycle/README.md "Revision history"). Every other digest is unchanged.
 PINNED = {
     "quarkus-super-heroes": {
         "S0": "72052574a730100a29ff2da60f602cb74147950ad1b344c1ef752045488e4cb6",
         "L1": "72052574a730100a29ff2da60f602cb74147950ad1b344c1ef752045488e4cb6",
         "L4a": "b21aa1fa456453ab04287f3789149025580b1196f5fdb03d5df6b03e30486e8b",
-        "L4b": "02177b77c19886572361e173f6258f38aa6caa22f5e832ad4994eaa2762140d0",
+        "L4b": "f340ac40ea907b8728c7e14547e3f4956b9f3b84a9621632f0714c5c2a595438",
         "L6": "b3dbede5f9f8f988048333805ccce8d0aa10b62f28cea728abfb824458d43175",
-        "L2": "30887ab9ac5960b80312ee85ee197a916bf8a3aa02a569bd3c01ec7f78c905ff",
+        "L2": "6bfc75c8101c38cf2f40467aae19538ac1ab6cbc87518073b2b84fc4b0240eb8",
         "R": "72052574a730100a29ff2da60f602cb74147950ad1b344c1ef752045488e4cb6",
-        "L5": "ffaf3dbcfdf7ec756b6a711e2f086cfab066cf0fc0c272295793e1e81fa2ef36",
-        "L3": "fde01aa4afc906900e516a7a2f80048f76d2be03ff2f1f9a06720839605c5b7d",
+        "L5": "82399fdc25c35d83404dba727a81bda2a522d3e60cec7220f561325828769959",
+        "L3": "4bff75852deff48baa77b70957fa1514531bba51d75039f0554597fd9963df6d",
     },
     "apache-airflow": {
         "S0": "e6e00555f1805f00d464aab8b2a45a738afc570abfce378ddcff4dfc0fc96011",
@@ -96,11 +97,14 @@ def test_each_mutation_is_exactly_the_frozen_edit(tmp_path, target):
         return {b["sourceInstanceId"] for b in document["bindings"]}
 
     s0 = _materialize(tmp_path, target, "S0") / "declarations"
-    assert x_sid in bindings(s0)
+    bindings_file = "bindings/architecture-identity-bindings.yaml"
 
     l2 = _materialize(tmp_path, target, "L2") / "declarations"
     assert not (l2 / x).exists()
-    assert bindings(l2) == bindings(s0) - {x_sid}
+    if x_sid in bindings(s0):  # Airflow: X is bound, and exactly its binding is dropped
+        assert bindings(l2) == bindings(s0) - {x_sid}
+    else:  # Quarkus: X is the manifest, resolved by its own x-aip-service-id, so no edit
+        assert (l2 / bindings_file).read_bytes() == (frozen / bindings_file).read_bytes()
 
     l4b = _materialize(tmp_path, target, "L4b") / "declarations"
     copy = scenario["steps"][STEPS.index("L4b")]["unbound_copy"]
@@ -108,12 +112,10 @@ def test_each_mutation_is_exactly_the_frozen_edit(tmp_path, target):
     assert not (l4b / x).exists()
 
     l6 = _materialize(tmp_path, target, "L6") / "declarations"
-    injected = yaml.safe_load((l6 / x).read_text())
-    original = yaml.safe_load((frozen / x).read_text())
-    assert (
-        injected.pop("x-aip-service-id")
-        == scenario["steps"][STEPS.index("L6")]["inject_x_service_id"]
-    )
+    inject = scenario["steps"][STEPS.index("L6")]["inject"]
+    injected = yaml.safe_load((l6 / inject["file"]).read_text())
+    original = yaml.safe_load((frozen / inject["file"]).read_text())
+    assert injected.pop("x-aip-service-id") == inject["service_id"]
     assert injected == original
 
     l4a = _materialize(tmp_path, target, "L4a")
@@ -206,6 +208,11 @@ def test_without_x_is_the_exact_owned_graph_projection():
         '"CALLS", "service:a", "op:b", "k1", ["s1"]\n'
         '"PROVIDES", "service:a", "op:a", NULL, ["s1"]\n'
     )
+    # Finding F6: when every row is removed, the output is empty, exactly as cypher-shell prints an
+    # empty result (no header), so a diff against the step's own output exits 0.
+    only_x = 'type, source, target, key, owners\n"PROVIDES", "service:x", "op:x", "k2", ["sx"]\n'
+    assert module.without_x(only_x, "sx") == ""
+    assert module.without_x("", "sx") == ""
 
 
 def test_lifecycle_runbook_queries_every_frozen_state_query():
@@ -243,3 +250,33 @@ def test_every_materialized_declaration_is_an_enumerated_candidate_name(tmp_path
                 assert path.name in CANDIDATE_FILENAMES, (step, relative)
                 # <workdir>/<root>/<subdirectory>/<candidate name>: the discoverer's layout.
                 assert len(relative.parts) == 3, (step, relative)
+
+
+# The ledger's commit expectation per step (lifecycle/README.md): the committing steps must be
+# commit-eligible inputs, and the non-committing ones must not be. Finding F7 was an input the ledger
+# expected to commit although the contract rejects it; this catches such an input before any run.
+COMMITS = {"S0": True, "L1": True, "L4a": False, "L4b": False, "L6": False, "L2": True, "R": True}
+COMMITS |= {"L5": True, "L3": True}
+
+
+@pytest.mark.parametrize("target", sorted(PINNED))
+def test_every_step_is_an_input_whose_discovery_matches_the_ledger(tmp_path, target):
+    from app.ingestion.orchestrator import run_filesystem_discovery
+    from app.sources.model import FilesystemSourceConfig
+
+    mutate = _mutate()
+    scenario = mutate.load_scenario(target)
+    x_sid = mutate.x_source_instance_id(scenario)
+    for step in STEPS:
+        workdir = _materialize(tmp_path, target, step)
+        root = workdir / scenario["steps"][STEPS.index(step)]["root"]
+        result = run_filesystem_discovery(
+            FilesystemSourceConfig(id=scenario["declarations_source_id"], root=root)
+        )
+        assert result.commit_eligible is COMMITS[step], step
+        if step in {"L2", "L5", "L3"}:  # X is omitted, and nothing else is rejected
+            assert x_sid not in result.source_outcomes, step
+            assert all(
+                o.outcome.result.value.startswith("ACCEPTED")
+                for o in result.source_outcomes.values()
+            ), step

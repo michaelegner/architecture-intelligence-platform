@@ -4,9 +4,12 @@
 target: quarkus-super-heroes
 dossier_declarations: ../quarkus-super-heroes/runtime/declarations
 declarations_source_id: qsh-v0.5-declarations
-# X is the source that the removal scenarios act on. No other declaration depends on it: the
-# rest-fights manifest calls only the heroes, villains and narration operations.
-x: rest-fights/openapi.yml
+# X is the source that the removal scenarios act on. Corrected under I5 §6 (finding F7, #253; see
+# ../README.md "Revision history"): X was rest-fights/openapi.yml, but the rest-fights manifest
+# depends on it, because only that OpenAPI declares service:rest-fights. X is now the manifest,
+# which no other declaration depends on: it emits only CALLS, and nothing refers to it. It has no
+# identity binding (its x-aip-service-id resolves it).
+x: rest-fights/architecture.yaml
 steps:
   - {id: S0, root: declarations}
   - {id: L1, root: declarations}
@@ -15,7 +18,11 @@ steps:
     root: declarations
     omit_x: true
     unbound_copy: {from: rest-heroes/openapi.yml, to: lifecycle-unbound-copy/openapi.yml}
-  - {id: L6, root: declarations, inject_x_service_id: service:rest-villains}
+  # L6 keeps its #244 input exactly: the disagreeing identity goes into rest-fights' OpenAPI, which
+  # is bound to service:rest-fights. It is no longer X, so the injection names its own file.
+  - id: L6
+    root: declarations
+    inject: {file: rest-fights/openapi.yml, service_id: service:rest-villains}
   - {id: L2, root: declarations, omit_x: true}
   - {id: R, root: declarations}
   - {id: L5, root: declarations-relocated, omit_x: true}

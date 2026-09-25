@@ -4,7 +4,8 @@
 
 It reads a `cypher-shell --format plain` output whose last column is the sorted owner list. It
 removes X from every owner list, drops each row whose owner list becomes empty, and prints the
-result in the same format. For a removal step, this is the exact expected owned graph: diff it
+result in the same format (nothing at all when no row is left, as `cypher-shell` prints for an
+empty result). For a removal step, this is the exact expected owned graph: diff it
 against the step's own Q-SVC or Q-REL output. Row order and owner order are kept, because both are
 already frozen by the queries' ORDER BY.
 """
@@ -23,15 +24,21 @@ def _split_row(line: str) -> tuple[str, list[str]]:
 
 
 def without_x(text: str, x: str) -> str:
+    """The projection, formatted as `cypher-shell --format plain` would print it. For an empty
+    result that means nothing at all, not even the header (finding F6, #253)."""
+    if not text.strip():
+        return ""
     lines = text.rstrip("\n").split("\n")
     header, rows = lines[0], lines[1:]
-    kept = [header]
+    kept = []
     for row in rows:
         prefix, owners = _split_row(row)
         remaining = [o for o in owners if o != x]
         if remaining:
             kept.append(f"{prefix}, {json.dumps(remaining, separators=(', ', ': '))}")
-    return "\n".join(kept) + "\n"
+    if not kept:
+        return ""
+    return "\n".join([header, *kept]) + "\n"
 
 
 def main(argv: list[str]) -> int:
