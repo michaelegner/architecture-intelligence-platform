@@ -234,9 +234,14 @@ for the published release.
   which also records an authorized-owner risk acceptance for 12 newly-disclosed HIGH/CRITICAL Trivy
   findings, all Debian base-image OS package patches unrelated to any AIP code or dependency change.
 
-## v0.5 — Broader Architecture Discovery (planned)
+## v0.5 — Broader Architecture Discovery — shipped
 
 **Goal: Broaden what AIP can safely know about distributed systems.**
+
+Shipped and post-release verified as [`v0.5.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.5.0) on 2026-09-26 (`SHIPPED_VERIFIED`; see
+[`docs/release-validation/v0.5.0-post-release-verification.md`](docs/release-validation/v0.5.0-post-release-verification.md)
+and [`docs/specifications/0.5.0/`](docs/specifications/0.5.0/) for the full design history). I4 ended
+`GO`; Kubernetes discovery shipped `OFFLINE_ONLY`.
 
 **Product questions:**
 
@@ -258,7 +263,8 @@ Architecture Intelligence guarantees.
 | I6 — Release and Post-Release Verification | Exact-candidate qualification, publication disposition, and separate unpublished `RELEASE_READY_NOT_PUBLISHED` or published `SHIPPED_VERIFIED` outcomes. Publication requires authorization; shipped verification requires final-artifact and security evidence. |
 
 The [I1 implementation contract](docs/specifications/0.5.0/i1-source-ingestion-foundation.md)
-accepts exactly OpenAPI `3.0.3`/`3.1.0` and AsyncAPI `2.6.0`. It preserves composition
+accepts exactly OpenAPI `3.0.3`/`3.1.0`/`3.1.2` (the last added by its Draft 0.3 amendment) and
+AsyncAPI `2.6.0`. It preserves composition
 structurally with explicit limitations. Equal content does not establish shared Schema/Message
 identity: owner-scoped IDs remain distinct unless explicitly mapped. Portable, versioned
 Service/Schema/Message/Queue mappings preserve qualified legacy fixture meaning without naming

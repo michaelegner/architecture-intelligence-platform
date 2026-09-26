@@ -62,7 +62,7 @@ system:
 (`supports()` / `load()`) as the *target* extension point and says plainly that there is no registry
 today. That honesty is correct, and the gap is now load-bearing:
 
-- [`app/ingestion/pipeline.py:58`](../app/ingestion/pipeline.py) — `parse_sources` hardcodes one
+- [`app/ingestion/pipeline.py:58`](https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.4.2/app/ingestion/pipeline.py#L58) — `parse_sources` hardcodes one
   block per source type; a fourth adapter means editing this function.
 - [`app/ingestion/scanner.py:20`](../app/ingestion/scanner.py) — `FILE_KIND_BY_NAME` hardcodes
   filenames, `SpecificationSource` is file-bound (`path: Path`), and `service_id` *is* the directory

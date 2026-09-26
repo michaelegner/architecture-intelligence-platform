@@ -14,6 +14,11 @@ unchanged from the originals.
 | [`h5-open-source-readiness.md`](h5-open-source-readiness.md) | H5: licensing, documentation, the runtime demo, CI/CD, community files, release process. |
 | [`12g-public-repository-activation.md`](12g-public-repository-activation.md) | 12G: activating the project on real GitHub infrastructure — repository creation, CI verification, security features, releases. |
 
+Every release since `v0.2` has its own versioned specification under `docs/specifications/<release>/`.
+The most recent, [`0.5.0/`](0.5.0/specification.md), is complete: increments I1-I6 each have a
+completion record, ending with [`0.5.0/i6-completion-record.md`](0.5.0/i6-completion-record.md)
+(`v0.5.0` `SHIPPED_VERIFIED`).
+
 See [`docs/architecture.md`](../architecture.md#architecture-principles) and
 [`docs/adr/`](../adr/) for how these design decisions map onto the system as it exists today, and
 [`ROADMAP.md`](../../ROADMAP.md) for what's shipped versus planned.

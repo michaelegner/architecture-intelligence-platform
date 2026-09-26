@@ -120,4 +120,4 @@ Current product and architecture documentation remains under [`docs/`](../..), i
 For shipped versus planned capabilities, see the project [Roadmap](../../../ROADMAP.md).
 
 For the design history that led to `v0.1.0`, see the parent
-[Specifications index](../README.md) and the [`v0.1.0` design-history index](../v0.1.0/README.md).
+[Specifications index](../README.md) and the [`v0.1.0` design-history index](../0.1.0/README.md).

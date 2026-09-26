@@ -9,6 +9,8 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-26
+
 ### v0.5.0 — Broader Architecture Discovery
 
 Broadens what AIP can safely know about a distributed system's Current State. Kubernetes is added
