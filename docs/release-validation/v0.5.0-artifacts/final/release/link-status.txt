@@ -1,0 +1,15 @@
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/CHANGELOG.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/docs/adr/0016-public-architecture-knowledge-adapters.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/docs/ingestion.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/docs/mcp.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/docs/release-validation/v0.4.2-client-qualification.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/docs/specifications/0.5.0/i1-completion-record.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/docs/specifications/0.5.0/i2-completion-record.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/docs/specifications/0.5.0/i3-completion-record.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/docs/specifications/0.5.0/i4-completion-record.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/docs/specifications/0.5.0/i5-completion-record.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/docs/specifications/0.5.0/specification.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.5.0/examples/release-golden-path/README.md
+200 https://github.com/michaelegner/architecture-intelligence-platform/tree/v0.5.0/docs/real-world-validation/v0.5.0
+200 https://github.com/michaelegner/architecture-intelligence-platform/tree/v0.5.0/schemas/architecture_intelligence/v0.5
+200 https://github.com/michaelegner/architecture-intelligence-platform/tree/v0.5.0/schemas/import/v0.5

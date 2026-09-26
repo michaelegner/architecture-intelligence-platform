@@ -1,0 +1,6 @@
+anonymous token obtained: yes
+HTTP/2 200 
+content-type: application/vnd.oci.image.index.v1+json
+docker-content-digest: sha256:f3c5fdc3691cc10f1de3a190c83e4749c4aadd0c37bf7d0b5385c99de38f9b65
+0
+credential store ghcr entries: 0

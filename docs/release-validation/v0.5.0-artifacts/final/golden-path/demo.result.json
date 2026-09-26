@@ -1,0 +1,927 @@
+{
+  "checks": {
+    "cross-surface": {
+      "detail": {
+        "actual": {
+          "dependencies": true,
+          "drift": true,
+          "evidence": true
+        },
+        "expected": {
+          "dependencies": true,
+          "drift": true,
+          "evidence": true
+        }
+      },
+      "passed": true
+    },
+    "dependencies": {
+      "detail": {
+        "actual": {
+          "drift_claims": [
+            {
+              "claim_id": "aip:claim:v1:4a4cdc356935472576c8360fec756335195a0602243d7f6bcd8ded0e460e9006",
+              "coverage": "PARTIAL",
+              "delivery": {
+                "kind": "ASYNC_MESSAGE",
+                "relation_type": "SENDS",
+                "subscription": null,
+                "via": {
+                  "id": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2",
+                  "method": null,
+                  "name": "unused-q",
+                  "namespace": "commerce",
+                  "path": null,
+                  "protocol": null,
+                  "type": "QUEUE"
+                }
+              },
+              "destination_resolution": "DIRECT_TARGET_FALLBACK",
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "object": {
+                "id": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2",
+                "method": null,
+                "name": "unused-q",
+                "namespace": "commerce",
+                "path": null,
+                "protocol": null,
+                "type": "QUEUE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "resolution_evidence_refs": [],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            },
+            {
+              "claim_id": "aip:claim:v1:8c43c7b5ba7783da9b188afd0e28a72d0570d3a48a9772c5911ce8469e89bbd0",
+              "coverage": null,
+              "delivery": {
+                "kind": "SYNC_HTTP",
+                "relation_type": "CALLS",
+                "subscription": null,
+                "via": {
+                  "id": "operation:service:legacypricingservice:GET:/pricing/{sku}",
+                  "method": null,
+                  "name": "GET /pricing/{sku}",
+                  "namespace": null,
+                  "path": null,
+                  "protocol": null,
+                  "type": "OPERATION"
+                }
+              },
+              "destination_resolution": "RESOLVED_SERVICE",
+              "evidence_refs": [
+                "evidence:otel:demo:2026-08-26:bfae54276215"
+              ],
+              "object": {
+                "id": "service:legacypricingservice",
+                "method": null,
+                "name": "LegacyPricingService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "OBSERVED_ONLY",
+              "resolution_evidence_refs": [
+                "evidence:otel:demo:2026-08-26:29d4976aeaf9"
+              ],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            },
+            {
+              "claim_id": "aip:claim:v1:55a825535bd830bd6b688097c770fd6d0dd55b1045c86fb6229a59e855ccb5d4",
+              "coverage": "PARTIAL",
+              "delivery": {
+                "kind": "ASYNC_MESSAGE",
+                "relation_type": "SENDS",
+                "subscription": null,
+                "via": {
+                  "id": "queue:owned:f4ab89257c232ec7ec1c2633f37e256ed4971181d896bd0a002d3586d3ae29db",
+                  "method": null,
+                  "name": "payment-q",
+                  "namespace": "commerce",
+                  "path": null,
+                  "protocol": null,
+                  "type": "QUEUE"
+                }
+              },
+              "destination_resolution": "RESOLVED_SERVICE",
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "object": {
+                "id": "service:payment-service",
+                "method": null,
+                "name": "PaymentService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "resolution_evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299"
+              ],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            }
+          ],
+          "snapshot": "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f"
+        },
+        "expected": {
+          "drift_claims": [
+            {
+              "claim_id": "aip:claim:v1:4a4cdc356935472576c8360fec756335195a0602243d7f6bcd8ded0e460e9006",
+              "coverage": "PARTIAL",
+              "delivery": {
+                "kind": "ASYNC_MESSAGE",
+                "relation_type": "SENDS",
+                "subscription": null,
+                "via": {
+                  "id": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2",
+                  "method": null,
+                  "name": "unused-q",
+                  "namespace": "commerce",
+                  "path": null,
+                  "protocol": null,
+                  "type": "QUEUE"
+                }
+              },
+              "destination_resolution": "DIRECT_TARGET_FALLBACK",
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "object": {
+                "id": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2",
+                "method": null,
+                "name": "unused-q",
+                "namespace": "commerce",
+                "path": null,
+                "protocol": null,
+                "type": "QUEUE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "resolution_evidence_refs": [],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            },
+            {
+              "claim_id": "aip:claim:v1:8c43c7b5ba7783da9b188afd0e28a72d0570d3a48a9772c5911ce8469e89bbd0",
+              "coverage": null,
+              "delivery": {
+                "kind": "SYNC_HTTP",
+                "relation_type": "CALLS",
+                "subscription": null,
+                "via": {
+                  "id": "operation:service:legacypricingservice:GET:/pricing/{sku}",
+                  "method": null,
+                  "name": "GET /pricing/{sku}",
+                  "namespace": null,
+                  "path": null,
+                  "protocol": null,
+                  "type": "OPERATION"
+                }
+              },
+              "destination_resolution": "RESOLVED_SERVICE",
+              "evidence_refs": [
+                "evidence:otel:demo:2026-08-26:bfae54276215"
+              ],
+              "object": {
+                "id": "service:legacypricingservice",
+                "method": null,
+                "name": "LegacyPricingService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "OBSERVED_ONLY",
+              "resolution_evidence_refs": [
+                "evidence:otel:demo:2026-08-26:29d4976aeaf9"
+              ],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            },
+            {
+              "claim_id": "aip:claim:v1:55a825535bd830bd6b688097c770fd6d0dd55b1045c86fb6229a59e855ccb5d4",
+              "coverage": "PARTIAL",
+              "delivery": {
+                "kind": "ASYNC_MESSAGE",
+                "relation_type": "SENDS",
+                "subscription": null,
+                "via": {
+                  "id": "queue:owned:f4ab89257c232ec7ec1c2633f37e256ed4971181d896bd0a002d3586d3ae29db",
+                  "method": null,
+                  "name": "payment-q",
+                  "namespace": "commerce",
+                  "path": null,
+                  "protocol": null,
+                  "type": "QUEUE"
+                }
+              },
+              "destination_resolution": "RESOLVED_SERVICE",
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "object": {
+                "id": "service:payment-service",
+                "method": null,
+                "name": "PaymentService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "resolution_evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299"
+              ],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            }
+          ],
+          "snapshot": "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f"
+        }
+      },
+      "passed": true
+    },
+    "drift": {
+      "detail": {
+        "actual": {
+          "mcp": [
+            {
+              "evidence_refs": [
+                "evidence:otel:demo:2026-08-26:bfae54276215"
+              ],
+              "qualification": "OBSERVED_ONLY",
+              "subject": "service:order-service",
+              "target": "LegacyPricingService",
+              "via": "GET /pricing/{sku}"
+            },
+            {
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "subject": "service:order-service",
+              "target": "PaymentService",
+              "via": "payment-q"
+            },
+            {
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "subject": "service:order-service",
+              "target": "unused-q",
+              "via": "unused-q"
+            }
+          ],
+          "rest": [
+            {
+              "evidence_refs": [
+                "evidence:otel:demo:2026-08-26:bfae54276215"
+              ],
+              "qualification": "OBSERVED_ONLY",
+              "subject": "service:order-service",
+              "target": "LegacyPricingService",
+              "via": "GET /pricing/{sku}"
+            },
+            {
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "subject": "service:order-service",
+              "target": "PaymentService",
+              "via": "payment-q"
+            },
+            {
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "subject": "service:order-service",
+              "target": "unused-q",
+              "via": "unused-q"
+            }
+          ],
+          "snapshots": [
+            "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f",
+            "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f"
+          ]
+        },
+        "expected": {
+          "mcp": [
+            {
+              "evidence_refs": [
+                "evidence:otel:demo:2026-08-26:bfae54276215"
+              ],
+              "qualification": "OBSERVED_ONLY",
+              "subject": "service:order-service",
+              "target": "LegacyPricingService",
+              "via": "GET /pricing/{sku}"
+            },
+            {
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "subject": "service:order-service",
+              "target": "PaymentService",
+              "via": "payment-q"
+            },
+            {
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "subject": "service:order-service",
+              "target": "unused-q",
+              "via": "unused-q"
+            }
+          ],
+          "rest": [
+            {
+              "evidence_refs": [
+                "evidence:otel:demo:2026-08-26:bfae54276215"
+              ],
+              "qualification": "OBSERVED_ONLY",
+              "subject": "service:order-service",
+              "target": "LegacyPricingService",
+              "via": "GET /pricing/{sku}"
+            },
+            {
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "subject": "service:order-service",
+              "target": "PaymentService",
+              "via": "payment-q"
+            },
+            {
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "subject": "service:order-service",
+              "target": "unused-q",
+              "via": "unused-q"
+            }
+          ],
+          "snapshots": [
+            "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f",
+            "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f"
+          ]
+        }
+      },
+      "passed": true
+    },
+    "evidence": {
+      "detail": {
+        "actual": [
+          [
+            "ANSWERED",
+            []
+          ],
+          [
+            "ANSWERED",
+            []
+          ]
+        ],
+        "expected": [
+          [
+            "ANSWERED",
+            []
+          ],
+          [
+            "ANSWERED",
+            []
+          ]
+        ]
+      },
+      "passed": true
+    },
+    "fixture-state": {
+      "detail": {
+        "actual": {
+          "actual_snapshot_id": "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f",
+          "classification": "COMPLETE",
+          "mismatches": []
+        },
+        "expected": {
+          "actual_snapshot_id": "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f",
+          "classification": "COMPLETE",
+          "mismatches": []
+        }
+      },
+      "passed": true
+    },
+    "fixture-state-after": {
+      "detail": {
+        "actual": [
+          "COMPLETE",
+          "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f"
+        ],
+        "expected": [
+          "COMPLETE",
+          "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f"
+        ]
+      },
+      "passed": true
+    },
+    "import": {
+      "detail": {
+        "actual": {
+          "committed": true,
+          "report_version": "aip-import-report/1",
+          "run": [
+            "COMPLETE",
+            true
+          ],
+          "source_result_ids_match": true,
+          "sources_count": 6
+        },
+        "expected": {
+          "committed": true,
+          "report_version": "aip-import-report/1",
+          "run": [
+            "COMPLETE",
+            true
+          ],
+          "source_result_ids_match": true,
+          "sources_count": 6
+        }
+      },
+      "passed": true
+    },
+    "mcp-tools": {
+      "detail": {
+        "actual": [
+          "get_architecture_drift",
+          "get_evidence",
+          "get_service_dependencies"
+        ],
+        "expected": [
+          "get_architecture_drift",
+          "get_evidence",
+          "get_service_dependencies"
+        ]
+      },
+      "passed": true
+    },
+    "producer-identity": {
+      "detail": {
+        "answers": 7,
+        "problems": []
+      },
+      "passed": true
+    },
+    "reconnect": {
+      "detail": {
+        "actual": {
+          "claims": [
+            {
+              "claim_id": "aip:claim:v1:4a4cdc356935472576c8360fec756335195a0602243d7f6bcd8ded0e460e9006",
+              "coverage": "PARTIAL",
+              "delivery": {
+                "kind": "ASYNC_MESSAGE",
+                "relation_type": "SENDS",
+                "subscription": null,
+                "via": {
+                  "id": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2",
+                  "method": null,
+                  "name": "unused-q",
+                  "namespace": "commerce",
+                  "path": null,
+                  "protocol": null,
+                  "type": "QUEUE"
+                }
+              },
+              "destination_resolution": "DIRECT_TARGET_FALLBACK",
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "object": {
+                "id": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2",
+                "method": null,
+                "name": "unused-q",
+                "namespace": "commerce",
+                "path": null,
+                "protocol": null,
+                "type": "QUEUE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "resolution_evidence_refs": [],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            },
+            {
+              "claim_id": "aip:claim:v1:8c43c7b5ba7783da9b188afd0e28a72d0570d3a48a9772c5911ce8469e89bbd0",
+              "coverage": null,
+              "delivery": {
+                "kind": "SYNC_HTTP",
+                "relation_type": "CALLS",
+                "subscription": null,
+                "via": {
+                  "id": "operation:service:legacypricingservice:GET:/pricing/{sku}",
+                  "method": null,
+                  "name": "GET /pricing/{sku}",
+                  "namespace": null,
+                  "path": null,
+                  "protocol": null,
+                  "type": "OPERATION"
+                }
+              },
+              "destination_resolution": "RESOLVED_SERVICE",
+              "evidence_refs": [
+                "evidence:otel:demo:2026-08-26:bfae54276215"
+              ],
+              "object": {
+                "id": "service:legacypricingservice",
+                "method": null,
+                "name": "LegacyPricingService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "OBSERVED_ONLY",
+              "resolution_evidence_refs": [
+                "evidence:otel:demo:2026-08-26:29d4976aeaf9"
+              ],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            },
+            {
+              "claim_id": "aip:claim:v1:55a825535bd830bd6b688097c770fd6d0dd55b1045c86fb6229a59e855ccb5d4",
+              "coverage": "PARTIAL",
+              "delivery": {
+                "kind": "ASYNC_MESSAGE",
+                "relation_type": "SENDS",
+                "subscription": null,
+                "via": {
+                  "id": "queue:owned:f4ab89257c232ec7ec1c2633f37e256ed4971181d896bd0a002d3586d3ae29db",
+                  "method": null,
+                  "name": "payment-q",
+                  "namespace": "commerce",
+                  "path": null,
+                  "protocol": null,
+                  "type": "QUEUE"
+                }
+              },
+              "destination_resolution": "RESOLVED_SERVICE",
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "object": {
+                "id": "service:payment-service",
+                "method": null,
+                "name": "PaymentService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "resolution_evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299"
+              ],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            },
+            {
+              "claim_id": "aip:claim:v1:c41d3611d0e93513439ec4859dbd96e741750b689c6a77267e68b5705b977bc9",
+              "coverage": null,
+              "delivery": {
+                "kind": "SYNC_HTTP",
+                "relation_type": "CALLS",
+                "subscription": null,
+                "via": {
+                  "id": "operation:service:product-service:GET:/products/{id}",
+                  "method": "GET",
+                  "name": "GET /products/{id}",
+                  "namespace": null,
+                  "path": "/products/{id}",
+                  "protocol": null,
+                  "type": "OPERATION"
+                }
+              },
+              "destination_resolution": "RESOLVED_SERVICE",
+              "evidence_refs": [
+                "evidence:manifest:urn:aip:source:filesystem:480d4a9ba20cde9384d119b9a8189c1eaa5e60d1c70d563c7bfb83aec3811f8f",
+                "evidence:otel:demo:2026-08-26:b1d283d583bd"
+              ],
+              "object": {
+                "id": "service:product-service",
+                "method": null,
+                "name": "ProductService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "CONFIRMED",
+              "resolution_evidence_refs": [
+                "evidence:openapi:urn:aip:source:filesystem:6e78c4f7625f06e968b1b409ded73b234bfc40382dc4b4566fc58e04ba7b1562"
+              ],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            }
+          ],
+          "snapshot": "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f"
+        },
+        "expected": {
+          "claims": [
+            {
+              "claim_id": "aip:claim:v1:4a4cdc356935472576c8360fec756335195a0602243d7f6bcd8ded0e460e9006",
+              "coverage": "PARTIAL",
+              "delivery": {
+                "kind": "ASYNC_MESSAGE",
+                "relation_type": "SENDS",
+                "subscription": null,
+                "via": {
+                  "id": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2",
+                  "method": null,
+                  "name": "unused-q",
+                  "namespace": "commerce",
+                  "path": null,
+                  "protocol": null,
+                  "type": "QUEUE"
+                }
+              },
+              "destination_resolution": "DIRECT_TARGET_FALLBACK",
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "object": {
+                "id": "queue:owned:31f221ffb45fed4f03b03f357ec3f58163a1118459ed9f101a9d3a147d468de2",
+                "method": null,
+                "name": "unused-q",
+                "namespace": "commerce",
+                "path": null,
+                "protocol": null,
+                "type": "QUEUE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "resolution_evidence_refs": [],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            },
+            {
+              "claim_id": "aip:claim:v1:8c43c7b5ba7783da9b188afd0e28a72d0570d3a48a9772c5911ce8469e89bbd0",
+              "coverage": null,
+              "delivery": {
+                "kind": "SYNC_HTTP",
+                "relation_type": "CALLS",
+                "subscription": null,
+                "via": {
+                  "id": "operation:service:legacypricingservice:GET:/pricing/{sku}",
+                  "method": null,
+                  "name": "GET /pricing/{sku}",
+                  "namespace": null,
+                  "path": null,
+                  "protocol": null,
+                  "type": "OPERATION"
+                }
+              },
+              "destination_resolution": "RESOLVED_SERVICE",
+              "evidence_refs": [
+                "evidence:otel:demo:2026-08-26:bfae54276215"
+              ],
+              "object": {
+                "id": "service:legacypricingservice",
+                "method": null,
+                "name": "LegacyPricingService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "OBSERVED_ONLY",
+              "resolution_evidence_refs": [
+                "evidence:otel:demo:2026-08-26:29d4976aeaf9"
+              ],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            },
+            {
+              "claim_id": "aip:claim:v1:55a825535bd830bd6b688097c770fd6d0dd55b1045c86fb6229a59e855ccb5d4",
+              "coverage": "PARTIAL",
+              "delivery": {
+                "kind": "ASYNC_MESSAGE",
+                "relation_type": "SENDS",
+                "subscription": null,
+                "via": {
+                  "id": "queue:owned:f4ab89257c232ec7ec1c2633f37e256ed4971181d896bd0a002d3586d3ae29db",
+                  "method": null,
+                  "name": "payment-q",
+                  "namespace": "commerce",
+                  "path": null,
+                  "protocol": null,
+                  "type": "QUEUE"
+                }
+              },
+              "destination_resolution": "RESOLVED_SERVICE",
+              "evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+              ],
+              "object": {
+                "id": "service:payment-service",
+                "method": null,
+                "name": "PaymentService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "NOT_OBSERVED_IN_WINDOW",
+              "resolution_evidence_refs": [
+                "evidence:asyncapi:urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299"
+              ],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            },
+            {
+              "claim_id": "aip:claim:v1:c41d3611d0e93513439ec4859dbd96e741750b689c6a77267e68b5705b977bc9",
+              "coverage": null,
+              "delivery": {
+                "kind": "SYNC_HTTP",
+                "relation_type": "CALLS",
+                "subscription": null,
+                "via": {
+                  "id": "operation:service:product-service:GET:/products/{id}",
+                  "method": "GET",
+                  "name": "GET /products/{id}",
+                  "namespace": null,
+                  "path": "/products/{id}",
+                  "protocol": null,
+                  "type": "OPERATION"
+                }
+              },
+              "destination_resolution": "RESOLVED_SERVICE",
+              "evidence_refs": [
+                "evidence:manifest:urn:aip:source:filesystem:480d4a9ba20cde9384d119b9a8189c1eaa5e60d1c70d563c7bfb83aec3811f8f",
+                "evidence:otel:demo:2026-08-26:b1d283d583bd"
+              ],
+              "object": {
+                "id": "service:product-service",
+                "method": null,
+                "name": "ProductService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              },
+              "predicate": "DIRECT_DEPENDENCY",
+              "qualification": "CONFIRMED",
+              "resolution_evidence_refs": [
+                "evidence:openapi:urn:aip:source:filesystem:6e78c4f7625f06e968b1b409ded73b234bfc40382dc4b4566fc58e04ba7b1562"
+              ],
+              "subject": {
+                "id": "service:order-service",
+                "method": null,
+                "name": "OrderService",
+                "namespace": null,
+                "path": null,
+                "protocol": null,
+                "type": "SERVICE"
+              }
+            }
+          ],
+          "snapshot": "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f"
+        }
+      },
+      "passed": true
+    },
+    "run-identity": {
+      "detail": {
+        "aip_build_revision": "8f63c2369084df9c57535f9112fe2dfa17154505",
+        "expected_build_revision": "8f63c2369084df9c57535f9112fe2dfa17154505",
+        "image_ref_id": "sha256:f3c5fdc3691cc10f1de3a190c83e4749c4aadd0c37bf7d0b5385c99de38f9b65",
+        "running_image_id": "sha256:f3c5fdc3691cc10f1de3a190c83e4749c4aadd0c37bf7d0b5385c99de38f9b65",
+        "user": "app"
+      },
+      "passed": true
+    },
+    "zero-writes": {
+      "detail": {
+        "after": 7,
+        "before": 7
+      },
+      "passed": true
+    }
+  },
+  "error": null,
+  "not_run": [],
+  "passed": true,
+  "phase": "demo"
+}
