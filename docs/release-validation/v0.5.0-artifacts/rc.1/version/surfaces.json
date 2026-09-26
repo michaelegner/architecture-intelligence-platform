@@ -1,0 +1,7 @@
+{
+  "pyproject": "0.5.0",
+  "uv_lock_root": "0.5.0",
+  "package_version": "0.5.0",
+  "mcp_server_version": "0.5.0",
+  "schema_version": "0.5"
+}

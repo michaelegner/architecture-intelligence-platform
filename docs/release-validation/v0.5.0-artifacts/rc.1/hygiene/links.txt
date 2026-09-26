@@ -1,0 +1,5 @@
+files 204 links 715 broken 4
+README.md ../../discussions missing
+docs/architecture-review-0.4.0.md ../app/ingestion/pipeline.py missing
+docs/real-world-validation/quarkus-super-heroes/evidence/messaging.md ../event-statistics missing
+docs/specifications/0.2.0/README.md ../v0.1.0/README.md missing

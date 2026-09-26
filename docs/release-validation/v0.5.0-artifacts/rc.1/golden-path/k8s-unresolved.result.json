@@ -1,0 +1,108 @@
+{
+  "checks": {
+    "deployment": {
+      "detail": {
+        "actual": {
+          "count": 2,
+          "distinct_resolution_ids": 2,
+          "rest_matches_mcp": true,
+          "statuses": [
+            "UNRESOLVED"
+          ]
+        },
+        "expected": {
+          "count": 2,
+          "distinct_resolution_ids": 2,
+          "rest_matches_mcp": true,
+          "statuses": [
+            "UNRESOLVED"
+          ]
+        }
+      },
+      "passed": true
+    },
+    "import": {
+      "detail": {
+        "actual": {
+          "committed": true,
+          "filesystem": [
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "kubernetes": [
+            "aip-i2-independent-capture",
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "report_version": "aip-import-report/1",
+          "run_kinds": [
+            "filesystem",
+            "kubernetes"
+          ]
+        },
+        "expected": {
+          "committed": true,
+          "filesystem": [
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "kubernetes": [
+            "aip-i2-independent-capture",
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "report_version": "aip-import-report/1",
+          "run_kinds": [
+            "filesystem",
+            "kubernetes"
+          ]
+        }
+      },
+      "passed": true
+    },
+    "producer-identity": {
+      "detail": {
+        "answers": 1,
+        "problems": []
+      },
+      "passed": true
+    },
+    "run-identity": {
+      "detail": {
+        "aip_build_revision": "8f63c2369084df9c57535f9112fe2dfa17154505",
+        "expected_build_revision": "8f63c2369084df9c57535f9112fe2dfa17154505",
+        "image_ref_id": "sha256:f21ef41202066f0b719971b9565f5bcd009ad136c298b16a66951229f26947f1",
+        "running_image_id": "sha256:f21ef41202066f0b719971b9565f5bcd009ad136c298b16a66951229f26947f1",
+        "user": "app"
+      },
+      "passed": true
+    },
+    "zero-writes": {
+      "detail": {
+        "after": 2,
+        "before": 2
+      },
+      "passed": true
+    }
+  },
+  "error": null,
+  "not_run": [],
+  "passed": true,
+  "phase": "k8s-unresolved"
+}
