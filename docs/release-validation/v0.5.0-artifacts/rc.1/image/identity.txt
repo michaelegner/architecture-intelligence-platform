@@ -1,0 +1,5 @@
+image_id=sha256:f21ef41202066f0b719971b9565f5bcd009ad136c298b16a66951229f26947f1
+base_python=docker.io/library/python:3.14-slim@sha256:51dafde81dbdb6ebde285137a295cf18a47ca95234fe388a343719cb97305b3d (from build.log, BuildKit resolve)
+base_uv=ghcr.io/astral-sh/uv:latest@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424 (from build.log, BuildKit resolve)
+user=app
+env_build_revision=8f63c2369084df9c57535f9112fe2dfa17154505

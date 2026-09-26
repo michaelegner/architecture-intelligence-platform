@@ -1,0 +1,6 @@
+uv-sync-locked exit=0
+ruff-check exit=0
+ruff-format-check exit=0
+pip-audit exit=0
+pytest-unit exit=0
+pytest-integration exit=0

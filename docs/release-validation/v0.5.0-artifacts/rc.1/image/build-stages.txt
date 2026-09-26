@@ -1,0 +1,19 @@
+#1 [internal] load build definition from Dockerfile
+#2 [internal] load metadata for ghcr.io/astral-sh/uv:latest
+#3 [internal] load metadata for docker.io/library/python:3.14-slim
+#2 [internal] load metadata for ghcr.io/astral-sh/uv:latest
+#4 [internal] load .dockerignore
+#5 FROM ghcr.io/astral-sh/uv:latest@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424
+#5 resolve ghcr.io/astral-sh/uv:latest@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424 0.0s done
+#6 [stage-0  1/10] FROM docker.io/library/python:3.14-slim@sha256:51dafde81dbdb6ebde285137a295cf18a47ca95234fe388a343719cb97305b3d
+#6 resolve docker.io/library/python:3.14-slim@sha256:51dafde81dbdb6ebde285137a295cf18a47ca95234fe388a343719cb97305b3d 0.0s done
+#7 [internal] load build context
+#8 [stage-0  2/10] COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+#9 [stage-0  3/10] RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --create-home --shell /usr/sbin/nologin app
+#10 [stage-0  4/10] WORKDIR /app
+#11 [stage-0  5/10] COPY --chown=app:app pyproject.toml uv.lock ./
+#12 [stage-0  6/10] RUN uv sync --frozen --no-install-project --no-dev
+#13 [stage-0  7/10] COPY --chown=app:app app ./app
+#14 [stage-0  8/10] COPY --chown=app:app config.yaml ./
+#15 [stage-0  9/10] COPY --chown=app:app examples ./examples
+#16 [stage-0 10/10] RUN uv sync --frozen --no-dev

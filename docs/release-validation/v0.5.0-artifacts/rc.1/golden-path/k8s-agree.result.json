@@ -1,0 +1,163 @@
+{
+  "checks": {
+    "deployment": {
+      "detail": {
+        "actual": {
+          "dependency_claim_ids": [],
+          "deployment_claim": {
+            "evidence_ref_prefixes": [
+              "evidence:kubernetes:",
+              "evidence:mapping:",
+              "evidence:otel:"
+            ],
+            "resolution_method": "RESOLVED_EXPLICIT",
+            "supporting_methods": [
+              "RESOLVED_EXPLICIT",
+              "RESOLVED_CONFIGURED",
+              "RESOLVED_OBSERVED"
+            ]
+          },
+          "deployment_claim_count": 1,
+          "outcome": "ANSWERED",
+          "resolutions": [
+            {
+              "service_id": "service:runtime-demo",
+              "status": "RESOLVED_EXPLICIT",
+              "workload.name": "runtime-demo"
+            }
+          ],
+          "rest_matches_mcp": [
+            true,
+            true
+          ]
+        },
+        "expected": {
+          "dependency_claim_ids": [],
+          "deployment_claim": {
+            "evidence_ref_prefixes": [
+              "evidence:kubernetes:",
+              "evidence:mapping:",
+              "evidence:otel:"
+            ],
+            "resolution_method": "RESOLVED_EXPLICIT",
+            "supporting_methods": [
+              "RESOLVED_EXPLICIT",
+              "RESOLVED_CONFIGURED",
+              "RESOLVED_OBSERVED"
+            ]
+          },
+          "deployment_claim_count": 1,
+          "outcome": "ANSWERED",
+          "resolutions": [
+            {
+              "service_id": "service:runtime-demo",
+              "status": "RESOLVED_EXPLICIT",
+              "workload.name": "runtime-demo"
+            }
+          ],
+          "rest_matches_mcp": [
+            true,
+            true
+          ]
+        }
+      },
+      "passed": true
+    },
+    "evidence": {
+      "detail": {
+        "actual": [
+          [],
+          true
+        ],
+        "expected": [
+          [],
+          true
+        ]
+      },
+      "passed": true
+    },
+    "import": {
+      "detail": {
+        "actual": {
+          "committed": true,
+          "filesystem": [
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "kubernetes": [
+            "aip-i2-independent-capture",
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "report_version": "aip-import-report/1",
+          "run_kinds": [
+            "filesystem",
+            "kubernetes"
+          ]
+        },
+        "expected": {
+          "committed": true,
+          "filesystem": [
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "kubernetes": [
+            "aip-i2-independent-capture",
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "report_version": "aip-import-report/1",
+          "run_kinds": [
+            "filesystem",
+            "kubernetes"
+          ]
+        }
+      },
+      "passed": true
+    },
+    "producer-identity": {
+      "detail": {
+        "answers": 3,
+        "problems": []
+      },
+      "passed": true
+    },
+    "run-identity": {
+      "detail": {
+        "aip_build_revision": "8f63c2369084df9c57535f9112fe2dfa17154505",
+        "expected_build_revision": "8f63c2369084df9c57535f9112fe2dfa17154505",
+        "image_ref_id": "sha256:f21ef41202066f0b719971b9565f5bcd009ad136c298b16a66951229f26947f1",
+        "running_image_id": "sha256:f21ef41202066f0b719971b9565f5bcd009ad136c298b16a66951229f26947f1",
+        "user": "app"
+      },
+      "passed": true
+    },
+    "zero-writes": {
+      "detail": {
+        "after": 3,
+        "before": 3
+      },
+      "passed": true
+    }
+  },
+  "error": null,
+  "not_run": [],
+  "passed": true,
+  "phase": "k8s-agree"
+}

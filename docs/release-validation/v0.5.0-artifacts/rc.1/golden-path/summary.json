@@ -1,0 +1,33 @@
+{
+  "image_ref": "aip-v0.5.0-candidate:8f63c2369084df9c57535f9112fe2dfa17154505",
+  "package_version": "0.5.0",
+  "passed": true,
+  "phases": {
+    "demo": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "k8s-agree": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "k8s-conflict": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "k8s-unresolved": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "pubsub": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    }
+  },
+  "release_candidate_sha": "8f63c2369084df9c57535f9112fe2dfa17154505"
+}
