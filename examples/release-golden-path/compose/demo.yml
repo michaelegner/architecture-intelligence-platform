@@ -1,0 +1,8 @@
+# Golden-path phase `demo`: the AIP container's mounts, exactly as
+# profile/demo/phase.yaml lists them (read-only; tests/unit/test_release_golden_path_harness.py
+# asserts the two stay identical).
+services:
+  architecture-intelligence:
+    volumes:
+      - ./examples:/app/examples:ro
+      - ./config.demo.yaml:/app/config.demo.yaml:ro

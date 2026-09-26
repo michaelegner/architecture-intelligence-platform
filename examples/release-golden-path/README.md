@@ -90,3 +90,32 @@ base64. The pinned collector accepts that encoding and forwards protobuf to AIP'
 | I1-I5 completion records | all present in `docs/specifications/0.5.0/` |
 | I4 disposition | `GO` |
 | I5 state | `FINAL_CANDIDATE_QUALIFIED`, with no unresolved material supported mismatch (F1-F8 each dispositioned) |
+
+## How to run (I6 §7.4; added in Slice 1b)
+
+```bash
+RELEASE_CANDIDATE_SHA=<40-hex> examples/release-golden-path/run.sh <IMAGE_REF> <OUT_DIR>
+```
+
+- **`IMAGE_REF`** is either the local candidate image or `ghcr.io/...@sha256:<digest>`. It must
+  already be present locally.
+- **`RELEASE_CANDIDATE_SHA`** is the identity every answer's `producer.build_revision` and the
+  container's `AIP_BUILD_REVISION` must carry. It is never derived from the checkout.
+- **`OUT_DIR`** must be absent or empty.
+- **Host ports** 8000, 4318 and 17687 must be free. MCP requires 8000, because the default MCP host
+  allowlist is `localhost:8000`.
+
+What the harness does:
+- **Checkout.** It runs from the checkout that contains `run.sh`. For published-image verification
+  (I6 §20, §21), that checkout is the tagged-source clone.
+- **Each phase.** It brings up `compose/docker-compose.base.yml` plus `compose/<phase>.yml`, always
+  as `docker compose -p gp-<phase> --project-directory <repo> -f … -f … --env-file /dev/null`. It
+  then checks run identity: the running container's image id is `IMAGE_REF`'s id,
+  `AIP_BUILD_REVISION` equals `RELEASE_CANDIDATE_SHA`, and the user is `app`. After that it runs
+  the phase and tears the stack down with `down -v`.
+- **The `demo` seed.** `seed_frozen_evidence.py` runs on the host through the collector, rather
+  than in the unpinned traffic-generator image.
+- **Readiness.** The harness waits for health, and for the revision fence to advance and settle.
+  It never waits for the expected result to appear.
+- **Output.** Results go to `OUT_DIR/<phase>/` (every recorded answer and `result.json`) and to
+  `OUT_DIR/summary.json`. The exit code is 0 only when every check in every phase passes.
