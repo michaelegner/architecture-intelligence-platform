@@ -5,6 +5,12 @@ name: Docker
 # triggers together doubled every build/publish (observed firing twice for v0.1.0-alpha.1: once
 # per event), which risked a race on the `latest` tag and wasted CI minutes for no benefit, since
 # `gh release create <tag>` always creates the tag as part of publishing the release anyway.
+#
+# v0.5.0 I6 §8/§19: everything after the push is bound to the pushed *digest*, never to a mutable
+# tag. That covers the SARIF scan, the full HIGH/CRITICAL report (unfixed findings included), the
+# CycloneDX SBOM, the retained artifacts and the job summary. The release workflow runs from the
+# tagged commit, so these steps must be part of the release candidate itself.
+# tests/unit/test_docker_release_workflow.py pins each element.
 on:
   release:
     types: [published]
@@ -40,6 +46,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7.3.0
         with:
           context: .
@@ -50,14 +57,41 @@ jobs:
             ${{ steps.image.outputs.name }}:${{ github.ref_name }}
             ${{ steps.image.outputs.name }}:latest
 
+      # I6 §8: the immutable reference every later step uses, and the job-summary record of the
+      # digest, the run id and the attempt (I6 §17.1, §18).
+      - name: Record pushed digest
+        id: pushed
+        env:
+          IMAGE_NAME: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "unexpected digest: $DIGEST" >&2; exit 1; }
+          echo "ref=${IMAGE_NAME}@${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "slug=${REF_NAME}-${DIGEST/:/-}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Release image"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Image | \`${IMAGE_NAME}@${DIGEST}\` |"
+            echo "| Workflow run id | \`${RUN_ID}\` |"
+            echo "| Run attempt | \`${RUN_ATTEMPT}\` |"
+            echo "| Scanned digest (SARIF, full report, SBOM) | \`${DIGEST}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # spec §31: container image vulnerability scanning (Trivy). Non-blocking (exit-code 0) -
       # base-image CVEs the maintainer doesn't control shouldn't hard-fail a release build; findings
       # are reviewed via the Security tab instead, mirroring the "reviewed, not necessarily zero"
-      # framing of spec §29/§50's "no *unreviewed* critical finding".
-      - name: Scan image with Trivy
+      # framing of spec §29/§50's "no *unreviewed* critical finding". I6 §19: the release-blocking
+      # decision is the human disposition of the full report below, not this exit code.
+      - name: Scan image with Trivy (SARIF)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ steps.image.outputs.name }}:${{ github.ref_name }}
+          version: v0.70.0
+          image-ref: ${{ steps.pushed.outputs.ref }}
           scan-type: image
           format: sarif
           output: trivy-results.sarif
@@ -69,3 +103,38 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
+
+      # I6 §8: the full HIGH/CRITICAL report, unfixed findings included, for the §19 disposition.
+      - name: Full HIGH/CRITICAL report with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          version: v0.70.0
+          skip-setup-trivy: true
+          image-ref: ${{ steps.pushed.outputs.ref }}
+          scan-type: image
+          format: json
+          output: trivy-full-report.json
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          exit-code: "0"
+
+      # I6 §8: the final-image SBOM for the pushed digest.
+      - name: Generate SBOM with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          version: v0.70.0
+          skip-setup-trivy: true
+          image-ref: ${{ steps.pushed.outputs.ref }}
+          scan-type: image
+          format: cyclonedx
+          output: sbom.cdx.json
+
+      - name: Retain release security evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: release-security-${{ steps.pushed.outputs.slug }}
+          path: |
+            trivy-full-report.json
+            sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 90
