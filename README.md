@@ -490,14 +490,14 @@ public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 ## Project Status
 
 Latest release:
-[`v0.4.2`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.4.2)
-— **MCP Client Interoperability**.
+[`v0.5.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.5.0)
+— **Broader Architecture Discovery**.
 
 Pre-1.0: the REST/MCP surface, Graph Schema, Canonical Model, Adapter SPI and configuration format
 may still change on a minor version bump. Every release ships a published-artifact verification —
-[`docs/release-validation/v0.4.2-post-release-verification.md`](docs/release-validation/v0.4.2-post-release-verification.md)
+[`docs/release-validation/v0.5.0-post-release-verification.md`](docs/release-validation/v0.5.0-post-release-verification.md)
 is the most recent. See [`CHANGELOG.md`](CHANGELOG.md) for what shipped in each release and
-[`ROADMAP.md`](ROADMAP.md) for what's next — v0.5 (Broader Architecture Discovery).
+[`ROADMAP.md`](ROADMAP.md) for what's next — v0.6 (Locality-Aware Current State).
 
 ## License
 
