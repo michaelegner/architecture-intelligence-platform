@@ -1,4 +1,5 @@
-"""v0.4.2 I1 - spec §23: package/producer version metadata SHALL report `0.4.2` consistently.
+"""v0.4.2 I1 - spec §23, carried forward by v0.5.0 I6 §6: package/producer version metadata SHALL
+report the current release version (`0.5.0`) consistently.
 
 Every active call site - `pyproject.toml`, `uv.lock`'s root project version, the MCP server's
 advertised version, the production-wired `Producer`, and the architecture-answers evaluator's own
@@ -22,7 +23,7 @@ from app.version import package_version
 from evaluation.architecture_answers.runner import _build_producer
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_RELEASE_VERSION = "0.4.2"
+_RELEASE_VERSION = "0.5.0"
 
 
 def _uv_lock_root_project_version() -> str:

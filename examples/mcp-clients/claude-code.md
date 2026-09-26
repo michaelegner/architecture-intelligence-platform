@@ -1,10 +1,11 @@
 # Claude Code — Candidate Setup
 
 **Candidate setup.** Configuration syntax verified against current official documentation. Claude Code
-CLI `2.1.270` is qualified against `RELEASE_CANDIDATE_SHA = 50862a352626ea38d2fbb36f2ff0ecfc667266d0` —
+CLI `2.1.270` was qualified for `v0.4.2` against `RELEASE_CANDIDATE_SHA = 50862a352626ea38d2fbb36f2ff0ecfc667266d0` —
 see the [v0.4.2 client/platform qualification matrix](../../docs/release-validation/v0.4.2-client-qualification.md)
 for the exact qualified version and the [full trace](../../docs/release-validation/v0.4.2-client-traces/claude-code.md).
-A different Claude Code version or a different candidate is not covered by that claim.
+A different Claude Code version or a different candidate is not covered by that claim, and the
+qualification has not been repeated for `v0.5.0`.
 
 ## Verification record
 

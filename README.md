@@ -14,9 +14,10 @@ It reconciles declared API contracts with observed runtime behavior so an agent 
 - declared relationships not observed in the selected runtime window;
 - facts AIP cannot safely establish.
 
-Every answer is snapshot-bound and traceable to evidence. The agent-facing tools are read-only,
-qualified end to end against four real coding-agent clients — see the
-[compatibility matrix](docs/release-validation/v0.4.2-client-qualification.md).
+Every answer is snapshot-bound and traceable to evidence. The agent-facing tools are read-only.
+Four real coding-agent clients were qualified end to end against `v0.4.2` — see the
+[`v0.4.2` compatibility matrix](docs/release-validation/v0.4.2-client-qualification.md). That
+qualification has not been repeated for `v0.5.0`.
 
 **[Run the 5-Minute Demo](#see-it-in-five-minutes) · [MCP Tools](#mcp-tools) · [How It Works](#how-aip-works)**
 
@@ -151,8 +152,9 @@ AIP is now available at `http://localhost:8000/mcp`. Configure a coding-agent cl
 examples below — configuration syntax is verified against each client's current official docs.
 
 **Qualified client/platform combinations are listed in the
-[v0.4.2 compatibility matrix](docs/release-validation/v0.4.2-client-qualification.md). Other
-combinations are unverified unless listed.**
+[v0.4.2 compatibility matrix](docs/release-validation/v0.4.2-client-qualification.md). They were
+qualified against `v0.4.2` and have not been re-qualified for `v0.5.0`. Other combinations are
+unverified unless listed.**
 
 ### Codex CLI
 
@@ -199,7 +201,7 @@ Here's Codex CLI doing exactly that, live:
 ![Codex CLI autonomously calling AIP's get_architecture_drift and get_evidence tools, finding LegacyPricingService as an undocumented OBSERVED_ONLY dependency and resolving its OpenTelemetry evidence — no manual per-call direction.](video/agent-demo/output/aip-agent-demo.webp)
 
 These instructions target **locally running** clients — a hosted/cloud agent usually can't reach
-your `localhost`. `/mcp` has no public-internet authentication in `v0.4.2`; keep it local or on a
+your `localhost`. `/mcp` has no public-internet authentication; keep it local or on a
 trusted network. AIP itself needs no LLM API key for this path; your client may still need its own.
 
 [Detailed per-client setup, verification sources, and cleanup instructions →](examples/mcp-clients/README.md)

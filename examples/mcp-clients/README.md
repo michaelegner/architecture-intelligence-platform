@@ -15,7 +15,8 @@ verification date recorded in each guide, and consolidated in
 AIP workflow end to end against a real release candidate is a separate, later claim. See the
 [v0.4.2 client/platform qualification matrix](../../docs/release-validation/v0.4.2-client-qualification.md)
 for which client/version combinations have actually been qualified — nothing in this directory alone
-is a "supported" claim.
+is a "supported" claim. Those combinations were qualified against `v0.4.2` and have not been
+re-qualified for `v0.5.0`.
 
 ## 1. Prepare the deterministic demo
 
@@ -78,11 +79,11 @@ reproducible underneath whatever the agent says about it.
 
 ## 6. Local/trusted-network only
 
-- `/mcp` has no public-internet authentication in `v0.4.2` — never expose it directly to an
+- `/mcp` has no public-internet authentication — never expose it directly to an
   untrusted network.
 - A client running on your own machine can normally reach `http://localhost:8000/mcp`. A
   hosted/cloud agent usually **cannot** reach your `localhost` without an explicit networking
-  mechanism, which is outside `v0.4.2`'s scope — none of these guides introduce tunneling or a
+  mechanism, which is outside AIP's scope — none of these guides introduce tunneling or a
   public endpoint as a workaround.
 - AIP itself needs no LLM API key for its deterministic MCP correctness path. Your coding-agent
   client may still need its own normal account/model access.

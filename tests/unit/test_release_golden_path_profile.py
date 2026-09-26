@@ -163,6 +163,18 @@ def test_bundled_examples_discovery_is_unchanged_by_the_profile():
     assert not [locator for locator in locators if "release-golden-path" in locator]
 
 
+def test_repinned_documentation_files_are_invisible_to_the_demo_import():
+    """v0.5.0 I6 Slice 1b-iii re-pinned exactly the `examples/mcp-clients/*.md` digests after a
+    documentation-only change: the v0.4.2 client matrix is marked as not re-qualified for v0.5.0.
+    The `demo` phase mounts all of `examples/`, but the discoverer only enumerates candidate
+    filenames. So these files can never change the demo import or `expected.json`."""
+    repinned = [path for path in _sums() if path.startswith("examples/mcp-clients/")]
+    assert repinned
+    for path in repinned:
+        assert path.endswith(".md"), path
+        assert Path(path).name not in CANDIDATE_FILENAMES, path
+
+
 # --- §7.2 transcription equivalence -------------------------------------------------------------
 
 
