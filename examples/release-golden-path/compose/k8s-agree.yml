@@ -1,0 +1,10 @@
+# Golden-path phase `k8s-agree`: the AIP container's mounts, exactly as
+# profile/k8s-agree/phase.yaml lists them (read-only; tests/unit/test_release_golden_path_harness.py
+# asserts the two stay identical).
+services:
+  architecture-intelligence:
+    volumes:
+      - ./examples/release-golden-path/profile/k8s-agree/config.yaml:/app/golden-path/config.yaml:ro
+      - ./examples/release-golden-path/profile/k8s-agree/declarations:/app/golden-path/declarations:ro
+      - ./tests/fixtures/kubernetes/i2-independent-capture:/app/golden-path/i2-capture:ro
+      - ./tests/fixtures/deployment/i3-cross-source/service-workload-mapping-agree.yaml:/app/golden-path/mapping.yaml:ro

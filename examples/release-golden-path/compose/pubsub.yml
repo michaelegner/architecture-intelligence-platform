@@ -1,0 +1,8 @@
+# Golden-path phase `pubsub`: the AIP container's mounts, exactly as
+# profile/pubsub/phase.yaml lists them (read-only; tests/unit/test_release_golden_path_harness.py
+# asserts the two stay identical).
+services:
+  architecture-intelligence:
+    volumes:
+      - ./examples/release-golden-path/profile/pubsub/config.yaml:/app/golden-path/config.yaml:ro
+      - ./tests/fixtures/pubsub/google-pubsub/declarations:/app/golden-path/declarations:ro
