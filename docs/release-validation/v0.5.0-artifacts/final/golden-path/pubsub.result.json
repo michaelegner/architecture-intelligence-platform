@@ -1,0 +1,319 @@
+{
+  "checks": {
+    "answers": {
+      "detail": {
+        "actual": {
+          "analytics": {
+            "claims": [],
+            "drift_is_subset": true,
+            "limitations": [],
+            "missing_evidence_refs": null
+          },
+          "checkout": {
+            "claims": [
+              [
+                "Service:analytics",
+                "Topic:orders",
+                "analytics",
+                "RESOLVED_SERVICE",
+                "NOT_OBSERVED_IN_WINDOW"
+              ],
+              [
+                "Service:fulfillment",
+                "Topic:orders",
+                "fulfillment",
+                "RESOLVED_SERVICE",
+                "NOT_OBSERVED_IN_WINDOW"
+              ]
+            ],
+            "drift_is_subset": true,
+            "limitations": [],
+            "missing_evidence_refs": []
+          },
+          "fulfillment": {
+            "claims": [],
+            "drift_is_subset": true,
+            "limitations": [],
+            "missing_evidence_refs": null
+          }
+        },
+        "expected": {
+          "analytics": {
+            "claims": [],
+            "drift_is_subset": true,
+            "limitations": [],
+            "missing_evidence_refs": null
+          },
+          "checkout": {
+            "claims": [
+              [
+                "Service:analytics",
+                "Topic:orders",
+                "analytics",
+                "RESOLVED_SERVICE",
+                "NOT_OBSERVED_IN_WINDOW"
+              ],
+              [
+                "Service:fulfillment",
+                "Topic:orders",
+                "fulfillment",
+                "RESOLVED_SERVICE",
+                "NOT_OBSERVED_IN_WINDOW"
+              ]
+            ],
+            "drift_is_subset": true,
+            "limitations": [],
+            "missing_evidence_refs": []
+          },
+          "fulfillment": {
+            "claims": [],
+            "drift_is_subset": true,
+            "limitations": [],
+            "missing_evidence_refs": null
+          }
+        }
+      },
+      "passed": true
+    },
+    "cross-surface": {
+      "detail": {
+        "actual": {
+          "dependencies": true,
+          "drift": true,
+          "evidence": true
+        },
+        "expected": {
+          "dependencies": true,
+          "drift": true,
+          "evidence": true
+        }
+      },
+      "passed": true
+    },
+    "graph-facts": {
+      "detail": {
+        "actual": {
+          "dead_letter_carriers": [
+            [
+              "fulfillment",
+              "orders-dead-letter",
+              "topic"
+            ]
+          ],
+          "entities": {
+            "Queue": [],
+            "Subscription": [
+              "analytics",
+              "fulfillment"
+            ],
+            "Topic": [
+              "orders"
+            ]
+          },
+          "facts": [
+            [
+              "CARRIES",
+              "Topic:orders",
+              "Message:OrderCreated"
+            ],
+            [
+              "CARRIES",
+              "Topic:orders",
+              "Message:OrderCreated"
+            ],
+            [
+              "CARRIES",
+              "Topic:orders",
+              "Message:OrderCreated"
+            ],
+            [
+              "PUBLISHES_TO",
+              "Service:checkout",
+              "Topic:orders"
+            ],
+            [
+              "RECEIVES_FROM",
+              "Service:analytics",
+              "Subscription:analytics"
+            ],
+            [
+              "RECEIVES_FROM",
+              "Service:fulfillment",
+              "Subscription:fulfillment"
+            ],
+            [
+              "SUBSCRIPTION_OF",
+              "Subscription:analytics",
+              "Topic:orders"
+            ],
+            [
+              "SUBSCRIPTION_OF",
+              "Subscription:fulfillment",
+              "Topic:orders"
+            ]
+          ],
+          "observed": [
+            [
+              "RECEIVES_FROM",
+              "Service:fulfillment",
+              "Subscription:fulfillment"
+            ]
+          ]
+        },
+        "expected": {
+          "dead_letter_carriers": [
+            [
+              "fulfillment",
+              "orders-dead-letter",
+              "topic"
+            ]
+          ],
+          "entities": {
+            "Queue": [],
+            "Subscription": [
+              "analytics",
+              "fulfillment"
+            ],
+            "Topic": [
+              "orders"
+            ]
+          },
+          "facts": [
+            [
+              "CARRIES",
+              "Topic:orders",
+              "Message:OrderCreated"
+            ],
+            [
+              "CARRIES",
+              "Topic:orders",
+              "Message:OrderCreated"
+            ],
+            [
+              "CARRIES",
+              "Topic:orders",
+              "Message:OrderCreated"
+            ],
+            [
+              "PUBLISHES_TO",
+              "Service:checkout",
+              "Topic:orders"
+            ],
+            [
+              "RECEIVES_FROM",
+              "Service:analytics",
+              "Subscription:analytics"
+            ],
+            [
+              "RECEIVES_FROM",
+              "Service:fulfillment",
+              "Subscription:fulfillment"
+            ],
+            [
+              "SUBSCRIPTION_OF",
+              "Subscription:analytics",
+              "Topic:orders"
+            ],
+            [
+              "SUBSCRIPTION_OF",
+              "Subscription:fulfillment",
+              "Topic:orders"
+            ]
+          ],
+          "observed": [
+            [
+              "RECEIVES_FROM",
+              "Service:fulfillment",
+              "Subscription:fulfillment"
+            ]
+          ]
+        }
+      },
+      "passed": true
+    },
+    "import": {
+      "detail": {
+        "actual": {
+          "committed": true,
+          "inventory_status": "COMPLETE",
+          "sources": {
+            "analytics": {
+              "diagnostics": [],
+              "result": "ACCEPTED"
+            },
+            "checkout": {
+              "diagnostics": [],
+              "result": "ACCEPTED"
+            },
+            "fulfillment": {
+              "diagnostics": [],
+              "result": "ACCEPTED"
+            }
+          }
+        },
+        "expected": {
+          "committed": true,
+          "inventory_status": "COMPLETE",
+          "sources": {
+            "analytics": {
+              "diagnostics": [],
+              "result": "ACCEPTED"
+            },
+            "checkout": {
+              "diagnostics": [],
+              "result": "ACCEPTED"
+            },
+            "fulfillment": {
+              "diagnostics": [],
+              "result": "ACCEPTED"
+            }
+          }
+        }
+      },
+      "passed": true
+    },
+    "mcp-tools": {
+      "detail": {
+        "actual": [
+          "get_architecture_drift",
+          "get_evidence",
+          "get_service_dependencies"
+        ],
+        "expected": [
+          "get_architecture_drift",
+          "get_evidence",
+          "get_service_dependencies"
+        ]
+      },
+      "passed": true
+    },
+    "producer-identity": {
+      "detail": {
+        "answers": 10,
+        "problems": []
+      },
+      "passed": true
+    },
+    "run-identity": {
+      "detail": {
+        "aip_build_revision": "8f63c2369084df9c57535f9112fe2dfa17154505",
+        "expected_build_revision": "8f63c2369084df9c57535f9112fe2dfa17154505",
+        "image_ref_id": "sha256:f3c5fdc3691cc10f1de3a190c83e4749c4aadd0c37bf7d0b5385c99de38f9b65",
+        "running_image_id": "sha256:f3c5fdc3691cc10f1de3a190c83e4749c4aadd0c37bf7d0b5385c99de38f9b65",
+        "user": "app"
+      },
+      "passed": true
+    },
+    "zero-writes": {
+      "detail": {
+        "after": 4,
+        "before": 4
+      },
+      "passed": true
+    }
+  },
+  "error": null,
+  "not_run": [],
+  "passed": true,
+  "phase": "pubsub"
+}

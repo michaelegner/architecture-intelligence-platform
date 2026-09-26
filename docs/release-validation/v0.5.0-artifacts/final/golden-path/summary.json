@@ -1,0 +1,33 @@
+{
+  "image_ref": "ghcr.io/michaelegner/architecture-intelligence-platform@sha256:f3c5fdc3691cc10f1de3a190c83e4749c4aadd0c37bf7d0b5385c99de38f9b65",
+  "package_version": "0.5.0",
+  "passed": true,
+  "phases": {
+    "demo": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "k8s-agree": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "k8s-conflict": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "k8s-unresolved": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "pubsub": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    }
+  },
+  "release_candidate_sha": "8f63c2369084df9c57535f9112fe2dfa17154505"
+}

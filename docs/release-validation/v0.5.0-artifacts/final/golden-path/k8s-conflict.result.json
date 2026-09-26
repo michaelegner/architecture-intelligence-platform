@@ -1,0 +1,156 @@
+{
+  "checks": {
+    "deployment": {
+      "detail": {
+        "actual": {
+          "service:runtime-demo": {
+            "deployment_claim_ids": [],
+            "deployment_claims": [],
+            "outcome": "ANSWERED",
+            "resolutions": [
+              {
+                "candidate_service_ids": [
+                  "service:runtime-demo",
+                  "service:runtime-demo-alt"
+                ],
+                "status": "CONFLICT"
+              }
+            ],
+            "rest_matches_mcp": true
+          },
+          "service:runtime-demo-alt": {
+            "deployment_claim_ids": [],
+            "deployment_claims": [],
+            "outcome": "ANSWERED",
+            "resolutions": [
+              {
+                "candidate_service_ids": [
+                  "service:runtime-demo",
+                  "service:runtime-demo-alt"
+                ],
+                "status": "CONFLICT"
+              }
+            ],
+            "rest_matches_mcp": true
+          }
+        },
+        "expected": {
+          "service:runtime-demo": {
+            "deployment_claim_ids": [],
+            "deployment_claims": [],
+            "outcome": "ANSWERED",
+            "resolutions": [
+              {
+                "candidate_service_ids": [
+                  "service:runtime-demo",
+                  "service:runtime-demo-alt"
+                ],
+                "status": "CONFLICT"
+              }
+            ],
+            "rest_matches_mcp": true
+          },
+          "service:runtime-demo-alt": {
+            "deployment_claim_ids": [],
+            "deployment_claims": [],
+            "outcome": "ANSWERED",
+            "resolutions": [
+              {
+                "candidate_service_ids": [
+                  "service:runtime-demo",
+                  "service:runtime-demo-alt"
+                ],
+                "status": "CONFLICT"
+              }
+            ],
+            "rest_matches_mcp": true
+          }
+        }
+      },
+      "passed": true
+    },
+    "import": {
+      "detail": {
+        "actual": {
+          "committed": true,
+          "filesystem": [
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "kubernetes": [
+            "aip-i2-independent-capture",
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "report_version": "aip-import-report/1",
+          "run_kinds": [
+            "filesystem",
+            "kubernetes"
+          ]
+        },
+        "expected": {
+          "committed": true,
+          "filesystem": [
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "kubernetes": [
+            "aip-i2-independent-capture",
+            "COMPLETE",
+            true,
+            [
+              "ACCEPTED"
+            ],
+            []
+          ],
+          "report_version": "aip-import-report/1",
+          "run_kinds": [
+            "filesystem",
+            "kubernetes"
+          ]
+        }
+      },
+      "passed": true
+    },
+    "producer-identity": {
+      "detail": {
+        "answers": 2,
+        "problems": []
+      },
+      "passed": true
+    },
+    "run-identity": {
+      "detail": {
+        "aip_build_revision": "8f63c2369084df9c57535f9112fe2dfa17154505",
+        "expected_build_revision": "8f63c2369084df9c57535f9112fe2dfa17154505",
+        "image_ref_id": "sha256:f3c5fdc3691cc10f1de3a190c83e4749c4aadd0c37bf7d0b5385c99de38f9b65",
+        "running_image_id": "sha256:f3c5fdc3691cc10f1de3a190c83e4749c4aadd0c37bf7d0b5385c99de38f9b65",
+        "user": "app"
+      },
+      "passed": true
+    },
+    "zero-writes": {
+      "detail": {
+        "after": 3,
+        "before": 3
+      },
+      "passed": true
+    }
+  },
+  "error": null,
+  "not_run": [],
+  "passed": true,
+  "phase": "k8s-conflict"
+}

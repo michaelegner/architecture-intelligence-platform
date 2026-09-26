@@ -1,0 +1,15 @@
+HEAD=8f63c2369084df9c57535f9112fe2dfa17154505
+HEAD == RELEASE_CANDIDATE_SHA: yes
+working tree clean: yes
+version = "0.5.0"
+uv sync --locked: ok
+schemas/architecture_intelligence/v0.5 files: architecture-answer.schema.json drift-answer.schema.json evidence-answer.schema.json 
+schemas/import/v0.5 files: import-report.schema.json service-import-report.schema.json 
+golden-path SHA256SUMS: all 51 OK
+TOOL_NAMES: ['get_architecture_drift', 'get_evidence', 'get_service_dependencies'] 3
+tree schemas/architecture_intelligence/v0.5=02db433c773ebd17df17b016b647218025d65ad0
+tree schemas/import/v0.5=953b15e590ffbb1caa5bda89539e5f164f618466
+committed report at tag candidate_sha: a906a5895f803287aec973e9e3678655fd8c0f8a
+evaluation exit=0
+tagged evaluation: 8f63c2369084df9c57535f9112fe2dfa17154505 PASS {'failed': 0, 'passed': 23, 'scenarios': 23}
+clean after: yes
