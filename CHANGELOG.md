@@ -9,6 +9,43 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+### v0.5.0 — Broader Architecture Discovery
+
+Broadens what AIP can safely know about a distributed system's Current State. Kubernetes is added
+as the single new discovery source family, and declared Services are associated with Kubernetes
+Workloads only through explicit, evidence-backed identity paths. Topics and Subscriptions are
+distinguished from Queues, independently of the broker. Every supported answer stays deterministic,
+evidence-backed and read-only, and unresolved, conflicting and unsupported cases stay explicit. See
+the [release notes](docs/release-validation/v0.5.0-release-notes.md).
+
+- A source-ingestion foundation built on one adapter/discoverer seam, with exact dialect
+  enforcement: OpenAPI `3.0.3`/`3.1.0`/`3.1.2` and AsyncAPI `2.6.0`. It adds bounded local `$ref`s,
+  owner-scoped identities, and authoritative-inventory and tombstone rules, so that a missing source
+  is never mistaken for a removal. `POST /api/import` adds a versioned import report,
+  `aip-import-report/1` (see [`docs/ingestion.md`](docs/ingestion.md)).
+- Offline Kubernetes discovery (`OFFLINE_ONLY`) of Deployments, StatefulSets, DaemonSets, Pods,
+  Kubernetes Services and Ingress routing, from frozen resource bundles. It has no live client and
+  performs no cluster writes.
+- Deployment identity (`DEPLOYED_AS`) through an explicit Workload annotation, a configured mapping,
+  or qualified OpenTelemetry Pod-UID and owner-chain evidence. Disagreement stays a `CONFLICT`, and
+  name similarity never resolves an identity. The results are served through
+  `get_service_dependencies` and `GET /api/services/{id}/deployments`.
+- Source-independent Pub/Sub semantics: Topic and Subscription are distinct from Queue (see
+  [ADR 0017](docs/adr/0017-source-independent-pubsub-semantics.md)). Runtime evidence qualifies but
+  never creates them.
+- REST and standard negotiated MCP are now the two public adapters over one
+  `ArchitectureIntelligenceService`. The v0.4.x direct MCP envelope is retired
+  ([ADR 0016](docs/adr/0016-public-architecture-knowledge-adapters.md)); this is an intentional
+  pre-1.0 breaking change. There are still exactly three read-only MCP tools. The answers carry
+  `schema_version = "0.5"`. REST evidence reads now require `snapshot_id`.
+- Qualification on two real systems, Quarkus Super Heroes and Apache Airflow 3.3.1, against
+  independently frozen ground truth, with zero incorrect supported facts. It led to two general
+  fixes: canonical-validation failures became per-source results, and the import report became
+  complete.
+
+See [`docs/specifications/0.5.0/`](docs/specifications/0.5.0/) for the full design history and
+completion records.
+
 ## [0.4.2] - 2026-09-14
 
 ### v0.4.2 — MCP Client Interoperability

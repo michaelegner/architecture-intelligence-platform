@@ -183,12 +183,12 @@ Client-specific setup steps for particular coding-agent tools are out of scope f
 Claude Code, Cursor, VS Code). Setup syntax is verified separately from interoperability
 qualification; see the
 [v0.4.2 client/platform qualification matrix](release-validation/v0.4.2-client-qualification.md) for
-which specific client/version combinations have actually been qualified end to end (a `v0.5.0`
-matrix update, reflecting the retired direct envelope, is deferred to I3's own completion record).
+which specific client/version combinations have actually been qualified end to end. Those
+combinations were qualified against `v0.4.2` and have not been re-qualified for `v0.5.0`.
 
 ## Local security boundary
 
-`/mcp` is built for a local or trusted-network posture, in `v0.4.2` as in every prior release: it
+`/mcp` is built for a local or trusted-network posture, as in every release so far: it
 has no public-internet authentication, so do not expose it directly to an untrusted network. A
 request whose `Origin` or `Host` header falls outside the configured `allowed_origins`/`allowed_hosts`
 allowlists (`app/settings.py`, both passed to the SDK's `TransportSecuritySettings`) is rejected with
