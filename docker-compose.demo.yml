@@ -53,6 +53,11 @@ services:
       interval: 1s
       timeout: 5s
       retries: 20
+      # A cold Neo4j start can exceed the ~20s retry budget on slower hosts (seen on WSL2). Failures
+      # during start_period don't count, and the first success still marks it healthy at once;
+      # start_interval keeps probing every 1s during that period (Docker's default there is 5s).
+      start_period: 60s
+      start_interval: 1s
 
   otel-collector:
     image: otel/opentelemetry-collector:0.159.0@sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2

@@ -72,7 +72,7 @@ def test_airflow_scope_excludes_unselected_provider_operations():
     assert not doc.scope.contains(extra_unselected_provides)
 
     expected_facts = [relation.fact for relation in doc.expected_relations]
-    findings = compare(doc, expected_facts + [extra_unselected_provides])
+    findings = compare(doc, [*expected_facts, extra_unselected_provides])
 
     assert all(finding.actual != extra_unselected_provides for finding in findings)
     assert {f.classification for f in findings} == {

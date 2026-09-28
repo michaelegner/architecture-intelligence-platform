@@ -51,6 +51,10 @@ including this file.** If anything below conflicts with a specification, the spe
   shrinking its `include`. A suppression must be rule-scoped (`# pyright: ignore[<rule>]`) with a
   comment naming the tool or stub limitation it works around. A type error that exposes a reachable
   `None`/union path is a correctness finding: fix it, don't suppress it.
+- Never merge a pull request, force-push, or push directly to `main`; the owner merges. This rule is
+  procedural. For Claude Code, `.claude/settings.json` adds best-effort deny rules for the common
+  command forms (they override any local allow rule), but they match command text only and are not
+  a security boundary.
 
 ## Minimum implementation-plan content
 

@@ -34,22 +34,32 @@ line-length = 100
 # embedded in historical spec documents (e.g. Protocol stub bodies) for no benefit.
 extend-exclude = ["*.md"]
 
+[tool.ruff.lint]
+# On top of ruff's defaults: bugbear, naive datetimes, blind excepts, import order, pyupgrade,
+# bandit security checks and ruff's own rules (including stale `# noqa` detection).
+extend-select = ["B", "DTZ", "BLE", "I", "UP", "S", "RUF"]
+ignore = [
+    "S101",   # asserts are this repo's narrowing/invariant idiom (the image never runs with -O)
+    "S603",   # subprocess with list args (never shell=True) is the intended pattern
+    "S607",   # dev tools such as `git` are resolved from PATH on purpose
+    "RUF036", # `str | None | NotSupplied` deliberately keeps the sentinel last
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Bandit checks target shipped code; tests, examples, benchmarks and demo tooling use fixed test
+# credentials, /tmp paths and localhost URLs by design.
+"!app/**" = ["S"]
+
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body"]
 
 [tool.pyright]
-# Enforced in CI (`quality` job). Coverage widens one package at a time: add a package here only
-# once it is clean, never by loosening the mode or suppressing broadly (see AGENTS.md).
-include = [
-    "app/api",
-    "app/canonical",
-    "app/architecture_intelligence",
-    "app/graph",
-    "app/ingestion",
-    "app/sources",
-    "app/telemetry",
-]
+# Enforced in CI (`quality` job) over all of `app/`; `tests/` is not type-checked yet. Never loosen
+# the mode, shrink `include` or suppress broadly (see AGENTS.md).
+include = ["app"]
 typeCheckingMode = "standard"
+# Only rule-scoped `# pyright: ignore[<rule>]` comments suppress errors; `# type: ignore` doesn't.
+enableTypeIgnoreComments = false
 pythonVersion = "3.13"
 venvPath = "."
 venv = ".venv"

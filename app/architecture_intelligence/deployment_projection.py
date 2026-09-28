@@ -391,7 +391,9 @@ def resolve_path_b(
 
     for workload_id in sorted(by_workload_id):
         group_records = by_workload_id[workload_id]
-        workload_ref = _workload_ref(group_records[0].workload)  # type: ignore[arg-type]
+        first_workload = group_records[0].workload
+        assert first_workload is not None  # only records with a workload are grouped above
+        workload_ref = _workload_ref(first_workload)
         group_key = compute_deployment_group_key(workload_id=workload_id)
         resolution_id = compute_deployment_resolution_id(
             snapshot_id=snapshot_id, context_id=context_id, group_key=group_key
@@ -585,9 +587,12 @@ def _parse_rfc3339(value: str | None) -> datetime | None:
     if value is None:
         return None
     try:
-        return datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed
 
 
 def _resolve_declared_service_id(

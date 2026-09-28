@@ -278,7 +278,10 @@ def _reduce_group(
             key=lambda method: list(_DEPLOYMENT_METHOD_TO_STATUS).index(method.value),
         )
         evidence = sorted({ref for m in successful for ref in m.supporting_evidence_refs})
-        existing_claim = claims_by_claim_id[successful[0].claim_id]  # type: ignore[index]
+        successful_claim_id = successful[0].claim_id
+        # DeploymentResolution's validator requires a claim_id for every RESOLVED_* status.
+        assert successful_claim_id is not None
+        existing_claim = claims_by_claim_id[successful_claim_id]
         assert first.workload is not None  # a workload:-keyed group always has a real workload
         claim_id = compute_deployment_claim_id(service_id=service_id, workload_id=first.workload.id)
         merged_claim = DeploymentClaim(
