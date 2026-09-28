@@ -28,6 +28,13 @@ including this file.** If anything below conflicts with a specification, the spe
   touching — not just the increment spec in isolation.
 - Identify the exact governing specification revision (e.g. "Draft 0.3, amended during PR3b") before
   writing a plan against it.
+- Fetch and merge `origin/main` before starting implementation, not only before pushing: governing
+  specifications are revised on `main` while an increment is in progress. Re-check the revision you
+  planned against before opening the PR. (In v0.5 I1 a formula was implemented after the spec had
+  already changed it.)
+- Write a commit or merge SHA into a record, PR body or comment only from git output captured in
+  the same step (`git rev-parse`, `gh pr view --json mergeCommit`), never from memory or
+  expectation. Qualification evidence depends on exact SHAs.
 - Inspect the current repository — existing code, tests, prior completion records — before
   proposing implementation details. Reuse existing functions/utilities/patterns; don't propose new
   ones where suitable ones already exist.
@@ -51,6 +58,13 @@ including this file.** If anything below conflicts with a specification, the spe
   shrinking its `include`. A suppression must be rule-scoped (`# pyright: ignore[<rule>]`) with a
   comment naming the tool or stub limitation it works around. A type error that exposes a reachable
   `None`/union path is a correctness finding: fix it, don't suppress it.
+- Before opening a pull request or pushing a commit meant to pass CI, run the full local gate in
+  this order: `uv run ruff format .`, `uv run ruff check .`, `uv run pyright`, then
+  `uv run pytest tests/unit` **and** `uv run pytest tests/integration`. Run both suites, not the
+  one that seems relevant: contract changes that stay unit-green have broken integration tests
+  here before. This applies to small changes too. The only exception is the documentation-only
+  exemption in the specification-driven-implementation skill, which never covers specifications,
+  completion records, release notes, schemas or fixtures.
 - Never merge a pull request, force-push, or push directly to `main`; the owner merges. This rule is
   procedural. For Claude Code, `.claude/settings.json` adds best-effort deny rules for the common
   command forms (they override any local allow rule), but they match command text only and are not

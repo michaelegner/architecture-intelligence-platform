@@ -14,10 +14,12 @@ unchanged from the originals.
 | [`h5-open-source-readiness.md`](h5-open-source-readiness.md) | H5: licensing, documentation, the runtime demo, CI/CD, community files, release process. |
 | [`12g-public-repository-activation.md`](12g-public-repository-activation.md) | 12G: activating the project on real GitHub infrastructure — repository creation, CI verification, security features, releases. |
 
-Every release since `v0.2` has its own versioned specification under `docs/specifications/<release>/`.
-The most recent, [`0.5.0/`](0.5.0/specification.md), is complete: increments I1-I6 each have a
-completion record, ending with [`0.5.0/i6-completion-record.md`](0.5.0/i6-completion-record.md)
-(`v0.5.0` `SHIPPED_VERIFIED`).
+Every release since `v0.2` has its own versioned specification under `docs/specifications/<release>/`:
+[`0.2.0/`](0.2.0/), [`0.3.0/`](0.3.0/), [`0.4.0/`](0.4.0/), [`0.4.1/`](0.4.1/), [`0.4.2/`](0.4.2/),
+[`0.5.0/`](0.5.0/), [`0.5.1/`](0.5.1/specification.md) and [`0.6.0/`](0.6.0/specification.md).
+Each directory's parent specification states its own status, and completed releases carry
+completion or release records. This index deliberately does not say which release is current or
+shipped: [`ROADMAP.md`](../../ROADMAP.md) is the single source for that.
 
 See [`docs/architecture.md`](../architecture.md#architecture-principles) and
 [`docs/adr/`](../adr/) for how these design decisions map onto the system as it exists today, and
