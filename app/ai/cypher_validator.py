@@ -39,15 +39,26 @@ FORBIDDEN_KEYWORDS = {
     "DBMS",
 }
 
+# String literals, comments and backtick-quoted names, lexed together leftmost-first: none of them
+# is code, and each can contain the others' delimiters (an apostrophe inside `it's`, a backtick
+# inside a string). A doubled backtick escapes a backtick inside a quoted name. Neo4j ends a `//`
+# comment at a carriage return as well as a newline (checked on Neo4j 5.26), so this must too, or
+# a clause after `\r` would be hidden from these checks but still run.
 _STRING_OR_COMMENT_RE = re.compile(
-    r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"|//[^\n]*|/\*.*?\*/", re.DOTALL
+    r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"|`(?:``|[^`])*`|//[^\r\n]*|/\*.*?\*/",
+    re.DOTALL,
 )
 _TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _NODE_LABEL_RE = re.compile(r"\(\s*\w*\s*:\s*([A-Za-z_][A-Za-z0-9_:]*)")
 _REL_TYPE_RE = re.compile(r"\[\s*\w*\s*:\s*([A-Za-z_][A-Za-z0-9_|]*)")
 _VAR_LENGTH_RE = re.compile(r"\[[^\]]*\]")
 _STAR_DEPTH_RE = re.compile(r"\*\s*(\d+)?\s*(\.\.)?\s*(\d+)?")
-_LIMIT_RE = re.compile(r"\bLIMIT\s+(\d+)\b", re.IGNORECASE)
+_LIMIT_KEYWORD_RE = re.compile(r"\bLIMIT\b", re.IGNORECASE)
+_RETURN_KEYWORD_RE = re.compile(r"\bRETURN\b", re.IGNORECASE)
+# A LIMIT's argument must be one integer literal: digits ending at a word boundary, followed only
+# by the end of the query, a closing bracket, or the next clause - never an operator, a parameter
+# or a function call, whose value the validator can't bound.
+_LIMIT_LITERAL_RE = re.compile(r"\s+(\d+)\b(?=\s*(?:$|[A-Za-z_)\]}]))")
 
 
 class CypherValidationError(ValueError):
@@ -55,7 +66,9 @@ class CypherValidationError(ValueError):
 
 
 def _strip_strings_and_comments(cypher: str) -> str:
-    return _STRING_OR_COMMENT_RE.sub(" ", cypher)
+    """Blanks out string literals, comments and backtick-quoted names with same-length whitespace,
+    so every position in the stripped code still maps to the same position in the original query."""
+    return _STRING_OR_COMMENT_RE.sub(lambda match: " " * len(match.group(0)), cypher)
 
 
 def _check_forbidden_keywords(code_only: str) -> None:
@@ -107,14 +120,65 @@ def _reject_multiple_statements(code_only: str) -> None:
         raise CypherValidationError("multiple statements are not allowed")
 
 
-def _enforce_result_row_limit(cypher: str, max_result_rows: int) -> str:
-    match = _LIMIT_RE.search(cypher)
-    if match is None:
-        return f"{cypher.rstrip()} LIMIT {max_result_rows}"
-    existing = int(match.group(1))
-    if existing <= max_result_rows:
+def _limit_literal_spans(code_only: str) -> list[tuple[int, int]]:
+    """The (start, end) span of every LIMIT's integer literal, found in code only - a LIMIT inside
+    a string or comment isn't one."""
+    spans = []
+    for keyword in _LIMIT_KEYWORD_RE.finditer(code_only):
+        literal = _LIMIT_LITERAL_RE.match(code_only, keyword.end())
+        if literal is None:
+            raise CypherValidationError("LIMIT must be followed by a single integer literal")
+        spans.append(literal.span(1))
+    return spans
+
+
+def _bracket_depths(code_only: str) -> list[int]:
+    depths, depth = [], 0
+    for char in code_only:
+        if char in ")]}":
+            depth -= 1
+        depths.append(depth)
+        if char in "([{":
+            depth += 1
+    return depths
+
+
+def _final_return_has_limit(code_only: str) -> bool:
+    """Whether the query's last top-level RETURN is followed by a top-level LIMIT. A LIMIT inside a
+    subquery (COUNT { ... }, EXISTS { ... }) or before the last RETURN doesn't bound the result."""
+    depths = _bracket_depths(code_only)
+    top_level_returns = [
+        match.start()
+        for match in _RETURN_KEYWORD_RE.finditer(code_only)
+        if depths[match.start()] == 0
+    ]
+    if not top_level_returns:
+        return False
+    return any(
+        match.start() > top_level_returns[-1] and depths[match.start()] == 0
+        for match in _LIMIT_KEYWORD_RE.finditer(code_only)
+    )
+
+
+def _ends_in_line_comment(cypher: str) -> bool:
+    end = len(cypher.rstrip())
+    return any(
+        match.group(0).startswith("//") and match.end() >= end
+        for match in _STRING_OR_COMMENT_RE.finditer(cypher)
+    )
+
+
+def _enforce_result_row_limit(cypher: str, code_only: str, max_result_rows: int) -> str:
+    """Spec §15.4: clamps every LIMIT literal above max_result_rows and, unless the final top-level
+    RETURN already has a LIMIT, appends one - on a new line when the query ends in a `//` comment,
+    which would otherwise swallow it."""
+    for start, end in reversed(_limit_literal_spans(code_only)):
+        if int(cypher[start:end]) > max_result_rows:
+            cypher = cypher[:start] + str(max_result_rows) + cypher[end:]
+    if _final_return_has_limit(code_only):
         return cypher
-    return cypher[: match.start(1)] + str(max_result_rows) + cypher[match.end(1) :]
+    separator = "\n" if _ends_in_line_comment(cypher) else " "
+    return f"{cypher.rstrip()}{separator}LIMIT {max_result_rows}"
 
 
 def validate_cypher(
@@ -135,4 +199,4 @@ def validate_cypher(
     _check_known_labels_and_relation_types(code_only)
     _check_traversal_depth(code_only, max_depth)
 
-    return _enforce_result_row_limit(cypher, max_result_rows)
+    return _enforce_result_row_limit(cypher, code_only, max_result_rows)

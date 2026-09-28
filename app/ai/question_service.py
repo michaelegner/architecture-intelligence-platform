@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from itertools import islice
 
 import neo4j
 
@@ -49,10 +50,10 @@ class ArchitectureQuestionService:
             # neo4j's type hints declare Session.run's query as LiteralString to discourage
             # dynamic Cypher; generated Cypher is dynamic by design, gated by validate_cypher and
             # the semantic validator above, and runs in a read-only session.
-            rows = [
-                record.data()
-                for record in session.run(cypher)  # pyright: ignore[reportArgumentType]
-            ]
+            result = session.run(cypher)  # pyright: ignore[reportArgumentType]
+            # validate_cypher bounds the query's own LIMIT; reading at most max_result_rows records
+            # keeps the bound even for a Cypher form its text analysis doesn't understand.
+            rows = [record.data() for record in islice(result, self._max_result_rows)]
 
         answer = compose_answer(self._provider, question=question, cypher=cypher, rows=rows)
         return AnswerResult(question=question, cypher=cypher, rows=rows, answer=answer)

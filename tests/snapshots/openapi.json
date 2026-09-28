@@ -1,0 +1,5129 @@
+{
+  "components": {
+    "schemas": {
+      "ArchitectureAnswer_ArchitectureDriftData_": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "enum": [
+                    "ANSWERED",
+                    "PARTIAL"
+                  ]
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation_context": {
+                  "type": "null"
+                },
+                "tool": {
+                  "enum": [
+                    "get_architecture_drift",
+                    "get_service_dependencies"
+                  ]
+                }
+              },
+              "required": [
+                "observation_context",
+                "tool"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "contains": {
+                    "properties": {
+                      "code": {
+                        "const": "OBSERVATION_CONTEXT_REQUIRED"
+                      }
+                    },
+                    "required": [
+                      "code"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "limitations"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "tool": {
+                  "const": "get_evidence"
+                }
+              },
+              "required": [
+                "tool"
+              ]
+            },
+            "then": {
+              "properties": {
+                "claims": {
+                  "maxItems": 0
+                },
+                "evidence_refs": {
+                  "maxItems": 0
+                },
+                "observation_context": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "tool": {
+                "const": "get_architecture_drift"
+              }
+            }
+          },
+          {
+            "properties": {
+              "claims": {
+                "items": {
+                  "not": {
+                    "properties": {
+                      "predicate": {
+                        "const": "DEPLOYED_AS"
+                      }
+                    },
+                    "required": [
+                      "predicate"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "claims": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "DEPLOYED_AS": "#/components/schemas/DeploymentClaim",
+                  "DIRECT_DEPENDENCY": "#/components/schemas/DependencyClaim"
+                },
+                "propertyName": "predicate"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/DependencyClaim"
+                },
+                {
+                  "$ref": "#/components/schemas/DeploymentClaim"
+                }
+              ]
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ArchitectureDriftData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/Limitation"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "observation_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationContextRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "producer": {
+            "$ref": "#/components/schemas/Producer"
+          },
+          "schema_version": {
+            "const": "0.5",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tool": {
+            "enum": [
+              "get_service_dependencies",
+              "get_evidence",
+              "get_architecture_drift"
+            ],
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "producer",
+          "tool",
+          "outcome",
+          "snapshot",
+          "observation_context",
+          "data",
+          "claims",
+          "evidence_refs",
+          "limitations"
+        ],
+        "title": "ArchitectureAnswer[ArchitectureDriftData]",
+        "type": "object"
+      },
+      "ArchitectureAnswer_EvidenceData_": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "enum": [
+                    "ANSWERED",
+                    "PARTIAL"
+                  ]
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation_context": {
+                  "type": "null"
+                },
+                "tool": {
+                  "enum": [
+                    "get_architecture_drift",
+                    "get_service_dependencies"
+                  ]
+                }
+              },
+              "required": [
+                "observation_context",
+                "tool"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "contains": {
+                    "properties": {
+                      "code": {
+                        "const": "OBSERVATION_CONTEXT_REQUIRED"
+                      }
+                    },
+                    "required": [
+                      "code"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "limitations"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "tool": {
+                  "const": "get_evidence"
+                }
+              },
+              "required": [
+                "tool"
+              ]
+            },
+            "then": {
+              "properties": {
+                "claims": {
+                  "maxItems": 0
+                },
+                "evidence_refs": {
+                  "maxItems": 0
+                },
+                "observation_context": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "tool": {
+                "const": "get_evidence"
+              }
+            }
+          }
+        ],
+        "properties": {
+          "claims": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "DEPLOYED_AS": "#/components/schemas/DeploymentClaim",
+                  "DIRECT_DEPENDENCY": "#/components/schemas/DependencyClaim"
+                },
+                "propertyName": "predicate"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/DependencyClaim"
+                },
+                {
+                  "$ref": "#/components/schemas/DeploymentClaim"
+                }
+              ]
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/Limitation"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "observation_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationContextRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "producer": {
+            "$ref": "#/components/schemas/Producer"
+          },
+          "schema_version": {
+            "const": "0.5",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tool": {
+            "enum": [
+              "get_service_dependencies",
+              "get_evidence",
+              "get_architecture_drift"
+            ],
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "producer",
+          "tool",
+          "outcome",
+          "snapshot",
+          "observation_context",
+          "data",
+          "claims",
+          "evidence_refs",
+          "limitations"
+        ],
+        "title": "ArchitectureAnswer[EvidenceData]",
+        "type": "object"
+      },
+      "ArchitectureAnswer_ServiceDependenciesData_": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "enum": [
+                    "ANSWERED",
+                    "PARTIAL"
+                  ]
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation_context": {
+                  "type": "null"
+                },
+                "tool": {
+                  "enum": [
+                    "get_architecture_drift",
+                    "get_service_dependencies"
+                  ]
+                }
+              },
+              "required": [
+                "observation_context",
+                "tool"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "contains": {
+                    "properties": {
+                      "code": {
+                        "const": "OBSERVATION_CONTEXT_REQUIRED"
+                      }
+                    },
+                    "required": [
+                      "code"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "limitations"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "tool": {
+                  "const": "get_evidence"
+                }
+              },
+              "required": [
+                "tool"
+              ]
+            },
+            "then": {
+              "properties": {
+                "claims": {
+                  "maxItems": 0
+                },
+                "evidence_refs": {
+                  "maxItems": 0
+                },
+                "observation_context": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "tool": {
+                "const": "get_service_dependencies"
+              }
+            }
+          }
+        ],
+        "properties": {
+          "claims": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "DEPLOYED_AS": "#/components/schemas/DeploymentClaim",
+                  "DIRECT_DEPENDENCY": "#/components/schemas/DependencyClaim"
+                },
+                "propertyName": "predicate"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/DependencyClaim"
+                },
+                {
+                  "$ref": "#/components/schemas/DeploymentClaim"
+                }
+              ]
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServiceDependenciesData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/Limitation"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "observation_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationContextRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "producer": {
+            "$ref": "#/components/schemas/Producer"
+          },
+          "schema_version": {
+            "const": "0.5",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tool": {
+            "enum": [
+              "get_service_dependencies",
+              "get_evidence",
+              "get_architecture_drift"
+            ],
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "producer",
+          "tool",
+          "outcome",
+          "snapshot",
+          "observation_context",
+          "data",
+          "claims",
+          "evidence_refs",
+          "limitations"
+        ],
+        "title": "ArchitectureAnswer[ServiceDependenciesData]",
+        "type": "object"
+      },
+      "ArchitectureDriftData": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "service": {
+                "properties": {
+                  "type": {
+                    "const": "SERVICE"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "v0.4.0 I3.1 - spec \u00a710. Deliberately only the service and the drift claim ids: no\n`observed_only[]`/`not_observed[]` buckets, no `severity`/`score`/`summary_text` (spec \u00a710 names\neach of those as prohibited), because every returned `DependencyClaim` already carries the\nauthoritative `qualification` that made it drift. The claims themselves stay on the enclosing\n`ArchitectureAnswer.claims` - this data payload only names them, in the same order.",
+        "properties": {
+          "drift_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Drift Claim Ids",
+            "type": "array"
+          },
+          "service": {
+            "$ref": "#/components/schemas/EntityRef"
+          }
+        },
+        "required": [
+          "service",
+          "drift_claim_ids"
+        ],
+        "title": "ArchitectureDriftData",
+        "type": "object"
+      },
+      "Coverage": {
+        "enum": [
+          "SUFFICIENT",
+          "PARTIAL",
+          "NONE",
+          "UNKNOWN"
+        ],
+        "title": "Coverage",
+        "type": "string"
+      },
+      "CoverageListOut": {
+        "properties": {
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceCoverageOut"
+            },
+            "title": "Services",
+            "type": "array"
+          },
+          "window": {
+            "$ref": "#/components/schemas/RuntimeWindow"
+          }
+        },
+        "required": [
+          "environment",
+          "window",
+          "services"
+        ],
+        "title": "CoverageListOut",
+        "type": "object"
+      },
+      "DeclaredOnlyListOut": {
+        "properties": {
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "relations": {
+            "items": {
+              "$ref": "#/components/schemas/DeclaredOnlyRelationOut"
+            },
+            "title": "Relations",
+            "type": "array"
+          },
+          "window": {
+            "$ref": "#/components/schemas/RuntimeWindow"
+          }
+        },
+        "required": [
+          "environment",
+          "window",
+          "relations"
+        ],
+        "title": "DeclaredOnlyListOut",
+        "type": "object"
+      },
+      "DeclaredOnlyRelationOut": {
+        "properties": {
+          "coverage": {
+            "title": "Coverage",
+            "type": "string"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "relation": {
+            "title": "Relation",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "targetId": {
+            "title": "Targetid",
+            "type": "string"
+          },
+          "telemetryCoverageAvailable": {
+            "title": "Telemetrycoverageavailable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sourceId",
+          "source",
+          "relation",
+          "targetId",
+          "target",
+          "environment",
+          "status",
+          "telemetryCoverageAvailable",
+          "coverage"
+        ],
+        "title": "DeclaredOnlyRelationOut",
+        "type": "object"
+      },
+      "DeliveryKind": {
+        "enum": [
+          "SYNC_HTTP",
+          "ASYNC_MESSAGE"
+        ],
+        "title": "DeliveryKind",
+        "type": "string"
+      },
+      "DeliveryRef": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "SYNC_HTTP"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "relation_type": {
+                  "const": "CALLS"
+                },
+                "via": {
+                  "properties": {
+                    "type": {
+                      "const": "OPERATION"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              "required": [
+                "relation_type",
+                "via"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "ASYNC_MESSAGE"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "relation_type": {
+                  "enum": [
+                    "PUBLISHES_TO",
+                    "SENDS"
+                  ]
+                }
+              },
+              "required": [
+                "relation_type",
+                "via"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "relation_type": {
+                  "const": "SENDS"
+                }
+              },
+              "required": [
+                "relation_type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "via": {
+                  "properties": {
+                    "type": {
+                      "const": "QUEUE"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              "required": [
+                "via"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "relation_type": {
+                  "const": "PUBLISHES_TO"
+                }
+              },
+              "required": [
+                "relation_type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "via": {
+                  "properties": {
+                    "type": {
+                      "const": "TOPIC"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              "required": [
+                "via"
+              ]
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "subscription": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "via": {
+                  "properties": {
+                    "type": {
+                      "const": "TOPIC"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              "required": [
+                "via"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "subscription": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "properties": {
+                      "type": {
+                        "const": "SUBSCRIPTION"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/DeliveryKind"
+          },
+          "relation_type": {
+            "$ref": "#/components/schemas/DeliveryRelationType"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EntityRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "via": {
+            "$ref": "#/components/schemas/EntityRef"
+          }
+        },
+        "required": [
+          "kind",
+          "relation_type",
+          "via"
+        ],
+        "title": "DeliveryRef",
+        "type": "object"
+      },
+      "DeliveryRelationType": {
+        "enum": [
+          "CALLS",
+          "SENDS",
+          "PUBLISHES_TO"
+        ],
+        "title": "DeliveryRelationType",
+        "type": "string"
+      },
+      "DependencyClaim": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "coverage": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "qualification": {
+                  "const": "NOT_OBSERVED_IN_WINDOW"
+                }
+              },
+              "required": [
+                "qualification"
+              ]
+            },
+            "then": {
+              "properties": {
+                "coverage": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "resolution_evidence_refs": {
+                  "maxItems": 0
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "destination_resolution": {
+                  "const": "RESOLVED_SERVICE"
+                }
+              },
+              "required": [
+                "destination_resolution"
+              ]
+            },
+            "then": {
+              "properties": {
+                "resolution_evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "object": {
+                "properties": {
+                  "type": {
+                    "not": {
+                      "const": "WORKLOAD"
+                    }
+                  }
+                }
+              },
+              "subject": {
+                "properties": {
+                  "type": {
+                    "const": "SERVICE"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "claim_id": {
+            "pattern": "^aip:claim:v1:[0-9a-f]{64}$",
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Coverage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delivery": {
+            "$ref": "#/components/schemas/DeliveryRef"
+          },
+          "destination_resolution": {
+            "$ref": "#/components/schemas/DestinationResolution"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "object": {
+            "$ref": "#/components/schemas/EntityRef"
+          },
+          "predicate": {
+            "const": "DIRECT_DEPENDENCY",
+            "title": "Predicate",
+            "type": "string"
+          },
+          "qualification": {
+            "$ref": "#/components/schemas/Qualification"
+          },
+          "resolution_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Resolution Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "subject": {
+            "$ref": "#/components/schemas/EntityRef"
+          }
+        },
+        "required": [
+          "claim_id",
+          "subject",
+          "predicate",
+          "object",
+          "destination_resolution",
+          "delivery",
+          "qualification",
+          "coverage",
+          "evidence_refs",
+          "resolution_evidence_refs"
+        ],
+        "title": "DependencyClaim",
+        "type": "object"
+      },
+      "DeploymentClaim": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "supporting_methods": {
+                  "prefixItems": [
+                    {
+                      "const": "RESOLVED_EXPLICIT"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "supporting_methods"
+              ]
+            },
+            "then": {
+              "properties": {
+                "resolution_method": {
+                  "const": "RESOLVED_EXPLICIT"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "supporting_methods": {
+                  "prefixItems": [
+                    {
+                      "const": "RESOLVED_CONFIGURED"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "supporting_methods"
+              ]
+            },
+            "then": {
+              "properties": {
+                "resolution_method": {
+                  "const": "RESOLVED_CONFIGURED"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "supporting_methods": {
+                  "prefixItems": [
+                    {
+                      "const": "RESOLVED_OBSERVED"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "supporting_methods"
+              ]
+            },
+            "then": {
+              "properties": {
+                "resolution_method": {
+                  "const": "RESOLVED_OBSERVED"
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "subject": {
+                "properties": {
+                  "type": {
+                    "const": "SERVICE"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "I3 spec \u00a712: the public `Service -[DEPLOYED_AS]-> Workload` claim. Deliberately has no\n`delivery`/`qualification`/`coverage`/`destination_resolution` fields - those are\n`DependencyClaim`-only concepts describing a CALLS/SENDS interaction, and `DEPLOYED_AS` is never\nan interaction (spec \u00a71: \"DEPLOYED_AS != CALLS != SENDS != RECEIVES_FROM\").",
+        "properties": {
+          "claim_id": {
+            "pattern": "^aip:claim:v1:[0-9a-f]{64}$",
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "object": {
+            "$ref": "#/components/schemas/WorkloadRef"
+          },
+          "predicate": {
+            "const": "DEPLOYED_AS",
+            "title": "Predicate",
+            "type": "string"
+          },
+          "reconciliation_rule_id": {
+            "const": "service-workload-reconciliation",
+            "title": "Reconciliation Rule Id",
+            "type": "string"
+          },
+          "reconciliation_rule_version": {
+            "const": 1,
+            "title": "Reconciliation Rule Version",
+            "type": "integer"
+          },
+          "resolution_method": {
+            "$ref": "#/components/schemas/DeploymentResolutionMethod"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/EntityRef"
+          },
+          "supporting_methods": {
+            "items": {
+              "$ref": "#/components/schemas/DeploymentResolutionMethod"
+            },
+            "minItems": 1,
+            "title": "Supporting Methods",
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "claim_id",
+          "subject",
+          "predicate",
+          "object",
+          "resolution_method",
+          "supporting_methods",
+          "reconciliation_rule_id",
+          "reconciliation_rule_version",
+          "evidence_refs"
+        ],
+        "title": "DeploymentClaim",
+        "type": "object"
+      },
+      "DeploymentResolution": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "claim_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "status": {
+                  "pattern": "^RESOLVED_"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "claim_id": {
+                  "not": {
+                    "type": "null"
+                  }
+                },
+                "service_id": {
+                  "not": {
+                    "type": "null"
+                  }
+                },
+                "supporting_methods": {
+                  "minItems": 1
+                },
+                "workload": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "I3 spec \u00a713.3: the public resolution-outcome shape, returned for every reconciliation\ncandidate group whether it produced a claim or not - \"Resolved and non-resolved outcomes SHALL\nbe inspectable without fabricating a claim.\" ",
+        "properties": {
+          "candidate_service_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Candidate Service Ids",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "claim_id": {
+            "anyOf": [
+              {
+                "pattern": "^aip:claim:v1:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Id"
+          },
+          "conflicting_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conflicting Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "limitation_codes": {
+            "items": {
+              "$ref": "#/components/schemas/LimitationCode"
+            },
+            "title": "Limitation Codes",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "reconciliation_rule_id": {
+            "const": "service-workload-reconciliation",
+            "title": "Reconciliation Rule Id",
+            "type": "string"
+          },
+          "reconciliation_rule_version": {
+            "const": 1,
+            "title": "Reconciliation Rule Version",
+            "type": "integer"
+          },
+          "resolution_id": {
+            "pattern": "^aip:deployment-resolution:v1:[0-9a-f]{64}$",
+            "title": "Resolution Id",
+            "type": "string"
+          },
+          "service_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DeploymentResolutionStatus"
+          },
+          "supporting_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supporting Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "supporting_methods": {
+            "items": {
+              "$ref": "#/components/schemas/DeploymentResolutionMethod"
+            },
+            "title": "Supporting Methods",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "workload": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkloadRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resolution_id",
+          "workload",
+          "status",
+          "service_id",
+          "candidate_service_ids",
+          "supporting_methods",
+          "supporting_evidence_refs",
+          "conflicting_evidence_refs",
+          "limitation_codes",
+          "claim_id",
+          "reconciliation_rule_id",
+          "reconciliation_rule_version"
+        ],
+        "title": "DeploymentResolution",
+        "type": "object"
+      },
+      "DeploymentResolutionMethod": {
+        "description": "I3 spec \u00a710.1: only the three *successful* identity-path outcomes - never CONFLICT/\nAMBIGUOUS/UNRESOLVED, which are never a \"method\" a claim can be supported by. Compare\n`DeploymentResolutionStatus` below, which is the wider 6-value outcome set a\n`DeploymentResolution` (as opposed to an actual `DeploymentClaim`) may carry.",
+        "enum": [
+          "RESOLVED_EXPLICIT",
+          "RESOLVED_CONFIGURED",
+          "RESOLVED_OBSERVED"
+        ],
+        "title": "DeploymentResolutionMethod",
+        "type": "string"
+      },
+      "DeploymentResolutionStatus": {
+        "description": "I3 spec \u00a713.3: the wider 6-value outcome set a `DeploymentResolution` may carry - the three\nsuccessful `DeploymentResolutionMethod` values plus the three non-resolved outcomes. Kept as its\nown enum (not reusing `DeploymentResolutionMethod`) since CONFLICT/AMBIGUOUS/UNRESOLVED are never\nvalid `DeploymentClaim.resolution_method`/`.supporting_methods` values (spec \u00a710.1: \"Similarity is\nnever a successful path\" - and conflict/ambiguity are never \"methods\" either).",
+        "enum": [
+          "RESOLVED_EXPLICIT",
+          "RESOLVED_CONFIGURED",
+          "RESOLVED_OBSERVED",
+          "CONFLICT",
+          "AMBIGUOUS",
+          "UNRESOLVED"
+        ],
+        "title": "DeploymentResolutionStatus",
+        "type": "string"
+      },
+      "DestinationResolution": {
+        "enum": [
+          "RESOLVED_SERVICE",
+          "DIRECT_TARGET_FALLBACK"
+        ],
+        "title": "DestinationResolution",
+        "type": "string"
+      },
+      "DiagnosticCode": {
+        "enum": [
+          "SERVICE_IDENTITY_UNRESOLVED",
+          "SERVICE_IDENTITY_CONFLICT",
+          "SERVICE_IDENTITY_INVALID",
+          "REFERENCE_LIMIT_EXCEEDED",
+          "REFERENCE_CYCLE_UNSUPPORTED",
+          "SCHEMA_COMPOSITION_UNINTERPRETED",
+          "AMBIGUOUS",
+          "MANIFEST_BINDING_SHAPE_INVALID",
+          "MANIFEST_BINDING_POINTER_INVALID",
+          "MANIFEST_BINDING_UNKNOWN_SOURCE",
+          "TOMBSTONE_STALE",
+          "TOMBSTONE_SCOPE_MISMATCH",
+          "SOURCE_ROOT_UNAVAILABLE",
+          "DOCUMENT_PARSE_INVALID",
+          "QUEUE_KIND_CONFLICT",
+          "QUEUE_IDENTITY_CONFLICT",
+          "QUEUE_EVIDENCE_MISSING",
+          "MANIFEST_CALL_TARGET_UNRESOLVED",
+          "MANIFEST_CALL_SOURCE_UNRESOLVED",
+          "CANONICAL_MODEL_INVALID",
+          "REMOTE_REFERENCE_UNSUPPORTED",
+          "REFERENCE_INVALID",
+          "UNSUPPORTED_DIALECT_VERSION",
+          "MIGRATION_MAPPING_SHAPE_INVALID",
+          "MIGRATION_MAPPING_TARGET_INVALID",
+          "MIGRATION_MAPPING_CONFLICT",
+          "MIGRATION_MAPPING_FILE_UNAVAILABLE",
+          "SCHEMA_CONTENT_CONFLICT",
+          "MESSAGE_CONTENT_CONFLICT",
+          "TOMBSTONE_FILE_UNAVAILABLE",
+          "TOMBSTONE_SHAPE_INVALID",
+          "STALE_INVENTORY_PREDECESSOR",
+          "K8S_RESOURCE_CONFLICT",
+          "K8S_CLUSTER_IDENTITY_UNRESOLVED",
+          "K8S_SNAPSHOT_INVALID",
+          "K8S_SNAPSHOT_INCOMPLETE",
+          "K8S_LIMIT_EXCEEDED",
+          "K8S_STALE_INVENTORY",
+          "K8S_RESOURCE_UNSUPPORTED",
+          "K8S_RESOURCE_INVALID",
+          "K8S_OWNER_UNRESOLVED",
+          "K8S_OWNER_INVALID",
+          "NO_QUALIFIED_POD_MATCH",
+          "K8S_BACKEND_UNRESOLVED",
+          "SERVICE_WORKLOAD_MAPPING_FILE_UNAVAILABLE",
+          "SERVICE_WORKLOAD_MAPPING_SHAPE_INVALID",
+          "SERVICE_WORKLOAD_MAPPING_TARGET_INVALID",
+          "SERVICE_WORKLOAD_MAPPING_DUPLICATE_ID",
+          "TOPIC_IDENTITY_CONFLICT",
+          "SUBSCRIPTION_IDENTITY_CONFLICT",
+          "SUBSCRIPTION_IDENTITY_MISSING"
+        ],
+        "title": "DiagnosticCode",
+        "type": "string"
+      },
+      "EntityRef": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "method": {
+                  "type": "null"
+                },
+                "path": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "OPERATION"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "namespace": {
+                  "type": "null"
+                },
+                "protocol": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "type": {
+                  "enum": [
+                    "QUEUE",
+                    "SUBSCRIPTION",
+                    "TOPIC"
+                  ]
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          }
+        ],
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "namespace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Namespace"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EntityType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name"
+        ],
+        "title": "EntityRef",
+        "type": "object"
+      },
+      "EntityType": {
+        "enum": [
+          "SERVICE",
+          "OPERATION",
+          "QUEUE",
+          "WORKLOAD",
+          "TOPIC",
+          "SUBSCRIPTION"
+        ],
+        "title": "EntityType",
+        "type": "string"
+      },
+      "EvidenceData": {
+        "additionalProperties": false,
+        "description": "v0.4.0 I2.1 - spec \u00a711.2/\u00a712. `claims`/top-level `evidence_refs` on the enclosing\n`ArchitectureAnswer` stay empty for this tool - lookup creates no claim; resolved ids live here.",
+        "properties": {
+          "missing_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRecord"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "requested_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requested Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "requested_evidence_refs",
+          "records",
+          "missing_evidence_refs"
+        ],
+        "title": "EvidenceData",
+        "type": "object"
+      },
+      "EvidenceRecord": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "observation": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "evidence_type": {
+                  "const": "OBSERVED"
+                }
+              },
+              "required": [
+                "evidence_type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "observation": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "v0.4.0 I2.1 - spec \u00a711.2. `evidence_type`/`source_type` reuse the existing\n`app.provenance.model` enums rather than redefining them - no new adapter classification.",
+        "properties": {
+          "evidence_type": {
+            "$ref": "#/components/schemas/EvidenceType"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "observation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservedEvidenceMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_locator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Locator"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/SourceType"
+          },
+          "supports": {
+            "items": {
+              "$ref": "#/components/schemas/SupportedFact"
+            },
+            "title": "Supports",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "evidence_type",
+          "source_type",
+          "source_locator",
+          "source_revision",
+          "observation",
+          "supports"
+        ],
+        "title": "EvidenceRecord",
+        "type": "object"
+      },
+      "EvidenceRelationType": {
+        "description": "v0.4.0 I2.1 - the closed set of canonical graph relation kinds (spec \u00a711.2's `supports`),\nwidened by I3 (DEPLOYED_AS) and v0.5.0 I4 (PUBLISHES_TO/SUBSCRIPTION_OF). Deliberately its own\nclosed enum rather than reusing `DeliveryRelationType` (only the delivery relations) or a\ngraph-layer string - `get_evidence` describes existing facts, never a new architecture claim.",
+        "enum": [
+          "PROVIDES",
+          "CALLS",
+          "SENDS",
+          "RECEIVES_FROM",
+          "CARRIES",
+          "CONFORMS_TO",
+          "DEAD_LETTERS_TO",
+          "DEPLOYED_AS",
+          "PUBLISHES_TO",
+          "SUBSCRIPTION_OF"
+        ],
+        "title": "EvidenceRelationType",
+        "type": "string"
+      },
+      "EvidenceRequest": {
+        "additionalProperties": false,
+        "description": "v0.4.0 I2.1 - the `get_evidence` request shape (spec \u00a711.1). Unlike\n`ServiceDependenciesRequest`, `snapshot_id` is required here - `get_evidence` never defaults to\nthe current snapshot, and there is no observation-context input at all.",
+        "properties": {
+          "evidence_refs": {
+            "items": {
+              "maxLength": 512,
+              "pattern": "^evidence:",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "snapshot_id": {
+            "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_refs",
+          "snapshot_id"
+        ],
+        "title": "EvidenceRequest",
+        "type": "object"
+      },
+      "EvidenceType": {
+        "enum": [
+          "DECLARED",
+          "OBSERVED"
+        ],
+        "title": "EvidenceType",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImportReport": {
+        "additionalProperties": false,
+        "description": "The full `POST /api/import` response.",
+        "properties": {
+          "committed": {
+            "title": "Committed",
+            "type": "boolean"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "report_version": {
+            "const": "aip-import-report/1",
+            "title": "Report Version",
+            "type": "string"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/ReportRun"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "sources": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ReportSourceStats"
+            },
+            "title": "Sources",
+            "type": "object"
+          }
+        },
+        "required": [
+          "import_id",
+          "committed",
+          "sources",
+          "report_version",
+          "runs"
+        ],
+        "title": "ImportReport",
+        "type": "object"
+      },
+      "IngestionResult": {
+        "description": "I1 spec \u00a710: \"Each source receives exactly one result.\" ",
+        "enum": [
+          "ACCEPTED",
+          "ACCEPTED_WITH_LIMITATIONS",
+          "REJECTED_INVALID",
+          "REJECTED_UNSUPPORTED",
+          "REJECTED_CONFLICT"
+        ],
+        "title": "IngestionResult",
+        "type": "string"
+      },
+      "InventoryStatus": {
+        "description": "I1 spec \u00a76: \"status (COMPLETE, PARTIAL, or FAILED)\".",
+        "enum": [
+          "COMPLETE",
+          "PARTIAL",
+          "FAILED"
+        ],
+        "title": "InventoryStatus",
+        "type": "string"
+      },
+      "Limitation": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Claim Ids",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "code": {
+            "$ref": "#/components/schemas/LimitationCode"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "Limitation",
+        "type": "object"
+      },
+      "LimitationCode": {
+        "enum": [
+          "UNRESOLVED_IDENTITY",
+          "INSUFFICIENT_EVIDENCE",
+          "UNKNOWN_ENTITY",
+          "OBSERVATION_CONTEXT_REQUIRED",
+          "SNAPSHOT_NOT_AVAILABLE",
+          "RESULT_LIMIT_EXCEEDED",
+          "DEPLOYMENT_IDENTITY_UNRESOLVED",
+          "DEPLOYMENT_IDENTITY_AMBIGUOUS",
+          "DEPLOYMENT_IDENTITY_CONFLICT",
+          "DEPLOYMENT_ENVIRONMENT_MISMATCH",
+          "DEPLOYMENT_TEMPORAL_MISMATCH",
+          "DEPLOYMENT_EVIDENCE_INCOMPLETE",
+          "DEPLOYMENT_RESULT_LIMIT_EXCEEDED"
+        ],
+        "title": "LimitationCode",
+        "type": "string"
+      },
+      "ObservationContextRef": {
+        "additionalProperties": false,
+        "properties": {
+          "context_id": {
+            "pattern": "^aip:observation-context:v1:[0-9a-f]{64}$",
+            "title": "Context Id",
+            "type": "string"
+          },
+          "environment": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+            "title": "Environment",
+            "type": "string"
+          },
+          "window_end": {
+            "format": "date-time",
+            "title": "Window End",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date-time",
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "context_id",
+          "environment",
+          "window_start",
+          "window_end"
+        ],
+        "title": "ObservationContextRef",
+        "type": "object"
+      },
+      "ObservedEvidenceMetadata": {
+        "additionalProperties": false,
+        "description": "v0.4.0 I2.1 - spec \u00a711.2: bounded observed-evidence metadata only. No raw payloads,\nauthorization values, full spans, baggage, resource attributes, or sample trace ids.",
+        "properties": {
+          "bucket_end": {
+            "format": "date-time",
+            "title": "Bucket End",
+            "type": "string"
+          },
+          "bucket_start": {
+            "format": "date-time",
+            "title": "Bucket Start",
+            "type": "string"
+          },
+          "correlation_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation Mode"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "first_seen": {
+            "format": "date-time",
+            "title": "First Seen",
+            "type": "string"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "observation_count": {
+            "title": "Observation Count",
+            "type": "integer"
+          },
+          "service_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Version"
+          }
+        },
+        "required": [
+          "environment",
+          "bucket_start",
+          "bucket_end",
+          "first_seen",
+          "last_seen",
+          "observation_count",
+          "service_version",
+          "correlation_mode"
+        ],
+        "title": "ObservedEvidenceMetadata",
+        "type": "object"
+      },
+      "Outcome": {
+        "enum": [
+          "ANSWERED",
+          "PARTIAL",
+          "NOT_ANSWERED"
+        ],
+        "title": "Outcome",
+        "type": "string"
+      },
+      "Producer": {
+        "additionalProperties": false,
+        "properties": {
+          "build_revision": {
+            "title": "Build Revision",
+            "type": "string"
+          },
+          "name": {
+            "const": "architecture-intelligence-platform",
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "build_revision"
+        ],
+        "title": "Producer",
+        "type": "object"
+      },
+      "Qualification": {
+        "enum": [
+          "CONFIRMED",
+          "OBSERVED_ONLY",
+          "NOT_OBSERVED_IN_WINDOW"
+        ],
+        "title": "Qualification",
+        "type": "string"
+      },
+      "QueryRequest": {
+        "properties": {
+          "question": {
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "QueryRequest",
+        "type": "object"
+      },
+      "QueryResponse": {
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "cypher": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cypher"
+          },
+          "execution_mode": {
+            "default": "LLM",
+            "enum": [
+              "DETERMINISTIC",
+              "LLM"
+            ],
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "intent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intent"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "QueryResponse",
+        "type": "object"
+      },
+      "ReportDiagnostic": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/DiagnosticCode"
+          },
+          "source_instance_id": {
+            "anyOf": [
+              {
+                "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Instance Id"
+          },
+          "source_pointer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Pointer"
+          }
+        },
+        "required": [
+          "code",
+          "source_instance_id",
+          "source_pointer"
+        ],
+        "title": "ReportDiagnostic",
+        "type": "object"
+      },
+      "ReportEffectSet": {
+        "additionalProperties": false,
+        "description": "One category of canonical effects, by stable identity. Public canonical facts are listed\n(node ids and `TYPE:source:target` relation keys); internal-only facts (Kubernetes\ninfrastructure, Pub/Sub carriers, Evidence) are only counted, because I2 \u00a79 keeps them out of\nevery public payload.",
+        "properties": {
+          "internal_count": {
+            "minimum": 0.0,
+            "title": "Internal Count",
+            "type": "integer"
+          },
+          "node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Node Ids",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "relation_keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Relation Keys",
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "node_ids",
+          "relation_keys",
+          "internal_count"
+        ],
+        "title": "ReportEffectSet",
+        "type": "object"
+      },
+      "ReportEffects": {
+        "additionalProperties": false,
+        "description": "The canonical committed effects of one source's reconciliation (I1 \u00a710), from its claim\nreconciliation plan: claims it newly owns (`added`), retained claims it changed (`changed`),\ndropped claims no other source will own after the run (`expired`), and dropped claims that\nsurvive for another owner (`ownership_removed`). Each set is attributed to this source alone\nand does not depend on the order in which the run's sources are reconciled. An unchanged\nreplay has four empty sets and does not advance the graph revision. Null in a run that did not\ncommit: such a run changes nothing (I1 \u00a76).",
+        "properties": {
+          "added": {
+            "$ref": "#/components/schemas/ReportEffectSet"
+          },
+          "changed": {
+            "$ref": "#/components/schemas/ReportEffectSet"
+          },
+          "expired": {
+            "$ref": "#/components/schemas/ReportEffectSet"
+          },
+          "graph_revision_advanced": {
+            "title": "Graph Revision Advanced",
+            "type": "boolean"
+          },
+          "ownership_removed": {
+            "$ref": "#/components/schemas/ReportEffectSet"
+          }
+        },
+        "required": [
+          "graph_revision_advanced",
+          "added",
+          "changed",
+          "expired",
+          "ownership_removed"
+        ],
+        "title": "ReportEffects",
+        "type": "object"
+      },
+      "ReportEmittedCounts": {
+        "additionalProperties": false,
+        "description": "What the source's adapter mapped, before reconciliation (I1 \u00a710 \"emitted counts\").",
+        "properties": {
+          "infrastructure_claims": {
+            "minimum": 0.0,
+            "title": "Infrastructure Claims",
+            "type": "integer"
+          },
+          "infrastructure_entities": {
+            "minimum": 0.0,
+            "title": "Infrastructure Entities",
+            "type": "integer"
+          },
+          "messages": {
+            "minimum": 0.0,
+            "title": "Messages",
+            "type": "integer"
+          },
+          "operations": {
+            "minimum": 0.0,
+            "title": "Operations",
+            "type": "integer"
+          },
+          "queues": {
+            "minimum": 0.0,
+            "title": "Queues",
+            "type": "integer"
+          },
+          "relations": {
+            "minimum": 0.0,
+            "title": "Relations",
+            "type": "integer"
+          },
+          "schemas": {
+            "minimum": 0.0,
+            "title": "Schemas",
+            "type": "integer"
+          },
+          "services": {
+            "minimum": 0.0,
+            "title": "Services",
+            "type": "integer"
+          },
+          "subscriptions": {
+            "minimum": 0.0,
+            "title": "Subscriptions",
+            "type": "integer"
+          },
+          "topics": {
+            "minimum": 0.0,
+            "title": "Topics",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "services",
+          "operations",
+          "schemas",
+          "messages",
+          "queues",
+          "topics",
+          "subscriptions",
+          "relations",
+          "infrastructure_entities",
+          "infrastructure_claims"
+        ],
+        "title": "ReportEmittedCounts",
+        "type": "object"
+      },
+      "ReportRemoval": {
+        "additionalProperties": false,
+        "description": "One previously committed source removed by an authorized removal, with its effects (only\n`expired` and `ownership_removed` can be non-empty).",
+        "properties": {
+          "effects": {
+            "$ref": "#/components/schemas/ReportEffects"
+          },
+          "source_instance_id": {
+            "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+            "title": "Source Instance Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_instance_id",
+          "effects"
+        ],
+        "title": "ReportRemoval",
+        "type": "object"
+      },
+      "ReportRun": {
+        "additionalProperties": false,
+        "properties": {
+          "committed": {
+            "title": "Committed",
+            "type": "boolean"
+          },
+          "configured_source_id": {
+            "title": "Configured Source Id",
+            "type": "string"
+          },
+          "diagnostics": {
+            "items": {
+              "$ref": "#/components/schemas/ReportDiagnostic"
+            },
+            "title": "Diagnostics",
+            "type": "array"
+          },
+          "discovery_scope_id": {
+            "anyOf": [
+              {
+                "pattern": "^urn:aip:discovery-scope:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discovery Scope Id"
+          },
+          "inventory_revision": {
+            "anyOf": [
+              {
+                "pattern": "^urn:aip:inventory-revision:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inventory Revision"
+          },
+          "inventory_status": {
+            "$ref": "#/components/schemas/InventoryStatus"
+          },
+          "kind": {
+            "enum": [
+              "filesystem",
+              "kubernetes"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "removals": {
+            "items": {
+              "$ref": "#/components/schemas/ReportRemoval"
+            },
+            "title": "Removals",
+            "type": "array"
+          },
+          "scope_definition_digest": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Definition Digest"
+          },
+          "source_results": {
+            "items": {
+              "$ref": "#/components/schemas/ReportSourceResult"
+            },
+            "title": "Source Results",
+            "type": "array"
+          },
+          "tombstones": {
+            "items": {
+              "$ref": "#/components/schemas/ReportTombstoneDecision"
+            },
+            "title": "Tombstones",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "configured_source_id",
+          "discovery_scope_id",
+          "scope_definition_digest",
+          "inventory_status",
+          "committed",
+          "inventory_revision",
+          "source_results",
+          "removals",
+          "tombstones",
+          "diagnostics"
+        ],
+        "title": "ReportRun",
+        "type": "object"
+      },
+      "ReportSourceResult": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adapter Identity"
+          },
+          "diagnostics": {
+            "items": {
+              "$ref": "#/components/schemas/ReportDiagnostic"
+            },
+            "title": "Diagnostics",
+            "type": "array"
+          },
+          "dialect_version": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dialect Version"
+          },
+          "effects": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportEffects"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "emitted": {
+            "$ref": "#/components/schemas/ReportEmittedCounts"
+          },
+          "locator": {
+            "anyOf": [
+              {
+                "pattern": "^[^/\\\\?#][^\\\\?#]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locator"
+          },
+          "mapping_rule_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapping Rule Version"
+          },
+          "result": {
+            "$ref": "#/components/schemas/IngestionResult"
+          },
+          "semantic_input_digest": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic Input Digest"
+          },
+          "service_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Service Ids",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "source_instance_id": {
+            "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+            "title": "Source Instance Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "filesystem",
+              "kubernetes"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_instance_id",
+          "source_kind",
+          "locator",
+          "result",
+          "adapter_identity",
+          "mapping_rule_version",
+          "dialect_version",
+          "semantic_input_digest",
+          "service_ids",
+          "emitted",
+          "effects",
+          "diagnostics"
+        ],
+        "title": "ReportSourceResult",
+        "type": "object"
+      },
+      "ReportSourceStats": {
+        "additionalProperties": false,
+        "description": "The pre-existing `sources` entry shape (`SourceImportStats`), unchanged.",
+        "properties": {
+          "graph_revision_advanced": {
+            "title": "Graph Revision Advanced",
+            "type": "boolean"
+          },
+          "locator": {
+            "title": "Locator",
+            "type": "string"
+          },
+          "nodes_expired": {
+            "title": "Nodes Expired",
+            "type": "integer"
+          },
+          "nodes_written": {
+            "title": "Nodes Written",
+            "type": "integer"
+          },
+          "relations_expired": {
+            "title": "Relations Expired",
+            "type": "integer"
+          },
+          "relations_written": {
+            "title": "Relations Written",
+            "type": "integer"
+          },
+          "result": {
+            "$ref": "#/components/schemas/IngestionResult"
+          },
+          "source_instance_id": {
+            "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+            "title": "Source Instance Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_instance_id",
+          "locator",
+          "result",
+          "nodes_written",
+          "relations_written",
+          "nodes_expired",
+          "relations_expired",
+          "graph_revision_advanced"
+        ],
+        "title": "ReportSourceStats",
+        "type": "object"
+      },
+      "ReportTombstoneDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TombstoneRejectionReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_source_instance_id": {
+            "title": "Target Source Instance Id",
+            "type": "string"
+          },
+          "tombstone_revision": {
+            "title": "Tombstone Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_source_instance_id",
+          "tombstone_revision",
+          "accepted",
+          "reason"
+        ],
+        "title": "ReportTombstoneDecision",
+        "type": "object"
+      },
+      "RuntimeRelationListOut": {
+        "properties": {
+          "environment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment"
+          },
+          "relations": {
+            "items": {
+              "$ref": "#/components/schemas/RuntimeRelationOut"
+            },
+            "title": "Relations",
+            "type": "array"
+          },
+          "window": {
+            "$ref": "#/components/schemas/RuntimeWindow"
+          }
+        },
+        "required": [
+          "environment",
+          "window",
+          "relations"
+        ],
+        "title": "RuntimeRelationListOut",
+        "type": "object"
+      },
+      "RuntimeRelationOut": {
+        "properties": {
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "firstSeen": {
+            "format": "date-time",
+            "title": "Firstseen",
+            "type": "string"
+          },
+          "lastSeen": {
+            "format": "date-time",
+            "title": "Lastseen",
+            "type": "string"
+          },
+          "observationCount": {
+            "title": "Observationcount",
+            "type": "integer"
+          },
+          "relation": {
+            "title": "Relation",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "targetId": {
+            "title": "Targetid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceId",
+          "source",
+          "relation",
+          "targetId",
+          "target",
+          "environment",
+          "status",
+          "firstSeen",
+          "lastSeen",
+          "observationCount"
+        ],
+        "title": "RuntimeRelationOut",
+        "type": "object"
+      },
+      "RuntimeWindow": {
+        "properties": {
+          "from": {
+            "format": "date-time",
+            "title": "From",
+            "type": "string"
+          },
+          "to": {
+            "format": "date-time",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "title": "RuntimeWindow",
+        "type": "object"
+      },
+      "ServiceCoverageOut": {
+        "properties": {
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "httpObserved": {
+            "title": "Httpobserved",
+            "type": "boolean"
+          },
+          "messagingObserved": {
+            "title": "Messagingobserved",
+            "type": "boolean"
+          },
+          "service": {
+            "title": "Service",
+            "type": "string"
+          },
+          "serviceId": {
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "spansObserved": {
+            "title": "Spansobserved",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "serviceId",
+          "service",
+          "environment",
+          "httpObserved",
+          "messagingObserved",
+          "spansObserved"
+        ],
+        "title": "ServiceCoverageOut",
+        "type": "object"
+      },
+      "ServiceDependenciesData": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "service": {
+                "properties": {
+                  "type": {
+                    "const": "SERVICE"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "v0.5.0 I3 spec \u00a714.2: deployment is a separate sibling projection, never a dependency -\n`deployment_claim_ids`/`deployment_resolutions` are additive fields alongside the original\ndependency-only shape, not a replacement of it.",
+        "properties": {
+          "dependency_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dependency Claim Ids",
+            "type": "array"
+          },
+          "deployment_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Deployment Claim Ids",
+            "type": "array"
+          },
+          "deployment_resolutions": {
+            "items": {
+              "$ref": "#/components/schemas/DeploymentResolution"
+            },
+            "title": "Deployment Resolutions",
+            "type": "array"
+          },
+          "service": {
+            "$ref": "#/components/schemas/EntityRef"
+          }
+        },
+        "required": [
+          "service",
+          "dependency_claim_ids",
+          "deployment_claim_ids",
+          "deployment_resolutions"
+        ],
+        "title": "ServiceDependenciesData",
+        "type": "object"
+      },
+      "ServiceDeploymentsView": {
+        "additionalProperties": false,
+        "description": "v0.5.0 I3 spec \u00a715: the REST-only projection `GET /{service_id}/deployments` returns - not a\npublic MCP contract type (there is no matching MCP tool for this view), so it lives here rather\nthan in `contracts.py`. Every field is extracted from one already-computed\n`get_service_dependencies` answer (spec \u00a715: \"MUST NOT invoke deployment reconciliation, Neo4j\nqueries, or qualification logic independently\") - this model has no validators of its own beyond\nshape, since the answer it projects is already fully validated.",
+        "properties": {
+          "deployment_claims": {
+            "items": {
+              "$ref": "#/components/schemas/DeploymentClaim"
+            },
+            "title": "Deployment Claims",
+            "type": "array"
+          },
+          "deployment_resolutions": {
+            "items": {
+              "$ref": "#/components/schemas/DeploymentResolution"
+            },
+            "title": "Deployment Resolutions",
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/Limitation"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "observation_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationContextRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schema_version": {
+            "const": "0.5",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "service": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EntityRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "snapshot",
+          "observation_context",
+          "service",
+          "deployment_claims",
+          "deployment_resolutions",
+          "evidence_refs",
+          "limitations"
+        ],
+        "title": "ServiceDeploymentsView",
+        "type": "object"
+      },
+      "ServiceImportReport": {
+        "additionalProperties": false,
+        "description": "The full `POST /api/import/service/{serviceId}` response.",
+        "properties": {
+          "committed": {
+            "title": "Committed",
+            "type": "boolean"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "report_version": {
+            "const": "aip-import-report/1",
+            "title": "Report Version",
+            "type": "string"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/ReportRun"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "service_id": {
+            "title": "Service Id",
+            "type": "string"
+          },
+          "sources": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ReportSourceStats"
+            },
+            "title": "Sources",
+            "type": "object"
+          }
+        },
+        "required": [
+          "import_id",
+          "committed",
+          "sources",
+          "report_version",
+          "runs",
+          "service_id"
+        ],
+        "title": "ServiceImportReport",
+        "type": "object"
+      },
+      "ServiceRuntimeProfileOut": {
+        "properties": {
+          "coverage": {
+            "$ref": "#/components/schemas/ServiceCoverageOut"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "relations": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceRuntimeRelationOut"
+            },
+            "title": "Relations",
+            "type": "array"
+          },
+          "service": {
+            "title": "Service",
+            "type": "string"
+          },
+          "serviceId": {
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "window": {
+            "$ref": "#/components/schemas/RuntimeWindow"
+          }
+        },
+        "required": [
+          "serviceId",
+          "service",
+          "environment",
+          "window",
+          "coverage",
+          "relations"
+        ],
+        "title": "ServiceRuntimeProfileOut",
+        "type": "object"
+      },
+      "ServiceRuntimeRelationOut": {
+        "properties": {
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "firstSeen": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firstseen"
+          },
+          "lastSeen": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastseen"
+          },
+          "observationCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observationcount"
+          },
+          "relation": {
+            "title": "Relation",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "targetId": {
+            "title": "Targetid",
+            "type": "string"
+          },
+          "telemetryCoverageAvailable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telemetrycoverageavailable"
+          }
+        },
+        "required": [
+          "relation",
+          "targetId",
+          "target",
+          "status",
+          "firstSeen",
+          "lastSeen",
+          "observationCount",
+          "telemetryCoverageAvailable",
+          "coverage"
+        ],
+        "title": "ServiceRuntimeRelationOut",
+        "type": "object"
+      },
+      "SnapshotRef": {
+        "additionalProperties": false,
+        "properties": {
+          "model_revision": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Model Revision",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "model_revision"
+        ],
+        "title": "SnapshotRef",
+        "type": "object"
+      },
+      "SourceType": {
+        "enum": [
+          "OPENAPI",
+          "ASYNCAPI",
+          "MANIFEST",
+          "OPENTELEMETRY",
+          "KUBERNETES",
+          "CONFIGURATION"
+        ],
+        "title": "SourceType",
+        "type": "string"
+      },
+      "SupportedFact": {
+        "additionalProperties": false,
+        "description": "v0.4.0 I2.1 - spec \u00a711.2: one existing canonical relation fact an evidence record supports.\nNot a generic graph record and not a new architecture claim - only the 3 bounded fields.",
+        "properties": {
+          "relation_type": {
+            "$ref": "#/components/schemas/EvidenceRelationType"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "relation_type",
+          "source_id",
+          "target_id"
+        ],
+        "title": "SupportedFact",
+        "type": "object"
+      },
+      "TombstoneRejectionReason": {
+        "enum": [
+          "STALE_PRIOR_REVISION",
+          "NO_COMMITTED_INVENTORY",
+          "SCOPE_MISMATCH"
+        ],
+        "title": "TombstoneRejectionReason",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WorkloadKind": {
+        "description": "I3 spec \u00a78.1: the exact supported Kubernetes controller kinds a deployment identity path may\nresolve to - the same closed set I2's own owner-chain resolution already admits.",
+        "enum": [
+          "DEPLOYMENT",
+          "STATEFULSET",
+          "DAEMONSET"
+        ],
+        "title": "WorkloadKind",
+        "type": "string"
+      },
+      "WorkloadRef": {
+        "additionalProperties": false,
+        "description": "I3 spec \u00a711: a bounded public Workload reference, deliberately its own model rather than an\n`EntityRef` extension. `EntityRef` is reused by `DependencyClaim.subject`/`.object` and\n`DeliveryRef.via` - widening its type-specific-field validator with a WORKLOAD branch would make\na Workload-shaped `EntityRef` constructible inside a dependency claim, exactly the governing\n\"DEPLOYED_AS != CALLS\" / entity-equivalence boundary spec \u00a71 forbids. `DeploymentClaim.object` is\ntyped `WorkloadRef`, never `EntityRef`, for the same reason.\n\nCluster UID, Pod UID, source inventory, resource UID, and owner-chain details remain evidence\ndrill-down, not fields of this relation target (spec \u00a711's own rule) - `namespace` here is\nidentity context, not a locality qualification.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "namespace": {
+            "title": "Namespace",
+            "type": "string"
+          },
+          "type": {
+            "const": "WORKLOAD",
+            "title": "Type",
+            "type": "string"
+          },
+          "workload_kind": {
+            "$ref": "#/components/schemas/WorkloadKind"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name",
+          "workload_kind",
+          "namespace"
+        ],
+        "title": "WorkloadRef",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Architecture Intelligence PoC",
+    "version": "snapshot"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "index__get",
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Index",
+        "tags": [
+          "ui"
+        ]
+      }
+    },
+    "/api/analysis/queues/without-consumers": {
+      "get": {
+        "description": "A3 (spec \u00a713.3).",
+        "operationId": "get_queues_without_consumers_api_analysis_queues_without_consumers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Queues Without Consumers",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/api/analysis/queues/without-senders": {
+      "get": {
+        "description": "A4 (spec \u00a713.4).",
+        "operationId": "get_queues_without_senders_api_analysis_queues_without_senders_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Queues Without Senders",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/api/analysis/queues/{queue_id}/consumers": {
+      "get": {
+        "description": "A2 (spec \u00a713.2).",
+        "operationId": "get_consumers_api_analysis_queues__queue_id__consumers_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "queue_id",
+            "required": true,
+            "schema": {
+              "title": "Queue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Consumers",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/api/analysis/queues/{queue_id}/senders": {
+      "get": {
+        "description": "A1 (spec \u00a713.1).",
+        "operationId": "get_senders_api_analysis_queues__queue_id__senders_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "queue_id",
+            "required": true,
+            "schema": {
+              "title": "Queue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Senders",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/api/analysis/runtime/confirmed": {
+      "get": {
+        "description": "O2 (spec \u00a743/\u00a747).",
+        "operationId": "get_confirmed_api_analysis_runtime_confirmed_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Environment"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeRelationListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Confirmed",
+        "tags": [
+          "runtime-analysis"
+        ]
+      }
+    },
+    "/api/analysis/runtime/coverage": {
+      "get": {
+        "description": "O5 (spec \u00a746/\u00a747). serviceId is repeatable (?serviceId=a&serviceId=b); omitted = all services.",
+        "operationId": "get_coverage_api_analysis_runtime_coverage_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Environment"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          },
+          {
+            "in": "query",
+            "name": "serviceId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Serviceid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Coverage",
+        "tags": [
+          "runtime-analysis"
+        ]
+      }
+    },
+    "/api/analysis/runtime/declared-only": {
+      "get": {
+        "description": "O4 (spec \u00a745/\u00a747). status is always the literal NOT_OBSERVED_IN_WINDOW (H4.16).",
+        "operationId": "get_declared_only_api_analysis_runtime_declared_only_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Environment"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeclaredOnlyListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Declared Only",
+        "tags": [
+          "runtime-analysis"
+        ]
+      }
+    },
+    "/api/analysis/runtime/observed-only": {
+      "get": {
+        "description": "O3 (spec \u00a744/\u00a747/\u00a748 - the one literal example response this endpoint's shape follows).",
+        "operationId": "get_observed_only_api_analysis_runtime_observed_only_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Environment"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeRelationListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Observed Only",
+        "tags": [
+          "runtime-analysis"
+        ]
+      }
+    },
+    "/api/analysis/services/{service_id}/blast-radius": {
+      "get": {
+        "description": "A5 (spec \u00a713.5).",
+        "operationId": "get_blast_radius_api_analysis_services__service_id__blast_radius_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "minimum": 1,
+              "title": "Depth",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Blast Radius",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/api/evidence": {
+      "get": {
+        "operationId": "list_evidence_api_evidence_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Evidence Api Evidence Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Evidence",
+        "tags": [
+          "evidence"
+        ]
+      }
+    },
+    "/api/evidence/resolve": {
+      "post": {
+        "description": "`POST /api/evidence/resolve` (spec \u00a714.5): calls\n`ArchitectureIntelligenceService.get_evidence` exactly once and returns its answer unchanged.",
+        "operationId": "resolve_evidence_api_evidence_resolve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchitectureAnswer_EvidenceData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Evidence",
+        "tags": [
+          "evidence"
+        ]
+      }
+    },
+    "/api/evidence/{evidence_id}": {
+      "get": {
+        "operationId": "get_evidence_api_evidence__evidence_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Evidence Api Evidence  Evidence Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Evidence",
+        "tags": [
+          "evidence"
+        ]
+      }
+    },
+    "/api/import": {
+      "post": {
+        "description": "POST /api/import - imports every configured source (I1 spec \u00a714). Each configured\ndirectory is its own atomic discovery run (I1 spec \u00a76): one run's PARTIAL/FAILED status never\nblocks another's commit. The response is the versioned I1 \u00a710 import report\n(`app.ingestion.import_report`).",
+        "operationId": "import_all_api_import_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Import All",
+        "tags": [
+          "import"
+        ]
+      }
+    },
+    "/api/import/service/{service_id}": {
+      "post": {
+        "description": "POST /api/import/service/{serviceId} reimports every configured source and reports the\nresulting stats, then confirms the requested canonical Service ID (e.g. \"service:order-\nservice\") now exists. Under I1, a service may be declared by more than one source and a source\nmay declare more than one service (ADR 0009), so a single-source-scoped reimport is no longer\na meaningful unit - the whole configured scope is always reimported.",
+        "operationId": "import_one_service_api_import_service__service_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceImportReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import One Service",
+        "tags": [
+          "import"
+        ]
+      }
+    },
+    "/api/messages": {
+      "get": {
+        "operationId": "list_messages_api_messages_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Messages Api Messages Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Messages",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/messages/{message_id}": {
+      "get": {
+        "operationId": "get_message_api_messages__message_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "title": "Message Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Message Api Messages  Message Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Message",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/query": {
+      "post": {
+        "description": "POST /api/query: a known-intent question is answered by an existing deterministic analysis\n(spec \u00a76); only an unrecognized question falls back to validated read-only LLM-generated\nCypher (spec \u00a714/\u00a715).",
+        "operationId": "post_query_api_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Query",
+        "tags": [
+          "query"
+        ]
+      }
+    },
+    "/api/queues": {
+      "get": {
+        "operationId": "list_queues_api_queues_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Queues Api Queues Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Queues",
+        "tags": [
+          "queues"
+        ]
+      }
+    },
+    "/api/queues/{queue_id}": {
+      "get": {
+        "operationId": "get_queue_api_queues__queue_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "queue_id",
+            "required": true,
+            "schema": {
+              "title": "Queue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Queue Api Queues  Queue Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Queue",
+        "tags": [
+          "queues"
+        ]
+      }
+    },
+    "/api/queues/{queue_id}/evidence": {
+      "get": {
+        "description": "Evidence backing every relation incident to this queue (spec \u00a74.10, AC13).",
+        "operationId": "get_queue_evidence_api_queues__queue_id__evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "queue_id",
+            "required": true,
+            "schema": {
+              "title": "Queue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Get Queue Evidence Api Queues  Queue Id  Evidence Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Queue Evidence",
+        "tags": [
+          "queues"
+        ]
+      }
+    },
+    "/api/runtime/relations": {
+      "get": {
+        "description": "O1 (spec \u00a742/\u00a747). environment stays optional/\"any\" here, unlike O2-O5 - matches\nobserved_relations()'s own filter framing.",
+        "operationId": "get_observed_relations_api_runtime_relations_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Environment"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          },
+          {
+            "in": "query",
+            "name": "relationType",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Relationtype"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeRelationListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Observed Relations",
+        "tags": [
+          "runtime"
+        ]
+      }
+    },
+    "/api/runtime/services/{service_id}": {
+      "get": {
+        "description": "Per-service runtime profile (11G design - see service_runtime_profile()'s docstring for the\ncomposition rationale). Not a literal spec \u00a747 JSON example, but the exact endpoint path is.",
+        "operationId": "get_service_runtime_profile_api_runtime_services__service_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Environment"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRuntimeProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Service Runtime Profile",
+        "tags": [
+          "runtime"
+        ]
+      }
+    },
+    "/api/services": {
+      "get": {
+        "operationId": "list_services_api_services_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Services Api Services Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Services",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/api/services/{service_id}": {
+      "get": {
+        "operationId": "get_service_api_services__service_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Service Api Services  Service Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Service",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/api/services/{service_id}/dependencies": {
+      "get": {
+        "description": "`GET /api/services/{service_id}/dependencies` (spec \u00a714.5).",
+        "operationId": "get_service_dependencies_api_services__service_id__dependencies_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Environment"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "snapshot_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchitectureAnswer_ServiceDependenciesData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Service Dependencies",
+        "tags": [
+          "architecture-intelligence"
+        ]
+      }
+    },
+    "/api/services/{service_id}/deployments": {
+      "get": {
+        "description": "`GET /api/services/{service_id}/deployments` (spec \u00a715). Unlike `/dependencies`/`/drift`,\n`environment`/`from`/`to` are required (FastAPI's own required `Query(...)` gives 422 for a\nmissing one for free), and an `UNKNOWN_ENTITY` limitation becomes a real 404 - the one spec-frozen\nexception to this file's \"everything else stays 200\" rule (see the module docstring).",
+        "operationId": "get_service_deployments_api_services__service_id__deployments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "environment",
+            "required": true,
+            "schema": {
+              "title": "Environment",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeploymentsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Service Deployments",
+        "tags": [
+          "architecture-intelligence"
+        ]
+      }
+    },
+    "/api/services/{service_id}/drift": {
+      "get": {
+        "description": "`GET /api/services/{service_id}/drift` (spec \u00a714.5).",
+        "operationId": "get_architecture_drift_api_services__service_id__drift_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Environment"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "snapshot_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchitectureAnswer_ArchitectureDriftData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Architecture Drift",
+        "tags": [
+          "architecture-intelligence"
+        ]
+      }
+    },
+    "/api/services/{service_id}/evidence": {
+      "get": {
+        "description": "Evidence backing every relation incident to this service (spec \u00a74.10, AC13).",
+        "operationId": "get_service_evidence_api_services__service_id__evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Get Service Evidence Api Services  Service Id  Evidence Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Service Evidence",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/health/neo4j": {
+      "get": {
+        "operationId": "health_neo4j_health_neo4j_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Neo4J"
+      }
+    },
+    "/query": {
+      "get": {
+        "operationId": "query_page_query_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "question",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Question"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Query Page",
+        "tags": [
+          "ui"
+        ]
+      }
+    },
+    "/queues/{queue_id}": {
+      "get": {
+        "operationId": "queue_explorer_queues__queue_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "queue_id",
+            "required": true,
+            "schema": {
+              "title": "Queue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Queue Explorer",
+        "tags": [
+          "ui"
+        ]
+      }
+    },
+    "/services/{service_id}": {
+      "get": {
+        "operationId": "service_explorer_services__service_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Environment"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Service Explorer",
+        "tags": [
+          "ui"
+        ]
+      }
+    },
+    "/v1/traces": {
+      "post": {
+        "description": "OTLP/HTTP trace ingestion (spec \u00a78): decode -> resolve against declared data -> persist\nobserved facts/evidence (spec \u00a736, Iteration 11E). Content-type/decode validation happens\nbefore any Neo4j access, so a malformed request never touches the graph.",
+        "operationId": "post_traces_v1_traces_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Post Traces",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    }
+  }
+}

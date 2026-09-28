@@ -23,3 +23,15 @@ updates:
     directory: "/examples/runtime-demo"
     schedule:
       interval: "weekly"
+
+  # docker-compose.yml / docker-compose.demo.yml pin images by digest; the "docker" ecosystem above
+  # only reads Dockerfiles.
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # A Neo4j major (5.x to the calendar-versioned 2025.x+ line) is a deliberate upgrade, not a
+      # routine bump.
+      - dependency-name: "neo4j"
+        update-types: ["version-update:semver-major"]

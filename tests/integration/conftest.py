@@ -8,7 +8,9 @@ from testcontainers.community.neo4j import Neo4jContainer
 
 @pytest.fixture(scope="session")
 def neo4j_container():
-    with Neo4jContainer("neo4j:5") as container:
+    with Neo4jContainer(
+        "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93"
+    ) as container:
         yield container
 
 

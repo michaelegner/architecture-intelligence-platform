@@ -96,7 +96,9 @@ def _run(scenario_id: str | None) -> int:
     if isinstance(scenarios, int):
         return scenarios
 
-    with Neo4jContainer("neo4j:5") as container:
+    with Neo4jContainer(
+        "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93"
+    ) as container:
         driver = container.get_driver()
         try:
             results = _run_all(scenarios, driver)
@@ -136,7 +138,9 @@ def _run_answers(scenario_id: str | None, candidate_sha: str | None) -> int:
         return scenarios
 
     try:
-        with Neo4jContainer("neo4j:5") as container:
+        with Neo4jContainer(
+            "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93"
+        ) as container:
             driver = container.get_driver()
             try:
                 result: SuiteResult = run_suite(driver, scenarios, candidate_sha=candidate_sha)

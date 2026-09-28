@@ -34,7 +34,9 @@ def _print_snapshot(
     # command with a path relative to the repo root, the same way every other caller
     # (evaluation/__main__.py's ANSWER_SCENARIOS_DIR, the test suite's SCENARIOS_DIR) does.
     scenario_path = Path(scenario_dir)
-    with Neo4jContainer("neo4j:5") as container:
+    with Neo4jContainer(
+        "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93"
+    ) as container:
         driver = container.get_driver()
         try:
             fixture_setup.prepare_scenario(driver, database=_DATABASE, scenario_path=scenario_path)

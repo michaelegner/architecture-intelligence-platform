@@ -25,6 +25,77 @@ def test_custom_max_result_rows_respected():
     assert result.endswith("LIMIT 5")
 
 
+# The row-limit bypasses property testing found: LIMIT used to be searched for in the raw query
+# text, first match only, digits only.
+
+
+def test_limit_inside_a_comment_does_not_count():
+    result = validate_cypher("MATCH (s:Service) RETURN s // LIMIT 1")
+    assert result == "MATCH (s:Service) RETURN s // LIMIT 1\nLIMIT 100"
+
+
+def test_limit_inside_a_string_does_not_count():
+    result = validate_cypher("MATCH (s:Service) RETURN s, 'LIMIT 5' AS x")
+    assert result == "MATCH (s:Service) RETURN s, 'LIMIT 5' AS x LIMIT 100"
+
+
+def test_every_limit_is_clamped_not_just_the_first():
+    query = "MATCH (s:Service) WITH s LIMIT 1 MATCH (q:Queue) RETURN q LIMIT 100000"
+    assert validate_cypher(query) == (
+        "MATCH (s:Service) WITH s LIMIT 1 MATCH (q:Queue) RETURN q LIMIT 100"
+    )
+
+
+def test_appended_limit_goes_on_a_new_line_after_a_trailing_line_comment():
+    result = validate_cypher("MATCH (s:Service) RETURN s // note")
+    assert result == "MATCH (s:Service) RETURN s // note\nLIMIT 100"
+
+
+def test_limit_inside_a_subquery_does_not_bound_the_result():
+    query = "MATCH (s:Service) RETURN s, COUNT { MATCH (s)--(m) RETURN m LIMIT 5 } AS c"
+    assert validate_cypher(query) == query + " LIMIT 100"
+
+
+@pytest.mark.parametrize(
+    "alias",
+    ["`LIMIT 5 note`", "`LIMIT 999 note`", "`x`` LIMIT 5 y`"],
+    ids=["limit-in-alias", "over-cap-limit-in-alias", "escaped-backtick"],
+)
+def test_limit_inside_a_backtick_name_does_not_count(alias):
+    # PR #304 review: a backtick-quoted name is a name, not a clause.
+    query = f"MATCH (s:Service) RETURN s.id AS {alias}"
+    assert validate_cypher(query, max_result_rows=20) == f"{query} LIMIT 20"
+
+
+def test_an_apostrophe_inside_a_backtick_name_does_not_open_a_string():
+    # Before backtick names were lexed, the apostrophe opened a "string" that hid CREATE.
+    query = "MATCH (s:Service) WITH s AS `x'` CREATE (b:Service) WITH b, 'z' AS z RETURN b"
+    with pytest.raises(CypherValidationError, match="CREATE"):
+        validate_cypher(query)
+
+
+def test_a_carriage_return_ends_a_line_comment_as_in_neo4j():
+    # Neo4j 5.26 ends a `//` comment at `\r`; the validator used to read on to `\n`, so this CREATE
+    # was hidden from it and reached Neo4j (stopped there only by the read-only session).
+    query = "MATCH (s:Service) // c\rCREATE (z:Service)\nRETURN s.id AS x"
+    with pytest.raises(CypherValidationError, match="CREATE"):
+        validate_cypher(query)
+
+
+def test_a_backtick_inside_a_string_is_part_of_the_string():
+    query = "MATCH (s:Service) RETURN 'a `quoted` word' AS w"
+    assert validate_cypher(query) == f"{query} LIMIT 100"
+
+
+@pytest.mark.parametrize(
+    "limit",
+    ["10 + 100000", "$n", "toInteger('1000')", "10e5", "0x10", "(1000)"],
+)
+def test_non_literal_limit_is_rejected(limit):
+    with pytest.raises(CypherValidationError, match="single integer literal"):
+        validate_cypher(f"MATCH (s:Service) RETURN s LIMIT {limit}")
+
+
 def test_full_allowed_pipeline_passes():
     query = (
         "MATCH (s:Service) "

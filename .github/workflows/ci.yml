@@ -44,6 +44,9 @@ jobs:
         run: shellcheck examples/runtime-demo/*.sh examples/release-golden-path/*.sh examples/quarkus-super-heroes-demo/*.sh
 
       - name: Unit tests
+        # Derandomized property-based tests (tests/conftest.py), so CI failures reproduce.
+        env:
+          HYPOTHESIS_PROFILE: ci
         run: uv run pytest tests/unit
 
   integration-core:

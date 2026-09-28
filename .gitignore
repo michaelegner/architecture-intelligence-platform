@@ -78,3 +78,6 @@ tmp/
 
 # v0.5.1 Quarkus Super Heroes demo: run-local state (Neo4j password, import report, prompt)
 /.aip-qsh-demo/
+
+# Hypothesis example database (local only)
+.hypothesis/
