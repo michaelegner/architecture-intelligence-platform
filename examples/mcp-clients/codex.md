@@ -5,7 +5,7 @@
 see the [v0.4.2 client/platform qualification matrix](../../docs/release-validation/v0.4.2-client-qualification.md)
 for the exact qualified version and the [full trace](../../docs/release-validation/v0.4.2-client-traces/codex-cli.md).
 A different Codex CLI version or a different candidate is not covered by that claim, and the
-qualification has not been repeated for `v0.5.0`.
+qualification has not been repeated since.
 
 ## Verification record
 

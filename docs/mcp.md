@@ -184,7 +184,7 @@ Claude Code, Cursor, VS Code). Setup syntax is verified separately from interope
 qualification; see the
 [v0.4.2 client/platform qualification matrix](release-validation/v0.4.2-client-qualification.md) for
 which specific client/version combinations have actually been qualified end to end. Those
-combinations were qualified against `v0.4.2` and have not been re-qualified for `v0.5.0`.
+combinations were qualified against `v0.4.2` and have not been re-qualified since.
 
 ## Local security boundary
 

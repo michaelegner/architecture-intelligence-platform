@@ -16,7 +16,7 @@ AIP workflow end to end against a real release candidate is a separate, later cl
 [v0.4.2 client/platform qualification matrix](../../docs/release-validation/v0.4.2-client-qualification.md)
 for which client/version combinations have actually been qualified — nothing in this directory alone
 is a "supported" claim. Those combinations were qualified against `v0.4.2` and have not been
-re-qualified for `v0.5.0`.
+re-qualified since.
 
 ## 1. Prepare the deterministic demo
 

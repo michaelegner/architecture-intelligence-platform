@@ -9,6 +9,16 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-27
+
+### v0.5.1 — Realistic Architecture Demo
+
+Shows how a developer and their coding agent get the architecture context for a real change in a
+multi-service system, without reconstructing it themselves. Adds no Architecture Knowledge
+semantics, source family or MCP tool; the public surface is v0.5.0's, and only `producer.version`
+reports `0.5.1`. See the
+[release notes](docs/release-validation/v0.5.1-release-notes.md).
+
 ### Added
 
 - **Quarkus Super Heroes demo** (`examples/quarkus-super-heroes-demo/`, v0.5.1): one command replays
