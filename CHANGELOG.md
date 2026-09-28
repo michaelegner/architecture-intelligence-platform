@@ -28,6 +28,11 @@ aren't yet guaranteed stable pre-1.0.
 - Property-based tests (Hypothesis): the source-identity primitives (RFC 6901 pointers,
   length-delimited framing, RFC 8785 canonical JSON, order-independent digests) and the LLM Cypher
   validator, including a Neo4j-backed check of the row limit. CI runs them derandomized.
+- Import boundaries: `uv run lint-imports` (import-linter, in CI's `quality` job) enforces six
+  contracts between `app/` packages. The qualification kernel stays dependency-free; the REST/MCP
+  adapters sit on top; the LLM layer stays out of the deterministic core and MCP; leaf packages
+  stay leaves and don't import each other; and the domain model imports no
+  Neo4j/FastAPI/MCP/OpenAI. A unit test fails when a new `app` package isn't classified in them.
 
 ### Changed
 

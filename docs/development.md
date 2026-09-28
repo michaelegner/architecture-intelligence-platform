@@ -7,6 +7,7 @@ uv run pytest tests/integration        # Testcontainers-backed tests (needs Dock
 uv run ruff check .                    # lint
 uv run ruff format .                   # format
 uv run pyright                         # type check (app/)
+uv run lint-imports                    # import boundaries between app/ packages
 ```
 
 Copy `.env.example` to `.env` and fill in `NEO4J_PASSWORD` (and `OPENAI_API_KEY` if you want the

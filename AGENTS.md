@@ -58,11 +58,15 @@ including this file.** If anything below conflicts with a specification, the spe
   shrinking its `include`. A suppression must be rule-scoped (`# pyright: ignore[<rule>]`) with a
   comment naming the tool or stub limitation it works around. A type error that exposes a reachable
   `None`/union path is a correctness finding: fix it, don't suppress it.
+- Code must keep the import boundaries in `[tool.importlinter]` (`pyproject.toml`), checked by
+  `uv run lint-imports`. A broken contract means the change crossed a layer: restructure the code,
+  don't loosen or delete the contract. Adding a contract for a boundary the code already keeps is
+  welcome.
 - Before opening a pull request or pushing a commit meant to pass CI, run the full local gate in
-  this order: `uv run ruff format .`, `uv run ruff check .`, `uv run pyright`, then
-  `uv run pytest tests/unit` **and** `uv run pytest tests/integration`. Run both suites, not the
-  one that seems relevant: contract changes that stay unit-green have broken integration tests
-  here before. This applies to small changes too. The only exception is the documentation-only
+  this order: `uv run ruff format .`, `uv run ruff check .`, `uv run pyright`,
+  `uv run lint-imports`, then `uv run pytest tests/unit` **and** `uv run pytest tests/integration`.
+  Run both suites, not the one that seems relevant: contract changes that stay unit-green have
+  broken integration tests here before. This applies to small changes too. The only exception is the documentation-only
   exemption in the specification-driven-implementation skill, which never covers specifications,
   completion records, release notes, schemas or fixtures.
 - Never merge a pull request, force-push, or push directly to `main`; the owner merges. This rule is

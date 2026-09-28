@@ -19,6 +19,7 @@
     ],
     "allow": [
       "Bash(uv run pyright)",
+      "Bash(uv run lint-imports)",
       "Bash(uv run ruff check .)",
       "Bash(uv run ruff format --check .)",
       "Bash(uv run pytest tests/unit)",

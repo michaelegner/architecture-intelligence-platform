@@ -36,6 +36,10 @@ jobs:
       - name: pyright
         run: uv run pyright
 
+      # Import boundaries between app/ packages; `[tool.importlinter]` in pyproject.toml.
+      - name: import-linter
+        run: uv run lint-imports
+
       # v0.4.2 I3 spec §8.2/§8.3 "shell lint" gate. shellcheck ships preinstalled on GitHub-hosted
       # ubuntu-latest runners - no extra action/install needed. examples/runtime-demo/ and (v0.5.0
       # I6 §7.4) examples/release-golden-path/ hold the shipped, qualification-relevant shell scripts;

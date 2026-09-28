@@ -22,6 +22,7 @@ uv run pytest tests/integration        # Testcontainers-backed, needs Docker
 uv run ruff check .                    # lint
 uv run ruff format .                   # format
 uv run pyright                         # type check (app/)
+uv run lint-imports                    # import boundaries between app/ packages
 ```
 
 These are exactly what `.github/workflows/ci.yml` runs on every push and pull request, plus a
@@ -45,6 +46,7 @@ A PR must, at minimum:
 - [ ] lint green (`uv run ruff check .`)
 - [ ] format green (`uv run ruff format --check .`)
 - [ ] type check green (`uv run pyright`)
+- [ ] import boundaries green (`uv run lint-imports`)
 - [ ] no secrets included (credentials, API keys, real customer/production data)
 - [ ] documentation updated when applicable (`README.md`/`docs/` if behavior, an endpoint, or a
       config option changed)

@@ -114,7 +114,7 @@ the repository adopts one, but the timestamp remains in the hidden PR metadata m
    creation solely to satisfy this phase; record the inspected diff and any lightweight
    documentation validation instead, then rely on normal PR CI for repository-wide checks. For all
    source-relevant changes, run autofixes (`ruff format`, `ruff check --fix`) and then
-   `uv run pyright` before tests, not after, so the common case needs only one test run. This is not a blanket "autofixes never affect
+   `uv run pyright` and `uv run lint-imports` before tests, not after, so the common case needs only one test run. This is not a blanket "autofixes never affect
    behavior" claim — `ruff check --fix` applies whatever rules are enabled, which can rewrite
    program text beyond formatting/import ordering, so treat that possibility as real: if an autofix
    runs *after* a test run that already passed and it changes source, rerun the affected (or full)
@@ -197,7 +197,7 @@ introduce a material regression>.
 
 ## Validation Commands
 <exact commands to run, e.g. `uv run pytest tests/unit`, `uv run pytest tests/integration`,
-`uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright`>
+`uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright`, `uv run lint-imports`>
 
 ## Open Questions / Assumptions / Stop Conditions
 <anything unresolved, any assumption made explicit, any condition that should halt implementation

@@ -21,6 +21,7 @@ dependencies = [
 dev = [
     "httpx>=0.28.1",
     "hypothesis>=6.168.3",
+    "import-linter>=2.15",
     "pyright[nodejs]>=1.1.414",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
@@ -70,3 +71,65 @@ testpaths = ["tests"]
 markers = [
     "demo_e2e: Compose-based end-to-end tests for the runtime demo lifecycle",
 ]
+
+[tool.importlinter]
+# Enforced in CI (`quality` job) with `uv run lint-imports`. Each contract records an invariant
+# the code already keeps; forbidden contracts also catch indirect imports through other modules.
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "The qualification kernel stays dependency-free (ADR 0010; declared_observed docstring)"
+type = "forbidden"
+source_modules = ["app.qualification"]
+forbidden_modules = [
+    "neo4j", "fastapi", "starlette", "mcp", "openai",
+    "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
+    "app.canonical", "app.deps", "app.graph", "app.graph_schema", "app.ingestion", "app.intent",
+    "app.main", "app.mcp", "app.provenance", "app.settings", "app.sources", "app.telemetry",
+    "app.validation", "app.version",
+]
+
+[[tool.importlinter.contracts]]
+name = "Delivery adapters (REST, MCP, app wiring) sit on top: nothing below imports them"
+type = "forbidden"
+source_modules = [
+    "app.ai", "app.analysis", "app.architecture_intelligence", "app.canonical", "app.graph",
+    "app.graph_schema", "app.ingestion", "app.intent", "app.provenance", "app.qualification",
+    "app.settings", "app.sources", "app.telemetry", "app.validation", "app.version",
+]
+forbidden_modules = ["app.api", "app.mcp", "app.main", "app.deps", "app.answer_router"]
+
+[[tool.importlinter.contracts]]
+name = "The LLM layer stays out of the deterministic core and MCP"
+type = "forbidden"
+source_modules = [
+    "app.analysis", "app.architecture_intelligence", "app.canonical", "app.graph",
+    "app.graph_schema", "app.ingestion", "app.intent", "app.mcp", "app.provenance",
+    "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
+    "app.version",
+]
+forbidden_modules = ["app.ai", "openai"]
+
+[[tool.importlinter.contracts]]
+name = "Leaf packages import no non-leaf app package"
+type = "forbidden"
+source_modules = ["app.provenance", "app.intent", "app.graph_schema", "app.version"]
+forbidden_modules = [
+    "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
+    "app.canonical", "app.deps", "app.graph", "app.ingestion", "app.main", "app.mcp",
+    "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
+]
+
+[[tool.importlinter.contracts]]
+name = "Leaf packages don't import each other"
+type = "independence"
+modules = ["app.provenance", "app.intent", "app.graph_schema", "app.version"]
+
+[[tool.importlinter.contracts]]
+name = "The domain model and source contracts stay framework-free"
+type = "forbidden"
+source_modules = [
+    "app.canonical", "app.sources", "app.provenance", "app.qualification", "app.validation",
+]
+forbidden_modules = ["neo4j", "fastapi", "starlette", "mcp", "openai"]
