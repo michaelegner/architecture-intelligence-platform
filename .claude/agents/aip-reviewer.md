@@ -41,7 +41,9 @@ increment specs.
    the diff clearly cannot touch it.
 4. For each candidate finding, confirm it with concrete evidence (file:line, a grep result, a test
    run, a spec clause). Drop anything you cannot substantiate. Do not report style or formatting
-   issues that `ruff` would catch.
+   issues that `ruff` would catch. "The diff was truncated, so I couldn't review it" is itself a
+   claim: before reporting it, check `git show <sha> -- <path>` and the `patch` field from
+   `gh api repos/<owner>/<repo>/pulls/<n>/files`. (PR #187)
 5. Report in the output format below.
 
 ## Checklist
@@ -60,6 +62,9 @@ Each item names the pattern, what to check, and the PR where this repository's r
 - **Canonical input is rejected, not resolved.** When the spec says a supplied value "is
   normalized" or "is canonical", non-canonical input must be rejected. Flag reuse of a collapsing
   helper (such as `$ref` dot-segment normalization) where the spec requires rejection. (PR #195)
+- **Planned against the current spec revision.** Compare the revision the PR's plan cites with the
+  spec on `origin/main`. If the spec moved after planning, review the diff against the newer text;
+  code implementing a superseded rule or formula is a finding. (v0.5 I1)
 - **Plan and reconciliation.** For substantial spec-driven work, the PR body must retain the
   original plan verbatim and carry a reconciliation against it, per `AGENTS.md`.
 
@@ -141,6 +146,10 @@ Each item names the pattern, what to check, and the PR where this repository's r
 - **Both suites ran.** Unless the diff is docs-only under the skill's exemption, the PR should
   report `tests/unit` and `tests/integration` results. Spec and completion-record changes are never
   docs-only. (PR #77, #236)
+- **Known flaky test is not a regression.**
+  `tests/integration/test_mcp_demo_script.py::TestPrerequisiteFailures::test_missing_env_exits_nonzero`
+  can hit its 15s subprocess timeout on a slow CI runner (PR #240). If it is the only failure and
+  another run on the same SHA passed, report it as flaky, not as a finding against the change.
 - **Type-check suppressions.** In packages `[tool.pyright]` covers, every new
   `# pyright: ignore`/`# type: ignore` must be rule-scoped and name the tool or stub limitation it
   works around. A suppression hiding a reachable `None`/union path, a loosened mode, or a shrunk
