@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
+from app.ingestion.orchestrator import run_filesystem_discovery
 from app.sources.identity import EMPTY_CLOSURE_DIGEST
 from app.sources.model import DiagnosticCode, FilesystemSourceConfig
 
@@ -93,6 +94,46 @@ def test_a_parse_failure_does_not_prevent_other_valid_sources_from_being_discove
     assert outcome.enumeration_complete is False
     assert len(outcome.loaded_sources) == 1
     assert Path(outcome.loaded_sources[0].descriptor.locator) == ok_dir / "openapi.yaml"
+
+
+def test_a_candidate_directly_in_the_root_is_diagnosed_but_discovery_is_unchanged(tmp_path):
+    """v0.5.0 I5 finding F5: a candidate at `<root>/openapi.yaml` used to be skipped silently. It is
+    still not loaded, but now carries one informational diagnostic with a root-relative pointer -
+    and nothing else about discovery or the run's outcome changes."""
+    openapi = 'openapi: 3.1.0\ninfo:\n  title: OkService\n  version: "1.0"\npaths: {}\n'
+    baseline_root = tmp_path / "baseline"
+    root = tmp_path / "with-root-candidate"
+    for r in (baseline_root, root):
+        (r / "ok-service").mkdir(parents=True)
+        (r / "ok-service" / "openapi.yaml").write_text(openapi)
+    (root / "openapi.yaml").write_text(openapi)
+
+    baseline = FilesystemSourceDiscoverer(_config(baseline_root)).discover()
+    outcome = FilesystemSourceDiscoverer(_config(root)).discover()
+
+    [diagnostic] = outcome.diagnostics
+    assert diagnostic.code is DiagnosticCode.SOURCE_CANDIDATE_OUTSIDE_SERVICE_DIRECTORY
+    assert diagnostic.source_pointer == "openapi.yaml"
+    assert diagnostic.source_instance_id is None
+    assert baseline.diagnostics == ()
+    assert outcome.enumeration_complete is baseline.enumeration_complete is True
+    assert [Path(s.descriptor.locator).relative_to(root) for s in outcome.loaded_sources] == [
+        Path(s.descriptor.locator).relative_to(baseline_root) for s in baseline.loaded_sources
+    ]
+    assert [s.descriptor.source_instance_id for s in outcome.loaded_sources] == [
+        s.descriptor.source_instance_id for s in baseline.loaded_sources
+    ]
+
+    baseline_run = run_filesystem_discovery(_config(baseline_root))
+    run = run_filesystem_discovery(_config(root))
+
+    assert run.inventory_status is baseline_run.inventory_status
+    assert run.commit_eligible is baseline_run.commit_eligible
+    assert {k: v.outcome.result for k, v in run.source_outcomes.items()} == {
+        k: v.outcome.result for k, v in baseline_run.source_outcomes.items()
+    }
+    assert [d for d in run.diagnostics if d != diagnostic] == list(baseline_run.diagnostics)
+    assert diagnostic in run.diagnostics
 
 
 def test_source_instance_id_is_independent_of_checkout_location(tmp_path):

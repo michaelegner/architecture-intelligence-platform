@@ -152,6 +152,10 @@ class DiagnosticCode(StrEnum):
     # malformed source documents encountered before an adapter can even attempt to map them.
     SOURCE_ROOT_UNAVAILABLE = "SOURCE_ROOT_UNAVAILABLE"
     DOCUMENT_PARSE_INVALID = "DOCUMENT_PARSE_INVALID"
+    # v0.5.0 I5 finding F5: a candidate filename placed directly in the configured root (not inside
+    # a service subdirectory) is never enumerated. Informational only - the file stays unloaded and
+    # neither enumeration completeness nor any source's result changes.
+    SOURCE_CANDIDATE_OUTSIDE_SERVICE_DIRECTORY = "SOURCE_CANDIDATE_OUTSIDE_SERVICE_DIRECTORY"
     # Not named by the spec text; introduced here for §9's AsyncAPI Queue kind/identity evidence
     # rules. AMBIGUOUS (above) already covers the multi-server broker/namespace-disagreement case.
     QUEUE_KIND_CONFLICT = "QUEUE_KIND_CONFLICT"

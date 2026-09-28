@@ -128,6 +128,23 @@ class FilesystemSourceDiscoverer:
         diagnostics: list[IngestionDiagnostic] = []
         enumeration_complete = True
 
+        # v0.5.0 I5 finding F5: candidates are only enumerated one directory below the root, so a
+        # root-level one would otherwise be skipped silently. Diagnose it without loading it -
+        # discovery semantics (loaded sources, enumeration_complete) are deliberately unchanged.
+        for filename in CANDIDATE_FILENAMES:
+            candidate = root / filename
+            if candidate.is_file():
+                diagnostics.append(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.SOURCE_CANDIDATE_OUTSIDE_SERVICE_DIRECTORY,
+                        message=(
+                            f"{candidate}: not loaded; candidate files must be inside a service "
+                            "subdirectory of the configured source root"
+                        ),
+                        source_pointer=filename,
+                    )
+                )
+
         for service_dir in sorted(p for p in root.iterdir() if p.is_dir()):
             for filename in CANDIDATE_FILENAMES:
                 candidate = service_dir / filename
