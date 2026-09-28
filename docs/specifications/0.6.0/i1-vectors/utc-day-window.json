@@ -1,0 +1,218 @@
+{
+  "contract": "locality-contract/1",
+  "vector_set": "scoped-day-window/1",
+  "governing": "docs/specifications/0.6.0/i1-locality-support-matrix.md §12-§13 (I1 §8)",
+  "authored": "By hand from the frozen rules, before any AIP implementation exists; recomputed by tests/unit/test_v060_i1_contract_vectors.py with the standard library only.",
+  "serialization": "YYYY-MM-DDTHH:MM:SS.ffffffZ",
+  "windows": [
+    {
+      "id": "W01-single-day",
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "valid": true,
+      "start": "2026-09-28T00:00:00.000000Z",
+      "end": "2026-09-28T23:59:59.999999Z"
+    },
+    {
+      "id": "W02-range",
+      "first_day": "2026-09-01",
+      "last_day": "2026-09-30",
+      "valid": true,
+      "start": "2026-09-01T00:00:00.000000Z",
+      "end": "2026-09-30T23:59:59.999999Z"
+    },
+    {
+      "id": "W03-year-boundary",
+      "first_day": "2026-12-31",
+      "last_day": "2027-01-01",
+      "valid": true,
+      "start": "2026-12-31T00:00:00.000000Z",
+      "end": "2027-01-01T23:59:59.999999Z"
+    },
+    {
+      "id": "W04-leap-day",
+      "first_day": "2028-02-29",
+      "last_day": "2028-02-29",
+      "valid": true,
+      "start": "2028-02-29T00:00:00.000000Z",
+      "end": "2028-02-29T23:59:59.999999Z"
+    },
+    {
+      "id": "W05-last-representable-day",
+      "first_day": "9999-12-31",
+      "last_day": "9999-12-31",
+      "valid": true,
+      "start": "9999-12-31T00:00:00.000000Z",
+      "end": "9999-12-31T23:59:59.999999Z"
+    },
+    {
+      "id": "W06-invalid-non-leap-feb-29",
+      "first_day": "2026-02-29",
+      "last_day": "2026-02-29",
+      "valid": false
+    },
+    {
+      "id": "W07-reversed",
+      "first_day": "2026-09-29",
+      "last_day": "2026-09-28",
+      "valid": false
+    },
+    {
+      "id": "W08-basic-format-rejected",
+      "first_day": "20260928",
+      "last_day": "2026-09-28",
+      "valid": false
+    },
+    {
+      "id": "W09-week-date-rejected",
+      "first_day": "2026-W40-1",
+      "last_day": "2026-09-28",
+      "valid": false
+    },
+    {
+      "id": "W10-date-time-rejected",
+      "first_day": "2026-09-28T00:00:00Z",
+      "last_day": "2026-09-28",
+      "valid": false
+    },
+    {
+      "id": "W11-unpadded-rejected",
+      "first_day": "2026-9-28",
+      "last_day": "2026-09-28",
+      "valid": false
+    },
+    {
+      "id": "W12-month-13-rejected",
+      "first_day": "2026-13-01",
+      "last_day": "2026-13-01",
+      "valid": false
+    }
+  ],
+  "membership": [
+    {
+      "id": "M01-start-included",
+      "window": "W01-single-day",
+      "instant": "2026-09-28T00:00:00.000000Z",
+      "included": true
+    },
+    {
+      "id": "M02-last-microsecond-included",
+      "window": "W01-single-day",
+      "instant": "2026-09-28T23:59:59.999999Z",
+      "included": true
+    },
+    {
+      "id": "M03-next-midnight-excluded",
+      "window": "W01-single-day",
+      "instant": "2026-09-29T00:00:00.000000Z",
+      "included": false
+    },
+    {
+      "id": "M04-previous-last-microsecond-excluded",
+      "window": "W01-single-day",
+      "instant": "2026-09-27T23:59:59.999999Z",
+      "included": false
+    },
+    {
+      "id": "M05-offset-honoured-inside",
+      "window": "W01-single-day",
+      "instant": "2026-09-29T01:30:00+02:00",
+      "included": true
+    },
+    {
+      "id": "M06-offset-honoured-outside",
+      "window": "W01-single-day",
+      "instant": "2026-09-28T01:30:00+02:00",
+      "included": false
+    },
+    {
+      "id": "M07-year-boundary-second-day",
+      "window": "W03-year-boundary",
+      "instant": "2027-01-01T12:00:00.000000Z",
+      "included": true
+    },
+    {
+      "id": "M08-day-after-range-excluded",
+      "window": "W03-year-boundary",
+      "instant": "2027-01-02T00:00:00.000000Z",
+      "included": false
+    }
+  ],
+  "utc_day_assignment": [
+    {
+      "id": "D01-plain",
+      "instant": "2026-09-28T12:00:00.000000Z",
+      "utc_day": "2026-09-28"
+    },
+    {
+      "id": "D02-offset-converted-first",
+      "instant": "2026-09-29T01:30:00+02:00",
+      "utc_day": "2026-09-28"
+    },
+    {
+      "id": "D03-last-microsecond",
+      "instant": "2026-09-28T23:59:59.999999Z",
+      "utc_day": "2026-09-28"
+    },
+    {
+      "id": "D04-midnight-is-next-day",
+      "instant": "2026-09-29T00:00:00.000000Z",
+      "utc_day": "2026-09-29"
+    }
+  ],
+  "capture_instant_parsing": [
+    {
+      "id": "P01-z-suffix",
+      "value": "2026-09-28T10:00:00Z",
+      "parsable": true
+    },
+    {
+      "id": "P02-explicit-offset",
+      "value": "2026-09-28T12:00:00+02:00",
+      "parsable": true
+    },
+    {
+      "id": "P03-offset-less-unparsable",
+      "value": "2026-09-28T10:00:00",
+      "parsable": false
+    },
+    {
+      "id": "P04-garbage-unparsable",
+      "value": "yesterday",
+      "parsable": false
+    }
+  ],
+  "timestamp_roles": [
+    {
+      "id": "T01-paired-differing-times",
+      "correlation_mode": "CLIENT_SERVER",
+      "client_timestamp": "2026-09-28T10:00:00.250000Z",
+      "fact_timestamp": "2026-09-28T10:00:00.200000Z",
+      "i4_passes": true,
+      "v1_bucket_day": "2026-09-28",
+      "v2_bucket_utc_day": "2026-09-28",
+      "v2_first_seen": "2026-09-28T10:00:00.200000Z",
+      "v2_last_seen": "2026-09-28T10:00:00.200000Z"
+    },
+    {
+      "id": "T02-paired-cross-midnight",
+      "correlation_mode": "CLIENT_SERVER",
+      "client_timestamp": "2026-09-29T00:00:00.000100Z",
+      "fact_timestamp": "2026-09-28T23:59:59.999900Z",
+      "i4_passes": false,
+      "v1_bucket_day": "2026-09-28",
+      "reason": "LOCALITY_CLIENT_FACT_DAY_MISMATCH"
+    },
+    {
+      "id": "T03-client-only",
+      "correlation_mode": "CLIENT_ONLY",
+      "client_timestamp": "2026-09-28T23:59:59.999999Z",
+      "fact_timestamp": "2026-09-28T23:59:59.999999Z",
+      "i4_passes": true,
+      "v1_bucket_day": "2026-09-28",
+      "v2_bucket_utc_day": "2026-09-28",
+      "v2_first_seen": "2026-09-28T23:59:59.999999Z",
+      "v2_last_seen": "2026-09-28T23:59:59.999999Z"
+    }
+  ]
+}
