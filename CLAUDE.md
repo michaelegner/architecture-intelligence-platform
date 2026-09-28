@@ -8,8 +8,8 @@ Architecture Intelligence Platform (AIP) is an evidence-qualified architecture k
 it ingests declared architecture (OpenAPI, AsyncAPI, an architecture manifest) and, optionally,
 runtime observation (OpenTelemetry traces), builds an Architecture Knowledge Graph in Neo4j, and
 answers questions about it through fixed deterministic Cypher analyses and a read-only
-natural-language query layer. Kubernetes discovery is in progress (`ROADMAP.md`'s v0.5 I2) — check
-`ROADMAP.md` for exactly what's shipped vs. planned before assuming a source type is available. See
+natural-language query layer. Check `ROADMAP.md` for exactly what's shipped vs. planned before
+assuming a source type or capability is available. See
 [`docs/product-doctrine-and-strategic-direction.md`](docs/product-doctrine-and-strategic-direction.md)
 for the full product doctrine and [`docs/architecture.md`](docs/architecture.md) for the current
 system design — this file does not restate either, since a restatement here is exactly what went
@@ -20,7 +20,7 @@ stale last time (see "Repository status" below).
 This repository is governed by, in authority order: product doctrine, then
 [`ROADMAP.md`](ROADMAP.md) (authoritative for shipped-vs-planned release sequencing), then the
 current release's own specification (`docs/specifications/<release>/specification.md` and its
-`iN-*.md` increment specs — currently `docs/specifications/0.5.0/`). See
+`iN-*.md` increment specs; `ROADMAP.md` names the release in progress). See
 [`AGENTS.md`](AGENTS.md) for the full authority chain and the mandatory rules that follow from it.
 
 For substantial specification-driven implementation work, follow `AGENTS.md`'s
@@ -36,10 +36,11 @@ reconciliation, or release semantics don't need that full workflow — see `AGEN
 `h4-opentelemetry.md`, `h5-open-source-readiness.md`, `11h-runtime-correctness-robustness.md`,
 `12g-public-repository-activation.md`) is the **original historical design input** this project was
 built from — not the current governing specification. Every release since v0.2 has its own
-versioned specification under `docs/specifications/<release>/`; the current release in progress is
-`docs/specifications/0.5.0/`. Do not treat `poc.md`'s scope statements (e.g. what's "out of scope
-for this PoC") as current — check `ROADMAP.md` instead, which is authoritative for what's actually
-shipped vs. planned per release.
+versioned specification under `docs/specifications/<release>/`. This file deliberately does not
+name the current release: `ROADMAP.md` is the single place that says which release is in progress,
+so it is the only place that has to change when one ships. Do not treat `poc.md`'s scope
+statements (e.g. what's "out of scope for this PoC") as current — check `ROADMAP.md` instead, which
+is authoritative for what's actually shipped vs. planned per release.
 
 Build/lint/test commands: `uv sync`, `uv run pytest tests/unit`, `uv run pytest tests/integration`,
 `uv run ruff check .`, `uv run ruff format .`, `uv run pyright` — see
