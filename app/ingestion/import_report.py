@@ -32,7 +32,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
-from typing import Annotated, Literal
+from typing import Annotated, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -49,7 +49,8 @@ from app.sources.inventory import InventoryStatus
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult
 from app.sources.tombstones import TombstoneRejectionReason
 
-REPORT_VERSION = "aip-import-report/1"
+ReportVersion = Literal["aip-import-report/1"]
+REPORT_VERSION = get_args(ReportVersion)[0]
 
 RunKind = Literal["filesystem", "kubernetes"]
 
@@ -233,7 +234,7 @@ class ImportReport(_Frozen):
     import_id: str
     committed: bool
     sources: dict[str, ReportSourceStats]
-    report_version: Literal["aip-import-report/1"]
+    report_version: ReportVersion
     runs: list[ReportRun]
 
 
