@@ -1,6 +1,6 @@
 # AIP v0.5.1 — Realistic Architecture Demo: Quarkus Super Heroes
 
-**Status:** Proposed  
+**Status:** Released in [`v0.5.1`](../../release-validation/v0.5.1-release-record.md) (2026-09-27)  
 **Target:** `v0.5.1`  
 **Baseline:** Published `v0.5.0`  
 **Scope authority:** [ROADMAP.md — v0.5.1](../../../ROADMAP.md)

@@ -307,7 +307,11 @@ gRPC/protobuf, Kafka Connect, other new source families, explicit Intent, Curren
 historical trajectories, and distributed local-assessor deployment are outside v0.5. I4 may end in
 `DEFER` without blocking the remaining qualified release.
 
-## v0.5.1 — Realistic Architecture Demo (planned)
+## v0.5.1 — Realistic Architecture Demo — shipped
+
+Shipped and post-release verified as [`v0.5.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.5.1) on 2026-09-27 (`SHIPPED_VERIFIED`, lightweight release path; see
+[`docs/release-validation/v0.5.1-release-record.md`](docs/release-validation/v0.5.1-release-record.md)
+and [`docs/specifications/0.5.1/specification.md`](docs/specifications/0.5.1/specification.md)).
 
 **Goal: Demonstrate how users and coding agents obtain architecture knowledge needed to work on a
 realistic multi-service system.**
