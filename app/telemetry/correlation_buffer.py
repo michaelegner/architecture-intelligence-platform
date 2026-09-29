@@ -1,9 +1,12 @@
+import logging
 import threading
 from collections import OrderedDict
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class PendingHttpSpan(BaseModel):
@@ -88,10 +91,13 @@ class HttpCorrelationBuffer:
 
     def _enforce_bound_locked(
         self, store: "OrderedDict[tuple[str, str], tuple[PendingHttpSpan, datetime]]"
-    ) -> None:
+    ) -> int:
+        evicted = 0
         while len(store) > self._max:
             store.popitem(last=False)
             self.evictions += 1
+            evicted += 1
+        return evicted
 
     def offer_server(self, span: PendingHttpSpan) -> PendingHttpSpan | None:
         """Offers a SERVER-kind span that had no in-batch CLIENT match. Returns the previously
@@ -109,7 +115,9 @@ class HttpCorrelationBuffer:
                 self.cross_batch_matches += 1
                 return match[0]
             self._pending_servers[key] = (span, now)
-            self._enforce_bound_locked(self._pending_servers)
+            evicted = self._enforce_bound_locked(self._pending_servers)
+            if evicted:
+                logger.warning("HTTP correlation buffer size eviction count=%d", evicted)
             return None
 
     def offer_client(self, span: PendingHttpSpan) -> PendingHttpSpan | None:
@@ -126,5 +134,7 @@ class HttpCorrelationBuffer:
                 self.cross_batch_matches += 1
                 return match[0]
             self._pending_clients[key] = (span, now)
-            self._enforce_bound_locked(self._pending_clients)
+            evicted = self._enforce_bound_locked(self._pending_clients)
+            if evicted:
+                logger.warning("HTTP correlation buffer size eviction count=%d", evicted)
             return None
