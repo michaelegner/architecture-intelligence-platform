@@ -191,6 +191,14 @@ def test_with_the_flag_off_nothing_v2_is_written_and_v1_is_unchanged(graph, sess
     assert _count(session, "MATCH (e:Evidence) RETURN count(e) AS c") == 1
     assert _count(session, "MATCH ()-[r:CALLS]->() RETURN count(r) AS c") == 1
     assert read_revision(session) == before + 1
+    # v0.6.0 I2.2c: with the flag off there is no ledger, membership or counter either.
+    assert (
+        _count(
+            session,
+            "MATCH (n) WHERE any(l IN labels(n) WHERE l STARTS WITH 'ScopedEvidence') RETURN count(n) AS c",
+        )
+        == 0
+    )
 
 
 def test_with_the_flag_on_the_seed_becomes_one_isolated_record(graph, session):
@@ -246,6 +254,8 @@ def _v1_dump(session) -> dict:
             str((r["l"], sorted(r["p"].items())))
             for r in session.run(
                 "MATCH (n) WHERE NOT n:ScopedObservedCallV2 AND NOT n:AipInternalState "
+                "AND NOT n:ScopedEvidenceCutover AND NOT n:ScopedEvidenceLegacyBucket "
+                "AND NOT n:ScopedEvidenceTransitionCounter "
                 "RETURN labels(n) AS l, properties(n) AS p"
             )
         ),
@@ -642,6 +652,9 @@ def test_lock_revision_returns_the_current_revision_without_advancing_it(driver)
         before = read_revision(session)
         assert session.execute_write(lock_revision) == before
         assert read_revision(session) == before
+        # The lock is taken with a scratch property that must leave no trace on the singleton.
+        keys = session.run("MATCH (s:AipInternalState) RETURN keys(s) AS keys").single()["keys"]
+        assert set(keys) == {"id", "revision"}
 
 
 def test_a_held_revision_lock_blocks_a_concurrent_bump_until_commit(driver):

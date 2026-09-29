@@ -1,5 +1,6 @@
 import hashlib
 import json
+from collections.abc import Iterable
 from datetime import datetime
 
 
@@ -121,3 +122,11 @@ def scoped_observed_call_v2_id(
     }
     canonical = json.dumps(key, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return f"{SCOPED_CALL_V2_ID_PREFIX}{hashlib.sha256(canonical.encode('utf-8')).hexdigest()}"
+
+
+def legacy_bucket_digest(bucket_ids: Iterable[str]) -> str:
+    """SHA-256 of the sorted, newline-joined v1 evidence IDs that existed before scoped evidence was
+    first enabled (I2 decision record D8): the integrity check of the durable legacy membership
+    against its cutover ledger. Order of the input never matters."""
+    joined = "\n".join(sorted(bucket_ids))
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()

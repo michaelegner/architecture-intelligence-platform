@@ -159,6 +159,16 @@ def _primary(reasons: set[str]) -> LocalityDisposition:
     return next(d for d in _PRECEDENCE if d in dispositions)
 
 
+def primary_cause(refusal: "ScopedIngressRefusal") -> str:
+    """The single reason a refusal is counted under in the transition report (I2 decision record
+    D12.1): among its reasons, those whose disposition is the refusal's primary disposition, and of
+    those the lexicographically smallest. The complete sorted reasons stay on the refusal."""
+    candidates = [
+        reason for reason in refusal.reasons if _REASON_DISPOSITION[reason] == refusal.disposition
+    ]
+    return min(candidates)
+
+
 def evaluate_scoped_ingress(
     *,
     subject_id: str,

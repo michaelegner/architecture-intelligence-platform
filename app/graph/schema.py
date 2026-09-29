@@ -75,6 +75,22 @@ CONSTRAINTS: list[LiteralString] = [
         "CREATE CONSTRAINT scoped_observed_call_v2_id IF NOT EXISTS "
         "FOR (v:ScopedObservedCallV2) REQUIRE v.id IS UNIQUE"
     ),
+    # v0.6.0 I2.2c (decision record D7/D8): operational provenance for scoped evidence - the cutover
+    # ledger (a per-graph singleton), the durable pre-enablement v1 CALLS-bucket membership and the
+    # exact transition counters. Bare nodes: no relationships, no owner_source_ids, never part of
+    # the snapshot, the public evidence surface or the NL approved labels.
+    (
+        "CREATE CONSTRAINT scoped_evidence_cutover_id IF NOT EXISTS "
+        "FOR (c:ScopedEvidenceCutover) REQUIRE c.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT scoped_evidence_legacy_bucket_id IF NOT EXISTS "
+        "FOR (b:ScopedEvidenceLegacyBucket) REQUIRE b.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT scoped_evidence_transition_counter_id IF NOT EXISTS "
+        "FOR (c:ScopedEvidenceTransitionCounter) REQUIRE c.id IS UNIQUE"
+    ),
 ]
 
 INDEXES: list[LiteralString] = [

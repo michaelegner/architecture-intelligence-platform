@@ -249,6 +249,7 @@ These fix details the frozen decisions left to implementation. They add no seman
 | D12.5 | **Cutover race (D8).** The first enabled unit checks for the ledger without a lock, then takes the revision-singleton lock and re-checks, so exactly one ledger is written. | I2.2c |
 | D12.6 | **Candidate reader index (D3).** The reader filters by caller Service, so an index on `ScopedObservedCallV2.subject_id` is created alongside the uniqueness constraint on `id`. | I2.2a |
 | D12.7 | **`config.demo.yaml` is not edited.** It is digest-pinned by the release golden path, and the flag defaults to off when the block is absent. Only `config.yaml` documents the new block. | I2.2a |
+| D12.8 | **`lock_revision` locks with a scratch property (correction, I2.2c).** The I2.2b helper took the fence lock with `SET s.revision = s.revision`. Under contention the right-hand value can be read before the lock is granted, so a waiting writer writes back a stale revision and undoes the increment a just-committed writer made (a racing test saw every unit return revision 1). It now sets and removes a scratch property and reads the revision only after the lock is held, leaving the singleton exactly as it was. `bump_revision` itself is unaffected: 16 concurrent bumps advance the revision by exactly 16. The defect was latent: no I2.2b production path called `lock_revision`. | I2.2c |
 
 ## Traceability
 

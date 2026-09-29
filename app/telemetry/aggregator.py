@@ -16,6 +16,7 @@ from app.telemetry.model import (
     stronger_correlation_mode,
 )
 from app.telemetry.scoped_evidence import merge_scoped_call, record_from_seed
+from app.telemetry.scoped_ledger import ensure_cutover, finalize_unit, log_refusal_samples
 
 _MERGE_STUB_NODE_QUERY = (
     "MERGE (n:{label} {{id: $id}}) "
@@ -266,8 +267,14 @@ def _persist_scoped_seed(tx: neo4j.ManagedTransaction, seed_record: ScopedObserv
 
 
 def _persist_batch_tx(
-    tx: neo4j.ManagedTransaction, batch: ObservationBatch, scoped_enabled: bool = False
+    tx: neo4j.ManagedTransaction, batch: ObservationBatch, scoped_stream_id: str | None = None
 ) -> None:
+    """One unit. `scoped_stream_id` is the configured scoped-evidence stream when the feature is
+    enabled, else None (nothing v2 is read or written)."""
+    # v0.6.0 I2.2c: the cutover must record the v1 CALLS buckets that existed BEFORE this unit, so
+    # it runs first. It is a no-op after the first enabled unit.
+    cutover_written = scoped_stream_id is not None and ensure_cutover(tx, scoped_stream_id)
+
     for entity in batch.entities:
         query = _MERGE_STUB_NODE_QUERY.format(label=entity.label)
         tx.run(query, id=entity.id, name=entity.name, discovery_status="OBSERVED_ONLY")
@@ -285,7 +292,7 @@ def _persist_batch_tx(
     for observation in batch.runtime_identity_observations:
         _persist_runtime_identity_observation(tx, observation)
 
-    if scoped_enabled:
+    if scoped_stream_id is not None:
         # v0.6.0 I2.2b: the eligible v2 seeds of this unit, in the SAME transaction as the v1 facts
         # above, so a v2 failure rolls the whole unit back rather than committing half a pair.
         # Sorted by id so concurrent units always lock nodes in one order (no lock-order
@@ -296,7 +303,20 @@ def _persist_batch_tx(
         for seed_record in sorted(seed_records, key=lambda record: record.id):
             _persist_scoped_seed(tx, seed_record)
 
-    bump_revision(tx)
+    revision = bump_revision(tx)
+
+    if scoped_stream_id is not None:
+        if revision is None:
+            # ensure_schema created the singleton before this transaction; only corrupted state gets
+            # here, and the ledger, membership and counters must name the revision they commit.
+            raise RuntimeError("cannot record scoped-evidence provenance without a revision")
+        finalize_unit(
+            tx,
+            stream_id=scoped_stream_id,
+            batch=batch,
+            revision=revision,
+            cutover_written=cutover_written,
+        )
 
 
 def persist_observation_batch(
@@ -312,7 +332,10 @@ def persist_observation_batch(
     The whole batch is one unit: one `execute_write`, one revision bump. With `scoped` enabled
     (v0.6.0 I2.2b) each fact's eligible v2 seed is also persisted in that same transaction; with it
     off or absent (the default) not a single v2 read or write happens and behaviour is unchanged."""
-    scoped_enabled = scoped is not None and scoped.enabled
+    stream_id = scoped.stream_id if scoped is not None and scoped.enabled else None
     with open_session(driver, database=database) as session:
         ensure_schema(session)
-        session.execute_write(_persist_batch_tx, batch, scoped_enabled)
+        session.execute_write(_persist_batch_tx, batch, stream_id)
+    if stream_id is not None:
+        # Only after the unit committed, so a transaction retry can never log a refusal twice.
+        log_refusal_samples(stream_id, batch.scoped_refusals)

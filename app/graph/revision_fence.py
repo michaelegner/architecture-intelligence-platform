@@ -26,11 +26,14 @@ _BUMP_REVISION_QUERY = (
     "MATCH (s:AipInternalState {id: $id}) SET s.revision = coalesce(s.revision, 0) + 1 "
     "RETURN s.revision AS revision"
 )
-# A property write - even to the value it already holds - takes the node's exclusive write lock,
-# which is held until the transaction ends. That serializes this transaction against every other
-# writer that bumps or locks the fence, without advancing the revision.
+# Takes the node's exclusive write lock (held until the transaction ends) by setting and removing a
+# scratch property, which leaves the node exactly as it was. It must NOT assign `s.revision` from
+# itself: the value on the right can be read before the lock is granted, so a waiting writer would
+# write back a stale revision and undo the increment a just-committed writer made. The revision is
+# read only after the lock is held, so it is the current committed one.
 _LOCK_REVISION_QUERY = (
-    "MATCH (s:AipInternalState {id: $id}) SET s.revision = s.revision RETURN s.revision AS revision"
+    "MATCH (s:AipInternalState {id: $id}) SET s.lock_probe = true REMOVE s.lock_probe "
+    "RETURN s.revision AS revision"
 )
 
 
