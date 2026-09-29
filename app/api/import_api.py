@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.deps import get_driver, get_settings
+from app.graph import read_models
 from app.graph.importer import (
     ImportRunStats,
     import_all_sources,
@@ -149,11 +150,7 @@ def import_one_service(
     report = build_import_report(import_id, run_results)
 
     with open_session(driver, database=settings.config.graph.database) as session:
-        record = session.run(
-            "MATCH (s:Service {id: $id}) RETURN count(s) AS c", id=service_id
-        ).single()
-        assert record is not None  # a count() aggregate always yields exactly one row
-        exists = record["c"] > 0
+        exists = read_models.service_exists(session, service_id)
     if not exists:
         raise HTTPException(status_code=404, detail=f"no known service: {service_id}")
 
