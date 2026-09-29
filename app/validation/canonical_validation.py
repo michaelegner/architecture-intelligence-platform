@@ -2,7 +2,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE, UNARY_CLAIM_KINDS
-from app.canonical.model import ArchitectureModel
+from app.canonical.model import ArchitectureModel, relation_key
 
 SCHEMA_RELATION_TYPES = {"REQUEST_SCHEMA", "RESPONSE_SCHEMA", "CONFORMS_TO"}
 
@@ -22,12 +22,6 @@ class CanonicalValidationIssue:
 
     message: str
     element_ids: tuple[str, ...]
-
-
-def relation_element_id(relation) -> str:
-    """A relation's element id - the same `TYPE:source_id:target_id` form as the importer's
-    `relation_key`."""
-    return f"{relation.type}:{relation.source_id}:{relation.target_id}"
 
 
 def _issue(message: str, *element_ids: str) -> CanonicalValidationIssue:
@@ -105,7 +99,7 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
                 _issue(
                     f"CALLS {relation.source_id} -> {relation.target_id} references unknown "
                     "operation",
-                    relation_element_id(relation),
+                    relation_key(relation),
                 )
             )
 
@@ -116,7 +110,7 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
                 _issue(
                     f"{relation.type} {relation.source_id} -> {relation.target_id} references "
                     "unknown schema",
-                    relation_element_id(relation),
+                    relation_key(relation),
                 )
             )
     for operation in model.operations:
@@ -143,7 +137,7 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
             errors.append(
                 _issue(
                     f"Queue {relation.source_id} cannot be its own DLQ",
-                    relation_element_id(relation),
+                    relation_key(relation),
                 )
             )
 
@@ -156,14 +150,14 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
             errors.append(
                 _issue(
                     f"Relation {relation.type} has unknown source {relation.source_id}",
-                    relation_element_id(relation),
+                    relation_key(relation),
                 )
             )
         if relation.target_id not in known_ids:
             errors.append(
                 _issue(
                     f"Relation {relation.type} has unknown target {relation.target_id}",
-                    relation_element_id(relation),
+                    relation_key(relation),
                 )
             )
 
@@ -184,7 +178,7 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
                     _issue(
                         f"Relation {relation.type} {relation.source_id} -> {relation.target_id} "
                         f"references unknown evidence {evidence_id}",
-                        relation_element_id(relation),
+                        relation_key(relation),
                     )
                 )
 
@@ -219,14 +213,14 @@ def _validate_pubsub(
                 errors.append(
                     _issue(
                         f"{relation.type} source {relation.source_id} is not a {source_kind}",
-                        relation_element_id(relation),
+                        relation_key(relation),
                     )
                 )
             if relation.target_id not in ids_by_kind[target_kind]:
                 errors.append(
                     _issue(
                         f"{relation.type} target {relation.target_id} is not a {target_kind}",
-                        relation_element_id(relation),
+                        relation_key(relation),
                     )
                 )
             if relation.type == "SUBSCRIPTION_OF":
@@ -235,14 +229,14 @@ def _validate_pubsub(
             errors.append(
                 _issue(
                     f"RECEIVES_FROM target {relation.target_id} is a Topic, not a Subscription",
-                    relation_element_id(relation),
+                    relation_key(relation),
                 )
             )
         elif relation.type == "CARRIES" and relation.source_id in subscription_ids:
             errors.append(
                 _issue(
                     f"CARRIES source {relation.source_id} is a Subscription, not a Topic",
-                    relation_element_id(relation),
+                    relation_key(relation),
                 )
             )
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 
 import neo4j
 
-from app.canonical.model import ArchitectureModel
+from app.canonical.model import ArchitectureModel, relation_key
 from app.canonical.pubsub import (
     PUBSUB_DECLARATION_LABEL,
     SUBSCRIPTION_DEAD_LETTER_CONFIGURATION_LABEL,
@@ -12,6 +12,7 @@ from app.canonical.pubsub import (
 from app.graph.repository import open_session
 from app.graph.revision_fence import bump_revision
 from app.graph.schema import ensure_schema
+from app.graph_schema.registry import RELATIONS
 from app.ingestion.orchestrator import (
     DiscoveryRunResult,
     SourceRunOutcome,
@@ -98,28 +99,9 @@ INFRASTRUCTURE_CLAIM_LABEL = "InfrastructureClaim"
 # adapter-facing per-source contribution type of its own.
 INFRASTRUCTURE_CLAIM_CONTRIBUTION_LABEL = "InfrastructureClaimContribution"
 
-# I1 spec §4/§7: this is the source-adapter seam's own frozen relation vocabulary, unchanged from
-# the PoC-era value in the now-deleted app.graph.reconciliation - relocated here since that module
-# is deleted (its node/relation-id set diffing is superseded by source-instance-scoped,
-# multi-owner-aware reconciliation below).
-KNOWN_RELATION_TYPES = {
-    "PROVIDES",
-    "CALLS",
-    "REQUEST_SCHEMA",
-    "RESPONSE_SCHEMA",
-    "SENDS",
-    "RECEIVES_FROM",
-    "CARRIES",
-    "CONFORMS_TO",
-    "DEAD_LETTERS_TO",
-    # v0.5.0 I4 spec §6.3 (RECEIVES_FROM and CARRIES are reused for Subscription/Topic endpoints).
-    "PUBLISHES_TO",
-    "SUBSCRIPTION_OF",
-}
-
-
-def relation_key(relation) -> str:
-    return f"{relation.type}:{relation.source_id}:{relation.target_id}"
+# I1 spec §4/§7: the source-adapter seam's frozen relation vocabulary. `graph_schema.RELATIONS` is
+# the single definition (it also carries each type's domain/range); this is its name set.
+KNOWN_RELATION_TYPES = frozenset(RELATIONS)
 
 
 def _model_node_ids(model: ArchitectureModel, *, source_instance_id: str) -> set[str]:

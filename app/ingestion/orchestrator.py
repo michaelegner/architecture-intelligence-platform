@@ -32,6 +32,7 @@ from app.canonical.model import (
     Service,
     Subscription,
     Topic,
+    relation_key,
 )
 from app.canonical.pubsub import PubSubDeclaration, SubscriptionDeadLetterConfiguration
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
@@ -88,7 +89,6 @@ from app.sources.tombstones import Tombstone
 from app.validation.canonical_validation import (
     CanonicalValidationIssue,
     canonical_validation_issues,
-    relation_element_id,
 )
 
 _DEFAULT_ADAPTERS = (
@@ -471,7 +471,7 @@ def _model_element_ids(model: ArchitectureModel) -> frozenset[str]:
     `CanonicalValidationIssue.element_ids`."""
     return frozenset(
         {entity.id for field in _MODEL_ENTITY_FIELDS for entity in getattr(model, field)}
-        | {relation_element_id(relation) for relation in model.relations}
+        | {relation_key(relation) for relation in model.relations}
     )
 
 
