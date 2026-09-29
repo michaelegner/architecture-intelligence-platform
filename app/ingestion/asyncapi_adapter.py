@@ -1066,122 +1066,154 @@ class _AsyncApiMapping:
                 operation_def = channel_def.get(operation_key)
                 if not isinstance(operation_def, dict):
                     continue
-
-                self.any_channel_supported = True
-                if not is_topic:
-                    self.add_relation(
-                        RELATION_TYPES[direction], self.canonical_service_id, destination_id
-                    )
-                elif direction is Direction.SEND:
-                    # I4 §8.2: application-perspective publish on a qualified Topic.
-                    self.add_relation("PUBLISHES_TO", self.canonical_service_id, destination_id)
-                else:
-                    # I4 §8.3: subscribe identifies direction only; topology needs explicit
-                    # Subscription identity. Topic CARRIES Message remains either way.
-                    subscription_id_value, error_outcome = self.resolve_subscription(
-                        channel_name, operation_def, topic_id_value=destination_id
-                    )
-                    if error_outcome is not None:
-                        return error_outcome
-                    if subscription_id_value is not None:
-                        self.add_relation("SUBSCRIPTION_OF", subscription_id_value, destination_id)
-                        self.add_relation(
-                            "RECEIVES_FROM", self.canonical_service_id, subscription_id_value
-                        )
-
-                try:
-                    message_defs = _extract_message_defs(
+                if (
+                    rejection := self._map_operation(
+                        channel_name,
+                        operation_key,
+                        direction,
                         operation_def,
-                        root_relative_path=self.root_relative_path,
-                        channel_name=channel_name,
-                        operation_key=operation_key,
-                        cache=self.cache,
+                        destination_id=destination_id,
+                        is_topic=is_topic,
                     )
-                except ReferenceResolutionError as exc:
-                    return rejected_outcome_for_reference_error(
-                        exc,
+                ) is not None:
+                    return rejection
+        return None
+
+    def _map_operation(
+        self,
+        channel_name: str,
+        operation_key: str,
+        direction: Direction,
+        operation_def: dict,
+        *,
+        destination_id: str,
+        is_topic: bool,
+    ) -> AdapterOutcome | None:
+        """One publish/subscribe operation on a channel with a resolved Queue or Topic: its
+        direction relation, then every message it carries."""
+        self.any_channel_supported = True
+        if not is_topic:
+            self.add_relation(RELATION_TYPES[direction], self.canonical_service_id, destination_id)
+        elif direction is Direction.SEND:
+            # I4 §8.2: application-perspective publish on a qualified Topic.
+            self.add_relation("PUBLISHES_TO", self.canonical_service_id, destination_id)
+        else:
+            # I4 §8.3: subscribe identifies direction only; topology needs explicit
+            # Subscription identity. Topic CARRIES Message remains either way.
+            subscription_id_value, error_outcome = self.resolve_subscription(
+                channel_name, operation_def, topic_id_value=destination_id
+            )
+            if error_outcome is not None:
+                return error_outcome
+            if subscription_id_value is not None:
+                self.add_relation("SUBSCRIPTION_OF", subscription_id_value, destination_id)
+                self.add_relation("RECEIVES_FROM", self.canonical_service_id, subscription_id_value)
+
+        try:
+            message_defs = _extract_message_defs(
+                operation_def,
+                root_relative_path=self.root_relative_path,
+                channel_name=channel_name,
+                operation_key=operation_key,
+                cache=self.cache,
+            )
+        except ReferenceResolutionError as exc:
+            return rejected_outcome_for_reference_error(
+                exc,
+                source_pointer=encode_pointer_tokens(("channels", channel_name, operation_key)),
+            )
+
+        for message_def in message_defs:
+            if (
+                rejection := self._map_message(
+                    channel_name, operation_key, message_def, destination_id=destination_id
+                )
+            ) is not None:
+                return rejection
+        return None
+
+    def _map_message(
+        self,
+        channel_name: str,
+        operation_key: str,
+        message_def: _MessageDef,
+        *,
+        destination_id: str,
+    ) -> AdapterOutcome | None:
+        """One message of an operation: its identity, payload schema, Message entity (first-wins, or
+        an atomic conflict) and CONFORMS_TO / CARRIES relations."""
+        message_document = message_def.document
+        message_pointer_tokens = message_def.pointer_tokens
+        try:
+            normalized_x_version = normalize_x_version(message_document.get("x-version", MISSING))
+        except InvalidXVersionError as exc:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_INVALID,
+                model=ArchitectureModel(),
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.SERVICE_IDENTITY_INVALID,
+                        message=str(exc),
                         source_pointer=encode_pointer_tokens(
                             ("channels", channel_name, operation_key)
                         ),
-                    )
+                    ),
+                ),
+                semantic_input_digest=None,
+            )
 
-                for message_def in message_defs:
-                    message_document = message_def.document
-                    message_pointer_tokens = message_def.pointer_tokens
-                    try:
-                        normalized_x_version = normalize_x_version(
-                            message_document.get("x-version", MISSING)
-                        )
-                    except InvalidXVersionError as exc:
-                        return AdapterOutcome(
-                            result=IngestionResult.REJECTED_INVALID,
-                            model=ArchitectureModel(),
-                            diagnostics=(
-                                IngestionDiagnostic(
-                                    code=DiagnosticCode.SERVICE_IDENTITY_INVALID,
-                                    message=str(exc),
-                                    source_pointer=encode_pointer_tokens(
-                                        ("channels", channel_name, operation_key)
-                                    ),
-                                ),
-                            ),
-                            semantic_input_digest=None,
-                        )
+        explicit_message_id = self.shared_identity.message_id_for(
+            source_instance_id=self.source_instance_id,
+            document_path=message_def.document_path,
+            pointer=encode_pointer_tokens(message_pointer_tokens),
+        )
+        message_id_value = explicit_message_id or message_owned_id(
+            canonical_service_id=self.canonical_service_id,
+            source_instance_id=self.source_instance_id,
+            normalized_definition_document_path=message_def.document_path,
+            definition_pointer_tokens=message_pointer_tokens,
+            normalized_x_version_or_empty=normalized_x_version,
+        )
+        message_name = (
+            message_document.get("name")
+            or message_document.get("title")
+            or f"{channel_name}:{operation_key}"
+        )
+        payload = message_document.get("payload")
+        schema_id_value, normalized_payload_value, error_outcome = self.resolve_payload_schema_id(
+            payload,
+            message_id=message_id_value,
+            message_name=message_name,
+            message_document_path=message_def.document_path,
+            message_pointer_tokens=message_pointer_tokens,
+        )
+        if error_outcome is not None:
+            return error_outcome
 
-                    explicit_message_id = self.shared_identity.message_id_for(
-                        source_instance_id=self.source_instance_id,
-                        document_path=message_def.document_path,
-                        pointer=encode_pointer_tokens(message_pointer_tokens),
-                    )
-                    message_id_value = explicit_message_id or message_owned_id(
-                        canonical_service_id=self.canonical_service_id,
-                        source_instance_id=self.source_instance_id,
-                        normalized_definition_document_path=message_def.document_path,
-                        definition_pointer_tokens=message_pointer_tokens,
-                        normalized_x_version_or_empty=normalized_x_version,
-                    )
-                    message_name = (
-                        message_document.get("name")
-                        or message_document.get("title")
-                        or f"{channel_name}:{operation_key}"
-                    )
-                    payload = message_document.get("payload")
-                    schema_id_value, normalized_payload_value, error_outcome = (
-                        self.resolve_payload_schema_id(
-                            payload,
-                            message_id=message_id_value,
-                            message_name=message_name,
-                            message_document_path=message_def.document_path,
-                            message_pointer_tokens=message_pointer_tokens,
-                        )
-                    )
-                    if error_outcome is not None:
-                        return error_outcome
-
-                    conflict = upsert_message_or_conflict(
-                        self.messages_by_id,
-                        message_id_value,
-                        Message(
-                            id=message_id_value,
-                            name=message_name,
-                            version=normalized_x_version or None,
-                            schema_id=schema_id_value,
-                            contract_digest=message_contract_digest(
-                                message_document, normalized_payload=normalized_payload_value
-                            ),
-                            document_digest=message_document_digest(message_document),
-                        ),
-                    )
-                    if conflict is not None:
-                        return AdapterOutcome(
-                            result=IngestionResult.REJECTED_CONFLICT,
-                            model=ArchitectureModel(),
-                            diagnostics=(conflict,),
-                            semantic_input_digest=None,
-                        )
-                    if schema_id_value:
-                        self.add_relation("CONFORMS_TO", message_id_value, schema_id_value)
-                    self.add_relation("CARRIES", destination_id, message_id_value)
+        conflict = upsert_message_or_conflict(
+            self.messages_by_id,
+            message_id_value,
+            Message(
+                id=message_id_value,
+                name=message_name,
+                version=normalized_x_version or None,
+                schema_id=schema_id_value,
+                contract_digest=message_contract_digest(
+                    message_document, normalized_payload=normalized_payload_value
+                ),
+                document_digest=message_document_digest(message_document),
+            ),
+        )
+        if conflict is not None:
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_CONFLICT,
+                model=ArchitectureModel(),
+                diagnostics=(conflict,),
+                semantic_input_digest=None,
+            )
+        if schema_id_value:
+            self.add_relation("CONFORMS_TO", message_id_value, schema_id_value)
+        self.add_relation("CARRIES", destination_id, message_id_value)
         return None
 
     def finish(self, *, mapping_context_digest: str) -> AdapterOutcome:
