@@ -5,24 +5,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from app.analysis.blast_radius import blast_radius
-from app.analysis.queues import consumers_of_queue, senders_of_queue
-from app.analysis.runtime import default_since, service_runtime_profile
 from app.answer_router import LLMNotConfiguredError, answer_question
 from app.api.query import QueryResponse
+from app.api.ui_context import queue_page_context, service_page_context
 from app.deps import build_question_service, get_read_session, get_settings
 from app.graph import read_models
 from app.settings import Settings
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
-
-
-def _humanize_window_hours(hours: int) -> str:
-    if hours % 24 == 0:
-        days = hours // 24
-        return "1 day" if days == 1 else f"{days} days"
-    return f"{hours}h"
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -45,60 +36,25 @@ def service_explorer(
     session: neo4j.Session = Depends(get_read_session),
     settings: Settings = Depends(get_settings),
 ):
-    service = read_models.service_summary(session, service_id)
-    if service is None:
-        raise HTTPException(status_code=404, detail=f"service not found: {service_id}")
-
-    provides = read_models.service_provides(session, service_id)
-    calls = read_models.service_calls(session, service_id)
-    sends = read_models.service_sends(session, service_id)
-    receives = read_models.service_receives(session, service_id)
-    downstream = blast_radius(session, service_id, max_depth=1)
-
-    env = environment or settings.config.runtime_analysis.default_environment
-    since = default_since(settings.config.runtime_analysis.default_window_hours)
-    observed = service_runtime_profile(session, service_id=service_id, environment=env, since=since)
-
-    return templates.TemplateResponse(
-        request,
-        "service.html",
-        {
-            "service": service,
-            "provides": provides,
-            "calls": calls,
-            "sends": sends,
-            "receives": receives,
-            "downstream": downstream,
-            "observed": observed,
-            "observed_window_label": _humanize_window_hours(
-                settings.config.runtime_analysis.default_window_hours
-            ),
-        },
+    context = service_page_context(
+        session,
+        service_id,
+        environment=environment,
+        runtime_analysis=settings.config.runtime_analysis,
     )
+    if context is None:
+        raise HTTPException(status_code=404, detail=f"service not found: {service_id}")
+    return templates.TemplateResponse(request, "service.html", context)
 
 
 @router.get("/queues/{queue_id}", response_class=HTMLResponse)
 def queue_explorer(
     request: Request, queue_id: str, session: neo4j.Session = Depends(get_read_session)
 ):
-    queue = read_models.queue_summary(session, queue_id)
-    if queue is None:
+    context = queue_page_context(session, queue_id)
+    if context is None:
         raise HTTPException(status_code=404, detail=f"queue not found: {queue_id}")
-
-    messages = read_models.queue_messages(session, queue_id)
-    dlq = read_models.queue_dead_letter(session, queue_id)
-
-    return templates.TemplateResponse(
-        request,
-        "queue.html",
-        {
-            "queue": queue,
-            "senders": senders_of_queue(session, queue_id),
-            "consumers": consumers_of_queue(session, queue_id),
-            "messages": messages,
-            "dlq": dlq,
-        },
-    )
+    return templates.TemplateResponse(request, "queue.html", context)
 
 
 @router.get("/query", response_class=HTMLResponse)
