@@ -1,8 +1,8 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from app.sources.encoding import length_delimited, length_delimited_group, sha256_hex
-from app.sources.jcs import JSONValue, canonical_json_bytes, canonical_sha256_hex
+from app.common.encoding import length_delimited, length_delimited_group, sha256_hex
+from app.common.jcs import JSONValue, canonical_json_bytes, canonical_sha256_hex
 from app.sources.model import DiscoveryScopeId, SourceInstanceId, SourceKind
 
 # I1 spec §5.3: "The empty closure digest is SHA-256 of the zero-length byte string."
@@ -112,7 +112,7 @@ def mapping_context_digest(context: JSONValue) -> str:
     identities and versions - is orchestration work for a later increment, the same scoping already
     used for `discovery_scope_id`/`scope_definition_digest` in this PR. This function owns only the
     canonicalize+hash step; the caller must pre-sort every unordered entry array in `context` with
-    `app.sources.jcs.sort_entries_by_canonical_bytes` before calling this.
+    `app.common.jcs.sort_entries_by_canonical_bytes` before calling this.
     """
     return canonical_sha256_hex(context)
 

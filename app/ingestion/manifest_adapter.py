@@ -1,9 +1,9 @@
 from app.canonical import ids
 from app.canonical.model import ArchitectureModel, Relation
+from app.common.jcs import canonical_json_bytes
 from app.ingestion._shared import rejected_outcome_for_identity, resolved_service_id
 from app.provenance.model import Provenance
 from app.sources.identity import semantic_input_digest
-from app.sources.jcs import canonical_json_bytes
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
 from app.sources.registry import AdapterOutcome, ServiceIdentityResolver, SharedIdentityResolver
 from app.sources.service_identity import ServiceIdentityOutcome, is_valid_service_id

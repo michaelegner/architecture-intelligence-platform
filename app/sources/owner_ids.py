@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from app.sources.encoding import length_delimited, length_delimited_group, sha256_hex
+from app.common.encoding import length_delimited, length_delimited_group, sha256_hex
 
 
 def _utf8(text: str) -> bytes:
@@ -133,7 +133,7 @@ def queue_owned_id(
               stable broker id, normalized namespace-or-empty, exact channel address))>
 
     The caller is responsible for applying Unicode NFC normalization to the raw channel key before
-    calling this (`app.sources.encoding.unicode_nfc`) - channel-address normalization is kept out of
+    calling this (`app.common.encoding.unicode_nfc`) - channel-address normalization is kept out of
     this function so it stays a pure hash-formula function.
     """
     key = length_delimited(

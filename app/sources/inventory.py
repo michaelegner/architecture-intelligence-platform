@@ -3,7 +3,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from app.sources.encoding import length_delimited, length_delimited_group, sha256_hex
+from app.common.encoding import length_delimited, length_delimited_group, sha256_hex
 from app.sources.model import DiscoveryScopeId, IngestionDiagnostic
 from app.sources.tombstones import Tombstone
 

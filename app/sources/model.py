@@ -286,6 +286,15 @@ class DiagnosticCode(StrEnum):
     SUBSCRIPTION_IDENTITY_MISSING = "SUBSCRIPTION_IDENTITY_MISSING"
 
 
+@dataclass(frozen=True)
+class SubscriptionMapping:
+    """The resolved payload of one `subscriptionMappings` entry (I4 spec §7.3)."""
+
+    topic_id: str
+    subscription_name: str
+    subscription_id: str
+
+
 class IngestionDiagnostic(BaseModel):
     code: DiagnosticCode
     message: str

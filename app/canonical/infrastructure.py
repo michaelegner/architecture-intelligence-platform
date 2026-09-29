@@ -21,7 +21,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.sources.encoding import length_delimited, sha256_hex
+from app.common.encoding import length_delimited, sha256_hex
 
 
 def _utf8(text: str) -> bytes:

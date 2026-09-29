@@ -8,11 +8,11 @@ from pathlib import Path
 from typing import Any
 
 from app.canonical.model import ArchitectureModel, Message, Schema
+from app.common.jcs import canonical_sha256_hex, sort_by_canonical_hash
 from app.sources.identity import (
     normalize_relative_posix_path,
     normalized_document_and_reference_projection_bytes,
 )
-from app.sources.jcs import canonical_sha256_hex, sort_by_canonical_hash
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
 from app.sources.reference_resolution import (
     DEFAULT_MAX_REFERENCE_DEPTH,

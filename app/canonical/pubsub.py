@@ -20,7 +20,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.sources.encoding import length_delimited, sha256_hex
+from app.common.encoding import length_delimited, sha256_hex
 
 PUBSUB_DECLARATION_LABEL = "PubSubDeclaration"
 SUBSCRIPTION_DEAD_LETTER_CONFIGURATION_LABEL = "SubscriptionDeadLetterConfiguration"

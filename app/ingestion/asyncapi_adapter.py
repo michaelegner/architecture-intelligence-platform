@@ -11,6 +11,8 @@ from app.canonical.model import (
     Topic,
 )
 from app.canonical.pubsub import PubSubDeclaration, SubscriptionDeadLetterConfiguration
+from app.common.encoding import unicode_nfc
+from app.common.jcs import JSONValue
 from app.ingestion._shared import (
     build_resolution_cache,
     enforce_reference_closure,
@@ -24,9 +26,7 @@ from app.ingestion._shared import (
     upsert_schema_or_conflict,
 )
 from app.provenance.model import Provenance
-from app.sources.encoding import unicode_nfc
 from app.sources.identity import semantic_input_digest
-from app.sources.jcs import JSONValue
 from app.sources.message_contract import message_contract_digest, message_document_digest
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
 from app.sources.owner_ids import (
