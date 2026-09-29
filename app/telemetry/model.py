@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -69,7 +69,10 @@ class RuntimeSpan(BaseModel):
 def day_bucket(timestamp: datetime) -> tuple[datetime, datetime]:
     """Truncates a timestamp to its UTC calendar day (spec §17: bucket = 1 day), returning
     (day_start, day_start + 1 day)."""
-    day_start = datetime(timestamp.year, timestamp.month, timestamp.day, tzinfo=timestamp.tzinfo)
+    if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+        raise ValueError("day_bucket requires an offset-aware timestamp")
+    utc = timestamp.astimezone(UTC)
+    day_start = datetime(utc.year, utc.month, utc.day, tzinfo=UTC)
     return day_start, day_start + timedelta(days=1)
 
 
