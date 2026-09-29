@@ -58,14 +58,45 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
     topic_ids = {t.id for t in model.topics}
     subscription_ids = {s.id for s in model.subscriptions}
 
-    # V1 / V3 / V4: unique stable ids
+    _check_unique_ids(model, errors)
+    _check_operation_providers(model, errors)
+    _check_calls_targets(model, operation_ids=operation_ids, errors=errors)
+    _check_schema_references(model, schema_ids=schema_ids, errors=errors)
+    _check_dead_letter_targets(model, errors)
+    known_ids = (
+        service_ids | operation_ids | queue_ids | message_ids | schema_ids | topic_ids
+    ) | subscription_ids
+    _check_relation_endpoints(model, known_ids=known_ids, errors=errors)
+
+    _validate_pubsub(
+        model,
+        service_ids=service_ids,
+        topic_ids=topic_ids,
+        subscription_ids=subscription_ids,
+        errors=errors,
+    )
+
+    _check_relation_evidence(model, errors)
+
+    provenance_by_id = {p.id: p for p in model.provenance}
+    _validate_infrastructure(model, provenance_by_id=provenance_by_id, errors=errors)
+
+    return errors
+
+
+def _check_unique_ids(model: ArchitectureModel, errors: list[CanonicalValidationIssue]) -> None:
+    """V1 / V3 / V4: unique stable ids."""
     _check_unique([s.id for s in model.services], "Service", errors)
     _check_unique([q.id for q in model.queues], "Queue", errors)
     _check_unique([m.id for m in model.messages], "Message", errors)
     _check_unique([t.id for t in model.topics], "Topic", errors)
     _check_unique([s.id for s in model.subscriptions], "Subscription", errors)
 
-    # V2: every operation has exactly one provider, matching its own service_id
+
+def _check_operation_providers(
+    model: ArchitectureModel, errors: list[CanonicalValidationIssue]
+) -> None:
+    """V2: every operation has exactly one provider, matching its own service_id."""
     provides_sources_by_target: dict[str, list[str]] = defaultdict(list)
     for relation in model.relations:
         if relation.type == "PROVIDES":
@@ -92,7 +123,11 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
                 )
             )
 
-    # V5: every CALLS relation references an existing operation
+
+def _check_calls_targets(
+    model: ArchitectureModel, *, operation_ids: set[str], errors: list[CanonicalValidationIssue]
+) -> None:
+    """V5: every CALLS relation references an existing operation."""
     for relation in model.relations:
         if relation.type == "CALLS" and relation.target_id not in operation_ids:
             errors.append(
@@ -103,7 +138,11 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
                 )
             )
 
-    # V6: schema references point to an existing schema
+
+def _check_schema_references(
+    model: ArchitectureModel, *, schema_ids: set[str], errors: list[CanonicalValidationIssue]
+) -> None:
+    """V6: schema references point to an existing schema."""
     for relation in model.relations:
         if relation.type in SCHEMA_RELATION_TYPES and relation.target_id not in schema_ids:
             errors.append(
@@ -131,7 +170,11 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
                 )
             )
 
-    # V7: a DLQ must not point to itself
+
+def _check_dead_letter_targets(
+    model: ArchitectureModel, errors: list[CanonicalValidationIssue]
+) -> None:
+    """V7: a DLQ must not point to itself."""
     for relation in model.relations:
         if relation.type == "DEAD_LETTERS_TO" and relation.source_id == relation.target_id:
             errors.append(
@@ -141,10 +184,11 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
                 )
             )
 
-    # V8: relations only reference existing source/target entities
-    known_ids = (
-        service_ids | operation_ids | queue_ids | message_ids | schema_ids | topic_ids
-    ) | subscription_ids
+
+def _check_relation_endpoints(
+    model: ArchitectureModel, *, known_ids: set[str], errors: list[CanonicalValidationIssue]
+) -> None:
+    """V8: relations only reference existing source/target entities."""
     for relation in model.relations:
         if relation.source_id not in known_ids:
             errors.append(
@@ -161,15 +205,11 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
                 )
             )
 
-    _validate_pubsub(
-        model,
-        service_ids=service_ids,
-        topic_ids=topic_ids,
-        subscription_ids=subscription_ids,
-        errors=errors,
-    )
 
-    # Evidence: every relation's evidence_ids must reference a Provenance record in this model
+def _check_relation_evidence(
+    model: ArchitectureModel, errors: list[CanonicalValidationIssue]
+) -> None:
+    """Every relation's evidence_ids must reference a Provenance record in this model."""
     evidence_ids = {p.id for p in model.provenance}
     for relation in model.relations:
         for evidence_id in relation.evidence_ids:
@@ -181,11 +221,6 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
                         relation_key(relation),
                     )
                 )
-
-    provenance_by_id = {p.id: p for p in model.provenance}
-    _validate_infrastructure(model, provenance_by_id=provenance_by_id, errors=errors)
-
-    return errors
 
 
 # v0.5.0 I4 spec §6.3: the only generic Pub/Sub relation triples. RECEIVES_FROM/CARRIES keep their
