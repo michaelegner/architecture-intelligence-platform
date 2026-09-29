@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.graph.importer import (
+from app.graph.import_stats import (
     ClaimEffectSet,
     ImportRunStats,
     SourceClaimEffects,

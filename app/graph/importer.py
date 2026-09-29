@@ -9,10 +9,9 @@ from app.canonical.pubsub import (
     PUBSUB_DECLARATION_LABEL,
     SUBSCRIPTION_DEAD_LETTER_CONFIGURATION_LABEL,
 )
-from app.common.encoding import length_delimited, sha256_hex
 from app.common.jcs import canonical_json_bytes
+from app.graph import claim_planning
 from app.graph.import_stats import (
-    ClaimEffectSet,
     EmittedCounts,
     ImportRunStats,
     SourceClaimEffects,
@@ -134,42 +133,6 @@ INFRASTRUCTURE_CLAIM_CONTRIBUTION_LABEL = "InfrastructureClaimContribution"
 KNOWN_RELATION_TYPES = frozenset(RELATIONS)
 
 
-def _model_node_ids(model: ArchitectureModel, *, source_instance_id: str) -> set[str]:
-    return {
-        *(s.id for s in model.services),
-        *(o.id for o in model.operations),
-        *(q.id for q in model.queues),
-        *(m.id for m in model.messages),
-        *(sc.id for sc in model.schemas),
-        *(p.id for p in model.provenance),
-        # v0.5.0 I4: Topic/Subscription plus their internal source-owned carriers, through the same
-        # ownership/reconciliation path (§11: no parallel lifecycle engine).
-        *(t.id for t in model.topics),
-        *(s.id for s in model.subscriptions),
-        *(d.id for d in model.pubsub_declarations),
-        *(c.id for c in model.subscription_dead_letter_configurations),
-        # I2 Draft 0.2 §3 item 6: infrastructure facts go through the *same* ownership and
-        # reconciliation path as every other canonical fact - including them here is what makes
-        # `plan_source_claim_reconciliation`'s claim-key diff, `_EXPIRE_NODES_QUERY`'s
-        # last-owner-wins deletion, and `_EXPIRE_NODES_QUERY`'s shared-ownership retirement
-        # apply to them unchanged.
-        *(e.id for e in model.infrastructure_entities),
-        *(c.id for c in model.infrastructure_contributions),
-        *(c.id for c in model.infrastructure_claims),
-        # The per-source claim-contribution row (see _write_infrastructure_nodes) is its own owned
-        # node, keyed per (claim, THIS source), so it must participate in ownership reconciliation
-        # the same way `InfrastructureContribution` already does.
-        *(
-            _infrastructure_claim_contribution_id(claim.id, source_instance_id)
-            for claim in model.infrastructure_claims
-        ),
-    }
-
-
-def _model_relation_keys(model: ArchitectureModel) -> set[str]:
-    return {relation_key(r) for r in model.relations}
-
-
 # The public canonical node labels (the `NODE_LABELS` entities, minus Evidence). Every other owned
 # node is internal-only, and appears in a `ClaimEffectSet` only as a count.
 _PUBLIC_NODE_LABELS = frozenset(label for label in NODE_LABELS.values() if label != "Evidence")
@@ -191,60 +154,6 @@ def _public_node_ids(
             if _PUBLIC_NODE_LABELS.intersection(record["labels"])
         )
     return frozenset(public & node_ids)
-
-
-def _effect_set(
-    node_ids: AbstractSet[str], relation_keys: AbstractSet[str], public: AbstractSet[str]
-) -> ClaimEffectSet:
-    return ClaimEffectSet(
-        public_node_ids=tuple(sorted(node_ids & public)),
-        relation_keys=tuple(sorted(relation_keys)),
-        internal_count=len(node_ids - public),
-    )
-
-
-def _without_owners(props: dict | None) -> dict | None:
-    if props is None:
-        return None
-    return {key: value for key, value in props.items() if key != "owner_source_ids"}
-
-
-def _owners_after_run(
-    committed_owners: AbstractSet[str],
-    key: str,
-    *,
-    run_source_ids: AbstractSet[str],
-    run_emitters: Mapping[str, AbstractSet[str]],
-) -> set[str]:
-    """Who owns a claim once the whole run has committed: its committed owners outside this run,
-    plus the run's sources that still emit it. Independent of the order the run's sources are
-    reconciled in, so a claim two sources of one run both stop emitting expires for both."""
-    return {owner for owner in committed_owners if owner not in run_source_ids} | set(
-        run_emitters.get(key, ())
-    )
-
-
-def _dropped_claim_owners(
-    owned: Mapping[str, AbstractSet[str]],
-    *,
-    source_instance_id: str,
-    run_source_ids: AbstractSet[str],
-    run_emitters: Mapping[str, AbstractSet[str]],
-) -> dict[str, set[SourceInstanceId]]:
-    """`committed_claim_owners` for `plan_source_claim_reconciliation`: this source plus every owner
-    the claim will have after the run, so a dropped claim is `expired` only when nobody else will
-    own it, and `ownership_removed` otherwise. Owner ids are stored as plain strings, and
-    `SourceInstanceId` is a typing-only NewType, so wrapping them changes no value."""
-    return {
-        key: {
-            SourceInstanceId(owner)
-            for owner in {source_instance_id}
-            | _owners_after_run(
-                owners, key, run_source_ids=run_source_ids, run_emitters=run_emitters
-            )
-        }
-        for key, owners in owned.items()
-    }
 
 
 def _expire_dropped_claims(
@@ -340,22 +249,6 @@ def _infrastructure_entity_props(entity) -> dict:
         canonical_json_bytes(port.model_dump()).decode("utf-8") for port in entity.ports
     ]
     return props
-
-
-def _utf8(text: str) -> bytes:
-    return text.encode("utf-8")
-
-
-def _infrastructure_claim_contribution_id(claim_id: str, source_instance_id: str) -> str:
-    """Not spec-named (§7.2 describes the per-source contribution *concept* in prose, not a schema
-    - the same discipline as every other id formula this PR's own layer invents). Length-delimited
-    like every other identity hash in this codebase; deliberately a different literal prefix from
-    `InfrastructureClaim.id`'s own `urn:aip:infra-claim:` so `_recompute_infrastructure_claim_evidence`
-    can distinguish "a claim id" from "a claim-contribution id" by a plain string prefix check,
-    without needing a Neo4j label lookup.
-    """
-    key = length_delimited(_utf8(claim_id), _utf8(source_instance_id))
-    return f"urn:aip:infra-claim-support:{sha256_hex(key)}"
 
 
 _INFRASTRUCTURE_CLAIM_ID_PREFIX = "urn:aip:infra-claim:"
@@ -475,7 +368,7 @@ def _write_infrastructure_nodes(
         subject_contribution = contribution_by_entity_id.get(claim.subject_id)
         tx.run(
             claim_contribution_query,
-            id=_infrastructure_claim_contribution_id(claim.id, source_instance_id),
+            id=claim_planning.infrastructure_claim_contribution_id(claim.id, source_instance_id),
             props={
                 "claim_id": claim.id,
                 "evidence_refs": claim.evidence_refs,
@@ -657,8 +550,8 @@ def _import_source_tx(
     existing_node_ids = set(owned_nodes)
     existing_relation_keys = set(owned_relations)
 
-    new_node_ids = _model_node_ids(model, source_instance_id=source_instance_id)
-    new_relation_keys = _model_relation_keys(model)
+    new_node_ids = claim_planning.model_node_ids(model, source_instance_id=source_instance_id)
+    new_relation_keys = claim_planning.model_relation_keys(model)
     if replay_decision.case is ReplayCase.SCOPE_CHANGED_PRESERVE_PENDING_TOMBSTONE:
         # I1 spec §5.4/§6: a scope change must not itself authorize expiring claims absent from the
         # new scope - only an explicit inventory transition/tombstone may. Treat everything this
@@ -672,7 +565,7 @@ def _import_source_tx(
         run_relation_emitters = {key: {source_instance_id} for key in new_relation_keys}
     node_plan = plan_source_claim_reconciliation(
         source_instance_id=SourceInstanceId(source_instance_id),
-        committed_claim_owners=_dropped_claim_owners(
+        committed_claim_owners=claim_planning.dropped_claim_owners(
             owned_nodes,
             source_instance_id=source_instance_id,
             run_source_ids=run_source_ids,
@@ -682,7 +575,7 @@ def _import_source_tx(
     )
     relation_plan = plan_source_claim_reconciliation(
         source_instance_id=SourceInstanceId(source_instance_id),
-        committed_claim_owners=_dropped_claim_owners(
+        committed_claim_owners=claim_planning.dropped_claim_owners(
             owned_relations,
             source_instance_id=source_instance_id,
             run_source_ids=run_source_ids,
@@ -780,13 +673,13 @@ def _import_source_tx(
     # bookkeeping another source's reconciliation may change (every source's property writes are
     # already pre-merged); and a retained relation that gains evidence this source emits, since a
     # relation's only other properties are its key and owners.
-    model_node_ids = _model_node_ids(model, source_instance_id=source_instance_id)
+    model_node_ids = claim_planning.model_node_ids(model, source_instance_id=source_instance_id)
     previously_owned_nodes = (existing_node_ids - model_node_ids) | {
         node_id
         for node_id in model_node_ids
         if source_instance_id in (nodes_before.get(node_id) or {}).get("owner_source_ids", [])
     }
-    model_relation_keys = _model_relation_keys(model)
+    model_relation_keys = claim_planning.model_relation_keys(model)
     previously_owned_relations = (existing_relation_keys - model_relation_keys) | {
         key
         for key in model_relation_keys
@@ -798,16 +691,17 @@ def _import_source_tx(
     retained_nodes = new_node_ids & previously_owned_nodes
     retained_relations = new_relation_keys & previously_owned_relations
     effects = SourceClaimEffects(
-        added=_effect_set(
+        added=claim_planning.effect_set(
             new_node_ids - previously_owned_nodes,
             new_relation_keys - previously_owned_relations,
             public_node_ids,
         ),
-        changed=_effect_set(
+        changed=claim_planning.effect_set(
             {
                 i
                 for i in retained_nodes
-                if _without_owners(nodes_before.get(i)) != _without_owners(nodes_after.get(i))
+                if claim_planning.without_owners(nodes_before.get(i))
+                != claim_planning.without_owners(nodes_after.get(i))
             },
             {
                 k
@@ -817,10 +711,10 @@ def _import_source_tx(
             },
             public_node_ids,
         ),
-        expired=_effect_set(
+        expired=claim_planning.effect_set(
             node_plan.expired_claim_keys, relation_plan.expired_claim_keys, public_node_ids
         ),
-        ownership_removed=_effect_set(
+        ownership_removed=claim_planning.effect_set(
             node_plan.ownership_removed_claim_keys,
             relation_plan.ownership_removed_claim_keys,
             public_node_ids,
@@ -860,7 +754,7 @@ def _remove_source_tx(
     removed = {source_instance_id, *removed_source_ids}
     node_plan = plan_source_claim_reconciliation(
         source_instance_id=SourceInstanceId(source_instance_id),
-        committed_claim_owners=_dropped_claim_owners(
+        committed_claim_owners=claim_planning.dropped_claim_owners(
             owned_nodes,
             source_instance_id=source_instance_id,
             run_source_ids=removed,
@@ -870,7 +764,7 @@ def _remove_source_tx(
     )
     relation_plan = plan_source_claim_reconciliation(
         source_instance_id=SourceInstanceId(source_instance_id),
-        committed_claim_owners=_dropped_claim_owners(
+        committed_claim_owners=claim_planning.dropped_claim_owners(
             owned_relations,
             source_instance_id=source_instance_id,
             run_source_ids=removed,
@@ -900,10 +794,10 @@ def _remove_source_tx(
         relations_expired=len(relation_plan.expired_claim_keys),
         graph_revision_advanced=True,
         effects=SourceClaimEffects(
-            expired=_effect_set(
+            expired=claim_planning.effect_set(
                 node_plan.expired_claim_keys, relation_plan.expired_claim_keys, public_node_ids
             ),
-            ownership_removed=_effect_set(
+            ownership_removed=claim_planning.effect_set(
                 node_plan.ownership_removed_claim_keys,
                 relation_plan.ownership_removed_claim_keys,
                 public_node_ids,
@@ -1021,10 +915,10 @@ def _import_all_sources_tx(
     all_node_ids: set[str] = set()
     all_relation_keys: set[str] = set()
     for source_instance_id, source_outcome in run_result.source_outcomes.items():
-        all_node_ids |= _model_node_ids(
+        all_node_ids |= claim_planning.model_node_ids(
             source_outcome.outcome.model, source_instance_id=source_instance_id
         )
-        all_relation_keys |= _model_relation_keys(source_outcome.outcome.model)
+        all_relation_keys |= claim_planning.model_relation_keys(source_outcome.outcome.model)
     committed_nodes_before = _snapshot_node_props(tx, all_node_ids)
     committed_relations_before = _snapshot_relation_props(tx, all_relation_keys)
 
@@ -1072,9 +966,9 @@ def _import_all_sources_tx(
     run_relation_emitters: dict[str, set[str]] = {}
     for source_instance_id, source_outcome in run_result.source_outcomes.items():
         model = source_outcome.outcome.model
-        for node_id in _model_node_ids(model, source_instance_id=source_instance_id):
+        for node_id in claim_planning.model_node_ids(model, source_instance_id=source_instance_id):
             run_node_emitters.setdefault(node_id, set()).add(source_instance_id)
-        for key in _model_relation_keys(model):
+        for key in claim_planning.model_relation_keys(model):
             run_relation_emitters.setdefault(key, set()).add(source_instance_id)
 
     per_source: dict[str, SourceImportStats] = {}
