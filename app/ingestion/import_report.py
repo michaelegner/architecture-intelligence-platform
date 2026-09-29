@@ -37,7 +37,7 @@ from typing import Annotated, Literal, get_args
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.common.locators import sanitize_source_locator
-from app.graph.import_stats import (
+from app.sources.import_stats import (
     ClaimEffectSet,
     EmittedCounts,
     ImportRunStats,

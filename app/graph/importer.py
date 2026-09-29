@@ -6,14 +6,6 @@ import neo4j
 
 from app.canonical.model import ArchitectureModel, relation_key
 from app.graph import claim_planning, writers
-from app.graph.import_stats import (
-    EmittedCounts,
-    ImportRunStats,
-    SourceClaimEffects,
-    SourceImportStats,
-    SourceRunResult,
-    TombstoneDecision,
-)
 from app.graph.labels import (
     KNOWN_RELATION_TYPES,
     NODE_LABELS,
@@ -41,6 +33,14 @@ from app.ingestion.orchestrator import (
 )
 from app.sources.claim_reconciliation import (
     plan_source_claim_reconciliation,
+)
+from app.sources.import_stats import (
+    EmittedCounts,
+    ImportRunStats,
+    SourceClaimEffects,
+    SourceImportStats,
+    SourceRunResult,
+    TombstoneDecision,
 )
 from app.sources.inventory import InventoryStatus
 from app.sources.inventory import inventory_event_id as compute_inventory_event_id

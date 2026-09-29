@@ -10,7 +10,7 @@ from collections.abc import Set as AbstractSet
 
 from app.canonical.model import ArchitectureModel, relation_key
 from app.common.encoding import length_delimited, sha256_hex, utf8
-from app.graph.import_stats import (
+from app.sources.import_stats import (
     ClaimEffectSet,
 )
 from app.sources.model import (
