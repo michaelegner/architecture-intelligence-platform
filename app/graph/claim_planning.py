@@ -9,17 +9,13 @@ from collections.abc import Mapping
 from collections.abc import Set as AbstractSet
 
 from app.canonical.model import ArchitectureModel, relation_key
-from app.common.encoding import length_delimited, sha256_hex
+from app.common.encoding import length_delimited, sha256_hex, utf8
 from app.graph.import_stats import (
     ClaimEffectSet,
 )
 from app.sources.model import (
     SourceInstanceId,
 )
-
-
-def _utf8(text: str) -> bytes:
-    return text.encode("utf-8")
 
 
 def infrastructure_claim_contribution_id(claim_id: str, source_instance_id: str) -> str:
@@ -30,7 +26,7 @@ def infrastructure_claim_contribution_id(claim_id: str, source_instance_id: str)
     can distinguish "a claim id" from "a claim-contribution id" by a plain string prefix check,
     without needing a Neo4j label lookup.
     """
-    key = length_delimited(_utf8(claim_id), _utf8(source_instance_id))
+    key = length_delimited(utf8(claim_id), utf8(source_instance_id))
     return f"urn:aip:infra-claim-support:{sha256_hex(key)}"
 
 

@@ -59,8 +59,9 @@ async def lifespan(app: FastAPI):
     )
     mcp_wiring.configure(architecture_intelligence_service)
     app.state.architecture_intelligence_service = architecture_intelligence_service
-    if settings.config.llm.enabled and settings.secrets.openai_api_key:
-        app.state.llm_provider = OpenAIProvider(api_key=settings.secrets.openai_api_key)
+    openai_api_key = settings.secrets.openai_api_key
+    if settings.config.llm.enabled and openai_api_key and openai_api_key.get_secret_value():
+        app.state.llm_provider = OpenAIProvider(api_key=openai_api_key.get_secret_value())
     else:
         app.state.llm_provider = None
     http_correlation = settings.config.telemetry.http_correlation

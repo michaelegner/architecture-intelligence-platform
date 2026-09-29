@@ -38,6 +38,11 @@ def length_delimited_group(parts: Sequence[bytes]) -> bytes:
     return length_delimited(*parts)
 
 
+def utf8(text: str) -> bytes:
+    """The UTF-8 bytes of `text` - the one text-to-bytes step every identity hash input goes through."""
+    return text.encode("utf-8")
+
+
 def sha256_hex(data: bytes) -> str:
     """Lowercase hexadecimal SHA-256, the fixed output encoding for every identity/digest formula."""
     return hashlib.sha256(data).hexdigest()
