@@ -3,9 +3,10 @@
 **Status:** Working strategy — Moldable Architecture Knowledge positioning and release doctrine integrated<br>
 **Project:** Architecture Intelligence Platform (AIP)<br>
 **Date:** 2026-09-21<br>
+**Roadmap-alignment revision:** 2026-09-29<br>
 **Scope:** Product doctrine, target wedge, semantic model, Moldable Architecture Knowledge, strategic direction, and roadmap alignment<br>
 **Current implementation center:** Evidence-qualified Current State and read-only agent context; v0.5 broadens discovery and public Architecture Knowledge access<br>
-**Important:** ROADMAP.md assigns planned themes to v0.6–v0.8; detailed scope remains subject to release-specific specifications and qualification gates.
+**Important:** ROADMAP.md assigns planned themes to v0.6–v0.9; detailed scope remains subject to release-specific specifications and qualification gates.
 
 ---
 
@@ -415,10 +416,12 @@ The sequence is:
 2. Qualify those facts under explicit observation context.
 3. Preserve provenance and derivation.
 4. Establish facts locally before projecting them globally.
-5. Introduce explicit attributable intent as a separate domain.
-6. Assess Current State against applicable intent.
-7. Represent architecture evolution as context-bound trajectories.
-8. Only then consider transformation reasoning.
+5. Extend qualified Current State to API exposure and consumption without conflating interfaces,
+   technical implementation, products, consumers, and business capabilities.
+6. Introduce explicit attributable intent as a separate domain.
+7. Assess Current State against applicable intent.
+8. Represent architecture evolution as context-bound trajectories.
+9. Only then consider transformation reasoning.
 ```
 
 The progression deliberately separates:
@@ -457,9 +460,12 @@ v0.5  Where is this service deployed?
 v0.6  Where is this dependency established?
       Does this relation differ by supported locality?
 
-v0.7  What explicit architecture intent applies here?
+v0.7  How are APIs exposed and consumed, and what can the available evidence establish
+      about those relationships?
 
-v0.8  Where does Current State differ from applicable Intent?
+v0.8  What explicit architecture intent applies here?
+
+v0.9  Where does Current State differ from applicable Intent?
 ```
 
 The technical model remains essential, but the product roadmap should explain **what new question
@@ -646,7 +652,9 @@ A complementary product-design question is:
     interacts.**
 17. **Service identity, Bounded Context, deployment unit, and team boundary are distinct concepts.
     They may align, but that alignment is itself an architectural claim requiring evidence or
-    explicit intent.**
+    explicit intent. API product, API contract, operation, gateway route/service, application
+    service, consumer, and business capability also retain distinct meanings; an association is
+    not automatically identity.**
 18. **Emergent behavior may establish Current State; it does not establish Intent.**
 19. **Current State and Intent may both be partial, local, and time-bound.**
 20. **Desired architecture should be declarative and partial rather than encoded as a migration
@@ -1086,10 +1094,47 @@ The invariant is:
 
 ---
 
+### 14.1 API-Aware Current State — planned v0.7
+
+AIP's planned API Landscape capability applies the **same Current-State qualification path** to
+how APIs are exposed and consumed, rather than creating a vendor-specific gateway graph or a
+general-purpose enterprise catalog.
+
+> **How are APIs exposed and consumed, and what can the available evidence establish about those
+> relationships?**
+
+The first question-specific validation slice relates *configured* consumer/API access to
+independently *observed* consumer-attributed usage in an explicit environment/window. A configured
+registration, gateway ACL membership, or subscription establishes only what that source actually
+asserts. It does not by itself establish a runtime call, an approved architectural requirement, or
+business intent. No matching measurement is not proof of non-use without applicable telemetry
+coverage and supported attribution.
+
+A source-neutral semantic contract must distinguish API contract and version, API operation,
+gateway route/service, application service, gateway consumer, configured-access relationship,
+observed interaction, and any separately evidenced API product, business capability, owner, or
+authorization boundary. Similar names, URLs, graph proximity, or shared deployment do not establish
+entity equivalence or business classification. A gateway route may expose an operation and forward
+to an application service while remaining a different entity from both.
+
+The first real-source validation proposes Kong configuration and consumer-attributed measurements,
+with explicit inventory/revision, provenance, snapshot/replay, identity/reconciliation, and coverage
+rules. Kong source semantics must be translated into AIP's own evidence-qualified model. Other
+gateways, OpenAPI/AsyncAPI, repositories, CI/CD results, architecture models, and further business
+sources are subsequent **question-driven adapter candidates**, not automatic coverage claims or
+requirements of the first v0.7 slice.
+
+The initial question remains wholly within **Current State**. Canonical contract authority,
+product/capability ownership, organizational accountability and authorization must be independently
+evidenced where they are asserted, not inferred from technical metadata. Formal Intent remains a
+separate downstream path; security-policy assessment belongs downstream of independently established
+Current State and applicable Intent.
+
 ## 15. Explicit Intent
 
 Agent-readiness creates pressure to add architectural intent. AIP should support this only with a
-strict authority model.
+strict authority model. Configured API/gateway registration remains evidence of Current State;
+it does not become governing Intent merely because access was granted or usage was observed.
 
 The preferred separation is:
 
@@ -2166,11 +2211,18 @@ v0.6 — Locality-Aware Current State
   "Where is this dependency established?"
   "Does this relation differ by supported locality?"
 
-v0.7 — Explicit Architecture Intent
+v0.7 — API-Aware Current State
+  Product question:
+  "How are APIs exposed and consumed, and what can the available evidence establish about
+   those relationships?"
+  First bounded validation: configured consumer/API access versus observed usage with real
+  gateway configuration, attributed measurements, coverage, and cross-source identity.
+
+v0.8 — Explicit Architecture Intent
   Product question:
   "What explicit architecture intent applies here?"
 
-v0.8 — Qualified Architecture Assessment
+v0.9 — Qualified Architecture Assessment
   Product question:
   "Where does Current State differ from applicable Intent?"
 
@@ -2182,7 +2234,9 @@ v1.0 — Stable Architecture Intelligence Platform
 ```
 
 The release themes still describe implementation scope. The product questions explain why each
-capability release expands AIP's useful Architecture Knowledge.
+capability release expands AIP's useful Architecture Knowledge. v0.7 remains a **validation-gated,
+question-specific Current-State extension**; it must not delay, amend or implicitly widen the
+accepted v0.6.0 specification.
 
 The semantic dependency between these themes is deliberate:
 
@@ -2190,6 +2244,8 @@ The semantic dependency between these themes is deliberate:
 DISCOVER
    ↓
 ESTABLISH CURRENT STATE LOCALLY
+   ↓
+CONNECT API EXPOSURE AND CONSUMPTION AS CURRENT STATE
    ↓
 REPRESENT INTENT INDEPENDENTLY
    ↓
@@ -2228,34 +2284,42 @@ local assessment as semantics
 distributed assessor as deployment architecture
 ```
 
-### 26.3 v0.7 and v0.8 are planned capabilities
+### 26.3 v0.7 API Landscape, v0.8 Intent and v0.9 Assessment are planned capabilities
 
-Explicit Intent and Qualified Current↔Intent Assessment are planned capabilities, not unallocated
-ideas. Planned scope, authorization to execute a release, and qualification for the stable v1.0
-contract are distinct decisions. Planned status does not establish customer value or waive the
-product and qualification gates.
+The API Landscape addition broadens the question space within **Current State**. It needs an
+independently qualified, source-neutral vocabulary for API exposure/consumption, real gateway and
+consumer-attributed usage evidence, cross-source reconciliation, and explicit coverage. It is not a
+commitment to model all API gateways, products, business capabilities, or ownership at once. The
+initial pilot must justify the value and operating cost of its bounded question before its contracts
+are accepted for v1.0. Source objects remain distinct unless equivalence is evidenced.
 
-v0.7 must implement and qualify the independent Intent path while preserving the invariant:
+Explicit Intent and Qualified Current↔Intent Assessment remain separate planned capabilities, not
+unallocated ideas. Planned scope, authorization to execute a release, and qualification for v1.0 are
+distinct decisions. Planned status does not waive the product and qualification gates.
+
+v0.8 must implement and qualify the independent Intent path while preserving the invariant:
 
 > **With evidence, evaluation context, identity resolution, and mapping, qualification, and projection
 > rule versions held constant, changing Intent must not change established Current State.**
 
-v0.8 must implement and qualify the separate Current↔Intent assessment path over the two independent
-projections.
+v0.9 must implement and qualify the separate Current↔Intent assessment path over the two independent
+projections. For example, comparing evidenced *effective* gateway configuration with an applicable
+security requirement is not the same as inferring endpoint insecurity from a missing route-level
+plugin, and observed usage is context rather than compliance evidence by itself.
 
 ### 26.4 v1.0 release-candidate qualification and freeze rule
 
-After v0.8, contract freeze and production qualification should run as a `v1.0.0-rc.N` phase rather
-than as a separate `v0.9.0` product-capability release. That phase should stabilize the planned
-pre-v1.0 capabilities that have been implemented and qualified through v0.8.
+After v0.9, contract freeze and production qualification should run as a `v1.0.0-rc.N` phase
+rather than as another capability release solely for stabilization. That phase should stabilize
+only the planned pre-v1.0 capabilities actually implemented and qualified through v0.9.
 
 The rule is:
 
 > **Implement and qualify the planned capability before freezing its public contract.**
 
-If a planned v0.7 or v0.8 capability does not satisfy its semantic, deterministic, security,
-performance, or real-system qualification gates, it must not be promoted into the stable v1.0
-contract merely because it appeared on the roadmap.
+If a planned v0.7, v0.8 or v0.9 capability does not satisfy its product-value, semantic,
+deterministic, security, performance, or real-system qualification gates, it must not be promoted
+into the stable v1.0 contract merely because it appeared on the roadmap.
 
 Such a capability should instead be one of:
 
@@ -2266,11 +2330,11 @@ reduced in scope and re-qualified
 removed from the v1.0 contract
 ```
 
-No additional roadmap change is required merely to specify and implement the planned v0.7 Intent or
-v0.8 Assessment capabilities. The release-candidate phase must not invent a new product question
-merely to justify a version number; its purpose is to freeze and qualify the already-implemented
-question space. Product-value and qualification gates still apply. A failed gate must
-result in a documented decision to narrow, defer, or remove scope; material changes to release
+No additional roadmap change is required merely to specify and implement the planned v0.7 API
+Landscape, v0.8 Intent or v0.9 Assessment capabilities. The release-candidate phase must not invent
+a new product question merely to justify a version number; its purpose is to freeze and qualify the
+already-implemented question space. Product-value and qualification gates still apply. A failed gate
+must result in a documented decision to narrow, defer, or remove scope; material changes to release
 assignment or product boundary must also be reflected in ROADMAP.md.
 
 ### 26.5 Beyond v1.0, unscheduled
@@ -2278,6 +2342,8 @@ assignment or product boundary must also be reflected in ROADMAP.md.
 The current roadmap places these capabilities beyond v1.0:
 
 ```text
+externally sourced architecture decision-history linkage (findings, reviews, attributable decisions,
+  rationale, approved exceptions and their validity), without owning approval workflows
 historical architecture-state retention/import
 architecture trajectories
 distributed Local Architecture Assessor deployment
@@ -2285,6 +2351,11 @@ safe architecture transformation research
 causal runtime-flow analysis
 other explicitly future integrations/capabilities
 ```
+
+Decision-history linkage is distinct from historical reconstruction of architectural Current State:
+an externally recorded exception or review does not prove what was deployed at that time. AIP may
+eventually relate a versioned finding/assessment to that record, but must not become its approval
+authority. This is an unscheduled research candidate, not an added pre-v1.0 release requirement.
 
 Architecture trajectories require a prior historical-state foundation including temporal identity,
 provenance continuity, intent history, retention/import semantics, and temporal querying.
@@ -2405,11 +2476,13 @@ Given the current roadmap, the preferred order is:
 3. Broaden trustworthy discovery in v0.5.
 4. Preserve WHERE != HOW and the service != Bounded Context != deployment unit != team boundary rule.
 5. Implement locality-aware Current-State semantics in v0.6 without requiring distributed execution.
-6. Implement the independent explicit-Intent path in v0.7.
-7. Implement the separate Current ↔ Intent assessment path in v0.8.
-8. In the v1.0 release-candidate phase, freeze only contracts that survive implementation and qualification.
-9. Keep historical trajectories and distributed Local Architecture Assessor deployment beyond v1.0,
-   unscheduled, unless the roadmap is explicitly revised.
+6. Validate API exposure and consumption as a bounded, source-neutral Current-State question in
+   v0.7, beginning with real gateway configuration and consumer-attributed usage evidence.
+7. Implement the independent explicit-Intent path in v0.8.
+8. Implement the separate Current ↔ Intent assessment path in v0.9.
+9. In the v1.0 release-candidate phase, freeze only contracts that survive implementation and qualification.
+10. Keep decision-history linkage, historical trajectories and distributed Local Architecture Assessor
+    deployment beyond v1.0, unscheduled, unless the roadmap is explicitly revised.
 ```
 
 This sequence preserves the central dependency:
@@ -2484,6 +2557,13 @@ Local assessments must not be silently promoted into universal facts.
 
 AIP should not require a complete centrally authored target graph when explicit partial intent is
 sufficient.
+
+### API boundary and vendor-model conflation
+
+An API contract, operation, gateway route/service, application service, consumer, product, business
+capability, and permission are not interchangeable objects. An adapter must not make one gateway's
+terminology the source-neutral model or infer organizational authority from technical metadata.
+Configured access must not be silently treated as explicit architectural Intent.
 
 ### Intent-carrier lock-in
 
