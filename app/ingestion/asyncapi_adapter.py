@@ -31,7 +31,13 @@ from app.ingestion.reference_closure import (
 from app.ingestion.schema_normalization import resolve_and_normalize_schema, schema_display_name
 from app.sources.identity import semantic_input_digest
 from app.sources.message_contract import message_contract_digest, message_document_digest
-from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
+from app.sources.model import (
+    DiagnosticCode,
+    IngestionDiagnostic,
+    IngestionResult,
+    LoadedSource,
+    SubscriptionMapping,
+)
 from app.sources.owner_ids import (
     MISSING,
     InvalidXVersionError,
@@ -548,35 +554,11 @@ class _AsyncApiMapping:
         identity; nothing is ever synthesized from a Service/Channel/operationId/path. Returns
         (subscription id or None when omitted, atomic-rejection outcome or None)."""
         operation_pointer = encode_pointer_tokens(("channels", channel_name, "subscribe"))
-        dead_letter = None
-        if _SUBSCRIPTION_DEAD_LETTER_KEY in operation_def:
-            dead_letter = _parse_subscription_dead_letter(
-                operation_def[_SUBSCRIPTION_DEAD_LETTER_KEY]
-            )
-            if dead_letter is None:
-                return None, AdapterOutcome(
-                    result=IngestionResult.REJECTED_INVALID,
-                    model=ArchitectureModel(),
-                    diagnostics=(
-                        IngestionDiagnostic(
-                            code=DiagnosticCode.DOCUMENT_PARSE_INVALID,
-                            message=(
-                                f"channel {channel_name!r}: {_SUBSCRIPTION_DEAD_LETTER_KEY} "
-                                "must be {target: <non-empty string>, targetKind: "
-                                "<non-empty string, optional>}"
-                            ),
-                            source_pointer=encode_pointer_tokens(
-                                (
-                                    "channels",
-                                    channel_name,
-                                    "subscribe",
-                                    _SUBSCRIPTION_DEAD_LETTER_KEY,
-                                )
-                            ),
-                        ),
-                    ),
-                    semantic_input_digest=None,
-                )
+        dead_letter, rejection = self._parse_subscription_dead_letter_or_reject(
+            channel_name, operation_def
+        )
+        if rejection is not None:
+            return None, rejection
 
         mapping = self.shared_identity.subscription_mapping_for(
             source_instance_id=self.source_instance_id,
@@ -653,6 +635,76 @@ class _AsyncApiMapping:
             )
             return None, None
 
+        self._record_subscription(
+            channel_name,
+            operation_pointer=operation_pointer,
+            topic_id_value=topic_id_value,
+            subscription_id_value=subscription_id_value,
+            subscription_name=subscription_name,
+            mapping=mapping,
+            declared_name=declared_name,
+            derived_subscription_id=derived_subscription_id,
+            stable_broker_id=stable_broker_id,
+            namespace=namespace,
+            topic_address=topic_address,
+            dead_letter=dead_letter,
+        )
+        return subscription_id_value, None
+
+    def _parse_subscription_dead_letter_or_reject(
+        self, channel_name: str, operation_def: dict
+    ) -> tuple[tuple[str, str | None] | None, AdapterOutcome | None]:
+        """The subscribe operation's optional dead-letter declaration, or an atomic REJECTED_INVALID
+        when it is present but malformed."""
+        dead_letter = None
+        if _SUBSCRIPTION_DEAD_LETTER_KEY in operation_def:
+            dead_letter = _parse_subscription_dead_letter(
+                operation_def[_SUBSCRIPTION_DEAD_LETTER_KEY]
+            )
+            if dead_letter is None:
+                return None, AdapterOutcome(
+                    result=IngestionResult.REJECTED_INVALID,
+                    model=ArchitectureModel(),
+                    diagnostics=(
+                        IngestionDiagnostic(
+                            code=DiagnosticCode.DOCUMENT_PARSE_INVALID,
+                            message=(
+                                f"channel {channel_name!r}: {_SUBSCRIPTION_DEAD_LETTER_KEY} "
+                                "must be {target: <non-empty string>, targetKind: "
+                                "<non-empty string, optional>}"
+                            ),
+                            source_pointer=encode_pointer_tokens(
+                                (
+                                    "channels",
+                                    channel_name,
+                                    "subscribe",
+                                    _SUBSCRIPTION_DEAD_LETTER_KEY,
+                                )
+                            ),
+                        ),
+                    ),
+                    semantic_input_digest=None,
+                )
+        return dead_letter, None
+
+    def _record_subscription(
+        self,
+        channel_name: str,
+        *,
+        operation_pointer: str,
+        topic_id_value: str,
+        subscription_id_value: str,
+        subscription_name: str | None,
+        mapping: SubscriptionMapping | None,
+        declared_name: str | None,
+        derived_subscription_id: str | None,
+        stable_broker_id: str | None,
+        namespace: str,
+        topic_address: str,
+        dead_letter: tuple[str, str | None] | None,
+    ) -> None:
+        """Register a resolved Subscription, its Pub/Sub declaration and any dead-letter
+        configuration (I4 spec §7.2/§7.3/§11)."""
         # A subscription id comes from a mapping (whose subscription_name backs this one) or is
         # derived, which requires a subscription_name - so the name is set here.
         assert subscription_name is not None
@@ -705,176 +757,195 @@ class _AsyncApiMapping:
                     target_kind_token=target_kind_token,
                 )
             )
-        return subscription_id_value, None
 
     def map_queues(self) -> AdapterOutcome | None:
         """Pass 1: resolve Queue (or, I4, Topic) kind and identity per channel."""
         for channel_name, channel_def in self.channels.items():
             if not isinstance(channel_def, dict):
                 continue
+            if (rejection := self._map_channel(channel_name, channel_def)) is not None:
+                return rejection
+        return None
 
-            channel_pointer = encode_pointer_tokens(("channels", channel_name))
-            explicit_queue_id = self.shared_identity.queue_id_for(
-                source_instance_id=self.source_instance_id,
-                document_path=self.root_relative_path,
-                pointer=channel_pointer,
-            )
-            explicit_topic_id = self.shared_identity.topic_id_for(
-                source_instance_id=self.source_instance_id,
-                document_path=self.root_relative_path,
-                pointer=channel_pointer,
-            )
+    def _map_channel(self, channel_name: str, channel_def: dict) -> AdapterOutcome | None:
+        """Classify one channel's destination kind; hand a Topic to `resolve_topic` and a Queue to
+        `_resolve_queue`, or record why the channel is omitted."""
+        channel_pointer = encode_pointer_tokens(("channels", channel_name))
+        explicit_queue_id = self.shared_identity.queue_id_for(
+            source_instance_id=self.source_instance_id,
+            document_path=self.root_relative_path,
+            pointer=channel_pointer,
+        )
+        explicit_topic_id = self.shared_identity.topic_id_for(
+            source_instance_id=self.source_instance_id,
+            document_path=self.root_relative_path,
+            pointer=channel_pointer,
+        )
 
-            # §9: "versioned configured destination mapping declares kind = 'queue'" is a third
-            # Queue-kind evidence path, on equal footing with the extension/AMQP-binding paths - an
-            # explicit mapping's mere presence counts as Queue evidence. I4 §8.1 adds the Topic
-            # paths. Every path is classified together so disagreement among ANY of them is caught
-            # uniformly, distinct from no evidence at all - and no precedence ever picks a winner.
-            kind = _classify_destination_kind(
+        # §9: "versioned configured destination mapping declares kind = 'queue'" is a third
+        # Queue-kind evidence path, on equal footing with the extension/AMQP-binding paths - an
+        # explicit mapping's mere presence counts as Queue evidence. I4 §8.1 adds the Topic
+        # paths. Every path is classified together so disagreement among ANY of them is caught
+        # uniformly, distinct from no evidence at all - and no precedence ever picks a winner.
+        kind = _classify_destination_kind(
+            channel_def,
+            queue_mapped=explicit_queue_id is not None,
+            topic_mapped=explicit_topic_id is not None,
+        )
+        if kind.queue_paths and (kind.topic_paths or kind.non_queue_vote):
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_CONFLICT,
+                model=ArchitectureModel(),
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.QUEUE_KIND_CONFLICT,
+                        message=(
+                            f"channel {channel_name!r}: Queue/Topic kind evidence paths disagree"
+                            if kind.topic_paths
+                            else f"channel {channel_name!r}: Queue-kind evidence paths disagree"
+                        ),
+                        source_pointer=channel_pointer,
+                    ),
+                ),
+                semantic_input_digest=None,
+            )
+        if kind.topic_paths:
+            topic_outcome = self.resolve_topic(
+                channel_name,
                 channel_def,
-                queue_mapped=explicit_queue_id is not None,
-                topic_mapped=explicit_topic_id is not None,
+                channel_pointer=channel_pointer,
+                explicit_topic_id=explicit_topic_id,
+                kind_evidence=kind.topic_paths,
             )
-            if kind.queue_paths and (kind.topic_paths or kind.non_queue_vote):
-                return AdapterOutcome(
-                    result=IngestionResult.REJECTED_CONFLICT,
-                    model=ArchitectureModel(),
-                    diagnostics=(
-                        IngestionDiagnostic(
-                            code=DiagnosticCode.QUEUE_KIND_CONFLICT,
-                            message=(
-                                f"channel {channel_name!r}: Queue/Topic kind evidence paths "
-                                "disagree"
-                                if kind.topic_paths
-                                else f"channel {channel_name!r}: Queue-kind evidence paths disagree"
-                            ),
-                            source_pointer=channel_pointer,
-                        ),
-                    ),
-                    semantic_input_digest=None,
+            if topic_outcome is not None:
+                return topic_outcome
+            return None
+        if not kind.queue_paths and not kind.non_queue_vote:
+            self.any_omission = True
+            self.diagnostics.append(
+                IngestionDiagnostic(
+                    code=DiagnosticCode.QUEUE_EVIDENCE_MISSING,
+                    message=f"channel {channel_name!r}: no Queue-kind evidence path succeeded",
+                    source_pointer=channel_pointer,
                 )
-            if kind.topic_paths:
-                topic_outcome = self.resolve_topic(
-                    channel_name,
-                    channel_def,
-                    channel_pointer=channel_pointer,
-                    explicit_topic_id=explicit_topic_id,
-                    kind_evidence=kind.topic_paths,
-                )
-                if topic_outcome is not None:
-                    return topic_outcome
-                continue
-            if not kind.queue_paths and not kind.non_queue_vote:
-                self.any_omission = True
-                self.diagnostics.append(
-                    IngestionDiagnostic(
-                        code=DiagnosticCode.QUEUE_EVIDENCE_MISSING,
-                        message=f"channel {channel_name!r}: no Queue-kind evidence path succeeded",
-                        source_pointer=channel_pointer,
-                    )
-                )
-                continue
-            if not kind.queue_paths:
-                self.any_omission = True
-                self.diagnostics.append(
-                    IngestionDiagnostic(
-                        code=DiagnosticCode.QUEUE_EVIDENCE_MISSING,
-                        message=f"channel {channel_name!r}: destination kind evidence is not 'queue'",
-                        source_pointer=channel_pointer,
-                    )
-                )
-                continue
-
-            # §9: "a configured Queue ID that disagrees with the derived ID" is REJECTED_CONFLICT -
-            # both identity paths are computed (whenever each has enough evidence to compute at
-            # all) and compared, not just whichever one happens to be present. A channel lacking
-            # broker/namespace evidence altogether (the genuine "unchanged v0.4.2 fixture, no
-            # x-aip-broker-id yet" case §9 actually describes) has no derived id to compare against,
-            # so the configured mapping alone establishes identity with nothing to conflict with.
-            selected_servers = _resolve_selected_servers(self.document, channel_def)
-            broker_and_namespace = _resolve_broker_and_namespace(selected_servers)
-
-            # §9: selected servers that disagree (or only partially carry `x-aip-broker-id`) leave
-            # this channel's Queue identity AMBIGUOUS regardless of an explicit mapping - a
-            # configured Queue ID does not resolve a real disagreement among the channel's own
-            # server declarations, it only supplies an id to compare a *resolved* derived id
-            # against. Checked before consulting `explicit_queue_id` at all so the ambiguity can't
-            # be silently papered over by treating it the same as "no derived id to compare".
-            if isinstance(broker_and_namespace, _AmbiguousBrokerNamespace):
-                self.any_omission = True
-                self.diagnostics.append(
-                    IngestionDiagnostic(
-                        code=DiagnosticCode.AMBIGUOUS,
-                        message=(
-                            f"channel {channel_name!r}: no single agreeing broker id/namespace "
-                            "across selected servers"
-                        ),
-                        source_pointer=channel_pointer,
-                    )
-                )
-                continue
-
-            derived_queue_id: str | None = None
-            stable_broker_id, namespace = None, None
-            if broker_and_namespace is not None:
-                stable_broker_id, namespace = broker_and_namespace
-                channel_address = unicode_nfc(channel_name)
-                derived_queue_id = queue_owned_id(
-                    stable_broker_id=stable_broker_id,
-                    normalized_namespace_or_empty=namespace,
-                    exact_channel_address=channel_address,
-                )
-
-            if (
-                explicit_queue_id is not None
-                and derived_queue_id is not None
-                and explicit_queue_id != derived_queue_id
-            ):
-                return AdapterOutcome(
-                    result=IngestionResult.REJECTED_CONFLICT,
-                    model=ArchitectureModel(),
-                    diagnostics=(
-                        IngestionDiagnostic(
-                            code=DiagnosticCode.QUEUE_IDENTITY_CONFLICT,
-                            message=(
-                                f"channel {channel_name!r}: configured Queue id "
-                                f"{explicit_queue_id!r} disagrees with the derived id "
-                                f"{derived_queue_id!r}"
-                            ),
-                            source_pointer=channel_pointer,
-                        ),
-                    ),
-                    semantic_input_digest=None,
-                )
-
-            if explicit_queue_id is not None:
-                queue_id_value = explicit_queue_id
-            elif derived_queue_id is not None:
-                queue_id_value = derived_queue_id
-            else:
-                self.any_omission = True
-                self.diagnostics.append(
-                    IngestionDiagnostic(
-                        code=DiagnosticCode.AMBIGUOUS,
-                        message=(
-                            f"channel {channel_name!r}: no single agreeing broker id/namespace "
-                            "across selected servers"
-                        ),
-                        source_pointer=channel_pointer,
-                    )
-                )
-                continue
-
-            protocol = next(iter(channel_def.get("bindings") or {}), None)
-            self.queues_by_id[queue_id_value] = Queue(
-                id=queue_id_value,
-                name=channel_name,
-                protocol=protocol,
-                namespace=namespace or None,
             )
-            self.channel_queue_id[channel_name] = queue_id_value
-            if broker_and_namespace is not None:
-                self.channel_broker_namespace[channel_name] = broker_and_namespace
+            return None
+        if not kind.queue_paths:
+            self.any_omission = True
+            self.diagnostics.append(
+                IngestionDiagnostic(
+                    code=DiagnosticCode.QUEUE_EVIDENCE_MISSING,
+                    message=f"channel {channel_name!r}: destination kind evidence is not 'queue'",
+                    source_pointer=channel_pointer,
+                )
+            )
+            return None
+        return self._resolve_queue(
+            channel_name,
+            channel_def,
+            channel_pointer=channel_pointer,
+            explicit_queue_id=explicit_queue_id,
+        )
+
+    def _resolve_queue(
+        self,
+        channel_name: str,
+        channel_def: dict,
+        *,
+        channel_pointer: str,
+        explicit_queue_id: str | None,
+    ) -> AdapterOutcome | None:
+        """A channel with Queue-kind evidence: establish its Queue identity (I1 spec §9) or omit it."""
+        # §9: "a configured Queue ID that disagrees with the derived ID" is REJECTED_CONFLICT -
+        # both identity paths are computed (whenever each has enough evidence to compute at
+        # all) and compared, not just whichever one happens to be present. A channel lacking
+        # broker/namespace evidence altogether (the genuine "unchanged v0.4.2 fixture, no
+        # x-aip-broker-id yet" case §9 actually describes) has no derived id to compare against,
+        # so the configured mapping alone establishes identity with nothing to conflict with.
+        selected_servers = _resolve_selected_servers(self.document, channel_def)
+        broker_and_namespace = _resolve_broker_and_namespace(selected_servers)
+
+        # §9: selected servers that disagree (or only partially carry `x-aip-broker-id`) leave
+        # this channel's Queue identity AMBIGUOUS regardless of an explicit mapping - a
+        # configured Queue ID does not resolve a real disagreement among the channel's own
+        # server declarations, it only supplies an id to compare a *resolved* derived id
+        # against. Checked before consulting `explicit_queue_id` at all so the ambiguity can't
+        # be silently papered over by treating it the same as "no derived id to compare".
+        if isinstance(broker_and_namespace, _AmbiguousBrokerNamespace):
+            self.any_omission = True
+            self.diagnostics.append(
+                IngestionDiagnostic(
+                    code=DiagnosticCode.AMBIGUOUS,
+                    message=(
+                        f"channel {channel_name!r}: no single agreeing broker id/namespace "
+                        "across selected servers"
+                    ),
+                    source_pointer=channel_pointer,
+                )
+            )
+            return None
+
+        derived_queue_id: str | None = None
+        stable_broker_id, namespace = None, None
+        if broker_and_namespace is not None:
+            stable_broker_id, namespace = broker_and_namespace
+            channel_address = unicode_nfc(channel_name)
+            derived_queue_id = queue_owned_id(
+                stable_broker_id=stable_broker_id,
+                normalized_namespace_or_empty=namespace,
+                exact_channel_address=channel_address,
+            )
+
+        if (
+            explicit_queue_id is not None
+            and derived_queue_id is not None
+            and explicit_queue_id != derived_queue_id
+        ):
+            return AdapterOutcome(
+                result=IngestionResult.REJECTED_CONFLICT,
+                model=ArchitectureModel(),
+                diagnostics=(
+                    IngestionDiagnostic(
+                        code=DiagnosticCode.QUEUE_IDENTITY_CONFLICT,
+                        message=(
+                            f"channel {channel_name!r}: configured Queue id "
+                            f"{explicit_queue_id!r} disagrees with the derived id "
+                            f"{derived_queue_id!r}"
+                        ),
+                        source_pointer=channel_pointer,
+                    ),
+                ),
+                semantic_input_digest=None,
+            )
+
+        if explicit_queue_id is not None:
+            queue_id_value = explicit_queue_id
+        elif derived_queue_id is not None:
+            queue_id_value = derived_queue_id
+        else:
+            self.any_omission = True
+            self.diagnostics.append(
+                IngestionDiagnostic(
+                    code=DiagnosticCode.AMBIGUOUS,
+                    message=(
+                        f"channel {channel_name!r}: no single agreeing broker id/namespace "
+                        "across selected servers"
+                    ),
+                    source_pointer=channel_pointer,
+                )
+            )
+            return None
+
+        protocol = next(iter(channel_def.get("bindings") or {}), None)
+        self.queues_by_id[queue_id_value] = Queue(
+            id=queue_id_value,
+            name=channel_name,
+            protocol=protocol,
+            namespace=namespace or None,
+        )
+        self.channel_queue_id[channel_name] = queue_id_value
+        if broker_and_namespace is not None:
+            self.channel_broker_namespace[channel_name] = broker_and_namespace
         return None
 
     def map_dead_letter_targets(self) -> AdapterOutcome | None:
