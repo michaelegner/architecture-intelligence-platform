@@ -452,3 +452,98 @@ def test_later_declaring_an_observed_only_operation_reconciles_without_duplicati
         operation_id=operation_id,
     ).single()["types"]
     assert set(evidence_types) == {"DECLARED", "OBSERVED"}
+
+
+# --- v0.6.0 I2.1c: attributed CLIENT identity must not change persisted v1 state -----------------
+
+_K1 = "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b"
+_P1 = "11111111-aaaa-4bbb-8ccc-000000000001"
+
+
+def _attributed_client_resource_spans(*, client_service: str, method: str, route: str):
+    resource_spans = _client_resource_spans(
+        client_service=client_service, method=method, route=route
+    )
+    resource_spans.resource.attributes.extend(
+        [
+            KeyValue(key="deployment.environment.name", value=AnyValue(string_value="production")),
+            KeyValue(key="k8s.pod.uid", value=AnyValue(string_value=_P1)),
+            KeyValue(key="k8s.cluster.uid", value=AnyValue(string_value=_K1)),
+            KeyValue(key="k8s.namespace.name", value=AnyValue(string_value="shop")),
+            KeyValue(key="k8s.deployment.name", value=AnyValue(string_value="orders")),
+        ]
+    )
+    return resource_spans
+
+
+def _plain_client_resource_spans(*, client_service: str, method: str, route: str):
+    resource_spans = _client_resource_spans(
+        client_service=client_service, method=method, route=route
+    )
+    resource_spans.resource.attributes.append(
+        KeyValue(key="deployment.environment.name", value=AnyValue(string_value="production"))
+    )
+    return resource_spans
+
+
+def _post_client_then_server(client_app, *, client_spans, route: str) -> None:
+    for resource_spans in (
+        client_spans,
+        _server_resource_spans(server_service="ReviewService", method="GET", route=route),
+    ):
+        body = ExportTraceServiceRequest(resource_spans=[resource_spans]).SerializeToString()
+        response = client_app.post(
+            "/v1/traces", content=body, headers={"content-type": _CONTENT_TYPE}
+        )
+        assert response.status_code == 200
+
+
+_EVIDENCE_FOR_CALL = (
+    "MATCH (a {id: $subject_id})-[r:CALLS]->(b {id: $object_id}) "
+    "UNWIND r.evidence_ids AS eid MATCH (e:Evidence {id: eid}) RETURN properties(e) AS props"
+)
+
+
+def _calls_evidence(session, route: str) -> dict:
+    subject_id = ids.service_id("order-service")
+    object_id = ids.operation_id(ids.service_id("reviewservice"), "GET", route)
+    [record] = session.run(_EVIDENCE_FOR_CALL, subject_id=subject_id, object_id=object_id)
+    return dict(record["props"])
+
+
+def test_an_attributed_client_leaves_persisted_v1_evidence_identical_to_an_unattributed_one(
+    client_with_correlation_buffer, session
+):
+    # Two identical cross-batch calls that differ only in whether the CLIENT Resource carries
+    # Kubernetes identity (and in the route, which only changes the operation id). Their persisted
+    # v1 evidence must be equal apart from the id, and no scoped node may exist anywhere.
+    attributed_route, plain_route = "/reviews-attributed/{id}", "/reviews-plain/{id}"
+    _post_client_then_server(
+        client_with_correlation_buffer,
+        client_spans=_attributed_client_resource_spans(
+            client_service="OrderService", method="GET", route=attributed_route
+        ),
+        route=attributed_route,
+    )
+    _post_client_then_server(
+        client_with_correlation_buffer,
+        client_spans=_plain_client_resource_spans(
+            client_service="OrderService", method="GET", route=plain_route
+        ),
+        route=plain_route,
+    )
+
+    attributed = _calls_evidence(session, attributed_route)
+    plain = _calls_evidence(session, plain_route)
+    attributed.pop("id")
+    plain.pop("id")
+
+    assert attributed == plain
+    assert not any(key.startswith(("k8s", "caller", "scoped")) for key in attributed)
+
+    scoped_nodes = session.run(
+        "MATCH (n) WHERE any(l IN labels(n) WHERE l STARTS WITH 'Scoped') "
+        "OR (n.id IS NOT NULL AND n.id STARTS WITH 'evidence:otel:calls-scoped') "
+        "RETURN count(n) AS c"
+    ).single()
+    assert scoped_nodes is not None and scoped_nodes["c"] == 0

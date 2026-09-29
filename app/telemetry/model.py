@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from app.provenance.model import ObservedEvidence, RuntimeIdentityObservation
+from app.telemetry.scoped_attribution import ScopedCallSeed, ScopedIngressRefusal
 
 
 class DiscoveryStatus(StrEnum):
@@ -90,6 +91,11 @@ class ObservedFactCandidate(BaseModel):
 
     evidence: ObservedEvidence
 
+    # v0.6.0 I2.1c: set on a CALLS fact whose original CLIENT passed the ingestion guards. It is
+    # inert here - never part of `evidence`, so the persisted v1 properties are unchanged - and
+    # is stored only once I2.2 enables v2 persistence.
+    scoped_seed: ScopedCallSeed | None = None
+
 
 class ObservedOnlyEntity(BaseModel):
     """Just enough information for a later Aggregator to MERGE a stub node for a previously-
@@ -118,3 +124,6 @@ class ObservationBatch(BaseModel):
     # I3 §9.4/§23 slice 2 - independent of facts/entities above: no relation, no interaction
     # inference, never coupled to CALLS/SENDS/RECEIVES_FROM correlation.
     runtime_identity_observations: list[RuntimeIdentityObservation] = Field(default_factory=list)
+    # v0.6.0 I2.1c: ingestion-only diagnostics for interactions that got no scoped seed. Codes and
+    # identifiers only; never persisted as evidence (I1 §10.2).
+    scoped_refusals: list[ScopedIngressRefusal] = Field(default_factory=list)
