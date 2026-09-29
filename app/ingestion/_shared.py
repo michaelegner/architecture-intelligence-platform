@@ -3,12 +3,15 @@ the public seam (app.sources.registry) - just avoids duplicating the same few li
 openapi_adapter.py/asyncapi_adapter.py/manifest_adapter.py.
 """
 
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from app.canonical.model import ArchitectureModel, Message, Schema
+from app.canonical import ids
+from app.canonical.model import ArchitectureModel, Message, Relation, Schema
 from app.common.jcs import canonical_sha256_hex, sort_by_canonical_hash
+from app.provenance.model import Provenance
 from app.sources.identity import (
     normalize_relative_posix_path,
     normalized_document_and_reference_projection_bytes,
@@ -24,6 +27,11 @@ from app.sources.reference_resolution import (
 )
 from app.sources.registry import AdapterOutcome
 from app.sources.service_identity import ServiceIdentityOutcome, ServiceIdentityResolution
+from app.validation.source_validation import (
+    SourceValidationError,
+    check_supported_dialect_version,
+    find_remote_reference,
+)
 
 # I1 spec §8.1: "The canonical projection excludes only description, summary, example, examples,
 # and externalDocs." Applied at every level of a normalized schema tree (top-level and every
@@ -49,12 +57,106 @@ def resolved_service_id(resolution: ServiceIdentityResolution) -> str:
     return resolution.service_id
 
 
-def rejected_outcome_for_identity(resolution: ServiceIdentityResolution) -> AdapterOutcome:
+def rejected_outcome(
+    result: IngestionResult, diagnostics: Sequence[IngestionDiagnostic]
+) -> AdapterOutcome:
+    """A rejection: an empty model, no semantic-input digest, and the given diagnostics."""
     return AdapterOutcome(
-        result=_IDENTITY_OUTCOME_TO_RESULT[resolution.outcome],
+        result=result,
         model=ArchitectureModel(),
-        diagnostics=tuple(resolution.diagnostics),
+        diagnostics=tuple(diagnostics),
         semantic_input_digest=None,
+    )
+
+
+def rejected_outcome_for_identity(resolution: ServiceIdentityResolution) -> AdapterOutcome:
+    return rejected_outcome(_IDENTITY_OUTCOME_TO_RESULT[resolution.outcome], resolution.diagnostics)
+
+
+def reject_if_invalid(loaded: LoadedSource, validate: Callable[..., None]) -> AdapterOutcome | None:
+    """Runs the adapter's document validator (`validate(document, source_file=locator)`); a
+    `SourceValidationError` becomes REJECTED_INVALID with one DOCUMENT_PARSE_INVALID diagnostic per
+    message. `None` when the document is valid."""
+    locator = loaded.descriptor.locator
+    try:
+        validate(loaded.document, source_file=locator)
+    except SourceValidationError as exc:
+        return rejected_outcome(
+            IngestionResult.REJECTED_INVALID,
+            [
+                IngestionDiagnostic(
+                    code=DiagnosticCode.DOCUMENT_PARSE_INVALID,
+                    message=message,
+                    source_pointer=locator,
+                )
+                for message in exc.errors
+            ],
+        )
+    return None
+
+
+def reject_if_unsupported_dialect(
+    loaded: LoadedSource, *, dialect_key: str, accepted_versions: frozenset[str]
+) -> AdapterOutcome | None:
+    """REJECTED_UNSUPPORTED for a remote/non-local `$ref` (checked first) or a dialect version
+    outside `accepted_versions`; `None` when the document passes both."""
+    document, locator = loaded.document, loaded.descriptor.locator
+    remote_ref = find_remote_reference(document)
+    if remote_ref is not None:
+        return rejected_outcome(
+            IngestionResult.REJECTED_UNSUPPORTED,
+            [
+                IngestionDiagnostic(
+                    code=DiagnosticCode.REMOTE_REFERENCE_UNSUPPORTED,
+                    message=f"remote/non-local reference is not supported: {remote_ref}",
+                    source_pointer=locator,
+                )
+            ],
+        )
+    version_error = check_supported_dialect_version(
+        document, dialect_key=dialect_key, accepted_versions=accepted_versions
+    )
+    if version_error is not None:
+        return rejected_outcome(
+            IngestionResult.REJECTED_UNSUPPORTED,
+            [
+                IngestionDiagnostic(
+                    code=DiagnosticCode.UNSUPPORTED_DIALECT_VERSION,
+                    message=version_error,
+                    source_pointer=locator,
+                )
+            ],
+        )
+    return None
+
+
+def declared_evidence(loaded: LoadedSource, source_type: str) -> Provenance:
+    """The DECLARED `Provenance` record for one source document (`source_type` e.g. "OPENAPI")."""
+    descriptor = loaded.descriptor
+    return Provenance(
+        id=ids.evidence_id(
+            source_type, descriptor.source_instance_id, descriptor.declared_provider_revision
+        ),
+        source_type=source_type,
+        source_file=descriptor.locator,
+        source_revision=descriptor.declared_provider_revision,
+    )
+
+
+def stamp_evidence(relations: Sequence[Relation], evidence: Provenance) -> list[Relation]:
+    """Every relation carrying `evidence` as its sole evidence id."""
+    return [r.model_copy(update={"evidence_ids": [evidence.id]}) for r in relations]
+
+
+def composition_limitation_diagnostic(locator: str, *, subject: str) -> IngestionDiagnostic:
+    """SCHEMA_COMPOSITION_UNINTERPRETED for `subject` ("schemas", "payload schemas", ...)."""
+    return IngestionDiagnostic(
+        code=DiagnosticCode.SCHEMA_COMPOSITION_UNINTERPRETED,
+        message=(
+            f"one or more {subject} contain an allOf/oneOf/anyOf composition, preserved "
+            "structurally in the canonical hash but not interpreted as an effective object shape"
+        ),
+        source_pointer=locator,
     )
 
 

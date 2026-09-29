@@ -1,4 +1,3 @@
-from app.canonical import ids
 from app.canonical.model import (
     ArchitectureModel,
     Direction,
@@ -15,17 +14,21 @@ from app.common.encoding import unicode_nfc
 from app.common.jcs import JSONValue
 from app.ingestion._shared import (
     build_resolution_cache,
+    composition_limitation_diagnostic,
+    declared_evidence,
     enforce_reference_closure,
+    reject_if_invalid,
+    reject_if_unsupported_dialect,
     rejected_outcome_for_identity,
     rejected_outcome_for_reference_error,
     resolve_and_normalize_schema,
     resolved_service_id,
     schema_display_name,
     semantic_input_digest_bytes,
+    stamp_evidence,
     upsert_message_or_conflict,
     upsert_schema_or_conflict,
 )
-from app.provenance.model import Provenance
 from app.sources.identity import semantic_input_digest
 from app.sources.message_contract import message_contract_digest, message_document_digest
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
@@ -45,9 +48,6 @@ from app.sources.reference_resolution import ReferenceResolutionError, resolve_a
 from app.sources.registry import AdapterOutcome, ServiceIdentityResolver, SharedIdentityResolver
 from app.sources.service_identity import ServiceIdentityOutcome
 from app.validation.source_validation import (
-    SourceValidationError,
-    check_supported_dialect_version,
-    find_remote_reference,
     validate_asyncapi_document,
 )
 
@@ -291,54 +291,14 @@ class AsyncApiSourceAdapter:
         locator = loaded.descriptor.locator
         source_instance_id = loaded.descriptor.source_instance_id
 
-        try:
-            validate_asyncapi_document(document, source_file=locator)
-        except SourceValidationError as exc:
-            return AdapterOutcome(
-                result=IngestionResult.REJECTED_INVALID,
-                model=ArchitectureModel(),
-                diagnostics=tuple(
-                    IngestionDiagnostic(
-                        code=DiagnosticCode.DOCUMENT_PARSE_INVALID,
-                        message=message,
-                        source_pointer=locator,
-                    )
-                    for message in exc.errors
-                ),
-                semantic_input_digest=None,
+        if (rejection := reject_if_invalid(loaded, validate_asyncapi_document)) is not None:
+            return rejection
+        if (
+            rejection := reject_if_unsupported_dialect(
+                loaded, dialect_key="asyncapi", accepted_versions=ACCEPTED_ASYNCAPI_VERSIONS
             )
-
-        remote_ref = find_remote_reference(document)
-        if remote_ref is not None:
-            return AdapterOutcome(
-                result=IngestionResult.REJECTED_UNSUPPORTED,
-                model=ArchitectureModel(),
-                diagnostics=(
-                    IngestionDiagnostic(
-                        code=DiagnosticCode.REMOTE_REFERENCE_UNSUPPORTED,
-                        message=f"remote/non-local reference is not supported: {remote_ref}",
-                        source_pointer=locator,
-                    ),
-                ),
-                semantic_input_digest=None,
-            )
-
-        version_error = check_supported_dialect_version(
-            document, dialect_key="asyncapi", accepted_versions=ACCEPTED_ASYNCAPI_VERSIONS
-        )
-        if version_error is not None:
-            return AdapterOutcome(
-                result=IngestionResult.REJECTED_UNSUPPORTED,
-                model=ArchitectureModel(),
-                diagnostics=(
-                    IngestionDiagnostic(
-                        code=DiagnosticCode.UNSUPPORTED_DIALECT_VERSION,
-                        message=version_error,
-                        source_pointer=locator,
-                    ),
-                ),
-                semantic_input_digest=None,
-            )
+        ) is not None:
+            return rejection
 
         root_resolution = service_identity.resolve(
             source_instance_id=source_instance_id,
@@ -1183,26 +1143,11 @@ class AsyncApiSourceAdapter:
 
         if any_uninterpreted_composition:
             diagnostics.append(
-                IngestionDiagnostic(
-                    code=DiagnosticCode.SCHEMA_COMPOSITION_UNINTERPRETED,
-                    message=(
-                        "one or more payload schemas contain an allOf/oneOf/anyOf composition, "
-                        "preserved structurally in the canonical hash but not interpreted as an "
-                        "effective object shape"
-                    ),
-                    source_pointer=locator,
-                )
+                composition_limitation_diagnostic(locator, subject="payload schemas")
             )
 
-        evidence = Provenance(
-            id=ids.evidence_id(
-                "ASYNCAPI", source_instance_id, loaded.descriptor.declared_provider_revision
-            ),
-            source_type="ASYNCAPI",
-            source_file=locator,
-            source_revision=loaded.descriptor.declared_provider_revision,
-        )
-        relations = [r.model_copy(update={"evidence_ids": [evidence.id]}) for r in relations]
+        evidence = declared_evidence(loaded, "ASYNCAPI")
+        relations = stamp_evidence(relations, evidence)
 
         digest = semantic_input_digest(
             normalized_document_projection_bytes=semantic_input_digest_bytes(cache),
