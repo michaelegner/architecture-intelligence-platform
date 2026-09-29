@@ -1,5 +1,6 @@
 """Cypher text for the source-scoped import write path (`app.graph.importer`): claim MERGE templates,
-ownership reads and expiry, per-source replay state and the per-scope current-inventory row.
+ownership reads and expiry, per-source replay and capture state, and the per-scope current-inventory
+row.
 
 Moved verbatim out of `importer.py`. Two query constants that interpolate the internal infrastructure
 labels stay beside their only caller there.
@@ -76,7 +77,12 @@ EXPIRE_RELATIONS_QUERY = (
 READ_SOURCE_STATE_QUERY = (
     "MATCH (s:SourceState {source_instance_id: $source_instance_id}) "
     "RETURN s.semantic_input_digest AS semantic_input_digest, "
-    "s.scope_definition_digest AS scope_definition_digest"
+    "s.scope_definition_digest AS scope_definition_digest, "
+    "s.capture_scope_namespaces AS capture_scope_namespaces, "
+    "s.capture_cluster_uid AS capture_cluster_uid, "
+    "s.capture_revision AS capture_revision, "
+    "s.capture_evidence_mode AS capture_evidence_mode, "
+    "s.capture_captured_at AS capture_captured_at"
 )
 
 WRITE_SOURCE_STATE_QUERY = (
@@ -85,6 +91,19 @@ WRITE_SOURCE_STATE_QUERY = (
     "s.scope_definition_digest = $scope_definition_digest, "
     "s.discovery_scope_id = $discovery_scope_id"
 )
+
+# v0.6.0 I2.2d (decision record D5): what an accepted Kubernetes envelope says about its capture,
+# kept on the source's SourceState so it is readable under the revision fence. Written only for a
+# source that carries a capture (never for a filesystem source, and never as nulls), and dropped
+# with the node when the source is removed.
+WRITE_CAPTURE_SCOPE_QUERY = (
+    "MATCH (s:SourceState {source_instance_id: $source_instance_id}) "
+    "SET s.capture_scope_namespaces = $namespaces, s.capture_cluster_uid = $cluster_uid, "
+    "s.capture_revision = $revision, s.capture_evidence_mode = $evidence_mode, "
+    "s.capture_captured_at = $captured_at"
+)
+
+ANY_SCOPED_OBSERVED_CALL_QUERY = "MATCH (v:ScopedObservedCallV2) RETURN v.id AS id LIMIT 1"
 
 READ_SOURCE_STATES_FOR_SCOPE_QUERY = (
     "MATCH (s:SourceState {discovery_scope_id: $discovery_scope_id}) "

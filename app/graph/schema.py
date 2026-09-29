@@ -24,7 +24,12 @@ CONSTRAINTS: list[LiteralString] = [
     "CREATE CONSTRAINT schema_id IF NOT EXISTS FOR (s:Schema) REQUIRE s.id IS UNIQUE",
     "CREATE CONSTRAINT evidence_id IF NOT EXISTS FOR (e:Evidence) REQUIRE e.id IS UNIQUE",
     # I1 v0.5.0 PR 3a: one committed-replay-state node per source instance, read/written by
-    # app.graph.importer to feed app.sources.replay.classify_replay_case.
+    # app.graph.importer to feed app.sources.replay.classify_replay_case. v0.6.0 I2.2d (decision
+    # record D5): a Kubernetes source's SourceState also carries the capture its accepted envelope
+    # describes - capture_scope_namespaces (sorted), capture_cluster_uid, capture_revision,
+    # capture_evidence_mode, capture_captured_at (the raw envelope string). They are written only
+    # for a source that has a capture (never nulls, never for a filesystem source), are dropped
+    # with the node on removal, and are not part of the snapshot until scoped v2 evidence exists.
     (
         "CREATE CONSTRAINT source_state_source_instance_id IF NOT EXISTS "
         "FOR (s:SourceState) REQUIRE s.source_instance_id IS UNIQUE"
