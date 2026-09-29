@@ -21,6 +21,10 @@ from app.api import (
     telemetry,
     ui,
 )
+from app.architecture_intelligence.bootstrap import (
+    build_production_service,
+    production_service_kwargs,
+)
 from app.deps import get_driver, get_settings
 from app.graph.repository import build_driver, open_session
 from app.mcp import wiring as mcp_wiring
@@ -48,8 +52,8 @@ async def lifespan(app: FastAPI):
     # (app.deps.get_architecture_intelligence_service) share the exact same instance, not a second
     # construction - see ADR 0016 decision #1/#2 (ArchitectureIntelligenceService is the single
     # semantic owner behind both public adapters).
-    architecture_intelligence_service = mcp_wiring.build_production_service(
-        app.state.driver, **mcp_wiring.production_service_kwargs(settings.config)
+    architecture_intelligence_service = build_production_service(
+        app.state.driver, **production_service_kwargs(settings.config)
     )
     mcp_wiring.configure(architecture_intelligence_service)
     app.state.architecture_intelligence_service = architecture_intelligence_service
