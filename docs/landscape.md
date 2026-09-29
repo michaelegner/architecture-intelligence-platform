@@ -89,6 +89,8 @@ visualization, provenance, or retrieval?
 
 [Moldable Architecture Knowledge](#moldable-development--glamorous-toolkit--rewilding-software-engineering) ·
 [Architectural judgment](#michael-smith--line-of-sight-ai-and-architecture) ·
+[Coordination bottlenecks](#cochran-et-al--when-coding-is-free-where-is-the-bottleneck) ·
+[Decision substrate](#cockcroft-et-al--when-agents-decide) ·
 [Symbolic Separation](#davletiyarov-khan-and-bartolini--symbolic-separation) ·
 [Typed probabilistic judgment](#typesafe-ai--jev-and-typed-probabilistic-judgment) ·
 [Enola](#enola--deterministic-architecture-context-and-regression-testing) ·
@@ -126,6 +128,7 @@ organizational responsibility constrain agent action without being inferred from
 ### Verification, reliability, and observability
 
 [Reliable AI systems](#rush-shahani--building-reliable-ai-systems) ·
+[Agentic code review context](#davis-et-al--agentic-ai-and-code-reviews) ·
 [Agent trajectory evaluation](#google--agent-evaluation-and-trajectory-metrics) ·
 [Failure as a process](#zhao-et-al--failure-as-a-process) ·
 [Long-running context drift](#agentic-software-how-ai-agents-are-restructuring-the-software-paradigm) ·
@@ -985,6 +988,72 @@ This mirrors AIP's own `PROVIDES` / `CALLS` / `SENDS` / `RECEIVES_FROM` model an
 ---
 
 ## 3. Agent context and machine consumption
+
+### Cochran et al. — When Coding Is Free, Where Is the Bottleneck?
+
+**Source**
+
+- Timothy Cochran, Bryan Finster, Tim Ottersburg, Scott Prugh, and Amy Willard,
+  *When Coding Is Free, Where Is the Bottleneck? A Guide for Leaders Building Agent-Ready
+  Delivery Systems*, IT Revolution, *Enterprise Technology Leadership Journal*, Fall 2026.
+
+**Core idea**
+
+Accelerated code generation does not necessarily accelerate delivery when work still waits for
+clarification, expertise, environments, approvals, or evidence. The paper describes three costs of
+coordination—contention, coupling, and coherence—and five AI enablement properties: knowledge,
+capability, capacity, parallelism, and optionality. Its example in which active coding represents
+roughly 12% of lead time is illustrative, not a general measurement. Its *fractured modularity*
+discussion shows why cross-team work sometimes reflects poorly aligned boundaries, but a dependency
+graph alone does not establish such a diagnosis.
+
+**Why this matters to AIP**
+
+AIP's evidence-qualified architecture answers can reduce repeated investigation and dependence on
+the person who knows how a service or landscape works. This supports a workflow-value measure in
+addition to semantic correctness: how much time and expert coordination does a bounded, inspectable
+architecture answer save a developer or coding agent?
+
+**AIP stance**
+
+AIP addresses one part of knowledge/coherence friction, not all delivery coordination. It is not a
+process-mining, value-stream, organizational-design, or delivery orchestration platform. This is an
+external validation input for the existing product proposition, not a new roadmap commitment.
+
+### Cockcroft et al. — When Agents Decide
+
+**Source**
+
+- Adrian Cockcroft, Jeremy Eder, Joseph Enochs, Jenn Spykerman, and Brian Wald,
+  *When Agents Decide: Continuous Decision Intelligence and the Substrate Beneath It*,
+  IT Revolution, *Enterprise Technology Leadership Journal*, Fall 2026.
+
+**Core idea**
+
+Continuous Decision Intelligence combines evaluation, decision tracking, and policy enforcement.
+The proposed decision substrate consists of **decision topology** (which decisions happen where
+and under whose authority), **provenance** (which sources shaped a decision), and **governance**
+(constraints before action and accountability afterward). The paper explores persistent context
+outside ephemeral model sessions and a Context Bill of Materials (CxBOM) for decision traceability.
+
+**Why this matters to AIP**
+
+AIP can supply an independently qualified part of a downstream agent's decision context: bounded
+Architecture Knowledge with claim semantics, snapshot/observation context, evidence references,
+provenance, and explicit limitations. A future decision record could reference those identities
+without treating a model's recall as architectural evidence. That is a prospective integration,
+not a claim that AIP implements CDI or emits a CxBOM today.
+
+Decision topology is not technical architecture topology: knowledge of a service dependency does
+not establish who may approve or execute a change affecting it. Decision provenance does not
+automatically make the decision or its inputs authoritative Architecture Knowledge.
+
+**AIP stance**
+
+External systems own agent evaluation, decision routing, organizational policy, approval,
+execution, and decision records. AIP remains read-only and advisory. The paper supports existing
+v0.8 Intent and v0.9 Assessment boundaries and the unscheduled Decision History linkage candidate,
+without adding a pre-v1.0 capability or release gate.
 
 ### Michael Smith — Line of Sight: AI and Architecture
 
@@ -2283,6 +2352,39 @@ Probabilistic reasoning may help formulate or interpret a question, while suppor
 
 Mneme's benchmark methodology is relevant here because it similarly emphasizes structured outputs, reproducibility, explicit scope, and avoiding subjective LLM-as-judge grading where deterministic checks are possible.
 
+
+### Davis et al. — Agentic AI and Code Reviews
+
+**Source**
+
+- Zach Davis, Michelle Gill, Elisabeth Hendrickson, Angie Jones, Sha Ma, Randy Shoup, and James
+  Wickett, *Agentic AI and Code Reviews: Toward a Pattern Language for Code Reviews in the Age of
+  Agentic AI*, IT Revolution, *Enterprise Technology Leadership Journal*, Fall 2026.
+
+**Core idea**
+
+The paper proposes layered verification for increasingly agent-generated changes: small changes,
+shift-left deterministic checks, design for verification, context engineering, ongoing feedback,
+independent/adversarial and specialist reviews, spec-driven development, and selective human
+judgment. Its **Context Engineering** pattern identifies architecture constraints, dependencies,
+API compatibility, ownership, incidents, previous decisions, and policies as context a reviewer
+needs beyond the PR diff.
+
+**Why this matters to AIP**
+
+This is a concrete downstream use case for AIP's customer proposition. An authoring and an
+independent reviewing agent can consume the same evidence-qualified, snapshot-bound architecture
+answer rather than reconstruct system context separately. A bounded question such as *What should
+be inspected before editing this service?* can evolve with independently qualified locality,
+API-aware, Intent, and Assessment capabilities. Shared provenance makes premises inspectable;
+it does not guarantee that the review agent's judgment is correct.
+
+**AIP stance**
+
+AIP supplies architectural knowledge, not a PR reviewer, policy-enforcement engine, or merge gate.
+Deterministic checks, review findings, acceptance decisions, and reviewer confidence remain
+external and do not automatically become canonical architectural facts. The paper supports a
+workflow-value pilot, not another capability release or expansion of v0.6–v0.9.
 
 ### Rush Shahani — Building Reliable AI Systems
 
