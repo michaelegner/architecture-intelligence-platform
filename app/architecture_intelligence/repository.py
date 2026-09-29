@@ -345,7 +345,7 @@ def snapshot_fingerprint(state: dict) -> tuple[str, str]:
     """`(snapshot_id, model_revision)` sharing one digest under different public prefixes (spec
     §17) - this is what guarantees `SnapshotRef`'s digest-consistency check always holds."""
     digest = hashlib.sha256(canonical_json_bytes(state)).hexdigest()
-    return f"aip:snapshot:v1:{digest}", f"sha256:{digest}"
+    return f"{SNAPSHOT_ID_PREFIX}:{digest}", f"sha256:{digest}"
 
 
 class SnapshotUnstable(RuntimeError):
