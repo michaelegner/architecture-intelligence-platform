@@ -62,7 +62,9 @@ async def post_traces(
         subscription_candidates=subscription_candidates,
         topic_aliases=settings.config.telemetry.topic_aliases,
     )
-    persist_observation_batch(driver, database, batch)
+    persist_observation_batch(
+        driver, database, batch, scoped=settings.config.telemetry.scoped_evidence
+    )
 
     return Response(
         content=ExportTraceServiceResponse().SerializeToString(),

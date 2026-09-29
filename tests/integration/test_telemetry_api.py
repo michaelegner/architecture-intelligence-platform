@@ -52,7 +52,7 @@ def session(driver):
         yield s
 
 
-def _build_app(driver):
+def _build_app(driver, *, telemetry: dict | None = None):
     app = create_app()
     app.state.driver = driver
     app.state.settings = Settings(
@@ -68,6 +68,7 @@ def _build_app(driver):
                     ]
                 },
                 "graph": {"uri": "bolt://ignored:7687", "database": DATABASE},
+                **({"telemetry": telemetry} if telemetry else {}),
             }
         ),
         secrets=Secrets(neo4j_user="neo4j", neo4j_password="ignored"),
@@ -547,3 +548,48 @@ def test_an_attributed_client_leaves_persisted_v1_evidence_identical_to_an_unatt
         "RETURN count(n) AS c"
     ).single()
     assert scoped_nodes is not None and scoped_nodes["c"] == 0
+
+
+def _post_attributed_cross_batch(app_client, *, route: str) -> None:
+    _post_client_then_server(
+        app_client,
+        client_spans=_attributed_client_resource_spans(
+            client_service="OrderService", method="GET", route=route
+        ),
+        route=route,
+    )
+
+
+def test_the_endpoint_writes_a_v2_record_only_when_scoped_evidence_is_enabled(driver, session):
+    # v0.6.0 I2.2b, end to end through POST /v1/traces: an attributed CLIENT plus its SERVER in a
+    # later POST. Disabled (the default) leaves no v2 node; enabled writes exactly one, isolated.
+    buffer = HttpCorrelationBuffer(ttl_seconds=60, max_pending_spans=10000)
+    disabled_app = _build_app(driver)
+    disabled_app.state.http_correlation_buffer = buffer
+    _post_attributed_cross_batch(TestClient(disabled_app), route="/reviews-scoped-off/{id}")
+    assert session.run("MATCH (v:ScopedObservedCallV2) RETURN count(v) AS c").single()["c"] == 0
+
+    enabled_app = _build_app(
+        driver, telemetry={"scoped-evidence": {"enabled": True, "stream-id": "test-stream"}}
+    )
+    enabled_app.state.http_correlation_buffer = HttpCorrelationBuffer(
+        ttl_seconds=60, max_pending_spans=10000
+    )
+    _post_attributed_cross_batch(TestClient(enabled_app), route="/reviews-scoped-on/{id}")
+
+    try:
+        [row] = session.run(
+            "MATCH (v:ScopedObservedCallV2) RETURN v.caller_pod_uid AS pod, "
+            "v.caller_cluster_uid AS cluster, v.k8s_namespace_name AS ns, "
+            "v.observation_count AS n, COUNT { (v)--() } AS degree"
+        )
+        assert (row["pod"], row["cluster"], row["ns"], row["n"], row["degree"]) == (
+            _P1,
+            _K1,
+            "shop",
+            1,
+            0,
+        )
+    finally:
+        # This module shares one graph, and an earlier test asserts no scoped node exists.
+        session.run("MATCH (v:ScopedObservedCallV2) DETACH DELETE v").consume()
