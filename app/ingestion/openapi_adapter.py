@@ -1,21 +1,22 @@
 from app.canonical import ids
 from app.canonical.model import ArchitectureModel, Operation, Relation, Schema, Service
-from app.ingestion._shared import (
-    build_resolution_cache,
+from app.ingestion.adapter_outcomes import (
     composition_limitation_diagnostic,
     declared_evidence,
-    enforce_reference_closure,
     reject_if_invalid,
     reject_if_unsupported_dialect,
     rejected_outcome_for_identity,
-    rejected_outcome_for_reference_error,
-    resolve_and_normalize_schema,
     resolved_service_id,
-    schema_display_name,
-    semantic_input_digest_bytes,
     stamp_evidence,
-    upsert_schema_or_conflict,
 )
+from app.ingestion.conflicts import upsert_schema_or_conflict
+from app.ingestion.reference_closure import (
+    build_resolution_cache,
+    enforce_reference_closure,
+    rejected_outcome_for_reference_error,
+    semantic_input_digest_bytes,
+)
+from app.ingestion.schema_normalization import resolve_and_normalize_schema, schema_display_name
 from app.sources.identity import semantic_input_digest
 from app.sources.model import IngestionDiagnostic, IngestionResult, LoadedSource
 from app.sources.owner_ids import schema_owned_id

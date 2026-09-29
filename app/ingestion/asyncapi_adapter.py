@@ -12,23 +12,23 @@ from app.canonical.model import (
 from app.canonical.pubsub import PubSubDeclaration, SubscriptionDeadLetterConfiguration
 from app.common.encoding import unicode_nfc
 from app.common.jcs import JSONValue
-from app.ingestion._shared import (
-    build_resolution_cache,
+from app.ingestion.adapter_outcomes import (
     composition_limitation_diagnostic,
     declared_evidence,
-    enforce_reference_closure,
     reject_if_invalid,
     reject_if_unsupported_dialect,
     rejected_outcome_for_identity,
-    rejected_outcome_for_reference_error,
-    resolve_and_normalize_schema,
     resolved_service_id,
-    schema_display_name,
-    semantic_input_digest_bytes,
     stamp_evidence,
-    upsert_message_or_conflict,
-    upsert_schema_or_conflict,
 )
+from app.ingestion.conflicts import upsert_message_or_conflict, upsert_schema_or_conflict
+from app.ingestion.reference_closure import (
+    build_resolution_cache,
+    enforce_reference_closure,
+    rejected_outcome_for_reference_error,
+    semantic_input_digest_bytes,
+)
+from app.ingestion.schema_normalization import resolve_and_normalize_schema, schema_display_name
 from app.sources.identity import semantic_input_digest
 from app.sources.message_contract import message_contract_digest, message_document_digest
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
@@ -268,7 +268,7 @@ class AsyncApiSourceAdapter:
     Message/Schema ids; Queue kind/identity requires real evidence (`x-aip-destination-kind`/AMQP
     `is: queue` + `x-aip-broker-id`) instead of being derived from the bare channel name; bounded
     multi-file `$ref` resolution and payload composition handling reuse the identical §8/§8.1
-    contract via `app.ingestion._shared` (PR3b).
+    contract via `app.ingestion.conflicts` (PR3b).
     """
 
     adapter_identity = "asyncapi-adapter@1"

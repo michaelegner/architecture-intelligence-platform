@@ -1,6 +1,6 @@
 from app.canonical.model import ArchitectureModel, Relation
 from app.common.jcs import canonical_json_bytes
-from app.ingestion._shared import (
+from app.ingestion.adapter_outcomes import (
     declared_evidence,
     reject_if_invalid,
     rejected_outcome_for_identity,
