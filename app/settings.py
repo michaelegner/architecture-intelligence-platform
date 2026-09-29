@@ -147,6 +147,15 @@ def _require_env(name: str) -> str:
     return value
 
 
+CONFIG_PATH_ENV_VAR = "CONFIG_PATH"
+DEFAULT_CONFIG_PATH = Path("config.yaml")
+
+
+def config_path_from_env() -> Path:
+    """The configured YAML path: `CONFIG_PATH` if set, else `config.yaml` in the working directory."""
+    return Path(os.environ.get(CONFIG_PATH_ENV_VAR, DEFAULT_CONFIG_PATH))
+
+
 def load_config(path: Path) -> AppConfig:
     """Loads the spec §17.1 YAML shape; NEO4J_URI env var overrides graph.uri (matches docker-compose.yml)."""
     raw = yaml.safe_load(path.read_text()) or {}
