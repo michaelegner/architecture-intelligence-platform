@@ -23,7 +23,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from app.ai.cypher_validator import CypherValidationError, _strip_strings_and_comments
-from app.graph.importer import KNOWN_RELATION_TYPES, NODE_LABELS
+from app.graph.labels import KNOWN_RELATION_TYPES, NODE_LABELS
 
 # D2: the eight current public schema labels. `Evidence` stays approved because the generator
 # prompt directs evidence lookups to `MATCH (e:Evidence)`; internal labels (AipInternalState,

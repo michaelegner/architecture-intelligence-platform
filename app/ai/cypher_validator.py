@@ -1,6 +1,6 @@
 import re
 
-from app.graph.importer import NODE_LABELS
+from app.graph.labels import NODE_LABELS
 from app.graph_schema.registry import RELATIONS
 
 DEFAULT_MAX_DEPTH = 5
