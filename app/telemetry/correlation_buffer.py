@@ -25,6 +25,16 @@ class PendingHttpSpan(BaseModel):
     route: str | None = None
     target_identity: str | None = None
     timestamp: datetime
+    # v0.6.0 I2.1c: the original CLIENT's admitted Kubernetes identity, so it survives a
+    # cross-batch wait. Bounded exact strings from the I1 allowlist only, never set for a SERVER
+    # span, and (like the rest of this record) never persisted.
+    k8s_pod_uid: str | None = None
+    k8s_cluster_uid: str | None = None
+    k8s_namespace_name: str | None = None
+    k8s_pod_name: str | None = None
+    k8s_deployment_name: str | None = None
+    k8s_statefulset_name: str | None = None
+    k8s_daemonset_name: str | None = None
 
 
 class HttpCorrelationBuffer:
