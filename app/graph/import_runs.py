@@ -44,6 +44,15 @@ def _log_run(import_id: str, run_stats: ImportRunStats, duration_ms: int) -> Non
             stats.graph_revision_advanced,
             duration_ms,
         )
+    for diagnostic in run_stats.diagnostics:
+        logger.warning(
+            "Import diagnostic import_id=%s source=%s code=%s pointer=%s message=%s",
+            import_id,
+            diagnostic.source_instance_id,
+            diagnostic.code,
+            diagnostic.source_pointer,
+            diagnostic.message,
+        )
     if run_stats.removed_source_instance_ids:
         logger.info(
             "Removed import_id=%s sources=%s",
