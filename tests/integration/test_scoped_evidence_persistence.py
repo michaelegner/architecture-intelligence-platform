@@ -285,15 +285,13 @@ def _state(session):
 
 def test_the_snapshot_and_every_public_read_never_see_the_v2_record(driver):
     seeds = [_seed(pod="P1"), _seed(pod="P2", trace="b" * 32)]
-    fingerprints = {}
+    states, revisions = {}, {}
     for label, scoped in (("off", OFF), ("on", ON)):
         _reset(driver)
         _persist(driver, *seeds, scoped=scoped)
         with driver.session(database=DATABASE) as session:
-            fingerprints[label] = (
-                repository.snapshot_fingerprint(_state(session)),
-                read_revision(session),
-            )
+            states[label] = _state(session)
+            revisions[label] = read_revision(session)
             if label == "on":
                 v2_ids = [r.id for r in _v2_records(session)]
                 assert len(v2_ids) == 2
@@ -310,8 +308,13 @@ def test_the_snapshot_and_every_public_read_never_see_the_v2_record(driver):
                 }
                 assert not relation_evidence & set(v2_ids)
 
-    # The v2 key enters the snapshot only in I2.5: until then a v2 record changes nothing in it.
-    assert fingerprints["on"] == fingerprints["off"]
+    # I2.5 (D15.2): v2 reaches the snapshot only through its two conditional keys; every other
+    # key - evidence, relations and all - is exactly what the same v1 facts produce without v2.
+    assert revisions["on"] == revisions["off"]
+    assert "scoped_observed_calls_v2" not in states["off"]
+    scoped_keys = {"scoped_observed_calls_v2", "scoped_capture_scopes_v2"}
+    assert scoped_keys <= set(states["on"])
+    assert {k: v for k, v in states["on"].items() if k not in scoped_keys} == states["off"]
 
 
 def test_declaration_reimport_and_source_removal_leave_the_v2_records_intact(

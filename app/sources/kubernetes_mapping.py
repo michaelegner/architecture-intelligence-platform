@@ -556,6 +556,15 @@ def map_kubernetes_resources(
         if not is_admitted(entry.document):
             document = entry.document
             pointer = f"{entry.source_pointer}:{document.get('apiVersion')}/{document.get('kind')}"
+            metadata = document.get("metadata")
+            if isinstance(metadata, dict):
+                name = metadata.get("name")
+                namespace = metadata.get("namespace")
+                if isinstance(name, str) and name:
+                    if isinstance(namespace, str) and namespace:
+                        pointer = f"{pointer}/{namespace}/{name}"
+                    else:
+                        pointer = f"{pointer}/{name}"
             diagnostics.append(
                 IngestionDiagnostic(
                     code=DiagnosticCode.K8S_RESOURCE_UNSUPPORTED,

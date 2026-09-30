@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from unittest.mock import patch
 
@@ -10,7 +11,12 @@ from app.graph.importer import ImportRunStats
 from app.ingestion.import_report import ConfiguredRun
 from app.settings import AppConfig, Secrets, Settings, SourcesConfig
 from app.sources.inventory import InventoryStatus
-from app.sources.model import KubernetesSourceConfig
+from app.sources.model import (
+    DiagnosticCode,
+    FilesystemSourceConfig,
+    IngestionDiagnostic,
+    KubernetesSourceConfig,
+)
 
 
 def _settings(*, migrations: list[Path]) -> Settings:
@@ -104,3 +110,46 @@ def test_a_missing_configured_tombstone_file_is_a_500_with_the_same_detail(tmp_p
         _run_all_configured_sources(settings, driver=None)
     assert exc_info.value.status_code == 500
     assert exc_info.value.detail.startswith("tombstone configuration is invalid: [")
+
+
+def test_import_diagnostics_are_logged_at_warning_with_operator_context(tmp_path, caplog):
+    from app.graph.import_runs import run_all_configured_sources
+
+    source = FilesystemSourceConfig(id="diagnostic-source", root=tmp_path)
+    sources = SourcesConfig(directories=[source])
+    diagnostic = IngestionDiagnostic(
+        code=DiagnosticCode.SERVICE_IDENTITY_UNRESOLVED,
+        message="service identity could not be resolved from test input",
+        source_pointer="svc/openapi.yaml",
+        source_instance_id="urn:aip:source:test:diagnostic",
+    )
+    stub_stats = ImportRunStats(
+        inventory_status=InventoryStatus.COMPLETE,
+        committed=True,
+        per_source={},
+        removed_source_instance_ids=(),
+        diagnostics=(diagnostic,),
+    )
+
+    with (
+        caplog.at_level(logging.WARNING, logger="architecture_intelligence.import"),
+        patch("app.graph.import_runs.import_all_sources", return_value=stub_stats),
+    ):
+        import_id, run_results = run_all_configured_sources(
+            sources, driver="fake-driver", database="neo4j"
+        )
+
+    assert import_id
+    assert len(run_results) == 1
+    warning_records = [
+        record
+        for record in caplog.records
+        if record.levelno == logging.WARNING and "Import diagnostic" in record.getMessage()
+    ]
+    assert len(warning_records) == 1
+    message = warning_records[0].getMessage()
+    assert import_id in message
+    assert "urn:aip:source:test:diagnostic" in message
+    assert "SERVICE_IDENTITY_UNRESOLVED" in message
+    assert "svc/openapi.yaml" in message
+    assert "service identity could not be resolved from test input" in message
