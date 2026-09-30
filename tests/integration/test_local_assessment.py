@@ -329,9 +329,11 @@ def test_the_v0_5_dependency_answer_ignores_v2_and_the_assessment_writes_nothing
 
     session.run("MATCH (v:ScopedObservedCallV2) DETACH DELETE v").consume()
     without_v2 = service.get_service_dependencies(request)
-    assert with_v2.model_dump(exclude={"generated_at"}) == without_v2.model_dump(
-        exclude={"generated_at"}
-    )
+    # I2.5 (D15.2, L14): v2 now enters the one snapshot fingerprint every answer carries, so only
+    # the snapshot identity differs; the v0.5 answer content itself is unchanged by v2.
+    assert with_v2.snapshot != without_v2.snapshot
+    unchanged = {"generated_at", "snapshot"}
+    assert with_v2.model_dump(exclude=unchanged) == without_v2.model_dump(exclude=unchanged)
 
 
 def test_a_graph_that_never_settles_fails_closed(graph, session, tmp_path, monkeypatch):

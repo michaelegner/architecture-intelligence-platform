@@ -15,7 +15,10 @@ from dataclasses import dataclass
 
 import neo4j
 
-from app.architecture_intelligence.repository import read_stable_snapshot_from_session
+from app.architecture_intelligence.repository import (
+    SOURCE_CAPTURES_QUERY,
+    read_stable_snapshot_from_session,
+)
 from app.architecture_intelligence.scoped_applicability import (
     ApplicabilityResult,
     CapturedWorkload,
@@ -105,16 +108,6 @@ def read_scoped_observed_calls(
 
 # --- I2.3b: the fenced applicability read (decision record D13.6, D13.7) -------------------------
 
-# D5: every accepted Kubernetes source's committed capture. A rejected import never writes these
-# properties, so a rejected envelope is never a selectable source (L17e, L29).
-_SOURCE_CAPTURES_QUERY = (
-    "MATCH (s:SourceState) WHERE s.capture_cluster_uid IS NOT NULL "
-    "RETURN s.source_instance_id AS source_instance_id, "
-    "s.discovery_scope_id AS discovery_scope_id, s.capture_revision AS revision, "
-    "s.capture_cluster_uid AS cluster_uid, s.capture_scope_namespaces AS namespaces, "
-    "s.capture_evidence_mode AS evidence_mode, s.capture_captured_at AS captured_at"
-)
-
 # D13.6: each source's own captured Pod contributions for the candidates' Pod UIDs, in any cluster
 # (rule 1 and L16 need the other-cluster capture). One row per (source, Pod).
 _SCOPED_PODS_QUERY = (
@@ -159,7 +152,7 @@ def read_source_inventories(
             evidence_mode=row["evidence_mode"],
             captured_at=row["captured_at"],
         )
-        for row in runner.run(_SOURCE_CAPTURES_QUERY)
+        for row in runner.run(SOURCE_CAPTURES_QUERY)
     ]
     pod_rows = list(runner.run(_SCOPED_PODS_QUERY, pod_uids=sorted(set(pod_uids))))
     owners: dict[tuple[str, str], list[ScopedOwner]] = defaultdict(list)

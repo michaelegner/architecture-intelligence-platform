@@ -19,7 +19,10 @@ import neo4j
 
 from app.analysis.runtime import telemetry_coverage
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
-from app.architecture_intelligence.contracts import DEPLOYMENT_RECONCILIATION_RULE_ID
+from app.architecture_intelligence.contracts import (
+    DEPLOYMENT_RECONCILIATION_RULE_ID,
+    SNAPSHOT_ID_PREFIX,
+)
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
@@ -154,6 +157,77 @@ _DEPLOYMENT_RUNTIME_IDENTITY_OBSERVATIONS_QUERY = (
     "o.observation_count AS observation_count, "
     "o.conflicting_consistency_attributes AS conflicting_consistency_attributes"
 )
+
+# v0.6.0 I2.5 (decision record D5, D15; I1 v2 contract §8): the two conditional state inputs from
+# scoped v2 evidence. Both are present iff at least one v2 record exists (D15.2); with none, the
+# state - and so every no-v2 snapshot id, including the golden pin - is byte-identical to v0.5.
+#
+# D15.4 / D5: every accepted Kubernetes source's committed capture. A rejected import never writes
+# these properties, so a rejected envelope is never a capture input. Also the I2.3 selection input
+# (`scoped_evidence_repository.read_source_inventories`).
+SOURCE_CAPTURES_QUERY = (
+    "MATCH (s:SourceState) WHERE s.capture_cluster_uid IS NOT NULL "
+    "RETURN s.source_instance_id AS source_instance_id, "
+    "s.discovery_scope_id AS discovery_scope_id, s.capture_revision AS revision, "
+    "s.capture_cluster_uid AS cluster_uid, s.capture_scope_namespaces AS namespaces, "
+    "s.capture_evidence_mode AS evidence_mode, s.capture_captured_at AS captured_at"
+)
+
+# D15.3 / I1 v2 contract §8: exactly the contract's entry fields, every v2 record (no paging,
+# D15.5).
+_SCOPED_OBSERVED_CALLS_QUERY = (
+    "MATCH (v:ScopedObservedCallV2) "
+    "RETURN v.id AS id, v.contract_version AS contract_version, v.source_type AS source_type, "
+    "v.evidence_type AS evidence_type, v.relation_type AS relation_type, "
+    "v.environment AS environment, v.bucket_utc_day AS bucket_utc_day, "
+    "v.subject_id AS subject_id, v.object_id AS object_id, "
+    "v.caller_cluster_uid AS caller_cluster_uid, v.caller_pod_uid AS caller_pod_uid, "
+    "v.first_seen AS first_seen, v.last_seen AS last_seen, "
+    "v.observation_count AS observation_count, v.correlation_mode AS correlation_mode, "
+    "coalesce(v.sample_trace_ids, []) AS sample_trace_ids, "
+    "v.k8s_namespace_name AS k8s_namespace_name, v.k8s_pod_name AS k8s_pod_name, "
+    "v.k8s_deployment_name AS k8s_deployment_name, "
+    "v.k8s_statefulset_name AS k8s_statefulset_name, "
+    "v.k8s_daemonset_name AS k8s_daemonset_name, "
+    "coalesce(v.conflicting_consistency_attributes, []) AS conflicting_consistency_attributes, "
+    "v.key_rule_id AS key_rule_id, v.key_rule_version AS key_rule_version, "
+    "v.normalization_rule_id AS normalization_rule_id, "
+    "v.normalization_rule_version AS normalization_rule_version"
+)
+
+
+def _project_scoped_observed_calls(session: neo4j.Session) -> list[dict]:
+    """D15.3: unlike `_project_row`, a v2 entry keeps every contract field - an absent `k8s_*`
+    name is an explicit `null`, exactly as the frozen I1 `snapshot_fragment` encodes it."""
+    rows = []
+    for record in session.run(_SCOPED_OBSERVED_CALLS_QUERY):
+        row = dict(record)
+        row["first_seen"] = row["first_seen"].to_native()
+        row["last_seen"] = row["last_seen"].to_native()
+        row["sample_trace_ids"] = sorted(set(row["sample_trace_ids"]))
+        row["conflicting_consistency_attributes"] = sorted(
+            set(row["conflicting_consistency_attributes"])
+        )
+        rows.append(row)
+    return sorted(rows, key=lambda row: row["id"])
+
+
+def _project_scoped_capture_scopes(session: neo4j.Session) -> list[dict]:
+    """D15.4: D5's seven fields per accepted capture, sorted by source instance id."""
+    rows = [
+        {
+            "source_instance_id": record["source_instance_id"],
+            "discovery_scope_id": record["discovery_scope_id"],
+            "revision": record["revision"],
+            "cluster_uid": record["cluster_uid"],
+            "namespaces": sorted(record["namespaces"] or ()),
+            "evidence_mode": record["evidence_mode"],
+            "captured_at": record["captured_at"],
+        }
+        for record in session.run(SOURCE_CAPTURES_QUERY)
+    ]
+    return sorted(rows, key=lambda row: row["source_instance_id"])
+
 
 # neo4j.time.DateTime isn't a datetime.datetime - convert to native so canonical_json_bytes'
 # datetime handling applies (same conversion app.telemetry.aggregator._read_existing_evidence uses).
@@ -302,7 +376,7 @@ def canonical_snapshot_state(
     supplied by the caller rather than read from Neo4j here, mirroring `coverage_qualification_
     enabled`'s own "externally configured semantic value" shape - see `_semantic_config_state`.
     """
-    return {
+    state = {
         "version": _CANONICALIZATION_VERSION,
         "services": _project_nodes(session, _SERVICE_QUERY),
         "operations": _project_nodes(session, _OPERATION_QUERY),
@@ -339,13 +413,20 @@ def canonical_snapshot_state(
             "rule_version": _DEPLOYMENT_RECONCILIATION_RULE_VERSION,
         },
     }
+    # v0.6.0 I2.5 (D15.2): both keys are added only when a v2 record exists - never as `[]` or
+    # `null` - so a no-v2 state keeps its exact v0.5 bytes and `_CANONICALIZATION_VERSION` stays 3.
+    scoped_calls = _project_scoped_observed_calls(session)
+    if scoped_calls:
+        state["scoped_observed_calls_v2"] = scoped_calls
+        state["scoped_capture_scopes_v2"] = _project_scoped_capture_scopes(session)
+    return state
 
 
 def snapshot_fingerprint(state: dict) -> tuple[str, str]:
     """`(snapshot_id, model_revision)` sharing one digest under different public prefixes (spec
     §17) - this is what guarantees `SnapshotRef`'s digest-consistency check always holds."""
     digest = hashlib.sha256(canonical_json_bytes(state)).hexdigest()
-    return f"aip:snapshot:v1:{digest}", f"sha256:{digest}"
+    return f"{SNAPSHOT_ID_PREFIX}:{digest}", f"sha256:{digest}"
 
 
 class SnapshotUnstable(RuntimeError):

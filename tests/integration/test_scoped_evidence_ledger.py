@@ -487,6 +487,11 @@ def test_the_provenance_nodes_are_bare_isolated_and_invisible_to_every_read(driv
         _unit(driver, *seeds, scoped=scoped, refusals=[_refusal()] if scoped else [])
         with driver.session(database=DATABASE) as s:
             state = repository.canonical_snapshot_state(s, coverage_qualification_enabled=True)
+            # I2.5 (D15.2): the v2 records this unit writes enter the snapshot only through the two
+            # conditional keys; the ledger, membership and counters never enter it at all.
+            v2_ids = {r["id"] for r in s.run("MATCH (v:ScopedObservedCallV2) RETURN v.id AS id")}
+            assert {e["id"] for e in state.pop("scoped_observed_calls_v2", [])} == v2_ids
+            state.pop("scoped_capture_scopes_v2", None)
             fingerprints[label] = (repository.snapshot_fingerprint(state), read_revision(s))
             if label == "on":
                 nodes = s.run(

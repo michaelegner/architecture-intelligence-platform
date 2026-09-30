@@ -116,7 +116,9 @@ def _bundle(
     mode=KubernetesEvidenceMode.CAPTURED_RESOURCE,
     prior: str | None = None,
     completeness: str = "COMPLETE",
+    scope_id: str | None = None,
 ) -> KubernetesSourceConfig:
+    scope_id = scope_id or f"{source_id}-scope"
     root.mkdir(parents=True, exist_ok=True)
     resource_bytes = yaml.safe_dump_all(resources).encode()
     (root / "resources.yaml").write_bytes(resource_bytes)
@@ -131,7 +133,7 @@ def _bundle(
         },
         "source": {
             "configuredSourceId": source_id,
-            "configuredScopeId": f"{source_id}-scope",
+            "configuredScopeId": scope_id,
             "clusterUid": cluster_uid,
             "clusterIdentityEvidenceRef": "kube-system-namespace-uid",
             "mode": mode.value,
@@ -152,7 +154,7 @@ def _bundle(
         id=source_id,
         root=root,
         envelope_relative_path="envelope.yaml",
-        configured_scope_id=f"{source_id}-scope",
+        configured_scope_id=scope_id,
         cluster_uid=cluster_uid,
         evidence_mode=mode,
         authorized_producer="aip-kubernetes-capture-agent",
