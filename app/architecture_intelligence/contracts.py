@@ -19,10 +19,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from app.provenance.model import EvidenceType, SourceType
 
 _SHA256_HEX = r"[0-9a-f]{64}"
-_SNAPSHOT_ID_PATTERN = rf"^aip:snapshot:v1:{_SHA256_HEX}$"
+SNAPSHOT_ID_PREFIX = "aip:snapshot:v1"
+OBSERVATION_CONTEXT_ID_PREFIX = "aip:observation-context:v1"
+CLAIM_ID_PREFIX = "aip:claim:v1"
+_SNAPSHOT_ID_PATTERN = rf"^{SNAPSHOT_ID_PREFIX}:{_SHA256_HEX}$"
 _MODEL_REVISION_PATTERN = rf"^sha256:{_SHA256_HEX}$"
-_CONTEXT_ID_PATTERN = rf"^aip:observation-context:v1:{_SHA256_HEX}$"
-_CLAIM_ID_PATTERN = rf"^aip:claim:v1:{_SHA256_HEX}$"
+_CONTEXT_ID_PATTERN = rf"^{OBSERVATION_CONTEXT_ID_PREFIX}:{_SHA256_HEX}$"
+_CLAIM_ID_PATTERN = rf"^{CLAIM_ID_PREFIX}:{_SHA256_HEX}$"
 # I3 spec §13.2: DeploymentResolution.resolution_id is a distinct public identity from claim_id -
 # it identifies a snapshot-bound reconciliation-candidate-group evaluation, not a claim.
 _DEPLOYMENT_RESOLUTION_ID_PATTERN = rf"^aip:deployment-resolution:v1:{_SHA256_HEX}$"

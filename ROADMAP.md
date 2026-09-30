@@ -658,6 +658,13 @@ contracts; a stable Adapter SPI where it is intentionally public; documented com
 migration rules for graph persistence and configuration; production qualification completed;
 critical semantic errors = 0; release blockers = 0.
 
+**v1.0 scope boundary:** stable v1.0 contains only contracts that were implemented and independently
+qualified through the pre-v1.0 capability releases and the release-candidate phase. Externally sourced
+decision-history linkage, historical architecture-state retention/import, and architecture trajectories
+remain outside v1.0 under this roadmap. Moving any of those domains into the stable v1.0 scope would
+require an explicit roadmap revision plus its own product-value, semantic, and executable validation;
+landscape relevance or conceptual fit alone does not promote a future capability into v1.0.
+
 ## Sequencing principle
 
 ```text
@@ -672,7 +679,10 @@ v0.3  validation and hardening
   -> v1.0  stable platform
 ```
 
-In capability terms:
+The version list above is the **planned release order**, not a claim that every immediately preceding
+release is a semantic prerequisite for the next one.
+
+In capability terms, the semantic dependencies branch rather than form one linear chain:
 
 ```text
 VALIDATE
@@ -681,40 +691,32 @@ EXPOSE
    ↓
 DISCOVER
    ↓
-ESTABLISH LOCALLY
-   ↓
-CONNECT API EXPOSURE AND CONSUMPTION
-   ↓
-REPRESENT INTENT
-   ↓
-ASSESS
-   ↓
-FREEZE
+ESTABLISH LOCALLY (v0.6)
+   ├──────────────────────────────┐
+   ↓                              ↓
+API-AWARE CURRENT STATE (v0.7)   EXPLICIT INTENT (v0.8)
+   │                              │
+   └──────── qualified Current ───┤
+                                  ↓
+                         ASSESS (v0.9)
+                                  ↓
+                               FREEZE
 ```
 
-In product-question terms:
+In product-question terms, the planned release order is:
 
 ```text
-v0.5
-WHAT is running WHERE?
-        ↓
-v0.6
-WHERE does this architectural relationship hold?
-        ↓
-v0.7
-HOW are APIs exposed and consumed, and what does the evidence establish?
-        ↓
-v0.8
-WHAT explicit Intent applies here?
-        ↓
-v0.9
-HOW does established Current State differ from applicable Intent?
-        ↓
-v1.0-rc
-FREEZE and qualify the question space already implemented
+v0.5  WHAT is running WHERE?
+v0.6  WHERE does this architectural relationship hold?
+v0.7  HOW are APIs exposed and consumed, and what does the evidence establish?
+v0.8  WHAT explicit Intent applies here?
+v0.9  HOW does established Current State differ from applicable Intent?
+v1.0-rc  FREEZE and qualify the question space already implemented
 ```
 
-This question progression is the product-facing expression of the semantic sequence above.
+These questions expand AIP's safely answerable Architecture Knowledge in release order; the
+branching dependency structure above, not the version adjacency, defines semantic prerequisite
+relationships.
 
 The Wardley-mapping result adds an investment rule:
 
@@ -744,15 +746,17 @@ Knowledge, requires new evidence/reconciliation semantics, or unlocks a material
 architecture question. Proprietary transport, storage, or source plumbing should enter scope only
 when correctness, interoperability, or evidence semantics require it.
 
-The ordering is semantic, not merely chronological:
+The semantic dependencies are narrower than the chronological release order:
 
 1. broader evidence must be trustworthy before it is used to establish more Current State;
-2. locality-aware Current State must remain independently derivable before Intent exists;
+2. locality/context semantics must be stable before AIP broadens Current State with API exposure and
+   consumption, and before applicable Intent is compared with Current State;
 3. API exposure and consumption are an additional Current-State question: qualified cross-source
    associations and observed use must not imply products, business capabilities, ownership, or Intent;
-4. Intent must be explicit, attributable, and qualified for authority, lifecycle, scope, and time
-   applicability before AIP compares Current State with it;
-5. Current↔Intent assessment must remain read-only and downstream of both independent projections;
+4. explicit Intent is an independent knowledge path and does not depend semantically on API-Aware
+   Current State; it must be attributable and qualified for authority, lifecycle, scope, and time;
+5. Current↔Intent assessment must remain read-only and downstream of both independently established
+   projections relevant to the question being assessed;
 6. only implemented and qualified contracts are frozen for v1.0.
 
 `v0.3` carried a hard gate: had either real-system dossier shown the Canonical Architecture Model
@@ -763,7 +767,8 @@ answered `NO`, so that gate did not block.
 
 None of the above are committed dates — this is a planning sequence, not a schedule. The detailed
 scope of each planned release remains subject to its release specification and qualification gate;
-the semantic dependency between the release themes is the stable part of this roadmap.
+the semantic dependency structure and the independence of Current State, Intent, and Assessment are
+the stable parts of this roadmap.
 
 ## Product validation gates
 
@@ -775,6 +780,13 @@ independently authored expected results. Define baselines and success/stop thres
 pilot. Assess correctness together with useful answer coverage, justified abstention, false alarms,
 and total engineering effort including setup, source maintenance, identity mapping, and clarification.
 Reducing false claims only by returning more unresolved answers does not establish product value.
+
+For **every capability release**, product qualification must include at least one recurring
+architecture question that the capability turns into a **reusable, deterministic, evidence-qualified
+answer or bounded context**. Validate that answer end to end: the consumer can resolve its evidence,
+qualification, context and limitations, and the workflow is compared with reconstruction from the
+same available source access. Internal semantic correctness alone is necessary but not sufficient
+evidence of product value.
 
 Record a continue, narrow, defer, or stop decision when evaluating these gates. Failed gates require
 a documented scope decision and, where release assignment or product boundaries change materially,

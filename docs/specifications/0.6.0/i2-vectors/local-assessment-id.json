@@ -1,0 +1,257 @@
+{
+  "contract": "local-assessment-identity/1",
+  "vector_set": "i2-local-assessment-id/1",
+  "governing": "docs/specifications/0.6.0/i2-decision-record.md D9, D14.1-D14.2",
+  "authored": "By hand in I2.4a before any implementation: each canonical_bytes_utf8 was written as a literal and hashed with sha256sum. No AIP code was used.",
+  "encoding": {
+    "canonical_json": "sorted object keys at every level, separators ',' and ':', no whitespace, raw UTF-8 (ensure_ascii=False) - the canonical_json.py convention",
+    "hash": "full lowercase SHA-256 of the canonical bytes",
+    "assertion_prefix": "aip:local-assertion:v1:",
+    "assessment_prefix": "aip:local-assessment:v1:",
+    "list_order": "capture_revisions sorted by (source_instance_id, revision); rules sorted by (id, version)"
+  },
+  "assertion_vectors": [
+    {
+      "id": "A01-v01-w1-o1-day-d",
+      "description": "V01 (Pod P1) resolved to W1 = Deployment shop/orders, calling O1, window D..D, production.",
+      "fields": {
+        "version": 1,
+        "subject_service_id": "service:orders",
+        "relation_type": "CALLS",
+        "object_operation_id": "operation:pricing:GET:/prices",
+        "environment": "production",
+        "first_utc_day": "2026-09-28",
+        "last_utc_day": "2026-09-28",
+        "workload": {
+          "cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+          "kind": "Deployment",
+          "namespace": "shop",
+          "uid": "22222222-bbbb-4ccc-8ddd-000000000001"
+        }
+      },
+      "canonical_bytes_utf8": "{\"environment\":\"production\",\"first_utc_day\":\"2026-09-28\",\"last_utc_day\":\"2026-09-28\",\"object_operation_id\":\"operation:pricing:GET:/prices\",\"relation_type\":\"CALLS\",\"subject_service_id\":\"service:orders\",\"version\":1,\"workload\":{\"cluster_uid\":\"7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b\",\"kind\":\"Deployment\",\"namespace\":\"shop\",\"uid\":\"22222222-bbbb-4ccc-8ddd-000000000001\"}}",
+      "sha256": "c582f66ade74f988a5a6b36635cd7403fa928ab89c30f8f638e69c05955a4202",
+      "expected_id": "aip:local-assertion:v1:c582f66ade74f988a5a6b36635cd7403fa928ab89c30f8f638e69c05955a4202",
+      "lineage": {
+        "v2_candidate": "V01-base",
+        "caller_pod_uid": "11111111-aaaa-4bbb-8ccc-000000000001"
+      }
+    },
+    {
+      "id": "A02-other-pod-same-workload",
+      "description": "V03 (another Pod, P2) of the same Workload W1 calling O1: the Pod and its v2 id are lineage, not key inputs, so the id equals A01.",
+      "fields": {
+        "version": 1,
+        "subject_service_id": "service:orders",
+        "relation_type": "CALLS",
+        "object_operation_id": "operation:pricing:GET:/prices",
+        "environment": "production",
+        "first_utc_day": "2026-09-28",
+        "last_utc_day": "2026-09-28",
+        "workload": {
+          "cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+          "kind": "Deployment",
+          "namespace": "shop",
+          "uid": "22222222-bbbb-4ccc-8ddd-000000000001"
+        }
+      },
+      "canonical_bytes_utf8": "{\"environment\":\"production\",\"first_utc_day\":\"2026-09-28\",\"last_utc_day\":\"2026-09-28\",\"object_operation_id\":\"operation:pricing:GET:/prices\",\"relation_type\":\"CALLS\",\"subject_service_id\":\"service:orders\",\"version\":1,\"workload\":{\"cluster_uid\":\"7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b\",\"kind\":\"Deployment\",\"namespace\":\"shop\",\"uid\":\"22222222-bbbb-4ccc-8ddd-000000000001\"}}",
+      "sha256": "c582f66ade74f988a5a6b36635cd7403fa928ab89c30f8f638e69c05955a4202",
+      "expected_id": "aip:local-assertion:v1:c582f66ade74f988a5a6b36635cd7403fa928ab89c30f8f638e69c05955a4202",
+      "lineage": {
+        "v2_candidate": "V03-distinct-pod",
+        "caller_pod_uid": "11111111-aaaa-4bbb-8ccc-000000000002"
+      },
+      "same_id_as": "A01-v01-w1-o1-day-d"
+    },
+    {
+      "id": "A03-w2-o2",
+      "description": "W2 = Deployment shop/orders-canary (its own Workload UID) calling O2.",
+      "fields": {
+        "version": 1,
+        "subject_service_id": "service:orders",
+        "relation_type": "CALLS",
+        "object_operation_id": "operation:legacy-pricing:GET:/prices",
+        "environment": "production",
+        "first_utc_day": "2026-09-28",
+        "last_utc_day": "2026-09-28",
+        "workload": {
+          "cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+          "kind": "Deployment",
+          "namespace": "shop",
+          "uid": "22222222-bbbb-4ccc-8ddd-000000000002"
+        }
+      },
+      "canonical_bytes_utf8": "{\"environment\":\"production\",\"first_utc_day\":\"2026-09-28\",\"last_utc_day\":\"2026-09-28\",\"object_operation_id\":\"operation:legacy-pricing:GET:/prices\",\"relation_type\":\"CALLS\",\"subject_service_id\":\"service:orders\",\"version\":1,\"workload\":{\"cluster_uid\":\"7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b\",\"kind\":\"Deployment\",\"namespace\":\"shop\",\"uid\":\"22222222-bbbb-4ccc-8ddd-000000000002\"}}",
+      "sha256": "1a2cf0be7c17606453aa39d51dffb6bb053584d506fb366e628edc6f9dff93c9",
+      "expected_id": "aip:local-assertion:v1:1a2cf0be7c17606453aa39d51dffb6bb053584d506fb366e628edc6f9dff93c9"
+    },
+    {
+      "id": "A04-two-day-window",
+      "description": "A01 with window D..D+1: a different window is a different assertion.",
+      "fields": {
+        "version": 1,
+        "subject_service_id": "service:orders",
+        "relation_type": "CALLS",
+        "object_operation_id": "operation:pricing:GET:/prices",
+        "environment": "production",
+        "first_utc_day": "2026-09-28",
+        "last_utc_day": "2026-09-29",
+        "workload": {
+          "cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+          "kind": "Deployment",
+          "namespace": "shop",
+          "uid": "22222222-bbbb-4ccc-8ddd-000000000001"
+        }
+      },
+      "canonical_bytes_utf8": "{\"environment\":\"production\",\"first_utc_day\":\"2026-09-28\",\"last_utc_day\":\"2026-09-29\",\"object_operation_id\":\"operation:pricing:GET:/prices\",\"relation_type\":\"CALLS\",\"subject_service_id\":\"service:orders\",\"version\":1,\"workload\":{\"cluster_uid\":\"7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b\",\"kind\":\"Deployment\",\"namespace\":\"shop\",\"uid\":\"22222222-bbbb-4ccc-8ddd-000000000001\"}}",
+      "sha256": "f0f9f021771acd0705f02b25f78fbb13711cb20edee8b155dafcc6534788c098",
+      "expected_id": "aip:local-assertion:v1:f0f9f021771acd0705f02b25f78fbb13711cb20edee8b155dafcc6534788c098"
+    },
+    {
+      "id": "A05-other-environment",
+      "description": "A01 in environment staging.",
+      "fields": {
+        "version": 1,
+        "subject_service_id": "service:orders",
+        "relation_type": "CALLS",
+        "object_operation_id": "operation:pricing:GET:/prices",
+        "environment": "staging",
+        "first_utc_day": "2026-09-28",
+        "last_utc_day": "2026-09-28",
+        "workload": {
+          "cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+          "kind": "Deployment",
+          "namespace": "shop",
+          "uid": "22222222-bbbb-4ccc-8ddd-000000000001"
+        }
+      },
+      "canonical_bytes_utf8": "{\"environment\":\"staging\",\"first_utc_day\":\"2026-09-28\",\"last_utc_day\":\"2026-09-28\",\"object_operation_id\":\"operation:pricing:GET:/prices\",\"relation_type\":\"CALLS\",\"subject_service_id\":\"service:orders\",\"version\":1,\"workload\":{\"cluster_uid\":\"7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b\",\"kind\":\"Deployment\",\"namespace\":\"shop\",\"uid\":\"22222222-bbbb-4ccc-8ddd-000000000001\"}}",
+      "sha256": "15abbefb289a1277aca2f80bbd98964f91558e424963d896839129a8da48e952",
+      "expected_id": "aip:local-assertion:v1:15abbefb289a1277aca2f80bbd98964f91558e424963d896839129a8da48e952"
+    }
+  ],
+  "assessment_vectors": [
+    {
+      "id": "I01-instance-of-a01",
+      "description": "A01 assessed under snapshot aaaa..., supported by two sources, with the four D14.2 rules.",
+      "fields": {
+        "version": 1,
+        "assertion_id": "aip:local-assertion:v1:c582f66ade74f988a5a6b36635cd7403fa928ab89c30f8f638e69c05955a4202",
+        "snapshot_id": "aip:snapshot:v1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "capture_revisions": [
+          {
+            "source_instance_id": "urn:aip:source:kubernetes:source-a",
+            "revision": "CAP-A"
+          },
+          {
+            "source_instance_id": "urn:aip:source:kubernetes:source-b",
+            "revision": "r7"
+          }
+        ],
+        "rules": [
+          {
+            "id": "declared-observed-qualification",
+            "version": 1
+          },
+          {
+            "id": "otel-calls-scoped-evidence-v2-key",
+            "version": 1
+          },
+          {
+            "id": "otel-client-caller-attribution",
+            "version": 1
+          },
+          {
+            "id": "scoped-caller-locality-applicability",
+            "version": 1
+          }
+        ]
+      },
+      "canonical_bytes_utf8": "{\"assertion_id\":\"aip:local-assertion:v1:c582f66ade74f988a5a6b36635cd7403fa928ab89c30f8f638e69c05955a4202\",\"capture_revisions\":[{\"revision\":\"CAP-A\",\"source_instance_id\":\"urn:aip:source:kubernetes:source-a\"},{\"revision\":\"r7\",\"source_instance_id\":\"urn:aip:source:kubernetes:source-b\"}],\"rules\":[{\"id\":\"declared-observed-qualification\",\"version\":1},{\"id\":\"otel-calls-scoped-evidence-v2-key\",\"version\":1},{\"id\":\"otel-client-caller-attribution\",\"version\":1},{\"id\":\"scoped-caller-locality-applicability\",\"version\":1}],\"snapshot_id\":\"aip:snapshot:v1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"version\":1}",
+      "sha256": "fbbf6aaa949b7fed6aa91610897550d96baf89d47294b325df47df255850928a",
+      "expected_id": "aip:local-assessment:v1:fbbf6aaa949b7fed6aa91610897550d96baf89d47294b325df47df255850928a"
+    },
+    {
+      "id": "I02-permuted-input",
+      "description": "I01 with capture_revisions and rules supplied in reverse order: both lists are sorted before encoding, so the bytes and id equal I01.",
+      "fields": {
+        "version": 1,
+        "assertion_id": "aip:local-assertion:v1:c582f66ade74f988a5a6b36635cd7403fa928ab89c30f8f638e69c05955a4202",
+        "snapshot_id": "aip:snapshot:v1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "capture_revisions": [
+          {
+            "source_instance_id": "urn:aip:source:kubernetes:source-b",
+            "revision": "r7"
+          },
+          {
+            "source_instance_id": "urn:aip:source:kubernetes:source-a",
+            "revision": "CAP-A"
+          }
+        ],
+        "rules": [
+          {
+            "id": "scoped-caller-locality-applicability",
+            "version": 1
+          },
+          {
+            "id": "otel-client-caller-attribution",
+            "version": 1
+          },
+          {
+            "id": "otel-calls-scoped-evidence-v2-key",
+            "version": 1
+          },
+          {
+            "id": "declared-observed-qualification",
+            "version": 1
+          }
+        ]
+      },
+      "canonical_bytes_utf8": "{\"assertion_id\":\"aip:local-assertion:v1:c582f66ade74f988a5a6b36635cd7403fa928ab89c30f8f638e69c05955a4202\",\"capture_revisions\":[{\"revision\":\"CAP-A\",\"source_instance_id\":\"urn:aip:source:kubernetes:source-a\"},{\"revision\":\"r7\",\"source_instance_id\":\"urn:aip:source:kubernetes:source-b\"}],\"rules\":[{\"id\":\"declared-observed-qualification\",\"version\":1},{\"id\":\"otel-calls-scoped-evidence-v2-key\",\"version\":1},{\"id\":\"otel-client-caller-attribution\",\"version\":1},{\"id\":\"scoped-caller-locality-applicability\",\"version\":1}],\"snapshot_id\":\"aip:snapshot:v1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"version\":1}",
+      "sha256": "fbbf6aaa949b7fed6aa91610897550d96baf89d47294b325df47df255850928a",
+      "expected_id": "aip:local-assessment:v1:fbbf6aaa949b7fed6aa91610897550d96baf89d47294b325df47df255850928a",
+      "same_id_as": "I01-instance-of-a01"
+    },
+    {
+      "id": "I03-other-snapshot",
+      "description": "I01 under snapshot bbbb...: same assertion, different assessment instance.",
+      "fields": {
+        "version": 1,
+        "assertion_id": "aip:local-assertion:v1:c582f66ade74f988a5a6b36635cd7403fa928ab89c30f8f638e69c05955a4202",
+        "snapshot_id": "aip:snapshot:v1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "capture_revisions": [
+          {
+            "source_instance_id": "urn:aip:source:kubernetes:source-a",
+            "revision": "CAP-A"
+          },
+          {
+            "source_instance_id": "urn:aip:source:kubernetes:source-b",
+            "revision": "r7"
+          }
+        ],
+        "rules": [
+          {
+            "id": "declared-observed-qualification",
+            "version": 1
+          },
+          {
+            "id": "otel-calls-scoped-evidence-v2-key",
+            "version": 1
+          },
+          {
+            "id": "otel-client-caller-attribution",
+            "version": 1
+          },
+          {
+            "id": "scoped-caller-locality-applicability",
+            "version": 1
+          }
+        ]
+      },
+      "canonical_bytes_utf8": "{\"assertion_id\":\"aip:local-assertion:v1:c582f66ade74f988a5a6b36635cd7403fa928ab89c30f8f638e69c05955a4202\",\"capture_revisions\":[{\"revision\":\"CAP-A\",\"source_instance_id\":\"urn:aip:source:kubernetes:source-a\"},{\"revision\":\"r7\",\"source_instance_id\":\"urn:aip:source:kubernetes:source-b\"}],\"rules\":[{\"id\":\"declared-observed-qualification\",\"version\":1},{\"id\":\"otel-calls-scoped-evidence-v2-key\",\"version\":1},{\"id\":\"otel-client-caller-attribution\",\"version\":1},{\"id\":\"scoped-caller-locality-applicability\",\"version\":1}],\"snapshot_id\":\"aip:snapshot:v1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"version\":1}",
+      "sha256": "2bbb828bb20304f6d5e4fe7b250df5b34aa997278ab08131f443e2fb3abc0286",
+      "expected_id": "aip:local-assessment:v1:2bbb828bb20304f6d5e4fe7b250df5b34aa997278ab08131f443e2fb3abc0286"
+    }
+  ]
+}

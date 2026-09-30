@@ -53,6 +53,7 @@ from app.architecture_intelligence.evidence_projection import (
     EvidenceProjectionResult,
     project_evidence,
 )
+from app.architecture_intelligence.local_assessment import LocalAssessmentResult, assess
 from app.architecture_intelligence.observation_context import build_complete_observation_context_ref
 from app.architecture_intelligence.repository import (
     SnapshotUnstable,
@@ -70,6 +71,8 @@ from app.architecture_intelligence.request import (
     ObservationContextInput,
     ServiceDependenciesRequest,
 )
+from app.architecture_intelligence.scoped_applicability import LocalityRequest
+from app.architecture_intelligence.scoped_evidence_repository import read_scoped_applicability
 from app.graph.repository import open_session
 from app.graph.revision_fence import read_revision
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
@@ -785,3 +788,20 @@ class ArchitectureIntelligenceService:
             if synthetic is not None and evidence_id in reconciliation.reachable_evidence_ids:
                 return snapshot_id, _synthetic_evidence_to_public_dict(synthetic)
             return snapshot_id, None
+
+    def assess_local_calls(
+        self, request: LocalityRequest, *, after_id: str | None = None
+    ) -> LocalAssessmentResult:
+        """v0.6.0 I2.4 - the internal Qualified Local Evidence Assessment entry point (I2 spec §4,
+        §9): caller-Workload-local `CALLS -> Operation` assertions for one candidate page, each
+        qualified through the shared declared/observed kernel, bound to one stable snapshot.
+        Internal only: no REST route, MCP tool or public schema exists for it before I3. A malformed
+        window raises `ValueError`; `SnapshotUnstable` propagates."""
+        with open_session(self._driver, database=self._database, read_only=True) as session:
+            read = read_scoped_applicability(
+                session,
+                request,
+                coverage_qualification_enabled=self._coverage_qualification_enabled,
+                after_id=after_id,
+            )
+        return assess(read, request)

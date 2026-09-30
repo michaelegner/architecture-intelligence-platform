@@ -46,7 +46,7 @@ _RECONCILIATION_RULE_VERSION = 1
 # `InfrastructureEntity.resource_kind` convention) mapped onto the public, uppercase
 # `WorkloadKind` enum. No case folding or fuzzy matching - a `workload_kind` outside this map is a
 # real defect (I2 already restricts KUBERNETES_WORKLOAD promotion to exactly these three kinds).
-_WORKLOAD_KIND_BY_RAW = {
+WORKLOAD_KIND_BY_RAW = {
     "Deployment": WorkloadKind.DEPLOYMENT,
     "StatefulSet": WorkloadKind.STATEFULSET,
     "DaemonSet": WorkloadKind.DAEMONSET,
@@ -192,7 +192,7 @@ def _workload_ref(workload: CurrentKubernetesWorkload) -> WorkloadRef:
         id=workload.workload_id,
         type=EntityType.WORKLOAD,
         name=workload.name,
-        workload_kind=_WORKLOAD_KIND_BY_RAW[workload.workload_kind],
+        workload_kind=WORKLOAD_KIND_BY_RAW[workload.workload_kind],
         namespace=workload.namespace,
     )
 
@@ -573,14 +573,14 @@ class DeclaredServiceIdentity:
 
 # spec §9.6: "k8s.deployment.name -> if resolved Workload kind = Deployment, exact equality with
 # Workload name; otherwise contradictory" (repeated identically for StatefulSet/DaemonSet).
-_WORKLOAD_KIND_CONSISTENCY_ATTR = {
+WORKLOAD_KIND_CONSISTENCY_ATTR = {
     WorkloadKind.DEPLOYMENT: "k8s_deployment_name",
     WorkloadKind.STATEFULSET: "k8s_statefulset_name",
     WorkloadKind.DAEMONSET: "k8s_daemonset_name",
 }
 
 
-def _parse_rfc3339(value: str | None) -> datetime | None:
+def parse_rfc3339(value: str | None) -> datetime | None:
     """No RFC 3339 parser already exists elsewhere in this codebase for this purpose - small and
     local. `None` for a missing or unparsable value; the caller treats both as "absent" (spec
     §9.7's `capturedAt`-absent case)."""
@@ -659,8 +659,8 @@ def _consistency_attributes_agree(
         return False
     if obs.k8s_pod_name is not None and obs.k8s_pod_name != pod.pod_name:
         return False
-    resolved_kind = _WORKLOAD_KIND_BY_RAW[workload.workload_kind]
-    for kind, attr_name in _WORKLOAD_KIND_CONSISTENCY_ATTR.items():
+    resolved_kind = WORKLOAD_KIND_BY_RAW[workload.workload_kind]
+    for kind, attr_name in WORKLOAD_KIND_CONSISTENCY_ATTR.items():
         value = getattr(obs, attr_name)
         if value is None:
             continue
@@ -689,7 +689,7 @@ def _observation_context_limitation(
         observation_context.window_start <= obs.last_seen <= observation_context.window_end
     ):
         return LimitationCode.DEPLOYMENT_TEMPORAL_MISMATCH
-    captured_at = _parse_rfc3339(pod.captured_at)
+    captured_at = parse_rfc3339(pod.captured_at)
     if captured_at is None or not (
         observation_context.window_start <= captured_at <= observation_context.window_end
     ):

@@ -2286,21 +2286,26 @@ capability release expands AIP's useful Architecture Knowledge. v0.7 remains a *
 question-specific Current-State extension**; it must not delay, amend or implicitly widen the
 accepted v0.6.0 specification.
 
-The semantic dependency between these themes is deliberate:
+The planned release order is linear, but the **semantic dependencies branch rather than form one linear chain**:
 
 ```text
 DISCOVER
    ↓
-ESTABLISH CURRENT STATE LOCALLY
-   ↓
-CONNECT API EXPOSURE AND CONSUMPTION AS CURRENT STATE
-   ↓
-REPRESENT INTENT INDEPENDENTLY
-   ↓
-ASSESS CURRENT ↔ INTENT
-   ↓
-FREEZE / QUALIFY
+ESTABLISH CURRENT STATE LOCALLY (v0.6)
+   ├────────────────────────────────────────┐
+   ↓                                        ↓
+CONNECT API EXPOSURE / CONSUMPTION (v0.7)  REPRESENT INTENT (v0.8)
+   │                                        │
+   └──────── relevant Current State ────────┤
+                                            ↓
+                              ASSESS CURRENT ↔ INTENT (v0.9)
+                                            ↓
+                                      FREEZE / QUALIFY
 ```
+
+v0.7 is an additional independently qualified Current-State question, not a semantic prerequisite
+for v0.8. Assessment depends on the relevant established Current-State projection and an applicable
+Intent projection; API-specific assessment additionally depends on API-Aware Current-State semantics.
 
 ### 26.2 v0.6 boundary: locality semantics, not distributed deployment
 
