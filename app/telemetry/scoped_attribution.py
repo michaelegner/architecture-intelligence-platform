@@ -46,7 +46,7 @@ class LocalityDisposition(StrEnum):
 
 
 # I1 §10.1: the within-phase primary choice when several ingestion causes coexist.
-_PRECEDENCE = (
+DISPOSITION_PRECEDENCE = (
     LocalityDisposition.CONFLICT,
     LocalityDisposition.AMBIGUOUS,
     LocalityDisposition.INAPPLICABLE,
@@ -156,7 +156,7 @@ _WORKLOAD_NAME_FIELDS = ("deployment_name", "statefulset_name", "daemonset_name"
 
 def _primary(reasons: set[str]) -> LocalityDisposition:
     dispositions = {_REASON_DISPOSITION[reason] for reason in reasons}
-    return next(d for d in _PRECEDENCE if d in dispositions)
+    return next(d for d in DISPOSITION_PRECEDENCE if d in dispositions)
 
 
 def primary_cause(refusal: "ScopedIngressRefusal") -> str:

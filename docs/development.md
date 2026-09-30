@@ -8,6 +8,9 @@ uv run ruff check .                    # lint
 uv run ruff format .                   # format
 uv run pyright                         # type check (app/)
 uv run lint-imports                    # import boundaries between app/ packages
+uv run deptry .                        # declared dependencies match app/'s imports
+uvx semgrep@1.178.0 scan --metrics=off --error --config p/python --config p/security-audit app
+                                       # static analysis (CI's `static analysis (semgrep)` job)
 ```
 
 Copy `.env.example` to `.env` and fill in `NEO4J_PASSWORD` (and `OPENAI_API_KEY` if you want the

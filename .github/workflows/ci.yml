@@ -40,6 +40,10 @@ jobs:
       - name: import-linter
         run: uv run lint-imports
 
+      # Declared dependencies match what app/ imports; `[tool.deptry]` in pyproject.toml.
+      - name: deptry
+        run: uv run deptry .
+
       # v0.4.2 I3 spec §8.2/§8.3 "shell lint" gate. shellcheck ships preinstalled on GitHub-hosted
       # ubuntu-latest runners - no extra action/install needed. examples/runtime-demo/ and (v0.5.0
       # I6 §7.4) examples/release-golden-path/ hold the shipped, qualification-relevant shell scripts;
@@ -126,3 +130,20 @@ jobs:
       # not pip-audit's own ephemeral tool environment.
       - name: pip-audit
         run: uv run --with pip-audit pip-audit
+
+  static-analysis:
+    name: static analysis (semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+
+      # Pinned Semgrep in its own isolated uvx environment (never part of the project's dependency
+      # resolution), registry rulesets only; --error fails the job on any finding.
+      - name: semgrep
+        run: uvx semgrep@1.178.0 scan --metrics=off --error --config p/python --config p/security-audit app

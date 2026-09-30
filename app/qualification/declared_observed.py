@@ -22,6 +22,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, LiteralString
 
+# v0.6.0 I2 decision record D14.2: this kernel's rule identity, named in a local-assessment
+# instance id. A constant only; no behaviour depends on it.
+QUALIFICATION_RULE_ID = "declared-observed-qualification"
+QUALIFICATION_RULE_VERSION = 1
+
 CONFIRMED = "CONFIRMED"
 OBSERVED_ONLY = "OBSERVED_ONLY"
 NOT_OBSERVED_IN_WINDOW = "NOT_OBSERVED_IN_WINDOW"
