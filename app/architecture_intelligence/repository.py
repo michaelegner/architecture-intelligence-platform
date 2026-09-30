@@ -19,7 +19,7 @@ import neo4j
 
 from app.analysis.runtime import telemetry_coverage
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
-from app.architecture_intelligence.contracts import DEPLOYMENT_RECONCILIATION_RULE_ID
+from app.architecture_intelligence.contracts import DEPLOYMENT_RECONCILIATION_RULE_ID, SNAPSHOT_ID_PREFIX
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
@@ -345,7 +345,7 @@ def snapshot_fingerprint(state: dict) -> tuple[str, str]:
     """`(snapshot_id, model_revision)` sharing one digest under different public prefixes (spec
     §17) - this is what guarantees `SnapshotRef`'s digest-consistency check always holds."""
     digest = hashlib.sha256(canonical_json_bytes(state)).hexdigest()
-    return f"aip:snapshot:v1:{digest}", f"sha256:{digest}"
+    return f"{SNAPSHOT_ID_PREFIX}:{digest}", f"sha256:{digest}"
 
 
 class SnapshotUnstable(RuntimeError):
