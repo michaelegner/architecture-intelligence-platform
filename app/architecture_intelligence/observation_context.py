@@ -11,7 +11,10 @@ import hashlib
 from datetime import UTC, datetime
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes, format_utc_timestamp
-from app.architecture_intelligence.contracts import OBSERVATION_CONTEXT_ID_PREFIX, ObservationContextRef
+from app.architecture_intelligence.contracts import (
+    OBSERVATION_CONTEXT_ID_PREFIX,
+    ObservationContextRef,
+)
 from app.architecture_intelligence.request import ObservationContextInput
 
 _CONTEXT_ID_VERSION = 1
