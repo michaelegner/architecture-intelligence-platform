@@ -19,7 +19,10 @@ import neo4j
 
 from app.analysis.runtime import telemetry_coverage
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
-from app.architecture_intelligence.contracts import DEPLOYMENT_RECONCILIATION_RULE_ID, SNAPSHOT_ID_PREFIX
+from app.architecture_intelligence.contracts import (
+    DEPLOYMENT_RECONCILIATION_RULE_ID,
+    SNAPSHOT_ID_PREFIX,
+)
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
