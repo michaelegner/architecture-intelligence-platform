@@ -98,8 +98,8 @@ All six cases use the whole-day window D, environment `production`, and captures
 ## D5 — Capture scope under the fence and in the fingerprint (I2 §8.1 stop condition; amendment)
 
 **Baseline gap, verified at `059ac63`:**
-- An envelope's `scope.namespaces` is used only at mapping time (`app/ingestion/kubernetes_adapter.py:90`). The graph stores only a `scope_definition_digest` on `SourceState`/`CurrentInventory`, and neither is part of the canonical state.
-- Kubernetes evidence refs use the operator-declared `metadata.revision` (`kubernetes_adapter.py:101`), not a content digest. So a namespace-scope change is not provably visible in the snapshot.
+- An envelope's `scope.namespaces` is used only at mapping time (`KubernetesSourceAdapter`, where `map_kubernetes_resources` is called with `scope_namespaces`). The graph stores only a `scope_definition_digest` on `SourceState`/`CurrentInventory`, and neither is part of the canonical state.
+- Kubernetes evidence refs use the operator-declared `metadata.revision` (`revision = loaded.descriptor.declared_provider_revision` in `KubernetesSourceAdapter`), not a content digest. So a namespace-scope change is not provably visible in the snapshot.
 - I2 §8.1 requires a stop here for a reviewed decision.
 
 **Decision (owner):**
@@ -120,14 +120,14 @@ All six cases use the whole-day window D, environment `production`, and captures
    Each now also admits `scoped_capture_scopes_v2` under the same conditional rule. The I1 fragment vector and the oracle are unchanged, and I2.5's independently expected full after-`snapshot_id` vector covers both keys.
 
    **Why `captured_at` is in the key.** It is a disclosed deviation from the approved plan's six-field list. Phase 3 evaluates each admitted source's real `capturedAt`, including a covering source that does **not** contain the Pod (S03, S05). The existing `deployment_captured_pods` state carries `captured_at` only per captured Pod, so without this field that input would be outside the fingerprint.
-4. **Revision advancement.** Persisting the properties is not enough, because the importer bumps the revision only when node, relation or claim content changes (`app/graph/importer.py:954-970`). A scope-only change would therefore alter the new key without moving the fence. In `_import_source_tx`:
+4. **Revision advancement.** Persisting the properties is not enough, because the importer bumps the revision only when node, relation or claim content changes (the `is_no_op` / `graph_revision_advanced` decision in `_import_source_tx`). A scope-only change would therefore alter the new key without moving the fence. In `_import_source_tx`:
    - (a) Read the source's persisted `capture_*` properties before the `SourceState` write and compare them with the new values. The comparison runs even when the replay decision is a no-op; a replay no-op that changes these properties is **not** a no-op for this rule.
    - (b) If they differ, first acquire the write lock on the revision singleton (`AipInternalState`), for example with a no-op `SET` on it. Then, still in the same transaction, check whether any `ScopedObservedCallV2` node exists.
    - (c) If one does, call `bump_revision(tx)`, unless the transaction already bumps.
 
    Taking the lock before the v2 check serializes this transaction against a concurrent ingestion unit whose first v2 write also bumps the singleton. The import therefore cannot miss a v2 record that commits in the meantime.
 
-   With no v2 present, a scope-only change still does not bump, so no-v2 v0.5 revision behaviour is unchanged. Source removal already bumps unconditionally and deletes `SourceState` (`importer.py:1088`), which drops the source from the key.
+   With no v2 present, a scope-only change still does not bump, so no-v2 v0.5 revision behaviour is unchanged. Source removal already bumps unconditionally and deletes `SourceState` (`_remove_source_tx`), which drops the source from the key.
 
    **Required regressions (I2.2 / I2.5):**
    - a scope-only reimport with v2 present bumps the revision and changes the snapshot;
@@ -236,6 +236,22 @@ No Kubernetes or architecture source revision is ever invented for telemetry.
 
 ---
 
+## D12 — I2.2 clarifications (added in I2.2a; additive, D1–D11 unchanged)
+
+These fix details the frozen decisions left to implementation. They add no semantics beyond the I1 contract.
+
+| # | Clarification | Applies in |
+|---|---|---|
+| D12.1 | **Primary cause (D7).** The counter key `primary_reason` of a refused interaction is the lexicographically smallest reason among those whose disposition equals the refusal's primary disposition (`CONFLICT` > `AMBIGUOUS` > `INAPPLICABLE` > `UNRESOLVED` > `INSUFFICIENT_EVIDENCE`). The complete sorted reasons are still reported. *(Owner decision, I2.2 planning.)* | I2.2c |
+| D12.2 | **Legacy membership (D8) covers v1 CALLS buckets only.** A pre-enablement bucket is a distinct `evidence:otel:` ID referenced by a `CALLS` relation's `evidence_ids`, because v2 is defined for CALLS alone and v1 evidence nodes do not record their relation type. | I2.2c |
+| D12.3 | **Revision values are read after the unit's bump.** `bump_revision` returns the new revision; `enabled_at_revision`, `cutover_revision` and `mixed_at_revision` take that value, so they name the revision the unit commits. | I2.2b, I2.2c |
+| D12.4 | **Lock before read (D6).** A v2 node is created or matched and locked (a no-op `SET`) before it is read and merged, so a concurrent unit blocks and then reads the committed record. v1 has no such lock and can lose an update under concurrent POSTs; v2 must not inherit that. | I2.2b |
+| D12.5 | **Cutover race (D8).** The first enabled unit checks for the ledger without a lock, then takes the revision-singleton lock and re-checks, so exactly one ledger is written. | I2.2c |
+| D12.6 | **Candidate reader index (D3).** The reader filters by caller Service, so an index on `ScopedObservedCallV2.subject_id` is created alongside the uniqueness constraint on `id`. | I2.2a |
+| D12.7 | **`config.demo.yaml` is not edited.** It is digest-pinned by the release golden path, and the flag defaults to off when the block is absent. Only `config.yaml` documents the new block. | I2.2a |
+| D12.8 | **`lock_revision` locks with a scratch property (correction, I2.2c).** The I2.2b helper took the fence lock with `SET s.revision = s.revision`. Under contention the right-hand value can be read before the lock is granted, so a waiting writer writes back a stale revision and undoes the increment a just-committed writer made (a racing test saw every unit return revision 1). It now sets and removes a scratch property and reads the revision only after the lock is held, leaving the singleton exactly as it was. `bump_revision` itself is unaffected: 16 concurrent bumps advance the revision by exactly 16. The defect was latent: no I2.2b production path called `lock_revision`. | I2.2c |
+| D12.9 | **Capture scope in memory only (I2.2d).** `SourceDescriptor.capture_scope` carries the capture from the discoverer to the importer and is `exclude=True`, so no descriptor dump, discovery golden (`tests/snapshots/refactor_baseline/`) or report changes shape; `model_copy` keeps it through the orchestrator's enrichment. It is set only on the fully accepted path. Observed v0.5 baseline, pinned by tests: a scope-only, revision-only or `capturedAt`-only re-export is a replay no-op and does **not** advance the fence, while a scope change together with a new revision changes content and does; the D5 rule therefore adds exactly one bump only where v0.5 adds none and v2 records exist, and never a second one. | I2.2d |
+
 ## Traceability
 
 | I2 requirement | Decision |
@@ -250,3 +266,4 @@ No Kubernetes or architecture source revision is ever invented for telemetry.
 | §8.1 same-snapshot fence for scope changes | D5 item 4 |
 | §9 identity; §17.2, §17.5 | D9 |
 | §15 I2.1: record the I1 closure SHA | Header |
+| §15 I2.2: implementation details left to I2.2 | D12 |
