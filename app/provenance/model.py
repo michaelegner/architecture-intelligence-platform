@@ -121,6 +121,11 @@ class RuntimeIdentityObservation(Provenance):
     normalization_rule_version: int = 1
 
 
+# I1 v2 contract §1: the v2 key rule. Also an input of the local-assessment instance id (D14.2).
+SCOPED_KEY_RULE_ID = "otel-calls-scoped-evidence-v2-key"
+SCOPED_KEY_RULE_VERSION = 1
+
+
 class ScopedObservedCall(BaseModel):
     """A caller-Pod-scoped v2 observed CALLS record (v0.6.0 I1 v2 contract §§1 and 3, I2 decision
     record D1). It represents the *same* interaction as a v1 `ObservedEvidence` bucket, isolated
@@ -166,7 +171,7 @@ class ScopedObservedCall(BaseModel):
     k8s_statefulset_name: str | None = None
     k8s_daemonset_name: str | None = None
     conflicting_consistency_attributes: list[str] = Field(default_factory=list)
-    key_rule_id: str = "otel-calls-scoped-evidence-v2-key"
-    key_rule_version: int = 1
+    key_rule_id: str = SCOPED_KEY_RULE_ID
+    key_rule_version: int = SCOPED_KEY_RULE_VERSION
     normalization_rule_id: str = "otel-client-caller-attribution"
     normalization_rule_version: int = 1
