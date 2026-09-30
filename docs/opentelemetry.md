@@ -14,6 +14,20 @@ already has declared, and persists observed facts and evidence. A malformed payl
 content-type is rejected (400/415) before any Neo4j access happens, so a bad request can never
 partially write.
 
+AIP expects the OTLP protobuf body **uncompressed**: `POST /v1/traces` does not negotiate
+`Content-Encoding`, so gzip-compressed exports are rejected during protobuf decoding. The
+Collector's `otlphttp` exporter uses gzip by default; disable compression on the AIP leg:
+
+```yaml
+exporters:
+  otlphttp/aip:
+    endpoint: http://<aip-host>:8000
+    compression: none
+```
+
+See the [runtime demo Collector configuration](../examples/runtime-demo/otel-collector-config.yaml)
+for a working example.
+
 ## Attribute allowlist
 
 Only these OTel semantic-convention attributes are ever read — nothing else is inspected, and
