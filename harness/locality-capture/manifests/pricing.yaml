@@ -1,0 +1,28 @@
+# Provider pricing (I1 capture runbook §2): HTTP SERVER spans for GET /prices, Operation O1.
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: pricing, namespace: aip-locality}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: pricing}}
+  template:
+    metadata: {labels: {app: pricing}}
+    spec:
+      containers:
+        - name: pricing
+          image: aip-locality-harness:rehearsal
+          imagePullPolicy: Never
+          ports: [{containerPort: 8080}]
+          env:
+            - {name: ROLE, value: provider}
+            - {name: OTEL_SERVICE_NAME, value: pricing}
+            - {name: OTEL_RESOURCE_ATTRIBUTES, value: deployment.environment.name=locality-capture}
+            - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://otel-collector:4318"}
+            - {name: OTEL_SEMCONV_STABILITY_OPT_IN, value: http}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: pricing, namespace: aip-locality}
+spec:
+  selector: {app: pricing}
+  ports: [{port: 80, targetPort: 8080}]

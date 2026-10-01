@@ -1,0 +1,114 @@
+{
+  "benchmark": "scoped_churn_cost",
+  "commit": "97bed501b44f5552050db1572dba3682a5fc46b2",
+  "dirty_worktree": false,
+  "facts_per_post": 100,
+  "measured_at": "2026-09-30T19:42:26Z",
+  "points": [
+    {
+      "off": {
+        "persist_ms_per_post_median": null,
+        "posts": 0,
+        "scoped_operational_nodes": 0,
+        "snapshot_fingerprint_ms_median": 107.949,
+        "total_nodes": 8,
+        "total_relationships": 0,
+        "v1_evidence": 0,
+        "v2_records": 0
+      },
+      "on": {
+        "assess_local_calls_ms_median": 117.604,
+        "assessment": {
+          "assertions": 0,
+          "candidates_on_page": 0,
+          "truncated": false
+        },
+        "persist_ms_per_post_median": null,
+        "posts": 0,
+        "scoped_operational_nodes": 0,
+        "snapshot_fingerprint_ms_median": 73.589,
+        "total_nodes": 8,
+        "total_relationships": 0,
+        "transition_report_ms_median": 28.597,
+        "v1_evidence": 0,
+        "v2_records": 0
+      },
+      "pods": 0
+    },
+    {
+      "off": {
+        "persist_ms_per_post_median": 1292.814,
+        "posts": 1,
+        "scoped_operational_nodes": 0,
+        "snapshot_fingerprint_ms_median": 59.768,
+        "total_nodes": 512,
+        "total_relationships": 1,
+        "v1_evidence": 1,
+        "v2_records": 0
+      },
+      "on": {
+        "assess_local_calls_ms_median": 111.841,
+        "assessment": {
+          "assertions": 1,
+          "candidates_on_page": 100,
+          "truncated": false
+        },
+        "persist_ms_per_post_median": 1810.361,
+        "posts": 1,
+        "scoped_operational_nodes": 2,
+        "snapshot_fingerprint_ms_median": 66.76,
+        "total_nodes": 614,
+        "total_relationships": 1,
+        "transition_report_ms_median": 12.28,
+        "v1_evidence": 1,
+        "v2_records": 100
+      },
+      "pods": 100
+    },
+    {
+      "off": {
+        "persist_ms_per_post_median": 867.908,
+        "posts": 10,
+        "scoped_operational_nodes": 0,
+        "snapshot_fingerprint_ms_median": 96.762,
+        "total_nodes": 5012,
+        "total_relationships": 1,
+        "v1_evidence": 1,
+        "v2_records": 0
+      },
+      "on": {
+        "assess_local_calls_ms_median": 652.129,
+        "assessment": {
+          "assertions": 1,
+          "candidates_on_page": 500,
+          "truncated": true
+        },
+        "persist_ms_per_post_median": 1325.375,
+        "posts": 10,
+        "scoped_operational_nodes": 2,
+        "snapshot_fingerprint_ms_median": 256.784,
+        "total_nodes": 6014,
+        "total_relationships": 1,
+        "transition_report_ms_median": 5.905,
+        "v1_evidence": 1,
+        "v2_records": 1000
+      },
+      "pods": 1000
+    }
+  ],
+  "profile": "i2",
+  "repeats": 5,
+  "runtime": {
+    "aip_package_version": "0.5.1",
+    "architecture": "x86_64",
+    "container_runtime_version": "docker/29.8.0",
+    "cpu_model": "x86_64",
+    "logical_cpu_count": 14,
+    "memory_total_bytes": 16511672320,
+    "neo4j_version": "5.26.31",
+    "os": "Linux",
+    "os_release": "5.15.153.1-microsoft-standard-WSL2",
+    "python_version": "3.13.14"
+  },
+  "schema_version": "aip-benchmark-scoped-churn/1"
+}

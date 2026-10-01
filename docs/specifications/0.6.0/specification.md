@@ -356,10 +356,12 @@ Existing unscoped dependency/drift/deployment requests keep their v0.5 meaning, 
 The release requires a bounded, service-owned, deterministic, publicly usable relation-locality projection, not an arbitrary traversal API. **I3 exposure option to freeze before implementation:**
 
 ```text
-ArchitectureIntelligenceService.get_relation_localities(request)
-  REST: /api/services/{id}/relation-localities  [illustrative route]
-  MCP:  get_relation_localities                 [proposed fourth read-only tool]
+ArchitectureIntelligenceService.get_service_dependencies_by_locality(request)
+  REST: /api/services/{id}/dependencies/by-locality  [illustrative route]
+  MCP:  get_service_dependencies_by_locality                 [proposed fourth read-only tool]
 ```
+
+The proposed `get_service_dependencies_by_locality` name follows the existing `get_service_dependencies` convention, but **does not** imply an exhaustive partition of all dependency kinds or proof that a relationship absent from a caller Workload's positive results is locally absent. The initial v0.6 query establishes supported caller-Workload-local HTTP `CALLS` only, discloses unknown/unresolved/excluded results and enumeration bounds, and may compare two evidenced caller Workloads in one snapshot. This is a proposed name and illustrative route; I3.1 still freezes the exact public contract.
 
 The proposed tool expresses a materially new architecture question directly rather than forcing the agent to stitch separate dependency answers into a conclusion. It SHALL not become a generic `get_graph`, free-form query, spatial join, or agent-orchestration capability. If I3 can demonstrate the identical bounded question and comparison safely through a compatible extension of the existing three tools, a reviewed parent amendment may retain three instead. **The final tool count, exact route, request and response shapes are open decisions in §33, not presumed implementation facts.** The positive exit contract is not optional: one deterministic relation-locality answer must be available through both public adapters.
 

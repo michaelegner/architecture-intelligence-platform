@@ -1,7 +1,7 @@
 """v0.4.0 I2.1 - the `MCPServer` instance (spec `docs/specifications/0.4.0/
 i2-mcp-vertical-slice-and-evidence-drill-down.md` §4, §9).
 
-Built on the official `mcp` SDK (pinned `mcp==2.1.1`). The following was verified directly against
+Built on the official `mcp` SDK (exact version pinned in `pyproject.toml`). The following was verified directly against
 the installed package - it isn't documented on the SDK's own doc pages - and shapes this module and
 `app.mcp.guard`:
 
@@ -18,7 +18,7 @@ the installed package - it isn't documented on the SDK's own doc pages - and sha
   the real model's own schema (so the model's own `extra=forbid`/patterns/cross-field validators
   are preserved faithfully). A `BaseModel`-typed *return* value, by contrast, is used directly as
   `structuredContent` (not wrapped in `{"result": ...}`) - confirmed live against
-  `ArchitectureAnswer[ServiceDependenciesData]`. Both tools below take a single `request` parameter
+  `ArchitectureAnswer[ServiceDependenciesData]`. Every tool in `app.mcp.tools` takes a single `request` parameter
   for this reason: `{"request": {...}}` is what a caller sends, and it's a clean, well-defined
   isomorphism to the wrapped request type (spec §10 rule 1), not a byte-identical top-level schema.
 - `MCPServer(cache_hints={...})` takes a `CacheHint(scope, ttl_ms)` per `CacheableMethod`, and

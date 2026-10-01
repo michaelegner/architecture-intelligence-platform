@@ -44,6 +44,7 @@ dev = [
 known_first_party = ["app"]
 extend_exclude = [
     "tmp", "video", "docs", "benchmarks", "evaluation", "examples", "real_world_validation",
+    "harness",  # v0.6.0 I2.6a capture harness: its own hash-pinned requirements, never app/
 ]
 
 [tool.deptry.per_rule_ignores]

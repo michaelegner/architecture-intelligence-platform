@@ -74,6 +74,23 @@ including this file.** If anything below conflicts with a specification, the spe
   command forms (they override any local allow rule), but they match command text only and are not
   a security boundary.
 
+## Continuous refactoring
+
+Treat refactoring as part of normal Python implementation, not as a separate project phase.
+Leave touched code simpler where there is a concrete maintainability benefit: remove unnecessary
+complexity or duplication, clarify responsibilities, and prefer improving existing abstractions
+over speculative new ones. Keep improvements within the current task's scope; report larger
+structural concerns separately rather than expanding the change.
+
+Preserve observable behavior, public contracts, deterministic results, and AIP's evidence,
+provenance, identity, qualification, and snapshot/observation-context semantics. Verify relevant
+behavior after any refactoring with the repository's existing checks.
+
+Before opening a PR that changes Python code, briefly review the diff for material refactoring
+opportunities. Fix local, low-risk problems within scope; do not turn cosmetic preferences into
+blocking work. Skip this check for documentation-only changes. For substantial specification-driven
+work, follow the canonical skill's pre-PR refactoring check as part of the established workflow.
+
 ## Minimum implementation-plan content
 
 - Governing specification path and exact revision.

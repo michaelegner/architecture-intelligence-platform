@@ -1,0 +1,179 @@
+{
+  "assessment": {
+    "assertions": [
+      {
+        "assertion_id": "aip:local-assertion:v1:c0c535587cbf9047a1bc4a8b2307fd2b2a0917f942c16f88ba73cc5270430bc5",
+        "captures": [
+          "rehearsal-c1-2026-09-30T14-38-11Z"
+        ],
+        "declared_evidence_ids": [
+          "evidence:manifest:urn:aip:source:filesystem:dd87c9c73d8ddeab43d06b1bbd13076ddf4e81254ffb77770bab7d17f02ceb40"
+        ],
+        "operation": "operation:service:pricing:GET:/prices",
+        "qualification": "CONFIRMED",
+        "target_runtime_scope": "UNKNOWN",
+        "v2_evidence_ids": [
+          "evidence:otel:calls-scoped:v2:3d17904494047d4ce70edeb55f7083481071ed5bd26c9a3f19dbb4f332cc04e0"
+        ],
+        "workload": {
+          "cluster_uid": "3c9b3e0f-1239-404a-8a45-c1195a7918f5",
+          "kind": "Deployment",
+          "name": "orders",
+          "namespace": "aip-locality",
+          "uid": "9b85fa34-e343-4bb6-ad52-3c55381408d7"
+        }
+      },
+      {
+        "assertion_id": "aip:local-assertion:v1:e7dfce9ffdf4c7c4b2a1425a74c7159f404051851d4c8b33e9b273f9e32b3530",
+        "captures": [
+          "rehearsal-c1-2026-09-30T14-38-11Z"
+        ],
+        "declared_evidence_ids": [],
+        "operation": "operation:service:legacy-pricing:GET:/prices",
+        "qualification": "OBSERVED_ONLY",
+        "target_runtime_scope": "UNKNOWN",
+        "v2_evidence_ids": [
+          "evidence:otel:calls-scoped:v2:df6b26b5e885eb7a425d1799ed36a2afdbc6c1c269d67a651ee2876d89e28807"
+        ],
+        "workload": {
+          "cluster_uid": "3c9b3e0f-1239-404a-8a45-c1195a7918f5",
+          "kind": "Deployment",
+          "name": "orders-canary",
+          "namespace": "aip-locality",
+          "uid": "87a6fe2b-eb3b-424f-affb-6028679fd607"
+        }
+      }
+    ],
+    "candidate_limitations": [],
+    "disposition": "APPLICABLE",
+    "reasons": []
+  },
+  "inventories": [
+    {
+      "cluster_uid": "3c9b3e0f-1239-404a-8a45-c1195a7918f5",
+      "pods": [
+        {
+          "name": "orders-66686679bb-cvd46",
+          "owners": [
+            {
+              "kind": "Deployment",
+              "name": "orders",
+              "uid": "9b85fa34-e343-4bb6-ad52-3c55381408d7"
+            }
+          ],
+          "uid": "1cda6fde-9aa4-409d-baff-8b0604b0f63b"
+        },
+        {
+          "name": "orders-canary-67975b66fd-xmv8q",
+          "owners": [
+            {
+              "kind": "Deployment",
+              "name": "orders-canary",
+              "uid": "87a6fe2b-eb3b-424f-affb-6028679fd607"
+            }
+          ],
+          "uid": "d005b4f6-5377-410d-aad7-15233aed7bac"
+        }
+      ],
+      "revision": "rehearsal-c1-2026-09-30T14-38-11Z"
+    }
+  ],
+  "operations": [
+    "operation:service:legacy-pricing:GET:/prices",
+    "operation:service:orders:GET:/orders",
+    "operation:service:pricing:GET:/prices"
+  ],
+  "result_snapshot_id": "aip:snapshot:v1:7dbdcccde46f2b43d15770a613e3cb6addca0fed5a953e3c724bb94382691520",
+  "snapshot_id": "aip:snapshot:v1:7dbdcccde46f2b43d15770a613e3cb6addca0fed5a953e3c724bb94382691520",
+  "total_nodes": 96,
+  "v1_calls": [
+    {
+      "count": 508,
+      "id": "evidence:otel:locality-capture:2026-09-30:c4fcfea41a3c",
+      "operation": "operation:service:legacy-pricing:GET:/prices",
+      "type": "OBSERVED"
+    },
+    {
+      "count": null,
+      "id": "evidence:manifest:urn:aip:source:filesystem:dd87c9c73d8ddeab43d06b1bbd13076ddf4e81254ffb77770bab7d17f02ceb40",
+      "operation": "operation:service:pricing:GET:/prices",
+      "type": "DECLARED"
+    },
+    {
+      "count": 359,
+      "id": "evidence:otel:locality-capture:2026-09-30:eaf262e41ae4",
+      "operation": "operation:service:pricing:GET:/prices",
+      "type": "OBSERVED"
+    }
+  ],
+  "v2_records": [
+    {
+      "bucket_utc_day": "2026-09-30",
+      "caller_cluster_uid": "3c9b3e0f-1239-404a-8a45-c1195a7918f5",
+      "caller_pod_uid": "1cda6fde-9aa4-409d-baff-8b0604b0f63b",
+      "conflicting_consistency_attributes": [],
+      "contract_version": 2,
+      "correlation_mode": "CLIENT_SERVER",
+      "environment": "locality-capture",
+      "evidence_type": "OBSERVED",
+      "first_seen": "2026-09-30T14:32:39.145172Z",
+      "id": "evidence:otel:calls-scoped:v2:3d17904494047d4ce70edeb55f7083481071ed5bd26c9a3f19dbb4f332cc04e0",
+      "k8s_daemonset_name": null,
+      "k8s_deployment_name": "orders",
+      "k8s_namespace_name": "aip-locality",
+      "k8s_pod_name": "orders-66686679bb-cvd46",
+      "k8s_statefulset_name": null,
+      "key_rule_id": "otel-calls-scoped-evidence-v2-key",
+      "key_rule_version": 1,
+      "last_seen": "2026-09-30T14:38:39.074154Z",
+      "normalization_rule_id": "otel-client-caller-attribution",
+      "normalization_rule_version": 1,
+      "object_id": "operation:service:pricing:GET:/prices",
+      "observation_count": 359,
+      "relation_type": "CALLS",
+      "sample_trace_ids": [
+        "00de976d27be698a8de2ae8a4fb00666",
+        "0199054467565e01be954a801560c08b",
+        "01f733103f0dffecad6b1d60a38c745b",
+        "02d8bcdf322a9d4bc2095b8fb644ae77",
+        "0317e702c8975f906dad213dc60dc11e"
+      ],
+      "source_type": "OPENTELEMETRY",
+      "subject_id": "service:orders"
+    },
+    {
+      "bucket_utc_day": "2026-09-30",
+      "caller_cluster_uid": "3c9b3e0f-1239-404a-8a45-c1195a7918f5",
+      "caller_pod_uid": "d005b4f6-5377-410d-aad7-15233aed7bac",
+      "conflicting_consistency_attributes": [],
+      "contract_version": 2,
+      "correlation_mode": "CLIENT_SERVER",
+      "environment": "locality-capture",
+      "evidence_type": "OBSERVED",
+      "first_seen": "2026-09-30T14:32:39.404323Z",
+      "id": "evidence:otel:calls-scoped:v2:df6b26b5e885eb7a425d1799ed36a2afdbc6c1c269d67a651ee2876d89e28807",
+      "k8s_daemonset_name": null,
+      "k8s_deployment_name": "orders-canary",
+      "k8s_namespace_name": "aip-locality",
+      "k8s_pod_name": "orders-canary-67975b66fd-xmv8q",
+      "k8s_statefulset_name": null,
+      "key_rule_id": "otel-calls-scoped-evidence-v2-key",
+      "key_rule_version": 1,
+      "last_seen": "2026-09-30T14:41:09.113357Z",
+      "normalization_rule_id": "otel-client-caller-attribution",
+      "normalization_rule_version": 1,
+      "object_id": "operation:service:legacy-pricing:GET:/prices",
+      "observation_count": 508,
+      "relation_type": "CALLS",
+      "sample_trace_ids": [
+        "002b440375473eba69b912f08c042494",
+        "01048f6dc8be6697ac9ee64f4df977be",
+        "029542adf17c4388b422a8e496e95b70",
+        "03454e84208a5d986a489836579deb37",
+        "03b156975c02ec28fa47c4b7f4a181de"
+      ],
+      "source_type": "OPENTELEMETRY",
+      "subject_id": "service:orders"
+    }
+  ]
+}

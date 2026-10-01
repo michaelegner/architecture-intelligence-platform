@@ -16,11 +16,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.sources.kubernetes_mapping import MappedResource
+from app.sources.kubernetes_constants import INGRESS_KIND, SERVICE_KIND
+from app.sources.kubernetes_mapping import MappedResource, resource_pointer
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult
-
-_INGRESS_KIND = "Ingress"
-_SERVICE_KIND = "Service"
 
 
 @dataclass(frozen=True)
@@ -45,18 +43,6 @@ class IngressBackendResolutionResult:
     diagnostics: tuple[IngestionDiagnostic, ...]
 
 
-def _resource_pointer(resource: MappedResource) -> str:
-    """Mirrors `kubernetes_owner_chain._resource_pointer`/`kubernetes_service_selection._resource_
-    pointer`'s own shape (§10: diagnostics carry source pointers, not only a resource id hash) -
-    duplicated rather than imported since it's a small, self-contained formula.
-    """
-    projection = resource.projection
-    return (
-        f"{','.join(resource.source_pointers)}:{projection['apiVersion']}/{resource.resource_kind}"
-        f"/{projection['namespace']}/{projection['name']}"
-    )
-
-
 def _backend_unresolved(resource: MappedResource, message: str) -> IngestionDiagnostic:
     # Review round (PR #204, 2nd pass): §10 requires diagnostics to name "the affected claim kind"
     # and "source/resource IDs where safely known" - `IngestionDiagnostic` has no dedicated field
@@ -67,7 +53,7 @@ def _backend_unresolved(resource: MappedResource, message: str) -> IngestionDiag
     return IngestionDiagnostic(
         code=DiagnosticCode.K8S_BACKEND_UNRESOLVED,
         message=(f"INGRESS_ROUTES_TO_NETWORK_SERVICE ({resource.logical_id}): {message}"),
-        source_pointer=_resource_pointer(resource),
+        source_pointer=resource_pointer(resource),
     )
 
 
@@ -98,11 +84,11 @@ def resolve_ingress_backends(
     resources: tuple[MappedResource, ...],
 ) -> IngressBackendResolutionResult:
     """The one entry point `app.ingestion.kubernetes_adapter` needs."""
-    ingresses = [r for r in resources if r.resource_kind == _INGRESS_KIND]
+    ingresses = [r for r in resources if r.resource_kind == INGRESS_KIND]
     services_by_namespace_and_name: dict[tuple[str, str], MappedResource] = {
         (r.projection["namespace"], r.projection["name"]): r
         for r in resources
-        if r.resource_kind == _SERVICE_KIND
+        if r.resource_kind == SERVICE_KIND
     }
 
     diagnostics: list[IngestionDiagnostic] = []

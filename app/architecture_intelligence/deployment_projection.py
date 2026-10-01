@@ -11,15 +11,15 @@ below runs alone and returns its own resolutions/claims.
 
 from __future__ import annotations
 
-import hashlib
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from app.architecture_intelligence.canonical_json import canonical_json_bytes
+from app.architecture_intelligence.canonical_json import canonical_digest, canonical_json_bytes
 from app.architecture_intelligence.contracts import (
     DEPLOYMENT_RECONCILIATION_RULE_ID,
+    DEPLOYMENT_RECONCILIATION_RULE_VERSION,
     DeploymentClaim,
     DeploymentPredicate,
     DeploymentResolution,
@@ -39,8 +39,6 @@ from app.sources.service_workload_mapping import (
 )
 from app.telemetry.model import DiscoveryStatus
 from app.telemetry.service_resolver import DeclaredServiceCandidate, resolve_service
-
-_RECONCILIATION_RULE_VERSION = 1
 
 # I3 spec §11 / §8.1: the raw Kubernetes controller-kind string (matching I2's own
 # `InfrastructureEntity.resource_kind` convention) mapped onto the public, uppercase
@@ -93,7 +91,7 @@ def compute_deployment_claim_id(*, service_id: str, workload_id: str) -> str:
         "service_id": service_id,
         "workload_id": workload_id,
     }
-    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    digest = canonical_digest(payload)
     return f"aip:claim:v1:{digest}"
 
 
@@ -152,7 +150,7 @@ def compute_deployment_resolution_id(
     context_id: str,
     group_key: str,
     reconciliation_rule_id: str = DEPLOYMENT_RECONCILIATION_RULE_ID,
-    reconciliation_rule_version: int = _RECONCILIATION_RULE_VERSION,
+    reconciliation_rule_version: int = DEPLOYMENT_RECONCILIATION_RULE_VERSION,
 ) -> str:
     """Spec §13.2's literal formula. The exact canonical-JSON key names hashed here are this
     module's own implementation choice (§13.2 states the formula in prose, not a schema) - only
@@ -165,7 +163,7 @@ def compute_deployment_resolution_id(
         "reconciliation_rule_id": reconciliation_rule_id,
         "reconciliation_rule_version": reconciliation_rule_version,
     }
-    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    digest = canonical_digest(payload)
     return f"aip:deployment-resolution:v1:{digest}"
 
 
@@ -183,7 +181,7 @@ def compute_service_workload_mapping_evidence_id(
         "content_digest": content_digest,
         "mapping_id": mapping_id,
     }
-    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    digest = canonical_digest(payload)
     return f"urn:aip:service-workload-mapping-evidence:v1:{digest}"
 
 
@@ -214,7 +212,7 @@ def _resolved_claim(
         resolution_method=method,
         supporting_methods=[method],
         reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-        reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+        reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
         evidence_refs=evidence_refs,
     )
 
@@ -261,7 +259,7 @@ def resolve_path_a(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_CONFLICT],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
             continue
@@ -290,7 +288,7 @@ def resolve_path_a(
                     limitation_codes=[],
                     claim_id=claim.claim_id,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
         else:
@@ -307,7 +305,7 @@ def resolve_path_a(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_UNRESOLVED],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
 
@@ -415,7 +413,7 @@ def resolve_path_b(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_CONFLICT],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
             continue
@@ -444,7 +442,7 @@ def resolve_path_b(
                     limitation_codes=[],
                     claim_id=claim.claim_id,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
         else:
@@ -461,7 +459,7 @@ def resolve_path_b(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_UNRESOLVED],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
 
@@ -490,7 +488,7 @@ def resolve_path_b(
                 limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_UNRESOLVED],
                 claim_id=None,
                 reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
             )
         )
 
@@ -746,7 +744,7 @@ def _standalone_otel_resolution(
         limitation_codes=[limitation_code],
         claim_id=None,
         reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-        reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+        reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
     )
 
 
@@ -988,7 +986,7 @@ def resolve_path_c(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_CONFLICT],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
             continue
@@ -1016,7 +1014,7 @@ def resolve_path_c(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_AMBIGUOUS],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
             continue
@@ -1047,7 +1045,7 @@ def resolve_path_c(
                     limitation_codes=[],
                     claim_id=claim.claim_id,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
             continue
@@ -1072,7 +1070,7 @@ def resolve_path_c(
                 limitation_codes=limitation_codes,
                 claim_id=None,
                 reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
             )
         )
 

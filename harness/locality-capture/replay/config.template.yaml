@@ -1,0 +1,44 @@
+# AIP configuration for one clean rehearsal replay state (v0.6.0 I2.6a). run-replay.sh substitutes
+# CLUSTER_UID (the recorded kube-system Namespace UID) and SCOPED_ENABLED. Paths are relative to /app.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: aip-locality-rehearsal-declarations
+        root: rehearsal/declarations
+    clusters:
+      - id: aip-locality-rehearsal
+        root: rehearsal/capture
+        envelope_relative_path: envelope.yaml
+        configured_scope_id: aip-locality-rehearsal-scope
+        cluster_uid: ${CLUSTER_UID}
+        evidence_mode: CAPTURED_RESOURCE
+        authorized_producer: aip-locality-rehearsal
+        authority_record: aip-locality-rehearsal-self-declared-authority
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+    max_traversal_depth: 5
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  intent_router:
+    deterministic_threshold: 0.9
+  telemetry:
+    service_aliases: {}
+    queue_aliases: {}
+    topic_aliases: {}
+    http-correlation:
+      enabled: true
+      ttl-seconds: 60
+      max-pending-spans: 10000
+    coverage:
+      qualification-enabled: true
+    scoped-evidence:
+      enabled: ${SCOPED_ENABLED}
+      stream-id: aip-locality-rehearsal
+  runtime_analysis:
+    default_window_hours: 24
+    default_environment: locality-capture

@@ -125,6 +125,20 @@ the repository adopts one, but the timestamp remains in the hidden PR metadata m
    reconciliation template below. This is a diff against what was promised, not a fresh
    retrospective that quietly replaces the plan — both documents should remain visible together.
 
+## Pre-PR refactoring check
+
+Before opening a PR with Python code changes, inspect the changed code for material unnecessary
+complexity, duplicated logic, and misplaced responsibilities. Apply small, behavior-preserving
+improvements within the approved scope when they have a concrete benefit. Preserve all governing
+specification requirements, public contracts, determinism, and AIP's evidence/provenance,
+identity, qualification, and snapshot/observation-context semantics.
+
+If a useful refactoring would expand the approved plan or change architectural/contract semantics,
+report it separately; do not silently enlarge the PR. Re-run the applicable validation from phase
+8 after any source change. Skip this check for documentation-only changes. This is a lightweight
+check within the existing workflow, not an additional approval gate or a reason to block on
+cosmetic preferences.
+
 ## Checking for review feedback
 
 Before treating a "findings check" as complete — whether re-reviewing a PR or responding to

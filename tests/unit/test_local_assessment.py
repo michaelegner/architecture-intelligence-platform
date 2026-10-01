@@ -306,7 +306,7 @@ def _answer_expectation(case_id: str, variant_id: str) -> dict:
 
 @pytest.mark.parametrize(
     ("case_id", "variant_id"),
-    [("L05", "a"), ("L23", "a"), ("L26", "a"), ("L35", "h")],
+    [("L05", "a"), ("L06", "d"), ("L23", "a"), ("L26", "a"), ("L35", "h")],
 )
 def test_without_eligible_v2_the_answer_abstains(case_id, variant_id):
     """Declared-only, v1-only, name/DEPLOYED_AS-only or refused-only: no v2 candidate exists."""

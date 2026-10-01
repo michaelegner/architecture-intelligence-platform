@@ -9,7 +9,6 @@ This is the `ArchitectureReadRepository` the I1 spec's architecture diagram plac
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -18,19 +17,15 @@ from typing import LiteralString
 import neo4j
 
 from app.analysis.runtime import telemetry_coverage
-from app.architecture_intelligence.canonical_json import canonical_json_bytes
+from app.architecture_intelligence.canonical_json import canonical_digest
 from app.architecture_intelligence.contracts import (
     DEPLOYMENT_RECONCILIATION_RULE_ID,
+    DEPLOYMENT_RECONCILIATION_RULE_VERSION,
     SNAPSHOT_ID_PREFIX,
 )
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
-
-# Mirrors `deployment_projection._RECONCILIATION_RULE_VERSION` - kept as its own local constant
-# rather than importing that module's private name; both must move together if the rule version
-# ever bumps (a reviewed spec change either way, per that module's own comment).
-_DEPLOYMENT_RECONCILIATION_RULE_VERSION = 1
 
 # Bumping this - or changing any query/rule below - is a snapshot-fingerprint contract change and
 # MUST be recorded explicitly (spec §18). Not bumped for the PR #215 mapping-artifact-binding
@@ -410,7 +405,7 @@ def canonical_snapshot_state(
         ),
         "deployment_reconciliation_rule": {
             "rule_id": DEPLOYMENT_RECONCILIATION_RULE_ID,
-            "rule_version": _DEPLOYMENT_RECONCILIATION_RULE_VERSION,
+            "rule_version": DEPLOYMENT_RECONCILIATION_RULE_VERSION,
         },
     }
     # v0.6.0 I2.5 (D15.2): both keys are added only when a v2 record exists - never as `[]` or
@@ -425,7 +420,7 @@ def canonical_snapshot_state(
 def snapshot_fingerprint(state: dict) -> tuple[str, str]:
     """`(snapshot_id, model_revision)` sharing one digest under different public prefixes (spec
     §17) - this is what guarantees `SnapshotRef`'s digest-consistency check always holds."""
-    digest = hashlib.sha256(canonical_json_bytes(state)).hexdigest()
+    digest = canonical_digest(state)
     return f"{SNAPSHOT_ID_PREFIX}:{digest}", f"sha256:{digest}"
 
 

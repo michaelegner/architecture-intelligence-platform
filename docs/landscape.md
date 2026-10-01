@@ -56,6 +56,7 @@ endorsement, dependency, or roadmap commitment.
 [Designing Delivery / Promise Thinking](#jeff-sussna--designing-delivery--promise-thinking) ·
 [Semantic Spacetime](#mark-burgess--semantic-spacetime) ·
 [SSTorytime](#mark-burgess--sstorytime-and-context-investment) ·
+[Tiramemsu — historical statement memory](#tiramemsu--historical-statement-memory) ·
 [Strategic DDD](#domain-driven-design--strategic-patterns) ·
 [SysML v2](#omg--sysml-v2)
 
@@ -78,6 +79,7 @@ promises, temporal context, and explicit system intent without collapsing them i
 [ArchSmith](#sathish-siva-shankar--archsmith-and-intent-first-semantic-architecture-intelligence) ·
 [ProvenMap](#provenmap--architecture-intelligence-intent-and-provenance) ·
 [Logorythm](#logorythm--architecture-intelligence-from-static-analysis) ·
+[Memtrace — structural memory for coding agents](#memtrace--structural-memory-for-coding-agents) ·
 [Premise quality](#praveen-kasam--why-your-ai-agent-fails-the-answer-is-almost-never-the-model) ·
 [Typed trace matrices](#spark-tsai--from-trace-ids-to-trace-matrix-what-does-a-change-actually-affect)
 
@@ -341,6 +343,52 @@ an ADR constraint must not collapse into an undifferentiated `A -> B`.
 SSTorytime is therefore most useful as an interoperability and contextual-projection reference, not
 as a replacement for AIP's Canonical Model or as additional v0.5 scope.
 
+### Tiramemsu — Historical Statement Memory
+
+**Sources**
+
+- [Tiramemsu — repository and design](https://github.com/Volland/tiramemsu)
+- [Volodymyr Pavlyshyn — Tiramemsu: memory that remembers being wrong](https://volodymyrpavlyshyn.substack.com/p/tiramemsu-memory-that-remembers-being)
+
+**Core idea**
+
+Tiramemsu is an experimental, embedded SQLite-backed graph store for agent memory.
+Statements have their own identities, so provenance, confidence, supporting beliefs, and further
+annotations can refer to an exact statement rather than an unaddressable edge. Its temporal model
+separates **transaction time** (when a store held a statement) from **valid time** (when the
+statement was asserted to hold in the world). Retractions and corrections preserve earlier
+versions, enabling historical queries and checks for previously returned answers whose cited
+statements were later retracted.
+
+**Why this matters to AIP**
+
+This is a concrete research reference for the historical-state foundation AIP explicitly leaves
+**beyond v1.0**. AIP's current snapshot identity does not retain old architecture states. A future
+historical question would need to distinguish:
+
+```text
+"What did AIP establish at the earlier evaluation?"
+    versus
+"What can AIP establish today about that earlier period?"
+```
+
+Reproducible answers would also depend on the original source revisions, observation window,
+locality, applicable Intent and effective interval, identity/reconciliation, mapping and
+qualification rule versions, and projection lineage. Neither a two-clock store nor a snapshot id
+alone supplies those semantics. Statement-level dependents offer a useful model for asking which
+previous qualified assessments or projections may be stale after evidence or rules change; AIP
+would still have to establish that dependency and re-qualify rather than copy the store's belief.
+
+**AIP boundary**
+
+An agent's `confidence` or `confirmedBy` annotation is not AIP's deterministic evidence
+qualification. A corrected belief, newly discovered evidence, a real architecture change, and
+changed Intent are different events; historical architecture knowledge must preserve the
+distinction. Tiramemsu's append-only posture also cannot replace explicit source deletion,
+privacy, retention, and compaction policy. The project describes itself as new, with incomplete
+query-language conformance and no MCP server at the time of this review. This is **not** a
+storage replacement, implementation dependency, or pre-v1.0 roadmap proposal.
+
 ### Domain-Driven Design — Strategic Patterns
 
 **Primary sources**
@@ -485,6 +533,22 @@ separate from the base description. A future AIP importer would need to retain t
 each overlay as independently identifiable sources, record their digests and application order, and
 make failed targets or conflicting changes explicit. The effective overlaid document would still be
 declared evidence, not observed behavior or automatically authoritative intent.
+
+Miriam Greis's [OpenAPI Overlay in the API Operations Context](https://www.linkedin.com/pulse/openapi-overlay-api-operations-context-miriam-greis-zrfie/)
+(2026-09-30) makes the **three-artifact validation boundary** concrete: validate the source
+description against applicable design-time rules, validate the Overlay against its schema and
+Overlay-specific organizational rules, and validate the **resulting** description against the
+full rules that apply after transformation. Independently valid inputs do not guarantee a
+valid result; requiring final-only rules of the untransformed source may also be premature.
+
+For AIP, the base document, transformation, and effective result need distinct identity,
+provenance, validation disposition, and applicability. An environment-specific result can inform
+**v0.6 locality/context** only where its environment binding is evidenced. It can supply
+**declared/configured API evidence** relevant to v0.7, but cannot establish deployed exposure,
+consumer-attributed usage, or runtime observation. An Overlay may be a **v0.8 Intent carrier**
+only where explicit assertions and their authority, scope, and effective interval are independently
+established. Greis describes an APIOps validation workflow, not proof of those AIP semantics or
+a reason to add an Overlay feature to the current roadmap.
 
 ### adorsys — Understanding API Landscapes, Not Just Managing Them
 
@@ -674,13 +738,16 @@ conformance tests before any relation entered an AIP Current-State projection.
 
 - [EventCatalog](https://www.eventcatalog.dev/)
 - [EventCatalog on GitHub](https://github.com/event-catalog/eventcatalog)
+- [EventCatalog MCP announcement](https://www.eventcatalog.dev/blog/eventcatalog-mcp)
+- [EventCatalog product site — scoped MCP context](https://www.eventcatalog.dev/)
 
 **Core idea**
 
-EventCatalog exposes a broad, connected catalog of services, domains, events, schemas, and their
-relationships for people, tools, and agents. Its scope includes more architectural and
-organizational concepts than AIP currently models, making it an important product and positioning
-reference.
+EventCatalog exposes a broad, connected catalog of systems, services, domains, events, schemas,
+ADRs, ownership, and their relationships for people, tools, and agents. Beyond the catalog itself,
+it offers **MCP access scoped to a domain or system**, delivering focused architectural context
+to agents. Its scope includes more architectural and organizational concepts than AIP currently
+models, making it an important product and positioning reference.
 
 **Why this matters to AIP**
 
@@ -706,11 +773,26 @@ snapshot-bound architecture claim
 agent access
 ```
 
+**Product-surface overlap:** Architecture context, MCP, and scoped agent access are already
+features of an adjacent product. AIP therefore cannot differentiate on those features alone.
+For catalog-backed questions such as "which services are documented in the Orders domain?",
+EventCatalog may supply sufficient context without AIP.
+
+**Semantic boundary:** A DDD domain/system membership is not the same as AIP's v0.6
+environment, namespace, workload, or observation-window locality. Nor does catalog
+membership inferred from naming or graph proximity establish a qualified domain boundary.
+Catalog declarations, ownership records, and ADRs remain **source-bound evidence**, not
+automatically observed runtime relationships or applicable Intent. AIP could eventually
+consume explicitly attributed catalog membership to select a bounded projection while
+qualifying its technical Current-State relationships independently; no integration is
+committed.
+
 AIP should remain narrower where catalog breadth would blur its evidence and qualification
 boundary. Integration may be more valuable than duplicating catalog capabilities.
 
-> **EventCatalog makes architecture connected and queryable. AIP makes architecture claims
-> evidence-qualified and independently inspectable.**
+> **EventCatalog makes connected, scoped architecture context available to agents.
+> AIP's distinction is what heterogeneous evidence establishes about the architecture,
+> with explicit qualification, provenance, context, and unresolved limits.**
 
 ### Bipul Sinha — Components Describe a System. Relationships Reveal Its Architecture
 
@@ -932,6 +1014,60 @@ qualified architecture facts
 The distinction is useful rather than competitive by definition. Static code evidence can answer what a system **can declare or encode as a dependency**; runtime evidence can answer what was **observed in a bounded context**. AIP's role is to preserve that distinction and qualify the resulting architectural claim rather than collapse the two into one notion of truth.
 
 Logorythm is therefore a relevant reference for future code-discovery work, dependency extraction, structural-risk analysis, and possible adapter boundaries. It does not by itself change AIP's evidence or roadmap semantics.
+
+### Memtrace — Structural Memory for Coding Agents
+
+**Sources**
+
+- [Memtrace — public repository and product description](https://github.com/syncable-dev/memtrace-public)
+- [Memtrace workspaces and cross-repository context](https://github.com/syncable-dev/memtrace-public/blob/main/docs/workspaces.md)
+- [Memtrace MCP tools and API topology](https://github.com/syncable-dev/memtrace-public/blob/main/docs/tools.md)
+- [Memtrace code reviewer](https://github.com/syncable-dev/memtrace-public/blob/main/docs/code-reviewer.md)
+- [Lishuai Jing — Code Review Automation: How Teams Cut Review Time](https://www.linkedin.com/pulse/code-review-automation-how-teams-cut-time-lishuai-jing-y57be/)
+- [Memtrace license](https://github.com/syncable-dev/memtrace-public/blob/main/LICENSE)
+
+**Core idea**
+
+Memtrace positions a locally indexed, code-derived structural graph as shared context for
+coding agents. It extracts symbols, calls, imports, and framework-recognized HTTP endpoints;
+workspaces combine several repositories and expose cross-repository API topology. Its
+product interface includes MCP queries for discovery, caller relationships, code-change
+impact, and symbol/code history. The accompanying review article describes graph-backed
+cross-module checks, decision recall (Cortex), and parallel-work coordination (Fleet) as parts
+of an engineering workflow; these are **vendor-reported product capabilities**, not
+independently established outcome guarantees.
+
+**Why this matters to AIP**
+
+Memtrace overlaps directly with the **agent-context product surface** and part of AIP's
+planned v0.7 API question. A static call site or parsed route can reveal a *potential or
+encoded* connection that is useful before the next runtime observation, but does not by
+itself prove a deployed endpoint, configured gateway/consumer access, an observed call,
+or complete change impact. Code version/episode replay also differs from replaying
+AIP's independently qualified historical architecture, including evidence, context,
+and rule versions. AIP should not claim exclusivity over structural graphs, MCP,
+context scoping, or history.
+
+```text
+Memtrace: code / history -> structural relationships -> agent context
+AIP: heterogeneous sources -> evidence applicability + reconciliation
+     -> qualified, context/snapshot-bound architecture answers
+```
+
+**Product-validation and integration implication**
+
+A useful side-by-side test would ask the *same recurring architecture question*
+against the same accessible sources, and compare correctness, useful-answer coverage,
+unknown/unsupported outcomes, evidence inspectability, and total investigation effort.
+Code-derived findings could become **one explicitly qualified source family** for AIP
+only with a separately validated adapter and semantics; they are not automatically
+authoritative Current State or Intent.
+
+The public repository describes a **proprietary EULA**, with the indexer and database
+closed-source and restrictions relevant to competing products. Vendor benchmark and
+performance figures require independent reproduction before being used as AIP
+validation evidence. This is a competitive reference, **not** an AIP dependency,
+license recommendation, code-review feature, or roadmap expansion.
 
 ### Praveen Kasam — Why Your AI Agent Fails: The Answer Is Almost Never the Model
 

@@ -2,12 +2,10 @@ from datetime import UTC, datetime
 
 from app.canonical.ids import (
     evidence_id,
-    message_id,
     observed_evidence_id,
     operation_id,
     queue_id,
     runtime_identity_observation_id,
-    schema_id,
     service_id,
 )
 
@@ -43,18 +41,6 @@ def test_queue_id_matches_spec_example_with_namespace():
 
 def test_queue_id_without_namespace():
     assert queue_id("payment-q") == "queue:payment-q"
-
-
-def test_message_id_matches_spec_example():
-    assert message_id("PaymentRequested", "v2") == "message:PaymentRequested:v2"
-
-
-def test_message_id_without_version():
-    assert message_id("PaymentRequested") == "message:PaymentRequested"
-
-
-def test_schema_id_matches_spec_example():
-    assert schema_id("PaymentRequested", "v2") == "schema:PaymentRequested:v2"
 
 
 def test_evidence_id_without_revision():

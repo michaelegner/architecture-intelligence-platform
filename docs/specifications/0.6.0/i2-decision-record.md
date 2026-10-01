@@ -25,7 +25,7 @@ The owner merges each before the next starts.
 | Forbidden | The `:Evidence` label, **any** incident relationship, and `owner_source_ids`. I2.2 must test each of these directly, including after a declaration or Kubernetes reimport and removal. |
 | Reads | A dedicated I2 reader in `app/architecture_intelligence/`. `_EVIDENCE_QUERY`, `read_evidence_rows`, `read_public_evidence_list_rows`, `read_public_evidence_row` and `_RELATION_QUERY` are unchanged and must never return v2 (negative tests). |
 | NL reachability | Not in `KNOWN_NODE_LABELS` or the NL approved set (D2) |
-| Enablement flag | New config field `telemetry.scoped-evidence.enabled`, default **`false`**. It gates every v2 write. It may only be set to `true` in tests until the I2 §11 pre-enablement gates (a)–(f) pass, and I2.5 flips the default. With the flag off, the graph, snapshot and every v0.5 answer are byte-identical to the baseline. |
+| Enablement flag | New config field `telemetry.scoped-evidence.enabled`, default **`false`**. It gates every v2 write. It may only be set to `true` in tests until the I2 §11 pre-enablement gates (a)–(f) pass, and I2.5 flips the default. With the flag off, the graph, snapshot and every v0.5 answer are byte-identical to the baseline. **Amended by [D16](#d16--the-default-flip-is-deferred-added-in-i25c-amends-d1):** the flip is deferred to the next reviewed release-golden-path re-freeze. |
 
 ## D2 — Fail-closed NL graph reachability (I2 §6; pre-enablement gate (f))
 
@@ -295,6 +295,19 @@ These are owner decisions taken while planning I2.5 (one snapshot and compatibil
 | D15.4 | **Scope entries.** There is one entry per `SourceState` with a non-null `capture_cluster_uid`, sorted by `source_instance_id`. Each has exactly D5's seven fields, with `namespaces` sorted and `captured_at` as the raw envelope string. |
 | D15.5 | **Read cost.** The state reads every v2 record, with no paging, because that is required for one complete fingerprint (I1 §11.5). The cost is measured in I2.6, and no threshold is invented here. |
 
+## D16 — The default flip is deferred (added in I2.5c; amends D1)
+
+**Status:** owner decision, taken during I2.5c. It amends D1's "I2.5 flips the default". D2–D15 are unchanged.
+
+**What happened.** The I2 §11 pre-enablement gates (a)–(f) all passed at `de8d550` (#366, #369). An I2.5c change that set `telemetry.scoped-evidence.enabled` to `true` by default was then run against the golden-path demo (`tests/integration/test_mcp_demo_script.py::TestServeLifecycle::test_full_lifecycle`, using `config.demo.yaml`, which has no block and so takes the default). The demo classified `PARTIAL_OR_INCOMPATIBLE` with one mismatch, `NODE_COUNT_MISMATCH` (46 expected, 48 found). The two extra nodes are D8's cutover ledger and a D7 transition counter for the demo's refused CLIENT spans. The demo's spans carry no `k8s.*` identity, so no v2 is written, and the canonical state (services, operations, evidence, relations, drift claims and relationship count) still matches the frozen manifest. But the pinned oracle (`examples/runtime-demo/fixture-state.json` `total_node_count` and `check_fixture_state.py`, both in `examples/release-golden-path/SHA256SUMS`) counts every node in the database.
+
+**Decision.**
+1. **The default stays `false` in v0.6.0 I2.** It changes only at the next reviewed release-golden-path re-freeze. There, the oracle must deliberately account for the internal `ScopedEvidence*` operational nodes, either with a reviewed node-count update or by excluding them. The golden path must not be silently re-pinned.
+2. **Nothing else changes.** The conditional snapshot keys (D15) are live whatever the flag's value. A deployment that sets `enabled: true` gets the full, gated I2 behaviour. `config.yaml` documents the block, and `config.demo.yaml` stays unedited (D12.7).
+3. **Guard.** `tests/unit/test_demo_seed_has_no_scoped_identity.py` asserts that the frozen demo batch carries no `k8s.*` attribute. So enabling the flag can never move the demo's pinned `snapshot_id`, only its operational node count.
+
+**Traceability:** I2 §15 (I2.5 row: "flag flip") is re-scoped to I6's golden-path re-freeze. The I2 completion record (I2.6) must list this as deferred work.
+
 ## Traceability
 
 | I2 requirement | Decision |
@@ -313,3 +326,4 @@ These are owner decisions taken while planning I2.5 (one snapshot and compatibil
 | §8.1, §13, §15 I2.3: applicability details left to I2.3 (CAP-AMB/CAP-CONF, phase collection, selector, roll-up reasons) | D13 |
 | §9, §10, §17.2/§17.5, D11: assertion/instance encodings, frozen vectors, grouping, qualification input, answer level | D14 |
 | §11 gate (b), D5: after-vector fixture, key condition, entry projections, read cost | D15 |
+| §15 I2.5 flag flip; D1 | D16 (deferred to the golden-path re-freeze) |

@@ -6,13 +6,12 @@ decision (that stays `app.architecture_intelligence.service`'s job, spec §7).
 
 from __future__ import annotations
 
-import hashlib
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 
 from app.analysis.runtime import ServiceTelemetryCoverage
-from app.architecture_intelligence.canonical_json import canonical_json_bytes
+from app.architecture_intelligence.canonical_json import canonical_digest
 from app.architecture_intelligence.contracts import (
     CLAIM_ID_PREFIX,
     Coverage,
@@ -56,7 +55,7 @@ def compute_claim_id(
     }
     if subscription_id is not None:
         payload["subscription_id"] = subscription_id
-    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    digest = canonical_digest(payload)
     return f"{CLAIM_ID_PREFIX}:{digest}"
 
 

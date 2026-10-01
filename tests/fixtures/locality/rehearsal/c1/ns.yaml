@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: "2026-09-30T14:32:07Z"
+  labels:
+    kubernetes.io/metadata.name: aip-locality
+  name: aip-locality
+  resourceVersion: "488"
+  uid: 3b4d01d9-9cdf-4c57-af2a-a21beea26fce
+spec:
+  finalizers:
+  - kubernetes
+status:
+  phase: Active

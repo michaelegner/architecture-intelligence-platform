@@ -12,13 +12,10 @@ from app.architecture_intelligence.contracts import (
     EvidenceRelationType,
     ObservedEvidenceMetadata,
     SupportedFact,
+    supported_fact_sort_key,
 )
 from app.common.locators import sanitize_source_locator
 from app.provenance.model import EvidenceType, SourceType
-
-
-def _supported_fact_sort_key(fact: SupportedFact) -> tuple[str, str, str]:
-    return (fact.relation_type.value, fact.source_id, fact.target_id)
 
 
 def _build_supported_facts(relations: list[dict], *, evidence_id: str) -> list[SupportedFact]:
@@ -33,7 +30,7 @@ def _build_supported_facts(relations: list[dict], *, evidence_id: str) -> list[S
         for relation in relations
         if evidence_id in relation["evidence_ids"]
     }
-    return sorted(facts, key=_supported_fact_sort_key)
+    return sorted(facts, key=supported_fact_sort_key)
 
 
 def _build_evidence_record(row: dict, *, supports: list[SupportedFact]) -> EvidenceRecord:

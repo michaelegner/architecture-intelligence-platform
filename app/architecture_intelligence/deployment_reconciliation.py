@@ -32,12 +32,13 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 import neo4j
 
 from app.architecture_intelligence.contracts import (
+    MAX_OBSERVATION_WINDOW,
     DeploymentClaim,
     DeploymentPredicate,
     DeploymentResolution,
@@ -51,6 +52,7 @@ from app.architecture_intelligence.contracts import (
     ObservationContextRef,
     ObservedEvidenceMetadata,
     SupportedFact,
+    supported_fact_sort_key,
 )
 from app.architecture_intelligence.deployment_projection import (
     PathResolutionResult,
@@ -387,13 +389,6 @@ def check_result_bounds(
 # --- §16.1: DEPLOYED_AS `supports` augmentation ---------------------------------------------------
 
 
-def _supported_fact_sort_key(fact: SupportedFact) -> tuple[str, str, str]:
-    # Mirrors `contracts._supported_fact_sort_key` (private to that module) and `service.py`'s own
-    # identical local copy - `EvidenceRecord.supports`' sort key, reused here since this module
-    # produces `SupportedFact` lists that must already satisfy it before a caller ever sees them.
-    return (fact.relation_type.value, fact.source_id, fact.target_id)
-
-
 def deployed_as_supported_facts(
     claims: Sequence[DeploymentClaim],
 ) -> dict[str, list[SupportedFact]]:
@@ -417,7 +412,7 @@ def deployed_as_supported_facts(
         )
         for ref in claim.evidence_refs:
             result[ref].append(fact)
-    return {ref: sorted(set(facts), key=_supported_fact_sort_key) for ref, facts in result.items()}
+    return {ref: sorted(set(facts), key=supported_fact_sort_key) for ref, facts in result.items()}
 
 
 # --- §16.2: selective Kubernetes/OTel/configuration evidence visibility --------------------------
@@ -546,11 +541,6 @@ def _path_c_evidence_records(
 
 # --- §16.2 correctness: context-free Path C for the evidence-visibility-only callers -------------
 
-# Mirrors `app.architecture_intelligence.contracts._MAX_OBSERVATION_WINDOW` (private to that module,
-# not re-exported) - kept as its own local constant rather than importing a private symbol across
-# modules; `build_observation_context_ref` re-enforces this bound anyway, so a drift here would fail
-# loudly (a raised `pydantic.ValidationError`), not silently.
-_PATH_C_MAX_WINDOW = timedelta(days=31)
 # A row's or bucket's (earliest, latest) timestamp bounds.
 _Span = tuple[datetime, datetime]
 _PATH_C_PLACEHOLDER_ENVIRONMENT = "unspecified"
@@ -642,13 +632,13 @@ def _bucket_by_window(
             min_first, max_last = bounds[-1]
             candidate_min = min(min_first, span_min)
             candidate_max = max(max_last, span_max)
-            if candidate_max - candidate_min <= _PATH_C_MAX_WINDOW:
+            if candidate_max - candidate_min <= MAX_OBSERVATION_WINDOW:
                 buckets[-1].append((row, captured_at))
                 bounds[-1] = (candidate_min, candidate_max)
                 continue
         buckets.append([(row, captured_at)])
-        if span_max - span_min > _PATH_C_MAX_WINDOW:
-            bounds.append((span_max - _PATH_C_MAX_WINDOW, span_max))
+        if span_max - span_min > MAX_OBSERVATION_WINDOW:
+            bounds.append((span_max - MAX_OBSERVATION_WINDOW, span_max))
         else:
             bounds.append((span_min, span_max))
 

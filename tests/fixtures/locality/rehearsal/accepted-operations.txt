@@ -1,0 +1,4 @@
+id
+"operation:service:legacy-pricing:GET:/prices"
+"operation:service:orders:GET:/orders"
+"operation:service:pricing:GET:/prices"

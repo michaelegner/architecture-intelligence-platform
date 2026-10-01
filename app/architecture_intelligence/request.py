@@ -17,7 +17,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.architecture_intelligence.contracts import _SNAPSHOT_ID_PATTERN
+from app.architecture_intelligence.contracts import SNAPSHOT_ID_PATTERN
 
 _SERVICE_ID_PATTERN = r"^service:"
 _MAX_SERVICE_ID_LENGTH = 512
@@ -51,7 +51,7 @@ class ServiceDependenciesRequest(BaseModel):
         min_length=1, max_length=_MAX_SERVICE_ID_LENGTH, pattern=_SERVICE_ID_PATTERN
     )
     observation_context: ObservationContextInput | None = None
-    snapshot_id: str | None = Field(default=None, pattern=_SNAPSHOT_ID_PATTERN)
+    snapshot_id: str | None = Field(default=None, pattern=SNAPSHOT_ID_PATTERN)
 
 
 class ArchitectureDriftRequest(BaseModel):
@@ -72,7 +72,7 @@ class ArchitectureDriftRequest(BaseModel):
         min_length=1, max_length=_MAX_SERVICE_ID_LENGTH, pattern=_SERVICE_ID_PATTERN
     )
     observation_context: ObservationContextInput | None = None
-    snapshot_id: str | None = Field(default=None, pattern=_SNAPSHOT_ID_PATTERN)
+    snapshot_id: str | None = Field(default=None, pattern=SNAPSHOT_ID_PATTERN)
 
 
 class EvidenceRequest(BaseModel):
@@ -85,7 +85,7 @@ class EvidenceRequest(BaseModel):
     evidence_refs: list[_EvidenceRef] = Field(
         min_length=1, max_length=20, json_schema_extra={"uniqueItems": True}
     )
-    snapshot_id: str = Field(pattern=_SNAPSHOT_ID_PATTERN)
+    snapshot_id: str = Field(pattern=SNAPSHOT_ID_PATTERN)
 
     @field_validator("evidence_refs")
     @classmethod

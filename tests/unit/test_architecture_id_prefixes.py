@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from app.architecture_intelligence.contracts import (
     _CLAIM_ID_PATTERN,
     _CONTEXT_ID_PATTERN,
-    _SNAPSHOT_ID_PATTERN,
+    SNAPSHOT_ID_PATTERN,
 )
 from app.architecture_intelligence.dependency_projection import compute_claim_id
 from app.architecture_intelligence.observation_context import compute_context_id
@@ -13,7 +13,7 @@ from app.architecture_intelligence.repository import snapshot_fingerprint
 
 def test_snapshot_id_round_trips_through_contract_pattern() -> None:
     snapshot_id, _revision = snapshot_fingerprint({"services": []})
-    assert re.fullmatch(_SNAPSHOT_ID_PATTERN, snapshot_id)
+    assert re.fullmatch(SNAPSHOT_ID_PATTERN, snapshot_id)
 
 
 def test_observation_context_id_round_trips_through_contract_pattern() -> None:

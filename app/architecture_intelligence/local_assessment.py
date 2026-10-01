@@ -15,14 +15,13 @@ the exact Operation's DECLARED evidence and the assertion's own v2 records (D14.
 another Operation's declaration never reach it, and a local `NOT_OBSERVED_IN_WINDOW` cannot occur.
 """
 
-import hashlib
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from app.architecture_intelligence.canonical_json import canonical_json_bytes
+from app.architecture_intelligence.canonical_json import canonical_digest
 from app.architecture_intelligence.scoped_applicability import (
     APPLICABILITY_RULE_ID,
     APPLICABILITY_RULE_VERSION,
@@ -109,7 +108,7 @@ def compute_local_assertion_id(
             "uid": workload.uid,
         },
     }
-    return ASSERTION_PREFIX + hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    return ASSERTION_PREFIX + canonical_digest(payload)
 
 
 def compute_local_assessment_id(
@@ -131,7 +130,7 @@ def compute_local_assessment_id(
         ],
         "rules": [{"id": rule, "version": version} for rule, version in sorted(set(rules))],
     }
-    return ASSESSMENT_PREFIX + hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    return ASSESSMENT_PREFIX + canonical_digest(payload)
 
 
 # --- Result types ------------------------------------------------------------------------------

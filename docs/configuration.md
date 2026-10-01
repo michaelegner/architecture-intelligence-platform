@@ -29,7 +29,7 @@ Copy `.env.example` to `.env` and fill these in for local development.
 | `telemetry.service_aliases` / `queue_aliases` | `{}` — map an observed name to its declared canonical name when they differ |
 | `telemetry.http-correlation` | `enabled` (`true`), `ttl-seconds` (`60`), `max-pending-spans` (`10000`) — the cross-batch correlation buffer's bounds (11H-B) |
 | `telemetry.coverage` | `qualification-enabled` (`true`) — the O4 coverage-classification kill switch (11H-E) |
-| `telemetry.scoped-evidence` | `enabled` (`false`), `stream-id` (`otlp-http`) — v0.6.0: also persist an isolated, caller-Pod-scoped v2 record for each accepted CALLS whose original CLIENT carries `k8s.pod.uid`, `k8s.cluster.uid` and a matching environment. The record is internal (never `:Evidence`, no relationships, not in any answer or the snapshot) and off by default; with it off the graph is unchanged. `stream-id` names this instance's live trace stream in the operational transition report |
+| `telemetry.scoped-evidence` | `enabled` (`false`), `stream-id` (`otlp-http`) — v0.6.0: also persist an isolated, caller-Pod-scoped v2 record for each accepted CALLS whose original CLIENT carries `k8s.pod.uid`, `k8s.cluster.uid` and a matching environment. The record is internal: never `:Evidence`, no relationships, and in no v0.5 answer. Once at least one exists, the canonical snapshot gains its two conditional keys (`scoped_observed_calls_v2`, `scoped_capture_scopes_v2`). It is off by default (I2 decision record D16), and with it off the graph is unchanged. `stream-id` names this instance's live trace stream in the operational transition report |
 | `runtime_analysis` | `default_window_hours` (`24`), `default_environment` (`production`) |
 
 ## Backward compatibility guarantee

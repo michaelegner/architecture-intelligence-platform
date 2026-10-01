@@ -22,7 +22,7 @@ _SHA256_HEX = r"[0-9a-f]{64}"
 SNAPSHOT_ID_PREFIX = "aip:snapshot:v1"
 OBSERVATION_CONTEXT_ID_PREFIX = "aip:observation-context:v1"
 CLAIM_ID_PREFIX = "aip:claim:v1"
-_SNAPSHOT_ID_PATTERN = rf"^{SNAPSHOT_ID_PREFIX}:{_SHA256_HEX}$"
+SNAPSHOT_ID_PATTERN = rf"^{SNAPSHOT_ID_PREFIX}:{_SHA256_HEX}$"
 _MODEL_REVISION_PATTERN = rf"^sha256:{_SHA256_HEX}$"
 _CONTEXT_ID_PATTERN = rf"^{OBSERVATION_CONTEXT_ID_PREFIX}:{_SHA256_HEX}$"
 _CLAIM_ID_PATTERN = rf"^{CLAIM_ID_PREFIX}:{_SHA256_HEX}$"
@@ -35,7 +35,7 @@ _DEPLOYMENT_RESOLUTION_ID_PATTERN = rf"^aip:deployment-resolution:v1:{_SHA256_HE
 # Rust regex engine and therefore shows up as a real `pattern` in the generated JSON Schema.
 _ENVIRONMENT_PATTERN = r"^[^\s\x00-\x1f\x7f](?:[^\x00-\x1f\x7f]*[^\s\x00-\x1f\x7f])?$"
 
-_MAX_OBSERVATION_WINDOW = timedelta(days=31)
+MAX_OBSERVATION_WINDOW = timedelta(days=31)
 
 ArchitectureSchemaVersion = Literal["0.5"]
 ARCHITECTURE_SCHEMA_VERSION: ArchitectureSchemaVersion = get_args(ArchitectureSchemaVersion)[0]
@@ -47,6 +47,9 @@ DeploymentReconciliationRuleId = Literal["service-workload-reconciliation"]
 DEPLOYMENT_RECONCILIATION_RULE_ID: DeploymentReconciliationRuleId = get_args(
     DeploymentReconciliationRuleId
 )[0]
+# Stamped on every DeploymentResolution (feeding resolution/claim ids) and bound into the snapshot
+# fingerprint. A bump is a reviewed spec change and a recorded fingerprint change.
+DEPLOYMENT_RECONCILIATION_RULE_VERSION = 1
 
 
 class Outcome(StrEnum):
@@ -170,7 +173,7 @@ class Producer(BaseModel):
 class SnapshotRef(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    snapshot_id: str = Field(pattern=_SNAPSHOT_ID_PATTERN)
+    snapshot_id: str = Field(pattern=SNAPSHOT_ID_PATTERN)
     model_revision: str = Field(pattern=_MODEL_REVISION_PATTERN)
 
     @model_validator(mode="after")
@@ -207,7 +210,7 @@ class ObservationContextRef(BaseModel):
     def _check_window_bounds(self) -> ObservationContextRef:
         if self.window_start > self.window_end:
             raise ValueError("window_start must be less than or equal to window_end")
-        if self.window_end - self.window_start > _MAX_OBSERVATION_WINDOW:
+        if self.window_end - self.window_start > MAX_OBSERVATION_WINDOW:
             raise ValueError("the inclusive observation window must not exceed 31 days")
         return self
 
@@ -809,7 +812,7 @@ class SupportedFact(BaseModel):
     target_id: str
 
 
-def _supported_fact_sort_key(fact: SupportedFact) -> tuple[str, str, str]:
+def supported_fact_sort_key(fact: SupportedFact) -> tuple[str, str, str]:
     return (fact.relation_type.value, fact.source_id, fact.target_id)
 
 
@@ -868,7 +871,7 @@ class EvidenceRecord(BaseModel):
     def _check_supports_sorted_and_deduplicated(
         cls, value: list[SupportedFact]
     ) -> list[SupportedFact]:
-        keys = [_supported_fact_sort_key(fact) for fact in value]
+        keys = [supported_fact_sort_key(fact) for fact in value]
         if keys != sorted(keys) or len(keys) != len(set(keys)):
             raise ValueError(
                 "supports must be sorted by (relation_type, source_id, target_id) and deduplicated"
@@ -934,7 +937,7 @@ class EvidenceData(BaseModel):
 Claim = Annotated[DependencyClaim | DeploymentClaim, Field(discriminator="predicate")]
 
 
-def _claim_sort_key(claim: DependencyClaim | DeploymentClaim) -> tuple[str, str, str, str, str]:
+def claim_sort_key(claim: DependencyClaim | DeploymentClaim) -> tuple[str, str, str, str, str]:
     # Resolved via AskUserQuestion during I3 slice 1 planning: the spec defines ordering within each
     # claim type but not across the closed union. (object.id, predicate, ...) interleaves both claim
     # types for the same entity, using only fields both types already carry; DependencyClaim's own
@@ -1171,7 +1174,7 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
         elif isinstance(self.data, ArchitectureDriftData):
             _check_architecture_drift_claim_ids(self.data, self.claims)
 
-        claim_sort_keys = [_claim_sort_key(claim) for claim in self.claims]
+        claim_sort_keys = [claim_sort_key(claim) for claim in self.claims]
         if claim_sort_keys != sorted(claim_sort_keys):
             raise ValueError(
                 "claims must be sorted by (object.id, predicate, delivery.kind, delivery.via.id, "

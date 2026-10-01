@@ -30,7 +30,7 @@ from collections.abc import Callable
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.architecture_intelligence.contracts import (
-    _SNAPSHOT_ID_PATTERN,
+    SNAPSHOT_ID_PATTERN,
     ArchitectureAnswer,
     EvidenceData,
 )
@@ -82,7 +82,7 @@ def _at_current_snapshot[T](requested: str, fetch: Callable[[], tuple[str, T]]) 
 
 @router.get("")
 def list_evidence(
-    snapshot_id: str = Query(..., pattern=_SNAPSHOT_ID_PATTERN),
+    snapshot_id: str = Query(..., pattern=SNAPSHOT_ID_PATTERN),
     service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
 ) -> list[dict]:
     return _at_current_snapshot(snapshot_id, service.list_public_evidence)
@@ -91,7 +91,7 @@ def list_evidence(
 @router.get("/{evidence_id}")
 def get_evidence(
     evidence_id: str,
-    snapshot_id: str = Query(..., pattern=_SNAPSHOT_ID_PATTERN),
+    snapshot_id: str = Query(..., pattern=SNAPSHOT_ID_PATTERN),
     service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
 ) -> dict:
     row = _at_current_snapshot(snapshot_id, lambda: service.get_public_evidence(evidence_id))

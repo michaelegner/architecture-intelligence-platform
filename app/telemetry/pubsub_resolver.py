@@ -1,6 +1,6 @@
 """v0.5.0 I4 spec §9: declared Topic/Subscription candidates for runtime qualification.
 
-Mirrors `app.telemetry.queue_resolver`'s candidate read, but deliberately has no resolve/mint
+Mirrors `app.telemetry.queue_resolver`'s candidate read and, like it, has no resolve/mint
 function: runtime evidence may only qualify already-declared Topic/Subscription topology and SHALL
 NOT mint an `OBSERVED_ONLY` Topic or Subscription (ADR 0017 #5). A Subscription candidate carries
 the id of the Topic it is declared `SUBSCRIPTION_OF`, so Subscription matching is scoped to the

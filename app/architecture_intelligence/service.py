@@ -16,12 +16,14 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 import neo4j
+from pydantic import BaseModel
 
 from app.architecture_intelligence.contracts import (
     ARCHITECTURE_SCHEMA_VERSION,
     TOOL_NAMES,
     ArchitectureAnswer,
     ArchitectureDriftData,
+    ArchitectureToolName,
     DependencyClaim,
     DeploymentClaim,
     EntityRef,
@@ -34,8 +36,9 @@ from app.architecture_intelligence.contracts import (
     Producer,
     ServiceDependenciesData,
     SnapshotRef,
+    supported_fact_sort_key,
 )
-from app.architecture_intelligence.contracts import _claim_sort_key as _polymorphic_claim_sort_key
+from app.architecture_intelligence.contracts import claim_sort_key as _polymorphic_claim_sort_key
 from app.architecture_intelligence.dependency_projection import (
     ProjectionResult,
     project_service_dependencies,
@@ -89,8 +92,13 @@ def _limitation_sort_key(limitation: Limitation) -> tuple[str, str]:
     return (limitation.code.value, limitation.message)
 
 
-def _supported_fact_sort_key(fact) -> tuple[str, str, str]:
-    return (fact.relation_type.value, fact.source_id, fact.target_id)
+def _claims_outcome(*, has_content: bool, has_limitations: bool) -> Outcome:
+    """The dependency and drift tools' shared outcome table: no content and no limitation is an
+    empty ANSWERED, no content but a limitation is NOT_ANSWERED, content with a limitation is
+    PARTIAL. What counts as content is each tool's own decision."""
+    if not has_content:
+        return Outcome.NOT_ANSWERED if has_limitations else Outcome.ANSWERED
+    return Outcome.PARTIAL if has_limitations else Outcome.ANSWERED
 
 
 def _synthetic_evidence_to_public_dict(record) -> dict:
@@ -126,7 +134,7 @@ def _apply_deployed_as_evidence(
                 # hashable at runtime; pyright only recognizes the class-keyword form of `frozen`.
                 "supports": sorted(
                     {*record.supports, *supports_by_id[record.id]},  # pyright: ignore[reportUnhashable]
-                    key=_supported_fact_sort_key,
+                    key=supported_fact_sort_key,
                 )
             }
         )
@@ -371,6 +379,30 @@ class ArchitectureIntelligenceService:
             deployment=deployment,
         )
 
+    def _not_answered[T: BaseModel](
+        self,
+        answer_type: type[ArchitectureAnswer[T]],
+        *,
+        tool: ArchitectureToolName,
+        snapshot_ref: SnapshotRef | None,
+        context_ref: ObservationContextRef | None,
+        code: LimitationCode,
+        message: str,
+    ) -> ArchitectureAnswer[T]:
+        """A refusal: NOT_ANSWERED with no data, claims or evidence and exactly one limitation."""
+        return answer_type(
+            schema_version=ARCHITECTURE_SCHEMA_VERSION,
+            producer=self._producer,
+            tool=tool,
+            outcome=Outcome.NOT_ANSWERED,
+            snapshot=snapshot_ref,
+            observation_context=context_ref,
+            data=None,
+            claims=[],
+            evidence_refs=[],
+            limitations=[Limitation(code=code, message=message)],
+        )
+
     def get_service_dependencies(
         self, request: ServiceDependenciesRequest
     ) -> ArchitectureAnswer[ServiceDependenciesData]:
@@ -381,7 +413,9 @@ class ArchitectureIntelligenceService:
             include_deployment=True,
         )
         if isinstance(shared, _SharedRefusal):
-            return self._refusal(
+            return self._not_answered(
+                ArchitectureAnswer[ServiceDependenciesData],
+                tool=_TOOL_NAME,
                 snapshot_ref=shared.snapshot_ref,
                 context_ref=shared.context_ref,
                 code=shared.code,
@@ -425,14 +459,7 @@ class ArchitectureIntelligenceService:
         # reusing it unchanged.
         has_any_content = bool(all_claims) or bool(deployment_resolutions)
 
-        if not has_any_content and not limitations:
-            outcome = Outcome.ANSWERED
-        elif not has_any_content:
-            outcome = Outcome.NOT_ANSWERED
-        elif limitations:
-            outcome = Outcome.PARTIAL
-        else:
-            outcome = Outcome.ANSWERED
+        outcome = _claims_outcome(has_content=has_any_content, has_limitations=bool(limitations))
 
         if outcome == Outcome.NOT_ANSWERED:
             data = None
@@ -477,27 +504,6 @@ class ArchitectureIntelligenceService:
             limitations=limitations,
         )
 
-    def _refusal(
-        self,
-        *,
-        snapshot_ref: SnapshotRef | None,
-        context_ref: ObservationContextRef | None,
-        code: LimitationCode,
-        message: str,
-    ) -> ArchitectureAnswer[ServiceDependenciesData]:
-        return ArchitectureAnswer[ServiceDependenciesData](
-            schema_version=ARCHITECTURE_SCHEMA_VERSION,
-            producer=self._producer,
-            tool=_TOOL_NAME,
-            outcome=Outcome.NOT_ANSWERED,
-            snapshot=snapshot_ref,
-            observation_context=context_ref,
-            data=None,
-            claims=[],
-            evidence_refs=[],
-            limitations=[Limitation(code=code, message=message)],
-        )
-
     def get_architecture_drift(
         self, request: ArchitectureDriftRequest
     ) -> ArchitectureAnswer[ArchitectureDriftData]:
@@ -512,7 +518,9 @@ class ArchitectureIntelligenceService:
             snapshot_id=request.snapshot_id,
         )
         if isinstance(shared, _SharedRefusal):
-            return self._drift_refusal(
+            return self._not_answered(
+                ArchitectureAnswer[ArchitectureDriftData],
+                tool=_DRIFT_TOOL_NAME,
                 snapshot_ref=shared.snapshot_ref,
                 context_ref=shared.context_ref,
                 code=shared.code,
@@ -531,14 +539,7 @@ class ArchitectureIntelligenceService:
         # outlive every claim it scopes to), and §18.4 requires that to be NOT_ANSWERED: candidates
         # existed whose evidence was too thin to build a claim from, and "could not establish a
         # claim" must never be reported as "no drift".
-        if not claims and not limitations:
-            outcome = Outcome.ANSWERED
-        elif not claims:
-            outcome = Outcome.NOT_ANSWERED
-        elif limitations:
-            outcome = Outcome.PARTIAL
-        else:
-            outcome = Outcome.ANSWERED
+        outcome = _claims_outcome(has_content=bool(claims), has_limitations=bool(limitations))
 
         if outcome == Outcome.NOT_ANSWERED:
             data = None
@@ -572,27 +573,6 @@ class ArchitectureIntelligenceService:
             claims=list(claims),  # list[DependencyClaim] -> list[Claim] (list is invariant)
             evidence_refs=evidence_refs,
             limitations=limitations,
-        )
-
-    def _drift_refusal(
-        self,
-        *,
-        snapshot_ref: SnapshotRef | None,
-        context_ref: ObservationContextRef | None,
-        code: LimitationCode,
-        message: str,
-    ) -> ArchitectureAnswer[ArchitectureDriftData]:
-        return ArchitectureAnswer[ArchitectureDriftData](
-            schema_version=ARCHITECTURE_SCHEMA_VERSION,
-            producer=self._producer,
-            tool=_DRIFT_TOOL_NAME,
-            outcome=Outcome.NOT_ANSWERED,
-            snapshot=snapshot_ref,
-            observation_context=context_ref,
-            data=None,
-            claims=[],
-            evidence_refs=[],
-            limitations=[Limitation(code=code, message=message)],
         )
 
     def _read_stable_snapshot_with_deployment_evidence[T](
@@ -658,7 +638,10 @@ class ArchitectureIntelligenceService:
                     ),
                 )
             except SnapshotUnstable:
-                return self._evidence_refusal(
+                return self._not_answered(
+                    ArchitectureAnswer[EvidenceData],
+                    tool=_EVIDENCE_TOOL_NAME,
+                    context_ref=None,
                     snapshot_ref=None,
                     code=LimitationCode.SNAPSHOT_NOT_AVAILABLE,
                     message="no consistent current snapshot could be acquired",
@@ -672,7 +655,10 @@ class ArchitectureIntelligenceService:
             # (spec §11.1/§13) - unlike `get_service_dependencies`, `snapshot_id` is required here,
             # so there is no "omitted snapshot binds to current" case to handle.
             if request.snapshot_id != snapshot.snapshot_id:
-                return self._evidence_refusal(
+                return self._not_answered(
+                    ArchitectureAnswer[EvidenceData],
+                    tool=_EVIDENCE_TOOL_NAME,
+                    context_ref=None,
                     snapshot_ref=snapshot_ref,
                     code=LimitationCode.SNAPSHOT_NOT_AVAILABLE,
                     message=(
@@ -717,22 +703,6 @@ class ArchitectureIntelligenceService:
             claims=[],
             evidence_refs=[],
             limitations=limitations,
-        )
-
-    def _evidence_refusal(
-        self, *, snapshot_ref: SnapshotRef | None, code: LimitationCode, message: str
-    ) -> ArchitectureAnswer[EvidenceData]:
-        return ArchitectureAnswer[EvidenceData](
-            schema_version=ARCHITECTURE_SCHEMA_VERSION,
-            producer=self._producer,
-            tool=_EVIDENCE_TOOL_NAME,
-            outcome=Outcome.NOT_ANSWERED,
-            snapshot=snapshot_ref,
-            observation_context=None,
-            data=None,
-            claims=[],
-            evidence_refs=[],
-            limitations=[Limitation(code=code, message=message)],
         )
 
     def list_public_evidence(self) -> tuple[str, list[dict]]:

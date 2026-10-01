@@ -7,10 +7,12 @@
 
 from __future__ import annotations
 
-import hashlib
 from datetime import UTC, datetime
 
-from app.architecture_intelligence.canonical_json import canonical_json_bytes, format_utc_timestamp
+from app.architecture_intelligence.canonical_json import (
+    canonical_digest,
+    format_utc_timestamp,
+)
 from app.architecture_intelligence.contracts import (
     OBSERVATION_CONTEXT_ID_PREFIX,
     ObservationContextRef,
@@ -38,7 +40,7 @@ def compute_context_id(environment: str, window_start: datetime, window_end: dat
         "window_start_utc": format_utc_timestamp(window_start),
         "window_end_utc": format_utc_timestamp(window_end),
     }
-    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    digest = canonical_digest(payload)
     return f"{OBSERVATION_CONTEXT_ID_PREFIX}:{digest}"
 
 

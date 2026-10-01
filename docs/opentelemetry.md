@@ -28,6 +28,58 @@ exporters:
 See the [runtime demo Collector configuration](../examples/runtime-demo/otel-collector-config.yaml)
 for a working example.
 
+## Minimal direct OTLP request
+
+For the smallest direct ingestion check, post one synthetic OTLP/HTTP protobuf
+request to the same endpoint used by a Collector. This does not replace the
+full runtime demo and does not require a real application span:
+
+```bash
+python - <<'PY' > /tmp/aip-trace.pb
+from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
+from opentelemetry.proto.common.v1.common_pb2 import AnyValue, KeyValue
+from opentelemetry.proto.resource.v1.resource_pb2 import Resource
+from opentelemetry.proto.trace.v1.trace_pb2 import ResourceSpans, ScopeSpans, Span
+
+kv = lambda k, v: KeyValue(key=k, value=AnyValue(string_value=v))
+span = Span(
+    trace_id=b"0" * 16,
+    span_id=b"1" * 8,
+    name="GET /synthetic",
+    kind=Span.SPAN_KIND_CLIENT,
+    attributes=[
+        kv("service.name", "SyntheticClient"),
+        kv("deployment.environment.name", "demo"),
+        kv("http.request.method", "GET"),
+        kv("http.route", "/synthetic"),
+        kv("peer.service", "SyntheticServer"),
+    ],
+)
+request = ExportTraceServiceRequest(resource_spans=[
+    ResourceSpans(
+        resource=Resource(attributes=[
+            kv("service.name", "SyntheticClient"),
+            kv("deployment.environment.name", "demo"),
+        ]),
+        scope_spans=[ScopeSpans(spans=[span])],
+    )
+])
+import sys
+sys.stdout.buffer.write(request.SerializeToString())
+PY
+
+curl --fail-with-body \
+  -H 'Content-Type: application/x-protobuf' \
+  --data-binary @/tmp/aip-trace.pb \
+  http://127.0.0.1:8000/v1/traces
+```
+
+After ingestion, query `GET /api/analysis/runtime/coverage` (or
+`GET /api/evidence` when the synthetic observation is reachable from a
+public claim) to inspect what AIP actually retained. A successful POST proves
+only that the OTLP request was accepted; correlation still follows the
+declared-graph and no-guessing rules below.
+
 ## Attribute allowlist
 
 Only these OTel semantic-convention attributes are ever read — nothing else is inspected, and
