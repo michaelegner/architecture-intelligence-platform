@@ -20,4 +20,4 @@ def test_day_bucket_converts_offset_timestamp_before_truncating():
 
 def test_day_bucket_rejects_naive_timestamp():
     with pytest.raises(ValueError, match="offset-aware"):
-        day_bucket(datetime(2026, 9, 29, 1, 30))
+        day_bucket(datetime(2026, 9, 29, 1, 30))  # noqa: DTZ001 -- intentionally naive to test rejection
