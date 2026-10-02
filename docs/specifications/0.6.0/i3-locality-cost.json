@@ -1,9 +1,9 @@
 {
   "benchmark": "locality_cost",
-  "commit": "5c49fa131f088612dc5f2937157177175f046808",
+  "commit": "5f358433d99c3715f85bc22704d9ea452dd646ae",
   "dirty_worktree": false,
   "facts_per_post": 100,
-  "measured_at": "2026-10-02T15:03:38Z",
+  "measured_at": "2026-10-02T15:53:01Z",
   "points": [
     {
       "evidence_refs_looked_up": 0,
@@ -26,12 +26,12 @@
       "sources": 1,
       "stable_read_retries": 0,
       "timings": {
-        "end_to_end_ms_median": 207.926,
-        "evidence_lookup_ms_median": 145.952,
-        "fenced_read_ms_median": 156.012,
+        "end_to_end_ms_median": 176.736,
+        "evidence_lookup_ms_median": 93.804,
+        "fenced_read_ms_median": 165.257,
         "owner_lookup_ms_median": 0.001,
-        "projection_ms_median": 0.128,
-        "serialization_ms_median": 0.019
+        "projection_ms_median": 0.082,
+        "serialization_ms_median": 0.013
       },
       "walk": {
         "candidates_seen": 0,
@@ -72,12 +72,12 @@
       "sources": 1,
       "stable_read_retries": 0,
       "timings": {
-        "end_to_end_ms_median": 221.28,
-        "evidence_lookup_ms_median": 157.181,
-        "fenced_read_ms_median": 206.315,
-        "owner_lookup_ms_median": 6.56,
-        "projection_ms_median": 8.032,
-        "serialization_ms_median": 2.424
+        "end_to_end_ms_median": 141.229,
+        "evidence_lookup_ms_median": 168.493,
+        "fenced_read_ms_median": 130.748,
+        "owner_lookup_ms_median": 4.493,
+        "projection_ms_median": 3.168,
+        "serialization_ms_median": 1.234
       },
       "walk": {
         "candidates_seen": 100,
@@ -118,12 +118,12 @@
       "sources": 1,
       "stable_read_retries": 0,
       "timings": {
-        "end_to_end_ms_median": 1011.379,
-        "evidence_lookup_ms_median": 492.657,
-        "fenced_read_ms_median": 1174.868,
-        "owner_lookup_ms_median": 7.307,
-        "projection_ms_median": 42.709,
-        "serialization_ms_median": 9.759
+        "end_to_end_ms_median": 628.146,
+        "evidence_lookup_ms_median": 282.119,
+        "fenced_read_ms_median": 611.313,
+        "owner_lookup_ms_median": 2.792,
+        "projection_ms_median": 18.859,
+        "serialization_ms_median": 4.173
       },
       "walk": {
         "candidates_seen": 1000,
@@ -172,12 +172,12 @@
       "sources": 1,
       "stable_read_retries": 0,
       "timings": {
-        "end_to_end_ms_median": 152.961,
-        "evidence_lookup_ms_median": 66.881,
-        "fenced_read_ms_median": 81.165,
-        "owner_lookup_ms_median": 2.928,
-        "projection_ms_median": 48.149,
-        "serialization_ms_median": 0.836
+        "end_to_end_ms_median": 119.44,
+        "evidence_lookup_ms_median": 48.3,
+        "fenced_read_ms_median": 68.659,
+        "owner_lookup_ms_median": 2.469,
+        "projection_ms_median": 39.911,
+        "serialization_ms_median": 0.71
       },
       "walk": {
         "candidates_seen": 60,
@@ -228,12 +228,12 @@
       "sources": 1,
       "stable_read_retries": 0,
       "timings": {
-        "end_to_end_ms_median": 481.502,
-        "evidence_lookup_ms_median": 219.851,
-        "fenced_read_ms_median": 264.372,
-        "owner_lookup_ms_median": 21.721,
-        "projection_ms_median": 167.859,
-        "serialization_ms_median": 4.632
+        "end_to_end_ms_median": 365.071,
+        "evidence_lookup_ms_median": 168.868,
+        "fenced_read_ms_median": 234.863,
+        "owner_lookup_ms_median": 21.694,
+        "projection_ms_median": 139.554,
+        "serialization_ms_median": 2.784
       },
       "walk": {
         "candidates_seen": 201,
@@ -282,12 +282,12 @@
       "sources": 1,
       "stable_read_retries": 0,
       "timings": {
-        "end_to_end_ms_median": 551.441,
-        "evidence_lookup_ms_median": 225.269,
-        "fenced_read_ms_median": 466.23,
-        "owner_lookup_ms_median": 3.107,
-        "projection_ms_median": 22.175,
-        "serialization_ms_median": 5.595
+        "end_to_end_ms_median": 519.612,
+        "evidence_lookup_ms_median": 155.616,
+        "fenced_read_ms_median": 608.632,
+        "owner_lookup_ms_median": 1.92,
+        "projection_ms_median": 14.769,
+        "serialization_ms_median": 5.348
       },
       "walk": {
         "candidates_seen": 500,
@@ -328,12 +328,12 @@
       "sources": 5,
       "stable_read_retries": 0,
       "timings": {
-        "end_to_end_ms_median": 420.146,
-        "evidence_lookup_ms_median": 183.53,
-        "fenced_read_ms_median": 407.55,
-        "owner_lookup_ms_median": 3.083,
-        "projection_ms_median": 16.103,
-        "serialization_ms_median": 4.793
+        "end_to_end_ms_median": 342.153,
+        "evidence_lookup_ms_median": 228.523,
+        "fenced_read_ms_median": 327.241,
+        "owner_lookup_ms_median": 3.883,
+        "projection_ms_median": 17.506,
+        "serialization_ms_median": 3.458
       },
       "walk": {
         "candidates_seen": 500,
@@ -380,12 +380,12 @@
       "sources": 50,
       "stable_read_retries": 0,
       "timings": {
-        "end_to_end_ms_median": 190.742,
-        "evidence_lookup_ms_median": 472.702,
-        "fenced_read_ms_median": 194.9,
-        "owner_lookup_ms_median": 2.74,
-        "projection_ms_median": 1.88,
-        "serialization_ms_median": 0.59
+        "end_to_end_ms_median": 172.168,
+        "evidence_lookup_ms_median": 1004.506,
+        "fenced_read_ms_median": 155.68,
+        "owner_lookup_ms_median": 2.134,
+        "projection_ms_median": 1.39,
+        "serialization_ms_median": 0.241
       },
       "walk": {
         "candidates_seen": 500,
@@ -471,6 +471,98 @@
             "cap_reached": [],
             "i2_truncated": false,
             "outcome": "PARTIAL"
+          }
+        ],
+        "refusals": 0
+      },
+      "workloads": 1
+    },
+    {
+      "evidence_refs_looked_up": 20,
+      "first_page": {
+        "admitted_pairs": 2000,
+        "candidate_page_size": 400,
+        "cap_reached": [],
+        "completeness": "COMPLETE",
+        "considered_capture_sources": 5,
+        "evaluated_v2_candidates": 400,
+        "i2_truncated": false,
+        "localities": 1,
+        "memberships": 1,
+        "provider_groups": 1
+      },
+      "operations": 1,
+      "outcome": "ANSWERED",
+      "pods": 400,
+      "point": "covering-fan-out",
+      "sources": 5,
+      "stable_read_retries": 0,
+      "timings": {
+        "end_to_end_ms_median": 2426.41,
+        "evidence_lookup_ms_median": 705.152,
+        "fenced_read_ms_median": 2463.516,
+        "owner_lookup_ms_median": 2.232,
+        "projection_ms_median": 44.691,
+        "serialization_ms_median": 13.623
+      },
+      "walk": {
+        "candidates_seen": 400,
+        "distinct_candidates_seen": 400,
+        "pages": 1,
+        "pages_i2_truncated": 0,
+        "pages_with_a_cap": 0,
+        "per_page": [
+          {
+            "candidates": 400,
+            "cap_reached": [],
+            "i2_truncated": false,
+            "outcome": "ANSWERED"
+          }
+        ],
+        "refusals": 0
+      },
+      "workloads": 1
+    },
+    {
+      "evidence_refs_looked_up": 20,
+      "first_page": {
+        "admitted_pairs": 2000,
+        "candidate_page_size": 40,
+        "cap_reached": [],
+        "completeness": "COMPLETE",
+        "considered_capture_sources": 50,
+        "evaluated_v2_candidates": 40,
+        "i2_truncated": false,
+        "localities": 1,
+        "memberships": 1,
+        "provider_groups": 1
+      },
+      "operations": 1,
+      "outcome": "ANSWERED",
+      "pods": 40,
+      "point": "covering-fan-out",
+      "sources": 50,
+      "stable_read_retries": 0,
+      "timings": {
+        "end_to_end_ms_median": 1894.318,
+        "evidence_lookup_ms_median": 119.605,
+        "fenced_read_ms_median": 1995.203,
+        "owner_lookup_ms_median": 2.701,
+        "projection_ms_median": 41.035,
+        "serialization_ms_median": 9.759
+      },
+      "walk": {
+        "candidates_seen": 40,
+        "distinct_candidates_seen": 40,
+        "pages": 1,
+        "pages_i2_truncated": 0,
+        "pages_with_a_cap": 0,
+        "per_page": [
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": false,
+            "outcome": "ANSWERED"
           }
         ],
         "refusals": 0
