@@ -1,0 +1,496 @@
+{
+  "benchmark": "locality_cost",
+  "commit": "5c49fa131f088612dc5f2937157177175f046808",
+  "dirty_worktree": false,
+  "facts_per_post": 100,
+  "measured_at": "2026-10-02T15:03:38Z",
+  "points": [
+    {
+      "evidence_refs_looked_up": 0,
+      "first_page": {
+        "admitted_pairs": 0,
+        "candidate_page_size": 500,
+        "cap_reached": [],
+        "completeness": "COMPLETE",
+        "considered_capture_sources": 1,
+        "evaluated_v2_candidates": 0,
+        "i2_truncated": false,
+        "localities": 0,
+        "memberships": 0,
+        "provider_groups": 0
+      },
+      "operations": 1,
+      "outcome": "NOT_ANSWERED",
+      "pods": 0,
+      "point": "churn",
+      "sources": 1,
+      "stable_read_retries": 0,
+      "timings": {
+        "end_to_end_ms_median": 207.926,
+        "evidence_lookup_ms_median": 145.952,
+        "fenced_read_ms_median": 156.012,
+        "owner_lookup_ms_median": 0.001,
+        "projection_ms_median": 0.128,
+        "serialization_ms_median": 0.019
+      },
+      "walk": {
+        "candidates_seen": 0,
+        "distinct_candidates_seen": 0,
+        "pages": 1,
+        "pages_i2_truncated": 0,
+        "pages_with_a_cap": 0,
+        "per_page": [
+          {
+            "candidates": 0,
+            "cap_reached": [],
+            "i2_truncated": false,
+            "outcome": "NOT_ANSWERED"
+          }
+        ],
+        "refusals": 0
+      },
+      "workloads": 2
+    },
+    {
+      "evidence_refs_looked_up": 20,
+      "first_page": {
+        "admitted_pairs": 100,
+        "candidate_page_size": 500,
+        "cap_reached": [],
+        "completeness": "COMPLETE",
+        "considered_capture_sources": 1,
+        "evaluated_v2_candidates": 100,
+        "i2_truncated": false,
+        "localities": 2,
+        "memberships": 2,
+        "provider_groups": 2
+      },
+      "operations": 1,
+      "outcome": "ANSWERED",
+      "pods": 100,
+      "point": "churn",
+      "sources": 1,
+      "stable_read_retries": 0,
+      "timings": {
+        "end_to_end_ms_median": 221.28,
+        "evidence_lookup_ms_median": 157.181,
+        "fenced_read_ms_median": 206.315,
+        "owner_lookup_ms_median": 6.56,
+        "projection_ms_median": 8.032,
+        "serialization_ms_median": 2.424
+      },
+      "walk": {
+        "candidates_seen": 100,
+        "distinct_candidates_seen": 100,
+        "pages": 1,
+        "pages_i2_truncated": 0,
+        "pages_with_a_cap": 0,
+        "per_page": [
+          {
+            "candidates": 100,
+            "cap_reached": [],
+            "i2_truncated": false,
+            "outcome": "ANSWERED"
+          }
+        ],
+        "refusals": 0
+      },
+      "workloads": 2
+    },
+    {
+      "evidence_refs_looked_up": 20,
+      "first_page": {
+        "admitted_pairs": 500,
+        "candidate_page_size": 500,
+        "cap_reached": [],
+        "completeness": "PARTIAL",
+        "considered_capture_sources": 1,
+        "evaluated_v2_candidates": 500,
+        "i2_truncated": true,
+        "localities": 2,
+        "memberships": 2,
+        "provider_groups": 2
+      },
+      "operations": 1,
+      "outcome": "PARTIAL",
+      "pods": 1000,
+      "point": "churn",
+      "sources": 1,
+      "stable_read_retries": 0,
+      "timings": {
+        "end_to_end_ms_median": 1011.379,
+        "evidence_lookup_ms_median": 492.657,
+        "fenced_read_ms_median": 1174.868,
+        "owner_lookup_ms_median": 7.307,
+        "projection_ms_median": 42.709,
+        "serialization_ms_median": 9.759
+      },
+      "walk": {
+        "candidates_seen": 1000,
+        "distinct_candidates_seen": 1000,
+        "pages": 2,
+        "pages_i2_truncated": 1,
+        "pages_with_a_cap": 0,
+        "per_page": [
+          {
+            "candidates": 500,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 500,
+            "cap_reached": [],
+            "i2_truncated": false,
+            "outcome": "PARTIAL"
+          }
+        ],
+        "refusals": 0
+      },
+      "workloads": 2
+    },
+    {
+      "evidence_refs_looked_up": 20,
+      "first_page": {
+        "admitted_pairs": 50,
+        "candidate_page_size": 500,
+        "cap_reached": [
+          "WORKLOADS"
+        ],
+        "completeness": "PARTIAL",
+        "considered_capture_sources": 1,
+        "evaluated_v2_candidates": 50,
+        "i2_truncated": false,
+        "localities": 50,
+        "memberships": 50,
+        "provider_groups": 50
+      },
+      "operations": 1,
+      "outcome": "PARTIAL",
+      "pods": 60,
+      "point": "workload-cap",
+      "sources": 1,
+      "stable_read_retries": 0,
+      "timings": {
+        "end_to_end_ms_median": 152.961,
+        "evidence_lookup_ms_median": 66.881,
+        "fenced_read_ms_median": 81.165,
+        "owner_lookup_ms_median": 2.928,
+        "projection_ms_median": 48.149,
+        "serialization_ms_median": 0.836
+      },
+      "walk": {
+        "candidates_seen": 60,
+        "distinct_candidates_seen": 60,
+        "pages": 2,
+        "pages_i2_truncated": 0,
+        "pages_with_a_cap": 1,
+        "per_page": [
+          {
+            "candidates": 50,
+            "cap_reached": [
+              "WORKLOADS"
+            ],
+            "i2_truncated": false,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 10,
+            "cap_reached": [],
+            "i2_truncated": false,
+            "outcome": "PARTIAL"
+          }
+        ],
+        "refusals": 0
+      },
+      "workloads": 60
+    },
+    {
+      "evidence_refs_looked_up": 20,
+      "first_page": {
+        "admitted_pairs": 200,
+        "candidate_page_size": 500,
+        "cap_reached": [
+          "MEMBERSHIPS"
+        ],
+        "completeness": "PARTIAL",
+        "considered_capture_sources": 1,
+        "evaluated_v2_candidates": 200,
+        "i2_truncated": false,
+        "localities": 1,
+        "memberships": 200,
+        "provider_groups": 1
+      },
+      "operations": 201,
+      "outcome": "PARTIAL",
+      "pods": 1,
+      "point": "membership-cap",
+      "sources": 1,
+      "stable_read_retries": 0,
+      "timings": {
+        "end_to_end_ms_median": 481.502,
+        "evidence_lookup_ms_median": 219.851,
+        "fenced_read_ms_median": 264.372,
+        "owner_lookup_ms_median": 21.721,
+        "projection_ms_median": 167.859,
+        "serialization_ms_median": 4.632
+      },
+      "walk": {
+        "candidates_seen": 201,
+        "distinct_candidates_seen": 201,
+        "pages": 2,
+        "pages_i2_truncated": 0,
+        "pages_with_a_cap": 1,
+        "per_page": [
+          {
+            "candidates": 200,
+            "cap_reached": [
+              "MEMBERSHIPS"
+            ],
+            "i2_truncated": false,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 1,
+            "cap_reached": [],
+            "i2_truncated": false,
+            "outcome": "PARTIAL"
+          }
+        ],
+        "refusals": 0
+      },
+      "workloads": 1
+    },
+    {
+      "evidence_refs_looked_up": 20,
+      "first_page": {
+        "admitted_pairs": 500,
+        "candidate_page_size": 500,
+        "cap_reached": [],
+        "completeness": "COMPLETE",
+        "considered_capture_sources": 1,
+        "evaluated_v2_candidates": 500,
+        "i2_truncated": false,
+        "localities": 1,
+        "memberships": 1,
+        "provider_groups": 1
+      },
+      "operations": 1,
+      "outcome": "ANSWERED",
+      "pods": 500,
+      "point": "fan-out",
+      "sources": 1,
+      "stable_read_retries": 0,
+      "timings": {
+        "end_to_end_ms_median": 551.441,
+        "evidence_lookup_ms_median": 225.269,
+        "fenced_read_ms_median": 466.23,
+        "owner_lookup_ms_median": 3.107,
+        "projection_ms_median": 22.175,
+        "serialization_ms_median": 5.595
+      },
+      "walk": {
+        "candidates_seen": 500,
+        "distinct_candidates_seen": 500,
+        "pages": 1,
+        "pages_i2_truncated": 0,
+        "pages_with_a_cap": 0,
+        "per_page": [
+          {
+            "candidates": 500,
+            "cap_reached": [],
+            "i2_truncated": false,
+            "outcome": "ANSWERED"
+          }
+        ],
+        "refusals": 0
+      },
+      "workloads": 1
+    },
+    {
+      "evidence_refs_looked_up": 20,
+      "first_page": {
+        "admitted_pairs": 400,
+        "candidate_page_size": 400,
+        "cap_reached": [],
+        "completeness": "PARTIAL",
+        "considered_capture_sources": 5,
+        "evaluated_v2_candidates": 400,
+        "i2_truncated": true,
+        "localities": 1,
+        "memberships": 1,
+        "provider_groups": 1
+      },
+      "operations": 1,
+      "outcome": "PARTIAL",
+      "pods": 500,
+      "point": "fan-out",
+      "sources": 5,
+      "stable_read_retries": 0,
+      "timings": {
+        "end_to_end_ms_median": 420.146,
+        "evidence_lookup_ms_median": 183.53,
+        "fenced_read_ms_median": 407.55,
+        "owner_lookup_ms_median": 3.083,
+        "projection_ms_median": 16.103,
+        "serialization_ms_median": 4.793
+      },
+      "walk": {
+        "candidates_seen": 500,
+        "distinct_candidates_seen": 500,
+        "pages": 2,
+        "pages_i2_truncated": 1,
+        "pages_with_a_cap": 0,
+        "per_page": [
+          {
+            "candidates": 400,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 100,
+            "cap_reached": [],
+            "i2_truncated": false,
+            "outcome": "PARTIAL"
+          }
+        ],
+        "refusals": 0
+      },
+      "workloads": 1
+    },
+    {
+      "evidence_refs_looked_up": 20,
+      "first_page": {
+        "admitted_pairs": 40,
+        "candidate_page_size": 40,
+        "cap_reached": [],
+        "completeness": "PARTIAL",
+        "considered_capture_sources": 50,
+        "evaluated_v2_candidates": 40,
+        "i2_truncated": true,
+        "localities": 1,
+        "memberships": 1,
+        "provider_groups": 1
+      },
+      "operations": 1,
+      "outcome": "PARTIAL",
+      "pods": 500,
+      "point": "fan-out",
+      "sources": 50,
+      "stable_read_retries": 0,
+      "timings": {
+        "end_to_end_ms_median": 190.742,
+        "evidence_lookup_ms_median": 472.702,
+        "fenced_read_ms_median": 194.9,
+        "owner_lookup_ms_median": 2.74,
+        "projection_ms_median": 1.88,
+        "serialization_ms_median": 0.59
+      },
+      "walk": {
+        "candidates_seen": 500,
+        "distinct_candidates_seen": 500,
+        "pages": 13,
+        "pages_i2_truncated": 12,
+        "pages_with_a_cap": 0,
+        "per_page": [
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 40,
+            "cap_reached": [],
+            "i2_truncated": true,
+            "outcome": "PARTIAL"
+          },
+          {
+            "candidates": 20,
+            "cap_reached": [],
+            "i2_truncated": false,
+            "outcome": "PARTIAL"
+          }
+        ],
+        "refusals": 0
+      },
+      "workloads": 1
+    }
+  ],
+  "profile": "i3",
+  "repeats": 5,
+  "runtime": {
+    "aip_package_version": "0.5.1",
+    "architecture": "x86_64",
+    "container_runtime_version": "docker/29.8.1",
+    "cpu_model": "x86_64",
+    "logical_cpu_count": 14,
+    "memory_total_bytes": 16511676416,
+    "neo4j_version": "5.26.31",
+    "os": "Linux",
+    "os_release": "5.15.153.1-microsoft-standard-WSL2",
+    "python_version": "3.13.14"
+  },
+  "schema_version": "aip-benchmark-locality-cost/1"
+}
