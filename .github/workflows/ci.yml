@@ -77,9 +77,11 @@ jobs:
         tests/integration/test_i4_pubsub_qualification.py
         tests/integration/test_adapter.py
         tests/integration/test_architecture_intelligence_service.py
-      # The I3 oracle alone; it checks the live graph's snapshot before reusing a replay.
+      # The I3 oracle and its cross-surface parity run (v0.6.0 I3.3c), which builds the same
+      # worlds; both check the live graph's snapshot before reusing a replay.
       ORACLE_MODULES: >-
         tests/integration/test_locality_oracle.py
+        tests/integration/test_locality_surface_parity.py
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1

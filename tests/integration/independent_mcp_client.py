@@ -118,3 +118,42 @@ def run_drift_to_evidence_golden_path(
     )
 
     return {"drift": drift_result, "evidence": evidence_result}
+
+
+def run_locality_query_to_evidence(client: httpx.Client, *, query_request: dict) -> dict:
+    """v0.6.0 I3.3c: `get_service_dependencies_by_locality` in `mode: "query"` -> every positive
+    assessment's v2 ids and capture refs and the answer's `snapshot_id` -> the same tool in
+    `mode: "evidence"` on that snapshot. Returns both raw tool results (`query`, `evidence`) for the
+    caller to assert on; this module does no assertion of its own."""
+    query_result = call_tool(
+        client,
+        name="get_service_dependencies_by_locality",
+        arguments={"request": query_request},
+    )
+    query_answer = query_result["structuredContent"]
+
+    refs = sorted(
+        {
+            ref
+            for locality in query_answer["data"]["localities"]
+            for assessment in locality["assessments"]
+            for ref in (
+                *assessment["observation"]["evidence_ids"],
+                *assessment["capture_evidence_refs"],
+            )
+        }
+    )
+    evidence_result = call_tool(
+        client,
+        name="get_service_dependencies_by_locality",
+        arguments={
+            "request": {
+                "mode": "evidence",
+                "subject_service_id": query_request["subject_service_id"],
+                "snapshot_id": query_answer["snapshot"]["snapshot_id"],
+                "refs": refs,
+            }
+        },
+    )
+
+    return {"query": query_result, "evidence": evidence_result}
