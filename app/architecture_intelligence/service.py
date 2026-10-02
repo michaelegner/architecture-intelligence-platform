@@ -75,7 +75,10 @@ from app.architecture_intelligence.request import (
     ServiceDependenciesRequest,
 )
 from app.architecture_intelligence.scoped_applicability import LocalityRequest
-from app.architecture_intelligence.scoped_evidence_repository import read_scoped_applicability
+from app.architecture_intelligence.scoped_evidence_repository import (
+    DEFAULT_PAGE_SIZE,
+    read_scoped_applicability,
+)
 from app.graph.repository import open_session
 from app.graph.revision_fence import read_revision
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
@@ -760,18 +763,24 @@ class ArchitectureIntelligenceService:
             return snapshot_id, None
 
     def assess_local_calls(
-        self, request: LocalityRequest, *, after_id: str | None = None
+        self,
+        request: LocalityRequest,
+        *,
+        after_id: str | None = None,
+        page_size: int = DEFAULT_PAGE_SIZE,
     ) -> LocalAssessmentResult:
         """v0.6.0 I2.4 - the internal Qualified Local Evidence Assessment entry point (I2 spec §4,
         §9): caller-Workload-local `CALLS -> Operation` assertions for one candidate page, each
         qualified through the shared declared/observed kernel, bound to one stable snapshot.
         Internal only: no REST route, MCP tool or public schema exists for it before I3. A malformed
-        window raises `ValueError`; `SnapshotUnstable` propagates."""
+        window raises `ValueError`; `SnapshotUnstable` propagates. `page_size` (1-500) is I3 D4's
+        smaller internal page; the default is I2's fixed page (D3)."""
         with open_session(self._driver, database=self._database, read_only=True) as session:
             read = read_scoped_applicability(
                 session,
                 request,
                 coverage_qualification_enabled=self._coverage_qualification_enabled,
                 after_id=after_id,
+                page_size=page_size,
             )
         return assess(read, request)
