@@ -506,7 +506,7 @@ _CALLS_QUERY = (
     "RETURN o.id AS operation_id, o.name AS operation_name, o.method AS method, o.path AS path, "
     "coalesce(r.evidence_ids, []) AS evidence_ids"
 )
-_PROVIDES_FOR_OPERATIONS_QUERY = (
+PROVIDES_FOR_OPERATIONS_QUERY = (
     "MATCH (p:Service)-[r:PROVIDES]->(o:Operation) WHERE o.id IN $operation_ids "
     "RETURN o.id AS operation_id, p.id AS provider_id, p.name AS provider_name, "
     "coalesce(r.evidence_ids, []) AS evidence_ids"
@@ -546,6 +546,21 @@ _EVIDENCE_FOR_IDS_QUERY = (
     "RETURN e.id AS id, e.evidence_type AS evidence_type, e.environment AS environment, "
     "e.last_seen AS last_seen"
 )
+
+
+def read_qualification_evidence_rows(
+    runner: neo4j.Session | neo4j.ManagedTransaction, *, evidence_ids: list[str]
+) -> dict[str, dict]:
+    """The qualification-relevant fields of the `Evidence` rows among `evidence_ids`, keyed by id.
+    An id absent from the result does not resolve in this snapshot."""
+    evidence = {}
+    if evidence_ids:
+        for record in runner.run(_EVIDENCE_FOR_IDS_QUERY, evidence_ids=evidence_ids):
+            row = dict(record)
+            if row["last_seen"] is not None:
+                row["last_seen"] = row["last_seen"].to_native()
+            evidence[row["id"]] = row
+    return evidence
 
 
 def _referenced_evidence_ids(*row_groups: list[dict]) -> list[str]:
@@ -723,7 +738,7 @@ def read_service_dependency_rows(
     provides = (
         [
             dict(record)
-            for record in session.run(_PROVIDES_FOR_OPERATIONS_QUERY, operation_ids=operation_ids)
+            for record in session.run(PROVIDES_FOR_OPERATIONS_QUERY, operation_ids=operation_ids)
         ]
         if operation_ids
         else []
@@ -762,13 +777,7 @@ def read_service_dependency_rows(
     evidence_ids = _referenced_evidence_ids(
         calls, provides, sends, receives, publishes, subscriptions, subscription_receives
     )
-    evidence = {}
-    if evidence_ids:
-        for record in session.run(_EVIDENCE_FOR_IDS_QUERY, evidence_ids=evidence_ids):
-            row = dict(record)
-            if row["last_seen"] is not None:
-                row["last_seen"] = row["last_seen"].to_native()
-            evidence[row["id"]] = row
+    evidence = read_qualification_evidence_rows(session, evidence_ids=evidence_ids)
 
     coverage = telemetry_coverage(
         session,

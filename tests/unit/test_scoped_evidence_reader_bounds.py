@@ -2,8 +2,10 @@
 
 import pytest
 
+from app.architecture_intelligence.scoped_applicability import LocalityRequest
 from app.architecture_intelligence.scoped_evidence_repository import (
     DEFAULT_PAGE_SIZE,
+    read_scoped_applicability,
     read_scoped_observed_calls,
 )
 
@@ -46,3 +48,21 @@ def test_the_default_limit_is_the_frozen_page_size():
     read_scoped_observed_calls(runner, subject_id="service:x")  # pyright: ignore[reportArgumentType]
 
     assert runner.limits == [DEFAULT_PAGE_SIZE + 1]
+
+
+@pytest.mark.parametrize("page_size", [0, -1, DEFAULT_PAGE_SIZE + 1])
+def test_an_out_of_bound_applicability_page_size_is_rejected_before_any_read(page_size):
+    """I3 D4: a smaller I2 page is allowed, never one above D3's 500."""
+    request = LocalityRequest(
+        subject_service_id="service:x",
+        environment="production",
+        first_day="2026-09-28",
+        last_day="2026-09-28",
+    )
+    with pytest.raises(ValueError, match="between 1 and 500"):
+        read_scoped_applicability(
+            _ExplodingRunner(),  # pyright: ignore[reportArgumentType]
+            request,
+            coverage_qualification_enabled=False,
+            page_size=page_size,
+        )

@@ -153,7 +153,7 @@ def _accepted_evidence_ids(evidence_ids: list[str], evidence_by_id: dict[str, di
     return sorted(eid for eid in evidence_ids if eid in evidence_by_id)
 
 
-def _group_evidenced_rows(
+def group_evidenced_rows(
     rows: list[dict], id_field: str, name_field: str, evidence_by_id: dict[str, dict]
 ) -> dict[str, tuple[str, set[str]]]:
     """Groups rows by `id_field`, unioning each group's accepted evidence ids rather than letting a
@@ -177,7 +177,7 @@ def _resolve_sync_destination(
 ) -> tuple[DestinationResolution, EntityRef, list[str]]:
     """Spec §13.1: exactly one evidenced provider resolves to that `Service`; zero or more than one
     is not guessed - retain the `Operation` itself with `DIRECT_TARGET_FALLBACK`."""
-    evidenced = _group_evidenced_rows(providers, "provider_id", "provider_name", evidence_by_id)
+    evidenced = group_evidenced_rows(providers, "provider_id", "provider_name", evidence_by_id)
     if len(evidenced) == 1:
         [(provider_id, (provider_name, accepted_ids))] = evidenced.items()
         return (
@@ -193,7 +193,7 @@ def _resolve_async_destinations(
 ) -> list[tuple[DestinationResolution, EntityRef, list[str]]]:
     """Spec §13.2: every distinct evidenced consumer is valid fan-out, not ambiguity; zero evidenced
     consumers is not guessed - retain the `Queue` itself with `DIRECT_TARGET_FALLBACK`."""
-    evidenced = _group_evidenced_rows(consumers, "consumer_id", "consumer_name", evidence_by_id)
+    evidenced = group_evidenced_rows(consumers, "consumer_id", "consumer_name", evidence_by_id)
     if not evidenced:
         return [(DestinationResolution.DIRECT_TARGET_FALLBACK, _queue_ref(send), [])]
     return [
@@ -211,7 +211,7 @@ def _usable_subscriptions(
 ) -> list[tuple[dict, list[str]]]:
     """v0.5.0 I4 §12.3: a Subscription route is usable only when its `SUBSCRIPTION_OF` relation to
     the published Topic carries accepted (non-dangling) evidence - the same rule
-    `_group_evidenced_rows` applies to consumers. Rows for one Subscription id are unioned, never
+    `group_evidenced_rows` applies to consumers. Rows for one Subscription id are unioned, never
     overwritten, and the result is sorted by Subscription id for deterministic claim order."""
     grouped: dict[str, tuple[dict, set[str]]] = {}
     for row in subscriptions:
@@ -247,7 +247,7 @@ def _resolve_pubsub_destinations(
     destinations: list[tuple[DestinationResolution, EntityRef, EntityRef | None, list[str]]] = []
     for subscription_row, subscription_of_evidence in usable:
         route = _subscription_ref(subscription_row)
-        evidenced = _group_evidenced_rows(
+        evidenced = group_evidenced_rows(
             receivers_by_subscription.get(route.id, []),
             "consumer_id",
             "consumer_name",
