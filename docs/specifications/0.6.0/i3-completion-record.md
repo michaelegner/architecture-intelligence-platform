@@ -1,6 +1,6 @@
 # AIP v0.6.0 I3 — Completion Record
 
-**Status:** **COMPLETE** once this record merges (I3.4b). The closure SHA is written into this record by a follow-up PR, because a PR cannot record its own merge commit (the two-step closure pattern used for I1 and I2).
+**Status:** **COMPLETE.** Closed by PR #408, merge `2f57b660c5a03cdd09c7fba8277670fb1d4b49c4` (2026-10-02T19:30:47Z). The closure SHA was written into this record by a follow-up PR, because a PR cannot record its own merge commit (the two-step closure pattern used for I1 and I2).
 **Release / increment:** `v0.6.0` — Locality-Aware Current State / I3.
 **Governing specification:** [I3 specification](i3-bounded-current-state-projection-and-public-answers.md) revision 0.2 (Accepted), merged in #382 (`82652f44b0f35f4349f94c5b5c62598a3d03bbd4`), with the tool-name proposal of #385 (`22782529ba3f6f8ba95e825283a0339ed91dd69a`). This record covers the whole of I3, slices I3.1–I3.4: the specification and tool-name PRs, 10 merged slice PRs, and this record.
 **Not claimed:** I3 is not qualified as a final candidate, not released and not published. There is no final-candidate repeatability or two-clean-state qualification; that is I4. The real controlled I5 capture is **`NOT_RUN`**: the I2.6a recording replayed through I3 is a labelled **rehearsal**, not I5 evidence. Release qualification is I6.
@@ -23,7 +23,7 @@ Merge commits and times were read with `gh pr view --json mergeCommit,mergedAt` 
 | I3.3b REST routes; fourth MCP tool | #403 | `601c4ad9f3192506a941b8a6602081c92048a304` | 2026-10-02T14:01:39Z | 2026-10-02T12:00:31Z |
 | I3.3c cross-surface parity; independent client | #406 | `04bfd65e5b65a04d1abb198b062997c1c522297c` | 2026-10-02T14:47:42Z | 2026-10-02T12:00:31Z |
 | I3.4a locality cost benchmark and recorded run | #407 | `40ccc29acb89d4d95228499fc97dd8b17f6d24de` | 2026-10-02T16:12:04Z | 2026-10-02T14:48:35Z |
-| I3.4b this record and the I4 handoff | this PR | — (follow-up) | — | 2026-10-02T14:48:35Z |
+| I3.4b this record and the I4 handoff | #408 | `2f57b660c5a03cdd09c7fba8277670fb1d4b49c4` | 2026-10-02T19:30:47Z | 2026-10-02T14:48:35Z |
 
 Merged during I3 but outside its scope:
 - #349 (UTC-day telemetry buckets) and #384 (landscape references);
