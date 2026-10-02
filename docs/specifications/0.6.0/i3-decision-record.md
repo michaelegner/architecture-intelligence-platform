@@ -272,6 +272,17 @@ These are decisions taken while publishing the draft schemas. D16.4 is an owner 
 | D16.10 | **`SELECTION_NOT_ESTABLISHED` from `compare` (PR #387 review).** The code is derived from every `UNKNOWN` scope in `selection` **and** in `comparison.scopes`, so a `compare`-only request naming an unestablished identity (D15 R4) carries both `COMPARISON_INCOMPLETE` and `SELECTION_NOT_ESTABLISHED`. The `UNKNOWN`/`NOT_ESTABLISHED` semantics are unchanged. |
 | D16.11 | **Continuation pages (PR #388 review; owner decision; corrects I3.1b to match D7 item 3).** `inventory.continuation` is `true` when the request carried a `cursor`. Such a page never evaluated the whole inventory, so `completeness` is `PARTIAL` exactly when `i2_truncated`, a cap was hit **or** `continuation` is true, and `next_cursor` is present exactly when more candidates remain. The final page of a cursor walk is therefore `PARTIAL` / `INVENTORY_INCOMPLETE` with `next_cursor: null`. Its groups are `lineage_complete: false`, and it can never report `EVALUATED_NO_POSITIVE` or a `COMPLETE` comparison for a Workload whose positives were on an earlier page. |
 
+## D17 — I3.2 implementation clarifications (added in I3.2a; additive, D1–D16 unchanged)
+
+These settle representation and ordering details that D1–D16 leave open, so that I3.2 can implement them as written. None of them changes an I1/I2 disposition, identity or vector, the I3.1c oracle or the 0.6 schemas.
+
+| # | Clarification |
+|---|---|
+| D17.1 | **Refusal precedence.** When more than one refusal applies, request-intrinsic refusals win over state-dependent ones: `UNSUPPORTED_REQUEST` (phase 1) > `CURSOR_QUERY_MISMATCH` > `SNAPSHOT_NOT_AVAILABLE` > `RESULT_LIMIT_EXCEEDED`. The answer still carries the fenced current `SnapshotRef`, except for `SnapshotUnstable` (`snapshot: null`). A phase-1 refusal or a cursor mismatch reads no capture or candidate, and `RESULT_LIMIT_EXCEEDED` reads no candidate (D6). |
+| D17.2 | **What the presentation caps count.** The 50-Workload and 200-membership caps (D4) count the **presented** projection, after the D16.4 `provider_service_id` filter and the `caller_localities` filter. I3 finds the longest prefix of complete candidates within the caps by re-running I2's pure `assess` on prefixes of the same fenced read. This relies on `assess` being monotone in the prefix: adding a candidate never removes a Workload or a membership. A unit test pins that property. |
+| D17.3 | **Lineage on a continuation page.** On a page requested with a `cursor`, every assessment's `observation.lineage_complete` is `false`, even when I2 did not truncate that page. D7 item 3, D16.11 and the `LocalityEntry` validator require this. The value is set in the 0.6 presentation only; I2's `LocalObservation` and its vectors are unchanged. |
+| D17.4 | **The I2 read hook.** `scoped_evidence_repository.read_applicability_page(runner, request, *, after_id, page_size_for)` runs inside the caller's stable-snapshot `read_extra`. It reads the accepted captures first, computes `S` (D4 step 1), and calls `page_size_for(S)`. A return of `None` stops the read before any candidate is read (D6); otherwise the value is the candidate page size `k` (1–500). `read_scoped_applicability` and `assess_local_calls` gain `page_size` (default 500, so I2 behaviour is unchanged). `read_provider_owners` reads the v0.5 `PROVIDES` rows and their evidence under the same fence (D8). |
+
 ## Traceability
 
 | I3 requirement | Decision |
@@ -285,3 +296,4 @@ These are decisions taken while publishing the draft schemas. D16.4 is an owner 
 | §17.7 scoped resolver; §12 | D11, D14, D15 |
 | §17.8 cost and qualification evidence; §14 | D4 (values are not SLOs); I3.1c matrix; I3.4 measurements |
 | §2 compatibility; D16 | D1, D12, D13 |
+| I3.2 implementation details (§7, §10; D4–D9) | D17 |

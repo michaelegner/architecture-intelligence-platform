@@ -10,13 +10,15 @@ record must still be returned and then judged (I1 L10b, L17d).
 
 import dataclasses
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 import neo4j
 
 from app.architecture_intelligence.repository import (
+    PROVIDES_FOR_OPERATIONS_QUERY,
     SOURCE_CAPTURES_QUERY,
+    read_qualification_evidence_rows,
     read_stable_snapshot_from_session,
 )
 from app.architecture_intelligence.scoped_applicability import (
@@ -28,6 +30,7 @@ from app.architecture_intelligence.scoped_applicability import (
     ScopedPod,
     SourceCapture,
     SourceInventory,
+    SourceSelector,
     evaluate_candidates,
     preflight,
 )
@@ -137,23 +140,39 @@ _SCOPED_OWNERS_QUERY = (
 )
 
 
+def read_source_captures(
+    runner: neo4j.Session | neo4j.ManagedTransaction,
+) -> list[SourceCapture]:
+    """Every accepted Kubernetes source's committed capture, without any Pod or owner (I3 D4 step
+    1), sorted by `SourceCapture.sort_key`."""
+    return sorted(
+        (
+            SourceCapture(
+                source_instance_id=row["source_instance_id"],
+                discovery_scope_id=row["discovery_scope_id"] or "",
+                revision=row["revision"],
+                cluster_uid=row["cluster_uid"],
+                namespaces=tuple(sorted(row["namespaces"] or ())),
+                evidence_mode=row["evidence_mode"],
+                captured_at=row["captured_at"],
+            )
+            for row in runner.run(SOURCE_CAPTURES_QUERY)
+        ),
+        key=lambda capture: capture.sort_key,
+    )
+
+
 def read_source_inventories(
-    runner: neo4j.Session | neo4j.ManagedTransaction, *, pod_uids: Sequence[str]
+    runner: neo4j.Session | neo4j.ManagedTransaction,
+    *,
+    pod_uids: Sequence[str],
+    captures: Sequence[SourceCapture] | None = None,
 ) -> list[SourceInventory]:
     """Every accepted Kubernetes source's committed capture, each with only the Pods *it*
-    captured under one of `pod_uids`, and only *its* owner claims for them (D13.6)."""
-    captures = [
-        SourceCapture(
-            source_instance_id=row["source_instance_id"],
-            discovery_scope_id=row["discovery_scope_id"] or "",
-            revision=row["revision"],
-            cluster_uid=row["cluster_uid"],
-            namespaces=tuple(sorted(row["namespaces"] or ())),
-            evidence_mode=row["evidence_mode"],
-            captured_at=row["captured_at"],
-        )
-        for row in runner.run(SOURCE_CAPTURES_QUERY)
-    ]
+    captured under one of `pod_uids`, and only *its* owner claims for them (D13.6). `captures`
+    are read here unless the caller already read them under the same fence."""
+    if captures is None:
+        captures = read_source_captures(runner)
     pod_rows = list(runner.run(_SCOPED_PODS_QUERY, pod_uids=sorted(set(pod_uids))))
     owners: dict[tuple[str, str], list[ScopedOwner]] = defaultdict(list)
     for row in runner.run(_SCOPED_OWNERS_QUERY, pod_ids=sorted({r["pod_id"] for r in pod_rows})):
@@ -206,11 +225,6 @@ _DECLARED_CALLS_QUERY = (
     "MATCH (:Service {id: $subject_id})-[r:CALLS]->(o:Operation) WHERE o.id IN $operation_ids "
     "RETURN o.id AS operation_id, coalesce(r.evidence_ids, []) AS evidence_ids"
 )
-_EVIDENCE_ROWS_QUERY = (
-    "MATCH (e:Evidence) WHERE e.id IN $evidence_ids "
-    "RETURN e.id AS id, e.evidence_type AS evidence_type, e.environment AS environment, "
-    "e.last_seen AS last_seen"
-)
 
 
 @dataclass(frozen=True)
@@ -234,13 +248,36 @@ def read_declared_call_evidence(
         )
     }
     evidence_ids = sorted({eid for ids in edges.values() for eid in ids})
-    rows = {}
-    for record in runner.run(_EVIDENCE_ROWS_QUERY, evidence_ids=evidence_ids):
-        row = dict(record)
-        if row["last_seen"] is not None:
-            row["last_seen"] = row["last_seen"].to_native()
-        rows[row["id"]] = row
+    rows = read_qualification_evidence_rows(runner, evidence_ids=evidence_ids)
     return DeclaredCallEvidence(edge_evidence_ids=edges, evidence_rows=rows)
+
+
+@dataclass(frozen=True)
+class ProviderOwnerRows:
+    """The `(:Service)-[:PROVIDES]->(:Operation)` rows of some Operations and the qualification
+    fields of the `Evidence` they reference, read under the caller's fence (I3 D8). Deciding the
+    owner is the caller's job (`dependency_projection.group_evidenced_rows`)."""
+
+    provides: tuple[dict, ...]
+    evidence_rows: dict[str, dict]
+
+
+def read_provider_owners(
+    runner: neo4j.Session | neo4j.ManagedTransaction, *, operation_ids: Sequence[str]
+) -> ProviderOwnerRows:
+    """I3 D8: the v0.5 `PROVIDES` read of `read_service_dependency_rows`, for a given set of
+    Operations. Must run inside the same stable-snapshot attempt as the candidate read."""
+    ids = sorted(set(operation_ids))
+    if not ids:
+        return ProviderOwnerRows(provides=(), evidence_rows={})
+    provides = tuple(
+        dict(record) for record in runner.run(PROVIDES_FOR_OPERATIONS_QUERY, operation_ids=ids)
+    )
+    evidence_ids = sorted({eid for row in provides for eid in row["evidence_ids"]})
+    return ProviderOwnerRows(
+        provides=provides,
+        evidence_rows=read_qualification_evidence_rows(runner, evidence_ids=evidence_ids),
+    )
 
 
 @dataclass(frozen=True)
@@ -256,50 +293,104 @@ class ScopedApplicabilityRead:
     )
 
 
+@dataclass(frozen=True)
+class ApplicabilityPage:
+    """What `read_applicability_page` read under the caller's fence. `considered_source_count` is
+    I3 D4's `S`. `result` is `None` when `page_size_for` stopped the read before any candidate was
+    read (I3 D6)."""
+
+    captures: tuple[SourceCapture, ...]
+    considered_source_count: int
+    result: ApplicabilityResult | None
+    declared: DeclaredCallEvidence
+
+
+def considered_source_count(
+    captures: Sequence[SourceCapture], selector: SourceSelector | None
+) -> int:
+    """I3 D4 step 1: with an explicit selector, 1 if the selected `(source, revision)` is a current
+    capture, else 0; otherwise every accepted capture, paired or not."""
+    if selector is None:
+        return len(captures)
+    return int(
+        any(
+            capture.source_instance_id == selector.source_instance_id
+            and capture.revision == selector.revision
+            for capture in captures
+        )
+    )
+
+
+def read_applicability_page(
+    runner: neo4j.Session,
+    request: LocalityRequest,
+    *,
+    after_id: str | None,
+    page_size_for: Callable[[int], int | None],
+) -> ApplicabilityPage:
+    """One candidate page and everything its evaluation needs (D3, D13.6-D13.7, D14.4), read in
+    the I3 D4 order: the captures first, then `page_size_for(S)` chooses the page size - `None`
+    stops before any candidate is read - then the candidates, their Pods/owners and the declared
+    `CALLS` evidence. It opens no fence of its own: call it inside a stable-snapshot `read_extra`.
+    A phase-1 refusal reads nothing."""
+    empty = DeclaredCallEvidence({}, {})
+    if isinstance(preflight(request), RequestRefusal):
+        return ApplicabilityPage((), 0, evaluate_candidates(request, [], []), empty)
+    captures = read_source_captures(runner)
+    count = considered_source_count(captures, request.selector)
+    page_size = page_size_for(count)
+    if page_size is None:
+        return ApplicabilityPage(tuple(captures), count, None, empty)
+    page = read_scoped_observed_calls(
+        runner,
+        subject_id=request.subject_service_id,
+        object_id=request.object_operation_id,
+        after_id=after_id,
+        limit=page_size,
+    )
+    sources = read_source_inventories(
+        runner, pod_uids=[record.caller_pod_uid for record in page.records], captures=captures
+    )
+    declared = read_declared_call_evidence(
+        runner,
+        subject_id=request.subject_service_id,
+        operation_ids=[record.object_id for record in page.records],
+    )
+    result = evaluate_candidates(request, page.records, sources, truncated=page.truncated)
+    return ApplicabilityPage(tuple(captures), count, result, declared)
+
+
 def read_scoped_applicability(
     session: neo4j.Session,
     request: LocalityRequest,
     *,
     coverage_qualification_enabled: bool,
     after_id: str | None = None,
+    page_size: int = DEFAULT_PAGE_SIZE,
     max_attempts: int = 3,
 ) -> ScopedApplicabilityRead:
-    """Reads one candidate page (D3), the committed source captures and their Pods/owners, and the
-    declared `CALLS` evidence of the page's Operations inside one stable-snapshot attempt, then
-    evaluates the page (D13.7, D14.4). A malformed window raises `ValueError` before anything is
-    read; a phase-1 refusal reads no candidates. `SnapshotUnstable` propagates."""
-    refused = isinstance(preflight(request), RequestRefusal)
-
-    def read_extra(runner: neo4j.Session) -> tuple[ApplicabilityResult, DeclaredCallEvidence]:
-        if refused:
-            return evaluate_candidates(request, [], []), DeclaredCallEvidence({}, {})
-        page = read_scoped_observed_calls(
-            runner,
-            subject_id=request.subject_service_id,
-            object_id=request.object_operation_id,
-            after_id=after_id,
-        )
-        sources = read_source_inventories(
-            runner, pod_uids=[record.caller_pod_uid for record in page.records]
-        )
-        declared = read_declared_call_evidence(
-            runner,
-            subject_id=request.subject_service_id,
-            operation_ids=[record.object_id for record in page.records],
-        )
-        result = evaluate_candidates(request, page.records, sources, truncated=page.truncated)
-        return result, declared
+    """Reads one candidate page of at most `page_size` records (D3; I3 D4 allows a smaller page),
+    the committed source captures and their Pods/owners, and the declared `CALLS` evidence of the
+    page's Operations inside one stable-snapshot attempt, then evaluates the page (D13.7, D14.4).
+    A malformed window raises `ValueError` before anything is read; a phase-1 refusal reads no
+    candidates. `SnapshotUnstable` propagates."""
+    if not 1 <= page_size <= DEFAULT_PAGE_SIZE:
+        raise ValueError(f"page_size must be between 1 and {DEFAULT_PAGE_SIZE}")
+    preflight(request)
 
     snapshot = read_stable_snapshot_from_session(
         session,
         coverage_qualification_enabled=coverage_qualification_enabled,
-        read_extra=read_extra,
+        read_extra=lambda runner: read_applicability_page(
+            runner, request, after_id=after_id, page_size_for=lambda _count: page_size
+        ),
         max_attempts=max_attempts,
     )
-    result, declared = snapshot.extra
+    page = snapshot.extra
+    assert page.result is not None  # a fixed page size never stops the read
     return ScopedApplicabilityRead(
         snapshot_id=snapshot.snapshot_id,
         model_revision=snapshot.model_revision,
-        result=result,
-        declared=declared,
+        result=page.result,
+        declared=page.declared,
     )
