@@ -2,7 +2,8 @@
 
 Runs small versions of each point type against the integration Neo4j and checks the structure the
 measurement relies on: counts per point, the cursor walk covering every candidate exactly once on
-one snapshot, each cap where it applies, and `k` from `S`. It asserts no timing.
+one snapshot, each cap where it applies, `k` from `S`, and `k * S` admitted pairs when every source
+covers every candidate. It asserts no timing.
 """
 
 import pytest
@@ -33,8 +34,14 @@ from benchmarks.locality_cost import Point, measure_point
             {"considered_capture_sources": 5, "candidate_page_size": 400, "admitted_pairs": 3},
             1,
         ),
+        (
+            # Every source captures the same Pods: each candidate has S pairs (PR #407 review).
+            Point("covering-fan-out", workloads=1, pods=2, sources=3, covering=True),
+            {"admitted_pairs": 6, "evaluated_v2_candidates": 2, "localities": 1},
+            1,
+        ),
     ],
-    ids=["churn", "workload-cap", "membership-cap", "fan-out"],
+    ids=["churn", "workload-cap", "membership-cap", "fan-out", "covering-fan-out"],
 )
 def test_each_point_type_has_the_expected_structure(
     driver, tmp_path, point, first_page, walk_pages

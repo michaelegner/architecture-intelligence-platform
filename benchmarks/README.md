@@ -108,7 +108,11 @@ uv run python -m benchmarks.locality_cost --profile i3 --out <path.json>
   - Pod churn with a fixed Workload count (2 Deployments, N = 0, 100 and 1,000 caller Pods);
   - the Workload cap (60 Deployments);
   - the membership cap (201 Operations);
-  - source fan-out (S = 1, 5 and 50 accepted captures, so k = 500, 400 and 40).
+  - source fan-out (S = 1, 5 and 50 accepted captures, so k = 500, 400 and 40), with extra
+    captures in another cluster that raise S but never pair, so they measure page-size reduction;
+  - covering fan-out (S = 5 with 400 Pods, and S = 50 with 40 Pods), where every extra source
+    captures the same Pods, so each candidate pairs with all S sources and the page carries
+    k * S = 2,000 admitted pairs: D4's actual candidate × source work at its bound.
 
   `smoke` is a two-point subset.
 - **World:** each point is one clean graph built through real write paths: Kubernetes captures

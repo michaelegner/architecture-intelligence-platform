@@ -24,7 +24,9 @@ Points:
 - Pod churn with a fixed Workload count (2 Deployments, N caller Pods);
 - the Workload cap (60 Deployments);
 - the membership cap (201 Operations);
-- source fan-out (S accepted captures, so k = min(500, 2000 // S)).
+- source fan-out (S accepted captures, so k = min(500, 2000 // S)), both with extra captures that
+  never pair (page-size reduction) and with covering captures of the same Pods, where every source
+  admits every candidate (k * S pairs, D4's 2,000-pair bound).
 
 The `S > 2,000` refusal is not measured here: 2,001 real imports take about 13 minutes, and the
 I3 oracle's X25 already executes it.
@@ -115,13 +117,19 @@ _RESOURCE_TYPES = sorted(
 @dataclass(frozen=True)
 class Point:
     """One measured world. Pod i is owned by Deployment `w{i % workloads}` and calls every one of
-    the `operations` Operations; `sources` counts every accepted capture, the main one included."""
+    the `operations` Operations; `sources` counts every accepted capture, the main one included.
+
+    The extra sources are either empty captures of another cluster (`covering=False`: they raise
+    `S`, and so shrink `k`, but never pair), or full captures of the same Pods in the same cluster
+    and namespace (`covering=True`: every source admits every candidate, so a page has `k * S`
+    pairs - D4's actual candidate * source work, up to the 2,000-pair bound)."""
 
     name: str
     workloads: int
     pods: int
     operations: int = 1
     sources: int = 1
+    covering: bool = False
 
 
 PROFILES: dict[str, tuple[Point, ...]] = {
@@ -138,6 +146,9 @@ PROFILES: dict[str, tuple[Point, ...]] = {
         Point("fan-out", workloads=1, pods=500, sources=1),
         Point("fan-out", workloads=1, pods=500, sources=5),
         Point("fan-out", workloads=1, pods=500, sources=50),
+        # D4's actual pair work: k * S = 2,000 admitted pairs on the page (PR #407 review).
+        Point("covering-fan-out", workloads=1, pods=400, sources=5, covering=True),
+        Point("covering-fan-out", workloads=1, pods=40, sources=50, covering=True),
     ),
 }
 
@@ -330,13 +341,15 @@ def build(driver: neo4j.Driver, point: Point, work_dir: Path) -> None:
             work_dir / "main", source_id="main", cluster=CLUSTER, namespace=NAMESPACE, point=point
         )
     ] + [
-        # Other cluster, own namespace, no Pods: accepted, counted in S, never paired (D4).
+        # Covering: the same Pods, cluster and namespace, so every source pairs with every
+        # candidate. Otherwise: another cluster, its own namespace and no Pods, so it is accepted
+        # and counted in S but never pairs (D4).
         _capture(
             work_dir / f"g{n}",
             source_id=f"g{n:04d}",
-            cluster=OTHER_CLUSTER,
-            namespace=f"gen-{n:04d}",
-            point=None,
+            cluster=CLUSTER if point.covering else OTHER_CLUSTER,
+            namespace=NAMESPACE if point.covering else f"gen-{n:04d}",
+            point=point if point.covering else None,
         )
         for n in range(1, point.sources)
     ]
