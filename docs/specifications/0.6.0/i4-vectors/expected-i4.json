@@ -70,7 +70,20 @@
      "scope": "assessment of O1",
      "step": 2,
      "v2_evidence_id": "evidence:otel:calls-scoped:v2:d9dfce41c98acfb9a7156b13c4709ac1637054e0cd9a2a4705d7999e8acee02a",
-     "what": "P3's v2 id or C2 capture refs in any result attributed to O1"
+     "what": "P3's v2 id or P3's C2 capture ref in any result attributed to O1; W2's own C2 lineage (P2's v2 and C2's P2 capture ref) is expected there"
+    },
+    {
+     "capture_revisions_exactly": [
+      "i4p3-c2"
+     ],
+     "evidence_ids_exactly": [
+      "evidence:otel:calls-scoped:v2:5900a4e3831e1880043a05ba8c81b76eacfac4773c5eb255ba41768c0a466810"
+     ],
+     "kind": "positive",
+     "operation": "operation:service:pricing:GET:/prices",
+     "step": 2,
+     "why": "P2's own v2 + C2's P2 capture; unaffected by the P1 -> P3 replacement",
+     "workload_uid": "aaaaaaaa-0000-4000-8000-000000000002"
     },
     {
      "kind": "localities_exactly",
@@ -226,7 +239,7 @@
     "same_day": "2026-09-28",
     "state_sequence": [
      "import C1 (capture only)",
-     "persist P1's v2 (own CLIENT identity, before C1)",
+     "persist P1's and P2's v2 (each its own CLIENT identity, before C1)",
      "-> STEP 1 is asked here",
      "import C2 over C1 (authoritative replacement: P1 absent, P3 present)",
      "persist P3's v2 (own CLIENT identity, after C2)",
@@ -475,7 +488,20 @@
      "scope": "assessment of O1",
      "step": 2,
      "v2_evidence_id": "evidence:otel:calls-scoped:v2:d9dfce41c98acfb9a7156b13c4709ac1637054e0cd9a2a4705d7999e8acee02a",
-     "what": "P3's v2 id or C2 capture refs in any result attributed to O1"
+     "what": "P3's v2 id or P3's C2 capture ref in any result attributed to O1; W2's own C2 lineage (P2's v2 and C2's P2 capture ref) is expected there"
+    },
+    {
+     "capture_revisions_exactly": [
+      "i4p3-c2"
+     ],
+     "evidence_ids_exactly": [
+      "evidence:otel:calls-scoped:v2:5900a4e3831e1880043a05ba8c81b76eacfac4773c5eb255ba41768c0a466810"
+     ],
+     "kind": "positive",
+     "operation": "operation:service:pricing:GET:/prices",
+     "step": 2,
+     "why": "P2's own v2 + C2's P2 capture; unaffected by the P1 -> P3 replacement",
+     "workload_uid": "aaaaaaaa-0000-4000-8000-000000000002"
     },
     {
      "kind": "localities_exactly",
@@ -638,7 +664,7 @@
     "same_day": "2026-09-28",
     "state_sequence": [
      "import C1 (capture only)",
-     "persist P1's v2 (own CLIENT identity, before C1)",
+     "persist P1's and P2's v2 (each its own CLIENT identity, before C1)",
      "-> STEP 1 is asked here",
      "import C2 over C1 (authoritative replacement: P1 absent, P3 present)",
      "persist P3's v2 (own CLIENT identity, after C2)",

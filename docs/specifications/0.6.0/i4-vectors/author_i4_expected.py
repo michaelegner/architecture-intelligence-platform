@@ -162,7 +162,7 @@ def _inputs(variant: str) -> dict:
         "same_day": DAY,
         "state_sequence": [
             "import C1 (capture only)",
-            "persist P1's v2 (own CLIENT identity, before C1)",
+            "persist P1's and P2's v2 (each its own CLIENT identity, before C1)",
             "-> STEP 1 is asked here",
             "import C2 over C1 (authoritative replacement: P1 absent, P3 present)",
             "persist P3's v2 (own CLIENT identity, after C2)",
@@ -199,7 +199,7 @@ def _request(extra: dict | None = None) -> dict:
 
 
 def _case(variant: str) -> dict:
-    p1, p3 = _v2("P1")["id"], _v2("P3")["id"]
+    p1, p2, p3 = (_v2(pod)["id"] for pod in ("P1", "P2", "P3"))
     same_uid = variant == "a"
     c1_workload = WORKLOAD_UID["C1"]
     c2_workload = WORKLOAD_UID[f"C2-{variant}"]
@@ -253,9 +253,20 @@ def _case(variant: str) -> dict:
         {
             "step": 2,
             "kind": "forbidden",
-            "what": "P3's v2 id or C2 capture refs in any result attributed to O1",
+            "what": "P3's v2 id or P3's C2 capture ref in any result attributed to O1; W2's own "
+            "C2 lineage (P2's v2 and C2's P2 capture ref) is expected there",
             "v2_evidence_id": p3,
             "scope": "assessment of O1",
+        },
+        # W2 (P2) is the control: stable across C1 and C2, positive from its own evidence only.
+        {
+            "step": 2,
+            "kind": "positive",
+            "workload_uid": W2_UID,
+            "operation": O1,
+            "evidence_ids_exactly": [p2],
+            "capture_revisions_exactly": [CAPTURE["C2"]["revision"]],
+            "why": "P2's own v2 + C2's P2 capture; unaffected by the P1 -> P3 replacement",
         },
         # STEP 3: a caller_localities selection returns exactly the selected Workload.
         {
