@@ -67,7 +67,13 @@ DEPLOYMENT = "orders"
 POD = {
     "P1": {"uid": "bbbbbbbb-0000-4000-8000-000000000001", "name": "orders-5d9f7c-p1"},
     "P3": {"uid": "bbbbbbbb-0000-4000-8000-000000000003", "name": "orders-6f8c2a-p3"},
+    "P2": {"uid": "bbbbbbbb-0000-4000-8000-000000000002", "name": "orders-canary-7c4b9d-p2"},
 }
+# W2 is a second, stable caller Workload (same Service). It gives every variant a valid two-Workload
+# comparison (D3 needs two distinct complete identities) and a control for leakage.
+W2_UID = "aaaaaaaa-0000-4000-8000-000000000002"
+W2_NAME = "orders-canary"
+OWNER = {"P1": DEPLOYMENT, "P3": DEPLOYMENT, "P2": W2_NAME}
 WORKLOAD_UID = {
     "C1": "aaaaaaaa-0000-4000-8000-000000000001",
     "C2-a": "aaaaaaaa-0000-4000-8000-000000000001",
@@ -75,14 +81,15 @@ WORKLOAD_UID = {
 }
 # C1 is imported first; C2 is an authoritative later capture of the same source and scope.
 CAPTURE = {
-    "C1": {"revision": "i4p3-c1", "captured_at": f"{DAY}T10:00:00Z", "pods": ["P1"]},
-    "C2": {"revision": "i4p3-c2", "captured_at": f"{DAY}T12:00:00Z", "pods": ["P3"]},
+    "C1": {"revision": "i4p3-c1", "captured_at": f"{DAY}T10:00:00Z", "pods": ["P1", "P2"]},
+    "C2": {"revision": "i4p3-c2", "captured_at": f"{DAY}T12:00:00Z", "pods": ["P3", "P2"]},
 }
 SPANS = {
     "P1": ("09:00:00", "09:30:00"),  # before C1
     "P3": ("12:30:00", "13:00:00"),  # after C2: P3's own events
+    "P2": ("09:10:00", "09:40:00"),  # W2's own events, before C1
 }
-OPERATION = {"P1": O1, "P3": O2}  # distinct Operations make any P1 -> P3 transfer visible
+OPERATION = {"P1": O1, "P3": O2, "P2": O1}  # distinct Operations make any P1 -> P3 transfer visible
 
 
 def _capture(label: str, variant: str) -> dict:
@@ -102,7 +109,11 @@ def _capture(label: str, variant: str) -> dict:
                 "uid": POD[p]["uid"],
                 "name": POD[p]["name"],
                 "namespace": NAMESPACE,
-                "owner": {"kind": "Deployment", "name": DEPLOYMENT, "uid": uid},
+                "owner": {
+                    "kind": "Deployment",
+                    "name": OWNER[p],
+                    "uid": W2_UID if p == "P2" else uid,
+                },
             }
             for p in cap["pods"]
         ],
@@ -129,7 +140,7 @@ def _v2(pod: str) -> dict:
         "client_resource": {
             "k8s.namespace.name": NAMESPACE,
             "k8s.pod.name": POD[pod]["name"],
-            "k8s.deployment.name": DEPLOYMENT,
+            "k8s.deployment.name": OWNER[pod],
         },
         "spans": [{"timestamp": t, "trace_id": _sha([pod, OPERATION[pod], t])[:32]} for t in times],
         "correlation_mode": "CLIENT_SERVER",
@@ -158,13 +169,22 @@ def _inputs(variant: str) -> dict:
             "-> STEPS 2-4 are asked here",
         ],
         "captures": [_capture("C1", variant), _capture("C2", variant)],
-        "v2": {"P1": _v2("P1"), "P3": _v2("P3")},
+        "v2": {"P1": _v2("P1"), "P3": _v2("P3"), "P2": _v2("P2")},
         "workload_uids": {
             "C1": WORKLOAD_UID["C1"],
             "C2": WORKLOAD_UID[f"C2-{variant}"],
+            "W2": W2_UID,
         },
         "disclosure": "SYNTHETIC generated envelopes; not the I5 capture nor the I2.6a rehearsal.",
     }
+
+
+def _identity(uid: str) -> dict:
+    return {"cluster_uid": CLUSTER, "namespace": NAMESPACE, "kind": "Deployment", "uid": uid}
+
+
+def _key(identity: dict) -> tuple:
+    return (identity["cluster_uid"], identity["namespace"], identity["kind"], identity["uid"])
 
 
 def _request(extra: dict | None = None) -> dict:
@@ -237,16 +257,37 @@ def _case(variant: str) -> dict:
             "v2_evidence_id": p3,
             "scope": "assessment of O1",
         },
-        # STEP 3: selected-locality comparison describes positives only.
+        # STEP 3: a caller_localities selection returns exactly the selected Workload.
         {
             "step": 3,
-            "kind": "forbidden",
-            "what": "a comparison that transfers P1's O1 to the current Workload",
-            "compare": [c2_workload],
+            "kind": "localities_exactly",
+            "workload_uids": [c2_workload],
+            "why": "caller_localities = [current]; P1's retained evidence adds no locality for it",
         },
-        # STEP 4: scoped drill-down.
+        # STEP 4: a valid two-Workload comparison (current vs W2) describes positives only.
         {
             "step": 4,
+            "kind": "compare_only_in",
+            "operation": O2,
+            "workload_uid": c2_workload,
+            "why": "O2 is positive only for the current Workload (P3's own evidence)",
+        },
+        {
+            "step": 4,
+            "kind": "compare_only_in",
+            "operation": O1,
+            "workload_uid": W2_UID,
+            "why": "O1 is positive only for W2; P1's O1 is not transferred to the current Workload",
+        },
+        {
+            "step": 4,
+            "kind": "forbidden",
+            "what": "O1 in_both, or O1 positive for the current Workload, in the comparison",
+            "compare": sorted([c2_workload, W2_UID]),
+        },
+        # STEP 5: scoped drill-down.
+        {
+            "step": 5,
             "kind": "evidence_refs_resolve",
             "of": "the O2 assessment's capture and v2 refs",
             "resolve_to": [p3],
@@ -254,12 +295,12 @@ def _case(variant: str) -> dict:
         },
         # Snapshot semantics: a historical C1 query is not claimed to remain available.
         {
-            "step": 5,
+            "step": 6,
             "kind": "refusal",
             "code": "SNAPSHOT_NOT_AVAILABLE",
             "why": "the C1 snapshot_id after C2 replaced it (as I3 P08); no historical availability claim",
         },
-        {"step": 5, "kind": "snapshot_differs_from_step", "other": 1},
+        {"step": 6, "kind": "snapshot_differs_from_step", "other": 1},
     ]
     if same_uid:
         asserts.append(
@@ -310,18 +351,28 @@ def _case(variant: str) -> dict:
             {"step": 2, "ask": "query after C2 + P3 v2", "request": _request()},
             {
                 "step": 3,
-                "ask": "query with compare of the current Workload",
-                "request": _request(
-                    {"compare": [{"uid": c2_workload, "kind": "Deployment"}]},
-                ),
+                "ask": "query with caller_localities = [current Workload]",
+                "request": _request({"caller_localities": [_identity(c2_workload)]}),
             },
             {
                 "step": 4,
-                "ask": "scoped evidence drill-down for the step-2 O2 refs",
-                "request": {"mode": "evidence", "subject_service_id": SUBJECT},
+                "ask": "query comparing the current Workload and W2",
+                "request": _request(
+                    {"compare": sorted([_identity(c2_workload), _identity(W2_UID)], key=_key)}
+                ),
             },
             {
                 "step": 5,
+                "ask": "scoped evidence drill-down of the step-2 O2 refs at the step-2 snapshot",
+                "request": {
+                    "mode": "evidence",
+                    "subject_service_id": SUBJECT,
+                    "snapshot_id": "{{STEP2_SNAPSHOT_ID}}",
+                    "refs": sorted([p3, "{{CAPTURE_REF:C2/P3}}"]),
+                },
+            },
+            {
+                "step": 6,
                 "ask": "query with the step-1 snapshot_id after C2",
                 "request": _request({"snapshot_id": "{{STEP1_SNAPSHOT_ID}}"}),
             },
@@ -331,7 +382,15 @@ def _case(variant: str) -> dict:
     }
 
 
-def _gap(case_id: str, title: str, rows: list[int], world: str, delta: str, asserts: list[dict]):
+def _gap(
+    case_id: str,
+    title: str,
+    rows: list[int],
+    world: str,
+    delta: str,
+    asserts: list[dict],
+    steps: list[dict] | None = None,
+):
     """A compact gap case: an I3 world plus a stated delta; the runner builds it in I4.2."""
     return {
         "id": case_id,
@@ -339,9 +398,19 @@ def _gap(case_id: str, title: str, rows: list[int], world: str, delta: str, asse
         "title": title,
         "spec_refs": ["I4 §3 coverage rule", *[f"parent §20 row {r}" for r in rows]],
         "inputs": {"world": world, "delta": delta, "same_day": DAY},
-        "steps": [{"step": 1, "ask": "query", "request": _request()}],
+        "steps": steps or [{"step": 1, "ask": "query", "request": _request()}],
         "assert": asserts,
     }
+
+
+# The frozen v0.5.1 Quarkus replay context (examples/quarkus-super-heroes-demo/check_ready.py).
+QUARKUS_REQUEST = {
+    "mode": "query",
+    "subject_service_id": "service:rest-fights",
+    "environment": "quarkus-i5",
+    "first_day": "2026-09-25",
+    "last_day": "2026-09-25",
+}
 
 
 def _gap_cases() -> list[dict]:
@@ -423,21 +492,26 @@ def _gap_cases() -> list[dict]:
             "Intent-like document or agent narrative added",
             [24],
             "K",
-            "An intent-like Markdown document and an agent-generated narrative are added after the "
-            "baseline query, through every ingestion path that accepts documents",
+            "Baseline: the I3 K world with one positive v2. Then an intent-like Markdown document "
+            "and an agent-generated narrative are offered to every ingestion path that accepts "
+            "documents (accepted or rejected, either way)",
             [
                 {
-                    "step": 1,
-                    "kind": "snapshot_differs_from_step",
-                    "other": 0,
-                    "negated": True,
-                    "what": "snapshot_id and answer bytes identical before and after",
+                    "step": 3,
+                    "kind": "bytes_equal_to_step",
+                    "other": 1,
+                    "what": "answer bytes, including snapshot_id, equal the baseline's",
                 },
                 {
-                    "step": 1,
+                    "step": 3,
                     "kind": "forbidden",
                     "what": "any change to Current State, lineage or evidence refs",
                 },
+            ],
+            [
+                {"step": 1, "ask": "baseline query", "request": _request()},
+                {"step": 2, "ask": "offer the intent document and the narrative (no request)"},
+                {"step": 3, "ask": "query again", "request": _request()},
             ],
         ),
         _gap(
@@ -445,16 +519,31 @@ def _gap_cases() -> list[dict]:
             "Quarkus replay and operator AsyncAPI overlay with scoped evidence enabled",
             [25],
             "v0.5.1 Quarkus replay",
-            "The frozen v0.5.1 replay and operator AsyncAPI overlay run with "
+            "The frozen v0.5.1 dossier, operator AsyncAPI overlay and one-shot OTLP replay "
+            "(`quarkus-i5`, 2026-09-25T13:06:47Z to 13:06:54Z) run with "
             "telemetry.scoped-evidence.enabled=true; the replay spans carry no k8s.pod.uid",
             [
                 {"step": 1, "kind": "equals", "path": "v2 record count", "value": 0},
+                {"step": 1, "kind": "equals", "path": "len(data.localities)", "value": 0},
+                {
+                    "step": 1,
+                    "kind": "matches_frozen_pins",
+                    "pins": "examples/quarkus-super-heroes-demo/check_ready.py "
+                    "(expected qualifications, Kafka `fights` NOT_OBSERVED_IN_WINDOW)",
+                },
                 {
                     "step": 1,
                     "kind": "forbidden",
-                    "what": "a newly inferred runtime locality or a "
-                    "Kafka/messaging observation not present in the v0.5.1 pins",
+                    "what": "a newly inferred runtime locality or a Kafka/messaging observation "
+                    "not present in the v0.5.1 pins",
                 },
+            ],
+            [
+                {
+                    "step": 1,
+                    "ask": "locality query for the replay context",
+                    "request": QUARKUS_REQUEST,
+                }
             ],
         ),
     ]
@@ -471,6 +560,10 @@ def document() -> dict:
         "authored": "I4.1, before any I4 execution against the candidate",
         "assertion_kinds": {
             "equals": "the value at `path` equals `value`",
+            "localities_exactly": "data.localities holds exactly the Workloads `workload_uids`",
+            "compare_only_in": "the comparison lists `operation` as present only for `workload_uid`",
+            "bytes_equal_to_step": "the step's canonical answer bytes equal the other step's",
+            "matches_frozen_pins": "the answer agrees with the frozen v0.5.1 pins at `pins`",
             "snapshot_unchanged_except": "the stated service-level read is unchanged",
             "positive": "an APPLICABLE POSITIVE assessment of `operation` in the locality of "
             "`workload_uid`, whose observation.evidence_ids equal `evidence_ids_exactly` as a set",

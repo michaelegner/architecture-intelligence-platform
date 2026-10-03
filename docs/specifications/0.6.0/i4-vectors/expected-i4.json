@@ -1,8 +1,12 @@
 {
  "assertion_kinds": {
+  "bytes_equal_to_step": "the step's canonical answer bytes equal the other step's",
+  "compare_only_in": "the comparison lists `operation` as present only for `workload_uid`",
   "equals": "the value at `path` equals `value`",
   "evidence_refs_resolve": "evidence-mode refs resolve to exactly `resolve_to` v2 records; `never_resolve_to` ids are never returned",
   "forbidden": "the described fact appears nowhere in the step's answer JSON",
+  "localities_exactly": "data.localities holds exactly the Workloads `workload_uids`",
+  "matches_frozen_pins": "the answer agrees with the frozen v0.5.1 pins at `pins`",
   "positive": "an APPLICABLE POSITIVE assessment of `operation` in the locality of `workload_uid`, whose observation.evidence_ids equal `evidence_ids_exactly` as a set",
   "refusal": "the step's answer is a refusal with this code",
   "snapshot_differs_from_step": "snapshot.snapshot_id differs from the other step's",
@@ -69,12 +73,35 @@
      "what": "P3's v2 id or C2 capture refs in any result attributed to O1"
     },
     {
-     "compare": [
+     "kind": "localities_exactly",
+     "step": 3,
+     "why": "caller_localities = [current]; P1's retained evidence adds no locality for it",
+     "workload_uids": [
       "aaaaaaaa-0000-4000-8000-000000000001"
+     ]
+    },
+    {
+     "kind": "compare_only_in",
+     "operation": "operation:service:pricing:GET:/prices/{id}",
+     "step": 4,
+     "why": "O2 is positive only for the current Workload (P3's own evidence)",
+     "workload_uid": "aaaaaaaa-0000-4000-8000-000000000001"
+    },
+    {
+     "kind": "compare_only_in",
+     "operation": "operation:service:pricing:GET:/prices",
+     "step": 4,
+     "why": "O1 is positive only for W2; P1's O1 is not transferred to the current Workload",
+     "workload_uid": "aaaaaaaa-0000-4000-8000-000000000002"
+    },
+    {
+     "compare": [
+      "aaaaaaaa-0000-4000-8000-000000000001",
+      "aaaaaaaa-0000-4000-8000-000000000002"
      ],
      "kind": "forbidden",
-     "step": 3,
-     "what": "a comparison that transfers P1's O1 to the current Workload"
+     "step": 4,
+     "what": "O1 in_both, or O1 positive for the current Workload, in the comparison"
     },
     {
      "kind": "evidence_refs_resolve",
@@ -85,18 +112,18 @@
      "resolve_to": [
       "evidence:otel:calls-scoped:v2:d9dfce41c98acfb9a7156b13c4709ac1637054e0cd9a2a4705d7999e8acee02a"
      ],
-     "step": 4
+     "step": 5
     },
     {
      "code": "SNAPSHOT_NOT_AVAILABLE",
      "kind": "refusal",
-     "step": 5,
+     "step": 6,
      "why": "the C1 snapshot_id after C2 replaced it (as I3 P08); no historical availability claim"
     },
     {
      "kind": "snapshot_differs_from_step",
      "other": 1,
-     "step": 5
+     "step": 6
     },
     {
      "kind": "forbidden",
@@ -128,6 +155,16 @@
          "uid": "aaaaaaaa-0000-4000-8000-000000000001"
         },
         "uid": "bbbbbbbb-0000-4000-8000-000000000001"
+       },
+       {
+        "name": "orders-canary-7c4b9d-p2",
+        "namespace": "shop",
+        "owner": {
+         "kind": "Deployment",
+         "name": "orders-canary",
+         "uid": "aaaaaaaa-0000-4000-8000-000000000002"
+        },
+        "uid": "bbbbbbbb-0000-4000-8000-000000000002"
        }
       ],
       "revision": "i4p3-c1",
@@ -152,6 +189,16 @@
          "uid": "aaaaaaaa-0000-4000-8000-000000000001"
         },
         "uid": "bbbbbbbb-0000-4000-8000-000000000003"
+       },
+       {
+        "name": "orders-canary-7c4b9d-p2",
+        "namespace": "shop",
+        "owner": {
+         "kind": "Deployment",
+         "name": "orders-canary",
+         "uid": "aaaaaaaa-0000-4000-8000-000000000002"
+        },
+        "uid": "bbbbbbbb-0000-4000-8000-000000000002"
        }
       ],
       "revision": "i4p3-c2",
@@ -211,6 +258,31 @@
       ],
       "subject_id": "service:orders"
      },
+     "P2": {
+      "bucket_utc_day": "2026-09-28",
+      "caller_cluster_uid": "11111111-1111-4111-8111-000000000001",
+      "caller_pod_uid": "bbbbbbbb-0000-4000-8000-000000000002",
+      "client_resource": {
+       "k8s.deployment.name": "orders-canary",
+       "k8s.namespace.name": "shop",
+       "k8s.pod.name": "orders-canary-7c4b9d-p2"
+      },
+      "correlation_mode": "CLIENT_SERVER",
+      "environment": "production",
+      "id": "evidence:otel:calls-scoped:v2:5900a4e3831e1880043a05ba8c81b76eacfac4773c5eb255ba41768c0a466810",
+      "object_id": "operation:service:pricing:GET:/prices",
+      "spans": [
+       {
+        "timestamp": "2026-09-28T09:10:00Z",
+        "trace_id": "86c324f649cb91a66a7ec018084cb4b1"
+       },
+       {
+        "timestamp": "2026-09-28T09:40:00Z",
+        "trace_id": "8009b898f248de8e8d51cb603e9faccc"
+       }
+      ],
+      "subject_id": "service:orders"
+     },
      "P3": {
       "bucket_utc_day": "2026-09-28",
       "caller_cluster_uid": "11111111-1111-4111-8111-000000000001",
@@ -240,7 +312,8 @@
     "variant": "a",
     "workload_uids": {
      "C1": "aaaaaaaa-0000-4000-8000-000000000001",
-     "C2": "aaaaaaaa-0000-4000-8000-000000000001"
+     "C2": "aaaaaaaa-0000-4000-8000-000000000001",
+     "W2": "aaaaaaaa-0000-4000-8000-000000000002"
     },
     "world": "I4-P3"
    },
@@ -275,11 +348,13 @@
      "step": 2
     },
     {
-     "ask": "query with compare of the current Workload",
+     "ask": "query with caller_localities = [current Workload]",
      "request": {
-      "compare": [
+      "caller_localities": [
        {
+        "cluster_uid": "11111111-1111-4111-8111-000000000001",
         "kind": "Deployment",
+        "namespace": "shop",
         "uid": "aaaaaaaa-0000-4000-8000-000000000001"
        }
       ],
@@ -292,12 +367,42 @@
      "step": 3
     },
     {
-     "ask": "scoped evidence drill-down for the step-2 O2 refs",
+     "ask": "query comparing the current Workload and W2",
      "request": {
-      "mode": "evidence",
+      "compare": [
+       {
+        "cluster_uid": "11111111-1111-4111-8111-000000000001",
+        "kind": "Deployment",
+        "namespace": "shop",
+        "uid": "aaaaaaaa-0000-4000-8000-000000000001"
+       },
+       {
+        "cluster_uid": "11111111-1111-4111-8111-000000000001",
+        "kind": "Deployment",
+        "namespace": "shop",
+        "uid": "aaaaaaaa-0000-4000-8000-000000000002"
+       }
+      ],
+      "environment": "production",
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "mode": "query",
       "subject_service_id": "service:orders"
      },
      "step": 4
+    },
+    {
+     "ask": "scoped evidence drill-down of the step-2 O2 refs at the step-2 snapshot",
+     "request": {
+      "mode": "evidence",
+      "refs": [
+       "evidence:otel:calls-scoped:v2:d9dfce41c98acfb9a7156b13c4709ac1637054e0cd9a2a4705d7999e8acee02a",
+       "{{CAPTURE_REF:C2/P3}}"
+      ],
+      "snapshot_id": "{{STEP2_SNAPSHOT_ID}}",
+      "subject_service_id": "service:orders"
+     },
+     "step": 5
     },
     {
      "ask": "query with the step-1 snapshot_id after C2",
@@ -309,7 +414,7 @@
       "snapshot_id": "{{STEP1_SNAPSHOT_ID}}",
       "subject_service_id": "service:orders"
      },
-     "step": 5
+     "step": 6
     }
    ],
    "title": "I4-P3 bridge (a): P1 -> P3, Workload UID unchanged",
@@ -373,12 +478,35 @@
      "what": "P3's v2 id or C2 capture refs in any result attributed to O1"
     },
     {
+     "kind": "localities_exactly",
+     "step": 3,
+     "why": "caller_localities = [current]; P1's retained evidence adds no locality for it",
+     "workload_uids": [
+      "aaaaaaaa-0000-4000-8000-0000000000b1"
+     ]
+    },
+    {
+     "kind": "compare_only_in",
+     "operation": "operation:service:pricing:GET:/prices/{id}",
+     "step": 4,
+     "why": "O2 is positive only for the current Workload (P3's own evidence)",
+     "workload_uid": "aaaaaaaa-0000-4000-8000-0000000000b1"
+    },
+    {
+     "kind": "compare_only_in",
+     "operation": "operation:service:pricing:GET:/prices",
+     "step": 4,
+     "why": "O1 is positive only for W2; P1's O1 is not transferred to the current Workload",
+     "workload_uid": "aaaaaaaa-0000-4000-8000-000000000002"
+    },
+    {
      "compare": [
+      "aaaaaaaa-0000-4000-8000-000000000002",
       "aaaaaaaa-0000-4000-8000-0000000000b1"
      ],
      "kind": "forbidden",
-     "step": 3,
-     "what": "a comparison that transfers P1's O1 to the current Workload"
+     "step": 4,
+     "what": "O1 in_both, or O1 positive for the current Workload, in the comparison"
     },
     {
      "kind": "evidence_refs_resolve",
@@ -389,18 +517,18 @@
      "resolve_to": [
       "evidence:otel:calls-scoped:v2:d9dfce41c98acfb9a7156b13c4709ac1637054e0cd9a2a4705d7999e8acee02a"
      ],
-     "step": 4
+     "step": 5
     },
     {
      "code": "SNAPSHOT_NOT_AVAILABLE",
      "kind": "refusal",
-     "step": 5,
+     "step": 6,
      "why": "the C1 snapshot_id after C2 replaced it (as I3 P08); no historical availability claim"
     },
     {
      "kind": "snapshot_differs_from_step",
      "other": 1,
-     "step": 5
+     "step": 6
     },
     {
      "kind": "forbidden",
@@ -439,6 +567,16 @@
          "uid": "aaaaaaaa-0000-4000-8000-000000000001"
         },
         "uid": "bbbbbbbb-0000-4000-8000-000000000001"
+       },
+       {
+        "name": "orders-canary-7c4b9d-p2",
+        "namespace": "shop",
+        "owner": {
+         "kind": "Deployment",
+         "name": "orders-canary",
+         "uid": "aaaaaaaa-0000-4000-8000-000000000002"
+        },
+        "uid": "bbbbbbbb-0000-4000-8000-000000000002"
        }
       ],
       "revision": "i4p3-c1",
@@ -463,6 +601,16 @@
          "uid": "aaaaaaaa-0000-4000-8000-0000000000b1"
         },
         "uid": "bbbbbbbb-0000-4000-8000-000000000003"
+       },
+       {
+        "name": "orders-canary-7c4b9d-p2",
+        "namespace": "shop",
+        "owner": {
+         "kind": "Deployment",
+         "name": "orders-canary",
+         "uid": "aaaaaaaa-0000-4000-8000-000000000002"
+        },
+        "uid": "bbbbbbbb-0000-4000-8000-000000000002"
        }
       ],
       "revision": "i4p3-c2",
@@ -522,6 +670,31 @@
       ],
       "subject_id": "service:orders"
      },
+     "P2": {
+      "bucket_utc_day": "2026-09-28",
+      "caller_cluster_uid": "11111111-1111-4111-8111-000000000001",
+      "caller_pod_uid": "bbbbbbbb-0000-4000-8000-000000000002",
+      "client_resource": {
+       "k8s.deployment.name": "orders-canary",
+       "k8s.namespace.name": "shop",
+       "k8s.pod.name": "orders-canary-7c4b9d-p2"
+      },
+      "correlation_mode": "CLIENT_SERVER",
+      "environment": "production",
+      "id": "evidence:otel:calls-scoped:v2:5900a4e3831e1880043a05ba8c81b76eacfac4773c5eb255ba41768c0a466810",
+      "object_id": "operation:service:pricing:GET:/prices",
+      "spans": [
+       {
+        "timestamp": "2026-09-28T09:10:00Z",
+        "trace_id": "86c324f649cb91a66a7ec018084cb4b1"
+       },
+       {
+        "timestamp": "2026-09-28T09:40:00Z",
+        "trace_id": "8009b898f248de8e8d51cb603e9faccc"
+       }
+      ],
+      "subject_id": "service:orders"
+     },
      "P3": {
       "bucket_utc_day": "2026-09-28",
       "caller_cluster_uid": "11111111-1111-4111-8111-000000000001",
@@ -551,7 +724,8 @@
     "variant": "b",
     "workload_uids": {
      "C1": "aaaaaaaa-0000-4000-8000-000000000001",
-     "C2": "aaaaaaaa-0000-4000-8000-0000000000b1"
+     "C2": "aaaaaaaa-0000-4000-8000-0000000000b1",
+     "W2": "aaaaaaaa-0000-4000-8000-000000000002"
     },
     "world": "I4-P3"
    },
@@ -586,11 +760,13 @@
      "step": 2
     },
     {
-     "ask": "query with compare of the current Workload",
+     "ask": "query with caller_localities = [current Workload]",
      "request": {
-      "compare": [
+      "caller_localities": [
        {
+        "cluster_uid": "11111111-1111-4111-8111-000000000001",
         "kind": "Deployment",
+        "namespace": "shop",
         "uid": "aaaaaaaa-0000-4000-8000-0000000000b1"
        }
       ],
@@ -603,12 +779,42 @@
      "step": 3
     },
     {
-     "ask": "scoped evidence drill-down for the step-2 O2 refs",
+     "ask": "query comparing the current Workload and W2",
      "request": {
-      "mode": "evidence",
+      "compare": [
+       {
+        "cluster_uid": "11111111-1111-4111-8111-000000000001",
+        "kind": "Deployment",
+        "namespace": "shop",
+        "uid": "aaaaaaaa-0000-4000-8000-000000000002"
+       },
+       {
+        "cluster_uid": "11111111-1111-4111-8111-000000000001",
+        "kind": "Deployment",
+        "namespace": "shop",
+        "uid": "aaaaaaaa-0000-4000-8000-0000000000b1"
+       }
+      ],
+      "environment": "production",
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "mode": "query",
       "subject_service_id": "service:orders"
      },
      "step": 4
+    },
+    {
+     "ask": "scoped evidence drill-down of the step-2 O2 refs at the step-2 snapshot",
+     "request": {
+      "mode": "evidence",
+      "refs": [
+       "evidence:otel:calls-scoped:v2:d9dfce41c98acfb9a7156b13c4709ac1637054e0cd9a2a4705d7999e8acee02a",
+       "{{CAPTURE_REF:C2/P3}}"
+      ],
+      "snapshot_id": "{{STEP2_SNAPSHOT_ID}}",
+      "subject_service_id": "service:orders"
+     },
+     "step": 5
     },
     {
      "ask": "query with the step-1 snapshot_id after C2",
@@ -620,7 +826,7 @@
       "snapshot_id": "{{STEP1_SNAPSHOT_ID}}",
       "subject_service_id": "service:orders"
      },
-     "step": 5
+     "step": 6
     }
    ],
    "title": "I4-P3 bridge (b): P1 -> P3, new Workload UID incarnation",
@@ -758,21 +964,20 @@
   {
    "assert": [
     {
-     "kind": "snapshot_differs_from_step",
-     "negated": true,
-     "other": 0,
-     "step": 1,
-     "what": "snapshot_id and answer bytes identical before and after"
+     "kind": "bytes_equal_to_step",
+     "other": 1,
+     "step": 3,
+     "what": "answer bytes, including snapshot_id, equal the baseline's"
     },
     {
      "kind": "forbidden",
-     "step": 1,
+     "step": 3,
      "what": "any change to Current State, lineage or evidence refs"
     }
    ],
    "id": "B05",
    "inputs": {
-    "delta": "An intent-like Markdown document and an agent-generated narrative are added after the baseline query, through every ingestion path that accepts documents",
+    "delta": "Baseline: the I3 K world with one positive v2. Then an intent-like Markdown document and an agent-generated narrative are offered to every ingestion path that accepts documents (accepted or rejected, either way)",
     "same_day": "2026-09-28",
     "world": "K"
    },
@@ -783,7 +988,7 @@
    ],
    "steps": [
     {
-     "ask": "query",
+     "ask": "baseline query",
      "request": {
       "environment": "production",
       "first_day": "2026-09-28",
@@ -792,6 +997,21 @@
       "subject_service_id": "service:orders"
      },
      "step": 1
+    },
+    {
+     "ask": "offer the intent document and the narrative (no request)",
+     "step": 2
+    },
+    {
+     "ask": "query again",
+     "request": {
+      "environment": "production",
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "mode": "query",
+      "subject_service_id": "service:orders"
+     },
+     "step": 3
     }
    ],
    "title": "Intent-like document or agent narrative added"
@@ -805,6 +1025,17 @@
      "value": 0
     },
     {
+     "kind": "equals",
+     "path": "len(data.localities)",
+     "step": 1,
+     "value": 0
+    },
+    {
+     "kind": "matches_frozen_pins",
+     "pins": "examples/quarkus-super-heroes-demo/check_ready.py (expected qualifications, Kafka `fights` NOT_OBSERVED_IN_WINDOW)",
+     "step": 1
+    },
+    {
      "kind": "forbidden",
      "step": 1,
      "what": "a newly inferred runtime locality or a Kafka/messaging observation not present in the v0.5.1 pins"
@@ -812,7 +1043,7 @@
    ],
    "id": "B06",
    "inputs": {
-    "delta": "The frozen v0.5.1 replay and operator AsyncAPI overlay run with telemetry.scoped-evidence.enabled=true; the replay spans carry no k8s.pod.uid",
+    "delta": "The frozen v0.5.1 dossier, operator AsyncAPI overlay and one-shot OTLP replay (`quarkus-i5`, 2026-09-25T13:06:47Z to 13:06:54Z) run with telemetry.scoped-evidence.enabled=true; the replay spans carry no k8s.pod.uid",
     "same_day": "2026-09-28",
     "world": "v0.5.1 Quarkus replay"
    },
@@ -823,13 +1054,13 @@
    ],
    "steps": [
     {
-     "ask": "query",
+     "ask": "locality query for the replay context",
      "request": {
-      "environment": "production",
-      "first_day": "2026-09-28",
-      "last_day": "2026-09-28",
+      "environment": "quarkus-i5",
+      "first_day": "2026-09-25",
+      "last_day": "2026-09-25",
       "mode": "query",
-      "subject_service_id": "service:orders"
+      "subject_service_id": "service:rest-fights"
      },
      "step": 1
     }

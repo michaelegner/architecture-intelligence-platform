@@ -151,7 +151,9 @@ def test_the_p3_variants_differ_only_where_the_spec_says():
     assert b["workload_uids"]["C1"] != b["workload_uids"]["C2"]
     assert a["v2"] == b["v2"]
     pods = [{p["uid"] for p in c["pods"]} for c in a["captures"]]
-    assert pods[0].isdisjoint(pods[1]), "C2 must contain a different Pod than C1"
+    p1, p3 = a["v2"]["P1"]["caller_pod_uid"], a["v2"]["P3"]["caller_pod_uid"]
+    assert p1 in pods[0] and p1 not in pods[1], "C2 must lack P1"
+    assert p3 in pods[1] and p3 not in pods[0], "C2 must hold a different Pod, P3"
     assert a["v2"]["P1"]["object_id"] != a["v2"]["P3"]["object_id"]
 
 
@@ -168,3 +170,78 @@ def test_every_bridge_case_is_non_vacuous():
         case = next(c for c in document["cases"] if c["id"] == variant)
         kinds = {item["kind"] for item in case["assert"]}
         assert {"positive", "unresolved", "evidence_refs_resolve", "refusal"} <= kinds
+
+
+def _document() -> dict:
+    return json.loads((VECTORS / "expected-i4.json").read_text(encoding="utf-8"))
+
+
+_PLACEHOLDER = re.compile(r"^\{\{(SNAPSHOT_ID|STEP\d_SNAPSHOT_ID|CAPTURE_REF:[^}]+)\}\}$")
+
+
+def _concrete(value):
+    """Replace run-bound placeholders by values of the right shape, for schema validation."""
+    if isinstance(value, str):
+        match = _PLACEHOLDER.match(value)
+        if not match:
+            return value
+        if "SNAPSHOT_ID" in match.group(1):
+            return "aip:snapshot:v1:" + "0" * 64
+        return "evidence:zz-capture:" + match.group(1).replace("/", ":")
+    if isinstance(value, dict):
+        return {key: _concrete(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_concrete(item) for item in value]
+    return value
+
+
+def test_every_authored_request_is_valid_against_the_published_schema_and_models():
+    from jsonschema import Draft202012Validator
+
+    from app.architecture_intelligence.locality_contracts import (
+        LocalityEvidenceRequest,
+        LocalityQueryRequest,
+    )
+
+    schema = json.loads(
+        (
+            ROOT / "schemas/architecture_intelligence/v0.6/"
+            "service-dependencies-by-locality-request.schema.json"
+        ).read_text(encoding="utf-8")
+    )
+    validator = Draft202012Validator(schema)
+    models = {"query": LocalityQueryRequest, "evidence": LocalityEvidenceRequest}
+    checked = 0
+    for case in _document()["cases"]:
+        for step in case["steps"]:
+            if "request" not in step:
+                continue
+            request = _concrete(step["request"])
+            errors = [e.message for e in validator.iter_errors(request)]
+            assert not errors, f"{case['id']} step {step['step']}: {errors}"
+            models[request["mode"]].model_validate(request)
+            checked += 1
+    assert checked >= 8
+
+
+def test_assertions_refer_only_to_declared_steps_and_workloads():
+    for case in _document()["cases"]:
+        steps = {step["step"] for step in case["steps"]}
+        assert sorted(steps) == list(range(1, len(steps) + 1)), case["id"]
+        for item in case["assert"]:
+            assert item["step"] in steps, f"{case['id']}: {item}"
+            if "other" in item:
+                assert item["other"] in steps, f"{case['id']}: {item}"
+                assert item["other"] != item["step"], f"{case['id']}: {item}"
+        for step in case["steps"]:
+            request = step.get("request", {})
+            compared = request.get("compare", [])
+            assert len({w["uid"] for w in compared}) == len(compared), case["id"]
+
+
+def test_the_quarkus_bridge_uses_the_frozen_replay_context():
+    check_ready = (ROOT / "examples/quarkus-super-heroes-demo/check_ready.py").read_text()
+    case = next(c for c in _document()["cases"] if c["id"] == "B06")
+    request = case["steps"][0]["request"]
+    assert f'"{request["environment"]}"' in check_ready
+    assert f'"{request["subject_service_id"]}"' in check_ready.replace("service:", '"service:', 1)
