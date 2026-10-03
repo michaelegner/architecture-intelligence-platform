@@ -161,8 +161,9 @@ for a runtime source) rather than a specific class hierarchy to inherit from.
 
 ## Contributing
 
-A dedicated `CONTRIBUTING.md` with the full contribution workflow is planned but not yet published.
-Until then, open an issue or pull request as usual, and see
-[`security-model.md`](security-model.md) if your change touches the LLM layer, the OpenTelemetry
-ingestion path, or the correlation buffer — those three have explicit trust-boundary rules any
-change there must preserve.
+See [`CONTRIBUTING.md`](../CONTRIBUTING.md) for the full contribution workflow, including how to
+set up your environment, make changes, and submit a pull request.
+
+Also see [`security-model.md`](security-model.md) if your change touches the LLM layer, the
+OpenTelemetry ingestion path, or the correlation buffer — those three have explicit trust-boundary
+rules any change there must preserve.
