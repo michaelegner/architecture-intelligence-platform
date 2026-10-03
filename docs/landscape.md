@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-09-29_
+_Last reviewed: 2026-10-03_
 
 ## AIP anchor
 
@@ -58,7 +58,8 @@ endorsement, dependency, or roadmap commitment.
 [SSTorytime](#mark-burgess--sstorytime-and-context-investment) ·
 [Tiramemsu — historical statement memory](#tiramemsu--historical-statement-memory) ·
 [Strategic DDD](#domain-driven-design--strategic-patterns) ·
-[SysML v2](#omg--sysml-v2)
+[SysML v2](#omg--sysml-v2) ·
+[Residuality](#barry-oreilly--residuality-and-architectural-representation)
 
 **Core question:** How should AIP represent locality, connectivity, semantic boundaries, autonomous
 promises, temporal context, and explicit system intent without collapsing them into one model?
@@ -69,6 +70,8 @@ promises, temporal context, and explicit system intent without collapsing them i
 [OpenAPI as deterministic evidence](#kin-lane--openapi-as-a-deterministic-artifact-in-an-ai-generated-world) ·
 [API knowledge beyond API management](#adorsys--understanding-api-landscapes-not-just-managing-them) ·
 [Structurizr/C4](#structurizrc4--declared-architecture-models-and-views) ·
+[FINOS CALM](#finos-calm--architecture-as-code-and-semantic-gap-experiments) ·
+[API gateway evidence](#api-gateways--configured-access-and-observed-usage) ·
 [Executable architecture rules](#archunit-and-jqassistant--executable-architecture-rules) ·
 [Backstage](#backstage-software-catalog) ·
 [Cartography](#cartography--infrastructure-and-security-graph-discovery) ·
@@ -122,7 +125,9 @@ evidence-qualified architecture context without becoming the source of architect
 [Architectural fitness](#raghunandan-e-srinivasan--from-architectural-debt-to-architectural-fitness) ·
 [Bounded agency](#matthew-skelton--bounded-agency-and-the-ai-native-operating-model) ·
 [Stewardship boundaries](#matthew-skelton--reframing-the-ai-native-sdlc-in-terms-of-stewardship-boundaries) ·
-[Expert governance and code review](#rachel-laycock--expert-governance-and-code-review-in-an-ai-heavy-sdlc)
+[Expert governance and code review](#rachel-laycock--expert-governance-and-code-review-in-an-ai-heavy-sdlc) ·
+[Cognitive and intent debt](#margaret-anne-storey--cognitive-and-intent-debt) ·
+[DORA architecture capability](#dora--loosely-coupled-architecture-and-teams)
 
 **Core question:** How should explicit intent, assumptions, fitness criteria, authority, and
 organizational responsibility constrain agent action without being inferred from Current State?
@@ -465,6 +470,30 @@ mapping into its Intent Model. Runtime evidence remains separate.
 Research input for the post-Current-State Intent line. SysML v2 is not a v0.5 discovery source and
 its presence in the landscape does not commit AIP to general-purpose MBSE support.
 
+### Barry O'Reilly — Residuality and Architectural Representation
+
+**Sources**
+
+- [Residuality and Representation: Toward a Coherent Philosophy of Software Architecture (2023)](https://doi.org/10.1016/j.procs.2023.09.015)
+- [Residuality Theory, Random Simulation, and Attractor Networks (2022)](https://doi.org/10.1016/j.procs.2022.01.080)
+
+**Core idea**
+
+O'Reilly's conceptual account treats an architecture as a *stack of residues*: differences in
+application structure under environmental stressors, rather than a complete, timeless collection
+of components. Its terms include processuality (ongoing change), difference (what varies between
+conditions), and criticality (capacity to reorganize across conditions). The 2023 paper refers
+to the 2022 work for simulation and measurement; it does not itself validate an AIP algorithm.
+
+**Why this matters to AIP**
+
+An evidence-qualified Current-State projection is still partial, scoped, and time-bound.
+Potential research: compare *qualified differences* between separately established contexts
+without treating a hypothetical stressor as observed evidence, interpreting topology as causal
+failure propagation, or assuming that a static snapshot is reality itself. This is a challenge to
+representation and uncertainty, **not** an immediate `Residue` entity or roadmap commitment.
+AIP's thesis holds independently of current agents and harnesses.
+
 ## 2. Evidence and Current State
 
 ### OpenTelemetry Semantic Conventions
@@ -592,6 +621,63 @@ gateway-specific canonical terminology. Explicit architectural Intent remains in
 established in v0.8 and Current↔Intent assessment in v0.9. The research source is not semantic
 authority for AIP; qualification against real, independently authored evidence is still required.
 
+### API Gateways — Configured Access and Observed Usage
+
+**Sources**
+
+- [Kong Gateway documentation](https://developer.konghq.com/gateway/)
+- [Gravitee API Management documentation](https://documentation.gravitee.io/apim/)
+- [Apache APISIX documentation](https://apisix.apache.org/docs/apisix/)
+- [Tyk documentation](https://tyk.io/docs/)
+
+**Why this matters to AIP**
+
+These gateways provide *different native evidence semantics*, not interchangeable subscriptions:
+Kong consumers and optional ACLs; Gravitee applications, plans, and subscriptions; APISIX
+consumers and restriction rules; Tyk keys and access policies. Logging, analytics, and
+consumer-attributed metrics depend on the deployed product and instrumentation. For v0.7, first
+survey all four source capabilities, then qualify **one real gateway** using independent
+configuration and request-derived measurement inputs.
+
+```text
+gateway route/service != application Service != API contract/operation
+configured access     != observed consumer-attributed usage
+ACL/entitlement        != formal product subscription
+unattributed request   != request by a particular consumer
+```
+
+Kong is the roadmap's proposed *reference*, not a canonical vocabulary or required long-term
+vendor. No four-adapter implementation is warranted merely to compare capabilities; absence
+of measurements with sufficient coverage must remain unresolved, not zero usage.
+
+### FINOS CALM — Architecture as Code and Semantic-Gap Experiments
+
+**Sources**
+
+- [FINOS CALM / architecture-as-code](https://github.com/finos/architecture-as-code)
+- [CALM core concepts](https://calm.finos.org/)
+- [Frozen FINOS FluxNova reference fixture](https://github.com/finos/architecture-as-code/blob/c8c2811d28e10c12d0bf96be9434398585bb7d0e/examples/fluxnova/fluxnova-microservices.architecture.json)
+
+**Why this matters to AIP**
+
+CALM provides authored architecture nodes, relationships, interfaces, controls, and patterns.
+AIP's frozen FluxNova experiment (12 nodes, 17 relationships) passed the official CALM CLI
+validation *in a user-executed run*. Semantic mapping identified two **candidate AIP gaps**:
+declared broker-level connectivity and logical platform composition. It also found **missing
+fixture information**: a broker reference does not identify a Queue/Topic/Subscription, and a
+generic `connects` relation does not identify an OpenAPI operation. These are different diagnoses.
+
+```text
+valid CALM document != qualified AIP Current State
+source information missing != AIP semantic capability missing
+declared connectivity != operation-level CALLS != observed interaction
+```
+
+Preserve original model identity and native meaning before proposing a canonical extension.
+CALM patterns/controls may also inform v0.8 structural Intent, but authoring a constraint
+does not independently establish its authority, applicability, or satisfaction. The experiment
+is a **research finding**, not a commitment to a general CALM adapter.
+
 ### Structurizr/C4 — Declared Architecture Models and Views
 
 **Sources**
@@ -620,7 +706,14 @@ A relationship omitted from a view may still exist in the model, so view omissio
 absence. Conversely, an authored relationship is evidence of what the model declares, not proof that
 the deployed system behaves that way.
 
-This is a source-adapter research candidate, not a v0.5 commitment.
+The frozen Big Bank plc DSL analysis independently exposed **candidate gaps** in logical
+software-system/container/component composition, internal component dependencies, and
+non-Kubernetes deployment structure. Its authored sign-in dynamic view is a sequence narrative,
+not observed runtime calls. Missing operation identities prevent inferring canonical `CALLS`
+from controller-level arrows; this is a source-information limitation, not proof that `CALLS`
+is defective. The analysis covers the authored DSL; native Structurizr validation and the
+compiled JSON/implied-relationship inventory remain open. The findings justify evaluating
+specific architecture questions before adding graph types or an adapter.
 
 ### ArchUnit and jQAssistant — Executable Architecture Rules
 
@@ -2185,6 +2278,57 @@ lossless import of each metamodel.
 
 This is a bundled post-v0.5 research direction, not four immediate adapters and not a roadmap
 commitment.
+
+A future v0.8 mapping must additionally distinguish **an authored decision**, its **rationale**
+and any **normative assertion** it contains. An ADR does not make every descriptive sentence a
+requirement; the source carrier itself does not establish organizational authority. Current
+State remains independent of amendments to Intent.
+
+### Margaret-Anne Storey — Cognitive and Intent Debt
+
+**Source**
+
+- [From Technical Debt to Cognitive and Intent Debt: Rethinking Software Health in the Age of AI (2026)](https://arxiv.org/abs/2603.22106)
+
+**Core idea**
+
+Storey distinguishes technical debt in code, cognitive debt in *distributed team
+understanding*, and intent debt in missing or decaying articulated goals, constraints,
+decisions, and rationale. The paper proposes potential indicators such as onboarding time,
+knowledge concentration, requirements coverage, and audits of documented intent against
+behavior; these are suggestions, **not a validated AIP metric or debt score**.
+
+**Why this matters to AIP**
+
+AIP's evidence-qualified Current State and planned v0.8 explicit Intent/v0.9 Assessment
+address distinct architectural information needs. A source-bound decision rationale is not
+automatically a binding Intent assertion, and a document's existence does not mean a team
+understands it. AIP could inform a bounded *intent-versus-evidence* audit and supply context
+for onboarding, but measuring team cognition or attributing faster onboarding requires
+separate studies. Agents are one consumer of this knowledge, not its justification.
+
+### DORA — Loosely Coupled Architecture and Teams
+
+**Sources**
+
+- [DORA — Loosely Coupled Teams](https://dora.dev/capabilities/loosely-coupled-teams/)
+- [DORA — 2018 research questions](https://dora.dev/research/2018/questions/)
+
+**Core idea**
+
+DORA investigates architecture and organizational capabilities that support independent
+development, testing, and deployment, alongside software delivery outcomes. These are
+architectural and socio-technical questions, **not** simply the standard DORA delivery
+metrics.
+
+**Why this matters to AIP**
+
+AIP can supply independently qualified interface, dependency, identity, and deployment
+evidence as *inputs* to an autonomy inquiry. A dependency arrow, however, neither proves
+coordinated releases nor independently deployable services; team boundaries, testing
+arrangements, change history, and coordination requirements require other evidence.
+Potentially useful v0.9 research and downstream product-value validation, not an automatic
+`LOOSELY_COUPLED` claim or a roadmap change.
 
 ### Mneme HQ
 
