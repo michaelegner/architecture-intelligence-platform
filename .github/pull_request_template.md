@@ -7,6 +7,16 @@ required by the specification-driven-implementation skill when editing this PR d
 
 <!-- Summarize the change and why it's needed. -->
 
+## Refactoring report (Python changes only)
+
+<!-- Omit for documentation-only PRs. A "No / None needed" result is valid; only claim
+improvements supported by the diff. -->
+
+- **Refactoring performed:** Yes / No
+- **Improvements:** Concrete change(s) with file/function references, or `None needed`
+- **Remaining structural debt:** Material findings only, or `None identified`
+- **Verification:** Checks actually run after refactoring (or `Not applicable`)
+
 <!--
 The sections below apply to specification-driven increment work (see AGENTS.md and the
 specification-driven-implementation skill). For a small maintenance change that doesn't touch
