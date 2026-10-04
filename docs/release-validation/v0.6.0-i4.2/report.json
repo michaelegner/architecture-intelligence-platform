@@ -1,16 +1,181 @@
 {
-  "candidate_sha": "37eebf2486c0c082ccfe4a6c6f704b4d05e68a6a",
+  "candidate_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
   "ab_equal": true,
   "differences": [],
-  "blockers": [
-    "exact-SHA CI is missing, incomplete or failing"
-  ],
+  "blockers": [],
   "runs": [
-    "/tmp/aip-i4.2-qualification-37eebf2/A/ledger.json",
-    "/tmp/aip-i4.2-qualification-37eebf2/B/ledger.json"
+    "/tmp/aip-i4.2-qualification-4237734/A/ledger.json",
+    "/tmp/aip-i4.2-qualification-4237734/B/ledger.json"
   ],
   "cross_surface_equal": true,
-  "status": "BLOCKED",
+  "ci_checks": [
+    {
+      "id": 111492947440,
+      "name": "lint + test",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221425406/job/111492947440"
+    },
+    {
+      "id": 111492942867,
+      "name": "lint + test",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221428268/job/111492942867"
+    },
+    {
+      "id": 111492492621,
+      "name": "CodeQL",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/runs/111492492621"
+    },
+    {
+      "id": 111492393874,
+      "name": "integration-core (heavy)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221428268/job/111492393874"
+    },
+    {
+      "id": 111492393870,
+      "name": "demo-e2e",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221428268/job/111492393870"
+    },
+    {
+      "id": 111492393784,
+      "name": "static analysis (semgrep)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221428268/job/111492393784"
+    },
+    {
+      "id": 111492393776,
+      "name": "integration-core (rest)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221428268/job/111492393776"
+    },
+    {
+      "id": 111492393774,
+      "name": "integration-core (oracle)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221428268/job/111492393774"
+    },
+    {
+      "id": 111492393765,
+      "name": "quality",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221428268/job/111492393765"
+    },
+    {
+      "id": 111492393748,
+      "name": "analyze (actions)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221428267/job/111492393748"
+    },
+    {
+      "id": 111492393664,
+      "name": "dependency security scan (pip-audit, spec \u00a729)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221428268/job/111492393664"
+    },
+    {
+      "id": 111492393633,
+      "name": "analyze (python)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221428267/job/111492393633"
+    },
+    {
+      "id": 111492386166,
+      "name": "integration-core (oracle)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221425406/job/111492386166"
+    },
+    {
+      "id": 111492386122,
+      "name": "integration-core (heavy)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221425406/job/111492386122"
+    },
+    {
+      "id": 111492386091,
+      "name": "dependency security scan (pip-audit, spec \u00a729)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221425406/job/111492386091"
+    },
+    {
+      "id": 111492386077,
+      "name": "demo-e2e",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221425406/job/111492386077"
+    },
+    {
+      "id": 111492386061,
+      "name": "static analysis (semgrep)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221425406/job/111492386061"
+    },
+    {
+      "id": 111492386036,
+      "name": "integration-core (rest)",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221425406/job/111492386036"
+    },
+    {
+      "id": 111492385927,
+      "name": "quality",
+      "head_sha": "4237734d22af3818f9cb8c1c70ace68f8e44de8f",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37221425406/job/111492385927"
+    }
+  ],
+  "required_ci_checks": [
+    "CodeQL",
+    "analyze (actions)",
+    "analyze (python)",
+    "demo-e2e",
+    "dependency security scan (pip-audit, spec \u00a729)",
+    "integration-core (heavy)",
+    "integration-core (oracle)",
+    "integration-core (rest)",
+    "lint + test",
+    "quality",
+    "static analysis (semgrep)"
+  ],
+  "status": "PASS",
   "known_debt": [
     "#323 remains open; I4 does not correct legacy NL/Kubernetes evidence exposure"
   ],
@@ -18,147 +183,5 @@
     "I4.3 growth evidence and capacity disposition",
     "I6 exact-final-candidate requalification"
   ],
-  "ci_checks": [
-    {
-      "id": 111486915913,
-      "name": "lint + test",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219352108/job/111486915913"
-    },
-    {
-      "id": 111486913399,
-      "name": "lint + test",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219342496/job/111486913399"
-    },
-    {
-      "id": 111486418234,
-      "name": "CodeQL",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/runs/111486418234"
-    },
-    {
-      "id": 111486370096,
-      "name": "copilot-pull-request-reviewer",
-      "status": "completed",
-      "conclusion": "failure",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219357075/job/111486370096"
-    },
-    {
-      "id": 111486347799,
-      "name": "integration-core (oracle)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219352108/job/111486347799"
-    },
-    {
-      "id": 111486347741,
-      "name": "integration-core (heavy)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219352108/job/111486347741"
-    },
-    {
-      "id": 111486347693,
-      "name": "demo-e2e",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219352108/job/111486347693"
-    },
-    {
-      "id": 111486347643,
-      "name": "integration-core (rest)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219352108/job/111486347643"
-    },
-    {
-      "id": 111486347636,
-      "name": "static analysis (semgrep)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219352108/job/111486347636"
-    },
-    {
-      "id": 111486347635,
-      "name": "dependency security scan (pip-audit, spec \u00a729)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219352108/job/111486347635"
-    },
-    {
-      "id": 111486347569,
-      "name": "quality",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219352108/job/111486347569"
-    },
-    {
-      "id": 111486347309,
-      "name": "analyze (python)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219351966/job/111486347309"
-    },
-    {
-      "id": 111486347141,
-      "name": "analyze (actions)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219351966/job/111486347141"
-    },
-    {
-      "id": 111486318591,
-      "name": "quality",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219342496/job/111486318591"
-    },
-    {
-      "id": 111486318548,
-      "name": "integration-core (rest)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219342496/job/111486318548"
-    },
-    {
-      "id": 111486318525,
-      "name": "static analysis (semgrep)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219342496/job/111486318525"
-    },
-    {
-      "id": 111486318520,
-      "name": "dependency security scan (pip-audit, spec \u00a729)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219342496/job/111486318520"
-    },
-    {
-      "id": 111486318515,
-      "name": "integration-core (heavy)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219342496/job/111486318515"
-    },
-    {
-      "id": 111486318510,
-      "name": "integration-core (oracle)",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219342496/job/111486318510"
-    },
-    {
-      "id": 111486318441,
-      "name": "demo-e2e",
-      "status": "completed",
-      "conclusion": "success",
-      "details_url": "https://github.com/michaelegner/architecture-intelligence-platform/actions/runs/37219342496/job/111486318441"
-    }
-  ],
-  "ci_refresh": "Retrieved after candidate publication; original pre-publication report retained. Semantic artifacts unchanged."
+  "ci_refresh": "Completed check-run evidence retrieved after qualification; original coordinator report retained. Semantic artifacts unchanged."
 }
