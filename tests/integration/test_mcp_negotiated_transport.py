@@ -111,7 +111,12 @@ async def test_mandatory_negotiated_flow_against_real_data(driver):
             )
             assert list_response.status_code == 200
             names = [t["name"] for t in list_response.json()["result"]["tools"]]
-            assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+            assert names == [
+                "get_architecture_drift",
+                "get_evidence",
+                "get_service_dependencies",
+                "get_service_dependencies_by_locality",
+            ]
 
             drift_result = await call_negotiated(
                 client,
@@ -149,7 +154,7 @@ async def test_mandatory_negotiated_flow_against_real_data(driver):
                 json=negotiated_tools_list_body(request_id=99),
             )
             assert relist.status_code == 200
-            assert len(relist.json()["result"]["tools"]) == 3
+            assert len(relist.json()["result"]["tools"]) == 4
 
 
 @pytest.mark.asyncio

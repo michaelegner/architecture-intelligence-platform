@@ -24,12 +24,13 @@ never uses a single `BaseModel`-typed parameter's schema directly) - `outputSche
 used directly for a `BaseModel`-typed return value (confirmed live), so `structuredContent` is the
 bare `ArchitectureAnswer` envelope per spec §10 rule 3. That wrapper argument model does not itself
 declare `additionalProperties: false` (confirmed live - `mcp.server.mcpserver.utilities.func_metadata
-.ArgModelBase` has no `extra="forbid"`), which would leave the *advertised* `inputSchema` open even
-though `app.mcp.guard` already rejects an unexpected top-level argument key at runtime. Spec §9
+.ArgModelBase` has no `extra="forbid"`), which would leave the *advertised* `inputSchema` open. Spec §9
 requires a genuinely closed `inputSchema`, so `_close_input_schema` mutates each registered tool's
-`Tool.parameters` (the dict `tools/list` serializes) after registration to match the behavior the
-guard already enforces - the schema and the runtime agree either way; this makes the *advertised*
-contract say so too.
+`Tool.parameters` (the dict `tools/list` serializes) after registration. At runtime, the SDK's
+wrapper still drops an unexpected top-level key for the three v0.5 tools (nothing in front of the
+SDK rejects it since v0.5.0 I3 slice 5a; `tests/unit/test_mcp_discovery.py` documents this). For
+the fourth tool, v0.6.0 I3.3b (I3 decision record D12) closes the runtime too:
+`_reject_unexpected_arguments` replaces its argument model with a closed one.
 """
 
 from __future__ import annotations
@@ -47,6 +48,12 @@ from app.architecture_intelligence.contracts import (
     ArchitectureDriftData,
     EvidenceData,
     ServiceDependenciesData,
+)
+from app.architecture_intelligence.locality_contracts import (
+    LOCALITY_TOOL_NAME,
+    LocalityAnswer,
+    LocalityQueryRequest,
+    ServiceDependenciesByLocalityRequest,
 )
 from app.architecture_intelligence.observation_context import reject_malformed_observation_context
 from app.architecture_intelligence.request import (
@@ -72,9 +79,11 @@ def register_tools(
     get_service: Callable[[], ArchitectureIntelligenceService] = wiring.get_service,
 ) -> None:
     """Registration order IS `tools/list` order - confirmed live that the SDK reports tools in
-    registration order, not sorted. I3 spec §24 requires exactly `get_architecture_drift`,
-    `get_evidence`, `get_service_dependencies` (lexicographic) - registered in that order below. Do
-    not reorder without re-checking tests/unit/test_mcp_discovery.py's exact-order assertion."""
+    registration order, not sorted. I3 spec §24 requires lexicographic order:
+    `get_architecture_drift`, `get_evidence`, `get_service_dependencies`, and since v0.6.0 I3.3b
+    the fourth tool `get_service_dependencies_by_locality` (I3 decision record D1) - registered in
+    that order below. Do not reorder without re-checking tests/unit/test_mcp_discovery.py's
+    exact-order assertion."""
 
     @server.tool(
         name="get_architecture_drift",
@@ -175,8 +184,34 @@ def register_tools(
         _reject_malformed_observation_context(request.observation_context)
         return get_service().get_service_dependencies(request)
 
-    for tool_name in TOOL_NAMES:
+    @server.tool(
+        name=LOCALITY_TOOL_NAME,
+        description=(
+            "Discovers evidenced caller-Workload localities of a service and returns its positively "
+            "established HTTP dependencies per locality, with an optional same-snapshot comparison "
+            "of two localities. The results are not an exhaustive partition of the service's "
+            "dependencies: a missing relationship does not establish local absence, and unknown, "
+            "unresolved, excluded and unscanned items stay explicit. With request.mode "
+            '"evidence", the same tool resolves exact scoped evidence refs from such an answer at '
+            "the supplied snapshot, without widening get_evidence."
+        ),
+        annotations=_READ_ONLY_ANNOTATIONS,
+    )
+    def get_service_dependencies_by_locality(
+        request: ServiceDependenciesByLocalityRequest,
+    ) -> LocalityAnswer:
+        """v0.6.0 I3.3b (I3 decision record D1): constructs no new semantics. It dispatches on
+        `request.mode` to exactly one service method and returns that answer unchanged as
+        `structuredContent`. Every refusal is a normal returned `LocalityAnswer`; an unexpected
+        internal failure falls through to the SDK's own sanitization, as for the other tools."""
+        parsed = request.root
+        if isinstance(parsed, LocalityQueryRequest):
+            return get_service().get_service_dependencies_by_locality(parsed)
+        return get_service().resolve_scoped_locality_evidence(parsed)
+
+    for tool_name in (*TOOL_NAMES, LOCALITY_TOOL_NAME):
         _close_input_schema(server, tool_name)
+    _reject_unexpected_arguments(server, LOCALITY_TOOL_NAME)
 
 
 def _reject_malformed_observation_context(context: ObservationContextInput | None) -> None:
@@ -197,3 +232,20 @@ def _close_input_schema(server: MCPServer, tool_name: str) -> None:
     tool = server._tool_manager.get_tool(tool_name)
     assert tool is not None  # register_tools registers every TOOL_NAMES entry before calling this
     tool.parameters["additionalProperties"] = False
+
+
+def _reject_unexpected_arguments(server: MCPServer, tool_name: str) -> None:
+    """D12 (I3 decision record): the new tool rejects every top-level argument other than
+    `request` before dispatch. The SDK's synthesized argument model ignores unknown keys, so this
+    tool's model is replaced by a closed subclass. The SDK reads `fn_metadata.arg_model` on every
+    call, so an extra key now fails the SDK's own argument validation, as an `isError` result like
+    any other schema failure. The three v0.5 tools keep their existing behaviour (I3 spec §2)."""
+    tool = server._tool_manager.get_tool(tool_name)
+    assert tool is not None
+    base = tool.fn_metadata.arg_model
+
+    class ClosedArguments(base):
+        model_config = pydantic.ConfigDict(**{**base.model_config, "extra": "forbid"})
+
+    ClosedArguments.__name__ = base.__name__
+    tool.fn_metadata.arg_model = ClosedArguments

@@ -1,6 +1,16 @@
 {
   "components": {
     "schemas": {
+      "AdmissionBasis": {
+        "description": "I2 D13.7.",
+        "enum": [
+          "EXPLICIT",
+          "POD_UID",
+          "CLUSTER_NAMESPACE"
+        ],
+        "title": "AdmissionBasis",
+        "type": "string"
+      },
       "ArchitectureAnswer_ArchitectureDriftData_": {
         "additionalProperties": false,
         "allOf": [
@@ -656,6 +666,272 @@
         ],
         "title": "ArchitectureDriftData",
         "type": "object"
+      },
+      "CandidateEntry": {
+        "additionalProperties": false,
+        "description": "One evaluated v2 candidate: its I2 summary and **every** admitted pair (D4, D10).",
+        "properties": {
+          "disposition": {
+            "$ref": "#/components/schemas/LocalDisposition"
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateLimitationCode"
+            },
+            "title": "Limitations",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "pairs": {
+            "items": {
+              "$ref": "#/components/schemas/PairEntry"
+            },
+            "title": "Pairs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "reasons": {
+            "items": {
+              "pattern": "^LOCALITY_[A-Z0-9_]+$",
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "v2_evidence_id": {
+            "pattern": "^evidence:otel:calls-scoped:v2:[0-9a-f]{64}$",
+            "title": "V2 Evidence Id",
+            "type": "string"
+          },
+          "workload": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CapturedWorkloadRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "v2_evidence_id",
+          "disposition",
+          "reasons",
+          "limitations",
+          "workload",
+          "pairs"
+        ],
+        "title": "CandidateEntry",
+        "type": "object"
+      },
+      "CandidateLimitationCode": {
+        "description": "The internal I2 limitation codes (D4, D13.4, D14.1), carried unchanged.",
+        "enum": [
+          "NO_SELECTABLE_COVERING_SOURCE",
+          "REQUEST_ENVIRONMENT_MISMATCH",
+          "WORKLOAD_UID_UNAVAILABLE"
+        ],
+        "title": "CandidateLimitationCode",
+        "type": "string"
+      },
+      "CapturedWorkloadKind": {
+        "description": "I2 D14.1: the captured Kubernetes kind exactly.",
+        "enum": [
+          "Deployment",
+          "StatefulSet",
+          "DaemonSet"
+        ],
+        "title": "CapturedWorkloadKind",
+        "type": "string"
+      },
+      "CapturedWorkloadRef": {
+        "additionalProperties": false,
+        "description": "The I2 `CapturedWorkload` as resolved by one pair or candidate. `uid` is null only when the\ncapture carried none (`WORKLOAD_UID_UNAVAILABLE`, I2 D14.1).",
+        "properties": {
+          "cluster_uid": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Cluster Uid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/CapturedWorkloadKind"
+          },
+          "name": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Name",
+            "type": "string"
+          },
+          "namespace": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Namespace",
+            "type": "string"
+          },
+          "uid": {
+            "anyOf": [
+              {
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uid"
+          },
+          "workload_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Workload Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workload_id",
+          "name",
+          "cluster_uid",
+          "namespace",
+          "kind",
+          "uid"
+        ],
+        "title": "CapturedWorkloadRef",
+        "type": "object"
+      },
+      "ComparedMembership": {
+        "additionalProperties": false,
+        "description": "A `(provider Service or unresolved owner, Operation)` membership positive in one scope.\n`provider_service_id` is null when the owner is unresolved (D8).",
+        "properties": {
+          "operation_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "provider_service_id": {
+            "anyOf": [
+              {
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Service Id"
+          },
+          "side": {
+            "$ref": "#/components/schemas/ComparisonSide"
+          }
+        },
+        "required": [
+          "provider_service_id",
+          "operation_id",
+          "side"
+        ],
+        "title": "ComparedMembership",
+        "type": "object"
+      },
+      "Comparison": {
+        "additionalProperties": false,
+        "description": "D10 comparison of two selected scopes. Labels mean \"positively evidenced here\", never\n\"absent there\".",
+        "properties": {
+          "completeness": {
+            "$ref": "#/components/schemas/ComparisonCompleteness"
+          },
+          "in_both": {
+            "items": {
+              "$ref": "#/components/schemas/SharedMembership"
+            },
+            "title": "In Both",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "only_in_first": {
+            "items": {
+              "$ref": "#/components/schemas/ComparedMembership"
+            },
+            "title": "Only In First",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "only_in_second": {
+            "items": {
+              "$ref": "#/components/schemas/ComparedMembership"
+            },
+            "title": "Only In Second",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "qualification_differs": {
+            "items": {
+              "$ref": "#/components/schemas/SharedMembership"
+            },
+            "title": "Qualification Differs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "scopes": {
+            "items": {
+              "$ref": "#/components/schemas/SelectedScope"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Scopes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "scopes",
+          "in_both",
+          "only_in_first",
+          "only_in_second",
+          "qualification_differs",
+          "completeness"
+        ],
+        "title": "Comparison",
+        "type": "object"
+      },
+      "ComparisonCompleteness": {
+        "enum": [
+          "COMPLETE",
+          "PARTIAL",
+          "NOT_ESTABLISHED"
+        ],
+        "title": "ComparisonCompleteness",
+        "type": "string"
+      },
+      "ComparisonSide": {
+        "additionalProperties": false,
+        "properties": {
+          "assertion_id": {
+            "pattern": "^aip:local-assertion:v1:[0-9a-f]{64}$",
+            "title": "Assertion Id",
+            "type": "string"
+          },
+          "assessment_id": {
+            "pattern": "^aip:local-assessment:v1:[0-9a-f]{64}$",
+            "title": "Assessment Id",
+            "type": "string"
+          },
+          "qualification": {
+            "$ref": "#/components/schemas/LocalQualification"
+          }
+        },
+        "required": [
+          "qualification",
+          "assertion_id",
+          "assessment_id"
+        ],
+        "title": "ComparisonSide",
+        "type": "object"
+      },
+      "Completeness": {
+        "description": "Relative to the evaluated inventory only (I3 \u00a77, \u00a79); never \"the system was observed\".",
+        "enum": [
+          "COMPLETE",
+          "PARTIAL"
+        ],
+        "title": "Completeness",
+        "type": "string"
       },
       "Coverage": {
         "enum": [
@@ -1653,6 +1929,62 @@
         "title": "EntityType",
         "type": "string"
       },
+      "EvaluatedSource": {
+        "additionalProperties": false,
+        "description": "A capture source that formed at least one pair (D10 `evaluated_sources`).",
+        "properties": {
+          "captured_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
+          },
+          "cluster_uid": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Cluster Uid",
+            "type": "string"
+          },
+          "evidence_mode": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Evidence Mode",
+            "type": "string"
+          },
+          "namespaces": {
+            "items": {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            "title": "Namespaces",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "revision": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Revision",
+            "type": "string"
+          },
+          "source_instance_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Source Instance Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_instance_id",
+          "revision",
+          "cluster_uid",
+          "namespaces",
+          "evidence_mode",
+          "captured_at"
+        ],
+        "title": "EvaluatedSource",
+        "type": "object"
+      },
       "EvidenceData": {
         "additionalProperties": false,
         "description": "v0.4.0 I2.1 - spec \u00a711.2/\u00a712. `claims`/top-level `evidence_refs` on the enclosing\n`ArchitectureAnswer` stay empty for this tool - lookup creates no claim; resolved ids live here.",
@@ -1687,6 +2019,171 @@
           "missing_evidence_refs"
         ],
         "title": "EvidenceData",
+        "type": "object"
+      },
+      "EvidenceEntry": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "NOT_FOUND"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "capture_record": {
+                  "type": "null"
+                },
+                "ref_kind": {
+                  "type": "null"
+                },
+                "scoped_record": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "ref_kind": {
+                  "const": "SCOPED_V2"
+                }
+              },
+              "required": [
+                "ref_kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "capture_record": {
+                  "type": "null"
+                },
+                "ref": {
+                  "pattern": "^evidence:otel:calls-scoped:v2:[0-9a-f]{64}$"
+                },
+                "scoped_record": {
+                  "not": {
+                    "type": "null"
+                  }
+                },
+                "status": {
+                  "const": "RESOLVED"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "ref_kind": {
+                  "enum": [
+                    "POD_CAPTURE",
+                    "OWNER_CAPTURE"
+                  ]
+                }
+              },
+              "required": [
+                "ref_kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "capture_record": {
+                  "not": {
+                    "type": "null"
+                  },
+                  "properties": {
+                    "source_type": {
+                      "const": "KUBERNETES"
+                    }
+                  }
+                },
+                "ref": {
+                  "not": {
+                    "pattern": "^evidence:otel:calls-scoped:v2:[0-9a-f]{64}$"
+                  }
+                },
+                "scoped_record": {
+                  "type": "null"
+                },
+                "status": {
+                  "const": "RESOLVED"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "RESOLVED"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "ref_kind": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "One requested ref (D11). A `NOT_FOUND` entry never says why.",
+        "properties": {
+          "capture_record": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceRecord"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ref": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Ref",
+            "type": "string"
+          },
+          "ref_kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceRefKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scoped_record": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScopedV2Record"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/EvidenceRefStatus"
+          }
+        },
+        "required": [
+          "ref",
+          "status",
+          "ref_kind",
+          "scoped_record",
+          "capture_record"
+        ],
+        "title": "EvidenceEntry",
         "type": "object"
       },
       "EvidenceRecord": {
@@ -1784,6 +2281,24 @@
         ],
         "title": "EvidenceRecord",
         "type": "object"
+      },
+      "EvidenceRefKind": {
+        "description": "D11: what a resolved ref is.",
+        "enum": [
+          "SCOPED_V2",
+          "POD_CAPTURE",
+          "OWNER_CAPTURE"
+        ],
+        "title": "EvidenceRefKind",
+        "type": "string"
+      },
+      "EvidenceRefStatus": {
+        "enum": [
+          "RESOLVED",
+          "NOT_FOUND"
+        ],
+        "title": "EvidenceRefStatus",
+        "type": "string"
       },
       "EvidenceRelationType": {
         "description": "v0.4.0 I2.1 - the closed set of canonical graph relation kinds (spec \u00a711.2's `supports`),\nwidened by I3 (DEPLOYED_AS) and v0.5.0 I4 (PUBLISHES_TO/SUBSCRIPTION_OF). Deliberately its own\nclosed enum rather than reusing `DeliveryRelationType` (only the delivery relations) or a\ngraph-layer string - `get_evidence` describes existing facts, never a new architecture claim.",
@@ -1906,6 +2421,129 @@
         "title": "IngestionResult",
         "type": "string"
       },
+      "Inventory": {
+        "additionalProperties": false,
+        "properties": {
+          "admitted_pair_count": {
+            "maximum": 2000.0,
+            "minimum": 0.0,
+            "title": "Admitted Pair Count",
+            "type": "integer"
+          },
+          "bounds": {
+            "$ref": "#/components/schemas/InventoryBounds"
+          },
+          "cap_reached": {
+            "items": {
+              "$ref": "#/components/schemas/PresentationCap"
+            },
+            "maxItems": 2,
+            "title": "Cap Reached",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/Completeness"
+          },
+          "considered_capture_source_count": {
+            "maximum": 2000.0,
+            "minimum": 0.0,
+            "title": "Considered Capture Source Count",
+            "type": "integer"
+          },
+          "continuation": {
+            "title": "Continuation",
+            "type": "boolean"
+          },
+          "evaluated_sources": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluatedSource"
+            },
+            "title": "Evaluated Sources",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "evaluated_v2_candidate_count": {
+            "maximum": 500.0,
+            "minimum": 0.0,
+            "title": "Evaluated V2 Candidate Count",
+            "type": "integer"
+          },
+          "i2_truncated": {
+            "title": "I2 Truncated",
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "considered_capture_source_count",
+          "evaluated_v2_candidate_count",
+          "admitted_pair_count",
+          "evaluated_sources",
+          "bounds",
+          "i2_truncated",
+          "continuation",
+          "cap_reached",
+          "next_cursor",
+          "completeness"
+        ],
+        "title": "Inventory",
+        "type": "object"
+      },
+      "InventoryBounds": {
+        "additionalProperties": false,
+        "description": "The D4 values actually applied to this answer page.",
+        "properties": {
+          "candidate_page_size": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Candidate Page Size",
+            "type": "integer"
+          },
+          "capture_source_bound": {
+            "const": 2000,
+            "title": "Capture Source Bound",
+            "type": "integer"
+          },
+          "max_localities": {
+            "const": 50,
+            "title": "Max Localities",
+            "type": "integer"
+          },
+          "max_memberships": {
+            "const": 200,
+            "title": "Max Memberships",
+            "type": "integer"
+          },
+          "pair_bound": {
+            "const": 2000,
+            "title": "Pair Bound",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pair_bound",
+          "capture_source_bound",
+          "candidate_page_size",
+          "max_localities",
+          "max_memberships"
+        ],
+        "title": "InventoryBounds",
+        "type": "object"
+      },
       "InventoryStatus": {
         "description": "I1 spec \u00a76: \"status (COMPLETE, PARTIAL, or FAILED)\".",
         "enum": [
@@ -1960,6 +2598,827 @@
         ],
         "title": "LimitationCode",
         "type": "string"
+      },
+      "LocalDisposition": {
+        "description": "I1 \u00a710 / I2 dispositions, carried unchanged inside the payload (never envelope outcomes).",
+        "enum": [
+          "APPLICABLE",
+          "INAPPLICABLE",
+          "INSUFFICIENT_EVIDENCE",
+          "UNRESOLVED",
+          "AMBIGUOUS",
+          "CONFLICT",
+          "UNSUPPORTED"
+        ],
+        "title": "LocalDisposition",
+        "type": "string"
+      },
+      "LocalObservation": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_ids": {
+            "items": {
+              "pattern": "^evidence:otel:calls-scoped:v2:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Evidence Ids",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "first_seen": {
+            "format": "date-time",
+            "title": "First Seen",
+            "type": "string"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "lineage_complete": {
+            "title": "Lineage Complete",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "evidence_ids",
+          "first_seen",
+          "last_seen",
+          "lineage_complete"
+        ],
+        "title": "LocalObservation",
+        "type": "object"
+      },
+      "LocalQualification": {
+        "description": "I2 D14.4: every assertion has v2, so only these two are reachable.",
+        "enum": [
+          "CONFIRMED",
+          "OBSERVED_ONLY"
+        ],
+        "title": "LocalQualification",
+        "type": "string"
+      },
+      "LocalityAnswer": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "data": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "required": [
+                        "entries"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "query"
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "required": [
+                        "request_context",
+                        "inventory"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "limitations": {
+                  "items": {
+                    "properties": {
+                      "code": {
+                        "not": {
+                          "enum": [
+                            "CURSOR_QUERY_MISMATCH",
+                            "RESULT_LIMIT_EXCEEDED",
+                            "SNAPSHOT_NOT_AVAILABLE",
+                            "UNSUPPORTED_REQUEST"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "data": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "data"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "items": {
+                    "properties": {
+                      "code": {
+                        "enum": [
+                          "CURSOR_QUERY_MISMATCH",
+                          "RESULT_LIMIT_EXCEEDED",
+                          "SNAPSHOT_NOT_AVAILABLE",
+                          "UNSUPPORTED_REQUEST"
+                        ]
+                      }
+                    }
+                  },
+                  "maxItems": 1,
+                  "minItems": 1
+                },
+                "outcome": {
+                  "const": "NOT_ANSWERED"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "const": "ANSWERED"
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "maxItems": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "const": "PARTIAL"
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "snapshot": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "snapshot"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "contains": {
+                    "properties": {
+                      "code": {
+                        "enum": [
+                          "SNAPSHOT_NOT_AVAILABLE"
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "required": [
+                "limitations"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "data": {
+                  "not": {
+                    "type": "null"
+                  }
+                },
+                "outcome": {
+                  "const": "NOT_ANSWERED"
+                }
+              },
+              "required": [
+                "outcome",
+                "data"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "contains": {
+                    "properties": {
+                      "code": {
+                        "enum": [
+                          "INSUFFICIENT_EVIDENCE"
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "required": [
+                "limitations"
+              ]
+            }
+          }
+        ],
+        "description": "The 0.6 envelope (D2, D9). `data` is null exactly for a refusal that evaluated nothing; an\nevaluated `NOT_ANSWERED` still carries its inventory or entries.",
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServiceDependenciesByLocalityData"
+              },
+              {
+                "$ref": "#/components/schemas/ScopedLocalityEvidenceData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/LocalityLimitation"
+            },
+            "title": "Limitations",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "mode": {
+            "enum": [
+              "query",
+              "evidence"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "producer": {
+            "$ref": "#/components/schemas/Producer"
+          },
+          "schema_version": {
+            "const": "0.6",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tool": {
+            "const": "get_service_dependencies_by_locality",
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "producer",
+          "tool",
+          "mode",
+          "outcome",
+          "snapshot",
+          "data",
+          "limitations"
+        ],
+        "title": "LocalityAnswer",
+        "type": "object"
+      },
+      "LocalityEntry": {
+        "additionalProperties": false,
+        "description": "D10 `localities[]`: one positive caller Workload.",
+        "properties": {
+          "assessments": {
+            "items": {
+              "$ref": "#/components/schemas/OperationAssessment"
+            },
+            "minItems": 1,
+            "title": "Assessments",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "lineage_complete": {
+            "title": "Lineage Complete",
+            "type": "boolean"
+          },
+          "provider_groups": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderGroup"
+            },
+            "title": "Provider Groups",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "target_runtime_scope": {
+            "const": "UNKNOWN",
+            "title": "Target Runtime Scope",
+            "type": "string"
+          },
+          "unresolved_owner_operations": {
+            "items": {
+              "$ref": "#/components/schemas/UnresolvedOwnerOperation"
+            },
+            "title": "Unresolved Owner Operations",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "workload": {
+            "$ref": "#/components/schemas/LocalityWorkload"
+          }
+        },
+        "required": [
+          "workload",
+          "assessments",
+          "provider_groups",
+          "unresolved_owner_operations",
+          "target_runtime_scope",
+          "lineage_complete"
+        ],
+        "title": "LocalityEntry",
+        "type": "object"
+      },
+      "LocalityEvidenceBody": {
+        "additionalProperties": false,
+        "properties": {
+          "object_operation_id": {
+            "anyOf": [
+              {
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Operation Id"
+          },
+          "refs": {
+            "items": {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "snapshot_id": {
+            "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "refs"
+        ],
+        "title": "LocalityEvidenceBody",
+        "type": "object"
+      },
+      "LocalityLimitation": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "UNSUPPORTED_REQUEST"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "reasons": {
+                  "items": {
+                    "enum": [
+                      "LOCALITY_UNSUPPORTED_DIMENSION",
+                      "LOCALITY_UNSUPPORTED_RELATION",
+                      "LOCALITY_UNSUPPORTED_TEMPORAL_RESOLUTION"
+                    ]
+                  },
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ],
+        "description": "`reasons` carries the I2 `LOCALITY_*` codes behind the limitation, if any.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/LocalityLimitationCode"
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "pattern": "^LOCALITY_[A-Z0-9_]+$",
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "LocalityLimitation",
+        "type": "object"
+      },
+      "LocalityLimitationCode": {
+        "description": "D9: the closed 0.6 envelope codes, separate from the 0.5 `LimitationCode`.",
+        "enum": [
+          "UNSUPPORTED_REQUEST",
+          "SNAPSHOT_NOT_AVAILABLE",
+          "CURSOR_QUERY_MISMATCH",
+          "RESULT_LIMIT_EXCEEDED",
+          "INVENTORY_INCOMPLETE",
+          "COMPARISON_INCOMPLETE",
+          "SELECTION_NOT_ESTABLISHED",
+          "PROVIDER_OWNER_UNRESOLVED",
+          "INSUFFICIENT_EVIDENCE"
+        ],
+        "title": "LocalityLimitationCode",
+        "type": "string"
+      },
+      "LocalityQueryBody": {
+        "additionalProperties": false,
+        "properties": {
+          "caller_localities": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WorkloadIdentity"
+                },
+                "maxItems": 50,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caller Localities",
+            "uniqueItems": true
+          },
+          "compare": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WorkloadIdentity"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compare",
+            "uniqueItems": true
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cursor"
+          },
+          "dimensions": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9_.-]*$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Dimensions",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "environment": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+            "title": "Environment",
+            "type": "string"
+          },
+          "first_day": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2}))?$",
+            "title": "First Day",
+            "type": "string"
+          },
+          "last_day": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2}))?$",
+            "title": "Last Day",
+            "type": "string"
+          },
+          "object_operation_id": {
+            "anyOf": [
+              {
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Operation Id"
+          },
+          "provider_service_id": {
+            "anyOf": [
+              {
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Service Id"
+          },
+          "relation_type": {
+            "default": "CALLS",
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Relation Type",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "source_selector": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceSelector"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "environment",
+          "first_day",
+          "last_day"
+        ],
+        "title": "LocalityQueryBody",
+        "type": "object"
+      },
+      "LocalityRequestContext": {
+        "additionalProperties": false,
+        "description": "The normalized, evaluated request (D3, D10). An evaluated request is supported, so its\nrelation, dimensions and days are the supported forms.",
+        "properties": {
+          "caller_localities": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WorkloadIdentity"
+                },
+                "maxItems": 50,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caller Localities",
+            "uniqueItems": true
+          },
+          "compare": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WorkloadIdentity"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compare",
+            "uniqueItems": true
+          },
+          "dimensions": {
+            "items": {
+              "enum": [
+                "cluster",
+                "namespace",
+                "workload"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Dimensions",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "environment": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+            "title": "Environment",
+            "type": "string"
+          },
+          "first_day": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "title": "First Day",
+            "type": "string"
+          },
+          "last_day": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "title": "Last Day",
+            "type": "string"
+          },
+          "object_operation_id": {
+            "anyOf": [
+              {
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Operation Id"
+          },
+          "provider_service_id": {
+            "anyOf": [
+              {
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Service Id"
+          },
+          "relation_type": {
+            "const": "CALLS",
+            "title": "Relation Type",
+            "type": "string"
+          },
+          "selection_mode": {
+            "$ref": "#/components/schemas/SelectionMode"
+          },
+          "source_selector": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceSelector"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subject_service_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Subject Service Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_service_id",
+          "environment",
+          "first_day",
+          "last_day",
+          "relation_type",
+          "dimensions",
+          "object_operation_id",
+          "provider_service_id",
+          "source_selector",
+          "caller_localities",
+          "compare",
+          "selection_mode"
+        ],
+        "title": "LocalityRequestContext",
+        "type": "object"
+      },
+      "LocalityWorkload": {
+        "additionalProperties": false,
+        "description": "A positive caller Workload: its exact identity plus presentation-only name/logical id.",
+        "properties": {
+          "cluster_uid": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Cluster Uid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/CapturedWorkloadKind"
+          },
+          "name": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Name",
+            "type": "string"
+          },
+          "namespace": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Namespace",
+            "type": "string"
+          },
+          "uid": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Uid",
+            "type": "string"
+          },
+          "workload_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Workload Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workload_id",
+          "name",
+          "cluster_uid",
+          "namespace",
+          "kind",
+          "uid"
+        ],
+        "title": "LocalityWorkload",
+        "type": "object"
       },
       "ObservationContextRef": {
         "additionalProperties": false,
@@ -2064,6 +3523,97 @@
         "title": "ObservedEvidenceMetadata",
         "type": "object"
       },
+      "OperationAssessment": {
+        "additionalProperties": false,
+        "description": "One I2 `QualifiedLocalEvidenceAssessment`, values unchanged. The subject, relation,\nenvironment, window, caller Workload and snapshot are carried once by the containing locality,\nrequest context and envelope (D16.3).",
+        "properties": {
+          "applicability": {
+            "const": "APPLICABLE",
+            "title": "Applicability",
+            "type": "string"
+          },
+          "assertion_id": {
+            "pattern": "^aip:local-assertion:v1:[0-9a-f]{64}$",
+            "title": "Assertion Id",
+            "type": "string"
+          },
+          "assessment_id": {
+            "pattern": "^aip:local-assessment:v1:[0-9a-f]{64}$",
+            "title": "Assessment Id",
+            "type": "string"
+          },
+          "capture_evidence_refs": {
+            "items": {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            "title": "Capture Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "declared_evidence_ids": {
+            "items": {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            "title": "Declared Evidence Ids",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "object_operation_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Object Operation Id",
+            "type": "string"
+          },
+          "observation": {
+            "$ref": "#/components/schemas/LocalObservation"
+          },
+          "qualification": {
+            "$ref": "#/components/schemas/LocalQualification"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/RuleRef"
+            },
+            "minItems": 1,
+            "title": "Rules",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "selected_captures": {
+            "items": {
+              "$ref": "#/components/schemas/SelectedCaptureRef"
+            },
+            "minItems": 1,
+            "title": "Selected Captures",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "source_limitations": {
+            "items": {
+              "$ref": "#/components/schemas/SourceLimitation"
+            },
+            "title": "Source Limitations",
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "assertion_id",
+          "assessment_id",
+          "object_operation_id",
+          "applicability",
+          "qualification",
+          "observation",
+          "declared_evidence_ids",
+          "selected_captures",
+          "capture_evidence_refs",
+          "source_limitations",
+          "rules"
+        ],
+        "title": "OperationAssessment",
+        "type": "object"
+      },
       "Outcome": {
         "enum": [
           "ANSWERED",
@@ -2071,6 +3621,162 @@
           "NOT_ANSWERED"
         ],
         "title": "Outcome",
+        "type": "string"
+      },
+      "PairEntry": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "workload": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "disposition": {
+                  "const": "APPLICABLE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "phase": {
+                  "const": 4
+                },
+                "reasons": {
+                  "maxItems": 0
+                },
+                "workload": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "phase": {
+                  "const": 2
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "disposition": {
+                  "const": "UNSUPPORTED"
+                }
+              }
+            }
+          }
+        ],
+        "description": "One admitted (candidate, source) pair, unchanged from I2 (D13). Only an `APPLICABLE` pair\ncarries a resolved Workload (`_phase_4`).",
+        "properties": {
+          "admission": {
+            "items": {
+              "$ref": "#/components/schemas/AdmissionBasis"
+            },
+            "minItems": 1,
+            "title": "Admission",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "disposition": {
+            "$ref": "#/components/schemas/LocalDisposition"
+          },
+          "evidence_refs": {
+            "items": {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateLimitationCode"
+            },
+            "title": "Limitations",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "phase": {
+            "enum": [
+              2,
+              3,
+              4
+            ],
+            "title": "Phase",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "pattern": "^LOCALITY_[A-Z0-9_]+$",
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "source": {
+            "$ref": "#/components/schemas/PairSourceRef"
+          },
+          "workload": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CapturedWorkloadRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "admission",
+          "phase",
+          "disposition",
+          "reasons",
+          "limitations",
+          "workload",
+          "evidence_refs"
+        ],
+        "title": "PairEntry",
+        "type": "object"
+      },
+      "PairSourceRef": {
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Revision",
+            "type": "string"
+          },
+          "source_instance_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Source Instance Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_instance_id",
+          "revision"
+        ],
+        "title": "PairSourceRef",
+        "type": "object"
+      },
+      "PresentationCap": {
+        "enum": [
+          "WORKLOADS",
+          "MEMBERSHIPS"
+        ],
+        "title": "PresentationCap",
         "type": "string"
       },
       "Producer": {
@@ -2097,6 +3803,64 @@
         ],
         "title": "Producer",
         "type": "object"
+      },
+      "ProviderGroup": {
+        "additionalProperties": false,
+        "description": "D8: one provider Service in one caller Workload. No group-level qualification.",
+        "properties": {
+          "evidence_refs": {
+            "items": {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "member_qualifications": {
+            "items": {
+              "$ref": "#/components/schemas/LocalQualification"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Member Qualifications",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "operation_ids": {
+            "items": {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Operation Ids",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "provider_service_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Provider Service Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider_service_id",
+          "operation_ids",
+          "member_qualifications",
+          "evidence_refs"
+        ],
+        "title": "ProviderGroup",
+        "type": "object"
+      },
+      "ProviderOwnerReason": {
+        "description": "D8: zero or several evidenced `PROVIDES` owners.",
+        "enum": [
+          "PROVIDER_OWNER_MISSING",
+          "PROVIDER_OWNER_AMBIGUOUS"
+        ],
+        "title": "ProviderOwnerReason",
+        "type": "string"
       },
       "Qualification": {
         "enum": [
@@ -2682,6 +4446,27 @@
         "title": "ReportTombstoneDecision",
         "type": "object"
       },
+      "RuleRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Id",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ],
+        "title": "RuleRef",
+        "type": "object"
+      },
       "RuntimeRelationListOut": {
         "properties": {
           "environment": {
@@ -2794,6 +4579,231 @@
         "title": "RuntimeWindow",
         "type": "object"
       },
+      "ScopeEvaluation": {
+        "description": "D10: a selected identity's status, derived only from the evaluated inventory.",
+        "enum": [
+          "POSITIVE",
+          "EVALUATED_NO_POSITIVE",
+          "UNKNOWN"
+        ],
+        "title": "ScopeEvaluation",
+        "type": "string"
+      },
+      "ScopedLocalityEvidenceData": {
+        "additionalProperties": false,
+        "description": "D11: the `mode: \"evidence\"` payload.",
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceEntry"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Entries",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "object_operation_id": {
+            "anyOf": [
+              {
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Operation Id"
+          },
+          "subject_service_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Subject Service Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_service_id",
+          "object_operation_id",
+          "entries"
+        ],
+        "title": "ScopedLocalityEvidenceData",
+        "type": "object"
+      },
+      "ScopedV2Record": {
+        "additionalProperties": false,
+        "description": "D11: the admitted public fields of one `ScopedObservedCallV2` (v2 contract \u00a71, \u00a73).",
+        "properties": {
+          "bucket_utc_day": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "title": "Bucket Utc Day",
+            "type": "string"
+          },
+          "caller_cluster_uid": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Caller Cluster Uid",
+            "type": "string"
+          },
+          "caller_pod_uid": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Caller Pod Uid",
+            "type": "string"
+          },
+          "correlation_mode": {
+            "enum": [
+              "CLIENT_SERVER",
+              "CLIENT_ONLY"
+            ],
+            "title": "Correlation Mode",
+            "type": "string"
+          },
+          "environment": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+            "title": "Environment",
+            "type": "string"
+          },
+          "first_seen": {
+            "format": "date-time",
+            "title": "First Seen",
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^evidence:otel:calls-scoped:v2:[0-9a-f]{64}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "key_rule_id": {
+            "const": "otel-calls-scoped-evidence-v2-key",
+            "title": "Key Rule Id",
+            "type": "string"
+          },
+          "key_rule_version": {
+            "const": 1,
+            "title": "Key Rule Version",
+            "type": "integer"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "normalization_rule_id": {
+            "const": "otel-client-caller-attribution",
+            "title": "Normalization Rule Id",
+            "type": "string"
+          },
+          "normalization_rule_version": {
+            "const": 1,
+            "title": "Normalization Rule Version",
+            "type": "integer"
+          },
+          "object_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Object Id",
+            "type": "string"
+          },
+          "observation_count": {
+            "minimum": 1.0,
+            "title": "Observation Count",
+            "type": "integer"
+          },
+          "sample_trace_ids": {
+            "items": {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Sample Trace Ids",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "subject_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Subject Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subject_id",
+          "object_id",
+          "environment",
+          "bucket_utc_day",
+          "caller_cluster_uid",
+          "caller_pod_uid",
+          "first_seen",
+          "last_seen",
+          "observation_count",
+          "correlation_mode",
+          "sample_trace_ids",
+          "key_rule_id",
+          "key_rule_version",
+          "normalization_rule_id",
+          "normalization_rule_version"
+        ],
+        "title": "ScopedV2Record",
+        "type": "object"
+      },
+      "SelectedCaptureRef": {
+        "additionalProperties": false,
+        "properties": {
+          "captured_at": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Captured At",
+            "type": "string"
+          },
+          "evidence_mode": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Evidence Mode",
+            "type": "string"
+          },
+          "revision": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Revision",
+            "type": "string"
+          },
+          "source_instance_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Source Instance Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_instance_id",
+          "revision",
+          "evidence_mode",
+          "captured_at"
+        ],
+        "title": "SelectedCaptureRef",
+        "type": "object"
+      },
+      "SelectedScope": {
+        "additionalProperties": false,
+        "properties": {
+          "evaluation": {
+            "$ref": "#/components/schemas/ScopeEvaluation"
+          },
+          "workload": {
+            "$ref": "#/components/schemas/WorkloadIdentity"
+          }
+        },
+        "required": [
+          "workload",
+          "evaluation"
+        ],
+        "title": "SelectedScope",
+        "type": "object"
+      },
+      "SelectionMode": {
+        "enum": [
+          "EXPLICIT_SOURCE",
+          "IMPLICIT_COVERING_SOURCES"
+        ],
+        "title": "SelectionMode",
+        "type": "string"
+      },
       "ServiceCoverageOut": {
         "properties": {
           "environment": {
@@ -2830,6 +4840,138 @@
           "spansObserved"
         ],
         "title": "ServiceCoverageOut",
+        "type": "object"
+      },
+      "ServiceDependenciesByLocalityData": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "comparison": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "request_context": {
+                  "properties": {
+                    "compare": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "comparison": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "selection": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "request_context": {
+                  "properties": {
+                    "caller_localities": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "selection": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ],
+        "description": "D10: the `mode: \"query\"` payload.",
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateEntry"
+            },
+            "maxItems": 500,
+            "title": "Candidates",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Comparison"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coverage": {
+            "const": "LOCAL_WORKLOAD_COVERAGE_UNAVAILABLE",
+            "title": "Coverage",
+            "type": "string"
+          },
+          "inventory": {
+            "$ref": "#/components/schemas/Inventory"
+          },
+          "localities": {
+            "items": {
+              "$ref": "#/components/schemas/LocalityEntry"
+            },
+            "maxItems": 50,
+            "title": "Localities",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "request_context": {
+            "$ref": "#/components/schemas/LocalityRequestContext"
+          },
+          "selection": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SelectedScope"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selection",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "request_context",
+          "coverage",
+          "inventory",
+          "candidates",
+          "localities",
+          "selection",
+          "comparison"
+        ],
+        "title": "ServiceDependenciesByLocalityData",
         "type": "object"
       },
       "ServiceDependenciesData": {
@@ -3140,6 +5282,42 @@
         "title": "ServiceRuntimeRelationOut",
         "type": "object"
       },
+      "SharedMembership": {
+        "additionalProperties": false,
+        "properties": {
+          "first": {
+            "$ref": "#/components/schemas/ComparisonSide"
+          },
+          "operation_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "provider_service_id": {
+            "anyOf": [
+              {
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Service Id"
+          },
+          "second": {
+            "$ref": "#/components/schemas/ComparisonSide"
+          }
+        },
+        "required": [
+          "provider_service_id",
+          "operation_id",
+          "first",
+          "second"
+        ],
+        "title": "SharedMembership",
+        "type": "object"
+      },
       "SnapshotRef": {
         "additionalProperties": false,
         "properties": {
@@ -3159,6 +5337,47 @@
           "model_revision"
         ],
         "title": "SnapshotRef",
+        "type": "object"
+      },
+      "SourceLimitation": {
+        "additionalProperties": false,
+        "description": "A non-applicable pair of a contributing candidate (I2 `source_limitations`).",
+        "properties": {
+          "pair": {
+            "$ref": "#/components/schemas/PairEntry"
+          },
+          "v2_evidence_id": {
+            "pattern": "^evidence:otel:calls-scoped:v2:[0-9a-f]{64}$",
+            "title": "V2 Evidence Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "v2_evidence_id",
+          "pair"
+        ],
+        "title": "SourceLimitation",
+        "type": "object"
+      },
+      "SourceSelector": {
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Revision",
+            "type": "string"
+          },
+          "source_instance_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Source Instance Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_instance_id",
+          "revision"
+        ],
+        "title": "SourceSelector",
         "type": "object"
       },
       "SourceType": {
@@ -3206,6 +5425,25 @@
         "title": "TombstoneRejectionReason",
         "type": "string"
       },
+      "UnresolvedOwnerOperation": {
+        "additionalProperties": false,
+        "properties": {
+          "operation_id": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/ProviderOwnerReason"
+          }
+        },
+        "required": [
+          "operation_id",
+          "reason"
+        ],
+        "title": "UnresolvedOwnerOperation",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -3244,6 +5482,38 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "WorkloadIdentity": {
+        "additionalProperties": false,
+        "description": "D3: an exact captured caller Workload. The captured UID is required; `name` is never part of\nthe identity.",
+        "properties": {
+          "cluster_uid": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Cluster Uid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/CapturedWorkloadKind"
+          },
+          "namespace": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Namespace",
+            "type": "string"
+          },
+          "uid": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cluster_uid",
+          "namespace",
+          "kind",
+          "uid"
+        ],
+        "title": "WorkloadIdentity",
         "type": "object"
       },
       "WorkloadKind": {
@@ -4687,6 +6957,112 @@
           }
         },
         "summary": "Get Service Dependencies",
+        "tags": [
+          "architecture-intelligence"
+        ]
+      }
+    },
+    "/api/services/{service_id}/dependencies/by-locality": {
+      "post": {
+        "description": "`POST /api/services/{service_id}/dependencies/by-locality` (D1, `mode: \"query\"`).",
+        "operationId": "get_service_dependencies_by_locality_api_services__service_id__dependencies_by_locality_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocalityQueryBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalityAnswer"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Service Dependencies By Locality",
+        "tags": [
+          "architecture-intelligence"
+        ]
+      }
+    },
+    "/api/services/{service_id}/dependencies/by-locality/evidence": {
+      "post": {
+        "description": "`POST /api/services/{service_id}/dependencies/by-locality/evidence` (D1, D11,\n`mode: \"evidence\"`).",
+        "operationId": "resolve_scoped_locality_evidence_api_services__service_id__dependencies_by_locality_evidence_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocalityEvidenceBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalityAnswer"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Scoped Locality Evidence",
         "tags": [
           "architecture-intelligence"
         ]

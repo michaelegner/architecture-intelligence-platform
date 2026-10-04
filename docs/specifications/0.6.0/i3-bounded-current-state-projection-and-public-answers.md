@@ -1,6 +1,6 @@
 # AIP v0.6.0 I3 — Bounded Current-State Projection and Public Answers
 
-**Status:** **Accepted — revision 0.2, owner-accepted increment specification following PR #382 review.** The I3 scope, invariants and acceptance gates below are approved; details explicitly marked **[I3 proposal]** remain delegated to the reviewed I3.1 public-contract freeze before implementation. Acceptance here does **not** freeze a REST route, a fourth MCP tool, schema fields or numeric presentation caps.  
+**Status:** **Accepted — revision 0.2; I3 COMPLETE** (I3.1–I3.4, see the [I3 completion record](i3-completion-record.md) and the [I4 handoff](i3-i4-handoff.md)). The **[I3 proposal]** items below were settled by the [decision record](i3-decision-record.md) D1–D17 and implemented as recorded there; this text is kept as accepted, not rewritten. I3 is not a qualified or released final candidate (I4–I6).  
 **Release / increment:** v0.6.0 / I3, Locality-Aware Current State.  
 **Repository path:** `docs/specifications/0.6.0/i3-bounded-current-state-projection-and-public-answers.md`  
 **Entry baseline inspected:** main at 2bf9cd5a1e45ded2447297f3563da98f8ce06b00.  

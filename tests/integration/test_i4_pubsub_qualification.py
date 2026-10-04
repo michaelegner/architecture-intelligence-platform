@@ -378,6 +378,7 @@ async def test_service_rest_and_mcp_agree_with_zero_graph_writes(driver, fixture
         "get_architecture_drift",
         "get_evidence",
         "get_service_dependencies",
+        "get_service_dependencies_by_locality",
     ]
     for name, response in mcp.items():
         assert response["isError"] is False, name

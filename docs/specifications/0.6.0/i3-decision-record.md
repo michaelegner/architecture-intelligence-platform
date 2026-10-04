@@ -1,6 +1,6 @@
 # AIP v0.6.0 I3 — Decision Record (I3.1)
 
-**Status:** I3.1a decision table under review. Once this PR merges, the decisions below are **frozen** for I3 implementation. Each one settles an item that the [I3 specification](i3-bounded-current-state-projection-and-public-answers.md) §3/§17 marks **[I3 proposal]** and delegates to "the reviewed I3.1 public-contract decision record". None of them reopens a parent, I1 or I2 semantic. Names given here are the frozen public names; I3.1b publishes them as draft JSON Schemas, and any change after that is a reviewed amendment to this record.  
+**Status:** **Frozen.** D1–D15 were frozen by I3.1a (#386), D16 by I3.1b/c (#387, #388), and D17 by I3.2a (#393). I3 is complete; see the [completion record](i3-completion-record.md). Each decision settles an item that the [I3 specification](i3-bounded-current-state-projection-and-public-answers.md) §3/§17 marks **[I3 proposal]**, and none reopens a parent, I1 or I2 semantic. Any later change is a reviewed amendment to this record.  
 **Release / increment:** `v0.6.0` — Locality-Aware Current State / I3, slice I3.1  
 **Governing specification:** I3 specification revision 0.2 (Accepted), merged in #382 (`82652f44b0f35f4349f94c5b5c62598a3d03bbd4`), with the tool-name proposal of #385 (`2278252`), which also amended [parent](specification.md) §17.  
 **Entry baseline:** `main` at `2278252` (PR #385).  

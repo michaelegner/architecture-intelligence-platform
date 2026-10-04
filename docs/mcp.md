@@ -1,6 +1,6 @@
 # MCP Tools
 
-AIP exposes its validated architecture model to AI agents and other MCP clients as three
+AIP exposes its validated architecture model to AI agents and other MCP clients as four
 **read-only** tools, mounted at the single public path `/mcp`. As of `v0.5.0` I3 (ADR 0016),
 `ArchitectureIntelligenceService` is the single semantic owner of this Architecture Knowledge, and
 standard negotiated MCP is one of its two public adapters (the other is [REST](architecture.md#api-surface))
@@ -33,21 +33,25 @@ I3 (widened for the deployment-reconciliation contract; see the I3 spec).
 > AIP may help agents reason about architecture, but an agent must never become the source of
 > architectural truth. — [`ROADMAP.md`](../ROADMAP.md)'s v0.4 principle.
 
-## The three tools
+## The four tools
 
-`tools/list` always returns exactly these three, in this fixed lexicographic order:
+`tools/list` always returns exactly these four, in this fixed lexicographic order:
 
 | Tool | Purpose |
 |---|---|
 | `get_architecture_drift` | Direct dependencies of a service whose current evidence qualification shows a declared-versus-observed discrepancy (`OBSERVED_ONLY` or `NOT_OBSERVED_IN_WINDOW`) — never `CONFIRMED` — bound to one stable snapshot. |
 | `get_evidence` | Resolves 1-20 opaque evidence references to bounded, sanitized provenance for one explicit snapshot. |
 | `get_service_dependencies` | One-hop direct dependencies of a service, qualified against declared and observed evidence and bound to a stable snapshot. Also returns the service's Service-Workload deployment claims and resolutions (explicit annotation, configured mapping, or observed OpenTelemetry/Kubernetes linkage), reconciled across all applicable methods. |
+| `get_service_dependencies_by_locality` | Since v0.6.0 I3: where a service's direct HTTP dependencies are positively established, per evidenced caller-Workload locality, with an optional same-snapshot comparison; a second mode resolves the answer's scoped evidence refs. See [below](#get_service_dependencies_by_locality-v060-i3). |
 
-All three:
+All four:
 
-- take one `request` argument matching their JSON Schema exactly (closed `inputSchema` —
-  an unrecognized field is rejected before dispatch);
-- return `structuredContent` as an `ArchitectureAnswer` envelope (`schema_version`, `producer`,
+- take one `request` argument matching their JSON Schema exactly (closed `inputSchema`; an
+  unrecognized field inside `request` is rejected before dispatch). An unexpected *top-level*
+  argument beside `request` is rejected before dispatch by `get_service_dependencies_by_locality`
+  only; for the three v0.5 tools the pinned SDK silently ignores it, unchanged since v0.5.0;
+- return `structuredContent` as an answer envelope (`ArchitectureAnswer` for the three v0.5 tools,
+  `LocalityAnswer` for the fourth) (`schema_version`, `producer`,
   `snapshot`, `outcome`, plus the tool-specific data/claims) validated against the tool's
   advertised `outputSchema`;
 - perform zero graph writes and require no LLM API key;
@@ -56,7 +60,10 @@ All three:
 
 Schemas live at `schemas/architecture_intelligence/v0.5/`:
 `architecture-answer.schema.json` (`get_service_dependencies`), `drift-answer.schema.json`
-(`get_architecture_drift`), `evidence-answer.schema.json` (`get_evidence`).
+(`get_architecture_drift`), `evidence-answer.schema.json` (`get_evidence`), and, for the fourth
+tool, at `schemas/architecture_intelligence/v0.6/`:
+`service-dependencies-by-locality-request.schema.json` (its `request` argument) and
+`service-dependencies-by-locality-answer.schema.json` (its answer).
 
 ## Pub/Sub in dependency and drift answers (v0.5.0 I4)
 
@@ -103,8 +110,8 @@ internal dead-letter carrier is never publicly resolvable. `schema_version` stay
 
 ## `DEPLOYED_AS` deployment claims (v0.5.0 I3)
 
-I3 adds zero new MCP tools — `tools/list` still returns exactly the three above, in the same fixed
-order. `Service -[DEPLOYED_AS]-> Workload` identity is folded entirely into
+v0.5.0 I3 added zero new MCP tools — `tools/list` kept exactly the three v0.5 tools, in the same
+fixed order (the fourth arrived only in v0.6.0 I3). `Service -[DEPLOYED_AS]-> Workload` identity is folded entirely into
 `get_service_dependencies`'s existing `data.deployment_claim_ids` / `data.deployment_resolutions`
 fields (siblings of, never merged into, `data.dependency_claim_ids`) and into the same answer's
 `claims` union, which now closes over `DependencyClaim | DeploymentClaim`. A `DeploymentClaim`'s
@@ -134,6 +141,34 @@ Both surfaces share one semantic owner for declared-vs-observed evidence matchin
 classification (`app/qualification/declared_observed.py`), proven equivalent by a real Neo4j
 differential test (`tests/integration/test_qualification_consistency.py`) rather than by inspection
 alone.
+
+## `get_service_dependencies_by_locality` (v0.6.0 I3)
+
+The fourth tool answers **where** a service's direct HTTP `CALLS` are positively established, per
+evidenced caller-Workload locality (cluster, namespace and captured Workload), for an explicit
+environment and whole-UTC-day window, without the caller naming any Workload first. Its contract is
+the locality schema `0.6`
+([decision record](specifications/0.6.0/i3-decision-record.md) D1–D17), not a widening of the v0.5
+`ArchitectureAnswer`. The single `request` argument is discriminated on `mode`:
+
+- `"query"`: a bounded, evaluated inventory of the caller's scoped observations and every
+  admitted capture pair, the positive localities with their per-Operation qualification and
+  provider-Service groups, and optionally the selection or a two-Workload comparison. Bounds,
+  continuation (`next_cursor`) and every unknown, unresolved or excluded item stay explicit;
+- `"evidence"`: resolves up to 20 exact refs from such an answer (scoped v2 records and their
+  Pod/owner capture evidence) at the **same `snapshot_id`**. Legacy `get_evidence` does not
+  resolve scoped records and does not change.
+
+A positive result is never an exhaustive partition of the service's dependencies: a relationship
+missing from one Workload is not evidence of its absence there. Workload-level coverage is
+unavailable (`LOCAL_WORKLOAD_COVERAGE_UNAVAILABLE`), and the target's runtime placement stays
+`UNKNOWN`. Unlike the three v0.5 tools, this tool also rejects an unexpected top-level argument
+beside `request` before dispatch.
+
+The REST parity routes are `POST /api/services/{service_id}/dependencies/by-locality` and
+`…/by-locality/evidence`. The Service comes from the path, and the closed JSON body carries every
+other request field (no `subject_service_id`, no `mode`). A malformed body is `422`; every evaluated
+or refused answer is `200` with the same envelope MCP returns.
 
 ## Connecting a negotiated client
 
@@ -174,7 +209,7 @@ curl -s http://localhost:8000/mcp \
 `get_architecture_drift` takes the identical `request` shape (`service_id` +
 `observation_context`); `get_evidence` instead takes `{"evidence_refs": [...], "snapshot_id":
 "..."}`, both usually read from a prior answer's own `evidence_refs`/`snapshot.snapshot_id`. The
-three tools, their schemas, and their `ArchitectureAnswer` semantics are identical whether reached
+four tools, their schemas, and their `ArchitectureAnswer` semantics are identical whether reached
 over MCP or over the equivalent [REST endpoint](architecture.md#api-surface) — only the transport
 envelope differs (ADR 0016 decision #7).
 
@@ -208,7 +243,7 @@ calls read the same immutable graph state.
 ## Try it end to end
 
 [`examples/runtime-demo/hero-demo.md`](../examples/runtime-demo/hero-demo.md) is a complete,
-deterministic, ~5-minute walkthrough: bring up AIP, seed frozen evidence, discover all three tools
+deterministic, ~5-minute walkthrough: bring up AIP, seed frozen evidence, discover all four tools
 via `tools/list`, then exercise the drift → evidence path via plain `curl` and see a real
 `OBSERVED_ONLY` finding (`OrderService -> LegacyPricingService`) plus its evidence — no AIP internal
 module, no LLM.

@@ -90,3 +90,45 @@ uv run python -m benchmarks.scoped_churn_cost --profile i2 --out <path.json>
 It records observed values only: no threshold, SLO or optimization. The I2 completion record reports
 the `i2` result. `tests/integration/test_scoped_churn_cost_benchmark.py` checks its wiring in CI and
 asserts no timing.
+
+# Locality answer read cost (v0.6.0 I3.4a)
+
+`benchmarks/locality_cost.py` records the read cost of the locality answer
+(`get_service_dependencies_by_locality`) for v0.6.0 I3 (spec
+[`docs/specifications/0.6.0/i3-bounded-current-state-projection-and-public-answers.md`](../docs/specifications/0.6.0/i3-bounded-current-state-projection-and-public-answers.md)
+§14 and §16 item 11; decision record D4). By owner decision, it measures each phase by calling
+the real function on its own; production code does not log timings.
+
+```bash
+uv run python -m benchmarks.locality_cost --profile smoke
+uv run python -m benchmarks.locality_cost --profile i3 --out <path.json>
+```
+
+- **Points (`i3` profile):**
+  - Pod churn with a fixed Workload count (2 Deployments, N = 0, 100 and 1,000 caller Pods);
+  - the Workload cap (60 Deployments);
+  - the membership cap (201 Operations);
+  - source fan-out (S = 1, 5 and 50 accepted captures, so k = 500, 400 and 40), with extra
+    captures in another cluster that raise S but never pair, so they measure page-size reduction;
+  - covering fan-out (S = 5 with 400 Pods, and S = 50 with 40 Pods), where every extra source
+    captures the same Pods, so each candidate pairs with all S sources and the page carries
+    k * S = 2,000 admitted pairs: D4's actual candidate × source work at its bound.
+
+  `smoke` is a two-point subset.
+- **World:** each point is one clean graph built through real write paths: Kubernetes captures
+  through the importer, and CALLS facts with scoped seeds plus observed `PROVIDES` facts through
+  `persist_observation_batch` with scoped evidence on.
+- **Timings** (medians of 5): end to end; the fenced inventory read (`read_locality_inventory`,
+  including the snapshot state); the owner lookup (`read_provider_owners`); the projection
+  (`project_locality_answer`); serialization; and the evidence lookup
+  (`resolve_scoped_locality_evidence`).
+- **Counts:**
+  - the first page's counts;
+  - a full cursor walk on one snapshot: pages, and the caps, I2 truncations and refusals seen;
+  - stable-read retries.
+- **Not measured:** the D6 `S > 2,000` refusal. 2,001 real imports take about 13 minutes, and the
+  I3 oracle's X25 already executes that refusal.
+
+It records observed values only, with no threshold or SLO. The I3 completion record reports the
+`i3` result (`docs/specifications/0.6.0/i3-locality-cost.json`).
+`tests/integration/test_locality_cost_benchmark.py` checks its wiring in CI and asserts no timing.

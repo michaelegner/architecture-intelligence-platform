@@ -4,7 +4,7 @@ Runs the real `run.sh` against the real Compose stack, the same way a user would
 the result independently over standard negotiated MCP:
 
 - `run.sh` exits 0, which means its own `check_ready.py` accepted the §4 step 5 answer shape;
-- `tools/list` advertises exactly the three read-only tools;
+- `tools/list` advertises exactly the four read-only tools (the fourth since v0.6.0 I3.3b);
 - the MCP `get_service_dependencies` answer validates against the published v0.5 answer schema and
   passes the same pinned shape (`check_ready.check_answer`, imported rather than duplicated);
 - one `get_evidence` drill-down resolves every reference at the answer's own snapshot;
@@ -157,7 +157,12 @@ def test_one_command_demo_answers_and_drills_down_at_one_snapshot():
             assert value in prompt
 
         tools = [tool["name"] for tool in _mcp("tools/list", {}, 1)["tools"]]
-        assert tools == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+        assert tools == [
+            "get_architecture_drift",
+            "get_evidence",
+            "get_service_dependencies",
+            "get_service_dependencies_by_locality",
+        ]
 
         answer = _call(
             "get_service_dependencies",

@@ -17,6 +17,7 @@ unknown Service) - those two get their own different, spec-frozen treatment; the
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 import pydantic
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -30,6 +31,11 @@ from app.architecture_intelligence.contracts import (
 from app.architecture_intelligence.deployments_view import (
     ServiceDeploymentsView,
     project_service_deployments,
+)
+from app.architecture_intelligence.locality_contracts import (
+    LocalityAnswer,
+    LocalityEvidenceRequest,
+    LocalityQueryRequest,
 )
 from app.architecture_intelligence.observation_context import reject_malformed_observation_context
 from app.architecture_intelligence.request import (
@@ -146,3 +152,67 @@ def get_service_deployments(
     if any(limitation.code == LimitationCode.UNKNOWN_ENTITY for limitation in answer.limitations):
         raise HTTPException(status_code=404, detail=f"unknown service: {service_id}")
     return project_service_deployments(answer)
+
+
+# --- v0.6.0 I3.3b: the locality answer (I3 decision record D1, D9, D16.2) -----------------------
+#
+# Both routes are POST reads with zero graph writes. The Service comes from the path, and the body
+# carries every other field of the published request (D16.2: the MCP `request` argument, minus
+# `subject_service_id` and `mode`, which the path and the route supply). The bodies are derived
+# from the request models' own fields rather than restated, and they are closed. Only a body that
+# cannot form a valid request is a 422; every evaluated or refused answer is a 200 envelope (D9).
+
+_PATH_SUPPLIED = frozenset({"subject_service_id", "mode"})
+
+
+def _locality_body(request_type: type[pydantic.BaseModel], name: str) -> type[pydantic.BaseModel]:
+    fields: dict[str, Any] = {
+        field: (info.annotation, info)
+        for field, info in request_type.model_fields.items()
+        if field not in _PATH_SUPPLIED
+    }
+    return pydantic.create_model(
+        name, __config__=pydantic.ConfigDict(extra="forbid", frozen=True), **fields
+    )
+
+
+LocalityQueryBody = _locality_body(LocalityQueryRequest, "LocalityQueryBody")
+LocalityEvidenceBody = _locality_body(LocalityEvidenceRequest, "LocalityEvidenceBody")
+
+
+def _locality_request[R: (LocalityQueryRequest, LocalityEvidenceRequest)](
+    request_type: type[R], *, service_id: str, body: pydantic.BaseModel
+) -> R:
+    """The full published request: the body's own fields plus the path's Service and the route's
+    mode. The request model's validators (sorted lists, cursor form, `compare` within
+    `caller_localities`, ...) run here, so a body that fails them is a 422 like a malformed one."""
+    mode = "query" if request_type is LocalityQueryRequest else "evidence"
+    try:
+        return request_type.model_validate(
+            {**body.model_dump(exclude_unset=True), "mode": mode, "subject_service_id": service_id}
+        )
+    except pydantic.ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/{service_id}/dependencies/by-locality")
+def get_service_dependencies_by_locality(
+    service_id: str,
+    body: LocalityQueryBody,  # pyright: ignore[reportInvalidTypeForm]
+    service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
+) -> LocalityAnswer:
+    """`POST /api/services/{service_id}/dependencies/by-locality` (D1, `mode: "query"`)."""
+    request = _locality_request(LocalityQueryRequest, service_id=service_id, body=body)
+    return service.get_service_dependencies_by_locality(request)
+
+
+@router.post("/{service_id}/dependencies/by-locality/evidence")
+def resolve_scoped_locality_evidence(
+    service_id: str,
+    body: LocalityEvidenceBody,  # pyright: ignore[reportInvalidTypeForm]
+    service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
+) -> LocalityAnswer:
+    """`POST /api/services/{service_id}/dependencies/by-locality/evidence` (D1, D11,
+    `mode: "evidence"`)."""
+    request = _locality_request(LocalityEvidenceRequest, service_id=service_id, body=body)
+    return service.resolve_scoped_locality_evidence(request)

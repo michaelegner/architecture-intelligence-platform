@@ -35,9 +35,13 @@ from .independent_mcp_client import (
     call_tool,
     run_dependency_to_evidence_golden_path,
     run_drift_to_evidence_golden_path,
+    run_locality_query_to_evidence,
     tools_list,
 )
+from .locality_oracle import world as locality_world
+from .locality_oracle.matcher import substitute
 from .support.live_server import free_loopback_port, serve_over_real_http
+from .test_locality_oracle import CASES as LOCALITY_CASES
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
@@ -180,6 +184,7 @@ def test_independent_client_completes_the_real_dependency_to_evidence_golden_pat
         "get_architecture_drift",
         "get_evidence",
         "get_service_dependencies",
+        "get_service_dependencies_by_locality",
     ]
     # The client validates against the schemas the server actually *advertises* (spec §17 scenario
     # 21), not only the repository-local frozen copies - a missing, incompatible or mis-wired
@@ -271,6 +276,7 @@ def test_independent_client_completes_the_real_drift_to_evidence_golden_path(
         "get_architecture_drift",
         "get_evidence",
         "get_service_dependencies",
+        "get_service_dependencies_by_locality",
     ]
     advertised_output_schemas = {tool["name"]: tool["outputSchema"] for tool in tools}
 
@@ -364,3 +370,51 @@ def test_independent_client_refusal_through_the_real_app_leaves_graph_state_unch
     fingerprint_after = _fingerprint(driver)
     assert revision_after == revision_before
     assert fingerprint_after == fingerprint_before
+
+
+def test_independent_client_discovers_four_tools_and_drills_a_locality_answer_down(
+    driver, real_app_client, tmp_path
+):
+    """v0.6.0 I3.3c (I3 spec §13, §16 DoD 9): the same independent client, over real HTTP against
+    the real production app, discovers exactly the four reviewed tools, runs the locality query and
+    then its evidence mode on the answer's own refs and snapshot, and a fresh client (a reconnect)
+    gets the identical answer on the same snapshot. The world is the I3 oracle's X04 (one provider
+    with two Operations), built through the real importer and per-POST persistence."""
+    case = LOCALITY_CASES["X04"]
+    prebound = locality_world.build(driver, tmp_path, case["inputs"])
+    real_app, client = real_app_client
+    assert real_app.state.llm_provider is None
+
+    tools = tools_list(client)["tools"]
+    assert [tool["name"] for tool in tools] == [
+        "get_architecture_drift",
+        "get_evidence",
+        "get_service_dependencies",
+        "get_service_dependencies_by_locality",
+    ]
+    output_schema = {tool["name"]: tool["outputSchema"] for tool in tools}[
+        "get_service_dependencies_by_locality"
+    ]
+    request = substitute(case["request"], prebound)
+
+    result = run_locality_query_to_evidence(client, query_request=request)
+
+    query, evidence = result["query"], result["evidence"]
+    assert query["isError"] is False and evidence["isError"] is False
+    jsonschema.validate(instance=query["structuredContent"], schema=output_schema)
+    jsonschema.validate(instance=evidence["structuredContent"], schema=output_schema)
+    assert query["structuredContent"]["outcome"] == "ANSWERED"
+    assert evidence["structuredContent"]["outcome"] == "ANSWERED"
+    entries = evidence["structuredContent"]["data"]["entries"]
+    assert entries and {entry["status"] for entry in entries} == {"RESOLVED"}
+    assert {entry["ref_kind"] for entry in entries} >= {"SCOPED_V2", "POD_CAPTURE"}
+
+    with httpx.Client(
+        base_url=client.base_url, headers={"origin": client.headers["origin"]}, timeout=30.0
+    ) as reconnected:
+        again = call_tool(
+            reconnected,
+            name="get_service_dependencies_by_locality",
+            arguments={"request": request},
+        )
+    assert again["structuredContent"] == query["structuredContent"]
