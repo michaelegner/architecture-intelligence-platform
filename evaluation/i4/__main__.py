@@ -24,6 +24,42 @@ REQUIRED_CASES = {
     *(f"B{i:02}" for i in range(2, 7)),
 }
 
+# Required jobs in .github/workflows/ci.yml and codeql.yml, plus their aggregate checks.
+REQUIRED_CI_CHECKS = frozenset(
+    {
+        "quality",
+        "integration-core (heavy)",
+        "integration-core (oracle)",
+        "integration-core (rest)",
+        "demo-e2e",
+        "lint + test",
+        "dependency security scan (pip-audit, spec §29)",
+        "static analysis (semgrep)",
+        "analyze (python)",
+        "analyze (actions)",
+        "CodeQL",
+    }
+)
+
+
+def ci_blockers(check_runs: list[dict], candidate_sha: str) -> list[str]:
+    """Require every mandatory gate to succeed on the candidate, even for partial API results."""
+    blockers = []
+    missing = REQUIRED_CI_CHECKS - {c["name"] for c in check_runs}
+    if missing:
+        blockers.append(f"missing mandatory CI checks: {sorted(missing)}")
+    for check in check_runs:
+        if check["head_sha"] != candidate_sha:
+            blockers.append(f"CI candidate identity mismatch: {check['name']}/{check['id']}")
+        allowed = (
+            {"success"}
+            if check["name"] in REQUIRED_CI_CHECKS
+            else {"success", "skipped", "neutral"}
+        )
+        if check["status"] != "completed" or check["conclusion"] not in allowed:
+            blockers.append(f"CI check not successful: {check['name']}/{check['id']}")
+    return sorted(set(blockers))
+
 
 def worker_tests() -> list[str]:
     """Every register anchor plus the specified end-to-end gates; full regression runs once."""
@@ -232,14 +268,12 @@ def main() -> int:
                 "status": c["status"],
                 "conclusion": c["conclusion"],
                 "details_url": c["details_url"],
+                "head_sha": c["head_sha"],
             }
             for c in check_runs
         ]
-        if not check_runs or any(
-            c["status"] != "completed" or c["conclusion"] not in {"success", "skipped", "neutral"}
-            for c in check_runs
-        ):
-            result["blockers"].append("exact-SHA CI is missing, incomplete or failing")
+        result["required_ci_checks"] = sorted(REQUIRED_CI_CHECKS)
+        result["blockers"].extend(ci_blockers(check_runs, args.candidate_sha))
     result["status"] = "PASS" if not result["blockers"] else "BLOCKED"
     result["known_debt"] = [
         "#323 remains open; I4 does not correct legacy NL/Kubernetes evidence exposure"

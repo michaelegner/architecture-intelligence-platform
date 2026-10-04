@@ -6,9 +6,53 @@ import json
 import pytest
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
-from evaluation.i4.__main__ import REQUIRED_CASES, compare_runs
+from evaluation.i4.__main__ import REQUIRED_CASES, REQUIRED_CI_CHECKS, ci_blockers, compare_runs
 
 SHA = "a" * 40  # synthetic unit fixture; never qualification evidence
+
+
+def _ci_checks():
+    return [
+        {"id": i, "name": name, "head_sha": SHA, "status": "completed", "conclusion": "success"}
+        for i, name in enumerate(sorted(REQUIRED_CI_CHECKS))
+    ]
+
+
+def test_complete_successful_candidate_ci_passes():
+    assert ci_blockers(_ci_checks(), SHA) == []
+
+
+@pytest.mark.parametrize("missing", sorted(REQUIRED_CI_CHECKS))
+def test_each_missing_mandatory_ci_job_blocks(missing):
+    checks = [c for c in _ci_checks() if c["name"] != missing]
+    assert any("missing mandatory" in b for b in ci_blockers(checks, SHA))
+
+
+@pytest.mark.parametrize("conclusion", ["skipped", "neutral", "failure", "cancelled", None])
+@pytest.mark.parametrize("name", sorted(REQUIRED_CI_CHECKS))
+def test_each_mandatory_ci_job_requires_success(name, conclusion):
+    checks = _ci_checks()
+    next(c for c in checks if c["name"] == name)["conclusion"] = conclusion
+    assert ci_blockers(checks, SHA)
+
+
+def test_one_green_ci_check_is_insufficient():
+    assert ci_blockers(_ci_checks()[:1], SHA)
+
+
+def test_incomplete_ci_or_other_candidate_cannot_qualify():
+    checks = _ci_checks()
+    checks[0]["status"] = "in_progress"
+    checks[1]["head_sha"] = "b" * 40
+    blockers = ci_blockers(checks, SHA)
+    assert any("not successful" in b for b in blockers)
+    assert any("identity mismatch" in b for b in blockers)
+
+
+def test_duplicate_green_check_cannot_hide_failed_required_gate():
+    checks = _ci_checks()
+    checks.append({**checks[0], "id": 99, "conclusion": "failure"})
+    assert ci_blockers(checks, SHA)
 
 
 def _runs(root):

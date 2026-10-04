@@ -1,8 +1,9 @@
 # v0.6.0 I4.2 — Execution record
 
-**Status: implementation prepared; deterministic qualification BLOCKED pending an immutable harness candidate.**
+**Status: deterministic execution passed; CI disposition BLOCKED by unavailable Copilot review.**
 Governing: [I4 accepted revision 0.2](i4-deterministic-semantic-qualification.md), §8 I4.2.
-This is a local implementation/validation record, not an I4-qualified SHA or I4 completion.
+Exact tested candidate, captured from `git rev-parse HEAD` when recording evidence:
+`37eebf2486c0c082ccfe4a6c6f704b4d05e68a6a`. This record does not declare I4 complete or release readiness.
 
 ## Implementation and reconciliation
 
@@ -20,45 +21,60 @@ interpretation and ledger datetime serialization. Qualification producer version
 A development-only recording option permits testing an uncommitted harness and is explicitly
 ineligible for qualification. No benchmark/capacity or I5 handoff work was included.
 
-## Local validation
+## Qualification result
 
-Checkout base (captured with `git rev-parse HEAD` when writing this record): `c283031673ac2d4f1beec85d966b765a25ddf379`.
-This commit does **not** contain the uncommitted I4.2 harness and is **not** its qualification candidate.
+| Run | Process ID | Fresh Neo4j container ID | Recorded resets |
+|---|---|---|---|
+| A | 16773 | `62e7ba7c7809dea0b6056379e869c12f47be355f6d4cbbd4ae3909123f130ea0` | 76 |
+| B | 19161 | `d6c1b28726e16526bc47f58c34c20beb6be6ebccc5f87784aa1f32cbdad22e04` | 76 |
+
 
 | Check | Result |
 |---|---|
-| Ruff format and check | Clean |
-| Pyright | 0 errors, 0 warnings |
-| Import boundaries | 8 kept, 0 broken |
-| Full unit suite | 3,403 passed |
-| Full integration suite, with development recorder | 802 passed, 1 skipped |
-| Comparator checks after final completeness correction | 10 passed |
-| Narrow recorder checks after pin/config/producer corrections | 5 passed |
+| Fresh run A | 417 passed, no skips |
+| Fresh run B | 417 passed, no skips |
+| Required X/P/Q/B inventory | All 52 cases executed in both runs |
+| Semantic artifacts | 600 per run; all oracle checks passed |
+| Raw canonical A/B comparison | Zero differences; no normalization |
+| Service / REST / negotiated MCP | Zero byte differences |
+| Independent HTTP client | Query, evidence and reconnect agree |
+| Local unit suite | 3,404 passed |
+| Local integration suite | 802 passed, 1 existing demo smoke skip |
+| Format, lint, types, import boundaries | Clean; 0 type errors; 8 boundaries kept |
+| Exact-candidate CI | 19 checks succeeded; Copilot review failed with a service error |
 
-The integration skip was the existing Quarkus Compose smoke test: `aip-qsh-demo` was already
-running and was left alone. B06 independently executed its frozen replay and legacy answer pins
-against the disposable integration Neo4j container. This does not turn the skipped Compose test
-into a pass.
+The existing Quarkus Compose smoke test skipped because the owner’s `aip-qsh-demo` project
+was already running. It was left alone. B06 independently executed the frozen replay and legacy
+answer pins against disposable Neo4j; both mandatory qualification workers had no skips.
+CI's actual demo end-to-end checks succeeded on the tested candidate.
 
-Local artifact pointers (uncommitted implementation evidence):
-- `/tmp/aip-i4.2-local-gate/ledger.json`: 600 semantic artifacts; all 52 required X/P/Q/B case IDs
-  present, zero recorded oracle failures and zero within-run surface differences, including three
-  real-HTTP independent-client query/evidence/reconnect artifacts.
-- `/tmp/aip-i4.2-final-recording-verification/ledger.json`: final producer version/SHA checks,
-  ingestion flags and distinct retained C1/C2 generated inputs. Its five tests passed.
+Run IDs, distinct process/container identities, reset evidence, original dispositions,
+per-case digests, pinned inputs/configuration and raw complete semantic bytes are retained in
+[raw-evidence.tar.gz](../../release-validation/v0.6.0-i4.2/raw-evidence.tar.gz).
+Archive SHA-256: `e690d1b5c80f3eaf6bb81bca92843800975d3027a29ed8e4df79b6a660e26c36`.
+Extract it, then run `compare_runs(Path("aip-i4.2-qualification-37eebf2"))` from
+`evaluation.i4.__main__` to independently repeat the semantic comparison.
+The report’s original `/tmp` pointers identify the execution locations; their relative contents
+are preserved beneath the archive’s top-level directory.
 
-Both ledgers explicitly have `qualification_eligible: false`. The full suites preceded the last
-recorder metadata/producer corrections; focused checks verified those corrections without
-repeating unrelated regression work. No qualifying A/B comparison has been executed.
+[Machine-readable report](../../release-validation/v0.6.0-i4.2/report.json) and
+[exact-SHA CI check runs](../../release-validation/v0.6.0-i4.2/ci-check-runs.json) are tracked separately.
+The archive preserves the original pre-publication report (HTTP 422) and its subsequent CI refresh;
+refreshing CI did not alter or rerun semantic artifacts.
 
 ## Blockers and remaining work
 
-1. The owner must request the harness commit before a candidate SHA containing it exists
-   (`AGENTS.md`: do not commit unless the owner asks).
-2. Run the coordinator on that clean, immutable SHA, with fresh A/B processes and containers;
-   record actual raw-byte differences or zero differences. Retrieve and disposition its exact-SHA CI.
-3. Publish the resulting report/artifacts and reconcile the actual qualification outcome.
+The only outstanding check is `copilot-pull-request-reviewer`, ID `111486370096`:
+[service-error review](https://github.com/michaelegner/architecture-intelligence-platform/pull/418#pullrequestreview-5407287355).
+It produced no findings. All test, quality, demo and security checks passed. The report retains
+`BLOCKED` pending disposition of this unavailable automated review; no failed check is presented
+as successful. No semantic mismatch or unexecuted mandatory scenario was found.
 
-Known debt #323 remains open as recorded by I2 F1/I3; I4 does not claim to correct it. Growth
-measurements and owner capacity disposition remain I4.3. The actual controlled capture remains
-I5, and I6 must rerun qualification on its exact final candidate.
+This evidence-only follow-up records results for the candidate above; it does not claim its own
+later commit was separately qualified. The CI completeness correction changes the harness after that candidate; the revised harness
+will be qualified again on a new immutable SHA. Production code, frozen expectations and
+configuration are unchanged.
+
+Known debt #323 remains open as recorded by I2 F1/I3. Growth measurements, owner capacity
+and product-impact disposition, and I5 handoff remain I4.3. The controlled capture remains I5.
+I6 must rerun qualification on its exact final candidate.
