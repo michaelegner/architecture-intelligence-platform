@@ -412,6 +412,11 @@ Minimum requirements for the slice:
   API operation, gateway route/service, application service, gateway consumer, configured access
   relationship, and observed interaction distinct; API product, business capability, domain boundary,
   and organizational owner must not be inferred from a technical name, URL, or graph proximity;
+- preserve the distinction between **integration style**, **interaction pattern**, and **runtime
+  component**: gateway configuration and telemetry may establish bounded API exposure, configured
+  access, and observed usage, but do not establish a system-wide integration style, architectural
+  ownership, or completeness of the integration landscape; neither gateway presence nor absent
+  gateway observations justify those inferences;
 - reconcile source identities through accepted source-specific evidence or explicit mappings,
   including unresolved, ambiguous and conflicting cases; association is not necessarily entity
   equivalence;
