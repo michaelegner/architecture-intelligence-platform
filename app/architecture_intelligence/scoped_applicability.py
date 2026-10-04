@@ -28,8 +28,8 @@ from enum import StrEnum
 from app.architecture_intelligence.deployment_projection import (
     WORKLOAD_KIND_BY_RAW,
     WORKLOAD_KIND_CONSISTENCY_ATTR,
-    parse_rfc3339,
 )
+from app.common.rfc3339 import _parse_rfc3339
 from app.provenance.model import ScopedObservedCall
 from app.telemetry.scoped_attribution import DISPOSITION_PRECEDENCE, LocalityDisposition
 
@@ -430,7 +430,7 @@ def evaluate_pair(
     reasons = set()
     if not window.contains(record.last_seen):
         reasons.add(REASON_OBSERVATION_TEMPORAL_MISMATCH)
-    captured_at = parse_rfc3339(capture.captured_at)
+    captured_at = _parse_rfc3339(capture.captured_at)
     if captured_at is None:
         reasons.add(REASON_CAPTURE_TIMESTAMP_MISSING)
     elif not window.contains(captured_at):

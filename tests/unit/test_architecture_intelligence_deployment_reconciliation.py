@@ -9,7 +9,10 @@ group naturally produces matching `resolution_id`s across paths - the same real 
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
+from unittest.mock import MagicMock
+
+import pytest
 
 from app.architecture_intelligence.contracts import (
     DeploymentResolutionMethod,
@@ -31,6 +34,7 @@ from app.architecture_intelligence.deployment_projection import (
 from app.architecture_intelligence.deployment_reconciliation import (
     _bucket_by_window,
     _public_evidence_ref,
+    _resolve_workload_group_key,
     check_result_bounds,
     filter_for_service,
     reduce_cross_path_resolutions,
@@ -191,6 +195,52 @@ def _path_c(
         snapshot_id=SNAPSHOT_ID,
         context_id=CONTEXT_ID,
     )
+
+
+@pytest.mark.parametrize(
+    ("captured_at", "expected"),
+    [
+        ("2026-08-26T12:00:00", None),
+        (
+            "2026-08-26T12:00:00+02:00",
+            datetime(2026, 8, 26, 12, 0, tzinfo=timezone(timedelta(hours=2))),
+        ),
+    ],
+)
+def test_resolve_workload_group_key_parses_only_timezone_aware_capture_timestamps(
+    monkeypatch, captured_at, expected
+):
+    pod = MagicMock()
+    pod.pod_id = "pod-1"
+    pod.captured_at = captured_at
+    owner = MagicMock(workload_id="workload-1")
+    monkeypatch.setattr(
+        "app.architecture_intelligence.deployment_reconciliation.read_captured_pods_by_uid",
+        lambda session, pod_uid: [pod],
+    )
+    monkeypatch.setattr(
+        "app.architecture_intelligence.deployment_reconciliation.read_workload_ids_owning_pod",
+        lambda session, pod_id: [owner],
+    )
+    observation = RuntimeIdentityObservationRow(
+        id="observation-1",
+        service_name="checkout",
+        service_namespace=None,
+        service_version=None,
+        environment="prod",
+        k8s_pod_uid="pod-uid-1",
+        k8s_pod_name=None,
+        k8s_namespace_name=None,
+        k8s_cluster_uid=None,
+        k8s_deployment_name=None,
+        k8s_statefulset_name=None,
+        k8s_daemonset_name=None,
+        last_seen=None,
+    )
+
+    result = _resolve_workload_group_key(MagicMock(), observation)
+
+    assert result == ("workload-1", expected)
 
 
 def test_path_a_only_passes_through_as_resolved_explicit():
