@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-10-03_
+_Last reviewed: 2026-10-04_
 
 ## AIP anchor
 
@@ -354,6 +354,8 @@ as a replacement for AIP's Canonical Model or as additional v0.5 scope.
 
 - [Tiramemsu — repository and design](https://github.com/Volland/tiramemsu)
 - [Volodymyr Pavlyshyn — Tiramemsu: memory that remembers being wrong](https://volodymyrpavlyshyn.substack.com/p/tiramemsu-memory-that-remembers-being)
+- [Pavlyshyn — *Layered Bitemporal Graphs: Statement Identity, Two Clocks, and Metagraphs as Tags*, revision 4 (2026-10-03)](https://github.com/Volland/tiramemsu/blob/main/paper/arxiv/revision-4/layered-bitemporal-graphs-arxiv-preview-v4.pdf)
+- [Revision 4 retained verification artifact](https://github.com/Volland/tiramemsu/blob/main/paper/artifact/README.md)
 
 **Core idea**
 
@@ -383,6 +385,48 @@ qualification rule versions, and projection lineage. Neither a two-clock store n
 alone supplies those semantics. Statement-level dependents offer a useful model for asking which
 previous qualified assessments or projections may be stale after evidence or rules change; AIP
 would still have to establish that dependency and re-qualify rather than copy the store's belief.
+
+**Revision 4: formal integrity and correction semantics (2026-10-03)**
+
+The paper formalises *immutable statement occurrences*, references to other statements,
+transaction-time lifetimes (when the store recorded or retracted an occurrence), and
+valid-time intervals (when the occurrence asserts something held). Its *ground core* is
+the largest reference-closed subset of a view: an annotation cannot remain in a grounded
+view without its referenced statement. Under explicit live-reference and correction
+conditions, it characterises grounded snapshots, minimal reference cascades, and
+effective valid-time intervals. Historical as-of views remain reproducible under the
+paper's never-forget transaction discipline.
+
+**AIP research questions**
+
+- **Historical reproducibility:** distinguish what AIP established with evidence
+  available *then* from what it can establish *now about that earlier period*. An
+  observation window, Intent effective interval, source-revision timestamp, and
+  transaction time are not interchangeable; reconstruction also needs the original
+  identity, qualification rules, and derived-claim lineage.
+- **Correction integrity:** when a source assertion or identity mapping is withdrawn,
+  identify which derived claims and answers need requalification without erasing
+  historical evaluations. The paper's cascade follows statement references; **AIP
+  claims may have alternative independent justifications**. Losing one support does
+  not necessarily invalidate the claim. Reference closure does not replace AIP's
+  evidence-applicability and qualification rules.
+- **Metagraph semantics:** the paper encodes temporally well-formed graph membership
+  using statement-level tags. This could inform storage/projection choices for
+  the logical-composition gaps identified with CALM and Structurizr, but
+  `PART_OF`, `DEPLOYED_AS`, and ownership still require independent, typed AIP
+  semantics. An encoding theorem does not establish their meaning.
+
+**Evidence limits**
+
+Revision 4 reports retained finite-model checks and repairs for four identified
+Tiramemsu engine-contract gaps. The author states that these checks **do not certify
+the entire engine**, supply independent proof review, establish factual correctness,
+or measure production performance or agent-memory quality. The correction theorem
+preserves structural references, **not** whether copied confidence or source
+annotations remain true of a replacement; applications must decide what to retain,
+drop, or revalidate. This is a research reference for AIP's *beyond-v1.0* history and
+trajectory questions, not an endorsement of a storage engine, migration, or new
+pre-v1.0 roadmap work.
 
 **AIP boundary**
 
