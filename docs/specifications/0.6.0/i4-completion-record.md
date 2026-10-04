@@ -1,9 +1,9 @@
 # v0.6.0 I4 — Completion record
 
-**Status: execution and measurements complete; owner capacity and external-review dispositions pending.**
+**Status: I4 complete; qualified for the bounded I5 handoff.**
 Governing: [I4 accepted revision 0.2](i4-deterministic-semantic-qualification.md), §§4, 6–8;
-accepted parent §§20–21, 25. I4 is not yet declared qualified for handoff or release-ready.
-Exact candidate, captured from git while writing this record: `460c6c20eb704caac479111da31292204fa2a1aa`.
+accepted parent §§20–21, 25. Production capacity remains unestablished; release readiness remains I6.
+Exact tested candidate, reverified from git while finalizing this record: `460c6c20eb704caac479111da31292204fa2a1aa`.
 
 ## Qualification and coverage
 
@@ -23,10 +23,9 @@ for these complete new runs.
 The local gate passed Ruff, Pyright (zero errors), 8 import contracts, 3,482 unit tests and
 803 integration tests. One existing demo smoke skipped because the owner’s Compose project was
 running; no mandatory qualification case skipped. Exact-candidate CI includes all 11 required
-check names, with 19 successful test/demo/security/quality check runs. The failed optional
-Copilot job is retained: weekly quota exhausted, HTTP 429; check `111504163660`. It is not presented
-as successful. The untouched coordinator report remains BLOCKED solely for that external job;
-owner disposition is still required before the consolidated record declares qualification.
+check names, with 19 successful test/demo/security/quality check runs.
+The owner’s [PR review](https://github.com/michaelegner/architecture-intelligence-platform/pull/420#issuecomment-5983674633)
+found no material implementation blocker.
 
 ## Observed growth and retained state
 
@@ -85,14 +84,22 @@ fingerprint latency; retained-state growth remains an operational concern.
 
 ## Capacity/operational disposition
 
-**PENDING — Michael Egner.** The owner must review Pod-churn growth, retained state, capture
-overhead, the measured ratios and limits of one host before the measurements are called acceptable
-(I4 §6). No automatic budget approval, numerical SLO or enacted ADR 0012 policy is implied.
+**ACCEPTED for the bounded I5 handoff — Michael Egner.** Recorded from the owner’s instruction
+in this implementation session on 2026-10-04 (record finalized at 19:47:14 UTC):
+
+> Accept these measured costs and retained-state limitations for the bounded I5 handoff; production capacity remains unestablished.
+
+This disposition covers the measured Pod-churn growth, retained-state cost, capture overhead,
+observed ratios and limits of one host/run described above (I4 §6). It establishes no numerical
+SLO, production capacity, retention policy or enacted ADR 0012 policy.
 
 ## Evidence, reconciliation and limits
 
 [Full evidence bundle](../../release-validation/v0.6.0-i4/evidence-460c6c2.tar.gz) retains complete A/B
 ledgers/raw bytes/input pins, commands, benchmark JSON and exact-SHA check runs.
+The archive preserves the original execution-time summary; the separately tracked summary below
+records final acceptance. The original coordinator report is an execution-time artifact;
+this completion record and the current summary state the consolidated qualification result. Raw execution results are unchanged.
 Archive SHA-256: `a9f4117eb9d61a07d60b19baa5aedf2cf7b2407d018be6010f563ea54db67e06`.
 [Summary](../../release-validation/v0.6.0-i4/i4-summary.json),
 [churn JSON](../../release-validation/v0.6.0-i4/churn.json),
@@ -105,8 +112,10 @@ The approved plan is retained verbatim in PR #420. Completed as planned: pinned 
 existing scale profiles and covering fan-out, real frozen C1/C2 replacement measurements,
 source/configuration/producer verification, full new A/B qualification and durable evidence.
 The shared `measure_reads` extraction avoids duplicating existing phase measurement. No semantic
-question or production/default/schema/expectation change occurred. Remaining work is owner
-capacity/external-review disposition and finalizing the [I5 handoff](i4-i5-handoff.md).
+question or production/default/schema/expectation change occurred. The owner’s capacity
+disposition is recorded above and the [I5 handoff](i4-i5-handoff.md) is complete.
+No I4 work is deferred; actual controlled capture and final-candidate release qualification
+remain assigned to I5 and I6 respectively.
 
 Synthetic benchmark inputs are labelled as such. X25’s S>2,000 correctness is separately qualified
 with the previously disclosed capture cloning; its refusal latency was not measured. Actual I5

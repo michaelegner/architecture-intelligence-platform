@@ -1,12 +1,14 @@
 # v0.6.0 I4 → I5 handoff
 
-**Status: prepared; I4 qualification and capacity disposition pending.**
-Measurement/qualification candidate: `460c6c20eb704caac479111da31292204fa2a1aa` (captured from git while drafting).
+**Status: I4-qualified for the bounded I5 handoff; owner capacity disposition accepted.**
+I4-qualified candidate: `460c6c20eb704caac479111da31292204fa2a1aa` (reverified from git while finalizing).
 Governing: accepted I4 revision 0.2 and parent §§22–25.
 
-The I4 completion record will bind the frozen coverage register, I1/I2/I3/I4 expectations,
+The [I4 completion record](i4-completion-record.md) binds the frozen coverage register, I1/I2/I3/I4 expectations,
 published v0.6 schemas, actual A/B artifacts and measured costs to this candidate. No claim is made
 that a later I5 or I6 commit was already qualified.
+
+Owner disposition: “Accept these measured costs and retained-state limitations for the bounded I5 handoff; production capacity remains unestablished.”
 
 ## What I5 must independently establish
 
@@ -32,8 +34,8 @@ capture/demo is not a production product pilot; the parent’s pilot status/disp
 
 ## Carry-forward limits
 
-- The I4 operational disposition will name observed growth, retained state, capture overhead and
-  limits of one host; it is not a product SLO or enacted retention/compaction policy.
+- The accepted I4 operational disposition covers observed growth, retained state, capture overhead
+  and limits of one host; it is not a product SLO or enacted retention/compaction policy.
 - Known #323 legacy NL/Kubernetes exposure remains open with the owner; I4 does not fix it.
 - I6 must repeat qualification on its exact final candidate after any code, schema, fixture,
   default configuration or release-packaging change. Default enablement, version/publication,
