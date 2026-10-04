@@ -73,6 +73,7 @@ from app.architecture_intelligence.deployment_repository import (
     read_workload_ids_owning_pod,
 )
 from app.architecture_intelligence.observation_context import build_observation_context_ref
+from app.common.rfc3339 import _parse_rfc3339
 from app.provenance.model import SourceType
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
 from app.telemetry.service_resolver import DeclaredServiceCandidate, fetch_candidates
@@ -574,12 +575,7 @@ def _resolve_workload_group_key(
     owners = read_workload_ids_owning_pod(session, pod_id=pod.pod_id)
     if len(owners) != 1:
         return None
-    captured_at = None
-    if pod.captured_at is not None:
-        try:
-            captured_at = datetime.fromisoformat(pod.captured_at)
-        except ValueError:
-            captured_at = None
+    captured_at = _parse_rfc3339(pod.captured_at)
     return owners[0].workload_id, captured_at
 
 

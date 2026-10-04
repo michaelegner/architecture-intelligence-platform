@@ -32,6 +32,7 @@ from app.architecture_intelligence.contracts import (
     WorkloadKind,
     WorkloadRef,
 )
+from app.common.rfc3339 import _parse_rfc3339
 from app.sources.identity import kubernetes_logical_resource_id
 from app.sources.service_workload_mapping import (
     ServiceWorkloadMappingDocument,
@@ -578,21 +579,6 @@ WORKLOAD_KIND_CONSISTENCY_ATTR = {
 }
 
 
-def parse_rfc3339(value: str | None) -> datetime | None:
-    """No RFC 3339 parser already exists elsewhere in this codebase for this purpose - small and
-    local. `None` for a missing or unparsable value; the caller treats both as "absent" (spec
-    §9.7's `capturedAt`-absent case)."""
-    if value is None:
-        return None
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        return None
-    return parsed
-
-
 def _resolve_declared_service_id(
     *,
     obs: RuntimeIdentityObservationRow,
@@ -687,7 +673,7 @@ def _observation_context_limitation(
         observation_context.window_start <= obs.last_seen <= observation_context.window_end
     ):
         return LimitationCode.DEPLOYMENT_TEMPORAL_MISMATCH
-    captured_at = parse_rfc3339(pod.captured_at)
+    captured_at = _parse_rfc3339(pod.captured_at)
     if captured_at is None or not (
         observation_context.window_start <= captured_at <= observation_context.window_end
     ):
