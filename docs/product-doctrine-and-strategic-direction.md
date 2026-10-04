@@ -13,6 +13,10 @@
 
 ## 1. Executive Summary
 
+AIP's overarching mission is:
+
+> **Build architecture intelligence that agents can consume and humans can inspect, challenge, and understand.**
+
 AIP's customer value proposition is:
 
 > **Help coding agents work across multi-service systems without reconstructing architecture.**
@@ -156,6 +160,8 @@ procedure merely because a Current State differs from explicit intent.
 
 "Moldable" describes the **question, projection, composition, and representation** of Architecture
 Knowledge. It does not mean that facts become user-shaped or that qualification becomes negotiable.
+Both humans and agents can mold questions, explore qualified answers, follow evidence, and compose
+question-specific projections without changing the knowledge or its qualification.
 
 ```text
 consumer may mold:
@@ -2737,6 +2743,9 @@ by the target audience.
 The product direction remains sound. The Wardley-mapping exercise clarifies the strategic hierarchy:
 
 ```text
+Mission:
+Build architecture intelligence that agents can consume and humans can inspect, challenge, and understand.
+
 Customer value proposition:
 Help coding agents work across multi-service systems
 without reconstructing architecture
