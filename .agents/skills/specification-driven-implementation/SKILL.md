@@ -139,6 +139,16 @@ report it separately; do not silently enlarge the PR. Re-run the applicable vali
 check within the existing workflow, not an additional approval gate or a reason to block on
 cosmetic preferences.
 
+For Python-changing PRs, record the outcome in the PR description under **Refactoring report**:
+- **Refactoring performed:** Yes / No.
+- **Improvements:** Name concrete, diff-verifiable changes (prefer file/function references), or
+  `None needed`.
+- **Remaining structural debt:** Material findings only, or `None identified`.
+- **Verification:** Checks actually run after any refactoring, or explicitly note what was not run.
+
+A `No / None needed` outcome is valid. Never claim a refactoring happened without an identifiable
+code change. Omit the report for documentation-only PRs; this is reporting, not an extra gate.
+
 ## Checking for review feedback
 
 Before treating a "findings check" as complete — whether re-reviewing a PR or responding to
