@@ -1,5 +1,11 @@
 # Roadmap
 
+**Product mission:** Build architecture intelligence that agents can consume and humans can inspect, challenge, and understand.
+
+This mission guides human and agent exploration of the same evidence-qualified architecture
+knowledge; it does not introduce additional release scope or alter the qualification requirements
+below.
+
 ## Versioning
 
 AIP follows [Semantic Versioning](https://semver.org/) with an additional product discipline from
