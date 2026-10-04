@@ -73,8 +73,8 @@ constant, what does caller-Pod-scoped v2 evidence cost as the number of distinct
 The comparison is against the same traffic with scoped evidence off.
 
 ```bash
-uv run python -m benchmarks.scoped_churn_cost --profile smoke
-uv run python -m benchmarks.scoped_churn_cost --profile i2 --out <path.json>
+uv run python -m benchmarks.scoped_churn_cost --profile smoke --candidate-sha <full-sha>
+uv run python -m benchmarks.scoped_churn_cost --profile i2 --out <path.json> --candidate-sha <full-sha>
 ```
 
 - Profiles: `smoke` is N = 0 and 3, and `i2` is N = 0, 100 and 1,000.
@@ -100,8 +100,8 @@ asserts no timing.
 the real function on its own; production code does not log timings.
 
 ```bash
-uv run python -m benchmarks.locality_cost --profile smoke
-uv run python -m benchmarks.locality_cost --profile i3 --out <path.json>
+uv run python -m benchmarks.locality_cost --profile smoke --candidate-sha <full-sha>
+uv run python -m benchmarks.locality_cost --profile i3 --out <path.json> --candidate-sha <full-sha>
 ```
 
 - **Points (`i3` profile):**
@@ -132,3 +132,11 @@ uv run python -m benchmarks.locality_cost --profile i3 --out <path.json>
 It records observed values only, with no threshold or SLO. The I3 completion record reports the
 `i3` result (`docs/specifications/0.6.0/i3-locality-cost.json`).
 `tests/integration/test_locality_cost_benchmark.py` checks its wiring in CI and asserts no timing.
+
+I4 qualification requires a clean checkout at the explicit candidate SHA. Both scripts verify
+HEAD and the actual package/build identity before measuring and before publishing results.
+The churn `i2` profile also measures the frozen B01a/B01b C1→C2 replacement on the same graph;
+the original assertions execute unchanged. JSON retains generated capture bytes/digests, import
+and per-POST costs, graph counts, phase costs and full-walk disposition/selection denominators.
+The five timing repetitions are repeated reads within a point, not five independent hosts or
+five reimports. No timing is a product SLO.

@@ -34,8 +34,8 @@ I3 oracle's X25 already executes it.
 Dev/qualification tooling only, like the other benchmarks: never imported by `app/`, never in the
 production image. Boots its own disposable Testcontainers Neo4j.
 
-    uv run python -m benchmarks.locality_cost --profile smoke
-    uv run python -m benchmarks.locality_cost --profile i3 --out <path.json>
+    uv run python -m benchmarks.locality_cost --profile smoke --candidate-sha <full-sha>
+    uv run python -m benchmarks.locality_cost --profile i3 --out <path.json> --candidate-sha <full-sha>
 """
 
 from __future__ import annotations
@@ -45,6 +45,8 @@ import hashlib
 import json
 import sys
 import tempfile
+import time
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -80,6 +82,8 @@ from app.sources.model import KubernetesSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate, ObservedOnlyEntity
 from app.telemetry.scoped_attribution import ScopedCallSeed
+from benchmarks.i4_metadata import input_pins, metadata, producer
+from benchmarks.scoped_churn_cost import _counts as graph_counts
 from benchmarks.scoped_churn_cost import _git, _median_ms, _reset
 from benchmarks.snapshot_read_cost import collect_runtime_metadata
 
@@ -333,7 +337,7 @@ def _facts(point: Point) -> list[ObservedFactCandidate]:
     return facts
 
 
-def build(driver: neo4j.Driver, point: Point, work_dir: Path) -> None:
+def build(driver: neo4j.Driver, point: Point, work_dir: Path) -> dict:
     """One clean graph for `point`, through the real importer and per-POST persistence."""
     _reset(driver)
     configs = [
@@ -353,9 +357,12 @@ def build(driver: neo4j.Driver, point: Point, work_dir: Path) -> None:
         )
         for n in range(1, point.sources)
     ]
+    capture_times = []
     for config in configs:
+        started = time.perf_counter()
         if not import_kubernetes_source(driver, database=DATABASE, source_config=config).committed:
             raise RuntimeError(f"the benchmark capture {config.id} was not accepted")
+        capture_times.append((time.perf_counter() - started) * 1000)
     facts = _facts(point)
     entities = [
         ObservedOnlyEntity(id=CALLER, label="Service", name="orders"),
@@ -366,13 +373,25 @@ def build(driver: neo4j.Driver, point: Point, work_dir: Path) -> None:
         ),
     ]
     scoped = ScopedEvidenceConfig(enabled=True, **{"stream-id": STREAM_ID})
+    post_times = []
     for start in range(0, len(facts), FACTS_PER_POST):
+        started = time.perf_counter()
         persist_observation_batch(
             driver,
             DATABASE,
             ObservationBatch(entities=entities, facts=facts[start : start + FACTS_PER_POST]),
             scoped=scoped,
         )
+
+        post_times.append((time.perf_counter() - started) * 1000)
+    return {
+        "capture_import_ms": capture_times,
+        "persist_ms_per_post": post_times,
+        "accepted_facts": len(facts),
+        "source_configurations": [config.model_dump(mode="json") for config in configs],
+        "scoped_configuration": scoped.model_dump(mode="json"),
+        "generated_inputs": input_pins(work_dir),
+    }
 
 
 def _query(cursor: str | None = None) -> LocalityQueryRequest:
@@ -407,16 +426,29 @@ def _counts(data: ServiceDependenciesByLocalityData) -> dict[str, Any]:
     }
 
 
-def walk(service: ArchitectureIntelligenceService) -> dict[str, Any]:
+def walk(
+    service: ArchitectureIntelligenceService, query: LocalityQueryRequest | None = None
+) -> dict[str, Any]:
     """Every page of the query, by cursor, on one snapshot: the cap and refusal frequency."""
     pages, cursor, seen = [], None, []
+    dispositions = Counter()
+    pairs = Counter()
+    selected = 0
+    query = query or _query()
     while True:
-        answer = service.get_service_dependencies_by_locality(_query(cursor))
+        answer = service.get_service_dependencies_by_locality(
+            query.model_copy(update={"cursor": cursor})
+        )
         if answer.data is None:
             pages.append({"refusal": answer.limitations[0].code.value})
             break
         data = _data(answer)
         seen += [candidate.v2_evidence_id for candidate in data.candidates]
+        dispositions.update(c.disposition.value for c in data.candidates)
+        pairs.update(p.disposition.value for c in data.candidates for p in c.pairs)
+        selected += sum(
+            any(p.disposition.value == "APPLICABLE" for p in c.pairs) for c in data.candidates
+        )
         pages.append(
             {
                 "candidates": len(data.candidates),
@@ -436,6 +468,17 @@ def walk(service: ArchitectureIntelligenceService) -> dict[str, Any]:
         "pages_i2_truncated": sum(1 for page in pages if page.get("i2_truncated")),
         "refusals": sum(1 for page in pages if "refusal" in page),
         "per_page": pages,
+        "candidate_dispositions": dict(dispositions),
+        "pair_dispositions": dict(pairs),
+        "capture_selection": {"applicable_candidates": selected, "evaluated_candidates": len(seen)},
+        "unresolved_rate": {
+            "unresolved_candidates": dispositions["UNRESOLVED"],
+            "evaluated_candidates": len(seen),
+        },
+        "refusal_rate": {
+            "refused_pages": sum(1 for p in pages if "refusal" in p),
+            "requested_pages": len(pages),
+        },
     }
 
 
@@ -457,11 +500,28 @@ def _stable_read_retries(operation: Callable[[], object]) -> int:
 
 
 def measure_point(driver: neo4j.Driver, point: Point, work_dir: Path) -> dict[str, Any]:
-    build(driver, point, work_dir)
+    ingestion = build(driver, point, work_dir)
     service = ArchitectureIntelligenceService(driver, database=DATABASE, producer=PRODUCER)
-    query = _query()
+    return {
+        "point": point.name,
+        "workloads": point.workloads,
+        "pods": point.pods,
+        "operations": point.operations,
+        "sources": point.sources,
+        "ingestion": ingestion,
+        **measure_reads(driver, service, _query(), PRODUCER),
+    }
+
+
+def measure_reads(
+    driver: neo4j.Driver,
+    service: ArchitectureIntelligenceService,
+    query: LocalityQueryRequest,
+    configured_producer: Producer,
+) -> dict[str, Any]:
     locality = internal_request(query)
     first = service.get_service_dependencies_by_locality(query)
+    assert first.producer == configured_producer
     data = _data(first)
     refs = sorted(
         {
@@ -498,6 +558,12 @@ def measure_point(driver: neo4j.Driver, point: Point, work_dir: Path) -> dict[st
             else []
         )
         considered = read.page.considered_source_count if read.page is not None else 0
+        counts = graph_counts(session)
+        fingerprint_ms = _median_ms(
+            lambda: repository.snapshot_fingerprint(
+                repository.canonical_snapshot_state(session, coverage_qualification_enabled=True)
+            )
+        )
         timings = {
             "end_to_end_ms_median": _median_ms(
                 lambda: service.get_service_dependencies_by_locality(query)
@@ -512,7 +578,7 @@ def measure_point(driver: neo4j.Driver, point: Point, work_dir: Path) -> dict[st
                     read.applicability(),
                     read.owners,
                     considered_sources=considered,
-                    producer=PRODUCER,
+                    producer=configured_producer,
                 )
             ),
             "serialization_ms_median": _median_ms(first.model_dump_json),
@@ -521,16 +587,13 @@ def measure_point(driver: neo4j.Driver, point: Point, work_dir: Path) -> dict[st
             ),
         }
     return {
-        "point": point.name,
-        "workloads": point.workloads,
-        "pods": point.pods,
-        "operations": point.operations,
-        "sources": point.sources,
+        "retained_graph": counts,
+        "snapshot_fingerprint_ms_median": fingerprint_ms,
         "first_page": _counts(data),
         "outcome": first.outcome.value,
         "evidence_refs_looked_up": len(refs),
         "timings": timings,
-        "walk": walk(service),
+        "walk": walk(service, query),
         "stable_read_retries": _stable_read_retries(
             lambda: service.get_service_dependencies_by_locality(query)
         ),
@@ -567,13 +630,29 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m benchmarks.locality_cost")
     parser.add_argument("--profile", choices=sorted(PROFILES), default="smoke")
     parser.add_argument("--out", type=Path)
+    parser.add_argument("--candidate-sha", required=True)
     args = parser.parse_args(argv)
+    global PRODUCER
+    PRODUCER = producer(args.candidate_sha)
     with Neo4jContainer(
         "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93"
     ) as container:
         driver = container.get_driver()
         try:
             result = run(args.profile, driver)
+            assert result["commit"] == args.candidate_sha and not result["dirty_worktree"]
+            result.update(
+                metadata(
+                    args.candidate_sha,
+                    PRODUCER,
+                    container,
+                    {
+                        "profile": args.profile,
+                        "scoped_evidence": True,
+                        "facts_per_post": FACTS_PER_POST,
+                    },
+                )
+            )
         finally:
             driver.close()
     text = json.dumps(result, indent=2, sort_keys=True) + "\n"
