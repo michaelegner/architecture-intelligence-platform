@@ -460,7 +460,9 @@ def pytest_sessionfinish(session, exitstatus):
         verify_candidate(capture.sha, development=not capture.ledger["qualification_eligible"])
     except (ValueError, AssertionError):
         capture.ledger["qualification_eligible"] = False
-        capture.ledger["identity_failure"] = "checkout identity or cleanliness changed during execution"
+        capture.ledger["identity_failure"] = (
+            "checkout identity or cleanliness changed during execution"
+        )
     capture.ledger.update(
         exit_code=int(exitstatus),
         records=capture.records,
