@@ -17,8 +17,8 @@ read calls the real production code: `canonical_snapshot_state` + `snapshot_fing
 Dev/qualification tooling only, like `benchmarks/snapshot_read_cost.py`: never imported by `app/`,
 never in the production image. Boots its own disposable Testcontainers Neo4j.
 
-    uv run python -m benchmarks.scoped_churn_cost --profile smoke
-    uv run python -m benchmarks.scoped_churn_cost --profile i2 --out <path.json>
+    uv run python -m benchmarks.scoped_churn_cost --profile smoke --candidate-sha <full-sha>
+    uv run python -m benchmarks.scoped_churn_cost --profile i2 --out <path.json> --candidate-sha <full-sha>
 """
 
 from __future__ import annotations
@@ -54,6 +54,7 @@ from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate, ObservedOnlyEntity
 from app.telemetry.scoped_attribution import ScopedCallSeed
 from app.telemetry.scoped_ledger import read_transition_report
+from benchmarks.i4_metadata import input_pins, metadata, producer
 from benchmarks.snapshot_read_cost import collect_runtime_metadata
 
 NAME = "scoped_churn_cost"
@@ -260,6 +261,12 @@ def _counts(session: neo4j.Session) -> dict[str, int]:
         "scoped_operational_nodes": one(
             "MATCH (n) WHERE any(l IN labels(n) WHERE l STARTS WITH 'ScopedEvidence') RETURN count(n) AS n"
         ),
+        "scoped_nodes": one(
+            "MATCH (n) WHERE any(l IN labels(n) WHERE l = 'ScopedObservedCallV2' OR l STARTS WITH 'ScopedEvidence') RETURN count(n) AS n"
+        ),
+        "scoped_relationships": one(
+            "MATCH (a)-[r]->(b) WHERE any(n IN [a,b] WHERE any(l IN labels(n) WHERE l = 'ScopedObservedCallV2' OR l STARTS WITH 'ScopedEvidence')) RETURN count(r) AS n"
+        ),
         "total_nodes": one("MATCH (n) RETURN count(n) AS n"),
         "total_relationships": one("MATCH ()-[r]->() RETURN count(r) AS n"),
     }
@@ -280,11 +287,12 @@ def measure_point(driver: neo4j.Driver, pods: int, work_dir: Path) -> dict[str, 
     )
     for enabled in (False, True):
         _reset(driver)
-        stats = import_kubernetes_source(
-            driver, database=DATABASE, source_config=_capture(work_dir / f"{pods}-{enabled}", pods)
-        )
+        source_config = _capture(work_dir / f"{pods}-{enabled}", pods)
+        capture_started = time.perf_counter()
+        stats = import_kubernetes_source(driver, database=DATABASE, source_config=source_config)
         if not stats.committed:
             raise RuntimeError(f"the benchmark capture for N={pods} was not accepted")
+        capture_ms = (time.perf_counter() - capture_started) * 1000
         scoped = ScopedEvidenceConfig(enabled=enabled, **{"stream-id": STREAM_ID})
         per_post = []
         for unit in units:
@@ -297,6 +305,12 @@ def measure_point(driver: neo4j.Driver, pods: int, work_dir: Path) -> dict[str, 
             label = "on" if enabled else "off"
             point[label] = {
                 **_counts(session),
+                "accepted_facts": len(facts),
+                "capture_import_ms": capture_ms,
+                "source_configuration": source_config.model_dump(mode="json"),
+                "persist_ms_per_post": per_post,
+                "generated_inputs": input_pins(work_dir / f"{pods}-{enabled}"),
+                "scoped_configuration": scoped.model_dump(mode="json"),
                 "posts": len(units),
                 "persist_ms_per_post_median": round(statistics.median(per_post), 3)
                 if per_post
@@ -320,6 +334,21 @@ def measure_point(driver: neo4j.Driver, pods: int, work_dir: Path) -> dict[str, 
                     + len(result.candidate_limitations),
                     "truncated": result.truncated,
                 }
+                from app.architecture_intelligence.locality_contracts import LocalityQueryRequest
+                from benchmarks.locality_cost import measure_reads
+
+                point[label]["locality"] = measure_reads(
+                    driver,
+                    service,
+                    LocalityQueryRequest(
+                        mode="query",
+                        subject_service_id=CALLER,
+                        environment=ENVIRONMENT,
+                        first_day=DAY,
+                        last_day=DAY,
+                    ),
+                    PRODUCER,
+                )
                 point[label]["transition_report_ms_median"] = _median_ms(
                     lambda: read_transition_report(session, STREAM_ID)
                 )
@@ -342,6 +371,13 @@ def run(profile: str, driver: neo4j.Driver) -> dict[str, Any]:
         ).single()["v"]
     with tempfile.TemporaryDirectory(prefix="aip-churn-") as work:
         points = [measure_point(driver, n, Path(work)) for n in SCALE_POINTS[profile]]
+        from benchmarks.i4_replacement import measure_replacements
+
+        replacements = (
+            measure_replacements(driver, Path(work) / "replacement", PRODUCER)
+            if profile == "i2"
+            else []
+        )
     return {
         "schema_version": SCHEMA_VERSION,
         "benchmark": NAME,
@@ -353,6 +389,7 @@ def run(profile: str, driver: neo4j.Driver) -> dict[str, Any]:
         "facts_per_post": FACTS_PER_POST,
         "runtime": collect_runtime_metadata(neo4j_version=neo4j_version),
         "points": points,
+        "replacements": replacements,
     }
 
 
@@ -362,13 +399,29 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m benchmarks.scoped_churn_cost")
     parser.add_argument("--profile", choices=sorted(SCALE_POINTS), default="smoke")
     parser.add_argument("--out", type=Path)
+    parser.add_argument("--candidate-sha", required=True)
     args = parser.parse_args(argv)
+    global PRODUCER
+    PRODUCER = producer(args.candidate_sha)
     with Neo4jContainer(
         "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93"
     ) as container:
         driver = container.get_driver()
         try:
             result = run(args.profile, driver)
+            assert result["commit"] == args.candidate_sha and not result["dirty_worktree"]
+            result.update(
+                metadata(
+                    args.candidate_sha,
+                    PRODUCER,
+                    container,
+                    {
+                        "profile": args.profile,
+                        "scoped_evidence": [False, True],
+                        "facts_per_post": FACTS_PER_POST,
+                    },
+                )
+            )
         finally:
             driver.close()
     text = json.dumps(result, indent=2, sort_keys=True) + "\n"
