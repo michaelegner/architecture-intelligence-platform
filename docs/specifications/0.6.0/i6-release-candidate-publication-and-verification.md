@@ -1,6 +1,7 @@
 # AIP v0.6.0 I6 — Release Candidate, Publication, and Verification
 
-**Status:** Proposed — revision 0.1, for owner review. This specification freezes I6 release-process decisions; it does not claim that a v0.6.0 release candidate has been prepared, technically qualified, authorized for publication, published or verified.  
+**Status:** COMPLETE — revision 0.1; terminal outcome **SHIPPED_VERIFIED**. See the [I6 completion record](i6-completion-record.md). Normative release-process decisions are unchanged.
+
 **Increment:** I6 — Release Candidate, Publication, and Verification.  
 **Entry:** I5 is complete and merged. The [I5 completion record](i5-completion-record.md) records `TECHNICAL_QUALIFICATION_COMPLETE` for the bounded I5 scope and a product pilot disposition of `NOT_RUN`. I5 does **not** qualify a later I6 candidate or authorize publication.  
 **Authority:** accepted [v0.6.0 parent specification](specification.md), especially §§26–31 and §33; [I5 completion record](i5-completion-record.md); [I4 completion record](i4-completion-record.md); [I3 completion record](i3-completion-record.md); [I2 decision record D16](i2-decision-record.md#d16--the-default-flip-is-deferred-added-in-i25c-amends-d1); [ROADMAP](../../../ROADMAP.md); and the proven [v0.5.0 I6 process](../0.5.0/i6-release-candidate-publication-and-post-release-verification.md) as process precedent only.

@@ -1,6 +1,6 @@
 {
-  "archive_sha256": "02c76cedc1f37400ab58c2ed865c17350eb25729d157a0f2aa7993a220b98f35",
-  "file_count": 220,
+  "archive_sha256": "6756fa1aad8a50bdd1f3351e5d259ade4cbac8ccd17f7a658a80a4012887fd71",
+  "file_count": 221,
   "exclusions": [
     "golden/locality/config.yaml and compose.yaml: disposable Neo4j credentials; config hash and default-on result remain in ledger/golden-result"
   ],
@@ -12,8 +12,8 @@
     },
     {
       "path": "code-scanning-comparison.json",
-      "bytes": 1818,
-      "sha256": "521026c30121984d369417a28676ad1a464d33201e15aa3068d86287eda72a06"
+      "bytes": 1813,
+      "sha256": "ed8d899c6b2d4b728f77dcc61f0edb62491051aceec44769bc4f0d85c6a051be"
     },
     {
       "path": "code-scanning-v0.5.1.log",
@@ -973,7 +973,12 @@
     {
       "path": "identity.json",
       "bytes": 458,
-      "sha256": "46194b442688c4ba147af4b46ff2df2f5f1fc8fc1926819079baa99ec35dfd45"
+      "sha256": "6d904027677b2e10057b30e7dc462958eb47d15d4b473cc089690cfe12c0a979"
+    },
+    {
+      "path": "owner-final-security-disposition.json",
+      "bytes": 513,
+      "sha256": "31bd21594cee5a4c51a17631e0d15014cd19a8857d672e17e489c775b7cc52f1"
     },
     {
       "path": "published-golden.log",
@@ -1057,8 +1062,8 @@
     },
     {
       "path": "security-comparison.json",
-      "bytes": 9802,
-      "sha256": "d6c59dc1ca2bcc8fe689abe62c49771e6543c8d1099ad579a097d87c453cd875"
+      "bytes": 9797,
+      "sha256": "06e547d20aa95a685c8b1f08d4bd21a7e219491a86937f4e5e2b50323645fc35"
     },
     {
       "path": "source-review.json",

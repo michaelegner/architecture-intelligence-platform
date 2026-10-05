@@ -15,7 +15,7 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
-| [`v0.6.0-post-release-verification.md`](v0.6.0-post-release-verification.md) | I6.5 published digest/source verification; checks passed; final security disposition pending. |
+| [`v0.6.0-post-release-verification.md`](v0.6.0-post-release-verification.md) | I6.5 published digest/source verification; SHIPPED_VERIFIED, final security disposition complete. |
 | [`v0.6.0-publication-record.md`](v0.6.0-publication-record.md) | I6.4 publication completed: exact tag/release, successful workflow and immutable GHCR digest; published verification remains I6.5. |
 | [`v0.6.0-publication-decision.md`](v0.6.0-publication-decision.md) | I6.3 owner authorization to publish the exact rc.2 candidate; publication and published-artifact verification remain I6.4/I6.5. |
 | [`v0.6.0-rc.2-candidate-preparation.md`](v0.6.0-rc.2-candidate-preparation.md) | Corrective I4 emitted-check inventory; merged candidate qualified in the readiness record. |
