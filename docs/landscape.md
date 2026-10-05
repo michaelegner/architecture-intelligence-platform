@@ -93,6 +93,12 @@ visualization, provenance, or retrieval?
 ### Agent context and machine consumption
 
 [Moldable Architecture Knowledge](#moldable-development--glamorous-toolkit--rewilding-software-engineering) ·
+[Harness engineering](#openai--harness-engineering-and-agent-legibility) ·
+[Agent-oriented tool design](#anthropic--writing-effective-tools-for-agents) ·
+[Context engineering](#anthropic--effective-context-engineering-for-ai-agents) ·
+[Agent evals](#anthropic--demystifying-evals-for-ai-agents) ·
+[Agent-Computer Interfaces](#swe-agent--agent-computer-interfaces) ·
+[Managed-agent boundaries](#anthropic--managed-agents-and-durable-boundaries) ·
 [Architectural judgment](#michael-smith--line-of-sight-ai-and-architecture) ·
 [Coordination bottlenecks](#cochran-et-al--when-coding-is-free-where-is-the-bottleneck) ·
 [Decision substrate](#cockcroft-et-al--when-agents-decide) ·
@@ -1605,6 +1611,236 @@ The hard boundary remains:
 
 That principle can guide future AIP tool design without weakening the rule that agents may reason
 over Architecture Knowledge but must never become its source.
+
+### OpenAI — Harness Engineering and Agent Legibility
+
+**Source**
+
+- [Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/)
+
+**Core idea**
+
+Agent-first engineering shifts leverage from manually producing code toward designing an environment
+whose structure, state, feedback, documentation, and rules are legible to agents. OpenAI describes
+moving away from a monolithic instruction file toward progressive discovery of structured
+repository knowledge, exposing logs and runtime state to agents, and enforcing mechanically decidable
+architectural constraints with linters and structural tests.
+
+**Why this matters to AIP**
+
+Architecture is one of the system surfaces that agents need to inspect rather than reconstruct from
+tribal knowledge or prose. AIP can provide that surface as queryable Architecture Knowledge:
+
+```text
+architecture question
+        ↓
+small qualified projection
+        ↓
+claim + qualification + limitations + evidence
+        ↓
+agent / human reasoning
+```
+
+The important extension is that AIP does not assume one repository is the architecture source of
+truth. OpenAPI, Kubernetes, telemetry, configuration, catalogs, and future Intent artifacts
+establish different kinds of claims. Agent legibility must therefore preserve provenance, context,
+evidence type, and uncertainty rather than flattening sources into one convenient description.
+
+**AIP stance**
+
+This strongly validates AIP as an agent-legibility layer and reinforces future
+Current State → Intent → Assessment workflows. It does not add a canonical semantic requirement:
+the agent environment may become more legible without changing what any source is allowed to
+establish.
+
+### Anthropic — Writing Effective Tools for Agents
+
+**Source**
+
+- [Writing effective tools for agents — with agents](https://www.anthropic.com/engineering/writing-tools-for-agents)
+
+**Core idea**
+
+Agent tools are interfaces between deterministic software and probabilistic consumers. Tool quality
+therefore depends not only on backend correctness, but on whether an agent can select the right
+capability, provide valid arguments, interpret the observation, and continue efficiently. Anthropic
+emphasizes a small number of distinct, task-oriented tools, clear contracts, high-signal results,
+actionable errors, and empirical evaluation.
+
+**Why this matters to AIP**
+
+This directly supports AIP's deliberately bounded public tool surface. Architecture tools should
+answer recurring architecture questions rather than mirror graph-storage primitives:
+
+```text
+prefer
+  get_service_dependencies
+  get_architecture_drift
+  get_evidence
+
+over
+  query_nodes
+  get_edges
+  run_generic_graph_query
+```
+
+A compact answer can expose qualification, limitations, stable identifiers, and evidence references;
+deeper evidence is resolved only when needed. Convenience must not collapse declared, configured,
+observed, or intended meanings.
+
+**AIP stance**
+
+Treat the public Architecture Intelligence API/MCP surface as an agent-oriented semantic contract.
+Optimize tool ergonomics and token cost, but never by weakening evidence qualification, provenance,
+snapshot identity, or limitations.
+
+### Anthropic — Effective Context Engineering for AI Agents
+
+**Source**
+
+- [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+
+**Core idea**
+
+Good context engineering seeks the smallest high-signal context that enables the next correct
+decision. Larger context windows do not eliminate relevance and attention problems. Progressive
+disclosure and just-in-time retrieval keep durable information discoverable without placing the
+whole corpus into every model invocation.
+
+**Why this matters to AIP**
+
+This is strong independent support for **Moldable Architecture Knowledge** and question-specific
+projections:
+
+```text
+Architecture Knowledge
+        ↓
+bounded question
+        ↓
+small qualified projection
+        ↓
+stable evidence references
+        ↓
+selective drill-down when needed
+```
+
+The same pattern appears in machine-readable discovery surfaces such as EventCatalog's
+`schemas.txt`: discover cheaply, retrieve the exact artifact or claim needed, then resolve deeper
+evidence on demand.
+
+**AIP distinction**
+
+Context engineering asks *what should the agent see now?* AIP additionally asks *what is that
+information allowed to establish?* The consumer may mold the question, projection, and retrieval
+path; evidence, provenance, qualification, and semantic meaning remain authoritative.
+
+### Anthropic — Demystifying Evals for AI Agents
+
+**Source**
+
+- [Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)
+
+**Core idea**
+
+Agent evaluation should distinguish the trajectory or transcript from the externally verifiable
+outcome. A plausible statement that a task succeeded is weaker than observable evidence that the
+desired state exists. Agent evaluations also measure the model together with its harness and
+environment, so tool interfaces and context policy can change results without changing model
+weights.
+
+**Why this matters to AIP**
+
+AIP already evaluates whether its own architecture answers are semantically correct. Agent
+consumers require a separate evaluation layer:
+
+```text
+AIP semantic correctness
+        ≠
+agent use of AIP
+        ≠
+final architecture conclusion
+```
+
+An agent should fail evaluation if it turns `NOT_OBSERVED_IN_WINDOW` into "does not exist", hides
+a `PARTIAL` qualification, crosses snapshot contexts, or makes claims unsupported by returned
+evidence. Deterministic graders should verify such mechanically decidable invariants; evaluation
+should not require one prescribed tool-call sequence when several valid investigation paths exist.
+
+**AIP stance**
+
+Keep producer qualification and consumer evaluation independent. AIP establishes Architecture
+Knowledge; a consumer evaluation establishes whether an agent preserves that knowledge's
+qualification end to end.
+
+### SWE-agent — Agent-Computer Interfaces
+
+**Source**
+
+- [SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering](https://arxiv.org/abs/2405.15793)
+
+**Core idea**
+
+SWE-agent treats the interface presented to an agent as an experimental variable. Repository
+navigation, editing, execution, observations, and feedback are shaped for model use rather than
+assuming that interfaces designed for humans or conventional programs are automatically suitable
+for agents.
+
+**Why this matters to AIP**
+
+AIP's REST/MCP surface can be understood as an **Agent–Architecture Interface**:
+
+> What architecture interface makes correct evidence-qualified reasoning easiest for an agent?
+
+That is a better design question than asking which graph operations can be exposed. A useful
+experiment can hold the Architecture Knowledge and model constant while comparing generic
+graph-oriented tools with task-oriented AIP capabilities and progressive evidence resolution.
+Measure supported conclusions, preservation of qualification, unsupported claims, tool-selection
+errors, evidence drill-down, and interaction cost.
+
+**AIP stance**
+
+Optimize the Agent–Architecture Interface for ease of correct reasoning **subject to preservation
+of evidence semantics**. Better benchmark performance is not justification for hiding provenance,
+collapsing evidence types, or weakening limitations.
+
+### Anthropic — Managed Agents and Durable Boundaries
+
+**Source**
+
+- [Scaling Managed Agents: Decoupling the brain from the hands](https://www.anthropic.com/engineering/managed-agents)
+
+**Core idea**
+
+Long-running agent systems benefit from separating durable session state, the evolving harness that
+runs the model/tool loop, and execution environments such as sandboxes. Stable interfaces let these
+components fail, restart, scale, and evolve independently; durable session history is also distinct
+from the smaller active context selected for a particular model invocation.
+
+**Why this matters to AIP**
+
+AIP should remain outside the agent lifecycle:
+
+```text
+agent / GT / Claude Code / future consumer
+              ↓
+       harness + session
+              ↓
+          REST / MCP
+              ↓
+ArchitectureIntelligenceService
+              ↓
+qualified Architecture Knowledge
+```
+
+AIP should not absorb conversation history, plans, compaction, approvals, sandbox state, or generic
+agent memory. Different harnesses should be able to consume the same semantic service without
+introducing harness-specific concepts into the Architecture Knowledge contract.
+
+**AIP stance**
+
+Keep Architecture Knowledge independent of the agent that happens to consume it. MCP is one public
+adapter over that knowledge, not the agent architecture itself. This is an architectural-boundary
+reference, not a canonical-model or roadmap change.
 
 ### TypeSafe AI — Jev and Typed Probabilistic Judgment
 
