@@ -2,7 +2,7 @@
 
 Governing: merged [I5 revision 0.1](i5-real-system-qualification-and-product-demonstration.md) §§7–9 and accepted [parent specification](specification.md) §§24–27, 30. This record reconciles I5.1–I5.3; it adds no production behavior, public contract, schema, default or golden-path change.
 
-**Technical disposition: awaiting explicit acquisition-owner acceptance. Product pilot: NOT_RUN.** Qualification results below are established; final acquisition acceptance is recorded separately from passing checks. This is neither release readiness nor a publication decision.
+**Technical disposition: TECHNICAL_QUALIFICATION_COMPLETE for the bounded I5 scope. Product pilot: NOT_RUN.** Michael Egner explicitly accepted the recorded I5.1 acquisition evidence and stop-condition checklist in the implementation session on 2026-10-05 (recorded at 14:10:21 UTC). This owner acceptance is separate from passing checks. This is neither release readiness nor a publication decision.
 
 ## Evidence, chronology and identities
 
@@ -21,7 +21,7 @@ The [artifact checksums](i5-qualification-artifacts/SHA256SUMS) pin both raw arc
 
 | I5 §9 gate | Evidence and disposition |
 | --- | --- |
-| 1 — actual acquisition | Original source checks pass: distinct Deployment owner chains, stable P1/P2 through overlap, byte-equal CLIENT/capture cluster identity, successful real HTTP traffic, admitted UTC day and intact recording. Capture is non-atomic and completeness self-declared. Acquisition-owner disposition remains separately required. |
+| 1 — actual acquisition | Original source checks pass: distinct Deployment owner chains, stable P1/P2 through overlap, byte-equal CLIENT/capture cluster identity, successful real HTTP traffic, admitted UTC day and intact recording. Capture is non-atomic and completeness self-declared. Acquisition-owner disposition: ACCEPTED by Michael Egner, as recorded above. |
 | 2 — prior independent oracle | Adopted prior freeze establishes C1 W1/pricing `APPLICABLE`/`CONFIRMED`, W2/legacy-pricing `APPLICABLE`/`OBSERVED_ONLY`, distinct Operation/evidence/source lineage and forbidden claims. CORRECT. |
 | 3 — clean A/B and public parity | Both I5.2 and I5.3 retain two independent fresh processes/states, 17 cases per run and 70 raw canonical artifacts matching without field masking. Each replays 52 original requests once, in order, with 52 Collector and 52 AIP HTTP 200 responses. Service, REST and negotiated MCP agree; scoped evidence authorization and same-snapshot checks pass. CORRECT. |
 | C2 / bounds / coexistence | P1 retained event becomes `UNRESOLVED` / `LOCALITY_CAPTURE_MISSING_POD`; P2 remains eligible. Snapshot changes; stale C1 request/evidence/cursor refused. Counts 359/508 preserved without double counting. Target locality UNKNOWN; local coverage unavailable; no invented absence, global dependency set or reassignment. CORRECT. |
@@ -60,7 +60,7 @@ The [I4 owner disposition](i4-i5-handoff.md) remains: “Accept these measured c
 
 Completed as planned: one completion record joins existing evidence, per-case dispositions, costs, pilot NOT_RUN and I6 obligations without rewriting frozen artifacts. No new tests, qualification runs, runtime changes or issue were introduced.
 
-Material deviations: none. Specification questions: no new semantic decision; explicit acquisition-owner acceptance is pending. Deferred: representative pilot, production capacity, #323 and I6 final-candidate/release work.
+Material deviations: none. Specification questions: no new semantic decision; the historical pending acquisition gate was resolved by Michael’s explicit sign-off recorded above. Deferred: representative pilot, production capacity, #323 and I6 final-candidate/release work.
 
 Qualification-local gates remain those retained in I5.2/I5.3: Ruff/Pyright and 8 import contracts passed; 3,485 unit passed; 803 integration passed, 1 skipped because the owner's fixed-name demo project existed. I5.3 separately passed its isolated explicit-candidate demo, preserving the owner project.
 
