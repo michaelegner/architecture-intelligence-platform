@@ -404,6 +404,24 @@ Exit capability:
 > and can deterministically project those qualified local assessments into a bounded Current-State
 > view.**
 
+## v0.6.1 — Broker Semantic Completion (planned)
+
+**Goal:** Complete AIP's existing messaging semantics with evidence-qualified Broker knowledge.
+
+**Product question:**
+
+> **Which messaging infrastructure does this service use, and how far can the available evidence safely resolve that relationship?**
+
+| Increment | Purpose |
+|---|---|
+| I1 — Broker Semantic Contract | Define the smallest correct Broker semantic contract. |
+| I2 — Ingestion and Reconciliation | Implement Broker evidence ingestion and reconciliation. |
+| I3 — Architecture Intelligence Exposure | Expose qualified Broker knowledge through the existing Architecture Intelligence surfaces. |
+| I4 — Cross-System Qualification | Qualify the semantics deterministically against Quarkus Super Heroes, FINOS FluxNova/CALM, and Apache Airflow. |
+| I5 — Release Qualification | Freeze, qualify, and publish `v0.6.1`. |
+
+This is a semantic completion of the existing messaging capability, not a new architecture-question class.
+
 ## v0.7 — API-Aware Current State (planned)
 
 **Goal: Establish evidence-qualified Current-State knowledge of how APIs are exposed and consumed,
