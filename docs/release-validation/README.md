@@ -15,9 +15,9 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
-| [`v0.6.0-rc.2-candidate-preparation.md`](v0.6.0-rc.2-candidate-preparation.md) | Corrective I4 emitted-check inventory; final rc.2 merge and full qualification pending. |
+| [`v0.6.0-rc.2-candidate-preparation.md`](v0.6.0-rc.2-candidate-preparation.md) | Corrective I4 emitted-check inventory; merged candidate qualified in the readiness record. |
 | [`v0.6.0-rc.1-candidate-preparation.md`](v0.6.0-rc.1-candidate-preparation.md) | I6.1 preparation evidence; final merge identity and qualification disposition are in the readiness record. |
-| [`v0.6.0-release-readiness.md`](v0.6.0-release-readiness.md) | I6.2 rc.1 exact-candidate evidence: NO_GO due to a frozen runner/workflow check-inventory mismatch. |
+| [`v0.6.0-release-readiness.md`](v0.6.0-release-readiness.md) | I6.2 rc.2 exact-candidate evidence: GO; all mandatory gates passed and owner security/cost dispositions confirmed. Publication remains separate. |
 | [`v0.6.0-rc.1-no-go.md`](v0.6.0-rc.1-no-go.md) | Permanent rc.1 disposition; actual CodeQL analyses passed, but I4 requires an absent aggregate check. |
 | [`v0.6.0-release-notes.md`](v0.6.0-release-notes.md) | Candidate release notes, migration and bounded locality limitations; not a shipped claim. |
 | [`v0.1.0-alpha.1-verification.md`](v0.1.0-alpha.1-verification.md) | Fresh-clone Quick Start, fresh-clone runtime demo, GHCR image pull/run (authenticated and unauthenticated), non-root container check, the CodeQL finding found and fixed along the way — plus an explicit release-provenance record distinguishing the original tagged release artifact from the fixes verified afterward on `main`. |
