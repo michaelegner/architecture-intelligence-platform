@@ -146,6 +146,7 @@ answer yet is labelled as outside the answer, not hidden.
 
 [Demo README](examples/quarkus-super-heroes-demo/README.md) ·
 [question-by-question walkthrough](examples/quarkus-super-heroes-demo/walkthrough.md) ·
+[where dependencies are established](docs/real-world-validation/v0.6.0/locality-walkthrough.md) ·
 [recorded Claude Code conversation](examples/quarkus-super-heroes-demo/conversation-claude-code.md)
 
 ## What You Can Do With It
