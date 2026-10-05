@@ -1,0 +1,202 @@
+{
+  "archive": "publication.tar.gz",
+  "archive_sha256": "b607eb799900ad0608461051f8bfe9dc25cab717432337bb3a0c63a9cb4b42f6",
+  "file_count": 39,
+  "files": [
+    {
+      "path": "authorization-merge.log",
+      "bytes": 84,
+      "sha256": "fc05ee80bb18a50d963c7b28e469a251d6a1154a013488c1cf9fa1187b1d754f"
+    },
+    {
+      "path": "candidate-clean.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "candidate-head.log",
+      "bytes": 41,
+      "sha256": "ed7c05efe35f38239af596905d13402567ae944bfb98d2241ec749ff9b0cb8b0"
+    },
+    {
+      "path": "create-annotated-tag.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence-pr-prepublication.json",
+      "bytes": 157,
+      "sha256": "7752fd16b4506018ee77a05c43f6a807330f7e14008f7744fbeb441b05ce4216"
+    },
+    {
+      "path": "final-identity.json",
+      "bytes": 331,
+      "sha256": "25099098e09dbed35ee7369dca61409427ea8535c548d36b0f8143d2daa80b45"
+    },
+    {
+      "path": "local-tag-absence.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mandatory-candidate-checks.json",
+      "bytes": 3160,
+      "sha256": "8e22fe410001baa83550e5772213862e8ea665e2aa69a3db280b1b11f43130da"
+    },
+    {
+      "path": "preparation.json",
+      "bytes": 1749,
+      "sha256": "79a0210634cc421adca6fdc643f9f2e83579746f7d093fe5cbb1a794494f085f"
+    },
+    {
+      "path": "publication-commands.jsonl",
+      "bytes": 3121,
+      "sha256": "943ae6766aa4b2261b66c5f7f3e6e963037ea7bafa7d5e735be7e71467c6bd37"
+    },
+    {
+      "path": "publication-result.json",
+      "bytes": 918,
+      "sha256": "e467973b6b235e8f80c54d4c84b95581075e4856ad6913ecce9f1df3d6b5f840"
+    },
+    {
+      "path": "publication-state.json",
+      "bytes": 477,
+      "sha256": "1649dad6235b6aa3c9f7419163a8dfddd8c0bee96259ad114e7d87098345c3d8"
+    },
+    {
+      "path": "publish-github-release.log",
+      "bytes": 87,
+      "sha256": "9daddc78ce8df8d3533abaa7384bef3792b982f2d35251bda89ee420d941c2ec"
+    },
+    {
+      "path": "published-release.log",
+      "bytes": 6936,
+      "sha256": "9b421ca6c5bb718b72859fad8593b7d48de8c77d76fb090839f03c5022014777"
+    },
+    {
+      "path": "push-tag.log",
+      "bytes": 112,
+      "sha256": "b79630ab10e52f32bd21cddaf5aa2cf69009dd0e94bc3ab22855347534e33504"
+    },
+    {
+      "path": "registry-manifest.txt",
+      "bytes": 897,
+      "sha256": "5fae446975af593a585efa552d3bf489fd4966ff16629507ca1deb3c9b0a9797"
+    },
+    {
+      "path": "release-absence.log",
+      "bytes": 158,
+      "sha256": "9c42112ab81857575c15fd0690de98c86ec3e9af1f48b5871340727e5bd4ea3f"
+    },
+    {
+      "path": "release-body.md",
+      "bytes": 4846,
+      "sha256": "24f11486e94c2182ada40338592ff96e12db29ea7b3a3fdd2df2606f44909593"
+    },
+    {
+      "path": "release.json",
+      "bytes": 7138,
+      "sha256": "32f1df5aeb114370ca62b6331b3a353b23af9e5faad0f7b8a0aedbcf856d7100"
+    },
+    {
+      "path": "remote-tag-absence.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "remote-tag-identity.log",
+      "bytes": 119,
+      "sha256": "df4f45dd3aa284e89d1f7a59a0ce7eb7d592405b1c789da738249cb2e0f54c54"
+    },
+    {
+      "path": "repository/format.log",
+      "bytes": 25,
+      "sha256": "630093c7159c5acdc365da5086c9e918fad52449e85a8ee32f649b7439ebeec4"
+    },
+    {
+      "path": "repository/imports.log",
+      "bytes": 1363,
+      "sha256": "e53848f3a258f3527de80da55e294f56135ee9d99141c38735c4f72a49bfcd04"
+    },
+    {
+      "path": "repository/integration.log",
+      "bytes": 6969,
+      "sha256": "42a4a538eb7c4bd2f59ba353532a521fef1d4941ab39dff5e1ea02ece95d60d0"
+    },
+    {
+      "path": "repository/lint.log",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "repository/pyright.log",
+      "bytes": 37,
+      "sha256": "6d88a1b220adb7a3d62092b6e38431f0b3fe8babe9864fab90e5849766260332"
+    },
+    {
+      "path": "repository/results.json",
+      "bytes": 1673,
+      "sha256": "8880e0bd0ea6ed7423a6edc06e2aa50ab5209a04c89ff3e0c1d3f1888b4fee77"
+    },
+    {
+      "path": "repository/sync.log",
+      "bytes": 1720,
+      "sha256": "39c5e50376d98566d396c50eb44b8228642f25768be44c3402fc32481884cce2"
+    },
+    {
+      "path": "repository/unit.log",
+      "bytes": 17198,
+      "sha256": "138170cbff9987814fcf3605ea2c3d060ca5ba9ffc7d5b087437ffc19ce17aa7"
+    },
+    {
+      "path": "security-artifact/sbom.cdx.json",
+      "bytes": 1419875,
+      "sha256": "bcd507fe1e89646df1270fccb4b779cf5573b92aa8439b3fbfe95719f8f09b0b"
+    },
+    {
+      "path": "security-artifact/trivy-full-report.json",
+      "bytes": 1311820,
+      "sha256": "2eedb47c121563aebc0f5faf395929abd9e1a2798d79b67376382c768427628c"
+    },
+    {
+      "path": "tag-object.log",
+      "bytes": 41,
+      "sha256": "42476d8fcd09e639e14ae5019e4677d5b2f06212bc0760786a68b859dfb894c0"
+    },
+    {
+      "path": "tag-target.log",
+      "bytes": 41,
+      "sha256": "ed7c05efe35f38239af596905d13402567ae944bfb98d2241ec749ff9b0cb8b0"
+    },
+    {
+      "path": "tag-type.log",
+      "bytes": 4,
+      "sha256": "ccda8f9a2cb0295182b9a99e4c8270badcc89525850e1e737a294fb426363ac9"
+    },
+    {
+      "path": "workflow-artifacts.json",
+      "bytes": 1980,
+      "sha256": "a6b1451781a64287e164c94f8e1417fa77a1acbe587f142da5b4beea914956a4"
+    },
+    {
+      "path": "workflow-attempt-1.json",
+      "bytes": 16351,
+      "sha256": "22a30003f8e4ad84077403f624102ac6841a325123ab486b55412ce622b18f1b"
+    },
+    {
+      "path": "workflow-attempt-1.log",
+      "bytes": 265287,
+      "sha256": "71be0ede7d963de7086a0bf61cc5ea15961978767f8ea7971d9a0855c21f9b21"
+    },
+    {
+      "path": "workflow-jobs-1.json",
+      "bytes": 6598,
+      "sha256": "b73b2c3bba9b572601307630cd85f78ff02a1b71c9cbaad0ee593740a269d776"
+    },
+    {
+      "path": "workflow-run.json",
+      "bytes": 16329,
+      "sha256": "751f06e55873806077ffa117921e2afd46d26d4724cad9baf7ad3e20251f1f4d"
+    }
+  ]
+}
