@@ -404,6 +404,38 @@ Exit capability:
 > and can deterministically project those qualified local assessments into a bounded Current-State
 > view.**
 
+## v0.6.1 — Broker Semantic Completion (planned)
+
+**Goal: Complete AIP's existing messaging semantics with evidence-qualified Broker knowledge.**
+
+**Product question:**
+
+> **Which messaging infrastructure does this service use, and how far can the available evidence safely resolve that relationship?**
+
+Focus: promote broker identity and broker-level connectivity from supporting messaging identity
+information into qualified Architecture Knowledge where source evidence justifies it, without
+weakening or inventing Queue, Topic, Subscription, Message, producer, or consumer semantics.
+
+This is a **semantic completion of the existing messaging capability**, not a new
+architecture-question class. Existing Quarkus Super Heroes, FINOS FluxNova/CALM, and Apache Airflow
+evidence provides the cross-system basis for defining and qualifying the missing Broker semantic
+level.
+
+Key requirements:
+
+- define the smallest source-independent Broker semantics and identity rules;
+- ingest and reconcile Broker evidence without name-based identity guessing;
+- keep Broker connectivity independent from richer Queue/Topic/Subscription/Message semantics;
+- expose qualified Broker knowledge through the existing Architecture Intelligence surfaces;
+- qualify the semantics deterministically against Quarkus Super Heroes, FINOS FluxNova/CALM, and
+  Apache Airflow;
+- do not introduce a generic `CONNECTED_TO` relation or a live broker adapter.
+
+Exit capability:
+
+> **AIP can establish which messaging infrastructure a service is evidenced to use and state how far
+> that relationship can be resolved without inventing richer messaging semantics.**
+
 ## v0.7 — API-Aware Current State (planned)
 
 **Goal: Establish evidence-qualified Current-State knowledge of how APIs are exposed and consumed,
