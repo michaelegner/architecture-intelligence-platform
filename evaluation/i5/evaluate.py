@@ -4,13 +4,13 @@ Runs in the candidate AIP image. Outputs canonical semantic bytes and untouched 
 responses; no expectation is derived from those outputs. C1-bound requests are saved for C2.
 """
 
-import asyncio
 import json
 import os
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
-import httpx
 from checks import (
     canonical_bytes,
     check_comparison,
@@ -19,11 +19,6 @@ from checks import (
     check_query,
     check_stale,
     facts_from_dossier,
-)
-from negotiated_mcp_client import (
-    negotiated_call_body,
-    negotiated_headers,
-    negotiated_initialize_body,
 )
 
 from app.architecture_intelligence.bootstrap import (
@@ -48,7 +43,7 @@ from app.graph.repository import build_driver, open_session
 from app.settings import config_path_from_env, load_config
 
 
-async def main(state: str, output_path: str, dossier_path: str) -> None:
+def main(state: str, output_path: str, dossier_path: str) -> None:
     output = Path(output_path)
     output.mkdir(parents=True, exist_ok=True)
     facts = facts_from_dossier(Path(dossier_path))
@@ -82,134 +77,172 @@ async def main(state: str, output_path: str, dossier_path: str) -> None:
         canonical_bytes({"v1": v1, "graph_revision": revision})
     )
     passed = []
-    async with httpx.AsyncClient(base_url=origin, timeout=60) as client:
-        headers = negotiated_headers(origin=origin)
-        init = await client.post("/mcp", headers=headers, json=negotiated_initialize_body())
-        (output / "mcp-initialize.transport.json").write_bytes(init.content)
-        assert init.status_code == 200 and "result" in init.json()
 
-        async def ask(case: str, request: dict) -> dict:
-            (output / f"{case}.request.json").write_bytes(canonical_bytes(request))
-            parsed = ServiceDependenciesByLocalityRequest.model_validate(request).root
-            result = (
-                service.get_service_dependencies_by_locality(parsed)
-                if isinstance(parsed, LocalityQueryRequest)
-                else service.resolve_scoped_locality_evidence(parsed)
+    def post(route: str, body: dict, artifact: str, *, mcp: bool = False) -> dict:
+        headers = {"content-type": "application/json"}
+        if mcp:
+            # Same negotiated protocol framing as tests/support/negotiated_mcp_client.py.
+            headers.update(
+                {
+                    "accept": "application/json, text/event-stream",
+                    "origin": origin,
+                    "mcp-protocol-version": "2025-11-25",
+                }
             )
-            direct = json.loads(result.model_dump_json())
-            (output / f"{case}.service.json").write_bytes(canonical_bytes(direct))
-            body = {k: v for k, v in request.items() if k not in ("mode", "subject_service_id")}
-            route = "/api/services/" + request["subject_service_id"] + "/dependencies/by-locality"
-            if request["mode"] == "evidence":
-                route += "/evidence"
-            rest = await client.post(route, json=body)
-            (output / f"{case}.rest.transport.json").write_bytes(rest.content)
-            assert rest.status_code == 200, (case, rest.status_code, rest.text)
-            rpc = await client.post(
-                "/mcp",
-                headers=headers,
-                json=negotiated_call_body(LOCALITY_TOOL_NAME, {"request": request}),
-            )
-            (output / f"{case}.mcp.transport.json").write_bytes(rpc.content)
-            assert rpc.status_code == 200 and "result" in rpc.json(), (case, rpc.text)
-            envelope = rpc.json()["result"]
-            assert envelope["isError"] is False
-            for surface, payload in (("rest", rest.json()), ("mcp", envelope["structuredContent"])):
-                (output / f"{case}.{surface}.json").write_bytes(canonical_bytes(payload))
-                LocalityAnswer.model_validate(payload)
-                assert canonical_bytes(payload) == canonical_bytes(direct), (case, surface)
-            assert direct["producer"]["build_revision"] == os.environ["AIP_BUILD_REVISION"]
-            assert direct["snapshot"]["snapshot_id"] == snapshot.snapshot_id
-            passed.append(case)
-            return direct
+        request = urllib.request.Request(
+            origin + route, data=json.dumps(body).encode(), headers=headers
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                status, raw = response.status, response.read()
+        except urllib.error.HTTPError as error:
+            status, raw = error.code, error.read()
+        (output / artifact).write_bytes(raw)
+        assert status == 200, (route, status, raw)
+        return json.loads(raw)
 
-        query = {
-            "mode": "query",
-            "subject_service_id": "service:orders",
-            "environment": "locality-capture",
-            "first_day": facts["day"],
-            "last_day": facts["day"],
-        }
-        answer = await ask("inventory", query)
-        check_query(answer, facts, state)
-        identities = [
+    init = post(
+        "/mcp",
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-11-25",
+                "capabilities": {},
+                "clientInfo": {"name": "i5-independent-http-client", "version": "1"},
+            },
+        },
+        "mcp-initialize.transport.json",
+        mcp=True,
+    )
+    assert "result" in init
+
+    def ask(case: str, request: dict) -> dict:
+        (output / f"{case}.request.json").write_bytes(canonical_bytes(request))
+        parsed = ServiceDependenciesByLocalityRequest.model_validate(request).root
+        result = (
+            service.get_service_dependencies_by_locality(parsed)
+            if isinstance(parsed, LocalityQueryRequest)
+            else service.resolve_scoped_locality_evidence(parsed)
+        )
+        direct = json.loads(result.model_dump_json())
+        (output / f"{case}.service.json").write_bytes(canonical_bytes(direct))
+        body = {k: v for k, v in request.items() if k not in ("mode", "subject_service_id")}
+        route = "/api/services/" + request["subject_service_id"] + "/dependencies/by-locality"
+        if request["mode"] == "evidence":
+            route += "/evidence"
+        rest = post(route, body, f"{case}.rest.transport.json")
+        rpc = post(
+            "/mcp",
             {
-                "cluster_uid": facts["cluster_uid"],
-                "namespace": "aip-locality",
-                "kind": "Deployment",
-                "uid": facts["candidates"][p]["workload_uid"],
-            }
-            for p in ("P1", "P2")
-        ]
-        comparison = await ask("comparison", query | {"compare": identities})
-        if state == "c1":
-            check_comparison(comparison, facts)
-        else:
-            assert comparison["data"]["comparison"]["completeness"] == "NOT_ESTABLISHED"
-            assert [s["evaluation"] for s in comparison["data"]["comparison"]["scopes"]] == [
-                "UNKNOWN",
-                "POSITIVE",
-            ]
-        refs = sorted(
-            {c["v2_id"] for c in facts["candidates"].values()}
-            | {r for chain in facts["chains"][state].values() for r in chain["capture_refs"]}
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/call",
+                "params": {"name": LOCALITY_TOOL_NAME, "arguments": {"request": request}},
+            },
+            f"{case}.mcp.transport.json",
+            mcp=True,
         )
-        evidence_request = {
-            "mode": "evidence",
-            "subject_service_id": "service:orders",
-            "snapshot_id": snapshot.snapshot_id,
-            "refs": refs,
+        assert "result" in rpc, (case, rpc)
+        envelope = rpc["result"]
+        assert envelope["isError"] is False
+        for surface, payload in (("rest", rest), ("mcp", envelope["structuredContent"])):
+            (output / f"{case}.{surface}.json").write_bytes(canonical_bytes(payload))
+            LocalityAnswer.model_validate(payload)
+            assert canonical_bytes(payload) == canonical_bytes(direct), (case, surface)
+        assert direct["producer"]["build_revision"] == os.environ["AIP_BUILD_REVISION"]
+        assert direct["snapshot"]["snapshot_id"] == snapshot.snapshot_id
+        passed.append(case)
+        return direct
+
+    query = {
+        "mode": "query",
+        "subject_service_id": "service:orders",
+        "environment": "locality-capture",
+        "first_day": facts["day"],
+        "last_day": facts["day"],
+    }
+    answer = ask("inventory", query)
+    check_query(answer, facts, state)
+    identities = [
+        {
+            "cluster_uid": facts["cluster_uid"],
+            "namespace": "aip-locality",
+            "kind": "Deployment",
+            "uid": facts["candidates"][p]["workload_uid"],
         }
-        evidence = await ask("evidence", evidence_request)
-        check_evidence(evidence, facts, state)
-        check_not_found(
-            await ask("wrong-caller", evidence_request | {"subject_service_id": "service:pricing"})
+        for p in ("P1", "P2")
+    ]
+    comparison = ask("comparison", query | {"compare": identities})
+    if state == "c1":
+        check_comparison(comparison, facts)
+    else:
+        assert comparison["data"]["comparison"]["completeness"] == "NOT_ESTABLISHED"
+        assert [s["evaluation"] for s in comparison["data"]["comparison"]["scopes"]] == [
+            "UNKNOWN",
+            "POSITIVE",
+        ]
+    refs = sorted(
+        {c["v2_id"] for c in facts["candidates"].values()}
+        | {r for chain in facts["chains"][state].values() for r in chain["capture_refs"]}
+    )
+    evidence_request = {
+        "mode": "evidence",
+        "subject_service_id": "service:orders",
+        "snapshot_id": snapshot.snapshot_id,
+        "refs": refs,
+    }
+    evidence = ask("evidence", evidence_request)
+    check_evidence(evidence, facts, state)
+    check_not_found(
+        ask("wrong-caller", evidence_request | {"subject_service_id": "service:pricing"})
+    )
+    check_not_found(
+        ask("unauthorized-ref", evidence_request | {"refs": ["evidence:unauthorized:i5"]})
+    )
+    p1_refs = sorted(
+        [
+            facts["candidates"]["P1"]["v2_id"],
+            *facts["chains"][state].get("P1", {}).get("capture_refs", []),
+        ]
+    )
+    check_not_found(
+        ask(
+            "wrong-operation",
+            evidence_request
+            | {
+                "refs": p1_refs,
+                "object_operation_id": facts["candidates"]["P2"]["operation_id"],
+            },
         )
-        check_not_found(
-            await ask("unauthorized-ref", evidence_request | {"refs": ["evidence:unauthorized:i5"]})
-        )
-        p1_refs = sorted(
-            [
-                facts["candidates"]["P1"]["v2_id"],
-                *facts["chains"][state].get("P1", {}).get("capture_refs", []),
-            ]
-        )
-        check_not_found(
-            await ask(
-                "wrong-operation",
-                evidence_request
-                | {
-                    "refs": p1_refs,
-                    "object_operation_id": facts["candidates"]["P2"]["operation_id"],
-                },
+    )
+    no_locality = ask("wrong-environment", query | {"environment": "other-environment"})
+    assert no_locality["data"]["localities"] == []
+    assert len(no_locality["data"]["candidates"]) == 2
+    assert all(c["disposition"] == "INAPPLICABLE" for c in no_locality["data"]["candidates"])
+    if state == "c1":
+        cursor = encode_cursor(
+            LocalityCursor(
+                v=1,
+                after_id=min(c["v2_id"] for c in facts["candidates"].values()),
+                query_digest=query_digest(LocalityQueryRequest.model_validate(query)),
+                snapshot_id=snapshot.snapshot_id,
+                schema_version=LOCALITY_SCHEMA_VERSION,
             )
         )
-        no_locality = await ask("wrong-environment", query | {"environment": "other-environment"})
-        assert no_locality["data"]["localities"] == []
-        assert len(no_locality["data"]["candidates"]) == 2
-        assert all(c["disposition"] == "INAPPLICABLE" for c in no_locality["data"]["candidates"])
-        if state == "c1":
-            cursor = encode_cursor(
-                LocalityCursor(
-                    v=1,
-                    after_id=min(c["v2_id"] for c in facts["candidates"].values()),
-                    query_digest=query_digest(LocalityQueryRequest.model_validate(query)),
-                    snapshot_id=snapshot.snapshot_id,
-                    schema_version=LOCALITY_SCHEMA_VERSION,
-                )
-            )
-            # Protocol-generated negative-control cursor; this small capture emits no next_cursor.
-            saved = {
-                "evidence": evidence_request,
-                "query": query | {"snapshot_id": snapshot.snapshot_id},
-                "cursor": query | {"cursor": cursor},
-            }
-            (output.parent / "c1-bound-requests.json").write_bytes(canonical_bytes(saved))
-        else:
-            saved = json.loads((output.parent / "c1-bound-requests.json").read_bytes())
-            assert saved["evidence"]["snapshot_id"] != snapshot.snapshot_id
-            for kind, request in saved.items():
-                check_stale(await ask("stale-" + kind, request))
+        # Protocol-generated negative-control cursor; this small capture emits no next_cursor.
+        saved = {
+            "evidence": evidence_request,
+            "query": query | {"snapshot_id": snapshot.snapshot_id},
+            "cursor": query | {"cursor": cursor},
+        }
+        (output.parent / "c1-bound-requests.json").write_bytes(canonical_bytes(saved))
+    else:
+        saved = json.loads((output.parent / "c1-bound-requests.json").read_bytes())
+        assert saved["evidence"]["snapshot_id"] != snapshot.snapshot_id
+        for kind, request in saved.items():
+            check_stale(ask("stale-" + kind, request))
     driver.close()
     (output / "result.json").write_bytes(
         canonical_bytes(
@@ -225,4 +258,4 @@ async def main(state: str, output_path: str, dossier_path: str) -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main(*sys.argv[1:4]))
+    main(*sys.argv[1:4])
