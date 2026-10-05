@@ -21,6 +21,10 @@ Each directory's parent specification states its own status, and completed relea
 completion or release records. This index deliberately does not say which release is current or
 shipped: [`ROADMAP.md`](../../ROADMAP.md) is the single source for that.
 
+Model-validation experiments live in [`evaluation/`](evaluation/): the
+[EventCatalog semantic mapping experiment](evaluation/eventcatalog-semantic-mapping-experiment.md)
+and its [result](evaluation/eventcatalog-semantic-mapping-result.md).
+
 See [`docs/architecture.md`](../architecture.md#architecture-principles) and
 [`docs/adr/`](../adr/) for how these design decisions map onto the system as it exists today, and
 [`ROADMAP.md`](../../ROADMAP.md) for what's shipped versus planned.
