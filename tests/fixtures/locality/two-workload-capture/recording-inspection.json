@@ -1,0 +1,21 @@
+{
+  "source_inspection": "PASS",
+  "utc_day": "2026-10-05",
+  "successful_real_client_http_requests": {
+    "pricing": 359,
+    "legacy-pricing": 508
+  },
+  "first_client_span": {
+    "d31ca716-e7fa-420c-821c-b79cd907d3c5": "2026-10-05T06:01:58.173967+00:00",
+    "febe35bd-15a9-411a-ba33-cbd82da14169": "2026-10-05T06:01:58.404306+00:00"
+  },
+  "last_client_span": {
+    "d31ca716-e7fa-420c-821c-b79cd907d3c5": "2026-10-05T06:07:57.835365+00:00",
+    "febe35bd-15a9-411a-ba33-cbd82da14169": "2026-10-05T06:10:27.702716+00:00"
+  },
+  "pre_c1_observed_traffic_seconds": {
+    "d31ca716-e7fa-420c-821c-b79cd907d3c5": 331.488121,
+    "febe35bd-15a9-411a-ba33-cbd82da14169": 331.471032
+  },
+  "aip_evaluation": "NOT_RUN"
+}

@@ -1,0 +1,10 @@
+2026-10-05T05:59:29Z label ACTUAL_CONTROLLED_REFERENCE; harness HEAD 696033684d5b591dd67c6b4c9aa3fe8ea4845f9c
+2026-10-05T05:59:29Z command: bash harness/locality-capture/rehearse.sh --actual /tmp/aip-i5.1-acquisition
+2026-10-05T05:59:29Z pins: kind v0.33.0 go1.26.7 linux/amd64
+2026-10-05T05:59:29Z pins: Client Version: v1.36.1
+2026-10-05T05:59:30Z pins: docker server 29.8.1
+2026-10-05T05:59:30Z pins: node image kindest/node:v1.31.2@sha256:18fbefc20a7113353c7b75b5c869d7145a6abd6269154825872dc59c1329912e
+2026-10-05T05:59:31Z pins: app image aip-locality-harness:20261005T055929Z-3838 id sha256:04a77dd0a811c7f1c53bcee3e88d2f52c6ce078e04251e21b14b0e0bbfacb420
+2026-10-05T05:59:31Z pins: collector image otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+cgroup v1 is deprecated in Kubernetes and will not be supported in a future kind release, please upgrade to cgroup v2
+ERROR: failed to create cluster: 'aip-locality-i5-20261005T055929Z-3838' is not a valid cluster name, cluster names must match `^[a-z0-9.-]+$`

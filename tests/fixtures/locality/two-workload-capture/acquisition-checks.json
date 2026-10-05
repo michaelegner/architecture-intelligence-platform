@@ -1,0 +1,39 @@
+{
+  "label": "ACTUAL_CONTROLLED_REFERENCE",
+  "acquisition_checks": "PASS",
+  "owner_sign_off": "PENDING_MICHAEL_EGNER",
+  "aip_evaluation": "NOT_RUN",
+  "chains": {
+    "c1_p1": [
+      "d31ca716-e7fa-420c-821c-b79cd907d3c5",
+      "d4b249c0-4116-46cb-b6aa-da2258ba4d21",
+      "a8df1913-530a-40cf-9fb4-f143f019ef08"
+    ],
+    "c1_p2": [
+      "febe35bd-15a9-411a-ba33-cbd82da14169",
+      "0c0019ff-9442-476e-aa0c-ec876aa2b717",
+      "e7d1033a-3b23-4913-bf59-c67de08d0f07"
+    ],
+    "c2_p2": [
+      "febe35bd-15a9-411a-ba33-cbd82da14169",
+      "0c0019ff-9442-476e-aa0c-ec876aa2b717",
+      "e7d1033a-3b23-4913-bf59-c67de08d0f07"
+    ]
+  },
+  "c1_inventory_revision": "urn:aip:inventory-revision:7a945af77939fd8a860b5dc6f220a0cf78b8bb67ad82c52e2a62210cb15a5055",
+  "source_registration": {
+    "id": "aip-locality-i5-20261005t060050z-4392",
+    "root": "capture",
+    "envelope_relative_path": "envelope.yaml",
+    "configured_scope_id": "aip-locality-i5-20261005t060050z-4392-scope",
+    "cluster_uid": "2fe6677a-390d-458c-9e4c-85ae44b62f91",
+    "evidence_mode": "CAPTURED_RESOURCE",
+    "authorized_producer": "aip-locality-i5-20261005t060050z-4392",
+    "authority_record": "aip-locality-i5-20261005t060050z-4392-self-declared-authority"
+  },
+  "client_spans": {
+    "P1 -> pricing": 359,
+    "P2 -> legacy-pricing": 508
+  },
+  "recorded_requests": 52
+}

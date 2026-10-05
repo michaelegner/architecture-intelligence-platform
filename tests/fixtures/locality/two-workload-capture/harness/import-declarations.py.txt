@@ -1,0 +1,35 @@
+"""Import only frozen declarations; no captured telemetry, locality query or expected answers."""
+import json
+import subprocess
+import sys
+from dataclasses import asdict
+from pathlib import Path
+
+from testcontainers.community.neo4j import Neo4jContainer
+
+from app.graph.importer import import_all_sources
+from app.graph.schema import ensure_schema
+from app.sources.model import FilesystemSourceConfig
+
+out = Path(sys.argv[1])
+image = 'neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93'
+config = FilesystemSourceConfig(id='aip-i5-declarations', root=out / 'declarations')
+with Neo4jContainer(image) as container:
+    with container.get_driver() as driver:
+        with driver.session(database='neo4j') as session:
+            ensure_schema(session)
+        stats = import_all_sources(driver, database='neo4j', source_config=config)
+        assert stats.committed, stats.diagnostics
+        with driver.session(database='neo4j') as session:
+            operations = sorted(record['id'] for record in session.run('MATCH (o:Operation) RETURN o.id AS id'))
+        report = {
+            'mode': 'DECLARATIONS_ONLY_NO_CAPTURE_OR_TELEMETRY',
+            'harness_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+            'neo4j_image': image,
+            'container_id': container.get_wrapped_container().id,
+            'stats': asdict(stats),
+            'accepted_operation_ids': operations,
+        }
+        (out / 'import-declarations.json').write_text(json.dumps(report, indent=2, default=str) + '\n')
+        (out / 'accepted-operations.txt').write_text('\n'.join(operations) + '\n')
+print('Declaration import committed; no recording was ingested or locality answer queried.')

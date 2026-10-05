@@ -1,0 +1,1607 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: "2026-10-05T06:01:32Z"
+  labels:
+    kubernetes.io/metadata.name: aip-locality
+  name: aip-locality
+  resourceVersion: "482"
+  uid: 6faf9b6b-d13a-4a57-92a6-ab221c08b97a
+spec:
+  finalizers:
+  - kubernetes
+status:
+  phase: Active
+---
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "1"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"legacy-pricing","namespace":"aip-locality"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"legacy-pricing"}},"template":{"metadata":{"labels":{"app":"legacy-pricing"}},"spec":{"containers":[{"env":[{"name":"ROLE","value":"provider"},{"name":"OTEL_SERVICE_NAME","value":"legacy-pricing"},{"name":"OTEL_RESOURCE_ATTRIBUTES","value":"deployment.environment.name=locality-capture"},{"name":"OTEL_EXPORTER_OTLP_ENDPOINT","value":"http://otel-collector:4318"},{"name":"OTEL_SEMCONV_STABILITY_OPT_IN","value":"http"}],"image":"aip-locality-harness:20261005t060050z-4392","imagePullPolicy":"Never","name":"legacy-pricing","ports":[{"containerPort":8080}]}]}}}}
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    generation: 1
+    name: legacy-pricing
+    namespace: aip-locality
+    resourceVersion: "552"
+    uid: 12b50e2b-1441-4dc9-a706-42f82ba13e71
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: legacy-pricing
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: legacy-pricing
+      spec:
+        containers:
+        - env:
+          - name: ROLE
+            value: provider
+          - name: OTEL_SERVICE_NAME
+            value: legacy-pricing
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: deployment.environment.name=locality-capture
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4318
+          - name: OTEL_SEMCONV_STABILITY_OPT_IN
+            value: http
+          image: aip-locality-harness:20261005t060050z-4392
+          imagePullPolicy: Never
+          name: legacy-pricing
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2026-10-05T06:01:33Z"
+      lastUpdateTime: "2026-10-05T06:01:33Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2026-10-05T06:01:32Z"
+      lastUpdateTime: "2026-10-05T06:01:33Z"
+      message: ReplicaSet "legacy-pricing-65489bc974" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      architecture-intelligence.io/service-id: service:orders
+      deployment.kubernetes.io/revision: "1"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{"architecture-intelligence.io/service-id":"service:orders"},"name":"orders","namespace":"aip-locality"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"orders"}},"template":{"metadata":{"labels":{"app":"orders"}},"spec":{"containers":[{"env":[{"name":"ROLE","value":"caller"},{"name":"TARGET","value":"pricing"},{"name":"TARGET_PEER_SERVICE","value":"pricing"},{"name":"POD_UID","valueFrom":{"fieldRef":{"fieldPath":"metadata.uid"}}},{"name":"POD_NAME","valueFrom":{"fieldRef":{"fieldPath":"metadata.name"}}},{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"fieldPath":"metadata.namespace"}}},{"name":"OTEL_SERVICE_NAME","value":"orders"},{"name":"OTEL_RESOURCE_ATTRIBUTES","value":"deployment.environment.name=locality-capture,k8s.pod.uid=$(POD_UID),k8s.pod.name=$(POD_NAME),k8s.namespace.name=$(POD_NAMESPACE),k8s.deployment.name=orders,k8s.cluster.uid=2fe6677a-390d-458c-9e4c-85ae44b62f91"},{"name":"OTEL_EXPORTER_OTLP_ENDPOINT","value":"http://otel-collector:4318"},{"name":"OTEL_SEMCONV_STABILITY_OPT_IN","value":"http"}],"image":"aip-locality-harness:20261005t060050z-4392","imagePullPolicy":"Never","name":"orders"}]}}}}
+    creationTimestamp: "2026-10-05T06:01:56Z"
+    generation: 1
+    name: orders
+    namespace: aip-locality
+    resourceVersion: "630"
+    uid: a8df1913-530a-40cf-9fb4-f143f019ef08
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: orders
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: orders
+      spec:
+        containers:
+        - env:
+          - name: ROLE
+            value: caller
+          - name: TARGET
+            value: pricing
+          - name: TARGET_PEER_SERVICE
+            value: pricing
+          - name: POD_UID
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.uid
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: OTEL_SERVICE_NAME
+            value: orders
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: deployment.environment.name=locality-capture,k8s.pod.uid=$(POD_UID),k8s.pod.name=$(POD_NAME),k8s.namespace.name=$(POD_NAMESPACE),k8s.deployment.name=orders,k8s.cluster.uid=2fe6677a-390d-458c-9e4c-85ae44b62f91
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4318
+          - name: OTEL_SEMCONV_STABILITY_OPT_IN
+            value: http
+          image: aip-locality-harness:20261005t060050z-4392
+          imagePullPolicy: Never
+          name: orders
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2026-10-05T06:01:57Z"
+      lastUpdateTime: "2026-10-05T06:01:57Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2026-10-05T06:01:57Z"
+      lastUpdateTime: "2026-10-05T06:01:57Z"
+      message: ReplicaSet "orders-fdc669b5b" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      architecture-intelligence.io/service-id: service:orders
+      deployment.kubernetes.io/revision: "1"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{"architecture-intelligence.io/service-id":"service:orders"},"name":"orders-canary","namespace":"aip-locality"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"orders-canary"}},"template":{"metadata":{"labels":{"app":"orders-canary"}},"spec":{"containers":[{"env":[{"name":"ROLE","value":"caller"},{"name":"TARGET","value":"legacy-pricing"},{"name":"TARGET_PEER_SERVICE","value":"legacy-pricing"},{"name":"POD_UID","valueFrom":{"fieldRef":{"fieldPath":"metadata.uid"}}},{"name":"POD_NAME","valueFrom":{"fieldRef":{"fieldPath":"metadata.name"}}},{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"fieldPath":"metadata.namespace"}}},{"name":"OTEL_SERVICE_NAME","value":"orders"},{"name":"OTEL_RESOURCE_ATTRIBUTES","value":"deployment.environment.name=locality-capture,k8s.pod.uid=$(POD_UID),k8s.pod.name=$(POD_NAME),k8s.namespace.name=$(POD_NAMESPACE),k8s.deployment.name=orders-canary,k8s.cluster.uid=2fe6677a-390d-458c-9e4c-85ae44b62f91"},{"name":"OTEL_EXPORTER_OTLP_ENDPOINT","value":"http://otel-collector:4318"},{"name":"OTEL_SEMCONV_STABILITY_OPT_IN","value":"http"}],"image":"aip-locality-harness:20261005t060050z-4392","imagePullPolicy":"Never","name":"orders"}]}}}}
+    creationTimestamp: "2026-10-05T06:01:57Z"
+    generation: 1
+    name: orders-canary
+    namespace: aip-locality
+    resourceVersion: "635"
+    uid: e7d1033a-3b23-4913-bf59-c67de08d0f07
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: orders-canary
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: orders-canary
+      spec:
+        containers:
+        - env:
+          - name: ROLE
+            value: caller
+          - name: TARGET
+            value: legacy-pricing
+          - name: TARGET_PEER_SERVICE
+            value: legacy-pricing
+          - name: POD_UID
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.uid
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: OTEL_SERVICE_NAME
+            value: orders
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: deployment.environment.name=locality-capture,k8s.pod.uid=$(POD_UID),k8s.pod.name=$(POD_NAME),k8s.namespace.name=$(POD_NAMESPACE),k8s.deployment.name=orders-canary,k8s.cluster.uid=2fe6677a-390d-458c-9e4c-85ae44b62f91
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4318
+          - name: OTEL_SEMCONV_STABILITY_OPT_IN
+            value: http
+          image: aip-locality-harness:20261005t060050z-4392
+          imagePullPolicy: Never
+          name: orders
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2026-10-05T06:01:58Z"
+      lastUpdateTime: "2026-10-05T06:01:58Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2026-10-05T06:01:57Z"
+      lastUpdateTime: "2026-10-05T06:01:58Z"
+      message: ReplicaSet "orders-canary-55fd859f98" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "1"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"otel-collector","namespace":"aip-locality"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"otel-collector"}},"template":{"metadata":{"labels":{"app":"otel-collector"}},"spec":{"containers":[{"args":["--config=/etc/otelcol/config.yaml"],"image":"otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1","name":"otel-collector","ports":[{"containerPort":4318}],"volumeMounts":[{"mountPath":"/etc/otelcol","name":"config"},{"mountPath":"/data","name":"data"}]}],"securityContext":{"runAsUser":0},"volumes":[{"configMap":{"name":"otel-collector-config"},"name":"config"},{"hostPath":{"path":"/var/local/aip-otlp","type":"DirectoryOrCreate"},"name":"data"}]}}}}
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    generation: 1
+    name: otel-collector
+    namespace: aip-locality
+    resourceVersion: "595"
+    uid: f01b5277-8e6b-4c05-b343-db2789e99e24
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: otel-collector
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: otel-collector
+      spec:
+        containers:
+        - args:
+          - --config=/etc/otelcol/config.yaml
+          image: otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+          imagePullPolicy: IfNotPresent
+          name: otel-collector
+          ports:
+          - containerPort: 4318
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/otelcol
+            name: config
+          - mountPath: /data
+            name: data
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext:
+          runAsUser: 0
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: otel-collector-config
+          name: config
+        - hostPath:
+            path: /var/local/aip-otlp
+            type: DirectoryOrCreate
+          name: data
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2026-10-05T06:01:56Z"
+      lastUpdateTime: "2026-10-05T06:01:56Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2026-10-05T06:01:32Z"
+      lastUpdateTime: "2026-10-05T06:01:56Z"
+      message: ReplicaSet "otel-collector-7d9778c5bd" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "1"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"pricing","namespace":"aip-locality"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"pricing"}},"template":{"metadata":{"labels":{"app":"pricing"}},"spec":{"containers":[{"env":[{"name":"ROLE","value":"provider"},{"name":"OTEL_SERVICE_NAME","value":"pricing"},{"name":"OTEL_RESOURCE_ATTRIBUTES","value":"deployment.environment.name=locality-capture"},{"name":"OTEL_EXPORTER_OTLP_ENDPOINT","value":"http://otel-collector:4318"},{"name":"OTEL_SEMCONV_STABILITY_OPT_IN","value":"http"}],"image":"aip-locality-harness:20261005t060050z-4392","imagePullPolicy":"Never","name":"pricing","ports":[{"containerPort":8080}]}]}}}}
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    generation: 1
+    name: pricing
+    namespace: aip-locality
+    resourceVersion: "555"
+    uid: 37a35df3-ee6f-4594-9b76-7b1ccbce7e3b
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: pricing
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: pricing
+      spec:
+        containers:
+        - env:
+          - name: ROLE
+            value: provider
+          - name: OTEL_SERVICE_NAME
+            value: pricing
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: deployment.environment.name=locality-capture
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4318
+          - name: OTEL_SEMCONV_STABILITY_OPT_IN
+            value: http
+          image: aip-locality-harness:20261005t060050z-4392
+          imagePullPolicy: Never
+          name: pricing
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2026-10-05T06:01:33Z"
+      lastUpdateTime: "2026-10-05T06:01:33Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2026-10-05T06:01:32Z"
+      lastUpdateTime: "2026-10-05T06:01:33Z"
+      message: ReplicaSet "pricing-5c5bb8658b" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "1"
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    generation: 1
+    labels:
+      app: legacy-pricing
+      pod-template-hash: 65489bc974
+    name: legacy-pricing-65489bc974
+    namespace: aip-locality
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: legacy-pricing
+      uid: 12b50e2b-1441-4dc9-a706-42f82ba13e71
+    resourceVersion: "549"
+    uid: efb88440-b7ce-4fdf-93ed-baf14382b51f
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: legacy-pricing
+        pod-template-hash: 65489bc974
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: legacy-pricing
+          pod-template-hash: 65489bc974
+      spec:
+        containers:
+        - env:
+          - name: ROLE
+            value: provider
+          - name: OTEL_SERVICE_NAME
+            value: legacy-pricing
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: deployment.environment.name=locality-capture
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4318
+          - name: OTEL_SEMCONV_STABILITY_OPT_IN
+            value: http
+          image: aip-locality-harness:20261005t060050z-4392
+          imagePullPolicy: Never
+          name: legacy-pricing
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      architecture-intelligence.io/service-id: service:orders
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "1"
+    creationTimestamp: "2026-10-05T06:01:57Z"
+    generation: 1
+    labels:
+      app: orders-canary
+      pod-template-hash: 55fd859f98
+    name: orders-canary-55fd859f98
+    namespace: aip-locality
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: orders-canary
+      uid: e7d1033a-3b23-4913-bf59-c67de08d0f07
+    resourceVersion: "634"
+    uid: 0c0019ff-9442-476e-aa0c-ec876aa2b717
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: orders-canary
+        pod-template-hash: 55fd859f98
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: orders-canary
+          pod-template-hash: 55fd859f98
+      spec:
+        containers:
+        - env:
+          - name: ROLE
+            value: caller
+          - name: TARGET
+            value: legacy-pricing
+          - name: TARGET_PEER_SERVICE
+            value: legacy-pricing
+          - name: POD_UID
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.uid
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: OTEL_SERVICE_NAME
+            value: orders
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: deployment.environment.name=locality-capture,k8s.pod.uid=$(POD_UID),k8s.pod.name=$(POD_NAME),k8s.namespace.name=$(POD_NAMESPACE),k8s.deployment.name=orders-canary,k8s.cluster.uid=2fe6677a-390d-458c-9e4c-85ae44b62f91
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4318
+          - name: OTEL_SEMCONV_STABILITY_OPT_IN
+            value: http
+          image: aip-locality-harness:20261005t060050z-4392
+          imagePullPolicy: Never
+          name: orders
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      architecture-intelligence.io/service-id: service:orders
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "1"
+    creationTimestamp: "2026-10-05T06:01:56Z"
+    generation: 1
+    labels:
+      app: orders
+      pod-template-hash: fdc669b5b
+    name: orders-fdc669b5b
+    namespace: aip-locality
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: orders
+      uid: a8df1913-530a-40cf-9fb4-f143f019ef08
+    resourceVersion: "629"
+    uid: d4b249c0-4116-46cb-b6aa-da2258ba4d21
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: orders
+        pod-template-hash: fdc669b5b
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: orders
+          pod-template-hash: fdc669b5b
+      spec:
+        containers:
+        - env:
+          - name: ROLE
+            value: caller
+          - name: TARGET
+            value: pricing
+          - name: TARGET_PEER_SERVICE
+            value: pricing
+          - name: POD_UID
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.uid
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: OTEL_SERVICE_NAME
+            value: orders
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: deployment.environment.name=locality-capture,k8s.pod.uid=$(POD_UID),k8s.pod.name=$(POD_NAME),k8s.namespace.name=$(POD_NAMESPACE),k8s.deployment.name=orders,k8s.cluster.uid=2fe6677a-390d-458c-9e4c-85ae44b62f91
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4318
+          - name: OTEL_SEMCONV_STABILITY_OPT_IN
+            value: http
+          image: aip-locality-harness:20261005t060050z-4392
+          imagePullPolicy: Never
+          name: orders
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "1"
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    generation: 1
+    labels:
+      app: otel-collector
+      pod-template-hash: 7d9778c5bd
+    name: otel-collector-7d9778c5bd
+    namespace: aip-locality
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: otel-collector
+      uid: f01b5277-8e6b-4c05-b343-db2789e99e24
+    resourceVersion: "594"
+    uid: 0f672325-fa99-48b8-9c52-9d9412ecd207
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: otel-collector
+        pod-template-hash: 7d9778c5bd
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: otel-collector
+          pod-template-hash: 7d9778c5bd
+      spec:
+        containers:
+        - args:
+          - --config=/etc/otelcol/config.yaml
+          image: otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+          imagePullPolicy: IfNotPresent
+          name: otel-collector
+          ports:
+          - containerPort: 4318
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/otelcol
+            name: config
+          - mountPath: /data
+            name: data
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext:
+          runAsUser: 0
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: otel-collector-config
+          name: config
+        - hostPath:
+            path: /var/local/aip-otlp
+            type: DirectoryOrCreate
+          name: data
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "1"
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    generation: 1
+    labels:
+      app: pricing
+      pod-template-hash: 5c5bb8658b
+    name: pricing-5c5bb8658b
+    namespace: aip-locality
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: pricing
+      uid: 37a35df3-ee6f-4594-9b76-7b1ccbce7e3b
+    resourceVersion: "554"
+    uid: 9214a02a-d35a-448b-877d-31a327857016
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: pricing
+        pod-template-hash: 5c5bb8658b
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: pricing
+          pod-template-hash: 5c5bb8658b
+      spec:
+        containers:
+        - env:
+          - name: ROLE
+            value: provider
+          - name: OTEL_SERVICE_NAME
+            value: pricing
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: deployment.environment.name=locality-capture
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4318
+          - name: OTEL_SEMCONV_STABILITY_OPT_IN
+            value: http
+          image: aip-locality-harness:20261005t060050z-4392
+          imagePullPolicy: Never
+          name: pricing
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    generateName: legacy-pricing-65489bc974-
+    labels:
+      app: legacy-pricing
+      pod-template-hash: 65489bc974
+    name: legacy-pricing-65489bc974-q4r4s
+    namespace: aip-locality
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: legacy-pricing-65489bc974
+      uid: efb88440-b7ce-4fdf-93ed-baf14382b51f
+    resourceVersion: "546"
+    uid: f7f29b09-2910-4f99-bc7a-d084f1fb3cd7
+  spec:
+    containers:
+    - env:
+      - name: ROLE
+        value: provider
+      - name: OTEL_SERVICE_NAME
+        value: legacy-pricing
+      - name: OTEL_RESOURCE_ATTRIBUTES
+        value: deployment.environment.name=locality-capture
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://otel-collector:4318
+      - name: OTEL_SEMCONV_STABILITY_OPT_IN
+        value: http
+      image: aip-locality-harness:20261005t060050z-4392
+      imagePullPolicy: Never
+      name: legacy-pricing
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-qcr5c
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: aip-locality-i5-20261005t060050z-4392-control-plane
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-qcr5c
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:33Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:32Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:33Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:33Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:32Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://cee06e6f273ff56e14b162c343cebf535aaf9b350c23bac403ca948d575e4744
+      image: docker.io/library/aip-locality-harness:20261005t060050z-4392
+      imageID: docker.io/library/import-2026-10-05@sha256:c4d4a23deb7af4d8b8992aa5d8e13b50110784abc5fb177dc3ff0cb9311e35fb
+      lastState: {}
+      name: legacy-pricing
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-10-05T06:01:33Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-qcr5c
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 172.18.0.2
+    hostIPs:
+    - ip: 172.18.0.2
+    phase: Running
+    podIP: 10.244.0.7
+    podIPs:
+    - ip: 10.244.0.7
+    qosClass: BestEffort
+    startTime: "2026-10-05T06:01:32Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-10-05T06:01:57Z"
+    generateName: orders-canary-55fd859f98-
+    labels:
+      app: orders-canary
+      pod-template-hash: 55fd859f98
+    name: orders-canary-55fd859f98-fzfj6
+    namespace: aip-locality
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: orders-canary-55fd859f98
+      uid: 0c0019ff-9442-476e-aa0c-ec876aa2b717
+    resourceVersion: "633"
+    uid: febe35bd-15a9-411a-ba33-cbd82da14169
+  spec:
+    containers:
+    - env:
+      - name: ROLE
+        value: caller
+      - name: TARGET
+        value: legacy-pricing
+      - name: TARGET_PEER_SERVICE
+        value: legacy-pricing
+      - name: POD_UID
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.uid
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: OTEL_SERVICE_NAME
+        value: orders
+      - name: OTEL_RESOURCE_ATTRIBUTES
+        value: deployment.environment.name=locality-capture,k8s.pod.uid=$(POD_UID),k8s.pod.name=$(POD_NAME),k8s.namespace.name=$(POD_NAMESPACE),k8s.deployment.name=orders-canary,k8s.cluster.uid=2fe6677a-390d-458c-9e4c-85ae44b62f91
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://otel-collector:4318
+      - name: OTEL_SEMCONV_STABILITY_OPT_IN
+        value: http
+      image: aip-locality-harness:20261005t060050z-4392
+      imagePullPolicy: Never
+      name: orders
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-llvwg
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: aip-locality-i5-20261005t060050z-4392-control-plane
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-llvwg
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:58Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:57Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:58Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:58Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:57Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://47214273a39934245593e13fd668009eb52d99c1ba793030f886dd50f47b2eb3
+      image: docker.io/library/aip-locality-harness:20261005t060050z-4392
+      imageID: docker.io/library/import-2026-10-05@sha256:c4d4a23deb7af4d8b8992aa5d8e13b50110784abc5fb177dc3ff0cb9311e35fb
+      lastState: {}
+      name: orders
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-10-05T06:01:57Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-llvwg
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 172.18.0.2
+    hostIPs:
+    - ip: 172.18.0.2
+    phase: Running
+    podIP: 10.244.0.9
+    podIPs:
+    - ip: 10.244.0.9
+    qosClass: BestEffort
+    startTime: "2026-10-05T06:01:57Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-10-05T06:01:57Z"
+    generateName: orders-fdc669b5b-
+    labels:
+      app: orders
+      pod-template-hash: fdc669b5b
+    name: orders-fdc669b5b-7sjlm
+    namespace: aip-locality
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: orders-fdc669b5b
+      uid: d4b249c0-4116-46cb-b6aa-da2258ba4d21
+    resourceVersion: "628"
+    uid: d31ca716-e7fa-420c-821c-b79cd907d3c5
+  spec:
+    containers:
+    - env:
+      - name: ROLE
+        value: caller
+      - name: TARGET
+        value: pricing
+      - name: TARGET_PEER_SERVICE
+        value: pricing
+      - name: POD_UID
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.uid
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: OTEL_SERVICE_NAME
+        value: orders
+      - name: OTEL_RESOURCE_ATTRIBUTES
+        value: deployment.environment.name=locality-capture,k8s.pod.uid=$(POD_UID),k8s.pod.name=$(POD_NAME),k8s.namespace.name=$(POD_NAMESPACE),k8s.deployment.name=orders,k8s.cluster.uid=2fe6677a-390d-458c-9e4c-85ae44b62f91
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://otel-collector:4318
+      - name: OTEL_SEMCONV_STABILITY_OPT_IN
+        value: http
+      image: aip-locality-harness:20261005t060050z-4392
+      imagePullPolicy: Never
+      name: orders
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-t9zbx
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: aip-locality-i5-20261005t060050z-4392-control-plane
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-t9zbx
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:57Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:57Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:57Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:57Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:57Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://de898c006166323a561927047aa96adc20575fec773b99a963f494eeba0e814e
+      image: docker.io/library/aip-locality-harness:20261005t060050z-4392
+      imageID: docker.io/library/import-2026-10-05@sha256:c4d4a23deb7af4d8b8992aa5d8e13b50110784abc5fb177dc3ff0cb9311e35fb
+      lastState: {}
+      name: orders
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-10-05T06:01:57Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-t9zbx
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 172.18.0.2
+    hostIPs:
+    - ip: 172.18.0.2
+    phase: Running
+    podIP: 10.244.0.8
+    podIPs:
+    - ip: 10.244.0.8
+    qosClass: BestEffort
+    startTime: "2026-10-05T06:01:57Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    generateName: otel-collector-7d9778c5bd-
+    labels:
+      app: otel-collector
+      pod-template-hash: 7d9778c5bd
+    name: otel-collector-7d9778c5bd-prstk
+    namespace: aip-locality
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: otel-collector-7d9778c5bd
+      uid: 0f672325-fa99-48b8-9c52-9d9412ecd207
+    resourceVersion: "591"
+    uid: 5662d73f-4d20-46e6-a2dd-aae388a39e44
+  spec:
+    containers:
+    - args:
+      - --config=/etc/otelcol/config.yaml
+      image: otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+      imagePullPolicy: IfNotPresent
+      name: otel-collector
+      ports:
+      - containerPort: 4318
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/otelcol
+        name: config
+      - mountPath: /data
+        name: data
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-r5jqh
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: aip-locality-i5-20261005t060050z-4392-control-plane
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext:
+      runAsUser: 0
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: otel-collector-config
+      name: config
+    - hostPath:
+        path: /var/local/aip-otlp
+        type: DirectoryOrCreate
+      name: data
+    - name: kube-api-access-r5jqh
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:56Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:32Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:56Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:56Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:32Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://f3e27e8c638160de004b5c9bd454fc853c5fcb75e4c31370b25e61f90f49ccaf
+      image: sha256:0fd3483345a3fa17f3ffe760eea2413f640724c8204ea11a58c8e3927b2c0fe7
+      imageID: docker.io/otel/opentelemetry-collector-contrib@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+      lastState: {}
+      name: otel-collector
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-10-05T06:01:56Z"
+      volumeMounts:
+      - mountPath: /etc/otelcol
+        name: config
+      - mountPath: /data
+        name: data
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-r5jqh
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 172.18.0.2
+    hostIPs:
+    - ip: 172.18.0.2
+    phase: Running
+    podIP: 10.244.0.5
+    podIPs:
+    - ip: 10.244.0.5
+    qosClass: BestEffort
+    startTime: "2026-10-05T06:01:32Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    generateName: pricing-5c5bb8658b-
+    labels:
+      app: pricing
+      pod-template-hash: 5c5bb8658b
+    name: pricing-5c5bb8658b-pdrs9
+    namespace: aip-locality
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: pricing-5c5bb8658b
+      uid: 9214a02a-d35a-448b-877d-31a327857016
+    resourceVersion: "550"
+    uid: 5c337bb7-bfce-45b4-816d-7bbad52b6f50
+  spec:
+    containers:
+    - env:
+      - name: ROLE
+        value: provider
+      - name: OTEL_SERVICE_NAME
+        value: pricing
+      - name: OTEL_RESOURCE_ATTRIBUTES
+        value: deployment.environment.name=locality-capture
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://otel-collector:4318
+      - name: OTEL_SEMCONV_STABILITY_OPT_IN
+        value: http
+      image: aip-locality-harness:20261005t060050z-4392
+      imagePullPolicy: Never
+      name: pricing
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-hlvqn
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: aip-locality-i5-20261005t060050z-4392-control-plane
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-hlvqn
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:33Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:32Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:33Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:33Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-10-05T06:01:32Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://ef3aff54d02b7a8916442046414867a28714d4feaa860ad7f59cd60985b24ba9
+      image: docker.io/library/aip-locality-harness:20261005t060050z-4392
+      imageID: docker.io/library/import-2026-10-05@sha256:c4d4a23deb7af4d8b8992aa5d8e13b50110784abc5fb177dc3ff0cb9311e35fb
+      lastState: {}
+      name: pricing
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-10-05T06:01:33Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-hlvqn
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 172.18.0.2
+    hostIPs:
+    - ip: 172.18.0.2
+    phase: Running
+    podIP: 10.244.0.6
+    podIPs:
+    - ip: 10.244.0.6
+    qosClass: BestEffort
+    startTime: "2026-10-05T06:01:32Z"
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"legacy-pricing","namespace":"aip-locality"},"spec":{"ports":[{"port":80,"targetPort":8080}],"selector":{"app":"legacy-pricing"}}}
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    name: legacy-pricing
+    namespace: aip-locality
+    resourceVersion: "531"
+    uid: 105f41d2-770c-472c-9144-50e430c8b9de
+  spec:
+    clusterIP: 10.96.204.55
+    clusterIPs:
+    - 10.96.204.55
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: legacy-pricing
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"otel-collector","namespace":"aip-locality"},"spec":{"ports":[{"port":4318,"targetPort":4318}],"selector":{"app":"otel-collector"}}}
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    name: otel-collector
+    namespace: aip-locality
+    resourceVersion: "493"
+    uid: af493676-239f-4696-b018-8056f5353590
+  spec:
+    clusterIP: 10.96.170.243
+    clusterIPs:
+    - 10.96.170.243
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - port: 4318
+      protocol: TCP
+      targetPort: 4318
+    selector:
+      app: otel-collector
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"pricing","namespace":"aip-locality"},"spec":{"ports":[{"port":80,"targetPort":8080}],"selector":{"app":"pricing"}}}
+    creationTimestamp: "2026-10-05T06:01:32Z"
+    name: pricing
+    namespace: aip-locality
+    resourceVersion: "512"
+    uid: b8dfc341-f491-46d6-ae12-bbfe82d43c85
+  spec:
+    clusterIP: 10.96.24.80
+    clusterIPs:
+    - 10.96.24.80
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: pricing
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""
