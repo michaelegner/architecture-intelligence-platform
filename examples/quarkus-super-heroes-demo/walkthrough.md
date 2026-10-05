@@ -172,9 +172,3 @@ the publish at runtime.
 - Treat consumers of the published fight message as unknown until they are confirmed outside AIP.
 
 AIP doesn't say the change is safe, and neither should your agent.
-
-## Next: where is a dependency established?
-
-The original Quarkus replay has no scoped-v2 caller Pod evidence. Continue with the
-[locality walkthrough](locality-walkthrough.md) to inspect that limitation and a **separate actual
-controlled reference**. Its two-Workload positives must not be presented as Quarkus observations.

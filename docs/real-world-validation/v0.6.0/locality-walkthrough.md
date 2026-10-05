@@ -1,6 +1,6 @@
 # Before a service change: where are dependencies established?
 
-This extends the [Quarkus walkthrough](walkthrough.md). Quarkus remains the developer entry point.
+This extends the [Quarkus walkthrough](../../../examples/quarkus-super-heroes-demo/walkthrough.md). Quarkus remains the developer entry point.
 The second example is **ACTUAL_CONTROLLED_REFERENCE**, acquisition
 `aip-locality-i5-20261005t060050z-4392`: two Deployments emitting calls as `service:orders`.
 It is not Quarkus traffic, a synthetic fixture or a product pilot.
@@ -40,15 +40,17 @@ and ports, so the Quarkus example may remain running.
 
 ```bash
 CANDIDATE_SHA="$(git rev-parse HEAD)"
-EXPECTATION_SHA="$(git rev-parse e48cae8f9842bd197061ba1b2c38ccd78f67b608^{commit})"
+EXPECTATION_SHA="$(git rev-parse c5bc7cb^{commit})"
 LOCALITY_RUN="$(mktemp -d)/qualification"
 uv run --offline python -m evaluation.i5.qualify run \
   --candidate "$CANDIDATE_SHA" --expectation-commit "$EXPECTATION_SHA" \
   --output "$LOCALITY_RUN"
 ```
 
-The original acquisition, [adopted oracle](../../tests/fixtures/locality/two-workload-capture/expected.md)
-and source hashes remain unchanged. Each run imports C1, replays the original 52 requests once,
+The original acquisition, [adopted oracle](../../../tests/fixtures/locality/two-workload-capture/expected.md)
+and source hashes remain unchanged. The original oracle was frozen at `e48cae8`;
+`c5bc7cb` carries its identical bytes onto main after the I5.2 squash merge, allowing the
+runner to verify ancestry without claiming a new adoption or expectation freeze. Each run imports C1, replays the original 52 requests once,
 evaluates C1, replaces the same capture root with C2, then evaluates C2 without replaying telemetry.
 Both runs start with fresh state and must agree byte for byte. They tear down their own containers;
 the following transcripts preserve each stage, rather than querying an unavailable historical state.
@@ -116,6 +118,6 @@ The stale cursor is a protocol-generated negative control: this small actual inv
 continuation. Synthetic pagination/cap checks remain separately labelled regression evidence.
 
 The replay command stops on disagreement with the adopted oracle, adapter mismatch or A/B drift.
-Read its results alongside the [I5 qualification evidence](../../docs/specifications/0.6.0/i5-qualification-report.md).
+Read its results alongside the [I5 qualification evidence](../../../docs/specifications/0.6.0/i5-qualification-report.md).
 This demonstration establishes neither production capacity nor customer benefit; I5.4 records pilot
 and completion decisions, and I6 must qualify its final release candidate.

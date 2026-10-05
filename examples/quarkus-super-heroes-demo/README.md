@@ -71,10 +71,3 @@ examples/quarkus-super-heroes-demo/run.sh --down
 This removes the containers, the Neo4j volume and `.aip-qsh-demo/`. If you change the graph yourself (for
 example by importing again), evidence references from earlier answers become stale: query again,
 or run `--down` and replay.
-
-## Where is a dependency established?
-
-Continue with the [locality walkthrough](locality-walkthrough.md): inspect Quarkus's missing caller-locality
-evidence, then replay the **separate actual controlled two-Workload capture** and inspect C1 positives,
-comparison/evidence and the C2 promotion boundary. It reuses existing tooling and needs no live
-cluster, upstream build, Kafka or LLM after dependencies and images are cached.
