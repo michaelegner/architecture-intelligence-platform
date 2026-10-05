@@ -18,10 +18,20 @@ The release is not complete merely because the semantic core exists. The new que
 end-to-end through the supported public adapters, with evidence/provenance continuity, qualification,
 deterministic evaluation, and release qualification.
 
-A patch release `0.x.y` is for a **post-release correction or maintenance change** that preserves
-the `0.x.0` architecture-question space and intended semantic contract: for example a defect fix,
-security/dependency patch, documentation correction, or semantics-preserving performance
-improvement. Patch releases are not pre-planned buckets for unfinished `0.x.0` work.
+A patch release `0.x.y` preserves the `0.x.0` architecture-question space. It is normally for a
+**post-release correction or maintenance change** that preserves the intended semantic contract:
+for example a defect fix, security/dependency patch, documentation correction, or
+semantics-preserving performance improvement.
+
+A patch release may also carry a **bounded, independently validated semantic completion** of an
+existing architecture-question class when real-system evidence demonstrates that the current model
+cannot preserve a required distinction safely. Such a completion may extend canonical or public
+semantics only as needed to answer the existing question class more correctly or completely; it
+must not introduce a materially new architecture-question class, and it must ship with appropriate
+evidence/provenance continuity, deterministic evaluation, and release qualification.
+
+Patch releases are not pre-planned buckets for unfinished `0.x.0` work, nor a way to move a new
+architecture-question class out of a capability release.
 
 After the final pre-1.0 capability release, contract freeze and production qualification use
 `v1.0.0-rc.N` prereleases rather than inventing another `0.x.0` product release with no new
