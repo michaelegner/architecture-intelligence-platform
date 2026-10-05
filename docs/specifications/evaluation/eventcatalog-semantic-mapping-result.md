@@ -60,7 +60,7 @@ ProductAPI lines 37, 50-51 and the Publisher lines 38, 50.
 | System `product-catalog-system`, Domain `catalog` (A11, A21) | none | **NO_MAPPING** | Matches *Logical composition* (Candidate gap, High). The system also appears as an actor in prose ("this system publishes", A10, A12), which is composition-as-subject and has no AIP counterpart. |
 | System→system `relationships` (`search-system`, "notifies of product changes") | none | **NO_MAPPING** | A generic, label-only connection. Matches *Generic declared connectivity* (High). Mapping it to a typed relation would invent semantics. |
 | ADR `appliesTo` (A16) | none as a Current-State fact; closest is the Intent side of [`semantic-gaps.md`](../../semantic-gaps.md) §3 | **NO_MAPPING** | AIP's `Evidence` types are `DECLARED` and `OBSERVED`. An ADR's `status: accepted` is attributable *intent*, not a statement of what is deployed. Treating it as `DECLARED` evidence for a relation would turn intent into Current State. |
-| `owners` (A22) | `Provenance` | **PARTIAL (similar-looking, different)** | See §4 group 3. Owner is who is *responsible* for an entity; provenance is where a *claim* came from. Not interchangeable. |
+| `owners` (A22) | none (`Provenance` looks similar but is a different concept) | **NO_MAPPING** | See §4 group 3. Owner is who is *responsible* for an entity; provenance is where a *claim* came from. No useful mapping exists: mapping one to the other would manufacture a claim source. AIP has no ownership concept; this is not a gap unless an ownership question is shown to need one. |
 | Actors, Teams, Users, Flows, Entities, runbooks, badges, styles | none | **NOT_RELEVANT** | None changes an answer about declared or observed service, operation, messaging or deployment structure. Revisit only if a concrete question needs them. |
 
 ## 3. The ambiguous publisher case: who publishes `ProductCreated`?
@@ -152,7 +152,7 @@ prose. `authoritative: true` is a bare assertion with no source. EventCatalog ca
 
 - **Safe mappings:** Service → `Service`; Kafka channel → `Topic` (this slice, protocol and address
   explicit); the schema'd Event → `Message` + `Schema`; command with an HTTP `operation` → `Operation`.
-- **Lossy mappings (loss stated in §2):** `receives`, `sends`, Event, Channel, Command, `owners`.
+- **Lossy mappings (loss stated in §2):** `receives`, `sends`, Event, Channel, Command. `owners` is NO_MAPPING, not lossy: no useful mapping exists.
 - **Intentionally ignored:** Actors, Teams, Users, Flows, Entities, runbooks, presentation metadata.
 - **Does any current AIP concept conflate meanings that should stay distinct?** No conflation
   demonstrated. The only candidate is the message-level attribution of `PUBLISHES_TO` + `CARRIES`
