@@ -56,7 +56,7 @@ Migration rule:
 - an existing configuration that omits `telemetry.scoped-evidence` adopts the new v0.6 default and may begin writing the isolated v2/transition state when qualifying telemetry arrives;
 - an operator who requires the legacy v0.5 ingestion behavior SHALL explicitly set `telemetry.scoped-evidence.enabled: false`;
 - documentation and release notes SHALL state this clearly;
-- the v0.5 no-v2 canonical snapshot/fingerprint pins remain byte-identical because operational `ScopedEvidence*` nodes are not unconditional canonical-state inputs.
+- the v0.5 no-v2 canonical snapshot/fingerprint pins remain byte-identical. Operational `ScopedEvidence*` nodes are not unconditional canonical-state inputs: the conditional snapshot keys ([I2 D15](i2-decision-record.md)) are live regardless of the flag, and `tests/unit/test_demo_seed_has_no_scoped_identity.py` guards that the demo batch carries no `k8s.*` identity. Default-on can therefore change the whole-graph node count (re-pinned deliberately in §2.3 item 4) but not the demo's pinned snapshot ID.
 
 ### 2.3 Golden-path re-freeze
 
@@ -223,7 +223,7 @@ uv run python -m evaluation.i4 \
   --out "$OUT/i4"
 ```
 
-Required result: `status = PASS`, zero oracle mismatch, zero raw canonical A/B difference, zero service/REST/MCP semantic difference, all required I4 cases and mandatory exact-SHA CI checks present.
+One invocation runs two independent fresh-container workers (A and B) and compares them; that A/B pair is the "two clean runs" this specification requires, and the readiness record cites the one invocation's report. Required result: `status = PASS`, zero oracle mismatch, zero raw canonical A/B difference, zero service/REST/MCP semantic difference, all required I4 cases and mandatory exact-SHA CI checks present.
 
 Re-run the I4 growth/churn/locality benchmarks against the same candidate using their explicit candidate parameters. The owner SHALL confirm that the already-accepted bounded I4 cost disposition is not invalidated by the final-candidate measurements. This remains a bounded qualification, not a production SLO.
 
@@ -511,7 +511,7 @@ A candidate is technically ready only when all of these hold on **one exact SHA*
 
 1. version 0.6.0, ROADMAP scope, D16 migration and four-tool contract are frozen;
 2. repository gate and mandatory exact-SHA CI/CodeQL pass;
-3. I4 independent qualification passes twice from clean state with byte-identical semantics;
+3. I4 independent qualification passes, with its two clean A/B workers (§5.2) agreeing byte-identically on semantics;
 4. final-candidate growth/churn evidence is re-run and dispositioned;
 5. actual I5 reference passes two clean A/B workers unchanged;
 6. full Quarkus and Airflow qualification remains truthful;
