@@ -1,0 +1,273 @@
+{
+  "mode": "DECLARATIONS_ONLY_NO_CAPTURE_OR_TELEMETRY",
+  "harness_head": "072fa446f847173590b524dd9fa306da74151511",
+  "neo4j_image": "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93",
+  "container_id": "6f8fe5dba4c2f9f0e19b267692269a6e2f20595ec34b47f2d7327608a72ba3ea",
+  "stats": {
+    "inventory_status": "COMPLETE",
+    "committed": true,
+    "per_source": {
+      "urn:aip:source:filesystem:3510755d390ff3157dc32c6ddf5aee076edb4771c6321f73fcf87c525eb7fe1b": {
+        "source_instance_id": "urn:aip:source:filesystem:3510755d390ff3157dc32c6ddf5aee076edb4771c6321f73fcf87c525eb7fe1b",
+        "locator": "/tmp/aip-i5.1-acquisition-02/declarations/pricing/openapi.yaml",
+        "result": "ACCEPTED",
+        "nodes_written": 3,
+        "relations_written": 1,
+        "nodes_expired": 0,
+        "relations_expired": 0,
+        "graph_revision_advanced": true,
+        "effects": {
+          "added": {
+            "public_node_ids": [
+              "operation:service:pricing:GET:/prices",
+              "service:pricing"
+            ],
+            "relation_keys": [
+              "PROVIDES:service:pricing:operation:service:pricing:GET:/prices"
+            ],
+            "internal_count": 1
+          },
+          "changed": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          },
+          "expired": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          },
+          "ownership_removed": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          }
+        }
+      },
+      "urn:aip:source:filesystem:689b2195fed9fa527b25d702b1b44dd7afaea8ecf10199ef8d92f1312f759d53": {
+        "source_instance_id": "urn:aip:source:filesystem:689b2195fed9fa527b25d702b1b44dd7afaea8ecf10199ef8d92f1312f759d53",
+        "locator": "/tmp/aip-i5.1-acquisition-02/declarations/orders/openapi.yaml",
+        "result": "ACCEPTED",
+        "nodes_written": 3,
+        "relations_written": 1,
+        "nodes_expired": 0,
+        "relations_expired": 0,
+        "graph_revision_advanced": true,
+        "effects": {
+          "added": {
+            "public_node_ids": [
+              "operation:service:orders:GET:/orders",
+              "service:orders"
+            ],
+            "relation_keys": [
+              "PROVIDES:service:orders:operation:service:orders:GET:/orders"
+            ],
+            "internal_count": 1
+          },
+          "changed": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          },
+          "expired": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          },
+          "ownership_removed": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          }
+        }
+      },
+      "urn:aip:source:filesystem:949028e7e0421d71077543b66ac619ac008d4bdaffa7b74fbea26d32787ee8c3": {
+        "source_instance_id": "urn:aip:source:filesystem:949028e7e0421d71077543b66ac619ac008d4bdaffa7b74fbea26d32787ee8c3",
+        "locator": "/tmp/aip-i5.1-acquisition-02/declarations/legacy-pricing/openapi.yaml",
+        "result": "ACCEPTED",
+        "nodes_written": 3,
+        "relations_written": 1,
+        "nodes_expired": 0,
+        "relations_expired": 0,
+        "graph_revision_advanced": true,
+        "effects": {
+          "added": {
+            "public_node_ids": [
+              "operation:service:legacy-pricing:GET:/prices",
+              "service:legacy-pricing"
+            ],
+            "relation_keys": [
+              "PROVIDES:service:legacy-pricing:operation:service:legacy-pricing:GET:/prices"
+            ],
+            "internal_count": 1
+          },
+          "changed": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          },
+          "expired": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          },
+          "ownership_removed": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          }
+        }
+      },
+      "urn:aip:source:filesystem:7f68448a26a337051f736f39cb95bf68b0ea01a0a18204f75bc12750bbbf9674": {
+        "source_instance_id": "urn:aip:source:filesystem:7f68448a26a337051f736f39cb95bf68b0ea01a0a18204f75bc12750bbbf9674",
+        "locator": "/tmp/aip-i5.1-acquisition-02/declarations/orders/architecture.yaml",
+        "result": "ACCEPTED",
+        "nodes_written": 1,
+        "relations_written": 1,
+        "nodes_expired": 0,
+        "relations_expired": 0,
+        "graph_revision_advanced": true,
+        "effects": {
+          "added": {
+            "public_node_ids": [],
+            "relation_keys": [
+              "CALLS:service:orders:operation:service:pricing:GET:/prices"
+            ],
+            "internal_count": 1
+          },
+          "changed": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          },
+          "expired": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          },
+          "ownership_removed": {
+            "public_node_ids": [],
+            "relation_keys": [],
+            "internal_count": 0
+          }
+        }
+      }
+    },
+    "removed_source_instance_ids": [],
+    "diagnostics": [],
+    "source_results": [
+      {
+        "source_instance_id": "urn:aip:source:filesystem:3510755d390ff3157dc32c6ddf5aee076edb4771c6321f73fcf87c525eb7fe1b",
+        "locator": "/tmp/aip-i5.1-acquisition-02/declarations/pricing/openapi.yaml",
+        "result": "ACCEPTED",
+        "diagnostics": [],
+        "source_kind": "filesystem",
+        "adapter_identity": "openapi-adapter@1",
+        "mapping_rule_version": "v1",
+        "dialect_version": "3.1.0",
+        "semantic_input_digest": "acf9bfd2b5781567fd03e7a7876e0c0ca9bb5e6dfaead299b0604f90e31408df",
+        "service_ids": [
+          "service:pricing"
+        ],
+        "emitted": {
+          "services": 1,
+          "operations": 1,
+          "schemas": 0,
+          "messages": 0,
+          "queues": 0,
+          "topics": 0,
+          "subscriptions": 0,
+          "relations": 1,
+          "infrastructure_entities": 0,
+          "infrastructure_claims": 0
+        }
+      },
+      {
+        "source_instance_id": "urn:aip:source:filesystem:689b2195fed9fa527b25d702b1b44dd7afaea8ecf10199ef8d92f1312f759d53",
+        "locator": "/tmp/aip-i5.1-acquisition-02/declarations/orders/openapi.yaml",
+        "result": "ACCEPTED",
+        "diagnostics": [],
+        "source_kind": "filesystem",
+        "adapter_identity": "openapi-adapter@1",
+        "mapping_rule_version": "v1",
+        "dialect_version": "3.1.0",
+        "semantic_input_digest": "0043b928c72197751ea8c33a64d896c49f40b1a1416a97f9fe97d2d598b1bc33",
+        "service_ids": [
+          "service:orders"
+        ],
+        "emitted": {
+          "services": 1,
+          "operations": 1,
+          "schemas": 0,
+          "messages": 0,
+          "queues": 0,
+          "topics": 0,
+          "subscriptions": 0,
+          "relations": 1,
+          "infrastructure_entities": 0,
+          "infrastructure_claims": 0
+        }
+      },
+      {
+        "source_instance_id": "urn:aip:source:filesystem:7f68448a26a337051f736f39cb95bf68b0ea01a0a18204f75bc12750bbbf9674",
+        "locator": "/tmp/aip-i5.1-acquisition-02/declarations/orders/architecture.yaml",
+        "result": "ACCEPTED",
+        "diagnostics": [],
+        "source_kind": "filesystem",
+        "adapter_identity": "manifest-adapter@1",
+        "mapping_rule_version": "v1",
+        "dialect_version": null,
+        "semantic_input_digest": "7a63385ce3cf854ee746d1e5d5124621b33e00f169a7f70316528a7a482a5be0",
+        "service_ids": [],
+        "emitted": {
+          "services": 0,
+          "operations": 0,
+          "schemas": 0,
+          "messages": 0,
+          "queues": 0,
+          "topics": 0,
+          "subscriptions": 0,
+          "relations": 1,
+          "infrastructure_entities": 0,
+          "infrastructure_claims": 0
+        }
+      },
+      {
+        "source_instance_id": "urn:aip:source:filesystem:949028e7e0421d71077543b66ac619ac008d4bdaffa7b74fbea26d32787ee8c3",
+        "locator": "/tmp/aip-i5.1-acquisition-02/declarations/legacy-pricing/openapi.yaml",
+        "result": "ACCEPTED",
+        "diagnostics": [],
+        "source_kind": "filesystem",
+        "adapter_identity": "openapi-adapter@1",
+        "mapping_rule_version": "v1",
+        "dialect_version": "3.1.0",
+        "semantic_input_digest": "01247c902a4520f027919bff7270c8dd913b8fff54f33001ffe45aa261475a38",
+        "service_ids": [
+          "service:legacy-pricing"
+        ],
+        "emitted": {
+          "services": 1,
+          "operations": 1,
+          "schemas": 0,
+          "messages": 0,
+          "queues": 0,
+          "topics": 0,
+          "subscriptions": 0,
+          "relations": 1,
+          "infrastructure_entities": 0,
+          "infrastructure_claims": 0
+        }
+      }
+    ],
+    "discovery_scope_id": "urn:aip:discovery-scope:bf20478a20687effa432f80c0db4f799f2ee2cacfb3c9cb4085854d93403f5ef",
+    "scope_definition_digest": "d1a57a2d6e68e260a4bc012071dc19f2ca2af53c282cadcc96ca103057fdc175",
+    "inventory_revision": "urn:aip:inventory-revision:eff320ce3f9f7e83443a830430739605134bc25abd9e87a83de91d368ba543e7",
+    "tombstone_decisions": [],
+    "removal_stats": []
+  },
+  "accepted_operation_ids": [
+    "operation:service:legacy-pricing:GET:/prices",
+    "operation:service:orders:GET:/orders",
+    "operation:service:pricing:GET:/prices"
+  ]
+}

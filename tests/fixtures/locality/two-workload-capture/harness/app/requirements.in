@@ -1,0 +1,8 @@
+# Harness-only dependencies (v0.6.0 I2.6a; I1 capture runbook §3). Not project dependencies:
+# compiled with hashes into requirements.txt and installed only into the harness image.
+flask
+requests
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-flask
+opentelemetry-instrumentation-requests

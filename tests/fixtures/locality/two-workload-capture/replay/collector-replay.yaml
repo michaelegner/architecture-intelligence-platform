@@ -1,0 +1,28 @@
+# Replay Collector (I1 capture runbook §6): the demo's core Collector image, pinned by digest in
+# compose.yaml. OTLP/HTTP JSON in, OTLP/HTTP protobuf out. No processors at all: no `batch`, which
+# would merge or split the recorded requests, and no attribute/resource processors. No queue and no
+# retry: each received request is forwarded synchronously, one to one, and a failed export stops
+# the replay instead of silently re-sending (a repeated POST can double-count v1).
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlphttp/aip:
+    endpoint: http://architecture-intelligence:8000
+    tls:
+      insecure: true
+    encoding: proto
+    compression: none
+    sending_queue:
+      enabled: false
+    retry_on_failure:
+      enabled: false
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlphttp/aip]

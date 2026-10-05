@@ -200,6 +200,11 @@ TRAFFIC_END=$(now); log "traffic end $TRAFFIC_END"
 docker cp "$CLUSTER-control-plane:/var/local/aip-otlp/otlp.jsonl" "$OUT/otlp.jsonl"
 log "otlp.jsonl lines $(wc -l < "$OUT/otlp.jsonl") sha256 $(sha256sum "$OUT/otlp.jsonl" | cut -d' ' -f1)"
 
+# Runbook §4: the captures and the traffic on one UTC day
+for stamp in "$TRAFFIC_START" "$TRAFFIC_END" $(grep -h capturedAt "$OUT"/c*/envelope.yaml | tr -d '" ' | cut -d: -f2-); do
+    [[ "$stamp" == "$DAY"* ]] || stop "timestamp $stamp is not on $DAY"
+done
+
 # Export identities before teardown so failed checks retain their acquisition context.
 cat > "$OUT/identities.env" <<EOF
 DAY=$DAY
@@ -211,11 +216,6 @@ P2_UID=$P2_UID
 TRAFFIC_START=$TRAFFIC_START
 TRAFFIC_END=$TRAFFIC_END
 EOF
-# Runbook §4: the captures and the traffic on one UTC day
-for stamp in "$TRAFFIC_START" "$TRAFFIC_END" $(grep -h capturedAt "$OUT"/c*/envelope.yaml | tr -d "\"' " | cut -d: -f2-); do
-    [[ "$stamp" == "$DAY"* ]] || stop "timestamp $stamp is not on $DAY"
-done
-
 if $ACTUAL; then
     cat >> "$OUT/identities.env" <<EOF
 SOURCE_ID=$SOURCE

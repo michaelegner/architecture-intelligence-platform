@@ -1,0 +1,12 @@
+openapi: 3.1.0
+info:
+  title: pricing
+  version: "1.0.0"
+x-aip-service-id: service:pricing
+paths:
+  /prices:
+    get:
+      operationId: getPrices
+      responses:
+        "200":
+          description: ok

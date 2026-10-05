@@ -1,0 +1,12 @@
+openapi: 3.1.0
+info:
+  title: orders
+  version: "1.0.0"
+x-aip-service-id: service:orders
+paths:
+  /orders:
+    get:
+      operationId: listOrders
+      responses:
+        "200":
+          description: ok

@@ -1,0 +1,54 @@
+"""Source-only inspection of emitted SDK HTTP traffic; no AIP imports or answer oracle."""
+import json
+import sys
+from collections import Counter, defaultdict
+from datetime import UTC, datetime
+from pathlib import Path
+
+out = Path(sys.argv[1])
+ids = dict(line.split('=', 1) for line in (out / 'identities.env').read_text().splitlines())
+c1_at = datetime.fromisoformat(sys.argv[2])
+counts = Counter()
+first, last, overlap = {}, {}, defaultdict(list)
+
+def attributes(items):
+    return {item['key']: next(iter(item['value'].values())) for item in items}
+
+for line in (out / 'otlp.jsonl').read_text().splitlines():
+    for resource_spans in json.loads(line)['resourceSpans']:
+        resource = attributes(resource_spans['resource']['attributes'])
+        for scope in resource_spans['scopeSpans']:
+            for span in scope['spans']:
+                start = datetime.fromtimestamp(int(span['startTimeUnixNano']) / 1e9, UTC)
+                end = datetime.fromtimestamp(int(span['endTimeUnixNano']) / 1e9, UTC)
+                assert start.date().isoformat() == end.date().isoformat() == ids['DAY']
+                assert end >= start
+                if span['kind'] not in (3, 'SPAN_KIND_CLIENT'):
+                    continue
+                pod = resource['k8s.pod.uid']
+                assert pod in (ids['P1_UID'], ids['P2_UID'])
+                target = 'pricing' if pod == ids['P1_UID'] else 'legacy-pricing'
+                attrs = attributes(span['attributes'])
+                assert attrs['http.request.method'] == 'GET'
+                assert attrs['url.full'] == 'http://' + target + '/prices'
+                assert attrs['peer.service'] == target
+                assert int(attrs['http.response.status_code']) == 200
+                counts[target] += 1
+                first[pod] = min(first.get(pod, start), start)
+                last[pod] = max(last.get(pod, end), end)
+                if end <= c1_at:
+                    overlap[pod].append(start)
+for pod in (ids['P1_UID'], ids['P2_UID']):
+    assert len(overlap[pod]) > 1
+    assert (max(overlap[pod]) - min(overlap[pod])).total_seconds() >= 300
+result = {
+    'source_inspection': 'PASS',
+    'utc_day': ids['DAY'],
+    'successful_real_client_http_requests': dict(counts),
+    'first_client_span': {key: value.isoformat() for key, value in first.items()},
+    'last_client_span': {key: value.isoformat() for key, value in last.items()},
+    'pre_c1_observed_traffic_seconds': {pod: (max(values) - min(values)).total_seconds() for pod, values in overlap.items()},
+    'aip_evaluation': 'NOT_RUN',
+}
+(out / 'recording-inspection.json').write_text(json.dumps(result, indent=2) + '\n')
+print(json.dumps(result, indent=2))
