@@ -1,0 +1,33 @@
+{
+  "candidate_sha": "8102b8e4f1010c2c0d1395b91c79f3cd4c63429a",
+  "readiness_evidence_sha": "c3c8ef917ef70d5ab81caab8373af74bd72135c8",
+  "authorization_evidence_sha": "c265f90aedef6bcd8ee6ce92b7e8d092a4729ed0",
+  "prepared_at": "2026-10-05T19:40:14.581498+00:00",
+  "planning_started_at": "2026-10-05T19:35:08Z",
+  "source_notes_sha256": "4d02446d6c1ac38e9a2d2d90b4c5a76b87c4c52bfee4ca4e7a917f211f371f2b",
+  "rendered_notes_sha256": "24f11486e94c2182ada40338592ff96e12db29ea7b3a3fdd2df2606f44909593",
+  "workflow_sha256": "47327aebed74a3e3ae1fa43c05140fac326c92b4e4daa0a1d561c6766d893ca3",
+  "relative_links": [
+    {
+      "source": "../configuration.md",
+      "path": "docs/configuration.md",
+      "url": "https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.6.0/docs/configuration.md"
+    },
+    {
+      "source": "../specifications/0.6.0/i2-decision-record.md",
+      "path": "docs/specifications/0.6.0/i2-decision-record.md",
+      "url": "https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.6.0/docs/specifications/0.6.0/i2-decision-record.md"
+    },
+    {
+      "source": "../real-world-validation/v0.6.0/locality-walkthrough.md",
+      "path": "docs/real-world-validation/v0.6.0/locality-walkthrough.md",
+      "url": "https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.6.0/docs/real-world-validation/v0.6.0/locality-walkthrough.md"
+    },
+    {
+      "source": "../specifications/0.6.0/i5-completion-record.md",
+      "path": "docs/specifications/0.6.0/i5-completion-record.md",
+      "url": "https://github.com/michaelegner/architecture-intelligence-platform/blob/v0.6.0/docs/specifications/0.6.0/i5-completion-record.md"
+    }
+  ],
+  "publication_started": false
+}
