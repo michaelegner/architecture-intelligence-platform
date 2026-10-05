@@ -72,7 +72,14 @@ def command(args: list[str], output: Path, *, env: dict | None = None) -> None:
         subprocess.run(args, cwd=REPO, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
 
 
-def worker(candidate: str, expectation_commit: str, output: Path) -> None:
+def worker(
+    candidate: str,
+    expectation_commit: str,
+    output: Path,
+    *,
+    image_ref: str | None = None,
+    use_scoped_default: bool = False,
+) -> None:
     facts = verify_inputs(candidate, expectation_commit)
     output.mkdir(parents=True, exist_ok=False)
     output.chmod(0o777)
@@ -99,12 +106,14 @@ def worker(candidate: str, expectation_commit: str, output: Path) -> None:
             "directories": [{"id": "aip-locality-i5-declarations", "root": "declarations"}],
             "clusters": [registration],
         }
-        config["telemetry"]["scoped-evidence"] = {"enabled": True, "stream-id": registration["id"]}
+        config["telemetry"]["scoped-evidence"] = {"stream-id": registration["id"]}
+        if not use_scoped_default:
+            config["telemetry"]["scoped-evidence"]["enabled"] = True
         (staging / "config.yaml").write_text(yaml.safe_dump({"architecture_intelligence": config}))
         shutil.copyfile(staging / "config.yaml", output / "config.yaml")
         api_port, bolt_port, collector_port = (free_port() for _ in range(3))
         project = f"aip-i5-{os.getpid()}-{output.name.lower()}"
-        image = f"aip-i5:{candidate}"
+        image = image_ref or f"aip-i5:{candidate}"
         compose = {
             "services": {
                 "architecture-intelligence": {
@@ -123,6 +132,7 @@ def worker(candidate: str, expectation_commit: str, output: Path) -> None:
                         f"{staging}/declarations:/app/declarations:ro",
                         f"{REPO}/evaluation/i5:/app/i5-tools:ro",
                         f"{ARTIFACT}/expected.md:/app/i5-expected.md:ro",
+                        f"{REPO}/schemas/architecture_intelligence/v0.6:/app/i5-schemas:ro",
                         f"{output}:/app/i5-results",
                     ],
                     "depends_on": {"neo4j": {"condition": "service_healthy"}},
@@ -381,6 +391,8 @@ def main() -> None:
     parser.add_argument("--candidate")
     parser.add_argument("--expectation-commit")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--image", help="Existing image for worker mode; never rebuilt")
+    parser.add_argument("--use-scoped-default", action="store_true")
     args = parser.parse_args()
     output = args.output.resolve()
     if args.mode == "compare":
@@ -388,8 +400,16 @@ def main() -> None:
         return
     verify_inputs(args.candidate, args.expectation_commit)
     if args.mode == "worker":
-        worker(args.candidate, args.expectation_commit, output)
+        worker(
+            args.candidate,
+            args.expectation_commit,
+            output,
+            image_ref=args.image,
+            use_scoped_default=args.use_scoped_default,
+        )
         return
+    if args.image or args.use_scoped_default:
+        parser.error("--image and --use-scoped-default require worker mode")
     output.mkdir(parents=True, exist_ok=False)
     command(
         [

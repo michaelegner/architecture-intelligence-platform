@@ -37,7 +37,8 @@ architecture_intelligence:
     coverage:
       qualification-enabled: true
     scoped-evidence:
-      enabled: false
+      # v0.6 default; set false explicitly for legacy v1-only ingestion.
+      enabled: true
       stream-id: otlp-http
   runtime_analysis:
     default_window_hours: 24

@@ -130,3 +130,55 @@ def test_ask_blast_radius_style_question_returns_real_graph_data(driver):
     result = service.ask("what does order-service send messages to downstream?")
 
     assert [r["id"] for r in result.rows] == [ids.service_id("payment-service")]
+
+
+@pytest.fixture
+def evidence_boundary(driver):
+    with driver.session(database=DATABASE) as session:
+        session.run(
+            "CREATE (:Evidence {id:'i6-private', source_type:'KUBERNETES'}), "
+            "(:Evidence {id:'i6-public', source_type:'OPENAPI'}), "
+            "(:Service {id:'i6-caller'})-[:CALLS {evidence_ids:['i6-private','i6-public']}]->"
+            "(:Operation {id:'i6-operation'})"
+        )
+    yield
+    with driver.session(database=DATABASE) as session:
+        session.run(
+            "MATCH (n) WHERE n.id IN ['i6-private','i6-public','i6-caller','i6-operation'] DETACH DELETE n"
+        )
+
+
+@pytest.mark.parametrize(
+    "cypher",
+    [
+        "MATCH (e:Evidence) WHERE e.source_type = 'KUBERNETES' RETURN e.id AS id",
+        "MATCH (e:Evidence) WHERE e.id = 'i6-private' RETURN e.id AS id",
+        "MATCH (:Service {id:'i6-caller'})-[r:CALLS]->(:Operation) MATCH (e:Evidence) WHERE e.id IN r.evidence_ids RETURN e.id AS id",
+    ],
+)
+def test_nl_kubernetes_evidence_guard_is_proven(driver, evidence_boundary, monkeypatch, cypher):
+    from app.ai import graph_reachability
+
+    provider = FakeProvider(cypher)
+    service = ArchitectureQuestionService(driver=driver, database=DATABASE, provider=provider)
+    with pytest.raises(graph_reachability.GraphReachabilityError, match="inline WHERE"):
+        service.ask("show evidence")
+    assert not provider.compose_calls
+    # Without this guard, the same real execution leaks the seeded Kubernetes evidence.
+    monkeypatch.setattr(graph_reachability, "_check_evidence_pattern", lambda *args: None)
+    assert "i6-private" in {row["id"] for row in service.ask("show evidence").rows}
+
+
+def test_nl_authorized_evidence_lookup_preserves_public_rows(driver, evidence_boundary):
+    provider = FakeProvider(
+        "MATCH (:Service {id:'i6-caller'})-[r:CALLS]->(:Operation) "
+        "OPTIONAL MATCH (e:Evidence WHERE e.source_type <> 'KUBERNETES') "
+        "WHERE e.id IN r.evidence_ids OR true RETURN e.id AS id"
+    )
+    rows = (
+        ArchitectureQuestionService(driver=driver, database=DATABASE, provider=provider)
+        .ask("show sources")
+        .rows
+    )
+    assert "i6-public" in {row["id"] for row in rows}
+    assert "i6-private" not in {row["id"] for row in rows}

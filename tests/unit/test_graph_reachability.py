@@ -27,7 +27,7 @@ ACCEPTED = [
     "MATCH (s:Service) MATCH (q:Queue) MATCH (s)-[:SENDS]->(q) RETURN s, q",
     "MATCH (s:Service) OPTIONAL MATCH (s)-[:SENDS]->(q:Queue) RETURN s, q",
     (
-        "MATCH (s:Service)-[r:CALLS]->(o:Operation) MATCH (e:Evidence) "
+        "MATCH (s:Service)-[r:CALLS]->(o:Operation) MATCH (e:Evidence WHERE e.source_type <> 'KUBERNETES') "
         "WHERE e.id IN r.evidence_ids RETURN e.id"
     ),
     (
@@ -44,6 +44,23 @@ ACCEPTED = [
     "MATCH (n:Service:Operation) RETURN n.id",
     "MATCH (m:Message)-[:CONFORMS_TO]->(sc:Schema) RETURN m.id, sc.id",
 ]
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "(e:Evidence)",
+        "(e:Evidence WHERE e.source_type <> 'kubernetes')",
+        "(e:Evidence WHERE E.source_type <> 'KUBERNETES')",
+        "(e:Evidence WHERE e.SOURCE_TYPE <> 'KUBERNETES')",
+        "(e:Evidence WHERE e.source_type <> 'KUBERNETES' OR true)",
+        "(e:Evidence WHERE NOT e.source_type <> 'KUBERNETES')",
+    ],
+)
+def test_evidence_binding_must_have_the_proven_inline_exclusion(pattern):
+    with pytest.raises(GraphReachabilityError):
+        check_node_patterns(f"MATCH {pattern} RETURN e.id")
+
 
 REJECTED = [
     ("MATCH (n) RETURN n", "every node pattern"),
@@ -223,7 +240,9 @@ _variables = st.sampled_from(["a", "b", "n", "x", "node1"])
 
 @given(_public_labels, _public_labels, _rel_types)
 def test_property_fully_labeled_queries_pass(left, right, rel):
-    check_node_patterns(f"MATCH (a:{left})-[:{rel}]->(b:{right}) RETURN a.id, b.id")
+    a = f"a:{left}" + (" WHERE a.source_type <> 'KUBERNETES'" if left == "Evidence" else "")
+    b = f"b:{right}" + (" WHERE b.source_type <> 'KUBERNETES'" if right == "Evidence" else "")
+    check_node_patterns(f"MATCH ({a})-[:{rel}]->({b}) RETURN a.id, b.id")
 
 
 @given(_variables, _public_labels)

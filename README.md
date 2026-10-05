@@ -333,7 +333,7 @@ per-service telemetry coverage). None of these involve the LLM — see
 
 ## Core Capabilities
 
-- Evidence-qualified service dependencies and architecture drift, via three read-only MCP tools
+- Evidence-qualified service dependencies and architecture drift, via four read-only MCP tools
 - OpenAPI, AsyncAPI and OpenTelemetry evidence, reconciled into one graph
 - Queue *and* source-independent Pub/Sub semantics. Topic fan-out is expressed only through
   explicitly declared Subscriptions, and a Kafka consumer group is never treated as a Subscription.
@@ -433,7 +433,8 @@ the platform works with no LLM provider configured, and no MCP tool depends on i
 
 ## Boundaries
 
-What the three MCP tools return, and what they deliberately don't.
+What the original three MCP tools return, and what they deliberately don't. The fourth tool
+adds the separately versioned [locality contract](docs/mcp.md#get_service_dependencies_by_locality-v060-i3).
 
 **One envelope.** Every tool returns the same `ArchitectureAnswer` (`schema_version`, `producer`,
 `tool`, `outcome`, `snapshot`, `observation_context`, `data`, `claims`, `evidence_refs`,
@@ -471,7 +472,7 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 
 ## Documentation
 
-- [`docs/mcp.md`](docs/mcp.md) — the three read-only MCP tools for AI agents, and a runnable
+- [`docs/mcp.md`](docs/mcp.md) — the four read-only MCP tools for AI agents, and a runnable
   hero-demo walkthrough
 - [`docs/architecture.md`](docs/architecture.md) — pipeline, API surface
 - [`docs/canonical-model.md`](docs/canonical-model.md) — entities and deterministic ids

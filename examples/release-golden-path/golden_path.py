@@ -53,7 +53,12 @@ NEO4J_BOLT = "bolt://127.0.0.1:17687"
 HOST_PORTS = (8000, 4318, 17687)
 MCP_PROTOCOL_VERSION = "2025-11-25"
 DRIFT_QUALIFICATIONS = ("OBSERVED_ONLY", "NOT_OBSERVED_IN_WINDOW")
-TOOLS = ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+TOOLS = [
+    "get_architecture_drift",
+    "get_evidence",
+    "get_service_dependencies",
+    "get_service_dependencies_by_locality",
+]
 SCHEMA_DIR = REPO / "schemas" / "architecture_intelligence" / "v0.5"
 SCHEMAS = {
     "dependencies": "architecture-answer.schema.json",
@@ -979,6 +984,66 @@ def run_phase(name: str, *, image_ref: str, sha: str, expected: dict, out_dir: P
     return result
 
 
+def run_locality_phase(*, image_ref: str, sha: str, out_dir: Path) -> dict:
+    """Reuse the I5 fresh-state worker against the supplied image, with enablement omitted."""
+    spec = json.loads((GP_DIR / "expected.json").read_text())["locality_phase"]
+    output = out_dir / "locality"
+    error = None
+    checks = {}
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "evaluation.i5.qualify",
+                "worker",
+                "--candidate",
+                sha,
+                "--expectation-commit",
+                spec["expectation_commit"],
+                "--image",
+                image_ref,
+                "--use-scoped-default",
+                "--output",
+                str(output),
+            ],
+            cwd=REPO,
+            check=True,
+        )
+        ledger = json.loads((output / "ledger.json").read_text())
+        config = yaml.safe_load((output / "config.yaml").read_text())
+        states = [
+            json.loads((output / state / "result.json").read_text()) for state in ("c1", "c2")
+        ]
+        checks["actual-reference"] = {
+            "passed": ledger["status"] == "CORRECT"
+            and sum(len(state["cases"]) for state in states) == 17,
+            "detail": states,
+        }
+        checks["default-on"] = {
+            "passed": "enabled"
+            not in config["architecture_intelligence"]["telemetry"]["scoped-evidence"],
+            "detail": "enablement omitted; adopted positive oracle passed",
+        }
+        expected_image = _docker("image", "inspect", "--format", "{{.Id}}", image_ref)
+        [running] = [c for c in ledger["containers"] if c["service"] == "architecture-intelligence"]
+        checks["supplied-image"] = {
+            "passed": running["image_id"] == expected_image and ledger["candidate_sha"] == sha,
+            "detail": running,
+        }
+    except (subprocess.CalledProcessError, OSError, KeyError, ValueError, AssertionError) as exc:
+        error = repr(exc)
+    result = {
+        "phase": "locality",
+        "checks": checks,
+        "error": error,
+        "passed": error is None and bool(checks) and all(c["passed"] for c in checks.values()),
+    }
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "golden-result.json").write_text(json.dumps(result, indent=2, sort_keys=True))
+    return result
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print("usage: golden_path.py <IMAGE_REF> <OUT_DIR>", file=sys.stderr)
@@ -999,6 +1064,7 @@ def main(argv: list[str]) -> int:
         run_phase(name, image_ref=image_ref, sha=sha, expected=expected[name], out_dir=out_dir)
         for name in PHASES
     ]
+    results.append(run_locality_phase(image_ref=image_ref, sha=sha, out_dir=out_dir))
     summary = {
         "image_ref": image_ref,
         "release_candidate_sha": sha,

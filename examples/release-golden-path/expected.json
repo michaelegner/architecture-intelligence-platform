@@ -1,6 +1,6 @@
 {
   "format": "aip-release-golden-path-expected/1",
-  "governing_spec": "docs/specifications/0.5.0/i6-release-candidate-publication-and-post-release-verification.md \u00a77 (Draft 0.3)",
+  "governing_spec": "docs/specifications/0.6.0/i6-release-candidate-publication-and-verification.md revision 0.1 \u00a7\u00a72.3, 4",
   "conventions": {
     "placeholders": {
       "${RELEASE_CANDIDATE_SHA}": "the full 40-character candidate SHA",
@@ -92,7 +92,8 @@
             "tools": [
               "get_architecture_drift",
               "get_evidence",
-              "get_service_dependencies"
+              "get_service_dependencies",
+              "get_service_dependencies_by_locality"
             ]
           },
           "source": [
@@ -318,7 +319,8 @@
             "tools": [
               "get_architecture_drift",
               "get_evidence",
-              "get_service_dependencies"
+              "get_service_dependencies",
+              "get_service_dependencies_by_locality"
             ]
           },
           "source": [
@@ -639,5 +641,21 @@
         }
       ]
     }
+  },
+  "locality_phase": {
+    "id": "locality",
+    "expectation_commit": "c5bc7cb58d4d6efef80b744347c51f36d14b6356",
+    "source": [
+      "tests/fixtures/locality/two-workload-capture/expected.md",
+      "docs/specifications/0.6.0/i6-release-candidate-publication-and-verification.md"
+    ],
+    "checks": [
+      "17 adopted-oracle cases",
+      "52 recorded requests accepted once",
+      "default-on configuration",
+      "supplied image and build identity",
+      "four tools",
+      "v0.6 schemas and product version"
+    ]
   }
 }

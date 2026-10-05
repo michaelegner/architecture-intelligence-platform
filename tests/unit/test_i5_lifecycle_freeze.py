@@ -221,7 +221,7 @@ def test_lifecycle_runbook_queries_every_frozen_state_query():
     assert "for q in Q-INV Q-SRC Q-SRC-SEM Q-OWN Q-SVC Q-REL; do" in runbook
 
 
-RELEASED_PRODUCER_VERSION = "0.5.1"
+RELEASED_PRODUCER_VERSION = "0.6.0"
 I5_PRODUCER_VERSION = "0.4.2"
 
 

@@ -119,3 +119,22 @@ What the harness does:
   It never waits for the expected result to appear.
 - **Output.** Results go to `OUT_DIR/<phase>/` (every recorded answer and `result.json`) and to
   `OUT_DIR/summary.json`. The exit code is 0 only when every check in every phase passes.
+
+## v0.6.0 re-freeze
+
+I6 revision 0.1 re-freezes this profile with four MCP tools and scoped evidence enabled by default.
+The runtime-demo whole-graph count changes deliberately from 46 to 48 for the cutover ledger and
+transition counter; its no-v2 snapshot ID and semantic answers remain unchanged. Original upstream
+source truth and the actual I5 capture/oracle are immutable.
+
+After the original five phases, `run.sh` runs a fresh `locality` phase through the existing I5
+worker, using the exact supplied image, never rebuilding it. It omits `enabled` while retaining
+the source stream ID, replays the 52 original Collector requests once, and checks all 17 adopted
+C1/C2 cases across service, REST and negotiated MCP. It validates published v0.6 schemas, product/
+build identity and four-tool discovery. Results, image/container identities, configuration and
+raw transcripts are retained under `<OUT_DIR>/locality/`. This single phase is not the independent
+A/B final-candidate qualification required in I6.2.
+
+Replay requires cached dependencies/images, no live Kubernetes, Kafka, upstream build or LLM.
+C1 comparison uses the capture taken during overlap; C2 makes P1 attribution unresolved and refuses
+stale C1 requests. Saved files do not provide historical snapshot access or prove local absence.

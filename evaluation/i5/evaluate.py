@@ -11,6 +11,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+import jsonschema
 from checks import (
     canonical_bytes,
     check_comparison,
@@ -41,6 +42,7 @@ from app.architecture_intelligence.repository import (
 )
 from app.graph.repository import build_driver, open_session
 from app.settings import config_path_from_env, load_config
+from app.version import package_version
 
 
 def main(state: str, output_path: str, dossier_path: str) -> None:
@@ -117,6 +119,19 @@ def main(state: str, output_path: str, dossier_path: str) -> None:
         mcp=True,
     )
     assert "result" in init
+    assert init["result"]["serverInfo"]["version"] == package_version()
+    tools = post(
+        "/mcp",
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+        "mcp-tools.transport.json",
+        mcp=True,
+    )
+    assert [tool["name"] for tool in tools["result"]["tools"]] == [
+        "get_architecture_drift",
+        "get_evidence",
+        "get_service_dependencies",
+        "get_service_dependencies_by_locality",
+    ]
 
     def ask(case: str, request: dict) -> dict:
         (output / f"{case}.request.json").write_bytes(canonical_bytes(request))
@@ -152,6 +167,15 @@ def main(state: str, output_path: str, dossier_path: str) -> None:
             LocalityAnswer.model_validate(payload)
             assert canonical_bytes(payload) == canonical_bytes(direct), (case, surface)
         assert direct["producer"]["build_revision"] == os.environ["AIP_BUILD_REVISION"]
+        assert direct["producer"]["version"] == package_version()
+        jsonschema.validate(
+            direct,
+            json.loads(
+                Path(
+                    "/app/i5-schemas/service-dependencies-by-locality-answer.schema.json"
+                ).read_text()
+            ),
+        )
         assert direct["snapshot"]["snapshot_id"] == snapshot.snapshot_id
         passed.append(case)
         return direct

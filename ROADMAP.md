@@ -350,9 +350,14 @@ Current-State views.**
 Focus: make context/locality an explicit part of Current-State qualification without changing the
 fundamental rule that Current State is derived only from Current-State evidence.
 
-AIP should be able to qualify a local assertion under an explicit context such as environment,
-region, cluster/namespace, workload identity, service version, or observation window when — and
-only when — the available evidence can support that dimension.
+The accepted v0.6.0 minimum is bounded direct HTTP `CALLS` under environment and whole-UTC-day
+observation context, with evidenced caller cluster/namespace and exact captured Workload identity
+through CLIENT Pod UID → Kubernetes owner chain. It does not establish target locality, local
+absence, global/exclusive dependency sets or historical snapshot access.
+
+Region, tenant, service-version locality and messaging locality are **deferred/unassigned
+candidates**. They are not allocated to v0.7 or v0.8 by this release. The product pilot remains
+`NOT_RUN`, with its product-value gate carried into v1.0-rc stable-contract admission.
 
 Conceptually:
 
