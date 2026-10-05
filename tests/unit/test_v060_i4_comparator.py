@@ -2,8 +2,10 @@
 
 import hashlib
 import json
+from pathlib import Path
 
 import pytest
+import yaml
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from evaluation.i4.__main__ import REQUIRED_CASES, REQUIRED_CI_CHECKS, ci_blockers, compare_runs
@@ -20,6 +22,33 @@ def _ci_checks():
 
 def test_complete_successful_candidate_ci_passes():
     assert ci_blockers(_ci_checks(), SHA) == []
+
+
+def test_workflow_emitted_jobs_satisfy_candidate_ci_without_workflow_title():
+    root = Path(__file__).resolve().parents[2]
+    names = set()
+    for filename in ("ci.yml", "codeql.yml"):
+        workflow = yaml.safe_load((root / ".github/workflows" / filename).read_text())
+        for job_id, job in workflow["jobs"].items():
+            name = job.get("name", job_id)
+            matrix = job.get("strategy", {}).get("matrix", {})
+            if "include" in matrix:
+                names.update(
+                    name.replace("${{ matrix.language }}", entry["language"])
+                    for entry in matrix["include"]
+                )
+            elif "shard" in matrix:
+                names.update(
+                    name.replace("${{ matrix.shard }}", shard) for shard in matrix["shard"]
+                )
+            else:
+                names.add(name)
+    assert REQUIRED_CI_CHECKS == names
+    checks = [
+        {"id": i, "name": name, "head_sha": SHA, "status": "completed", "conclusion": "success"}
+        for i, name in enumerate(sorted(names))
+    ]
+    assert ci_blockers(checks, SHA) == []
 
 
 @pytest.mark.parametrize("missing", sorted(REQUIRED_CI_CHECKS))
