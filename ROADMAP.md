@@ -347,7 +347,10 @@ Exit capability:
 > **A user and their coding agent can obtain and inspect architecture context for a concrete Quarkus
 > development task without reconstructing that context themselves.**
 
-## v0.6 — Locality-Aware Current State (planned)
+## v0.6 — Locality-Aware Current State (shipped)
+
+Published **v0.6.0 on 2026-10-05**; terminal outcome **SHIPPED_VERIFIED**. See the
+[post-release verification](docs/release-validation/v0.6.0-post-release-verification.md).
 
 **Goal: Establish architecture knowledge locally and contextually before projecting it into broader
 Current-State views.**

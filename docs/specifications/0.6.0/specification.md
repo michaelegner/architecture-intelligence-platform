@@ -1,6 +1,7 @@
 # AIP v0.6.0 Release Specification — Locality-Aware Current State
 
-**Status:** Accepted parent release specification — normative v0.6.0 scope and acceptance contract; implementation-specific decisions in §33 SHALL be frozen in reviewed increment specifications before the corresponding work. Acceptance of this document does not claim that v0.6.0 is implemented, qualified or released.  
+**Status:** Accepted parent release specification — normative v0.6.0 scope and acceptance contract; implementation-specific decisions in §33 SHALL be frozen in reviewed increment specifications before the corresponding work. Release closure: **SHIPPED_VERIFIED**, v0.6.0 published 2026-10-05; see the [I6 completion record](i6-completion-record.md).
+
 **Target release:** `v0.6.0`  
 **Release theme:** Locality-Aware Current State  
 **Entry baseline:** Published and post-release-verified `v0.5.1` (`5719738091baa701d9867726fc89c93fa80bea46`); v0.5.0 provides the underlying discovery and qualification semantics  
