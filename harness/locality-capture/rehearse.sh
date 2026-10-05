@@ -18,7 +18,7 @@ SOURCE=aip-locality-rehearsal
 LABEL="REHEARSAL - NOT I5 evidence"
 if $ACTUAL; then
     [[ $# == 1 && ! -e "$1" ]] || { echo "actual capture requires one new output directory" >&2; exit 1; }
-    RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+    RUN_ID="$(date -u +%Y%m%dt%H%M%Sz)-$$"
     CLUSTER="aip-locality-i5-$RUN_ID"
     SOURCE="aip-locality-i5-$RUN_ID"
     LABEL=ACTUAL_CONTROLLED_REFERENCE
