@@ -121,11 +121,14 @@ independent evidence for promoting them. No wrong answer to an evidence-qualifie
 demonstrated for any of them. The ADR case is deliberately not a gap; see the Intent vs Current
 State boundary.
 
-**Group 2 — AIP richer than EventCatalog.** EventCatalog has no declared/observed distinction, no
-observation context, no per-claim provenance, and no qualification states. A5 and A6 are two
-statements of equal standing with no way to say that one is machine-declared and the other is
-prose. `authoritative: true` is a bare assertion with no source. EventCatalog cannot represent
-"declared but not observed in this window", which AIP treats as distinct from absent.
+**Group 2 — AIP richer than the evaluated EventCatalog slice.** This group describes only what the
+pinned Product Catalog slice expresses, not EventCatalog's wider capabilities, which were not
+evaluated. No declared/observed distinction, observation context, per-claim provenance or
+qualification state was found in this slice's front matter or prose. Within it, A5 and A6 appear as
+two statements of equal standing, with nothing marking one as machine-readable front matter and the
+other as prose. `authoritative: true` appears as a bare assertion with no source. No way was found
+in this slice to say "declared but not observed in this window", which AIP treats as distinct from
+absent.
 
 **Group 3 — similar-looking, different meaning (highest value).**
 
