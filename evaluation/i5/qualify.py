@@ -122,7 +122,7 @@ def worker(candidate: str, expectation_commit: str, output: Path) -> None:
                         f"{staging}/capture:/app/capture:ro",
                         f"{staging}/declarations:/app/declarations:ro",
                         f"{REPO}/evaluation/i5:/app/i5-tools:ro",
-                        f"{REPO}/tests/support/negotiated_mcp_client.py:/app/i5-tools/negotiated_mcp_client.py:ro",
+                        f"{REPO}/tests/support/negotiated_mcp_client.py:/app/negotiated_mcp_client.py:ro",
                         f"{ARTIFACT}/expected.md:/app/i5-expected.md:ro",
                         f"{output}:/app/i5-results",
                     ],
