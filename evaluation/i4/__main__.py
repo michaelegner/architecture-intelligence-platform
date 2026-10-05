@@ -24,7 +24,8 @@ REQUIRED_CASES = {
     *(f"B{i:02}" for i in range(2, 7)),
 }
 
-# Required jobs in .github/workflows/ci.yml and codeql.yml, plus their aggregate checks.
+# Required jobs in ci.yml and codeql.yml, including CI's emitted "lint + test" aggregate.
+# "CodeQL" is a workflow title, not an emitted check; both analysis jobs remain mandatory.
 REQUIRED_CI_CHECKS = frozenset(
     {
         "quality",
@@ -37,7 +38,6 @@ REQUIRED_CI_CHECKS = frozenset(
         "static analysis (semgrep)",
         "analyze (python)",
         "analyze (actions)",
-        "CodeQL",
     }
 )
 
