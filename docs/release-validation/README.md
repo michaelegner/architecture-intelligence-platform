@@ -15,6 +15,7 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
+| [`v0.6.0-rc.2-candidate-preparation.md`](v0.6.0-rc.2-candidate-preparation.md) | Corrective I4 emitted-check inventory; final rc.2 merge and full qualification pending. |
 | [`v0.6.0-rc.1-candidate-preparation.md`](v0.6.0-rc.1-candidate-preparation.md) | I6.1 preparation evidence; final merge identity and qualification disposition are in the readiness record. |
 | [`v0.6.0-release-readiness.md`](v0.6.0-release-readiness.md) | I6.2 rc.1 exact-candidate evidence: NO_GO due to a frozen runner/workflow check-inventory mismatch. |
 | [`v0.6.0-rc.1-no-go.md`](v0.6.0-rc.1-no-go.md) | Permanent rc.1 disposition; actual CodeQL analyses passed, but I4 requires an absent aggregate check. |
