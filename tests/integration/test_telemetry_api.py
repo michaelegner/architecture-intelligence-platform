@@ -53,6 +53,9 @@ def session(driver):
 
 
 def _build_app(driver, *, telemetry: dict | None = None):
+    # These legacy-v1 tests require explicit opt-out after I6's default-on flip. A supplied
+    # scoped-evidence block overrides this test-fixture policy, including omission of enabled.
+    telemetry_config = {"scoped-evidence": {"enabled": False}, **(telemetry or {})}
     app = create_app()
     app.state.driver = driver
     app.state.settings = Settings(
@@ -68,7 +71,7 @@ def _build_app(driver, *, telemetry: dict | None = None):
                     ]
                 },
                 "graph": {"uri": "bolt://ignored:7687", "database": DATABASE},
-                **({"telemetry": telemetry} if telemetry else {}),
+                "telemetry": telemetry_config,
             }
         ),
         secrets=Secrets(neo4j_user="neo4j", neo4j_password="ignored"),
@@ -562,16 +565,15 @@ def _post_attributed_cross_batch(app_client, *, route: str) -> None:
 
 def test_the_endpoint_writes_a_v2_record_only_when_scoped_evidence_is_enabled(driver, session):
     # v0.6.0 I2.2b, end to end through POST /v1/traces: an attributed CLIENT plus its SERVER in a
-    # later POST. Disabled (the default) leaves no v2 node; enabled writes exactly one, isolated.
+    # later POST. Explicit opt-out leaves no v2 node; omitted enabled takes the I6 default-on
+    # and writes exactly one isolated record.
     buffer = HttpCorrelationBuffer(ttl_seconds=60, max_pending_spans=10000)
     disabled_app = _build_app(driver)
     disabled_app.state.http_correlation_buffer = buffer
     _post_attributed_cross_batch(TestClient(disabled_app), route="/reviews-scoped-off/{id}")
     assert session.run("MATCH (v:ScopedObservedCallV2) RETURN count(v) AS c").single()["c"] == 0
 
-    enabled_app = _build_app(
-        driver, telemetry={"scoped-evidence": {"enabled": True, "stream-id": "test-stream"}}
-    )
+    enabled_app = _build_app(driver, telemetry={"scoped-evidence": {"stream-id": "test-stream"}})
     enabled_app.state.http_correlation_buffer = HttpCorrelationBuffer(
         ttl_seconds=60, max_pending_spans=10000
     )
