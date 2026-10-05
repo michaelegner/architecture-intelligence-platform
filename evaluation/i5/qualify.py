@@ -216,7 +216,10 @@ def worker(candidate: str, expectation_commit: str, output: Path) -> None:
                     response = client.post("/api/import")
                     (output / f"import-{state}.json").write_bytes(response.content)
                     assert response.status_code == 200 and response.json().get("committed") is True
-                    assert response.json()["inventory_status"] == "COMPLETE", response.text
+                    runs = response.json()["runs"]
+                    assert len(runs) == 2 and all(
+                        r["inventory_status"] == "COMPLETE" for r in runs
+                    ), response.text
                     if state == "c1":
                         deadline = time.monotonic() + 30
                         while True:
