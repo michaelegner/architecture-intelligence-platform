@@ -249,17 +249,17 @@ evidence references at the same snapshot without creating new architecture claim
 
 ## MCP Tools
 
-AIP exposes the validated architecture model at `/mcp` — via either the direct `2026-07-28`
-envelope or standard negotiated MCP client initialization (see [Boundaries](#boundaries)) — as
-exactly three **read-only** tools:
+AIP exposes the validated architecture model at `/mcp` through standard negotiated MCP client
+initialization (see [Boundaries](#boundaries)) as exactly four **read-only** tools:
 
 | Tool | Answers |
 |---|---|
 | `get_service_dependencies` | What does this service directly depend on, and is each dependency confirmed by runtime observation? |
 | `get_architecture_drift` | Which of those direct dependencies disagree with what was declared — observed but undocumented, or declared but not observed in this window? |
 | `get_evidence` | What is the actual provenance behind those claims — which spec file, manifest, or observation window? |
+| `get_service_dependencies_by_locality` | Where are direct HTTP dependencies established for evidenced caller Workloads, how do supported results compare, and which scoped evidence supports them? |
 
-All three perform zero graph writes and need no LLM API key — the whole surface is deterministic —
+All four perform zero graph writes and need no LLM API key — the whole surface is deterministic —
 and none of them will invent, guess, or upgrade an unresolved fact: insufficient evidence comes back
 as a `limitations` entry, never as silence.
 
