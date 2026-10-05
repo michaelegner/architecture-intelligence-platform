@@ -9,6 +9,35 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-05
+
+### v0.6.0 — Locality-Aware Current State (candidate)
+
+Candidate preparation; publication and final-SHA qualification remain pending. See the
+[release notes](docs/release-validation/v0.6.0-release-notes.md).
+
+### Added
+
+- Bounded direct HTTP caller-locality discovery, selected-Workload comparison and same-snapshot
+  scoped evidence through REST and the fourth read-only MCP tool. Environment, whole UTC days and
+  captured caller cluster/namespace/Workload identity are supported; other dimensions remain deferred.
+- Independent actual two-Workload acquisition/oracle, deterministic qualification and task-led
+  replay walkthrough, distinct from synthetic regressions and unchanged upstream source truth.
+
+### Changed
+
+- Product version 0.6.0; legacy public schemas remain 0.5 and locality schemas 0.6.
+- Scoped evidence enabled by default; explicitly set `telemetry.scoped-evidence.enabled: false`
+  for legacy ingestion. No-v2 canonical snapshot pins remain unchanged. Runtime-demo node count
+  deliberately re-pinned from 46 to 48 for the internal transition/cutover nodes.
+- Release golden path advertises four tools and adds immutable actual-reference C1/C2 replay.
+
+### Fixed
+
+- Natural-language Evidence bindings require a proven inline exclusion of Kubernetes evidence
+  before execution (#323); authorized non-Kubernetes evidence lookup remains supported.
+
+
 ### Added
 
 - Static type checking: `uv run pyright` (standard mode) now runs in CI's `quality` job over all

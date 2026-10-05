@@ -249,17 +249,17 @@ evidence references at the same snapshot without creating new architecture claim
 
 ## MCP Tools
 
-AIP exposes the validated architecture model at `/mcp` — via either the direct `2026-07-28`
-envelope or standard negotiated MCP client initialization (see [Boundaries](#boundaries)) — as
-exactly three **read-only** tools:
+AIP exposes the validated architecture model at `/mcp` through standard negotiated MCP client
+initialization (see [Boundaries](#boundaries)) as exactly four **read-only** tools:
 
 | Tool | Answers |
 |---|---|
 | `get_service_dependencies` | What does this service directly depend on, and is each dependency confirmed by runtime observation? |
 | `get_architecture_drift` | Which of those direct dependencies disagree with what was declared — observed but undocumented, or declared but not observed in this window? |
 | `get_evidence` | What is the actual provenance behind those claims — which spec file, manifest, or observation window? |
+| `get_service_dependencies_by_locality` | Where are direct HTTP dependencies established for evidenced caller Workloads, how do supported results compare, and which scoped evidence supports them? |
 
-All three perform zero graph writes and need no LLM API key — the whole surface is deterministic —
+All four perform zero graph writes and need no LLM API key — the whole surface is deterministic —
 and none of them will invent, guess, or upgrade an unresolved fact: insufficient evidence comes back
 as a `limitations` entry, never as silence.
 
@@ -333,7 +333,7 @@ per-service telemetry coverage). None of these involve the LLM — see
 
 ## Core Capabilities
 
-- Evidence-qualified service dependencies and architecture drift, via three read-only MCP tools
+- Evidence-qualified service dependencies and architecture drift, via four read-only MCP tools
 - OpenAPI, AsyncAPI and OpenTelemetry evidence, reconciled into one graph
 - Queue *and* source-independent Pub/Sub semantics. Topic fan-out is expressed only through
   explicitly declared Subscriptions, and a Kafka consumer group is never treated as a Subscription.
@@ -433,7 +433,8 @@ the platform works with no LLM provider configured, and no MCP tool depends on i
 
 ## Boundaries
 
-What the three MCP tools return, and what they deliberately don't.
+What the original three MCP tools return, and what they deliberately don't. The fourth tool
+adds the separately versioned [locality contract](docs/mcp.md#get_service_dependencies_by_locality-v060-i3).
 
 **One envelope.** Every tool returns the same `ArchitectureAnswer` (`schema_version`, `producer`,
 `tool`, `outcome`, `snapshot`, `observation_context`, `data`, `claims`, `evidence_refs`,
@@ -471,7 +472,7 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 
 ## Documentation
 
-- [`docs/mcp.md`](docs/mcp.md) — the three read-only MCP tools for AI agents, and a runnable
+- [`docs/mcp.md`](docs/mcp.md) — the four read-only MCP tools for AI agents, and a runnable
   hero-demo walkthrough
 - [`docs/architecture.md`](docs/architecture.md) — pipeline, API surface
 - [`docs/canonical-model.md`](docs/canonical-model.md) — entities and deterministic ids

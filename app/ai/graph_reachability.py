@@ -176,6 +176,8 @@ def check_node_patterns(cypher: str) -> None:
             unapproved = sorted(labels - APPROVED_NL_LABELS)
             if unapproved:
                 raise GraphReachabilityError(f"node label not allowed: {unapproved[0]}")
+            if "Evidence" in labels:
+                _check_evidence_pattern(cypher[start + 1 : end], variable)
         elif not (variable in bound or typed):
             raise GraphReachabilityError(
                 "every node pattern must carry an approved label, reuse a labeled variable, "
@@ -183,6 +185,24 @@ def check_node_patterns(cypher: str) -> None:
             )
         if variable:
             bound.add(variable)
+
+
+def _check_evidence_pattern(body: str, variable: str | None) -> None:
+    """#323: require a binding-local exclusion, independent of generated outer predicates.
+
+    Accept only the exact inline predicate shape we can prove. It constrains the Evidence scan
+    before projection, aggregation, OPTIONAL MATCH or aliasing; an outer OR cannot weaken it.
+    Unknown shapes fail closed rather than trusting the model to add a WHERE restriction.
+    """
+    if variable and re.fullmatch(
+        rf"\s*{re.escape(variable)}\s*:\s*Evidence\s+(?i:WHERE)\s+"
+        rf"{re.escape(variable)}\s*\.\s*source_type\s*<>\s*(['\"])KUBERNETES\1\s*",
+        body,
+    ):
+        return
+    raise GraphReachabilityError(
+        "Evidence requires an inline WHERE <variable>.source_type <> 'KUBERNETES' predicate"
+    )
 
 
 # --- EXPLAIN plan check ----------------------------------------------------------------------

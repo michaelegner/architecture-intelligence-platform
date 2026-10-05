@@ -29,7 +29,10 @@ Relationship types (always Service/Operation/Queue/Topic/Subscription/Message/Sc
 Every relationship above also carries an evidence_ids property: an array of Evidence.id \
 values naming which imported spec file(s) declared that fact. There is no direct graph edge \
 from a relationship to Evidence - look up r.evidence_ids on the relationship, then \
-MATCH (e:Evidence) WHERE e.id IN r.evidence_ids to find the source file(s)/revision(s).
+MATCH (e:Evidence WHERE e.source_type <> 'KUBERNETES') WHERE e.id IN r.evidence_ids \
+to find the source file(s)/revision(s). Every Evidence node pattern must use this exact inline \
+source_type exclusion: Kubernetes evidence is internal and cannot be read by natural-language \
+queries. Put additional filters in the outer WHERE; do not remove or weaken the inline predicate.
 
 Label every node variable with one of the node labels above, for example \
 (s:Service)-[:CALLS]->(o:Operation); a node without a label is rejected.

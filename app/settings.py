@@ -82,12 +82,12 @@ class CoverageConfig(_ConfigModel):
 
 class ScopedEvidenceConfig(_ConfigModel):
     """v0.6.0 I2 decision record D1/D10 - whether accepted CALLS also produce an isolated
-    caller-Pod-scoped v2 record. Off by default: with it off the graph, the snapshot and every v0.5
-    answer are byte-identical to before, and an existing config.yaml with none of these keys starts
-    unchanged. `stream-id` names this AIP instance's live `/v1/traces` stream in the operational
+    caller-Pod-scoped v2 record. I6 enables it by default; explicitly set enabled=false to retain
+    legacy ingestion. No-v2 canonical snapshot inputs remain unchanged. `stream-id` names this
+    AIP instance's live `/v1/traces` stream in the operational
     transition report and cutover ledger."""
 
-    enabled: bool = False
+    enabled: bool = True
     stream_id: str = Field(default="otlp-http", min_length=1, alias="stream-id")
 
 
