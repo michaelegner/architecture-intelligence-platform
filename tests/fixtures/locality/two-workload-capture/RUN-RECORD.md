@@ -31,6 +31,8 @@ real SDK-instrumented HTTP CLIENT calls, no Collector identity enrichment or fab
 Application image digest: `sha256:c4d4a23deb7af4d8b8992aa5d8e13b50110784abc5fb177dc3ff0cb9311e35fb`.
 Node: `kindest/node:v1.31.2@sha256:18fbefc20a7113353c7b75b5c869d7145a6abd6269154825872dc59c1329912e`.
 Recording Collector: `otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1`.
+Replay Collector intended for I5.2: `otel/opentelemetry-collector:0.161.0-386@sha256:ef477727d76320c53fa5c3eab269d98468bbe471173b93828b8032090df42de1`, matching `docker-compose.demo.yml`
+and the I1 runbook §6 wire path. Replay remains **NOT_RUN**.
 Tools: kind v0.33.0; kubectl v1.36.1; API server v1.31.2; Docker 29.8.1.
 The frozen `harness/app/` includes pinned base image, SDK dependencies and instrumentation;
 `manifests/` retains exactly the applied configurations. The real runtime image IDs are also in
