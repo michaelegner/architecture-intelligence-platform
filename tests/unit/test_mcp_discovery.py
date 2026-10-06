@@ -194,8 +194,24 @@ async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> Non
             # D2: the 0.6 locality envelope, not a widened 0.5 ArchitectureAnswer.
             assert tool["outputSchema"]["title"] == "LocalityAnswer"
             assert tool["annotations"]["readOnlyHint"] is True
-        else:
+        elif tool["name"] == "get_architecture_drift":
             assert tool["outputSchema"]["title"].startswith("ArchitectureAnswer[")
+        else:
+            # v0.6.1 I2b (spec §5.2): dependencies and evidence advertise a `oneOf` discriminated by
+            # `schema_version`: the released v0.5 answer plus the Broker-aware v0.6 answer.
+            output = tool["outputSchema"]
+            assert output["type"] == "object"
+            assert output["discriminator"]["propertyName"] == "schema_version"
+            assert set(output["discriminator"]["mapping"]) == {"0.5", "0.6"}
+            assert len(output["oneOf"]) == 2
+            branch_titles = {
+                output["$defs"][branch["$ref"].rsplit("/", 1)[-1]]["title"]
+                for branch in output["oneOf"]
+            }
+            assert {title.split("[")[0] for title in branch_titles} == {
+                "ArchitectureAnswer",
+                "ArchitectureAnswerV06",
+            }
 
     assert evidence_request_schema is not None
     evidence_refs_schema = evidence_request_schema["properties"]["evidence_refs"]

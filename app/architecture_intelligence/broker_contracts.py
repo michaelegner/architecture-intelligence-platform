@@ -24,17 +24,20 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.architecture_intelligence.contracts import (
     CLAIM_ID_PREFIX,
+    ArchitectureAnswer,
     ArchitectureToolName,
     DependencyClaim,
     DeploymentClaim,
     DeploymentResolution,
     EntityRef,
     EntityType,
+    EvidenceData,
     Limitation,
     ObservationContextRef,
     ObservedEvidenceMetadata,
     Outcome,
     Producer,
+    ServiceDependenciesData,
     SnapshotRef,
     _architecture_answer_schema_extra,
     _check_service_dependencies_claim_ids,
@@ -421,3 +424,17 @@ class ArchitectureAnswerV06[T: BaseModel](BaseModel):
         if isinstance(self.data, EvidenceDataV06) and not _has_uses_broker_support(self.data):
             raise ValueError("a v0.6 evidence answer must resolve a USES_BROKER fact")
         return self
+
+
+# The two data-dependent answers (spec §5.2) as one discriminated union each. `schema_version` is
+# the discriminator: "0.5" selects the released v0.5 answer, "0.6" the Broker-aware answer, so a
+# Broker-free response still validates against the frozen v0.5 schema. REST response models and
+# the advertised MCP `outputSchema` are both derived from these, never from either branch alone.
+ServiceDependenciesAnswer = Annotated[
+    ArchitectureAnswer[ServiceDependenciesData] | ArchitectureAnswerV06[ServiceDependenciesDataV06],
+    Field(discriminator="schema_version"),
+]
+EvidenceAnswer = Annotated[
+    ArchitectureAnswer[EvidenceData] | ArchitectureAnswerV06[EvidenceDataV06],
+    Field(discriminator="schema_version"),
+]
