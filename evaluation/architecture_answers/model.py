@@ -22,6 +22,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from app.architecture_intelligence.broker_contracts import (
+    ArchitectureAnswerV06,
+    EvidenceDataV06,
+    ServiceDependenciesDataV06,
+)
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
     ArchitectureDriftData,
@@ -39,6 +44,9 @@ ExpectedAnswer = (
     ArchitectureAnswer[ServiceDependenciesData]
     | ArchitectureAnswer[ArchitectureDriftData]
     | ArchitectureAnswer[EvidenceData]
+    # v0.6.1 I2: the Broker-aware answers (spec §5.2) a dependencies/evidence scenario may expect.
+    | ArchitectureAnswerV06[ServiceDependenciesDataV06]
+    | ArchitectureAnswerV06[EvidenceDataV06]
 )
 
 

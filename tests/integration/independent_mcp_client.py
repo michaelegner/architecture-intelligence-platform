@@ -70,7 +70,8 @@ def run_dependency_to_evidence_golden_path(
         {
             ref
             for claim in dependencies_answer["claims"]
-            for ref in (*claim["evidence_refs"], *claim["resolution_evidence_refs"])
+            # a v0.6 BrokerClaim (spec §5.1) has no `resolution_evidence_refs`
+            for ref in (*claim["evidence_refs"], *claim.get("resolution_evidence_refs", []))
         }
     )
     evidence_result = call_tool(

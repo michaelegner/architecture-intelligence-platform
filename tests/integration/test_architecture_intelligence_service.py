@@ -12,6 +12,7 @@ import pytest
 from app.architecture_intelligence import service as service_module
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from app.architecture_intelligence.contracts import (
+    DependencyClaim,
     DestinationResolution,
     LimitationCode,
     Outcome,
@@ -60,6 +61,14 @@ def _queue_id(driver, name: str) -> str:
         record = session.run("MATCH (q:Queue {name: $name}) RETURN q.id AS id", name=name).single()
     assert record is not None, f"no Queue node found with name {name!r}"
     return record["id"]
+
+
+def _dependency_claims(answer) -> list[DependencyClaim]:
+    """The dependency claims of an answer. These tests are about dependency semantics; the
+    examples/ landscape also declares a Broker, so a dependencies answer for its services is the
+    Broker-aware v0.6 shape and additionally carries a `BrokerClaim` (a sibling kind, covered by
+    tests/integration/test_broker_architecture_intelligence.py)."""
+    return [claim for claim in answer.claims if isinstance(claim, DependencyClaim)]
 
 
 def _request(service_id: str, **overrides) -> ServiceDependenciesRequest:
@@ -117,7 +126,9 @@ def test_order_service_dependencies_resolve_confirmed_not_observed_and_unresolve
     answer = svc.get_service_dependencies(_request(ids.service_id("order-service")))
 
     assert answer.outcome == Outcome.PARTIAL
-    by_object_and_kind = {(c.object.id, c.delivery.kind.value): c for c in answer.claims}
+    by_object_and_kind = {
+        (c.object.id, c.delivery.kind.value): c for c in _dependency_claims(answer)
+    }
 
     http_claim = by_object_and_kind[(ids.service_id("product-service"), "SYNC_HTTP")]
     assert http_claim.destination_resolution == DestinationResolution.RESOLVED_SERVICE
@@ -588,10 +599,12 @@ def test_drift_returns_only_discrepancy_qualified_claims_of_a_real_service(drive
         Qualification.OBSERVED_ONLY,
         Qualification.NOT_OBSERVED_IN_WINDOW,
     }
-    assert Qualification.CONFIRMED in {claim.qualification for claim in dependencies.claims}
+    assert Qualification.CONFIRMED in {
+        claim.qualification for claim in _dependency_claims(dependencies)
+    }
     assert [claim.claim_id for claim in drift.claims] == [
         claim.claim_id
-        for claim in dependencies.claims
+        for claim in _dependency_claims(dependencies)
         if claim.qualification != Qualification.CONFIRMED
     ]
     assert drift.data.drift_claim_ids == [claim.claim_id for claim in drift.claims]
@@ -782,8 +795,10 @@ def test_drift_for_a_fully_confirmed_service_is_answered_empty(driver):
     dependencies = svc.get_service_dependencies(_request(subject_id))
     drift = svc.get_architecture_drift(_drift_request(subject_id))
 
-    assert dependencies.claims
-    assert {claim.qualification for claim in dependencies.claims} == {Qualification.CONFIRMED}
+    assert _dependency_claims(dependencies)
+    assert {claim.qualification for claim in _dependency_claims(dependencies)} == {
+        Qualification.CONFIRMED
+    }
     assert drift.outcome == Outcome.ANSWERED
     assert drift.data is not None
     assert drift.data.drift_claim_ids == []
@@ -862,7 +877,8 @@ def test_drift_is_not_answered_when_every_candidate_path_lacks_evidence(driver):
     dependencies = svc.get_service_dependencies(_request(ids.service_id("payment-service")))
     drift = svc.get_architecture_drift(_drift_request(ids.service_id("payment-service")))
 
-    assert dependencies.claims == []  # the candidate produced no dependency claim to filter
+    # the candidate produced no dependency claim to filter
+    assert _dependency_claims(dependencies) == []
     assert drift.outcome == Outcome.NOT_ANSWERED
     assert drift.data is None
     assert drift.claims == []

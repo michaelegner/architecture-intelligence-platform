@@ -30,6 +30,7 @@ from app.provenance.model import ObservedEvidence
 from app.sources.model import FilesystemSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
+from tests.support.answer_schemas import validate_dependencies, validate_evidence
 
 from .independent_mcp_client import (
     call_tool,
@@ -216,8 +217,8 @@ def test_independent_client_completes_the_real_dependency_to_evidence_golden_pat
     jsonschema.validate(instance=evidence_answer, schema=advertised_output_schemas["get_evidence"])
     # Retained as an additional contract check: the advertised schemas must also not have drifted
     # from the committed frozen ones.
-    jsonschema.validate(instance=dependencies_answer, schema=DEPENDENCY_SCHEMA)
-    jsonschema.validate(instance=evidence_answer, schema=EVIDENCE_SCHEMA)
+    validate_dependencies(dependencies_answer)
+    validate_evidence(evidence_answer)
 
     http_claim = next(
         claim
@@ -228,6 +229,31 @@ def test_independent_client_completes_the_real_dependency_to_evidence_golden_pat
     assert http_claim["qualification"] == "CONFIRMED"
     assert evidence_answer["outcome"] == "ANSWERED"
     assert evidence_answer["data"]["missing_evidence_refs"] == []
+
+    # v0.6.1 I2 (spec §5.2), over the real listener: order-service declares a Broker, so its answer
+    # is the Broker-aware v0.6 shape - validated above against the advertised `oneOf` - and the
+    # evidence its Broker claim cites resolves to a v0.6 evidence answer.
+    assert dependencies_answer["schema_version"] == "0.6"
+    [broker_claim] = [c for c in dependencies_answer["claims"] if c["predicate"] == "USES_BROKER"]
+    assert broker_claim["object"]["type"] == "BROKER" and broker_claim["object"]["name"] == "asb"
+    assert dependencies_answer["data"]["broker_claim_ids"] == [broker_claim["claim_id"]]
+    assert evidence_answer["schema_version"] == "0.6"
+    # a Broker-free service stays the released v0.5 shape over the same listener and schema
+    plain = call_tool(
+        client,
+        name="get_service_dependencies",
+        arguments={
+            "request": {
+                "service_id": ids.service_id("product-service"),
+                "observation_context": OBSERVATION_CONTEXT,
+            }
+        },
+    )["structuredContent"]
+    assert plain["schema_version"] == "0.5"
+    jsonschema.validate(
+        instance=plain, schema=advertised_output_schemas["get_service_dependencies"]
+    )
+    validate_dependencies(plain)
 
     with driver.session(database=DATABASE) as session:
         revision_after = read_revision(session)
@@ -304,7 +330,7 @@ def test_independent_client_completes_the_real_drift_to_evidence_golden_path(
     )
     jsonschema.validate(instance=evidence_answer, schema=advertised_output_schemas["get_evidence"])
     jsonschema.validate(instance=drift_answer, schema=DRIFT_SCHEMA)
-    jsonschema.validate(instance=evidence_answer, schema=EVIDENCE_SCHEMA)
+    validate_evidence(evidence_answer)
 
     assert drift_answer["claims"]
     assert {claim["qualification"] for claim in drift_answer["claims"]} <= {

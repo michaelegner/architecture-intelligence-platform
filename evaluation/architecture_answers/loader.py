@@ -19,13 +19,12 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
+from app.architecture_intelligence.broker_contracts import EvidenceAnswer, ServiceDependenciesAnswer
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
     ArchitectureDriftData,
-    EvidenceData,
-    ServiceDependenciesData,
 )
 from evaluation.architecture_answers.model import (
     TOOL_ARCHITECTURE_DRIFT,
@@ -50,10 +49,14 @@ _WINDOW_ALLOWED_KEYS = {"start", "end"}
 # I3 spec §31's dispatch table: which real ArchitectureAnswer specialization a scenario's
 # `expected_answer.json` validates against, keyed by the same `request.tool` name that picks the
 # runner's own request type/service method (evaluation.architecture_answers.runner._DISPATCH).
-_ANSWER_TYPE_BY_TOOL: dict[str, type] = {
-    TOOL_SERVICE_DEPENDENCIES: ArchitectureAnswer[ServiceDependenciesData],
-    TOOL_ARCHITECTURE_DRIFT: ArchitectureAnswer[ArchitectureDriftData],
-    TOOL_EVIDENCE: ArchitectureAnswer[EvidenceData],
+#
+# v0.6.1 I2: dependencies and evidence answers are data-dependent (spec §5.2), so those two are
+# validated through the discriminated union: `schema_version` "0.5" selects the released answer and
+# "0.6" the Broker-aware one. Drift stays v0.5 only.
+_ANSWER_TYPE_BY_TOOL: dict[str, TypeAdapter] = {
+    TOOL_SERVICE_DEPENDENCIES: TypeAdapter(ServiceDependenciesAnswer),
+    TOOL_ARCHITECTURE_DRIFT: TypeAdapter(ArchitectureAnswer[ArchitectureDriftData]),
+    TOOL_EVIDENCE: TypeAdapter(EvidenceAnswer),
 }
 
 
@@ -273,7 +276,7 @@ def _load_expected_answer(path: Path, *, scenario_id: str, tool: str) -> Expecte
     except (OSError, json.JSONDecodeError) as exc:
         raise _error(scenario_id, path, "<root>", f"could not read/parse: {exc}") from exc
     try:
-        return answer_type.model_validate(payload)
+        return answer_type.validate_python(payload)
     except ValidationError as exc:
         raise _error(
             scenario_id, path, "<root>", f"does not conform to ArchitectureAnswer: {exc}"

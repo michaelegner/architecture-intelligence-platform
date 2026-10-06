@@ -16,6 +16,7 @@ from mcp.server import MCPServer
 from app.analysis.runtime import telemetry_coverage
 from app.architecture_intelligence.contracts import (
     Coverage,
+    DependencyClaim,
     DestinationResolution,
     EntityType,
     LimitationCode,
@@ -43,6 +44,7 @@ from tests.integration.test_pubsub_persistence import (
     _write,
 )
 from tests.integration.test_pubsub_runtime import SPAN_TIME, _ingest, _span
+from tests.support.answer_schemas import validate_dependencies, validate_evidence
 from tests.support.negotiated_mcp_client import call_negotiated
 
 DATABASE = "neo4j"
@@ -145,6 +147,8 @@ def _routes(answer) -> list[tuple[str, str | None]]:
             claim.delivery.subscription.id if claim.delivery.subscription is not None else None,
         )
         for claim in answer.claims
+        # these tests are about routes; a v0.6 BrokerClaim (spec §5.1) is a sibling kind
+        if isinstance(claim, DependencyClaim)
     ]
 
 
@@ -171,7 +175,7 @@ def _graph_state(driver):
 def test_declared_fanout_projects_one_routed_claim_per_subscription_and_a_topic_fallback(driver):
     answer = _dependencies(driver)
     payload = answer.model_dump(mode="json")
-    jsonschema.validate(instance=payload, schema=DEPENDENCY_SCHEMA)
+    validate_dependencies(payload)
 
     assert sorted(_routes(answer)) == sorted(
         [
@@ -209,7 +213,7 @@ def test_observed_publish_confirms_routes_and_consumer_evidence_stays_on_its_own
     observed = _observed_ids(driver)
 
     answer = _dependencies(driver)
-    jsonschema.validate(instance=answer.model_dump(mode="json"), schema=DEPENDENCY_SCHEMA)
+    validate_dependencies(answer.model_dump(mode="json"))
     by_object = {claim.object.id: claim for claim in answer.claims}
 
     billing, shipping = by_object["service:billing"], by_object["service:shipping"]
@@ -264,7 +268,8 @@ def test_drift_is_the_exact_drift_qualified_subset_of_the_dependency_claims(driv
     assert [claim.model_dump() for claim in drift.claims] == [
         claim.model_dump()
         for claim in dependencies.claims
-        if claim.qualification
+        if isinstance(claim, DependencyClaim)
+        and claim.qualification
         in (Qualification.OBSERVED_ONLY, Qualification.NOT_OBSERVED_IN_WINDOW)
     ]
     assert _routes(drift) == [(REFUNDS_TOPIC_ID, None)]
@@ -290,7 +295,8 @@ def _all_claim_refs(answer) -> list[str]:
     refs = set(answer.evidence_refs)
     for claim in answer.claims:
         refs.update(claim.evidence_refs)
-        refs.update(claim.resolution_evidence_refs)
+        # a v0.6 BrokerClaim has no `resolution_evidence_refs`
+        refs.update(getattr(claim, "resolution_evidence_refs", ()))
     return sorted(refs)
 
 
@@ -305,7 +311,7 @@ def test_every_pubsub_evidence_ref_resolves_at_the_answer_snapshot(driver):
             {"evidence_refs": refs, "snapshot_id": answer.snapshot.snapshot_id}
         )
     )
-    jsonschema.validate(instance=evidence.model_dump(mode="json"), schema=EVIDENCE_SCHEMA)
+    validate_evidence(evidence.model_dump(mode="json"))
     assert evidence.outcome == Outcome.ANSWERED
     assert evidence.data.missing_evidence_refs == []
 
@@ -346,7 +352,11 @@ async def test_service_rest_and_mcp_agree_and_reads_cause_zero_graph_writes(driv
     evidence = service.get_evidence(EvidenceRequest.model_validate(evidence_payload)).model_dump(
         mode="json"
     )
-    assert any(claim["delivery"]["subscription"] for claim in dependencies["claims"])
+    assert any(
+        claim["delivery"]["subscription"]
+        for claim in dependencies["claims"]
+        if claim["predicate"] == "DIRECT_DEPENDENCY"
+    )
 
     client = _client(driver, service=service)
     params = {"environment": ENVIRONMENT, "from": WINDOW_START, "to": WINDOW_END}

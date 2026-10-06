@@ -9,15 +9,15 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
+from app.architecture_intelligence.broker_contracts import ServiceDependenciesAnswer
 from app.architecture_intelligence.contracts import (
-    ArchitectureAnswer,
+    ARCHITECTURE_SCHEMA_VERSION,
     ArchitectureSchemaVersion,
     DeploymentClaim,
     DeploymentResolution,
     EntityRef,
     Limitation,
     ObservationContextRef,
-    ServiceDependenciesData,
     SnapshotRef,
 )
 
@@ -47,18 +47,20 @@ class ServiceDeploymentsView(BaseModel):
     limitations: list[Limitation]
 
 
-def project_service_deployments(
-    answer: ArchitectureAnswer[ServiceDependenciesData],
-) -> ServiceDeploymentsView:
-    """The deployments view of `answer`. An `UNKNOWN_ENTITY` refusal is the caller's 404; every
-    other outcome, including any other NOT_ANSWERED refusal, is a normal view."""
+def project_service_deployments(answer: ServiceDependenciesAnswer) -> ServiceDeploymentsView:
+    """The deployments view of `answer`, which may be either dependency-answer version (v0.5, or the
+    Broker-aware v0.6 of spec §5.2). The view itself carries no Broker information and its public
+    shape is unchanged, so its `schema_version` stays "0.5" whichever version it was derived from;
+    the dependency envelope's "0.6" is never propagated into this unchanged contract. An
+    `UNKNOWN_ENTITY` refusal is the caller's 404; every other outcome, including any other
+    NOT_ANSWERED refusal, is a normal view."""
     # PR #222 review finding: `data` is null for every NOT_ANSWERED outcome (ArchitectureAnswer's
     # own envelope invariant), not just UNKNOWN_ENTITY - a known service_id can also refuse with
     # e.g. SNAPSHOT_NOT_AVAILABLE. That must stay a 200 body with `limitations[]`, matching this
     # file's own "everything but UNKNOWN_ENTITY stays 200" rule, never a 500.
     if answer.data is None:
         return ServiceDeploymentsView(
-            schema_version=answer.schema_version,
+            schema_version=ARCHITECTURE_SCHEMA_VERSION,
             snapshot=answer.snapshot,
             observation_context=answer.observation_context,
             service=None,
@@ -85,7 +87,7 @@ def project_service_deployments(
     )
 
     return ServiceDeploymentsView(
-        schema_version=answer.schema_version,
+        schema_version=ARCHITECTURE_SCHEMA_VERSION,
         snapshot=answer.snapshot,
         observation_context=answer.observation_context,
         service=answer.data.service,

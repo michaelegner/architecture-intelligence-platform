@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Annotated, Any, Literal, get_args
+from typing import Annotated, Any, Literal, Protocol, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -938,7 +938,19 @@ class EvidenceData(BaseModel):
 Claim = Annotated[DependencyClaim | DeploymentClaim, Field(discriminator="predicate")]
 
 
-def claim_sort_key(claim: DependencyClaim | DeploymentClaim) -> tuple[str, str, str, str, str]:
+class SortableClaim(Protocol):
+    """The fields `claim_sort_key` reads from any claim: `BrokerClaim` (v0.6.1 I2) satisfies it
+    structurally without being part of the v0.5 `Claim` union."""
+
+    @property
+    def claim_id(self) -> str: ...
+    @property
+    def predicate(self) -> StrEnum: ...
+    @property
+    def object(self) -> Any: ...
+
+
+def claim_sort_key(claim: SortableClaim) -> tuple[str, str, str, str, str]:
     # Resolved via AskUserQuestion during I3 slice 1 planning: the spec defines ordering within each
     # claim type but not across the closed union. (object.id, predicate, ...) interleaves both claim
     # types for the same entity, using only fields both types already carry; DependencyClaim's own
