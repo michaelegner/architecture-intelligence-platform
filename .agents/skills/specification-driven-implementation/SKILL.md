@@ -163,8 +163,9 @@ review pass, not permission to spawn parallel review agents.
   MINOR/NIT findings.
 - In the PR body, record only the final verdict and any intentionally retained MINOR/NIT findings;
   do not add a round-by-round self-review log.
-- Documentation-only changes still receive this independent review, while the documentation-only
-  validation exemption above remains unchanged.
+- If the complete diff qualifies for the strict documentation-only pre-PR validation exemption
+  above, skip this reviewer pass as well. Specifications, completion records, release notes,
+  schemas, fixtures and other release-candidate content are already excluded from that exemption.
 
 ## Checking for review feedback
 

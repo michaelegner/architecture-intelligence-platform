@@ -32,7 +32,7 @@ reconciliation, or release semantics don't need that full workflow — see `AGEN
 ## Working style
 
 - Default to low ceremony. Do not spawn parallel Explore/subagents unless explicitly requested;
-  work sequentially. The required `aip-reviewer` pass below is a deliberate sequential exception.
+  work sequentially.
 - For a "proposal", "suggestion" or "quick" answer, answer the decision first from cheap evidence.
   Do not start implementation, long trials or broad exploration until the owner asks.
 - A "review" or "quick review" is read-only by default: inspect the PR/diff and relevant files.
@@ -41,14 +41,8 @@ reconciliation, or release semantics don't need that full workflow — see `AGEN
 - Before editing a versioned specification or relying on branch/PR/release state, verify the target
   from live `ROADMAP.md`, git and GitHub state rather than memory.
 
-## Mandatory pre-PR self-review
-
-Before opening any PR, review the complete proposed diff with
-[the `aip-reviewer` agent](.claude/agents/aip-reviewer.md). For specification-governed work, give
-it the governing specification and retained plan. Resolve every BLOCKER/MAJOR finding before the PR;
-if a finding exposes an unstated semantic decision, stop and return that decision to the owner.
-After material fixes, re-run the reviewer once. Do not create review loops over MINOR/NIT findings.
-The validation rules and documentation-only exemption remain those in `AGENTS.md`.
+Pre-PR self-review requirements, including the strict documentation-only exemption, are defined
+once in [`AGENTS.md`](AGENTS.md); follow them rather than duplicating that procedure here.
 
 ## Continuous refactoring
 

@@ -108,15 +108,17 @@ Planning posture:
 
 ## Implementation habits
 
-- Before opening any PR, perform an independent self-review of the complete proposed diff against
+- Before opening a PR, perform an independent self-review of the complete proposed diff against
   [`.claude/agents/aip-reviewer.md`](.claude/agents/aip-reviewer.md) sections A-H (evidence
   membership, schema parity, sanitized diagnostics, determinism, environment parity, tests as
   proof, pinned qualification identity). Claude Code must invoke the `aip-reviewer` agent
   sequentially; other agents must apply the same checklist independently from the implementation
   pass. Resolve every BLOCKER/MAJOR before opening the PR. If review exposes a semantic ambiguity,
   stop and return it to the owner. After material fixes, run the applicable validation again and
-  repeat the self-review once; do not churn on MINOR/NIT findings. Documentation-only changes still
-  get the review, but retain the documentation-only test exemption below.
+  repeat the self-review once; do not churn on MINOR/NIT findings. A change that qualifies for the
+  strict documentation-only pre-PR validation exemption in the specification-driven implementation
+  skill also skips this independent reviewer pass; specifications, completion records, release
+  notes, schemas, fixtures and other release-candidate content do not qualify for that exemption.
 - Assert the branch inside the commit command (`test "$(git branch --show-current)" = <branch> &&
   git commit ...`). Do not commit unless the owner asks; end a change by reporting what changed and
   that it is not committed.

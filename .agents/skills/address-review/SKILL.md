@@ -1,6 +1,6 @@
 ---
 name: address-review
-description: Use when the owner asks to address review feedback on an open AIP pull request - enumerate every review surface, separate clear defects from design questions, fix accepted material findings with evidence, validate once, self-review the resulting diff, push to the PR branch, and report exact SHAs. Never merge.
+description: Use when the owner asks to address review feedback on an open AIP pull request - enumerate every review surface, separate clear defects from design questions, fix accepted material findings with evidence, validate once, self-review the resulting diff, and report what is ready. Commit or push only when the owner explicitly asks. Never merge.
 ---
 
 # Address PR review feedback
@@ -28,17 +28,21 @@ Do not turn reviewer preferences into new product semantics.
 5. **Validate economically.** Run targeted checks while iterating. After the final source-relevant
    change, run the full AGENTS.md gate once. If the complete fix is documentation-only, use the
    documentation-only exemption. Any source change after the full gate invalidates that gate.
-6. **Run the mandatory independent self-review.** Invoke `.claude/agents/aip-reviewer.md` on the
-   complete updated diff. Resolve BLOCKER/MAJOR findings; return semantic ambiguities to the owner.
-   After material fixes, rerun affected validation and the reviewer once, not an open-ended nit loop.
-7. **Update the PR, never merge it.** Commit/push only on the verified PR head branch. Capture the
-   pushed SHA from `git rev-parse HEAD`. Update the PR body/reconciliation when the fixes changed
-   what was implemented, then post one concise summary comment with finding dispositions, regression
-   evidence and checks actually run. Re-check all comment surfaces once after the push before
-   declaring the review round closed.
+6. **Run the independent self-review when required by AGENTS.md.** Invoke
+   `.claude/agents/aip-reviewer.md` on the complete updated diff unless the change qualifies for
+   the strict documentation-only exemption. Resolve BLOCKER/MAJOR findings; return semantic
+   ambiguities to the owner. After material fixes, rerun affected validation and the reviewer once,
+   not an open-ended nit loop.
+7. **Stop before commit/push unless explicitly authorized.** Asking to "address review feedback"
+   authorizes editing and validation, not committing or pushing. Report the fixes, validation and
+   self-review result, then wait for an explicit owner instruction to commit/push. If that
+   authorization is given, verify the PR head branch, commit/push there only, capture the pushed SHA
+   from `git rev-parse HEAD`, update the PR body/reconciliation when needed, post one concise
+   summary comment, and re-check all comment surfaces once after the push. Never merge.
 
 ## Completion condition
 
 Every material review finding is either fixed with evidence or explicitly returned to the owner as
-a design/specification decision; required validation is green; the independent self-review has no
-BLOCKER/MAJOR findings; and the exact pushed SHA is reported. Leave merge to the owner.
+a design/specification decision; required validation is green; and any required independent
+self-review has no BLOCKER/MAJOR findings. If commit/push was not explicitly authorized, finish by
+reporting that the fixes are ready but uncommitted. Leave merge to the owner.
