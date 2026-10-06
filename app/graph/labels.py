@@ -18,6 +18,8 @@ NODE_LABELS = {
     # canonicalization to v3 with dedicated Topic/Subscription node queries.
     "topics": "Topic",
     "subscriptions": "Subscription",
+    # v0.6.1 I1 spec §4: persisted from I1a; snapshot projection arrives with the first adapter (I1b).
+    "brokers": "Broker",
 }
 
 # I2 Draft 0.2 §3 item 6 / §7: internal-only infrastructure labels, deliberately NOT in

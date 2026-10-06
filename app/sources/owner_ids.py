@@ -163,6 +163,19 @@ def topic_owned_id(
     return f"topic:owned:{sha256_hex(key)}"
 
 
+def broker_owned_id(*, stable_broker_id: str) -> str:
+    """v0.6.1 spec §4.1:
+
+        broker_owner_key = length-delimited(stable broker id)
+        broker_id        = broker:owned:<sha256(broker_owner_key)>
+
+    The stable broker id is the same explicit input the Queue/Topic/Subscription owner keys already
+    take. Namespace/virtualHost is deliberately not an input: two namespaces under one stable broker
+    id are one Broker. Host, protocol, server name and display name never establish identity.
+    """
+    return f"broker:owned:{sha256_hex(length_delimited(utf8(stable_broker_id)))}"
+
+
 def subscription_owned_id(
     *,
     stable_broker_id: str,

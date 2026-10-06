@@ -57,6 +57,7 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
     operation_ids = {o.id for o in model.operations}
     topic_ids = {t.id for t in model.topics}
     subscription_ids = {s.id for s in model.subscriptions}
+    broker_ids = {b.id for b in model.brokers}
 
     _check_unique_ids(model, errors)
     _check_operation_providers(model, errors)
@@ -64,8 +65,10 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
     _check_schema_references(model, schema_ids=schema_ids, errors=errors)
     _check_dead_letter_targets(model, errors)
     known_ids = (
-        service_ids | operation_ids | queue_ids | message_ids | schema_ids | topic_ids
-    ) | subscription_ids
+        (service_ids | operation_ids | queue_ids | message_ids | schema_ids | topic_ids)
+        | subscription_ids
+        | broker_ids
+    )
     _check_relation_endpoints(model, known_ids=known_ids, errors=errors)
 
     _validate_pubsub(
@@ -75,6 +78,8 @@ def canonical_validation_issues(model: ArchitectureModel) -> list[CanonicalValid
         subscription_ids=subscription_ids,
         errors=errors,
     )
+
+    _validate_broker_relations(model, service_ids=service_ids, broker_ids=broker_ids, errors=errors)
 
     _check_relation_evidence(model, errors)
 
@@ -91,6 +96,7 @@ def _check_unique_ids(model: ArchitectureModel, errors: list[CanonicalValidation
     _check_unique([m.id for m in model.messages], "Message", errors)
     _check_unique([t.id for t in model.topics], "Topic", errors)
     _check_unique([s.id for s in model.subscriptions], "Subscription", errors)
+    _check_unique([b.id for b in model.brokers], "Broker", errors)
 
 
 def _check_operation_providers(
@@ -229,6 +235,33 @@ _PUBSUB_TRIPLES = {
     "PUBLISHES_TO": ("service", "topic"),
     "SUBSCRIPTION_OF": ("subscription", "topic"),
 }
+
+
+def _validate_broker_relations(
+    model: ArchitectureModel,
+    *,
+    service_ids: set[str],
+    broker_ids: set[str],
+    errors: list[CanonicalValidationIssue],
+) -> None:
+    """v0.6.1 I1 spec §4.1: `USES_BROKER` is exactly Service -> Broker."""
+    for relation in model.relations:
+        if relation.type != "USES_BROKER":
+            continue
+        if relation.source_id not in service_ids:
+            errors.append(
+                _issue(
+                    f"USES_BROKER source {relation.source_id} is not a service",
+                    relation_key(relation),
+                )
+            )
+        if relation.target_id not in broker_ids:
+            errors.append(
+                _issue(
+                    f"USES_BROKER target {relation.target_id} is not a broker",
+                    relation_key(relation),
+                )
+            )
 
 
 def _validate_pubsub(

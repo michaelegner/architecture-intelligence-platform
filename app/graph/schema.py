@@ -10,6 +10,7 @@ CONSTRAINTS: list[LiteralString] = [
     "CREATE CONSTRAINT queue_id IF NOT EXISTS FOR (q:Queue) REQUIRE q.id IS UNIQUE",
     # v0.5.0 I4 (spec §7/§11): uniqueness for the Topic/Subscription identities, plus the two
     # internal source-owned Pub/Sub carriers (app.canonical.pubsub).
+    "CREATE CONSTRAINT broker_id IF NOT EXISTS FOR (b:Broker) REQUIRE b.id IS UNIQUE",
     "CREATE CONSTRAINT topic_id IF NOT EXISTS FOR (t:Topic) REQUIRE t.id IS UNIQUE",
     ("CREATE CONSTRAINT subscription_id IF NOT EXISTS FOR (s:Subscription) REQUIRE s.id IS UNIQUE"),
     (

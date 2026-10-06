@@ -42,6 +42,8 @@ def model_node_ids(model: ArchitectureModel, *, source_instance_id: str) -> set[
         # ownership/reconciliation path (§11: no parallel lifecycle engine).
         *(t.id for t in model.topics),
         *(s.id for s in model.subscriptions),
+        # v0.6.1 I1: Broker rides the same ownership/reconciliation path.
+        *(b.id for b in model.brokers),
         *(d.id for d in model.pubsub_declarations),
         *(c.id for c in model.subscription_dead_letter_configurations),
         # I2 Draft 0.2 §3 item 6: infrastructure facts go through the *same* ownership and

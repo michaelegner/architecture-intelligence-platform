@@ -27,6 +27,8 @@ def test_registry_domain_range_matches_spec_table():
         # v0.5.0 I4 spec §6.3
         "PUBLISHES_TO": ({"Service"}, {"Topic"}),
         "SUBSCRIPTION_OF": ({"Subscription"}, {"Topic"}),
+        # v0.6.1 I1 spec §4.1
+        "USES_BROKER": ({"Service"}, {"Broker"}),
     }
     assert set(expected) == set(RELATIONS)
     for name, (source, target) in expected.items():
@@ -56,6 +58,7 @@ def test_relation_vocabulary_is_pinned_so_a_change_is_deliberate():
         "DEAD_LETTERS_TO",
         "PUBLISHES_TO",
         "SUBSCRIPTION_OF",
+        "USES_BROKER",
     }
 
 

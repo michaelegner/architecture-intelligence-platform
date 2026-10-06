@@ -80,8 +80,8 @@
   },
   "schema_version": "0.5",
   "snapshot": {
-    "model_revision": "sha256:a2ddd774ad6fba41ae8d54750d5d1ec0147cd05a32fcfb15fb9d01b01b383134",
-    "snapshot_id": "aip:snapshot:v1:a2ddd774ad6fba41ae8d54750d5d1ec0147cd05a32fcfb15fb9d01b01b383134"
+    "model_revision": "sha256:3a680b802f7bd79979998daf05939a27568496ca8021187afde20fa550015343",
+    "snapshot_id": "aip:snapshot:v1:3a680b802f7bd79979998daf05939a27568496ca8021187afde20fa550015343"
   },
   "tool": "get_service_dependencies"
 }

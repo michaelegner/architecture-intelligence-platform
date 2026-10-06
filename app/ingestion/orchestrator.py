@@ -355,6 +355,7 @@ _MODEL_ENTITY_FIELDS = (
     "provenance",
     "topics",
     "subscriptions",
+    "brokers",
     "pubsub_declarations",
     "subscription_dead_letter_configurations",
     "infrastructure_entities",

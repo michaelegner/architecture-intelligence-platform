@@ -548,7 +548,7 @@
       "via": "unused-q"
     }
   ],
-  "expected_snapshot_id": "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f",
+  "expected_snapshot_id": "aip:snapshot:v1:32a8e14d0a6102772e6524c6d50b7dd46cd182ada023c6402aa5cda19281e801",
   "fixture_id": "runtime-demo-frozen-2026-08-26",
   "manifest_version": 1,
   "seed_timestamp": "2026-08-26T12:00:00.000000Z",

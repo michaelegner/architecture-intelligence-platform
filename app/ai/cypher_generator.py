@@ -7,11 +7,12 @@ Node labels and their key properties:
   Queue(id, name, protocol, namespace, queue_type)
   Topic(id, name, protocol, namespace)
   Subscription(id, name, protocol, namespace)
+  Broker(id, stable_broker_id)
   Message(id, name, version, schema_id)
   Schema(id, name, version, format)
   Evidence(id, source_type, source_file, source_revision, evidence_type)
 
-Relationship types (always Service/Operation/Queue/Topic/Subscription/Message/Schema as documented):
+Relationship types (always Service/Operation/Queue/Topic/Subscription/Broker/Message/Schema as documented):
   (Service)-[:PROVIDES]->(Operation)          REST provider
   (Service)-[:CALLS]->(Operation)              REST caller
   (Operation)-[:REQUEST_SCHEMA]->(Schema)      request payload
@@ -23,6 +24,7 @@ Relationship types (always Service/Operation/Queue/Topic/Subscription/Message/Sc
   (Subscription)-[:SUBSCRIPTION_OF]->(Topic)   named subscription of one topic (fan-out)
   (Service)-[:RECEIVES_FROM]->(Subscription)   pub/sub consumer through a subscription
   (Topic)-[:CARRIES]->(Message)                message type on topic
+  (Service)-[:USES_BROKER]->(Broker)           declared use of a messaging broker (not a destination)
   (Message)-[:CONFORMS_TO]->(Schema)           message payload schema
   (Queue)-[:DEAD_LETTERS_TO]->(Queue)          DLQ relationship
 

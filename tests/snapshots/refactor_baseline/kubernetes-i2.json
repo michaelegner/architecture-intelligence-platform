@@ -33,6 +33,7 @@
   },
   "inventory_status": "COMPLETE",
   "merged_model": {
+    "brokers": [],
     "infrastructure_claims": [
       {
         "evidence_refs": [
@@ -264,6 +265,7 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "brokers": [],
           "infrastructure_claims": [
             {
               "evidence_refs": [
