@@ -31,6 +31,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.architecture_intelligence.contracts import DependencyClaim
 from app.architecture_intelligence.drift_projection import DRIFT_QUALIFICATIONS
 from app.architecture_intelligence.request import EvidenceRequest, ServiceDependenciesRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
@@ -111,8 +112,12 @@ def _check_dependency_to_drift(
             }
         )
     )
+    # A v0.6 dependency answer also carries `BrokerClaim`s (v0.6.1 spec §5.1): a sibling kind with
+    # no qualification, never part of drift.
     expected_drift_claims = [
-        claim for claim in dependency_answer.claims if claim.qualification in DRIFT_QUALIFICATIONS
+        claim
+        for claim in dependency_answer.claims
+        if isinstance(claim, DependencyClaim) and claim.qualification in DRIFT_QUALIFICATIONS
     ]
     if list(answer.claims) == expected_drift_claims:
         return []

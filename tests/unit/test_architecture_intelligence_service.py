@@ -44,6 +44,15 @@ def _patch_deployment_internals(monkeypatch) -> None:
         "run_whole_graph_reconciliation",
         lambda *args, **kwargs: _EMPTY_RECONCILIATION,
     )
+    # v0.6.1 I2c: the two Broker reads every dependencies/evidence stable-read now also runs. These
+    # tests are about the v0.5 semantics, so the service has no Broker (the Broker-aware paths are
+    # covered by tests/unit/test_broker_projection.py and the real-Neo4j integration tests).
+    monkeypatch.setattr(
+        service_module,
+        "read_service_broker_rows",
+        lambda *args, **kwargs: {"broker_uses": [], "evidence": {}},
+    )
+    monkeypatch.setattr(service_module, "read_broker_support_rows", lambda *args, **kwargs: [])
 
 
 ENVIRONMENT = "demo"

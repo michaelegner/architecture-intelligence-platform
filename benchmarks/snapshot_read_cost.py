@@ -511,25 +511,36 @@ def _all_equal(values: list[str]) -> bool:
 # --- target-answer semantic invariance (spec §12) --------------------------------------------
 
 
-def canonicalize_target_answer(structured_content: dict[str, Any]) -> dict[str, Any]:
-    """Strips snapshot identity/build metadata that legitimately reflects a larger graph, keeping
-    only what spec §12 requires to remain equal: requested service, observation context, outcome,
-    claim identities/qualifications/delivery semantics, limitations."""
-    claims = [
-        {
+def _canonical_claim(claim: dict[str, Any]) -> dict[str, Any]:
+    if claim["predicate"] == "USES_BROKER":
+        # v0.6.1 I2: a Broker-aware answer's BrokerClaim has no delivery/qualification/coverage
+        # (spec §5.1); the examples/ landscape declares a Broker, so the target answer carries one.
+        return {
             "claim_id": claim["claim_id"],
             "subject": claim["subject"],
             "object": claim["object"],
             "predicate": claim["predicate"],
-            "destination_resolution": claim["destination_resolution"],
-            "delivery": claim["delivery"],
-            "qualification": claim["qualification"],
-            "coverage": claim.get("coverage"),
             "evidence_refs": sorted(claim["evidence_refs"]),
-            "resolution_evidence_refs": sorted(claim["resolution_evidence_refs"]),
         }
-        for claim in structured_content["claims"]
-    ]
+    return {
+        "claim_id": claim["claim_id"],
+        "subject": claim["subject"],
+        "object": claim["object"],
+        "predicate": claim["predicate"],
+        "destination_resolution": claim["destination_resolution"],
+        "delivery": claim["delivery"],
+        "qualification": claim["qualification"],
+        "coverage": claim.get("coverage"),
+        "evidence_refs": sorted(claim["evidence_refs"]),
+        "resolution_evidence_refs": sorted(claim["resolution_evidence_refs"]),
+    }
+
+
+def canonicalize_target_answer(structured_content: dict[str, Any]) -> dict[str, Any]:
+    """Strips snapshot identity/build metadata that legitimately reflects a larger graph, keeping
+    only what spec §12 requires to remain equal: requested service, observation context, outcome,
+    claim identities/qualifications/delivery semantics, limitations."""
+    claims = [_canonical_claim(claim) for claim in structured_content["claims"]]
     return {
         "tool": structured_content["tool"],
         "outcome": structured_content["outcome"],
@@ -681,7 +692,8 @@ def run_profile(
             {
                 ref
                 for claim in claims
-                for ref in (*claim["evidence_refs"], *claim["resolution_evidence_refs"])
+                # a v0.6 BrokerClaim has no `resolution_evidence_refs`
+                for ref in (*claim["evidence_refs"], *claim.get("resolution_evidence_refs", []))
             }
         )
 

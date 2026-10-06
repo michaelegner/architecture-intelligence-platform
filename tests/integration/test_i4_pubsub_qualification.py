@@ -45,6 +45,7 @@ from app.telemetry.queue_resolver import fetch_queue_candidates
 from app.telemetry.service_resolver import fetch_candidates
 from evaluation.architecture_answers.reference import identities
 from tests.integration.test_api_architecture_intelligence_equivalence import _client
+from tests.support.answer_schemas import validate_dependencies, validate_evidence
 from tests.support.negotiated_mcp_client import (
     call_negotiated,
     negotiated_headers,
@@ -145,7 +146,8 @@ def _answer_refs(answer_json: dict) -> list[str]:
     refs = set(answer_json["evidence_refs"])
     for claim in answer_json["claims"]:
         refs.update(claim["evidence_refs"])
-        refs.update(claim["resolution_evidence_refs"])
+        # a v0.6 BrokerClaim has no `resolution_evidence_refs`
+        refs.update(claim.get("resolution_evidence_refs", []))
     return sorted(refs)
 
 
@@ -238,6 +240,14 @@ def _qualify_fixture(
     }
 
 
+def _dependency_claims(claims: list[dict]) -> list[dict]:
+    """The dependency claims of an answer's JSON. These fixtures' hand-authored expectations are
+    about dependency semantics; the Pub/Sub fixtures also declare Brokers, so their dependency
+    answers are the Broker-aware v0.6 shape and additionally carry BrokerClaims (sibling kind,
+    asserted by the Broker qualification in I3, not by these frozen expectations)."""
+    return [claim for claim in claims if claim["predicate"] == "DIRECT_DEPENDENCY"]
+
+
 def _claim_shape(claim: dict) -> list:
     object_ref, delivery = claim["object"], claim["delivery"]
     return [
@@ -271,24 +281,24 @@ def test_fixture_matches_its_hand_authored_expectations(driver, fixture):
 
     for slug, answer in result["answers"].items():
         dependencies, drift = answer["dependencies"], answer["drift"]
-        jsonschema.validate(instance=dependencies, schema=SCHEMAS["dependencies"])
+        validate_dependencies(dependencies)
         jsonschema.validate(instance=drift, schema=SCHEMAS["drift"])
         expected_answer = expected["answers"].get(slug, {"claims": [], "limitations": []})
-        assert sorted(_claim_shape(c) for c in dependencies["claims"]) == sorted(
-            expected_answer["claims"]
-        ), slug
+        assert sorted(
+            _claim_shape(c) for c in _dependency_claims(dependencies["claims"])
+        ) == sorted(expected_answer["claims"]), slug
         assert sorted(lim["code"] for lim in dependencies["limitations"]) == sorted(
             expected_answer["limitations"]
         ), slug
         # drift is exactly the drift-qualified subset of the dependency claims (§12.5)
         assert drift["claims"] == [
             c
-            for c in dependencies["claims"]
+            for c in _dependency_claims(dependencies["claims"])
             if c["qualification"]
             in (Qualification.OBSERVED_ONLY.value, Qualification.NOT_OBSERVED_IN_WINDOW.value)
         ]
         if answer["evidence"] is not None:
-            jsonschema.validate(instance=answer["evidence"], schema=SCHEMAS["evidence"])
+            validate_evidence(answer["evidence"])
             assert answer["evidence"]["data"]["missing_evidence_refs"] == []
 
 
@@ -299,7 +309,7 @@ def test_queue_claims_keep_their_pre_i4_claim_ids(driver, fixture):
     result = _qualify_fixture(driver, FIXTURES_ROOT / fixture, fixture)
     queue_claims = [
         c
-        for c in result["answers"]["orders"]["dependencies"]["claims"]
+        for c in _dependency_claims(result["answers"]["orders"]["dependencies"]["claims"])
         if c["delivery"]["via"]["type"] == "QUEUE"
     ]
     assert len(queue_claims) == 2  # competing consumers: one claim per logical Service, no fan-out

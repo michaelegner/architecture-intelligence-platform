@@ -6,7 +6,6 @@ directory and check its content digest, and they check that the frozen dossiers 
 """
 
 import importlib.util
-import json
 import re
 from pathlib import Path
 
@@ -221,113 +220,18 @@ def test_lifecycle_runbook_queries_every_frozen_state_query():
     assert "for q in Q-INV Q-SRC Q-SRC-SEM Q-OWN Q-SVC Q-REL; do" in runbook
 
 
-RELEASED_PRODUCER_VERSION = "0.6.0"
-I5_PRODUCER_VERSION = "0.4.2"
-
-# v0.6.1 I1a/I1b moved snapshot canonicalization 3 -> 4 and added Broker facts (new always-present `brokers` key), which
-# legitimately re-pins every scenario's frozen `snapshot_id`/`model_revision` (spec §5.3). The I5
-# pin stays the identity at the I5 candidate, so the copy also reverts exactly those literals:
-# current digest -> the digest the scenario carried at the I5 candidate (read from the frozen
-# scenarios before the v4 re-pin). Anything else that changed in a scenario still fails the pin.
-V4_REPIN_TO_I5_DIGEST = {
-    "1bdb84f32dd309c183e62ccd300d8c68ef8c29374fb744c75489553328d8d2d7": (
-        "8d3cbb8c8b728b4a73fe321cfd6aa54f55c53e0fa551b034926f9fb1f084dd79"
-    ),
-    "1fc238f213fa57720270258455bcee6a5822bdaa08f6061a8d7f3c9bb70a14a8": (
-        "7e56b34b66794714178978c793a749284bf585dd569d030a62cbb2d0b804d2af"
-    ),
-    "262bf59d8c18ce9a55288022ea02b5d854789c2bb1491fdb9c17a2581567fee2": (
-        "cdf1537bb253019b4c4613fa954f938bceda258c14cf338877153462dce4352e"
-    ),
-    "279e9730b644e87524e76cc3c506fad2ea2ffb56ec5b3870642e62b42342bf76": (
-        "61e7161903c3604ef40e910040e5f25345cc14f448a07ab72a92baec98f47f62"
-    ),
-    "3a680b802f7bd79979998daf05939a27568496ca8021187afde20fa550015343": (
-        "a2ddd774ad6fba41ae8d54750d5d1ec0147cd05a32fcfb15fb9d01b01b383134"
-    ),
-    "3c1394a93250a2945b795cfa4583a80fc13466553ea86f33aac605400c9c86ac": (
-        "a789ba301268358e313849751a17072760e24631f7361f56dedde855df886690"
-    ),
-    "4b715bafe7df2d9319c38ab5db92ece3546004eb6ee82040a625af88e7f1c49a": (
-        "ec6cf3e7cf2bc56bcfafb30e3748a543393dbea8cb0c574097713dd8f1481894"
-    ),
-    "515cea053a90789701bfee8957e7b2a26030876d3fe8dacbbe43593c8007f154": (
-        "e6bb335554bd85c70035c63aa3d2a59fb7fedfd376c0b497576550d7233b0b3d"
-    ),
-    "51b9698e1521428ba9ff64563781387252faa971ccb046fb4762997ba53915e6": (
-        "40af1984e44beef311daeadda930354ff432445527ffd58e05fd63dac0e4ce76"
-    ),
-    "5f52424f380f74835cac2782b8ac65f07d71e00944e5401b2cbe8dac8507b32d": (
-        "020bce9d9fd248bbd7e0f11c65bd88876eb07baf748c0d3f9cf5f908da0267a3"
-    ),
-    "87fc23284e166e839983acdf39be84dd50a2a0dd84f777dfefc89d33339a9e5a": (
-        "14eef652c468324f1e3dfe55387bbe9a6a0a6c0d5b79cd6e2183f29ce137cf67"
-    ),
-    "88ab84741174f5959b61654ed2cc2887570efc2d8b2f9cf82e0b9fcc100ddc4b": (
-        "dc8e75fdebda954081059c96d17ae072ceec8c952261929e6276945c5f52e09c"
-    ),
-    "8d4d1540fc945eacec2444f7bec9f8540f43864b84f723fb11ede000480cb802": (
-        "98325cc951d8a91f450615e504978de5ba136a6f90790d1eacd0ea13336a56f6"
-    ),
-    "9898d9daaa9e1a8afabce49085bd55d12252fdb8867708fa9117ee4bda215f76": (
-        "bcb24b1a7620745578b4e82f7a6e05cda260b39a5da879d4a8c8fcd1a79366d8"
-    ),
-    "99cb25a154856bf2a6451786b281d864d41d345c40cd6874da46a2f7b0b24a09": (
-        "60c6ce7ac17e7ff2f287139b593e1cca78bd5918ed0c0243add3793c505f054e"
-    ),
-    "b64eb96013b066d53db29415042143487d380e42c7e47e6f516ca096247d53ca": (
-        "06125cc5dabfbc5ed755f0aa5227af044f4a989ce52f9ff0d4e6bdd3c79241bd"
-    ),
-    "b8127e7569ee844ea2fcd1af05ed17363a3fb6a42d254ea8e804c756634b2737": (
-        "2339182b5d89574d2662c1121d45b4d45f304e722fa0dbc7aa89f508572ffd45"
-    ),
-    "c6ff0c8cbc9b45643959e19cf63bebb9075e24fa6f8f2816c13cd5c7107c25c3": (
-        "251edaee1ae62c23c62502e8e6e9a953cb36ebaa0f64138ea1687847a628456a"
-    ),
-    "d937f3350a384c994b9fdab38d22b148b0f13a13f225fe99c791a786471f1007": (
-        "80435ac3525e9bd95af0903bc6a868cd4ee71f12f5272e16ec5f14510194972a"
-    ),
-    "da0595ec6f473989d107c3af7cd01baed2bd1ec75e911cd802c7b65737ab41f2": (
-        "d75d4df52e05cb8cbb9696f25d8b07d2a97a19225da48e91ca9e115f7ffe32fa"
-    ),
-    "e0911799822d74cea3a6641eb18f8df86f66df7e90929957d04a7dcb9c61e133": (
-        "513f953708386eafcd51af89ec901a1c34d877d9fbe6e7bb1a2b7d992637efa6"
-    ),
-    "e11e9eace70ddf916906f4d660340449a7650d976b3ccdbfe9eeb1514a235b62": (
-        "3728800bd4780e6492aa3ac7888d03041d5c6aa16955763951591aeba760e5a6"
-    ),
-}
+# The evaluation scenarios' whole-tree digest (pinned in coverage-matrix.md at the I5 candidate
+# `aa04a15`) is deliberately NOT asserted any more. Until v0.6.1 the tree could be reverted to that
+# identity by undoing the only permitted changes (producer version, snapshot canonicalization
+# literals). v0.6.1 I2 legitimately changes the *answers* of the scenarios whose services use a
+# Broker: a Broker-aware dependencies answer is the v0.6 shape with a `BrokerClaim` (spec §5.2), so
+# three `expected_answer.json` files changed in substance, which no mechanical revert can undo. The
+# I5 candidate is released history, retained in git (and the frozen I5 record is not edited here);
+# the scenarios are independently re-derived and graded by `python -m evaluation answers`.
+_SCENARIOS_TREE = "evaluation/architecture_answers/scenarios"
 
 
-def _scenarios_as_at_the_i5_candidate(scenarios: Path, workdir: Path) -> Path:
-    """v0.5.0 I6 §6/§9: release preparation may change the evaluation scenarios'
-    `producer.version` and nothing else. The I5 pin in coverage-matrix.md stays the identity at the
-    I5 candidate `aa04a15`, and the frozen I5 record is not edited. This reverts exactly that one
-    permitted change in a copy, one occurrence per expected answer, and proves it is the producer
-    field. The unchanged pin must then match, so any other scenario change still fails."""
-    copy = workdir / "scenarios"
-    for source in sorted(scenarios.rglob("*")):
-        if not source.is_file() or "__pycache__" in source.parts:
-            continue
-        target = copy / source.relative_to(scenarios)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        data = source.read_bytes()
-        if source.name == "expected_answer.json":
-            text = data.decode()
-            released = f'"version": "{RELEASED_PRODUCER_VERSION}"'
-            assert text.count(released) == 1, source
-            assert json.loads(text)["producer"]["version"] == RELEASED_PRODUCER_VERSION, source
-            data = text.replace(released, f'"version": "{I5_PRODUCER_VERSION}"').encode()
-        if source.name in ("expected_answer.json", "request.yaml"):
-            text = data.decode()
-            for current, at_i5 in V4_REPIN_TO_I5_DIGEST.items():
-                text = text.replace(current, at_i5)
-            data = text.encode()
-        target.write_bytes(data)
-    return copy
-
-
-def test_coverage_matrix_fixture_digests_match_the_files_on_disk(tmp_path):
+def test_coverage_matrix_fixture_digests_match_the_files_on_disk():
     mutate = _mutate()
     matrix = (V05 / "coverage-matrix.md").read_text()
     pinned = re.findall(r"`((?:tests|evaluation)/[^`]+)`[^|]*?digest `([0-9a-f]{64})`", matrix)
@@ -339,9 +243,9 @@ def test_coverage_matrix_fixture_digests_match_the_files_on_disk(tmp_path):
         "evaluation/architecture_answers/scenarios",
     }
     for path, digest in pinned:
+        if path == _SCENARIOS_TREE:
+            continue  # see the comment above `_SCENARIOS_TREE`
         tree = ROOT / path
-        if path == "evaluation/architecture_answers/scenarios":
-            tree = _scenarios_as_at_the_i5_candidate(tree, tmp_path)
         # The one documented algorithm (coverage-matrix.md names mutate.py::tree_digest).
         assert mutate.tree_digest(tree, exclude=frozenset()) == digest, path
 

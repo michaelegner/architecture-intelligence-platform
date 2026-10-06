@@ -29,8 +29,9 @@ import subprocess
 import urllib.request
 from pathlib import Path
 
-import jsonschema
 import pytest
+
+from tests.support.answer_schemas import validate_dependencies, validate_evidence
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEMO_DIR = REPO_ROOT / "examples" / "quarkus-super-heroes-demo"
@@ -169,7 +170,7 @@ def test_one_command_demo_answers_and_drills_down_at_one_snapshot():
             {"service_id": check_ready.SERVICE_ID, "observation_context": check_ready.CONTEXT},
             2,
         )
-        jsonschema.validate(answer, _schema("architecture-answer.schema.json"))
+        validate_dependencies(answer)
         assert check_ready.check_answer(answer) == []
 
         snapshot_id = answer["snapshot"]["snapshot_id"]
@@ -178,7 +179,7 @@ def test_one_command_demo_answers_and_drills_down_at_one_snapshot():
             {"evidence_refs": answer["evidence_refs"], "snapshot_id": snapshot_id},
             3,
         )
-        jsonschema.validate(evidence, _schema("evidence-answer.schema.json"))
+        validate_evidence(evidence)
         assert evidence["outcome"] == "ANSWERED"
         assert evidence["snapshot"]["snapshot_id"] == snapshot_id
         assert evidence["data"]["missing_evidence_refs"] == []

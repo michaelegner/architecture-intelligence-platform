@@ -189,12 +189,21 @@ A Broker claim is **not** a `DependencyClaim`:
 - no `CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW` runtime qualification;
 - no coverage or destination-resolution fields.
 
+`BrokerClaim.object` is a bounded `BrokerRef` (`id` = the canonical Broker id, `type` = `BROKER`, `name` = the explicit stable broker id the source declared); it is deliberately not an `EntityRef`, so the released v0.5 entity-type set is not widened.
+
+**Claim identity.** `claim_id = aip:claim:v1:<sha256(canonical-json({"predicate": "USES_BROKER", "service_id": <canonical Service id>, "broker_id": <canonical Broker id>}))>`, using the same canonical-JSON and `aip:claim:v1` prefix rules as every other claim id. Evidence ids, the snapshot id and display names are excluded, so the identity follows the Service/Broker pair and not the evidence that currently supports it (the dependency-claim rule). The predicate is a hashed field so a Broker claim id never collides with another claim kind's.
+
+**Evidence.** A BrokerClaim's `evidence_refs` are the union of the evidence ids of every `USES_BROKER` relation for the pair, kept to those that resolve in the snapshot (membership of each specific id, not mere presence). A Broker with no resolvable evidence yields no claim and one `INSUFFICIENT_EVIDENCE` limitation, the same rule a dependency with no usable evidence follows. Every ref on a BrokerClaim resolves through `get_evidence` at the same snapshot to a v0.6 record whose `supports` contain exactly that `(USES_BROKER, Service, Broker)` fact.
+
+**Ordering and refusals.** Claims keep the existing cross-type order `(object.id, predicate, delivery.kind, delivery.via.id, claim_id)`, with an empty delivery part for a BrokerClaim. A refusal (`NOT_ANSWERED`) is always the v0.5 shape.
+
 In the Broker-aware v0.6 answer, `ServiceDependenciesData` gains `broker_claim_ids` as a sibling of `dependency_claim_ids` and `deployment_claim_ids`.
 
 ### 5.2 REST, MCP, evidence and schema versioning
 
 - `get_service_dependencies` and its REST equivalent return Broker claims for the requested Service.
-- `get_evidence` can resolve `USES_BROKER` evidence and exposes `BROKER` as an entity type.
+- `get_evidence` can resolve `USES_BROKER` evidence and exposes `BROKER` as an entity type: a Broker-aware supported fact carries a `broker` object (`BrokerRef`).
+- The REST-only deployments view (`GET /api/services/{id}/deployments`) is derived from the dependency answer of either version, carries no Broker information, and keeps `schema_version = "0.5"`; the dependency envelope's `"0.6"` is not propagated into it.
 - `get_architecture_drift` is unchanged; Broker use has no runtime drift classification in this release.
 - `get_service_dependencies_by_locality` is unchanged; Broker use is not locality-qualified in v0.6.1.
 - MCP still advertises exactly four tools in the existing deterministic order.

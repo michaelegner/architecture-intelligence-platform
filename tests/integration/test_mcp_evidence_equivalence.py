@@ -18,7 +18,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
-import jsonschema
 import pytest
 import yaml
 from mcp.server import MCPServer
@@ -37,6 +36,7 @@ from app.provenance.model import ObservedEvidence
 from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import ObservationBatch, ObservedFactCandidate
+from tests.support.answer_schemas import validate_evidence
 from tests.support.negotiated_mcp_client import call_negotiated
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
@@ -168,7 +168,7 @@ async def test_full_dependency_to_evidence_chain_is_identical_direct_vs_mcp(driv
     )
     assert direct_json["outcome"] == Outcome.ANSWERED.value
     assert direct_json["data"]["missing_evidence_refs"] == []
-    jsonschema.validate(instance=direct_json, schema=EVIDENCE_ANSWER_SCHEMA)
+    validate_evidence(direct_json)
 
     server, app = _build_server_and_app(driver)
     async with mcp_session_manager_lifespan(server):
@@ -176,7 +176,7 @@ async def test_full_dependency_to_evidence_chain_is_identical_direct_vs_mcp(driv
         async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
             result = await _call_mcp(client, request_payload)
             assert result["isError"] is False
-            jsonschema.validate(instance=result["structuredContent"], schema=EVIDENCE_ANSWER_SCHEMA)
+            validate_evidence(result["structuredContent"])
             assert result["structuredContent"] == direct_json
 
 
