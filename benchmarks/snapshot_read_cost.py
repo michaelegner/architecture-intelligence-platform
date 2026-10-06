@@ -328,6 +328,10 @@ def measure_structural_counts(session: neo4j.Session) -> ActualCounts:
 # message independently declared by two services (e.g. "PaymentRequested" from both order-service
 # and payment-service) is two distinct nodes rather than one shared node - genuinely more Message/
 # Schema nodes and CARRIES/CONFORMS_TO relations than the pre-PR3a baseline, not a regression.
+#
+# Re-frozen for v0.6.1 I1b: relation_count 27 -> 30. The three examples/ services (order, invoice,
+# payment) each declare `x-aip-broker-id: asb`, so each now evidences one USES_BROKER (one shared
+# Broker node, which this structural-count vocabulary does not track).
 _EXPECTED_TARGET_COUNTS = ActualCounts(
     service_count=4,
     operation_count=3,
@@ -335,7 +339,7 @@ _EXPECTED_TARGET_COUNTS = ActualCounts(
     message_count=6,
     schema_count=9,
     evidence_count=7,
-    relation_count=27,
+    relation_count=30,
     calls_relation_count=1,
 )
 

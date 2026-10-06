@@ -64,8 +64,16 @@ def test_overlay_is_discovered_and_adapted_under_the_i4_rules():
     # Each source owns its own `Fight` Message (and Schema), as in tests/fixtures/pubsub/kafka,
     # whose expected facts also list CARRIES twice. The consumer side adds no relation of its own.
     assert Counter(r.type for r in model.relations) == Counter(
-        {"PUBLISHES_TO": 1, "CARRIES": 2, "CONFORMS_TO": 2}
+        {"PUBLISHES_TO": 1, "CARRIES": 2, "CONFORMS_TO": 2, "USES_BROKER": 2}
     )
+    # v0.6.1 I1: both Services declare the same explicit `x-aip-broker-id: kafka:fights-kafka`, so
+    # they share one Broker; the unresolved Subscription stays unresolved.
+    [broker] = model.brokers
+    assert broker.stable_broker_id == "kafka:fights-kafka"
+    assert {(r.source_id, r.target_id) for r in model.relations if r.type == "USES_BROKER"} == {
+        ("service:rest-fights", broker.id),
+        ("service:event-statistics", broker.id),
+    }
     [publish] = [r for r in model.relations if r.type == "PUBLISHES_TO"]
     assert (publish.source_id, publish.target_id) == ("service:rest-fights", topic.id)
     message_ids = {m.id for m in model.messages}

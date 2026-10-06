@@ -24,7 +24,7 @@
       "1",
       "v1",
       "v1",
-      "v1"
+      "v2"
     ],
     "provider_revision": null,
     "scope_definition_digest": "<scrubbed>",
@@ -473,7 +473,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "4df4d38f7901ca259dcd9134f1bdf3760c5e4cdbf4a509178128f4ff32a00edc"
+        "semantic_input_digest": "1c3e4f15e4081d50408d84e2652d2dafc03450c9fcde662b47b42c430900d2a0"
       }
     }
   }
