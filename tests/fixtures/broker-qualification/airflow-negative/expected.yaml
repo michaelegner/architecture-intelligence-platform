@@ -1,0 +1,9 @@
+# Hand-authored from the frozen Airflow 3.3.1 dossier (ground-truth.md, "CeleryExecutor / Redis /
+# queue ground truth"): the broker is Redis, and no worker Service is admitted.
+manifest:
+  locator: airflow-worker/architecture.yaml
+  result: REJECTED_UNSUPPORTED
+  diagnostic: MANIFEST_CALL_SOURCE_UNRESOLVED
+brokers: []
+uses_broker: []
+services: ["service:airflow-apiserver"]
