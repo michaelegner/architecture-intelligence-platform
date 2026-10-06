@@ -407,7 +407,10 @@ Exit capability:
 > and can deterministically project those qualified local assessments into a bounded Current-State
 > view.**
 
-## v0.6.1 — Broker Semantic Completion (planned)
+## v0.6.1 — Broker Semantic Completion (shipped)
+
+Published **v0.6.1 on 2026-10-06**; terminal outcome **SHIPPED_VERIFIED**. See the
+[release record](docs/release-validation/v0.6.1-release-record.md).
 
 **Goal: Complete AIP's existing messaging semantics with evidence-qualified Broker knowledge.**
 

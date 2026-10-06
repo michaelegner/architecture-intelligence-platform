@@ -1,6 +1,6 @@
 # AIP v0.6.1 — Broker Semantic Completion
 
-**Status:** Draft — for owner review  
+**Status:** Released in [`v0.6.1`](../../release-validation/v0.6.1-release-record.md) (2026-10-06)  
 **Target:** `v0.6.1`  
 **Baseline:** Published and post-release-verified `v0.6.0`  
 **Scope authority:** [ROADMAP.md — v0.6.1](../../../ROADMAP.md)
