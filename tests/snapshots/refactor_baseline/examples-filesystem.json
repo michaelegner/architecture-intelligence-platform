@@ -28,7 +28,7 @@
     "mapping_rule_identities": [
       "1",
       "v1",
-      "v1",
+      "v2",
       "v2"
     ],
     "provider_revision": null,
@@ -775,7 +775,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "9cabfb9784215327f1369b1525990c07931408e428792ad05e7f3da29d9c007f"
+        "semantic_input_digest": "7b98e31dfc05875da46976ee0e81d1535668f460398978e2d1b17218192130f5"
       }
     },
     "urn:aip:source:filesystem:5ce532518b49a66ac861423e9349cf12fd70d3ce513fdd1c787af9e7d8920a54": {
@@ -790,7 +790,7 @@
         "locator": "<repo>/examples/order-service/architecture.yaml",
         "mapping_context_digest": "",
         "mapping_rule_id": "manifest-adapter@1",
-        "mapping_rule_version": "v1",
+        "mapping_rule_version": "v2",
         "scope_definition_digest": "<scrubbed>",
         "semantic_input_digest": "",
         "source_instance_id": "urn:aip:source:filesystem:5ce532518b49a66ac861423e9349cf12fd70d3ce513fdd1c787af9e7d8920a54",
@@ -835,7 +835,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "40f565d33343196225493a47de02f75735cbe8198d4c160f7d2f1a9005d0c447"
+        "semantic_input_digest": "e34223234b4c53f399dd5d943bff2f517aecf00034ce4ddc1fd40071a7be47af"
       }
     },
     "urn:aip:source:filesystem:7f055a6aea1cdd580b66c8e0000308daa6fc513f8d9b62c9842470d88fcbcb56": {
@@ -973,7 +973,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "427e507efc9f9e4531da100eadf3321a43cf8f1783d598cbe1d9e3fc233376ef"
+        "semantic_input_digest": "abd78f01cc43f62ca893706c56f694d492601db10685f05fd4b49429f3ca44bd"
       }
     },
     "urn:aip:source:filesystem:833e2828fe1aab512d1943c48acb72d7b94bee00925e01a60e8c26e04a6ec189": {
@@ -1093,7 +1093,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "e76e8efb78cf087d0a94bc369472e722ef33a21ddc8651f825903593dec96756"
+        "semantic_input_digest": "50f2c2603e6fcd4bbecb801965533b9bde8df1aae9fa5d69c97ff061736b5a78"
       }
     },
     "urn:aip:source:filesystem:bc68d5827d7bed2c4ec37eb12c23fa0319e78cccdfd6e9efd163d4b1329159e5": {
@@ -1187,7 +1187,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "b1bffbf53a736b55c708b187934ed0d606ebf60f252cac189e18ed3d25d9d369"
+        "semantic_input_digest": "1f6936de7b9936e843c766bd13ee483a90b07be7041583590a1a62f58b332675"
       }
     },
     "urn:aip:source:filesystem:bde49ebe4fc19f12fea1549011bb94c1e526e8a514e898a95b71429bdbbc0732": {
@@ -1353,7 +1353,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "c50c78e38857ea12aed078fd2371e413e4667b87c7f7def3410ce82b85c0f8a7"
+        "semantic_input_digest": "017da9ce9c1af041a1b1c969e2d9cd7037c4f9f8adea5e0293967cc4651f6ca1"
       }
     }
   }

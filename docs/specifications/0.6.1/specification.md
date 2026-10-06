@@ -136,7 +136,7 @@ The existing Queue/Topic/Subscription mapping remains independent. In particular
 
 - resolving a Broker does not resolve a destination kind;
 - a Topic without Subscription identity remains a Topic-only result;
-- an unresolved richer messaging path may still retain a valid Broker claim if Broker identity and Service identity are independently established;
+- once the channel has resolved to a Queue or Topic, an unresolved richer layer (a Subscription or consumer identity) does not remove a Broker claim whose Broker and Service identities are independently established. A channel that never resolved to a Queue or Topic is not admitted and yields no Broker claim;
 - a destination resolved only by `queueMappings`/`topicMappings`/`subscriptionMappings`, without stable broker identity, produces no Broker claim.
 
 Existing Queue/Topic/Subscription mappings remain destination mappings only. They do not establish Broker identity, and `destinationBrokerMappings` stays empty/unimplemented in v0.6.1. Existing inputs without explicit `x-aip-broker-id` or an explicit Architecture Manifest `brokers[].brokerId` remain Broker-free.
@@ -152,7 +152,7 @@ brokers:
   - brokerId: kafka:cluster-a
 ```
 
-The manifest continues to mint no Service. If `brokers` is non-empty, its Service must resolve to a Service already declared by a phase-0 source, exactly as for `calls`. Failure rejects the **whole manifest document** with a broker-source-unresolved diagnostic: its `calls` and `brokers` contributions are both discarded, and it emits zero canonical artifacts.
+The manifest continues to mint no Service. If `brokers` is non-empty, its Service must resolve to a Service already declared by a phase-0 source, exactly as for `calls`. Failure rejects the **whole manifest document** with the existing `MANIFEST_CALL_SOURCE_UNRESOLVED` diagnostic (the manifest's own Service source is unresolved; the frozen v0.5 import-report code vocabulary is not widened): its `calls` and `brokers` contributions are both discarded, and it emits zero canonical artifacts.
 
 `brokerId` is an explicit stable broker id. It is not inferred from a host, protocol or display name.
 

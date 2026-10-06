@@ -150,3 +150,118 @@ def test_asyncapi_import_persists_one_shared_broker_until_its_last_declarer_is_r
     with driver.session(database=DATABASE) as session:
         assert _count(session, "MATCH (b:Broker) RETURN count(b) AS c") == 0
         assert _count(session, USES_COUNT) == 0
+
+
+# --- v0.6.1 I1c: the Architecture Manifest `brokers` block and cross-source lifecycle ---------------
+
+
+def _write_manifest(root, service: str, *broker_ids: str) -> None:
+    import yaml
+
+    path = root / service / "architecture.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "service": service,
+                "x-aip-service-id": f"service:{service}",
+                "brokers": [{"brokerId": b} for b in broker_ids],
+            },
+            sort_keys=False,
+        )
+    )
+
+
+def _uses_rows(session) -> list[dict]:
+    return session.run(
+        "MATCH (s:Service)-[r:USES_BROKER]->(b:Broker) "
+        "RETURN s.id AS service, b.id AS broker, r.evidence_ids AS evidence ORDER BY b.id"
+    ).data()
+
+
+def test_manifest_and_asyncapi_with_equal_broker_ids_reconcile_to_one_broker(driver, tmp_path):
+    from tests.integration.test_pubsub_persistence import BROKER, _doc, _import, _write
+
+    _write(tmp_path, "orders", _doc("orders", publish=True))
+    _write_manifest(tmp_path, "orders", BROKER)
+    assert _import(driver, tmp_path).committed is True
+    with driver.session(database=DATABASE) as session:
+        assert _count(session, "MATCH (b:Broker) RETURN count(b) AS c") == 1
+        [row] = _uses_rows(session)
+        assert row["service"] == "service:orders"
+        # one fact, declared by two independent sources: both sources' evidence is retained
+        assert len(row["evidence"]) == 2
+
+    # the manifest alone stops declaring it: the AsyncAPI source still evidences it
+    (tmp_path / "orders" / "architecture.yaml").unlink()
+    assert _import(driver, tmp_path).committed is True
+    with driver.session(database=DATABASE) as session:
+        [row] = _uses_rows(session)
+        assert len(row["evidence"]) == 1
+
+
+def test_different_broker_ids_never_merge_for_one_service(driver, tmp_path):
+    from tests.integration.test_pubsub_persistence import BROKER, _doc, _import, _write
+
+    other = "kafka:other-cluster"
+    _write(tmp_path, "orders", _doc("orders", publish=True))
+    _write_manifest(tmp_path, "orders", other)
+    assert _import(driver, tmp_path).committed is True
+    with driver.session(database=DATABASE) as session:
+        rows = _uses_rows(session)
+        assert {r["broker"] for r in rows} == {
+            broker_owned_id(stable_broker_id=BROKER),
+            broker_owned_id(stable_broker_id=other),
+        }
+        assert {r["service"] for r in rows} == {"service:orders"}
+
+
+def test_manifest_alone_declares_a_broker_and_withdrawing_it_removes_the_broker(driver, tmp_path):
+    import yaml
+
+    from tests.integration.test_pubsub_persistence import BROKER, _import
+
+    # a phase-0 OpenAPI source with no Broker evidence of its own declares the Service
+    openapi = tmp_path / "orders" / "openapi.yaml"
+    openapi.parent.mkdir(parents=True)
+    openapi.write_text(
+        yaml.safe_dump(
+            {
+                "openapi": "3.0.3",
+                "info": {"title": "orders", "version": "1"},
+                "x-aip-service-id": "service:orders",
+                "paths": {
+                    "/orders": {
+                        "get": {
+                            "operationId": "listOrders",
+                            "responses": {"200": {"description": "ok"}},
+                        }
+                    }
+                },
+            }
+        )
+    )
+    _write_manifest(tmp_path, "orders", BROKER)
+    first = _import(driver, tmp_path)
+    assert first.committed is True, first.diagnostics
+    with driver.session(database=DATABASE) as session:
+        assert _count(session, "MATCH (b:Broker) RETURN count(b) AS c") == 1
+        assert _count(session, USES_COUNT) == 1
+
+    (tmp_path / "orders" / "architecture.yaml").unlink()
+    assert _import(driver, tmp_path).committed is True
+    with driver.session(database=DATABASE) as session:
+        assert _count(session, "MATCH (b:Broker) RETURN count(b) AS c") == 0
+        assert _count(session, USES_COUNT) == 0
+
+
+def test_manifest_for_an_undeclared_service_is_rejected_and_writes_nothing(driver, tmp_path):
+    from app.sources.model import DiagnosticCode
+    from tests.integration.test_pubsub_persistence import _import
+
+    _write_manifest(tmp_path, "ghost", "kafka:cluster-a")
+    stats = _import(driver, tmp_path)
+    assert stats.committed is False
+    assert DiagnosticCode.MANIFEST_CALL_SOURCE_UNRESOLVED in {d.code for d in stats.diagnostics}
+    with driver.session(database=DATABASE) as session:
+        assert _count(session, "MATCH (n) WHERE NOT n:AipInternalState RETURN count(n) AS c") == 0
