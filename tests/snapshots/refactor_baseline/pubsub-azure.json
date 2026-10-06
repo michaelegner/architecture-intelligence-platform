@@ -27,7 +27,7 @@
     "mapping_rule_identities": [
       "1",
       "v1",
-      "v1",
+      "v2",
       "v2"
     ],
     "provider_revision": null,
@@ -149,7 +149,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "7cc6eeb17aad3e6fbc89ae6bdef5d4db9b48c5fa6badb6689dea0eedd3124cae",
+        "semantic_input_digest": "93f2d644197680c90e5f348f24a872bdff4ab37b72713e8a50d2bf96ae9b7df0",
         "source_instance_id": "urn:aip:source:filesystem:800d7de93179d3e2bf383ae937f8e5ed23410db03fee82b38052f78ba7876042",
         "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/orders/asyncapi.yaml",
         "source_pointer": "/channels/order-events",
@@ -172,7 +172,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "7d4a7073bb118c59ff5402cf4968000c0a81e9648677302f800ac5e9beaf0605",
+        "semantic_input_digest": "aa3de79b2bd0d8f1b5805a4cdd9fd9ba71fefdc27d52f0244df2dc33ddb8c4de",
         "source_instance_id": "urn:aip:source:filesystem:8142c9f5b46bfd99d018f518d5cf1024df276f8ae557dd4c522d17299be2f0f4",
         "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/audit/asyncapi.yaml",
         "source_pointer": "/channels/order-events",
@@ -195,7 +195,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "7d4a7073bb118c59ff5402cf4968000c0a81e9648677302f800ac5e9beaf0605",
+        "semantic_input_digest": "aa3de79b2bd0d8f1b5805a4cdd9fd9ba71fefdc27d52f0244df2dc33ddb8c4de",
         "source_instance_id": "urn:aip:source:filesystem:8142c9f5b46bfd99d018f518d5cf1024df276f8ae557dd4c522d17299be2f0f4",
         "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/audit/asyncapi.yaml",
         "source_pointer": "/channels/order-events/subscribe",
@@ -218,7 +218,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "3603b34e3c0a0a8fc93697fee6cf3a12a84e6de5971e6c2bb8bfe8188a647bf9",
+        "semantic_input_digest": "ac7b52ff509dc65d867bea5b4557dcf10a373de9e3ce59d18a8374347bdc0d49",
         "source_instance_id": "urn:aip:source:filesystem:d3ad63dfe28a0e2acf89f30c9bf3ab84bf8549a3b4f63fe52f0bf6cdaafb01a0",
         "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/billing/asyncapi.yaml",
         "source_pointer": "/channels/order-events",
@@ -241,7 +241,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "3603b34e3c0a0a8fc93697fee6cf3a12a84e6de5971e6c2bb8bfe8188a647bf9",
+        "semantic_input_digest": "ac7b52ff509dc65d867bea5b4557dcf10a373de9e3ce59d18a8374347bdc0d49",
         "source_instance_id": "urn:aip:source:filesystem:d3ad63dfe28a0e2acf89f30c9bf3ab84bf8549a3b4f63fe52f0bf6cdaafb01a0",
         "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/billing/asyncapi.yaml",
         "source_pointer": "/channels/order-events/subscribe",
@@ -644,7 +644,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "7cc6eeb17aad3e6fbc89ae6bdef5d4db9b48c5fa6badb6689dea0eedd3124cae",
+              "semantic_input_digest": "93f2d644197680c90e5f348f24a872bdff4ab37b72713e8a50d2bf96ae9b7df0",
               "source_instance_id": "urn:aip:source:filesystem:800d7de93179d3e2bf383ae937f8e5ed23410db03fee82b38052f78ba7876042",
               "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/orders/asyncapi.yaml",
               "source_pointer": "/channels/order-events",
@@ -756,7 +756,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "7cc6eeb17aad3e6fbc89ae6bdef5d4db9b48c5fa6badb6689dea0eedd3124cae"
+        "semantic_input_digest": "93f2d644197680c90e5f348f24a872bdff4ab37b72713e8a50d2bf96ae9b7df0"
       }
     },
     "urn:aip:source:filesystem:8142c9f5b46bfd99d018f518d5cf1024df276f8ae557dd4c522d17299be2f0f4": {
@@ -826,7 +826,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "7d4a7073bb118c59ff5402cf4968000c0a81e9648677302f800ac5e9beaf0605",
+              "semantic_input_digest": "aa3de79b2bd0d8f1b5805a4cdd9fd9ba71fefdc27d52f0244df2dc33ddb8c4de",
               "source_instance_id": "urn:aip:source:filesystem:8142c9f5b46bfd99d018f518d5cf1024df276f8ae557dd4c522d17299be2f0f4",
               "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/audit/asyncapi.yaml",
               "source_pointer": "/channels/order-events",
@@ -849,7 +849,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "7d4a7073bb118c59ff5402cf4968000c0a81e9648677302f800ac5e9beaf0605",
+              "semantic_input_digest": "aa3de79b2bd0d8f1b5805a4cdd9fd9ba71fefdc27d52f0244df2dc33ddb8c4de",
               "source_instance_id": "urn:aip:source:filesystem:8142c9f5b46bfd99d018f518d5cf1024df276f8ae557dd4c522d17299be2f0f4",
               "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/audit/asyncapi.yaml",
               "source_pointer": "/channels/order-events/subscribe",
@@ -937,7 +937,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "7d4a7073bb118c59ff5402cf4968000c0a81e9648677302f800ac5e9beaf0605"
+        "semantic_input_digest": "aa3de79b2bd0d8f1b5805a4cdd9fd9ba71fefdc27d52f0244df2dc33ddb8c4de"
       }
     },
     "urn:aip:source:filesystem:8e633b33048428bf21a37229562e44ed7e708ab8dde8f760d6e1d58b313b9b1d": {
@@ -1057,7 +1057,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "2a084b71421762a0f7a81d4e407532213a1a9dd1e2ee0cf1d52a5002b864c878"
+        "semantic_input_digest": "d73e9bd3fe859d08ff17cd34a6bdcc8f406e6528bca16e505b67f6bdf6f9c498"
       }
     },
     "urn:aip:source:filesystem:ae1ec1902f1ebaf4c322da59c93c4ce9883352f27a50ba0994645e06fb804ec0": {
@@ -1177,7 +1177,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "6bdc705e732922659d5df15407561437d545934dd874842e59ead0db78f2b006"
+        "semantic_input_digest": "589bba4a6cfb1697c573d680b55fc6f8e26ebf119b0c16214af7f0d46be72014"
       }
     },
     "urn:aip:source:filesystem:d3ad63dfe28a0e2acf89f30c9bf3ab84bf8549a3b4f63fe52f0bf6cdaafb01a0": {
@@ -1247,7 +1247,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "3603b34e3c0a0a8fc93697fee6cf3a12a84e6de5971e6c2bb8bfe8188a647bf9",
+              "semantic_input_digest": "ac7b52ff509dc65d867bea5b4557dcf10a373de9e3ce59d18a8374347bdc0d49",
               "source_instance_id": "urn:aip:source:filesystem:d3ad63dfe28a0e2acf89f30c9bf3ab84bf8549a3b4f63fe52f0bf6cdaafb01a0",
               "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/billing/asyncapi.yaml",
               "source_pointer": "/channels/order-events",
@@ -1270,7 +1270,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "3603b34e3c0a0a8fc93697fee6cf3a12a84e6de5971e6c2bb8bfe8188a647bf9",
+              "semantic_input_digest": "ac7b52ff509dc65d867bea5b4557dcf10a373de9e3ce59d18a8374347bdc0d49",
               "source_instance_id": "urn:aip:source:filesystem:d3ad63dfe28a0e2acf89f30c9bf3ab84bf8549a3b4f63fe52f0bf6cdaafb01a0",
               "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/billing/asyncapi.yaml",
               "source_pointer": "/channels/order-events/subscribe",
@@ -1368,7 +1368,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "3603b34e3c0a0a8fc93697fee6cf3a12a84e6de5971e6c2bb8bfe8188a647bf9"
+        "semantic_input_digest": "ac7b52ff509dc65d867bea5b4557dcf10a373de9e3ce59d18a8374347bdc0d49"
       }
     }
   }
