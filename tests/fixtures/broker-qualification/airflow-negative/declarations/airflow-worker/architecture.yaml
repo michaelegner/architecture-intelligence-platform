@@ -1,0 +1,9 @@
+# Operator-authored NEGATIVE input (v0.6.1 spec §3, §6.2). It names a stable Redis broker id but
+# attributes it to a worker Service that NO phase-0 source declares. The Airflow dossier establishes
+# that scheduler/worker/task-runner process roles have no admitted Service identity, so AIP must
+# reject this manifest rather than attach the Broker to `service:airflow-apiserver` or mint a
+# Service for the worker.
+service: airflow-worker
+x-aip-service-id: service:airflow-worker
+brokers:
+  - brokerId: airflow-3.3.1:celery-broker:redis

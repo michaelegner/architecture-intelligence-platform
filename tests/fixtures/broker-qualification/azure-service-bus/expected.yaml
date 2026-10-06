@@ -1,0 +1,13 @@
+# Hand-authored from the declarations (every listed service declares `x-aip-broker-id: azure-sb:commerce` on its
+# server and has an admitted channel operation) - stable broker ids and service slugs only, never
+# production ids. The Broker is evidenced by the declaration; it is not inferred from a host,
+# protocol or name.
+declarations: tests/fixtures/pubsub/azure-service-bus/declarations
+brokers:
+  - "azure-sb:commerce"
+uses_broker:
+  - [orders, "azure-sb:commerce"]
+  - [payment-worker-a, "azure-sb:commerce"]
+  - [payment-worker-b, "azure-sb:commerce"]
+  - [billing, "azure-sb:commerce"]
+  - [audit, "azure-sb:commerce"]
