@@ -42,12 +42,11 @@ from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
+from app.architecture_intelligence.broker_contracts import EvidenceAnswer, ServiceDependenciesAnswer
 from app.architecture_intelligence.contracts import (
     TOOL_NAMES,
     ArchitectureAnswer,
     ArchitectureDriftData,
-    EvidenceData,
-    ServiceDependenciesData,
 )
 from app.architecture_intelligence.locality_contracts import (
     LOCALITY_TOOL_NAME,
@@ -115,8 +114,9 @@ def register_tools(
             "explicit snapshot."
         ),
         annotations=_READ_ONLY_ANNOTATIONS,
+        structured_output=False,  # `_advertise_version_union` below publishes the real contract
     )
-    def get_evidence(request: EvidenceRequest) -> ArchitectureAnswer[EvidenceData]:
+    def get_evidence(request: EvidenceRequest) -> EvidenceAnswer:
         """Spec §11: constructs no new semantics - calls
         `ArchitectureIntelligenceService.get_evidence` exactly once and returns its answer
         unchanged as `structuredContent`. Unlike `get_service_dependencies`, `EvidenceRequest` has
@@ -137,10 +137,11 @@ def register_tools(
             "observed OpenTelemetry/Kubernetes linkage), reconciled across all applicable methods."
         ),
         annotations=_READ_ONLY_ANNOTATIONS,
+        structured_output=False,  # `_advertise_version_union` below publishes the real contract
     )
     def get_service_dependencies(
         request: ServiceDependenciesRequest,
-    ) -> ArchitectureAnswer[ServiceDependenciesData]:
+    ) -> ServiceDependenciesAnswer:
         """Spec §10: constructs no new semantics - calls
         `ArchitectureIntelligenceService.get_service_dependencies` exactly once and returns its
         answer unchanged as `structuredContent` (confirmed live in I2.1: a `BaseModel`-typed return
@@ -209,6 +210,8 @@ def register_tools(
             return get_service().get_service_dependencies_by_locality(parsed)
         return get_service().resolve_scoped_locality_evidence(parsed)
 
+    _advertise_version_union(server, "get_evidence", EvidenceAnswer)
+    _advertise_version_union(server, "get_service_dependencies", ServiceDependenciesAnswer)
     for tool_name in (*TOOL_NAMES, LOCALITY_TOOL_NAME):
         _close_input_schema(server, tool_name)
     _reject_unexpected_arguments(server, LOCALITY_TOOL_NAME)
@@ -226,6 +229,29 @@ def _reject_malformed_observation_context(context: ObservationContextInput | Non
         reject_malformed_observation_context(context)
     except pydantic.ValidationError as exc:
         raise ToolError(str(exc)) from exc
+
+
+def _advertise_version_union(server: MCPServer, tool_name: str, answer_union: object) -> None:
+    """v0.6.1 I2b (spec §5.2): publish a `oneOf` output schema discriminated by `schema_version`
+    (the released v0.5 answer plus the Broker-aware v0.6 answer) while keeping `structuredContent`
+    the bare answer envelope.
+
+    A union return annotation cannot do this by itself: the SDK wraps any non-model return value as
+    `{"result": ...}` (confirmed live), which would change the v0.5 `structuredContent` shape for
+    every existing client. So the tools are registered with `structured_output=False` and this step
+    sets the output fields the SDK reads live on every call (`FuncMetadata.output_model`,
+    `.output_schema`, `.wrap_output`): results are validated against the union and dumped through
+    the returned instance, exactly like a single `BaseModel` return, and `tools/list` advertises
+    the union schema. `"type": "object"` is added at the root because every branch is an object."""
+    tool = server._tool_manager.get_tool(tool_name)
+    assert tool is not None  # register_tools registered it just above
+    adapter: pydantic.TypeAdapter = pydantic.TypeAdapter(answer_union)
+    schema = adapter.json_schema()
+    schema["type"] = "object"
+    metadata = tool.fn_metadata
+    metadata.output_model = answer_union
+    metadata.output_schema = schema
+    metadata.wrap_output = False
 
 
 def _close_input_schema(server: MCPServer, tool_name: str) -> None:

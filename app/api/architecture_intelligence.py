@@ -22,11 +22,11 @@ from typing import Any
 import pydantic
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.architecture_intelligence.broker_contracts import ServiceDependenciesAnswer
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
     ArchitectureDriftData,
     LimitationCode,
-    ServiceDependenciesData,
 )
 from app.architecture_intelligence.deployments_view import (
     ServiceDeploymentsView,
@@ -94,8 +94,9 @@ def get_service_dependencies(
     to: datetime | None = Query(None),
     snapshot_id: str | None = Query(None),
     service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
-) -> ArchitectureAnswer[ServiceDependenciesData]:
-    """`GET /api/services/{service_id}/dependencies` (spec §14.5)."""
+) -> ServiceDependenciesAnswer:
+    """`GET /api/services/{service_id}/dependencies` (spec §14.5). Data-dependent version (v0.6.1
+    spec §5.2): the released v0.5 answer, or the Broker-aware v0.6 answer."""
     request = _validated_request(
         ServiceDependenciesRequest,
         service_id=service_id,

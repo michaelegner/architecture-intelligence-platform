@@ -11,6 +11,489 @@
         "title": "AdmissionBasis",
         "type": "string"
       },
+      "ArchitectureAnswerV06_EvidenceDataV06_": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "enum": [
+                    "ANSWERED",
+                    "PARTIAL"
+                  ]
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation_context": {
+                  "type": "null"
+                },
+                "tool": {
+                  "enum": [
+                    "get_architecture_drift",
+                    "get_service_dependencies"
+                  ]
+                }
+              },
+              "required": [
+                "observation_context",
+                "tool"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "contains": {
+                    "properties": {
+                      "code": {
+                        "const": "OBSERVATION_CONTEXT_REQUIRED"
+                      }
+                    },
+                    "required": [
+                      "code"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "limitations"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "tool": {
+                  "const": "get_evidence"
+                }
+              },
+              "required": [
+                "tool"
+              ]
+            },
+            "then": {
+              "properties": {
+                "claims": {
+                  "maxItems": 0
+                },
+                "evidence_refs": {
+                  "maxItems": 0
+                },
+                "observation_context": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "tool": {
+                "const": "get_evidence"
+              }
+            }
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "records": {
+                    "contains": {
+                      "properties": {
+                        "supports": {
+                          "contains": {
+                            "properties": {
+                              "relation_type": {
+                                "const": "USES_BROKER"
+                              }
+                            },
+                            "required": [
+                              "relation_type"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "supports"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "type": "object"
+              },
+              "outcome": {
+                "enum": [
+                  "ANSWERED",
+                  "PARTIAL"
+                ]
+              }
+            },
+            "required": [
+              "outcome",
+              "data"
+            ]
+          }
+        ],
+        "properties": {
+          "claims": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "DEPLOYED_AS": "#/components/schemas/DeploymentClaim",
+                  "DIRECT_DEPENDENCY": "#/components/schemas/DependencyClaim",
+                  "USES_BROKER": "#/components/schemas/BrokerClaim"
+                },
+                "propertyName": "predicate"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/DependencyClaim"
+                },
+                {
+                  "$ref": "#/components/schemas/DeploymentClaim"
+                },
+                {
+                  "$ref": "#/components/schemas/BrokerClaim"
+                }
+              ]
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceDataV06"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/Limitation"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "observation_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationContextRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "producer": {
+            "$ref": "#/components/schemas/Producer"
+          },
+          "schema_version": {
+            "const": "0.6",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tool": {
+            "enum": [
+              "get_service_dependencies",
+              "get_evidence",
+              "get_architecture_drift"
+            ],
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "producer",
+          "tool",
+          "outcome",
+          "snapshot",
+          "observation_context",
+          "data",
+          "claims",
+          "evidence_refs",
+          "limitations"
+        ],
+        "title": "ArchitectureAnswerV06[EvidenceDataV06]",
+        "type": "object"
+      },
+      "ArchitectureAnswerV06_ServiceDependenciesDataV06_": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "enum": [
+                    "ANSWERED",
+                    "PARTIAL"
+                  ]
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation_context": {
+                  "type": "null"
+                },
+                "tool": {
+                  "enum": [
+                    "get_architecture_drift",
+                    "get_service_dependencies"
+                  ]
+                }
+              },
+              "required": [
+                "observation_context",
+                "tool"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "contains": {
+                    "properties": {
+                      "code": {
+                        "const": "OBSERVATION_CONTEXT_REQUIRED"
+                      }
+                    },
+                    "required": [
+                      "code"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "limitations"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "tool": {
+                  "const": "get_evidence"
+                }
+              },
+              "required": [
+                "tool"
+              ]
+            },
+            "then": {
+              "properties": {
+                "claims": {
+                  "maxItems": 0
+                },
+                "evidence_refs": {
+                  "maxItems": 0
+                },
+                "observation_context": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "tool": {
+                "const": "get_service_dependencies"
+              }
+            }
+          },
+          {
+            "properties": {
+              "claims": {
+                "contains": {
+                  "properties": {
+                    "predicate": {
+                      "const": "USES_BROKER"
+                    }
+                  },
+                  "required": [
+                    "predicate"
+                  ]
+                }
+              },
+              "data": {
+                "type": "object"
+              },
+              "outcome": {
+                "enum": [
+                  "ANSWERED",
+                  "PARTIAL"
+                ]
+              }
+            },
+            "required": [
+              "outcome",
+              "data",
+              "claims"
+            ]
+          }
+        ],
+        "properties": {
+          "claims": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "DEPLOYED_AS": "#/components/schemas/DeploymentClaim",
+                  "DIRECT_DEPENDENCY": "#/components/schemas/DependencyClaim",
+                  "USES_BROKER": "#/components/schemas/BrokerClaim"
+                },
+                "propertyName": "predicate"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/DependencyClaim"
+                },
+                {
+                  "$ref": "#/components/schemas/DeploymentClaim"
+                },
+                {
+                  "$ref": "#/components/schemas/BrokerClaim"
+                }
+              ]
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServiceDependenciesDataV06"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/Limitation"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "observation_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationContextRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "producer": {
+            "$ref": "#/components/schemas/Producer"
+          },
+          "schema_version": {
+            "const": "0.6",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tool": {
+            "enum": [
+              "get_service_dependencies",
+              "get_evidence",
+              "get_architecture_drift"
+            ],
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "producer",
+          "tool",
+          "outcome",
+          "snapshot",
+          "observation_context",
+          "data",
+          "claims",
+          "evidence_refs",
+          "limitations"
+        ],
+        "title": "ArchitectureAnswerV06[ServiceDependenciesDataV06]",
+        "type": "object"
+      },
       "ArchitectureAnswer_ArchitectureDriftData_": {
         "additionalProperties": false,
         "allOf": [
@@ -665,6 +1148,87 @@
           "drift_claim_ids"
         ],
         "title": "ArchitectureDriftData",
+        "type": "object"
+      },
+      "BrokerClaim": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "subject": {
+                "properties": {
+                  "type": {
+                    "const": "SERVICE"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "spec \u00a75.1: the public `Service -[USES_BROKER]-> Broker` claim. Deliberately has no\n`delivery`/`qualification`/`coverage`/`destination_resolution` fields: those describe a\nCALLS/SENDS/PUBLISHES_TO interaction, and a Broker claim never creates or implies a Queue,\nTopic, Subscription, Message, producer or consumer claim.",
+        "properties": {
+          "claim_id": {
+            "pattern": "^aip:claim:v1:[0-9a-f]{64}$",
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "object": {
+            "$ref": "#/components/schemas/BrokerRef"
+          },
+          "predicate": {
+            "const": "USES_BROKER",
+            "title": "Predicate",
+            "type": "string"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/EntityRef"
+          }
+        },
+        "required": [
+          "claim_id",
+          "subject",
+          "predicate",
+          "object",
+          "evidence_refs"
+        ],
+        "title": "BrokerClaim",
+        "type": "object"
+      },
+      "BrokerRef": {
+        "additionalProperties": false,
+        "description": "spec \u00a75.1: a bounded public Broker reference, deliberately its own model rather than an\n`EntityRef` extension (the `WorkloadRef` precedent). `name` is the explicit stable broker id the\nsource declared; the canonical Broker id is derived from it. No protocol, host, namespace or\nother endpoint detail is a field here: those never establish Broker identity (spec \u00a74.1).",
+        "properties": {
+          "id": {
+            "pattern": "^broker:owned:[0-9a-f]{64}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "type": {
+            "const": "BROKER",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name"
+        ],
+        "title": "BrokerRef",
         "type": "object"
       },
       "CandidateEntry": {
@@ -2021,6 +2585,42 @@
         "title": "EvidenceData",
         "type": "object"
       },
+      "EvidenceDataV06": {
+        "additionalProperties": false,
+        "description": "The v0.5 `EvidenceData` with `records` typed `EvidenceRecordV06`. `claims`/top-level\n`evidence_refs` on the enclosing answer stay empty for this tool, as in v0.5.",
+        "properties": {
+          "missing_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRecordV06"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "requested_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requested Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "requested_evidence_refs",
+          "records",
+          "missing_evidence_refs"
+        ],
+        "title": "EvidenceDataV06",
+        "type": "object"
+      },
       "EvidenceEntry": {
         "additionalProperties": false,
         "allOf": [
@@ -2282,6 +2882,102 @@
         "title": "EvidenceRecord",
         "type": "object"
       },
+      "EvidenceRecordV06": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "observation": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "evidence_type": {
+                  "const": "OBSERVED"
+                }
+              },
+              "required": [
+                "evidence_type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "observation": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "The v0.5 `EvidenceRecord` with `supports` typed `SupportedFactV06`. Standalone, never a\nsubclass: see the module docstring.",
+        "properties": {
+          "evidence_type": {
+            "$ref": "#/components/schemas/EvidenceType"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "observation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservedEvidenceMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_locator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Locator"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/SourceType"
+          },
+          "supports": {
+            "items": {
+              "$ref": "#/components/schemas/SupportedFactV06"
+            },
+            "title": "Supports",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "evidence_type",
+          "source_type",
+          "source_locator",
+          "source_revision",
+          "observation",
+          "supports"
+        ],
+        "title": "EvidenceRecordV06",
+        "type": "object"
+      },
       "EvidenceRefKind": {
         "description": "D11: what a resolved ref is.",
         "enum": [
@@ -2315,6 +3011,24 @@
           "SUBSCRIPTION_OF"
         ],
         "title": "EvidenceRelationType",
+        "type": "string"
+      },
+      "EvidenceRelationTypeV06": {
+        "description": "The closed set of canonical relation kinds a Broker-aware `get_evidence` may describe: the\nreleased v0.5 set plus `USES_BROKER` (`tests/unit/test_broker_contracts.py` pins that it is\nexactly that).",
+        "enum": [
+          "PROVIDES",
+          "CALLS",
+          "SENDS",
+          "RECEIVES_FROM",
+          "CARRIES",
+          "CONFORMS_TO",
+          "DEAD_LETTERS_TO",
+          "DEPLOYED_AS",
+          "PUBLISHES_TO",
+          "SUBSCRIPTION_OF",
+          "USES_BROKER"
+        ],
+        "title": "EvidenceRelationTypeV06",
         "type": "string"
       },
       "EvidenceRequest": {
@@ -5025,6 +5739,67 @@
         "title": "ServiceDependenciesData",
         "type": "object"
       },
+      "ServiceDependenciesDataV06": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "service": {
+                "properties": {
+                  "type": {
+                    "const": "SERVICE"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "spec \u00a75.1: the v0.5 `ServiceDependenciesData` fields plus `broker_claim_ids`, a sibling of\n`dependency_claim_ids` and `deployment_claim_ids`. It exists only in a Broker-aware answer, so\n`broker_claim_ids` is required and never empty - an answer with no BrokerClaim is the v0.5\nshape and carries no empty field.",
+        "properties": {
+          "broker_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Broker Claim Ids",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "dependency_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dependency Claim Ids",
+            "type": "array"
+          },
+          "deployment_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Deployment Claim Ids",
+            "type": "array"
+          },
+          "deployment_resolutions": {
+            "items": {
+              "$ref": "#/components/schemas/DeploymentResolution"
+            },
+            "title": "Deployment Resolutions",
+            "type": "array"
+          },
+          "service": {
+            "$ref": "#/components/schemas/EntityRef"
+          }
+        },
+        "required": [
+          "service",
+          "dependency_claim_ids",
+          "deployment_claim_ids",
+          "broker_claim_ids",
+          "deployment_resolutions"
+        ],
+        "title": "ServiceDependenciesDataV06",
+        "type": "object"
+      },
       "ServiceDeploymentsView": {
         "additionalProperties": false,
         "description": "v0.5.0 I3 spec \u00a715: the REST-only projection `GET /{service_id}/deployments` returns - not a\npublic MCP contract type (there is no matching MCP tool for this view), so it lives here rather\nthan in `contracts.py`. Every field is extracted from one already-computed\n`get_service_dependencies` answer (spec \u00a715: \"MUST NOT invoke deployment reconciliation, Neo4j\nqueries, or qualification logic independently\") - this model has no validators of its own beyond\nshape, since the answer it projects is already fully validated.",
@@ -5414,6 +6189,71 @@
           "target_id"
         ],
         "title": "SupportedFact",
+        "type": "object"
+      },
+      "SupportedFactV06": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "broker": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "relation_type": {
+                  "const": "USES_BROKER"
+                }
+              },
+              "required": [
+                "relation_type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "broker": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "The v0.5 `SupportedFact` (relation type, source id, target id) plus `broker`: the Broker\nendpoint as a bounded `BrokerRef` for a `USES_BROKER` fact, so a Broker-aware evidence answer\nexposes BROKER as an entity type (spec \u00a75.2). Null for every other relation.",
+        "properties": {
+          "broker": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrokerRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relation_type": {
+            "$ref": "#/components/schemas/EvidenceRelationTypeV06"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "relation_type",
+          "source_id",
+          "target_id",
+          "broker"
+        ],
+        "title": "SupportedFactV06",
         "type": "object"
       },
       "TombstoneRejectionReason": {
@@ -6169,7 +7009,7 @@
     },
     "/api/evidence/resolve": {
       "post": {
-        "description": "`POST /api/evidence/resolve` (spec \u00a714.5): calls\n`ArchitectureIntelligenceService.get_evidence` exactly once and returns its answer unchanged.",
+        "description": "`POST /api/evidence/resolve` (spec \u00a714.5): calls\n`ArchitectureIntelligenceService.get_evidence` exactly once and returns its answer unchanged.\nData-dependent version (v0.6.1 spec \u00a75.2): the released v0.5 answer, or the Broker-aware v0.6\nanswer.",
         "operationId": "resolve_evidence_api_evidence_resolve_post",
         "requestBody": {
           "content": {
@@ -6186,7 +7026,22 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArchitectureAnswer_EvidenceData_"
+                  "discriminator": {
+                    "mapping": {
+                      "0.5": "#/components/schemas/ArchitectureAnswer_EvidenceData_",
+                      "0.6": "#/components/schemas/ArchitectureAnswerV06_EvidenceDataV06_"
+                    },
+                    "propertyName": "schema_version"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ArchitectureAnswer_EvidenceData_"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ArchitectureAnswerV06_EvidenceDataV06_"
+                    }
+                  ],
+                  "title": "Response Resolve Evidence Api Evidence Resolve Post"
                 }
               }
             },
@@ -6855,7 +7710,7 @@
     },
     "/api/services/{service_id}/dependencies": {
       "get": {
-        "description": "`GET /api/services/{service_id}/dependencies` (spec \u00a714.5).",
+        "description": "`GET /api/services/{service_id}/dependencies` (spec \u00a714.5). Data-dependent version (v0.6.1\nspec \u00a75.2): the released v0.5 answer, or the Broker-aware v0.6 answer.",
         "operationId": "get_service_dependencies_api_services__service_id__dependencies_get",
         "parameters": [
           {
@@ -6939,7 +7794,22 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArchitectureAnswer_ServiceDependenciesData_"
+                  "discriminator": {
+                    "mapping": {
+                      "0.5": "#/components/schemas/ArchitectureAnswer_ServiceDependenciesData_",
+                      "0.6": "#/components/schemas/ArchitectureAnswerV06_ServiceDependenciesDataV06_"
+                    },
+                    "propertyName": "schema_version"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ArchitectureAnswer_ServiceDependenciesData_"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ArchitectureAnswerV06_ServiceDependenciesDataV06_"
+                    }
+                  ],
+                  "title": "Response Get Service Dependencies Api Services  Service Id  Dependencies Get"
                 }
               }
             },
