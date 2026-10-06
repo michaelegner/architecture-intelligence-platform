@@ -48,6 +48,7 @@
   },
   "inventory_status": "COMPLETE",
   "merged_model": {
+    "brokers": [],
     "infrastructure_claims": [],
     "infrastructure_contributions": [],
     "infrastructure_entities": [],
@@ -241,6 +242,7 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "brokers": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
@@ -377,6 +379,7 @@
           }
         ],
         "model": {
+          "brokers": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],

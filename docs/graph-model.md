@@ -2,9 +2,9 @@
 
 ## Node labels
 
-`Service`, `Operation`, `Queue`, `Topic`, `Subscription`, `Message`, `Schema`, `Evidence` — each
+`Service`, `Operation`, `Queue`, `Topic`, `Subscription`, `Broker`, `Message`, `Schema`, `Evidence` — each
 with a Neo4j uniqueness constraint on `id` (`app/graph/schema.py`). `Topic` and `Subscription` were
-added in v0.5.0 I4.
+added in v0.5.0 I4; `Broker` in v0.6.1 I1.
 
 `PubSubDeclaration` and `SubscriptionDeadLetterConfiguration` (v0.5.0 I4) are internal,
 source-owned carrier nodes with their own uniqueness constraints. Like the Infrastructure labels
@@ -31,6 +31,7 @@ excluded too.
 | `RECEIVES_FROM` | Service -> Subscription | Pub/Sub consumer (v0.5.0 I4) |
 | `PUBLISHES_TO` | Service -> Topic | Pub/Sub publisher (v0.5.0 I4) |
 | `SUBSCRIPTION_OF` | Subscription -> Topic | the one Topic a Subscription belongs to (v0.5.0 I4) |
+| `USES_BROKER` | Service -> Broker | declared use of a stable-id'd messaging broker (v0.6.1 I1); never implies a Queue, Topic, Subscription, producer or consumer |
 | `CARRIES` | Queue -> Message, Topic -> Message | message type on the destination |
 | `CONFORMS_TO` | Message -> Schema | message payload schema |
 | `DEAD_LETTERS_TO` | Queue -> Queue | DLQ relationship |

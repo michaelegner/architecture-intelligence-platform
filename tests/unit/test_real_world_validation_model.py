@@ -29,6 +29,7 @@ def test_known_relation_types_mirrors_the_canonical_relation_registry():
         "DEAD_LETTERS_TO",
         "PUBLISHES_TO",
         "SUBSCRIPTION_OF",
+        "USES_BROKER",
     }
 
 

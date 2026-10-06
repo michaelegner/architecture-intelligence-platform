@@ -47,6 +47,13 @@ RELATIONS: dict[str, RelationDefinition] = {
         source_labels=frozenset({"Subscription"}),
         target_labels=frozenset({"Topic"}),
     ),
+    # v0.6.1 I1 spec §4.1: coarse declared Broker use; never implies a destination, producer or
+    # consumer claim.
+    "USES_BROKER": RelationDefinition(
+        name="USES_BROKER",
+        source_labels=frozenset({"Service"}),
+        target_labels=frozenset({"Broker"}),
+    ),
     "CONFORMS_TO": RelationDefinition(
         name="CONFORMS_TO",
         source_labels=frozenset({"Message"}),

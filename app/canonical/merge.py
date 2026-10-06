@@ -10,6 +10,7 @@ from app.canonical.infrastructure import (
 )
 from app.canonical.model import (
     ArchitectureModel,
+    Broker,
     Message,
     Operation,
     Queue,
@@ -49,6 +50,7 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
     # source-scoped (see app.canonical.pubsub), so they never collide across sources.
     topics: dict[str, Topic] = {}
     subscriptions: dict[str, Subscription] = {}
+    brokers: dict[str, Broker] = {}
     pubsub_declarations: dict[str, PubSubDeclaration] = {}
     dead_letter_configurations: dict[str, SubscriptionDeadLetterConfiguration] = {}
 
@@ -73,6 +75,8 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
             topics.setdefault(topic.id, topic)
         for subscription in model.subscriptions:
             subscriptions.setdefault(subscription.id, subscription)
+        for broker in model.brokers:
+            brokers.setdefault(broker.id, broker)
         for declaration in model.pubsub_declarations:
             pubsub_declarations.setdefault(declaration.id, declaration)
         for configuration in model.subscription_dead_letter_configurations:
@@ -115,6 +119,7 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
         infrastructure_claims=list(infrastructure_claims.values()),
         topics=list(topics.values()),
         subscriptions=list(subscriptions.values()),
+        brokers=list(brokers.values()),
         pubsub_declarations=list(pubsub_declarations.values()),
         subscription_dead_letter_configurations=list(dead_letter_configurations.values()),
     )
