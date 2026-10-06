@@ -29,7 +29,7 @@ The release does **not** add a new architecture-question class. It fills the bro
 - Runtime telemetry does not mint a Broker or `USES_BROKER` in this release. Existing OTel messaging evidence continues to qualify the already-supported Queue/Topic/Subscription relations only.
 - Existing v0.6.0 locality semantics, scoped-evidence semantics and C1/C2 rules remain unchanged.
 - Existing unsupported or unresolved messaging cases remain unsupported or unresolved unless Broker evidence alone answers the narrower Broker question.
-- **No increment specs.** Each increment is implemented against its section in this document, with the implementation plan retained in the PR description.
+- **No increment specs.** Each increment is implemented against its section in this document, with the reviewed implementation plan retained in the PR description, as in v0.5.1.
 
 ## 3. Evidence basis
 
@@ -37,8 +37,11 @@ The semantic boundary is already visible in three independent systems.
 
 ### Quarkus Super Heroes — positive explicit Broker identity
 
-The v0.5.1 demo overlay declares Kafka `fights` through AsyncAPI and uses the same explicit
-`x-aip-broker-id: kafka:fights-kafka` for `rest-fights` and `event-statistics`.
+The existing v0.5.1 demo overlays
+[`rest-fights/asyncapi.yaml`](../../../examples/quarkus-super-heroes-demo/overlay/rest-fights/asyncapi.yaml)
+and
+[`event-statistics/asyncapi.yaml`](../../../examples/quarkus-super-heroes-demo/overlay/event-statistics/asyncapi.yaml)
+both declare `x-aip-broker-id: kafka:fights-kafka`. Those files remain the frozen qualification input unless deliberately re-pinned.
 
 That is sufficient evidence that both Services use the same Broker. It is **not** sufficient to invent a Subscription when the existing Subscription identity rules do not resolve one.
 
@@ -49,18 +52,28 @@ Freeze the existing FINOS FluxNova fixture at commit
 
 Its authored CALM model contains:
 
-- `Payment Worker -> Message Broker` over AMQP;
-- `Notification Worker -> Message Broker` over AMQP.
+- `ms-payment-worker -> ms-message-broker` over AMQP, relationship `ms-payment-worker-to-broker`;
+- `ms-notification-worker -> ms-message-broker` over AMQP, relationship `ms-notification-worker-to-broker`.
 
 The fixture identifies a broker-level connection but does not identify a Queue, Topic, Subscription or Message. That is the exact positive case this release must preserve: **Broker use is answerable while richer messaging topology is not.**
 
-Qualification may use a small, disclosed Architecture Manifest transcription of only those two frozen broker links. The transcription must be prepared from the pinned fixture before the AIP run and retain the CALM node/relationship ids in provenance. It is not a general CALM adapter.
+Qualification uses a small, disclosed transcription package prepared from the pinned fixture:
+
+1. two identity-only OpenAPI declarations, with explicit `x-aip-service-id`, `paths: {}`, and no invented Operations, establish the existing phase-0 Service identities for Payment Worker and Notification Worker;
+2. one Architecture Manifest transcription carries only their two Broker uses;
+3. the stable broker id is derived from the source-native CALM identity, not its display name:
+   `calm:finos-fluxnova:ms-message-broker`;
+4. a companion `PROVENANCE.md` records the pinned CALM commit, fixture path, broker node id and the two relationship ids, plus the exact transcription commit. Those CALM ids are qualification provenance; they are not added as new canonical Evidence fields.
+
+All transcription files are operator-authored qualification inputs, not upstream CALM files and not a general CALM adapter.
 
 ### Apache Airflow — negative attribution boundary
 
 The frozen Airflow 3.3.1 dossier establishes `CeleryExecutor`, a Redis broker URL and the `default` task queue at configuration level. It also establishes that scheduler/worker/task-runner process roles have no admitted Service identity.
 
-Therefore v0.6.1 must **not** attribute Redis broker use to `service:airflow-apiserver` or mint a Service for an unresolved process role merely to produce a Broker claim. The existing Queue/Topic/Subscription negatives remain unchanged.
+The qualification includes an explicit negative manifest input that names a stable Redis Broker id but attempts to attribute it to an unadmitted worker Service identity. Because no phase-0 source declares that Service, the manifest must be rejected and emit **zero** Broker/`USES_BROKER` artifacts.
+
+Therefore v0.6.1 must **not** attribute Redis broker use to `service:airflow-apiserver`, accept the attempted worker identity, or mint a Service merely to produce a Broker claim. The existing Queue/Topic/Subscription negatives remain unchanged.
 
 ## 4. I1 — Canonical Broker and declared ingestion
 
@@ -84,6 +97,8 @@ broker_id        = broker:owned:<sha256(broker_owner_key)>
 
 The stable broker id is the same semantic input already used by the existing Queue/Topic/Subscription owner-scoped identities.
 
+**Namespace is not Broker identity.** Two AMQP virtual hosts/namespaces under the same stable broker id resolve to the same Broker; namespace continues to distinguish the existing destination identities where their rules require it.
+
 The following never establish Broker identity by themselves:
 
 ```text
@@ -92,11 +107,14 @@ URL / hostname / port
 protocol or vendor
 TLS identity
 messaging.system
+namespace / virtualHost
 Queue / Topic / Subscription name
 display-name equality
 ```
 
-Conflicting or ambiguous broker identities remain unresolved. Do not choose one by precedence.
+A configured Topic/Queue/Subscription mapping that yields only the destination's canonical id, with no stable broker id, does **not** imply a Broker.
+
+Conflicting or ambiguous identities for one broker reference remain unresolved. Do not choose one by precedence. This rule does not prohibit a Service from legitimately using multiple independently evidenced Brokers.
 
 ### 4.2 AsyncAPI
 
@@ -105,15 +123,20 @@ Reuse the existing broker-identity rule:
 - explicit `x-aip-broker-id` on the selected server; or
 - the existing versioned configured server/broker identity mapping.
 
-An accepted messaging declaration may emit one Broker and one deduplicated `USES_BROKER` relation for its resolved Service/Broker pair when the declaration actually uses that selected server.
+An accepted messaging declaration may emit one Broker and one deduplicated `USES_BROKER` relation for each resolved Service/Broker pair when an admitted channel operation uses that server.
 
-A bare server declaration with no admitted messaging declaration does not create `USES_BROKER`.
+A bare server declaration with no admitted channel operation does not create `USES_BROKER`.
+
+If selected servers disagree on broker identity, or only a subset carries the required identity so the existing server selection is ambiguous, emit **no Broker and no `USES_BROKER` for that construct**. Do not let a Queue/Topic mapping paper over that ambiguity.
 
 The existing Queue/Topic/Subscription mapping remains independent. In particular:
 
 - resolving a Broker does not resolve a destination kind;
 - a Topic without Subscription identity remains a Topic-only result;
-- an unresolved richer messaging path may still retain a valid Broker claim if Broker identity and Service identity are independently established.
+- an unresolved richer messaging path may still retain a valid Broker claim if Broker identity and Service identity are independently established;
+- a destination resolved only by `queueMappings`/`topicMappings`/`subscriptionMappings`, without stable broker identity, produces no Broker claim.
+
+If a configured broker/server mapping is present and resolves a stable broker id, it is real Broker evidence and therefore may add `Broker`/`USES_BROKER` output. With the same configuration and no such explicit/configured identity, existing Broker-free inputs remain Broker-free.
 
 ### 4.3 Architecture Manifest
 
@@ -126,17 +149,18 @@ brokers:
   - brokerId: kafka:cluster-a
 ```
 
-The manifest continues to mint no Service. Its Service must resolve to a Service already declared by a phase-0 source, exactly as for `calls`.
+The manifest continues to mint no Service. If `brokers` is non-empty, its Service must resolve to a Service already declared by a phase-0 source, exactly as for `calls`. Failure rejects that manifest with a broker-source-unresolved diagnostic and emits zero Broker/`USES_BROKER` artifacts from it.
 
 `brokerId` is an explicit stable broker id. It is not inferred from a host, protocol or display name.
 
-This block exists for independently authored coarse architecture evidence such as the frozen FluxNova Broker links. It must not be added after inspecting AIP output merely to improve an answer.
+This block exists for independently authored coarse architecture evidence. For FluxNova qualification, the technical phase-0 Service declarations and Broker transcription are disclosed harness inputs (§3), and the source-native CALM ids plus transcription commit are recorded in the companion qualification provenance.
 
 ### 4.4 Evidence, reconciliation and graph
 
 - `Broker` and `USES_BROKER` carry normal declared evidence and source provenance.
 - Re-import and deletion follow the existing source inventory/reconciliation rules.
-- Equal canonical Broker ids reconcile; different ids do not merge by name, protocol or endpoint.
+- Equal canonical Broker ids reconcile; different ids never merge by name, protocol or endpoint.
+- Multiple different Broker ids for one Service are valid when each is independently evidenced: emit multiple `USES_BROKER` facts. A conflict exists only when one source construct or one explicit/configured identity resolution gives incompatible identities for the same broker reference.
 - Add only the graph triple `Service -[USES_BROKER]-> Broker`.
 - Do not add Broker-to-Queue/Topic/Subscription graph relations in v0.6.1. Destination identities already carry their broker identity inputs internally; this release does not materialize ownership topology merely because Broker is now first-class.
 
@@ -162,9 +186,9 @@ A Broker claim is **not** a `DependencyClaim`:
 - no `CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW` runtime qualification;
 - no coverage or destination-resolution fields.
 
-`ServiceDependenciesData` gains `broker_claim_ids` as a sibling of `dependency_claim_ids` and `deployment_claim_ids`.
+In the Broker-aware v0.6 answer, `ServiceDependenciesData` gains `broker_claim_ids` as a sibling of `dependency_claim_ids` and `deployment_claim_ids`.
 
-### 5.2 REST, MCP and evidence
+### 5.2 REST, MCP, evidence and schema versioning
 
 - `get_service_dependencies` and its REST equivalent return Broker claims for the requested Service.
 - `get_evidence` can resolve `USES_BROKER` evidence and exposes `BROKER` as an entity type.
@@ -172,13 +196,35 @@ A Broker claim is **not** a `DependencyClaim`:
 - `get_service_dependencies_by_locality` is unchanged; Broker use is not locality-qualified in v0.6.1.
 - MCP still advertises exactly four tools in the existing deterministic order.
 
-Publish the smallest additive v0.6 contract needed for the Broker-aware dependency/evidence answer. Existing v0.5 schema files remain immutable; do not introduce a `0.6.1` schema-number convention solely because the product version is 0.6.1.
+The released v0.5 dependency/evidence schemas are immutable. Publish:
+
+```text
+schemas/architecture_intelligence/v0.6/architecture-answer.schema.json
+schemas/architecture_intelligence/v0.6/evidence-answer.schema.json
+```
+
+alongside the existing v0.6 locality schemas. Do not create a `v0.6.1` schema directory.
+
+Compatibility is explicit and deterministic:
+
+- A `get_service_dependencies` answer with **no BrokerClaim** retains the legacy v0.5 answer shape and `schema_version = "0.5"`; no empty `broker_claim_ids` field is added.
+- An answer containing one or more BrokerClaims uses the v0.6 dependency schema and `schema_version = "0.6"`.
+- A `get_evidence` answer that resolves no Broker/`USES_BROKER` support retains the v0.5 evidence shape/version. A Broker-aware evidence answer uses the v0.6 evidence schema/version.
+- `get_architecture_drift` remains v0.5. The locality tool keeps its existing locality-specific v0.6 contract.
+- The MCP-advertised output schema for dependencies/evidence accepts the unchanged v0.5 branch and the new v0.6 branch. An existing client validating a Broker-free response against the frozen v0.5 schema therefore continues to succeed.
+- Tests must prove both branches and prohibit a v0.5-labelled response from carrying Broker fields/entities/relations.
+
+Producer package version and public schema version remain separate concepts.
 
 ### 5.3 Snapshot and compatibility
 
 Broker entities and `USES_BROKER` participate in the canonical snapshot when present.
 
-Only inputs with qualified Broker evidence should change because of this release. OpenAPI-only and other Broker-free fixtures remain byte-identical. Broker-containing golden fixtures may be deliberately re-pinned with evidence showing exactly why they changed.
+With identical inputs/configuration that contain no explicit or configured stable broker identity, the canonical entity/relation set and snapshot remain unchanged. A configured broker/server mapping that resolves a stable broker id is intentionally Broker evidence and may change the snapshot.
+
+Do not require full serialized answer byte identity across product releases: `producer.version` and build revision legitimately change. The compatibility requirement is that Broker-free answers remain valid against the frozen v0.5 public schemas and preserve their existing semantic claims.
+
+Broker-containing golden fixtures may be deliberately re-pinned with evidence showing exactly why they changed.
 
 ## 6. I3 — Qualification and lightweight release
 
@@ -189,9 +235,16 @@ Extend the existing Azure Service Bus, Google Pub/Sub and Kafka broker-semantic 
 - the expected Broker entity;
 - the expected Service -> Broker `USES_BROKER` facts;
 - no additional Queue/Topic/Subscription/Message semantics beyond what each fixture already establishes;
-- deterministic evidence refs and byte-identical repeated output.
+- deterministic evidence refs and byte-identical repeated semantic output.
 
-Add negative cases for missing, conflicting and ambiguous broker identity.
+Add negative cases for:
+
+- missing broker identity;
+- explicit/configured identity conflict for one broker reference;
+- ambiguous multi-server selection;
+- destination mapping with no stable broker identity;
+- unresolved manifest Service identity;
+- two independently evidenced Brokers for one Service, which is **valid** and must not be collapsed into a false conflict.
 
 ### 6.2 Cross-system qualification
 
@@ -199,11 +252,11 @@ Run the bounded Broker question against the three frozen references:
 
 | System | Expected Broker result | Richer messaging result |
 |---|---|---|
-| Quarkus Super Heroes | `rest-fights` and `event-statistics` use the same `kafka:fights-kafka` Broker | Preserve the existing Topic/Subscription resolution limits |
-| FINOS FluxNova/CALM | Payment Worker and Notification Worker use the frozen Message Broker | No Queue, Topic, Subscription, Message or HTTP operation invented from CALM `connects` |
-| Apache Airflow 3.3.1 | No Service-level Broker claim from the frozen dossier because the relevant process-role identity is unresolved | Existing messaging negatives remain unchanged |
+| Quarkus Super Heroes | `rest-fights` and `event-statistics` use the same `kafka:fights-kafka` Broker from the frozen overlay files (§3) | Preserve the existing Topic/Subscription resolution limits |
+| FINOS FluxNova/CALM | The disclosed transcription produces Payment Worker and Notification Worker -> `calm:finos-fluxnova:ms-message-broker` | No Queue, Topic, Subscription, Message or HTTP operation invented from CALM `connects` |
+| Apache Airflow 3.3.1 | The explicit negative Redis-Broker manifest is rejected because its worker Service identity has no phase-0 declaration; zero Broker/`USES_BROKER` artifacts | Existing messaging negatives remain unchanged; no attribution to `service:airflow-apiserver` |
 
-The comparison is against frozen source evidence, not AIP-generated expectations.
+The comparison is against frozen source evidence and independently authored expectations, not AIP-generated expectations.
 
 ### 6.3 Developer-facing demonstration
 
@@ -211,7 +264,10 @@ Update the existing Quarkus task-led demo/question ladder with one additional qu
 
 > **Which broker does `rest-fights` use, and what does that tell me about the messaging topology?**
 
-The answer must show the Broker claim and its evidence, then explicitly preserve the existing limit: knowing the Broker does not resolve the missing Subscription/consumer identity.
+The real-transport smoke test must assert both sides of the answer:
+
+1. exactly one Broker claim for `rest-fights`, backed by the overlay's `kafka:fights-kafka` evidence;
+2. the existing `PUBLISHES_TO Topic:fights` path still does **not** resolve a Subscription/consumer: the answer remains `PARTIAL` with the existing `UNRESOLVED_IDENTITY` limitation and no invented Subscription claim/entity.
 
 No separate demo stack is added.
 
@@ -237,6 +293,6 @@ For `rest-fights`, AIP can answer that the Service uses the evidenced Kafka Brok
 
 For the frozen FluxNova case, AIP can preserve useful Broker-level connectivity even though the source does not identify a Queue, Topic or Subscription.
 
-For Airflow, AIP continues to refuse Service-level broker attribution when the relevant process-role identity is unresolved.
+For Airflow, an explicit attempted Redis-Broker attribution to the unresolved worker role is rejected rather than silently attached to the API Service or promoted into a new Service identity.
 
-The result is deterministic, evidence-backed and available through the existing Architecture Intelligence surfaces. The four-tool MCP contract remains intact, no live broker discovery is introduced, and no generic connectivity relation has been added.
+The result is deterministic, evidence-backed and available through the existing Architecture Intelligence surfaces. Broker-free answers remain valid against the frozen v0.5 public schemas; Broker-aware dependency/evidence answers use the explicit v0.6 contract. The four-tool MCP contract remains intact, no live broker discovery is introduced, and no generic connectivity relation has been added.
