@@ -29,6 +29,21 @@ reviewed-plan-then-implement-then-reconcile workflow via the
 Small maintenance changes that don't touch public contracts, identity, evidence, qualification,
 reconciliation, or release semantics don't need that full workflow — see `AGENTS.md`'s exemption.
 
+## Working style
+
+- Default to low ceremony. Do not spawn parallel Explore/subagents unless explicitly requested;
+  work sequentially.
+- For a "proposal", "suggestion" or "quick" answer, answer the decision first from cheap evidence.
+  Do not start implementation, long trials or broad exploration until the owner asks.
+- A "review" or "quick review" is read-only by default: inspect the PR/diff and relevant files.
+  Do not check out the PR or run broad test suites unless a material finding needs that evidence or
+  the owner asks.
+- Before editing a versioned specification or relying on branch/PR/release state, verify the target
+  from live `ROADMAP.md`, git and GitHub state rather than memory.
+
+Pre-PR self-review requirements, including the strict documentation-only exemption, are defined
+once in [`AGENTS.md`](AGENTS.md); follow them rather than duplicating that procedure here.
+
 ## Continuous refactoring
 
 Treat refactoring as part of normal Python implementation, not as a separate project phase.
