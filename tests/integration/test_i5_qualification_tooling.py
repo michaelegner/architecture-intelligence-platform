@@ -2,7 +2,7 @@
 
 - Capture covers every admitted endpoint-label pair, and `PUBLISHES_TO` carries runtime status.
 - `DEPLOYED_AS` outcomes are captured only through the public deployment projection.
-- The evaluator's reference snapshot reproduces production canonicalization v3 exactly.
+- The evaluator's reference snapshot reproduces production canonicalization v4 exactly.
 
 The graphs come from the real importer, telemetry and Kubernetes paths, reusing the I3 and I4
 fixtures.
@@ -336,7 +336,7 @@ def test_two_same_service_unresolved_groups_are_captured_and_compared_one_to_one
     assert len([f for f in one if f.id.startswith("unexpected:DEPLOYED_AS:-:-:")]) == 1
 
 
-# --- §3 gap 3 / §12: reference canonicalization reproduces production v3 -------------------------
+# --- §3 gap 3 / §12: reference canonicalization reproduces production v4 -------------------------
 
 
 def _fingerprints(driver, *, document=None) -> tuple[tuple[str, str], tuple[str, str]]:
@@ -391,12 +391,13 @@ def test_reference_snapshot_matches_production_on_deployment_graphs(driver):
     assert production_with != production
 
 
-def test_reference_snapshot_is_canonicalization_version_3(driver):
+def test_reference_snapshot_is_canonicalization_version_4(driver):
     _wipe(driver)
     with driver.session(database=DATABASE) as session:
         state = reference_snapshot.canonical_state(session, coverage_qualification_enabled=True)
-    assert state["version"] == 3
+    assert state["version"] == 4
     assert state["topics"] == [] and state["subscriptions"] == []
+    assert state["brokers"] == []
     with driver.session(database=DATABASE) as session:
         first = reference_snapshot.fingerprint(session, coverage_qualification_enabled=True)
         second = reference_snapshot.fingerprint(session, coverage_qualification_enabled=True)

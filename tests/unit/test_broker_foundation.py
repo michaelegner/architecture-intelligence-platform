@@ -101,3 +101,13 @@ def test_merge_keeps_brokers_with_different_ids_separate():
 def test_broker_participates_in_ownership_and_node_label_mapping():
     assert BROKER_ID in model_node_ids(_model(), source_instance_id="urn:aip:source:test:x")
     assert NODE_LABELS["brokers"] == "Broker"
+
+
+def test_broker_persistence_path_is_bound_to_canonicalization_v4():
+    """v0.6.1 I1a: persisting USES_BROKER (bound by the untyped relation query) requires the Broker
+    node projection and the v4 bump in the same change, or a snapshot would carry a relation whose
+    target node is absent."""
+    from app.architecture_intelligence import repository
+
+    assert repository._CANONICALIZATION_VERSION == 4
+    assert "MATCH (n:Broker)" in repository._BROKER_QUERY

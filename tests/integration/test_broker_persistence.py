@@ -99,3 +99,24 @@ def test_shared_broker_survives_until_its_last_owner_withdraws(driver):
         _import(session, SOURCE_B, _model("service:b", with_broker=False), "d4")
         assert _count(session, BROKER_COUNT) == 0
         assert _count(session, USES_COUNT) == 0
+
+
+def test_snapshot_projects_the_broker_so_no_relation_endpoint_is_missing(driver):
+    from app.architecture_intelligence.repository import canonical_snapshot_state
+    from evaluation.architecture_answers.reference import snapshot as reference_snapshot
+
+    with driver.session(database=DATABASE) as session:
+        ensure_schema(session)
+        _import(session, SOURCE_A, _model("service:a"), "d1")
+        state = canonical_snapshot_state(session, coverage_qualification_enabled=True)
+        reference = reference_snapshot.canonical_state(session, coverage_qualification_enabled=True)
+
+    assert state["version"] == 4
+    assert state["brokers"] == [{"id": BROKER_ID, "stable_broker_id": STABLE}]
+    node_ids = {row["id"] for key in ("services", "brokers") for row in state[key]}
+    uses = [r for r in state["relations"] if r["type"] == "USES_BROKER"]
+    assert len(uses) == 1
+    assert uses[0]["source_id"] in node_ids and uses[0]["target_id"] in node_ids
+    # the independently transcribed reference agrees with production
+    assert reference["brokers"] == state["brokers"]
+    assert reference["relations"] == state["relations"]

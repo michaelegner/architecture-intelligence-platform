@@ -8,6 +8,7 @@ key set; removing the last v2 record restores the prior bytes exactly. D5: a cap
 moves the snapshot when v2 exists and never when none does.
 """
 
+import hashlib
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -40,7 +41,18 @@ VECTOR = json.loads(
 UNIT = VECTOR["fixture"]["telemetry_unit"]
 CAPTURE = VECTOR["fixture"]["kubernetes_capture"]
 SCOPED_KEYS = {"scoped_observed_calls_v2", "scoped_capture_scopes_v2"}
-V0_5_KEYS = set(VECTOR["expected_state"]) - SCOPED_KEYS
+
+# The frozen vector is the v0.6.0 (canonicalization v3) record and stays untouched. v0.6.1 I1a moves
+# the canonicalization to v4 (new always-present `brokers` key, empty here: the fixture graph has no
+# Broker), so the expected v4 state is the frozen state plus exactly those two documented changes,
+# hashed with the standard library only - the same independent method the v3 vector was frozen with
+# (tests/unit/test_v060_i2_snapshot_after_vector.py), not app code.
+V4_STATE = {**VECTOR["expected_state"], "version": 4, "brokers": []}
+V4_BYTES = json.dumps(V4_STATE, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+V4_DIGEST = hashlib.sha256(V4_BYTES.encode("utf-8")).hexdigest()
+V4_SNAPSHOT_ID = f"aip:snapshot:v1:{V4_DIGEST}"
+V4_MODEL_REVISION = f"sha256:{V4_DIGEST}"
+V0_5_KEYS = set(V4_STATE) - SCOPED_KEYS
 ON = ScopedEvidenceConfig(enabled=True)
 OFF = ScopedEvidenceConfig(enabled=False)
 
@@ -146,11 +158,11 @@ def test_the_d15_fixture_graph_yields_the_frozen_after_snapshot(graph, session, 
     _capture(graph, tmp_path)
 
     state = _state(session)
-    assert canonical_json_bytes(state).decode("utf-8") == VECTOR["canonical_bytes_utf8"]
+    assert canonical_json_bytes(state).decode("utf-8") == V4_BYTES
     snapshot = _stable(session)
     assert (snapshot.snapshot_id, snapshot.model_revision) == (
-        VECTOR["snapshot_id"],
-        VECTOR["model_revision"],
+        V4_SNAPSHOT_ID,
+        V4_MODEL_REVISION,
     )
     # Gates (d)/(e) with the keys present: v2 only ever enters through its own key.
     v2_ids = {entry["id"] for entry in state["scoped_observed_calls_v2"]}
@@ -168,7 +180,7 @@ def test_every_answer_carries_the_same_one_snapshot(graph, session, tmp_path):
     _persist(graph)
     _capture(graph, tmp_path)
     service = ArchitectureIntelligenceService(graph, database=DATABASE, producer=PRODUCER)
-    assert service.assess_local_calls(_request()).snapshot_id == VECTOR["snapshot_id"]
+    assert service.assess_local_calls(_request()).snapshot_id == V4_SNAPSHOT_ID
 
 
 # --- Gate (a) and D15.2: the keys exist iff v2 exists -----------------------------------------
@@ -179,9 +191,9 @@ def test_without_v2_neither_key_exists_and_the_v0_5_keys_are_unchanged(graph, se
     _capture(graph, tmp_path)
     state = _state(session)
     assert set(state) == V0_5_KEYS
-    assert state["version"] == 3
+    assert state["version"] == 4
     # Exactly the v0.5 portion of the frozen after-state: v2 contributes nothing else.
-    expected = {k: v for k, v in VECTOR["expected_state"].items() if k not in SCOPED_KEYS}
+    expected = {k: v for k, v in V4_STATE.items() if k not in SCOPED_KEYS}
     assert canonical_json_bytes(state) == canonical_json_bytes(expected)
 
 

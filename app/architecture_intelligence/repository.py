@@ -48,7 +48,13 @@ from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
 # internal PubSubDeclaration/SubscriptionDeadLetterConfiguration carriers are deliberately NOT
 # snapshot inputs (never public state). Every existing snapshot_id moves once, even for a graph
 # with no Pub/Sub content (new version and two new always-present keys).
-_CANONICALIZATION_VERSION = 3
+#
+# v0.6.1 I1a bumps this 3 -> 4, in the same commit that first persists Broker state: a dedicated
+# `_BROKER_QUERY` node projection binds Broker public state, and the untyped `_RELATION_QUERY`
+# already binds `USES_BROKER`, so the projected node set must contain its Broker endpoints. Every
+# existing snapshot_id moves once, even for a graph with no Broker content (new version and one
+# new always-present `brokers` key).
+_CANONICALIZATION_VERSION = 4
 
 _SERVICE_QUERY = "MATCH (n:Service) RETURN n.id AS id, n.name AS name, n.version AS version"
 _OPERATION_QUERY = (
@@ -69,6 +75,7 @@ _SUBSCRIPTION_QUERY = (
     "MATCH (n:Subscription) RETURN n.id AS id, n.name AS name, n.protocol AS protocol, "
     "n.namespace AS namespace"
 )
+_BROKER_QUERY = "MATCH (n:Broker) RETURN n.id AS id, n.stable_broker_id AS stable_broker_id"
 _MESSAGE_QUERY = (
     "MATCH (n:Message) RETURN n.id AS id, n.name AS name, n.version AS version, "
     "n.schema_id AS schema_id"
@@ -389,6 +396,7 @@ def canonical_snapshot_state(
         "queues": _project_nodes(session, _QUEUE_QUERY),
         "topics": _project_nodes(session, _TOPIC_QUERY),
         "subscriptions": _project_nodes(session, _SUBSCRIPTION_QUERY),
+        "brokers": _project_nodes(session, _BROKER_QUERY),
         "messages": _project_nodes(session, _MESSAGE_QUERY),
         "schemas": _project_nodes(session, _SCHEMA_QUERY),
         "evidence": _project_nodes(session, _EVIDENCE_QUERY),
