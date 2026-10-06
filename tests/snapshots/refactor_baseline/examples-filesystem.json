@@ -29,7 +29,7 @@
       "1",
       "v1",
       "v1",
-      "v1"
+      "v2"
     ],
     "provider_revision": null,
     "scope_definition_digest": "<scrubbed>",
@@ -38,7 +38,12 @@
   },
   "inventory_status": "COMPLETE",
   "merged_model": {
-    "brokers": [],
+    "brokers": [
+      {
+        "id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+        "stable_broker_id": "asb"
+      }
+    ],
     "infrastructure_claims": [],
     "infrastructure_contributions": [],
     "infrastructure_entities": [],
@@ -225,6 +230,14 @@
           "evidence:asyncapi:urn:aip:source:filesystem:3cc592a4945027cdd15ca806ba3d4998db4061e7e84a62aa9118b2063478cbba"
         ],
         "source_id": "service:payment-service",
+        "target_id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+        "type": "USES_BROKER"
+      },
+      {
+        "evidence_ids": [
+          "evidence:asyncapi:urn:aip:source:filesystem:3cc592a4945027cdd15ca806ba3d4998db4061e7e84a62aa9118b2063478cbba"
+        ],
+        "source_id": "service:payment-service",
         "target_id": "queue:owned:f4ab89257c232ec7ec1c2633f37e256ed4971181d896bd0a002d3586d3ae29db",
         "type": "RECEIVES_FROM"
       },
@@ -337,6 +350,14 @@
           "evidence:asyncapi:urn:aip:source:filesystem:833e2828fe1aab512d1943c48acb72d7b94bee00925e01a60e8c26e04a6ec189"
         ],
         "source_id": "service:invoice-service",
+        "target_id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+        "type": "USES_BROKER"
+      },
+      {
+        "evidence_ids": [
+          "evidence:asyncapi:urn:aip:source:filesystem:833e2828fe1aab512d1943c48acb72d7b94bee00925e01a60e8c26e04a6ec189"
+        ],
+        "source_id": "service:invoice-service",
         "target_id": "queue:owned:23a2fad36cd9f579cfe97c465dfd1f68722c05afc04c7d39913c33fc7155e601",
         "type": "RECEIVES_FROM"
       },
@@ -371,6 +392,14 @@
         "source_id": "operation:service:product-service:GET:/products/{id}",
         "target_id": "schema:owned:c81bf45e5c5c11498a96dccb5125886f3fb2676df5b4540e9fb9c8c5f33a916d",
         "type": "RESPONSE_SCHEMA"
+      },
+      {
+        "evidence_ids": [
+          "evidence:asyncapi:urn:aip:source:filesystem:bde49ebe4fc19f12fea1549011bb94c1e526e8a514e898a95b71429bdbbc0732"
+        ],
+        "source_id": "service:order-service",
+        "target_id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+        "type": "USES_BROKER"
       },
       {
         "evidence_ids": [
@@ -534,7 +563,7 @@
         "locator": "<repo>/examples/payment-service/asyncapi.yaml",
         "mapping_context_digest": "",
         "mapping_rule_id": "asyncapi-adapter@1",
-        "mapping_rule_version": "v1",
+        "mapping_rule_version": "v2",
         "scope_definition_digest": "<scrubbed>",
         "semantic_input_digest": "",
         "source_instance_id": "urn:aip:source:filesystem:3cc592a4945027cdd15ca806ba3d4998db4061e7e84a62aa9118b2063478cbba",
@@ -545,7 +574,12 @@
       "outcome": {
         "diagnostics": [],
         "model": {
-          "brokers": [],
+          "brokers": [
+            {
+              "id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+              "stable_broker_id": "asb"
+            }
+          ],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
@@ -624,6 +658,14 @@
               "source_id": "queue:owned:f4ab89257c232ec7ec1c2633f37e256ed4971181d896bd0a002d3586d3ae29db",
               "target_id": "queue:owned:72e0a2063c807e17a731d8d5b4e8927ee669c632b4ed960fd0c14795df14cbe5",
               "type": "DEAD_LETTERS_TO"
+            },
+            {
+              "evidence_ids": [
+                "evidence:asyncapi:urn:aip:source:filesystem:3cc592a4945027cdd15ca806ba3d4998db4061e7e84a62aa9118b2063478cbba"
+              ],
+              "source_id": "service:payment-service",
+              "target_id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+              "type": "USES_BROKER"
             },
             {
               "evidence_ids": [
@@ -733,7 +775,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "3333dc56938ddfbfad86ae9bd627b7f324072cd4e2cde1e1c90c0c8566cecd97"
+        "semantic_input_digest": "9cabfb9784215327f1369b1525990c07931408e428792ad05e7f3da29d9c007f"
       }
     },
     "urn:aip:source:filesystem:5ce532518b49a66ac861423e9349cf12fd70d3ce513fdd1c787af9e7d8920a54": {
@@ -793,7 +835,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "8870b83877656ad4fce26a8ccf982b94e422b91b00bd3102e58c3e99e2af75dc"
+        "semantic_input_digest": "40f565d33343196225493a47de02f75735cbe8198d4c160f7d2f1a9005d0c447"
       }
     },
     "urn:aip:source:filesystem:7f055a6aea1cdd580b66c8e0000308daa6fc513f8d9b62c9842470d88fcbcb56": {
@@ -931,7 +973,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "3c75e49debb52c0a9ceb36d558e8c181261adf99de46d56184af5f19a5ef7b3e"
+        "semantic_input_digest": "427e507efc9f9e4531da100eadf3321a43cf8f1783d598cbe1d9e3fc233376ef"
       }
     },
     "urn:aip:source:filesystem:833e2828fe1aab512d1943c48acb72d7b94bee00925e01a60e8c26e04a6ec189": {
@@ -946,7 +988,7 @@
         "locator": "<repo>/examples/invoice-service/asyncapi.yaml",
         "mapping_context_digest": "",
         "mapping_rule_id": "asyncapi-adapter@1",
-        "mapping_rule_version": "v1",
+        "mapping_rule_version": "v2",
         "scope_definition_digest": "<scrubbed>",
         "semantic_input_digest": "",
         "source_instance_id": "urn:aip:source:filesystem:833e2828fe1aab512d1943c48acb72d7b94bee00925e01a60e8c26e04a6ec189",
@@ -957,7 +999,12 @@
       "outcome": {
         "diagnostics": [],
         "model": {
-          "brokers": [],
+          "brokers": [
+            {
+              "id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+              "stable_broker_id": "asb"
+            }
+          ],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
@@ -992,6 +1039,14 @@
             }
           ],
           "relations": [
+            {
+              "evidence_ids": [
+                "evidence:asyncapi:urn:aip:source:filesystem:833e2828fe1aab512d1943c48acb72d7b94bee00925e01a60e8c26e04a6ec189"
+              ],
+              "source_id": "service:invoice-service",
+              "target_id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+              "type": "USES_BROKER"
+            },
             {
               "evidence_ids": [
                 "evidence:asyncapi:urn:aip:source:filesystem:833e2828fe1aab512d1943c48acb72d7b94bee00925e01a60e8c26e04a6ec189"
@@ -1038,7 +1093,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "3cbc261d149a425e2265cbba80130c1e3b554ed9b1f2e603f8c527b37a98b985"
+        "semantic_input_digest": "e76e8efb78cf087d0a94bc369472e722ef33a21ddc8651f825903593dec96756"
       }
     },
     "urn:aip:source:filesystem:bc68d5827d7bed2c4ec37eb12c23fa0319e78cccdfd6e9efd163d4b1329159e5": {
@@ -1132,7 +1187,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "5b2171d6dd564705d098ef52c8fc2177773c56898cba38d8f09c4195b16721f2"
+        "semantic_input_digest": "b1bffbf53a736b55c708b187934ed0d606ebf60f252cac189e18ed3d25d9d369"
       }
     },
     "urn:aip:source:filesystem:bde49ebe4fc19f12fea1549011bb94c1e526e8a514e898a95b71429bdbbc0732": {
@@ -1147,7 +1202,7 @@
         "locator": "<repo>/examples/order-service/asyncapi.yaml",
         "mapping_context_digest": "",
         "mapping_rule_id": "asyncapi-adapter@1",
-        "mapping_rule_version": "v1",
+        "mapping_rule_version": "v2",
         "scope_definition_digest": "<scrubbed>",
         "semantic_input_digest": "",
         "source_instance_id": "urn:aip:source:filesystem:bde49ebe4fc19f12fea1549011bb94c1e526e8a514e898a95b71429bdbbc0732",
@@ -1158,7 +1213,12 @@
       "outcome": {
         "diagnostics": [],
         "model": {
-          "brokers": [],
+          "brokers": [
+            {
+              "id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+              "stable_broker_id": "asb"
+            }
+          ],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
@@ -1208,6 +1268,14 @@
             }
           ],
           "relations": [
+            {
+              "evidence_ids": [
+                "evidence:asyncapi:urn:aip:source:filesystem:bde49ebe4fc19f12fea1549011bb94c1e526e8a514e898a95b71429bdbbc0732"
+              ],
+              "source_id": "service:order-service",
+              "target_id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+              "type": "USES_BROKER"
+            },
             {
               "evidence_ids": [
                 "evidence:asyncapi:urn:aip:source:filesystem:bde49ebe4fc19f12fea1549011bb94c1e526e8a514e898a95b71429bdbbc0732"
@@ -1285,7 +1353,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "bdbd1c170a0d9410a4c7ae397741552c0eda358705ee0899c39bfa07577cf9a1"
+        "semantic_input_digest": "c50c78e38857ea12aed078fd2371e413e4667b87c7f7def3410ce82b85c0f8a7"
       }
     }
   }

@@ -429,6 +429,30 @@
         "source_id": "service:payment-service",
         "target_id": "queue:owned:23a2fad36cd9f579cfe97c465dfd1f68722c05afc04c7d39913c33fc7155e601",
         "type": "SENDS"
+      },
+      {
+        "evidence_ids": [
+          "evidence:asyncapi:urn:aip:source:filesystem:679f611e8055bd5869723affbe177e73f49454415c1e7808ed34eec5633fe659"
+        ],
+        "source_id": "service:invoice-service",
+        "target_id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+        "type": "USES_BROKER"
+      },
+      {
+        "evidence_ids": [
+          "evidence:asyncapi:urn:aip:source:filesystem:352ae2ff7922c69e0655b782cc90c1a6f21085cacf4cc4c0da60a073155816ad"
+        ],
+        "source_id": "service:order-service",
+        "target_id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+        "type": "USES_BROKER"
+      },
+      {
+        "evidence_ids": [
+          "evidence:asyncapi:urn:aip:source:filesystem:9c1c685fb93a9d7e687a6c0b9602a3534481decd270a94635b902870c5710299"
+        ],
+        "source_id": "service:payment-service",
+        "target_id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+        "type": "USES_BROKER"
       }
     ],
     "schemas": [
@@ -548,13 +572,13 @@
       "via": "unused-q"
     }
   ],
-  "expected_snapshot_id": "aip:snapshot:v1:32a8e14d0a6102772e6524c6d50b7dd46cd182ada023c6402aa5cda19281e801",
+  "expected_snapshot_id": "aip:snapshot:v1:9d742d84b45473db146297afdc1bfab762e77b62ec045ba8e844a38aa406ec99",
   "fixture_id": "runtime-demo-frozen-2026-08-26",
   "manifest_version": 1,
   "seed_timestamp": "2026-08-26T12:00:00.000000Z",
   "service_id": "service:order-service",
-  "total_node_count": 48,
-  "total_relationship_count": 29,
+  "total_node_count": 49,
+  "total_relationship_count": 32,
   "window_end": "2026-08-27T00:00:00.000000Z",
   "window_start": "2026-08-26T00:00:00.000000Z"
 }

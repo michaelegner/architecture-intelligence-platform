@@ -20,7 +20,12 @@ from app.sources.model import (
     SourceDescriptor,
     SourceKind,
 )
-from app.sources.owner_ids import queue_owned_id, subscription_owned_id, topic_owned_id
+from app.sources.owner_ids import (
+    broker_owned_id,
+    queue_owned_id,
+    subscription_owned_id,
+    topic_owned_id,
+)
 from app.sources.pointers import decode_pointer_tokens
 from app.sources.service_identity import resolve_service_identity
 
@@ -377,7 +382,9 @@ def test_missing_subscription_identity_never_guesses_one(name):
     # Topic publication/message semantics remain; no subscribe-side topology is fabricated.
     [message] = outcome.model.messages
     assert {r for r in _relations(outcome) if r[0] != "CONFORMS_TO"} == {
-        ("CARRIES", TOPIC_ID, message.id)
+        ("CARRIES", TOPIC_ID, message.id),
+        # v0.6.1 I1: the Broker is evidenced independently of the unresolved Subscription.
+        ("USES_BROKER", "service:svc", broker_owned_id(stable_broker_id=BROKER)),
     }
 
 
@@ -606,6 +613,7 @@ def test_topic_only_document_with_publish_and_subscribe_is_accepted():
         "SUBSCRIPTION_OF",
         "RECEIVES_FROM",
         "CARRIES",
+        "USES_BROKER",
     }
 
 

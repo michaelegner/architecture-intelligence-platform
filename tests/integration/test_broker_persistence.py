@@ -120,3 +120,33 @@ def test_snapshot_projects_the_broker_so_no_relation_endpoint_is_missing(driver)
     # the independently transcribed reference agrees with production
     assert reference["brokers"] == state["brokers"]
     assert reference["relations"] == state["relations"]
+
+
+def test_asyncapi_import_persists_one_shared_broker_until_its_last_declarer_is_removed(
+    driver, tmp_path
+):
+    """v0.6.1 I1b end to end: two AsyncAPI documents naming the same explicit broker id evidence one
+    Broker node; removing a declaring document keeps it while another still uses it."""
+    from tests.integration.test_pubsub_persistence import BROKER, _doc, _import, _write
+
+    broker_id = broker_owned_id(stable_broker_id=BROKER)
+    _write(tmp_path, "orders", _doc("orders", publish=True))
+    _write(tmp_path, "billing", _doc("billing", subscription="billing"))
+    assert _import(driver, tmp_path).committed is True
+    with driver.session(database=DATABASE) as session:
+        assert _count(session, "MATCH (b:Broker) RETURN count(b) AS c") == 1
+        assert _count(session, USES_COUNT) == 2
+        stored = session.run("MATCH (b:Broker) RETURN b.id AS id").single()["id"]
+        assert stored == broker_id
+
+    (tmp_path / "orders" / "asyncapi.yaml").unlink()
+    assert _import(driver, tmp_path).committed is True
+    with driver.session(database=DATABASE) as session:
+        assert _count(session, "MATCH (b:Broker) RETURN count(b) AS c") == 1
+        assert _count(session, USES_COUNT) == 1
+
+    (tmp_path / "billing" / "asyncapi.yaml").unlink()
+    assert _import(driver, tmp_path).committed is True
+    with driver.session(database=DATABASE) as session:
+        assert _count(session, "MATCH (b:Broker) RETURN count(b) AS c") == 0
+        assert _count(session, USES_COUNT) == 0

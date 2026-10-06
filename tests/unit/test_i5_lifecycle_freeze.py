@@ -224,7 +224,7 @@ def test_lifecycle_runbook_queries_every_frozen_state_query():
 RELEASED_PRODUCER_VERSION = "0.6.0"
 I5_PRODUCER_VERSION = "0.4.2"
 
-# v0.6.1 I1a moved snapshot canonicalization 3 -> 4 (new always-present `brokers` key), which
+# v0.6.1 I1a/I1b moved snapshot canonicalization 3 -> 4 and added Broker facts (new always-present `brokers` key), which
 # legitimately re-pins every scenario's frozen `snapshot_id`/`model_revision` (spec §5.3). The I5
 # pin stays the identity at the I5 candidate, so the copy also reverts exactly those literals:
 # current digest -> the digest the scenario carried at the I5 candidate (read from the frozen
@@ -248,8 +248,8 @@ V4_REPIN_TO_I5_DIGEST = {
     "3c1394a93250a2945b795cfa4583a80fc13466553ea86f33aac605400c9c86ac": (
         "a789ba301268358e313849751a17072760e24631f7361f56dedde855df886690"
     ),
-    "41bda8715926b352d6a3f0eb2b49dcf84cb971c9bbf8f9ac533f3a4e71e2856f": (
-        "dc8e75fdebda954081059c96d17ae072ceec8c952261929e6276945c5f52e09c"
+    "4b715bafe7df2d9319c38ab5db92ece3546004eb6ee82040a625af88e7f1c49a": (
+        "ec6cf3e7cf2bc56bcfafb30e3748a543393dbea8cb0c574097713dd8f1481894"
     ),
     "515cea053a90789701bfee8957e7b2a26030876d3fe8dacbbe43593c8007f154": (
         "e6bb335554bd85c70035c63aa3d2a59fb7fedfd376c0b497576550d7233b0b3d"
@@ -257,26 +257,17 @@ V4_REPIN_TO_I5_DIGEST = {
     "51b9698e1521428ba9ff64563781387252faa971ccb046fb4762997ba53915e6": (
         "40af1984e44beef311daeadda930354ff432445527ffd58e05fd63dac0e4ce76"
     ),
-    "536d5d9a6c592e54f977fd4f01d28eb54e5f3d33cc0cf70f3e4baa345d2bb812": (
-        "513f953708386eafcd51af89ec901a1c34d877d9fbe6e7bb1a2b7d992637efa6"
-    ),
     "5f52424f380f74835cac2782b8ac65f07d71e00944e5401b2cbe8dac8507b32d": (
         "020bce9d9fd248bbd7e0f11c65bd88876eb07baf748c0d3f9cf5f908da0267a3"
-    ),
-    "7f3878aeb846f8d7d47c7b7eeb537e7310fe104277beef7c87a5b4d8a4f7107c": (
-        "80435ac3525e9bd95af0903bc6a868cd4ee71f12f5272e16ec5f14510194972a"
     ),
     "87fc23284e166e839983acdf39be84dd50a2a0dd84f777dfefc89d33339a9e5a": (
         "14eef652c468324f1e3dfe55387bbe9a6a0a6c0d5b79cd6e2183f29ce137cf67"
     ),
-    "8a2d9272465c99b8b4f029b868c0fdfbc97075ec499be0f3199529b967f65b4a": (
-        "d75d4df52e05cb8cbb9696f25d8b07d2a97a19225da48e91ca9e115f7ffe32fa"
+    "88ab84741174f5959b61654ed2cc2887570efc2d8b2f9cf82e0b9fcc100ddc4b": (
+        "dc8e75fdebda954081059c96d17ae072ceec8c952261929e6276945c5f52e09c"
     ),
     "8d4d1540fc945eacec2444f7bec9f8540f43864b84f723fb11ede000480cb802": (
         "98325cc951d8a91f450615e504978de5ba136a6f90790d1eacd0ea13336a56f6"
-    ),
-    "97473b22f75812eea810340c7a51f59475683d18df02aa6229f2821ed87b981b": (
-        "ec6cf3e7cf2bc56bcfafb30e3748a543393dbea8cb0c574097713dd8f1481894"
     ),
     "9898d9daaa9e1a8afabce49085bd55d12252fdb8867708fa9117ee4bda215f76": (
         "bcb24b1a7620745578b4e82f7a6e05cda260b39a5da879d4a8c8fcd1a79366d8"
@@ -284,8 +275,8 @@ V4_REPIN_TO_I5_DIGEST = {
     "99cb25a154856bf2a6451786b281d864d41d345c40cd6874da46a2f7b0b24a09": (
         "60c6ce7ac17e7ff2f287139b593e1cca78bd5918ed0c0243add3793c505f054e"
     ),
-    "a90042a171cd37d88121824d24a05a5d2af288983a72418ae80b7fdd2d7d45b7": (
-        "3728800bd4780e6492aa3ac7888d03041d5c6aa16955763951591aeba760e5a6"
+    "b64eb96013b066d53db29415042143487d380e42c7e47e6f516ca096247d53ca": (
+        "06125cc5dabfbc5ed755f0aa5227af044f4a989ce52f9ff0d4e6bdd3c79241bd"
     ),
     "b8127e7569ee844ea2fcd1af05ed17363a3fb6a42d254ea8e804c756634b2737": (
         "2339182b5d89574d2662c1121d45b4d45f304e722fa0dbc7aa89f508572ffd45"
@@ -293,8 +284,17 @@ V4_REPIN_TO_I5_DIGEST = {
     "c6ff0c8cbc9b45643959e19cf63bebb9075e24fa6f8f2816c13cd5c7107c25c3": (
         "251edaee1ae62c23c62502e8e6e9a953cb36ebaa0f64138ea1687847a628456a"
     ),
-    "ee60b9730e637e6551d2a152dfa579ebf539db9a94d5df5653d18d7162ec406c": (
-        "06125cc5dabfbc5ed755f0aa5227af044f4a989ce52f9ff0d4e6bdd3c79241bd"
+    "d937f3350a384c994b9fdab38d22b148b0f13a13f225fe99c791a786471f1007": (
+        "80435ac3525e9bd95af0903bc6a868cd4ee71f12f5272e16ec5f14510194972a"
+    ),
+    "da0595ec6f473989d107c3af7cd01baed2bd1ec75e911cd802c7b65737ab41f2": (
+        "d75d4df52e05cb8cbb9696f25d8b07d2a97a19225da48e91ca9e115f7ffe32fa"
+    ),
+    "e0911799822d74cea3a6641eb18f8df86f66df7e90929957d04a7dcb9c61e133": (
+        "513f953708386eafcd51af89ec901a1c34d877d9fbe6e7bb1a2b7d992637efa6"
+    ),
+    "e11e9eace70ddf916906f4d660340449a7650d976b3ccdbfe9eeb1514a235b62": (
+        "3728800bd4780e6492aa3ac7888d03041d5c6aa16955763951591aeba760e5a6"
     ),
 }
 
