@@ -120,6 +120,22 @@ What the harness does:
 - **Output.** Results go to `OUT_DIR/<phase>/` (every recorded answer and `result.json`) and to
   `OUT_DIR/summary.json`. The exit code is 0 only when every check in every phase passes.
 
+## v0.6.1 re-freeze
+
+v0.6.1 (Broker Semantic Completion) re-freezes this profile; the frozen v0.6.0 dossier is untouched.
+- **Snapshot pin.** The demo declares a Broker, so its snapshot gains one Broker node and
+  `USES_BROKER` (canonicalization version 4, one extra always-present `brokers` key). The pin moves
+  from `0bfcbded…` to the value the clean run produced, which equals
+  `examples/runtime-demo/fixture-state.json`'s `expected_snapshot_id`. The whole-graph count is 49
+  (48 plus the Broker node). `test_golden_path_demo_pin_is_the_re_derived_v0_6_1_pin`
+  keeps the two pins equal and the old one superseded.
+- **Per-answer `schema_version`.** The old rule demanded `"0.5"` for every answer. It is now
+  tool-specific (v0.6.1 spec §5.2): dependencies `"0.6"` iff a `USES_BROKER` claim, evidence `"0.6"`
+  iff a record supports `USES_BROKER`, drift always `"0.5"`, locality `"0.6"`. Each answer validates
+  against the frozen schema its own version selects.
+- **Broker claims** have no delivery or qualification, so the drift subset and the Pub/Sub claim
+  shapes are taken over the dependency claims only.
+
 ## v0.6.0 re-freeze
 
 I6 revision 0.1 re-freezes this profile with four MCP tools and scoped evidence enabled by default.

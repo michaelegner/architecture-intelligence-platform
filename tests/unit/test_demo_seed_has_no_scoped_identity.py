@@ -1,6 +1,7 @@
 """v0.6.0 I2.5c (decision record D16): the golden-path demo can never produce scoped v2 evidence.
 
-The demo phase pins `aip:snapshot:v1:0bfcbded…` (`examples/runtime-demo/fixture-state.json`). A v2
+The demo phase pins one snapshot (`examples/runtime-demo/fixture-state.json`; `0bfcbded…` at v0.6.0,
+moved at v0.6.1 only by the Broker change). A v2
 record, and so the conditional snapshot keys, can only come from a CLIENT whose Resource carries
 `k8s.pod.uid` and `k8s.cluster.uid` (I1 matrix §10, guard I-2). The frozen demo batch carries no
 `k8s.*` attribute at all, so enabling the flag can never move that snapshot. What enabling does add

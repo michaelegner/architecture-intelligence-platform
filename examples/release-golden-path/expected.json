@@ -1,12 +1,13 @@
 {
   "format": "aip-release-golden-path-expected/1",
-  "governing_spec": "docs/specifications/0.6.0/i6-release-candidate-publication-and-verification.md revision 0.1 \u00a7\u00a72.3, 4",
+  "governing_spec": "docs/specifications/0.6.0/i6-release-candidate-publication-and-verification.md revision 0.1 \u00a7\u00a72.3, 4; re-frozen for v0.6.1 by docs/specifications/0.6.1/specification.md \u00a75.2, \u00a76.4",
   "conventions": {
     "placeholders": {
       "${RELEASE_CANDIDATE_SHA}": "the full 40-character candidate SHA",
       "${PACKAGE_VERSION}": "pyproject.toml [project].version at the candidate"
     },
     "claim_shape": "[Object type:name, Via type:name, subscription name|null, destination_resolution, qualification], as in tests/integration/test_i4_pubsub_qualification.py:241-249",
+    "source_lines": "line citations into tests/integration/test_i4_pubsub_qualification.py are as of the v0.6.0 freeze; v0.6.1 I2c shifted that file, so use the function names",
     "not_frozen": "claim ids, evidence ids, resolution ids and snapshot ids, except the demo phase's expected_snapshot_id (I6 \u00a77.1)"
   },
   "phases": {
@@ -42,7 +43,7 @@
           "expect": {
             "classification": "COMPLETE",
             "mismatches": [],
-            "actual_snapshot_id": "aip:snapshot:v1:0bfcbdeda363876559bb78f53e432f1a73c368e9fbd4d21c37f8f4335ecdbd5f"
+            "actual_snapshot_id": "aip:snapshot:v1:9d742d84b45473db146297afdc1bfab762e77b62ec045ba8e844a38aa406ec99"
           },
           "source": [
             "examples/runtime-demo/fixture-state.json:521-559",
@@ -150,7 +151,7 @@
           "id": "producer-identity",
           "surface": "every Architecture Answer in the phase",
           "expect": {
-            "schema_version": "0.5",
+            "schema_version": "per tool (v0.6.1 spec \u00a75.2): dependencies \"0.6\" iff it has a USES_BROKER claim else \"0.5\"; evidence \"0.6\" iff a returned record supports USES_BROKER else \"0.5\"; drift always \"0.5\"; locality \"0.6\"",
             "producer.version": "${PACKAGE_VERSION}",
             "producer.build_revision": "${RELEASE_CANDIDATE_SHA}"
           },
@@ -305,7 +306,7 @@
             "evidence": {
               "missing_evidence_refs": []
             },
-            "schemas": "every answer validates against schemas/architecture_intelligence/v0.5"
+            "schemas": "every answer validates against the frozen schemas/architecture_intelligence/v0.5 or v0.6 schema its own schema_version selects (v0.6.1 spec \u00a75.2)"
           },
           "source": [
             "tests/fixtures/pubsub/google-pubsub/expected.yaml:24-29",
@@ -351,7 +352,7 @@
           "id": "producer-identity",
           "surface": "every Architecture Answer in the phase",
           "expect": {
-            "schema_version": "0.5",
+            "schema_version": "per tool (v0.6.1 spec \u00a75.2): dependencies \"0.6\" iff it has a USES_BROKER claim else \"0.5\"; evidence \"0.6\" iff a returned record supports USES_BROKER else \"0.5\"; drift always \"0.5\"; locality \"0.6\"",
             "producer.version": "${PACKAGE_VERSION}",
             "producer.build_revision": "${RELEASE_CANDIDATE_SHA}"
           },
@@ -464,7 +465,7 @@
           "id": "producer-identity",
           "surface": "every Architecture Answer in the phase",
           "expect": {
-            "schema_version": "0.5",
+            "schema_version": "per tool (v0.6.1 spec \u00a75.2): dependencies \"0.6\" iff it has a USES_BROKER claim else \"0.5\"; evidence \"0.6\" iff a returned record supports USES_BROKER else \"0.5\"; drift always \"0.5\"; locality \"0.6\"",
             "producer.version": "${PACKAGE_VERSION}",
             "producer.build_revision": "${RELEASE_CANDIDATE_SHA}"
           },
@@ -551,7 +552,7 @@
           "id": "producer-identity",
           "surface": "every Architecture Answer in the phase",
           "expect": {
-            "schema_version": "0.5",
+            "schema_version": "per tool (v0.6.1 spec \u00a75.2): dependencies \"0.6\" iff it has a USES_BROKER claim else \"0.5\"; evidence \"0.6\" iff a returned record supports USES_BROKER else \"0.5\"; drift always \"0.5\"; locality \"0.6\"",
             "producer.version": "${PACKAGE_VERSION}",
             "producer.build_revision": "${RELEASE_CANDIDATE_SHA}"
           },
@@ -631,7 +632,7 @@
           "id": "producer-identity",
           "surface": "every Architecture Answer in the phase",
           "expect": {
-            "schema_version": "0.5",
+            "schema_version": "per tool (v0.6.1 spec \u00a75.2): dependencies \"0.6\" iff it has a USES_BROKER claim else \"0.5\"; evidence \"0.6\" iff a returned record supports USES_BROKER else \"0.5\"; drift always \"0.5\"; locality \"0.6\"",
             "producer.version": "${PACKAGE_VERSION}",
             "producer.build_revision": "${RELEASE_CANDIDATE_SHA}"
           },
