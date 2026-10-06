@@ -149,6 +149,23 @@ For Python-changing PRs, record the outcome in the PR description under **Refact
 A `No / None needed` outcome is valid. Never claim a refactoring happened without an identifiable
 code change. Omit the report for documentation-only PRs; this is reporting, not an extra gate.
 
+## Mandatory pre-PR independent review
+
+After phase 8 validation and the refactoring check, but before opening the implementation PR, run
+the repository's [`aip-reviewer`](../../../.claude/agents/aip-reviewer.md) against the complete
+branch diff. Give it the governing specification revision and retained plan. This is a sequential
+review pass, not permission to spawn parallel review agents.
+
+- Resolve every BLOCKER/MAJOR finding before opening the PR.
+- If the reviewer identifies an unstated semantic decision, return to phase 3 and the owner; tests
+  cannot resolve it.
+- After material fixes, rerun the affected validation and the reviewer once. Do not loop on
+  MINOR/NIT findings.
+- In the PR body, record only the final verdict and any intentionally retained MINOR/NIT findings;
+  do not add a round-by-round self-review log.
+- Documentation-only changes still receive this independent review, while the documentation-only
+  validation exemption above remains unchanged.
+
 ## Checking for review feedback
 
 Before treating a "findings check" as complete — whether re-reviewing a PR or responding to

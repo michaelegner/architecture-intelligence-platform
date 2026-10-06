@@ -29,6 +29,27 @@ reviewed-plan-then-implement-then-reconcile workflow via the
 Small maintenance changes that don't touch public contracts, identity, evidence, qualification,
 reconciliation, or release semantics don't need that full workflow — see `AGENTS.md`'s exemption.
 
+## Working style
+
+- Default to low ceremony. Do not spawn parallel Explore/subagents unless explicitly requested;
+  work sequentially. The required `aip-reviewer` pass below is a deliberate sequential exception.
+- For a "proposal", "suggestion" or "quick" answer, answer the decision first from cheap evidence.
+  Do not start implementation, long trials or broad exploration until the owner asks.
+- A "review" or "quick review" is read-only by default: inspect the PR/diff and relevant files.
+  Do not check out the PR or run broad test suites unless a material finding needs that evidence or
+  the owner asks.
+- Before editing a versioned specification or relying on branch/PR/release state, verify the target
+  from live `ROADMAP.md`, git and GitHub state rather than memory.
+
+## Mandatory pre-PR self-review
+
+Before opening any PR, review the complete proposed diff with
+[the `aip-reviewer` agent](.claude/agents/aip-reviewer.md). For specification-governed work, give
+it the governing specification and retained plan. Resolve every BLOCKER/MAJOR finding before the PR;
+if a finding exposes an unstated semantic decision, stop and return that decision to the owner.
+After material fixes, re-run the reviewer once. Do not create review loops over MINOR/NIT findings.
+The validation rules and documentation-only exemption remain those in `AGENTS.md`.
+
 ## Continuous refactoring
 
 Treat refactoring as part of normal Python implementation, not as a separate project phase.
