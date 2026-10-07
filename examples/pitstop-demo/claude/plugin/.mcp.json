@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "aip": {
+      "type": "http",
+      "url": "${user_config.aip_mcp_url}"
+    }
+  }
+}

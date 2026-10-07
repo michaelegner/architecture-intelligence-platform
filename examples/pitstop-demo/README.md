@@ -41,6 +41,31 @@ For Codex CLI, Cursor or VS Code, see [`../mcp-clients/`](../mcp-clients/README.
 from `.aip-pitstop-demo/prompt.txt`. It already contains the environment and the observation window, which
 AIP needs to answer.
 
+## Agent setup: the Claude Code plugin
+
+An optional plugin turns the question ladder into agent behaviour. It is example client material: it adds no
+AIP behaviour, and removing it changes no answer.
+
+```bash
+claude --plugin-dir examples/pitstop-demo/claude/plugin
+```
+
+- `/mcp` shows the server as `plugin:aip:aip` with the four tools. It reads the MCP URL from the plugin's
+  `aip_mcp_url` setting, default `http://localhost:8000/mcp`, the URL `run.sh` prints; change it to point at
+  another AIP instance.
+- The **`architecture-aware-development`** skill triggers on a task that changes an event, a message contract,
+  shared data, a deployment or a service boundary. It asks the publishing service, resolves the evidence with
+  the bounded drill-down, and puts an **Evidence** section into the plan: the receivers, the publisher's
+  qualification, which routes carry observed evidence, the limitations as unknowns, and what AIP cannot know
+  (which receiver reads a field, per-event-type receipt).
+- **`/aip:inspect [service]`** prints one table of claims with qualification, route evidence, evidence
+  references, the snapshot id and the limitations. It only reads.
+- Both skills pre-approve only the three read-only AIP tools (`allowed-tools`) and remove `Bash`, `Write`,
+  `Edit` and `NotebookEdit` from the tool pool while they run (`disallowed-tools`), so they cannot edit files or
+  run commands; reading and searching the repository stays available. Claude Code applies that restriction for
+  the turn in which the skill is invoked and clears it on the next user message, and `allowed-tools` alone does
+  not restrict anything. Give the agent the observation context from `.aip-pitstop-demo/prompt.txt`.
+
 ## Ask the questions
 
 [`walkthrough.md`](walkthrough.md): the question ladder Q1–Q5, each with the MCP and REST call and the real
