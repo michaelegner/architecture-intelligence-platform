@@ -1,0 +1,17 @@
+# Spike fixture for the v0.6.2 I1 gate spike - operator-authored, NOT an upstream document.
+asyncapi: '2.6.0'
+info:
+  title: NotificationService
+  version: "1.0.0"
+x-aip-service-id: service:notification-service
+servers:
+  pitstop-rabbitmq:
+    url: pitstop-rabbitmq:5672
+    protocol: amqp
+    x-aip-broker-id: rabbitmq:pitstop-rabbitmq
+channels:
+  Pitstop:
+    x-aip-destination-kind: topic
+    subscribe:
+      operationId: consumeNotificationService
+      x-aip-subscription-name: Notifications
