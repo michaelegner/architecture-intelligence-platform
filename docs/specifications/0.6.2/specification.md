@@ -1,6 +1,6 @@
 # AIP v0.6.2 — Realistic Messaging Demo: Pitstop
 
-**Status:** Draft (2026-10-07)  
+**Status:** Draft (2026-10-07), amended 2026-10-07 after the I1 gate spike ([`i1-spike-finding.md`](i1-spike-finding.md), #460)  
 **Target:** `v0.6.2`  
 **Baseline:** Published and post-release-verified `v0.6.1`  
 **Scope authority:** [ROADMAP.md — v0.6.2](../../../ROADMAP.md) (this release is a demo release like v0.5.1, not a capability release)
@@ -20,7 +20,7 @@ The release does **not** add a new architecture-question class, semantic, source
 
 ## 2. Constraints
 
-- Reuse the released v0.6.1 product unchanged: no new entity kind, relation, claim type, source family, schema or MCP tool. Exactly the existing four tools.
+- Reuse the released v0.6.1 product: no new entity kind, relation, claim type, source family, schema or MCP tool. Exactly the existing four tools. The one permitted product change is the small hardening prerequisite I0 (§3.3), which corrects two evidence-correctness defects found by the gate spike and adds no new semantics, surface or schema.
 - No payload or field-level knowledge. AIP does not model which consumer reads which field of a message; no answer, fixture, overlay, skill or client text may claim it. Field usage stays **outside AIP** and is what the agent must still inspect.
 - No Intent or Assessment. `docs/` (ADRs and arc42) stays in the agent's checkout, unmodified, as the agent's own reading material. AIP does not ingest it and does not claim that documents are stale. If the agent notices that the documented consumer list differs from the evidenced one, that is the agent's observation, not an AIP drift claim.
 - **The canonical demo is hosted and live, not a replay.** Live runtime messaging evidence is a **requirement** of this release (see the stop rule in §3.2), not a degradable feature. Pitstop runs continuously with a controlled traffic generator (§4.2). Runtime evidence is OTLP telemetry from the running fork, and answers are produced for explicit environment and observation-window contexts that AIP already supports. A timestamp-frozen OTLP fixture remains **only** for deterministic tests, the smoke test, release qualification and the local `--replay` mode; it does not define the product demo.
@@ -52,17 +52,28 @@ Why this adds to the Quarkus demo: Quarkus shows an unresolved Subscription. Pit
 
 Intended mapping: exchange `Pitstop` → Topic; each per-consumer queue → one named Subscription of that Topic; the RabbitMQ instance → one Broker with a stable id (`rabbitmq:pitstop-rabbitmq`).
 
-The following are not yet confirmed against v0.6.1 and form the **first implementation spike within I1**. Complete this spike before the rest of I1 or any later increment. G1–G2 are topology gates, G4–G5 are the live-evidence gates:
+The gates G1–G5 were executed as a spike against v0.6.1 on real Neo4j (`i1-spike-finding.md`, #460; characterization tests in `tests/integration/test_v062_i1_gate_spike.py`). Results and their consequences for this specification:
 
-| # | To confirm | If it fails |
+| # | Gate | Verdict | Consequence |
+|---|---|---|---|
+| G1 | The existing AsyncAPI rules declare a fanout exchange as a Topic and five named queues as Subscriptions | Pass | The nine overlays (§4.1) import into one Topic, one Broker and five named Subscriptions. An invalid document rejects the whole import atomically; this is accepted and desirable for a controlled overlay set (§4.3) |
+| G2 | The five Subscriptions and their Services appear in the existing answer | Pass, **publisher-side only** | Receivers are `RESOLVED_SERVICE` claims in the answer for a **declared publisher**; there is no receiver-side or Topic-centric question and no fallback through the other services' answers. The question ladder is publisher-centric (§5) |
+| G3 | One Topic carrying several event types is answerable per Topic without a per-event claim | Pass | No claim has an event dimension. "Consumers are per Topic, not per event type" must be stated by the demo text (§1, §5); the answer does not say it |
+| G4 | Live OTLP messaging spans qualify the declared topology | Pass with limits; **blocked on I0** | A publisher `send` span qualifies **all** claims of that publisher alike; a consumer span adds `OBSERVED` evidence to that receiver's route. v0.6.1 has **no per-Subscription qualification**. A consumer span naming *another* declared Subscription of the Topic is accepted and adds an undeclared competing route with no limitation: this is the I0 defect H1 |
+| G5 | Windows apply to messaging qualification and a completed window is stable | Pass with limits; **blocked on I0** | Windows are caller-chosen (explicit UTC offset, at most 31 days), not whole-UTC-day-only. Later receiver traffic adds out-of-window evidence refs to a completed window's claim: the I0 defect H2. `snapshot_id` changes with every ingested span and a stale snapshot is refused; this is intended snapshot design and is **not** an I0 requirement (see §4.4) |
+
+**Stop rule (remains active):** v0.6.2 is the Live AIP Demo. Because G4 and G5 ended with limits that affect the Live promise, the owner decided (2026-10-07) on a separate product fix first: neither accept-and-disclose nor a replay-only re-scope. No Pitstop `run.sh`, hosted mode, fixture or §4.4 freeze before I0 is merged and the G4/G5 spike tests have been rerun against it with acceptable results. If G4 or G5 still fails after I0, do not ship a declared-topology-only demo under this name: record the finding and re-scope explicitly. G3 fails only into stated limits, never into silence.
+
+### 3.3 I0 — Product hardening prerequisite
+
+A small, separately specified and separately reviewed product change, outside the demo code. It is the only product change in this release and is complete only when both defects are fixed and the spike tests are rerun.
+
+| # | Defect found by the spike | Required outcome |
 |---|---|---|
-| G1 | The existing AsyncAPI rules can declare a fanout exchange as a Topic and five named queues as Subscriptions of it | The demo shows the Topic with `PARTIAL` / `UNRESOLVED_IDENTITY`, as Quarkus does. Narrow the story to "five services declare Pitstop publication/consumption" or defer the release |
-| G2 | The five Subscriptions and their Services appear in the existing answer for a Service and/or through `get_evidence`, so an agent can ask who receives | If only the publisher side appears, the demo question becomes "what does WorkshopManagementAPI publish, and through which Broker" and the consumer set is shown through the other services' dependency answers |
-| G3 | One Topic carrying several event types (header-distinguished) is answerable at Topic level without any per-event claim | State explicitly in every answer that consumers are per Topic, not per event type; never imply per-event consumers |
-| G4 | Live OTLP messaging spans from the instrumented fork, carrying `messaging.destination.subscription.name`, qualify the declared Subscriptions. Standard .NET/RabbitMQ instrumentation is not assumed to set that attribute; a small disclosed span attribute or Collector step may be needed | Stop (see rule below): without live messaging qualification there is no Live AIP Demo in this release |
-| G5 | The observation windows AIP supports today (whole UTC day for v0.6.0 HTTP) apply to messaging qualification, and a continuously running demo yields a stable answer for a completed window | Stop (see rule below). Fixing the window semantics is a separate product change and not part of v0.6.2 |
+| H1 | Receiver-route safety: a consumer span for Service A naming a different declared Subscription B of the same Topic creates an observed `RECEIVES_FROM` A → B that no declaration supports, and the publisher's answer gains a sixth, separately identified claim for A via B with no limitation | Runtime evidence must not silently create or strengthen a Service → Subscription route that is not supported by declared evidence. The guard establishing when an observed `RECEIVES_FROM` may support or create such a relation is defined in the I0 specification, not here |
+| H2 | Observation-window correctness: `resolution_evidence_refs` use the accepted relation evidence without applying the requested observation window, so receiver traffic from a later window changes the claim of a completed one | The answer for an explicit observation context must not cite or be changed by evidence observed outside that context. "Completed window" is then meaningful as: an explicit window the caller has chosen that lies wholly in the past |
 
-**Stop rule:** v0.6.2 is the Live AIP Demo. If G4 or G5 fails, do not ship a declared-topology-only demo under this name: record the finding, resolve it (a separate product change, or a different instrumentation approach) and then continue, or re-scope the release explicitly. If G1 and G2 both fail, Pitstop is not released as v0.6.2 either; keep it for the v0.7/v0.8 demos. G3 fails only into stated limits, never into silence.
+Not part of I0: snapshot-id stability (the snapshot fingerprints live evidence by design; after H2 the G5 tests are rerun and differing snapshot ids are re-judged as an expected provenance property, returning to the owner only if a residual question remains); per-Subscription qualification (the demo words Q4 accordingly, §5); the `service.name` mismatch behaviour (documented in §4.2 and guarded by the demo instrumentation, widened into I0 only if it causes a false answer in the Pitstop scenario). Acceptance: the I0 spec's own criteria, plus the G4/G5 spike tests rerun against the change, with the two cross-queue and later-window characterizations replaced by tests of the new behaviour.
 
 ## 4. I1 — Hosted live demo and local one-command version
 
@@ -75,43 +86,48 @@ AsyncAPI 2.6.0 files in the style of the v0.5.1 Quarkus overlay, one per service
 - publishes to `Pitstop`: WorkshopManagementAPI, CustomerManagementAPI, VehicleManagementAPI, TimeService;
 - subscribes via a named queue: InvoiceService (`Invoicing`), NotificationService (`Notifications`), WorkshopManagementEventHandler (`WorkshopManagement`), AuditlogService (`Auditlog`), ReportingService (`Reporting`).
 
+Overlay rules established by the spike: every document uses the same channel name `Pitstop` and the same `x-aip-broker-id`, sets no AMQP `virtualHost` (it would split the exchange into two Topics), carries `info.title` equal to the service's OTel `service.name` (§4.2), and gives each subscriber exactly one `subscribe` with `x-aip-subscription-name`. A subscriber without a name gets no Subscription.
+
 Overlay files live under `examples/pitstop-demo/overlay/<service>/asyncapi.yaml`, outside the agent's checkout. A `PROVENANCE.md` records the pinned upstream SHA, the fork commit, and which file/line each declaration was read from. The overlay declares **no message payload or field**.
 
 ### 4.2 Live runtime evidence
 
 - Pitstop runs continuously in the demo stack (Compose) with an OpenTelemetry Collector forwarding OTLP/HTTP to AIP.
 - A **controlled traffic generator** registers customers and vehicles, plans and finishes jobs at a steady, documented rate, so every window contains traffic on the Topic. It publishes only through the application's own API.
-- Each service resource carries `service.name` matching its declared `x-aip-service-id` and the demo environment name. Messaging spans carry `messaging.system=rabbitmq`, the destination name and, on the consumer side, the Subscription name (G4).
+- Each service resource carries `service.name` equal to its overlay `info.title` (AIP matches the declared Service **name**, not `x-aip-service-id`; a different `service.name` mints a second, observed-only Service and leaves the declared claims unqualified) and `deployment.environment.name` set to the demo environment (the legacy `deployment.environment` is not read). Messaging spans carry `messaging.operation.type` (`send`, `receive` or `process`; the legacy `messaging.operation` is ignored), `messaging.destination.name` equal to the exchange name `Pitstop` (exact), `messaging.system=rabbitmq` and, on consumer spans, `messaging.destination.subscription.name` equal to that service's declared queue name (G4).
 - Instrumentation is a disclosed fork change (see the fork specification). It adds spans and attributes only.
 - A timestamp-frozen OTLP fixture, authored from the same flows and documented as such, is kept under `examples/pitstop-demo/fixtures/` for tests and release qualification.
 
 ### 4.3 Deployment modes
 
-**Hosted (canonical).** A long-running AIP + Neo4j instance, the Pitstop fork, the Collector and the traffic generator run on the owner's host. It is the product demo: always warm, queried through its MCP URL. Questions refer to the **last completed observation window** (G5; whole UTC day unless AIP's window semantics say otherwise), which the demo prompt names explicitly. Operation: restarts must not change the claims for a completed window; a new window is usable after it completes; traffic gaps are visible as coverage, not hidden.
+**Hosted (canonical).** A long-running AIP + Neo4j instance, the Pitstop fork, the Collector and the traffic generator run on the owner's host. It is the product demo: always warm, queried through its MCP URL. Questions refer to the **last completed observation window**: an explicit, caller-chosen window (explicit UTC offset, at most 31 days) lying wholly in the past, which the demo prompt names explicitly. For the demo this is a documented UTC day. "Completed" is the demo's convention, not an AIP concept, and is meaningful only after I0 (H2). Operation: restarts must not change the claims for a completed window; a new window is usable after it completes; traffic gaps are visible as coverage, not hidden.
 
 **Local (reproducible).** `examples/pitstop-demo/run.sh` starts AIP and Neo4j (existing Compose pattern), imports the overlay and identity/mapping configuration, and by default **replays the frozen fixture** with its fixed window, so the demo is usable immediately. `run.sh --live` additionally starts the Pitstop fork, Collector and traffic generator; its answers are available only after the first completed window, which may be the next day. The local version is for development, qualification and offline use, not the canonical demo.
+
+The import is atomic: one invalid overlay document rejects the whole set and commits nothing, so both modes treat a rejected import as a hard failure, never a partial demo.
 
 Both modes verify the semantic answers (§4.4), print the MCP URL, the environment and window to ask about, and the ready-to-use agent prompt.
 
 Hosting concerns (access control for the MCP URL, secrets, RabbitMQ and SQL Server not exposed, sample passwords replaced) are decided and recorded by the owner and follow the fork specification.
 
-### 4.4 Expected answers (frozen after the G1–G5 spike)
+### 4.4 Expected answers (frozen only after I0 and the G4/G5 rerun)
 
-Target shape, to be re-written to what v0.6.1 actually returns, and to be stated as semantic expectations rather than byte-identical output, before this section is frozen:
+Target shape, stated as semantic expectations rather than byte-identical output, to be re-checked against what the product returns after I0 before this section is frozen:
 
-- `get_service_dependencies(WorkshopManagementAPI)` for the chosen environment and window: `PUBLISHES_TO` Topic `Pitstop` with its runtime qualification for that window; one `USES_BROKER` claim for `rabbitmq:pitstop-rabbitmq`; `PARTIAL` with the limitation text the existing rules produce.
-- The receiving Services and Subscriptions that AIP can resolve are reached through the query path the G2 spike establishes, with the evidence for each. ReportingService's claim carries declared evidence from its own overlay and runtime qualification; AIP contains no document evidence for that claim. The claim the demo makes is exactly this: ReportingService is absent from the knowledge visible to the agent (its checkout and `docs/`), yet present in AIP's independently maintained architecture evidence and qualified by runtime evidence. It is not a claim that runtime found an unknown consumer.
+- `get_service_dependencies(WorkshopManagementAPI)` for the chosen environment and window: five `RESOLVED_SERVICE` dependency claims (one per receiver: AuditlogService, InvoiceService, NotificationService, ReportingService, WorkshopManagementEventHandler), each with `delivery.via` = Topic `Pitstop` and `delivery.subscription` = that receiver's queue; one Broker claim for `rabbitmq:pitstop-rabbitmq`; no `UNRESOLVED_IDENTITY` limitation. Every claim carries the **publisher's** qualification for that window (`CONFIRMED` when a `send` span lies in the window, otherwise `NOT_OBSERVED_IN_WINDOW` with coverage); the qualification is the same for all five claims.
+- Per-receiver runtime evidence is visible only as `OBSERVED` refs in each claim's `resolution_evidence_refs` (one declared ref, plus an observed ref when a matching consumer span lies in the window, after H2). It is route evidence, not a per-Subscription qualification: a receiver whose queue was never observed still reads `CONFIRMED` through its publisher. The demo states this and never claims per-Subscription confirmation.
+- ReportingService's claim carries declared evidence from its own overlay; AIP contains no document evidence for that claim. The claim the demo makes is exactly this: ReportingService is absent from the knowledge visible to the agent (its checkout and `docs/`), yet present in AIP's independently maintained, operator-declared architecture evidence, with runtime route evidence. It is not a claim that runtime found an unknown consumer.
 - `get_architecture_drift`: only what the existing rules produce (declared-but-unexercised, not "undocumented").
-- Every claim carries evidence refs that resolve through `get_evidence` at the same snapshot.
+- Every claim's evidence refs resolve through `get_evidence` **at the answer's own snapshot**. The snapshot id changes whenever any evidence is ingested and a stale snapshot is refused (intended design), so calling `get_evidence` "immediately" cannot by itself make the drill-down reliable on a continuously ingesting instance. **Client drill-down protocol (bounded):** call `get_evidence` with the answer's `snapshot_id`; if it refuses the snapshot as stale, re-run `get_service_dependencies` for the same observation context, then retry `get_evidence` with the new answer's refs and snapshot; after at most 3 attempts report an explicit drill-down failure naming the last snapshot ids rather than citing unresolved refs. Because a completed window's claims do not change under later traffic (H2), the re-run yields the same claims and only the refs' snapshot binding moves. The skill, `/aip:inspect` and the demo prompt use this protocol; the hosted instance may additionally reduce the race but is not required to prevent it. Whether differing snapshot ids need anything beyond this is decided after the G5 rerun.
 
 ## 5. I2 — Question ladder and agent conversation
 
 | # | Question | Must show | Must not claim |
 |---|---|---|---|
 | Q1 | What does `WorkshopManagementAPI` publish, and through which broker? | `PUBLISHES_TO` Topic `Pitstop`; Broker claim with evidence | That the Broker implies queues, consumers or event types |
-| Q2 | Which services does AIP resolve as receiving from `Pitstop`? | The Subscriptions/Services AIP can resolve, with the exchange-wide scope stated and the resolution limits | That the consumers are per event type or that any of them handles `MaintenanceJobFinished` |
-| Q3 | Why believe `ReportingService` receives from it? | Its declared overlay evidence and the runtime qualification at the same snapshot | Evidence from different snapshots; confirmation beyond what the fixture supports |
-| Q4 | What actually ran in the selected window? | The qualification per Subscription for the explicit environment and window | That unobserved means unused |
+| Q2 | Which services does AIP resolve as receiving from `Pitstop`? (Asked through the publisher: AIP has no receiver-side question) | The Subscriptions/Services AIP can resolve from the publisher's answer, with the exchange-wide scope stated and the resolution limits | That the consumers are per event type or that any of them handles `MaintenanceJobFinished` |
+| Q3 | Why believe `ReportingService` receives from it? | Its declared overlay evidence and its route's runtime evidence, resolved at the answer's own snapshot | Evidence from different snapshots; confirmation beyond the evidence refs |
+| Q4 | What actually ran in the selected window? | The publisher-driven qualification of the claims for the explicit environment and window, and which receiver routes carry observed evidence | A per-Subscription qualification; that an unobserved route is unused |
 | Q5 | Which of them read `StartTime` and `EndTime`? | An explicit, labelled boundary: AIP holds no payload or field-usage knowledge | Any field usage, billing or reporting consequence |
 | Q6 | What should I inspect before replacing the two fields? | The agent's own plan: inspect each receiving Service AIP resolves, including ReportingService when resolved, for use of the two fields; account explicitly for any unresolved receiver boundary; treat each receiver as unknown until inspected; propose a phased migration | That the change is safe or that AIP identified the breaking consumers |
 
@@ -133,8 +149,8 @@ claude/plugin/
 
 **Skill `architecture-aware-development`.** Triggers on tasks that change an event, message contract, shared data, deployment or service boundary. It instructs the agent to:
 
-1. Call `get_service_dependencies` for the service whose contract changes, then reach the receiving Services through the query path established by the G2 spike (**the workflow is frozen only after that spike**); call `get_evidence` for any claim it relies on.
-2. Write an **Evidence** section in the plan: each relevant Service/Subscription, its qualification (`CONFIRMED`, `OBSERVED_ONLY`, `NOT_OBSERVED_IN_WINDOW`, with coverage), its evidence refs and the snapshot id.
+1. Call `get_service_dependencies` for the service whose contract changes, for the **publishing** service of the changed event; the receiving Services are the `RESOLVED_SERVICE` claims in that answer (there is no receiver-side question). Call `get_evidence` at the answer's own snapshot for any claim it relies on, following the bounded drill-down protocol of §4.4 (on a stale-snapshot refusal re-run the dependency question for the same context and retry, at most 3 attempts, then report the drill-down as failed).
+2. Write an **Evidence** section in the plan: each relevant Service/Subscription, the claim's qualification (`CONFIRMED`, `OBSERVED_ONLY`, `NOT_OBSERVED_IN_WINDOW`, with coverage; it is the publisher's and identical for all receivers), whether its route has observed evidence, its evidence refs and the snapshot id.
 3. Copy the answer's limitations and `NOT_ANSWERED` statements into the plan as unknowns, not as risks resolved.
 4. Never state what a consumer does with a payload from AIP evidence; say "inspect the consumer" instead.
 5. Compare with the repository's documents itself and say so when they differ, labelled as the agent's reading of the documents.
@@ -176,6 +192,7 @@ The earlier first-signal results used per-consumer field-usage lines that v0.6.x
 
 ### 7.2 Smoke test and release path
 
+- I0 (§3.3) is merged and the G4/G5 spike tests are rerun against it before any other I1 work; the release record cites both.
 - The smoke test runs in `--replay` mode against the frozen fixture and asserts the answer shapes (§4.4) and the question ladder (Q1–Q6), including that Q5 returns the labelled boundary, and runs the MCP drills. Release qualification additionally requires the hosted instance to hold a completed live window and checks the semantic expectations against it.
 - Update the main README entry point and the demo README: prerequisites, execution, question ladder, agent setup (plugin, optional mod), teardown.
 - Use the lightweight release pattern of v0.6.1: one release-prep PR; exact merged SHA as candidate; green exact-SHA CI/CodeQL and full gate; the v0.6.1 release golden path and both demos (Quarkus and Pitstop) against a clean candidate image; owner's GO; publish `v0.6.2`; anonymous pull verification; one `v0.6.2-release-record.md`.
@@ -186,4 +203,4 @@ The earlier first-signal results used per-consumer field-usage lines that v0.6.x
 
 A developer is about to change `MaintenanceJobFinished` in Pitstop. The hosted Live AIP Demo, a continuously running Pitstop with controlled traffic, gives them, and their coding agent, the evidenced broker, topic and the receiving Services AIP can resolve for the Pitstop exchange in an explicit observation window, with qualification, limitations and evidence, including a receiver that no document lists. The answer states that field usage is not something AIP knows, so the agent plans a bounded inspection and a phased migration instead of trusting the documented consumer list.
 
-A one-command local replay reproduces the same semantic architecture answers (not the hosted live behaviour; `--live` is optional and needs a completed window). The same persistent demo is the base for the later API-aware and Intent demos. Quarkus remains functional. No new semantics, source families, schemas or MCP tools were added, and the Claude Code plugin, skill and (optional) mod are example client material that can be removed without changing any AIP answer.
+A one-command local replay reproduces the same semantic architecture answers (not the hosted live behaviour; `--live` is optional and needs a completed window). The same persistent demo is the base for the later API-aware and Intent demos. Quarkus remains functional. No new semantics, source families, schemas or MCP tools were added (the I0 hardening corrected two evidence-correctness defects only), and the Claude Code plugin, skill and (optional) mod are example client material that can be removed without changing any AIP answer.

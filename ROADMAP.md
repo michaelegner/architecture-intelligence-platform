@@ -455,7 +455,9 @@ hosted product demo.**
 Focus: establish a hosted, persistent Live AIP Demo using Pitstop, continuously driven by controlled
 traffic and queried against explicit completed observation windows. This is a demo release, not a
 capability release: it adds no new Architecture Knowledge semantics, source family, schema, or MCP
-tool. See
+tool. Its one product change is a small hardening prerequisite (I0) that fixes two evidence-correctness
+defects found by the I1 gate spike: runtime evidence must not create undeclared receiver routes, and a
+claim for an explicit observation window must not cite evidence from outside it. See
 [`docs/specifications/0.6.2/specification.md`](docs/specifications/0.6.2/specification.md)
 for the detailed scope.
 
