@@ -1,0 +1,20 @@
+# Operator-authored AsyncAPI overlay for the v0.6.2 Pitstop demo - NOT an upstream document.
+# Pitstop ships no AsyncAPI; see ../../PROVENANCE.md. InvoiceService consumes the fanout exchange `Pitstop` through
+# the durable queue `Invoicing` (src/InvoiceService/appsettings.Production.json:7; queue declared and bound at
+# Infrastructure.Messaging/RabbitMQMessageHandler.cs:94-95). No message payload or field is declared.
+asyncapi: '2.6.0'
+info:
+  title: InvoiceService
+  version: "1.0.0"
+x-aip-service-id: service:invoice-service
+servers:
+  pitstop-rabbitmq:
+    url: pitstop-rabbitmq:5672
+    protocol: amqp
+    x-aip-broker-id: rabbitmq:pitstop-rabbitmq
+channels:
+  Pitstop:
+    x-aip-destination-kind: topic
+    subscribe:
+      operationId: consumeInvoiceService
+      x-aip-subscription-name: Invoicing

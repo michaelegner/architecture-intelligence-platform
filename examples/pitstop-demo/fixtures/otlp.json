@@ -1,0 +1,516 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "WorkshopManagementAPI"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "1.0"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "pitstop-demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "aip-pitstop-demo-authored"
+          },
+          "spans": [
+            {
+              "traceId": "a1010000000000000000000000000000",
+              "spanId": "a101c00000000000",
+              "name": "Pitstop send",
+              "kind": 4,
+              "startTimeUnixNano": "1791288000000000000",
+              "endTimeUnixNano": "1791288000005000000",
+              "attributes": [
+                {
+                  "key": "messaging.system",
+                  "value": {
+                    "stringValue": "rabbitmq"
+                  }
+                },
+                {
+                  "key": "messaging.operation.type",
+                  "value": {
+                    "stringValue": "send"
+                  }
+                },
+                {
+                  "key": "messaging.destination.name",
+                  "value": {
+                    "stringValue": "Pitstop"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "CustomerManagementAPI"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "1.0"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "pitstop-demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "aip-pitstop-demo-authored"
+          },
+          "spans": [
+            {
+              "traceId": "a1020000000000000000000000000000",
+              "spanId": "a102c00000000000",
+              "name": "Pitstop send",
+              "kind": 4,
+              "startTimeUnixNano": "1791288060000000000",
+              "endTimeUnixNano": "1791288060005000000",
+              "attributes": [
+                {
+                  "key": "messaging.system",
+                  "value": {
+                    "stringValue": "rabbitmq"
+                  }
+                },
+                {
+                  "key": "messaging.operation.type",
+                  "value": {
+                    "stringValue": "send"
+                  }
+                },
+                {
+                  "key": "messaging.destination.name",
+                  "value": {
+                    "stringValue": "Pitstop"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "VehicleManagementAPI"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "1.0"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "pitstop-demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "aip-pitstop-demo-authored"
+          },
+          "spans": [
+            {
+              "traceId": "a1030000000000000000000000000000",
+              "spanId": "a103c00000000000",
+              "name": "Pitstop send",
+              "kind": 4,
+              "startTimeUnixNano": "1791288120000000000",
+              "endTimeUnixNano": "1791288120005000000",
+              "attributes": [
+                {
+                  "key": "messaging.system",
+                  "value": {
+                    "stringValue": "rabbitmq"
+                  }
+                },
+                {
+                  "key": "messaging.operation.type",
+                  "value": {
+                    "stringValue": "send"
+                  }
+                },
+                {
+                  "key": "messaging.destination.name",
+                  "value": {
+                    "stringValue": "Pitstop"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "TimeService"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "1.0"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "pitstop-demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "aip-pitstop-demo-authored"
+          },
+          "spans": [
+            {
+              "traceId": "a1040000000000000000000000000000",
+              "spanId": "a104c00000000000",
+              "name": "Pitstop send",
+              "kind": 4,
+              "startTimeUnixNano": "1791288180000000000",
+              "endTimeUnixNano": "1791288180005000000",
+              "attributes": [
+                {
+                  "key": "messaging.system",
+                  "value": {
+                    "stringValue": "rabbitmq"
+                  }
+                },
+                {
+                  "key": "messaging.operation.type",
+                  "value": {
+                    "stringValue": "send"
+                  }
+                },
+                {
+                  "key": "messaging.destination.name",
+                  "value": {
+                    "stringValue": "Pitstop"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "InvoiceService"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "1.0"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "pitstop-demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "aip-pitstop-demo-authored"
+          },
+          "spans": [
+            {
+              "traceId": "a1050000000000000000000000000000",
+              "spanId": "a105c00000000000",
+              "name": "Invoicing process",
+              "kind": 5,
+              "startTimeUnixNano": "1791288240000000000",
+              "endTimeUnixNano": "1791288240005000000",
+              "attributes": [
+                {
+                  "key": "messaging.system",
+                  "value": {
+                    "stringValue": "rabbitmq"
+                  }
+                },
+                {
+                  "key": "messaging.operation.type",
+                  "value": {
+                    "stringValue": "process"
+                  }
+                },
+                {
+                  "key": "messaging.destination.name",
+                  "value": {
+                    "stringValue": "Pitstop"
+                  }
+                },
+                {
+                  "key": "messaging.destination.subscription.name",
+                  "value": {
+                    "stringValue": "Invoicing"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "NotificationService"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "1.0"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "pitstop-demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "aip-pitstop-demo-authored"
+          },
+          "spans": [
+            {
+              "traceId": "a1060000000000000000000000000000",
+              "spanId": "a106c00000000000",
+              "name": "Notifications process",
+              "kind": 5,
+              "startTimeUnixNano": "1791288300000000000",
+              "endTimeUnixNano": "1791288300005000000",
+              "attributes": [
+                {
+                  "key": "messaging.system",
+                  "value": {
+                    "stringValue": "rabbitmq"
+                  }
+                },
+                {
+                  "key": "messaging.operation.type",
+                  "value": {
+                    "stringValue": "process"
+                  }
+                },
+                {
+                  "key": "messaging.destination.name",
+                  "value": {
+                    "stringValue": "Pitstop"
+                  }
+                },
+                {
+                  "key": "messaging.destination.subscription.name",
+                  "value": {
+                    "stringValue": "Notifications"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "WorkshopManagementEventHandler"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "1.0"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "pitstop-demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "aip-pitstop-demo-authored"
+          },
+          "spans": [
+            {
+              "traceId": "a1070000000000000000000000000000",
+              "spanId": "a107c00000000000",
+              "name": "WorkshopManagement process",
+              "kind": 5,
+              "startTimeUnixNano": "1791288360000000000",
+              "endTimeUnixNano": "1791288360005000000",
+              "attributes": [
+                {
+                  "key": "messaging.system",
+                  "value": {
+                    "stringValue": "rabbitmq"
+                  }
+                },
+                {
+                  "key": "messaging.operation.type",
+                  "value": {
+                    "stringValue": "process"
+                  }
+                },
+                {
+                  "key": "messaging.destination.name",
+                  "value": {
+                    "stringValue": "Pitstop"
+                  }
+                },
+                {
+                  "key": "messaging.destination.subscription.name",
+                  "value": {
+                    "stringValue": "WorkshopManagement"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "ReportingService"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "1.0"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "pitstop-demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "aip-pitstop-demo-authored"
+          },
+          "spans": [
+            {
+              "traceId": "a1080000000000000000000000000000",
+              "spanId": "a108c00000000000",
+              "name": "Reporting process",
+              "kind": 5,
+              "startTimeUnixNano": "1791288420000000000",
+              "endTimeUnixNano": "1791288420005000000",
+              "attributes": [
+                {
+                  "key": "messaging.system",
+                  "value": {
+                    "stringValue": "rabbitmq"
+                  }
+                },
+                {
+                  "key": "messaging.operation.type",
+                  "value": {
+                    "stringValue": "process"
+                  }
+                },
+                {
+                  "key": "messaging.destination.name",
+                  "value": {
+                    "stringValue": "Pitstop"
+                  }
+                },
+                {
+                  "key": "messaging.destination.subscription.name",
+                  "value": {
+                    "stringValue": "Reporting"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
