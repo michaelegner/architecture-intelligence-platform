@@ -4,6 +4,7 @@ description: Show AIP's evidenced architecture context for a Pitstop service as 
 argument-hint: "[service name or id]"
 disable-model-invocation: true
 allowed-tools: mcp__plugin_aip_aip__get_service_dependencies mcp__plugin_aip_aip__get_evidence mcp__plugin_aip_aip__get_architecture_drift
+disallowed-tools: Bash Write Edit NotebookEdit
 ---
 
 # /aip:inspect

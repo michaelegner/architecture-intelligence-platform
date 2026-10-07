@@ -102,6 +102,13 @@ def test_both_skills_grant_exactly_the_three_read_only_aip_tools_and_nothing_els
         granted = frontmatter["allowed-tools"].split()
         assert set(granted) == {TOOL_PREFIX + name for name in READ_ONLY}, path
         assert not [t for t in granted if t.startswith(FORBIDDEN_TOOLS)], path
+        # `allowed-tools` only pre-approves; the read-only guarantee is `disallowed-tools`, which removes
+        # the action-capable tools from the pool while the skill runs, and leaves repository read/search
+        # tools (Read, Grep, Glob) available for finding the publisher and comparing documents
+        removed = set(frontmatter["disallowed-tools"].split())
+        assert removed >= {"Bash", "Write", "Edit", "NotebookEdit"}, path
+        assert not removed & set(granted), path
+        assert not removed & {"Read", "Grep", "Glob"}, path
         assert all(t.removeprefix(TOOL_PREFIX) in registered for t in granted), path
 
 

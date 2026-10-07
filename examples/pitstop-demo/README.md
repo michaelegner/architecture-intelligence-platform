@@ -60,8 +60,11 @@ claude --plugin-dir examples/pitstop-demo/claude/plugin
   (which receiver reads a field, per-event-type receipt).
 - **`/aip:inspect [service]`** prints one table of claims with qualification, route evidence, evidence
   references, the snapshot id and the limitations. It only reads.
-- Both skills may use only the three read-only AIP tools; they never edit files or run commands. Give the agent
-  the observation context from `.aip-pitstop-demo/prompt.txt`.
+- Both skills pre-approve only the three read-only AIP tools (`allowed-tools`) and remove `Bash`, `Write`,
+  `Edit` and `NotebookEdit` from the tool pool while they run (`disallowed-tools`), so they cannot edit files or
+  run commands; reading and searching the repository stays available. Claude Code applies that restriction for
+  the turn in which the skill is invoked and clears it on the next user message, and `allowed-tools` alone does
+  not restrict anything. Give the agent the observation context from `.aip-pitstop-demo/prompt.txt`.
 
 ## Ask the questions
 

@@ -2,6 +2,7 @@
 name: architecture-aware-development
 description: Use when a task changes an event, a message contract, shared data, a deployment or a service boundary in the Pitstop system and you need the evidenced architecture context before planning - which services AIP resolves as receiving from the messaging destination the changed service publishes to, what was observed, and where the evidence stops. Queries AIP read-only and puts an Evidence section into the plan.
 allowed-tools: mcp__plugin_aip_aip__get_service_dependencies mcp__plugin_aip_aip__get_evidence mcp__plugin_aip_aip__get_architecture_drift
+disallowed-tools: Bash Write Edit NotebookEdit
 ---
 
 # Architecture-aware development with AIP
