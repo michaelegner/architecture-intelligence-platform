@@ -127,5 +127,8 @@ field usage, billing or reporting consequence as AIP evidence.
 
 This is the agent's own plan, built from the facts above: inspect each receiving service AIP resolves
 (including `ReportingService`), account for any receiver AIP could not resolve, and propose a phased
-migration. It is not AIP output; the recorded conversation arrives with the Claude Code client assets in a
-later increment.
+migration. It is not AIP output. [`conversation-claude-code.md`](conversation-claude-code.md) records a real
+Claude Code conversation over this demo (a scoped checkout of `WorkshopManagementAPI` and `docs/`, the `aip`
+plugin loaded): it answers Q5 with "I can't say yet" and, for Q6, plans the inspection of all five receivers,
+including `ReportingService`. It is an example, not qualification evidence, and its history section records two
+earlier attempts that were discarded.
