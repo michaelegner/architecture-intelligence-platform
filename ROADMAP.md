@@ -459,7 +459,7 @@ tool. See
 [`docs/specifications/0.6.2/specification.md`](docs/specifications/0.6.2/specification.md)
 for the detailed scope.
 
-- run a canonical hosted AIP + Pitstop demo continuously with current OTLP runtime evidence and
+- run a canonical hosted AIP + Pitstop demo continuously with continuously accumulated OTLP runtime evidence and
   disclosed operator-authored AsyncAPI declarations;
 - make semantic reproducibility, explicit observation windows, evidence resolution, limitations,
   and abstention visible in the live experience;
@@ -474,9 +474,10 @@ for the detailed scope.
 
 Exit capability:
 
-> **A user and coding agent can use a hosted AIP instance to obtain current, evidence-qualified
-> messaging context for a realistic development task, see the limits of that knowledge, and identify
-> what still needs inspection without reconstructing the topology from the checkout alone.**
+> **A user and coding agent can use a hosted AIP instance to obtain evidence-qualified messaging
+> context from the last completed supported observation window for a realistic development task, see
+> the limits of that knowledge, and identify what still needs inspection without reconstructing the
+> topology from the checkout alone.**
 
 ## v0.7 — API-Aware Current State (planned)
 
