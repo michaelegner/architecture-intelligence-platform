@@ -491,7 +491,9 @@ and creates no Queue, Topic, Subscription, or messaging fact.
 A consumer observation supports `Service -[RECEIVES_FROM]-> Subscription` only when
 `messaging.destination.name` resolves the declared Topic exactly,
 `messaging.destination.subscription.name` resolves the declared Subscription exactly within that
-Topic, `SUBSCRIPTION_OF` links them, and the Service identity guard accepts. The current
+Topic, `SUBSCRIPTION_OF` links them, and the Service identity guard accepts. *(v0.6.2 I0 amendment: it
+additionally requires that the identified Service has a declared `RECEIVES_FROM` to that Subscription; see
+[`0.6.2/i0-hardening.md`](../0.6.2/i0-hardening.md) §3.)* The current
 OpenTelemetry conventions use `messaging.destination.name` for the Topic and the separate
 subscription-name key for both Google Cloud Pub/Sub and Azure Service Bus consumer spans; the I4
 positive fixtures SHALL pin those combinations. A composite path or Subscription name in
