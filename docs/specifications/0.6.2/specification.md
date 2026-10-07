@@ -3,13 +3,13 @@
 **Status:** Draft (2026-10-07)  
 **Target:** `v0.6.2`  
 **Baseline:** Published and post-release-verified `v0.6.1`  
-**Scope authority:** ROADMAP.md — v0.6.2 (entry to be added; this release is a demo release like v0.5.1, not a capability release)
+**Scope authority:** [ROADMAP.md — v0.6.2](../../../ROADMAP.md) (this release is a demo release like v0.5.1, not a capability release)
 
 ## 1. Promise and task
 
 > **Which services receive from the messaging destination this service publishes to, how far can the evidence resolve that topology, and what must I still inspect before changing the event?**
 
-v0.6.2 establishes the **hosted, persistent Live AIP Demo** that later releases extend (v0.7 API-aware, v0.8 Intent): a canonical AIP instance, hosted by the owner, continuously ingests a running Pitstop garage-management sample (a private fork pinned to one upstream commit, driven by controlled traffic) and answers from evidence accumulated in its observation windows. A one-command local version (`run.sh`) exists for reproducibility and offline use. It demonstrates the v0.6.0/v0.6.1 messaging knowledge on a second, independent system.
+v0.6.2 establishes the **hosted, persistent Live AIP Demo** that later releases extend (v0.7 API-aware, v0.8 Intent): a canonical AIP instance, hosted by the owner, continuously ingests a running Pitstop garage-management sample (a private fork pinned to one upstream commit, driven by controlled traffic) and answers from evidence accumulated in its observation windows. "Live" means the system and evidence ingestion run continuously; answers use the last completed supported observation window and may therefore lag wall-clock activity by that window's duration. A one-command local version (`run.sh`) exists for reproducibility and offline use. It demonstrates the v0.6.0/v0.6.1 messaging knowledge on a second, independent system.
 
 The concrete developer task is:
 > **"In `MaintenanceJobFinished`, replace `StartTime` and `EndTime` with a single `Duration` field. The workshop only needs to report how long a job took. Plan the change."**
@@ -52,7 +52,7 @@ Why this adds to the Quarkus demo: Quarkus shows an unresolved Subscription. Pit
 
 Intended mapping: exchange `Pitstop` → Topic; each per-consumer queue → one named Subscription of that Topic; the RabbitMQ instance → one Broker with a stable id (`rabbitmq:pitstop-rabbitmq`).
 
-The following are not yet confirmed against v0.6.1 and are the I1 gate. Each is checked in a short spike before any other increment starts. G1–G2 are topology gates, G4–G5 are the live-evidence gates:
+The following are not yet confirmed against v0.6.1 and form the **first implementation spike within I1**. Complete this spike before the rest of I1 or any later increment. G1–G2 are topology gates, G4–G5 are the live-evidence gates:
 
 | # | To confirm | If it fails |
 |---|---|---|
