@@ -459,7 +459,7 @@ tool. See
 [`docs/specifications/0.6.2/specification.md`](docs/specifications/0.6.2/specification.md)
 for the detailed scope.
 
-- run a canonical hosted AIP + Pitstop demo continuously with continuously accumulated OTLP runtime evidence and
+- run a canonical hosted AIP + Pitstop demo continuously with accumulated OTLP runtime evidence and
   disclosed operator-authored AsyncAPI declarations;
 - make semantic reproducibility, explicit observation windows, evidence resolution, limitations,
   and abstention visible in the live experience;
