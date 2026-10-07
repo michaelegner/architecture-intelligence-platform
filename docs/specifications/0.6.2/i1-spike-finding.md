@@ -162,9 +162,10 @@ environment-correct resolution evidence (H2). The spike tests were rerun against
 H1 lifecycle (tested separately): declaration + observation → route resolved; declaration later removed with the
 observation retained → the route survives observed-only exactly as in v0.6.1 (a further observation is refused);
 a pair that never had a declaration → refused. Resolved status of the stop rule: both defect reruns are
-acceptable. What remains for the owner is the narrower question the I0 specification left open: whether
-differing snapshot ids need anything beyond the bounded drill-down protocol of specification §4.4. The stop
-rule is therefore not lifted by this change.
+acceptable. The narrower question the I0 specification left open — whether differing snapshot ids need anything
+beyond the bounded drill-down protocol of specification §4.4 — was decided by the owner on 2026-10-07: differing
+snapshot ids are an **expected provenance property**; nothing further is required. **The stop rule is lifted**
+(specification §3.2).
 
 **Day granularity (found in review of I0b, #463).** Evidence is stored one node per
 `(subject, relation, object, UTC day, environment)` and `last_seen` advances within the day, so a *sub-day* completed window
