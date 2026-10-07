@@ -29,11 +29,8 @@ from collections.abc import Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.architecture_intelligence.contracts import (
-    SNAPSHOT_ID_PATTERN,
-    ArchitectureAnswer,
-    EvidenceData,
-)
+from app.architecture_intelligence.broker_contracts import EvidenceAnswer
+from app.architecture_intelligence.contracts import SNAPSHOT_ID_PATTERN
 from app.architecture_intelligence.repository import SnapshotUnstable
 from app.architecture_intelligence.request import EvidenceRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
@@ -58,9 +55,11 @@ def _stale_snapshot_detail(*, requested: str, current: str) -> dict:
 def resolve_evidence(
     request: EvidenceRequest,
     service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
-) -> ArchitectureAnswer[EvidenceData]:
+) -> EvidenceAnswer:
     """`POST /api/evidence/resolve` (spec §14.5): calls
-    `ArchitectureIntelligenceService.get_evidence` exactly once and returns its answer unchanged."""
+    `ArchitectureIntelligenceService.get_evidence` exactly once and returns its answer unchanged.
+    Data-dependent version (v0.6.1 spec §5.2): the released v0.5 answer, or the Broker-aware v0.6
+    answer."""
     return service.get_evidence(request)
 
 

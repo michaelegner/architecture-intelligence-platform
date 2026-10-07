@@ -27,8 +27,11 @@ qualification/messaging semantic hardening layered on top in `v0.4.1`, and
 §14 for the `v0.5.0` public-adapter consolidation; this page is a short practical reference.
 
 Every answer's `producer.version` reports the current package/producer version — this is
-build/producer metadata, separate from the public `schema_version`, which is `"0.5"` as of `v0.5.0`
-I3 (widened for the deployment-reconciliation contract; see the I3 spec).
+build/producer metadata, separate from the public `schema_version`. For `get_service_dependencies`
+and `get_evidence` the public `schema_version` is `"0.5"` (as of `v0.5.0` I3) **unless the answer
+carries Broker data**, in which case it is `"0.6"` (since `v0.6.1` I2; see
+[Broker claims](#broker-claims-v061-i2) below). `get_architecture_drift` stays `"0.5"` and the
+fourth tool has its own `"0.6"` contract.
 
 > AIP may help agents reason about architecture, but an agent must never become the source of
 > architectural truth. — [`ROADMAP.md`](../ROADMAP.md)'s v0.4 principle.
@@ -53,17 +56,56 @@ All four:
 - return `structuredContent` as an answer envelope (`ArchitectureAnswer` for the three v0.5 tools,
   `LocalityAnswer` for the fourth) (`schema_version`, `producer`,
   `snapshot`, `outcome`, plus the tool-specific data/claims) validated against the tool's
-  advertised `outputSchema`;
+  advertised `outputSchema`. For `get_service_dependencies` and `get_evidence` that `outputSchema`
+  is a `oneOf` discriminated by `schema_version`: the released v0.5 answer or the Broker-aware v0.6
+  answer;
 - perform zero graph writes and require no LLM API key;
 - never invent, guess, or upgrade an unresolved fact — insufficient evidence is returned as a
   `limitations` entry, never silently treated as absence.
 
 Schemas live at `schemas/architecture_intelligence/v0.5/`:
 `architecture-answer.schema.json` (`get_service_dependencies`), `drift-answer.schema.json`
-(`get_architecture_drift`), `evidence-answer.schema.json` (`get_evidence`), and, for the fourth
-tool, at `schemas/architecture_intelligence/v0.6/`:
+(`get_architecture_drift`), `evidence-answer.schema.json` (`get_evidence`), and at
+`schemas/architecture_intelligence/v0.6/`: for the fourth tool,
 `service-dependencies-by-locality-request.schema.json` (its `request` argument) and
-`service-dependencies-by-locality-answer.schema.json` (its answer).
+`service-dependencies-by-locality-answer.schema.json` (its answer); and, since v0.6.1 I2, the
+Broker-aware `architecture-answer.schema.json` and `evidence-answer.schema.json`. The v0.5 files
+are immutable.
+
+## Broker claims (v0.6.1 I2)
+
+v0.6.1 I2 adds no tool, transport mode or REST endpoint. `Service -[USES_BROKER]-> Broker` (declared
+by an AsyncAPI `x-aip-broker-id` or an Architecture Manifest `brokers[].brokerId`; see
+[`ingestion.md`](ingestion.md)) surfaces through `get_service_dependencies` and `get_evidence`, and
+through their REST equivalents `GET /api/services/{id}/dependencies` and
+`POST /api/evidence/resolve`.
+
+- **`BrokerClaim`.** A sibling kind in `claims`, beside `DependencyClaim` and `DeploymentClaim`:
+  `subject` (the Service), `predicate` `USES_BROKER`, `object` a bounded `BrokerRef` (`id` = the
+  canonical Broker id, `type` `BROKER`, `name` = the explicit stable broker id the source declared)
+  and sorted, deduplicated, non-empty `evidence_refs`. It has no `delivery`, qualification or
+  coverage, and never implies a Queue, Topic, Subscription, Message, producer or consumer.
+  `data.broker_claim_ids` lists them, a sibling of `dependency_claim_ids` and
+  `deployment_claim_ids`. The claim id is
+  `aip:claim:v1:sha256(canonical-json({"predicate": "USES_BROKER", "service_id", "broker_id"}))`.
+- **The version follows the data.** A `get_service_dependencies` answer with at least one
+  BrokerClaim is the v0.6 shape (`schema_version` `"0.6"`); with none it is exactly the v0.5 shape,
+  with no empty Broker field. A `get_evidence` answer that returns a record supporting a
+  `USES_BROKER` fact is v0.6, and each such supported fact carries a `broker` object (`id`, `type`
+  `BROKER`, `name`); otherwise it is v0.5. A refusal (`NOT_ANSWERED`) is always v0.5. After a
+  Service gains its first qualified Broker claim, its dependency answer therefore changes from the
+  v0.5 branch to the v0.6 branch; this is deterministic, not an opt-in mode. A client that validates
+  against the advertised `oneOf` (or against the frozen file for the answer's own `schema_version`)
+  handles both.
+- **Unchanged.** `get_architecture_drift` never returns a BrokerClaim and stays `"0.5"`; the
+  locality tool is unchanged (Broker use is not locality-qualified); the REST-only
+  `GET /api/services/{id}/deployments` view carries no Broker data and keeps `schema_version`
+  `"0.5"` even when the underlying dependency answer is v0.6. The tool count and order are
+  unchanged.
+- **Evidence.** Every `evidence_refs` entry of a BrokerClaim resolves through `get_evidence` at the
+  same snapshot to a v0.6 record whose `supports` include exactly that `(USES_BROKER, Service,
+  Broker)` fact. A Broker relation with no resolvable evidence yields no claim and one
+  `INSUFFICIENT_EVIDENCE` limitation.
 
 ## Pub/Sub in dependency and drift answers (v0.5.0 I4)
 

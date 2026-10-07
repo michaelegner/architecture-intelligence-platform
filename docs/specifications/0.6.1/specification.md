@@ -1,6 +1,6 @@
 # AIP v0.6.1 — Broker Semantic Completion
 
-**Status:** Draft — for owner review  
+**Status:** Released in [`v0.6.1`](../../release-validation/v0.6.1-release-record.md) (2026-10-06)  
 **Target:** `v0.6.1`  
 **Baseline:** Published and post-release-verified `v0.6.0`  
 **Scope authority:** [ROADMAP.md — v0.6.1](../../../ROADMAP.md)
@@ -136,7 +136,7 @@ The existing Queue/Topic/Subscription mapping remains independent. In particular
 
 - resolving a Broker does not resolve a destination kind;
 - a Topic without Subscription identity remains a Topic-only result;
-- an unresolved richer messaging path may still retain a valid Broker claim if Broker identity and Service identity are independently established;
+- once the channel has resolved to a Queue or Topic, an unresolved richer layer (a Subscription or consumer identity) does not remove a Broker claim whose Broker and Service identities are independently established. A channel that never resolved to a Queue or Topic is not admitted and yields no Broker claim;
 - a destination resolved only by `queueMappings`/`topicMappings`/`subscriptionMappings`, without stable broker identity, produces no Broker claim.
 
 Existing Queue/Topic/Subscription mappings remain destination mappings only. They do not establish Broker identity, and `destinationBrokerMappings` stays empty/unimplemented in v0.6.1. Existing inputs without explicit `x-aip-broker-id` or an explicit Architecture Manifest `brokers[].brokerId` remain Broker-free.
@@ -152,7 +152,7 @@ brokers:
   - brokerId: kafka:cluster-a
 ```
 
-The manifest continues to mint no Service. If `brokers` is non-empty, its Service must resolve to a Service already declared by a phase-0 source, exactly as for `calls`. Failure rejects the **whole manifest document** with a broker-source-unresolved diagnostic: its `calls` and `brokers` contributions are both discarded, and it emits zero canonical artifacts.
+The manifest continues to mint no Service. If `brokers` is non-empty, its Service must resolve to a Service already declared by a phase-0 source, exactly as for `calls`. Failure rejects the **whole manifest document** with the existing `MANIFEST_CALL_SOURCE_UNRESOLVED` diagnostic (the manifest's own Service source is unresolved; the frozen v0.5 import-report code vocabulary is not widened): its `calls` and `brokers` contributions are both discarded, and it emits zero canonical artifacts.
 
 `brokerId` is an explicit stable broker id. It is not inferred from a host, protocol or display name.
 
@@ -189,12 +189,21 @@ A Broker claim is **not** a `DependencyClaim`:
 - no `CONFIRMED`/`OBSERVED_ONLY`/`NOT_OBSERVED_IN_WINDOW` runtime qualification;
 - no coverage or destination-resolution fields.
 
+`BrokerClaim.object` is a bounded `BrokerRef` (`id` = the canonical Broker id, `type` = `BROKER`, `name` = the explicit stable broker id the source declared); it is deliberately not an `EntityRef`, so the released v0.5 entity-type set is not widened.
+
+**Claim identity.** `claim_id = aip:claim:v1:<sha256(canonical-json({"predicate": "USES_BROKER", "service_id": <canonical Service id>, "broker_id": <canonical Broker id>}))>`, using the same canonical-JSON and `aip:claim:v1` prefix rules as every other claim id. Evidence ids, the snapshot id and display names are excluded, so the identity follows the Service/Broker pair and not the evidence that currently supports it (the dependency-claim rule). The predicate is a hashed field so a Broker claim id never collides with another claim kind's.
+
+**Evidence.** A BrokerClaim's `evidence_refs` are the union of the evidence ids of every `USES_BROKER` relation for the pair, kept to those that resolve in the snapshot (membership of each specific id, not mere presence). A Broker with no resolvable evidence yields no claim and one `INSUFFICIENT_EVIDENCE` limitation, the same rule a dependency with no usable evidence follows. Every ref on a BrokerClaim resolves through `get_evidence` at the same snapshot to a v0.6 record whose `supports` contain exactly that `(USES_BROKER, Service, Broker)` fact.
+
+**Ordering and refusals.** Claims keep the existing cross-type order `(object.id, predicate, delivery.kind, delivery.via.id, claim_id)`, with an empty delivery part for a BrokerClaim. A refusal (`NOT_ANSWERED`) is always the v0.5 shape.
+
 In the Broker-aware v0.6 answer, `ServiceDependenciesData` gains `broker_claim_ids` as a sibling of `dependency_claim_ids` and `deployment_claim_ids`.
 
 ### 5.2 REST, MCP, evidence and schema versioning
 
 - `get_service_dependencies` and its REST equivalent return Broker claims for the requested Service.
-- `get_evidence` can resolve `USES_BROKER` evidence and exposes `BROKER` as an entity type.
+- `get_evidence` can resolve `USES_BROKER` evidence and exposes `BROKER` as an entity type: a Broker-aware supported fact carries a `broker` object (`BrokerRef`).
+- The REST-only deployments view (`GET /api/services/{id}/deployments`) is derived from the dependency answer of either version, carries no Broker information, and keeps `schema_version = "0.5"`; the dependency envelope's `"0.6"` is not propagated into it.
 - `get_architecture_drift` is unchanged; Broker use has no runtime drift classification in this release.
 - `get_service_dependencies_by_locality` is unchanged; Broker use is not locality-qualified in v0.6.1.
 - MCP still advertises exactly four tools in the existing deterministic order.

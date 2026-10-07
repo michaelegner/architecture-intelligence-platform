@@ -1,6 +1,27 @@
 {
   "claims": [
     {
+      "claim_id": "aip:claim:v1:b93cea3fa38c3ceee1f9de33378d7948675e58d63f6abc962600e4bfa85ace04",
+      "subject": {
+        "id": "service:order-service",
+        "method": null,
+        "name": "OrderService",
+        "namespace": null,
+        "path": null,
+        "protocol": null,
+        "type": "SERVICE"
+      },
+      "predicate": "USES_BROKER",
+      "object": {
+        "id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
+        "type": "BROKER",
+        "name": "asb"
+      },
+      "evidence_refs": [
+        "evidence:asyncapi:urn:aip:source:filesystem:5365d313fb8e16a08d4fb23cb50a0e1fc1fbe876ef55a146b717b1ec1faa8890"
+      ]
+    },
+    {
       "claim_id": "aip:claim:v1:55a825535bd830bd6b688097c770fd6d0dd55b1045c86fb6229a59e855ccb5d4",
       "coverage": null,
       "delivery": {
@@ -52,6 +73,9 @@
       "aip:claim:v1:55a825535bd830bd6b688097c770fd6d0dd55b1045c86fb6229a59e855ccb5d4"
     ],
     "deployment_claim_ids": [],
+    "broker_claim_ids": [
+      "aip:claim:v1:b93cea3fa38c3ceee1f9de33378d7948675e58d63f6abc962600e4bfa85ace04"
+    ],
     "deployment_resolutions": [],
     "service": {
       "id": "service:order-service",
@@ -80,12 +104,12 @@
   "producer": {
     "build_revision": "0000000000000000000000000000000000000000",
     "name": "architecture-intelligence-platform",
-    "version": "0.6.0"
+    "version": "0.6.1"
   },
-  "schema_version": "0.5",
+  "schema_version": "0.6",
   "snapshot": {
-    "model_revision": "sha256:8a2d9272465c99b8b4f029b868c0fdfbc97075ec499be0f3199529b967f65b4a",
-    "snapshot_id": "aip:snapshot:v1:8a2d9272465c99b8b4f029b868c0fdfbc97075ec499be0f3199529b967f65b4a"
+    "model_revision": "sha256:da0595ec6f473989d107c3af7cd01baed2bd1ec75e911cd802c7b65737ab41f2",
+    "snapshot_id": "aip:snapshot:v1:da0595ec6f473989d107c3af7cd01baed2bd1ec75e911cd802c7b65737ab41f2"
   },
   "tool": "get_service_dependencies"
 }

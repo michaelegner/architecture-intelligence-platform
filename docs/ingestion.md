@@ -39,6 +39,13 @@ Subscription.
   vote, and the Channel is omitted with `QUEUE_EVIDENCE_MISSING`. It becomes a Topic only if a valid
   `topicMappings` entry also exists at that Channel.
 
+**Broker use (v0.6.1).** An admitted publish/subscribe operation whose Channel resolved to a Queue or
+Topic, and whose selected servers agree on an explicit stable `x-aip-broker-id`, also emits one
+`Broker` and one deduplicated `Service -[USES_BROKER]-> Broker`. A Topic without Subscription identity
+still qualifies. A Channel with no destination evidence, ambiguous or partially identified servers, a
+destination resolved only by a mapping, or a bare `servers` entry emits no Broker. The AMQP
+`virtualHost` is not Broker identity: two namespaces under one stable broker id are one Broker.
+
 **Publish and subscribe.** For a qualified Topic:
 - A `publish` operation maps to `Service -[PUBLISHES_TO]-> Topic` and `Topic -[CARRIES]-> Message`.
 - A `subscribe` operation needs an explicit Subscription identity. That is `x-aip-subscription-name`,
@@ -92,7 +99,29 @@ a configured mapping, or an identity binding) must be declared by a phase-0 sour
 caller's own OpenAPI or AsyncAPI. If no discovered source declares it, the manifest is
 `REJECTED_UNSUPPORTED` with `MANIFEST_CALL_SOURCE_UNRESOLVED` (pointer `/x-aip-service-id`, or `""`
 when the identity came from elsewhere), exactly like an unresolved call target
-(`MANIFEST_CALL_TARGET_UNRESOLVED`). A manifest without calls emits no CALLS and is not checked.
+(`MANIFEST_CALL_TARGET_UNRESOLVED`). A manifest with neither calls nor brokers emits nothing and is
+not checked.
+
+### Declared Broker use (`brokers`)
+
+A manifest may also declare which messaging brokers its Service uses (v0.6.1):
+
+```yaml
+service: order-service
+x-aip-service-id: service:order-service
+brokers:
+  - brokerId: kafka:cluster-a
+```
+
+`brokerId` is an explicit stable broker id, the same input AsyncAPI's `x-aip-broker-id` supplies. It
+is never inferred from a host, protocol or display name. Each distinct id emits one `Broker`
+(`broker:owned:<sha256(length-delimited(stable broker id))>`) and one declared
+`Service -[USES_BROKER]-> Broker`; the same id declared by an AsyncAPI source reconciles to the same
+Broker, and different ids never merge. A non-empty `brokers` has the same Service rule as `calls`:
+when the manifest's Service is not declared by a phase-0 source, the **whole document** is rejected
+with `MANIFEST_CALL_SOURCE_UNRESOLVED`, so its `calls` and `brokers` are both discarded. An empty
+`brokerId` or a malformed `brokers` entry rejects the document as invalid. A Broker claim never
+creates or implies a Queue, Topic, Subscription, Message, producer or consumer.
 
 ## Canonical validation
 

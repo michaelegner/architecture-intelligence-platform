@@ -17,17 +17,12 @@ from pydantic import BaseModel
 
 from evaluation.architecture_answers.model import ExpectedAnswer, Scenario
 
-_CLAIM_FIELDS = (
-    "subject",
-    "object",
-    "predicate",
-    "destination_resolution",
-    "delivery",
-    "qualification",
-    "coverage",
-    "evidence_refs",
-    "resolution_evidence_refs",
-)
+
+# Every field of the expected claim's own model is compared (v0.6.1 I2: a `BrokerClaim` has no
+# delivery/qualification/coverage fields, so the compared set follows the claim type rather than a
+# fixed dependency-claim list). `claim_id` is the join key, not a compared field.
+def _claim_fields(claim: BaseModel) -> tuple[str, ...]:
+    return tuple(name for name in type(claim).model_fields if name != "claim_id")
 
 
 @dataclass(frozen=True)
@@ -173,13 +168,13 @@ def compare(
     for claim_id in sorted(set(expected_by_id) & set(actual_by_id)):
         expected_claim = expected_by_id[claim_id]
         actual_claim = actual_by_id[claim_id]
-        for field in _CLAIM_FIELDS:
+        for field in _claim_fields(expected_claim):
             _check(
                 field_mismatches,
                 claim_id=claim_id,
                 field=field,
                 expected=getattr(expected_claim, field),
-                actual=getattr(actual_claim, field),
+                actual=getattr(actual_claim, field, None),
             )
 
     passed = not (missing or unexpected or field_mismatches or broken_evidence_refs)

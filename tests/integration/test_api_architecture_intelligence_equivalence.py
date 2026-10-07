@@ -39,6 +39,7 @@ from app.graph.importer import import_all_sources, import_kubernetes_source, imp
 from app.main import create_app
 from app.settings import AppConfig, Secrets, Settings
 from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
+from tests.support.answer_schemas import validate_dependencies, validate_evidence
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 SCHEMAS_DIR = (
@@ -138,7 +139,7 @@ def test_dependencies_rest_matches_service_for_a_confirmed_answer(driver):
         )
     ).model_dump(mode="json")
     assert direct["claims"]
-    jsonschema.validate(instance=direct, schema=DEPENDENCY_ANSWER_SCHEMA)
+    validate_dependencies(direct)
 
     client = _client(driver, service=service)
     response = client.get(
@@ -146,7 +147,7 @@ def test_dependencies_rest_matches_service_for_a_confirmed_answer(driver):
         params={"environment": ENVIRONMENT, "from": WINDOW_START, "to": WINDOW_END},
     )
     assert response.status_code == 200
-    jsonschema.validate(instance=response.json(), schema=DEPENDENCY_ANSWER_SCHEMA)
+    validate_dependencies(response.json())
     assert response.json() == direct
 
 
@@ -293,7 +294,7 @@ def test_evidence_resolve_rest_matches_service(driver):
     )
     direct = service.get_evidence(evidence_request).model_dump(mode="json")
     assert direct["data"]["missing_evidence_refs"] == []
-    jsonschema.validate(instance=direct, schema=EVIDENCE_ANSWER_SCHEMA)
+    validate_evidence(direct)
 
     client = _client(driver, service=service)
     response = client.post(
@@ -304,7 +305,7 @@ def test_evidence_resolve_rest_matches_service(driver):
         },
     )
     assert response.status_code == 200
-    jsonschema.validate(instance=response.json(), schema=EVIDENCE_ANSWER_SCHEMA)
+    validate_evidence(response.json())
     assert response.json() == direct
 
 

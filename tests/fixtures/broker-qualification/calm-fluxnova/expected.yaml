@@ -1,0 +1,11 @@
+# Hand-authored from the pinned CALM fixture (PROVENANCE.md) - the two broker-level connections it
+# authors and nothing else. Names and stable ids only.
+brokers:
+  - "calm:finos-fluxnova:ms-message-broker"
+uses_broker:
+  - [ms-payment-worker, "calm:finos-fluxnova:ms-message-broker"]
+  - [ms-notification-worker, "calm:finos-fluxnova:ms-message-broker"]
+# CALM identifies a broker-level connection only: no Queue, Topic, Subscription, Message, Schema or
+# Operation may exist, and no relation other than USES_BROKER.
+absent_labels: [Queue, Topic, Subscription, Message, Schema, Operation]
+relations: {USES_BROKER: 2}

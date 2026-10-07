@@ -1,0 +1,10 @@
+# Hand-authored from the declarations (every listed service declares `x-aip-broker-id: kafka:cluster-a` on its
+# server and has an admitted channel operation) - stable broker ids and service slugs only, never
+# production ids. The Broker is evidenced by the declaration; it is not inferred from a host,
+# protocol or name.
+declarations: tests/fixtures/pubsub/kafka/declarations
+brokers:
+  - "kafka:cluster-a"
+uses_broker:
+  - [warehouse, "kafka:cluster-a"]
+  - [stock-projector, "kafka:cluster-a"]

@@ -18,6 +18,19 @@ from dataclasses import dataclass
 import neo4j
 from pydantic import BaseModel
 
+from app.architecture_intelligence.broker_contracts import (
+    BROKER_SCHEMA_VERSION,
+    ArchitectureAnswerV06,
+    BrokerClaim,
+    EvidenceAnswer,
+    EvidenceDataV06,
+    ServiceDependenciesAnswer,
+    ServiceDependenciesDataV06,
+)
+from app.architecture_intelligence.broker_projection import (
+    project_broker_claims,
+    to_broker_aware_records,
+)
 from app.architecture_intelligence.contracts import (
     ARCHITECTURE_SCHEMA_VERSION,
     TOOL_NAMES,
@@ -77,9 +90,11 @@ from app.architecture_intelligence.observation_context import build_complete_obs
 from app.architecture_intelligence.repository import (
     SnapshotUnstable,
     canonical_snapshot_state,
+    read_broker_support_rows,
     read_evidence_rows,
     read_public_evidence_list_rows,
     read_public_evidence_row,
+    read_service_broker_rows,
     read_service_dependency_rows,
     read_stable_snapshot,
     read_stable_snapshot_from_session,
@@ -205,6 +220,9 @@ class _SharedProjection:
     service_name: str
     projection: ProjectionResult
     deployment: WholeGraphReconciliation | None = None
+    # v0.6.1 I2c: the service's Broker rows, only when the caller passes `include_broker=True`
+    # (`get_service_dependencies` only - drift stays Broker-agnostic like it is deployment-agnostic).
+    broker_rows: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -255,6 +273,7 @@ class ArchitectureIntelligenceService:
         observation_context: ObservationContextInput | None,
         snapshot_id: str | None,
         include_deployment: bool = False,
+        include_broker: bool = False,
     ) -> _SharedProjection | _SharedRefusal:
         """v0.4.0 I3.1 - the step `get_service_dependencies` and `get_architecture_drift` share
         (I3 spec §15): stable snapshot acquisition, explicit-snapshot comparison, observation-context
@@ -323,7 +342,13 @@ class ArchitectureIntelligenceService:
                     if include_deployment and context_ref is not None
                     else None
                 )
-                return {"dependency_rows": dependency_rows, "deployment": deployment}
+                extra = {"dependency_rows": dependency_rows, "deployment": deployment}
+                # Like deployment reconciliation, the Broker read is skipped when the observation
+                # context is incomplete (the answer is then a refusal and never touches Neo4j for
+                # content); the key is added only when the read ran.
+                if include_broker and context_ref is not None:
+                    extra["broker"] = read_service_broker_rows(session, service_id=service_id)
+                return extra
 
             try:
                 snapshot = read_stable_snapshot(
@@ -382,6 +407,7 @@ class ArchitectureIntelligenceService:
                 coverage_enabled=self._coverage_qualification_enabled,
             )
             deployment = snapshot.extra["deployment"]
+            broker_rows = snapshot.extra.get("broker")
 
         if len(result.claims) > _MAX_CLAIMS:
             return _SharedRefusal(
@@ -403,6 +429,7 @@ class ArchitectureIntelligenceService:
                 limitations=sorted(result.limitations, key=_limitation_sort_key),
             ),
             deployment=deployment,
+            broker_rows=broker_rows,
         )
 
     def _not_answered[T: BaseModel](
@@ -431,12 +458,16 @@ class ArchitectureIntelligenceService:
 
     def get_service_dependencies(
         self, request: ServiceDependenciesRequest
-    ) -> ArchitectureAnswer[ServiceDependenciesData]:
+    ) -> ServiceDependenciesAnswer:
+        """The v0.5 answer, or - exactly when the service has at least one Broker claim - the
+        Broker-aware v0.6 answer (v0.6.1 spec §5.2). The version follows the data, deterministically;
+        a Broker-free answer is byte-identical to what v0.5 returned, and a refusal is always v0.5."""
         shared = self._project_direct_dependencies(
             service_id=request.service_id,
             observation_context=request.observation_context,
             snapshot_id=request.snapshot_id,
             include_deployment=True,
+            include_broker=True,
         )
         if isinstance(shared, _SharedRefusal):
             return self._not_answered(
@@ -474,8 +505,17 @@ class ArchitectureIntelligenceService:
             )
         deployment_resolutions = sorted(deployment_resolutions, key=lambda r: r.resolution_id)
 
+        # v0.6.1 I2c: Broker use is a further sibling projection (spec §5.1), never a dependency.
+        assert shared.broker_rows is not None  # include_broker=True above guarantees this
+        broker_projection = project_broker_claims(
+            shared.broker_rows, service_id=request.service_id, service_name=shared.service_name
+        )
+        broker_claims = broker_projection.claims
+        limitations.extend(broker_projection.limitations)
+
         all_claims = sorted(
-            [*dependency_claims, *deployment_claims], key=_polymorphic_claim_sort_key
+            [*dependency_claims, *deployment_claims, *broker_claims],
+            key=_polymorphic_claim_sort_key,
         )
         limitations = sorted(limitations, key=_limitation_sort_key)
         # Real content exists either as a claim (dependency or deployment) or as a non-resolved
@@ -488,23 +528,29 @@ class ArchitectureIntelligenceService:
         outcome = _claims_outcome(has_content=has_any_content, has_limitations=bool(limitations))
 
         if outcome == Outcome.NOT_ANSWERED:
-            data = None
-            all_claims = []
-            deployment_resolutions = []
-        else:
-            data = ServiceDependenciesData(
-                service=EntityRef(
-                    id=request.service_id, type=EntityType.SERVICE, name=shared.service_name
-                ),
-                dependency_claim_ids=[
-                    claim.claim_id for claim in all_claims if isinstance(claim, DependencyClaim)
-                ],
-                deployment_claim_ids=[
-                    claim.claim_id for claim in all_claims if isinstance(claim, DeploymentClaim)
-                ],
-                deployment_resolutions=deployment_resolutions,
+            # A refusal is always the v0.5 shape: no data, claims or evidence.
+            return ArchitectureAnswer[ServiceDependenciesData](
+                schema_version=ARCHITECTURE_SCHEMA_VERSION,
+                producer=self._producer,
+                tool=_TOOL_NAME,
+                outcome=outcome,
+                snapshot=snapshot_ref,
+                observation_context=context_ref,
+                data=None,
+                claims=[],
+                evidence_refs=[],
+                limitations=limitations,
             )
 
+        service_ref = EntityRef(
+            id=request.service_id, type=EntityType.SERVICE, name=shared.service_name
+        )
+        dependency_claim_ids = [
+            claim.claim_id for claim in all_claims if isinstance(claim, DependencyClaim)
+        ]
+        deployment_claim_ids = [
+            claim.claim_id for claim in all_claims if isinstance(claim, DeploymentClaim)
+        ]
         evidence_refs = sorted(
             {
                 ref
@@ -517,6 +563,27 @@ class ArchitectureIntelligenceService:
             }
         )
 
+        if broker_claims:
+            # spec §5.2: a Broker-aware answer is the v0.6 shape, deterministically.
+            return ArchitectureAnswerV06[ServiceDependenciesDataV06](
+                schema_version=BROKER_SCHEMA_VERSION,
+                producer=self._producer,
+                tool=_TOOL_NAME,
+                outcome=outcome,
+                snapshot=snapshot_ref,
+                observation_context=context_ref,
+                data=ServiceDependenciesDataV06(
+                    service=service_ref,
+                    dependency_claim_ids=dependency_claim_ids,
+                    deployment_claim_ids=deployment_claim_ids,
+                    broker_claim_ids=[claim.claim_id for claim in broker_claims],
+                    deployment_resolutions=deployment_resolutions,
+                ),
+                claims=all_claims,
+                evidence_refs=evidence_refs,
+                limitations=limitations,
+            )
+
         return ArchitectureAnswer[ServiceDependenciesData](
             schema_version=ARCHITECTURE_SCHEMA_VERSION,
             producer=self._producer,
@@ -524,8 +591,14 @@ class ArchitectureIntelligenceService:
             outcome=outcome,
             snapshot=snapshot_ref,
             observation_context=context_ref,
-            data=data,
-            claims=all_claims,
+            data=ServiceDependenciesData(
+                service=service_ref,
+                dependency_claim_ids=dependency_claim_ids,
+                deployment_claim_ids=deployment_claim_ids,
+                deployment_resolutions=deployment_resolutions,
+            ),
+            # no BrokerClaim in this branch: the v0.5 `Claim` union is exactly dependency|deployment
+            claims=[c for c in all_claims if not isinstance(c, BrokerClaim)],
             evidence_refs=evidence_refs,
             limitations=limitations,
         )
@@ -647,7 +720,9 @@ class ArchitectureIntelligenceService:
             read_extra=read_extra,
         )
 
-    def get_evidence(self, request: EvidenceRequest) -> ArchitectureAnswer[EvidenceData]:
+    def get_evidence(self, request: EvidenceRequest) -> EvidenceAnswer:
+        """The v0.5 answer, or - exactly when a returned record supports a `USES_BROKER` fact - the
+        Broker-aware v0.6 answer (v0.6.1 spec §5.2). A refusal is always v0.5."""
         # `EvidenceRequest.evidence_refs` is already deduplicated (spec §11.1) - sorting here is
         # what spec §11.1's "requested ids are sorted lexicographically for processing and output"
         # requires; nothing upstream sorts it yet.
@@ -657,11 +732,16 @@ class ArchitectureIntelligenceService:
             try:
                 snapshot = self._read_stable_snapshot_with_deployment_evidence(
                     session,
-                    build_extra=lambda s, reconciliation: read_evidence_rows(
-                        s,
-                        evidence_ids=requested_ids,
-                        reachable_kubernetes_evidence_ids=reconciliation.reachable_evidence_ids,
-                    ),
+                    build_extra=lambda s, reconciliation: {
+                        **read_evidence_rows(
+                            s,
+                            evidence_ids=requested_ids,
+                            reachable_kubernetes_evidence_ids=reconciliation.reachable_evidence_ids,
+                        ),
+                        # v0.6.1 I2c: read in the same stable-read attempt, apart from the shared
+                        # supporting-relations query the locality evidence mode also uses.
+                        "broker_supports": read_broker_support_rows(s, evidence_ids=requested_ids),
+                    },
                 )
             except SnapshotUnstable:
                 return self._not_answered(
@@ -697,11 +777,7 @@ class ArchitectureIntelligenceService:
 
         result = project_evidence(rows, requested_ids=requested_ids)
         result = _apply_deployed_as_evidence(result, reconciliation=reconciliation)
-        data = EvidenceData(
-            requested_evidence_refs=requested_ids,
-            records=result.records,
-            missing_evidence_refs=result.missing_evidence_refs,
-        )
+        broker_records = to_broker_aware_records(result.records, rows["broker_supports"])
 
         if not result.missing_evidence_refs:
             outcome = Outcome.ANSWERED
@@ -718,6 +794,24 @@ class ArchitectureIntelligenceService:
                 )
             ]
 
+        if broker_records is not None:
+            return ArchitectureAnswerV06[EvidenceDataV06](
+                schema_version=BROKER_SCHEMA_VERSION,
+                producer=self._producer,
+                tool=_EVIDENCE_TOOL_NAME,
+                outcome=outcome,
+                snapshot=snapshot_ref,
+                observation_context=None,
+                data=EvidenceDataV06(
+                    requested_evidence_refs=requested_ids,
+                    records=broker_records,
+                    missing_evidence_refs=result.missing_evidence_refs,
+                ),
+                claims=[],
+                evidence_refs=[],
+                limitations=limitations,
+            )
+
         return ArchitectureAnswer[EvidenceData](
             schema_version=ARCHITECTURE_SCHEMA_VERSION,
             producer=self._producer,
@@ -725,7 +819,11 @@ class ArchitectureIntelligenceService:
             outcome=outcome,
             snapshot=snapshot_ref,
             observation_context=None,
-            data=data,
+            data=EvidenceData(
+                requested_evidence_refs=requested_ids,
+                records=result.records,
+                missing_evidence_refs=result.missing_evidence_refs,
+            ),
             claims=[],
             evidence_refs=[],
             limitations=limitations,

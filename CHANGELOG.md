@@ -9,6 +9,43 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-06
+
+### v0.6.1 — Broker Semantic Completion
+
+See the [release notes](docs/release-validation/v0.6.1-release-notes.md) and the
+[specification](docs/specifications/0.6.1/specification.md).
+
+### Added
+
+- Canonical `Broker` entity and `Service -[USES_BROKER]-> Broker` relation, declared only through an
+  explicit stable id: AsyncAPI `x-aip-broker-id` on an admitted Queue/Topic channel, or Architecture
+  Manifest `brokers[].brokerId`. Namespace and virtual host are not identity.
+- Broker claims in `get_service_dependencies` (and its REST route) and `USES_BROKER` evidence with a
+  `broker` object in `get_evidence`, published as
+  `schemas/architecture_intelligence/v0.6/architecture-answer.schema.json` and
+  `.../evidence-answer.schema.json`.
+- Deterministic Broker qualification: per-fixture expectations for the Azure Service Bus, Google
+  Pub/Sub and Kafka fixtures, FinOS FluxNova/CALM (Broker-only connectivity) and Apache Airflow
+  (negative attribution boundary) evidence, and an independent reference for Broker and claim ids.
+- Quarkus Super Heroes demo question Q9 (which broker does `rest-fights` use) in the walkthrough.
+
+### Changed
+
+- **Data-dependent public contract.** A dependencies answer is `schema_version` `"0.6"` iff it has at
+  least one Broker claim, and an evidence answer iff a returned record supports `USES_BROKER`;
+  otherwise both stay the unchanged `"0.5"` shape. Drift (`"0.5"`), locality (`"0.6"`) and the REST
+  deployments view (`"0.5"`) are unchanged. MCP still advertises four tools; the dependencies and
+  evidence output schemas are a `oneOf` on `schema_version`.
+- Product version 0.6.1; AsyncAPI and manifest mapping rule version 2; snapshot canonicalization
+  version 4 (an always-present `brokers` key). The release golden path and the runtime demo re-pin
+  to the Broker-bearing demo snapshot.
+
+### Not changed
+
+- `schemas/import/v0.5/*` and the released v0.5 answer schemas are untouched. A Broker never creates
+  or implies a Queue, Topic, Subscription, Message, producer or consumer.
+
 ## [0.6.0] - 2026-10-05
 
 ### v0.6.0 — Locality-Aware Current State (candidate)

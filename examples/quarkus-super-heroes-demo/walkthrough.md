@@ -5,7 +5,8 @@
 > unresolved integration boundaries.
 
 This walks through the eight questions of the [v0.5.1 spec](../../docs/specifications/0.5.1/specification.md)
-§5 against the running demo. Every **AIP result** below is an excerpt of a real answer from a clean
+§5 (Q1-Q8) and, since v0.6.1, a ninth, the Broker question (Q9; [v0.6.1 spec](../../docs/specifications/0.6.1/specification.md)
+§6.3), against the running demo. Every **AIP result** below is an excerpt of a real answer from a clean
 `run.sh`. The snapshot is deterministic, so you get the same ids. Each answer is kept visibly apart
 from the other two kinds of information:
 
@@ -44,7 +45,7 @@ MCP `get_service_dependencies` `{"service_id": "service:rest-fights", "observati
 `curl -s "http://localhost:8000/api/services/service:rest-fights/dependencies?$CTX"`.
 
 **AIP result:** `outcome: PARTIAL`, snapshot
-`aip:snapshot:v1:dc21e13dcf235b7526433318104531fc1edd944359a6a12b05d4843e4f4120fc`. There are seven
+`aip:snapshot:v1:5fc44f0a7742b37eb0cb3aa1bb960eb08bb87dd459fa0d7f6e8e76f927fb9246`. There are seven
 `CALLS`, grouped by target and operation. The same target appears more than once because each
 operation is its own claim:
 
@@ -58,7 +59,8 @@ operation is its own claim:
 | | `POST /api/narration/image` | `NOT_OBSERVED_IN_WINDOW` |
 | | `GET /api/narration/hello` | `NOT_OBSERVED_IN_WINDOW` |
 
-The same answer also contains one `PUBLISHES_TO` claim (Q7) and one `DEPLOYED_AS` claim (Q4). It has
+The same answer also contains one `PUBLISHES_TO` claim (Q7), one `DEPLOYED_AS` claim (Q4) and, since
+v0.6.1, one `USES_BROKER` claim (Q9), so it is the Broker-aware `schema_version: "0.6"` shape. It has
 exactly one limitation, `UNRESOLVED_IDENTITY`, on the topic claim.
 
 **Dossier context (not AIP's answer):** `rest-fights` also calls `grpc-locations` over gRPC
@@ -157,7 +159,7 @@ the publish at runtime.
 **AIP result, taken together:**
 - `POST /api/narration/image` is declared but was not exercised in the window (Q2, Q6).
 - `rest-narration` has no qualified deployment identity (Q5).
-- The `fights` topic's consumers are unresolved (Q7).
+- The `fights` topic's consumers are unresolved (Q7). Knowing its Broker (Q9) does not change that.
 
 **Dossier context:** the gRPC `grpc-locations` call is outside AIP's answer (Q1).
 
@@ -172,3 +174,41 @@ the publish at runtime.
 - Treat consumers of the published fight message as unknown until they are confirmed outside AIP.
 
 AIP doesn't say the change is safe, and neither should your agent.
+
+## Q9 — Which broker does `rest-fights` use, and what does that tell me about the messaging topology?
+
+*(Added in v0.6.1.)* The `USES_BROKER` claim in the same dependencies answer as Q1, and its evidence:
+MCP `get_evidence` (or `curl -s -X POST http://localhost:8000/api/evidence/resolve …`) on the
+claim's `evidence_refs` at the answer's own `snapshot_id`.
+
+**AIP result:** because `rest-fights` declares a Broker, the answer is the Broker-aware v0.6 shape
+(`schema_version: "0.6"`; the evidence answer is v0.6 too). One claim,
+`aip:claim:v1:a1d173f77375c8af38d4a0f473aae99d82f63c7646fe99ec00c41cb9ea70d6e0`: `rest-fights`
+`USES_BROKER` the Broker `kafka:fights-kafka` (`object.type: BROKER`, id
+`broker:owned:41c2cee978012556efd6d7da196e07c0d58dde2bc925c8ebd6b4719065a0d5a7`), listed in
+`data.broker_claim_ids`. Its only evidence is `DECLARED` `ASYNCAPI` from
+`qsh/overlay/rest-fights/asyncapi.yaml`, the **operator-authored overlay**
+([PROVENANCE.md](PROVENANCE.md)), the same record that supports the `PUBLISHES_TO` claim (Q7). Resolving it at
+the answer's snapshot returns that record with the exact fact
+`USES_BROKER service:rest-fights → broker:owned:41c2…` and a `broker` object (`id`, `type: BROKER`,
+`name: kafka:fights-kafka`). `event-statistics` declares the same `x-aip-broker-id` in its own overlay file,
+so its answer names the same Broker. Both ids reproduce from the spec's formulas with the
+independent reference
+(`uv run python -m evaluation.architecture_answers.reference broker-id kafka:fights-kafka` and
+`… broker-claim-id service:rest-fights kafka:fights-kafka`).
+
+A Broker claim has no `delivery`, runtime qualification or coverage: it says the declaration names
+this Broker, not that any traffic was observed.
+
+**What this tells you about the messaging topology:** the Kafka cluster `kafka:fights-kafka` is the
+infrastructure `rest-fights` is declared to use, and nothing more. It does **not** resolve the
+consumers of Topic `fights`: the answer is still `PARTIAL` with the same single `UNRESOLVED_IDENTITY`
+limitation on the `PUBLISHES_TO` claim (Q7), and there is no Subscription claim or entity. A Broker
+claim never creates or implies a Queue, Topic, Subscription, Message, producer or consumer.
+
+**Dossier context:** upstream, `event-statistics` consumes `fights` as a Kafka consumer group, and a
+consumer group is never a Subscription (Q7). The dossier does not model the Kafka cluster either: the
+Broker id comes only from the operator-authored overlay.
+
+**Agent suggestion (not AIP output):** treat the Broker as a declared infrastructure fact, not as
+confirmation of who consumes the topic. To learn the consumers, confirm them outside AIP.

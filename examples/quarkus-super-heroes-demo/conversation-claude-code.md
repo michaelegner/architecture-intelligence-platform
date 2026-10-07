@@ -208,6 +208,7 @@ from one snapshot); **no "must not claim"** (nothing from that column of the spe
 | Q6 | Turn 1 | ✅ | ✅ | ✅ | The five drift claims include `POST /api/narration/image`, and it notes there is no observed-but-undeclared drift. |
 | Q7 | Turns 1, 3 | ✅ | ✅ | ✅ | `PUBLISHES_TO` not observed, consumer unknown (`UNRESOLVED_IDENTITY`). It refused to guess consumer services by name and flagged the overlay source. |
 | Q8 | Turns 1, 2 | ✅ | ✅ | ◐ | Names the unexercised image call, the unresolved narration deployment and unknown topic consumers, and never calls the change safe. It cannot name the gRPC call, which only the dossier records (see the walkthrough). |
+| Q9 | Not part of this conversation | n/a | n/a | n/a | Added in v0.6.1, after this conversation was recorded (it ran against v0.5.1). Not evaluated here: the walkthrough's Q9 shows the real v0.6.1 answer. |
 
 Two recorded suggestions are wrong or not followable here, and each has an editorial note below its
 turn: "get runtime evidence first" (turn 1), which this replay demo cannot perform, and "ingest
