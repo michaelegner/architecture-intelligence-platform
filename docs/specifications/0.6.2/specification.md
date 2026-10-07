@@ -143,10 +143,12 @@ Location: `examples/pitstop-demo/claude/`. These show how a coding agent consume
 ```
 claude/plugin/
   .claude-plugin/plugin.json
-  .mcp.json                      -> the AIP MCP URL printed by run.sh
+  .mcp.json                      -> the AIP MCP URL printed by run.sh, via the `aip_mcp_url` plugin setting
   skills/architecture-aware-development/SKILL.md
-  commands/inspect.md            -> /aip:inspect
+  skills/inspect/SKILL.md        -> /aip:inspect (plugin name `aip`)
 ```
+
+The plugin is `aip` and loads with `claude --plugin-dir`. `/aip:inspect` is a skill, not a `commands/` file: Claude Code's current plugin documentation treats `commands/` as the older format (amended 2026-10-07, I1b-1).
 
 **Skill `architecture-aware-development`.** Triggers on tasks that change an event, message contract, shared data, deployment or service boundary. It instructs the agent to:
 
@@ -156,7 +158,7 @@ claude/plugin/
 4. Never state what a consumer does with a payload from AIP evidence; say "inspect the consumer" instead.
 5. Compare with the repository's documents itself and say so when they differ, labelled as the agent's reading of the documents.
 
-**Command `/aip:inspect`.** Infers the subject from the session (service folder, files touched, last prompt) and calls the tools; prints a table of claims with qualification, limitations and evidence refs. With an argument, inspects that Service.
+**Skill `/aip:inspect`** (user-invoked only). Infers the subject from the session (service folder, files touched, last prompt) and calls the tools; prints a table of claims with qualification, limitations and evidence refs. With an argument, inspects that Service.
 
 ### 6.2 Mod (UX layer) — optional, non-blocking
 

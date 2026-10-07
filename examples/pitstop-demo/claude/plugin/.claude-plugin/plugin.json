@@ -1,0 +1,17 @@
+{
+  "name": "aip",
+  "version": "0.6.2",
+  "description": "Architecture-aware development with AIP: plan an event or messaging-contract change from evidence-qualified architecture knowledge (Pitstop demo client material).",
+  "author": {
+    "name": "Architecture Intelligence Platform"
+  },
+  "license": "Apache-2.0",
+  "userConfig": {
+    "aip_mcp_url": {
+      "type": "string",
+      "title": "AIP MCP URL",
+      "description": "The AIP MCP endpoint run.sh prints. Change it to point at another AIP instance.",
+      "default": "http://localhost:8000/mcp"
+    }
+  }
+}
