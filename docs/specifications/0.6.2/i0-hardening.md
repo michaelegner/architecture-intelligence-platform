@@ -107,9 +107,18 @@ resolution helpers; no second filter is introduced.
   retains its declared evidence.
 - `claim_id` is unchanged for an unchanged destination (it excludes evidence ids). The answer-level
   `evidence_refs` (the union of claim refs) changes accordingly. Drift answers inherit the change.
-- "Completed window" is meaningful: an explicit, caller-chosen window wholly in the past whose complete
-  claim set does not change when later evidence is ingested. The snapshot id still changes with any
-  ingested evidence and a stale snapshot is still refused (not changed here).
+- "Completed window" is meaningful for **whole UTC-day windows**: a window consisting of one or more
+  whole UTC days (00:00:00Z of the first day through the end of the last) wholly in the past. Its complete
+  claim set does not change when later evidence is ingested, because every evidence node is bucketed per
+  `(subject, relation, object, UTC day, environment)` and a day-covering window contains every
+  advance of such a node's `last_seen`. The snapshot id still changes with any ingested evidence and a
+  stale snapshot is still refused (not changed here).
+- **Day granularity (decided, not fixed here):** a *sub-day* window is accepted as before, but its
+  answer is **not** stable under later same-day evidence: advancing `last_seen` past the window's end
+  moves the node out of the window, for qualification (pre-existing) and for resolution evidence alike.
+  Making sub-day windows stable needs a finer evidence representation, a capability change outside I0 and
+  outside v0.6.2. Callers needing a stable historical answer, including the hosted demo, use whole UTC
+  days.
 
 ## 5. Unchanged surfaces
 
@@ -132,7 +141,9 @@ artifact, implementation stops and the question returns to the owner.
    a never-declared pair → refused at ingestion, nothing persisted, snapshot unchanged.
 4. Integration: the spike's cross-queue and later-window characterizations are replaced by tests of the
    new behaviour (cross-queue ⇒ five claims, no fact, snapshot unchanged; later receiver traffic ⇒ the
-   completed window's complete claim set is unchanged). The remaining G4/G5 spike tests are rerun and
+   completed whole-UTC-day window's complete claim set is unchanged, including against later same-day
+   traffic; a sub-day window's instability under later same-day traffic is pinned as the documented
+   day-granularity limit). The remaining G4/G5 spike tests are rerun and
    pass; the snapshot-id and stale-snapshot tests still hold.
 5. One test of the refusal through the real `/v1/traces` endpoint. Each guard is shown to be load-bearing
    by disabling it and seeing the new tests fail.

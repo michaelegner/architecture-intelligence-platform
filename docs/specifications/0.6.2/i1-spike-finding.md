@@ -165,3 +165,11 @@ a pair that never had a declaration → refused. Resolved status of the stop rul
 acceptable. What remains for the owner is the narrower question the I0 specification left open: whether
 differing snapshot ids need anything beyond the bounded drill-down protocol of specification §4.4. The stop
 rule is therefore not lifted by this change.
+
+**Day granularity (found in review of I0b, #463).** Evidence is stored one node per
+`(subject, relation, object, UTC day, environment)` and `last_seen` advances within the day, so a *sub-day* completed window
+loses its evidence when later traffic the same day moves `last_seen` past the window's end — for qualification
+(pre-existing) and resolution evidence alike. Whole-UTC-day windows are stable. The owner decided (2026-10-07) to
+narrow "completed window" to whole UTC days rather than change the evidence representation; the characterization tests
+`test_g5_a_whole_utc_day_window_is_stable_under_later_same_day_traffic` and
+`test_g5_a_sub_day_window_is_not_stable_under_later_same_day_traffic` pin both sides.

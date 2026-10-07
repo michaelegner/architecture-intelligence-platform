@@ -58,6 +58,7 @@ OVERLAY = ROOT / "tests" / "fixtures" / "pitstop_spike" / "overlay"
 ENV = "pitstop-spike"
 DAY_1 = datetime(2026, 10, 6, 12, 0, 0, tzinfo=UTC)
 DAY_2 = datetime(2026, 10, 7, 12, 0, 0, tzinfo=UTC)
+LATER_SAME_DAY = datetime(2026, 10, 6, 15, 0, 0, tzinfo=UTC)
 FULL_DAY = {
     "environment": ENV,
     "window_start": "2026-10-06T00:00:00Z",
@@ -781,6 +782,50 @@ def test_g5_later_receiver_traffic_leaves_the_claims_of_a_completed_window_uncha
         r.startswith("evidence:otel:pitstop-spike:2026-10-06:")
         for r in _resolution_refs(next_day, "InvoiceService")
     )
+
+
+def test_g5_a_whole_utc_day_window_is_stable_under_later_same_day_traffic(driver):
+    _import(driver, OVERLAY)
+    _ingest(driver, [_send(), _receive("ReportingService", "Reporting")])
+    completed = _ask(driver, context=FULL_DAY)
+
+    _ingest(
+        driver,
+        [
+            _send(when=LATER_SAME_DAY),
+            _receive("ReportingService", "Reporting", when=LATER_SAME_DAY),
+        ],
+    )
+
+    # evidence is one node per UTC day whose last_seen advances; a window covering the whole day
+    # contains every such advance, so it cannot change
+    assert _full_claims(_ask(driver, context=FULL_DAY)) == _full_claims(completed)
+
+
+def test_g5_a_sub_day_window_is_not_stable_under_later_same_day_traffic(driver):
+    """Pins the day-granularity of the evidence representation (I0 spec §4.2): an observation node
+    is per (subject, relation, object, UTC day, environment) and its `last_seen` advances within the
+    day, so evidence recorded inside a short window leaves it once later traffic the same day moves
+    `last_seen` past the window's end. Qualification (pre-existing) and resolution evidence (I0 H2)
+    share this. 'Completed window' therefore means whole UTC day(s) wholly in the past."""
+    _import(driver, OVERLAY)
+    _ingest(driver, [_send(), _receive("ReportingService", "Reporting")])
+    inside = _ask(driver, context=SHORT_WINDOW)
+    assert set(_qualifications(inside).values()) == {"CONFIRMED"}
+    assert len(_resolution_refs(inside, "ReportingService")) == 2
+
+    _ingest(
+        driver,
+        [
+            _send(when=LATER_SAME_DAY),
+            _receive("ReportingService", "Reporting", when=LATER_SAME_DAY),
+        ],
+    )
+    after = _ask(driver, context=SHORT_WINDOW)
+
+    assert set(_qualifications(after).values()) == {"NOT_OBSERVED_IN_WINDOW"}
+    assert len(_resolution_refs(after, "ReportingService")) == 1
+    assert _full_claims(after) != _full_claims(inside)
 
 
 def test_g5_the_snapshot_id_changes_with_later_traffic_and_a_stale_snapshot_is_refused(driver):
