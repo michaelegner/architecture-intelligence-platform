@@ -6,6 +6,11 @@ PASS-WITH-LIMITS is still a green test that proves the limitation. The verdicts 
 `docs/specifications/0.6.2/i1-spike-finding.md`; this module is its evidence, not an acceptance gate
 for the v0.6.2 demo.
 
+After v0.6.2 I0 (`i0-hardening.md`): the two defects the spike found are fixed and their tests now pin the
+new behaviour (`test_g4b_another_declared_queues_name_is_refused...`, `test_g5_later_receiver_traffic_leaves...`,
+the `test_h1_*` lifecycle tests); the remaining characterizations still describe v0.6.1 limits that I0 does
+not change (no per-Subscription qualification, snapshot ids moving with ingestion, `service.name`).
+
 World: nine operator-authored AsyncAPI 2.6.0 overlays (`tests/fixtures/pitstop_spike/overlay`) - four
 publishers and five subscribers of one fanout exchange `Pitstop` (Topic) on one broker, each
 subscriber naming its queue (Subscription). Runtime evidence is injected as `RuntimeSpan`s through the
@@ -37,7 +42,11 @@ from app.sources.model import DiagnosticCode, FilesystemSourceConfig
 from app.telemetry.adapter import adapt
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import RuntimeSpan
-from app.telemetry.pubsub_resolver import fetch_subscription_candidates, fetch_topic_candidates
+from app.telemetry.pubsub_resolver import (
+    fetch_declared_receivers,
+    fetch_subscription_candidates,
+    fetch_topic_candidates,
+)
 from app.telemetry.queue_resolver import fetch_queue_candidates
 from app.telemetry.service_resolver import fetch_candidates
 from tests.integration.test_broker_architecture_intelligence import PRODUCER
@@ -49,6 +58,7 @@ OVERLAY = ROOT / "tests" / "fixtures" / "pitstop_spike" / "overlay"
 ENV = "pitstop-spike"
 DAY_1 = datetime(2026, 10, 6, 12, 0, 0, tzinfo=UTC)
 DAY_2 = datetime(2026, 10, 7, 12, 0, 0, tzinfo=UTC)
+LATER_SAME_DAY = datetime(2026, 10, 6, 15, 0, 0, tzinfo=UTC)
 FULL_DAY = {
     "environment": ENV,
     "window_start": "2026-10-06T00:00:00Z",
@@ -179,6 +189,7 @@ def _ingest(driver, spans):
             queue_aliases={},
             topic_candidates=fetch_topic_candidates(session),
             subscription_candidates=fetch_subscription_candidates(session),
+            declared_receivers=fetch_declared_receivers(session),
         )
     persist_observation_batch(driver, DATABASE, batch)
     return batch
@@ -520,41 +531,33 @@ def test_g4b_a_missing_or_mismatched_subscription_name_adds_no_receiver_evidence
     assert _qualifications(after) == _qualifications(before)
 
 
-def test_g4b_another_declared_queues_name_adds_an_undeclared_competing_route_to_the_answer(driver):
+def test_g4b_another_declared_queues_name_is_refused_and_the_answer_is_unchanged(driver):
     _import(driver, OVERLAY)
     _ingest(driver, [_send()])
     before = _ask(driver)
+    snapshot_before = _snapshot_id(driver)
     assert len(_raw_dependency_claims(before)) == 5
 
     batch = _ingest(driver, [_receive("ReportingService", "Auditlog")])
     answer = _ask(driver)
-    claims = _raw_dependency_claims(answer)
 
-    # the name matches *a* declared Subscription of the Topic, so the span is accepted and an
-    # observed-only RECEIVES_FROM (Reporting -> Auditlog queue) is created that was never declared
-    assert [f.relation_type for f in batch.facts] == ["RECEIVES_FROM"]
+    # v0.6.2 I0 H1a: the name matches *a* declared Subscription of the Topic, but ReportingService
+    # has no declared route to it, so the span is refused in memory and nothing is persisted
+    assert batch.facts == []
+    assert [u.reason for u in batch.unresolved] == ["unresolved_destination_semantics"]
     assert (
         _count(
             driver,
             "MATCH (:Service {id: 'service:reporting-service'})-[r:RECEIVES_FROM]->(:Subscription) "
             "RETURN count(r) AS c",
         )
-        == 2
+        == 1
     )
-    # nothing is replaced: the declared Reporting route survives and a sixth, distinct claim appears
-    # for the same receiver via Auditlog's Subscription, with no limitation raised
-    assert len(claims) == 6 and len({c.claim_id for c in claims}) == 6
-    routes = sorted(
-        (c.object.name, c.delivery.subscription.name)
-        for c in claims
-        if c.object.name == "ReportingService"
-    )
-    assert routes == [("ReportingService", "Auditlog"), ("ReportingService", "Reporting")]
+    assert _snapshot_id(driver) == snapshot_before
+    # no competing claim: still the five declared routes, byte-for-byte the same claims
+    assert len(_raw_dependency_claims(answer)) == 5
+    assert _full_claims(answer) == _full_claims(before)
     assert answer.limitations == []
-    by_route = {(c.object.name, c.delivery.subscription.name): c for c in claims}
-    # the undeclared route is backed by observed evidence alone on top of the declared Auditlog route
-    assert len(by_route[("ReportingService", "Auditlog")].resolution_evidence_refs) == 2
-    assert len(by_route[("ReportingService", "Reporting")].resolution_evidence_refs) == 1
 
 
 def test_g4b_a_receive_without_any_publisher_span_qualifies_no_claim(driver):
@@ -622,6 +625,98 @@ def test_g4_no_per_subscription_qualification_is_observable_in_the_answer(driver
     assert not any("subscription_qualification" in c.model_dump() for c in claims.values())
 
 
+# --- v0.6.2 I0 H1: the declaration lifecycle around the declared-route guard -------------------------
+
+
+def _with_reporting_mirror(tmp_path: Path) -> Path:
+    """The overlay plus a second document that also declares queue `Reporting`, so that queue
+    outlives the removal of ReportingService's own declaration."""
+    root = _variant(tmp_path)
+    mirror = root / "reporting-mirror"
+    mirror.mkdir()
+    document = yaml.safe_load((OVERLAY / "reporting-service" / "asyncapi.yaml").read_text())
+    document["info"]["title"] = "ReportingMirror"
+    document["x-aip-service-id"] = "service:reporting-mirror"
+    (mirror / "asyncapi.yaml").write_text(yaml.safe_dump(document, sort_keys=False))
+    return root
+
+
+def _drop_reporting_declaration(root: Path) -> None:
+    path = root / "reporting-service" / "asyncapi.yaml"
+    document = yaml.safe_load(path.read_text())
+    channel = document["channels"]["Pitstop"]
+    del channel["subscribe"]
+    channel["publish"] = {"operationId": "publishReportingService"}
+    path.write_text(yaml.safe_dump(document, sort_keys=False))
+
+
+def _reporting_route_evidence_types(driver) -> list[str]:
+    with driver.session(database=DATABASE) as session:
+        return sorted(
+            record["t"]
+            for record in session.run(
+                "MATCH (:Service {id: 'service:reporting-service'})-[r:RECEIVES_FROM]->"
+                "(:Subscription {name: 'Reporting'}) UNWIND r.evidence_ids AS eid "
+                "MATCH (e:Evidence {id: eid}) RETURN e.evidence_type AS t"
+            )
+        )
+
+
+def test_h1_lifecycle_1_a_declaration_and_a_matching_observation_resolve_the_route(driver):
+    _import(driver, OVERLAY)
+    _ingest(driver, [_send()])
+
+    batch = _ingest(driver, [_receive("ReportingService", "Reporting")])
+
+    assert [f.relation_type for f in batch.facts] == ["RECEIVES_FROM"]
+    assert _reporting_route_evidence_types(driver) == ["DECLARED", "OBSERVED"]
+    claim = _dependency_claims(_ask(driver))["ReportingService"]
+    assert claim.destination_resolution.value == "RESOLVED_SERVICE"
+    assert len(claim.resolution_evidence_refs) == 2
+
+
+def test_h1_lifecycle_2_a_removed_declaration_keeps_the_observed_route_as_in_v061(driver, tmp_path):
+    root = _with_reporting_mirror(tmp_path)
+    _import(driver, root)
+    _ingest(driver, [_send(), _receive("ReportingService", "Reporting")])
+    assert _reporting_route_evidence_types(driver) == ["DECLARED", "OBSERVED"]
+
+    _drop_reporting_declaration(root)
+    assert _import(driver, root).committed is True
+    answer = _ask(driver)
+
+    # pinned behaviour (unchanged by I0, spec §3.3): the relation survives with its retained observed
+    # evidence only - the existing declared -> observed-only degradation - and keeps resolving
+    assert _reporting_route_evidence_types(driver) == ["OBSERVED"]
+    claim = {
+        (c.object.name, c.delivery.subscription.name): c for c in _raw_dependency_claims(answer)
+    }[("ReportingService", "Reporting")]
+    assert claim.destination_resolution.value == "RESOLVED_SERVICE"
+    assert answer.limitations == []
+    # the guard applies to *new* observations: with the declaration gone, a further one is refused
+    batch = _ingest(driver, [_receive("ReportingService", "Reporting", trace="c")])
+    assert batch.facts == []
+
+
+def test_h1_lifecycle_3_a_pair_that_never_had_a_declaration_never_creates_the_route(driver):
+    _import(driver, OVERLAY)
+    _ingest(driver, [_send()])
+
+    batch = _ingest(driver, [_receive("ReportingService", "Auditlog")])
+
+    # the actual H1 defect: not a lifecycle case - there is no declaration to degrade from
+    assert batch.facts == []
+    assert [u.reason for u in batch.unresolved] == ["unresolved_destination_semantics"]
+    assert (
+        _count(
+            driver,
+            "MATCH (:Service {id: 'service:reporting-service'})-[r:RECEIVES_FROM]->"
+            "(:Subscription {name: 'Auditlog'}) RETURN count(r) AS c",
+        )
+        == 0
+    )
+
+
 # --- G5: observation windows and a stable answer for a completed window --------------------------------
 
 
@@ -658,24 +753,79 @@ def test_g5_later_publisher_traffic_leaves_the_claims_of_a_completed_window_unch
     assert _full_claims(_ask(driver)) == _full_claims(completed)
 
 
-def test_g5_later_receiver_traffic_adds_out_of_window_evidence_to_a_completed_windows_claim(driver):
+def test_g5_later_receiver_traffic_leaves_the_claims_of_a_completed_window_unchanged(driver):
     _import(driver, OVERLAY)
-    _ingest(driver, [_send()])
+    _ingest(driver, [_send(), _receive("InvoiceService", "Invoicing")])
     completed = _ask(driver)
+    assert len(_resolution_refs(completed, "InvoiceService")) == 2
 
     _ingest(driver, [_receive("InvoiceService", "Invoicing", when=DAY_2)])
     later = _ask(driver)
 
-    # qualification holds, but the route's resolution evidence is not window-scoped: the claim for
-    # the 2026-10-06 window now cites evidence observed on 2026-10-07
-    assert _qualifications(later) == _qualifications(completed)
-    before = _resolution_refs(completed, "InvoiceService")
-    after = _resolution_refs(later, "InvoiceService")
-    assert len(before) == 1 and len(after) == 2
-    assert next(r for r in after if r not in before).startswith(
-        "evidence:otel:pitstop-spike:2026-10-07:"
+    # v0.6.2 I0 H2: the receiver evidence observed on 2026-10-07 is not cited for the 2026-10-06
+    # window; the complete claim set, including resolution refs, is unchanged
+    assert _full_claims(later) == _full_claims(completed)
+    # ...and it is cited for the window it belongs to
+    next_day = _ask(
+        driver,
+        context={
+            "environment": ENV,
+            "window_start": "2026-10-07T00:00:00Z",
+            "window_end": "2026-10-07T23:59:59Z",
+        },
     )
-    assert _full_claims(later) != _full_claims(completed)
+    assert any(
+        r.startswith("evidence:otel:pitstop-spike:2026-10-07:")
+        for r in _resolution_refs(next_day, "InvoiceService")
+    )
+    assert not any(
+        r.startswith("evidence:otel:pitstop-spike:2026-10-06:")
+        for r in _resolution_refs(next_day, "InvoiceService")
+    )
+
+
+def test_g5_a_whole_utc_day_window_is_stable_under_later_same_day_traffic(driver):
+    _import(driver, OVERLAY)
+    _ingest(driver, [_send(), _receive("ReportingService", "Reporting")])
+    completed = _ask(driver, context=FULL_DAY)
+
+    _ingest(
+        driver,
+        [
+            _send(when=LATER_SAME_DAY),
+            _receive("ReportingService", "Reporting", when=LATER_SAME_DAY),
+        ],
+    )
+
+    # evidence is one node per UTC day whose last_seen advances; a window covering the whole day
+    # contains every such advance, so it cannot change
+    assert _full_claims(_ask(driver, context=FULL_DAY)) == _full_claims(completed)
+
+
+def test_g5_a_sub_day_window_is_not_stable_under_later_same_day_traffic(driver):
+    """Pins the day-granularity of the evidence representation (I0 spec §4.2): an observation node
+    is per (subject, relation, object, UTC day, environment) and its `last_seen` advances within the
+    day, so evidence recorded inside a short window leaves it once later traffic the same day moves
+    `last_seen` past the window's end. Qualification (pre-existing) and resolution evidence (I0 H2)
+    share this. 'Completed window' therefore means whole UTC day(s) wholly in the past."""
+    _import(driver, OVERLAY)
+    _ingest(driver, [_send(), _receive("ReportingService", "Reporting")])
+    inside = _ask(driver, context=SHORT_WINDOW)
+    assert set(_qualifications(inside).values()) == {"CONFIRMED"}
+    assert len(_resolution_refs(inside, "ReportingService")) == 2
+
+    _ingest(
+        driver,
+        [
+            _send(when=LATER_SAME_DAY),
+            _receive("ReportingService", "Reporting", when=LATER_SAME_DAY),
+        ],
+    )
+    after = _ask(driver, context=SHORT_WINDOW)
+
+    assert set(_qualifications(after).values()) == {"NOT_OBSERVED_IN_WINDOW"}
+    assert len(_resolution_refs(after, "ReportingService")) == 1
+    assert _full_claims(after) != _full_claims(inside)
 
 
 def test_g5_the_snapshot_id_changes_with_later_traffic_and_a_stale_snapshot_is_refused(driver):
@@ -769,3 +919,32 @@ def test_g4_the_otlp_endpoint_applies_the_same_rules_to_the_fork_facing_attribut
 
     assert set(_qualifications(answer).values()) == {"CONFIRMED"}
     assert len(_resolution_refs(answer, "ReportingService")) == 2
+
+
+def test_h1_the_otlp_endpoint_refuses_a_consumer_span_for_another_services_queue(driver):
+    _import(driver, OVERLAY)
+    app = create_app()
+    app.state.driver = driver
+    app.state.settings = Settings(
+        config=AppConfig.model_validate(
+            {"graph": {"uri": "bolt://ignored:7687", "database": DATABASE}}
+        ),
+        secrets=Secrets(neo4j_user="neo4j", neo4j_password="ignored"),
+    )
+    client = TestClient(app)
+    headers = {"content-type": "application/x-protobuf"}
+    before = _snapshot_id(driver)
+
+    for payload in (
+        _otlp("WorkshopManagementAPI", "send", None),
+        _otlp("ReportingService", "process", "Auditlog"),
+    ):
+        assert client.post("/v1/traces", content=payload, headers=headers).status_code == 200
+    answer = _ask(driver)
+
+    assert len(_raw_dependency_claims(answer)) == 5
+    assert set(_qualifications(answer).values()) == {"CONFIRMED"}
+    assert len(_resolution_refs(answer, "ReportingService")) == 1
+    assert (
+        _snapshot_id(driver) != before
+    )  # the accepted send span changed it; the refused one did not

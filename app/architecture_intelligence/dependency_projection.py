@@ -27,6 +27,7 @@ from app.architecture_intelligence.contracts import (
     LimitationCode,
     Qualification,
 )
+from app.qualification.declared_observed import matches_observed_evidence
 from app.qualification.declared_observed import qualify_relation as _kernel_qualify_relation
 
 
@@ -141,6 +142,33 @@ def _subscription_ref(subscription: dict) -> EntityRef:
         protocol=subscription.get("protocol"),
         namespace=subscription.get("namespace"),
     )
+
+
+def _in_context_evidence(
+    evidence_by_id: dict[str, dict],
+    *,
+    environment: str,
+    window_start: datetime,
+    window_end: datetime,
+) -> dict[str, dict]:
+    """v0.6.2 I0 H2 (docs/specifications/0.6.2/i0-hardening.md §4): the evidence resolution may cite
+    or count. DECLARED rows are kept (never environment- or window-scoped, as for qualification);
+    OBSERVED rows only when they pass `matches_observed_evidence` for the request. Resolution then
+    runs the unchanged `_accepted_evidence_ids` filter over this mapping."""
+    observed = set(
+        matches_observed_evidence(
+            list(evidence_by_id),
+            evidence_by_id,
+            environment=environment,
+            window_start=window_start,
+            window_end=window_end,
+        )
+    )
+    return {
+        eid: row
+        for eid, row in evidence_by_id.items()
+        if row.get("evidence_type") == "DECLARED" or eid in observed
+    }
 
 
 def _accepted_evidence_ids(evidence_ids: list[str], evidence_by_id: dict[str, dict]) -> list[str]:
@@ -383,6 +411,9 @@ def project_service_dependencies(
     the caller is responsible for the `UNKNOWN_ENTITY` check (`rows["service_name"] is None`)
     before calling this."""
     evidence_by_id = rows["evidence"]
+    resolution_evidence_by_id = _in_context_evidence(
+        evidence_by_id, environment=environment, window_start=window_start, window_end=window_end
+    )
     coverage: ServiceTelemetryCoverage = rows["coverage"]
     subject = EntityRef(id=service_id, type=EntityType.SERVICE, name=service_name)
 
@@ -411,7 +442,9 @@ def project_service_dependencies(
             continue
         qualification, coverage_class, evidence_refs = qualified
         destination_resolution, object_ref, resolution_evidence_refs = _resolve_sync_destination(
-            call, providers_by_operation.get(call["operation_id"], []), evidence_by_id
+            call,
+            providers_by_operation.get(call["operation_id"], []),
+            resolution_evidence_by_id,
         )
         claim = _build_claim(
             subject=subject,
@@ -453,7 +486,7 @@ def project_service_dependencies(
             continue
         qualification, coverage_class, evidence_refs = qualified
         destinations = _resolve_async_destinations(
-            send, receivers_by_queue.get(send["queue_id"], []), evidence_by_id
+            send, receivers_by_queue.get(send["queue_id"], []), resolution_evidence_by_id
         )
         for destination_resolution, object_ref, resolution_evidence_refs in destinations:
             claim = _build_claim(
@@ -505,7 +538,7 @@ def project_service_dependencies(
             publish,
             subscriptions_by_topic.get(publish["topic_id"], []),
             receivers_by_subscription,
-            evidence_by_id,
+            resolution_evidence_by_id,
         )
         for destination_resolution, object_ref, route, resolution_evidence_refs in destinations:
             claim = _build_claim(

@@ -145,3 +145,31 @@ evidence; (4) rerun the G4/G5 tests against it; (5) only then the demo implement
 (`CANDIDATE_FILENAMES`) name, as `tests/unit/test_release_golden_path_profile.py` enforces for Quarkus; `run.sh` joins the CI
 shellcheck line in `.github/workflows/ci.yml`; a Pitstop smoke test needs its own Compose project name and cannot share
 ports 8000/4318 with the Quarkus one; whether the new files are pinned in `examples/release-golden-path/SHA256SUMS` is open.
+
+## Rerun after I0 (v0.6.2 I0b)
+
+I0 ([`i0-hardening.md`](i0-hardening.md)) adds the declared-route ingestion guard (H1a) and window- and
+environment-correct resolution evidence (H2). The spike tests were rerun against it:
+
+| Spike characterization | Before I0 | After I0 |
+|---|---|---|
+| G4: consumer span naming another declared queue | accepted; sixth, undeclared competing claim, no limitation | refused in memory (`unresolved_destination_semantics`); nothing persisted, snapshot unchanged, the five declared claims unchanged |
+| G5: later receiver traffic vs a completed window | the window's claim gained a ref from the next day | the window's complete claim set, including resolution refs, is unchanged; the evidence is cited for the window it belongs to |
+| G4(B): matching consumer span adds observed route evidence | yes | unchanged |
+| Snapshot id moves with every ingested span; stale snapshot refused | yes | unchanged (intended, outside I0) |
+| No per-Subscription qualification; `service.name` mismatch mints an observed-only Service | yes | unchanged (outside I0) |
+
+H1 lifecycle (tested separately): declaration + observation → route resolved; declaration later removed with the
+observation retained → the route survives observed-only exactly as in v0.6.1 (a further observation is refused);
+a pair that never had a declaration → refused. Resolved status of the stop rule: both defect reruns are
+acceptable. What remains for the owner is the narrower question the I0 specification left open: whether
+differing snapshot ids need anything beyond the bounded drill-down protocol of specification §4.4. The stop
+rule is therefore not lifted by this change.
+
+**Day granularity (found in review of I0b, #463).** Evidence is stored one node per
+`(subject, relation, object, UTC day, environment)` and `last_seen` advances within the day, so a *sub-day* completed window
+loses its evidence when later traffic the same day moves `last_seen` past the window's end — for qualification
+(pre-existing) and resolution evidence alike. Whole-UTC-day windows are stable. The owner decided (2026-10-07) to
+narrow "completed window" to whole UTC days rather than change the evidence representation; the characterization tests
+`test_g5_a_whole_utc_day_window_is_stable_under_later_same_day_traffic` and
+`test_g5_a_sub_day_window_is_not_stable_under_later_same_day_traffic` pin both sides.
