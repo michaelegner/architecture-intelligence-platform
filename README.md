@@ -149,6 +149,28 @@ answer yet is labelled as outside the answer, not hidden.
 [where dependencies are established](docs/real-world-validation/v0.6.0/locality-walkthrough.md) ·
 [recorded Claude Code conversation](examples/quarkus-super-heroes-demo/conversation-claude-code.md)
 
+## Pitstop: which services receive the event you are about to change?
+
+A second real system, [Pitstop](https://github.com/EdwinVW/pitstop) (a .NET garage-management sample on
+RabbitMQ), on a different broker and stack. The task: *before replacing `StartTime` and `EndTime` in
+`MaintenanceJobFinished`, who receives from the exchange it is published to, and what must I still inspect?*
+One command replays an authored, frozen observation window. It needs Docker and `curl`; no .NET, RabbitMQ or
+model key:
+
+```bash
+examples/pitstop-demo/run.sh
+```
+
+Ask the publisher: AIP resolves five receivers of the fanout exchange through their named queues, one of
+which (`ReportingService`) no Pitstop document lists, with their evidence and the publisher's qualification.
+It states, rather than hides, that it holds no payload or field-level knowledge, so which receiver reads
+`StartTime` is what you must still inspect. The local replay is the reproducible mode; the hosted live
+instance follows in a later increment.
+
+[Demo README](examples/pitstop-demo/README.md) ·
+[question-by-question walkthrough](examples/pitstop-demo/walkthrough.md) ·
+[input provenance](examples/pitstop-demo/PROVENANCE.md)
+
 ## What You Can Do With It
 
 **Find dependencies nobody wrote down.** Real traffic reveals calls that exist in no spec, manifest
