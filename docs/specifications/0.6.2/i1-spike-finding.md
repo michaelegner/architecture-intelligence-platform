@@ -15,7 +15,7 @@ ends with limits is a green test proving the limit, not a red suite. Verdicts:
 | G1 | PASS-WITH-LIMITS | the topology declares as intended; one invalid overlay file rejects the whole import |
 | G2 | PASS-WITH-LIMITS | receivers are answerable from a **publisher** only; no receiver-side question exists |
 | G3 | PASS | no claim has an event dimension; "per Topic" holds by construction |
-| G4 | PASS-WITH-LIMITS | publisher qualification works; no per-Subscription qualification; a cross-queue name re-routes a claim |
+| G4 | PASS-WITH-LIMITS | publisher qualification works; no per-Subscription qualification; a cross-queue name adds an undeclared competing route |
 | G5 | PASS-WITH-LIMITS, **affects the Live promise** | caller-chosen windows work; claims of a completed window are not stable under later receiver traffic; `snapshot_id` moves with every span |
 
 ## G1 — Topic and named Subscriptions (PASS-WITH-LIMITS)
@@ -77,9 +77,12 @@ publisher span and receive spans for four of five queues (Auditlog never observe
 count of resolution refs differs. The spec's Q4 ("qualification per Subscription") is not what v0.6.1 returns.
 
 **Defect-like limit:** a consumer span naming *another declared* queue is accepted. `ReportingService` receiving with
-`subscription.name = Auditlog` creates an observed-only `RECEIVES_FROM` (Reporting → Auditlog queue) that was never declared, and
-the Reporting claim is then **re-routed through Auditlog's Subscription** with its declared `Reporting` route gone from the claim
-and no limitation raised. This needs a product decision; it is out of scope for the spike.
+`subscription.name = Auditlog` creates an observed-only `RECEIVES_FROM` (Reporting → Auditlog queue) that was never declared.
+Nothing is replaced: the publisher's answer then holds **six** distinct dependency claims — the declared `Reporting` route
+and a new, separately identified `ReportingService` claim via Auditlog's Subscription (two resolution refs: the Auditlog
+declaration plus the observed one) — with no limitation raised. Runtime evidence thereby adds an undeclared competing route.
+This needs a product decision; it is out of scope for the spike. (An earlier draft of this finding called it a re-route; that
+came from a test helper that keyed claims by receiver name and hid the second claim — corrected after review of `3286cd5`.)
 
 ## G5 — Windows and a stable answer for a completed window (PASS-WITH-LIMITS, affects the Live promise)
 

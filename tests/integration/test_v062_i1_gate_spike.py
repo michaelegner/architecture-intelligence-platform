@@ -198,6 +198,11 @@ def _dependency_claims(answer) -> dict[str, object]:
     return {c.object.name: c for c in answer.claims if hasattr(c, "delivery")}
 
 
+def _raw_dependency_claims(answer) -> list:
+    """Every dependency claim, uncollapsed: one receiver can appear once per Subscription route."""
+    return [c for c in answer.claims if hasattr(c, "delivery")]
+
+
 def _broker_claims(answer) -> list:
     return [c for c in answer.claims if not hasattr(c, "delivery")]
 
@@ -515,15 +520,15 @@ def test_g4b_a_missing_or_mismatched_subscription_name_adds_no_receiver_evidence
     assert _qualifications(after) == _qualifications(before)
 
 
-def test_g4b_another_declared_queues_name_mints_an_observed_receive_and_reroutes_the_claim(driver):
+def test_g4b_another_declared_queues_name_adds_an_undeclared_competing_route_to_the_answer(driver):
     _import(driver, OVERLAY)
     _ingest(driver, [_send()])
-    before = _dependency_claims(_ask(driver))["ReportingService"]
-    assert before.delivery.subscription.name == "Reporting"
+    before = _ask(driver)
+    assert len(_raw_dependency_claims(before)) == 5
 
     batch = _ingest(driver, [_receive("ReportingService", "Auditlog")])
     answer = _ask(driver)
-    after = _dependency_claims(answer)["ReportingService"]
+    claims = _raw_dependency_claims(answer)
 
     # the name matches *a* declared Subscription of the Topic, so the span is accepted and an
     # observed-only RECEIVES_FROM (Reporting -> Auditlog queue) is created that was never declared
@@ -536,11 +541,20 @@ def test_g4b_another_declared_queues_name_mints_an_observed_receive_and_reroutes
         )
         == 2
     )
-    # and the answer follows it: ReportingService is now routed through Auditlog's queue, with no
-    # limitation raised and its declared Reporting route gone from the claim
-    assert after.delivery.subscription.name == "Auditlog"
+    # nothing is replaced: the declared Reporting route survives and a sixth, distinct claim appears
+    # for the same receiver via Auditlog's Subscription, with no limitation raised
+    assert len(claims) == 6 and len({c.claim_id for c in claims}) == 6
+    routes = sorted(
+        (c.object.name, c.delivery.subscription.name)
+        for c in claims
+        if c.object.name == "ReportingService"
+    )
+    assert routes == [("ReportingService", "Auditlog"), ("ReportingService", "Reporting")]
     assert answer.limitations == []
-    assert set(_dependency_claims(answer)) == set(SUBSCRIPTIONS)
+    by_route = {(c.object.name, c.delivery.subscription.name): c for c in claims}
+    # the undeclared route is backed by observed evidence alone on top of the declared Auditlog route
+    assert len(by_route[("ReportingService", "Auditlog")].resolution_evidence_refs) == 2
+    assert len(by_route[("ReportingService", "Reporting")].resolution_evidence_refs) == 1
 
 
 def test_g4b_a_receive_without_any_publisher_span_qualifies_no_claim(driver):
