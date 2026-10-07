@@ -99,8 +99,12 @@ resolution helpers; no second filter is introduced.
 - Observed evidence outside the requested environment or window is neither cited in
   `resolution_evidence_refs` nor counts toward a destination being evidenced.
 - A destination whose only supporting evidence is dropped falls back as today when evidence is
-  unavailable (`DIRECT_TARGET_FALLBACK`, with the `UNRESOLVED_IDENTITY` limitation); a `RESOLVED_SERVICE`
-  claim keeps at least one reference (its declared evidence).
+  unavailable (`DIRECT_TARGET_FALLBACK`, with the `UNRESOLVED_IDENTITY` limitation). A `RESOLVED_SERVICE`
+  claim SHALL retain at least one **accepted, in-context resolution evidence ref** (declared, or observed
+  and passing the §4.1 predicate); if every supporting ref is filtered out it falls back. This is
+  path-neutral: an HTTP `PROVIDES` or Queue `RECEIVES_FROM` destination may legitimately resolve from
+  in-window observed evidence alone and keeps resolving; the Pitstop Pub/Sub route additionally always
+  retains its declared evidence.
 - `claim_id` is unchanged for an unchanged destination (it excludes evidence ids). The answer-level
   `evidence_refs` (the union of claim refs) changes accordingly. Drift answers inherit the change.
 - "Completed window" is meaningful: an explicit, caller-chosen window wholly in the past whose complete
