@@ -442,6 +442,42 @@ Exit capability:
 > **AIP can establish which messaging infrastructure a service is evidenced to use and state how far
 > that relationship can be resolved without inventing richer messaging semantics.**
 
+## v0.6.2 — Live AIP Demo (planned)
+
+**Goal: Make the existing v0.6 Current-State and messaging knowledge tangible in a realistic,
+hosted product demo.**
+
+**Demo question:**
+
+> **Which services receive from the messaging destination this service publishes to, how far can
+> the evidence resolve that topology, and what must I still inspect before changing the event?**
+
+Focus: establish a hosted, persistent Live AIP Demo using Pitstop, continuously driven by controlled
+traffic and queried against explicit completed observation windows. This is a demo release, not a
+capability release: it adds no new Architecture Knowledge semantics, source family, schema, or MCP
+tool. See
+[`docs/specifications/0.6.2/specification.md`](docs/specifications/0.6.2/specification.md)
+for the detailed scope.
+
+- run a canonical hosted AIP + Pitstop demo continuously with current OTLP runtime evidence and
+  disclosed operator-authored AsyncAPI declarations;
+- make semantic reproducibility, explicit observation windows, evidence resolution, limitations,
+  and abstention visible in the live experience;
+- provide a one-command local replay for reproducibility and offline use while keeping the hosted
+  live instance canonical;
+- demonstrate a realistic `MaintenanceJobFinished` change where AIP resolves the messaging topology
+  the agent should inspect without claiming payload or field usage;
+- provide a Claude Code plugin with an architecture-aware development skill and `/aip:inspect`;
+  any Mod-based UX remains optional and non-blocking;
+- use the persistent demo as the product-demo base that later releases can extend for API-aware
+  Current State and explicit Intent.
+
+Exit capability:
+
+> **A user and coding agent can use a hosted AIP instance to obtain current, evidence-qualified
+> messaging context for a realistic development task, see the limits of that knowledge, and identify
+> what still needs inspection without reconstructing the topology from the checkout alone.**
+
 ## v0.7 — API-Aware Current State (planned)
 
 **Goal: Establish evidence-qualified Current-State knowledge of how APIs are exposed and consumed,
