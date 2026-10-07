@@ -1,0 +1,11 @@
+# Hand-authored from the declarations (every listed service declares `x-aip-broker-id: gcp-pubsub:projects/shop` on its
+# server and has an admitted channel operation) - stable broker ids and service slugs only, never
+# production ids. The Broker is evidenced by the declaration; it is not inferred from a host,
+# protocol or name.
+declarations: tests/fixtures/pubsub/google-pubsub/declarations
+brokers:
+  - "gcp-pubsub:projects/shop"
+uses_broker:
+  - [checkout, "gcp-pubsub:projects/shop"]
+  - [fulfillment, "gcp-pubsub:projects/shop"]
+  - [analytics, "gcp-pubsub:projects/shop"]

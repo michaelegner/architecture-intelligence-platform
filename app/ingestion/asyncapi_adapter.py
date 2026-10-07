@@ -1,5 +1,6 @@
 from app.canonical.model import (
     ArchitectureModel,
+    Broker,
     Direction,
     Message,
     Queue,
@@ -41,6 +42,7 @@ from app.sources.model import (
 from app.sources.owner_ids import (
     MISSING,
     InvalidXVersionError,
+    broker_owned_id,
     inline_payload_schema_id,
     message_owned_id,
     normalize_x_version,
@@ -324,6 +326,8 @@ class _AsyncApiMapping:
         self.channel_topic_id: dict[str, str] = {}
         # channel -> (stable broker id or None, namespace-or-empty, exact NFC channel address)
         self.channel_topic_context: dict[str, tuple[str | None, str, str]] = {}
+        # v0.6.1 I1 spec §4.2: Brokers evidenced by an admitted channel operation.
+        self.brokers_by_id: dict[str, Broker] = {}
 
     def add_relation(self, relation_type: str, source_id: str, target_id: str) -> None:
         key = (relation_type, source_id, target_id)
@@ -1079,6 +1083,25 @@ class _AsyncApiMapping:
                     return rejection
         return None
 
+    def _record_broker_use(self, channel_name: str, *, is_topic: bool) -> None:
+        """v0.6.1 I1 spec §4.2: an admitted operation (its channel resolved to a Queue or Topic)
+        whose selected servers agree on an explicit stable `x-aip-broker-id` evidences one Broker
+        and one deduplicated `USES_BROKER`. A destination resolved only by a configured mapping has
+        no stable broker id here and so yields no Broker; ambiguous server selections never reach
+        this point because the channel resolved no destination. Namespace is not Broker identity."""
+        if is_topic:
+            stable_broker_id = self.channel_topic_context[channel_name][0]
+        else:
+            queue_context = self.channel_broker_namespace.get(channel_name)
+            stable_broker_id = queue_context[0] if queue_context is not None else None
+        if stable_broker_id is None:
+            return
+        broker_id = broker_owned_id(stable_broker_id=stable_broker_id)
+        self.brokers_by_id.setdefault(
+            broker_id, Broker(id=broker_id, stable_broker_id=stable_broker_id)
+        )
+        self.add_relation("USES_BROKER", self.canonical_service_id, broker_id)
+
     def _map_operation(
         self,
         channel_name: str,
@@ -1092,6 +1115,7 @@ class _AsyncApiMapping:
         """One publish/subscribe operation on a channel with a resolved Queue or Topic: its
         direction relation, then every message it carries."""
         self.any_channel_supported = True
+        self._record_broker_use(channel_name, is_topic=is_topic)
         if not is_topic:
             self.add_relation(RELATION_TYPES[direction], self.canonical_service_id, destination_id)
         elif direction is Direction.SEND:
@@ -1262,6 +1286,7 @@ class _AsyncApiMapping:
             provenance=[evidence],
             topics=list(self.topics_by_id.values()),
             subscriptions=list(self.subscriptions_by_id.values()),
+            brokers=list(self.brokers_by_id.values()),
             pubsub_declarations=[
                 PubSubDeclaration(
                     **fields,
@@ -1295,7 +1320,9 @@ class AsyncApiSourceAdapter:
     """
 
     adapter_identity = "asyncapi-adapter@1"
-    mapping_rule_version = "v1"
+    # v0.6.1 I1b: v1 -> v2. The same bytes now map new canonical facts (Broker, USES_BROKER), so an
+    # already-imported unchanged source must be re-evaluated as a new mapping revision.
+    mapping_rule_version = "v2"
     dependency_phase = 0
 
     def supports(self, loaded: LoadedSource) -> bool:

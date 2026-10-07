@@ -10,9 +10,10 @@ import, so this public contract doesn't couple to internal analysis-module churn
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Annotated, Literal, get_args
+from typing import Annotated, Any, Literal, Protocol, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -937,7 +938,19 @@ class EvidenceData(BaseModel):
 Claim = Annotated[DependencyClaim | DeploymentClaim, Field(discriminator="predicate")]
 
 
-def claim_sort_key(claim: DependencyClaim | DeploymentClaim) -> tuple[str, str, str, str, str]:
+class SortableClaim(Protocol):
+    """The fields `claim_sort_key` reads from any claim: `BrokerClaim` (v0.6.1 I2) satisfies it
+    structurally without being part of the v0.5 `Claim` union."""
+
+    @property
+    def claim_id(self) -> str: ...
+    @property
+    def predicate(self) -> StrEnum: ...
+    @property
+    def object(self) -> Any: ...
+
+
+def claim_sort_key(claim: SortableClaim) -> tuple[str, str, str, str, str]:
     # Resolved via AskUserQuestion during I3 slice 1 planning: the spec defines ordering within each
     # claim type but not across the closed union. (object.id, predicate, ...) interleaves both claim
     # types for the same entity, using only fields both types already carry; DependencyClaim's own
@@ -961,6 +974,10 @@ _TOOL_NAME_BY_DATA_TYPE = {
     "ServiceDependenciesData": "get_service_dependencies",
     "EvidenceData": "get_evidence",
     "ArchitectureDriftData": "get_architecture_drift",
+    # v0.6.1 I2: the Broker-aware specializations (app.architecture_intelligence.broker_contracts)
+    # are locked to the same tools; without these entries the lock would silently not apply.
+    "ServiceDependenciesDataV06": "get_service_dependencies",
+    "EvidenceDataV06": "get_evidence",
 }
 
 # v0.4.0 I3.1 / v0.5.0 I3 slice 1: each claim-carrying data type projects `claims` into its own id
@@ -1003,6 +1020,13 @@ def _check_architecture_drift_claim_ids(
     expected_claim_ids = [claim.claim_id for claim in claims]
     if data.drift_claim_ids != expected_claim_ids:
         raise ValueError("data.drift_claim_ids must equal claims[*].claim_id in the same order")
+
+
+def _check_v05_data_claim_ids(data: Any, claims: list[Any]) -> None:
+    if isinstance(data, ServiceDependenciesData):
+        _check_service_dependencies_claim_ids(data, claims)
+    elif isinstance(data, ArchitectureDriftData):
+        _check_architecture_drift_claim_ids(data, claims)
 
 
 def _bound_data_type_name(model: type[BaseModel]) -> str | None:
@@ -1119,66 +1143,80 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
 
     @model_validator(mode="after")
     def _check_envelope_invariants(self) -> ArchitectureAnswer[T]:
-        if self.outcome != Outcome.NOT_ANSWERED and self.data is None:
-            raise ValueError("data must not be null for ANSWERED/PARTIAL outcomes")
-
-        expected_tool = _bound_tool_name(type(self))
-        if expected_tool is not None and self.tool != expected_tool:
-            raise ValueError(f"tool must be {expected_tool!r} for this ArchitectureAnswer[T]")
-
-        if self.tool == "get_evidence":
-            if self.claims:
-                raise ValueError("get_evidence answers must have empty claims")
-            if self.evidence_refs:
-                raise ValueError("get_evidence answers must have empty top-level evidence_refs")
-            if self.observation_context is not None:
-                raise ValueError(
-                    "get_evidence answers must have observation_context = null (spec §12: "
-                    "get_evidence is not runtime-context-sensitive)"
-                )
-
-        has_context_required_limitation = any(
-            limitation.code == LimitationCode.OBSERVATION_CONTEXT_REQUIRED
-            for limitation in self.limitations
+        check_answer_envelope(
+            self,
+            sort_key=claim_sort_key,
+            check_data=_check_v05_data_claim_ids,
         )
-        if (
-            self.tool in _TOOLS_REQUIRING_OBSERVATION_CONTEXT
-            and self.observation_context is None
-            and not has_context_required_limitation
-        ):
-            raise ValueError(
-                "observation_context may only be null when a limitation with code "
-                "OBSERVATION_CONTEXT_REQUIRED is present"
-            )
-
-        # DeploymentClaim has no resolution_evidence_refs field at all (that's a DependencyClaim/
-        # destination-resolution-only concept) - only union it in when present.
-        expected_evidence_refs = sorted(
-            {
-                ref
-                for claim in self.claims
-                for ref in (
-                    *claim.evidence_refs,
-                    *(claim.resolution_evidence_refs if isinstance(claim, DependencyClaim) else ()),
-                )
-            }
-        )
-        if self.evidence_refs != expected_evidence_refs:
-            raise ValueError(
-                "evidence_refs must be the sorted, deduplicated union of every claim's "
-                "evidence_refs and resolution_evidence_refs"
-            )
-
-        if isinstance(self.data, ServiceDependenciesData):
-            _check_service_dependencies_claim_ids(self.data, self.claims)
-        elif isinstance(self.data, ArchitectureDriftData):
-            _check_architecture_drift_claim_ids(self.data, self.claims)
-
-        claim_sort_keys = [claim_sort_key(claim) for claim in self.claims]
-        if claim_sort_keys != sorted(claim_sort_keys):
-            raise ValueError(
-                "claims must be sorted by (object.id, predicate, delivery.kind, delivery.via.id, "
-                "claim_id)"
-            )
-
         return self
+
+
+def check_answer_envelope(
+    answer: Any,
+    *,
+    sort_key: Callable[[Any], tuple[str, str, str, str, str]],
+    check_data: Callable[[Any, list[Any]], None],
+) -> None:
+    """The envelope invariants shared by `ArchitectureAnswer` (v0.5) and the Broker-aware
+    `ArchitectureAnswerV06` (spec §8.3/§9/§12/§14). `check_data` runs the data-type-specific
+    claim-id projection at the same point the v0.5 validator always ran it, so error precedence is
+    unchanged. Extracted verbatim; the v0.5 schema and behavior are pinned by the frozen tests."""
+    if answer.outcome != Outcome.NOT_ANSWERED and answer.data is None:
+        raise ValueError("data must not be null for ANSWERED/PARTIAL outcomes")
+
+    expected_tool = _bound_tool_name(type(answer))
+    if expected_tool is not None and answer.tool != expected_tool:
+        raise ValueError(f"tool must be {expected_tool!r} for this ArchitectureAnswer[T]")
+
+    if answer.tool == "get_evidence":
+        if answer.claims:
+            raise ValueError("get_evidence answers must have empty claims")
+        if answer.evidence_refs:
+            raise ValueError("get_evidence answers must have empty top-level evidence_refs")
+        if answer.observation_context is not None:
+            raise ValueError(
+                "get_evidence answers must have observation_context = null (spec §12: "
+                "get_evidence is not runtime-context-sensitive)"
+            )
+
+    has_context_required_limitation = any(
+        limitation.code == LimitationCode.OBSERVATION_CONTEXT_REQUIRED
+        for limitation in answer.limitations
+    )
+    if (
+        answer.tool in _TOOLS_REQUIRING_OBSERVATION_CONTEXT
+        and answer.observation_context is None
+        and not has_context_required_limitation
+    ):
+        raise ValueError(
+            "observation_context may only be null when a limitation with code "
+            "OBSERVATION_CONTEXT_REQUIRED is present"
+        )
+
+    # DeploymentClaim has no resolution_evidence_refs field at all (that's a DependencyClaim/
+    # destination-resolution-only concept) - only union it in when present.
+    expected_evidence_refs = sorted(
+        {
+            ref
+            for claim in answer.claims
+            for ref in (
+                *claim.evidence_refs,
+                *(claim.resolution_evidence_refs if isinstance(claim, DependencyClaim) else ()),
+            )
+        }
+    )
+    if answer.evidence_refs != expected_evidence_refs:
+        raise ValueError(
+            "evidence_refs must be the sorted, deduplicated union of every claim's "
+            "evidence_refs and resolution_evidence_refs"
+        )
+
+    if answer.data is not None:
+        check_data(answer.data, answer.claims)
+
+    claim_sort_keys = [sort_key(claim) for claim in answer.claims]
+    if claim_sort_keys != sorted(claim_sort_keys):
+        raise ValueError(
+            "claims must be sorted by (object.id, predicate, delivery.kind, delivery.via.id, "
+            "claim_id)"
+        )

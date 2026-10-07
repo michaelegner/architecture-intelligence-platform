@@ -202,12 +202,58 @@ def test_drift_projection_matches_the_fixture_state_shape():
 
 def test_producer_identity_flags_every_wrong_field():
     good = {
+        "tool": "get_architecture_drift",
         "schema_version": "0.5",
         "producer": {"version": "0.5.0", "build_revision": "a" * 40},
     }
     assert gp.producer_identity_mismatches([good], version="0.5.0", sha="a" * 40) == []
-    bad = {"schema_version": "0.4", "producer": {"version": "0.4.2", "build_revision": "b" * 40}}
+    bad = {
+        "tool": "get_architecture_drift",
+        "schema_version": "0.4",
+        "producer": {"version": "0.4.2", "build_revision": "b" * 40},
+    }
     assert len(gp.producer_identity_mismatches([bad], version="0.5.0", sha="a" * 40)) == 3
+
+
+_BROKER_CLAIM = {"predicate": "USES_BROKER"}
+_DEP_CLAIM = {"predicate": "DIRECT_DEPENDENCY", "qualification": "OBSERVED_ONLY"}
+_BROKER_RECORD = {"supports": [{"relation_type": "USES_BROKER"}]}
+_PLAIN_RECORD = {"supports": [{"relation_type": "CALLS"}]}
+
+
+@pytest.mark.parametrize(
+    ("answer", "version"),
+    [
+        ({"tool": "get_service_dependencies", "claims": [_DEP_CLAIM]}, "0.5"),
+        ({"tool": "get_service_dependencies", "claims": [_BROKER_CLAIM, _DEP_CLAIM]}, "0.6"),
+        ({"tool": "get_evidence", "data": {"records": [_PLAIN_RECORD]}}, "0.5"),
+        ({"tool": "get_evidence", "data": {"records": [_PLAIN_RECORD, _BROKER_RECORD]}}, "0.6"),
+        ({"tool": "get_architecture_drift", "claims": [_DEP_CLAIM]}, "0.5"),
+        ({"tool": "get_service_dependencies_by_locality"}, "0.6"),
+        ({"tool": "something_else"}, None),
+    ],
+)
+def test_expected_schema_version_is_tool_specific(answer, version):
+    assert gp.expected_schema_version(answer) == version
+
+
+def test_producer_identity_rejects_the_wrong_version_for_the_content():
+    producer = {"version": "0.6.1", "build_revision": "a" * 40}
+    with_broker = {
+        "tool": "get_service_dependencies",
+        "claims": [_BROKER_CLAIM],
+        "producer": producer,
+    }
+    for claimed, problems in (("0.6", 0), ("0.5", 1)):
+        answer = {**with_broker, "schema_version": claimed}
+        found = gp.producer_identity_mismatches([answer], version="0.6.1", sha="a" * 40)
+        assert len(found) == problems
+
+
+def test_drift_subset_ignores_broker_claims():
+    answer = {"claims": [_BROKER_CLAIM, _DEP_CLAIM]}
+    assert gp.drift_subset(answer) == [_DEP_CLAIM]
+    assert gp.dependency_claims(answer) == [_DEP_CLAIM]
 
 
 def _phase(records: dict, expected_checks: dict | None = None, **extra) -> SimpleNamespace:
@@ -306,3 +352,19 @@ def test_unresolved_deployment_check_counts_only_null_service_and_workload():
     assert run(two[:2]) is False
     assert run([explicit, _resolution("r1"), _resolution("r1")]) is False
     assert run(two, rest=two[:2]) is False
+
+
+def test_validate_schema_selects_the_frozen_schema_of_the_required_version(monkeypatch):
+    seen = []
+    monkeypatch.setattr(gp.jsonschema, "validate", lambda instance, schema: seen.append(schema))
+    base = {"tool": "get_service_dependencies", "claims": []}
+    gp.validate_schema("dependencies", {**base, "schema_version": "0.5"})
+    gp.validate_schema("dependencies", {**base, "claims": [_BROKER_CLAIM], "schema_version": "0.6"})
+    assert [s["properties"]["schema_version"]["const"] for s in seen] == ["0.5", "0.6"]
+    for wrong in (
+        {**base, "claims": [_BROKER_CLAIM], "schema_version": "0.5"},
+        {**base, "schema_version": "0.6"},
+        {"tool": "unknown", "schema_version": "0.5"},
+    ):
+        with pytest.raises(gp.HarnessError):
+            gp.validate_schema("dependencies", wrong)

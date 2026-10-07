@@ -108,11 +108,17 @@ Planning posture:
 
 ## Implementation habits
 
-- Before opening a PR that changes Python code, read
-  [`.claude/agents/aip-reviewer.md`](.claude/agents/aip-reviewer.md) sections A-H as a self-review
-  checklist (evidence membership, schema parity, sanitized diagnostics, determinism, environment
-  parity, tests as proof, pinned qualification identity). It is a checklist for any agent; you do
-  not need Claude Code to use it.
+- Before opening a PR, perform an independent self-review of the complete proposed diff against
+  [`.claude/agents/aip-reviewer.md`](.claude/agents/aip-reviewer.md) sections A-H (evidence
+  membership, schema parity, sanitized diagnostics, determinism, environment parity, tests as
+  proof, pinned qualification identity). Claude Code must invoke the `aip-reviewer` agent
+  sequentially; other agents must apply the same checklist independently from the implementation
+  pass. Resolve every BLOCKER/MAJOR before opening the PR. If review exposes a semantic ambiguity,
+  stop and return it to the owner. After material fixes, run the applicable validation again and
+  repeat the self-review once; do not churn on MINOR/NIT findings. A change that qualifies for the
+  strict documentation-only pre-PR validation exemption in the specification-driven implementation
+  skill also skips this independent reviewer pass; specifications, completion records, release
+  notes, schemas, fixtures and other release-candidate content do not qualify for that exemption.
 - Assert the branch inside the commit command (`test "$(git branch --show-current)" = <branch> &&
   git commit ...`). Do not commit unless the owner asks; end a change by reporting what changed and
   that it is not committed.
@@ -179,6 +185,11 @@ For the full procedure, phase-by-phase guidance, and copy-paste plan/reconciliat
 the [specification-driven-implementation skill](.agents/skills/specification-driven-implementation/SKILL.md).
 Don't duplicate that procedure here — this file states *what's* mandatory, the skill states *how*
 to execute it.
+
+For recurring PR maintenance, use the canonical
+[`address-review`](.agents/skills/address-review/SKILL.md) and
+[`post-merge-sync`](.agents/skills/post-merge-sync/SKILL.md) skills rather than reconstructing
+those procedures from memory.
 
 For build/lint/test commands and local dev setup, see [`docs/development.md`](docs/development.md).
 For general contribution mechanics (branching, PRs, commit style), see

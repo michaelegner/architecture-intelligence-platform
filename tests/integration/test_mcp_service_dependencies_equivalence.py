@@ -17,7 +17,6 @@ import json
 from pathlib import Path
 
 import httpx
-import jsonschema
 import pytest
 import yaml
 from mcp.server import MCPServer
@@ -33,6 +32,7 @@ from app.graph.revision_fence import read_revision
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
 from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
+from tests.support.answer_schemas import validate_dependencies
 from tests.support.negotiated_mcp_client import call_negotiated
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
@@ -119,7 +119,7 @@ async def test_confirmed_dependency_answer_is_identical_direct_vs_mcp(driver):
         .model_dump(mode="json")
     )
     assert direct_json["outcome"] in (Outcome.PARTIAL.value, Outcome.ANSWERED.value)
-    jsonschema.validate(instance=direct_json, schema=DEPENDENCY_ANSWER_SCHEMA)
+    validate_dependencies(direct_json)
 
     server, app = _build_server_and_app(driver)
     async with mcp_session_manager_lifespan(server):
@@ -127,9 +127,7 @@ async def test_confirmed_dependency_answer_is_identical_direct_vs_mcp(driver):
         async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
             result = await _call_mcp(client, _request_payload(ids.service_id("order-service")))
             assert result["isError"] is False
-            jsonschema.validate(
-                instance=result["structuredContent"], schema=DEPENDENCY_ANSWER_SCHEMA
-            )
+            validate_dependencies(result["structuredContent"])
             assert result["structuredContent"] == direct_json
 
 
@@ -152,7 +150,7 @@ async def test_provider_only_service_refusal_is_identical_direct_vs_mcp(driver):
     )
     assert direct_json["outcome"] == Outcome.ANSWERED.value
     assert direct_json["claims"] == []
-    jsonschema.validate(instance=direct_json, schema=DEPENDENCY_ANSWER_SCHEMA)
+    validate_dependencies(direct_json)
 
     server, app = _build_server_and_app(driver)
     async with mcp_session_manager_lifespan(server):
@@ -375,7 +373,7 @@ async def test_resolved_deployment_answer_is_identical_direct_vs_mcp(driver, tmp
         _service(driver).get_service_dependencies(_request(service_id)).model_dump(mode="json")
     )
     assert direct_json["data"]["deployment_claim_ids"]
-    jsonschema.validate(instance=direct_json, schema=DEPENDENCY_ANSWER_SCHEMA)
+    validate_dependencies(direct_json)
 
     server, app = _build_server_and_app(driver)
     async with mcp_session_manager_lifespan(server):
@@ -383,7 +381,5 @@ async def test_resolved_deployment_answer_is_identical_direct_vs_mcp(driver, tmp
         async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
             result = await _call_mcp(client, _request_payload(service_id))
             assert result["isError"] is False
-            jsonschema.validate(
-                instance=result["structuredContent"], schema=DEPENDENCY_ANSWER_SCHEMA
-            )
+            validate_dependencies(result["structuredContent"])
             assert result["structuredContent"] == direct_json

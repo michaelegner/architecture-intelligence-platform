@@ -1,0 +1,16 @@
+886b9ec8b503164ebe411442cfd4c645581fb3effe82e6bd54a5fcf8c8b851ed  ./README.md
+9dad3ae19b95e3f95c3192c3e0491ba3d98e9abd4f25d68f6898b183365c3cac  ./airflow-negative/PROVENANCE.md
+65ca00ab1815797a783af2cb9024704f531728a63bee33164105f31328ac7a4a  ./airflow-negative/declarations/airflow-worker/architecture.yaml
+6bccf1602c8e6d95f77e78c99128cdb3776c692c19961fb78df1c07b82899fef  ./airflow-negative/expected.yaml
+79ecf98bf7a481328da8afd9c84890997882160dbf6c973c2201520a3f6120cb  ./azure-service-bus/PROVENANCE.md
+fbddd6db7688cd06fd1385025fcc68c0312d072f56c592b1c97b749fe37a71ac  ./azure-service-bus/expected.yaml
+5b1643f6cc7ced97ce07265c33d6ddce4c00248c8146ccbd13355518f9baea17  ./calm-fluxnova/PROVENANCE.md
+47cef205fa5203740fbf8e86a060c1dd058bc77bf3330e84c88c99573bda1011  ./calm-fluxnova/declarations/ms-notification-worker/architecture.yaml
+e7a5accf9b3977d6e8f0210a6bd3e6251a7f4ceeb4c971dca47e67290a7e8378  ./calm-fluxnova/declarations/ms-notification-worker/openapi.yaml
+b78ad026c78ec4874a9a17555a08e8fe54772dc238db77afde40e6d4841d1b94  ./calm-fluxnova/declarations/ms-payment-worker/architecture.yaml
+6c5517f5ecc61bdcaa74aa7cf360423005be0fb673fa2247b44a3d6087113279  ./calm-fluxnova/declarations/ms-payment-worker/openapi.yaml
+f66ec45a06bcf61c7ab8bce59fa275be85759adaa9861ac613970b3335a455cd  ./calm-fluxnova/expected.yaml
+f5d602c775ca7068cf85520325eed0a1911a111eaf8bcb49dbab5b609ea50b81  ./google-pubsub/PROVENANCE.md
+94e0b0c9b5878fab1616297daf4785c54d950932f6c7ea1233abc7beb248b9fc  ./google-pubsub/expected.yaml
+69c8d90cef5dfcbb72f68eb9c33758c29a1ea1e4af09d168b152334eb72a58e1  ./kafka/PROVENANCE.md
+272c55ae687e498946dc71ab960d667928e99571a90c09aafa6262e05a7c45f3  ./kafka/expected.yaml

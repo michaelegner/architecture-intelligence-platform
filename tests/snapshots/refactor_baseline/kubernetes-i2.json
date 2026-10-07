@@ -23,8 +23,8 @@
     "mapping_rule_identities": [
       "1",
       "v1",
-      "v1",
-      "v1"
+      "v2",
+      "v2"
     ],
     "provider_revision": null,
     "scope_definition_digest": "<scrubbed>",
@@ -473,7 +473,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "4df4d38f7901ca259dcd9134f1bdf3760c5e4cdbf4a509178128f4ff32a00edc"
+        "semantic_input_digest": "fbae22132711a7aa4d84ceb7bc9ca9feaf7ff2eea5ef27e6c5e2738c46821fa0"
       }
     }
   }

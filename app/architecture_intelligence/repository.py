@@ -630,6 +630,18 @@ _SUPPORTING_RELATIONS_QUERY = (
     "coalesce(r.evidence_ids, []) AS evidence_ids"
 )
 
+# v0.6.1 I2c (spec §5.2): the Broker endpoint of every `USES_BROKER` relation supported by a
+# requested evidence id, with the bounded Broker metadata a v0.6 supported fact needs (id and the
+# stable broker id the source declared). Deliberately NOT part of `_SUPPORTING_RELATIONS_QUERY`:
+# that query feeds the locality evidence mode and the v0.5 `EvidenceRelationType`, which must not
+# see a Broker relation. Run only by `get_evidence`, inside the same stable-read attempt.
+_BROKER_SUPPORT_QUERY = (
+    "MATCH (a:Service)-[r:USES_BROKER]->(b:Broker) "
+    "WHERE any(eid IN coalesce(r.evidence_ids, []) WHERE eid IN $evidence_ids) "
+    "RETURN a.id AS source_id, b.id AS target_id, b.stable_broker_id AS stable_broker_id, "
+    "coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+
 _EVIDENCE_DATETIME_FIELDS = frozenset({"bucket_start", "bucket_end", "first_seen", "last_seen"})
 
 
@@ -668,6 +680,37 @@ def read_evidence_rows(
     ]
 
     return {"evidence": evidence, "relations": relations}
+
+
+def read_broker_support_rows(session: neo4j.Session, *, evidence_ids: list[str]) -> list[dict]:
+    """The `USES_BROKER` relation rows supported by at least one of `evidence_ids` (v0.6.1 I2c)."""
+    return [
+        dict(record) for record in session.run(_BROKER_SUPPORT_QUERY, evidence_ids=evidence_ids)
+    ]
+
+
+# v0.6.1 I2c (spec §5): a service's own `USES_BROKER` relations. Passed as `read_extra` of the
+# dependencies read (see service.py), so it observes the same committed state as the fingerprinted
+# snapshot. Kept apart from `read_service_dependency_rows` so the drift and locality reads, which
+# never return Broker claims, are byte-for-byte unchanged.
+_USES_BROKER_QUERY = (
+    "MATCH (a:Service {id: $service_id})-[r:USES_BROKER]->(b:Broker) "
+    "RETURN b.id AS broker_id, b.stable_broker_id AS stable_broker_id, "
+    "coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+
+
+def read_service_broker_rows(session: neo4j.Session, *, service_id: str) -> dict:
+    """The raw rows `broker_projection.project_broker_claims` needs for one service: its
+    `USES_BROKER` relations and the `Evidence` rows they reference, keyed by id so an id absent
+    from `evidence` does not resolve in this snapshot."""
+    broker_uses = [
+        dict(record) for record in session.run(_USES_BROKER_QUERY, service_id=service_id)
+    ]
+    evidence = read_qualification_evidence_rows(
+        session, evidence_ids=_referenced_evidence_ids(broker_uses)
+    )
+    return {"broker_uses": broker_uses, "evidence": evidence}
 
 
 # --- v0.5.0 I3 slice 5a: public evidence list/lookup reads (spec §16.3) ------------------------

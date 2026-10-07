@@ -40,6 +40,23 @@ def claim_id(
     return f"aip:claim:v1:{digest}"
 
 
+def broker_id(stable_broker_id: str) -> str:
+    """v0.6.1 spec §4.1: `broker:owned:<sha256(broker_owner_key)>` where `broker_owner_key` is the
+    stable broker id length-delimited (8-byte big-endian length prefix, then the UTF-8 bytes) -
+    written from the spec's text, not imported from app code."""
+    encoded = stable_broker_id.encode("utf-8")
+    key = len(encoded).to_bytes(8, "big") + encoded
+    return f"broker:owned:{hashlib.sha256(key).hexdigest()}"
+
+
+def broker_claim_id(*, service_id: str, broker_id: str) -> str:
+    """v0.6.1 spec §5.1 "Claim identity": aip:claim:v1:sha256(canonical-json({"predicate":
+    "USES_BROKER", "service_id", "broker_id"})). Evidence ids and the snapshot id are excluded."""
+    payload = {"predicate": "USES_BROKER", "service_id": service_id, "broker_id": broker_id}
+    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    return f"aip:claim:v1:{digest}"
+
+
 def context_id(*, environment: str, window_start: datetime, window_end: datetime) -> str:
     """spec §16.2: aip:observation-context:v1:sha256(canonical-json({version: 1, environment,
     window_start_utc, window_end_utc}))."""

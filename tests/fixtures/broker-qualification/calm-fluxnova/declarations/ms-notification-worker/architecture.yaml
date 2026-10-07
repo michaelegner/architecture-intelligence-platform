@@ -1,0 +1,8 @@
+# Operator-authored transcription of ONE frozen CALM relationship (see ../../PROVENANCE.md): the
+# broker-level connection `ms-notification-worker-to-broker` over AMQP. The Broker id is source-native (the CALM node
+# id), not a display name, host or protocol. The manifest mints no Service: `ms-notification-worker` is declared by
+# the identity-only OpenAPI beside it.
+service: ms-notification-worker
+x-aip-service-id: service:ms-notification-worker
+brokers:
+  - brokerId: calm:finos-fluxnova:ms-message-broker
