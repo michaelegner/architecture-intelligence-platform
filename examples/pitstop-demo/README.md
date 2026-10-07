@@ -69,7 +69,9 @@ claude --plugin-dir examples/pitstop-demo/claude/plugin
 ## Ask the questions
 
 [`walkthrough.md`](walkthrough.md): the question ladder Q1–Q5, each with the MCP and REST call and the real
-answer, keeping AIP results apart from what AIP cannot know. AIP has no receiver-side question: you ask
+answer, keeping AIP results apart from what AIP cannot know; Q6 links to
+[`conversation-claude-code.md`](conversation-claude-code.md), a recorded Claude Code conversation over this demo
+(an example, not qualification evidence). AIP has no receiver-side question: you ask
 the **publisher** and read its receivers from the answer.
 
 ## What the `WorkshopManagementAPI` answer shows
