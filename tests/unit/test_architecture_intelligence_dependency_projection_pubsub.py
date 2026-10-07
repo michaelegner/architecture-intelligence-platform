@@ -474,3 +474,67 @@ def test_subscription_route_claim_id_binds_the_subscription_id():
         delivery_via_id=TOPIC,
         subscription_id=BILLING,
     )
+
+
+# --- v0.6.2 I0 H2: Pub/Sub resolution evidence is window- and environment-correct -------------
+
+
+def _observed_at(eid: str, last_seen: datetime, environment: str = ENVIRONMENT) -> dict:
+    return {eid: {"evidence_type": "OBSERVED", "environment": environment, "last_seen": last_seen}}
+
+
+_AFTER = datetime(2026, 8, 28, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    "late", [_observed_at("r-b-late", _AFTER), _observed_at("r-b-late", INSIDE_WINDOW, "staging")]
+)
+def test_receiver_evidence_outside_the_window_or_environment_is_not_cited(late):
+    rows = _fanout_rows()
+    rows["subscription_receives"] = [
+        _receive(BILLING, "billing", ["r-b", "r-b-obs", "r-b-late"]),
+        _receive(SHIPPING, "shipping", ["r-s"]),
+    ]
+    rows["evidence"] = {**rows["evidence"], **_observed("r-b-obs"), **late}
+
+    billing, _shipping = _project(rows, coverage=_coverage(messaging=True)).claims
+
+    assert "r-b-obs" in billing.resolution_evidence_refs
+    assert "r-b-late" not in billing.resolution_evidence_refs
+    assert billing.destination_resolution == DestinationResolution.RESOLVED_SERVICE
+
+
+def test_a_completed_windows_claims_do_not_change_when_later_receiver_evidence_arrives():
+    rows = _fanout_rows()
+    completed = _project(rows, coverage=_coverage(messaging=True))
+
+    # the same Service/Subscription route, with one more (later-window) observed ref on shipping
+    later = _fanout_rows()
+    later["subscription_receives"] = [
+        _receive(SHIPPING, "shipping", [*row["evidence_ids"], "r-s-late"])
+        if row["subscription_id"] == SHIPPING
+        else row
+        for row in later["subscription_receives"]
+    ]
+    later["evidence"] = {**later["evidence"], **_observed_at("r-s-late", _AFTER)}
+
+    assert [c.model_dump() for c in _project(later, coverage=_coverage(messaging=True)).claims] == [
+        c.model_dump() for c in completed.claims
+    ]
+
+
+def test_a_receiver_supported_only_by_out_of_window_evidence_leaves_the_subscription_fallback():
+    rows = _fanout_rows()
+    rows["subscription_receives"] = [_receive(BILLING, "billing", ["r-b-late"])]
+    rows["evidence"] = {
+        **{k: v for k, v in rows["evidence"].items() if k != "r-b"},
+        **_observed_at("r-b-late", _AFTER),
+    }
+
+    result = _project(rows)
+
+    claim = next(c for c in result.claims if c.delivery.subscription.id == BILLING)
+    assert claim.destination_resolution == DestinationResolution.DIRECT_TARGET_FALLBACK
+    assert LimitationCode.UNRESOLVED_IDENTITY in {
+        limitation.code for limitation in result.limitations
+    }

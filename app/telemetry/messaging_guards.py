@@ -412,3 +412,14 @@ def decide_service_identity(
     return ServiceDecision(
         accepted=True, discovery_status=DiscoveryStatus.OBSERVED_ONLY, service_id=minted_id
     )
+
+
+def is_declared_receiver(
+    declared_receivers: frozenset[tuple[str, str]], *, service_id: str, subscription_id: str
+) -> bool:
+    """v0.6.2 I0 H1a (docs/specifications/0.6.2/i0-hardening.md §3): a consumer observation may
+    support `Service -[RECEIVES_FROM]-> Subscription` only for a pair that already carries a declared
+    `RECEIVES_FROM`. Evaluated after the destination and Service identity guards, so a Service
+    minted `OBSERVED_ONLY` by runtime evidence is never a declared receiver. The refusal reuses
+    `UNRESOLVED_DESTINATION_SEMANTICS`."""
+    return (service_id, subscription_id) in declared_receivers

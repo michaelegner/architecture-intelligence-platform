@@ -236,3 +236,17 @@ def test_consumer_group_is_not_an_input_to_the_guard():
     assert "consumer_group" not in " ".join(
         inspect.signature(decide_messaging_destination).parameters
     )
+
+
+def test_is_declared_receiver_matches_only_the_exact_service_subscription_pair():
+    from app.telemetry.messaging_guards import is_declared_receiver
+
+    declared = frozenset({("service:a", "subscription:x")})
+    assert is_declared_receiver(declared, service_id="service:a", subscription_id="subscription:x")
+    assert not is_declared_receiver(
+        declared, service_id="service:b", subscription_id="subscription:x"
+    )
+    assert not is_declared_receiver(
+        declared, service_id="service:a", subscription_id="subscription:y"
+    )
+    assert not is_declared_receiver(frozenset(), service_id="service:a", subscription_id="")

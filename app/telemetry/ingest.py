@@ -14,7 +14,11 @@ from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer
 from app.telemetry.model import RuntimeSpan
 from app.telemetry.operation_resolver import fetch_operation_candidates
-from app.telemetry.pubsub_resolver import fetch_subscription_candidates, fetch_topic_candidates
+from app.telemetry.pubsub_resolver import (
+    fetch_declared_receivers,
+    fetch_subscription_candidates,
+    fetch_topic_candidates,
+)
 from app.telemetry.queue_resolver import fetch_queue_candidates
 from app.telemetry.service_resolver import fetch_candidates
 
@@ -33,6 +37,7 @@ def ingest_trace_spans(
         queue_candidates = fetch_queue_candidates(session)
         topic_candidates = fetch_topic_candidates(session)
         subscription_candidates = fetch_subscription_candidates(session)
+        declared_receivers = fetch_declared_receivers(session)
 
     batch = adapt(
         spans,
@@ -45,5 +50,6 @@ def ingest_trace_spans(
         topic_candidates=topic_candidates,
         subscription_candidates=subscription_candidates,
         topic_aliases=telemetry.topic_aliases,
+        declared_receivers=declared_receivers,
     )
     persist_observation_batch(driver, database, batch, scoped=telemetry.scoped_evidence)

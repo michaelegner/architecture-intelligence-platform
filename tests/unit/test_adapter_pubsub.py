@@ -22,7 +22,18 @@ BILLING = DeclaredSubscriptionCandidate(
 )
 
 
-def _correlate(spans, *, service_candidates=SERVICE_CANDIDATES, **kwargs):
+# v0.6.2 I0 H1a: the one declared route (service:order-service consumes `billing`) the consumer
+# tests below rely on; a consumer span without a declared route is refused.
+DECLARED_ORDER_ROUTE = frozenset({("service:order-service", BILLING.id)})
+
+
+def _correlate(
+    spans,
+    *,
+    service_candidates=SERVICE_CANDIDATES,
+    declared_receivers=DECLARED_ORDER_ROUTE,
+    **kwargs,
+):
     return correlate_queue_observations(
         spans,
         service_candidates=service_candidates,
@@ -31,6 +42,7 @@ def _correlate(spans, *, service_candidates=SERVICE_CANDIDATES, **kwargs):
         queue_aliases={},
         topic_candidates=[ORDERS_TOPIC],
         subscription_candidates=[BILLING],
+        declared_receivers=declared_receivers,
         **kwargs,
     )
 
@@ -87,6 +99,42 @@ def test_consumer_without_matching_subscription_records_nothing(attributes):
     batch = _correlate([_messaging_span("receive", **attributes)])
     assert batch.facts == [] and batch.entities == []
     assert [u.reason for u in batch.unresolved] == [UNRESOLVED_DESTINATION_SEMANTICS]
+
+
+@pytest.mark.parametrize(
+    "declared_receivers",
+    [
+        frozenset(),  # nothing declared
+        # another Service's declared route to the same Subscription (H1: Reporting naming
+        # Auditlog's queue)
+        frozenset({("service:shipping-service", BILLING.id)}),
+        # this Service's declared route, but to a different Subscription
+        frozenset({("service:order-service", "subscription:owned:other")}),
+    ],
+)
+def test_consumer_without_a_declared_route_to_the_subscription_is_refused_and_mints_nothing(
+    declared_receivers,
+):
+    batch = _correlate(
+        [_messaging_span("process", **{"messaging.destination.subscription.name": "billing"})],
+        declared_receivers=declared_receivers,
+    )
+    assert batch.facts == [] and batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [UNRESOLVED_DESTINATION_SEMANTICS]
+
+
+def test_an_observed_only_service_is_never_a_declared_receiver():
+    # the service name matches no declared Service, so the identity guard mints it OBSERVED_ONLY;
+    # H1a refuses before anything (not even that Service) is recorded
+    span = _messaging_span("process", **{"messaging.destination.subscription.name": "billing"})
+    batch = _correlate([span.model_copy(update={"service_name": "brand-new-consumer"})])
+    assert batch.facts == [] and batch.entities == []
+    assert [u.reason for u in batch.unresolved] == [UNRESOLVED_DESTINATION_SEMANTICS]
+
+
+def test_the_declared_route_guard_does_not_apply_to_producers():
+    batch = _correlate([_messaging_span("send")], declared_receivers=frozenset())
+    assert [f.relation_type for f in batch.facts] == ["PUBLISHES_TO"]
 
 
 def test_consumer_group_equal_to_subscription_name_is_still_not_an_implicit_match():

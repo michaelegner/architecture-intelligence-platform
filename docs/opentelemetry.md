@@ -254,7 +254,11 @@ of these hold:
 - `messaging.destination.name` resolves the declared Topic;
 - `messaging.destination.subscription.name` matches a declared Subscription of that Topic exactly
   (NFC, with no case folding or trimming);
-- `SUBSCRIPTION_OF` links the two.
+- `SUBSCRIPTION_OF` links the two;
+- the identified Service already has a **declared** `RECEIVES_FROM` to that Subscription (v0.6.2 I0).
+  A consumer span naming a Subscription the Service does not declare — for example another Service's
+  queue — is refused like any unmatched consumer span: never persisted, never public, and it never
+  creates or extends a route.
 
 This is the Google Cloud Pub/Sub and Azure Service Bus consumer shape. A consumer group, even one
 equal to a Subscription name, never resolves, creates or aliases a Subscription. That makes Kafka

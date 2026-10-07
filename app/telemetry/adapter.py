@@ -6,9 +6,11 @@ from app.canonical import ids
 from app.provenance.model import ObservedEvidence
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer, PendingHttpSpan
 from app.telemetry.messaging_guards import (
+    UNRESOLVED_DESTINATION_SEMANTICS,
     PubSubDecision,
     decide_messaging_destination,
     decide_service_identity,
+    is_declared_receiver,
 )
 from app.telemetry.model import (
     DiscoveryStatus,
@@ -604,6 +606,7 @@ def correlate_queue_observations(
     topic_candidates: Sequence[DeclaredTopicCandidate] = (),
     subscription_candidates: Sequence[DeclaredSubscriptionCandidate] = (),
     topic_aliases: dict[str, str] | None = None,
+    declared_receivers: frozenset[tuple[str, str]] = frozenset(),
 ) -> ObservationBatch:
     """Builds observed SENDS/RECEIVES_FROM facts from messaging spans (spec §24-26). Unlike HTTP,
     no correlation between spans is needed - SENDS/RECEIVES_FROM are independent relations, each
@@ -704,6 +707,24 @@ def correlate_queue_observations(
         service_id = service_decision.service_id
         # every accepted decision from decide_service_identity carries its service_id
         assert service_id is not None
+        if (
+            isinstance(destination_decision, PubSubDecision)
+            and relation_type == "RECEIVES_FROM"
+            and not is_declared_receiver(
+                declared_receivers,
+                service_id=service_id,
+                # an accepted consumer decision carries the matched subscription_id
+                subscription_id=destination_decision.subscription_id or "",
+            )
+        ):
+            # v0.6.2 I0 H1a: no declared RECEIVES_FROM from this Service to that Subscription, so
+            # the span never creates or extends the route (and mints nothing, not even the Service).
+            unresolved.append(
+                UnresolvedObservation(
+                    trace_id=span.trace_id, reason=UNRESOLVED_DESTINATION_SEMANTICS
+                )
+            )
+            continue
         _record_if_observed_only(
             entities,
             entity_id=service_id,
@@ -784,6 +805,7 @@ def adapt(
     topic_candidates: Sequence[DeclaredTopicCandidate] = (),
     subscription_candidates: Sequence[DeclaredSubscriptionCandidate] = (),
     topic_aliases: dict[str, str] | None = None,
+    declared_receivers: frozenset[tuple[str, str]] = frozenset(),
 ) -> ObservationBatch:
     """Combines HTTP and queue observations from one decoded OTLP batch into a single
     ObservationBatch (spec §9's OpenTelemetryAdapter stage).
@@ -813,6 +835,7 @@ def adapt(
         topic_candidates=topic_candidates,
         subscription_candidates=subscription_candidates,
         topic_aliases=topic_aliases,
+        declared_receivers=declared_receivers,
     )
     runtime_identity_observations = extract_runtime_identity_observations(spans)
 
