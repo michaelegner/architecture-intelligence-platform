@@ -8,7 +8,7 @@ overlay and replayed fixtures/otlp.json:
 It reads the import report from stdin, then reads the real `WorkshopManagementAPI` dependencies
 answer once over REST. It never writes. It exits 1 with a readable list of problems, rather than
 letting a misleading demo start, when either differs from what the overlay and the authored fixture
-require. On success it prints the answer as JSON, so run.sh can record it.
+require. On success it prints the dependencies answer as JSON, so run.sh can record it.
 
 The expectations are the §4.4 semantic ones, not byte-identical output: five `RESOLVED_SERVICE` claims
 through the five named queues of the exchange `Pitstop`, every claim carrying the publisher's
@@ -94,7 +94,7 @@ def check_import(report: dict) -> list[str]:
     return problems
 
 
-def dependencies() -> dict:
+def _get(view: str) -> dict:
     query = urllib.parse.urlencode(
         {
             "environment": CONTEXT["environment"],
@@ -102,9 +102,17 @@ def dependencies() -> dict:
             "to": CONTEXT["window_end"],
         }
     )
-    url = f"{AIP_URL}/api/services/{urllib.parse.quote(SERVICE_ID)}/dependencies?{query}"
+    url = f"{AIP_URL}/api/services/{urllib.parse.quote(SERVICE_ID)}/{view}?{query}"
     with urllib.request.urlopen(url, timeout=30) as response:
         return json.load(response)
+
+
+def dependencies() -> dict:
+    return _get("dependencies")
+
+
+def drift() -> dict:
+    return _get("drift")
 
 
 def relation(claim: dict) -> str | None:
@@ -176,6 +184,23 @@ def check_answer(answer: dict) -> list[str]:
     return problems
 
 
+def check_drift(answer: dict) -> list[str]:
+    """§4.4: the drift answer is only what the existing rules produce. Recorded on the first real
+    replay: `ANSWERED` with no claims and no limitations for the publisher in this context."""
+    problems = []
+    if answer.get("tool") != "get_architecture_drift":
+        problems.append(f"drift tool {answer.get('tool')}, expected get_architecture_drift")
+    if answer.get("outcome") != "ANSWERED":
+        problems.append(f"drift outcome {answer.get('outcome')}, expected ANSWERED")
+    if answer.get("claims"):
+        problems.append(
+            f"drift claims {[c.get('claim_id') for c in answer['claims']]}, expected none"
+        )
+    if answer.get("limitations"):
+        problems.append(f"drift limitations {answer['limitations']}, expected none")
+    return problems
+
+
 def main() -> int:
     try:
         problems = check_import(json.load(sys.stdin))
@@ -189,6 +214,10 @@ def main() -> int:
         problems.append(f"could not read the WorkshopManagementAPI dependencies answer: {exc}")
     if answer is not None:
         problems += check_answer(answer)
+    try:
+        problems += check_drift(drift())
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        problems.append(f"could not read the WorkshopManagementAPI drift answer: {exc}")
     if problems:
         print(
             "The demo is NOT ready - the result differs from what the overlay and fixture require:"

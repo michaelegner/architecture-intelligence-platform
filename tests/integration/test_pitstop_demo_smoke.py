@@ -10,6 +10,8 @@ result independently over standard negotiated MCP:
   the five receivers through their queues, plus one Broker claim;
 - Q3: ReportingService's claim cites its declared overlay evidence and its route's observed evidence,
   and both resolve through `get_evidence` at the answer's own snapshot;
+- §4.4 drift: `get_architecture_drift` for the same service and context is `ANSWERED` with no claims and
+  no limitations (pinned by `check_ready.check_drift`, also enforced by `run.sh`);
 - Q4: every claim carries the publisher's qualification, while only four of the five receiver routes
   carry observed evidence (the authored fixture has no AuditlogService receive span);
 - Q5: no answer or evidence field holds any payload, field name or event type: AIP has no field-level
@@ -272,8 +274,19 @@ def test_one_command_demo_answers_the_question_ladder_at_one_snapshot():
         }
         assert observed_routes == set(receivers) - {"AuditlogService"}
 
+        # §4.4: the drift answer is only what the existing rules produce - ANSWERED, no claims
+        drift = _call(
+            "get_architecture_drift",
+            {"service_id": check_ready.SERVICE_ID, "observation_context": check_ready.CONTEXT},
+            30,
+        )
+        assert check_ready.check_drift(drift) == []
+        assert (
+            drift["outcome"] == "ANSWERED" and drift["claims"] == [] and drift["limitations"] == []
+        )
+
         # Q5: AIP holds no field-level knowledge; no answer carries payload, field or event type
-        everything = json.dumps([answer, evidence])
+        everything = json.dumps([answer, evidence, drift])
         for forbidden in (
             "StartTime",
             "EndTime",
