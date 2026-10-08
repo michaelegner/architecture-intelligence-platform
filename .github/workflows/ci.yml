@@ -51,7 +51,7 @@ jobs:
       # (v0.5.1 I3) examples/quarkus-super-heroes-demo/ holds the realistic demo's launcher;
       # (v0.6.2 I1a) examples/pitstop-demo/ holds the Pitstop demo's.
       - name: shellcheck
-        run: shellcheck examples/runtime-demo/*.sh examples/release-golden-path/*.sh examples/quarkus-super-heroes-demo/*.sh examples/pitstop-demo/*.sh
+        run: shellcheck examples/runtime-demo/*.sh examples/release-golden-path/*.sh examples/quarkus-super-heroes-demo/*.sh examples/pitstop-demo/*.sh examples/pitstop-demo/live/*.sh
 
       - name: Unit tests
         # Derandomized property-based tests (tests/conftest.py), so CI failures reproduce.

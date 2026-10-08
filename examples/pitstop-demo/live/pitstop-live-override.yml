@@ -1,0 +1,48 @@
+# Isolation for running the instrumented Pitstop fork next to AIP in one Compose project: no fixed container
+# names, nothing published on the host, no bind mounts of the fork's ./.containerdata, and none of the services the
+# demo does not need (WebApp, Seq). Applied on top of the fork's docker-compose.yml and docker-compose.otel.yml.
+services:
+  rabbitmq:
+    container_name: !reset null
+    ports: !reset []
+    volumes:
+      - /var/lib/rabbitmq
+      - ./rabbitmq:/etc/pitstop
+  sqlserver:
+    container_name: !reset null
+    ports: !reset []
+    volumes: !override
+      - /var/opt/mssql
+    environment:
+      MSSQL_MEMORY_LIMIT_MB: "2048"
+  mailserver:
+    container_name: !reset null
+    ports: !reset []
+  logserver:
+    container_name: !reset null
+    ports: !reset []
+    profiles: ["unused"]
+  webapp:
+    container_name: !reset null
+    ports: !reset []
+    profiles: ["unused"]
+  reportingservice:
+    container_name: !reset null
+    volumes:
+      - /data/reporting
+  invoiceservice:
+    container_name: !reset null
+  notificationservice:
+    container_name: !reset null
+  timeservice:
+    container_name: !reset null
+  workshopmanagementeventhandler:
+    container_name: !reset null
+  auditlogservice:
+    container_name: !reset null
+  vehiclemanagementapi:
+    ports: !reset []
+  customermanagementapi:
+    ports: !reset []
+  workshopmanagementapi:
+    ports: !reset []

@@ -8,7 +8,7 @@ to, how far can the evidence resolve that topology, and what must I still inspec
 answers over MCP and REST. It does not start Pitstop.
 
 This is the **local, reproducible** mode: it replays a frozen fixture so the demo works immediately and
-offline. The hosted, continuously running instance and `run.sh --live` come in a later increment.
+offline. `run.sh --live` is the continuously running variant (see [Live mode](#live-mode)); the hosted instance is operated by the demo owner.
 
 ## Run
 
@@ -91,6 +91,36 @@ the **publisher** and read its receivers from the answer.
 - **AIP holds no payload or field-level knowledge.** Which receiver reads `StartTime` or `EndTime` is not
   in any answer: it is what you must still inspect in each receiver.
 
+## Live mode
+
+`run.sh --live` runs the real thing instead of a replay: the instrumented Pitstop fork (nine .NET services, RabbitMQ,
+SQL Server), an OpenTelemetry Collector, a traffic generator and AIP, all in one Compose project
+(`aip-pitstop-live`). Every service exports `send`/`process` spans for its RabbitMQ messages
+(`Pitstop.Infrastructure.Messaging` `5.5.0-aip.3`, fork commit `15b21c6`); the Collector forwards them to AIP's
+`/v1/traces`.
+
+```bash
+PITSTOP_FORK_DIR=/path/to/pitstop-fork examples/pitstop-demo/run.sh --live
+```
+
+- **Needs the private fork** (`PITSTOP_FORK_DIR`, the instrumented commit). It is not part of this repository, so
+  CI does not run this mode. About 4 GB of RAM are needed (SQL Server alone takes 2 GB); the first run builds the
+  fork's images (several minutes).
+- **Order matters**: AIP, Neo4j and the Collector start first, the nine overlays are imported (all or nothing), and
+  only then do Pitstop and the generator start. Spans that arrived before the import would create observed-only
+  Services that never merge with the declared ones.
+- **Traffic**: one cycle every `TRAFFIC_INTERVAL_SECONDS` (default 600, i.e. 144 a day): register a customer and a
+  vehicle, plan a workshop job and finish it, through Pitstop's own APIs. Each cycle uses fresh identifiers and a
+  fresh synthetic planning date. A failed call is logged and counted, never retried. `TimeService` is not driven by
+  a cycle (it publishes at most once per 24 hours of uptime), so its first span appears about a day after start.
+- **Answers refer to a completed UTC day.** Only whole-UTC-day windows are stable under later evidence, so
+  `run.sh --live --check` checks yesterday (or `--date YYYY-MM-DD`) and exits 3 with "No completed window yet"
+  until a day wholly in the past holds traffic. The first such day is the start date, available after UTC midnight.
+- **What you see differs from the replay in one way**: every consumer really receives, so all five routes carry
+  observed evidence (two resolution refs each, `AuditlogService` included). The replay's "unobserved is not unused"
+  boundary is a property of its authored fixture only.
+- `run.sh --live --down` removes the containers, volumes and `.aip-pitstop-live/`.
+
 ## Troubleshooting
 
 - **"port 8000 is in use"**: stop whatever uses it (often another demo: `run.sh --down` of that demo, or
@@ -98,7 +128,7 @@ the **publisher** and read its receivers from the answer.
 - **"the demo is already running"**: run `run.sh --down`, then `run.sh` again for a fresh replay.
 - **"The demo is NOT ready"**: the real answer differs from the expected topology. The listed lines name
   each difference. Nothing is wrong with your agent; report it with those lines.
-- **`--live`** exits with "not available yet".
+- **`--live` says "PITSTOP_FORK_DIR must point at the instrumented Pitstop fork"**: live mode needs the private, instrumented fork (see [Live mode](#live-mode)).
 
 ## Stop
 

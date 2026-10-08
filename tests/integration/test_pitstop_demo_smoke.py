@@ -19,7 +19,7 @@ result independently over standard negotiated MCP:
 - the bounded drill-down protocol of spec §4.4: a stale snapshot is refused (`SNAPSHOT_NOT_AVAILABLE`),
   a re-asked dependency question for the same window yields the same claims and a snapshot that resolves;
 - the replay is finished: the Collector is stopped, so nothing can ingest any more;
-- `run.sh --live` is rejected, and `run.sh --down` removes the stack and the run-local state.
+- `run.sh --live` without the fork is rejected in preflight, and `run.sh --down` removes the stack and the run-local state.
 
 Isolation: `run.sh` uses a fixed Compose project (`aip-pitstop-demo`) and fixed host ports (8000,
 4318). The test skips, rather than touching anything, when that project is already running or a port
@@ -304,8 +304,18 @@ def test_one_command_demo_answers_the_question_ladder_at_one_snapshot():
     assert not RUN_DIR.exists()
 
 
-def test_live_mode_is_not_available_yet():
-    live = _run("--live", timeout=60)
-    assert live.returncode == 2
-    assert "not available yet" in live.stderr
+def test_live_mode_needs_the_instrumented_fork_and_unknown_flags_are_rejected():
+    """`--live` without PITSTOP_FORK_DIR fails fast in preflight, before anything is started."""
+    env = {k: v for k, v in os.environ.items() if k != "PITSTOP_FORK_DIR"}
+    live = subprocess.run(
+        [BASH, str(RUN_SH), "--live"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+        env=env,
+    )
+    assert live.returncode == 1
+    assert "PITSTOP_FORK_DIR must point at the instrumented Pitstop fork" in live.stderr
     assert _run("--bogus", timeout=60).returncode == 2

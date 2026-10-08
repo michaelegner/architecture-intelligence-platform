@@ -4,8 +4,9 @@
 #   examples/pitstop-demo/run.sh          start, import, replay, check, print prompt
 #   examples/pitstop-demo/run.sh --down   stop and delete the demo's data
 #
-# Needs only docker (with Compose) and curl. See README.md and PROVENANCE.md. `--live` (a continuously
-# running instrumented Pitstop) is a later increment and is rejected here.
+# Needs only docker (with Compose) and curl. See README.md and PROVENANCE.md.
+#
+#   examples/pitstop-demo/run.sh --live ...   the continuously running, instrumented variant (live/run-live.sh)
 set -euo pipefail
 
 DEMO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,8 +41,8 @@ case "${1:-}" in
     exit 0
     ;;
   --live)
-    echo "error: --live is not available yet: the live mode needs an instrumented Pitstop fork" >&2
-    exit 2
+    # The live mode is a separate project (instrumented fork, traffic generator, Collector); see live/run-live.sh.
+    exec "$DEMO_DIR/live/run-live.sh" "${@:2}"
     ;;
   "") ;;
   *)
