@@ -515,6 +515,8 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 - [`docs/adapter-development.md`](docs/adapter-development.md) — extending AIP with a new source
 - [`docs/architecture-review-0.4.0.md`](docs/architecture-review-0.4.0.md) — post-`v0.4.0`
   architecture review: what held up, four structural findings, measured read cost
+- [`docs/code-health-review-2026-10-08.md`](docs/code-health-review-2026-10-08.md) — code health
+  and design review at v0.6.2: five ranked findings and the deferred `/v1/traces` fix
 - [`docs/product-doctrine-and-strategic-direction.md`](docs/product-doctrine-and-strategic-direction.md)
   — product doctrine, semantic boundaries, strategic direction, and roadmap rationale
 - [`docs/adr/`](docs/adr/) — Architecture Decision Records: why Neo4j, why a Canonical Model, why
