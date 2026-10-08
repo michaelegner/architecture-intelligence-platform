@@ -35,10 +35,19 @@ usage() {
   exit 2
 }
 
-# ---- --down: by project name only, so it works without the fork directory ------------------------------------
+# ---- --down: by Compose's own project labels, so it needs neither the fork directory nor any compose file ----
+# (a plain `docker compose -p ... down` would resolve the project against whatever compose file the current
+# directory holds; the AIP repository root has one of its own). Containers go with their anonymous volumes, then
+# the project's networks and named volumes.
 if [[ "${1:-}" == "--down" ]]; then
   [[ $# -eq 1 ]] || usage
-  docker compose -p "$PROJECT" down -v --remove-orphans
+  label="label=com.docker.compose.project=$PROJECT"
+  mapfile -t containers < <(docker ps -aq --filter "$label")
+  [[ ${#containers[@]} -eq 0 ]] || docker rm -f -v "${containers[@]}" >/dev/null
+  mapfile -t networks < <(docker network ls -q --filter "$label")
+  [[ ${#networks[@]} -eq 0 ]] || docker network rm "${networks[@]}" >/dev/null
+  mapfile -t volumes < <(docker volume ls -q --filter "$label")
+  [[ ${#volumes[@]} -eq 0 ]] || docker volume rm "${volumes[@]}" >/dev/null
   rm -rf "$RUN_DIR"
   echo "Live demo stopped and its data deleted."
   exit 0

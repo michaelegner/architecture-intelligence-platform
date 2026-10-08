@@ -340,7 +340,10 @@ def test_down_needs_no_fork_directory_and_removes_the_whole_project():
     script = _script()
     down_block = script[script.index('if [[ "${1:-}" == "--down" ]]') :]
     down_block = down_block[: down_block.index("\nfi\n")]
-    assert 'docker compose -p "$PROJECT" down -v --remove-orphans' in down_block
+    assert "com.docker.compose.project=$PROJECT" in down_block
+    assert (
+        "docker compose" not in down_block
+    )  # no compose model: the repo root has a compose file of its own
     assert "PITSTOP_FORK_DIR" not in down_block
     assert script.index("--down") < script.index("PITSTOP_FORK_DIR must point")
 
