@@ -7,6 +7,7 @@ upstream-supplied, and neither is qualification evidence.
 | Revision | Value |
 |---|---|
 | Upstream pin | `306b5fbd0febceb6b0d0706f152a0520ca1a993a` (EdwinVW/pitstop, 2026-10-06) |
+| Instrumented fork commit (live mode) | `15b21c6a0741c4d2a08cca57babfe9576f0b204c` — adds `send`/`process` spans to `Infrastructure.Messaging` (package `5.5.0-aip.3`), a local NuGet feed and `docker-compose.otel.yml`; `FORK.md` "Telemetry" describes it |
 | Fork baseline commit | `7bf6674c30af749614c66069158bf78bfda54e94` — private, local repository (`pitstop-fork`, no remote); `FORK.md` records the pin and the fork's only addition, `ReportingService` |
 
 Every citation below is `file:line` under the fork's `src/` at the fork baseline commit; all of them except
@@ -67,5 +68,6 @@ omits it so the demo exercises the boundary that an unobserved route is not an u
 claims read `CONFIRMED` for all five receivers, while only four routes carry observed evidence. This is an
 authored choice about the fixture window, not a statement about the real system.
 
-The live demo (a later increment) replaces this fixture with spans emitted by an instrumented fork; the
-fixture then stays only for tests, release qualification and the local `--replay` mode.
+The live demo (`run.sh --live`) does not use this fixture: it runs spans emitted by the instrumented fork
+(commit `15b21c6a0741`), where every consumer, `AuditlogService` included, really receives. The fixture is
+replay-only: the default `run.sh` mode, tests and release qualification.

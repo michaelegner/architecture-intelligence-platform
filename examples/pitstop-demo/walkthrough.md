@@ -27,6 +27,10 @@ The observation context is one whole UTC day wholly in the past: the only kind o
 under later evidence. The MCP calls pass it as
 `{"environment": "pitstop-demo", "window_start": "2026-10-06T00:00:00Z", "window_end": "2026-10-06T23:59:59Z"}`.
 
+In live mode (`run.sh --live`, see the README) the same questions are asked of a completed UTC day (the launcher
+prints it); every consumer really receives there, so all five routes show an observed reference, `AuditlogService`
+included, and the Q4 contrast below does not appear.
+
 ## Q1: What does `WorkshopManagementAPI` publish, and through which broker?
 
 ```bash

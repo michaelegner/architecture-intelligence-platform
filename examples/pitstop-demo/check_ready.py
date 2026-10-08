@@ -18,7 +18,9 @@ in the window, and one Broker claim.
 
 from __future__ import annotations
 
+import argparse
 import json
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -58,6 +60,8 @@ EXPECTED_RECEIVERS = {
     "ReportingService": ("Reporting", 2),
     "AuditlogService": ("Auditlog", 1),
 }
+# Live mode (`--live`): every consumer really receives, so every route also carries observed evidence.
+EXPECTED_RECEIVERS_LIVE = {name: (queue, 2) for name, (queue, _refs) in EXPECTED_RECEIVERS.items()}
 # Every claim carries the publisher's qualification: one send span lies in the window.
 EXPECTED_QUALIFICATION = "CONFIRMED"
 EXPECTED_BROKER = "rabbitmq:pitstop-rabbitmq"
@@ -94,12 +98,13 @@ def check_import(report: dict) -> list[str]:
     return problems
 
 
-def _get(view: str) -> dict:
+def _get(view: str, context: dict | None = None) -> dict:
+    context = context or CONTEXT
     query = urllib.parse.urlencode(
         {
-            "environment": CONTEXT["environment"],
-            "from": CONTEXT["window_start"],
-            "to": CONTEXT["window_end"],
+            "environment": context["environment"],
+            "from": context["window_start"],
+            "to": context["window_end"],
         }
     )
     url = f"{AIP_URL}/api/services/{urllib.parse.quote(SERVICE_ID)}/{view}?{query}"
@@ -107,19 +112,19 @@ def _get(view: str) -> dict:
         return json.load(response)
 
 
-def dependencies() -> dict:
-    return _get("dependencies")
+def dependencies(context: dict | None = None) -> dict:
+    return _get("dependencies", context)
 
 
-def drift() -> dict:
-    return _get("drift")
+def drift(context: dict | None = None) -> dict:
+    return _get("drift", context)
 
 
 def relation(claim: dict) -> str | None:
     return (claim.get("delivery") or {}).get("relation_type")
 
 
-def check_answer(answer: dict) -> list[str]:
+def check_answer(answer: dict, *, live: bool = False) -> list[str]:
     problems = []
     if answer.get("outcome") != "ANSWERED":
         problems.append(f"dependencies outcome {answer.get('outcome')}, expected ANSWERED")
@@ -134,6 +139,7 @@ def check_answer(answer: dict) -> list[str]:
     if names != {SERVICE_NAME}:
         problems.append(f"publisher names {sorted(names)}, expected {SERVICE_NAME!r}")
 
+    expected_receivers = EXPECTED_RECEIVERS_LIVE if live else EXPECTED_RECEIVERS
     receivers = {}
     for claim in published:
         via = claim["delivery"].get("via") or {}
@@ -154,11 +160,11 @@ def check_answer(answer: dict) -> list[str]:
             )
         queue = (claim["delivery"].get("subscription") or {}).get("name")
         receivers[claim["object"].get("name")] = (queue, len(claim["resolution_evidence_refs"]))
-    if receivers != EXPECTED_RECEIVERS:
-        for name in sorted(set(receivers) | set(EXPECTED_RECEIVERS)):
-            if receivers.get(name) != EXPECTED_RECEIVERS.get(name):
+    if receivers != expected_receivers:
+        for name in sorted(set(receivers) | set(expected_receivers)):
+            if receivers.get(name) != expected_receivers.get(name):
                 problems.append(
-                    f"receiver {name}: {receivers.get(name)}, expected {EXPECTED_RECEIVERS.get(name)}"
+                    f"receiver {name}: {receivers.get(name)}, expected {expected_receivers.get(name)}"
                 )
 
     limitations = [(lim.get("code"), lim.get("claim_ids")) for lim in answer.get("limitations", [])]
@@ -201,7 +207,63 @@ def check_drift(answer: dict) -> list[str]:
     return problems
 
 
-def main() -> int:
+def live_context(day: str) -> dict:
+    """One whole UTC day, given as YYYY-MM-DD."""
+    return {
+        "environment": CONTEXT["environment"],
+        "window_start": f"{day}T00:00:00Z",
+        "window_end": f"{day}T23:59:59Z",
+    }
+
+
+def run_live(day: str) -> int:
+    """Live check for one completed UTC day: the same §4.4 answer, but every receiver route is observed."""
+    context = live_context(day)
+    problems = []
+    try:
+        answer = dependencies(context)
+        problems += check_answer(answer, live=True)
+        problems += check_drift(drift(context))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        answer = None
+        problems.append(f"could not read the WorkshopManagementAPI answers: {exc}")
+    if problems:
+        print(
+            f"The live demo is NOT ready for {day} - the result differs from the live expectation:"
+        )
+        for problem in problems:
+            print(f"  - {problem}")
+        return 1
+    print(json.dumps(answer, indent=2, sort_keys=True))
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--live", action="store_true", help="check a completed live UTC day (needs --date)"
+    )
+    parser.add_argument("--date", help="the completed UTC day to check, YYYY-MM-DD")
+    parser.add_argument(
+        "--import-only", action="store_true", help="check only the import report on stdin"
+    )
+    args = parser.parse_args(argv)
+    if args.live:
+        if not args.date or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", args.date):
+            parser.error("--live needs --date YYYY-MM-DD")
+        return run_live(args.date)
+    if args.import_only:
+        try:
+            problems = check_import(json.load(sys.stdin))
+        except json.JSONDecodeError as exc:
+            problems = [f"the import report is not JSON: {exc}"]
+        for problem in problems:
+            print(f"  - {problem}")
+        return 1 if problems else 0
+    return run_replay()
+
+
+def run_replay() -> int:
     try:
         problems = check_import(json.load(sys.stdin))
     except json.JSONDecodeError as exc:

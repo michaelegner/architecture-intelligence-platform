@@ -1,0 +1,70 @@
+# v0.6.2 Pitstop LIVE demo stack (spec §4.2, §4.3). run-live.sh is the only caller. It always invokes
+# `docker compose -p aip-pitstop-live --project-directory <repo> -f <this file> --env-file /dev/null` with
+# PITSTOP_FORK_DIR, PITSTOP_DEMO_NEO4J_PASSWORD and OTEL_COLLECTOR_ENDPOINT exported, so no .env or override
+# file can leak in.
+#
+# AIP, Neo4j and the Collector start first; run-live.sh imports the declared overlay; only then the instrumented
+# Pitstop fork and the traffic generator start (spans that arrive before the import would mint observed-only
+# Services that never merge with the declared ones).
+include:
+  - path:
+      - ${PITSTOP_FORK_DIR:?set by run-live.sh}/src/docker-compose.yml
+      - ${PITSTOP_FORK_DIR}/src/docker-compose.otel.yml
+      - ./examples/pitstop-demo/live/pitstop-live-override.yml  # relative to --project-directory (the repo root)
+    project_directory: ${PITSTOP_FORK_DIR}/src
+
+services:
+  architecture-intelligence:
+    build: .
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${PITSTOP_DEMO_NEO4J_PASSWORD:?set by run-live.sh}
+      OPENAI_API_KEY: ""
+      CONFIG_PATH: pitstop/config.yaml
+    volumes:
+      - ./examples/pitstop-demo/config.yaml:/app/pitstop/config.yaml:ro
+      - ./examples/pitstop-demo/check_ready.py:/app/pitstop/check_ready.py:ro
+      - ./examples/pitstop-demo/overlay:/app/pitstop/overlay:ro
+    ports:
+      # 8000 exactly: the default MCP host allowlist is localhost:8000 / 127.0.0.1:8000.
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      interval: 1s
+
+  neo4j:
+    image: neo4j:5.26.0@sha256:5a015e53de1895e7eee1574ae0325cf8c4b89587222778108c594bdd45a474b5
+    environment:
+      NEO4J_AUTH: neo4j/${PITSTOP_DEMO_NEO4J_PASSWORD:?set by run-live.sh}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
+  # Named aip-collector (not otel-collector): the fork's override defines its own standalone `otel-collector`
+  # behind a profile. It is reachable only on the project network; nothing is published on the host.
+  aip-collector:
+    image: otel/opentelemetry-collector:0.159.0@sha256:7725a7a10c87d8853208bdd4bb3439ad3c0d7b32b4292b9300ac07c8daba14a2
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./examples/runtime-demo/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    depends_on:
+      architecture-intelligence:
+        condition: service_started
+
+  traffic-generator:
+    image: python:3.14.7-slim@sha256:51dafde81dbdb6ebde285137a295cf18a47ca95234fe388a343719cb97305b3d
+    command: ["python", "-u", "/app/traffic_generator.py"]
+    restart: unless-stopped
+    environment:
+      TRAFFIC_INTERVAL_SECONDS: ${TRAFFIC_INTERVAL_SECONDS:-600}
+    volumes:
+      - ./examples/pitstop-demo/live/traffic_generator.py:/app/traffic_generator.py:ro
+    depends_on:
+      - vehiclemanagementapi
+      - customermanagementapi
+      - workshopmanagementapi
