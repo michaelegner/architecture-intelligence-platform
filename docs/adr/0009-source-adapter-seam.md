@@ -2,7 +2,7 @@
 
 Status: Accepted — implemented in v0.5.0 I1 (PR3a: `app/sources/registry.py`,
 `app/ingestion/orchestrator.py`, `app/ingestion/filesystem_discoverer.py`); see
-[`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md#f1--the-adapter-extension-point-is-a-convention-not-a-seam)
+[`architecture-review-0.4.0.md`](../reviews/architecture-review-0.4.0.md#f1--the-adapter-extension-point-is-a-convention-not-a-seam)
 
 ## Context
 

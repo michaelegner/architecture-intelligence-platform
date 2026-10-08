@@ -1,7 +1,7 @@
 # 12. Observed evidence is compacted on a retention policy, never silently dropped
 
 Status: Proposed — the retention thresholds are an open parameter for the repository owner. See
-[`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md#f3--read-cost-grows-with-the-whole-graph-and-evidence-never-stops-growing)
+[`architecture-review-0.4.0.md`](../reviews/architecture-review-0.4.0.md#f3--read-cost-grows-with-the-whole-graph-and-evidence-never-stops-growing)
 
 ## Context
 

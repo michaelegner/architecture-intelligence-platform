@@ -1,7 +1,7 @@
 # 11. Snapshot identity must not cost a full-graph read per call
 
 Status: Proposed — a committed benchmark is required before this is Accepted. See
-[`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md#f3--read-cost-grows-with-the-whole-graph-and-evidence-never-stops-growing)
+[`architecture-review-0.4.0.md`](../reviews/architecture-review-0.4.0.md#f3--read-cost-grows-with-the-whole-graph-and-evidence-never-stops-growing)
 
 ## Context
 
