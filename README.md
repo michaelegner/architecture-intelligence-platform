@@ -531,7 +531,7 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development setup, test/lint/format commands, and the
-adapter contribution guide. Questions and ideas go in [Discussions](../../discussions); bugs and
+adapter contribution guide. Questions and ideas go in [Discussions](https://github.com/michaelegner/architecture-intelligence-platform/discussions); bugs and
 feature requests use the issue templates. Security vulnerabilities should never be reported as
 public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 [Contributor Covenant](CODE_OF_CONDUCT.md).
