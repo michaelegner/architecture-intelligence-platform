@@ -144,12 +144,12 @@ Location: `examples/pitstop-demo/claude/`. These show how a coding agent consume
 ```
 claude/plugin/
   .claude-plugin/plugin.json
-  .mcp.json                      -> the AIP MCP URL printed by run.sh, via the `aip_mcp_url` plugin setting
+  .mcp.json                      -> the AIP MCP URL printed by run.sh, via the `aip_mcp_url` plugin setting; the `AIP_MCP_URL` environment variable overrides it and `AIP_MCP_TOKEN` supplies an optional bearer token for a token-gated (hosted) URL
   skills/architecture-aware-development/SKILL.md
   skills/inspect/SKILL.md        -> /aip:inspect (plugin name `aip`)
 ```
 
-The plugin is `aip` and loads with `claude --plugin-dir`. `/aip:inspect` is a skill, not a `commands/` file: Claude Code's current plugin documentation treats `commands/` as the older format (amended 2026-10-07, I1b-1).
+The plugin is `aip` and loads with `claude --plugin-dir`. `/aip:inspect` is a skill, not a `commands/` file: Claude Code's current plugin documentation treats `commands/` as the older format (amended 2026-10-07, I1b-1). Amended 2026-10-08: `claude plugin configure` cannot target a `--plugin-dir` plugin, so the hosted, token-gated URL is reached through the `AIP_MCP_URL` and `AIP_MCP_TOKEN` environment variables (the token is never a plugin setting and never in the repository); with both unset the plugin behaves as before and the local demo needs no credentials. How the hosted token is issued stays an owner-owned hosting concern (§4.3).
 
 **Skill `architecture-aware-development`.** Triggers on tasks that change an event, message contract, shared data, deployment or service boundary. It instructs the agent to:
 

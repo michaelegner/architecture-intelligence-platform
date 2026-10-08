@@ -50,9 +50,25 @@ AIP behaviour, and removing it changes no answer.
 claude --plugin-dir examples/pitstop-demo/claude/plugin
 ```
 
-- `/mcp` shows the server as `plugin:aip:aip` with the four tools. It reads the MCP URL from the plugin's
-  `aip_mcp_url` setting, default `http://localhost:8000/mcp`, the URL `run.sh` prints; change it to point at
-  another AIP instance.
+- `/mcp` shows the server as `plugin:aip:aip` with the four tools. By default it uses the plugin's
+  `aip_mcp_url` setting, `http://localhost:8000/mcp`, the URL `run.sh` prints; the local demo needs no
+  credentials.
+- **Hosted instance (token-gated):** export two environment variables before starting Claude Code. The plugin
+  reads them at start and nothing is stored in a file:
+
+  ```bash
+  export AIP_MCP_URL=https://<hosted-host>/mcp      # overrides the localhost default
+  export AIP_MCP_TOKEN=<token from the operator>    # sent as "Authorization: Bearer <token>"
+  claude --plugin-dir examples/pitstop-demo/claude/plugin
+  ```
+
+  The token is a secret the operator gives you: never commit it or paste it into a prompt. With
+  `AIP_MCP_TOKEN` unset the plugin sends an empty `Bearer` header, which the unauthenticated local demo ignores.
+  A plugin loaded with `--plugin-dir` has no way to set a plugin setting, which is why these are environment
+  variables and not a `userConfig` token.
+
+  Remove any standalone `aip` MCP server that points at the same URL (`claude mcp remove aip`): Claude Code then
+  suppresses the plugin's server as a duplicate, with no error, and the skills find no AIP tools.
 - The **`architecture-aware-development`** skill triggers on a task that changes an event, a message contract,
   shared data, a deployment or a service boundary. It asks the publishing service, resolves the evidence with
   the bounded drill-down, and puts an **Evidence** section into the plan: the receivers, the publisher's
