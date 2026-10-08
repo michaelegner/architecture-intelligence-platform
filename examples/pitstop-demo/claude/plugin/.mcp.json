@@ -2,7 +2,10 @@
   "mcpServers": {
     "aip": {
       "type": "http",
-      "url": "${user_config.aip_mcp_url}"
+      "url": "${AIP_MCP_URL:-${user_config.aip_mcp_url}}",
+      "headers": {
+        "Authorization": "Bearer ${AIP_MCP_TOKEN:-}"
+      }
     }
   }
 }
