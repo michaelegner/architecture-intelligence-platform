@@ -513,8 +513,10 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 - [`docs/security-model.md`](docs/security-model.md) — trust boundaries
 - [`docs/development.md`](docs/development.md) — local dev, tests, linting
 - [`docs/adapter-development.md`](docs/adapter-development.md) — extending AIP with a new source
-- [`docs/architecture-review-0.4.0.md`](docs/architecture-review-0.4.0.md) — post-`v0.4.0`
+- [`docs/reviews/architecture-review-0.4.0.md`](docs/reviews/architecture-review-0.4.0.md) — post-`v0.4.0`
   architecture review: what held up, four structural findings, measured read cost
+- [`docs/reviews/code-health-review-2026-10-08.md`](docs/reviews/code-health-review-2026-10-08.md) — code health
+  and design review at v0.6.2: five ranked findings
 - [`docs/product-doctrine-and-strategic-direction.md`](docs/product-doctrine-and-strategic-direction.md)
   — product doctrine, semantic boundaries, strategic direction, and roadmap rationale
 - [`docs/adr/`](docs/adr/) — Architecture Decision Records: why Neo4j, why a Canonical Model, why

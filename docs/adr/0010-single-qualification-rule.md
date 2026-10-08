@@ -1,6 +1,6 @@
 # 10. The declared-vs-observed rule has one owner and one executable cross-check
 
-Status: Accepted — implemented v0.4.1 I1 (`docs/specifications/0.4.1/i1-qualification-consistency.md`); see [`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md#f2--the-declared-vs-observed-rule-is-stated-twice-and-never-cross-checked)
+Status: Accepted — implemented v0.4.1 I1 (`docs/specifications/0.4.1/i1-qualification-consistency.md`); see [`architecture-review-0.4.0.md`](../reviews/architecture-review-0.4.0.md#f2--the-declared-vs-observed-rule-is-stated-twice-and-never-cross-checked)
 
 ## Context
 

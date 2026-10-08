@@ -27,7 +27,7 @@ Requires Docker (a disposable Neo4j 5 container via Testcontainers, the same fou
 - `smoke` — small, fast, deterministic; proves wiring, cleanup, result validation and determinism.
   It does not prove scaling shape. Safe to run repeatedly in CI/dev.
 - `review-comparable` — the expensive profile whose scale points land near the same orders of
-  magnitude as the post-`v0.4.0` architecture review (`docs/architecture-review-0.4.0.md`). It is
+  magnitude as the post-`v0.4.0` architecture review (`docs/reviews/architecture-review-0.4.0.md`). It is
   never run in default CI; it is invoked explicitly during release-candidate qualification (spec
   §22/§24), bound to the exact frozen candidate SHA.
 
