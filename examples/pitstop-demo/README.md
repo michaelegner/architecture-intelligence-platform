@@ -82,6 +82,32 @@ claude --plugin-dir examples/pitstop-demo/claude/plugin
   the turn in which the skill is invoked and clears it on the next user message, and `allowed-tools` alone does
   not restrict anything. Give the agent the observation context from `.aip-pitstop-demo/prompt.txt`.
 
+### Optional mod: AIP evidence next to the plan
+
+A second, optional plugin (`claude/mod`, spec §6.2) shows AIP's current answer beside the agent's plan. It only
+reads the results of the plugin's AIP tools: it never changes a prompt, a plan or a tool result, and without it
+nothing else changes. It is example client material.
+
+```bash
+claude --plugin-dir examples/pitstop-demo/claude        # loads claude/plugin and claude/mod, one flag
+```
+
+- Above the prompt a quiet line shows `AIP: consulting` while an AIP tool runs, then
+  `AIP: <n> receivers, snapshot <id>, limitations <n>` with an **Evidence** button.
+- The **Evidence** button, or the `/aip-evidence` command, opens a pane with one row per receiver
+  (`receiver / queue: qualification, observed or declared only`) and the snapshot id and limitations. These are
+  AIP's facts as returned, next to the agent's own plan, for example a route that only has declared evidence.
+  Only your own action opens the pane: it does not open by itself (for example from `/aip:inspect`), and below 144
+  terminal columns it still opens from the button.
+- The hosted instance works the same way: set `AIP_MCP_URL` and `AIP_MCP_TOKEN` as above and remove any standalone
+  `aip` MCP server first. Keep only `plugin/` and `mod/` directly under `claude/`: every plugin found there loads.
+- The mod uses Claude Code's typed mod API, so it is tied to the Claude Code build: it was tested with 2.1.294 and
+  2.1.295. `claude plugin validate examples/pitstop-demo/claude/mod` and
+  `claude plugin test examples/pitstop-demo/claude/mod` check it by hand (CI has no Claude Code CLI; CI checks
+  the files, the tool matcher and the answer fields the mod reads).
+  Loading the mod makes Claude Code write editor type files (`claude/mod/.claude-plugin/types/` and
+  `claude/mod/tsconfig.json`) into its folder; both are git-ignored and are not part of the demo.
+
 ## Ask the questions
 
 [`walkthrough.md`](walkthrough.md): the question ladder Q1–Q5, each with the MCP and REST call and the real
