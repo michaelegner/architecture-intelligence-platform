@@ -1,6 +1,6 @@
 # AIP v0.6.2 — Realistic Messaging Demo: Pitstop
 
-**Status:** Draft (2026-10-07), amended 2026-10-07 after the I1 gate spike ([`i1-spike-finding.md`](i1-spike-finding.md), #460)  
+**Status:** Released in [`v0.6.2`](../../release-validation/v0.6.2-release-record.md) (2026-10-09)  
 **Target:** `v0.6.2`  
 **Baseline:** Published and post-release-verified `v0.6.1`  
 **Scope authority:** [ROADMAP.md — v0.6.2](../../../ROADMAP.md) (this release is a demo release like v0.5.1, not a capability release)

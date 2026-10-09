@@ -15,6 +15,7 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
+| [`v0.6.2-release-record.md`](v0.6.2-release-record.md) | v0.6.2's one-page record for the lightweight release path: identities, the hosted instance facts (host withheld), the §7.1 sanity run, readiness on the exact candidate, post-release verification by digest. |
 | [`v0.6.2-release-notes.md`](v0.6.2-release-notes.md) | v0.6.2 demo release notes (candidate): Live AIP Demo on Pitstop, plugin, optional mod, the I0 correctness fix, known limitations. |
 | [`v0.6.0-post-release-verification.md`](v0.6.0-post-release-verification.md) | I6.5 published digest/source verification; SHIPPED_VERIFIED, final security disposition complete. |
 | [`v0.6.0-publication-record.md`](v0.6.0-publication-record.md) | I6.4 publication completed: exact tag/release, successful workflow and immutable GHCR digest; published verification remains I6.5. |
