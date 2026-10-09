@@ -17,8 +17,9 @@ Requested service: `$ARGUMENTS`
    infer it from the session: the service folder you are working in, the files touched, or the last prompt. If
    you cannot tell, ask which service; do not guess.
 2. **Context.** Use the environment and window the user or the demo prompt named (whole UTC days wholly in the
-   past: a day may end at `T23:59:59Z` of its last day or at the next day's `T00:00:00Z`; both are the same
-   day). If none was named, ask for them; never invent them.
+   past: from `T00:00:00Z` through `T23:59:59Z` of the last day; the window is inclusive, so do not end it at the
+   next day's `T00:00:00Z`, and do not refuse `T23:59:59Z` as an incomplete day). If none was named, ask for
+   them; never invent them.
 3. **Ask.** Call `get_service_dependencies` for the service id. A receiving service has no receiver-side
    question: if it is a receiver, say so and offer to inspect the publisher that feeds it (the publishers are in
    the table).

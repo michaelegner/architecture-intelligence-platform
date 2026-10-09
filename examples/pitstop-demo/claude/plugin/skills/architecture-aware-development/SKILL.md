@@ -28,9 +28,9 @@ says how far each claim is evidenced. Use it to bound your plan, never to replac
 ## Workflow
 
 1. **Name the observation context.** Use the environment and window the user or the prompt gives you (one or more
-   whole UTC days wholly in the past: only those are stable under later evidence; a day may end at `T23:59:59Z`
-   of its last day or at the next day's `T00:00:00Z`, both are the same day). If none is given, ask. Never
-   invent an environment or a window.
+   whole UTC days wholly in the past: only those are stable under later evidence; from `T00:00:00Z` through
+   `T23:59:59Z` of the last day, the window is inclusive, so never end it at the next day's `T00:00:00Z`). If none
+   is given, ask. Never invent an environment or a window.
 2. **Ask the publisher.** Call `get_service_dependencies` for the **publishing** service of the changed event,
    using the table below to map a service name to its AIP service id. If you do not know which service
    publishes, find that in the repository first and say how you know.
