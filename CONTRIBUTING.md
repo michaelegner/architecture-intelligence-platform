@@ -28,6 +28,16 @@ uv run lint-imports                    # import boundaries between app/ packages
 These are exactly what `.github/workflows/ci.yml` runs on every push and pull request, plus a
 `pip-audit` dependency-security scan (`.github/workflows/ci.yml`'s `dependency-audit` job).
 
+Optional local pre-commit checks (same Ruff version as `uv.lock`):
+
+```bash
+pipx run pre-commit install     # installs the optional Git hooks in this checkout
+pipx run pre-commit run --all-files
+```
+
+The `.pre-commit-config.yaml` runs `ruff-check` and `ruff-format`; CI remains the required
+source of truth, and no extra runtime dependency is needed.
+
 ## Branch workflow
 
 Fork the repository, branch off `main`, and open a pull request against `main`. Keep PRs focused —
