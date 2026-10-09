@@ -232,3 +232,22 @@ def test_readme_documents_how_to_load_the_plugin():
     # a standalone server with the same URL makes Claude Code suppress the plugin's server (spike 2026-10-08)
     assert "standalone `aip` MCP server" in readme
     assert "suppresses" in readme
+
+
+def test_skills_state_the_inclusive_whole_day_window_and_never_guess_why_a_day_is_empty():
+    """I4: a whole UTC day runs from T00:00:00Z through T23:59:59Z of its last day (observed evidence is matched against
+    an inclusive window, so the next day's T00:00:00Z is not an equivalent end); an all-NOT_OBSERVED answer is
+    explained only as 'no publisher span in that window', never with a guessed cause."""
+    for path in (DEVELOPMENT, INSPECT):
+        text = " ".join(path.read_text().split())
+        assert "from `T00:00:00Z` through `T23:59:59Z` of the last day" in text, path.name
+        assert "inclusive" in text, path.name
+        assert (
+            "never end it at the next day's `T00:00:00Z`" in text
+            or "do not end it at the next day's `T00:00:00Z`" in text
+        )
+        assert "both are the same day" not in text and "the same claims" not in text, path.name
+    inspect = INSPECT.read_text()
+    assert "`NOT_OBSERVED_IN_WINDOW` with coverage `NONE`" in inspect
+    assert "AIP saw no publisher span" in inspect
+    assert "do not guess why" in inspect
