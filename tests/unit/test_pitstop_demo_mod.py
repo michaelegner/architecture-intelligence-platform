@@ -26,8 +26,8 @@ SCHEMA = REPO / "schemas" / "architecture_intelligence" / "v0.6" / "architecture
 
 # The plugin's real tool prefix (the plugin test pins it against the skills and the registered tools).
 TOOL_PREFIX = "mcp__plugin_aip_aip__"
-# Property accesses in logic.ts that are the language's, not the answer's.
-LANGUAGE = {"parse", "filter", "map", "some", "startsWith", "length"}
+# Property accesses in logic.ts that are the language's, or the summary row's own field, not the answer's.
+LANGUAGE = {"parse", "filter", "map", "some", "startsWith", "length", "resolution"}
 
 
 def _schema_property_names() -> set[str]:
@@ -124,8 +124,26 @@ def test_the_reader_accesses_only_fields_of_the_released_v0_6_answer_schema():
         "qualification",
         "coverage",
         "resolution_evidence_refs",
+        "destination_resolution",
     ):
         assert field in accessed, field
+
+
+def test_only_resolved_service_claims_are_receivers():
+    """A DIRECT_TARGET_FALLBACK claim names the unresolved destination (a Topic, Queue or Operation), not a receiving
+    Service: the mod keeps it apart from the receivers, never counts it as one and says so in the pane."""
+    schema = json.loads(SCHEMA.read_text())
+    assert schema["$defs"]["DestinationResolution"]["enum"] == [
+        "RESOLVED_SERVICE",
+        "DIRECT_TARGET_FALLBACK",
+    ]
+    assert "row.resolution === 'RESOLVED_SERVICE'" in LOGIC
+    assert (
+        "row.resolution !== 'RESOLVED_SERVICE'" in LOGIC
+    )  # everything else is unresolved, not a receiver
+    assert "unresolved" in REGISTER
+    assert "not receivers" in REGISTER
+    assert "DIRECT_TARGET_FALLBACK" in (MOD / "hooks" / "pane.test.ts").read_text()
 
 
 def test_no_mod_file_holds_a_token_value():

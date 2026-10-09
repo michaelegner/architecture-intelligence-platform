@@ -95,7 +95,8 @@ claude --plugin-dir examples/pitstop-demo/claude        # loads claude/plugin an
 - Above the prompt a quiet line shows `AIP: consulting` while an AIP tool runs, then
   `AIP: <n> receivers, snapshot <id>, limitations <n>` with an **Evidence** button.
 - The **Evidence** button, or the `/aip-evidence` command, opens a pane with one row per receiver
-  (`receiver / queue: qualification, observed or declared only`) and the snapshot id and limitations. These are
+  (`receiver / queue: qualification, observed or declared only`), a separate list of unresolved destinations when AIP
+  returned any (a `DIRECT_TARGET_FALLBACK` is never shown or counted as a receiver), and the snapshot id and limitations. These are
   AIP's facts as returned, next to the agent's own plan, for example a route that only has declared evidence.
   Only your own action opens the pane: it does not open by itself (for example from `/aip:inspect`), and below 144
   terminal columns it still opens from the button.

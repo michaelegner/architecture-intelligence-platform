@@ -57,9 +57,10 @@ export const register: Register = on => {
     }
 
     const { Box, Button, Text } = $.ui.resolve(e)
+    const unresolved = last !== null && last.unresolved.length > 0 ? `, ${last.unresolved.length} unresolved` : ''
     const line = isBusy || last === null
       ? 'AIP: consulting'
-      : `AIP: ${last.rows.length} receivers, snapshot ${last.snapshotId.slice(-8)}, limitations ${last.limitations}`
+      : `AIP: ${last.receivers.length} receivers${unresolved}, snapshot ${last.snapshotId.slice(-8)}, limitations ${last.limitations}`
 
     return (
       <Box>
@@ -79,10 +80,20 @@ export const register: Register = on => {
       <Box flexDirection="column">
         {last === null && <Text dimColor>No AIP answer yet.</Text>}
         {last !== null &&
-          last.rows.map(row => (
+          last.receivers.map(row => (
             <Text>
-              {row.receiver} / {row.queue}: {row.qualification}
+              {row.name} / {row.queue ?? '?'}: {row.qualification}
               {row.coverage ? ` (${row.coverage})` : ''} {row.observed ? 'observed' : 'declared only'}
+            </Text>
+          ))}
+        {last !== null && last.unresolved.length > 0 && (
+          <Text dimColor>Unresolved destinations (AIP could not resolve a receiving Service; not receivers):</Text>
+        )}
+        {last !== null &&
+          last.unresolved.map(row => (
+            <Text>
+              {row.type} {row.name}: {row.resolution}, {row.qualification}
+              {row.coverage ? ` (${row.coverage})` : ''}
             </Text>
           ))}
         {last !== null && (

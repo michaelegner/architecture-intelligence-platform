@@ -11,7 +11,8 @@ const ANSWER = JSON.stringify({
     { predicate: 'USES_BROKER', object: { name: 'rabbitmq:pitstop-rabbitmq' } },
     {
       predicate: 'DIRECT_DEPENDENCY',
-      object: { name: 'ReportingService' },
+      destination_resolution: 'RESOLVED_SERVICE',
+      object: { name: 'ReportingService', type: 'SERVICE' },
       delivery: { subscription: { name: 'Reporting' } },
       qualification: 'CONFIRMED',
       coverage: null,
@@ -24,7 +25,8 @@ test('summarize reads only the schema fields of an ANSWERED dependency answer', 
   expect(summarize(ANSWER)).toEqual({
     snapshotId: 'aip:snapshot:v1:abc12345',
     limitations: 0,
-    rows: [{ receiver: 'ReportingService', queue: 'Reporting', qualification: 'CONFIRMED', coverage: null, observed: true, refs: 2 }],
+    receivers: [{ name: 'ReportingService', type: 'SERVICE', queue: 'Reporting', resolution: 'RESOLVED_SERVICE', qualification: 'CONFIRMED', coverage: null, observed: true, refs: 2 }],
+    unresolved: [],
   })
   expect(summarize('not json')).toBeNull()
   expect(summarize(JSON.stringify({ tool: 'get_evidence', outcome: 'ANSWERED' }))).toBeNull()
@@ -77,7 +79,8 @@ test('a route without observed evidence reads declared only', () => {
     claims: [
       {
         predicate: 'DIRECT_DEPENDENCY',
-        object: { name: 'AuditlogService' },
+        destination_resolution: 'RESOLVED_SERVICE',
+        object: { name: 'AuditlogService', type: 'SERVICE' },
         delivery: { subscription: { name: 'Auditlog' } },
         qualification: 'CONFIRMED',
         coverage: null,
@@ -85,5 +88,43 @@ test('a route without observed evidence reads declared only', () => {
       },
     ],
   })
-  expect(summarize(declared)?.rows[0]).toMatchObject({ receiver: 'AuditlogService', observed: false, refs: 1 })
+  expect(summarize(declared)?.receivers[0]).toMatchObject({ name: 'AuditlogService', observed: false, refs: 1 })
+})
+
+const FALLBACK = JSON.stringify({
+  ...JSON.parse(ANSWER),
+  claims: [
+    ...JSON.parse(ANSWER).claims,
+    {
+      predicate: 'DIRECT_DEPENDENCY',
+      destination_resolution: 'DIRECT_TARGET_FALLBACK',
+      object: { name: 'payments-topic', type: 'TOPIC' },
+      qualification: 'CONFIRMED',
+      coverage: null,
+      resolution_evidence_refs: [],
+    },
+  ],
+})
+
+test('a DIRECT_TARGET_FALLBACK claim is an unresolved destination, never a receiver', () => {
+  const s = summarize(FALLBACK)
+  expect(s?.receivers.map(r => r.name)).toEqual(['ReportingService'])
+  expect(s?.unresolved.map(r => r.name)).toEqual(['payments-topic'])
+})
+
+test('the band counts receivers only and the pane draws unresolved destinations apart', async ($, on) => {
+  on('tool.call', { tool: /^mcp__plugin_aip_aip__/ }, () => ({ result: [], text: FALLBACK }) as never)
+  await $.tool.call({ tool: 'mcp__plugin_aip_aip__get_service_dependencies', request: {} } as never)
+
+  const band = await $.ui.mount({ plugin: 'aip-mod', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false } } as never)
+  const line = JSON.stringify(await band.drawn())
+  expect(line).toContain('1 receivers, 1 unresolved')
+
+  const pane = JSON.stringify(
+    await (await $.ui.mount({ plugin: 'aip-mod', surface: 'terminal', component: 'Pane', props: {}, requestId: 'aip-evidence' } as never)).drawn(),
+  )
+  expect(pane).toContain('Unresolved destinations')
+  expect(pane).toContain('not receivers')
+  expect(pane).toContain('payments-topic')
+  expect(pane.indexOf('ReportingService')).toBeLessThan(pane.indexOf('Unresolved destinations'))
 })
