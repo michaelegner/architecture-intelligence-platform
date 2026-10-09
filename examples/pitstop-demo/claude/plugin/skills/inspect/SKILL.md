@@ -17,7 +17,8 @@ Requested service: `$ARGUMENTS`
    infer it from the session: the service folder you are working in, the files touched, or the last prompt. If
    you cannot tell, ask which service; do not guess.
 2. **Context.** Use the environment and window the user or the demo prompt named (whole UTC days wholly in the
-   past). If none was named, ask for them; never invent them.
+   past: a day may end at `T23:59:59Z` of its last day or at the next day's `T00:00:00Z`; both are the same
+   day). If none was named, ask for them; never invent them.
 3. **Ask.** Call `get_service_dependencies` for the service id. A receiving service has no receiver-side
    question: if it is a receiver, say so and offer to inspect the publisher that feeds it (the publishers are in
    the table).
@@ -27,7 +28,10 @@ Requested service: `$ARGUMENTS`
    claim's own `evidence_refs` are the publisher's and say nothing about the receiver), and the evidence
    reference ids; then the snapshot id, the observation context, the Broker
    claim, and every limitation verbatim. State plainly: receipt is per messaging destination (the exchange),
-   never per event type; AIP holds no payload or field-level knowledge.
+   never per event type; AIP holds no payload or field-level knowledge. If every claim reads
+   `NOT_OBSERVED_IN_WINDOW` with coverage `NONE`, say only that AIP saw no publisher span for that service in that
+   window; do not guess why (a replay, another environment, ingestion): offer a different window or the
+   environment name to check.
 5. **Drill-down on request only.** If asked to resolve references, call `get_evidence` at the answer's own
    snapshot; on `SNAPSHOT_NOT_AVAILABLE` ask the dependency question again for the same context and retry, at
    most three attempts, then report the drill-down as failed.

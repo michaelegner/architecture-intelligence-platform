@@ -164,8 +164,11 @@ examples/pitstop-demo/run.sh
 Ask the publisher: AIP resolves five receivers of the fanout exchange through their named queues, one of
 which (`ReportingService`) no Pitstop document lists, with their evidence and the publisher's qualification.
 It states, rather than hides, that it holds no payload or field-level knowledge, so which receiver reads
-`StartTime` is what you must still inspect. The local replay is the reproducible mode; the hosted live
-instance follows in a later increment.
+`StartTime` is what you must still inspect. The local replay is the reproducible mode. The canonical demo is a
+continuously running, instrumented Pitstop feeding a hosted AIP instance, queried for a completed UTC day (the
+local `--live` mode needs the private instrumented fork; the hosted instance is operated by the demo owner and
+reached over a token-gated MCP URL). An optional Claude Code plugin (and an optional mod that shows AIP's
+answer next to the agent's plan) is described in the demo README.
 
 [Demo README](examples/pitstop-demo/README.md) ·
 [question-by-question walkthrough](examples/pitstop-demo/walkthrough.md) ·
