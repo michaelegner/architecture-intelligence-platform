@@ -1,6 +1,6 @@
 {
   "name": "aip",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Architecture-aware development with AIP: plan an event or messaging-contract change from evidence-qualified architecture knowledge (Pitstop demo client material).",
   "author": {
     "name": "Architecture Intelligence Platform"
@@ -10,8 +10,14 @@
     "aip_mcp_url": {
       "type": "string",
       "title": "AIP MCP URL",
-      "description": "The AIP MCP endpoint run.sh prints. The AIP_MCP_URL environment variable overrides it; set it, and AIP_MCP_TOKEN for a token-gated instance, to use the hosted instance.",
+      "description": "The AIP MCP endpoint run.sh prints (default: the local demo). For an installed plugin set the hosted URL here; with --plugin-dir the AIP_MCP_URL environment variable overrides it.",
       "default": "http://localhost:8000/mcp"
+    },
+    "aip_token": {
+      "type": "string",
+      "title": "AIP token",
+      "description": "Access token of a token-gated AIP instance (leave empty for the local demo). Claude Code stores it outside the normal settings file; on Linux it was observed in a mode-600 credentials file, other platforms are not verified. With --plugin-dir the AIP_MCP_TOKEN environment variable overrides it.",
+      "sensitive": true
     }
   }
 }
