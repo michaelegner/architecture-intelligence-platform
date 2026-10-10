@@ -6,6 +6,13 @@ This mission guides human and agent exploration of the same evidence-qualified a
 knowledge; it does not introduce additional release scope or alter the qualification requirements
 below.
 
+The current product strategy uses **AI-assisted bounded change in existing multi-service systems** as
+the initial adoption wedge. Brownfield systems make the value of reusable architecture context most
+visible because relevant knowledge is already fragmented across repositories, declarations,
+configuration, runtime evidence, documentation, and people. This framing does **not** make AIP a
+legacy-modernization product and does not change the semantic scope or ordering of the releases
+below.
+
 ## Versioning
 
 AIP follows [Semantic Versioning](https://semver.org/) with an additional product discipline from
@@ -771,6 +778,13 @@ remain outside v1.0 under this roadmap. Moving any of those domains into the sta
 require an explicit roadmap revision plus its own product-value, semantic, and executable validation;
 landscape relevance or conceptual fit alone does not promote a future capability into v1.0.
 
+The stable-product demonstration should make the bounded-change workflow tangible on a realistic
+existing distributed system: establish relevant architecture context, use it to guide inspection and
+planning, let the coding agent implement a bounded change, verify implementation behavior with the
+normal deterministic engineering toolchain, and independently re-establish the resulting architecture
+state with AIP. This is a product demonstration of the existing contracts, not a new v1.0 semantic
+capability and not a claim that AIP itself verifies implementation correctness.
+
 ## Sequencing principle
 
 ```text
@@ -818,6 +832,16 @@ v0.7  HOW are APIs exposed and consumed, and what does the evidence establish?
 v0.8  WHAT explicit Intent applies here?
 v0.9  HOW does established Current State differ from applicable Intent?
 v1.0-rc  FREEZE and qualify the question space already implemented
+```
+
+For the initial bounded-change wedge, those same capabilities have a task-level interpretation;
+this is product framing, not additional release scope:
+
+```text
+v0.6  Which established relationships and contexts should I inspect before changing this service?
+v0.7  Which evidenced API consumers and exposure paths may matter before changing this API?
+v0.8  What explicit architecture constraints or promises apply to this change?
+v0.9  After the change, where does established Current State align with or differ from applicable Intent?
 ```
 
 These questions expand AIP's safely answerable Architecture Knowledge in release order; the
