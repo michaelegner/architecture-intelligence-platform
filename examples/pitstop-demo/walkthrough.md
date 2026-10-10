@@ -10,8 +10,9 @@ deterministic for these inputs). Blocks are kept apart:
 
 - **AIP result**: returned by AIP, with its evidence.
 - **Boundary**: what AIP states it cannot know. It is never filled in by a guess.
-- **Agent suggestion**: what a coding agent should do with it. Not AIP output. (The agent's own plan comes
-  with the Claude Code client assets, a later increment.)
+- **Agent suggestion**: what a coding agent should do with it. Not AIP output. (The agent's own plan, with the
+  plugin and the optional mod, is in the [Claude Code section of the README](README.md#agent-setup-the-claude-code-plugin)
+  and the [recorded conversation](conversation-claude-code.md).)
 
 Ask the **publisher**: AIP has no receiver-side question, so the receivers of the exchange are the claims in
 `WorkshopManagementAPI`'s answer.
