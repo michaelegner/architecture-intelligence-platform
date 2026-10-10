@@ -125,6 +125,48 @@ the repository adopts one, but the timestamp remains in the hidden PR metadata m
    reconciliation template below. This is a diff against what was promised, not a fresh
    retrospective that quietly replaces the plan — both documents should remain visible together.
 
+## Pre-PR refactoring check
+
+Before opening a PR with Python code changes, inspect the changed code for material unnecessary
+complexity, duplicated logic, and misplaced responsibilities. Apply small, behavior-preserving
+improvements within the approved scope when they have a concrete benefit. Preserve all governing
+specification requirements, public contracts, determinism, and AIP's evidence/provenance,
+identity, qualification, and snapshot/observation-context semantics.
+
+If a useful refactoring would expand the approved plan or change architectural/contract semantics,
+report it separately; do not silently enlarge the PR. Re-run the applicable validation from phase
+8 after any source change. Skip this check for documentation-only changes. This is a lightweight
+check within the existing workflow, not an additional approval gate or a reason to block on
+cosmetic preferences.
+
+For Python-changing PRs, record the outcome in the PR description under **Refactoring report**:
+- **Refactoring performed:** Yes / No.
+- **Improvements:** Name concrete, diff-verifiable changes (prefer file/function references), or
+  `None needed`.
+- **Remaining structural debt:** Material findings only, or `None identified`.
+- **Verification:** Checks actually run after any refactoring, or explicitly note what was not run.
+
+A `No / None needed` outcome is valid. Never claim a refactoring happened without an identifiable
+code change. Omit the report for documentation-only PRs; this is reporting, not an extra gate.
+
+## Mandatory pre-PR independent review
+
+After phase 8 validation and the refactoring check, but before opening the implementation PR, run
+the repository's [`aip-reviewer`](../../../.claude/agents/aip-reviewer.md) against the complete
+branch diff. Give it the governing specification revision and retained plan. This is a sequential
+review pass, not permission to spawn parallel review agents.
+
+- Resolve every BLOCKER/MAJOR finding before opening the PR.
+- If the reviewer identifies an unstated semantic decision, return to phase 3 and the owner; tests
+  cannot resolve it.
+- After material fixes, rerun the affected validation and the reviewer once. Do not loop on
+  MINOR/NIT findings.
+- In the PR body, record only the final verdict and any intentionally retained MINOR/NIT findings;
+  do not add a round-by-round self-review log.
+- If the complete diff qualifies for the strict documentation-only pre-PR validation exemption
+  above, skip this reviewer pass as well. Specifications, completion records, release notes,
+  schemas, fixtures and other release-candidate content are already excluded from that exemption.
+
 ## Checking for review feedback
 
 Before treating a "findings check" as complete — whether re-reviewing a PR or responding to

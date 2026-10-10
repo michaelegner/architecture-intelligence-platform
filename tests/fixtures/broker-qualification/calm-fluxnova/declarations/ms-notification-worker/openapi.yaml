@@ -1,0 +1,9 @@
+# Operator-authored, identity-only declaration (v0.6.1 spec §3): it only establishes the Service the
+# CALM node `ms-notification-worker` names. It carries no operations, no schemas and no HTTP semantics - CALM
+# `connects` identifies none - so `paths` is empty and nothing is invented from the model.
+openapi: 3.1.0
+info:
+  title: Notification Worker
+  version: "1.0.0"
+x-aip-service-id: service:ms-notification-worker
+paths: {}

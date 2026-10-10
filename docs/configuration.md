@@ -29,11 +29,12 @@ Copy `.env.example` to `.env` and fill these in for local development.
 | `telemetry.service_aliases` / `queue_aliases` | `{}` — map an observed name to its declared canonical name when they differ |
 | `telemetry.http-correlation` | `enabled` (`true`), `ttl-seconds` (`60`), `max-pending-spans` (`10000`) — the cross-batch correlation buffer's bounds (11H-B) |
 | `telemetry.coverage` | `qualification-enabled` (`true`) — the O4 coverage-classification kill switch (11H-E) |
+| `telemetry.scoped-evidence` | `enabled` (`true`), `stream-id` (`otlp-http`) — v0.6.0: also persist an isolated, caller-Pod-scoped v2 record for each accepted CALLS whose original CLIENT carries `k8s.pod.uid`, `k8s.cluster.uid` and a matching environment. The record is internal: never `:Evidence`, no relationships, and in no v0.5 answer. Once at least one exists, the canonical snapshot gains its two conditional keys (`scoped_observed_calls_v2`, `scoped_capture_scopes_v2`). I6 applies the D16 default-on flip: omitted configuration enables the transition/v2 path; explicitly set `enabled: false` for legacy ingestion. No-v2 canonical snapshots remain unchanged. `stream-id` names this instance's live trace stream in the operational transition report |
 | `runtime_analysis` | `default_window_hours` (`24`), `default_environment` (`production`) |
 
 ## Backward compatibility guarantee
 
-Every 11H-era property (`telemetry.http-correlation.*`, `telemetry.coverage.*`) is optional with a
+Every 11H-era property (`telemetry.http-correlation.*`, `telemetry.coverage.*`, and the v0.6.0 `telemetry.scoped-evidence.*`) is optional with a
 safe default — an existing `config.yaml` written before these properties existed still starts the
 app completely unchanged. This isn't just convention: `HttpCorrelationConfig` and `CoverageConfig`
 are both plain Pydantic models with `Field(default=...)` on every property, and `TelemetryConfig`

@@ -21,22 +21,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.sources.identity import kubernetes_logical_resource_id
-from app.sources.kubernetes_mapping import MappedResource
+from app.sources.kubernetes_constants import (
+    DEPLOYMENT_KIND,
+    POD_KIND,
+    REPLICASET_KIND,
+    WORKLOAD_KINDS,
+    api_group,
+)
+from app.sources.kubernetes_mapping import MappedResource, resource_pointer
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult
 
-_POD_KIND = "Pod"
-_REPLICASET_KIND = "ReplicaSet"
-_DEPLOYMENT_KIND = "Deployment"
-_DIRECT_WORKLOAD_KINDS = frozenset({"StatefulSet", "DaemonSet"})
-
-
-def _api_group(api_version: str) -> str:
-    """I2 Draft 0.2 §6: "The core API group is the empty string." Duplicated from
-    `kubernetes_mapping._api_group` (private there) rather than imported - both are the same
-    one-line §6 formula, not a shared abstraction worth coupling two modules over.
-    """
-    group, _, _version = api_version.rpartition("/")
-    return group
+_DIRECT_WORKLOAD_KINDS = WORKLOAD_KINDS - {DEPLOYMENT_KIND}
 
 
 @dataclass(frozen=True)
@@ -85,7 +80,7 @@ def _find_owner(
     """
     candidate_id = kubernetes_logical_resource_id(
         cluster_uid=cluster_uid,
-        api_group=_api_group(ref["apiVersion"]),
+        api_group=api_group(ref["apiVersion"]),
         kind=ref["kind"],
         namespace=namespace,
         name=ref["name"],
@@ -96,25 +91,11 @@ def _find_owner(
     return candidate
 
 
-def _resource_pointer(resource: MappedResource) -> str:
-    """§10: diagnostics carry "source/resource IDs where safely known, source pointers[...]" - not
-    the resource's own logical id hash alone (a real gap found in review: an operator couldn't trace
-    an unresolved/invalid owner-chain finding back to its contributing YAML file). Mirrors
-    `kubernetes_mapping._validation_error`'s own pointer shape, joining every contributing file (a
-    resource can have more than one after an identical-duplicate merge) so none are lost.
-    """
-    projection = resource.projection
-    return (
-        f"{','.join(resource.source_pointers)}:{projection['apiVersion']}/{resource.resource_kind}"
-        f"/{projection['namespace']}/{projection['name']}"
-    )
-
-
 def _limitation(resource: MappedResource, message: str) -> IngestionDiagnostic:
     return IngestionDiagnostic(
         code=DiagnosticCode.K8S_OWNER_UNRESOLVED,
         message=message,
-        source_pointer=_resource_pointer(resource),
+        source_pointer=resource_pointer(resource),
     )
 
 
@@ -122,7 +103,7 @@ def _invalid(resource: MappedResource, message: str) -> IngestionDiagnostic:
     return IngestionDiagnostic(
         code=DiagnosticCode.K8S_OWNER_INVALID,
         message=message,
-        source_pointer=_resource_pointer(resource),
+        source_pointer=resource_pointer(resource),
     )
 
 
@@ -196,7 +177,7 @@ def resolve_owner_chains(
     source's Pods each still get one `K8S_OWNER_UNRESOLVED` rather than being passed over.
     """
     by_logical_id = {resource.logical_id: resource for resource in resources}
-    pods = [resource for resource in resources if resource.resource_kind == _POD_KIND]
+    pods = [resource for resource in resources if resource.resource_kind == POD_KIND]
 
     diagnostics: list[IngestionDiagnostic] = []
     resolved: list[ResolvedOwnership] = []
@@ -235,8 +216,8 @@ def resolve_owner_chains(
             )
         elif (
             len(path) == 3
-            and path[1].resource_kind == _REPLICASET_KIND
-            and path[2].resource_kind == _DEPLOYMENT_KIND
+            and path[1].resource_kind == REPLICASET_KIND
+            and path[2].resource_kind == DEPLOYMENT_KIND
         ):
             resolved.append(
                 ResolvedOwnership(

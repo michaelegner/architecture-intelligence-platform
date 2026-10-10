@@ -1,0 +1,32 @@
+apiVersion: aip.dev/v1
+kind: KubernetesSourceSnapshot
+metadata:
+  id: aip-locality-rehearsal-c2
+  revision: rehearsal-c2-2026-09-30T14-40-42Z
+  producer: aip-locality-rehearsal
+  capturedAt: "2026-09-30T14:40:42Z"
+source:
+  configuredSourceId: aip-locality-rehearsal
+  configuredScopeId: aip-locality-rehearsal-scope
+  clusterUid: 3c9b3e0f-1239-404a-8a45-c1195a7918f5
+  clusterIdentityEvidenceRef: kube-system-namespace-uid
+  mode: CAPTURED_RESOURCE
+scope:
+  namespaces:
+    - aip-locality
+  resourceTypes:
+    - v1/Namespace
+    - v1/Pod
+    - v1/Service
+    - apps/v1/Deployment
+    - apps/v1/StatefulSet
+    - apps/v1/DaemonSet
+    - apps/v1/ReplicaSet
+    - networking.k8s.io/v1/Ingress
+completeness:
+  status: COMPLETE
+  authorityRef: aip-locality-rehearsal-self-declared-authority
+  expectedPriorInventoryRevision: null
+files:
+  - path: resources.yaml
+    sha256: 50cd42d5657552187d4ed66208f209fd807931faa989da5628d08e6fe18f0df3

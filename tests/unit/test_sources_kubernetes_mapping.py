@@ -82,7 +82,35 @@ def test_unsupported_resource_kind_is_omitted_with_a_pointer_diagnostic():
     assert len(result.diagnostics) == 1
     diagnostic = result.diagnostics[0]
     assert diagnostic.code is DiagnosticCode.K8S_RESOURCE_UNSUPPORTED
-    assert diagnostic.source_pointer == "cm.yaml:v1/ConfigMap"
+    assert diagnostic.source_pointer == "cm.yaml:v1/ConfigMap/checkout/settings"
+
+
+def test_same_kind_unsupported_resources_keep_distinct_object_pointers():
+    first = {
+        "apiVersion": "v1",
+        "kind": "ConfigMap",
+        "metadata": {"name": "settings-a", "namespace": _NAMESPACE},
+    }
+    second = {
+        "apiVersion": "v1",
+        "kind": "ConfigMap",
+        "metadata": {"name": "settings-b", "namespace": _NAMESPACE},
+    }
+    result = _map(
+        [
+            _entry(first, source_pointer="cm.yaml"),
+            _entry(second, source_pointer="cm.yaml"),
+        ]
+    )
+    assert result.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
+    assert [diagnostic.code for diagnostic in result.diagnostics] == [
+        DiagnosticCode.K8S_RESOURCE_UNSUPPORTED,
+        DiagnosticCode.K8S_RESOURCE_UNSUPPORTED,
+    ]
+    assert [diagnostic.source_pointer for diagnostic in result.diagnostics] == [
+        "cm.yaml:v1/ConfigMap/checkout/settings-a",
+        "cm.yaml:v1/ConfigMap/checkout/settings-b",
+    ]
 
 
 def test_admitted_deployment_and_pod_are_mapped_to_the_correct_entity_kinds():

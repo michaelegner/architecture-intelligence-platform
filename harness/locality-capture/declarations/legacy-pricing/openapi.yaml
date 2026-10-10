@@ -1,0 +1,12 @@
+openapi: 3.1.0
+info:
+  title: legacy-pricing
+  version: "1.0.0"
+x-aip-service-id: service:legacy-pricing
+paths:
+  /prices:
+    get:
+      operationId: getPrices
+      responses:
+        "200":
+          description: ok

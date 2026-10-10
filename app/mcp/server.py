@@ -1,7 +1,7 @@
 """v0.4.0 I2.1 - the `MCPServer` instance (spec `docs/specifications/0.4.0/
 i2-mcp-vertical-slice-and-evidence-drill-down.md` §4, §9).
 
-Built on the official `mcp` SDK (pinned `mcp==2.1.1`). The following was verified directly against
+Built on the official `mcp` SDK (exact version pinned in `pyproject.toml`). The following was verified directly against
 the installed package - it isn't documented on the SDK's own doc pages - and shapes this module and
 `app.mcp.guard`:
 
@@ -18,7 +18,7 @@ the installed package - it isn't documented on the SDK's own doc pages - and sha
   the real model's own schema (so the model's own `extra=forbid`/patterns/cross-field validators
   are preserved faithfully). A `BaseModel`-typed *return* value, by contrast, is used directly as
   `structuredContent` (not wrapped in `{"result": ...}`) - confirmed live against
-  `ArchitectureAnswer[ServiceDependenciesData]`. Both tools below take a single `request` parameter
+  `ArchitectureAnswer[ServiceDependenciesData]`. Every tool in `app.mcp.tools` takes a single `request` parameter
   for this reason: `{"request": {...}}` is what a caller sends, and it's a clean, well-defined
   isomorphism to the wrapped request type (spec §10 rule 1), not a byte-identical top-level schema.
 - `MCPServer(cache_hints={...})` takes a `CacheHint(scope, ttl_ms)` per `CacheableMethod`, and
@@ -36,11 +36,12 @@ the installed package - it isn't documented on the SDK's own doc pages - and sha
   `app.mcp.guard` rejects that case in front of the mounted app.
 - Confirmed live that the SDK's own `tools/call` dispatch turns an unknown tool name into
   `ToolError("Unknown tool: ...")` -> `is_error=True` inside a normal 200 result, not a JSON-RPC
-  protocol error. Spec §16's table requires "unknown method/tool" to be a JSON-RPC protocol error,
-  distinct from "invalid tool arguments". `app.mcp.guard` corrects this one case too, ahead of the
-  SDK's own dispatch, and also closes a related gap: the SDK's synthesized argument wrapper does not
-  reject an unexpected top-level key (e.g. `{"request": {...}, "junk": 1}`) - confirmed live - so the
-  guard also enforces that a `tools/call`'s `arguments` contain only the expected `request` key.
+  protocol error, and that the SDK's synthesized argument wrapper silently drops an unexpected
+  top-level key (e.g. `{"request": {...}, "junk": 1}`). `app.mcp.guard` corrected both only for the
+  retired v0.4.x direct mode; since v0.5.0 I3 slice 5a it corrects neither, and
+  `tests/unit/test_mcp_discovery.py` documents the SDK's behaviour for the three v0.5 tools. The
+  fourth tool, `get_service_dependencies_by_locality` (v0.6.0 I3.3b, I3 decision record D12), does
+  reject an unexpected top-level key before dispatch: `app.mcp.tools` closes its argument model.
 """
 
 from __future__ import annotations

@@ -29,9 +29,16 @@ from app.canonical.infrastructure import (
     InfrastructureEntityKind,
     InfrastructurePort,
 )
-from app.sources.encoding import sha256_hex
 from app.sources.identity import kubernetes_logical_resource_id
-from app.sources.jcs import canonical_json_bytes
+from app.sources.jcs import canonical_json_bytes, canonical_sha256_hex
+from app.sources.kubernetes_constants import (
+    INGRESS_KIND,
+    NAMESPACE_KIND,
+    POD_KIND,
+    SERVICE_KIND,
+    WORKLOAD_KINDS,
+    api_group,
+)
 from app.sources.kubernetes_envelope import EXPECTED_RESOURCE_TYPES
 from app.sources.model import (
     DiagnosticCode,
@@ -40,25 +47,9 @@ from app.sources.model import (
     KubernetesResourceEntry,
 )
 
-# I2 Draft 0.2 §5's table, restricted to the two kinds this slice promotes to entities.
-_WORKLOAD_RESOURCE_KINDS = frozenset({"Deployment", "StatefulSet", "DaemonSet"})
-_POD_RESOURCE_KIND = "Pod"
-_SERVICE_RESOURCE_KIND = "Service"
-_NAMESPACE_RESOURCE_KIND = "Namespace"
-_INGRESS_RESOURCE_KIND = "Ingress"
-
 # I2 Draft 0.2 §5: "architecture-intelligence.io/service-id on supported Workloads, retained for I3
 # only" - retained unqualified; I2 never evaluates it into an AIP Service identity (§9).
 SERVICE_ID_ANNOTATION = "architecture-intelligence.io/service-id"
-
-
-def _api_group(api_version: str) -> str:
-    """I2 Draft 0.2 §6: "The core API group is the empty string." `apiVersion` is always either a
-    bare version (core group, e.g. "v1") or "group/version" (e.g. "apps/v1") - never more than one
-    slash.
-    """
-    group, _, _version = api_version.rpartition("/")
-    return group
 
 
 def _resource_type_key(document: dict) -> str:
@@ -70,7 +61,7 @@ def is_admitted(document: dict) -> bool:
 
 
 def _is_namespaced(resource_kind: str) -> bool:
-    return resource_kind != _NAMESPACE_RESOURCE_KIND
+    return resource_kind != NAMESPACE_KIND
 
 
 @dataclass(frozen=True)
@@ -111,6 +102,20 @@ class MappedResource:
     captured_resource_uid` for §7.1's own independent incarnation-conflict rule."""
 
 
+def resource_pointer(resource: MappedResource) -> str:
+    """§10: diagnostics carry "source/resource IDs where safely known, source pointers[...]" - not
+    the resource's own logical id hash alone, so an operator can trace a finding back to its
+    contributing YAML file. Mirrors `_validation_error`'s own pointer shape, joining every
+    contributing file (a resource can have more than one after an identical-duplicate merge) so none
+    are lost.
+    """
+    projection = resource.projection
+    return (
+        f"{','.join(resource.source_pointers)}:{projection['apiVersion']}/{resource.resource_kind}"
+        f"/{projection['namespace']}/{projection['name']}"
+    )
+
+
 @dataclass(frozen=True)
 class KubernetesMappingResult:
     result: IngestionResult
@@ -133,13 +138,13 @@ def _entity_kind_for(resource_kind: str) -> InfrastructureEntityKind | None:
     """§7.1's four admitted-to-entity-kind mappings. `None` for `Namespace`/`ReplicaSet`, which
     §7.1 keeps permanently in the snapshot-bound resource/incarnation index only.
     """
-    if resource_kind in _WORKLOAD_RESOURCE_KINDS:
+    if resource_kind in WORKLOAD_KINDS:
         return InfrastructureEntityKind.KUBERNETES_WORKLOAD
-    if resource_kind == _POD_RESOURCE_KIND:
+    if resource_kind == POD_KIND:
         return InfrastructureEntityKind.KUBERNETES_POD
-    if resource_kind == _SERVICE_RESOURCE_KIND:
+    if resource_kind == SERVICE_KIND:
         return InfrastructureEntityKind.KUBERNETES_NETWORK_SERVICE
-    if resource_kind == _INGRESS_RESOURCE_KIND:
+    if resource_kind == INGRESS_KIND:
         return InfrastructureEntityKind.KUBERNETES_INGRESS
     return None
 
@@ -338,7 +343,7 @@ def _needed_pod_label_keys(resources: tuple[KubernetesResourceEntry, ...]) -> fr
     keys: set[str] = set()
     for entry in resources:
         document = entry.document
-        if _resource_type_key(document) != f"v1/{_SERVICE_RESOURCE_KIND}":
+        if _resource_type_key(document) != f"v1/{SERVICE_KIND}":
             continue
         # Review round (PR #200): this prepass runs before `_project_or_error` validates `spec`'s
         # own shape, so a malformed `spec` (e.g. a list instead of a mapping) must not raise here -
@@ -418,7 +423,7 @@ def _validate_resource(
     else:
         # §4.3: "Namespace objects themselves are cluster-scoped and restricted to those selected
         # names" - the object's own name (not a namespace field) must be a declared namespace.
-        if kind == _NAMESPACE_RESOURCE_KIND and name not in scope_namespaces:
+        if kind == NAMESPACE_KIND and name not in scope_namespaces:
             return _validation_error(
                 entry,
                 code=DiagnosticCode.K8S_SNAPSHOT_INVALID,
@@ -472,7 +477,7 @@ def _project_or_error(
         "ownerReferences": owner_refs,
     }
 
-    if kind in _WORKLOAD_RESOURCE_KINDS:
+    if kind in WORKLOAD_KINDS:
         annotations = metadata.get("annotations")
         if annotations is not None and not isinstance(annotations, dict):
             return None, "metadata.annotations must be a mapping"
@@ -483,14 +488,14 @@ def _project_or_error(
             return None, f"{SERVICE_ID_ANNOTATION} annotation must be a string"
         projection["serviceIdAnnotation"] = service_id
 
-    elif kind == _POD_RESOURCE_KIND:
+    elif kind == POD_KIND:
         labels, error = _string_map_or_error(metadata.get("labels"), field="metadata.labels")
         if error is not None:
             return None, error
         retained_labels = {k: v for k, v in labels.items() if k in needed_label_keys}
         projection["labels"] = dict(sorted(retained_labels.items()))
 
-    elif kind == _SERVICE_RESOURCE_KIND:
+    elif kind == SERVICE_KIND:
         spec = document.get("spec")
         if spec is not None and not isinstance(spec, dict):
             return None, "spec must be a mapping"
@@ -508,7 +513,7 @@ def _project_or_error(
             return None, error
         projection["ports"] = ports
 
-    elif kind == _INGRESS_RESOURCE_KIND:
+    elif kind == INGRESS_KIND:
         spec = document.get("spec")
         if spec is not None and not isinstance(spec, dict):
             return None, "spec must be a mapping"
@@ -556,6 +561,15 @@ def map_kubernetes_resources(
         if not is_admitted(entry.document):
             document = entry.document
             pointer = f"{entry.source_pointer}:{document.get('apiVersion')}/{document.get('kind')}"
+            metadata = document.get("metadata")
+            if isinstance(metadata, dict):
+                name = metadata.get("name")
+                namespace = metadata.get("namespace")
+                if isinstance(name, str) and name:
+                    if isinstance(namespace, str) and namespace:
+                        pointer = f"{pointer}/{namespace}/{name}"
+                    else:
+                        pointer = f"{pointer}/{name}"
             diagnostics.append(
                 IngestionDiagnostic(
                     code=DiagnosticCode.K8S_RESOURCE_UNSUPPORTED,
@@ -589,7 +603,7 @@ def map_kubernetes_resources(
         metadata = document.get("metadata", {})
         logical_id = kubernetes_logical_resource_id(
             cluster_uid=cluster_uid,
-            api_group=_api_group(document["apiVersion"]),
+            api_group=api_group(document["apiVersion"]),
             kind=resource_kind,
             namespace=metadata.get("namespace") or "",
             name=metadata["name"],
@@ -678,7 +692,7 @@ def map_kubernetes_resources(
                 id=logical_id,
                 entity_kind=entity_kind,
                 cluster_uid=cluster_uid,
-                api_group=_api_group(document["apiVersion"]),
+                api_group=api_group(document["apiVersion"]),
                 resource_kind=resource_kind,
                 namespace=metadata.get("namespace") or "",
                 name=metadata["name"],
@@ -687,7 +701,7 @@ def map_kubernetes_resources(
             if entity_kind is not None
             else None
         )
-        digest = sha256_hex(canonical_json_bytes(first_projection))
+        digest = canonical_sha256_hex(first_projection)
         source_pointers = tuple(sorted({entry.source_pointer for entry in group}))
         captured_uid = next(iter(captured_uids), None)
         mapped_resources.append(

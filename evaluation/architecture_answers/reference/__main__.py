@@ -5,6 +5,8 @@ hand-copied into its `expected_answer.json`. Never invoked by the live evaluatio
     uv run python -m evaluation.architecture_answers.reference snapshot <scenario-dir>
     uv run python -m evaluation.architecture_answers.reference context-id <environment> <window_start> <window_end>
     uv run python -m evaluation.architecture_answers.reference claim-id <subject_id> <predicate> <object_id> <delivery_kind> <delivery_via_id>
+    uv run python -m evaluation.architecture_answers.reference broker-id <stable_broker_id>
+    uv run python -m evaluation.architecture_answers.reference broker-claim-id <service_id> <stable_broker_id>
     uv run python -m evaluation.architecture_answers.reference declared-evidence-id <source_type> <service_slug> [revision]
     uv run python -m evaluation.architecture_answers.reference observed-evidence-id <environment> <bucket_start> <subject_id> <relation_type> <object_id>
 """
@@ -82,6 +84,18 @@ def _print_claim_id(
     )
 
 
+def _print_broker_id(stable_broker_id: str) -> None:
+    print(identities.broker_id(stable_broker_id))
+
+
+def _print_broker_claim_id(service_id: str, stable_broker_id: str) -> None:
+    print(
+        identities.broker_claim_id(
+            service_id=service_id, broker_id=identities.broker_id(stable_broker_id)
+        )
+    )
+
+
 def _print_declared_evidence_id(
     source_type: str, service_slug: str, revision: str | None = None
 ) -> None:
@@ -129,6 +143,13 @@ def main(argv: list[str] | None = None) -> int:
     claim.add_argument("delivery_via_id")
     claim.add_argument("--subscription-id", default=None)
 
+    broker = subparsers.add_parser("broker-id")
+    broker.add_argument("stable_broker_id")
+
+    broker_claim = subparsers.add_parser("broker-claim-id")
+    broker_claim.add_argument("service_id")
+    broker_claim.add_argument("stable_broker_id")
+
     declared = subparsers.add_parser("declared-evidence-id")
     declared.add_argument("source_type")
     declared.add_argument("service_slug")
@@ -167,6 +188,10 @@ def main(argv: list[str] | None = None) -> int:
             args.delivery_via_id,
             args.subscription_id,
         )
+    elif args.command == "broker-id":
+        _print_broker_id(args.stable_broker_id)
+    elif args.command == "broker-claim-id":
+        _print_broker_claim_id(args.service_id, args.stable_broker_id)
     elif args.command == "declared-evidence-id":
         _print_declared_evidence_id(args.source_type, args.service_slug, args.revision)
     elif args.command == "observed-evidence-id":

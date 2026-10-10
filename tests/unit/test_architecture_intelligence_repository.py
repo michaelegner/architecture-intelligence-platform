@@ -31,6 +31,30 @@ def test_project_nodes_sorts_by_id():
     assert [row["id"] for row in repo._project_nodes(session, "Q")] == ["a", "b"]
 
 
+def test_a_pod_captured_by_two_sources_projects_in_one_order_whatever_the_read_order():
+    """v0.6.0 I3.2c (I3 oracle P07): one Pod captured by two sources gives two rows with the same
+    id, so the projection must not leave their order to Neo4j."""
+    rows = [
+        {
+            "id": "pod-1",
+            "captured_resource_uid": "uid-1",
+            "captured_at": "2026-09-28T10:05:00Z",
+            "evidence_refs": ["ev:b"],
+        },
+        {
+            "id": "pod-1",
+            "captured_resource_uid": "uid-1",
+            "captured_at": "2026-09-28T10:00:00Z",
+            "evidence_refs": ["ev:a"],
+        },
+    ]
+    query = repo._DEPLOYMENT_CAPTURED_PODS_QUERY
+    forward = repo._project_deployment_captured_pods(FakeSession({query: rows}))  # pyright: ignore[reportArgumentType]
+    backward = repo._project_deployment_captured_pods(FakeSession({query: rows[::-1]}))  # pyright: ignore[reportArgumentType]
+    assert forward == backward
+    assert [row["evidence_refs"] for row in forward] == [["ev:a"], ["ev:b"]]
+
+
 def test_project_relations_sorts_by_type_source_target():
     session = FakeSession(
         {

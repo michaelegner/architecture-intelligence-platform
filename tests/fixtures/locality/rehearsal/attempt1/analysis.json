@@ -1,0 +1,42 @@
+{
+  "arrival_orders": {
+    "client_first": 644,
+    "server_first": 224,
+    "server_only": 4
+  },
+  "client_resources": [
+    {
+      "deployment.environment.name": "locality-capture",
+      "k8s.cluster.uid": "110f4977-619c-40c8-a90b-d1b6474b21ff",
+      "k8s.deployment.name": "orders",
+      "k8s.namespace.name": "aip-locality",
+      "k8s.pod.name": "orders-8555f966b7-mgwn7",
+      "k8s.pod.uid": "8792bbf2-7607-4c10-bc57-671868844e3c",
+      "service.instance.id": "843da79a-a675-41a3-826a-31bd632d1de2",
+      "service.name": "orders",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.45.0"
+    },
+    {
+      "deployment.environment.name": "locality-capture",
+      "k8s.cluster.uid": "110f4977-619c-40c8-a90b-d1b6474b21ff",
+      "k8s.deployment.name": "orders-canary",
+      "k8s.namespace.name": "aip-locality",
+      "k8s.pod.name": "orders-canary-859c9f9cdc-vxggc",
+      "k8s.pod.uid": "2a9f2c47-8a93-493d-9a1e-e9477dab7881",
+      "service.instance.id": "553e27c0-7232-4f94-94cf-5ee2f40072e4",
+      "service.name": "orders",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.45.0"
+    }
+  ],
+  "client_spans": {
+    "P1 -> pricing": 359,
+    "P2 -> legacy-pricing": 509
+  },
+  "gate1_violations": [],
+  "lines": 254,
+  "traces": 872
+}

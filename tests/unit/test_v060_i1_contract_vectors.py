@@ -250,10 +250,20 @@ def test_v2_snapshot_fragment() -> None:
         assert entry["first_seen"] <= entry["last_seen"]
 
 
-def test_no_v2_snapshot_pin_matches_golden_path() -> None:
+def test_golden_path_demo_pin_is_the_re_derived_v0_6_1_pin() -> None:
+    """The frozen v0.6.0 pin (`0bfcbded…`) is superseded, not edited. v0.6.1 moves it (canonicalization
+    4 and the demo's Broker node), so the golden path and the runtime-demo manifest must pin the same
+    re-derived snapshot, and it must differ from the v0.6.0 one."""
     pin = V2["no_v2_snapshot_pin"]
-    expected = (ROOT / pin["source"]).read_text(encoding="utf-8")
-    assert f'"actual_snapshot_id": "{pin["snapshot_id"]}"' in expected
+    expected = json.loads((ROOT / pin["source"]).read_text(encoding="utf-8"))
+    manifest = json.loads((ROOT / "examples/runtime-demo/fixture-state.json").read_text("utf-8"))
+    [fixture_state] = [
+        c for c in expected["phases"]["demo"]["checks"] if c["id"] == "fixture-state"
+    ]
+    golden_pin = fixture_state["expect"]["actual_snapshot_id"]
+    assert golden_pin == manifest["expected_snapshot_id"]
+    assert golden_pin != pin["snapshot_id"], "the v0.6.0 pin must not survive a snapshot change"
+    assert manifest["total_node_count"] == 49  # the v0.6.0 demo's 48 plus the one Broker node
 
 
 _CONSISTENCY_FIELDS = (

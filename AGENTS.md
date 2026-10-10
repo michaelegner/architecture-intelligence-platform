@@ -74,6 +74,85 @@ including this file.** If anything below conflicts with a specification, the spe
   command forms (they override any local allow rule), but they match command text only and are not
   a security boundary.
 
+## Orientation and planning posture
+
+Orientation (do this first, instead of sweeping the specs directory):
+
+- `git fetch origin`, then confirm the increment spec you were asked to plan actually exists on the
+  checked-out branch. If it only exists on `origin/main`, work in a worktree created from
+  `origin/main`; do not hunt for it through issues or the GitHub contents API. The shared checkout
+  is often on an unrelated branch, so never switch branches there.
+- `ROADMAP.md` names the release in progress. The previous increment's handoff
+  (`docs/specifications/<release>/iN-iM-handoff.md`) and completion record are the entry points to
+  the next increment; read those and the target increment spec, then only the code the plan touches.
+  Use `rg`/targeted `sed -n` ranges rather than `cat`-ing whole specifications.
+- Do not re-read the same large file (this procedure included) within one session.
+
+Planning posture:
+
+- A plan is proportional to the increment's risk. Fill the plan template; do not add pre-checks,
+  guard tests, decision records or ADRs that the specification does not require. Qualification is
+  multi-stage by design: a mistake caught at a later gate with a clean audit trail is the model
+  working, so do not front-load extra checking to avoid ever surfacing one.
+- Solve the current problem. Do not propose decisions, triggers, tripwire tests, registries or
+  documents for hypothetical future cases; at most one line, and only if relevant. A deferred option
+  is an option, not a decision. ADRs are for real architecture decisions, never small refactors.
+- "Propose" means a quick menu of distinct approaches with rough cost and gain, based on cheap data
+  (a code read, CI logs). Do not run long local trials before answering; run experiments after the
+  owner picks an option.
+- When a spec or workflow document prescribes a process (for example task -> PR -> merge -> next
+  task), follow it as written. Implement one task, stop, and open its PR; plan approval does not
+  license batching tasks.
+- Report plans to the owner at the length of the decisions they contain. If the owner says the
+  plan is too heavy, remove scope; do not just reword it.
+
+## Implementation habits
+
+- Before opening a PR, perform an independent self-review of the complete proposed diff against
+  [`.claude/agents/aip-reviewer.md`](.claude/agents/aip-reviewer.md) sections A-H (evidence
+  membership, schema parity, sanitized diagnostics, determinism, environment parity, tests as
+  proof, pinned qualification identity). Claude Code must invoke the `aip-reviewer` agent
+  sequentially; other agents must apply the same checklist independently from the implementation
+  pass. Resolve every BLOCKER/MAJOR before opening the PR. If review exposes a semantic ambiguity,
+  stop and return it to the owner. After material fixes, run the applicable validation again and
+  repeat the self-review once; do not churn on MINOR/NIT findings. A change that qualifies for the
+  strict documentation-only pre-PR validation exemption in the specification-driven implementation
+  skill also skips this independent reviewer pass; specifications, completion records, release
+  notes, schemas, fixtures and other release-candidate content do not qualify for that exemption.
+- Assert the branch inside the commit command (`test "$(git branch --show-current)" = <branch> &&
+  git commit ...`). Do not commit unless the owner asks; end a change by reporting what changed and
+  that it is not committed.
+- After pushing review fixes, update the PR body and post a summary comment (fixes, regressions,
+  local test results) immediately; do not wait for CI.
+- A bare "merged" from the owner reports a merge, nothing more. Verify it, propose the next step,
+  and stop until told to proceed.
+- Specifications are sometimes authored by the owner and appear as untracked files mid-session.
+  Check for an existing spec at the expected path before drafting one. If one appears while you are
+  drafting, stop and treat theirs as authoritative.
+- Verify cited evidence paths with `git ls-files --cached`, not the working tree: `.gitignore` has
+  `*.log`, so `git add` skips logs silently. Hand-authored AIP inputs (declarations, bindings,
+  manifests) must be proven through the real discoverer (`CANDIDATE_FILENAMES` and directory
+  depth), not only parsed.
+- Known flake: `demo-e2e`'s `test_missing_env_exits_nonzero` can spuriously hit its 15s timeout in
+  CI. Compare other runs on the same SHA and re-run the failed jobs before touching the test.
+
+## Continuous refactoring
+
+Treat refactoring as part of normal Python implementation, not as a separate project phase.
+Leave touched code simpler where there is a concrete maintainability benefit: remove unnecessary
+complexity or duplication, clarify responsibilities, and prefer improving existing abstractions
+over speculative new ones. Keep improvements within the current task's scope; report larger
+structural concerns separately rather than expanding the change.
+
+Preserve observable behavior, public contracts, deterministic results, and AIP's evidence,
+provenance, identity, qualification, and snapshot/observation-context semantics. Verify relevant
+behavior after any refactoring with the repository's existing checks.
+
+Before opening a PR that changes Python code, briefly review the diff for material refactoring
+opportunities. Fix local, low-risk problems within scope; do not turn cosmetic preferences into
+blocking work. Skip this check for documentation-only changes. For substantial specification-driven
+work, follow the canonical skill's pre-PR refactoring check as part of the established workflow.
+
 ## Minimum implementation-plan content
 
 - Governing specification path and exact revision.
@@ -106,6 +185,11 @@ For the full procedure, phase-by-phase guidance, and copy-paste plan/reconciliat
 the [specification-driven-implementation skill](.agents/skills/specification-driven-implementation/SKILL.md).
 Don't duplicate that procedure here — this file states *what's* mandatory, the skill states *how*
 to execute it.
+
+For recurring PR maintenance, use the canonical
+[`address-review`](.agents/skills/address-review/SKILL.md) and
+[`post-merge-sync`](.agents/skills/post-merge-sync/SKILL.md) skills rather than reconstructing
+those procedures from memory.
 
 For build/lint/test commands and local dev setup, see [`docs/development.md`](docs/development.md).
 For general contribution mechanics (branching, PRs, commit style), see

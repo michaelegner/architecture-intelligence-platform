@@ -41,6 +41,7 @@ from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import register_tools
 from app.settings import AppConfig, Secrets, Settings
 from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
+from tests.support.answer_schemas import validate_dependencies, validate_evidence
 from tests.support.negotiated_mcp_client import call_negotiated
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -218,7 +219,7 @@ def test_kubernetes_facts_do_not_leak_into_real_mcp_answers(driver):
         )
     )
     dependency_json = dependency_answer.model_dump(mode="json")
-    jsonschema.validate(instance=dependency_json, schema=ARCHITECTURE_ANSWER_SCHEMA)
+    validate_dependencies(dependency_json)
     _assert_no_internal_markers(json.dumps(dependency_json))
     # §11 "Surface": no CALLS/SENDS/RECEIVES_FROM/DEPLOYED_AS/locality claim from Kubernetes alone -
     # every claim in a real dependency answer must trace to a real (non-Kubernetes) evidence ref.
@@ -233,7 +234,7 @@ def test_kubernetes_facts_do_not_leak_into_real_mcp_answers(driver):
     evidence_json = (
         _service(driver).get_evidence(EvidenceRequest.model_validate(evidence_request))
     ).model_dump(mode="json")
-    jsonschema.validate(instance=evidence_json, schema=EVIDENCE_ANSWER_SCHEMA)
+    validate_evidence(evidence_json)
     assert evidence_json["data"]["missing_evidence_refs"] == []
     _assert_no_internal_markers(json.dumps(evidence_json))
 
@@ -270,9 +271,7 @@ async def test_kubernetes_facts_do_not_leak_through_the_real_mcp_transport(drive
                 client, "get_service_dependencies", dependency_request
             )
             assert dependency_result["isError"] is False
-            jsonschema.validate(
-                instance=dependency_result["structuredContent"], schema=ARCHITECTURE_ANSWER_SCHEMA
-            )
+            validate_dependencies(dependency_result["structuredContent"])
             _assert_no_internal_markers(json.dumps(dependency_result["structuredContent"]))
 
             evidence_refs = sorted(dependency_result["structuredContent"]["evidence_refs"])
@@ -282,9 +281,7 @@ async def test_kubernetes_facts_do_not_leak_through_the_real_mcp_transport(drive
             }
             evidence_result = await _call_mcp_tool(client, "get_evidence", evidence_request)
             assert evidence_result["isError"] is False
-            jsonschema.validate(
-                instance=evidence_result["structuredContent"], schema=EVIDENCE_ANSWER_SCHEMA
-            )
+            validate_evidence(evidence_result["structuredContent"])
             assert evidence_result["structuredContent"]["data"]["missing_evidence_refs"] == []
             _assert_no_internal_markers(json.dumps(evidence_result["structuredContent"]))
 

@@ -1,0 +1,70 @@
+{
+  "assessment": {
+    "assertions": [],
+    "candidate_limitations": [],
+    "disposition": "INSUFFICIENT_EVIDENCE",
+    "reasons": [
+      "LOCALITY_LOCAL_COVERAGE_UNAVAILABLE",
+      "LOCALITY_NO_ELIGIBLE_LOCAL_OBSERVATION"
+    ]
+  },
+  "inventories": [
+    {
+      "cluster_uid": "3c9b3e0f-1239-404a-8a45-c1195a7918f5",
+      "pods": [
+        {
+          "name": "orders-66686679bb-cvd46",
+          "owners": [
+            {
+              "kind": "Deployment",
+              "name": "orders",
+              "uid": "9b85fa34-e343-4bb6-ad52-3c55381408d7"
+            }
+          ],
+          "uid": "1cda6fde-9aa4-409d-baff-8b0604b0f63b"
+        },
+        {
+          "name": "orders-canary-67975b66fd-xmv8q",
+          "owners": [
+            {
+              "kind": "Deployment",
+              "name": "orders-canary",
+              "uid": "87a6fe2b-eb3b-424f-affb-6028679fd607"
+            }
+          ],
+          "uid": "d005b4f6-5377-410d-aad7-15233aed7bac"
+        }
+      ],
+      "revision": "rehearsal-c1-2026-09-30T14-38-11Z"
+    }
+  ],
+  "operations": [
+    "operation:service:legacy-pricing:GET:/prices",
+    "operation:service:orders:GET:/orders",
+    "operation:service:pricing:GET:/prices"
+  ],
+  "result_snapshot_id": "aip:snapshot:v1:6a305dd5e031e75112a56cd36715cd78cbd604c542655390edef25f0d07efc35",
+  "snapshot_id": "aip:snapshot:v1:6a305dd5e031e75112a56cd36715cd78cbd604c542655390edef25f0d07efc35",
+  "total_nodes": 92,
+  "v1_calls": [
+    {
+      "count": 508,
+      "id": "evidence:otel:locality-capture:2026-09-30:c4fcfea41a3c",
+      "operation": "operation:service:legacy-pricing:GET:/prices",
+      "type": "OBSERVED"
+    },
+    {
+      "count": null,
+      "id": "evidence:manifest:urn:aip:source:filesystem:dd87c9c73d8ddeab43d06b1bbd13076ddf4e81254ffb77770bab7d17f02ceb40",
+      "operation": "operation:service:pricing:GET:/prices",
+      "type": "DECLARED"
+    },
+    {
+      "count": 359,
+      "id": "evidence:otel:locality-capture:2026-09-30:eaf262e41ae4",
+      "operation": "operation:service:pricing:GET:/prices",
+      "type": "OBSERVED"
+    }
+  ],
+  "v2_records": []
+}

@@ -1,13 +1,18 @@
-from app.canonical import ids
-from app.canonical.model import ArchitectureModel, Relation
-from app.ingestion._shared import rejected_outcome_for_identity, resolved_service_id
-from app.provenance.model import Provenance
+from app.canonical.model import ArchitectureModel, Broker, Relation
+from app.common.jcs import canonical_json_bytes
+from app.ingestion.adapter_outcomes import (
+    declared_evidence,
+    reject_if_invalid,
+    rejected_outcome_for_identity,
+    resolved_service_id,
+    stamp_evidence,
+)
 from app.sources.identity import semantic_input_digest
-from app.sources.jcs import canonical_json_bytes
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult, LoadedSource
+from app.sources.owner_ids import broker_owned_id
 from app.sources.registry import AdapterOutcome, ServiceIdentityResolver, SharedIdentityResolver
 from app.sources.service_identity import ServiceIdentityOutcome, is_valid_service_id
-from app.validation.source_validation import SourceValidationError, validate_manifest_document
+from app.validation.source_validation import validate_manifest_document
 
 
 class ManifestSourceAdapter:
@@ -22,7 +27,10 @@ class ManifestSourceAdapter:
     """
 
     adapter_identity = "manifest-adapter@1"
-    mapping_rule_version = "v1"
+    # v0.6.1 I1c: v1 -> v2. The same bytes under an unchanged manifest now map under the `brokers`
+    # block rules (whole-document rejection when its Service is unresolved), so an already-imported
+    # source must be re-evaluated as a new mapping revision.
+    mapping_rule_version = "v2"
     dependency_phase = 1
 
     def supports(self, loaded: LoadedSource) -> bool:
@@ -44,25 +52,10 @@ class ManifestSourceAdapter:
         # Queue of its own to look up a shared/migration-mapped id for) - shared_identity is
         # accepted for interface uniformity across every registered SourceAdapter and unused here.
         document = loaded.document
-        locator = loaded.descriptor.locator
         source_instance_id = loaded.descriptor.source_instance_id
 
-        try:
-            validate_manifest_document(document, source_file=locator)
-        except SourceValidationError as exc:
-            return AdapterOutcome(
-                result=IngestionResult.REJECTED_INVALID,
-                model=ArchitectureModel(),
-                diagnostics=tuple(
-                    IngestionDiagnostic(
-                        code=DiagnosticCode.DOCUMENT_PARSE_INVALID,
-                        message=message,
-                        source_pointer=locator,
-                    )
-                    for message in exc.errors
-                ),
-                semantic_input_digest=None,
-            )
+        if (rejection := reject_if_invalid(loaded, validate_manifest_document)) is not None:
+            return rejection
 
         root_resolution = service_identity.resolve(
             source_instance_id=source_instance_id,
@@ -77,8 +70,16 @@ class ManifestSourceAdapter:
         # Service itself - that comes from a phase-0 source (the caller's own OpenAPI/AsyncAPI).
         # Without one, every CALLS relation would have an unknown source, so the manifest is
         # rejected here exactly like an unresolved call target, and it mints nothing.
+        #
+        # v0.6.1 I1 spec §4.3: the same holds for `brokers`. Failure rejects the whole document, so
+        # its `calls` and `brokers` contributions are both discarded and it emits nothing. The
+        # existing diagnostic code is reused (the manifest's own Service source is unresolved) so
+        # the frozen v0.5 import-report vocabulary is not widened.
         known_service_ids = {service.id for service in upstream_model.services}
-        if document.get("calls") and caller_service_id not in known_service_ids:
+        brokers_entries = document.get("brokers") or []
+        if (document.get("calls") or brokers_entries) and (
+            caller_service_id not in known_service_ids
+        ):
             return AdapterOutcome(
                 result=IngestionResult.REJECTED_UNSUPPORTED,
                 model=ArchitectureModel(),
@@ -147,17 +148,22 @@ class ManifestSourceAdapter:
                 Relation(type="CALLS", source_id=caller_service_id, target_id=target_operation_id)
             )
 
-        evidence = Provenance(
-            id=ids.evidence_id(
-                "MANIFEST", source_instance_id, loaded.descriptor.declared_provider_revision
-            ),
-            source_type="MANIFEST",
-            source_file=locator,
-            source_revision=loaded.descriptor.declared_provider_revision,
-        )
-        relations = [r.model_copy(update={"evidence_ids": [evidence.id]}) for r in relations]
+        brokers: dict[str, Broker] = {}
+        for entry in brokers_entries:
+            stable_broker_id = entry["brokerId"]
+            broker_id = broker_owned_id(stable_broker_id=stable_broker_id)
+            if broker_id not in brokers:
+                brokers[broker_id] = Broker(id=broker_id, stable_broker_id=stable_broker_id)
+                relations.append(
+                    Relation(type="USES_BROKER", source_id=caller_service_id, target_id=broker_id)
+                )
 
-        model = ArchitectureModel(relations=relations, provenance=[evidence])
+        evidence = declared_evidence(loaded, "MANIFEST")
+        relations = stamp_evidence(relations, evidence)
+
+        model = ArchitectureModel(
+            brokers=list(brokers.values()), relations=relations, provenance=[evidence]
+        )
         digest = semantic_input_digest(
             normalized_document_projection_bytes=canonical_json_bytes(document),
             mapping_context_digest=mapping_context_digest,

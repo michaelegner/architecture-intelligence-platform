@@ -1,0 +1,63 @@
+2026-09-30T14:31:21Z pins: kind v0.33.0 go1.26.7 linux/amd64
+2026-09-30T14:31:21Z pins: Client Version: v1.36.1
+2026-09-30T14:31:21Z pins: docker server 29.8.0
+2026-09-30T14:31:21Z pins: node image kindest/node:v1.31.2@sha256:18fbefc20a7113353c7b75b5c869d7145a6abd6269154825872dc59c1329912e
+2026-09-30T14:31:22Z pins: app image aip-locality-harness:rehearsal id sha256:987eb5b64c96ce773af75d73e03fa6ead806a6963551b824873592d099dff0d3
+2026-09-30T14:31:22Z pins: collector image otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+cgroup v1 is deprecated in Kubernetes and will not be supported in a future kind release, please upgrade to cgroup v2
+Creating cluster "aip-locality-rehearsal" ...
+ • Ensuring node image (kindest/node:v1.31.2) 🖼️  ...
+ ✓ Ensuring node image (kindest/node:v1.31.2) 🖼️
+ • Preparing nodes 📦   ...
+ ✓ Preparing nodes 📦 
+ • Writing configuration 📜  ...
+ ✓ Writing configuration 📜
+ • Starting control-plane 🕹️  ...
+ ✓ Starting control-plane 🕹️
+ • Installing CNI 🔌  ...
+ ✓ Installing CNI 🔌
+ • Installing StorageClass 💾  ...
+ ✓ Installing StorageClass 💾
+Set kubectl context to "kind-aip-locality-rehearsal"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-aip-locality-rehearsal
+
+Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+node/aip-locality-rehearsal-control-plane condition met
+2026-09-30T14:32:02Z CLUSTER_UID=3c9b3e0f-1239-404a-8a45-c1195a7918f5 (kubectl get namespace kube-system -o jsonpath='{.metadata.uid}')
+2026-09-30T14:32:02Z api server: v1.31.2
+Image: "aip-locality-harness:rehearsal" with ID "sha256:987eb5b64c96ce773af75d73e03fa6ead806a6963551b824873592d099dff0d3" not yet present on node "aip-locality-rehearsal-control-plane", loading...
+namespace/aip-locality created
+configmap/otel-collector-config created
+deployment.apps/otel-collector created
+service/otel-collector created
+deployment.apps/pricing created
+service/pricing created
+deployment.apps/legacy-pricing created
+service/legacy-pricing created
+Waiting for deployment "otel-collector" rollout to finish: 0 of 1 updated replicas are available...
+deployment "otel-collector" successfully rolled out
+deployment "pricing" successfully rolled out
+deployment "legacy-pricing" successfully rolled out
+deployment.apps/orders created
+deployment.apps/orders-canary created
+Waiting for deployment "orders" rollout to finish: 0 of 1 updated replicas are available...
+deployment "orders" successfully rolled out
+Waiting for deployment "orders-canary" rollout to finish: 0 of 1 updated replicas are available...
+deployment "orders-canary" successfully rolled out
+2026-09-30T14:32:39Z P1 orders-66686679bb-cvd46 uid 1cda6fde-9aa4-409d-baff-8b0604b0f63b (Deployment orders)
+2026-09-30T14:32:39Z P2 orders-canary-67975b66fd-xmv8q uid d005b4f6-5377-410d-aad7-15233aed7bac (Deployment orders-canary)
+2026-09-30T14:32:39Z traffic start 2026-09-30T14:32:39Z
+2026-09-30T14:38:11Z c1 capturedAt 2026-09-30T14:38:11Z
+deployment.apps "orders" deleted from aip-locality namespace
+pod/orders-66686679bb-cvd46 condition met
+2026-09-30T14:38:41Z P1 gone
+2026-09-30T14:40:42Z c2 capturedAt 2026-09-30T14:40:42Z
+deployment.apps/orders-canary scaled
+pod/orders-canary-67975b66fd-xmv8q condition met
+2026-09-30T14:41:33Z traffic end 2026-09-30T14:41:33Z
+2026-09-30T14:41:33Z otlp.jsonl lines 52 sha256 2683f37fe77fb886993db23e5837287b277c37b290371c21288b06387ea4d4c6
+Deleting cluster "aip-locality-rehearsal" ...
+Deleted nodes: ["aip-locality-rehearsal-control-plane"]
+2026-09-30T14:41:37Z done: artifacts in /tmp/claude-1001/-home-michael-code-ArchitectureIntelligencePlatform/c6ffa87e-4704-49fc-b0fb-0d9bd0df67f4/scratchpad/rehearsal (REHEARSAL - NOT I5 evidence)

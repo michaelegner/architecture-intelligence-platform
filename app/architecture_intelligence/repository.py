@@ -9,7 +9,6 @@ This is the `ArchitectureReadRepository` the I1 spec's architecture diagram plac
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -18,16 +17,15 @@ from typing import LiteralString
 import neo4j
 
 from app.analysis.runtime import telemetry_coverage
-from app.architecture_intelligence.canonical_json import canonical_json_bytes
-from app.architecture_intelligence.contracts import DEPLOYMENT_RECONCILIATION_RULE_ID
+from app.architecture_intelligence.canonical_json import canonical_digest
+from app.architecture_intelligence.contracts import (
+    DEPLOYMENT_RECONCILIATION_RULE_ID,
+    DEPLOYMENT_RECONCILIATION_RULE_VERSION,
+    SNAPSHOT_ID_PREFIX,
+)
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
-
-# Mirrors `deployment_projection._RECONCILIATION_RULE_VERSION` - kept as its own local constant
-# rather than importing that module's private name; both must move together if the rule version
-# ever bumps (a reviewed spec change either way, per that module's own comment).
-_DEPLOYMENT_RECONCILIATION_RULE_VERSION = 1
 
 # Bumping this - or changing any query/rule below - is a snapshot-fingerprint contract change and
 # MUST be recorded explicitly (spec §18). Not bumped for the PR #215 mapping-artifact-binding
@@ -50,7 +48,13 @@ _DEPLOYMENT_RECONCILIATION_RULE_VERSION = 1
 # internal PubSubDeclaration/SubscriptionDeadLetterConfiguration carriers are deliberately NOT
 # snapshot inputs (never public state). Every existing snapshot_id moves once, even for a graph
 # with no Pub/Sub content (new version and two new always-present keys).
-_CANONICALIZATION_VERSION = 3
+#
+# v0.6.1 I1a bumps this 3 -> 4, in the same commit that first persists Broker state: a dedicated
+# `_BROKER_QUERY` node projection binds Broker public state, and the untyped `_RELATION_QUERY`
+# already binds `USES_BROKER`, so the projected node set must contain its Broker endpoints. Every
+# existing snapshot_id moves once, even for a graph with no Broker content (new version and one
+# new always-present `brokers` key).
+_CANONICALIZATION_VERSION = 4
 
 _SERVICE_QUERY = "MATCH (n:Service) RETURN n.id AS id, n.name AS name, n.version AS version"
 _OPERATION_QUERY = (
@@ -71,6 +75,7 @@ _SUBSCRIPTION_QUERY = (
     "MATCH (n:Subscription) RETURN n.id AS id, n.name AS name, n.protocol AS protocol, "
     "n.namespace AS namespace"
 )
+_BROKER_QUERY = "MATCH (n:Broker) RETURN n.id AS id, n.stable_broker_id AS stable_broker_id"
 _MESSAGE_QUERY = (
     "MATCH (n:Message) RETURN n.id AS id, n.name AS name, n.version AS version, "
     "n.schema_id AS schema_id"
@@ -155,6 +160,77 @@ _DEPLOYMENT_RUNTIME_IDENTITY_OBSERVATIONS_QUERY = (
     "o.conflicting_consistency_attributes AS conflicting_consistency_attributes"
 )
 
+# v0.6.0 I2.5 (decision record D5, D15; I1 v2 contract §8): the two conditional state inputs from
+# scoped v2 evidence. Both are present iff at least one v2 record exists (D15.2); with none, the
+# state - and so every no-v2 snapshot id, including the golden pin - is byte-identical to v0.5.
+#
+# D15.4 / D5: every accepted Kubernetes source's committed capture. A rejected import never writes
+# these properties, so a rejected envelope is never a capture input. Also the I2.3 selection input
+# (`scoped_evidence_repository.read_source_inventories`).
+SOURCE_CAPTURES_QUERY = (
+    "MATCH (s:SourceState) WHERE s.capture_cluster_uid IS NOT NULL "
+    "RETURN s.source_instance_id AS source_instance_id, "
+    "s.discovery_scope_id AS discovery_scope_id, s.capture_revision AS revision, "
+    "s.capture_cluster_uid AS cluster_uid, s.capture_scope_namespaces AS namespaces, "
+    "s.capture_evidence_mode AS evidence_mode, s.capture_captured_at AS captured_at"
+)
+
+# D15.3 / I1 v2 contract §8: exactly the contract's entry fields, every v2 record (no paging,
+# D15.5).
+_SCOPED_OBSERVED_CALLS_QUERY = (
+    "MATCH (v:ScopedObservedCallV2) "
+    "RETURN v.id AS id, v.contract_version AS contract_version, v.source_type AS source_type, "
+    "v.evidence_type AS evidence_type, v.relation_type AS relation_type, "
+    "v.environment AS environment, v.bucket_utc_day AS bucket_utc_day, "
+    "v.subject_id AS subject_id, v.object_id AS object_id, "
+    "v.caller_cluster_uid AS caller_cluster_uid, v.caller_pod_uid AS caller_pod_uid, "
+    "v.first_seen AS first_seen, v.last_seen AS last_seen, "
+    "v.observation_count AS observation_count, v.correlation_mode AS correlation_mode, "
+    "coalesce(v.sample_trace_ids, []) AS sample_trace_ids, "
+    "v.k8s_namespace_name AS k8s_namespace_name, v.k8s_pod_name AS k8s_pod_name, "
+    "v.k8s_deployment_name AS k8s_deployment_name, "
+    "v.k8s_statefulset_name AS k8s_statefulset_name, "
+    "v.k8s_daemonset_name AS k8s_daemonset_name, "
+    "coalesce(v.conflicting_consistency_attributes, []) AS conflicting_consistency_attributes, "
+    "v.key_rule_id AS key_rule_id, v.key_rule_version AS key_rule_version, "
+    "v.normalization_rule_id AS normalization_rule_id, "
+    "v.normalization_rule_version AS normalization_rule_version"
+)
+
+
+def _project_scoped_observed_calls(session: neo4j.Session) -> list[dict]:
+    """D15.3: unlike `_project_row`, a v2 entry keeps every contract field - an absent `k8s_*`
+    name is an explicit `null`, exactly as the frozen I1 `snapshot_fragment` encodes it."""
+    rows = []
+    for record in session.run(_SCOPED_OBSERVED_CALLS_QUERY):
+        row = dict(record)
+        row["first_seen"] = row["first_seen"].to_native()
+        row["last_seen"] = row["last_seen"].to_native()
+        row["sample_trace_ids"] = sorted(set(row["sample_trace_ids"]))
+        row["conflicting_consistency_attributes"] = sorted(
+            set(row["conflicting_consistency_attributes"])
+        )
+        rows.append(row)
+    return sorted(rows, key=lambda row: row["id"])
+
+
+def _project_scoped_capture_scopes(session: neo4j.Session) -> list[dict]:
+    """D15.4: D5's seven fields per accepted capture, sorted by source instance id."""
+    rows = [
+        {
+            "source_instance_id": record["source_instance_id"],
+            "discovery_scope_id": record["discovery_scope_id"],
+            "revision": record["revision"],
+            "cluster_uid": record["cluster_uid"],
+            "namespaces": sorted(record["namespaces"] or ()),
+            "evidence_mode": record["evidence_mode"],
+            "captured_at": record["captured_at"],
+        }
+        for record in session.run(SOURCE_CAPTURES_QUERY)
+    ]
+    return sorted(rows, key=lambda row: row["source_instance_id"])
+
+
 # neo4j.time.DateTime isn't a datetime.datetime - convert to native so canonical_json_bytes'
 # datetime handling applies (same conversion app.telemetry.aggregator._read_existing_evidence uses).
 _DATETIME_FIELDS = frozenset({"bucket_start", "bucket_end", "first_seen", "last_seen"})
@@ -238,7 +314,18 @@ def _project_deployment_captured_pods(session: neo4j.Session) -> list[dict]:
         }
         for record in session.run(_DEPLOYMENT_CAPTURED_PODS_QUERY)
     ]
-    return sorted(rows, key=lambda row: row["id"])
+    # One Pod captured by several sources has one row per source, all with the same `id`, so the
+    # whole row is the key: sorting by `id` alone left their order, and so the snapshot id, to
+    # Neo4j's return order (v0.6.0 I3.2c, found by the I3 oracle's permutation case P07).
+    return sorted(
+        rows,
+        key=lambda row: (
+            row["id"],
+            row["captured_resource_uid"],
+            row["captured_at"] or "",
+            tuple(row["evidence_refs"]),
+        ),
+    )
 
 
 def _project_deployment_workload_owns_pod(session: neo4j.Session) -> list[dict]:
@@ -302,13 +389,14 @@ def canonical_snapshot_state(
     supplied by the caller rather than read from Neo4j here, mirroring `coverage_qualification_
     enabled`'s own "externally configured semantic value" shape - see `_semantic_config_state`.
     """
-    return {
+    state = {
         "version": _CANONICALIZATION_VERSION,
         "services": _project_nodes(session, _SERVICE_QUERY),
         "operations": _project_nodes(session, _OPERATION_QUERY),
         "queues": _project_nodes(session, _QUEUE_QUERY),
         "topics": _project_nodes(session, _TOPIC_QUERY),
         "subscriptions": _project_nodes(session, _SUBSCRIPTION_QUERY),
+        "brokers": _project_nodes(session, _BROKER_QUERY),
         "messages": _project_nodes(session, _MESSAGE_QUERY),
         "schemas": _project_nodes(session, _SCHEMA_QUERY),
         "evidence": _project_nodes(session, _EVIDENCE_QUERY),
@@ -336,16 +424,23 @@ def canonical_snapshot_state(
         ),
         "deployment_reconciliation_rule": {
             "rule_id": DEPLOYMENT_RECONCILIATION_RULE_ID,
-            "rule_version": _DEPLOYMENT_RECONCILIATION_RULE_VERSION,
+            "rule_version": DEPLOYMENT_RECONCILIATION_RULE_VERSION,
         },
     }
+    # v0.6.0 I2.5 (D15.2): both keys are added only when a v2 record exists - never as `[]` or
+    # `null` - so a no-v2 state keeps its exact v0.5 bytes and `_CANONICALIZATION_VERSION` stays 3.
+    scoped_calls = _project_scoped_observed_calls(session)
+    if scoped_calls:
+        state["scoped_observed_calls_v2"] = scoped_calls
+        state["scoped_capture_scopes_v2"] = _project_scoped_capture_scopes(session)
+    return state
 
 
 def snapshot_fingerprint(state: dict) -> tuple[str, str]:
     """`(snapshot_id, model_revision)` sharing one digest under different public prefixes (spec
     §17) - this is what guarantees `SnapshotRef`'s digest-consistency check always holds."""
-    digest = hashlib.sha256(canonical_json_bytes(state)).hexdigest()
-    return f"aip:snapshot:v1:{digest}", f"sha256:{digest}"
+    digest = canonical_digest(state)
+    return f"{SNAPSHOT_ID_PREFIX}:{digest}", f"sha256:{digest}"
 
 
 class SnapshotUnstable(RuntimeError):
@@ -430,7 +525,7 @@ _CALLS_QUERY = (
     "RETURN o.id AS operation_id, o.name AS operation_name, o.method AS method, o.path AS path, "
     "coalesce(r.evidence_ids, []) AS evidence_ids"
 )
-_PROVIDES_FOR_OPERATIONS_QUERY = (
+PROVIDES_FOR_OPERATIONS_QUERY = (
     "MATCH (p:Service)-[r:PROVIDES]->(o:Operation) WHERE o.id IN $operation_ids "
     "RETURN o.id AS operation_id, p.id AS provider_id, p.name AS provider_name, "
     "coalesce(r.evidence_ids, []) AS evidence_ids"
@@ -470,6 +565,21 @@ _EVIDENCE_FOR_IDS_QUERY = (
     "RETURN e.id AS id, e.evidence_type AS evidence_type, e.environment AS environment, "
     "e.last_seen AS last_seen"
 )
+
+
+def read_qualification_evidence_rows(
+    runner: neo4j.Session | neo4j.ManagedTransaction, *, evidence_ids: list[str]
+) -> dict[str, dict]:
+    """The qualification-relevant fields of the `Evidence` rows among `evidence_ids`, keyed by id.
+    An id absent from the result does not resolve in this snapshot."""
+    evidence = {}
+    if evidence_ids:
+        for record in runner.run(_EVIDENCE_FOR_IDS_QUERY, evidence_ids=evidence_ids):
+            row = dict(record)
+            if row["last_seen"] is not None:
+                row["last_seen"] = row["last_seen"].to_native()
+            evidence[row["id"]] = row
+    return evidence
 
 
 def _referenced_evidence_ids(*row_groups: list[dict]) -> list[str]:
@@ -520,6 +630,18 @@ _SUPPORTING_RELATIONS_QUERY = (
     "coalesce(r.evidence_ids, []) AS evidence_ids"
 )
 
+# v0.6.1 I2c (spec §5.2): the Broker endpoint of every `USES_BROKER` relation supported by a
+# requested evidence id, with the bounded Broker metadata a v0.6 supported fact needs (id and the
+# stable broker id the source declared). Deliberately NOT part of `_SUPPORTING_RELATIONS_QUERY`:
+# that query feeds the locality evidence mode and the v0.5 `EvidenceRelationType`, which must not
+# see a Broker relation. Run only by `get_evidence`, inside the same stable-read attempt.
+_BROKER_SUPPORT_QUERY = (
+    "MATCH (a:Service)-[r:USES_BROKER]->(b:Broker) "
+    "WHERE any(eid IN coalesce(r.evidence_ids, []) WHERE eid IN $evidence_ids) "
+    "RETURN a.id AS source_id, b.id AS target_id, b.stable_broker_id AS stable_broker_id, "
+    "coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+
 _EVIDENCE_DATETIME_FIELDS = frozenset({"bucket_start", "bucket_end", "first_seen", "last_seen"})
 
 
@@ -558,6 +680,37 @@ def read_evidence_rows(
     ]
 
     return {"evidence": evidence, "relations": relations}
+
+
+def read_broker_support_rows(session: neo4j.Session, *, evidence_ids: list[str]) -> list[dict]:
+    """The `USES_BROKER` relation rows supported by at least one of `evidence_ids` (v0.6.1 I2c)."""
+    return [
+        dict(record) for record in session.run(_BROKER_SUPPORT_QUERY, evidence_ids=evidence_ids)
+    ]
+
+
+# v0.6.1 I2c (spec §5): a service's own `USES_BROKER` relations. Passed as `read_extra` of the
+# dependencies read (see service.py), so it observes the same committed state as the fingerprinted
+# snapshot. Kept apart from `read_service_dependency_rows` so the drift and locality reads, which
+# never return Broker claims, are byte-for-byte unchanged.
+_USES_BROKER_QUERY = (
+    "MATCH (a:Service {id: $service_id})-[r:USES_BROKER]->(b:Broker) "
+    "RETURN b.id AS broker_id, b.stable_broker_id AS stable_broker_id, "
+    "coalesce(r.evidence_ids, []) AS evidence_ids"
+)
+
+
+def read_service_broker_rows(session: neo4j.Session, *, service_id: str) -> dict:
+    """The raw rows `broker_projection.project_broker_claims` needs for one service: its
+    `USES_BROKER` relations and the `Evidence` rows they reference, keyed by id so an id absent
+    from `evidence` does not resolve in this snapshot."""
+    broker_uses = [
+        dict(record) for record in session.run(_USES_BROKER_QUERY, service_id=service_id)
+    ]
+    evidence = read_qualification_evidence_rows(
+        session, evidence_ids=_referenced_evidence_ids(broker_uses)
+    )
+    return {"broker_uses": broker_uses, "evidence": evidence}
 
 
 # --- v0.5.0 I3 slice 5a: public evidence list/lookup reads (spec §16.3) ------------------------
@@ -647,7 +800,7 @@ def read_service_dependency_rows(
     provides = (
         [
             dict(record)
-            for record in session.run(_PROVIDES_FOR_OPERATIONS_QUERY, operation_ids=operation_ids)
+            for record in session.run(PROVIDES_FOR_OPERATIONS_QUERY, operation_ids=operation_ids)
         ]
         if operation_ids
         else []
@@ -686,13 +839,7 @@ def read_service_dependency_rows(
     evidence_ids = _referenced_evidence_ids(
         calls, provides, sends, receives, publishes, subscriptions, subscription_receives
     )
-    evidence = {}
-    if evidence_ids:
-        for record in session.run(_EVIDENCE_FOR_IDS_QUERY, evidence_ids=evidence_ids):
-            row = dict(record)
-            if row["last_seen"] is not None:
-                row["last_seen"] = row["last_seen"].to_native()
-            evidence[row["id"]] = row
+    evidence = read_qualification_evidence_rows(session, evidence_ids=evidence_ids)
 
     coverage = telemetry_coverage(
         session,

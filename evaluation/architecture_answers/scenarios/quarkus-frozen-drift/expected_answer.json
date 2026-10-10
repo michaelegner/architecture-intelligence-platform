@@ -24,12 +24,12 @@
   "producer": {
     "build_revision": "0000000000000000000000000000000000000000",
     "name": "architecture-intelligence-platform",
-    "version": "0.5.1"
+    "version": "0.6.2"
   },
   "schema_version": "0.5",
   "snapshot": {
-    "model_revision": "sha256:020bce9d9fd248bbd7e0f11c65bd88876eb07baf748c0d3f9cf5f908da0267a3",
-    "snapshot_id": "aip:snapshot:v1:020bce9d9fd248bbd7e0f11c65bd88876eb07baf748c0d3f9cf5f908da0267a3"
+    "model_revision": "sha256:5f52424f380f74835cac2782b8ac65f07d71e00944e5401b2cbe8dac8507b32d",
+    "snapshot_id": "aip:snapshot:v1:5f52424f380f74835cac2782b8ac65f07d71e00944e5401b2cbe8dac8507b32d"
   },
   "tool": "get_architecture_drift"
 }

@@ -15,6 +15,18 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
+| [`v0.6.2-release-record.md`](v0.6.2-release-record.md) | v0.6.2's one-page record for the lightweight release path: identities, the hosted instance facts (host withheld), the §7.1 sanity run, readiness on the exact candidate, post-release verification by digest. |
+| [`v0.6.2-release-notes.md`](v0.6.2-release-notes.md) | v0.6.2 demo release notes (candidate): Live AIP Demo on Pitstop, plugin, optional mod, the I0 correctness fix, known limitations. |
+| [`v0.6.0-post-release-verification.md`](v0.6.0-post-release-verification.md) | I6.5 published digest/source verification; SHIPPED_VERIFIED, final security disposition complete. |
+| [`v0.6.0-publication-record.md`](v0.6.0-publication-record.md) | I6.4 publication completed: exact tag/release, successful workflow and immutable GHCR digest; published verification remains I6.5. |
+| [`v0.6.0-publication-decision.md`](v0.6.0-publication-decision.md) | I6.3 owner authorization to publish the exact rc.2 candidate; publication and published-artifact verification remain I6.4/I6.5. |
+| [`v0.6.0-rc.2-candidate-preparation.md`](v0.6.0-rc.2-candidate-preparation.md) | Corrective I4 emitted-check inventory; merged candidate qualified in the readiness record. |
+| [`v0.6.0-rc.1-candidate-preparation.md`](v0.6.0-rc.1-candidate-preparation.md) | I6.1 preparation evidence; final merge identity and qualification disposition are in the readiness record. |
+| [`v0.6.0-release-readiness.md`](v0.6.0-release-readiness.md) | I6.2 rc.2 exact-candidate evidence: GO; all mandatory gates passed and owner security/cost dispositions confirmed. Publication remains separate. |
+| [`v0.6.0-rc.1-no-go.md`](v0.6.0-rc.1-no-go.md) | Permanent rc.1 disposition; actual CodeQL analyses passed, but I4 requires an absent aggregate check. |
+| [`v0.6.0-release-notes.md`](v0.6.0-release-notes.md) | Candidate release notes, migration and bounded locality limitations; not a shipped claim. |
+| [`v0.6.1-release-record.md`](v0.6.1-release-record.md) | v0.6.1's one-page record for the lightweight release path: identities, readiness on the exact candidate `e039a4c…`, publication, and post-release verification of the tag, GitHub Release and GHCR artifact `sha256:525c63e1…0db0`, including the published-image golden path and code-scanning parity with v0.6.0. Final state **SHIPPED_VERIFIED**. |
+| [`v0.6.1-release-notes.md`](v0.6.1-release-notes.md) | v0.6.1 release notes: Broker Semantic Completion and the data-dependent v0.5 → v0.6 answer transition. The published release body pins their links to the release tag. |
 | [`v0.1.0-alpha.1-verification.md`](v0.1.0-alpha.1-verification.md) | Fresh-clone Quick Start, fresh-clone runtime demo, GHCR image pull/run (authenticated and unauthenticated), non-root container check, the CodeQL finding found and fixed along the way — plus an explicit release-provenance record distinguishing the original tagged release artifact from the fixes verified afterward on `main`. |
 | [`v0.1.0-alpha.2-verification.md`](v0.1.0-alpha.2-verification.md) | Confirms the two gaps left open by `alpha.1` are closed: exactly one `docker.yml` run fires per release, and the non-root fix is verified against the actual pulled, tagged GHCR image rather than only a local build. |
 | [`v0.1.0-go-no-go.md`](v0.1.0-go-no-go.md) | Pulls every piece of evidence above into one explicit release-readiness call for `v0.1.0` itself. |

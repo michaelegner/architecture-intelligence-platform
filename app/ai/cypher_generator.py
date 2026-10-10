@@ -7,11 +7,12 @@ Node labels and their key properties:
   Queue(id, name, protocol, namespace, queue_type)
   Topic(id, name, protocol, namespace)
   Subscription(id, name, protocol, namespace)
+  Broker(id, stable_broker_id)
   Message(id, name, version, schema_id)
   Schema(id, name, version, format)
   Evidence(id, source_type, source_file, source_revision, evidence_type)
 
-Relationship types (always Service/Operation/Queue/Topic/Subscription/Message/Schema as documented):
+Relationship types (always Service/Operation/Queue/Topic/Subscription/Broker/Message/Schema as documented):
   (Service)-[:PROVIDES]->(Operation)          REST provider
   (Service)-[:CALLS]->(Operation)              REST caller
   (Operation)-[:REQUEST_SCHEMA]->(Schema)      request payload
@@ -23,13 +24,20 @@ Relationship types (always Service/Operation/Queue/Topic/Subscription/Message/Sc
   (Subscription)-[:SUBSCRIPTION_OF]->(Topic)   named subscription of one topic (fan-out)
   (Service)-[:RECEIVES_FROM]->(Subscription)   pub/sub consumer through a subscription
   (Topic)-[:CARRIES]->(Message)                message type on topic
+  (Service)-[:USES_BROKER]->(Broker)           declared use of a messaging broker (not a destination)
   (Message)-[:CONFORMS_TO]->(Schema)           message payload schema
   (Queue)-[:DEAD_LETTERS_TO]->(Queue)          DLQ relationship
 
 Every relationship above also carries an evidence_ids property: an array of Evidence.id \
 values naming which imported spec file(s) declared that fact. There is no direct graph edge \
 from a relationship to Evidence - look up r.evidence_ids on the relationship, then \
-MATCH (e:Evidence) WHERE e.id IN r.evidence_ids to find the source file(s)/revision(s).
+MATCH (e:Evidence WHERE e.source_type <> 'KUBERNETES') WHERE e.id IN r.evidence_ids \
+to find the source file(s)/revision(s). Every Evidence node pattern must use this exact inline \
+source_type exclusion: Kubernetes evidence is internal and cannot be read by natural-language \
+queries. Put additional filters in the outer WHERE; do not remove or weaken the inline predicate.
+
+Label every node variable with one of the node labels above, for example \
+(s:Service)-[:CALLS]->(o:Operation); a node without a label is rejected.
 
 Only MATCH, OPTIONAL MATCH, WHERE, WITH, RETURN, ORDER BY, and LIMIT are permitted - the \
 query must be read-only.\

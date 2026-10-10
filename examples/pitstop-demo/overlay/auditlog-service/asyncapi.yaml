@@ -1,0 +1,20 @@
+# Operator-authored AsyncAPI overlay for the v0.6.2 Pitstop demo - NOT an upstream document.
+# Pitstop ships no AsyncAPI; see ../../PROVENANCE.md. AuditlogService consumes the fanout exchange `Pitstop` through
+# the durable queue `Auditlog` (src/AuditlogService/appsettings.Production.json:7; queue declared and bound at
+# Infrastructure.Messaging/RabbitMQMessageHandler.cs:94-95). No message payload or field is declared.
+asyncapi: '2.6.0'
+info:
+  title: AuditlogService
+  version: "1.0.0"
+x-aip-service-id: service:auditlog-service
+servers:
+  pitstop-rabbitmq:
+    url: pitstop-rabbitmq:5672
+    protocol: amqp
+    x-aip-broker-id: rabbitmq:pitstop-rabbitmq
+channels:
+  Pitstop:
+    x-aip-destination-kind: topic
+    subscribe:
+      operationId: consumeAuditlogService
+      x-aip-subscription-name: Auditlog

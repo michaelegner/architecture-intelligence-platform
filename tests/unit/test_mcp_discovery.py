@@ -60,6 +60,20 @@ from app.mcp.tools import TOOL_NAMES, register_tools
 
 _ALLOWED_ORIGIN = "http://localhost"
 _ALLOWED_HOST = "localhost"
+# v0.6.0 I3.3b (I3 decision record D1): the fourth read-only tool, in lexicographic order.
+FOUR_TOOLS = [
+    "get_architecture_drift",
+    "get_evidence",
+    "get_service_dependencies",
+    "get_service_dependencies_by_locality",
+]
+_LOCALITY_QUERY = {
+    "mode": "query",
+    "subject_service_id": "service:orders",
+    "environment": "production",
+    "first_day": "2026-09-28",
+    "last_day": "2026-09-28",
+}
 
 
 def test_tool_names_are_single_sourced() -> None:
@@ -129,11 +143,12 @@ async def _check_unrelated_path_is_a_normal_404(client: httpx.AsyncClient) -> No
     assert "jsonrpc" not in response.text
 
 
-async def _check_tools_list_returns_exactly_three_tools_in_lexicographic_order(
+async def _check_tools_list_returns_exactly_four_tools_in_lexicographic_order(
     client: httpx.AsyncClient,
 ) -> None:
-    """v0.4.0 I3.2 - I3 spec §24/§45: `tools/list` count moves 2 -> 3 for the still-unreleased
-    v0.4.0 line; no existing tool name/schema meaning changes to make room for the third."""
+    """v0.4.0 I3.2 - I3 spec §24/§45: `tools/list` count moved 2 -> 3; v0.6.0 I3.3b (I3 decision
+    record D1) adds the fourth, `get_service_dependencies_by_locality`. No existing tool
+    name/schema meaning changes to make room for it."""
     response = await client.post(
         "/mcp",
         headers=_negotiated_headers(protocol_version="2025-11-25"),
@@ -146,7 +161,7 @@ async def _check_tools_list_returns_exactly_three_tools_in_lexicographic_order(
     # is spec-equivalent to "complete" (`mcp_types._types`'s own docstring), not a missing field.
     assert result.get("resultType", "complete") == "complete"
     names = [tool["name"] for tool in result["tools"]]
-    assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+    assert names == FOUR_TOOLS
 
 
 async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> None:
@@ -169,11 +184,34 @@ async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> Non
                 "ServiceDependenciesRequest",
                 "EvidenceRequest",
                 "ArchitectureDriftRequest",
+                "LocalityQueryRequest",
+                "LocalityEvidenceRequest",
             }:
                 assert definition["additionalProperties"] is False
             if definition.get("title") == "EvidenceRequest":
                 evidence_request_schema = definition
-        assert tool["outputSchema"]["title"].startswith("ArchitectureAnswer[")
+        if tool["name"] == "get_service_dependencies_by_locality":
+            # D2: the 0.6 locality envelope, not a widened 0.5 ArchitectureAnswer.
+            assert tool["outputSchema"]["title"] == "LocalityAnswer"
+            assert tool["annotations"]["readOnlyHint"] is True
+        elif tool["name"] == "get_architecture_drift":
+            assert tool["outputSchema"]["title"].startswith("ArchitectureAnswer[")
+        else:
+            # v0.6.1 I2b (spec §5.2): dependencies and evidence advertise a `oneOf` discriminated by
+            # `schema_version`: the released v0.5 answer plus the Broker-aware v0.6 answer.
+            output = tool["outputSchema"]
+            assert output["type"] == "object"
+            assert output["discriminator"]["propertyName"] == "schema_version"
+            assert set(output["discriminator"]["mapping"]) == {"0.5", "0.6"}
+            assert len(output["oneOf"]) == 2
+            branch_titles = {
+                output["$defs"][branch["$ref"].rsplit("/", 1)[-1]]["title"]
+                for branch in output["oneOf"]
+            }
+            assert {title.split("[")[0] for title in branch_titles} == {
+                "ArchitectureAnswer",
+                "ArchitectureAnswerV06",
+            }
 
     assert evidence_request_schema is not None
     evidence_refs_schema = evidence_request_schema["properties"]["evidence_refs"]
@@ -226,6 +264,45 @@ async def _check_unexpected_top_level_argument_no_longer_fails_before_dispatch(
     result = response.json()["result"]
     assert result["isError"] is True
     assert result["content"][0]["text"] == "Error executing tool get_evidence"
+
+
+async def _check_the_locality_tool_rejects_an_unexpected_top_level_argument_before_dispatch(
+    client: httpx.AsyncClient,
+) -> None:
+    """v0.6.0 I3.3b, I3 decision record D12: unlike the three v0.5 tools above, the new tool's
+    argument model is closed, so `junk` fails the SDK's own argument validation before dispatch.
+    The error names the extra input; it is not the unconfigured-wiring failure the same request
+    without `junk` produces (next check)."""
+    body = _negotiated_tools_call_body(
+        "get_service_dependencies_by_locality", {"request": _LOCALITY_QUERY, "junk": 1}
+    )
+    response = await client.post(
+        "/mcp", headers=_negotiated_headers(protocol_version="2025-11-25"), json=body
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    text = result["content"][0]["text"]
+    assert text.startswith("Error executing tool get_service_dependencies_by_locality: ")
+    assert "junk" in text and "Extra inputs are not permitted" in text
+
+
+async def _check_the_locality_tool_dispatches_without_an_extra_argument(
+    client: httpx.AsyncClient,
+) -> None:
+    """The same request without `junk` passes validation and reaches dispatch, where the
+    never-configured wiring fails, sanitized, as for the other tools."""
+    body = _negotiated_tools_call_body(
+        "get_service_dependencies_by_locality", {"request": _LOCALITY_QUERY}
+    )
+    response = await client.post(
+        "/mcp", headers=_negotiated_headers(protocol_version="2025-11-25"), json=body
+    )
+    result = response.json()["result"]
+    assert result["isError"] is True
+    assert (
+        result["content"][0]["text"] == "Error executing tool get_service_dependencies_by_locality"
+    )
 
 
 async def _check_malformed_nested_arguments_are_a_tool_execution_error(
@@ -365,7 +442,7 @@ async def _check_negotiated_mode_issues_no_session_id(client: httpx.AsyncClient)
         json=_negotiated_tools_list_body(),
     )
     assert list_response.status_code == 200
-    assert len(list_response.json()["result"]["tools"]) == 3
+    assert len(list_response.json()["result"]["tools"]) == len(FOUR_TOOLS)
 
     call_body = _negotiated_tools_call_body(
         "get_evidence",
@@ -399,7 +476,7 @@ async def _check_protocol_version_header_alone_reaches_negotiated_dispatch(
     response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
     assert response.status_code == 200
     names = [tool["name"] for tool in response.json()["result"]["tools"]]
-    assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+    assert names == FOUR_TOOLS
 
 
 async def _check_markerless_tools_list_without_header_falls_back_to_sdk(
@@ -414,7 +491,7 @@ async def _check_markerless_tools_list_without_header_falls_back_to_sdk(
     )
     assert response.status_code == 200
     names = [tool["name"] for tool in response.json()["result"]["tools"]]
-    assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+    assert names == FOUR_TOOLS
 
 
 async def _check_markerless_tools_call_without_header_falls_back_to_sdk(
@@ -452,7 +529,7 @@ async def _check_session_id_header_alone_does_not_change_routing(
     response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
     assert response.status_code == 200
     names = [tool["name"] for tool in response.json()["result"]["tools"]]
-    assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+    assert names == FOUR_TOOLS
 
 
 async def _check_unrecognized_protocol_version_is_handled_by_sdk_without_dispatch(
@@ -527,7 +604,7 @@ async def _check_vscode_full_sequence_without_protocol_header_is_accepted(
     )
     assert tools_response.status_code == 200
     names = [tool["name"] for tool in tools_response.json()["result"]["tools"]]
-    assert names == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+    assert names == FOUR_TOOLS
 
 
 async def _check_get_is_rejected_with_405_before_sdk_invocation(
@@ -582,10 +659,14 @@ async def test_mcp_protocol_and_discovery() -> None:
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
             await _check_unrelated_path_is_a_normal_404(client)
-            await _check_tools_list_returns_exactly_three_tools_in_lexicographic_order(client)
+            await _check_tools_list_returns_exactly_four_tools_in_lexicographic_order(client)
             await _check_tools_list_schemas_are_closed(client)
             await _check_unknown_tool_name_is_a_tool_execution_error_not_a_protocol_error(client)
             await _check_unexpected_top_level_argument_no_longer_fails_before_dispatch(client)
+            await _check_the_locality_tool_rejects_an_unexpected_top_level_argument_before_dispatch(
+                client
+            )
+            await _check_the_locality_tool_dispatches_without_an_extra_argument(client)
             await _check_malformed_nested_arguments_are_a_tool_execution_error(client)
             await _check_get_evidence_fails_safely_when_wiring_is_unconfigured(client)
             await _check_get_service_dependencies_fails_safely_when_wiring_is_unconfigured(client)

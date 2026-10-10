@@ -37,7 +37,7 @@ window, which AIP needs to answer.
 
 ## Ask the questions
 
-- [`walkthrough.md`](walkthrough.md): the eight task questions, each with the MCP and REST call and the
+- [`walkthrough.md`](walkthrough.md): the nine task questions (eight from v0.5.1, plus the v0.6.1 Broker question), each with the MCP and REST call and the
   real answer, keeping AIP results, dossier context and agent suggestions apart.
 - [`conversation-claude-code.md`](conversation-claude-code.md): a recorded Claude Code conversation over
   this demo, checked question by question.
@@ -50,6 +50,9 @@ window, which AIP needs to answer.
 - `PUBLISHES_TO` Topic `fights`, declared only by the overlay and `NOT_OBSERVED_IN_WINDOW`. AIP names
   no consumer: the answer is `PARTIAL` with one `UNRESOLVED_IDENTITY` limitation, because the
   topic has no evidenced Subscription.
+- `USES_BROKER` the Kafka Broker `kafka:fights-kafka`, declared by the overlay (v0.6.1). This makes
+  the answer the Broker-aware `schema_version: "0.6"` shape. Knowing the Broker does not resolve the
+  topic's consumers: the limitation above is unchanged.
 
 The gRPC call to `grpc-locations` is outside what v0.5 can answer. The dossier records it; AIP's
 answer does not.

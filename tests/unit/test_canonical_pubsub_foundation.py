@@ -41,7 +41,8 @@ def test_pubsub_persistence_path_is_open_and_bound_to_canonicalization_v3():
     assert NODE_LABELS["subscriptions"] == "Subscription"
     assert {"PUBLISHES_TO", "SUBSCRIPTION_OF"} <= set(KNOWN_RELATION_TYPES)
     assert {"PUBLISHES_TO", "SUBSCRIPTION_OF"} <= set(RELATIONS)
-    assert repository._CANONICALIZATION_VERSION == 3
+    # v0.6.1 I1a later bumped this to 4; the Pub/Sub projection requirement is "at least v3".
+    assert repository._CANONICALIZATION_VERSION >= 3
     assert "MATCH (n:Topic)" in repository._TOPIC_QUERY
     assert "MATCH (n:Subscription)" in repository._SUBSCRIPTION_QUERY
     for relation_type in ("PUBLISHES_TO", "SUBSCRIPTION_OF"):

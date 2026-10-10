@@ -1,0 +1,296 @@
+{
+  "$defs": {
+    "CapturedWorkloadKind": {
+      "description": "I2 D14.1: the captured Kubernetes kind exactly.",
+      "enum": [
+        "Deployment",
+        "StatefulSet",
+        "DaemonSet"
+      ],
+      "title": "CapturedWorkloadKind",
+      "type": "string"
+    },
+    "LocalityEvidenceRequest": {
+      "additionalProperties": false,
+      "description": "`mode: \"evidence\"` (D11): exact refs resolved at the supplied snapshot.",
+      "properties": {
+        "mode": {
+          "const": "evidence",
+          "title": "Mode",
+          "type": "string"
+        },
+        "object_operation_id": {
+          "anyOf": [
+            {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Object Operation Id"
+        },
+        "refs": {
+          "items": {
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "snapshot_id": {
+          "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "subject_service_id": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Subject Service Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "subject_service_id",
+        "snapshot_id",
+        "refs"
+      ],
+      "title": "LocalityEvidenceRequest",
+      "type": "object"
+    },
+    "LocalityQueryRequest": {
+      "additionalProperties": false,
+      "description": "`mode: \"query\"` (D3). Well-formed but unsupported values (a date-time bound, a non-`CALLS`\nrelation, an unknown dimension) are accepted here and refused by the service (D9).",
+      "properties": {
+        "caller_localities": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/WorkloadIdentity"
+              },
+              "maxItems": 50,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caller Localities",
+          "uniqueItems": true
+        },
+        "compare": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/WorkloadIdentity"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Compare",
+          "uniqueItems": true
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cursor"
+        },
+        "dimensions": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.-]*$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Dimensions",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "first_day": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2}))?$",
+          "title": "First Day",
+          "type": "string"
+        },
+        "last_day": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2}))?$",
+          "title": "Last Day",
+          "type": "string"
+        },
+        "mode": {
+          "const": "query",
+          "title": "Mode",
+          "type": "string"
+        },
+        "object_operation_id": {
+          "anyOf": [
+            {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Object Operation Id"
+        },
+        "provider_service_id": {
+          "anyOf": [
+            {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Service Id"
+        },
+        "relation_type": {
+          "default": "CALLS",
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Relation Type",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "anyOf": [
+            {
+              "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Snapshot Id"
+        },
+        "source_selector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSelector"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "subject_service_id": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Subject Service Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "subject_service_id",
+        "environment",
+        "first_day",
+        "last_day"
+      ],
+      "title": "LocalityQueryRequest",
+      "type": "object"
+    },
+    "SourceSelector": {
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Revision",
+          "type": "string"
+        },
+        "source_instance_id": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Source Instance Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_instance_id",
+        "revision"
+      ],
+      "title": "SourceSelector",
+      "type": "object"
+    },
+    "WorkloadIdentity": {
+      "additionalProperties": false,
+      "description": "D3: an exact captured caller Workload. The captured UID is required; `name` is never part of\nthe identity.",
+      "properties": {
+        "cluster_uid": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Cluster Uid",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/CapturedWorkloadKind"
+        },
+        "namespace": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "uid": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Uid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cluster_uid",
+        "namespace",
+        "kind",
+        "uid"
+      ],
+      "title": "WorkloadIdentity",
+      "type": "object"
+    }
+  },
+  "description": "The single MCP `request` argument (D1): one of the two modes, discriminated on `mode`.",
+  "discriminator": {
+    "mapping": {
+      "evidence": "#/$defs/LocalityEvidenceRequest",
+      "query": "#/$defs/LocalityQueryRequest"
+    },
+    "propertyName": "mode"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/LocalityQueryRequest"
+    },
+    {
+      "$ref": "#/$defs/LocalityEvidenceRequest"
+    }
+  ],
+  "title": "ServiceDependenciesByLocalityRequest"
+}

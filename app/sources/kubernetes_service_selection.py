@@ -14,12 +14,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.sources.kubernetes_mapping import MappedResource
+from app.sources.kubernetes_constants import POD_KIND, SERVICE_KIND
+from app.sources.kubernetes_mapping import MappedResource, resource_pointer
 from app.sources.kubernetes_owner_chain import ResolvedOwnership
 from app.sources.model import DiagnosticCode, IngestionDiagnostic, IngestionResult
 
-_SERVICE_KIND = "Service"
-_POD_KIND = "Pod"
 _EXTERNAL_NAME_TYPE = "ExternalName"
 
 
@@ -46,24 +45,11 @@ class ServiceSelectionResult:
     diagnostics: tuple[IngestionDiagnostic, ...]
 
 
-def _resource_pointer(resource: MappedResource) -> str:
-    """Mirrors `kubernetes_owner_chain._resource_pointer`'s own shape (§10: diagnostics carry
-    source pointers, not only a resource id hash) - duplicated rather than imported since it's a
-    small, self-contained formula and importing a private helper across sibling modules isn't this
-    codebase's own pattern.
-    """
-    projection = resource.projection
-    return (
-        f"{','.join(resource.source_pointers)}:{projection['apiVersion']}/{resource.resource_kind}"
-        f"/{projection['namespace']}/{projection['name']}"
-    )
-
-
 def _no_qualified_pod_match(resource: MappedResource, message: str) -> IngestionDiagnostic:
     return IngestionDiagnostic(
         code=DiagnosticCode.NO_QUALIFIED_POD_MATCH,
         message=message,
-        source_pointer=_resource_pointer(resource),
+        source_pointer=resource_pointer(resource),
     )
 
 
@@ -77,8 +63,8 @@ def resolve_service_selections(
     resolved_ownerships: tuple[ResolvedOwnership, ...],
 ) -> ServiceSelectionResult:
     """The one entry point `app.ingestion.kubernetes_adapter` needs."""
-    services = [r for r in resources if r.resource_kind == _SERVICE_KIND]
-    pods = [r for r in resources if r.resource_kind == _POD_KIND]
+    services = [r for r in resources if r.resource_kind == SERVICE_KIND]
+    pods = [r for r in resources if r.resource_kind == POD_KIND]
     ownership_by_pod_id = {o.pod_logical_id: o for o in resolved_ownerships}
 
     diagnostics: list[IngestionDiagnostic] = []

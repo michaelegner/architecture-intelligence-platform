@@ -1342,7 +1342,7 @@ implementation and ADR 0012 retention remain separately reviewable semantic work
 - [`../../adr/0011-snapshot-identity-read-cost.md`](../../adr/0011-snapshot-identity-read-cost.md)
 - [`../../adr/0012-observed-evidence-retention.md`](../../adr/0012-observed-evidence-retention.md)
 - [`../../adr/0013-no-topic-family-without-guards.md`](../../adr/0013-no-topic-family-without-guards.md)
-- [`../../architecture-review-0.4.0.md`](../../architecture-review-0.4.0.md)
+- [`../../reviews/architecture-review-0.4.0.md`](../../reviews/architecture-review-0.4.0.md)
 - [`../0.4.0/i4-release-candidate-publication-and-verification.md`](../0.4.0/i4-release-candidate-publication-and-verification.md)
 - [`../../release-validation/v0.4.0-go-no-go.md`](../../release-validation/v0.4.0-go-no-go.md)
 - [`../../release-validation/v0.4.0-post-release-verification.md`](../../release-validation/v0.4.0-post-release-verification.md)

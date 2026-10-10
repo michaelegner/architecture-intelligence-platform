@@ -47,6 +47,16 @@ MANIFEST_SCHEMA = {
                 "properties": {"service": {"type": "string"}, "operationId": {"type": "string"}},
             },
         },
+        # v0.6.1 I1 spec §4.3: explicit stable broker ids the manifest's Service is declared to
+        # use. Never inferred from a host, protocol or display name.
+        "brokers": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["brokerId"],
+                "properties": {"brokerId": {"type": "string", "minLength": 1}},
+            },
+        },
     },
 }
 

@@ -6,9 +6,11 @@ from app.canonical import ids
 from app.provenance.model import ObservedEvidence
 from app.telemetry.correlation_buffer import HttpCorrelationBuffer, PendingHttpSpan
 from app.telemetry.messaging_guards import (
+    UNRESOLVED_DESTINATION_SEMANTICS,
     PubSubDecision,
     decide_messaging_destination,
     decide_service_identity,
+    is_declared_receiver,
 )
 from app.telemetry.model import (
     DiscoveryStatus,
@@ -23,6 +25,14 @@ from app.telemetry.operation_resolver import DeclaredOperationCandidate, resolve
 from app.telemetry.pubsub_resolver import DeclaredSubscriptionCandidate, DeclaredTopicCandidate
 from app.telemetry.queue_resolver import DeclaredQueueCandidate
 from app.telemetry.runtime_identity import extract_runtime_identity_observations
+from app.telemetry.scoped_attribution import (
+    ClientCarrier,
+    ScopedCallSeed,
+    ScopedIngressRefusal,
+    admissible,
+    evaluate_scoped_ingress,
+    server_only_refusal,
+)
 from app.telemetry.semconv.http import HTTP_REQUEST_METHOD, HTTP_ROUTE, PEER_SERVICE, URL_TEMPLATE
 from app.telemetry.semconv.messaging import (
     MESSAGING_DESTINATION_KIND,
@@ -106,6 +116,8 @@ def _build_call_fact(
     timestamp: datetime,
     trace_id: str,
     correlation_mode: str,
+    client_carrier: ClientCarrier | None,
+    scoped_refusals: list[ScopedIngressRefusal],
 ) -> list[ObservedFactCandidate]:
     """Shared CALLS-fact core for both in-batch and cross-batch correlated observations, once both
     sides' service identity is already resolved and environment/method/route are known to be
@@ -120,7 +132,12 @@ def _build_call_fact(
     already-DECLARED operation - it already has its PROVIDES edge from the OpenAPI import, and
     11H-D/spec §8.4's reconciliation guarantee (a later real declaration must reuse this exact
     operation id, not mint a duplicate node) depends on the id-normalization fix in
-    openapi_adapter.py, not on anything here."""
+    openapi_adapter.py, not on anything here.
+
+    v0.6.0 I2.1c: once a CALLS fact exists (guard I-1), the original CLIENT's carrier is evaluated
+    against guards I-2..I-5. An eligible interaction's seed rides on the CALLS fact; otherwise an
+    ingestion-only refusal is appended to `scoped_refusals`. The v1 facts and evidence built here
+    are identical either way."""
     operation = resolve_operation(
         operation_candidates, provider_service_id=provider_service_id, method=method, route=route
     )
@@ -149,6 +166,17 @@ def _build_call_fact(
         service_version=caller_service_version,
         correlation_mode=correlation_mode,
     )
+    outcome = evaluate_scoped_ingress(
+        subject_id=caller_service_id,
+        object_id=operation.operation_id,
+        fact_environment=environment,
+        fact_timestamp=timestamp,
+        trace_id=trace_id,
+        correlation_mode=correlation_mode,
+        carrier=client_carrier,
+    )
+    if isinstance(outcome, ScopedIngressRefusal):
+        scoped_refusals.append(outcome)
     facts = [
         ObservedFactCandidate(
             subject_id=caller_service_id,
@@ -159,6 +187,7 @@ def _build_call_fact(
             trace_id=trace_id,
             source_service_version=caller_service_version,
             evidence=calls_evidence,
+            scoped_seed=outcome if isinstance(outcome, ScopedCallSeed) else None,
         )
     ]
 
@@ -228,6 +257,14 @@ def _pending_span_from_client(client: RuntimeSpan) -> PendingHttpSpan:
         route=client.attributes.get(HTTP_ROUTE) or client.attributes.get(URL_TEMPLATE),
         target_identity=client.attributes.get(PEER_SERVICE),
         timestamp=client.end_time,
+        # I2.1c: the original CLIENT's admitted Kubernetes identity (matrix §10.2).
+        k8s_pod_uid=admissible(client.k8s_pod_uid),
+        k8s_cluster_uid=admissible(client.k8s_cluster_uid),
+        k8s_namespace_name=admissible(client.k8s_namespace_name),
+        k8s_pod_name=admissible(client.k8s_pod_name),
+        k8s_deployment_name=admissible(client.k8s_deployment_name),
+        k8s_statefulset_name=admissible(client.k8s_statefulset_name),
+        k8s_daemonset_name=admissible(client.k8s_daemonset_name),
     )
 
 
@@ -264,6 +301,7 @@ def correlate_http_call_observations(
     facts: list[ObservedFactCandidate] = []
     entities: dict[str, ObservedOnlyEntity] = {}
     unresolved: list[UnresolvedObservation] = []
+    scoped_refusals: list[ScopedIngressRefusal] = []
 
     pairs, leftover_clients, leftover_servers = _find_correlated_pairs(spans)
 
@@ -314,6 +352,8 @@ def correlate_http_call_observations(
             timestamp=server.end_time,
             trace_id=server.trace_id,
             correlation_mode="CLIENT_SERVER",
+            client_carrier=ClientCarrier.from_span(client),
+            scoped_refusals=scoped_refusals,
         )
         if not new_facts:
             unresolved.append(
@@ -391,6 +431,8 @@ def correlate_http_call_observations(
                 timestamp=expired_client.timestamp,
                 trace_id=expired_client.trace_id,
                 correlation_mode="CLIENT_ONLY",
+                client_carrier=ClientCarrier.from_span(expired_client),
+                scoped_refusals=scoped_refusals,
             )
             if not new_facts:
                 unresolved.append(
@@ -422,6 +464,14 @@ def correlate_http_call_observations(
             unresolved.append(
                 UnresolvedObservation(
                     trace_id=expired_server.trace_id, reason=MISSING_CALLER_IDENTITY
+                )
+            )
+            # I2.1c: no CLIENT identity exists for a SERVER_ONLY interaction (I1 L09b).
+            scoped_refusals.append(
+                server_only_refusal(
+                    trace_id=expired_server.trace_id,
+                    environment=expired_server.environment,
+                    timestamp=expired_server.timestamp,
                 )
             )
 
@@ -482,6 +532,8 @@ def correlate_http_call_observations(
                     timestamp=server.end_time,
                     trace_id=server.trace_id,
                     correlation_mode="CLIENT_SERVER",
+                    client_carrier=ClientCarrier.from_span(matched_client),
+                    scoped_refusals=scoped_refusals,
                 )
             )
 
@@ -531,10 +583,17 @@ def correlate_http_call_observations(
                     timestamp=matched_server.timestamp,
                     trace_id=matched_server.trace_id,
                     correlation_mode="CLIENT_SERVER",
+                    client_carrier=ClientCarrier.from_span(client),
+                    scoped_refusals=scoped_refusals,
                 )
             )
 
-    return ObservationBatch(entities=list(entities.values()), facts=facts, unresolved=unresolved)
+    return ObservationBatch(
+        entities=list(entities.values()),
+        facts=facts,
+        unresolved=unresolved,
+        scoped_refusals=scoped_refusals,
+    )
 
 
 def correlate_queue_observations(
@@ -547,6 +606,7 @@ def correlate_queue_observations(
     topic_candidates: Sequence[DeclaredTopicCandidate] = (),
     subscription_candidates: Sequence[DeclaredSubscriptionCandidate] = (),
     topic_aliases: dict[str, str] | None = None,
+    declared_receivers: frozenset[tuple[str, str]] = frozenset(),
 ) -> ObservationBatch:
     """Builds observed SENDS/RECEIVES_FROM facts from messaging spans (spec §24-26). Unlike HTTP,
     no correlation between spans is needed - SENDS/RECEIVES_FROM are independent relations, each
@@ -647,6 +707,24 @@ def correlate_queue_observations(
         service_id = service_decision.service_id
         # every accepted decision from decide_service_identity carries its service_id
         assert service_id is not None
+        if (
+            isinstance(destination_decision, PubSubDecision)
+            and relation_type == "RECEIVES_FROM"
+            and not is_declared_receiver(
+                declared_receivers,
+                service_id=service_id,
+                # an accepted consumer decision carries the matched subscription_id
+                subscription_id=destination_decision.subscription_id or "",
+            )
+        ):
+            # v0.6.2 I0 H1a: no declared RECEIVES_FROM from this Service to that Subscription, so
+            # the span never creates or extends the route (and mints nothing, not even the Service).
+            unresolved.append(
+                UnresolvedObservation(
+                    trace_id=span.trace_id, reason=UNRESOLVED_DESTINATION_SEMANTICS
+                )
+            )
+            continue
         _record_if_observed_only(
             entities,
             entity_id=service_id,
@@ -727,6 +805,7 @@ def adapt(
     topic_candidates: Sequence[DeclaredTopicCandidate] = (),
     subscription_candidates: Sequence[DeclaredSubscriptionCandidate] = (),
     topic_aliases: dict[str, str] | None = None,
+    declared_receivers: frozenset[tuple[str, str]] = frozenset(),
 ) -> ObservationBatch:
     """Combines HTTP and queue observations from one decoded OTLP batch into a single
     ObservationBatch (spec §9's OpenTelemetryAdapter stage).
@@ -756,6 +835,7 @@ def adapt(
         topic_candidates=topic_candidates,
         subscription_candidates=subscription_candidates,
         topic_aliases=topic_aliases,
+        declared_receivers=declared_receivers,
     )
     runtime_identity_observations = extract_runtime_identity_observations(spans)
 
@@ -768,4 +848,5 @@ def adapt(
         facts=[*http_batch.facts, *queue_batch.facts],
         unresolved=[*http_batch.unresolved, *queue_batch.unresolved],
         runtime_identity_observations=runtime_identity_observations,
+        scoped_refusals=http_batch.scoped_refusals,
     )

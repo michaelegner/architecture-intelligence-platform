@@ -1,0 +1,5 @@
+service: orders
+x-aip-service-id: service:orders
+calls:
+  - service: service:pricing
+    operationId: getPrices

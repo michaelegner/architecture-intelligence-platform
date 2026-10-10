@@ -1,0 +1,127 @@
+{
+  "candidate_sha": "050a9ea76f93016d1101aaacf37a5486e45691ec",
+  "status": "NO_GO",
+  "files": [
+    {
+      "path": "identity/323.json",
+      "size": 139,
+      "sha256": "99ad354713c2ea990c3754bc6e057b2ef812e9b0fef986bb0f505145511a9550"
+    },
+    {
+      "path": "identity/ci.json",
+      "size": 74886,
+      "sha256": "a21cfc1f323e4ad88aa527b0d8de5f4fdcb55e2df60c4af43729160e7c13d6c3"
+    },
+    {
+      "path": "identity/codeql-workflow.json",
+      "size": 226,
+      "sha256": "8ad170bebbdbd2d1268c137b90914086387b165f354cc170bd0fca525ae07ed2"
+    },
+    {
+      "path": "identity/context.json",
+      "size": 424,
+      "sha256": "f3db27595869dae4223bae4bc365dba70d54da4c90d3441e25e865795bbbae00"
+    },
+    {
+      "path": "identity/i4-ci-preflight.json",
+      "size": 550,
+      "sha256": "aa04087996c85c21e1dff3e1e7c2035f2a373cb3444ddb359ab068672368e59e"
+    },
+    {
+      "path": "image/build-command.json",
+      "size": 322,
+      "sha256": "640d794277c14fd5218736ee354ada847584fc80bace74279bf7907f15665a5e"
+    },
+    {
+      "path": "image/build.log",
+      "size": 4936,
+      "sha256": "0b2edca2f66ddb1f1140767705404a6592ec46f2e862e62604f293916de48ce7"
+    },
+    {
+      "path": "image/inspect.json",
+      "size": 3605,
+      "sha256": "3db0c5444a50561d733342ff94c21d6b5113f19886c7101c74e958165f464472"
+    },
+    {
+      "path": "repository/format.log",
+      "size": 25,
+      "sha256": "630093c7159c5acdc365da5086c9e918fad52449e85a8ee32f649b7439ebeec4"
+    },
+    {
+      "path": "repository/imports.log",
+      "size": 1363,
+      "sha256": "e53848f3a258f3527de80da55e294f56135ee9d99141c38735c4f72a49bfcd04"
+    },
+    {
+      "path": "repository/integration.log",
+      "size": 6979,
+      "sha256": "8801a31d87b480de45793ae4a5aa09c1b171450f583d07df9e928df96a925db8"
+    },
+    {
+      "path": "repository/lint.log",
+      "size": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "repository/pyright.log",
+      "size": 37,
+      "sha256": "6d88a1b220adb7a3d62092b6e38431f0b3fe8babe9864fab90e5849766260332"
+    },
+    {
+      "path": "repository/results.json",
+      "size": 1759,
+      "sha256": "c59e0ab9084c3b1c83a9577e797ab407e2d9cb083fd4ce886254dfbbd1e2bcda"
+    },
+    {
+      "path": "repository/unit.log",
+      "size": 17208,
+      "sha256": "6e7c3fd5cce4f5800cdb43bcaae99a755247f19e15bbcb9d22617536eaa06d60"
+    },
+    {
+      "path": "security/commands.json",
+      "size": 1455,
+      "sha256": "94cdbe5923cb6f5002ecc2215b3ae16b73cac6191a35985065c63866595ee750"
+    },
+    {
+      "path": "security/dependencies.diff",
+      "size": 98465,
+      "sha256": "f6b12b2d4b9ba57efd82a03d2e7211b2a4f0dfb150cd08a2dd903d21361571cd"
+    },
+    {
+      "path": "security/findings-summary.json",
+      "size": 12800,
+      "sha256": "e8d69e9d360e2597a640256b4153580a4a700e297742cc03662695a123fa3302"
+    },
+    {
+      "path": "security/gitleaks.json",
+      "size": 33916,
+      "sha256": "770fecf9cc54f2e2b8aa974df536953e92b6b2d801bfb43061895d8f7bf1ea77"
+    },
+    {
+      "path": "security/gitleaks.log",
+      "size": 197,
+      "sha256": "1536eb66b2908474268f83ec6584ed542e3b29c0cfb13b5bb756746974fbcd24"
+    },
+    {
+      "path": "security/sbom.cdx.json",
+      "size": 1407044,
+      "sha256": "e44a75eb9691c1d1acbc0b6139e8dabe2146ff0705a8e4a4d51efaf1d2394b55"
+    },
+    {
+      "path": "security/sbom.log",
+      "size": 490,
+      "sha256": "af11598377818698785041ba2d28525cafd668e1a10e1617edcc727f13338508"
+    },
+    {
+      "path": "security/trivy-candidate.json",
+      "size": 1311504,
+      "sha256": "e41167a39f47c396fecccab519c22bb5ab6022810815a87d0d7d6702e28ded76"
+    },
+    {
+      "path": "security/trivy.log",
+      "size": 14541,
+      "sha256": "bc1a545fdb3c7b84497d41a22fa8b3d68110efd6b78fd8c86b6452bbe9046bf0"
+    }
+  ],
+  "archive_sha256": "95d4d713114e50901438400ad192f1caeff87f6944017d22f704f6c8c6038123"
+}

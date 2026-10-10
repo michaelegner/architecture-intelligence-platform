@@ -51,6 +51,13 @@ _CITATION = re.compile(r"^(?P<path>[\w./-]+?)(?::(?P<lines>[\d,-]+))?(?: .*)?$")
 _OTLP_HEX_ID_FIELDS = ("traceId", "spanId", "parentSpanId")
 
 
+def _is_mod_generated(path: Path) -> bool:
+    """Exactly what Claude Code writes into the Pitstop mod folder when it loads the mod (editor types and a
+    tsconfig that extends them; both are git-ignored). Nothing else under the mod is excluded."""
+    mod = REPO / "examples" / "pitstop-demo" / "claude" / "mod"
+    return path == mod / "tsconfig.json" or (mod / ".claude-plugin" / "types") in path.parents
+
+
 def _mounted_files(source: Path) -> list[Path]:
     """Every file a mount exposes, minus interpreter caches and this directory's own top-level files
     (the `demo` phase mounts all of `examples/`, and SHA256SUMS cannot pin itself or the README)."""
@@ -61,6 +68,7 @@ def _mounted_files(source: Path) -> list[Path]:
         for p in source.rglob("*")
         if p.is_file()
         and "__pycache__" not in p.parts
+        and not _is_mod_generated(p)
         and (PROFILE_DIR not in p.parents or PROFILE_DIR / "profile" in p.parents)
     )
 

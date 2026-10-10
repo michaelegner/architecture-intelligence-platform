@@ -76,6 +76,15 @@ def _compose_image(image: str) -> str | None:
     return default.group("default") if default else None
 
 
+class _ComposeLoader(yaml.SafeLoader):
+    """Safe YAML plus Compose's merge tags (`!reset`, `!override`), whose value is irrelevant to an image scan."""
+
+
+for _tag in ("!reset", "!override"):
+    _ComposeLoader.add_multi_constructor(_tag, lambda loader, _suffix, node: None)
+    _ComposeLoader.add_constructor(_tag, lambda loader, node: None)
+
+
 def _compose_refs() -> list[tuple[str, str]]:
     refs: list[tuple[str, str]] = []
     for path in _tracked("*.yml", "*.yaml"):
@@ -84,7 +93,7 @@ def _compose_refs() -> list[tuple[str, str]]:
         text = path.read_text()
         if not re.search(r"^services:", text, re.MULTILINE):
             continue
-        for document in yaml.safe_load_all(text):
+        for document in yaml.load_all(text, Loader=_ComposeLoader):
             services = document.get("services") if isinstance(document, dict) else None
             if not isinstance(services, dict):
                 continue  # e.g. an architecture manifest's `services:` list

@@ -1,0 +1,273 @@
+{
+  "contract": "canonical-snapshot-state/3 with the I2.5 conditional keys",
+  "vector_set": "i2-snapshot-after/1",
+  "governing": "docs/specifications/0.6.0/i2-decision-record.md D5, D15; I1 v2 contract §8; I2 spec §11 gate (b)",
+  "authored": "By hand in I2.5a before any implementation of the conditional keys. The state below was written from the documented projection rules; the scoped_observed_calls_v2 value is the frozen I1 snapshot_fragment verbatim; the Kubernetes source and scope ids and the v1 bucket id were recomputed with the standard library from their documented formulas; the digest was taken with sha256sum. No AIP output was used.",
+  "fixture": {
+    "description": "D15.1: one /v1/traces unit (one ObservationBatch, persist_observation_batch, scoped evidence enabled) of five accepted CALLS facts with their v2 seeds, then one accepted Kubernetes capture with zero resources. No declared source, no other telemetry.",
+    "telemetry_unit": {
+      "entities": [
+        {
+          "id": "service:orders",
+          "label": "Service",
+          "name": "orders"
+        },
+        {
+          "id": "operation:pricing:GET:/prices",
+          "label": "Operation",
+          "name": "GET /prices"
+        }
+      ],
+      "v1_fact_evidence": "each fact carries a one-observation v1 seed: environment, bucket_start = UTC day, bucket_end = next UTC midnight, first_seen = last_seen = fact_timestamp, observation_count 1, sample_trace_ids [trace_id], correlation_mode of the seed, source_type OPENTELEMETRY, source_file opentelemetry",
+      "seeds": [
+        {
+          "environment": "production",
+          "bucket_utc_day": "2026-09-28",
+          "subject_id": "service:orders",
+          "object_id": "operation:pricing:GET:/prices",
+          "caller_cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+          "caller_pod_uid": "11111111-aaaa-4bbb-8ccc-000000000001",
+          "correlation_mode": "CLIENT_SERVER",
+          "k8s_namespace_name": "shop",
+          "k8s_pod_name": "orders-7d9f8b6c5-abcde",
+          "k8s_deployment_name": "orders",
+          "fact_timestamp": "2026-09-28T10:00:00.200000Z",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        },
+        {
+          "environment": "production",
+          "bucket_utc_day": "2026-09-28",
+          "subject_id": "service:orders",
+          "object_id": "operation:pricing:GET:/prices",
+          "caller_cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+          "caller_pod_uid": "11111111-aaaa-4bbb-8ccc-000000000001",
+          "correlation_mode": "CLIENT_SERVER",
+          "k8s_namespace_name": "shop",
+          "k8s_pod_name": "orders-7d9f8b6c5-abcde",
+          "k8s_deployment_name": "orders",
+          "fact_timestamp": "2026-09-28T12:30:00.000000Z",
+          "trace_id": "a3ce929d0e0e47364bf92f3577b34da6"
+        },
+        {
+          "environment": "production",
+          "bucket_utc_day": "2026-09-28",
+          "subject_id": "service:orders",
+          "object_id": "operation:pricing:GET:/prices",
+          "caller_cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+          "caller_pod_uid": "11111111-aaaa-4bbb-8ccc-000000000001",
+          "correlation_mode": "CLIENT_SERVER",
+          "k8s_namespace_name": "shop",
+          "k8s_pod_name": "orders-7d9f8b6c5-abcde",
+          "k8s_deployment_name": "orders",
+          "fact_timestamp": "2026-09-28T16:45:12.000001Z",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        },
+        {
+          "environment": "production",
+          "bucket_utc_day": "2026-09-28",
+          "subject_id": "service:orders",
+          "object_id": "operation:pricing:GET:/prices",
+          "caller_cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+          "caller_pod_uid": "11111111-aaaa-4bbb-8ccc-000000000002",
+          "correlation_mode": "CLIENT_ONLY",
+          "k8s_namespace_name": "shop",
+          "k8s_deployment_name": "orders-canary",
+          "k8s_pod_name": "orders-canary-5c4b3a2d1-aaaaa",
+          "fact_timestamp": "2026-09-28T11:00:00.000000Z",
+          "trace_id": "0af7651916cd43dd8448eb211c80319c"
+        },
+        {
+          "environment": "production",
+          "bucket_utc_day": "2026-09-28",
+          "subject_id": "service:orders",
+          "object_id": "operation:pricing:GET:/prices",
+          "caller_cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+          "caller_pod_uid": "11111111-aaaa-4bbb-8ccc-000000000002",
+          "correlation_mode": "CLIENT_ONLY",
+          "k8s_namespace_name": "shop",
+          "k8s_deployment_name": "orders-canary",
+          "k8s_pod_name": "orders-canary-5c4b3a2d1-bbbbb",
+          "fact_timestamp": "2026-09-28T11:00:00.000000Z",
+          "trace_id": "0af7651916cd43dd8448eb211c80319c"
+        }
+      ]
+    },
+    "kubernetes_capture": {
+      "configured_source_id": "after-vector-capture",
+      "configured_scope_id": "after-vector-scope",
+      "stable_target_identity": "default: urn:aip:k8s-cluster:<clusterUid>",
+      "cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "mode": "CAPTURED_RESOURCE",
+      "namespaces": [
+        "shop"
+      ],
+      "revision": "after-vector-c1",
+      "captured_at": "2026-09-28T12:00:00Z",
+      "completeness": "COMPLETE",
+      "resources": []
+    },
+    "read": {
+      "coverage_qualification_enabled": true,
+      "service_workload_mapping_document": null
+    }
+  },
+  "derived_ids": {
+    "v1_bucket": {
+      "vector": "i1-vectors/v2-evidence-id.json v1_unchanged U01-v1-for-V01-and-V03",
+      "evidence_id": "evidence:otel:production:2026-09-28:47a491ddd2fc"
+    },
+    "source_instance_id": {
+      "formula": "urn:aip:source:kubernetes:sha256(length_delimited(utf8(configured_source_id), utf8(cluster_uid)))",
+      "value": "urn:aip:source:kubernetes:a1c8b8e3e564473236ae4aea800dd9379b4e2e205dd0b3496e5bc6c1c3a07d04"
+    },
+    "discovery_scope_id": {
+      "formula": "urn:aip:discovery-scope:sha256(length_delimited(utf8(configured_scope_id), utf8(stable_target_identity)))",
+      "value": "urn:aip:discovery-scope:a3e7803e806d3a60e97a4fc32dc5ed0ba3755b2a0996c6135b5f562b3dda02ac"
+    },
+    "length_delimited": "each part prefixed by its UTF-8 byte length as an unsigned 8-byte big-endian integer (I1 spec §5.1)"
+  },
+  "expected_state": {
+    "version": 3,
+    "services": [
+      {
+        "id": "service:orders",
+        "name": "orders"
+      }
+    ],
+    "operations": [
+      {
+        "id": "operation:pricing:GET:/prices",
+        "name": "GET /prices",
+        "discovery_status": "OBSERVED_ONLY"
+      }
+    ],
+    "queues": [],
+    "topics": [],
+    "subscriptions": [],
+    "messages": [],
+    "schemas": [],
+    "evidence": [
+      {
+        "id": "evidence:otel:production:2026-09-28:47a491ddd2fc",
+        "source_type": "OPENTELEMETRY",
+        "source_file": "opentelemetry",
+        "evidence_type": "OBSERVED",
+        "environment": "production",
+        "bucket_start": "2026-09-28T00:00:00.000000Z",
+        "bucket_end": "2026-09-29T00:00:00.000000Z",
+        "first_seen": "2026-09-28T10:00:00.200000Z",
+        "last_seen": "2026-09-28T16:45:12.000001Z",
+        "observation_count": 5,
+        "sample_trace_ids": [
+          "0af7651916cd43dd8448eb211c80319c",
+          "4bf92f3577b34da6a3ce929d0e0e4736",
+          "a3ce929d0e0e47364bf92f3577b34da6"
+        ],
+        "correlation_mode": "CLIENT_SERVER"
+      }
+    ],
+    "relations": [
+      {
+        "type": "CALLS",
+        "source_id": "service:orders",
+        "target_id": "operation:pricing:GET:/prices",
+        "evidence_ids": [
+          "evidence:otel:production:2026-09-28:47a491ddd2fc"
+        ]
+      }
+    ],
+    "semantic_config": {
+      "coverage_qualification_enabled": true
+    },
+    "deployment_workloads": [],
+    "deployment_captured_pods": [],
+    "deployment_workload_owns_pod": [],
+    "deployment_runtime_identity_observations": [],
+    "deployment_reconciliation_rule": {
+      "rule_id": "service-workload-reconciliation",
+      "rule_version": 1
+    },
+    "scoped_observed_calls_v2": [
+      {
+        "bucket_utc_day": "2026-09-28",
+        "caller_cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+        "caller_pod_uid": "11111111-aaaa-4bbb-8ccc-000000000001",
+        "conflicting_consistency_attributes": [],
+        "contract_version": 2,
+        "correlation_mode": "CLIENT_SERVER",
+        "environment": "production",
+        "evidence_type": "OBSERVED",
+        "first_seen": "2026-09-28T10:00:00.200000Z",
+        "id": "evidence:otel:calls-scoped:v2:54533826895d5eb1fc4a81e0b5ec153266218218b103b49b7fd171ce03f6f3d1",
+        "k8s_daemonset_name": null,
+        "k8s_deployment_name": "orders",
+        "k8s_namespace_name": "shop",
+        "k8s_pod_name": "orders-7d9f8b6c5-abcde",
+        "k8s_statefulset_name": null,
+        "key_rule_id": "otel-calls-scoped-evidence-v2-key",
+        "key_rule_version": 1,
+        "last_seen": "2026-09-28T16:45:12.000001Z",
+        "normalization_rule_id": "otel-client-caller-attribution",
+        "normalization_rule_version": 1,
+        "object_id": "operation:pricing:GET:/prices",
+        "observation_count": 3,
+        "relation_type": "CALLS",
+        "sample_trace_ids": [
+          "4bf92f3577b34da6a3ce929d0e0e4736",
+          "a3ce929d0e0e47364bf92f3577b34da6"
+        ],
+        "source_type": "OPENTELEMETRY",
+        "subject_id": "service:orders"
+      },
+      {
+        "bucket_utc_day": "2026-09-28",
+        "caller_cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+        "caller_pod_uid": "11111111-aaaa-4bbb-8ccc-000000000002",
+        "conflicting_consistency_attributes": [
+          "k8s_pod_name"
+        ],
+        "contract_version": 2,
+        "correlation_mode": "CLIENT_ONLY",
+        "environment": "production",
+        "evidence_type": "OBSERVED",
+        "first_seen": "2026-09-28T11:00:00.000000Z",
+        "id": "evidence:otel:calls-scoped:v2:bac82977476e59e17623016be95ed5ea2c0c6c1d895df905ae21194756c5c383",
+        "k8s_daemonset_name": null,
+        "k8s_deployment_name": "orders-canary",
+        "k8s_namespace_name": "shop",
+        "k8s_pod_name": null,
+        "k8s_statefulset_name": null,
+        "key_rule_id": "otel-calls-scoped-evidence-v2-key",
+        "key_rule_version": 1,
+        "last_seen": "2026-09-28T11:00:00.000000Z",
+        "normalization_rule_id": "otel-client-caller-attribution",
+        "normalization_rule_version": 1,
+        "object_id": "operation:pricing:GET:/prices",
+        "observation_count": 2,
+        "relation_type": "CALLS",
+        "sample_trace_ids": [
+          "0af7651916cd43dd8448eb211c80319c"
+        ],
+        "source_type": "OPENTELEMETRY",
+        "subject_id": "service:orders"
+      }
+    ],
+    "scoped_capture_scopes_v2": [
+      {
+        "source_instance_id": "urn:aip:source:kubernetes:a1c8b8e3e564473236ae4aea800dd9379b4e2e205dd0b3496e5bc6c1c3a07d04",
+        "discovery_scope_id": "urn:aip:discovery-scope:a3e7803e806d3a60e97a4fc32dc5ed0ba3755b2a0996c6135b5f562b3dda02ac",
+        "revision": "after-vector-c1",
+        "cluster_uid": "7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+        "namespaces": [
+          "shop"
+        ],
+        "evidence_mode": "CAPTURED_RESOURCE",
+        "captured_at": "2026-09-28T12:00:00Z"
+      }
+    ]
+  },
+  "canonical_bytes_utf8": "{\"deployment_captured_pods\":[],\"deployment_reconciliation_rule\":{\"rule_id\":\"service-workload-reconciliation\",\"rule_version\":1},\"deployment_runtime_identity_observations\":[],\"deployment_workload_owns_pod\":[],\"deployment_workloads\":[],\"evidence\":[{\"bucket_end\":\"2026-09-29T00:00:00.000000Z\",\"bucket_start\":\"2026-09-28T00:00:00.000000Z\",\"correlation_mode\":\"CLIENT_SERVER\",\"environment\":\"production\",\"evidence_type\":\"OBSERVED\",\"first_seen\":\"2026-09-28T10:00:00.200000Z\",\"id\":\"evidence:otel:production:2026-09-28:47a491ddd2fc\",\"last_seen\":\"2026-09-28T16:45:12.000001Z\",\"observation_count\":5,\"sample_trace_ids\":[\"0af7651916cd43dd8448eb211c80319c\",\"4bf92f3577b34da6a3ce929d0e0e4736\",\"a3ce929d0e0e47364bf92f3577b34da6\"],\"source_file\":\"opentelemetry\",\"source_type\":\"OPENTELEMETRY\"}],\"messages\":[],\"operations\":[{\"discovery_status\":\"OBSERVED_ONLY\",\"id\":\"operation:pricing:GET:/prices\",\"name\":\"GET /prices\"}],\"queues\":[],\"relations\":[{\"evidence_ids\":[\"evidence:otel:production:2026-09-28:47a491ddd2fc\"],\"source_id\":\"service:orders\",\"target_id\":\"operation:pricing:GET:/prices\",\"type\":\"CALLS\"}],\"schemas\":[],\"scoped_capture_scopes_v2\":[{\"captured_at\":\"2026-09-28T12:00:00Z\",\"cluster_uid\":\"7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b\",\"discovery_scope_id\":\"urn:aip:discovery-scope:a3e7803e806d3a60e97a4fc32dc5ed0ba3755b2a0996c6135b5f562b3dda02ac\",\"evidence_mode\":\"CAPTURED_RESOURCE\",\"namespaces\":[\"shop\"],\"revision\":\"after-vector-c1\",\"source_instance_id\":\"urn:aip:source:kubernetes:a1c8b8e3e564473236ae4aea800dd9379b4e2e205dd0b3496e5bc6c1c3a07d04\"}],\"scoped_observed_calls_v2\":[{\"bucket_utc_day\":\"2026-09-28\",\"caller_cluster_uid\":\"7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b\",\"caller_pod_uid\":\"11111111-aaaa-4bbb-8ccc-000000000001\",\"conflicting_consistency_attributes\":[],\"contract_version\":2,\"correlation_mode\":\"CLIENT_SERVER\",\"environment\":\"production\",\"evidence_type\":\"OBSERVED\",\"first_seen\":\"2026-09-28T10:00:00.200000Z\",\"id\":\"evidence:otel:calls-scoped:v2:54533826895d5eb1fc4a81e0b5ec153266218218b103b49b7fd171ce03f6f3d1\",\"k8s_daemonset_name\":null,\"k8s_deployment_name\":\"orders\",\"k8s_namespace_name\":\"shop\",\"k8s_pod_name\":\"orders-7d9f8b6c5-abcde\",\"k8s_statefulset_name\":null,\"key_rule_id\":\"otel-calls-scoped-evidence-v2-key\",\"key_rule_version\":1,\"last_seen\":\"2026-09-28T16:45:12.000001Z\",\"normalization_rule_id\":\"otel-client-caller-attribution\",\"normalization_rule_version\":1,\"object_id\":\"operation:pricing:GET:/prices\",\"observation_count\":3,\"relation_type\":\"CALLS\",\"sample_trace_ids\":[\"4bf92f3577b34da6a3ce929d0e0e4736\",\"a3ce929d0e0e47364bf92f3577b34da6\"],\"source_type\":\"OPENTELEMETRY\",\"subject_id\":\"service:orders\"},{\"bucket_utc_day\":\"2026-09-28\",\"caller_cluster_uid\":\"7f3c2a10-1b2d-4e5f-8a9b-0c1d2e3f4a5b\",\"caller_pod_uid\":\"11111111-aaaa-4bbb-8ccc-000000000002\",\"conflicting_consistency_attributes\":[\"k8s_pod_name\"],\"contract_version\":2,\"correlation_mode\":\"CLIENT_ONLY\",\"environment\":\"production\",\"evidence_type\":\"OBSERVED\",\"first_seen\":\"2026-09-28T11:00:00.000000Z\",\"id\":\"evidence:otel:calls-scoped:v2:bac82977476e59e17623016be95ed5ea2c0c6c1d895df905ae21194756c5c383\",\"k8s_daemonset_name\":null,\"k8s_deployment_name\":\"orders-canary\",\"k8s_namespace_name\":\"shop\",\"k8s_pod_name\":null,\"k8s_statefulset_name\":null,\"key_rule_id\":\"otel-calls-scoped-evidence-v2-key\",\"key_rule_version\":1,\"last_seen\":\"2026-09-28T11:00:00.000000Z\",\"normalization_rule_id\":\"otel-client-caller-attribution\",\"normalization_rule_version\":1,\"object_id\":\"operation:pricing:GET:/prices\",\"observation_count\":2,\"relation_type\":\"CALLS\",\"sample_trace_ids\":[\"0af7651916cd43dd8448eb211c80319c\"],\"source_type\":\"OPENTELEMETRY\",\"subject_id\":\"service:orders\"}],\"semantic_config\":{\"coverage_qualification_enabled\":true},\"services\":[{\"id\":\"service:orders\",\"name\":\"orders\"}],\"subscriptions\":[],\"topics\":[],\"version\":3}",
+  "sha256": "3a0b04e1d88feaae5ebb2277f8fe50fba74279cc3af12906edc37a31e55c59f9",
+  "snapshot_id": "aip:snapshot:v1:3a0b04e1d88feaae5ebb2277f8fe50fba74279cc3af12906edc37a31e55c59f9",
+  "model_revision": "sha256:3a0b04e1d88feaae5ebb2277f8fe50fba74279cc3af12906edc37a31e55c59f9"
+}

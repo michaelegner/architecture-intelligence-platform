@@ -6,7 +6,6 @@ directory and check its content digest, and they check that the frozen dossiers 
 """
 
 import importlib.util
-import json
 import re
 from pathlib import Path
 
@@ -221,34 +220,18 @@ def test_lifecycle_runbook_queries_every_frozen_state_query():
     assert "for q in Q-INV Q-SRC Q-SRC-SEM Q-OWN Q-SVC Q-REL; do" in runbook
 
 
-RELEASED_PRODUCER_VERSION = "0.5.1"
-I5_PRODUCER_VERSION = "0.4.2"
+# The evaluation scenarios' whole-tree digest (pinned in coverage-matrix.md at the I5 candidate
+# `aa04a15`) is deliberately NOT asserted any more. Until v0.6.1 the tree could be reverted to that
+# identity by undoing the only permitted changes (producer version, snapshot canonicalization
+# literals). v0.6.1 I2 legitimately changes the *answers* of the scenarios whose services use a
+# Broker: a Broker-aware dependencies answer is the v0.6 shape with a `BrokerClaim` (spec §5.2), so
+# three `expected_answer.json` files changed in substance, which no mechanical revert can undo. The
+# I5 candidate is released history, retained in git (and the frozen I5 record is not edited here);
+# the scenarios are independently re-derived and graded by `python -m evaluation answers`.
+_SCENARIOS_TREE = "evaluation/architecture_answers/scenarios"
 
 
-def _scenarios_as_at_the_i5_candidate(scenarios: Path, workdir: Path) -> Path:
-    """v0.5.0 I6 §6/§9: release preparation may change the evaluation scenarios'
-    `producer.version` and nothing else. The I5 pin in coverage-matrix.md stays the identity at the
-    I5 candidate `aa04a15`, and the frozen I5 record is not edited. This reverts exactly that one
-    permitted change in a copy, one occurrence per expected answer, and proves it is the producer
-    field. The unchanged pin must then match, so any other scenario change still fails."""
-    copy = workdir / "scenarios"
-    for source in sorted(scenarios.rglob("*")):
-        if not source.is_file() or "__pycache__" in source.parts:
-            continue
-        target = copy / source.relative_to(scenarios)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        data = source.read_bytes()
-        if source.name == "expected_answer.json":
-            text = data.decode()
-            released = f'"version": "{RELEASED_PRODUCER_VERSION}"'
-            assert text.count(released) == 1, source
-            assert json.loads(text)["producer"]["version"] == RELEASED_PRODUCER_VERSION, source
-            data = text.replace(released, f'"version": "{I5_PRODUCER_VERSION}"').encode()
-        target.write_bytes(data)
-    return copy
-
-
-def test_coverage_matrix_fixture_digests_match_the_files_on_disk(tmp_path):
+def test_coverage_matrix_fixture_digests_match_the_files_on_disk():
     mutate = _mutate()
     matrix = (V05 / "coverage-matrix.md").read_text()
     pinned = re.findall(r"`((?:tests|evaluation)/[^`]+)`[^|]*?digest `([0-9a-f]{64})`", matrix)
@@ -260,9 +243,9 @@ def test_coverage_matrix_fixture_digests_match_the_files_on_disk(tmp_path):
         "evaluation/architecture_answers/scenarios",
     }
     for path, digest in pinned:
+        if path == _SCENARIOS_TREE:
+            continue  # see the comment above `_SCENARIOS_TREE`
         tree = ROOT / path
-        if path == "evaluation/architecture_answers/scenarios":
-            tree = _scenarios_as_at_the_i5_candidate(tree, tmp_path)
         # The one documented algorithm (coverage-matrix.md names mutate.py::tree_digest).
         assert mutate.tree_digest(tree, exclude=frozenset()) == digest, path
 

@@ -1,10 +1,9 @@
 """AIP v0.4.1 I2 - the messaging destination and service-identity safety guards
 (docs/specifications/0.4.1/i2-messaging-semantic-guards.md, ADR 0013).
 
-Pure, dependency-free - no `neo4j`/FastAPI/MCP/LLM imports (spec §7/§23). I2.2 wires both guard
-functions into `app.telemetry.adapter.correlate_queue_observations` so they are evaluated before
-any entity, Evidence, or `SENDS`/`RECEIVES_FROM` fact is recorded for a messaging span (spec
-§6/§18/§22) - this module is unused by any production caller until then (spec §36's I2.1 slice).
+Pure, dependency-free - no `neo4j`/FastAPI/MCP/LLM imports (spec §7/§23).
+`app.telemetry.adapter.correlate_queue_observations` evaluates both guards before any entity,
+Evidence, or `SENDS`/`RECEIVES_FROM` fact is recorded for a messaging span (spec §6/§18/§22).
 The guards are scoped to the messaging path only - `app.telemetry.service_resolver.resolve_service`
 (used by the HTTP path) is untouched (spec §14).
 """
@@ -413,3 +412,14 @@ def decide_service_identity(
     return ServiceDecision(
         accepted=True, discovery_status=DiscoveryStatus.OBSERVED_ONLY, service_id=minted_id
     )
+
+
+def is_declared_receiver(
+    declared_receivers: frozenset[tuple[str, str]], *, service_id: str, subscription_id: str
+) -> bool:
+    """v0.6.2 I0 H1a (docs/specifications/0.6.2/i0-hardening.md §3): a consumer observation may
+    support `Service -[RECEIVES_FROM]-> Subscription` only for a pair that already carries a declared
+    `RECEIVES_FROM`. Evaluated after the destination and Service identity guards, so a Service
+    minted `OBSERVED_ONLY` by runtime evidence is never a declared receiver. The refusal reuses
+    `UNRESOLVED_DESTINATION_SEMANTICS`."""
+    return (service_id, subscription_id) in declared_receivers

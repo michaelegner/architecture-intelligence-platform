@@ -146,7 +146,33 @@ answer yet is labelled as outside the answer, not hidden.
 
 [Demo README](examples/quarkus-super-heroes-demo/README.md) ·
 [question-by-question walkthrough](examples/quarkus-super-heroes-demo/walkthrough.md) ·
+[where dependencies are established](docs/real-world-validation/v0.6.0/locality-walkthrough.md) ·
 [recorded Claude Code conversation](examples/quarkus-super-heroes-demo/conversation-claude-code.md)
+
+## Pitstop: which services receive the event you are about to change?
+
+A second real system, [Pitstop](https://github.com/EdwinVW/pitstop) (a .NET garage-management sample on
+RabbitMQ), on a different broker and stack. The task: *before replacing `StartTime` and `EndTime` in
+`MaintenanceJobFinished`, who receives from the exchange it is published to, and what must I still inspect?*
+One command replays an authored, frozen observation window. It needs Docker and `curl`; no .NET, RabbitMQ or
+model key:
+
+```bash
+examples/pitstop-demo/run.sh
+```
+
+Ask the publisher: AIP resolves five receivers of the fanout exchange through their named queues, one of
+which (`ReportingService`) no Pitstop document lists, with their evidence and the publisher's qualification.
+It states, rather than hides, that it holds no payload or field-level knowledge, so which receiver reads
+`StartTime` is what you must still inspect. The local replay is the reproducible mode. The canonical demo is a
+continuously running, instrumented Pitstop feeding a hosted AIP instance, queried for a completed UTC day (the
+local `--live` mode needs the private instrumented fork; the hosted instance is operated by the demo owner and
+reached over a token-gated MCP URL). An optional Claude Code plugin (and an optional mod that shows AIP's
+answer next to the agent's plan) is described in the demo README.
+
+[Demo README](examples/pitstop-demo/README.md) ·
+[question-by-question walkthrough](examples/pitstop-demo/walkthrough.md) ·
+[input provenance](examples/pitstop-demo/PROVENANCE.md)
 
 ## What You Can Do With It
 
@@ -248,17 +274,17 @@ evidence references at the same snapshot without creating new architecture claim
 
 ## MCP Tools
 
-AIP exposes the validated architecture model at `/mcp` — via either the direct `2026-07-28`
-envelope or standard negotiated MCP client initialization (see [Boundaries](#boundaries)) — as
-exactly three **read-only** tools:
+AIP exposes the validated architecture model at `/mcp` through standard negotiated MCP client
+initialization (see [Boundaries](#boundaries)) as exactly four **read-only** tools:
 
 | Tool | Answers |
 |---|---|
 | `get_service_dependencies` | What does this service directly depend on, and is each dependency confirmed by runtime observation? |
 | `get_architecture_drift` | Which of those direct dependencies disagree with what was declared — observed but undocumented, or declared but not observed in this window? |
 | `get_evidence` | What is the actual provenance behind those claims — which spec file, manifest, or observation window? |
+| `get_service_dependencies_by_locality` | Where are direct HTTP dependencies established for evidenced caller Workloads, how do supported results compare, and which scoped evidence supports them? |
 
-All three perform zero graph writes and need no LLM API key — the whole surface is deterministic —
+All four perform zero graph writes and need no LLM API key — the whole surface is deterministic —
 and none of them will invent, guess, or upgrade an unresolved fact: insufficient evidence comes back
 as a `limitations` entry, never as silence.
 
@@ -332,7 +358,7 @@ per-service telemetry coverage). None of these involve the LLM — see
 
 ## Core Capabilities
 
-- Evidence-qualified service dependencies and architecture drift, via three read-only MCP tools
+- Evidence-qualified service dependencies and architecture drift, via four read-only MCP tools
 - OpenAPI, AsyncAPI and OpenTelemetry evidence, reconciled into one graph
 - Queue *and* source-independent Pub/Sub semantics. Topic fan-out is expressed only through
   explicitly declared Subscriptions, and a Kafka consumer group is never treated as a Subscription.
@@ -432,7 +458,8 @@ the platform works with no LLM provider configured, and no MCP tool depends on i
 
 ## Boundaries
 
-What the three MCP tools return, and what they deliberately don't.
+What the original three MCP tools return, and what they deliberately don't. The fourth tool
+adds the separately versioned [locality contract](docs/mcp.md#get_service_dependencies_by_locality-v060-i3).
 
 **One envelope.** Every tool returns the same `ArchitectureAnswer` (`schema_version`, `producer`,
 `tool`, `outcome`, `snapshot`, `observation_context`, `data`, `claims`, `evidence_refs`,
@@ -470,7 +497,7 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 
 ## Documentation
 
-- [`docs/mcp.md`](docs/mcp.md) — the three read-only MCP tools for AI agents, and a runnable
+- [`docs/mcp.md`](docs/mcp.md) — the four read-only MCP tools for AI agents, and a runnable
   hero-demo walkthrough
 - [`docs/architecture.md`](docs/architecture.md) — pipeline, API surface
 - [`docs/canonical-model.md`](docs/canonical-model.md) — entities and deterministic ids
@@ -489,8 +516,10 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 - [`docs/security-model.md`](docs/security-model.md) — trust boundaries
 - [`docs/development.md`](docs/development.md) — local dev, tests, linting
 - [`docs/adapter-development.md`](docs/adapter-development.md) — extending AIP with a new source
-- [`docs/architecture-review-0.4.0.md`](docs/architecture-review-0.4.0.md) — post-`v0.4.0`
+- [`docs/reviews/architecture-review-0.4.0.md`](docs/reviews/architecture-review-0.4.0.md) — post-`v0.4.0`
   architecture review: what held up, four structural findings, measured read cost
+- [`docs/reviews/code-health-review-2026-10-08.md`](docs/reviews/code-health-review-2026-10-08.md) — code health
+  and design review at v0.6.2: five ranked findings
 - [`docs/product-doctrine-and-strategic-direction.md`](docs/product-doctrine-and-strategic-direction.md)
   — product doctrine, semantic boundaries, strategic direction, and roadmap rationale
 - [`docs/adr/`](docs/adr/) — Architecture Decision Records: why Neo4j, why a Canonical Model, why
@@ -505,7 +534,7 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development setup, test/lint/format commands, and the
-adapter contribution guide. Questions and ideas go in [Discussions](../../discussions); bugs and
+adapter contribution guide. Questions and ideas go in [Discussions](https://github.com/michaelegner/architecture-intelligence-platform/discussions); bugs and
 feature requests use the issue templates. Security vulnerabilities should never be reported as
 public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 [Contributor Covenant](CODE_OF_CONDUCT.md).
@@ -513,14 +542,14 @@ public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 ## Project Status
 
 Latest release:
-[`v0.5.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.5.1)
-— **Realistic Architecture Demo**.
+[`v0.6.2`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.6.2)
+— **Live AIP Demo on Pitstop**.
 
 Pre-1.0: the REST/MCP surface, Graph Schema, Canonical Model, Adapter SPI and configuration format
 may still change on a minor version bump. Every release ships a published-artifact verification —
-[`docs/release-validation/v0.5.1-release-record.md`](docs/release-validation/v0.5.1-release-record.md)
+[`docs/release-validation/v0.6.2-release-record.md`](docs/release-validation/v0.6.2-release-record.md)
 is the most recent. See [`CHANGELOG.md`](CHANGELOG.md) for what shipped in each release and
-[`ROADMAP.md`](ROADMAP.md) for what's next — v0.6 (Locality-Aware Current State).
+[`ROADMAP.md`](ROADMAP.md) for what's next.
 
 ## License
 

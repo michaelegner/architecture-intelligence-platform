@@ -14,6 +14,72 @@ already has declared, and persists observed facts and evidence. A malformed payl
 content-type is rejected (400/415) before any Neo4j access happens, so a bad request can never
 partially write.
 
+AIP expects the OTLP protobuf body **uncompressed**: `POST /v1/traces` does not negotiate
+`Content-Encoding`, so gzip-compressed exports are rejected during protobuf decoding. The
+Collector's `otlphttp` exporter uses gzip by default; disable compression on the AIP leg:
+
+```yaml
+exporters:
+  otlphttp/aip:
+    endpoint: http://<aip-host>:8000
+    compression: none
+```
+
+See the [runtime demo Collector configuration](../examples/runtime-demo/otel-collector-config.yaml)
+for a working example.
+
+## Minimal direct OTLP request
+
+For the smallest direct ingestion check, post one synthetic OTLP/HTTP protobuf
+request to the same endpoint used by a Collector. This does not replace the
+full runtime demo and does not require a real application span:
+
+```bash
+python - <<'PY' > /tmp/aip-trace.pb
+from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
+from opentelemetry.proto.common.v1.common_pb2 import AnyValue, KeyValue
+from opentelemetry.proto.resource.v1.resource_pb2 import Resource
+from opentelemetry.proto.trace.v1.trace_pb2 import ResourceSpans, ScopeSpans, Span
+
+kv = lambda k, v: KeyValue(key=k, value=AnyValue(string_value=v))
+span = Span(
+    trace_id=b"0" * 16,
+    span_id=b"1" * 8,
+    name="GET /synthetic",
+    kind=Span.SPAN_KIND_CLIENT,
+    attributes=[
+        kv("service.name", "SyntheticClient"),
+        kv("deployment.environment.name", "demo"),
+        kv("http.request.method", "GET"),
+        kv("http.route", "/synthetic"),
+        kv("peer.service", "SyntheticServer"),
+    ],
+)
+request = ExportTraceServiceRequest(resource_spans=[
+    ResourceSpans(
+        resource=Resource(attributes=[
+            kv("service.name", "SyntheticClient"),
+            kv("deployment.environment.name", "demo"),
+        ]),
+        scope_spans=[ScopeSpans(spans=[span])],
+    )
+])
+import sys
+sys.stdout.buffer.write(request.SerializeToString())
+PY
+
+curl --fail-with-body \
+  -H 'Content-Type: application/x-protobuf' \
+  --data-binary @/tmp/aip-trace.pb \
+  http://127.0.0.1:8000/v1/traces
+```
+
+After ingestion, query `GET /api/analysis/runtime/coverage` (or
+`GET /api/evidence` when the synthetic observation is reachable from a
+public claim) to inspect what AIP actually retained. A successful POST proves
+only that the OTLP request was accepted; correlation still follows the
+declared-graph and no-guessing rules below.
+
 ## Attribute allowlist
 
 Only these OTel semantic-convention attributes are ever read — nothing else is inspected, and
@@ -63,6 +129,28 @@ RECEIVES_FROM correlation. This is pure evidence capture at ingestion time: it p
 of its own, and the `:RuntimeIdentityObservation` node itself is never reachable through
 `GET /api/evidence`, `get_evidence`, or the public snapshot fingerprint (a different label than
 `:Evidence` entirely).
+
+### Scoped v2 evidence and its operational provenance (v0.6.0, off by default)
+
+With `telemetry.scoped-evidence.enabled: true`, an accepted HTTP `CALLS` whose *original CLIENT*
+carries `k8s.pod.uid`, `k8s.cluster.uid` and the accepted environment is also stored as an isolated
+caller-Pod-scoped record (`:ScopedObservedCallV2`), in the same transaction as its v1 evidence. The
+v1 evidence, the snapshot and every v0.5 answer are unchanged, and the record is never `:Evidence`,
+has no relationships, and is not reachable through any public read or the natural-language query
+path. The same transaction also maintains three kinds of bare operational node, none of which is
+architecture evidence:
+
+- `:ScopedEvidenceCutover` (one per graph) and `:ScopedEvidenceLegacyBucket` record which v1 CALLS
+  buckets already existed when scoped evidence was first enabled, and mark a bucket *mixed* once a
+  later enabled unit contributes to it. History is reported as **unknown**, never as legacy, whenever
+  this cannot be proved (no ledger, another stream, or a membership that no longer matches it).
+- `:ScopedEvidenceTransitionCounter` holds exact counts of accepted and refused interactions per
+  stream, environment, UTC day and primary refusal cause.
+
+The counters and the legacy classification are read with
+`app.telemetry.scoped_ledger.read_transition_report` (`aip-scoped-evidence-transition-report/1`); there
+is no public endpoint. Refusals are also logged after commit as bounded, sanitized samples (at most 20
+per cause per POST, plus a suppressed count) carrying only the stream, trace ID and reason codes.
 
 v0.5.0 I3's deployment reconciliation ("Path C", `app.architecture_intelligence.
 deployment_reconciliation`) reads these observations at query time — together with a real Pod's
@@ -166,7 +254,11 @@ of these hold:
 - `messaging.destination.name` resolves the declared Topic;
 - `messaging.destination.subscription.name` matches a declared Subscription of that Topic exactly
   (NFC, with no case folding or trimming);
-- `SUBSCRIPTION_OF` links the two.
+- `SUBSCRIPTION_OF` links the two;
+- the identified Service already has a **declared** `RECEIVES_FROM` to that Subscription (v0.6.2 I0).
+  A consumer span naming a Subscription the Service does not declare — for example another Service's
+  queue — is refused like any unmatched consumer span: never persisted, never public, and it never
+  creates or extends a route.
 
 This is the Google Cloud Pub/Sub and Azure Service Bus consumer shape. A consumer group, even one
 equal to a Subscription name, never resolves, creates or aliases a Subscription. That makes Kafka

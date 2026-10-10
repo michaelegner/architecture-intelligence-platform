@@ -1,5 +1,11 @@
 # Roadmap
 
+**Product mission:** Build architecture intelligence that agents can consume and humans can inspect, challenge, and understand.
+
+This mission guides human and agent exploration of the same evidence-qualified architecture
+knowledge; it does not introduce additional release scope or alter the qualification requirements
+below.
+
 ## Versioning
 
 AIP follows [Semantic Versioning](https://semver.org/) with an additional product discipline from
@@ -12,10 +18,20 @@ The release is not complete merely because the semantic core exists. The new que
 end-to-end through the supported public adapters, with evidence/provenance continuity, qualification,
 deterministic evaluation, and release qualification.
 
-A patch release `0.x.y` is for a **post-release correction or maintenance change** that preserves
-the `0.x.0` architecture-question space and intended semantic contract: for example a defect fix,
-security/dependency patch, documentation correction, or semantics-preserving performance
-improvement. Patch releases are not pre-planned buckets for unfinished `0.x.0` work.
+A patch release `0.x.y` preserves the `0.x.0` architecture-question space. It is normally for a
+**post-release correction or maintenance change** that preserves the intended semantic contract:
+for example a defect fix, security/dependency patch, documentation correction, or
+semantics-preserving performance improvement.
+
+A patch release may also carry a **bounded, independently validated semantic completion** of an
+existing architecture-question class when real-system evidence demonstrates that the current model
+cannot preserve a required distinction safely. Such a completion may extend canonical or public
+semantics only as needed to answer the existing question class more correctly or completely; it
+must not introduce a materially new architecture-question class, and it must ship with appropriate
+evidence/provenance continuity, deterministic evaluation, and release qualification.
+
+Patch releases are not pre-planned buckets for unfinished `0.x.0` work, nor a way to move a new
+architecture-question class out of a capability release.
 
 After the final pre-1.0 capability release, contract freeze and production qualification use
 `v1.0.0-rc.N` prereleases rather than inventing another `0.x.0` product release with no new
@@ -331,7 +347,10 @@ Exit capability:
 > **A user and their coding agent can obtain and inspect architecture context for a concrete Quarkus
 > development task without reconstructing that context themselves.**
 
-## v0.6 — Locality-Aware Current State (planned)
+## v0.6 — Locality-Aware Current State (shipped)
+
+Published **v0.6.0 on 2026-10-05**; terminal outcome **SHIPPED_VERIFIED**. See the
+[post-release verification](docs/release-validation/v0.6.0-post-release-verification.md).
 
 **Goal: Establish architecture knowledge locally and contextually before projecting it into broader
 Current-State views.**
@@ -344,9 +363,14 @@ Current-State views.**
 Focus: make context/locality an explicit part of Current-State qualification without changing the
 fundamental rule that Current State is derived only from Current-State evidence.
 
-AIP should be able to qualify a local assertion under an explicit context such as environment,
-region, cluster/namespace, workload identity, service version, or observation window when — and
-only when — the available evidence can support that dimension.
+The accepted v0.6.0 minimum is bounded direct HTTP `CALLS` under environment and whole-UTC-day
+observation context, with evidenced caller cluster/namespace and exact captured Workload identity
+through CLIENT Pod UID → Kubernetes owner chain. It does not establish target locality, local
+absence, global/exclusive dependency sets or historical snapshot access.
+
+Region, tenant, service-version locality and messaging locality are **deferred/unassigned
+candidates**. They are not allocated to v0.7 or v0.8 by this release. The product pilot remains
+`NOT_RUN`, with its product-value gate carried into v1.0-rc stable-contract admission.
 
 Conceptually:
 
@@ -383,7 +407,154 @@ Exit capability:
 > and can deterministically project those qualified local assessments into a bounded Current-State
 > view.**
 
-## v0.7 — Explicit Architecture Intent (planned)
+## v0.6.1 — Broker Semantic Completion (shipped)
+
+Published **v0.6.1 on 2026-10-06**; terminal outcome **SHIPPED_VERIFIED**. See the
+[release record](docs/release-validation/v0.6.1-release-record.md).
+
+**Goal: Complete AIP's existing messaging semantics with evidence-qualified Broker knowledge.**
+
+**Product question:**
+
+> **Which messaging infrastructure does this service use, and how far can the available evidence safely resolve that relationship?**
+
+Focus: promote broker identity and broker-level connectivity from supporting messaging identity
+information into qualified Architecture Knowledge where source evidence justifies it, without
+weakening or inventing Queue, Topic, Subscription, Message, producer, or consumer semantics.
+
+This is a **semantic completion of the existing messaging capability**, not a new
+architecture-question class. Existing Quarkus Super Heroes, FINOS FluxNova/CALM, and Apache Airflow
+evidence provides the cross-system basis for defining and qualifying the missing Broker semantic
+level.
+
+Key requirements:
+
+- define the smallest source-independent Broker semantics and identity rules;
+- ingest and reconcile Broker evidence without name-based identity guessing;
+- keep Broker connectivity independent from richer Queue/Topic/Subscription/Message semantics;
+- expose qualified Broker knowledge through the existing Architecture Intelligence surfaces;
+- qualify the semantics deterministically against Quarkus Super Heroes, FINOS FluxNova/CALM, and
+  Apache Airflow;
+- do not introduce a generic `CONNECTED_TO` relation or a live broker adapter.
+
+Exit capability:
+
+> **AIP can establish which messaging infrastructure a service is evidenced to use and state how far
+> that relationship can be resolved without inventing richer messaging semantics.**
+
+## v0.6.2 — Live AIP Demo (shipped)
+
+Published **v0.6.2 on 2026-10-09**; terminal outcome **SHIPPED_VERIFIED**. See the
+[release record](docs/release-validation/v0.6.2-release-record.md).
+
+**Goal: Make the existing v0.6 Current-State and messaging knowledge tangible in a realistic,
+hosted product demo.**
+
+**Demo question:**
+
+> **Which services receive from the messaging destination this service publishes to, how far can
+> the evidence resolve that topology, and what must I still inspect before changing the event?**
+
+Focus: establish a hosted, persistent Live AIP Demo using Pitstop, continuously driven by controlled
+traffic and queried against explicit completed observation windows. This is a demo release, not a
+capability release: it adds no new Architecture Knowledge semantics, source family, schema, or MCP
+tool. Its one product change is a small hardening prerequisite (I0) that fixes two evidence-correctness
+defects found by the I1 gate spike: runtime evidence must not create undeclared receiver routes, and a
+claim for an explicit observation window must not cite evidence from outside it. See
+[`docs/specifications/0.6.2/specification.md`](docs/specifications/0.6.2/specification.md)
+for the detailed scope.
+
+- run a canonical hosted AIP + Pitstop demo continuously with accumulated OTLP runtime evidence and
+  disclosed operator-authored AsyncAPI declarations;
+- make semantic reproducibility, explicit observation windows, evidence resolution, limitations,
+  and abstention visible in the live experience;
+- provide a one-command local replay for reproducibility and offline use while keeping the hosted
+  live instance canonical;
+- demonstrate a realistic `MaintenanceJobFinished` change where AIP resolves the messaging topology
+  the agent should inspect without claiming payload or field usage;
+- provide a Claude Code plugin with an architecture-aware development skill and `/aip:inspect`;
+  any Mod-based UX remains optional and non-blocking;
+- use the persistent demo as the product-demo base that later releases can extend for API-aware
+  Current State and explicit Intent.
+
+Exit capability:
+
+> **A user and coding agent can use a hosted AIP instance to obtain evidence-qualified messaging
+> context from the last completed supported observation window for a realistic development task, see
+> the limits of that knowledge, and identify what still needs inspection without reconstructing the
+> topology from the checkout alone.**
+
+## v0.7 — API-Aware Current State (planned)
+
+**Goal: Establish evidence-qualified Current-State knowledge of how APIs are exposed and consumed,
+while retaining the distinct meanings of contracts, operations, gateway objects, application services,
+consumers, and observed interactions.**
+
+**Product question:**
+
+> **How are APIs exposed and consumed, and what can the available evidence establish about those
+> relationships?**
+
+**First bounded validation question:**
+
+> **Which configured consumer/API relationships have matching observed runtime usage in a selected
+> environment and observation window, and which remain unestablished from the available evidence?**
+
+The first vertical slice SHALL use **real gateway configuration and consumer-attributed usage
+measurements**. Kong is the proposed initial reference system, not AIP's canonical terminology or a
+required gateway for later adapters. Its actual source capability determines whether a relationship
+can be described as a product subscription, access registration, ACL membership, or another
+configured relationship; AIP must not invent a subscription from the mere presence of a consumer.
+Broader gateway/provider support remains incremental and separately qualified.
+
+Minimum requirements for the slice:
+
+- freeze a small, **platform-independent semantic vocabulary**, keeping API contract/version,
+  API operation, gateway route/service, application service, gateway consumer, configured access
+  relationship, and observed interaction distinct; API product, business capability, domain boundary,
+  and organizational owner must not be inferred from a technical name, URL, or graph proximity;
+- preserve the distinction between **integration style**, **interaction pattern**, and **runtime
+  component**: gateway configuration and telemetry may establish bounded API exposure, configured
+  access, and observed usage, but do not establish a system-wide integration style, architectural
+  ownership, or completeness of the integration landscape; neither gateway presence nor absent
+  gateway observations justify those inferences;
+- reconcile source identities through accepted source-specific evidence or explicit mappings,
+  including unresolved, ambiguous and conflicting cases; association is not necessarily entity
+  equivalence;
+- reuse source inventory, revision, authoritative-removal, snapshot/replay, and provenance semantics;
+  preserve contract-version applicability and any evidenced source authority without treating the
+  newest or similarly named artifact as automatically canonical;
+- acquire or pin real, **consumer-attributed** usage evidence with bounded environment/window,
+  measurement meaning, identity resolution, and applicable telemetry coverage; missing metrics must
+  not turn into zero observed requests or a claim of non-use;
+- qualify configured and observed relationships independently as Current State: configured access
+  does not establish actual usage and does not become authoritative architectural Intent;
+- expose one deterministic, question-specific Architecture Intelligence answer through the shared
+  semantic service, REST and negotiated MCP, with same-snapshot evidence resolution, limitations,
+  bounded enumeration, and independently authored positive/negative real-source tests;
+- run a product-value pilot that includes useful answer coverage and the cost of setup, source
+  synchronization, attribution, and identity mapping; record a continue/narrow/defer/stop disposition.
+
+**Explicitly outside the initial v0.7 slice:** complete enterprise/API-product cataloging,
+business-capability classification, automatic ownership inference, multiple gateway integrations as
+a release gate, generic analytics/dashboarding, formal Intent, policy/compliance assessment, approval
+workflows, and historical architecture reconstruction. Additional OpenAPI/AsyncAPI, repository,
+CI/CD, architecture-model, and vendor sources may enter only through separately qualified,
+question-driven increments. The new source family must not weaken the already accepted v0.6
+locality or v0.5 Current-State contracts.
+
+**External research inputs:** [Understanding API Landscapes, Not Just Managing Them](https://adorsys.com/en/techradar/understanding-api-landscapes-not-just-managing-them/)
+and [The API Is Not the Boundary](https://adorsys.com/en/techradar/the-api-is-not-the-boundary/).
+They motivate the validation question; they are not AIP's semantic authority.
+
+Exit capability:
+
+> **AIP can relate an API's evidenced exposure and configured consumers to independently observed,
+> consumer-attributed usage, and state which relationships are established, unresolved, or
+> insufficiently supported in the selected context without silently inventing product, business,
+> authorization, or Intent claims.**
+
+## v0.8 — Explicit Architecture Intent (planned)
 
 **Goal: Represent explicit, attributable architectural intent without allowing Intent to alter
 established Current State.**
@@ -453,9 +624,9 @@ Exit capability:
 > without treating Intent as evidence of Current State.**
 
 No Current↔Intent compliance/enforcement engine, historical trajectory model, migration scripting,
-or automatic remediation is required in v0.7.
+or automatic remediation is required in v0.8.
 
-## v0.8 — Qualified Architecture Assessment (planned)
+## v0.9 — Qualified Architecture Assessment (planned)
 
 **Goal: Assess independently established Current State against independently established applicable
 Intent.**
@@ -534,7 +705,7 @@ Exit capability:
 > **AIP can explain where an independently established Current State aligns with, diverges from, or
 > cannot yet be evaluated against the explicit Intent that applies in the selected context.**
 
-Explicitly out of scope for v0.8:
+Explicitly out of scope for v0.9:
 
 - architecture trajectories / historical architecture state;
 - migration planning or transformation scripting;
@@ -549,13 +720,15 @@ Explicitly out of scope for v0.8:
 v1.0 without pretending that stabilization introduces a new architecture-question class.**
 
 This phase uses `v1.0.0-rc.N` prereleases. It freezes only semantics and public contracts that have
-survived implementation, deterministic evaluation, and real-system qualification across v0.5-v0.8.
+survived implementation, deterministic evaluation, and real-system qualification across v0.5-v0.9.
 
 Qualification/freeze scope includes, where actually implemented and accepted:
 
 - Canonical Model compatibility review
 - Current-State evidence and qualification semantics
 - locality/context semantics and Current-State projection contracts
+- qualified API exposure/consumption identity, source lifecycle, configured-vs-observed usage, and
+  observation coverage contracts where accepted from the v0.7 pilot
 - explicit Intent assertion kinds, authority/lifecycle applicability, and versioned projection contracts
 - qualified Current↔Intent assessment contracts
 - derivation-lineage and evidence/provenance requirements, including authority/lifecycle evidence
@@ -591,6 +764,13 @@ contracts; a stable Adapter SPI where it is intentionally public; documented com
 migration rules for graph persistence and configuration; production qualification completed;
 critical semantic errors = 0; release blockers = 0.
 
+**v1.0 scope boundary:** stable v1.0 contains only contracts that were implemented and independently
+qualified through the pre-v1.0 capability releases and the release-candidate phase. Externally sourced
+decision-history linkage, historical architecture-state retention/import, and architecture trajectories
+remain outside v1.0 under this roadmap. Moving any of those domains into the stable v1.0 scope would
+require an explicit roadmap revision plus its own product-value, semantic, and executable validation;
+landscape relevance or conceptual fit alone does not promote a future capability into v1.0.
+
 ## Sequencing principle
 
 ```text
@@ -598,13 +778,17 @@ v0.3  validation and hardening
   -> v0.4  trusted architecture context for agents
   -> v0.5  broader architecture discovery
   -> v0.6  locality-aware Current State
-  -> v0.7  explicit architecture Intent
-  -> v0.8  qualified architecture assessment
+  -> v0.7  API-Aware Current State
+  -> v0.8  explicit architecture Intent
+  -> v0.9  qualified architecture assessment
   -> v1.0-rc  contract freeze and production qualification
   -> v1.0  stable platform
 ```
 
-In capability terms:
+The version list above is the **planned release order**, not a claim that every immediately preceding
+release is a semantic prerequisite for the next one.
+
+In capability terms, the semantic dependencies branch rather than form one linear chain:
 
 ```text
 VALIDATE
@@ -613,35 +797,32 @@ EXPOSE
    ↓
 DISCOVER
    ↓
-ESTABLISH LOCALLY
-   ↓
-REPRESENT INTENT
-   ↓
-ASSESS
-   ↓
-FREEZE
+ESTABLISH LOCALLY (v0.6)
+   ├──────────────────────────────┐
+   ↓                              ↓
+API-AWARE CURRENT STATE (v0.7)   EXPLICIT INTENT (v0.8)
+   │                              │
+   └──────── qualified Current ───┤
+                                  ↓
+                         ASSESS (v0.9)
+                                  ↓
+                               FREEZE
 ```
 
-In product-question terms:
+In product-question terms, the planned release order is:
 
 ```text
-v0.5
-WHAT is running WHERE?
-        ↓
-v0.6
-WHERE does this architectural relationship hold?
-        ↓
-v0.7
-WHAT explicit Intent applies here?
-        ↓
-v0.8
-HOW does established Current State differ from applicable Intent?
-        ↓
-v1.0-rc
-FREEZE and qualify the question space already implemented
+v0.5  WHAT is running WHERE?
+v0.6  WHERE does this architectural relationship hold?
+v0.7  HOW are APIs exposed and consumed, and what does the evidence establish?
+v0.8  WHAT explicit Intent applies here?
+v0.9  HOW does established Current State differ from applicable Intent?
+v1.0-rc  FREEZE and qualify the question space already implemented
 ```
 
-This question progression is the product-facing expression of the semantic sequence above.
+These questions expand AIP's safely answerable Architecture Knowledge in release order; the
+branching dependency structure above, not the version adjacency, defines semantic prerequisite
+relationships.
 
 The Wardley-mapping result adds an investment rule:
 
@@ -671,14 +852,18 @@ Knowledge, requires new evidence/reconciliation semantics, or unlocks a material
 architecture question. Proprietary transport, storage, or source plumbing should enter scope only
 when correctness, interoperability, or evidence semantics require it.
 
-The ordering is semantic, not merely chronological:
+The semantic dependencies are narrower than the chronological release order:
 
 1. broader evidence must be trustworthy before it is used to establish more Current State;
-2. locality-aware Current State must remain independently derivable before Intent exists;
-3. Intent must be explicit, attributable, and qualified for authority, lifecycle, scope, and time
-   applicability before AIP compares Current State with it;
-4. Current↔Intent assessment must remain read-only and downstream of both independent projections;
-5. only implemented and qualified contracts are frozen for v1.0.
+2. locality/context semantics must be stable before AIP broadens Current State with API exposure and
+   consumption, and before applicable Intent is compared with Current State;
+3. API exposure and consumption are an additional Current-State question: qualified cross-source
+   associations and observed use must not imply products, business capabilities, ownership, or Intent;
+4. explicit Intent is an independent knowledge path and does not depend semantically on API-Aware
+   Current State; it must be attributable and qualified for authority, lifecycle, scope, and time;
+5. Current↔Intent assessment must remain read-only and downstream of both independently established
+   projections relevant to the question being assessed;
+6. only implemented and qualified contracts are frozen for v1.0.
 
 `v0.3` carried a hard gate: had either real-system dossier shown the Canonical Architecture Model
 needed a fundamental breaking redesign, AIP would not proceed to v0.4 until that redesign was
@@ -688,7 +873,8 @@ answered `NO`, so that gate did not block.
 
 None of the above are committed dates — this is a planning sequence, not a schedule. The detailed
 scope of each planned release remains subject to its release specification and qualification gate;
-the semantic dependency between the release themes is the stable part of this roadmap.
+the semantic dependency structure and the independence of Current State, Intent, and Assessment are
+the stable parts of this roadmap.
 
 ## Product validation gates
 
@@ -700,6 +886,13 @@ independently authored expected results. Define baselines and success/stop thres
 pilot. Assess correctness together with useful answer coverage, justified abstention, false alarms,
 and total engineering effort including setup, source maintenance, identity mapping, and clarification.
 Reducing false claims only by returning more unresolved answers does not establish product value.
+
+For **every capability release**, product qualification must include at least one recurring
+architecture question that the capability turns into a **reusable, deterministic, evidence-qualified
+answer or bounded context**. Validate that answer end to end: the consumer can resolve its evidence,
+qualification, context and limitations, and the workflow is compared with reconstruction from the
+same available source access. Internal semantic correctness alone is necessary but not sufficient
+evidence of product value.
 
 Record a continue, narrow, defer, or stop decision when evaluating these gates. Failed gates require
 a documented scope decision and, where release assignment or product boundaries change materially,
@@ -715,6 +908,10 @@ deterministic conformance tests; the adapter seam does not automatically admit a
 
 ## Future (beyond v1.0, unscheduled)
 
+- Externally sourced architecture decision-history linkage: relate a qualified finding or
+  assessment to its review, accountable actor/team, recorded decision, rationale, and effective
+  exception interval, without making AIP the approval authority or implying historical architecture
+  reconstruction
 - Historical architecture-state retention/import sufficient for principled temporal reasoning
 - Architecture trajectories (how evidence-qualified Current State and applicable Intent evolve over
   time, once historical identity/provenance continuity exists)

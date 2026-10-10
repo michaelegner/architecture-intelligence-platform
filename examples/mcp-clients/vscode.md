@@ -52,7 +52,7 @@ in addition to) the workspace file.
 ## 3. Start the server and verify
 
 VS Code shows a `Start` affordance (via CodeLens or the MCP: List Servers command) the first time it
-sees a new `mcp.json` entry — use it, then confirm `aip` is connected with its three tools listed
+sees a new `mcp.json` entry — use it, then confirm `aip` is connected with its four tools listed
 before asking anything.
 
 ## 4. Ask the stable prompt

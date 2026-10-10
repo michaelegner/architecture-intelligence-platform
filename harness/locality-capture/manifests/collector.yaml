@@ -1,0 +1,59 @@
+# Recording Collector (I1 capture runbook §3): contrib distribution for the `file` exporter, pinned
+# by digest. OTLP/HTTP in, `batch`, `file` exporter with `format: json` (one OTLP-JSON TracesData
+# per line). No k8sattributes/resource processor: every Resource is exactly what the SDK emitted.
+# It runs as root only so it can write the hostPath the harness copies otlp.jsonl out of.
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: otel-collector-config, namespace: aip-locality}
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch:
+        # 10 s spans more than one SDK export interval (5 s), so a caller's and a provider's
+        # exports can land in the same recorded line: in-batch pairs occur naturally (runbook §9
+        # gate 4). Rehearsal attempt 1 used 1 s and recorded no in-batch pair.
+        timeout: 10s
+    exporters:
+      file:
+        path: /data/otlp.jsonl
+        format: json
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [file]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: otel-collector, namespace: aip-locality}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: otel-collector}}
+  template:
+    metadata: {labels: {app: otel-collector}}
+    spec:
+      securityContext: {runAsUser: 0}
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+          args: ["--config=/etc/otelcol/config.yaml"]
+          ports: [{containerPort: 4318}]
+          volumeMounts:
+            - {name: config, mountPath: /etc/otelcol}
+            - {name: data, mountPath: /data}
+      volumes:
+        - {name: config, configMap: {name: otel-collector-config}}
+        - {name: data, hostPath: {path: /var/local/aip-otlp, type: DirectoryOrCreate}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: otel-collector, namespace: aip-locality}
+spec:
+  selector: {app: otel-collector}
+  ports: [{port: 4318, targetPort: 4318}]

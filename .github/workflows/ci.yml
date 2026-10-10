@@ -1,8 +1,9 @@
 name: CI
 
 # H5 spec §26: checkout -> Python setup -> {dependency install, ruff check, ruff format --check,
-# unit tests, integration tests}. The integration baseline is split across two required jobs so the
-# Compose demo E2E does not extend the core integration critical path.
+# unit tests, integration tests}. The integration baseline is split across required jobs so the
+# Compose demo E2E does not extend the core integration critical path, and the core integration
+# tests themselves run as two parallel shards.
 on:
   push:
   pull_request:
@@ -40,12 +41,17 @@ jobs:
       - name: import-linter
         run: uv run lint-imports
 
+      # Declared dependencies match what app/ imports; `[tool.deptry]` in pyproject.toml.
+      - name: deptry
+        run: uv run deptry .
+
       # v0.4.2 I3 spec §8.2/§8.3 "shell lint" gate. shellcheck ships preinstalled on GitHub-hosted
       # ubuntu-latest runners - no extra action/install needed. examples/runtime-demo/ and (v0.5.0
       # I6 §7.4) examples/release-golden-path/ hold the shipped, qualification-relevant shell scripts;
-      # (v0.5.1 I3) examples/quarkus-super-heroes-demo/ holds the realistic demo's launcher.
+      # (v0.5.1 I3) examples/quarkus-super-heroes-demo/ holds the realistic demo's launcher;
+      # (v0.6.2 I1a) examples/pitstop-demo/ holds the Pitstop demo's.
       - name: shellcheck
-        run: shellcheck examples/runtime-demo/*.sh examples/release-golden-path/*.sh examples/quarkus-super-heroes-demo/*.sh
+        run: shellcheck examples/runtime-demo/*.sh examples/release-golden-path/*.sh examples/quarkus-super-heroes-demo/*.sh examples/pitstop-demo/*.sh examples/pitstop-demo/live/*.sh
 
       - name: Unit tests
         # Derandomized property-based tests (tests/conftest.py), so CI failures reproduce.
@@ -54,8 +60,29 @@ jobs:
         run: uv run pytest tests/unit
 
   integration-core:
-    name: integration-core
+    # Three parallel shards, each with its own Neo4j container. `heavy` and `oracle` name the slowest
+    # modules; `rest` runs everything else, so a new module needs no entry here.
+    name: integration-core (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [heavy, oracle, rest]
+    env:
+      # Order matters: pytest runs these in the listed order, and test_locality_query.py's replays
+      # are only reused by test_locality_rehearsal_replay.py when they run first.
+      HEAVY_MODULES: >-
+        tests/integration/test_locality_query.py
+        tests/integration/test_locality_rehearsal_replay.py
+        tests/integration/test_evaluation_architecture_answers.py
+        tests/integration/test_i4_pubsub_qualification.py
+        tests/integration/test_adapter.py
+        tests/integration/test_architecture_intelligence_service.py
+      # The I3 oracle and its cross-surface parity run (v0.6.0 I3.3c), which builds the same
+      # worlds; both check the live graph's snapshot before reusing a replay.
+      ORACLE_MODULES: >-
+        tests/integration/test_locality_oracle.py
+        tests/integration/test_locality_surface_parity.py
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -70,7 +97,17 @@ jobs:
 
       # Testcontainers-backed - needs Docker, which is preinstalled on ubuntu-latest runners.
       - name: Core integration tests
-        run: uv run pytest tests/integration -m "not demo_e2e" --durations=25
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          case "$SHARD" in
+            heavy) selection=$HEAVY_MODULES ;;
+            oracle) selection=$ORACLE_MODULES ;;
+            *) selection="tests/integration $(printf -- '--ignore=%s ' $HEAVY_MODULES $ORACLE_MODULES)" ;;
+          esac
+          # Unquoted on purpose: word-splits into the module paths / --ignore options.
+          # shellcheck disable=SC2086
+          uv run pytest $selection -m "not demo_e2e" --durations=25
 
   demo-e2e:
     name: demo-e2e
@@ -126,3 +163,20 @@ jobs:
       # not pip-audit's own ephemeral tool environment.
       - name: pip-audit
         run: uv run --with pip-audit pip-audit
+
+  static-analysis:
+    name: static analysis (semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+
+      # Pinned Semgrep in its own isolated uvx environment (never part of the project's dependency
+      # resolution), registry rulesets only; --error fails the job on any finding.
+      - name: semgrep
+        run: uvx semgrep@1.178.0 scan --metrics=off --error --config p/python --config p/security-audit app

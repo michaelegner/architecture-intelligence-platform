@@ -25,13 +25,12 @@ Public evidence visibility for these two convenience forms is unchanged from pre
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.architecture_intelligence.contracts import (
-    _SNAPSHOT_ID_PATTERN,
-    ArchitectureAnswer,
-    EvidenceData,
-)
+from app.architecture_intelligence.broker_contracts import EvidenceAnswer
+from app.architecture_intelligence.contracts import SNAPSHOT_ID_PATTERN
 from app.architecture_intelligence.repository import SnapshotUnstable
 from app.architecture_intelligence.request import EvidenceRequest
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
@@ -56,44 +55,45 @@ def _stale_snapshot_detail(*, requested: str, current: str) -> dict:
 def resolve_evidence(
     request: EvidenceRequest,
     service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
-) -> ArchitectureAnswer[EvidenceData]:
+) -> EvidenceAnswer:
     """`POST /api/evidence/resolve` (spec §14.5): calls
-    `ArchitectureIntelligenceService.get_evidence` exactly once and returns its answer unchanged."""
+    `ArchitectureIntelligenceService.get_evidence` exactly once and returns its answer unchanged.
+    Data-dependent version (v0.6.1 spec §5.2): the released v0.5 answer, or the Broker-aware v0.6
+    answer."""
     return service.get_evidence(request)
+
+
+def _at_current_snapshot[T](requested: str, fetch: Callable[[], tuple[str, T]]) -> T:
+    """Runs `fetch` (a service read returning `(current_snapshot_id, payload)`) and applies the frozen
+    §16.3 snapshot rules: 503 when no stable snapshot can be acquired, 409 when `requested` is not
+    the current one; otherwise the payload."""
+    try:
+        current_snapshot_id, payload = fetch()
+    except SnapshotUnstable as exc:
+        raise HTTPException(status_code=503, detail=_SNAPSHOT_UNSTABLE_DETAIL) from exc
+    if requested != current_snapshot_id:
+        raise HTTPException(
+            status_code=409,
+            detail=_stale_snapshot_detail(requested=requested, current=current_snapshot_id),
+        )
+    return payload
 
 
 @router.get("")
 def list_evidence(
-    snapshot_id: str = Query(..., pattern=_SNAPSHOT_ID_PATTERN),
+    snapshot_id: str = Query(..., pattern=SNAPSHOT_ID_PATTERN),
     service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
 ) -> list[dict]:
-    try:
-        current_snapshot_id, rows = service.list_public_evidence()
-    except SnapshotUnstable as exc:
-        raise HTTPException(status_code=503, detail=_SNAPSHOT_UNSTABLE_DETAIL) from exc
-    if snapshot_id != current_snapshot_id:
-        raise HTTPException(
-            status_code=409,
-            detail=_stale_snapshot_detail(requested=snapshot_id, current=current_snapshot_id),
-        )
-    return rows
+    return _at_current_snapshot(snapshot_id, service.list_public_evidence)
 
 
 @router.get("/{evidence_id}")
 def get_evidence(
     evidence_id: str,
-    snapshot_id: str = Query(..., pattern=_SNAPSHOT_ID_PATTERN),
+    snapshot_id: str = Query(..., pattern=SNAPSHOT_ID_PATTERN),
     service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
 ) -> dict:
-    try:
-        current_snapshot_id, row = service.get_public_evidence(evidence_id)
-    except SnapshotUnstable as exc:
-        raise HTTPException(status_code=503, detail=_SNAPSHOT_UNSTABLE_DETAIL) from exc
-    if snapshot_id != current_snapshot_id:
-        raise HTTPException(
-            status_code=409,
-            detail=_stale_snapshot_detail(requested=snapshot_id, current=current_snapshot_id),
-        )
+    row = _at_current_snapshot(snapshot_id, lambda: service.get_public_evidence(evidence_id))
     if row is None:
         raise HTTPException(status_code=404, detail=f"evidence not found: {evidence_id}")
     return row

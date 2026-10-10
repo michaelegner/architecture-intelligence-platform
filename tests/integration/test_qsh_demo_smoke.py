@@ -4,10 +4,17 @@ Runs the real `run.sh` against the real Compose stack, the same way a user would
 the result independently over standard negotiated MCP:
 
 - `run.sh` exits 0, which means its own `check_ready.py` accepted the §4 step 5 answer shape;
-- `tools/list` advertises exactly the three read-only tools;
-- the MCP `get_service_dependencies` answer validates against the published v0.5 answer schema and
-  passes the same pinned shape (`check_ready.check_answer`, imported rather than duplicated);
-- one `get_evidence` drill-down resolves every reference at the answer's own snapshot;
+- `tools/list` advertises exactly the four read-only tools (the fourth since v0.6.0 I3.3b);
+- the MCP `get_service_dependencies` answer validates against the published answer schema for its own
+  `schema_version` (v0.6: `rest-fights` declares a Broker, v0.6.1 spec §5.2) and passes the same
+  pinned shape (`check_ready.check_answer`, imported rather than duplicated);
+- the v0.6.1 §6.3 two-sided Broker question over the real transport: exactly one Broker claim for
+  `rest-fights`, backed by the overlay's `kafka:fights-kafka` evidence, **and** the
+  `PUBLISHES_TO Topic:fights` path still does not resolve a Subscription or consumer (the answer
+  stays `PARTIAL` with the existing `UNRESOLVED_IDENTITY` limitation, no invented Subscription claim
+  or entity);
+- one `get_evidence` drill-down resolves every reference at the answer's own snapshot, and every
+  Broker-claim reference resolves to the exact `(USES_BROKER, rest-fights, Broker)` fact;
 - the replay is finished: the Collector is stopped, so nothing can ingest any more;
 - `run.sh --down` removes the stack and the run-local state.
 
@@ -29,14 +36,14 @@ import subprocess
 import urllib.request
 from pathlib import Path
 
-import jsonschema
 import pytest
+
+from tests.support.answer_schemas import validate_dependencies, validate_evidence
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEMO_DIR = REPO_ROOT / "examples" / "quarkus-super-heroes-demo"
 RUN_SH = DEMO_DIR / "run.sh"
 RUN_DIR = REPO_ROOT / ".aip-qsh-demo"
-SCHEMA_DIR = REPO_ROOT / "schemas" / "architecture_intelligence" / "v0.5"
 BASH = shutil.which("bash")
 DOCKER = shutil.which("docker")
 PROJECT = "aip-qsh-demo"
@@ -131,8 +138,50 @@ def _call(name: str, arguments: dict, request_id: int) -> dict:
     return result["structuredContent"]
 
 
-def _schema(name: str) -> dict:
-    return json.loads((SCHEMA_DIR / name).read_text())
+def _assert_the_broker_answer_and_its_boundary(answer: dict, evidence: dict) -> None:
+    """Spec §6.3's two sides of one answer. 1: exactly one Broker claim for rest-fights, backed by the
+    overlay's `kafka:fights-kafka` evidence. 2: knowing the Broker does not resolve the Subscription."""
+    assert answer["schema_version"] == "0.6" and evidence["schema_version"] == "0.6"
+
+    broker_claims = [c for c in answer["claims"] if c["predicate"] == "USES_BROKER"]
+    assert len(broker_claims) == 1
+    [claim] = broker_claims
+    assert claim["subject"]["id"] == "service:rest-fights"
+    assert claim["object"]["type"] == "BROKER" and claim["object"]["name"] == "kafka:fights-kafka"
+    assert answer["data"]["broker_claim_ids"] == [claim["claim_id"]]
+    records = {record["id"]: record for record in evidence["data"]["records"]}
+    assert claim["evidence_refs"], "the Broker claim must be evidence-backed"
+    for ref in claim["evidence_refs"]:
+        # the overlay's own AsyncAPI source (declared evidence), resolving to the exact Broker fact
+        assert records[ref]["source_type"] == "ASYNCAPI"
+        assert records[ref]["source_locator"].endswith("overlay/rest-fights/asyncapi.yaml")
+        assert any(
+            fact["relation_type"] == "USES_BROKER"
+            and fact["source_id"] == "service:rest-fights"
+            and fact["target_id"] == claim["object"]["id"]
+            and fact["broker"]["name"] == "kafka:fights-kafka"
+            for fact in records[ref]["supports"]
+        ), ref
+
+    # the existing Topic/Subscription limit is unchanged: PARTIAL, one UNRESOLVED_IDENTITY on the
+    # PUBLISHES_TO claim, and no invented Subscription claim or entity anywhere in the answer
+    assert answer["outcome"] == "PARTIAL"
+    published = [
+        c
+        for c in answer["claims"]
+        if (c.get("delivery") or {}).get("relation_type") == "PUBLISHES_TO"
+    ]
+    assert len(published) == 1 and published[0]["delivery"].get("subscription") is None
+    assert [(lim["code"], lim["claim_ids"]) for lim in answer["limitations"]] == [
+        ("UNRESOLVED_IDENTITY", [published[0]["claim_id"]])
+    ]
+    assert not [c for c in answer["claims"] if "SUBSCRIPTION" in json.dumps(c)]
+    assert not [
+        fact
+        for record in evidence["data"]["records"]
+        for fact in record["supports"]
+        if fact["relation_type"] == "SUBSCRIPTION_OF"
+    ]
 
 
 def test_one_command_demo_answers_and_drills_down_at_one_snapshot():
@@ -157,14 +206,19 @@ def test_one_command_demo_answers_and_drills_down_at_one_snapshot():
             assert value in prompt
 
         tools = [tool["name"] for tool in _mcp("tools/list", {}, 1)["tools"]]
-        assert tools == ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
+        assert tools == [
+            "get_architecture_drift",
+            "get_evidence",
+            "get_service_dependencies",
+            "get_service_dependencies_by_locality",
+        ]
 
         answer = _call(
             "get_service_dependencies",
             {"service_id": check_ready.SERVICE_ID, "observation_context": check_ready.CONTEXT},
             2,
         )
-        jsonschema.validate(answer, _schema("architecture-answer.schema.json"))
+        validate_dependencies(answer)
         assert check_ready.check_answer(answer) == []
 
         snapshot_id = answer["snapshot"]["snapshot_id"]
@@ -173,12 +227,13 @@ def test_one_command_demo_answers_and_drills_down_at_one_snapshot():
             {"evidence_refs": answer["evidence_refs"], "snapshot_id": snapshot_id},
             3,
         )
-        jsonschema.validate(evidence, _schema("evidence-answer.schema.json"))
+        validate_evidence(evidence)
         assert evidence["outcome"] == "ANSWERED"
         assert evidence["snapshot"]["snapshot_id"] == snapshot_id
         assert evidence["data"]["missing_evidence_refs"] == []
         resolved = {record["id"] for record in evidence["data"]["records"]}
         assert resolved == set(answer["evidence_refs"])
+        _assert_the_broker_answer_and_its_boundary(answer, evidence)
     finally:
         down = _run("--down", timeout=300)
         assert down.returncode == 0, f"run.sh --down failed:\n{down.stdout}\n{down.stderr}"

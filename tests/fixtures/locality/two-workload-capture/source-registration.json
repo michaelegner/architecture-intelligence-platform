@@ -1,0 +1,10 @@
+{
+  "id": "aip-locality-i5-20261005t060050z-4392",
+  "root": "capture",
+  "envelope_relative_path": "envelope.yaml",
+  "configured_scope_id": "aip-locality-i5-20261005t060050z-4392-scope",
+  "cluster_uid": "2fe6677a-390d-458c-9e4c-85ae44b62f91",
+  "evidence_mode": "CAPTURED_RESOURCE",
+  "authorized_producer": "aip-locality-i5-20261005t060050z-4392",
+  "authority_record": "aip-locality-i5-20261005t060050z-4392-self-declared-authority"
+}

@@ -265,7 +265,7 @@ def test_topic_state_moves_the_snapshot_but_internal_carriers_do_not(driver, tmp
     _import(driver, tmp_path)
     state, with_topic = _snapshot(driver)
     assert [t["id"] for t in state["topics"]] == [TOPIC_ID]
-    assert state["version"] == 3
+    assert state["version"] == 4
 
     # mutate only an internal carrier property: the public snapshot must not move
     with driver.session(database=DATABASE) as session:

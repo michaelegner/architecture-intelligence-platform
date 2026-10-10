@@ -31,6 +31,6 @@ An ADR whose decision is settled but not yet implemented carries `Status: Propos
 `Accepted` when the work it describes lands (or, for [0011](0011-snapshot-identity-read-cost.md)
 and [0012](0012-observed-evidence-retention.md), when the benchmark and the retention thresholds
 it names are decided). 0009-0013 came out of
-[`architecture-review-0.4.0.md`](../architecture-review-0.4.0.md). 0014 came out of `v0.4.2` I1.
+[`architecture-review-0.4.0.md`](../reviews/architecture-review-0.4.0.md). 0014 came out of `v0.4.2` I1.
 0015 came out of `v0.5.0` I1 PR3b. 0016 records the `v0.5.0` I3 public-adapter
 consolidation decision. 0017 records the `v0.5.0` I4 Pub/Sub `GO` decision.

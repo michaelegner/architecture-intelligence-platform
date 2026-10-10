@@ -7,8 +7,8 @@ This is the largest, most maintenance-sensitive piece of the reference tool: a s
 `snapshot_id`/`model_revision` must be regenerated (by re-running this against that scenario's
 prepared fixture) whenever its own `input/` fixture files change.
 
-v0.5.0 I5 Slice 1 (I5 §3 gap 3, §12) brings this to canonicalization version 3, the candidate's
-version. It is transcribed from the specifications, not from app code:
+v0.5.0 I5 Slice 1 (I5 §3 gap 3, §12) brought this to canonicalization version 3; v0.6.1 I1a brings it to
+version 4, the candidate's version. It is transcribed from the specifications, not from app code:
 - **v2, I3 spec §17:** the deployment-relevant state, namely current Workloads with their retained
   Service-ID annotations, captured Pod UID bindings, WORKLOAD_OWNS_POD links, runtime identity
   observations, and the reconciliation rule identity. It also binds the configured mapping
@@ -16,6 +16,8 @@ version. It is transcribed from the specifications, not from app code:
   projection (I2 §9).
 - **v3, I4 spec §11:** dedicated Topic and Subscription projections. The internal
   PubSubDeclaration and SubscriptionDeadLetterConfiguration carriers are not snapshot inputs.
+- **v4, v0.6.1 I1 spec §4/§5.3:** a dedicated Broker projection (`id`, `stable_broker_id`); the
+  untyped relation query already binds `USES_BROKER`.
 """
 
 from __future__ import annotations
@@ -48,6 +50,7 @@ _SUBSCRIPTION_QUERY = (
     "MATCH (n:Subscription) RETURN n.id AS id, n.name AS name, n.protocol AS protocol, "
     "n.namespace AS namespace"
 )
+_BROKER_QUERY = "MATCH (n:Broker) RETURN n.id AS id, n.stable_broker_id AS stable_broker_id"
 _MESSAGE_QUERY = (
     "MATCH (n:Message) RETURN n.id AS id, n.name AS name, n.version AS version, "
     "n.schema_id AS schema_id"
@@ -208,12 +211,13 @@ def canonical_state(
             "content_digest": mapping_artifact.content_digest,
         }
     return {
-        "version": 3,
+        "version": 4,
         "services": _nodes(session, _SERVICE_QUERY),
         "operations": _nodes(session, _OPERATION_QUERY),
         "queues": _nodes(session, _QUEUE_QUERY),
         "topics": _nodes(session, _TOPIC_QUERY),
         "subscriptions": _nodes(session, _SUBSCRIPTION_QUERY),
+        "brokers": _nodes(session, _BROKER_QUERY),
         "messages": _nodes(session, _MESSAGE_QUERY),
         "schemas": _nodes(session, _SCHEMA_QUERY),
         "evidence": _nodes(session, _EVIDENCE_QUERY),

@@ -1,0 +1,19 @@
+# Operator-authored AsyncAPI overlay for the v0.6.2 Pitstop demo - NOT an upstream document.
+# Pitstop ships no AsyncAPI; see ../../PROVENANCE.md. WorkshopManagementAPI publishes MaintenanceJobPlanned, WorkshopPlanningCreated and MaintenanceJobFinished to the fanout
+# exchange `Pitstop` (src/WorkshopManagementAPI/CommandHandlers/PlanMaintenanceJobCommandHandler.cs:35 and FinishMaintenanceJobCommandHandler.cs:35; exchange declared at
+# Infrastructure.Messaging/RabbitMQMessagePublisher.cs:98). No message payload or field is declared.
+asyncapi: '2.6.0'
+info:
+  title: WorkshopManagementAPI
+  version: "1.0.0"
+x-aip-service-id: service:workshop-management-api
+servers:
+  pitstop-rabbitmq:
+    url: pitstop-rabbitmq:5672
+    protocol: amqp
+    x-aip-broker-id: rabbitmq:pitstop-rabbitmq
+channels:
+  Pitstop:
+    x-aip-destination-kind: topic
+    publish:
+      operationId: publishWorkshopManagementAPI

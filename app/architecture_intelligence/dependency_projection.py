@@ -6,14 +6,14 @@ decision (that stays `app.architecture_intelligence.service`'s job, spec §7).
 
 from __future__ import annotations
 
-import hashlib
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 
 from app.analysis.runtime import ServiceTelemetryCoverage
-from app.architecture_intelligence.canonical_json import canonical_json_bytes
+from app.architecture_intelligence.canonical_json import canonical_digest
 from app.architecture_intelligence.contracts import (
+    CLAIM_ID_PREFIX,
     Coverage,
     DeliveryKind,
     DeliveryRef,
@@ -27,6 +27,7 @@ from app.architecture_intelligence.contracts import (
     LimitationCode,
     Qualification,
 )
+from app.qualification.declared_observed import matches_observed_evidence
 from app.qualification.declared_observed import qualify_relation as _kernel_qualify_relation
 
 
@@ -55,8 +56,8 @@ def compute_claim_id(
     }
     if subscription_id is not None:
         payload["subscription_id"] = subscription_id
-    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
-    return f"aip:claim:v1:{digest}"
+    digest = canonical_digest(payload)
+    return f"{CLAIM_ID_PREFIX}:{digest}"
 
 
 def _qualify(
@@ -143,6 +144,33 @@ def _subscription_ref(subscription: dict) -> EntityRef:
     )
 
 
+def _in_context_evidence(
+    evidence_by_id: dict[str, dict],
+    *,
+    environment: str,
+    window_start: datetime,
+    window_end: datetime,
+) -> dict[str, dict]:
+    """v0.6.2 I0 H2 (docs/specifications/0.6.2/i0-hardening.md §4): the evidence resolution may cite
+    or count. DECLARED rows are kept (never environment- or window-scoped, as for qualification);
+    OBSERVED rows only when they pass `matches_observed_evidence` for the request. Resolution then
+    runs the unchanged `_accepted_evidence_ids` filter over this mapping."""
+    observed = set(
+        matches_observed_evidence(
+            list(evidence_by_id),
+            evidence_by_id,
+            environment=environment,
+            window_start=window_start,
+            window_end=window_end,
+        )
+    )
+    return {
+        eid: row
+        for eid, row in evidence_by_id.items()
+        if row.get("evidence_type") == "DECLARED" or eid in observed
+    }
+
+
 def _accepted_evidence_ids(evidence_ids: list[str], evidence_by_id: dict[str, dict]) -> list[str]:
     """Spec §15: every emitted evidence reference must point to an Evidence node included in the
     accepted snapshot. A relation's raw `evidence_ids` can be non-empty yet dangling (the id no
@@ -153,7 +181,7 @@ def _accepted_evidence_ids(evidence_ids: list[str], evidence_by_id: dict[str, di
     return sorted(eid for eid in evidence_ids if eid in evidence_by_id)
 
 
-def _group_evidenced_rows(
+def group_evidenced_rows(
     rows: list[dict], id_field: str, name_field: str, evidence_by_id: dict[str, dict]
 ) -> dict[str, tuple[str, set[str]]]:
     """Groups rows by `id_field`, unioning each group's accepted evidence ids rather than letting a
@@ -177,7 +205,7 @@ def _resolve_sync_destination(
 ) -> tuple[DestinationResolution, EntityRef, list[str]]:
     """Spec §13.1: exactly one evidenced provider resolves to that `Service`; zero or more than one
     is not guessed - retain the `Operation` itself with `DIRECT_TARGET_FALLBACK`."""
-    evidenced = _group_evidenced_rows(providers, "provider_id", "provider_name", evidence_by_id)
+    evidenced = group_evidenced_rows(providers, "provider_id", "provider_name", evidence_by_id)
     if len(evidenced) == 1:
         [(provider_id, (provider_name, accepted_ids))] = evidenced.items()
         return (
@@ -193,7 +221,7 @@ def _resolve_async_destinations(
 ) -> list[tuple[DestinationResolution, EntityRef, list[str]]]:
     """Spec §13.2: every distinct evidenced consumer is valid fan-out, not ambiguity; zero evidenced
     consumers is not guessed - retain the `Queue` itself with `DIRECT_TARGET_FALLBACK`."""
-    evidenced = _group_evidenced_rows(consumers, "consumer_id", "consumer_name", evidence_by_id)
+    evidenced = group_evidenced_rows(consumers, "consumer_id", "consumer_name", evidence_by_id)
     if not evidenced:
         return [(DestinationResolution.DIRECT_TARGET_FALLBACK, _queue_ref(send), [])]
     return [
@@ -211,7 +239,7 @@ def _usable_subscriptions(
 ) -> list[tuple[dict, list[str]]]:
     """v0.5.0 I4 §12.3: a Subscription route is usable only when its `SUBSCRIPTION_OF` relation to
     the published Topic carries accepted (non-dangling) evidence - the same rule
-    `_group_evidenced_rows` applies to consumers. Rows for one Subscription id are unioned, never
+    `group_evidenced_rows` applies to consumers. Rows for one Subscription id are unioned, never
     overwritten, and the result is sorted by Subscription id for deterministic claim order."""
     grouped: dict[str, tuple[dict, set[str]]] = {}
     for row in subscriptions:
@@ -247,7 +275,7 @@ def _resolve_pubsub_destinations(
     destinations: list[tuple[DestinationResolution, EntityRef, EntityRef | None, list[str]]] = []
     for subscription_row, subscription_of_evidence in usable:
         route = _subscription_ref(subscription_row)
-        evidenced = _group_evidenced_rows(
+        evidenced = group_evidenced_rows(
             receivers_by_subscription.get(route.id, []),
             "consumer_id",
             "consumer_name",
@@ -383,6 +411,9 @@ def project_service_dependencies(
     the caller is responsible for the `UNKNOWN_ENTITY` check (`rows["service_name"] is None`)
     before calling this."""
     evidence_by_id = rows["evidence"]
+    resolution_evidence_by_id = _in_context_evidence(
+        evidence_by_id, environment=environment, window_start=window_start, window_end=window_end
+    )
     coverage: ServiceTelemetryCoverage = rows["coverage"]
     subject = EntityRef(id=service_id, type=EntityType.SERVICE, name=service_name)
 
@@ -411,7 +442,9 @@ def project_service_dependencies(
             continue
         qualification, coverage_class, evidence_refs = qualified
         destination_resolution, object_ref, resolution_evidence_refs = _resolve_sync_destination(
-            call, providers_by_operation.get(call["operation_id"], []), evidence_by_id
+            call,
+            providers_by_operation.get(call["operation_id"], []),
+            resolution_evidence_by_id,
         )
         claim = _build_claim(
             subject=subject,
@@ -453,7 +486,7 @@ def project_service_dependencies(
             continue
         qualification, coverage_class, evidence_refs = qualified
         destinations = _resolve_async_destinations(
-            send, receivers_by_queue.get(send["queue_id"], []), evidence_by_id
+            send, receivers_by_queue.get(send["queue_id"], []), resolution_evidence_by_id
         )
         for destination_resolution, object_ref, resolution_evidence_refs in destinations:
             claim = _build_claim(
@@ -505,7 +538,7 @@ def project_service_dependencies(
             publish,
             subscriptions_by_topic.get(publish["topic_id"], []),
             receivers_by_subscription,
-            evidence_by_id,
+            resolution_evidence_by_id,
         )
         for destination_resolution, object_ref, route, resolution_evidence_refs in destinations:
             claim = _build_claim(

@@ -14,13 +14,14 @@ and different data sources from one another.
 | `Queue` | `id`, `name`, `protocol`, `namespace`, `queue_type` |
 | `Topic` | `id`, `name`, `protocol`, `namespace`. This is a v0.5.0 I4 publish destination. Its downstream fan-out is expressed only by distinct Subscriptions. |
 | `Subscription` | `id`, `name`, `protocol`, `namespace`. This is a v0.5.0 I4 named logical delivery entity that belongs to exactly one Topic. It has no consumer-instance, consumer-group, partition, offset, filter or delivery-guarantee field. |
+| `Broker` | `id`, `stable_broker_id`. This is a v0.6.1 I1 messaging infrastructure endpoint a Service is evidenced to use. It is not a Service and not a destination; the Service association is the `USES_BROKER` relation. |
 | `Message` | `id`, `name`, `version`, `schema_id` |
 | `Schema` | `id`, `name`, `version`, `format`, `canonical_hash` (a content hash used to detect payload drift) |
 | `Relation` | `type`, `source_id`, `target_id`, `evidence_ids` |
 | `Provenance` / `Evidence` | see [`evidence.md`](evidence.md) |
 
 `ArchitectureModel` is the container all of the above are collected into and passed between
-pipeline stages: `services`, `operations`, `queues`, `topics`, `subscriptions`, `messages`,
+pipeline stages: `services`, `operations`, `queues`, `topics`, `subscriptions`, `brokers`, `messages`,
 `schemas`, `relations`, `provenance`. It also carries two internal Pub/Sub lists that are never
 canonical entities, relations or public properties:
 - `pubsub_declarations` holds one `PubSubDeclaration` per declaring source and pointer. It carries the
@@ -31,7 +32,7 @@ canonical entities, relations or public properties:
   token, and is never resolved into an entity (`app/canonical/pubsub.py`, I4 spec §10/§11).
 
 Topic and Subscription are source-independent. There is no generic `Destination` supertype, no
-broker-specific entity, and a consumer group is never a Subscription (ADR 0017).
+generic `CONNECTED_TO` relation, and a consumer group is never a Subscription (ADR 0017).
 
 ## Infrastructure entities and claims (`app/canonical/infrastructure.py`) — internal-only
 
@@ -99,6 +100,7 @@ merge conflict-free and lets a repeated import of the same source not create dup
 | Queue | `queue:<name>` or `queue:<namespace>:<name>` | `queue:payment-q` |
 | Topic (v0.5.0 I4) | `topic:owned:<sha256(length-delimited(broker id, namespace-or-empty, exact channel address))>` | `topic:owned:9f2c…` |
 | Subscription (v0.5.0 I4) | `subscription:owned:<sha256(length-delimited(broker id, namespace-or-empty, Topic id, exact subscription name))>` | `subscription:owned:4a1e…` |
+| Broker (v0.6.1 I1) | `broker:owned:<sha256(length-delimited(stable broker id))>`; namespace/virtualHost is not an input | `broker:owned:7d1b…` |
 | Message | `message:<name>` or `message:<name>:<version>` | `message:PaymentRequested:v2` |
 | Schema | `schema:<name>` or `schema:<name>:<version>` | `schema:PaymentRequested:v2` |
 | Evidence (declared) | `evidence:<source_type>:<service_slug>[:<revision>]` | `evidence:manifest:order-service` |

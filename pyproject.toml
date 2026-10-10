@@ -1,6 +1,6 @@
 [project]
 name = "architecture-intelligence-platform"
-version = "0.5.1"
+version = "0.6.2"
 description = "Evidence-backed architecture intelligence from OpenAPI, AsyncAPI and OpenTelemetry."
 requires-python = ">=3.13"
 dependencies = [
@@ -8,17 +8,25 @@ dependencies = [
     "jinja2>=3.1.6",
     "jsonschema>=4.26.0",
     "mcp==2.2.0",
+    # Imported directly by app/mcp (mcp_types.*), not only through mcp.
+    "mcp-types>=2.2.0",
     "neo4j>=6.2.0",
     "openai>=3.3.1",
     "opentelemetry-proto>=1.44.0",
+    # Imported directly by app/telemetry/otlp_receiver.py (google.protobuf), not only through
+    # opentelemetry-proto.
+    "protobuf>=7.36.0",
     "pydantic>=2",
     "pyyaml>=6.0.3",
     "rfc8785>=0.1.4",
+    # Imported directly by app/mcp (starlette.types), not only through fastapi.
+    "starlette>=1.6.0",
     "uvicorn[standard]>=0.52.4",
 ]
 
 [dependency-groups]
 dev = [
+    "deptry>=0.25.1",
     "httpx>=0.28.1",
     "hypothesis>=6.168.3",
     "import-linter>=2.15",
@@ -27,6 +35,22 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "ruff>=0.16.4",
     "testcontainers>=4.15.0",
+]
+
+[tool.deptry]
+# Enforced in CI (`quality` job) with `uv run deptry .`: every third-party import in app/ is a declared
+# dependency and every declared runtime dependency is used. deptry already skips tests/; the other
+# excluded trees are dev/demo tooling that runs with the dev dependency group.
+known_first_party = ["app"]
+extend_exclude = [
+    "tmp", "video", "docs", "benchmarks", "evaluation", "examples", "real_world_validation",
+    "harness",  # v0.6.0 I2.6a capture harness: its own hash-pinned requirements, never app/
+]
+
+[tool.deptry.per_rule_ignores]
+DEP002 = [
+    "jinja2",   # runtime dependency of fastapi.templating.Jinja2Templates, never imported by name
+    "uvicorn",  # starts the server (Dockerfile CMD), never imported
 ]
 
 [tool.ruff]
@@ -85,18 +109,19 @@ source_modules = ["app.qualification"]
 forbidden_modules = [
     "neo4j", "fastapi", "starlette", "mcp", "openai",
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.deps", "app.graph", "app.graph_schema", "app.ingestion", "app.intent",
-    "app.main", "app.mcp", "app.provenance", "app.settings", "app.sources", "app.telemetry",
-    "app.validation", "app.version",
+    "app.canonical", "app.common", "app.deps", "app.graph", "app.graph_schema", "app.ingestion",
+    "app.intent", "app.main", "app.mcp", "app.provenance", "app.settings", "app.sources",
+    "app.telemetry", "app.validation", "app.version",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Delivery adapters (REST, MCP, app wiring) sit on top: nothing below imports them"
 type = "forbidden"
 source_modules = [
-    "app.ai", "app.analysis", "app.architecture_intelligence", "app.canonical", "app.graph",
-    "app.graph_schema", "app.ingestion", "app.intent", "app.provenance", "app.qualification",
-    "app.settings", "app.sources", "app.telemetry", "app.validation", "app.version",
+    "app.ai", "app.analysis", "app.architecture_intelligence", "app.canonical", "app.common",
+    "app.graph", "app.graph_schema", "app.ingestion", "app.intent", "app.provenance",
+    "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
+    "app.version",
 ]
 forbidden_modules = ["app.api", "app.mcp", "app.main", "app.deps", "app.answer_router"]
 
@@ -104,7 +129,7 @@ forbidden_modules = ["app.api", "app.mcp", "app.main", "app.deps", "app.answer_r
 name = "The LLM layer stays out of the deterministic core and MCP"
 type = "forbidden"
 source_modules = [
-    "app.analysis", "app.architecture_intelligence", "app.canonical", "app.graph",
+    "app.analysis", "app.architecture_intelligence", "app.canonical", "app.common", "app.graph",
     "app.graph_schema", "app.ingestion", "app.intent", "app.mcp", "app.provenance",
     "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
     "app.version",
@@ -117,7 +142,7 @@ type = "forbidden"
 source_modules = ["app.provenance", "app.intent", "app.graph_schema", "app.version"]
 forbidden_modules = [
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.deps", "app.graph", "app.ingestion", "app.main", "app.mcp",
+    "app.canonical", "app.common", "app.deps", "app.graph", "app.ingestion", "app.main", "app.mcp",
     "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
 ]
 
@@ -130,6 +155,24 @@ modules = ["app.provenance", "app.intent", "app.graph_schema", "app.version"]
 name = "The domain model and source contracts stay framework-free"
 type = "forbidden"
 source_modules = [
-    "app.canonical", "app.sources", "app.provenance", "app.qualification", "app.validation",
+    "app.canonical", "app.common", "app.sources", "app.provenance", "app.qualification",
+    "app.validation",
 ]
 forbidden_modules = ["neo4j", "fastapi", "starlette", "mcp", "openai"]
+
+[[tool.importlinter.contracts]]
+name = "The shared base (app.common) imports no other app package"
+type = "forbidden"
+source_modules = ["app.common"]
+forbidden_modules = [
+    "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
+    "app.canonical", "app.deps", "app.graph", "app.graph_schema", "app.ingestion", "app.intent",
+    "app.main", "app.mcp", "app.provenance", "app.qualification", "app.settings", "app.sources",
+    "app.telemetry", "app.validation", "app.version",
+]
+
+[[tool.importlinter.contracts]]
+name = "Ingestion never imports the graph layer (graph builds on ingestion, not the reverse)"
+type = "forbidden"
+source_modules = ["app.ingestion"]
+forbidden_modules = ["app.graph"]

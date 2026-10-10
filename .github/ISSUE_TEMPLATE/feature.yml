@@ -31,14 +31,26 @@ body:
     validations:
       required: false
 
+  - type: markdown
+    attributes:
+      value: |
+        **Check the current scope before filing:**
+        - [Product doctrine and strategic direction](https://github.com/michaelegner/architecture-intelligence-platform/blob/main/docs/product-doctrine-and-strategic-direction.md)
+        - [Roadmap and current release scope](https://github.com/michaelegner/architecture-intelligence-platform/blob/main/ROADMAP.md)
+        - [Specification index and release contracts](https://github.com/michaelegner/architecture-intelligence-platform/blob/main/docs/specifications/README.md)
+
+        Explain how the idea aligns with current scope, or which extension it
+        proposes. The original PoC's non-goals do not override shipped features
+        or current release specifications.
+
   - type: checkboxes
     id: scope
     attributes:
       label: Scope check
       description: >-
-        This PoC has a deliberately narrow scope (see CLAUDE.md / the spec's non-goals) - e.g. no
-        Kubernetes/cloud discovery, no vector DB/document RAG, no CI/CD policy gates. Please confirm
-        this request fits within the Canonical Model / graph-first architecture before filing.
+        In your proposal, describe how this request fits the current
+        evidence-qualified architecture and roadmap, or explain what scope
+        extension you would like the maintainers to consider.
       options:
-        - label: This fits within the existing Canonical Model and graph-based approach, or explains why an exception makes sense.
+        - label: I reviewed the current scope references and explained alignment or a proposed extension in this request.
           required: true

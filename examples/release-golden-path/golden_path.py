@@ -53,8 +53,13 @@ NEO4J_BOLT = "bolt://127.0.0.1:17687"
 HOST_PORTS = (8000, 4318, 17687)
 MCP_PROTOCOL_VERSION = "2025-11-25"
 DRIFT_QUALIFICATIONS = ("OBSERVED_ONLY", "NOT_OBSERVED_IN_WINDOW")
-TOOLS = ["get_architecture_drift", "get_evidence", "get_service_dependencies"]
-SCHEMA_DIR = REPO / "schemas" / "architecture_intelligence" / "v0.5"
+TOOLS = [
+    "get_architecture_drift",
+    "get_evidence",
+    "get_service_dependencies",
+    "get_service_dependencies_by_locality",
+]
+SCHEMA_ROOT = REPO / "schemas" / "architecture_intelligence"
 SCHEMAS = {
     "dependencies": "architecture-answer.schema.json",
     "drift": "drift-answer.schema.json",
@@ -321,7 +326,7 @@ def project_drift_claims(answer: dict) -> list[dict]:
 
 
 def claim_shape(claim: dict) -> list:
-    """Verbatim from tests/integration/test_i4_pubsub_qualification.py:241-249 `_claim_shape`."""
+    """Verbatim from tests/integration/test_i4_pubsub_qualification.py `_claim_shape`."""
     object_ref, delivery = claim["object"], claim["delivery"]
     return [
         f"{object_ref['type'].title()}:{object_ref['name']}",
@@ -333,16 +338,25 @@ def claim_shape(claim: dict) -> list:
 
 
 def answer_refs(answer: dict) -> list[str]:
-    """Verbatim logic of tests/integration/test_i4_pubsub_qualification.py:144-148 `_answer_refs`."""
+    """Verbatim logic of tests/integration/test_i4_pubsub_qualification.py `_answer_refs`."""
     refs = set(answer["evidence_refs"])
     for claim in answer["claims"]:
         refs.update(claim["evidence_refs"])
-        refs.update(claim["resolution_evidence_refs"])
+        # a v0.6 BrokerClaim has no `resolution_evidence_refs`
+        refs.update(claim.get("resolution_evidence_refs", []))
     return sorted(refs)
 
 
+def dependency_claims(answer: dict) -> list[dict]:
+    """The dependency claims of a dependencies answer, as tests/integration/test_i4_pubsub_qualification.py
+    `_dependency_claims`: a v0.6 Broker claim has no delivery or qualification (v0.6.1 spec §5.2)."""
+    return [c for c in answer["claims"] if c.get("predicate") == "DIRECT_DEPENDENCY"]
+
+
 def drift_subset(dependencies: dict) -> list[dict]:
-    return [c for c in dependencies["claims"] if c["qualification"] in DRIFT_QUALIFICATIONS]
+    return [
+        c for c in dependency_claims(dependencies) if c["qualification"] in DRIFT_QUALIFICATIONS
+    ]
 
 
 def deployment_claims(answer: dict) -> list[dict]:
@@ -361,11 +375,33 @@ def source_results_by_slug(report: dict) -> dict[str, dict]:
     }
 
 
+def expected_schema_version(answer: dict) -> str | None:
+    """The `schema_version` the frozen contract requires of this answer (v0.6.1 spec §5.2), derived
+    per tool from the answer's own content, never "whichever version it claims":
+    dependencies is "0.6" iff it carries a `USES_BROKER` claim, evidence is "0.6" iff a returned
+    record supports `USES_BROKER`, drift is always "0.5" and locality is "0.6". None: unknown tool."""
+    tool = answer.get("tool")
+    if tool == "get_service_dependencies":
+        has_broker = any(c.get("predicate") == "USES_BROKER" for c in answer["claims"])
+        return "0.6" if has_broker else "0.5"
+    if tool == "get_evidence":
+        records = (answer.get("data") or {}).get("records") or []
+        has_broker = any(
+            fact["relation_type"] == "USES_BROKER" for r in records for fact in r["supports"]
+        )
+        return "0.6" if has_broker else "0.5"
+    if tool == "get_architecture_drift":
+        return "0.5"
+    if tool == "get_service_dependencies_by_locality":
+        return "0.6"
+    return None
+
+
 def producer_identity_mismatches(answers: list[dict], *, version: str, sha: str) -> list[str]:
     problems = []
     for index, answer in enumerate(answers):
         producer = answer.get("producer") or {}
-        if answer.get("schema_version") != "0.5":
+        if answer.get("schema_version") != expected_schema_version(answer):
             problems.append(f"answer {index}: schema_version {answer.get('schema_version')!r}")
         if producer.get("version") != version:
             problems.append(f"answer {index}: producer.version {producer.get('version')!r}")
@@ -375,7 +411,13 @@ def producer_identity_mismatches(answers: list[dict], *, version: str, sha: str)
 
 
 def validate_schema(kind: str, answer: dict) -> None:
-    schema = json.loads((SCHEMA_DIR / SCHEMAS[kind]).read_text())
+    """Validate against the frozen schema of the version the contract requires of this answer."""
+    version = expected_schema_version(answer)
+    if version is None or answer.get("schema_version") != version:
+        raise HarnessError(
+            f"{kind}: schema_version {answer.get('schema_version')!r}, want {version}"
+        )
+    schema = json.loads((SCHEMA_ROOT / f"v{version}" / SCHEMAS[kind]).read_text())
     jsonschema.validate(instance=answer, schema=schema)
 
 
@@ -572,7 +614,7 @@ def check_answers_pubsub(p: Phase) -> Result:
         deps, drift = p.records[f"{slug}_dependencies"], p.records[f"{slug}_drift"]
         evidence = p.records.get(f"{slug}_evidence")
         actual[slug] = {
-            "claims": sorted(claim_shape(c) for c in deps["claims"]),
+            "claims": sorted(claim_shape(c) for c in dependency_claims(deps)),
             "limitations": sorted(lim["code"] for lim in deps["limitations"]),
             "drift_is_subset": drift["claims"] == drift_subset(deps),
             "missing_evidence_refs": None
@@ -979,6 +1021,66 @@ def run_phase(name: str, *, image_ref: str, sha: str, expected: dict, out_dir: P
     return result
 
 
+def run_locality_phase(*, image_ref: str, sha: str, out_dir: Path) -> dict:
+    """Reuse the I5 fresh-state worker against the supplied image, with enablement omitted."""
+    spec = json.loads((GP_DIR / "expected.json").read_text())["locality_phase"]
+    output = out_dir / "locality"
+    error = None
+    checks = {}
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "evaluation.i5.qualify",
+                "worker",
+                "--candidate",
+                sha,
+                "--expectation-commit",
+                spec["expectation_commit"],
+                "--image",
+                image_ref,
+                "--use-scoped-default",
+                "--output",
+                str(output),
+            ],
+            cwd=REPO,
+            check=True,
+        )
+        ledger = json.loads((output / "ledger.json").read_text())
+        config = yaml.safe_load((output / "config.yaml").read_text())
+        states = [
+            json.loads((output / state / "result.json").read_text()) for state in ("c1", "c2")
+        ]
+        checks["actual-reference"] = {
+            "passed": ledger["status"] == "CORRECT"
+            and sum(len(state["cases"]) for state in states) == 17,
+            "detail": states,
+        }
+        checks["default-on"] = {
+            "passed": "enabled"
+            not in config["architecture_intelligence"]["telemetry"]["scoped-evidence"],
+            "detail": "enablement omitted; adopted positive oracle passed",
+        }
+        expected_image = _docker("image", "inspect", "--format", "{{.Id}}", image_ref)
+        [running] = [c for c in ledger["containers"] if c["service"] == "architecture-intelligence"]
+        checks["supplied-image"] = {
+            "passed": running["image_id"] == expected_image and ledger["candidate_sha"] == sha,
+            "detail": running,
+        }
+    except (subprocess.CalledProcessError, OSError, KeyError, ValueError, AssertionError) as exc:
+        error = repr(exc)
+    result = {
+        "phase": "locality",
+        "checks": checks,
+        "error": error,
+        "passed": error is None and bool(checks) and all(c["passed"] for c in checks.values()),
+    }
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "golden-result.json").write_text(json.dumps(result, indent=2, sort_keys=True))
+    return result
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print("usage: golden_path.py <IMAGE_REF> <OUT_DIR>", file=sys.stderr)
@@ -999,6 +1101,7 @@ def main(argv: list[str]) -> int:
         run_phase(name, image_ref=image_ref, sha=sha, expected=expected[name], out_dir=out_dir)
         for name in PHASES
     ]
+    results.append(run_locality_phase(image_ref=image_ref, sha=sha, out_dir=out_dir))
     summary = {
         "image_ref": image_ref,
         "release_candidate_sha": sha,

@@ -8,6 +8,9 @@ uv run ruff check .                    # lint
 uv run ruff format .                   # format
 uv run pyright                         # type check (app/)
 uv run lint-imports                    # import boundaries between app/ packages
+uv run deptry .                        # declared dependencies match app/'s imports
+uvx semgrep@1.178.0 scan --metrics=off --error --config p/python --config p/security-audit app
+                                       # static analysis (CI's `static analysis (semgrep)` job)
 ```
 
 Copy `.env.example` to `.env` and fill in `NEO4J_PASSWORD` (and `OPENAI_API_KEY` if you want the
@@ -156,10 +159,15 @@ See [`adapter-development.md`](adapter-development.md) for the extension point a
 to fit — what it must produce (an `ArchitectureModel` for a declared source, an `ObservationBatch`
 for a runtime source) rather than a specific class hierarchy to inherit from.
 
+## Architecture terms
+
+See the [architecture glossary](glossary.md) for a concise index of existing concepts and their canonical references.
+
 ## Contributing
 
-A dedicated `CONTRIBUTING.md` with the full contribution workflow is planned but not yet published.
-Until then, open an issue or pull request as usual, and see
-[`security-model.md`](security-model.md) if your change touches the LLM layer, the OpenTelemetry
-ingestion path, or the correlation buffer — those three have explicit trust-boundary rules any
-change there must preserve.
+See [`CONTRIBUTING.md`](../CONTRIBUTING.md) for the full contribution workflow, including how to
+set up your environment, make changes, and submit a pull request.
+
+Also see [`security-model.md`](security-model.md) if your change touches the LLM layer, the
+OpenTelemetry ingestion path, or the correlation buffer — those three have explicit trust-boundary
+rules any change there must preserve.

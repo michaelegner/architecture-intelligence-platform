@@ -1,0 +1,34 @@
+# AIP configuration for the v0.6.2 Pitstop demo (spec §4). Like the v0.5.1 Quarkus demo it reads an
+# operator-authored AsyncAPI overlay, but there is no dossier: Pitstop's declared architecture is the
+# overlay alone (see PROVENANCE.md). Paths point at /app/pitstop/..., where docker-compose.yml mounts
+# the overlay read-only.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: pitstop-demo-overlay
+        root: pitstop/overlay
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+    max_traversal_depth: 5
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  intent_router:
+    deterministic_threshold: 0.9
+  telemetry:
+    service_aliases: {}
+    queue_aliases: {}
+    topic_aliases: {}
+    http-correlation:
+      enabled: true
+      ttl-seconds: 60
+      max-pending-spans: 10000
+    coverage:
+      qualification-enabled: true
+  runtime_analysis:
+    default_window_hours: 24
+    default_environment: pitstop-demo

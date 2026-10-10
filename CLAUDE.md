@@ -29,6 +29,38 @@ reviewed-plan-then-implement-then-reconcile workflow via the
 Small maintenance changes that don't touch public contracts, identity, evidence, qualification,
 reconciliation, or release semantics don't need that full workflow — see `AGENTS.md`'s exemption.
 
+## Working style
+
+- Default to low ceremony. Do not spawn parallel Explore/subagents unless explicitly requested;
+  work sequentially.
+- For a "proposal", "suggestion" or "quick" answer, answer the decision first from cheap evidence.
+  Do not start implementation, long trials or broad exploration until the owner asks.
+- A "review" or "quick review" is read-only by default: inspect the PR/diff and relevant files.
+  Do not check out the PR or run broad test suites unless a material finding needs that evidence or
+  the owner asks.
+- Before editing a versioned specification or relying on branch/PR/release state, verify the target
+  from live `ROADMAP.md`, git and GitHub state rather than memory.
+
+Pre-PR self-review requirements, including the strict documentation-only exemption, are defined
+once in [`AGENTS.md`](AGENTS.md); follow them rather than duplicating that procedure here.
+
+## Continuous refactoring
+
+Treat refactoring as part of normal Python implementation, not as a separate project phase.
+Leave touched code simpler where there is a concrete maintainability benefit: remove unnecessary
+complexity or duplication, clarify responsibilities, and prefer improving existing abstractions
+over speculative new ones. Keep improvements within the current task's scope; report larger
+structural concerns separately rather than expanding the change.
+
+Preserve observable behavior, public contracts, deterministic results, and AIP's evidence,
+provenance, identity, qualification, and snapshot/observation-context semantics. Verify relevant
+behavior after any refactoring with the repository's existing checks.
+
+Before opening a PR that changes Python code, briefly review the diff for material refactoring
+opportunities. Fix local, low-risk problems within scope; do not turn cosmetic preferences into
+blocking work. Skip this check for documentation-only changes. For substantial specification-driven
+work, follow the canonical skill's pre-PR refactoring check as part of the established workflow.
+
 ## Repository status
 
 `docs/specifications/poc.md` (and its siblings listed in

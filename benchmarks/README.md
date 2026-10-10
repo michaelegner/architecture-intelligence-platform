@@ -27,7 +27,7 @@ Requires Docker (a disposable Neo4j 5 container via Testcontainers, the same fou
 - `smoke` — small, fast, deterministic; proves wiring, cleanup, result validation and determinism.
   It does not prove scaling shape. Safe to run repeatedly in CI/dev.
 - `review-comparable` — the expensive profile whose scale points land near the same orders of
-  magnitude as the post-`v0.4.0` architecture review (`docs/architecture-review-0.4.0.md`). It is
+  magnitude as the post-`v0.4.0` architecture review (`docs/reviews/architecture-review-0.4.0.md`). It is
   never run in default CI; it is invoked explicitly during release-candidate qualification (spec
   §22/§24), bound to the exact frozen candidate SHA.
 
@@ -63,3 +63,80 @@ counts, raw/min/median timing samples, structural/semantic validation, revision-
 snapshot-identity consistency). The release-bound `review-comparable` result additionally lands at
 `docs/release-validation/v0.4.1-read-cost-benchmark.json` with a human-readable companion,
 `v0.4.1-read-cost-benchmark.md`, per spec §23.
+
+# Scoped-evidence Pod-churn cost (v0.6.0 I2.6c)
+
+`benchmarks/scoped_churn_cost.py` answers one bounded question for v0.6.0 I2 (spec
+[`docs/specifications/0.6.0/i2-scoped-evidence-and-qualified-local-assessment.md`](../docs/specifications/0.6.0/i2-scoped-evidence-and-qualified-local-assessment.md)
+§14; I1 dossier L28; decision record D15.5): with one Workload, one Operation and one UTC day held
+constant, what does caller-Pod-scoped v2 evidence cost as the number of distinct caller Pods N grows?
+The comparison is against the same traffic with scoped evidence off.
+
+```bash
+uv run python -m benchmarks.scoped_churn_cost --profile smoke --candidate-sha <full-sha>
+uv run python -m benchmarks.scoped_churn_cost --profile i2 --out <path.json> --candidate-sha <full-sha>
+```
+
+- Profiles: `smoke` is N = 0 and 3, and `i2` is N = 0, 100 and 1,000.
+- Each N is measured on two clean graphs, scoped evidence off and then on, in the disposable
+  Testcontainers Neo4j.
+- Each graph gets one accepted Kubernetes capture of Deployment `orders` with all N Pods, and N CALLS
+  facts (one per Pod) persisted in `/v1/traces`-sized units of 100 through
+  `persist_observation_batch`.
+- Every timed read is production code: `canonical_snapshot_state` + `snapshot_fingerprint`,
+  `ArchitectureIntelligenceService.assess_local_calls` and `read_transition_report`.
+- Timings are medians of 5 runs.
+
+It records observed values only: no threshold, SLO or optimization. The I2 completion record reports
+the `i2` result. `tests/integration/test_scoped_churn_cost_benchmark.py` checks its wiring in CI and
+asserts no timing.
+
+# Locality answer read cost (v0.6.0 I3.4a)
+
+`benchmarks/locality_cost.py` records the read cost of the locality answer
+(`get_service_dependencies_by_locality`) for v0.6.0 I3 (spec
+[`docs/specifications/0.6.0/i3-bounded-current-state-projection-and-public-answers.md`](../docs/specifications/0.6.0/i3-bounded-current-state-projection-and-public-answers.md)
+§14 and §16 item 11; decision record D4). By owner decision, it measures each phase by calling
+the real function on its own; production code does not log timings.
+
+```bash
+uv run python -m benchmarks.locality_cost --profile smoke --candidate-sha <full-sha>
+uv run python -m benchmarks.locality_cost --profile i3 --out <path.json> --candidate-sha <full-sha>
+```
+
+- **Points (`i3` profile):**
+  - Pod churn with a fixed Workload count (2 Deployments, N = 0, 100 and 1,000 caller Pods);
+  - the Workload cap (60 Deployments);
+  - the membership cap (201 Operations);
+  - source fan-out (S = 1, 5 and 50 accepted captures, so k = 500, 400 and 40), with extra
+    captures in another cluster that raise S but never pair, so they measure page-size reduction;
+  - covering fan-out (S = 5 with 400 Pods, and S = 50 with 40 Pods), where every extra source
+    captures the same Pods, so each candidate pairs with all S sources and the page carries
+    k * S = 2,000 admitted pairs: D4's actual candidate × source work at its bound.
+
+  `smoke` is a two-point subset.
+- **World:** each point is one clean graph built through real write paths: Kubernetes captures
+  through the importer, and CALLS facts with scoped seeds plus observed `PROVIDES` facts through
+  `persist_observation_batch` with scoped evidence on.
+- **Timings** (medians of 5): end to end; the fenced inventory read (`read_locality_inventory`,
+  including the snapshot state); the owner lookup (`read_provider_owners`); the projection
+  (`project_locality_answer`); serialization; and the evidence lookup
+  (`resolve_scoped_locality_evidence`).
+- **Counts:**
+  - the first page's counts;
+  - a full cursor walk on one snapshot: pages, and the caps, I2 truncations and refusals seen;
+  - stable-read retries.
+- **Not measured:** the D6 `S > 2,000` refusal. 2,001 real imports take about 13 minutes, and the
+  I3 oracle's X25 already executes that refusal.
+
+It records observed values only, with no threshold or SLO. The I3 completion record reports the
+`i3` result (`docs/specifications/0.6.0/i3-locality-cost.json`).
+`tests/integration/test_locality_cost_benchmark.py` checks its wiring in CI and asserts no timing.
+
+I4 qualification requires a clean checkout at the explicit candidate SHA. Both scripts verify
+HEAD and the actual package/build identity before measuring and before publishing results.
+The churn `i2` profile also measures the frozen B01a/B01b C1→C2 replacement on the same graph;
+the original assertions execute unchanged. JSON retains generated capture bytes/digests, import
+and per-POST costs, graph counts, phase costs and full-walk disposition/selection denominators.
+The five timing repetitions are repeated reads within a point, not five independent hosts or
+five reimports. No timing is a product SLO.

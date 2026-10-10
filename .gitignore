@@ -79,5 +79,12 @@ tmp/
 # v0.5.1 Quarkus Super Heroes demo: run-local state (Neo4j password, import report, prompt)
 /.aip-qsh-demo/
 
+# v0.6.2 Pitstop demo: run-local state (Neo4j password, import report, prompt)
+/.aip-pitstop-demo/
+
 # Hypothesis example database (local only)
 .hypothesis/
+
+# v0.6.2 Pitstop mod: files Claude Code writes into the mod folder when it loads it (editor types and tsconfig)
+/examples/pitstop-demo/claude/mod/.claude-plugin/types/
+/examples/pitstop-demo/claude/mod/tsconfig.json

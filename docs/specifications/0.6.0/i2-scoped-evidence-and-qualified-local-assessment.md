@@ -1,6 +1,6 @@
 # AIP v0.6.0 I2 — Scoped Evidence Implementation and Qualified Local Evidence Assessment
 
-**Status:** Accepted (revision 0.4, merged in PR #312, merge `6cebe35`; accepted by the owner and recorded in the [I2 decision record](i2-decision-record.md)). Not yet implemented. This document prescribes I2 work; it is not an I2 implementation or qualification completion record.  
+**Status:** Accepted (revision 0.4, merged in PR #312, merge `6cebe35`; accepted by the owner and recorded in the [I2 decision record](i2-decision-record.md)). Implemented in I2.1–I2.6 (#318–#375); see the [I2 completion record](i2-completion-record.md) (status only). This document prescribes I2 work; it is not an I2 implementation or qualification completion record.  
 **Release / increment:** v0.6.0 / I2, Locality-Aware Current State  
 **Repository path:** `docs/specifications/0.6.0/i2-scoped-evidence-and-qualified-local-assessment.md`  
 **Entry baseline inspected:** `main` at `7a949cd3046e91ddd6ea67036b6bf47c241ed037` (PR #311, I1.5 merge and closure SHA). I2.1 SHALL record that closure SHA in its entry/decision record, without editing the frozen I1 oracle.  

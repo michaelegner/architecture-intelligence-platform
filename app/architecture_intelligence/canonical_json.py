@@ -4,6 +4,7 @@ timestamps normalized to UTC with exactly six fractional-second digits (spec §1
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime
 from typing import Any
@@ -16,6 +17,13 @@ def canonical_json_bytes(value: BaseModel | dict[str, Any] | list[Any]) -> bytes
     return json.dumps(normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
         "utf-8"
     )
+
+
+def canonical_digest(value: BaseModel | dict[str, Any] | list[Any]) -> str:
+    """Lowercase hex SHA-256 of `canonical_json_bytes(value)` - the digest behind the
+    `aip:claim:v1:`, snapshot, observation-context and local-assessment ids. Not RFC 8785: never
+    interchangeable with `app.common.jcs.canonical_sha256_hex`."""
+    return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
 
 
 def _normalize(value: Any) -> Any:

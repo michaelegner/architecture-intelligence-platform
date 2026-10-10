@@ -16,10 +16,15 @@ unchanged from the originals.
 
 Every release since `v0.2` has its own versioned specification under `docs/specifications/<release>/`:
 [`0.2.0/`](0.2.0/), [`0.3.0/`](0.3.0/), [`0.4.0/`](0.4.0/), [`0.4.1/`](0.4.1/), [`0.4.2/`](0.4.2/),
-[`0.5.0/`](0.5.0/), [`0.5.1/`](0.5.1/specification.md) and [`0.6.0/`](0.6.0/specification.md).
+[`0.5.0/`](0.5.0/), [`0.5.1/`](0.5.1/specification.md), [`0.6.0/`](0.6.0/specification.md), [`0.6.1/`](0.6.1/specification.md) and
+[`0.6.2/`](0.6.2/specification.md).
 Each directory's parent specification states its own status, and completed releases carry
 completion or release records. This index deliberately does not say which release is current or
 shipped: [`ROADMAP.md`](../../ROADMAP.md) is the single source for that.
+
+Model-validation experiments live in [`evaluation/`](evaluation/): the
+[EventCatalog semantic mapping experiment](evaluation/eventcatalog-semantic-mapping-experiment.md)
+and its [result](evaluation/eventcatalog-semantic-mapping-result.md).
 
 See [`docs/architecture.md`](../architecture.md#architecture-principles) and
 [`docs/adr/`](../adr/) for how these design decisions map onto the system as it exists today, and

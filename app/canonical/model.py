@@ -62,6 +62,16 @@ class Subscription(BaseModel):
     namespace: str | None = None
 
 
+class Broker(BaseModel):
+    """v0.6.1 spec §4.1: a messaging infrastructure endpoint a Service is evidenced to use. Not a
+    Service and not a message destination. The id is derived only from the explicit stable broker id
+    (`app.sources.owner_ids.broker_owned_id`); namespace/virtualHost, host, protocol and display name
+    never establish it. The Service association is the `USES_BROKER` relation, not a field here."""
+
+    id: str
+    stable_broker_id: str
+
+
 class Message(BaseModel):
     id: str
     name: str
@@ -89,6 +99,12 @@ class Relation(BaseModel):
     evidence_ids: list[str] = Field(default_factory=list)
 
 
+def relation_key(relation: Relation) -> str:
+    """A relation's element id and graph key: `TYPE:source_id:target_id`. The one definition -
+    canonical validation, discovery attribution and the importer all use this form."""
+    return f"{relation.type}:{relation.source_id}:{relation.target_id}"
+
+
 class ArchitectureModel(BaseModel):
     services: list[Service] = Field(default_factory=list)
     operations: list[Operation] = Field(default_factory=list)
@@ -108,6 +124,8 @@ class ArchitectureModel(BaseModel):
     topics: list[Topic] = Field(default_factory=list)
     subscriptions: list[Subscription] = Field(default_factory=list)
     pubsub_declarations: list[PubSubDeclaration] = Field(default_factory=list)
+    # v0.6.1 I1 spec §4: Broker is a canonical entity; the only relation is Service -USES_BROKER->.
+    brokers: list[Broker] = Field(default_factory=list)
     subscription_dead_letter_configurations: list[SubscriptionDeadLetterConfiguration] = Field(
         default_factory=list
     )

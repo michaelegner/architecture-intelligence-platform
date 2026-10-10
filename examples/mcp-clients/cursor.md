@@ -48,7 +48,7 @@ in one of them.
 ## 3. Reload and verify
 
 Reopen the project (or use Cursor's MCP settings panel) so it picks up the new file, then confirm
-`aip` appears as a connected server with its three tools listed.
+`aip` appears as a connected server with its four tools listed.
 
 ## 4. Ask the stable prompt
 

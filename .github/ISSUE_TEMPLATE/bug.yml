@@ -26,10 +26,12 @@ body:
         - OpenAPI adapter
         - AsyncAPI adapter
         - Architecture Manifest adapter
+        - Kubernetes discovery
         - Graph import / Neo4j
         - Deterministic analyses (A1-A5)
         - OpenTelemetry / runtime ingestion
         - Natural language query (LLM layer)
+        - MCP
         - API / UI
         - Docker / Compose / CI
         - Documentation

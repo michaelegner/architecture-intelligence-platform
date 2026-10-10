@@ -879,3 +879,111 @@ def test_merge_duplicate_claims_leaves_distinct_claims_untouched():
     second = _minimal_claim("aip:claim:v1:" + "2" * 64, ["e2"], ["r2"])
     merged = proj._merge_duplicate_claims([first, second])
     assert {c.claim_id for c in merged} == {first.claim_id, second.claim_id}
+
+
+# --- v0.6.2 I0 H2: resolution evidence is window- and environment-correct ----------------------
+
+_PRODUCT_OPERATION = "operation:product-service:GET:/products/{id}"
+_CALL = {
+    "operation_id": _PRODUCT_OPERATION,
+    "operation_name": None,
+    "method": "GET",
+    "path": "/products/{id}",
+    "evidence_ids": ["e1"],
+}
+_QUEUE_ID = "queue:asb:commerce:payment-q"
+_SEND = {
+    "queue_id": _QUEUE_ID,
+    "queue_name": "payment-q",
+    "protocol": "amqp",
+    "namespace": "commerce",
+    "evidence_ids": ["e1"],
+}
+
+
+def _http_rows(resolution_ids: list[str], evidence: dict) -> dict:
+    return {
+        "calls": [_CALL],
+        "provides": [
+            {
+                "operation_id": _PRODUCT_OPERATION,
+                "provider_id": "service:product-service",
+                "provider_name": "ProductService",
+                "evidence_ids": resolution_ids,
+            }
+        ],
+        "evidence": {**_declared("e1"), **evidence},
+    }
+
+
+def _queue_rows(resolution_ids: list[str], evidence: dict) -> dict:
+    return {
+        "sends": [_SEND],
+        "receives": [
+            {
+                "queue_id": _QUEUE_ID,
+                "consumer_id": "service:payment-service",
+                "consumer_name": "PaymentService",
+                "evidence_ids": resolution_ids,
+            }
+        ],
+        "evidence": {**_declared("e1"), **evidence},
+    }
+
+
+_PATHS = pytest.mark.parametrize("rows_for", [_http_rows, _queue_rows], ids=["http", "queue"])
+_OUT_OF_CONTEXT = [
+    pytest.param(_observed("o", last_seen=OUTSIDE_WINDOW), id="after-window"),
+    pytest.param(
+        _observed("o", last_seen=datetime(2026, 8, 25, 23, tzinfo=UTC)), id="before-window"
+    ),
+    pytest.param(_observed("o", environment="staging"), id="other-environment"),
+    pytest.param(_observed("o", last_seen=None), id="no-last-seen"),
+]
+
+
+@_PATHS
+@pytest.mark.parametrize("evidence", _OUT_OF_CONTEXT)
+def test_out_of_context_observed_resolution_evidence_is_dropped_and_declared_is_kept(
+    rows_for, evidence
+):
+    [claim] = _project(rows_for(["d", "o"], {**_declared("d"), **evidence})).claims
+    assert claim.destination_resolution == DestinationResolution.RESOLVED_SERVICE
+    assert claim.resolution_evidence_refs == ["d"]
+
+
+@_PATHS
+@pytest.mark.parametrize("evidence", _OUT_OF_CONTEXT)
+def test_a_destination_supported_only_by_out_of_context_observed_evidence_falls_back(
+    rows_for, evidence
+):
+    result = _project(rows_for(["o"], evidence))
+    [claim] = result.claims
+    assert claim.destination_resolution == DestinationResolution.DIRECT_TARGET_FALLBACK
+    assert claim.resolution_evidence_refs == []
+    assert [limitation.code for limitation in result.limitations] == [
+        LimitationCode.UNRESOLVED_IDENTITY
+    ]
+
+
+@_PATHS
+def test_in_context_observed_evidence_alone_still_resolves_the_destination(rows_for):
+    # path-neutral: a destination may legitimately resolve from in-window observed evidence alone
+    [claim] = _project(rows_for(["o"], _observed("o"))).claims
+    assert claim.destination_resolution == DestinationResolution.RESOLVED_SERVICE
+    assert claim.resolution_evidence_refs == ["o"]
+
+
+@_PATHS
+def test_window_bounds_are_inclusive_for_resolution_evidence(rows_for):
+    evidence = {**_observed("lo", last_seen=WINDOW_START), **_observed("hi", last_seen=WINDOW_END)}
+    [claim] = _project(rows_for(["lo", "hi"], evidence)).claims
+    assert claim.resolution_evidence_refs == ["hi", "lo"]
+
+
+@_PATHS
+def test_the_resolution_filter_never_changes_the_claim_identity_or_the_qualification_refs(rows_for):
+    kept = _project(rows_for(["d"], _declared("d"))).claims[0]
+    filtered = _project(rows_for(["d", "o"], {**_declared("d"), **_observed("o", environment="x")}))
+    assert filtered.claims[0].claim_id == kept.claim_id
+    assert filtered.claims[0].evidence_refs == kept.evidence_refs

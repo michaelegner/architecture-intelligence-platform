@@ -65,6 +65,11 @@ EXPECTED_PUBLISH = {
     "destination_resolution": "DIRECT_TARGET_FALLBACK",
 }
 SERVICE_NAME = "Fights API"  # the upstream OpenAPI title; the overlay must not rename the Service
+# v0.6.1 I2 (spec §5): the overlay declares `x-aip-broker-id: kafka:fights-kafka` for rest-fights, so
+# the answer is the Broker-aware v0.6 shape and carries exactly one BrokerClaim for it. Knowing the
+# Broker does not resolve the missing Subscription: the PARTIAL/UNRESOLVED_IDENTITY shape above is
+# unchanged.
+EXPECTED_BROKER = "kafka:fights-kafka"
 
 
 def check_import(report: dict) -> list[str]:
@@ -162,10 +167,22 @@ def check_answer(answer: dict) -> list[str]:
     if limitations != expected_limitations:
         problems.append(f"limitations {limitations}, expected {expected_limitations}")
 
+    brokers = [c for c in claims if c["predicate"] == "USES_BROKER"]
+    broker_shape = [(c["object"].get("type"), c["object"].get("name")) for c in brokers]
+    if broker_shape != [("BROKER", EXPECTED_BROKER)]:
+        problems.append(
+            f"USES_BROKER {broker_shape}, expected exactly one BROKER {EXPECTED_BROKER!r}"
+        )
+    if answer.get("schema_version") != "0.6" or answer["data"].get("broker_claim_ids") != [
+        c["claim_id"] for c in brokers
+    ]:
+        problems.append("the answer is not the Broker-aware v0.6 shape naming its Broker claim")
+
     unexpected = [
         c
         for c in claims
-        if c["predicate"] != "DEPLOYED_AS" and relation(c) not in ("CALLS", "PUBLISHES_TO")
+        if c["predicate"] not in ("DEPLOYED_AS", "USES_BROKER")
+        and relation(c) not in ("CALLS", "PUBLISHES_TO")
     ]
     if unexpected:
         problems.append(f"unexpected claims: {[c.get('claim_id') for c in unexpected]}")

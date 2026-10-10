@@ -1,0 +1,32 @@
+apiVersion: aip.dev/v1
+kind: KubernetesSourceSnapshot
+metadata:
+  id: aip-locality-i5-20261005t060050z-4392-c2
+  revision: c2-2026-10-05T06-10-02Z
+  producer: aip-locality-i5-20261005t060050z-4392
+  capturedAt: '2026-10-05T06:10:02Z'
+source:
+  configuredSourceId: aip-locality-i5-20261005t060050z-4392
+  configuredScopeId: aip-locality-i5-20261005t060050z-4392-scope
+  clusterUid: 2fe6677a-390d-458c-9e4c-85ae44b62f91
+  clusterIdentityEvidenceRef: kube-system-namespace-uid
+  mode: CAPTURED_RESOURCE
+scope:
+  namespaces:
+  - aip-locality
+  resourceTypes:
+  - v1/Namespace
+  - v1/Pod
+  - v1/Service
+  - apps/v1/Deployment
+  - apps/v1/StatefulSet
+  - apps/v1/DaemonSet
+  - apps/v1/ReplicaSet
+  - networking.k8s.io/v1/Ingress
+completeness:
+  status: COMPLETE
+  authorityRef: aip-locality-i5-20261005t060050z-4392-self-declared-authority
+  expectedPriorInventoryRevision: urn:aip:inventory-revision:7a945af77939fd8a860b5dc6f220a0cf78b8bb67ad82c52e2a62210cb15a5055
+files:
+- path: resources.yaml
+  sha256: 63593de9293722f86b6f20164ff692ff2348e64d350809c494fb25a9d21296df

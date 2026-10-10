@@ -10,19 +10,23 @@ import, so this public contract doesn't couple to internal analysis-module churn
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Annotated, Literal, get_args
+from typing import Annotated, Any, Literal, Protocol, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.provenance.model import EvidenceType, SourceType
 
 _SHA256_HEX = r"[0-9a-f]{64}"
-_SNAPSHOT_ID_PATTERN = rf"^aip:snapshot:v1:{_SHA256_HEX}$"
+SNAPSHOT_ID_PREFIX = "aip:snapshot:v1"
+OBSERVATION_CONTEXT_ID_PREFIX = "aip:observation-context:v1"
+CLAIM_ID_PREFIX = "aip:claim:v1"
+SNAPSHOT_ID_PATTERN = rf"^{SNAPSHOT_ID_PREFIX}:{_SHA256_HEX}$"
 _MODEL_REVISION_PATTERN = rf"^sha256:{_SHA256_HEX}$"
-_CONTEXT_ID_PATTERN = rf"^aip:observation-context:v1:{_SHA256_HEX}$"
-_CLAIM_ID_PATTERN = rf"^aip:claim:v1:{_SHA256_HEX}$"
+_CONTEXT_ID_PATTERN = rf"^{OBSERVATION_CONTEXT_ID_PREFIX}:{_SHA256_HEX}$"
+_CLAIM_ID_PATTERN = rf"^{CLAIM_ID_PREFIX}:{_SHA256_HEX}$"
 # I3 spec §13.2: DeploymentResolution.resolution_id is a distinct public identity from claim_id -
 # it identifies a snapshot-bound reconciliation-candidate-group evaluation, not a claim.
 _DEPLOYMENT_RESOLUTION_ID_PATTERN = rf"^aip:deployment-resolution:v1:{_SHA256_HEX}$"
@@ -30,9 +34,9 @@ _DEPLOYMENT_RESOLUTION_ID_PATTERN = rf"^aip:deployment-resolution:v1:{_SHA256_HE
 # No leading/trailing whitespace and no control characters anywhere (spec §16.1). Expressed as a
 # single character-class-only pattern (no lookaround) so it also compiles under pydantic-core's
 # Rust regex engine and therefore shows up as a real `pattern` in the generated JSON Schema.
-_ENVIRONMENT_PATTERN = r"^[^\s\x00-\x1f\x7f](?:[^\x00-\x1f\x7f]*[^\s\x00-\x1f\x7f])?$"
+ENVIRONMENT_PATTERN = r"^[^\s\x00-\x1f\x7f](?:[^\x00-\x1f\x7f]*[^\s\x00-\x1f\x7f])?$"
 
-_MAX_OBSERVATION_WINDOW = timedelta(days=31)
+MAX_OBSERVATION_WINDOW = timedelta(days=31)
 
 ArchitectureSchemaVersion = Literal["0.5"]
 ARCHITECTURE_SCHEMA_VERSION: ArchitectureSchemaVersion = get_args(ArchitectureSchemaVersion)[0]
@@ -44,6 +48,9 @@ DeploymentReconciliationRuleId = Literal["service-workload-reconciliation"]
 DEPLOYMENT_RECONCILIATION_RULE_ID: DeploymentReconciliationRuleId = get_args(
     DeploymentReconciliationRuleId
 )[0]
+# Stamped on every DeploymentResolution (feeding resolution/claim ids) and bound into the snapshot
+# fingerprint. A bump is a reviewed spec change and a recorded fingerprint change.
+DEPLOYMENT_RECONCILIATION_RULE_VERSION = 1
 
 
 class Outcome(StrEnum):
@@ -167,7 +174,7 @@ class Producer(BaseModel):
 class SnapshotRef(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    snapshot_id: str = Field(pattern=_SNAPSHOT_ID_PATTERN)
+    snapshot_id: str = Field(pattern=SNAPSHOT_ID_PATTERN)
     model_revision: str = Field(pattern=_MODEL_REVISION_PATTERN)
 
     @model_validator(mode="after")
@@ -185,7 +192,7 @@ class ObservationContextRef(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     context_id: str = Field(pattern=_CONTEXT_ID_PATTERN)
-    environment: str = Field(min_length=1, max_length=128, pattern=_ENVIRONMENT_PATTERN)
+    environment: str = Field(min_length=1, max_length=128, pattern=ENVIRONMENT_PATTERN)
     window_start: datetime
     window_end: datetime
 
@@ -204,7 +211,7 @@ class ObservationContextRef(BaseModel):
     def _check_window_bounds(self) -> ObservationContextRef:
         if self.window_start > self.window_end:
             raise ValueError("window_start must be less than or equal to window_end")
-        if self.window_end - self.window_start > _MAX_OBSERVATION_WINDOW:
+        if self.window_end - self.window_start > MAX_OBSERVATION_WINDOW:
             raise ValueError("the inclusive observation window must not exceed 31 days")
         return self
 
@@ -806,7 +813,7 @@ class SupportedFact(BaseModel):
     target_id: str
 
 
-def _supported_fact_sort_key(fact: SupportedFact) -> tuple[str, str, str]:
+def supported_fact_sort_key(fact: SupportedFact) -> tuple[str, str, str]:
     return (fact.relation_type.value, fact.source_id, fact.target_id)
 
 
@@ -865,7 +872,7 @@ class EvidenceRecord(BaseModel):
     def _check_supports_sorted_and_deduplicated(
         cls, value: list[SupportedFact]
     ) -> list[SupportedFact]:
-        keys = [_supported_fact_sort_key(fact) for fact in value]
+        keys = [supported_fact_sort_key(fact) for fact in value]
         if keys != sorted(keys) or len(keys) != len(set(keys)):
             raise ValueError(
                 "supports must be sorted by (relation_type, source_id, target_id) and deduplicated"
@@ -931,7 +938,19 @@ class EvidenceData(BaseModel):
 Claim = Annotated[DependencyClaim | DeploymentClaim, Field(discriminator="predicate")]
 
 
-def _claim_sort_key(claim: DependencyClaim | DeploymentClaim) -> tuple[str, str, str, str, str]:
+class SortableClaim(Protocol):
+    """The fields `claim_sort_key` reads from any claim: `BrokerClaim` (v0.6.1 I2) satisfies it
+    structurally without being part of the v0.5 `Claim` union."""
+
+    @property
+    def claim_id(self) -> str: ...
+    @property
+    def predicate(self) -> StrEnum: ...
+    @property
+    def object(self) -> Any: ...
+
+
+def claim_sort_key(claim: SortableClaim) -> tuple[str, str, str, str, str]:
     # Resolved via AskUserQuestion during I3 slice 1 planning: the spec defines ordering within each
     # claim type but not across the closed union. (object.id, predicate, ...) interleaves both claim
     # types for the same entity, using only fields both types already carry; DependencyClaim's own
@@ -955,6 +974,10 @@ _TOOL_NAME_BY_DATA_TYPE = {
     "ServiceDependenciesData": "get_service_dependencies",
     "EvidenceData": "get_evidence",
     "ArchitectureDriftData": "get_architecture_drift",
+    # v0.6.1 I2: the Broker-aware specializations (app.architecture_intelligence.broker_contracts)
+    # are locked to the same tools; without these entries the lock would silently not apply.
+    "ServiceDependenciesDataV06": "get_service_dependencies",
+    "EvidenceDataV06": "get_evidence",
 }
 
 # v0.4.0 I3.1 / v0.5.0 I3 slice 1: each claim-carrying data type projects `claims` into its own id
@@ -997,6 +1020,13 @@ def _check_architecture_drift_claim_ids(
     expected_claim_ids = [claim.claim_id for claim in claims]
     if data.drift_claim_ids != expected_claim_ids:
         raise ValueError("data.drift_claim_ids must equal claims[*].claim_id in the same order")
+
+
+def _check_v05_data_claim_ids(data: Any, claims: list[Any]) -> None:
+    if isinstance(data, ServiceDependenciesData):
+        _check_service_dependencies_claim_ids(data, claims)
+    elif isinstance(data, ArchitectureDriftData):
+        _check_architecture_drift_claim_ids(data, claims)
 
 
 def _bound_data_type_name(model: type[BaseModel]) -> str | None:
@@ -1113,66 +1143,80 @@ class ArchitectureAnswer[T: BaseModel](BaseModel):
 
     @model_validator(mode="after")
     def _check_envelope_invariants(self) -> ArchitectureAnswer[T]:
-        if self.outcome != Outcome.NOT_ANSWERED and self.data is None:
-            raise ValueError("data must not be null for ANSWERED/PARTIAL outcomes")
-
-        expected_tool = _bound_tool_name(type(self))
-        if expected_tool is not None and self.tool != expected_tool:
-            raise ValueError(f"tool must be {expected_tool!r} for this ArchitectureAnswer[T]")
-
-        if self.tool == "get_evidence":
-            if self.claims:
-                raise ValueError("get_evidence answers must have empty claims")
-            if self.evidence_refs:
-                raise ValueError("get_evidence answers must have empty top-level evidence_refs")
-            if self.observation_context is not None:
-                raise ValueError(
-                    "get_evidence answers must have observation_context = null (spec §12: "
-                    "get_evidence is not runtime-context-sensitive)"
-                )
-
-        has_context_required_limitation = any(
-            limitation.code == LimitationCode.OBSERVATION_CONTEXT_REQUIRED
-            for limitation in self.limitations
+        check_answer_envelope(
+            self,
+            sort_key=claim_sort_key,
+            check_data=_check_v05_data_claim_ids,
         )
-        if (
-            self.tool in _TOOLS_REQUIRING_OBSERVATION_CONTEXT
-            and self.observation_context is None
-            and not has_context_required_limitation
-        ):
-            raise ValueError(
-                "observation_context may only be null when a limitation with code "
-                "OBSERVATION_CONTEXT_REQUIRED is present"
-            )
-
-        # DeploymentClaim has no resolution_evidence_refs field at all (that's a DependencyClaim/
-        # destination-resolution-only concept) - only union it in when present.
-        expected_evidence_refs = sorted(
-            {
-                ref
-                for claim in self.claims
-                for ref in (
-                    *claim.evidence_refs,
-                    *(claim.resolution_evidence_refs if isinstance(claim, DependencyClaim) else ()),
-                )
-            }
-        )
-        if self.evidence_refs != expected_evidence_refs:
-            raise ValueError(
-                "evidence_refs must be the sorted, deduplicated union of every claim's "
-                "evidence_refs and resolution_evidence_refs"
-            )
-
-        if isinstance(self.data, ServiceDependenciesData):
-            _check_service_dependencies_claim_ids(self.data, self.claims)
-        elif isinstance(self.data, ArchitectureDriftData):
-            _check_architecture_drift_claim_ids(self.data, self.claims)
-
-        claim_sort_keys = [_claim_sort_key(claim) for claim in self.claims]
-        if claim_sort_keys != sorted(claim_sort_keys):
-            raise ValueError(
-                "claims must be sorted by (object.id, predicate, delivery.kind, delivery.via.id, "
-                "claim_id)"
-            )
-
         return self
+
+
+def check_answer_envelope(
+    answer: Any,
+    *,
+    sort_key: Callable[[Any], tuple[str, str, str, str, str]],
+    check_data: Callable[[Any, list[Any]], None],
+) -> None:
+    """The envelope invariants shared by `ArchitectureAnswer` (v0.5) and the Broker-aware
+    `ArchitectureAnswerV06` (spec §8.3/§9/§12/§14). `check_data` runs the data-type-specific
+    claim-id projection at the same point the v0.5 validator always ran it, so error precedence is
+    unchanged. Extracted verbatim; the v0.5 schema and behavior are pinned by the frozen tests."""
+    if answer.outcome != Outcome.NOT_ANSWERED and answer.data is None:
+        raise ValueError("data must not be null for ANSWERED/PARTIAL outcomes")
+
+    expected_tool = _bound_tool_name(type(answer))
+    if expected_tool is not None and answer.tool != expected_tool:
+        raise ValueError(f"tool must be {expected_tool!r} for this ArchitectureAnswer[T]")
+
+    if answer.tool == "get_evidence":
+        if answer.claims:
+            raise ValueError("get_evidence answers must have empty claims")
+        if answer.evidence_refs:
+            raise ValueError("get_evidence answers must have empty top-level evidence_refs")
+        if answer.observation_context is not None:
+            raise ValueError(
+                "get_evidence answers must have observation_context = null (spec §12: "
+                "get_evidence is not runtime-context-sensitive)"
+            )
+
+    has_context_required_limitation = any(
+        limitation.code == LimitationCode.OBSERVATION_CONTEXT_REQUIRED
+        for limitation in answer.limitations
+    )
+    if (
+        answer.tool in _TOOLS_REQUIRING_OBSERVATION_CONTEXT
+        and answer.observation_context is None
+        and not has_context_required_limitation
+    ):
+        raise ValueError(
+            "observation_context may only be null when a limitation with code "
+            "OBSERVATION_CONTEXT_REQUIRED is present"
+        )
+
+    # DeploymentClaim has no resolution_evidence_refs field at all (that's a DependencyClaim/
+    # destination-resolution-only concept) - only union it in when present.
+    expected_evidence_refs = sorted(
+        {
+            ref
+            for claim in answer.claims
+            for ref in (
+                *claim.evidence_refs,
+                *(claim.resolution_evidence_refs if isinstance(claim, DependencyClaim) else ()),
+            )
+        }
+    )
+    if answer.evidence_refs != expected_evidence_refs:
+        raise ValueError(
+            "evidence_refs must be the sorted, deduplicated union of every claim's "
+            "evidence_refs and resolution_evidence_refs"
+        )
+
+    if answer.data is not None:
+        check_data(answer.data, answer.claims)
+
+    claim_sort_keys = [sort_key(claim) for claim in answer.claims]
+    if claim_sort_keys != sorted(claim_sort_keys):
+        raise ValueError(
+            "claims must be sorted by (object.id, predicate, delivery.kind, delivery.via.id, "
+            "claim_id)"
+        )

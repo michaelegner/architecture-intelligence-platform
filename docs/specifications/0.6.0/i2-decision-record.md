@@ -25,7 +25,7 @@ The owner merges each before the next starts.
 | Forbidden | The `:Evidence` label, **any** incident relationship, and `owner_source_ids`. I2.2 must test each of these directly, including after a declaration or Kubernetes reimport and removal. |
 | Reads | A dedicated I2 reader in `app/architecture_intelligence/`. `_EVIDENCE_QUERY`, `read_evidence_rows`, `read_public_evidence_list_rows`, `read_public_evidence_row` and `_RELATION_QUERY` are unchanged and must never return v2 (negative tests). |
 | NL reachability | Not in `KNOWN_NODE_LABELS` or the NL approved set (D2) |
-| Enablement flag | New config field `telemetry.scoped-evidence.enabled`, default **`false`**. It gates every v2 write. It may only be set to `true` in tests until the I2 §11 pre-enablement gates (a)–(f) pass, and I2.5 flips the default. With the flag off, the graph, snapshot and every v0.5 answer are byte-identical to the baseline. |
+| Enablement flag | New config field `telemetry.scoped-evidence.enabled`, default **`false`**. It gates every v2 write. It may only be set to `true` in tests until the I2 §11 pre-enablement gates (a)–(f) pass, and I2.5 flips the default. With the flag off, the graph, snapshot and every v0.5 answer are byte-identical to the baseline. **Amended by [D16](#d16--the-default-flip-is-deferred-added-in-i25c-amends-d1):** the flip is deferred to the next reviewed release-golden-path re-freeze. |
 
 ## D2 — Fail-closed NL graph reachability (I2 §6; pre-enablement gate (f))
 
@@ -98,8 +98,8 @@ All six cases use the whole-day window D, environment `production`, and captures
 ## D5 — Capture scope under the fence and in the fingerprint (I2 §8.1 stop condition; amendment)
 
 **Baseline gap, verified at `059ac63`:**
-- An envelope's `scope.namespaces` is used only at mapping time (`app/ingestion/kubernetes_adapter.py:90`). The graph stores only a `scope_definition_digest` on `SourceState`/`CurrentInventory`, and neither is part of the canonical state.
-- Kubernetes evidence refs use the operator-declared `metadata.revision` (`kubernetes_adapter.py:101`), not a content digest. So a namespace-scope change is not provably visible in the snapshot.
+- An envelope's `scope.namespaces` is used only at mapping time (`KubernetesSourceAdapter`, where `map_kubernetes_resources` is called with `scope_namespaces`). The graph stores only a `scope_definition_digest` on `SourceState`/`CurrentInventory`, and neither is part of the canonical state.
+- Kubernetes evidence refs use the operator-declared `metadata.revision` (`revision = loaded.descriptor.declared_provider_revision` in `KubernetesSourceAdapter`), not a content digest. So a namespace-scope change is not provably visible in the snapshot.
 - I2 §8.1 requires a stop here for a reviewed decision.
 
 **Decision (owner):**
@@ -120,14 +120,14 @@ All six cases use the whole-day window D, environment `production`, and captures
    Each now also admits `scoped_capture_scopes_v2` under the same conditional rule. The I1 fragment vector and the oracle are unchanged, and I2.5's independently expected full after-`snapshot_id` vector covers both keys.
 
    **Why `captured_at` is in the key.** It is a disclosed deviation from the approved plan's six-field list. Phase 3 evaluates each admitted source's real `capturedAt`, including a covering source that does **not** contain the Pod (S03, S05). The existing `deployment_captured_pods` state carries `captured_at` only per captured Pod, so without this field that input would be outside the fingerprint.
-4. **Revision advancement.** Persisting the properties is not enough, because the importer bumps the revision only when node, relation or claim content changes (`app/graph/importer.py:954-970`). A scope-only change would therefore alter the new key without moving the fence. In `_import_source_tx`:
+4. **Revision advancement.** Persisting the properties is not enough, because the importer bumps the revision only when node, relation or claim content changes (the `is_no_op` / `graph_revision_advanced` decision in `_import_source_tx`). A scope-only change would therefore alter the new key without moving the fence. In `_import_source_tx`:
    - (a) Read the source's persisted `capture_*` properties before the `SourceState` write and compare them with the new values. The comparison runs even when the replay decision is a no-op; a replay no-op that changes these properties is **not** a no-op for this rule.
    - (b) If they differ, first acquire the write lock on the revision singleton (`AipInternalState`), for example with a no-op `SET` on it. Then, still in the same transaction, check whether any `ScopedObservedCallV2` node exists.
    - (c) If one does, call `bump_revision(tx)`, unless the transaction already bumps.
 
    Taking the lock before the v2 check serializes this transaction against a concurrent ingestion unit whose first v2 write also bumps the singleton. The import therefore cannot miss a v2 record that commits in the meantime.
 
-   With no v2 present, a scope-only change still does not bump, so no-v2 v0.5 revision behaviour is unchanged. Source removal already bumps unconditionally and deletes `SourceState` (`importer.py:1088`), which drops the source from the key.
+   With no v2 present, a scope-only change still does not bump, so no-v2 v0.5 revision behaviour is unchanged. Source removal already bumps unconditionally and deletes `SourceState` (`_remove_source_tx`), which drops the source from the key.
 
    **Required regressions (I2.2 / I2.5):**
    - a scope-only reimport with v2 present bumps the revision and changes the snapshot;
@@ -236,6 +236,78 @@ No Kubernetes or architecture source revision is ever invented for telemetry.
 
 ---
 
+## D12 — I2.2 clarifications (added in I2.2a; additive, D1–D11 unchanged)
+
+These fix details the frozen decisions left to implementation. They add no semantics beyond the I1 contract.
+
+| # | Clarification | Applies in |
+|---|---|---|
+| D12.1 | **Primary cause (D7).** The counter key `primary_reason` of a refused interaction is the lexicographically smallest reason among those whose disposition equals the refusal's primary disposition (`CONFLICT` > `AMBIGUOUS` > `INAPPLICABLE` > `UNRESOLVED` > `INSUFFICIENT_EVIDENCE`). The complete sorted reasons are still reported. *(Owner decision, I2.2 planning.)* | I2.2c |
+| D12.2 | **Legacy membership (D8) covers v1 CALLS buckets only.** A pre-enablement bucket is a distinct `evidence:otel:` ID referenced by a `CALLS` relation's `evidence_ids`, because v2 is defined for CALLS alone and v1 evidence nodes do not record their relation type. | I2.2c |
+| D12.3 | **Revision values are read after the unit's bump.** `bump_revision` returns the new revision; `enabled_at_revision`, `cutover_revision` and `mixed_at_revision` take that value, so they name the revision the unit commits. | I2.2b, I2.2c |
+| D12.4 | **Lock before read (D6).** A v2 node is created or matched and locked (a no-op `SET`) before it is read and merged, so a concurrent unit blocks and then reads the committed record. v1 has no such lock and can lose an update under concurrent POSTs; v2 must not inherit that. | I2.2b |
+| D12.5 | **Cutover race (D8).** The first enabled unit checks for the ledger without a lock, then takes the revision-singleton lock and re-checks, so exactly one ledger is written. | I2.2c |
+| D12.6 | **Candidate reader index (D3).** The reader filters by caller Service, so an index on `ScopedObservedCallV2.subject_id` is created alongside the uniqueness constraint on `id`. | I2.2a |
+| D12.7 | **`config.demo.yaml` is not edited.** It is digest-pinned by the release golden path, and the flag defaults to off when the block is absent. Only `config.yaml` documents the new block. | I2.2a |
+| D12.8 | **`lock_revision` locks with a scratch property (correction, I2.2c).** The I2.2b helper took the fence lock with `SET s.revision = s.revision`. Under contention the right-hand value can be read before the lock is granted, so a waiting writer writes back a stale revision and undoes the increment a just-committed writer made (a racing test saw every unit return revision 1). It now sets and removes a scratch property and reads the revision only after the lock is held, leaving the singleton exactly as it was. `bump_revision` itself is unaffected: 16 concurrent bumps advance the revision by exactly 16. The defect was latent: no I2.2b production path called `lock_revision`. | I2.2c |
+| D12.9 | **Capture scope in memory only (I2.2d).** `SourceDescriptor.capture_scope` carries the capture from the discoverer to the importer and is `exclude=True`, so no descriptor dump, discovery golden (`tests/snapshots/refactor_baseline/`) or report changes shape; `model_copy` keeps it through the orchestrator's enrichment. It is set only on the fully accepted path. Observed v0.5 baseline, pinned by tests: a scope-only, revision-only or `capturedAt`-only re-export is a replay no-op and does **not** advance the fence, while a scope change together with a new revision changes content and does; the D5 rule therefore adds exactly one bump only where v0.5 adds none and v2 records exist, and never a second one. | I2.2d |
+
+## D13 — I2.3 clarifications (added in I2.3a; additive, D1–D12 unchanged)
+
+These are owner decisions taken while planning I2.3 (selected-capture applicability). They fix details that I1 §10.1, I2 §8.1/§13 and D4 left to implementation. They mint no `LOCALITY_*` code and change no I1 oracle value. The evaluator is `app/architecture_intelligence/scoped_applicability.py`.
+
+| # | Clarification |
+|---|---|
+| D13.1 | **Concrete CAP-AMB and CAP-CONF (I2 §13).** Within one accepted source a Pod has at most one controller owner; anything else is rejected at import (`K8S_OWNER_INVALID`). So the two abstract Path C captures are realized as follows. **CAP-AMB:** one accepted `CAPTURED_RESOURCE` source captures two distinct Pod resources that share UID P1, owned via ReplicaSets by W1 and W2; V01 carries no optional CLIENT attributes. The result is `AMBIGUOUS` / `LOCALITY_POD_OWNER_AMBIGUOUS`, which is v0.5 Path C's more-than-one-Pod rule. **CAP-CONF:** one source captures P1 → ReplicaSet → W2 (`orders-canary`), while V01 carries `k8s_deployment_name=orders`. The result is `CONFLICT` / `LOCALITY_POD_OWNER_CONFLICT` (matrix §15.2). |
+| D13.2 | **Within-phase collection (I1 §10.1).** Every check of the reached phase whose inputs exist runs, and the reasons are unioned. The primary disposition follows the within-phase precedence. **Phase 3** checks the environment, the v2 `last_seen` and the selected `capturedAt`. **Phase 4** has data dependencies. First, the number of *this source's* Pods with the v2 Pod UID: 0 → `LOCALITY_CAPTURE_MISSING_POD`, and nothing else is evaluated; more than 1 → `LOCALITY_POD_OWNER_AMBIGUOUS`, and nothing else is evaluated. With exactly 1 Pod, all of the following are checked. Envelope `clusterUid` ≠ v2 cluster → `LOCALITY_CLUSTER_UID_CONFLICT`. A present CLIENT namespace ≠ the Pod's namespace → `LOCALITY_NAMESPACE_CONFLICT`. A present Pod name that differs, or a non-empty `conflicting_consistency_attributes` (v2 contract §3) → `LOCALITY_POD_OWNER_CONFLICT`. Then the source's owner claims: 0 owners, a Workload that is not current, or an unsupported kind → `LOCALITY_POD_OWNER_UNRESOLVED`; more than 1 owner (defensive) → `LOCALITY_POD_OWNER_AMBIGUOUS`; exactly 1 → the v0.5 Path C kind/name attribute rule → `LOCALITY_POD_OWNER_CONFLICT`. A pair is `APPLICABLE`, with its Workload, only if phase 4 establishes no reason. |
+| D13.3 | **Explicit selector (D4).** A selector names `(source_instance_id, capture_revision)`. If no current accepted source has that ID, the selector is *absent*. If the source's committed `capture_revision` differs, the selector is *stale*. Either way there are zero pairs, so the zero-cover result applies: `INSUFFICIENT_EVIDENCE` [`LOCALITY_LOCAL_COVERAGE_UNAVAILABLE`] plus limitation `NO_SELECTABLE_COVERING_SOURCE`. A rejected import never replaces the committed capture (D5), so a rejected envelope can never be selected (L17e, L29). |
+| D13.4 | **Read-time environment mismatch (L10b).** The pair is `INAPPLICABLE` at phase 3, with no `LOCALITY_*` reason (I1 §10.1 names none) and the internal limitation code `REQUEST_ENVIRONMENT_MISMATCH`. Like `NO_SELECTABLE_COVERING_SOURCE`, it is a limitation code and not a reason. The other phase-3 causes are still collected, and `INAPPLICABLE` outranks every other phase-3 disposition. |
+| D13.5 | **Summary reasons (D4 roll-up).** With one pair, the summary equals that pair, since each of the following rules gives exactly the pair's own result. **`CONFLICT`**, when a pair conflicts or two `APPLICABLE` pairs name different Workloads: the sorted union of the conflicting pairs' reasons, plus `LOCALITY_POD_OWNER_CONFLICT` in the second case. No Workload is given. **`AMBIGUOUS`**: the union of the ambiguous pairs' reasons. **`APPLICABLE`**: no reasons; the one Workload, and every supporting `(source, revision)`. **All pairs share one other disposition**: that disposition, with the union of their reasons and limitations. **Otherwise** `INSUFFICIENT_EVIDENCE`, with no reasons. Every pair is always kept unchanged. |
+| D13.6 | **Per-source evaluation (I2 §8.1).** A pair sees only its own source's Pod contributions (`InfrastructureContribution.source_instance_id`) and its own `WORKLOAD_OWNS_POD` claim contributions. Phase 2 reads the committed `capture_evidence_mode`. Phase 3 reads the committed `capture_captured_at`, parsed with Path C's parser (`parse_rfc3339`: an offset-less or missing value is `LOCALITY_CAPTURE_TIMESTAMP_MISSING`), against the whole-UTC-day window (matrix §13). |
+| D13.7 | **Bounds and order (D3).** One call evaluates one candidate page of at most 500 records, with the reader's `truncated` flag and the `after_id` continuation passed through. The candidate page, the source captures, Pods, owners and Workloads are all read in one `read_stable_snapshot_from_session` attempt (I2.3b). Pairs are sorted by `(source_instance_id, discovery_scope_id, revision)`. Each pair records its admission basis: `EXPLICIT`, `POD_UID` (rule 1) or `CLUSTER_NAMESPACE` (rule 2). A source admitted by both rules is paired once and records both. |
+
+Phase 1 (the request preflight) terminates the whole request. That covers an unadmitted relation, an unadmitted dimension (only `cluster`, `namespace` and `workload` are admitted), and a date-time bound (L24, L25). Any other malformed or reversed window is a validation refusal (matrix §13). Until I2.5 adds the conditional keys, the `snapshot_id` of an I2.3 read does not move on a v2-only or scope-only change. The result's pair lineage carries the source revision and `capturedAt`.
+
+## D14 — I2.4 clarifications (added in I2.4a; additive, D1–D13 unchanged)
+
+These are owner decisions taken while planning I2.4 (the qualified local assessment). They complete D9, whose vectors D11 requires to be frozen before the I2.4 implementation. The frozen vectors are in [`i2-vectors/local-assessment-id.json`](i2-vectors/local-assessment-id.json). They were authored by hand and hashed with `sha256sum`, and `tests/unit/test_v060_i2_assessment_vectors.py` checks them with the standard library only.
+
+| # | Clarification |
+|---|---|
+| D14.1 | **Workload in the assertion ID.** `kind` is the captured Kubernetes kind exactly (`Deployment`, `StatefulSet` or `DaemonSet`, as `InfrastructureEntity.resource_kind` stores it). `uid` is the Workload's API-server UID from the same source's captured contribution. A resolved Workload without a captured UID gets **no** assertion ID and is reported as a candidate limitation. |
+| D14.2 | **Assessment-instance inputs.** `capture_revisions` is the list of `{source_instance_id, revision}` of every supporting source, sorted by `(source_instance_id, revision)`. A bare revision string could collide across sources. `rules` is the list of `{id, version}`, sorted by `(id, version)`, with exactly four entries. Two already exist: `otel-calls-scoped-evidence-v2-key`/1 and `otel-client-caller-attribution`/1. Two are new: `scoped-caller-locality-applicability`/1 (the I2.3 evaluator) and `declared-observed-qualification`/1 (the shared kernel `app/qualification/declared_observed.py`, which gets this constant with no behaviour change). |
+| D14.3 | **Grouping.** There is one assertion per (caller Service, Operation, environment, window, Workload identity). Every `APPLICABLE` candidate on the page with that key contributes its v2 ID to the assertion's observation (sorted and distinct, with fact bounds `min(first_seen)` and `max(last_seen)`) and its supporting sources to the selected capture. So several Pods or days of one Workload give one assertion (L33a, vector A02), and two Workloads give two (L27a, L33b). v2 IDs are lineage and never part of the key. |
+| D14.4 | **Qualification input (I2 §10).** The shared kernel `qualify_relation` receives two things. First, the **DECLARED** evidence IDs of the legacy `(caller)-[:CALLS]->(exact Operation)` edge, selected with `matches_declared_evidence`. Second, the assertion's v2 records as OBSERVED rows (environment, `last_seen`). The edge's v1 OBSERVED IDs are never passed (L23), and neither is another Operation's declaration (L22b). Every assertion has v2, so the result is only `CONFIRMED` or `OBSERVED_ONLY`. A guard rejects any other value, so a local `NOT_OBSERVED_IN_WINDOW` cannot be emitted. |
+| D14.5 | **Answer level (I1 §10.2).** With no positive assertion, the answer is `INSUFFICIENT_EVIDENCE` [`LOCALITY_LOCAL_COVERAGE_UNAVAILABLE`, `LOCALITY_NO_ELIGIBLE_LOCAL_OBSERVATION`] (dossier interpretation 1). Every non-positive candidate stays a limitation keyed by its v2 ID and `snapshot_id`, with its I2.3 summary and pairs. With positive assertions, coverage is always "local Workload-level coverage unavailable". `LOCALITY_LEGACY_V1_UNSCOPED` is never emitted (D8), so dossier row L05b is unreachable in v0.6. |
+| D14.6 | **Current State only (L30).** v0.6 has no Intent or narrative input (`app.intent` is natural-language question routing). L30 holds structurally: the request and assessment types carry no narrative field, and the assessment is a pure function of the fenced read and the request. |
+| D14.7 | **Snapshot binding.** The instance ID binds the `snapshot_id` of the stable read that produced the assessment. That ID is known only after the read, so both IDs are computed afterwards, as the deployment IDs are. Until I2.5 adds the conditional keys, that `snapshot_id` does not yet include v2 or the capture scopes. |
+| D14.8 | **Bounds.** One call assesses one I2.3 candidate page (at most 500, D3), and passes `truncated` and the continuation through. On a truncated page, an assertion may list only part of its v2 lineage. Its ID is unaffected, and it is marked `lineage_complete = false`. |
+
+## D15 — I2.5 clarifications (added in I2.5a; additive, D1–D14 unchanged)
+
+These are owner decisions taken while planning I2.5 (one snapshot and compatibility). The independently expected full-graph after-`snapshot_id` required by I2 §11 gate (b) and D5 is frozen in [`i2-vectors/snapshot-after.json`](i2-vectors/snapshot-after.json) as `aip:snapshot:v1:3a0b04e1d88feaae5ebb2277f8fe50fba74279cc3af12906edc37a31e55c59f9`. The state was written by hand and hashed with `sha256sum`, and `tests/unit/test_v060_i2_snapshot_after_vector.py` checks it with the standard library only.
+
+| # | Clarification |
+|---|---|
+| D15.1 | **After-vector fixture.** The fixture is minimal and synthetic. One telemetry unit, with the flag enabled, carries five CALLS facts. Together they fold into exactly the I1 `snapshot_fragment` records V01 (3 calls, `CLIENT_SERVER`) and V03 (2 calls, `CLIENT_ONLY`, `k8s_pod_name` flagged), into their v1 U01 bucket, into the stub Service and Operation and into the `CALLS` edge. The fixture also has one accepted Kubernetes capture with zero resources, so every `deployment_*` key is `[]`. The real importer accepts a zero-resource envelope. |
+| D15.2 | **One condition.** Both conditional keys exist if and only if at least one `ScopedObservedCallV2` exists. With v2 and no accepted capture, `scoped_capture_scopes_v2` is `[]`. With no v2, both keys are absent, never `[]` or `null`. |
+| D15.3 | **v2 entry projection.** It follows the frozen fragment. Entries are sorted by `id` and carry exactly the v2 contract §8 fields. The five `k8s_*` names appear as explicit `null` when absent, timestamps use the `…ffffffZ` form, and lists are sorted. This projection is separate from `_project_row`, whose drop-null rule is unchanged for every existing key. |
+| D15.4 | **Scope entries.** There is one entry per `SourceState` with a non-null `capture_cluster_uid`, sorted by `source_instance_id`. Each has exactly D5's seven fields, with `namespaces` sorted and `captured_at` as the raw envelope string. |
+| D15.5 | **Read cost.** The state reads every v2 record, with no paging, because that is required for one complete fingerprint (I1 §11.5). The cost is measured in I2.6, and no threshold is invented here. |
+
+## D16 — The default flip is deferred (added in I2.5c; amends D1)
+
+**Status:** owner decision, taken during I2.5c. It amends D1's "I2.5 flips the default". D2–D15 are unchanged.
+
+**What happened.** The I2 §11 pre-enablement gates (a)–(f) all passed at `de8d550` (#366, #369). An I2.5c change that set `telemetry.scoped-evidence.enabled` to `true` by default was then run against the golden-path demo (`tests/integration/test_mcp_demo_script.py::TestServeLifecycle::test_full_lifecycle`, using `config.demo.yaml`, which has no block and so takes the default). The demo classified `PARTIAL_OR_INCOMPATIBLE` with one mismatch, `NODE_COUNT_MISMATCH` (46 expected, 48 found). The two extra nodes are D8's cutover ledger and a D7 transition counter for the demo's refused CLIENT spans. The demo's spans carry no `k8s.*` identity, so no v2 is written, and the canonical state (services, operations, evidence, relations, drift claims and relationship count) still matches the frozen manifest. But the pinned oracle (`examples/runtime-demo/fixture-state.json` `total_node_count` and `check_fixture_state.py`, both in `examples/release-golden-path/SHA256SUMS`) counts every node in the database.
+
+**Decision.**
+1. **The default stays `false` in v0.6.0 I2.** It changes only at the next reviewed release-golden-path re-freeze. There, the oracle must deliberately account for the internal `ScopedEvidence*` operational nodes, either with a reviewed node-count update or by excluding them. The golden path must not be silently re-pinned.
+2. **Nothing else changes.** The conditional snapshot keys (D15) are live whatever the flag's value. A deployment that sets `enabled: true` gets the full, gated I2 behaviour. `config.yaml` documents the block, and `config.demo.yaml` stays unedited (D12.7).
+3. **Guard.** `tests/unit/test_demo_seed_has_no_scoped_identity.py` asserts that the frozen demo batch carries no `k8s.*` attribute. So enabling the flag can never move the demo's pinned `snapshot_id`, only its operational node count.
+
+**Traceability:** I2 §15 (I2.5 row: "flag flip") is re-scoped to I6's golden-path re-freeze. The I2 completion record (I2.6) must list this as deferred work.
+
 ## Traceability
 
 | I2 requirement | Decision |
@@ -250,3 +322,8 @@ No Kubernetes or architecture source revision is ever invented for telemetry.
 | §8.1 same-snapshot fence for scope changes | D5 item 4 |
 | §9 identity; §17.2, §17.5 | D9 |
 | §15 I2.1: record the I1 closure SHA | Header |
+| §15 I2.2: implementation details left to I2.2 | D12 |
+| §8.1, §13, §15 I2.3: applicability details left to I2.3 (CAP-AMB/CAP-CONF, phase collection, selector, roll-up reasons) | D13 |
+| §9, §10, §17.2/§17.5, D11: assertion/instance encodings, frozen vectors, grouping, qualification input, answer level | D14 |
+| §11 gate (b), D5: after-vector fixture, key condition, entry projections, read cost | D15 |
+| §15 I2.5 flag flip; D1 | D16 (deferred to the golden-path re-freeze) |

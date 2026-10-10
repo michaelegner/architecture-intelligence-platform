@@ -11,15 +11,15 @@ below runs alone and returns its own resolutions/claims.
 
 from __future__ import annotations
 
-import hashlib
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from app.architecture_intelligence.canonical_json import canonical_json_bytes
+from app.architecture_intelligence.canonical_json import canonical_digest, canonical_json_bytes
 from app.architecture_intelligence.contracts import (
     DEPLOYMENT_RECONCILIATION_RULE_ID,
+    DEPLOYMENT_RECONCILIATION_RULE_VERSION,
     DeploymentClaim,
     DeploymentPredicate,
     DeploymentResolution,
@@ -32,6 +32,7 @@ from app.architecture_intelligence.contracts import (
     WorkloadKind,
     WorkloadRef,
 )
+from app.common.rfc3339 import _parse_rfc3339
 from app.sources.identity import kubernetes_logical_resource_id
 from app.sources.service_workload_mapping import (
     ServiceWorkloadMappingDocument,
@@ -40,13 +41,11 @@ from app.sources.service_workload_mapping import (
 from app.telemetry.model import DiscoveryStatus
 from app.telemetry.service_resolver import DeclaredServiceCandidate, resolve_service
 
-_RECONCILIATION_RULE_VERSION = 1
-
 # I3 spec §11 / §8.1: the raw Kubernetes controller-kind string (matching I2's own
 # `InfrastructureEntity.resource_kind` convention) mapped onto the public, uppercase
 # `WorkloadKind` enum. No case folding or fuzzy matching - a `workload_kind` outside this map is a
 # real defect (I2 already restricts KUBERNETES_WORKLOAD promotion to exactly these three kinds).
-_WORKLOAD_KIND_BY_RAW = {
+WORKLOAD_KIND_BY_RAW = {
     "Deployment": WorkloadKind.DEPLOYMENT,
     "StatefulSet": WorkloadKind.STATEFULSET,
     "DaemonSet": WorkloadKind.DAEMONSET,
@@ -93,7 +92,7 @@ def compute_deployment_claim_id(*, service_id: str, workload_id: str) -> str:
         "service_id": service_id,
         "workload_id": workload_id,
     }
-    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    digest = canonical_digest(payload)
     return f"aip:claim:v1:{digest}"
 
 
@@ -152,7 +151,7 @@ def compute_deployment_resolution_id(
     context_id: str,
     group_key: str,
     reconciliation_rule_id: str = DEPLOYMENT_RECONCILIATION_RULE_ID,
-    reconciliation_rule_version: int = _RECONCILIATION_RULE_VERSION,
+    reconciliation_rule_version: int = DEPLOYMENT_RECONCILIATION_RULE_VERSION,
 ) -> str:
     """Spec §13.2's literal formula. The exact canonical-JSON key names hashed here are this
     module's own implementation choice (§13.2 states the formula in prose, not a schema) - only
@@ -165,7 +164,7 @@ def compute_deployment_resolution_id(
         "reconciliation_rule_id": reconciliation_rule_id,
         "reconciliation_rule_version": reconciliation_rule_version,
     }
-    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    digest = canonical_digest(payload)
     return f"aip:deployment-resolution:v1:{digest}"
 
 
@@ -183,7 +182,7 @@ def compute_service_workload_mapping_evidence_id(
         "content_digest": content_digest,
         "mapping_id": mapping_id,
     }
-    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    digest = canonical_digest(payload)
     return f"urn:aip:service-workload-mapping-evidence:v1:{digest}"
 
 
@@ -192,7 +191,7 @@ def _workload_ref(workload: CurrentKubernetesWorkload) -> WorkloadRef:
         id=workload.workload_id,
         type=EntityType.WORKLOAD,
         name=workload.name,
-        workload_kind=_WORKLOAD_KIND_BY_RAW[workload.workload_kind],
+        workload_kind=WORKLOAD_KIND_BY_RAW[workload.workload_kind],
         namespace=workload.namespace,
     )
 
@@ -214,7 +213,7 @@ def _resolved_claim(
         resolution_method=method,
         supporting_methods=[method],
         reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-        reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+        reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
         evidence_refs=evidence_refs,
     )
 
@@ -261,7 +260,7 @@ def resolve_path_a(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_CONFLICT],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
             continue
@@ -290,7 +289,7 @@ def resolve_path_a(
                     limitation_codes=[],
                     claim_id=claim.claim_id,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
         else:
@@ -307,7 +306,7 @@ def resolve_path_a(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_UNRESOLVED],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
 
@@ -415,7 +414,7 @@ def resolve_path_b(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_CONFLICT],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
             continue
@@ -444,7 +443,7 @@ def resolve_path_b(
                     limitation_codes=[],
                     claim_id=claim.claim_id,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
         else:
@@ -461,7 +460,7 @@ def resolve_path_b(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_UNRESOLVED],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
 
@@ -490,7 +489,7 @@ def resolve_path_b(
                 limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_UNRESOLVED],
                 claim_id=None,
                 reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
             )
         )
 
@@ -573,26 +572,11 @@ class DeclaredServiceIdentity:
 
 # spec §9.6: "k8s.deployment.name -> if resolved Workload kind = Deployment, exact equality with
 # Workload name; otherwise contradictory" (repeated identically for StatefulSet/DaemonSet).
-_WORKLOAD_KIND_CONSISTENCY_ATTR = {
+WORKLOAD_KIND_CONSISTENCY_ATTR = {
     WorkloadKind.DEPLOYMENT: "k8s_deployment_name",
     WorkloadKind.STATEFULSET: "k8s_statefulset_name",
     WorkloadKind.DAEMONSET: "k8s_daemonset_name",
 }
-
-
-def _parse_rfc3339(value: str | None) -> datetime | None:
-    """No RFC 3339 parser already exists elsewhere in this codebase for this purpose - small and
-    local. `None` for a missing or unparsable value; the caller treats both as "absent" (spec
-    §9.7's `capturedAt`-absent case)."""
-    if value is None:
-        return None
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        return None
-    return parsed
 
 
 def _resolve_declared_service_id(
@@ -659,8 +643,8 @@ def _consistency_attributes_agree(
         return False
     if obs.k8s_pod_name is not None and obs.k8s_pod_name != pod.pod_name:
         return False
-    resolved_kind = _WORKLOAD_KIND_BY_RAW[workload.workload_kind]
-    for kind, attr_name in _WORKLOAD_KIND_CONSISTENCY_ATTR.items():
+    resolved_kind = WORKLOAD_KIND_BY_RAW[workload.workload_kind]
+    for kind, attr_name in WORKLOAD_KIND_CONSISTENCY_ATTR.items():
         value = getattr(obs, attr_name)
         if value is None:
             continue
@@ -746,7 +730,7 @@ def _standalone_otel_resolution(
         limitation_codes=[limitation_code],
         claim_id=None,
         reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-        reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+        reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
     )
 
 
@@ -988,7 +972,7 @@ def resolve_path_c(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_CONFLICT],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
             continue
@@ -1016,7 +1000,7 @@ def resolve_path_c(
                     limitation_codes=[LimitationCode.DEPLOYMENT_IDENTITY_AMBIGUOUS],
                     claim_id=None,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
             continue
@@ -1047,7 +1031,7 @@ def resolve_path_c(
                     limitation_codes=[],
                     claim_id=claim.claim_id,
                     reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                    reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                    reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
                 )
             )
             continue
@@ -1072,7 +1056,7 @@ def resolve_path_c(
                 limitation_codes=limitation_codes,
                 claim_id=None,
                 reconciliation_rule_id=DEPLOYMENT_RECONCILIATION_RULE_ID,
-                reconciliation_rule_version=_RECONCILIATION_RULE_VERSION,
+                reconciliation_rule_version=DEPLOYMENT_RECONCILIATION_RULE_VERSION,
             )
         )
 
