@@ -9,6 +9,42 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-10-09
+
+### v0.6.2 — Live AIP Demo on Pitstop
+
+See the [release notes](docs/release-validation/v0.6.2-release-notes.md) and the
+[specification](docs/specifications/0.6.2/specification.md).
+
+### Added
+
+- **Pitstop demo** (`examples/pitstop-demo/`), a second real system (a .NET garage-management sample on
+  RabbitMQ): one command (`run.sh`) replays an authored, frozen observation window; `run.sh --live` runs the
+  instrumented Pitstop fork, a Collector and a traffic generator against AIP (it needs the private fork and is not run
+  in CI); a question-by-question walkthrough; a recorded Claude Code conversation; input provenance. The canonical
+  demo is a hosted, continuously running instance queried for a completed UTC day (operated by the demo owner, behind
+  a token-gated MCP URL; not part of the repository).
+- **Claude Code plugin** `aip` (`examples/pitstop-demo/claude/plugin`): an `architecture-aware-development` skill and a
+  read-only `/aip:inspect` skill over the existing AIP tools; `AIP_MCP_URL` and `AIP_MCP_TOKEN` point it at a
+  token-gated instance.
+- **Optional Claude Code mod** `aip-mod` (`examples/pitstop-demo/claude/mod`): a band above the prompt and an evidence
+  pane that show the last AIP answer next to the agent's plan (receivers, observed or declared-only routes, unresolved
+  destinations apart, snapshot id, limitations). It only reads tool results.
+
+### Changed
+
+- **Observed Pub/Sub evidence is receiver-safe and window-correct (I0).** A consumer span is accepted as
+  `RECEIVES_FROM` evidence only when the observing Service has a declared route to that Subscription, and
+  `resolution_evidence_refs` (and whether a destination counts as evidenced) respect the observation context's
+  environment and window, so the claims of a completed whole-UTC-day window no longer change under later evidence.
+- Product version 0.6.2.
+
+### Not changed
+
+- No new entity kind, relation, claim type, source family, schema or MCP tool: exactly the four existing tools,
+  `schemas/import/v0.5/*` and the v0.5 and v0.6 answer schemas are untouched. AIP still holds no payload or
+  field-level knowledge: which receiver reads a field stays outside AIP.
+
 ## [0.6.1] - 2026-10-06
 
 ### v0.6.1 — Broker Semantic Completion

@@ -90,8 +90,29 @@ def test_manifest_names_the_plugin_aip_and_the_url_run_sh_prints():
     [aip_url] = re.findall(r'^AIP_URL="([^"]+)"', run_sh, re.MULTILINE)
     assert option["default"] == f"{aip_url}/mcp"
 
+    # Spike 2026-10-08: `claude plugin configure` cannot target a `--plugin-dir` plugin, so no plugin setting (and no
+    # sensitive `userConfig` token) can be set for it. The only userConfig option stays the URL (asserted by the
+    # single-entry unpack above, with its localhost default); the hosted instance is reached through two environment
+    # variables: AIP_MCP_URL overrides the URL, AIP_MCP_TOKEN is the bearer token. Unset, the localhost demo is unchanged.
     servers = json.loads((PLUGIN / ".mcp.json").read_text())["mcpServers"]
-    assert servers == {"aip": {"type": "http", "url": "${user_config.aip_mcp_url}"}}
+    assert servers == {
+        "aip": {
+            "type": "http",
+            "url": "${AIP_MCP_URL:-${user_config.aip_mcp_url}}",
+            "headers": {"Authorization": "Bearer ${AIP_MCP_TOKEN:-}"},
+        }
+    }
+
+
+def test_no_plugin_file_holds_a_token_value():
+    """The bearer token is a variable reference only: nothing secret-looking is committed in the plugin."""
+    for path in PLUGIN.rglob("*"):
+        if not path.is_file():
+            continue
+        text = path.read_text()
+        for match in re.finditer(r"Bearer\s+(\S+)", text):
+            assert match.group(1).rstrip('",') == "${AIP_MCP_TOKEN:-}", (path.name, match.group(0))
+        assert not re.search(r"[0-9a-f]{32,}", text), path.name
 
 
 def test_both_skills_grant_exactly_the_three_read_only_aip_tools_and_nothing_else():
@@ -206,3 +227,27 @@ def test_readme_documents_how_to_load_the_plugin():
     assert "claude --plugin-dir examples/pitstop-demo/claude/plugin" in readme
     assert "/aip:inspect" in readme
     assert "plugin:aip:aip" in readme
+    assert "export AIP_MCP_URL=" in readme
+    assert "export AIP_MCP_TOKEN=" in readme
+    # a standalone server with the same URL makes Claude Code suppress the plugin's server (spike 2026-10-08)
+    assert "standalone `aip` MCP server" in readme
+    assert "suppresses" in readme
+
+
+def test_skills_state_the_inclusive_whole_day_window_and_never_guess_why_a_day_is_empty():
+    """I4: a whole UTC day runs from T00:00:00Z through T23:59:59Z of its last day (observed evidence is matched against
+    an inclusive window, so the next day's T00:00:00Z is not an equivalent end); an all-NOT_OBSERVED answer is
+    explained only as 'no publisher span in that window', never with a guessed cause."""
+    for path in (DEVELOPMENT, INSPECT):
+        text = " ".join(path.read_text().split())
+        assert "from `T00:00:00Z` through `T23:59:59Z` of the last day" in text, path.name
+        assert "inclusive" in text, path.name
+        assert (
+            "never end it at the next day's `T00:00:00Z`" in text
+            or "do not end it at the next day's `T00:00:00Z`" in text
+        )
+        assert "both are the same day" not in text and "the same claims" not in text, path.name
+    inspect = INSPECT.read_text()
+    assert "`NOT_OBSERVED_IN_WINDOW` with coverage `NONE`" in inspect
+    assert "AIP saw no publisher span" in inspect
+    assert "do not guess why" in inspect

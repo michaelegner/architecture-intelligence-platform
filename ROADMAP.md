@@ -442,7 +442,10 @@ Exit capability:
 > **AIP can establish which messaging infrastructure a service is evidenced to use and state how far
 > that relationship can be resolved without inventing richer messaging semantics.**
 
-## v0.6.2 — Live AIP Demo (planned)
+## v0.6.2 — Live AIP Demo (shipped)
+
+Published **v0.6.2 on 2026-10-09**; terminal outcome **SHIPPED_VERIFIED**. See the
+[release record](docs/release-validation/v0.6.2-release-record.md).
 
 **Goal: Make the existing v0.6 Current-State and messaging knowledge tangible in a realistic,
 hosted product demo.**
