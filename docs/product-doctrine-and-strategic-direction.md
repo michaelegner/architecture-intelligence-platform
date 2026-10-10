@@ -4,7 +4,7 @@
 **Project:** Architecture Intelligence Platform (AIP)<br>
 **Date:** 2026-09-21<br>
 **Roadmap-alignment revision:** 2026-09-29<br>
-**Product-positioning revision:** 2026-09-29 — agent-ready architectural Context Engineering<br>
+**Product-positioning revision:** 2026-10-10 — bounded-change brownfield wedge for AI-assisted development<br>
 **Scope:** Product doctrine, target wedge, semantic model, Moldable Architecture Knowledge, strategic direction, and roadmap alignment<br>
 **Current implementation center:** Evidence-qualified Current State and read-only agent context; v0.5 broadens discovery and public Architecture Knowledge access<br>
 **Important:** ROADMAP.md assigns planned themes to v0.6–v0.9; detailed scope remains subject to release-specific specifications and qualification gates.
@@ -19,7 +19,7 @@ AIP's overarching mission is:
 
 AIP's customer value proposition is:
 
-> **Help coding agents work across multi-service systems without reconstructing architecture.**
+> **Help coding agents make bounded changes across multi-service systems without reconstructing architecture for every task.**
 
 The customer problem is **agent-ready architectural context**. A repository of code alone cannot
 reliably provide the operational and architectural knowledge required to change multi-service
@@ -69,8 +69,8 @@ The strategic hierarchy is:
 
 ```text
 CUSTOMER VALUE PROPOSITION
-Help coding agents work across multi-service systems
-without reconstructing architecture
+Help coding agents make bounded changes across multi-service systems
+without reconstructing architecture for every task
         ↓
 PRODUCT CONCEPT
 Moldable Architecture Knowledge
@@ -334,8 +334,17 @@ The initial product audience should remain explicit enough to prioritize work.
 
 ### Primary user
 
-> **Platform engineering and architecture teams enabling coding agents to change multi-service
-> systems.**
+> **Platform engineering and architecture teams enabling coding agents to change existing,
+> multi-service systems.**
+
+The initial wedge is **brownfield AI-assisted change**: systems where relevant architecture knowledge
+is already fragmented across repositories, configuration, runtime evidence, documentation, and
+people. The pain is strongest there because a coding agent can change code faster than it can safely
+reconstruct the surrounding architecture for every task.
+
+Brownfield is an adoption wedge, not the product boundary. Greenfield systems can establish the same
+evidence-qualified Architecture Knowledge earlier and preserve it as the system evolves; the initial
+focus is simply where reusable context has the clearest marginal value.
 
 These teams need to let agents work across service boundaries without forcing the agent to
 reconstruct architecture from source code, documentation, naming conventions, stale diagrams, or
@@ -366,9 +375,9 @@ These remain secondary until the primary workflow is validated.
 
 The first high-value workflow remains:
 
-> **Before a coding agent changes a service, provide bounded, evidence-qualified dependency context;
-> after the change is deployed or otherwise observable, independently establish the resulting
-> architecture state again.**
+> **Before a coding agent makes a bounded change, provide the evidence-qualified architecture context
+> needed to identify what must be inspected; after the change is deployed or otherwise observable,
+> independently establish the resulting architecture state again.**
 
 This is a question-specific context workflow: *What should be inspected before editing this
 service?* An AIP answer must expose supported relationships, evidence, snapshot/observation
@@ -376,23 +385,35 @@ context and limits. An authoring agent and an independent reviewing agent can co
 premises, but review findings, policy judgments and decisions do not thereby become AIP
 Architecture Knowledge.
 
+The wedge is deliberately **change-centric, not documentation-centric**. AIP's reusable output is the
+architecture context that helps an agent bound the next change; it is not a requirement to build or
+maintain a complete architecture twin before useful work can begin.
+
 Conceptually:
 
 ```text
-Engineering task
+Bounded change request
      ↓
-Agent identifies affected service(s)
+AIP: establish relevant architecture context
      ↓
-AIP: dependency / drift / evidence context
+Agent identifies what must be inspected
      ↓
 Agent plans and changes software
      ↓
-Tests / deployment / runtime evidence
+Deterministic engineering verification
+(tests / build / static analysis / contract checks)
      ↓
-AIP reconstructs current architecture state
+Deployment / runtime evidence
+     ↓
+AIP independently re-establishes architecture state
      ↓
 Architect / agent inspects what is now established
 ```
+
+AIP owns the **reusable, evidence-qualified architecture context** and deterministic architecture
+projections in this loop. It does not own the coding agent or the implementation-verification
+toolchain. Tests, builds, static analysis, contract checks, and similar deterministic engineering
+tools remain complementary mechanisms rather than AIP responsibilities.
 
 AIP does **not** claim that the agent caused the resulting state merely because the state changed
 after the agent's work.
@@ -530,10 +551,13 @@ The current hypotheses are:
     become Architecture Knowledge.**
 11. **Let REST, MCP, and external moldable tools consume the same semantic knowledge without
     duplicating qualification logic.**
-12. **Reduce repeated manual cross-source investigation and dependence on individual experts for
-    recurring architecture questions, without concealing unresolved evidence.**
+12. **Reduce repeated manual cross-source investigation across change tasks and agent sessions, and
+    reduce dependence on individual experts for recurring architecture questions, without concealing
+    unresolved evidence.**
 13. **Enable authors and independent reviewers to inspect the same qualified architecture premises
     without treating either agent's review judgment as an established architecture fact.**
+14. **Surface cross-service relationships that materially change what must be inspected before a
+    bounded change, while keeping unresolved impact outside the supported claim set.**
 
 These are hypotheses to validate, not claims that AIP has already demonstrated these business
 outcomes.
@@ -593,8 +617,10 @@ For pilot users, measure:
 
 ```text
 time to answer "what does this service depend on?"
+time to identify what must be inspected before a bounded change
 time spent reconstructing architecture during review
 repeated cross-source searches and expert clarification for the same architecture question
+reuse of established architecture context across change tasks and agent sessions
 author/reviewer ability to resolve the same evidence and understand unresolved limitations
 unsupported assumptions surfaced before implementation
 post-change discrepancies surfaced independently
