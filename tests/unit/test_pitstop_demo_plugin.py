@@ -247,6 +247,13 @@ def test_readme_documents_how_to_load_the_plugin():
     assert "claude plugin install aip@aip-plugins" in readme
     assert "claude plugin configure aip@aip-plugins --values-stdin" in readme
     assert "mode-600 credentials file" in readme and "not verified" in readme
+    # the testers' getting-started path: the public Pitstop clone at the demo's pin, the install and the question
+    assert "## Getting started for testers (hosted instance)" in readme
+    assert "git clone https://github.com/EdwinVW/pitstop.git" in readme
+    assert "git checkout 306b5fbd0febceb6b0d0706f152a0520ca1a993a" in readme
+    assert "<YYYY-MM-DD>T00:00:00Z to <YYYY-MM-DD>T23:59:59Z" in readme
+    # the hosted instance's host name is withheld by owner decision: no concrete host or token in the README
+    assert not re.search(r"sslip\.io|https?://[^\s)]*\.(?:org|com|net|dev|io)/mcp", readme)
 
 
 def test_skills_state_the_inclusive_whole_day_window_and_never_guess_why_a_day_is_empty():
