@@ -84,3 +84,7 @@ tmp/
 
 # Hypothesis example database (local only)
 .hypothesis/
+
+# v0.6.2 Pitstop mod: files Claude Code writes into the mod folder when it loads it (editor types and tsconfig)
+/examples/pitstop-demo/claude/mod/.claude-plugin/types/
+/examples/pitstop-demo/claude/mod/tsconfig.json

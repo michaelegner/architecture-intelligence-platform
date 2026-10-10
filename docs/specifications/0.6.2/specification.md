@@ -1,6 +1,6 @@
 # AIP v0.6.2 — Realistic Messaging Demo: Pitstop
 
-**Status:** Draft (2026-10-07), amended 2026-10-07 after the I1 gate spike ([`i1-spike-finding.md`](i1-spike-finding.md), #460)  
+**Status:** Released in [`v0.6.2`](../../release-validation/v0.6.2-release-record.md) (2026-10-09)  
 **Target:** `v0.6.2`  
 **Baseline:** Published and post-release-verified `v0.6.1`  
 **Scope authority:** [ROADMAP.md — v0.6.2](../../../ROADMAP.md) (this release is a demo release like v0.5.1, not a capability release)
@@ -144,12 +144,12 @@ Location: `examples/pitstop-demo/claude/`. These show how a coding agent consume
 ```
 claude/plugin/
   .claude-plugin/plugin.json
-  .mcp.json                      -> the AIP MCP URL printed by run.sh, via the `aip_mcp_url` plugin setting
+  .mcp.json                      -> the AIP MCP URL printed by run.sh, via the `aip_mcp_url` plugin setting; the `AIP_MCP_URL` environment variable overrides it and `AIP_MCP_TOKEN` supplies an optional bearer token for a token-gated (hosted) URL
   skills/architecture-aware-development/SKILL.md
   skills/inspect/SKILL.md        -> /aip:inspect (plugin name `aip`)
 ```
 
-The plugin is `aip` and loads with `claude --plugin-dir`. `/aip:inspect` is a skill, not a `commands/` file: Claude Code's current plugin documentation treats `commands/` as the older format (amended 2026-10-07, I1b-1).
+The plugin is `aip` and loads with `claude --plugin-dir`. `/aip:inspect` is a skill, not a `commands/` file: Claude Code's current plugin documentation treats `commands/` as the older format (amended 2026-10-07, I1b-1). Amended 2026-10-08: `claude plugin configure` cannot target a `--plugin-dir` plugin, so the hosted, token-gated URL is reached through the `AIP_MCP_URL` and `AIP_MCP_TOKEN` environment variables (the token is never a plugin setting and never in the repository); with both unset the plugin behaves as before and the local demo needs no credentials. How the hosted token is issued stays an owner-owned hosting concern (§4.3).
 
 **Skill `architecture-aware-development`.** Triggers on tasks that change an event, message contract, shared data, deployment or service boundary. It instructs the agent to:
 
@@ -165,24 +165,25 @@ The plugin is `aip` and loads with `claude --plugin-dir`. `/aip:inspect` is a sk
 
 ```
 claude/mod/
-  .claude-plugin/plugin.json     (types: ./types/index.d.ts)
+  .claude-plugin/plugin.json     (name `aip-mod`, types: ./types/index.d.ts)
   hooks/hooks.json               { "modules": ["./register.tsx"] }
   hooks/register.tsx
-  hooks/judge.test.ts
+  hooks/logic.ts                 (pure: reads one get_service_dependencies answer)
+  hooks/pane.test.ts             (run by `claude plugin test`)
   types/index.d.ts
 ```
 
+Amended 2026-10-09 after a spike and an interactive check on Claude Code 2.1.294/295 (the mod API is typed per Claude Code build; the build it was tested on is stated in the demo README). The mod only **reads** the result of the plugin's AIP tools and shows it next to the agent's plan; it never changes a prompt, a plan, a tool call or a tool result, and a failure in it leaves the session as it would be without it.
+
 | Element | API | Behaviour |
 |---|---|---|
-| Relevance judge | `on('prompt.submit')` + `$.model.complete` (one `haiku` call) | Typed `{ relevant, reason }`. Relevant: append one line to the prompt telling the agent to use the skill and the AIP tools. Not relevant, failure or timeout: pass through unchanged. Never blocks |
-| Band above the prompt | `ui.render` on `AbovePrompt` | Quiet by default; "AIP: relevant, <reason>" after a verdict; "consulting AIP" while tools run; a summary line from the last answer |
-| Evidence pane | `$.ui.open` + `ui.render` on `Pane` | Claims table: Service/Subscription, qualification, limitation, evidence ref, snapshot id. Opened by `/aip:inspect` or a button, never unasked |
-| Status / toast | `$.ui.status`, `$.ui.toast` | One line each |
-| Reading answers | `on('tool.call', { tool: 'mcp__aip__*' })` | After `next(e)`, read only fields the released v0.6 schemas define (claims, qualification, limitations, evidence refs, snapshot id). **To confirm:** the shape of an MCP result inside a mod; fallback: the pane is fed by `/aip:inspect` only |
+| Reading answers | `on('tool.call', { tool: /^mcp__plugin_aip_aip__/ })` + `.catch` | The tool matcher takes a RegExp, not a glob, and the plugin's tools are `mcp__plugin_aip_aip__*`. After `await next(e)` the answer is the result's `text` (a JSON document). Only a `get_service_dependencies` answer with outcome `ANSWERED` is read, and only fields the released v0.6 schemas define; a later result that is not such an answer keeps the last good summary. |
+| Band above the prompt | `ui.render` on `AbovePrompt` | Quiet until an answer exists; "AIP: consulting" while an AIP tool runs; then one summary line (receivers, unresolved destinations when there are any, snapshot id, limitations) and an **Evidence** button |
+| Evidence pane | `$.ui.open` + `ui.render` on `Pane` | One row per **receiver** (a claim with `destination_resolution` `RESOLVED_SERVICE`): receiver, queue (`delivery.subscription`), the publisher's qualification and coverage, and whether the route carries observed evidence (from `resolution_evidence_refs`, otherwise "declared only"). A `DIRECT_TARGET_FALLBACK` claim names the unresolved destination itself (a Topic, Queue or Operation), so it is neither counted nor drawn as a receiver: it is listed apart under "Unresolved destinations". A footer with the snapshot id and the limitations. Opened **only** by the Evidence button or the `/aip-evidence` command (the person's own action seats the pane at any terminal width; an open triggered by a hook, for example from `/aip:inspect`, did not open it interactively and is not used). |
 
-The mod and the judge are optional and may ship after 0.6.2 without a new release gate. Without them the skill alone must still produce the Evidence section. If the mod is built, keep it minimal: judge, band and the `/aip:inspect` pane first; the status line, toast and automatic tool-result reading only after the rest works.
+Not built, by decision: the relevance judge, the status line and the toast. Measured on 2026-10-09 (23 prompts, the §1 task and variations): the plugin skill alone consulted AIP on 18 of 19 relevant runs (the miss consulted on all 5 reruns) and on 0 of 22 irrelevant runs; a `haiku` judge on `prompt.submit` added about 1.3 s per prompt (p90 2.3 s), flagged the irrelevant "fix the `hh` format of the invoice id" prompt on every run, and made the agent consult AIP on it (2 of 3 runs, against 0 of 3 without the judge). The former judge test set ("9 of 9 on two runs") is therefore withdrawn.
 
-**Judge test set.** Relevant: the §1 task; rename `MaintenanceJobFinished`; add retry to event publishing; add or delete customer data. Not relevant: rename a private method inside `WorkshopPlanning`; add a unit test for `MaintenanceJobRules`; fix a typo in the reminder e-mail; change the hourly rate constant; fix the `hh` format of the invoice id. Accept 9 of 9 on two runs.
+The mod is optional and non-blocking: without it the skill alone produces the Evidence section and no AIP answer changes. It loads together with the plugin as a second plugin (`claude --plugin-dir examples/pitstop-demo/claude` loads both). `claude plugin validate` and `claude plugin test` check it by hand: CI has no Claude Code CLI, so CI checks the mod's files, matcher and the schema fields it reads.
 
 ## 7. I4 — Sanity check and lightweight release
 

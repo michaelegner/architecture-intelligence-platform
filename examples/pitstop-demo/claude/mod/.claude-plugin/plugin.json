@@ -1,0 +1,10 @@
+{
+  "name": "aip-mod",
+  "version": "0.6.2",
+  "description": "Optional AIP evidence band and pane for the Pitstop demo: shows the last AIP answer next to the agent's plan (reads tool results only, never changes a prompt, plan or tool result)",
+  "author": {
+    "name": "Architecture Intelligence Platform"
+  },
+  "license": "Apache-2.0",
+  "types": "./types/index.d.ts"
+}

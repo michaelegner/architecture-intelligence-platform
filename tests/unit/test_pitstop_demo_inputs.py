@@ -166,6 +166,13 @@ def test_provenance_pins_both_revisions_and_states_the_boundaries():
         assert sentence in text, sentence
 
 
+def _is_mod_generated(path: Path) -> bool:
+    """Exactly what Claude Code writes into `claude/mod/` when it loads the mod (editor types and a tsconfig that
+    extends them; both are git-ignored). Nothing else under the mod is excluded."""
+    mod = DEMO_DIR / "claude" / "mod"
+    return path == mod / "tsconfig.json" or (mod / ".claude-plugin" / "types") in path.parents
+
+
 def test_pitstop_demo_files_are_pinned_and_invisible_to_the_demo_import():
     """The `demo` phase mounts all of `examples/`, so every demo file is pinned in SHA256SUMS. The
     discoverer only enumerates `<root>/<subdir>/<candidate>`, so no candidate filename sits at that
@@ -173,7 +180,7 @@ def test_pitstop_demo_files_are_pinned_and_invisible_to_the_demo_import():
     on_disk = {
         p.relative_to(REPO).as_posix()
         for p in DEMO_DIR.rglob("*")
-        if p.is_file() and "__pycache__" not in p.parts
+        if p.is_file() and "__pycache__" not in p.parts and not _is_mod_generated(p)
     }
     pinned = {path for path in _sums() if path.startswith("examples/pitstop-demo/")}
     assert pinned == on_disk

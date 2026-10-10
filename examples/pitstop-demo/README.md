@@ -50,9 +50,25 @@ AIP behaviour, and removing it changes no answer.
 claude --plugin-dir examples/pitstop-demo/claude/plugin
 ```
 
-- `/mcp` shows the server as `plugin:aip:aip` with the four tools. It reads the MCP URL from the plugin's
-  `aip_mcp_url` setting, default `http://localhost:8000/mcp`, the URL `run.sh` prints; change it to point at
-  another AIP instance.
+- `/mcp` shows the server as `plugin:aip:aip` with the four tools. By default it uses the plugin's
+  `aip_mcp_url` setting, `http://localhost:8000/mcp`, the URL `run.sh` prints; the local demo needs no
+  credentials.
+- **Hosted instance (token-gated):** export two environment variables before starting Claude Code. The plugin
+  reads them at start and nothing is stored in a file:
+
+  ```bash
+  export AIP_MCP_URL=https://<hosted-host>/mcp      # overrides the localhost default
+  export AIP_MCP_TOKEN=<token from the operator>    # sent as "Authorization: Bearer <token>"
+  claude --plugin-dir examples/pitstop-demo/claude/plugin
+  ```
+
+  The token is a secret the operator gives you: never commit it or paste it into a prompt. With
+  `AIP_MCP_TOKEN` unset the plugin sends an empty `Bearer` header, which the unauthenticated local demo ignores.
+  A plugin loaded with `--plugin-dir` has no way to set a plugin setting, which is why these are environment
+  variables and not a `userConfig` token.
+
+  Remove any standalone `aip` MCP server that points at the same URL (`claude mcp remove aip`): Claude Code then
+  suppresses the plugin's server as a duplicate, with no error, and the skills find no AIP tools.
 - The **`architecture-aware-development`** skill triggers on a task that changes an event, a message contract,
   shared data, a deployment or a service boundary. It asks the publishing service, resolves the evidence with
   the bounded drill-down, and puts an **Evidence** section into the plan: the receivers, the publisher's
@@ -65,6 +81,33 @@ claude --plugin-dir examples/pitstop-demo/claude/plugin
   run commands; reading and searching the repository stays available. Claude Code applies that restriction for
   the turn in which the skill is invoked and clears it on the next user message, and `allowed-tools` alone does
   not restrict anything. Give the agent the observation context from `.aip-pitstop-demo/prompt.txt`.
+
+### Optional mod: AIP evidence next to the plan
+
+A second, optional plugin (`claude/mod`, spec §6.2) shows AIP's current answer beside the agent's plan. It only
+reads the results of the plugin's AIP tools: it never changes a prompt, a plan or a tool result, and without it
+nothing else changes. It is example client material.
+
+```bash
+claude --plugin-dir examples/pitstop-demo/claude        # loads claude/plugin and claude/mod, one flag
+```
+
+- Above the prompt a quiet line shows `AIP: consulting` while an AIP tool runs, then
+  `AIP: <n> receivers, snapshot <id>, limitations <n>` with an **Evidence** button.
+- The **Evidence** button, or the `/aip-evidence` command, opens a pane with one row per receiver
+  (`receiver / queue: qualification, observed or declared only`), a separate list of unresolved destinations when AIP
+  returned any (a `DIRECT_TARGET_FALLBACK` is never shown or counted as a receiver), and the snapshot id and limitations. These are
+  AIP's facts as returned, next to the agent's own plan, for example a route that only has declared evidence.
+  Only your own action opens the pane: it does not open by itself (for example from `/aip:inspect`), and below 144
+  terminal columns it still opens from the button.
+- The hosted instance works the same way: set `AIP_MCP_URL` and `AIP_MCP_TOKEN` as above and remove any standalone
+  `aip` MCP server first. Keep only `plugin/` and `mod/` directly under `claude/`: every plugin found there loads.
+- The mod uses Claude Code's typed mod API, so it is tied to the Claude Code build: it was tested with 2.1.294 and
+  2.1.295. `claude plugin validate examples/pitstop-demo/claude/mod` and
+  `claude plugin test examples/pitstop-demo/claude/mod` check it by hand (CI has no Claude Code CLI; CI checks
+  the files, the tool matcher and the answer fields the mod reads).
+  Loading the mod makes Claude Code write editor type files (`claude/mod/.claude-plugin/types/` and
+  `claude/mod/tsconfig.json`) into its folder; both are git-ignored and are not part of the demo.
 
 ## Ask the questions
 

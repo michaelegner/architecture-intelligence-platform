@@ -10,7 +10,7 @@
     "aip_mcp_url": {
       "type": "string",
       "title": "AIP MCP URL",
-      "description": "The AIP MCP endpoint run.sh prints. Change it to point at another AIP instance.",
+      "description": "The AIP MCP endpoint run.sh prints. The AIP_MCP_URL environment variable overrides it; set it, and AIP_MCP_TOKEN for a token-gated instance, to use the hosted instance.",
       "default": "http://localhost:8000/mcp"
     }
   }
