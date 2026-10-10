@@ -159,6 +159,10 @@ See [`adapter-development.md`](adapter-development.md) for the extension point a
 to fit — what it must produce (an `ArchitectureModel` for a declared source, an `ObservationBatch`
 for a runtime source) rather than a specific class hierarchy to inherit from.
 
+## Architecture terms
+
+See the [architecture glossary](glossary.md) for a concise index of existing concepts and their canonical references.
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](../CONTRIBUTING.md) for the full contribution workflow, including how to

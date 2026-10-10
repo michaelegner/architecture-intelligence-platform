@@ -60,7 +60,7 @@ services:
       start_interval: 1s
 
   otel-collector:
-    image: otel/opentelemetry-collector:0.161.0-386@sha256:ef477727d76320c53fa5c3eab269d98468bbe471173b93828b8032090df42de1
+    image: otel/opentelemetry-collector:0.162.0@sha256:310a800ad69ee430e7c541796852a242c9c7db97aaad4daa5ccf843c525fbdb2
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./examples/runtime-demo/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro

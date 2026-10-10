@@ -164,8 +164,11 @@ examples/pitstop-demo/run.sh
 Ask the publisher: AIP resolves five receivers of the fanout exchange through their named queues, one of
 which (`ReportingService`) no Pitstop document lists, with their evidence and the publisher's qualification.
 It states, rather than hides, that it holds no payload or field-level knowledge, so which receiver reads
-`StartTime` is what you must still inspect. The local replay is the reproducible mode; the hosted live
-instance follows in a later increment.
+`StartTime` is what you must still inspect. The local replay is the reproducible mode. The canonical demo is a
+continuously running, instrumented Pitstop feeding a hosted AIP instance, queried for a completed UTC day (the
+local `--live` mode needs the private instrumented fork; the hosted instance is operated by the demo owner and
+reached over a token-gated MCP URL). An optional Claude Code plugin (and an optional mod that shows AIP's
+answer next to the agent's plan) is described in the demo README.
 
 [Demo README](examples/pitstop-demo/README.md) ·
 [question-by-question walkthrough](examples/pitstop-demo/walkthrough.md) ·
@@ -539,12 +542,12 @@ public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 ## Project Status
 
 Latest release:
-[`v0.6.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.6.1)
-— **Broker Semantic Completion**.
+[`v0.6.2`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.6.2)
+— **Live AIP Demo on Pitstop**.
 
 Pre-1.0: the REST/MCP surface, Graph Schema, Canonical Model, Adapter SPI and configuration format
 may still change on a minor version bump. Every release ships a published-artifact verification —
-[`docs/release-validation/v0.6.1-release-record.md`](docs/release-validation/v0.6.1-release-record.md)
+[`docs/release-validation/v0.6.2-release-record.md`](docs/release-validation/v0.6.2-release-record.md)
 is the most recent. See [`CHANGELOG.md`](CHANGELOG.md) for what shipped in each release and
 [`ROADMAP.md`](ROADMAP.md) for what's next.
 
