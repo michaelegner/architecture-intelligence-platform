@@ -65,7 +65,8 @@ claude --plugin-dir examples/pitstop-demo/claude/plugin
   The token is a secret the operator gives you: never commit it or paste it into a prompt. With
   `AIP_MCP_TOKEN` unset the plugin sends an empty `Bearer` header, which the unauthenticated local demo ignores.
   A plugin loaded with `--plugin-dir` has no way to set a plugin setting, which is why these are environment
-  variables and not a `userConfig` token.
+  variables there. An **installed** plugin has its own settings for the URL and the token (see "Install from the
+  marketplace" below).
 
   Remove any standalone `aip` MCP server that points at the same URL (`claude mcp remove aip`): Claude Code then
   suppresses the plugin's server as a duplicate, with no error, and the skills find no AIP tools.
@@ -81,6 +82,37 @@ claude --plugin-dir examples/pitstop-demo/claude/plugin
   run commands; reading and searching the repository stays available. Claude Code applies that restriction for
   the turn in which the skill is invoked and clears it on the next user message, and `allowed-tools` alone does
   not restrict anything. Give the agent the observation context from `.aip-pitstop-demo/prompt.txt`.
+
+### Install from the marketplace (optional)
+
+The repository is also a Claude Code marketplace (`.claude-plugin/marketplace.json`, name `aip-plugins`) that lists the
+plugin `aip` and the optional mod `aip-mod`, so they can be installed without a clone or a path flag. This is example
+client material for this demo, not a supported general AIP client.
+
+```bash
+claude plugin marketplace add michaelegner/architecture-intelligence-platform
+claude plugin install aip@aip-plugins
+claude plugin install aip-mod@aip-plugins        # optional
+```
+
+Inside a session, `/plugin install aip --marketplace michaelegner/architecture-intelligence-platform` does both steps
+(Claude Code 2.1.275 or later); `claude plugin install aip --marketplace …` from the shell needs 2.1.292 or later.
+
+- **Settings.** An installed plugin has two settings: `aip_mcp_url` (default `http://localhost:8000/mcp`, the local
+  demo) and `aip_token` (empty by default; the local demo needs none). Set them with `/plugin configure aip@aip-plugins`
+  in Claude Code, or from a shell with `claude plugin configure aip@aip-plugins --values-stdin` (a JSON object on
+  stdin). The token is marked sensitive: Claude Code stores it outside the normal settings file. On Linux this was
+  observed to be a mode-600 credentials file; other platforms were not verified, so do not assume more than that.
+  A value set to the empty string does not clear a stored token with `--values-stdin`; use `/plugin configure` or
+  reinstall. The `AIP_MCP_URL` and `AIP_MCP_TOKEN` environment variables, if set, win over the settings.
+- **Versions and updates.** The marketplace tracks the repository's default branch. The plugin and the mod have their
+  own versions (the plugin is `0.6.3`, the mod `0.6.2`), independent of AIP releases; `claude plugin update aip@aip-plugins`
+  fetches a new version when it changes. The `v0.6.2` tag predates the marketplace file, so add the marketplace from
+  the default branch or from a later tag.
+- **What was and was not checked.** On a local copy with an isolated Claude Code configuration the plugin installed,
+  its server was still `plugin:aip:aip`, the stored token reached the server as `Authorization: Bearer <token>`, and the
+  mod loaded from the installed copy. The interactive settings dialog, the effect of a standalone `aip` server on an
+  installed plugin (assume it also hides the plugin's server) and macOS storage were not tested.
 
 ### Optional mod: AIP evidence next to the plan
 

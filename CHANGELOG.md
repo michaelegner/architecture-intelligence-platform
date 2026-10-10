@@ -9,6 +9,13 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+### Added
+
+- A Claude Code marketplace (`.claude-plugin/marketplace.json`, name `aip-plugins`) listing the Pitstop demo plugin
+  `aip` and the optional mod `aip-mod`, so they install without a clone. The plugin (now `0.6.3`) gains a sensitive
+  `aip_token` setting for installed plugins (the `AIP_MCP_TOKEN` environment variable still wins, and still serves
+  `--plugin-dir`). Example client material only: no product, schema or MCP change.
+
 ## [0.6.2] - 2026-10-09
 
 ### v0.6.2 — Live AIP Demo on Pitstop

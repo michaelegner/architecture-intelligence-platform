@@ -4,7 +4,7 @@
       "type": "http",
       "url": "${AIP_MCP_URL:-${user_config.aip_mcp_url}}",
       "headers": {
-        "Authorization": "Bearer ${AIP_MCP_TOKEN:-}"
+        "Authorization": "Bearer ${AIP_MCP_TOKEN:-${user_config.aip_token}}"
       }
     }
   }
