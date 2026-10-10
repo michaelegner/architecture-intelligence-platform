@@ -83,23 +83,30 @@ def test_manifest_names_the_plugin_aip_and_the_url_run_sh_prints():
     assert manifest["name"] == "aip"
     assert re.fullmatch(r"[a-z][a-z0-9-]*", manifest["name"])
     assert set(manifest) <= {"name", "version", "description", "author", "license", "userConfig"}
-    [(key, option)] = manifest["userConfig"].items()
-    assert key == "aip_mcp_url"
-    assert set(option) == {"type", "title", "description", "default"}
+    options = manifest["userConfig"]
+    assert set(options) == {"aip_mcp_url", "aip_token"}
+    url = options["aip_mcp_url"]
+    assert set(url) == {"type", "title", "description", "default"}
     run_sh = (DEMO_DIR / "run.sh").read_text()
     [aip_url] = re.findall(r'^AIP_URL="([^"]+)"', run_sh, re.MULTILINE)
-    assert option["default"] == f"{aip_url}/mcp"
+    assert url["default"] == f"{aip_url}/mcp"
 
-    # Spike 2026-10-08: `claude plugin configure` cannot target a `--plugin-dir` plugin, so no plugin setting (and no
-    # sensitive `userConfig` token) can be set for it. The only userConfig option stays the URL (asserted by the
-    # single-entry unpack above, with its localhost default); the hosted instance is reached through two environment
-    # variables: AIP_MCP_URL overrides the URL, AIP_MCP_TOKEN is the bearer token. Unset, the localhost demo is unchanged.
+    # An installed plugin (marketplace) can set both options; a `--plugin-dir` plugin cannot (spike 2026-10-08), so the
+    # environment variables stay and win. The token is sensitive, optional and has NO default: the local demo needs none.
+    token = options["aip_token"]
+    assert token["type"] == "string"
+    assert token["sensitive"] is True
+    assert "default" not in token and not token.get("required", False)
+    assert set(token) <= {"type", "title", "description", "sensitive"}
+    # The description must not promise more than was observed (no encryption/keychain claim).
+    assert not re.search(r"encrypt|keychain|keyring|vault", token["description"], re.IGNORECASE)
+
     servers = json.loads((PLUGIN / ".mcp.json").read_text())["mcpServers"]
     assert servers == {
         "aip": {
             "type": "http",
             "url": "${AIP_MCP_URL:-${user_config.aip_mcp_url}}",
-            "headers": {"Authorization": "Bearer ${AIP_MCP_TOKEN:-}"},
+            "headers": {"Authorization": "Bearer ${AIP_MCP_TOKEN:-${user_config.aip_token}}"},
         }
     }
 
@@ -111,7 +118,10 @@ def test_no_plugin_file_holds_a_token_value():
             continue
         text = path.read_text()
         for match in re.finditer(r"Bearer\s+(\S+)", text):
-            assert match.group(1).rstrip('",') == "${AIP_MCP_TOKEN:-}", (path.name, match.group(0))
+            assert match.group(1).rstrip('",') == "${AIP_MCP_TOKEN:-${user_config.aip_token}}", (
+                path.name,
+                match.group(0),
+            )
         assert not re.search(r"[0-9a-f]{32,}", text), path.name
 
 
@@ -232,6 +242,18 @@ def test_readme_documents_how_to_load_the_plugin():
     # a standalone server with the same URL makes Claude Code suppress the plugin's server (spike 2026-10-08)
     assert "standalone `aip` MCP server" in readme
     assert "suppresses" in readme
+    # marketplace install and the settings of an installed plugin
+    assert "claude plugin marketplace add michaelegner/architecture-intelligence-platform" in readme
+    assert "claude plugin install aip@aip-plugins" in readme
+    assert "claude plugin configure aip@aip-plugins --values-stdin" in readme
+    assert "mode-600 credentials file" in readme and "not verified" in readme
+    # the testers' getting-started path: the public Pitstop clone at the demo's pin, the install and the question
+    assert "## Getting started for testers (hosted instance)" in readme
+    assert "git clone https://github.com/EdwinVW/pitstop.git" in readme
+    assert "git checkout 306b5fbd0febceb6b0d0706f152a0520ca1a993a" in readme
+    assert "<YYYY-MM-DD>T00:00:00Z to <YYYY-MM-DD>T23:59:59Z" in readme
+    # the hosted instance's host name is withheld by owner decision: no concrete host or token in the README
+    assert not re.search(r"sslip\.io|https?://[^\s)]*\.(?:org|com|net|dev|io)/mcp", readme)
 
 
 def test_skills_state_the_inclusive_whole_day_window_and_never_guess_why_a_day_is_empty():

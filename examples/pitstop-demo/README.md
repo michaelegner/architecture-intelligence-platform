@@ -41,6 +41,65 @@ For Codex CLI, Cursor or VS Code, see [`../mcp-clients/`](../mcp-clients/README.
 from `.aip-pitstop-demo/prompt.txt`. It already contains the environment and the observation window, which
 AIP needs to answer.
 
+## Getting started for testers (hosted instance)
+
+The shortest path to try the **hosted live demo** with the Claude Code plugin and the optional mod. The demo owner
+gives you two things: an **MCP URL** and a **token**. You need [Claude Code](https://code.claude.com) 2.1.292 or
+later and `git`. Nothing from this repository has to run on your machine.
+
+**1. Clone Pitstop, the system the demo describes.** The agent reads its code and documents while it plans:
+
+```bash
+git clone https://github.com/EdwinVW/pitstop.git
+cd pitstop
+git checkout 306b5fbd0febceb6b0d0706f152a0520ca1a993a   # optional: the commit the demo was built from
+```
+
+AIP's answers do not depend on this clone, so you can also start Claude Code in any folder; the agent then simply
+cannot inspect code. One difference to expect: `ReportingService` is not in the upstream repository (the demo's
+fork added it), so the agent will not find its code or any document that lists it, while AIP still resolves it as
+a receiver from its declared architecture and runtime evidence. That contrast is part of the demo.
+
+**2. Install the plugin and the optional mod** (once; details in
+[Install from the marketplace](#install-from-the-marketplace-optional)):
+
+```bash
+claude plugin marketplace add michaelegner/architecture-intelligence-platform
+claude plugin install aip@aip-plugins
+claude plugin install aip-mod@aip-plugins        # optional: band and evidence pane
+```
+
+**3. Enter the URL and the token** (once). In Claude Code run `/plugin configure aip@aip-plugins` and fill in
+`aip_mcp_url` and `aip_token`; the token field is masked. Then restart Claude Code. (From a shell,
+`claude plugin configure aip@aip-plugins --values-stdin` also works, but it puts the token in your shell history.)
+
+**4. Start in the Pitstop folder and check the connection.** Run `claude` in the `pitstop` folder and type `/mcp`:
+`plugin:aip:aip` must show as connected with 4 tools. If you added an `aip` MCP server by hand for the same URL,
+remove it first (`claude mcp remove aip`), otherwise Claude Code hides the plugin's server.
+
+**5. Ask the question** for a **completed UTC day**, which is yesterday in UTC, from `T00:00:00Z` through
+`T23:59:59Z`:
+
+```text
+In the Pitstop service WorkshopManagementAPI, replace the StartTime and EndTime fields of the MaintenanceJobFinished event with a single Duration field: the workshop only needs to report how long a job took. Plan the change. Use environment pitstop-demo and the window <YYYY-MM-DD>T00:00:00Z to <YYYY-MM-DD>T23:59:59Z
+```
+
+Replace `<YYYY-MM-DD>` with yesterday's UTC date. The agent uses the `architecture-aware-development` skill, asks AIP,
+and writes a plan with an **Evidence** section that names the five receivers AIP resolves and says that which of them
+reads `StartTime` or `EndTime` is not known to AIP. With the mod installed, a line above the prompt shows
+`AIP: 5 receivers, snapshot …`, and the **Evidence** button (or `/aip-evidence`) opens a pane with the same facts.
+The question ladder in the [walkthrough](walkthrough.md) lists follow-up questions.
+
+| Symptom | Likely cause |
+|---|---|
+| `/mcp` shows the server failed, or a 401 | the token is missing or wrong: run `/plugin configure aip@aip-plugins` again, then restart |
+| `421 Invalid Host header` | the URL is not the one the server expects: check the URL you were given |
+| no `plugin:aip:aip` in `/mcp` | Claude Code was not restarted after configuring, or a manually added `aip` server for the same URL hides it |
+| the agent says the window is not over | the day you named is today: use yesterday (UTC) |
+
+The token gives read access to the demo to everyone who has it: do not paste it into prompts, issues or screenshots.
+Report a leaked token to the demo owner, who can replace it.
+
 ## Agent setup: the Claude Code plugin
 
 An optional plugin turns the question ladder into agent behaviour. It is example client material: it adds no
@@ -65,7 +124,8 @@ claude --plugin-dir examples/pitstop-demo/claude/plugin
   The token is a secret the operator gives you: never commit it or paste it into a prompt. With
   `AIP_MCP_TOKEN` unset the plugin sends an empty `Bearer` header, which the unauthenticated local demo ignores.
   A plugin loaded with `--plugin-dir` has no way to set a plugin setting, which is why these are environment
-  variables and not a `userConfig` token.
+  variables there. An **installed** plugin has its own settings for the URL and the token (see "Install from the
+  marketplace" below).
 
   Remove any standalone `aip` MCP server that points at the same URL (`claude mcp remove aip`): Claude Code then
   suppresses the plugin's server as a duplicate, with no error, and the skills find no AIP tools.
@@ -81,6 +141,37 @@ claude --plugin-dir examples/pitstop-demo/claude/plugin
   run commands; reading and searching the repository stays available. Claude Code applies that restriction for
   the turn in which the skill is invoked and clears it on the next user message, and `allowed-tools` alone does
   not restrict anything. Give the agent the observation context from `.aip-pitstop-demo/prompt.txt`.
+
+### Install from the marketplace (optional)
+
+The repository is also a Claude Code marketplace (`.claude-plugin/marketplace.json`, name `aip-plugins`) that lists the
+plugin `aip` and the optional mod `aip-mod`, so they can be installed without a clone or a path flag. This is example
+client material for this demo, not a supported general AIP client.
+
+```bash
+claude plugin marketplace add michaelegner/architecture-intelligence-platform
+claude plugin install aip@aip-plugins
+claude plugin install aip-mod@aip-plugins        # optional
+```
+
+Inside a session, `/plugin install aip --marketplace michaelegner/architecture-intelligence-platform` does both steps
+(Claude Code 2.1.275 or later); `claude plugin install aip --marketplace …` from the shell needs 2.1.292 or later.
+
+- **Settings.** An installed plugin has two settings: `aip_mcp_url` (default `http://localhost:8000/mcp`, the local
+  demo) and `aip_token` (empty by default; the local demo needs none). Set them with `/plugin configure aip@aip-plugins`
+  in Claude Code, or from a shell with `claude plugin configure aip@aip-plugins --values-stdin` (a JSON object on
+  stdin). The token is marked sensitive: Claude Code stores it outside the normal settings file. On Linux this was
+  observed to be a mode-600 credentials file; other platforms were not verified, so do not assume more than that.
+  A value set to the empty string does not clear a stored token with `--values-stdin`; use `/plugin configure` or
+  reinstall. The `AIP_MCP_URL` and `AIP_MCP_TOKEN` environment variables, if set, win over the settings.
+- **Versions and updates.** The marketplace tracks the repository's default branch. The plugin and the mod have their
+  own versions (the plugin is `0.6.3`, the mod `0.6.2`), independent of AIP releases; `claude plugin update aip@aip-plugins`
+  fetches a new version when it changes. The `v0.6.2` tag predates the marketplace file, so add the marketplace from
+  the default branch or from a later tag.
+- **What was and was not checked.** On a local copy with an isolated Claude Code configuration the plugin installed,
+  its server was still `plugin:aip:aip`, the stored token reached the server as `Authorization: Bearer <token>`, and the
+  mod loaded from the installed copy. The interactive settings dialog, the effect of a standalone `aip` server on an
+  installed plugin (assume it also hides the plugin's server) and macOS storage were not tested.
 
 ### Optional mod: AIP evidence next to the plan
 

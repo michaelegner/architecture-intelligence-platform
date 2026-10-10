@@ -1,0 +1,19 @@
+{
+  "name": "aip-plugins",
+  "description": "Example Claude Code client material for the Architecture Intelligence Platform Pitstop demo: a plugin and an optional mod. Not a supported general AIP client.",
+  "owner": {
+    "name": "Architecture Intelligence Platform"
+  },
+  "plugins": [
+    {
+      "name": "aip",
+      "source": "./examples/pitstop-demo/claude/plugin",
+      "description": "Architecture-aware development with AIP for the Pitstop demo: skills that plan an event or messaging-contract change from evidence-qualified architecture knowledge."
+    },
+    {
+      "name": "aip-mod",
+      "source": "./examples/pitstop-demo/claude/mod",
+      "description": "Optional band and evidence pane that show the last AIP answer next to the agent's plan (reads tool results only)."
+    }
+  ]
+}

@@ -168,7 +168,8 @@ It states, rather than hides, that it holds no payload or field-level knowledge,
 continuously running, instrumented Pitstop feeding a hosted AIP instance, queried for a completed UTC day (the
 local `--live` mode needs the private instrumented fork; the hosted instance is operated by the demo owner and
 reached over a token-gated MCP URL). An optional Claude Code plugin (and an optional mod that shows AIP's
-answer next to the agent's plan) is described in the demo README.
+answer next to the agent's plan) is described in the demo README; both install from this repository's Claude Code
+marketplace (`claude plugin marketplace add michaelegner/architecture-intelligence-platform`).
 
 [Demo README](examples/pitstop-demo/README.md) ·
 [question-by-question walkthrough](examples/pitstop-demo/walkthrough.md) ·
