@@ -3,11 +3,11 @@
 **Status:** Working strategy — Moldable Architecture Knowledge positioning and release doctrine integrated<br>
 **Project:** Architecture Intelligence Platform (AIP)<br>
 **Date:** 2026-09-21<br>
-**Roadmap-alignment revision:** 2026-09-29<br>
-**Product-positioning revision:** 2026-10-11 — bounded-change wedge within enterprise AI-assisted software transformation<br>
+**Roadmap-alignment revision:** 2026-10-11<br>
+**Product-positioning revision:** 2026-10-11 — bounded-change wedge within enterprise AI-assisted software transformation; v0.10 cross-boundary alignment<br>
 **Scope:** Product doctrine, target wedge, semantic model, Moldable Architecture Knowledge, strategic direction, and roadmap alignment<br>
-**Current implementation center:** Evidence-qualified Current State and read-only agent context; v0.5 broadens discovery and public Architecture Knowledge access<br>
-**Important:** ROADMAP.md assigns planned themes to v0.6–v0.9; detailed scope remains subject to release-specific specifications and qualification gates.
+**Current implementation center:** Evidence-qualified Current State, broader discovery, locality-aware projections, and read-only agent context<br>
+**Important:** ROADMAP.md assigns planned capability themes through v0.10; detailed scope remains subject to release-specific specifications and qualification gates.
 
 ---
 
@@ -521,8 +521,10 @@ The sequence is:
    technical implementation, products, consumers, and business capabilities.
 6. Introduce explicit attributable intent as a separate domain.
 7. Assess Current State against applicable intent.
-8. Represent architecture evolution as context-bound trajectories.
-9. Only then consider transformation reasoning.
+8. Establish which already-qualified relationships cross independently established System or
+   Component boundaries, using only the composition semantics required for that question.
+9. Represent architecture evolution as context-bound trajectories once historical-state semantics exist.
+10. Only then consider transformation reasoning.
 ```
 
 The progression deliberately separates:
@@ -620,6 +622,21 @@ already qualified architectural relationship
         ↓
 qualified cross-boundary projection
 ```
+
+The practical design inputs are **C4/Structurizr, FINOS CALM, and EventCatalog**: each exposes
+authored composition or membership concepts that AIP must preserve without adopting the source's
+entire metamodel. The theoretical design inputs are **Bigraphs** and **Semantic Spacetime**:
+Bigraphs motivate the separation of place/composition from link/connectivity, while Semantic
+Spacetime motivates treating the crossing conclusion as context-bound rather than as an intrinsic,
+timeless property of the relationship.
+
+These sources and theories constrain the design; they do not become AIP's Canonical Model and do
+not require generic adapters in v0.10.
+
+The governing invariant is:
+
+> **A relationship does not establish a boundary. A boundary does not establish a relationship.
+> A cross-boundary claim requires both to be independently established.**
 
 If either side's membership or boundary is unresolved, AIP must keep the crossing conclusion
 unresolved rather than infer composition from the relationship itself. The existing high-priority
@@ -2114,15 +2131,17 @@ transport libraries, and persistence mechanics should remain supporting or gener
 practical. Consumers should not depend on the internal database schema, graph layout, query
 implementation, or persistence model used to realize the domain semantics.
 
-Future, only if separately specified and validated:
+Planned pre-v1.0 capabilities, only if separately specified and validated:
 
-- typed advisory assertion verification;
-- source-neutral normalization of explicit architectural intent;
-- Qualified Local Evidence Assessments as a public contract;
-- locality/context applicability beyond what current evidence supports;
-- advisory Current ↔ Intent assessment;
-- composition of trustworthy local assessments;
-- read-only agent-facing access to these semantics.
+- API-aware Current-State exposure/consumption semantics (v0.7);
+- source-neutral normalization of explicit attributable architectural Intent (v0.8);
+- advisory Current ↔ Intent assessment (v0.9);
+- minimal System/Component boundary and membership semantics plus deterministic cross-boundary
+  projection over already-qualified relationships (v0.10).
+
+These capability releases may add only the domain meaning required by their validated product
+questions. In particular, v0.10 does not authorize a generic enterprise metamodel, arbitrary
+hierarchy browser, capability map, or organizational model.
 
 Beyond v1.0 under the current roadmap:
 
@@ -2358,6 +2377,8 @@ AIP relevance:
 - qualified local assessments;
 - context-bound Current State;
 - effective-time intent;
+- v0.10 cross-boundary projections, where the same qualified relationship may be classified
+  differently under different independently established composition contexts;
 - architecture trajectories;
 - explicit limits on global projection.
 
@@ -2375,10 +2396,14 @@ AIP relevance from v0.5 onward:
 
 - Kubernetes/locality modeling;
 - clean separation between deployment structure and interaction structure;
+- direct conceptual input to v0.10: independently established place/composition must remain
+  distinct from already-qualified link/connectivity;
 - moving identity across locality changes;
 - future architecture trajectories where place and links evolve independently, once historical-state semantics exist.
 
-Bigraphs should remain a **design influence**, not a replacement for the Canonical Model before v1.0.
+Bigraphs should remain a **design influence**, not a replacement for the Canonical Model. v0.10 uses
+the place/link distinction to constrain a concrete architecture question; it does not implement a
+Bigraph formalism.
 
 Formal Bigraphical Reactive Systems may become relevant later when AIP has a concrete transformation
 problem involving valid reconfiguration and safe evolution.
@@ -2702,21 +2727,22 @@ primarily machinery or hardening rather than product-surface expansion.
 Given the current roadmap, the preferred order is:
 
 ```text
-1. Preserve qualification correctness and semantic safety.
-2. Complete the current agent-facing interoperability work.
-3. Broaden trustworthy discovery in v0.5.
-4. Preserve WHERE != HOW and the service != Bounded Context != deployment unit != team boundary rule.
-5. Implement locality-aware Current-State semantics in v0.6 without requiring distributed execution.
-6. Validate API exposure and consumption as a bounded, source-neutral Current-State question in
+1. Preserve the already-qualified Current-State, discovery, locality, evidence, and agent-facing
+   contracts as the base for later question classes.
+2. Validate API exposure and consumption as a bounded, source-neutral Current-State question in
    v0.7, beginning with real gateway configuration and consumer-attributed usage evidence.
-7. Implement the independent explicit-Intent path in v0.8.
-8. Implement the separate Current ↔ Intent assessment path in v0.9.
-9. In the v1.0 release-candidate phase, freeze only contracts that survive implementation and qualification.
-10. Keep decision-history linkage, historical trajectories and distributed Local Architecture Assessor
-    deployment beyond v1.0, unscheduled, unless the roadmap is explicitly revised.
+3. Implement the independent explicit-Intent path in v0.8.
+4. Implement the separate Current ↔ Intent assessment path in v0.9.
+5. Implement v0.10 as relationship-first cross-boundary Architecture Knowledge: establish only the
+   minimal System/Component composition needed to classify already-qualified relationships as
+   within-boundary, cross-boundary, or unresolved.
+6. In the v1.0 release-candidate phase, freeze only contracts that survive implementation,
+   product validation, semantic qualification, and scale/operability qualification.
+7. Keep decision-history linkage, historical trajectories and distributed Local Architecture
+   Assessor deployment beyond v1.0, unscheduled, unless the roadmap is explicitly revised.
 ```
 
-This sequence preserves the central dependency:
+This sequence preserves two central dependencies:
 
 ```text
 Current State first and independently
@@ -2724,7 +2750,16 @@ Current State first and independently
 Intent second and independently
         ↓
 Assessment only over both established projections
+
+independently established boundary / membership
+        +
+already-qualified architectural relationship
+        ↓
+cross-boundary projection
 ```
+
+v0.10 must not use connectivity to manufacture composition, and it must not use composition to
+manufacture connectivity.
 
 ---
 
@@ -2756,8 +2791,9 @@ For every proposed feature, ask:
 
 ### Product broadening before wedge validation
 
-Kubernetes, Pub/Sub, derivation, intent, assessment, and local assessors may all be
-useful, but without a validated primary workflow they can become parallel attractive directions.
+API-aware semantics, Intent, Assessment, cross-boundary composition, additional source breadth, and
+local assessors may all be useful, but without a validated bounded-change workflow they can become
+parallel attractive directions.
 
 ### Core-domain dilution
 
@@ -2795,6 +2831,18 @@ An API contract, operation, gateway route/service, application service, consumer
 capability, and permission are not interchangeable objects. An adapter must not make one gateway's
 terminology the source-neutral model or infer organizational authority from technical metadata.
 Configured access must not be silently treated as explicit architectural Intent.
+
+### Composition-source lock-in
+
+C4/Structurizr, CALM, EventCatalog, Backstage, or another source must not become the source-neutral
+System/Component model by accident. Source composition semantics must remain attributable, and
+mapping loss or unsupported meaning must remain explicit.
+
+### Boundary / relationship conflation
+
+Connectivity, co-location, repository structure, namespace, naming, or ownership must not establish
+System/Component membership. Conversely, membership in a System/Component boundary must not create
+or strengthen a technical relationship. v0.10 depends on the two being established independently.
 
 ### Intent-carrier lock-in
 
@@ -2838,7 +2886,7 @@ enterprise transformation strategy, organizational governance, approval, or exec
 
 ### Customer value proposition
 
-> **Help coding agents work across multi-service systems without reconstructing architecture.**
+> **Help coding agents make bounded changes across multi-service systems without reconstructing architecture for every task.**
 
 ### Product concept
 
@@ -2936,8 +2984,8 @@ Mission:
 Build architecture intelligence that agents can consume and humans can inspect, challenge, and understand.
 
 Customer value proposition:
-Help coding agents work across multi-service systems
-without reconstructing architecture
+Help coding agents make bounded changes across multi-service systems
+without reconstructing architecture for every task
 
 Product concept:
 Moldable Architecture Knowledge
@@ -3011,10 +3059,10 @@ The most important semantic insight remains:
 
 > **AIP establishes architecture locally before projecting it globally.**
 
-And the corresponding long-term product principle is:
+And the corresponding cross-boundary product principle is:
 
-> **System-level Current-State views are context-bound projections of qualified evidence assessments.
-> Claims about cross-boundary interactions require their own evidence and qualification rules.**
+> **Boundary-crossing projections require independently established boundary/membership evidence and
+> an already-qualified architectural relationship; neither input creates or strengthens the other.**
 
 This principle applies to Current-State views; explicit Intent and alignment assessments remain
 separate knowledge domains. Locality alone does not make a claim composable or establish an
@@ -3030,10 +3078,11 @@ Promise Theory
   -> explicit local intent / promises, autonomous cooperation, promise assessment
 
 Semantic Spacetime
-  -> context, locality, time, observer perspective, trajectories
+  -> context, locality, time, observer perspective, context-bound cross-boundary projections,
+     trajectories
 
 Bigraphs
-  -> place versus connectivity, structural evolution
+  -> place/composition versus connectivity, direct v0.10 design constraint, structural evolution
 
 AIP
   -> evidence applicability, qualification, provenance, assessment
@@ -3056,8 +3105,10 @@ evidence-qualified architecture evolution
 enterprise transformation visibility
 ```
 
-The last two steps require historical and composition semantics that are not part of the current
-pre-v1.0 capability sequence. The strategic environment therefore broadens the destination without
+The shared multi-system knowledge step begins in v0.10 with deliberately minimal composition
+semantics for cross-boundary projection. The later **evidence-qualified architecture evolution** and
+**enterprise transformation visibility** steps still require historical-state and trajectory
+semantics beyond v1.0. The strategic environment therefore broadens the destination without
 weakening the release discipline.
 
 The preferred semantic journey is:
@@ -3072,6 +3123,9 @@ Project those assessments into contextual Current-State views.
 Implement the planned independent Intent capability, subject to product-value and qualification gates.
         ↓
 Implement the planned separate Current↔Intent assessment, subject to the same gates.
+        ↓
+Establish cross-boundary Architecture Knowledge from independently established
+composition/membership plus already-qualified relationships.
         ↓
 Freeze and production-qualify only the contracts that actually exist.
         ↓
