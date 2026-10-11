@@ -748,98 +748,59 @@ Explicitly out of scope for v0.9:
 
 ## v0.10 — Cross-Boundary Architecture Knowledge (planned)
 
-**Goal: identify which already-qualified architectural relationships cross independently established
-System or Component boundaries, using only the composition semantics required for that question.**
+**Goal:** identify which already-qualified architectural relationships cross independently
+established System or Component boundaries.
 
 **Product question:**
 
 > **Which evidence-qualified architectural relationships cross established System or Component
 > boundaries?**
 
-**Bounded-change question:**
-
-> **Before changing this service, which established relationships cross the System or Component
-> boundaries around it?**
-
 The capability is deliberately **relationship-first, not ontology-first**. System / Component
-modeling is enabling semantics, not the product goal. The minimum model should be only rich enough
-to establish boundary-bearing architectural entities and attributable membership/composition needed
-to classify an already-qualified relation as within-boundary, cross-boundary, or unresolved.
-
-Conceptually:
+semantics are added only as far as needed to classify an already-qualified relationship as
+within-boundary, cross-boundary, or unresolved.
 
 ```text
 established composition / membership
         +
 qualified architectural relationship
         ↓
-qualified boundary-crossing projection
+qualified cross-boundary projection
 ```
-
-The governing invariant is:
 
 > **A relationship does not establish a boundary. A boundary does not establish a relationship.
 > A cross-boundary claim requires both to be independently established.**
 
-**Design inputs:**
+Design inputs are [C4/Structurizr](docs/landscape.md#structurizrc4--declared-architecture-models-and-views),
+[FINOS CALM](docs/landscape.md#finos-calm--architecture-as-code-and-semantic-gap-experiments), and
+[EventCatalog](docs/landscape.md#eventcatalog--connected-architecture-catalog-for-humans-and-agents)
+for practical composition evidence, with
+[Bigraphs](docs/landscape.md#robin-milner--bigraphs--bigraphical-reactive-systems) and
+[Semantic Spacetime](docs/landscape.md#mark-burgess--semantic-spacetime) as theoretical constraints
+on place/connectivity separation and context-bound interpretation. They constrain the design; they
+do not require generic adapters, complete source metamodels, or Bigraph/SST implementation.
 
-- [C4/Structurizr](docs/landscape.md#structurizrc4--declared-architecture-models-and-views) —
-  practical System/Container/Component composition and the existing Big Bank analysis that exposed
-  the logical-composition gap;
-- [FINOS CALM](docs/landscape.md#finos-calm--architecture-as-code-and-semantic-gap-experiments) —
-  an independent architecture representation whose FluxNova experiment also exposed logical
-  composition;
-- [EventCatalog](docs/landscape.md#eventcatalog--connected-architecture-catalog-for-humans-and-agents) —
-  practical System/Service/Domain membership and scoped architecture context;
-- [Bigraphs](docs/landscape.md#robin-milner--bigraphs--bigraphical-reactive-systems) — conceptual
-  separation of place/composition from link/connectivity;
-- [Semantic Spacetime](docs/landscape.md#mark-burgess--semantic-spacetime) — context, locality, time,
-  observer perspective, and the rule that a crossing conclusion is a context-bound projection.
-
-These inputs constrain the semantic design. They do **not** require generic C4, CALM, or EventCatalog
-adapters, adoption of their complete metamodels, or implementation of Bigraph/SST formalisms.
-
-The release must preserve these distinctions:
+The release preserves:
 
 ```text
-Service identity
-    !=
-System membership
-    !=
-deployment/locality
-    !=
-team ownership
-    !=
-Bounded Context
+Service identity != System membership != deployment/locality != team ownership != Bounded Context
 ```
 
-A Service may participate in more than one System. System/Component membership must not be inferred
-from communication, co-location, repository structure, namespace, naming, ownership, or graph
-proximity. Cross-system relationships remain first-class Architecture Knowledge rather than being
-hidden through one-AIP-instance-per-system isolation.
+Membership must not be inferred from connectivity, co-location, repository structure, namespace,
+naming, ownership, or graph proximity. Source mode also remains explicit: Current-State
+cross-boundary answers use only composition/membership accepted for Current-State semantics; Intent
+composition stays on the independent Intent path.
 
-The first vertical slice should use independently authored composition evidence together with
-relationships already qualified by AIP. The source mode remains explicit: an authored model may
-establish declared composition or explicit Intent depending on its semantics and authority; it does
-not automatically establish observed Current State. A Current-State cross-boundary answer may use
-only composition/membership evidence accepted for Current-State semantics. Intent composition stays
-on the independent Intent path and may be compared through v0.9 assessment; it must not silently
-become Current-State membership. If the source establishes the relationship but one side's
-System/Component membership is missing, conflicting, inapplicable, or unresolved, the crossing
-conclusion must remain unresolved. AIP must never infer two Systems merely because a
-relation crosses a technical or deployment boundary.
-
-**Explicitly out of scope:** a generic enterprise metamodel, capability map, organizational chart,
-arbitrary hierarchy browser, unrestricted C4/CALM/Structurizr import, business-capability inference,
-team ownership inference, or a general-purpose ontology. Those may be research inputs or future
-adapter questions; they are not required to answer the v0.10 product question.
+**Out of scope:** a generic enterprise metamodel, capability or organizational model, arbitrary
+hierarchy browser, unrestricted architecture-model import, or business-capability/ownership
+inference.
 
 Exit capability:
 
-> **For a bounded architecture question, AIP can state which established relationships remain within
-> an established System/Component boundary, which cross one, and which cannot be classified because
-> the relevant composition evidence is unresolved — with evidence, qualification, context and
-> limitations preserved.**
+> **For a bounded architecture question, AIP can state which established relationships stay within
+> an established boundary, which cross one, and which remain unresolved because the relevant
+> composition evidence is insufficient — with evidence, qualification, context, and limitations
+> preserved.**
 
 ## v1.0 Release-Candidate Phase — Contract Freeze / Production Qualification (planned)
 
