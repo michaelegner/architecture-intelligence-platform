@@ -1,6 +1,6 @@
 # AIP v0.6.3 — Runtime and Import Robustness
 
-**Status:** Draft 0.1 — lightweight maintenance specification  
+**Status:** Accepted maintenance specification  
 **Target:** `v0.6.3`  
 **Baseline:** Published and post-release-verified `v0.6.2`  
 **Scope authority:** [ROADMAP.md — v0.6.3](../../../ROADMAP.md)
@@ -157,7 +157,8 @@ Before candidate freeze:
 - existing v0.6 golden-path/demo semantics remain unchanged;
 - CodeQL, dependency and repository security checks satisfy the current release policy;
 - `benchmarks/traces_stall.py` is rerun and the before/after observation is recorded without introducing an SLO;
-- #305's bounded containment behavior is demonstrated end-to-end through the import path;
+- #305's bounded rejection/diagnosis behavior is demonstrated end-to-end through the import path;
+- release notes state explicitly that one out-of-range integer still makes the discovery run `PARTIAL` and prevents that run from committing; v0.6.3 changes the failure from an uncaught crash into a deterministic diagnosed outcome;
 - version consistency, CHANGELOG, release notes, `server.json` and release metadata are updated through the normal release workflow.
 
 No separate product-value pilot is required for this maintenance release.
