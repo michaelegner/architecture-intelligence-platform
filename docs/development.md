@@ -4,7 +4,7 @@
 uv sync                                # install dependencies
 uv run pytest tests/unit               # fast unit tests (no Neo4j needed)
 uv run pytest tests/integration        # Testcontainers-backed tests (needs Docker)
-uv run ruff check .                    # lint
+uv run ruff check .                    # lint (incl. C901: complexity ratchet in pyproject.toml, lower it, never raise it)
 uv run ruff format .                   # format
 uv run pyright                         # type check (app/)
 uv run lint-imports                    # import boundaries between app/ packages

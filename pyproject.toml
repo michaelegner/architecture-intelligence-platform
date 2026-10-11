@@ -63,7 +63,7 @@ extend-exclude = ["*.md"]
 [tool.ruff.lint]
 # On top of ruff's defaults: bugbear, naive datetimes, blind excepts, import order, pyupgrade,
 # bandit security checks and ruff's own rules (including stale `# noqa` detection).
-extend-select = ["B", "DTZ", "BLE", "I", "UP", "S", "RUF"]
+extend-select = ["B", "C901", "DTZ", "BLE", "I", "UP", "S", "RUF"]
 ignore = [
     "S101",   # asserts are this repo's narrowing/invariant idiom (the image never runs with -O)
     "S603",   # subprocess with list args (never shell=True) is the intended pattern
@@ -75,6 +75,11 @@ ignore = [
 # Bandit checks target shipped code; tests, examples, benchmarks and demo tooling use fixed test
 # credentials, /tmp paths and localhost URLs by design.
 "!app/**" = ["S"]
+
+[tool.ruff.lint.mccabe]
+# Ratchet: the highest complexity when C901 was enabled (evaluation/i4 compare_runs = 28). Lower
+# it as those functions are refactored; never raise it.
+max-complexity = 28
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body"]
