@@ -4,7 +4,7 @@
 **Project:** Architecture Intelligence Platform (AIP)<br>
 **Date:** 2026-09-21<br>
 **Roadmap-alignment revision:** 2026-09-29<br>
-**Product-positioning revision:** 2026-10-10 — bounded-change brownfield wedge for AI-assisted development<br>
+**Product-positioning revision:** 2026-10-11 — bounded-change wedge within enterprise AI-assisted software transformation<br>
 **Scope:** Product doctrine, target wedge, semantic model, Moldable Architecture Knowledge, strategic direction, and roadmap alignment<br>
 **Current implementation center:** Evidence-qualified Current State and read-only agent context; v0.5 broadens discovery and public Architecture Knowledge access<br>
 **Important:** ROADMAP.md assigns planned themes to v0.6–v0.9; detailed scope remains subject to release-specific specifications and qualification gates.
@@ -20,6 +20,26 @@ AIP's overarching mission is:
 AIP's customer value proposition is:
 
 > **Help coding agents make bounded changes across multi-service systems without reconstructing architecture for every task.**
+
+The broader strategic environment is **enterprise AI-assisted software transformation**. As implementation
+gets cheaper and more agents make more changes across existing systems, individual bounded changes
+accumulate into architecture evolution. AIP's role is not to manage that transformation; it is to
+provide the reusable, evidence-qualified Architecture Knowledge layer that keeps each change grounded
+in what the available evidence actually supports.
+
+The strategy therefore has two scales:
+
+```text
+task-level value
+one bounded change
+        ↓
+evidence-qualified architecture context
+
+enterprise-level value
+many changes + many agents + many systems
+        ↓
+reusable Architecture Knowledge across the evolving landscape
+```
 
 The customer problem is **agent-ready architectural context**. A repository of code alone cannot
 reliably provide the operational and architectural knowledge required to change multi-service
@@ -346,6 +366,33 @@ Brownfield is an adoption wedge, not the product boundary. Greenfield systems ca
 evidence-qualified Architecture Knowledge earlier and preserve it as the system evolves; the initial
 focus is simply where reusable context has the clearest marginal value.
 
+### Strategic environment: enterprise AI-assisted software transformation
+
+The bounded change is the initial **unit of product value**, not the ultimate scale of the problem.
+At enterprise scale, many bounded AI-assisted changes across many systems become cumulative software
+transformation:
+
+```text
+one bounded change
+        ↓
+many AI-assisted changes
+        ↓
+many teams / agents / systems
+        ↓
+architecture evolution
+        ↓
+enterprise AI-assisted software transformation
+```
+
+AIP should provide an architecture-knowledge substrate for that environment without becoming an
+enterprise-transformation management platform, agent orchestrator, portfolio tool, approval system,
+or generic AI-governance suite.
+
+The strategic target is a **shared Architecture Knowledge space that can span multiple distributed
+systems and preserve qualified cross-system relationships**, rather than assuming one AIP instance
+per application. That target does not imply that all systems must be flattened into one undifferentiated
+graph or that today's implementation is already qualified for enterprise scale.
+
 These teams need to let agents work across service boundaries without forcing the agent to
 reconstruct architecture from source code, documentation, naming conventions, stale diagrams, or
 incomplete telemetry.
@@ -502,6 +549,84 @@ how the system might safely change
 
 AIP should not collapse these stages into one graph or one AI-generated answer.
 
+### Multi-system Architecture Knowledge and composition
+
+The current bounded-change workflow is intentionally Service-centric, but the long-term knowledge
+space must not assume that a Service is the largest meaningful architecture boundary. Enterprise
+software landscapes contain Systems, Services, components, shared platforms, deployment units,
+bounded contexts, and organizational boundaries whose meanings must remain distinct.
+
+AIP therefore needs a principled path toward source-neutral **System / Component / Service
+composition** when a validated architecture question requires it. The exact taxonomy and relation
+vocabulary remain to be specified and qualified; the strategy must not freeze a hierarchy merely
+because CALM, Structurizr, C4, or another source uses one.
+
+The governing boundaries are:
+
+```text
+Service identity
+    !=
+System membership
+    !=
+deployment locality
+    !=
+team ownership
+    !=
+Bounded Context
+```
+
+System or component membership must not be inferred merely from repository location, namespace,
+communication, naming, team ownership, or graph proximity. Membership needs attributable evidence
+or explicit Intent appropriate to that claim.
+
+Likewise, System membership should not become part of a Service's identity by default. A Service may
+participate in several systems or move between architectural groupings without becoming a different
+Service. Cross-system dependencies are first-class architecture knowledge, not noise to be hidden by
+per-system isolation.
+
+This composition direction connects the initial wedge to the broader strategy:
+
+```text
+bounded change
+        ↓
+Service-level architecture context
+        ↓
+multi-Service / multi-System knowledge
+        ↓
+reusable enterprise Architecture Knowledge
+```
+
+This strategic requirement is assigned to **v0.10 — Cross-Boundary Architecture Knowledge**. The
+release is not a generic enterprise-modeling milestone: System / Component modeling stays
+deliberately minimal and exists only to answer a bounded architecture question about relationships
+that cross established boundaries.
+
+The v0.10 product question is:
+
+> **Which evidence-qualified architectural relationships cross established System or Component
+> boundaries?**
+
+For the bounded-change workflow:
+
+> **Before changing this service, which established relationships cross the System or Component
+> boundaries around it?**
+
+The intended derivation is:
+
+```text
+independently established composition / boundary
+        +
+already qualified architectural relationship
+        ↓
+qualified cross-boundary projection
+```
+
+If either side's membership or boundary is unresolved, AIP must keep the crossing conclusion
+unresolved rather than infer composition from the relationship itself. The existing high-priority
+logical-composition gap in `docs/semantic-gaps.md` remains the semantic input, but v0.10 should
+close only the minimum part required by this question. It should not introduce a generic enterprise
+metamodel, capability map, org chart, arbitrary hierarchy browser, or ontology-driven redesign.
+
 Product evolution should also be visible as an expansion of the **architecture-question space**.
 A capability release should be explainable in terms of a materially new recurring question that AIP
 can answer safely and deterministically, not merely in terms of internal machinery added to the
@@ -520,6 +645,9 @@ v0.7  How are APIs exposed and consumed, and what can the available evidence est
 v0.8  What explicit architecture intent applies here?
 
 v0.9  Where does Current State differ from applicable Intent?
+
+v0.10 Which evidence-qualified architectural relationships cross established System or
+      Component boundaries?
 ```
 
 The technical model remains essential, but the product roadmap should explain **what new question
@@ -2306,6 +2434,15 @@ v0.9 — Qualified Architecture Assessment
   Product question:
   "Where does Current State differ from applicable Intent?"
 
+v0.10 — Cross-Boundary Architecture Knowledge
+  Product question:
+  "Which evidence-qualified architectural relationships cross established System or Component
+   boundaries?"
+  First bounded validation:
+  for one selected Service/change, establish only the System/Component boundary semantics needed
+  to identify already-qualified relationships that cross those boundaries, preserving unresolved
+  membership instead of inferring it from connectivity.
+
 v1.0.0-rc.N — Contract Freeze / Production Qualification
   Freeze and production-qualify the implemented contracts intended for v1.0;
   this is a release-candidate phase, not a new architecture-question release.
@@ -2331,6 +2468,8 @@ CONNECT API EXPOSURE / CONSUMPTION (v0.7)  REPRESENT INTENT (v0.8)
    └──────── relevant Current State ────────┤
                                             ↓
                               ASSESS CURRENT ↔ INTENT (v0.9)
+                                            ↓
+                           PROJECT CROSS-BOUNDARY RELATIONS (v0.10)
                                             ↓
                                       FREEZE / QUALIFY
 ```
@@ -2369,7 +2508,7 @@ local assessment as semantics
 distributed assessor as deployment architecture
 ```
 
-### 26.3 v0.7 API Landscape, v0.8 Intent and v0.9 Assessment are planned capabilities
+### 26.3 v0.7 API Landscape, v0.8 Intent, v0.9 Assessment and v0.10 Cross-Boundary Knowledge are planned capabilities
 
 The API Landscape addition broadens the question space within **Current State**. It needs an
 independently qualified, source-neutral vocabulary for API exposure/consumption, real gateway and
@@ -2392,17 +2531,23 @@ projections. For example, comparing evidenced *effective* gateway configuration 
 security requirement is not the same as inferring endpoint insecurity from a missing route-level
 plugin, and observed usage is context rather than compliance evidence by itself.
 
+v0.10 must add only the composition semantics required to establish System/Component boundaries and
+project already-qualified architectural relationships across them. It must not infer membership from
+connectivity, co-location, repository structure, naming, ownership, or graph proximity. The release
+must preserve Service identity independently of System membership and keep unresolved or conflicting
+membership explicit. A general enterprise metamodel is outside this capability.
+
 ### 26.4 v1.0 release-candidate qualification and freeze rule
 
-After v0.9, contract freeze and production qualification should run as a `v1.0.0-rc.N` phase
+After v0.10, contract freeze and production qualification should run as a `v1.0.0-rc.N` phase
 rather than as another capability release solely for stabilization. That phase should stabilize
-only the planned pre-v1.0 capabilities actually implemented and qualified through v0.9.
+only the planned pre-v1.0 capabilities actually implemented and qualified through v0.10.
 
 The rule is:
 
 > **Implement and qualify the planned capability before freezing its public contract.**
 
-If a planned v0.7, v0.8 or v0.9 capability does not satisfy its product-value, semantic,
+If a planned v0.7, v0.8, v0.9 or v0.10 capability does not satisfy its product-value, semantic,
 deterministic, security, performance, or real-system qualification gates, it must not be promoted
 into the stable v1.0 contract merely because it appeared on the roadmap.
 
@@ -2416,7 +2561,8 @@ removed from the v1.0 contract
 ```
 
 No additional roadmap change is required merely to specify and implement the planned v0.7 API
-Landscape, v0.8 Intent or v0.9 Assessment capabilities. The release-candidate phase must not invent
+Landscape, v0.8 Intent, v0.9 Assessment or v0.10 Cross-Boundary Architecture Knowledge capabilities.
+The release-candidate phase must not invent
 a new product question merely to justify a version number; its purpose is to freeze and qualify the
 already-implemented question space. Product-value and qualification gates still apply. A failed gate
 must result in a documented decision to narrow, defer, or remove scope; material changes to release
@@ -2682,6 +2828,14 @@ AIP should not design migration execution before Current State and any future In
 
 ## 31. Recommended Positioning
 
+### Strategic environment
+
+> **Enterprise AI-assisted software transformation: many bounded changes, agents, and systems
+> accumulating into architecture evolution.**
+
+AIP participates in this environment as architecture-intelligence infrastructure. It does not own
+enterprise transformation strategy, organizational governance, approval, or execution.
+
 ### Customer value proposition
 
 > **Help coding agents work across multi-service systems without reconstructing architecture.**
@@ -2738,6 +2892,15 @@ proves a software change safe.
 > **AIP is not an agent platform or general organizational memory system. It establishes the
 > evidence-qualified Architecture Knowledge that authoring and reviewing agents can query and mold
 > into contextual views without becoming the source of that knowledge.**
+
+### Enterprise-scale product role
+
+> **Make evidence-qualified Architecture Knowledge reusable across many AI-assisted changes, agents,
+> teams, and distributed systems while preserving the boundaries and evidence behind each claim.**
+
+The initial validation remains one bounded change. Enterprise value is cumulative reuse of the same
+knowledge discipline across successive changes, not a claim that AIP centrally manages the
+transformation.
 
 ### Future product proposition — strategic hypothesis
 
@@ -2879,7 +3042,25 @@ AIP
 Before v1.0, these ideas should influence semantics only where they solve concrete product problems; distributed Local Architecture Assessor deployment remains beyond v1.0 under the current roadmap.
 The Canonical Model should not be replaced wholesale by any formal theory.
 
-The preferred strategic journey is:
+The broader product journey starts from the smallest unit that can be validated:
+
+```text
+one bounded AI-assisted change
+        ↓
+repeated bounded changes
+        ↓
+shared Architecture Knowledge across services and systems
+        ↓
+evidence-qualified architecture evolution
+        ↓
+enterprise transformation visibility
+```
+
+The last two steps require historical and composition semantics that are not part of the current
+pre-v1.0 capability sequence. The strategic environment therefore broadens the destination without
+weakening the release discipline.
+
+The preferred semantic journey is:
 
 ```text
 Broaden what AIP can safely know.

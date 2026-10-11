@@ -13,6 +13,18 @@ configuration, runtime evidence, documentation, and people. This framing does **
 legacy-modernization product and does not change the semantic scope or ordering of the releases
 below.
 
+The broader strategic environment is **enterprise AI-assisted software transformation**. Many
+bounded changes made by many agents and teams across many systems accumulate into architecture
+evolution. AIP's role in that environment is deliberately narrower: provide reusable,
+evidence-qualified Architecture Knowledge for those changes. AIP is not an enterprise transformation
+manager, agent orchestrator, approval authority, or generic AI-governance platform.
+
+The long-term knowledge-space direction is therefore **multi-system rather than one-instance-per-system
+by default**: preserve cross-system relationships in one coherent Architecture Knowledge space where
+the evidence supports them. This is a product direction, not a claim that the current implementation
+already provides first-class System/Component composition, multi-tenancy, or qualified enterprise
+capacity.
+
 ## Versioning
 
 AIP follows [Semantic Versioning](https://semver.org/) with an additional product discipline from
@@ -734,13 +746,80 @@ Explicitly out of scope for v0.9:
 - distributed local-assessor deployment as a requirement;
 - agent-generated authoritative Intent.
 
+## v0.10 — Cross-Boundary Architecture Knowledge (planned)
+
+**Goal: identify which already-qualified architectural relationships cross independently established
+System or Component boundaries, using only the composition semantics required for that question.**
+
+**Product question:**
+
+> **Which evidence-qualified architectural relationships cross established System or Component
+> boundaries?**
+
+**Bounded-change question:**
+
+> **Before changing this service, which established relationships cross the System or Component
+> boundaries around it?**
+
+The capability is deliberately **relationship-first, not ontology-first**. System / Component
+modeling is enabling semantics, not the product goal. The minimum model should be only rich enough
+to establish boundary-bearing architectural entities and attributable membership/composition needed
+to classify an already-qualified relation as within-boundary, cross-boundary, or unresolved.
+
+Conceptually:
+
+```text
+established composition / membership
+        +
+qualified architectural relationship
+        ↓
+qualified boundary-crossing projection
+```
+
+The release must preserve these distinctions:
+
+```text
+Service identity
+    !=
+System membership
+    !=
+deployment/locality
+    !=
+team ownership
+    !=
+Bounded Context
+```
+
+A Service may participate in more than one System. System/Component membership must not be inferred
+from communication, co-location, repository structure, namespace, naming, ownership, or graph
+proximity. Cross-system relationships remain first-class Architecture Knowledge rather than being
+hidden through one-AIP-instance-per-system isolation.
+
+The first vertical slice should use independently authored composition evidence together with
+relationships already qualified by AIP. If the source establishes the relationship but one side's
+System/Component membership is missing, conflicting, inapplicable, or unresolved, the crossing
+conclusion must remain unresolved. AIP must never infer two Systems merely because a relation crosses
+a technical or deployment boundary.
+
+**Explicitly out of scope:** a generic enterprise metamodel, capability map, organizational chart,
+arbitrary hierarchy browser, unrestricted C4/CALM/Structurizr import, business-capability inference,
+team ownership inference, or a general-purpose ontology. Those may be research inputs or future
+adapter questions; they are not required to answer the v0.10 product question.
+
+Exit capability:
+
+> **For a bounded architecture question, AIP can state which established relationships remain within
+> an established System/Component boundary, which cross one, and which cannot be classified because
+> the relevant composition evidence is unresolved — with evidence, qualification, context and
+> limitations preserved.**
+
 ## v1.0 Release-Candidate Phase — Contract Freeze / Production Qualification (planned)
 
 **Goal: Stabilize and production-qualify the architecture-intelligence contracts intended for
 v1.0 without pretending that stabilization introduces a new architecture-question class.**
 
 This phase uses `v1.0.0-rc.N` prereleases. It freezes only semantics and public contracts that have
-survived implementation, deterministic evaluation, and real-system qualification across v0.5-v0.9.
+survived implementation, deterministic evaluation, and real-system qualification across v0.5-v0.10.
 
 Qualification/freeze scope includes, where actually implemented and accepted:
 
@@ -751,6 +830,8 @@ Qualification/freeze scope includes, where actually implemented and accepted:
   observation coverage contracts where accepted from the v0.7 pilot
 - explicit Intent assertion kinds, authority/lifecycle applicability, and versioned projection contracts
 - qualified Current↔Intent assessment contracts
+- cross-boundary projection contracts and the minimal System/Component composition semantics
+  required to support them, where accepted from the v0.10 qualification
 - derivation-lineage and evidence/provenance requirements, including authority/lifecycle evidence
   references, rule versions, and exact projection binding
 - temporal compatibility and coverage rules for Current↔Intent assessment
@@ -761,7 +842,9 @@ Qualification/freeze scope includes, where actually implemented and accepted:
 - Configuration-format stabilization
 - Migration and deprecation rules
 - Security and production-operability qualification
-- Performance and resilience qualification
+- Performance and resilience qualification, including evidence that bounded architecture questions
+  do not become unbounded in cost merely because unrelated systems/evidence share the same knowledge
+  space
 - Release/support policy
 
 Any known breaking redesign required for the stable contract must be completed before the final
@@ -798,6 +881,13 @@ normal deterministic engineering toolchain, and independently re-establish the r
 state with AIP. This is a product demonstration of the existing contracts, not a new v1.0 semantic
 capability and not a claim that AIP itself verifies implementation correctness.
 
+The v1.0 production-qualification phase should also test the **shape of scale** for the bounded
+question model. Adding unrelated services, systems, and retained evidence must not force every
+question to reconstruct or fingerprint the entire enterprise landscape at request time. This is a
+performance/operability qualification requirement, not a new architecture-question class. v0.10
+supplies only the minimal System/Component semantics that survive its own product and semantic
+qualification; v1.0-rc must not broaden them into a generic enterprise model.
+
 ## Sequencing principle
 
 ```text
@@ -808,6 +898,7 @@ v0.3  validation and hardening
   -> v0.7  API-Aware Current State
   -> v0.8  explicit architecture Intent
   -> v0.9  qualified architecture assessment
+  -> v0.10 cross-boundary Architecture Knowledge
   -> v1.0-rc  contract freeze and production qualification
   -> v1.0  stable platform
 ```
@@ -833,6 +924,8 @@ API-AWARE CURRENT STATE (v0.7)   EXPLICIT INTENT (v0.8)
                                   ↓
                          ASSESS (v0.9)
                                   ↓
+                    CROSS BOUNDARIES (v0.10)
+                                  ↓
                                FREEZE
 ```
 
@@ -844,6 +937,7 @@ v0.6  WHERE does this architectural relationship hold?
 v0.7  HOW are APIs exposed and consumed, and what does the evidence establish?
 v0.8  WHAT explicit Intent applies here?
 v0.9  HOW does established Current State differ from applicable Intent?
+v0.10 WHICH established relationships cross System or Component boundaries?
 v1.0-rc  FREEZE and qualify the question space already implemented
 ```
 
@@ -855,6 +949,7 @@ v0.6  Which established relationships and contexts should I inspect before chang
 v0.7  Which evidenced API consumers and exposure paths may matter before changing this API?
 v0.8  What explicit architecture constraints or promises apply to this change?
 v0.9  After the change, where does established Current State align with or differ from applicable Intent?
+v0.10 Before changing this service, which established relationships cross the System or Component boundaries around it?
 ```
 
 These questions expand AIP's safely answerable Architecture Knowledge in release order; the
@@ -900,7 +995,10 @@ The semantic dependencies are narrower than the chronological release order:
    Current State; it must be attributable and qualified for authority, lifecycle, scope, and time;
 5. Current↔Intent assessment must remain read-only and downstream of both independently established
    projections relevant to the question being assessed;
-6. only implemented and qualified contracts are frozen for v1.0.
+6. cross-boundary projection must be downstream of independently established composition/membership
+   and already-qualified relationships; connectivity must never manufacture System/Component
+   membership;
+7. only implemented and qualified contracts are frozen for v1.0.
 
 `v0.3` carried a hard gate: had either real-system dossier shown the Canonical Architecture Model
 needed a fundamental breaking redesign, AIP would not proceed to v0.4 until that redesign was
@@ -951,7 +1049,8 @@ deterministic conformance tests; the adapter seam does not automatically admit a
   reconstruction
 - Historical architecture-state retention/import sufficient for principled temporal reasoning
 - Architecture trajectories (how evidence-qualified Current State and applicable Intent evolve over
-  time, once historical identity/provenance continuity exists)
+  time, once historical identity/provenance continuity exists), including the future ability to
+  understand how many bounded AI-assisted changes accumulate into enterprise architecture evolution
 - Distributed Local Architecture Assessor deployment options (for example sidecar, DaemonSet, OTel
   extension, or local gateway) if real-system evidence shows that moving deterministic qualification
   closer to the locality provides correctness or operational value
