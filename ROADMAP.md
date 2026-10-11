@@ -13,6 +13,18 @@ configuration, runtime evidence, documentation, and people. This framing does **
 legacy-modernization product and does not change the semantic scope or ordering of the releases
 below.
 
+The broader strategic environment is **enterprise AI-assisted software transformation**. Many
+bounded changes made by many agents and teams across many systems accumulate into architecture
+evolution. AIP's role in that environment is deliberately narrower: provide reusable,
+evidence-qualified Architecture Knowledge for those changes. AIP is not an enterprise transformation
+manager, agent orchestrator, approval authority, or generic AI-governance platform.
+
+The long-term knowledge-space direction is therefore **multi-system rather than one-instance-per-system
+by default**: preserve cross-system relationships in one coherent Architecture Knowledge space where
+the evidence supports them. This is a product direction, not a claim that the current implementation
+already provides first-class System/Component composition, multi-tenancy, or qualified enterprise
+capacity.
+
 ## Versioning
 
 AIP follows [Semantic Versioning](https://semver.org/) with an additional product discipline from
@@ -761,7 +773,9 @@ Qualification/freeze scope includes, where actually implemented and accepted:
 - Configuration-format stabilization
 - Migration and deprecation rules
 - Security and production-operability qualification
-- Performance and resilience qualification
+- Performance and resilience qualification, including evidence that bounded architecture questions
+  do not become unbounded in cost merely because unrelated systems/evidence share the same knowledge
+  space
 - Release/support policy
 
 Any known breaking redesign required for the stable contract must be completed before the final
@@ -797,6 +811,12 @@ planning, let the coding agent implement a bounded change, verify implementation
 normal deterministic engineering toolchain, and independently re-establish the resulting architecture
 state with AIP. This is a product demonstration of the existing contracts, not a new v1.0 semantic
 capability and not a claim that AIP itself verifies implementation correctness.
+
+The v1.0 production-qualification phase should also test the **shape of scale** for the bounded
+question model. Adding unrelated services, systems, and retained evidence must not force every
+question to reconstruct or fingerprint the entire enterprise landscape at request time. This is a
+performance/operability qualification requirement, not a new architecture-question class and not a
+promise to ship first-class System/Component semantics in v1.0.
 
 ## Sequencing principle
 
@@ -943,6 +963,37 @@ gRPC/protobuf and Kafka Connect configuration remain candidates outside v0.5, wi
 release. Each requires a separately approved later-release specification, explicit semantics, and
 deterministic conformance tests; the adapter seam does not automatically admit additional sources.
 
+## Multi-system composition candidate (unassigned)
+
+AIP's current public question space is predominantly Service-centric. The broader product strategy
+requires a coherent Architecture Knowledge space that can eventually span multiple distributed
+systems without hiding cross-system relationships behind separate deployments.
+
+The existing high-priority semantic gap for logical composition therefore has strategic relevance:
+future evidence-qualified questions may require explicit **System / Component / Service** composition
+or an equivalent source-neutral structure. Any such addition must preserve these distinctions:
+
+```text
+Service identity
+    !=
+System membership
+    !=
+deployment/locality
+    !=
+team ownership
+    !=
+Bounded Context
+```
+
+System membership must not be inferred from co-location, communication, repository structure, naming,
+or ownership alone. A Service may participate in more than one System, and cross-system dependencies
+must remain representable.
+
+This candidate is **unassigned**. It is not silently added to v0.7, v0.8, v0.9, or stable v1.0.
+Promotion requires a recurring architecture question, source semantics, evidence/Intent authority,
+identity rules, deterministic qualification, and real-system product validation. See
+[`docs/semantic-gaps.md`](docs/semantic-gaps.md) for the existing logical-composition gap.
+
 ## Future (beyond v1.0, unscheduled)
 
 - Externally sourced architecture decision-history linkage: relate a qualified finding or
@@ -951,7 +1002,8 @@ deterministic conformance tests; the adapter seam does not automatically admit a
   reconstruction
 - Historical architecture-state retention/import sufficient for principled temporal reasoning
 - Architecture trajectories (how evidence-qualified Current State and applicable Intent evolve over
-  time, once historical identity/provenance continuity exists)
+  time, once historical identity/provenance continuity exists), including the future ability to
+  understand how many bounded AI-assisted changes accumulate into enterprise architecture evolution
 - Distributed Local Architecture Assessor deployment options (for example sidecar, DaemonSet, OTel
   extension, or local gateway) if real-system evidence shows that moving deterministic qualification
   closer to the locality provides correctness or operational value
