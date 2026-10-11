@@ -491,15 +491,18 @@ Exit capability:
 > the limits of that knowledge, and identify what still needs inspection without reconstructing the
 > topology from the checkout alone.**
 
-## v0.6.3 — Telemetry Ingestion Responsiveness (planned maintenance)
+## v0.6.3 — Runtime and Import Robustness (planned maintenance)
 
-**Goal: remove the known POST /v1/traces event-loop stall without changing the v0.6 architecture-question space or evidence semantics.**
+**Goal: fix two bounded robustness defects without changing the v0.6 architecture-question space or evidence semantics.**
 
-The v0.6.2 hosted demo made continuous ingestion operationally visible: POST /v1/traces is an async route that currently calls synchronous ingestion on the event loop, so REST, MCP and UI requests can wait for the whole batch. The committed benchmarks/traces_stall.py baseline measures this directly.
+See the lightweight draft specification in [docs/specifications/0.6.3/specification.md](docs/specifications/0.6.3/specification.md).
 
-This is a **maintenance release**, not a v0.7 capability increment. The correction SHALL move blocking ingestion work off the event loop while preserving serialized ingestion (for example through an explicit single-flight lock or equivalent single-worker mechanism), preserve existing evidence semantics, and prove that queries can complete during deliberately slow ingestion. The benchmark remains measurement evidence, not a product SLO. Full semantic/regression qualification is required because the change touches the runtime evidence write path.
+The release contains exactly two maintenance corrections:
 
-No API-aware Current-State semantics, new source family, canonical relationship, public Architecture Intelligence question or MCP tool belongs in v0.6.3.
+- **Telemetry responsiveness:** POST /v1/traces currently calls synchronous ingestion on the FastAPI event loop, so REST, MCP and UI requests can wait for the whole batch. Move blocking ingestion work off the event loop while preserving serialized ingestion. The committed benchmarks/traces_stall.py baseline remains measurement evidence, not a product SLO.
+- **Per-source import containment (#305):** an OpenAPI/AsyncAPI document containing an integer outside RFC 8785's safe integer domain must be rejected with an explicit diagnostic without aborting unrelated valid sources in the same import run. Preserve strict current hashing semantics; do not add lossy coercion, alternate encoding or a hash migration in this patch release.
+
+No API-aware Current-State semantics, new source family, canonical relationship, public Architecture Intelligence question or MCP tool belongs in v0.6.3. Broader support for out-of-range JSON integers is deferred to a separate semantic decision.
 
 ## v0.7 — API-Aware Current State (planned)
 
