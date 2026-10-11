@@ -500,11 +500,14 @@ The v0.6.2 hosted demo made continuous ingestion operationally visible: POST /v1
 This is a **maintenance release**, not a v0.7 capability increment. The correction SHALL move blocking ingestion work off the event loop while preserving serialized ingestion (for example through an explicit single-flight lock or equivalent single-worker mechanism), preserve existing evidence semantics, and prove that queries can complete during deliberately slow ingestion. The benchmark remains measurement evidence, not a product SLO. Full semantic/regression qualification is required because the change touches the runtime evidence write path.
 
 No API-aware Current-State semantics, new source family, canonical relationship, public Architecture Intelligence question or MCP tool belongs in v0.6.3.
+
 ## v0.7 — API-Aware Current State (planned)
 
 **Goal: Establish evidence-qualified Current-State knowledge of how APIs are exposed and consumed,
 while retaining the distinct meanings of contracts, operations, gateway objects, application services,
 consumers, and observed interactions.**
+
+See the first parent release draft in [docs/specifications/0.7.0/specification.md](docs/specifications/0.7.0/specification.md).
 
 **Product question:**
 
