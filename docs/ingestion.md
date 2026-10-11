@@ -136,6 +136,13 @@ invariants (V1-V8, `app/validation/canonical_validation.py`) before any reconcil
   a run-level diagnostic);
 - nothing commits, and every source keeps exactly one result (I1 §6, §10).
 
+A source document holding an integer outside RFC 8785's safe range (`|n| > 2^53 - 1`, for example an
+`int64`/`uint64` `maximum`) cannot be canonically hashed. AIP does not coerce or re-encode it: that
+source becomes `REJECTED_INVALID` with one `DOCUMENT_PARSE_INVALID` diagnostic naming the JSON Pointer
+of the first such integer (never its value), contributes no model and no semantic-input digest, and the
+run is `PARTIAL`, so nothing from that run commits. Other sources in the run are still evaluated and
+reported, and other configured directories are separate runs.
+
 This is a safety net behind the adapters' own checks. Before v0.5.0 I5 finding F1, the importer ran
 the validation after the commit gate, and a violation escaped `POST /api/import` as HTTP 500 with no
 per-source result.
