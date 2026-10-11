@@ -94,7 +94,7 @@ The release SHALL preserve the accepted Current-State contracts from v0.5–v0.6
 - no generic graph/Cypher correctness path;
 - no LLM required for deterministic execution or qualification;
 - read-only public Architecture Intelligence;
-- the v0.6.3 maintenance guarantees: telemetry ingestion remains serialized while blocking work is kept off the FastAPI event loop, and a failing source import is contained to that source rather than aborting unrelated valid sources.
+- the v0.6.3 maintenance guarantees: telemetry ingestion remains serialized while blocking work is kept off the FastAPI event loop; unsupported per-source canonicalization failures are converted into deterministic source rejections rather than escaping as unhandled exceptions; and the existing discovery-run commit gate remains unchanged (`PARTIAL` / `FAILED` runs commit nothing).
 
 ### 3.1 Required maintenance baseline: v0.6.3
 
@@ -349,7 +349,7 @@ snapshot fencing
 
 A failed or partial source acquisition MUST NOT erase previously accepted source state unless the established source rules explicitly authorize that transition.
 
-A failure in one gateway/source import MUST be contained to that source. It MUST NOT abort unrelated valid sources in the same import run, and it MUST NOT silently erase previously accepted state except where the existing authoritative-removal rules explicitly require that outcome. v0.7 source adapters SHALL inherit the v0.6.3 containment guarantee rather than reintroducing whole-run failure for a single source defect.
+A failure in one gateway/source import MUST be converted into that source's deterministic rejected outcome rather than escaping as an unhandled exception. Other discovered sources SHALL still be evaluated and reported according to the existing per-source rules, but v0.7 SHALL preserve the inherited commit gate: if any source rejection makes the run `PARTIAL`, **nothing from that run commits** and previously accepted state remains unchanged. v0.7 source adapters SHALL NOT reinterpret the v0.6.3 containment guarantee as permission for partial commits.
 
 Gateway configuration "latest" is not automatically authoritative over API contracts or application-service identity. Source authority is bounded by what the source actually owns.
 
