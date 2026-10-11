@@ -93,7 +93,8 @@ The release SHALL preserve the accepted Current-State contracts from v0.5–v0.6
 - REST and negotiated MCP as supported public adapters over the shared semantic service;
 - no generic graph/Cypher correctness path;
 - no LLM required for deterministic execution or qualification;
-- read-only public Architecture Intelligence.
+- read-only public Architecture Intelligence;
+- the v0.6.3 maintenance guarantees: telemetry ingestion remains serialized while blocking work is kept off the FastAPI event loop, and a failing source import is contained to that source rather than aborting unrelated valid sources.
 
 ### 3.1 Required maintenance baseline: v0.6.3
 
@@ -348,6 +349,8 @@ snapshot fencing
 
 A failed or partial source acquisition MUST NOT erase previously accepted source state unless the established source rules explicitly authorize that transition.
 
+A failure in one gateway/source import MUST be contained to that source. It MUST NOT abort unrelated valid sources in the same import run, and it MUST NOT silently erase previously accepted state except where the existing authoritative-removal rules explicitly require that outcome. v0.7 source adapters SHALL inherit the v0.6.3 containment guarantee rather than reintroducing whole-run failure for a single source defect.
+
 Gateway configuration "latest" is not automatically authoritative over API contracts or application-service identity. Source authority is bounded by what the source actually owns.
 
 ---
@@ -377,6 +380,8 @@ The rule is:
 An unattributed request may establish that a route/API was used, if independently resolvable, but SHALL NOT establish use by a specific consumer.
 
 AIP SHALL not infer authorization success, policy correctness, business use, owner approval or architectural Intent merely because a request was accepted and measured.
+
+Any new runtime measurement-ingestion path introduced by v0.7 SHALL preserve the v0.6.3 ingestion-concurrency contract — blocking work must not occupy the FastAPI event loop while ingestion semantics that require serialization remain serialized — unless a reviewed increment explicitly defines and independently qualifies a different path. v0.7 SHALL not bypass or duplicate that concurrency contract merely to ingest gateway/request measurements.
 
 ---
 
