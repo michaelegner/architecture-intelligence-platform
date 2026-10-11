@@ -21,6 +21,8 @@ qualification has not been repeated since.
 
 **[Run the 5-Minute Demo](#see-it-in-five-minutes) · [Realistic Demo: Quarkus Super Heroes](#quarkus-super-heroes-understand-the-fight-service-before-changing-it) · [MCP Tools](#mcp-tools) · [How It Works](#how-aip-works)**
 
+**MCP Registry:** [`io.github.michaelegner/architecture-intelligence-platform`](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.michaelegner/architecture-intelligence-platform)
+
 ![Architecture Intelligence Platform demo: get_architecture_drift finds an undocumented LegacyPricingService dependency, then get_evidence traces it to the real OpenTelemetry observation that proves it — both real MCP tool calls, no mockups.](video/readme-demo/output/aip-readme-demo.webp)
 
 **`LegacyPricingService` was never declared. AIP observed the dependency at runtime as
