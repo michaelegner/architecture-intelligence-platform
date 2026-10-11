@@ -495,7 +495,7 @@ Exit capability:
 
 **Goal: fix two bounded robustness defects without changing the v0.6 architecture-question space or evidence semantics.**
 
-See the lightweight draft specification in [docs/specifications/0.6.3/specification.md](docs/specifications/0.6.3/specification.md).
+See the accepted maintenance specification in [docs/specifications/0.6.3/specification.md](docs/specifications/0.6.3/specification.md).
 
 The release contains exactly two maintenance corrections:
 
