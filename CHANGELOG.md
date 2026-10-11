@@ -9,6 +9,14 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-10-11
+
+### v0.6.3 — Runtime and Import Robustness
+
+See the [release notes](docs/release-validation/v0.6.3-release-notes.md) and the
+[specification](docs/specifications/0.6.3/specification.md). A maintenance release: two bounded robustness fixes
+and no new capability, schema, claim type or MCP tool.
+
 ### Added
 
 - `server.json`, the metadata-only MCP Registry entry (`io.github.michaelegner/architecture-intelligence-platform`): no
