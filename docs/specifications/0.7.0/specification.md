@@ -1,6 +1,6 @@
 # AIP v0.7.0 Release Specification — API-Aware Current State
 
-**Status:** Draft 0.1 — first parent release specification for review. Semantic and implementation-specific decisions identified below SHALL be frozen in reviewed increment specifications before implementation depends on them.
+**Status:** Accepted parent release specification — normative v0.7.0 scope and acceptance contract; implementation-specific decisions identified below SHALL be frozen in reviewed increment specifications before implementation depends on them.
 
 **Target release:** v0.7.0  
 **Release theme:** API-Aware Current State  
@@ -744,7 +744,7 @@ The hosted Pitstop demo MAY be extended if it provides a suitable API/gateway sc
 
 ---
 
-# Part XI — Decision Register for Draft 0.1
+# Part XI — Decision Register
 
 ## 34. Decisions already made
 
@@ -777,9 +777,9 @@ The hosted Pitstop demo MAY be extended if it provides a suitable API/gateway sc
 | O10 | Public REST path, MCP tool name and versioned request/response schema. | I3 |
 | O11 | Real-source replay packaging and independent semantic cross-check source. | I4 |
 
-## 36. Draft 0.1 Definition of Done
+## 36. Parent Specification Definition of Done
 
-This parent draft is ready for implementation planning when reviewers agree that:
+This parent specification is ready for implementation planning when:
 
 1. the architecture question is narrow enough to justify a capability release;
 2. I0 can select a source without predetermining the canonical model;
@@ -793,7 +793,7 @@ This parent draft is ready for implementation planning when reviewers agree that
 
 ---
 
-## 37. Draft Summary
+## 37. Summary
 
 v0.7.0 is not an API-management release. It is an Architecture Intelligence release about one new Current-State question:
 
