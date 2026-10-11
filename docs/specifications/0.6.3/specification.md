@@ -1,6 +1,6 @@
 # AIP v0.6.3 — Runtime and Import Robustness
 
-**Status:** Accepted maintenance specification  
+**Status:** Released in [`v0.6.3`](../../release-validation/v0.6.3-release-record.md) (2026-10-11)  
 **Target:** `v0.6.3`  
 **Baseline:** Published and post-release-verified `v0.6.2`  
 **Scope authority:** [ROADMAP.md — v0.6.3](../../../ROADMAP.md)

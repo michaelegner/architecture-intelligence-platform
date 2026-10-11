@@ -503,7 +503,10 @@ Exit capability:
 > the limits of that knowledge, and identify what still needs inspection without reconstructing the
 > topology from the checkout alone.**
 
-## v0.6.3 — Runtime and Import Robustness (planned maintenance)
+## v0.6.3 — Runtime and Import Robustness (shipped)
+
+Published **v0.6.3 on 2026-10-11**; terminal outcome **SHIPPED_VERIFIED**. See the
+[release record](docs/release-validation/v0.6.3-release-record.md).
 
 **Goal: fix two bounded robustness defects without changing the v0.6 architecture-question space or evidence semantics.**
 

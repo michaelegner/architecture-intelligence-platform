@@ -15,6 +15,7 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
+| [`v0.6.3-release-record.md`](v0.6.3-release-record.md) | v0.6.3's one-page record for the lightweight release path: identities, readiness on the exact candidate, post-release verification by digest, owner steps. |
 | [`v0.6.3-release-notes.md`](v0.6.3-release-notes.md) | v0.6.3 maintenance release notes (candidate): `/v1/traces` off the event loop, rejection of out-of-range integers (#305), known limitations. |
 | [`v0.6.2-release-record.md`](v0.6.2-release-record.md) | v0.6.2's one-page record for the lightweight release path: identities, the hosted instance facts (host withheld), the §7.1 sanity run, readiness on the exact candidate, post-release verification by digest. |
 | [`v0.6.2-release-notes.md`](v0.6.2-release-notes.md) | v0.6.2 demo release notes (candidate): Live AIP Demo on Pitstop, plugin, optional mod, the I0 correctness fix, known limitations. |
