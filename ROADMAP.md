@@ -500,7 +500,7 @@ See the lightweight draft specification in [docs/specifications/0.6.3/specificat
 The release contains exactly two maintenance corrections:
 
 - **Telemetry responsiveness:** POST /v1/traces currently calls synchronous ingestion on the FastAPI event loop, so REST, MCP and UI requests can wait for the whole batch. Move blocking ingestion work off the event loop while preserving serialized ingestion. The committed benchmarks/traces_stall.py baseline remains measurement evidence, not a product SLO.
-- **Per-source import containment (#305):** an OpenAPI/AsyncAPI document containing an integer outside RFC 8785's safe integer domain must be rejected with an explicit diagnostic without aborting unrelated valid sources in the same import run. Preserve strict current hashing semantics; do not add lossy coercion, alternate encoding or a hash migration in this patch release.
+- **Per-source import rejection/diagnosis (#305):** an OpenAPI/AsyncAPI document containing an integer outside RFC 8785's safe integer domain must be rejected with an explicit diagnostic instead of escaping as an uncaught exception. The overall discovery run remains `PARTIAL`, nothing from that run commits, and previously accepted state is preserved. Preserve strict current hashing semantics; do not add lossy coercion, alternate encoding or a hash migration in this patch release.
 
 No API-aware Current-State semantics, new source family, canonical relationship, public Architecture Intelligence question or MCP tool belongs in v0.6.3. Broader support for out-of-range JSON integers is deferred to a separate semantic decision.
 
