@@ -491,6 +491,15 @@ Exit capability:
 > the limits of that knowledge, and identify what still needs inspection without reconstructing the
 > topology from the checkout alone.**
 
+## v0.6.3 — Telemetry Ingestion Responsiveness (planned maintenance)
+
+**Goal: remove the known POST /v1/traces event-loop stall without changing the v0.6 architecture-question space or evidence semantics.**
+
+The v0.6.2 hosted demo made continuous ingestion operationally visible: POST /v1/traces is an async route that currently calls synchronous ingestion on the event loop, so REST, MCP and UI requests can wait for the whole batch. The committed benchmarks/traces_stall.py baseline measures this directly.
+
+This is a **maintenance release**, not a v0.7 capability increment. The correction SHALL move blocking ingestion work off the event loop while preserving serialized ingestion (for example through an explicit single-flight lock or equivalent single-worker mechanism), preserve existing evidence semantics, and prove that queries can complete during deliberately slow ingestion. The benchmark remains measurement evidence, not a product SLO. Full semantic/regression qualification is required because the change touches the runtime evidence write path.
+
+No API-aware Current-State semantics, new source family, canonical relationship, public Architecture Intelligence question or MCP tool belongs in v0.6.3.
 ## v0.7 — API-Aware Current State (planned)
 
 **Goal: Establish evidence-qualified Current-State knowledge of how APIs are exposed and consumed,
