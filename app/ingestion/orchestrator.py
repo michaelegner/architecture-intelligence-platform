@@ -23,7 +23,8 @@ from app.canonical.model import (
     ArchitectureModel,
     relation_key,
 )
-from app.common.jcs import sort_entries_by_canonical_bytes
+from app.common.jcs import CanonicalIntegerDomainError, sort_entries_by_canonical_bytes
+from app.ingestion.adapter_outcomes import rejected_for_integer_domain
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
@@ -628,13 +629,21 @@ def _map_sources(
                     )
                 }
             )
-            outcome = adapter.map(
-                enriched,
-                service_identity=resolver,
-                shared_identity=shared_identity_resolver,
-                upstream_model=phase_upstream_model,
-                mapping_context_digest=mapping_context_digest,
-            )
+            try:
+                outcome = adapter.map(
+                    enriched,
+                    service_identity=resolver,
+                    shared_identity=shared_identity_resolver,
+                    upstream_model=phase_upstream_model,
+                    mapping_context_digest=mapping_context_digest,
+                )
+            except CanonicalIntegerDomainError:
+                # v0.6.3 I2 (#305): every document-content canonicalization (schema hashes, message
+                # digests, the semantic-input digest) runs inside an adapter's `map`, so one source
+                # holding an integer RFC 8785 cannot represent is rejected here, as a source, instead
+                # of aborting the whole run. The run is then PARTIAL and commits nothing, as for any
+                # other rejected source.
+                outcome = rejected_for_integer_domain(enriched)
             source_outcomes[source_instance_id] = SourceRunOutcome(
                 descriptor_locator=loaded.descriptor.locator,
                 outcome=outcome,

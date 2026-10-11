@@ -4,6 +4,14 @@ import rfc8785
 
 from app.common.encoding import sha256_hex
 
+
+class CanonicalIntegerDomainError(ValueError):
+    """A value contains an integer outside RFC 8785's safe integer domain (|n| > 2**53 - 1).
+
+    Raised in place of the `rfc8785` library's own error, whose message embeds the value: this
+    one never does, so it is safe to log or turn into a diagnostic."""
+
+
 type JSONValue = dict[str, JSONValue] | list[JSONValue] | str | int | float | bool | None
 
 
@@ -16,7 +24,12 @@ def canonical_json_bytes(value: JSONValue) -> bytes:
     reused there. I1 spec §8.1/§9.1 require RFC 8785 specifically for schema/message canonical
     hashing.
     """
-    return rfc8785.dumps(value)
+    try:
+        return rfc8785.dumps(value)
+    except rfc8785.IntegerDomainError:
+        raise CanonicalIntegerDomainError(
+            "value contains an integer outside the RFC 8785 safe integer domain"
+        ) from None
 
 
 def canonical_sha256_hex(value: JSONValue) -> str:

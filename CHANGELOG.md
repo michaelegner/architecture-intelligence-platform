@@ -21,6 +21,11 @@ aren't yet guaranteed stable pre-1.0.
 
 ### Fixed
 
+- A source document containing an integer outside RFC 8785's safe range (for example an `int64`/`uint64` `maximum`) no
+  longer aborts `POST /api/import` with an uncaught `IntegerDomainError` (#305). That source is rejected with a
+  `DOCUMENT_PARSE_INVALID` diagnostic naming where the integer is (never its value); the run is `PARTIAL` and commits
+  nothing, as for any other rejected source, and other configured directories are unaffected. Hashing of in-range
+  documents is unchanged.
 - `POST /v1/traces` no longer blocks the event loop while a batch is ingested: ingestion runs in a worker thread, so REST,
   MCP and UI requests are answered during it. Batches are still ingested one at a time behind a lock, and evidence
   semantics are unchanged.
