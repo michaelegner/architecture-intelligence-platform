@@ -510,8 +510,6 @@ No API-aware Current-State semantics, new source family, canonical relationship,
 while retaining the distinct meanings of contracts, operations, gateway objects, application services,
 consumers, and observed interactions.**
 
-See the first parent release draft in [docs/specifications/0.7.0/specification.md](docs/specifications/0.7.0/specification.md).
-
 **Product question:**
 
 > **How are APIs exposed and consumed, and what can the available evidence establish about those
