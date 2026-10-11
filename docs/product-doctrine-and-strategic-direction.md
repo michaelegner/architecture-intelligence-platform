@@ -4,7 +4,7 @@
 **Project:** Architecture Intelligence Platform (AIP)<br>
 **Date:** 2026-09-21<br>
 **Roadmap-alignment revision:** 2026-09-29<br>
-**Product-positioning revision:** 2026-10-10 — bounded-change brownfield wedge for AI-assisted development<br>
+**Product-positioning revision:** 2026-10-11 — bounded-change wedge within enterprise AI-assisted software transformation<br>
 **Scope:** Product doctrine, target wedge, semantic model, Moldable Architecture Knowledge, strategic direction, and roadmap alignment<br>
 **Current implementation center:** Evidence-qualified Current State and read-only agent context; v0.5 broadens discovery and public Architecture Knowledge access<br>
 **Important:** ROADMAP.md assigns planned themes to v0.6–v0.9; detailed scope remains subject to release-specific specifications and qualification gates.
@@ -20,6 +20,26 @@ AIP's overarching mission is:
 AIP's customer value proposition is:
 
 > **Help coding agents make bounded changes across multi-service systems without reconstructing architecture for every task.**
+
+The broader strategic environment is **enterprise AI-assisted software transformation**. As implementation
+gets cheaper and more agents make more changes across existing systems, individual bounded changes
+accumulate into architecture evolution. AIP's role is not to manage that transformation; it is to
+provide the reusable, evidence-qualified Architecture Knowledge layer that keeps each change grounded
+in what the available evidence actually supports.
+
+The strategy therefore has two scales:
+
+```text
+task-level value
+one bounded change
+        ↓
+evidence-qualified architecture context
+
+enterprise-level value
+many changes + many agents + many systems
+        ↓
+reusable Architecture Knowledge across the evolving landscape
+```
 
 The customer problem is **agent-ready architectural context**. A repository of code alone cannot
 reliably provide the operational and architectural knowledge required to change multi-service
@@ -346,6 +366,33 @@ Brownfield is an adoption wedge, not the product boundary. Greenfield systems ca
 evidence-qualified Architecture Knowledge earlier and preserve it as the system evolves; the initial
 focus is simply where reusable context has the clearest marginal value.
 
+### Strategic environment: enterprise AI-assisted software transformation
+
+The bounded change is the initial **unit of product value**, not the ultimate scale of the problem.
+At enterprise scale, many bounded AI-assisted changes across many systems become cumulative software
+transformation:
+
+```text
+one bounded change
+        ↓
+many AI-assisted changes
+        ↓
+many teams / agents / systems
+        ↓
+architecture evolution
+        ↓
+enterprise AI-assisted software transformation
+```
+
+AIP should provide an architecture-knowledge substrate for that environment without becoming an
+enterprise-transformation management platform, agent orchestrator, portfolio tool, approval system,
+or generic AI-governance suite.
+
+The strategic target is a **shared Architecture Knowledge space that can span multiple distributed
+systems and preserve qualified cross-system relationships**, rather than assuming one AIP instance
+per application. That target does not imply that all systems must be flattened into one undifferentiated
+graph or that today's implementation is already qualified for enterprise scale.
+
 These teams need to let agents work across service boundaries without forcing the agent to
 reconstruct architecture from source code, documentation, naming conventions, stale diagrams, or
 incomplete telemetry.
@@ -501,6 +548,57 @@ how the system might safely change
 ```
 
 AIP should not collapse these stages into one graph or one AI-generated answer.
+
+### Multi-system Architecture Knowledge and composition
+
+The current bounded-change workflow is intentionally Service-centric, but the long-term knowledge
+space must not assume that a Service is the largest meaningful architecture boundary. Enterprise
+software landscapes contain Systems, Services, components, shared platforms, deployment units,
+bounded contexts, and organizational boundaries whose meanings must remain distinct.
+
+AIP therefore needs a principled path toward source-neutral **System / Component / Service
+composition** when a validated architecture question requires it. The exact taxonomy and relation
+vocabulary remain to be specified and qualified; the strategy must not freeze a hierarchy merely
+because CALM, Structurizr, C4, or another source uses one.
+
+The governing boundaries are:
+
+```text
+Service identity
+    !=
+System membership
+    !=
+deployment locality
+    !=
+team ownership
+    !=
+Bounded Context
+```
+
+System or component membership must not be inferred merely from repository location, namespace,
+communication, naming, team ownership, or graph proximity. Membership needs attributable evidence
+or explicit Intent appropriate to that claim.
+
+Likewise, System membership should not become part of a Service's identity by default. A Service may
+participate in several systems or move between architectural groupings without becoming a different
+Service. Cross-system dependencies are first-class architecture knowledge, not noise to be hidden by
+per-system isolation.
+
+This composition direction connects the initial wedge to the broader strategy:
+
+```text
+bounded change
+        ↓
+Service-level architecture context
+        ↓
+multi-Service / multi-System knowledge
+        ↓
+reusable enterprise Architecture Knowledge
+```
+
+It is a strategic semantic requirement, not an automatic pre-v1.0 feature assignment. The existing
+high-priority logical-composition gap in `docs/semantic-gaps.md` remains subject to the same
+question-driven specification and qualification rules as every other model extension.
 
 Product evolution should also be visible as an expansion of the **architecture-question space**.
 A capability release should be explainable in terms of a materially new recurring question that AIP
@@ -2682,6 +2780,14 @@ AIP should not design migration execution before Current State and any future In
 
 ## 31. Recommended Positioning
 
+### Strategic environment
+
+> **Enterprise AI-assisted software transformation: many bounded changes, agents, and systems
+> accumulating into architecture evolution.**
+
+AIP participates in this environment as architecture-intelligence infrastructure. It does not own
+enterprise transformation strategy, organizational governance, approval, or execution.
+
 ### Customer value proposition
 
 > **Help coding agents work across multi-service systems without reconstructing architecture.**
@@ -2738,6 +2844,15 @@ proves a software change safe.
 > **AIP is not an agent platform or general organizational memory system. It establishes the
 > evidence-qualified Architecture Knowledge that authoring and reviewing agents can query and mold
 > into contextual views without becoming the source of that knowledge.**
+
+### Enterprise-scale product role
+
+> **Make evidence-qualified Architecture Knowledge reusable across many AI-assisted changes, agents,
+> teams, and distributed systems while preserving the boundaries and evidence behind each claim.**
+
+The initial validation remains one bounded change. Enterprise value is cumulative reuse of the same
+knowledge discipline across successive changes, not a claim that AIP centrally manages the
+transformation.
 
 ### Future product proposition — strategic hypothesis
 
@@ -2879,7 +2994,25 @@ AIP
 Before v1.0, these ideas should influence semantics only where they solve concrete product problems; distributed Local Architecture Assessor deployment remains beyond v1.0 under the current roadmap.
 The Canonical Model should not be replaced wholesale by any formal theory.
 
-The preferred strategic journey is:
+The broader product journey starts from the smallest unit that can be validated:
+
+```text
+one bounded AI-assisted change
+        ↓
+repeated bounded changes
+        ↓
+shared Architecture Knowledge across services and systems
+        ↓
+evidence-qualified architecture evolution
+        ↓
+enterprise transformation visibility
+```
+
+The last two steps require historical and composition semantics that are not part of the current
+pre-v1.0 capability sequence. The strategic environment therefore broadens the destination without
+weakening the release discipline.
+
+The preferred semantic journey is:
 
 ```text
 Broaden what AIP can safely know.
