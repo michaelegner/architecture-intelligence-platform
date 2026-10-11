@@ -56,7 +56,7 @@ A plain synchronous FastAPI route that permits concurrent ingestion is insuffici
 
 The change SHALL include tests proving:
 
-- an unrelated request can complete while deliberately slow trace ingestion is still running;
+- an unrelated request can complete while deliberately slow trace ingestion is still running, using resolvable client/server span pairs exercised through the real ingestion path as in `benchmarks/traces_stall.py`, not an injected sleep as a substitute for ingestion cost;
 - two ingestion requests do not execute the protected ingestion work concurrently;
 - removing/bypassing the serialization guard causes the serialization test to fail;
 - existing telemetry semantic tests remain unchanged or are updated only where concurrency mechanics require it;
@@ -92,17 +92,30 @@ Today an uncaught failure can abort the whole import run, including unrelated va
 
 ### 4.2 Required outcome
 
-Contain this failure **per source**.
+Contain this failure **at the per-source canonicalization/mapping boundary**, not only around `adapter.map(...)`.
 
-When canonicalization of one source document fails because an integer is outside the supported RFC 8785 domain:
+Any RFC 8785 integer-domain failure encountered while deriving one discovered source's semantic identity/digests or while mapping that source SHALL be converted into that source's deterministic rejected outcome rather than escaping as an exception.
+
+The implementation SHALL explicitly inspect and classify the currently known document-content canonicalization paths, including:
+
+- the full-document `semantic_input_digest` / source-revision input path;
+- OpenAPI/AsyncAPI adapter canonical hashing;
+- message-contract canonical hashing;
+- Kubernetes mapping canonical hashing where applicable.
+
+Each known caller SHALL either be covered by the same bounded source-rejection path or be documented in the implementation record as not source-import-facing for this failure mode.
+
+When one source hits the unsupported RFC 8785 integer domain:
 
 1. that source SHALL be rejected with an explicit deterministic diagnostic;
-2. it SHALL contribute zero canonical artifacts;
-3. unrelated valid sources in the same import run SHALL continue according to the existing per-source import semantics;
-4. the failure SHALL not be converted into a lossy or alternate canonical hash;
-5. the source's previous accepted state SHALL follow the existing failed-source/authoritative-removal rules — failure itself must not silently erase accepted state unless those rules already require it.
+2. it SHALL contribute zero committed canonical artifacts from that run;
+3. other discovered sources SHALL still be evaluated and reported with their normal per-source outcomes;
+4. the **overall discovery run SHALL preserve the existing commit gate**: a rejected source makes the run `PARTIAL`, therefore the run is not commit-eligible and **nothing from that run commits**;
+5. previously accepted state SHALL remain unchanged because the `PARTIAL` run does not reconcile inventory, sources, tombstones or canonical artifacts;
+6. the failure SHALL not be converted into a lossy or alternate canonical hash;
+7. the rejected source SHALL not contribute a fabricated semantic digest, source revision or revision-fence value for the unsupported document.
 
-The implementation SHALL cover OpenAPI and AsyncAPI if both can reach the same failure mode. Any other caller of document-content canonicalization found during implementation SHALL either receive the same bounded containment or be explicitly recorded as not source-import-facing and therefore outside this slice.
+This release therefore improves failure **containment and diagnosis**, not partial-commit semantics. It does not change the existing rule that only a `COMPLETE` discovery run may commit.
 
 ### 4.3 Explicitly deferred canonicalization decision
 
@@ -122,13 +135,18 @@ Those choices can change identity semantics and require their own specification 
 
 Regression coverage SHALL demonstrate at minimum:
 
-- an OpenAPI source with an out-of-range integer is rejected with the explicit diagnostic;
-- a valid source in the same import run still imports successfully;
-- the rejected source emits zero new canonical artifacts;
+- an OpenAPI source with an out-of-range integer is rejected with the explicit diagnostic rather than raising an uncaught exception;
+- a valid source in the same discovery run is still evaluated and reported with its normal per-source outcome;
+- the overall run is `PARTIAL` and not commit-eligible;
+- **nothing from that run commits**, including artifacts from otherwise-valid sources;
+- previously accepted state and inventory/revision state remain unchanged;
+- the rejected source emits no committed canonical artifacts and no fabricated semantic digest/source revision for the unsupported document;
 - no lossy canonical hash is created for the invalid value;
 - AsyncAPI receives equivalent protection if the same path is reachable;
+- the known full-document semantic-input/revision-digest path is covered, so the exception cannot escape before adapter mapping;
+- message-contract and Kubernetes canonicalization callers are either covered by the same source-rejection path or explicitly demonstrated to be outside this failure mode;
 - a normal in-range document produces the same canonical identity/hash as before;
-- existing atomicity remains intact **within one source document** — containment across sources must not create partial artifacts from the rejected document.
+- existing atomicity remains intact within each source and across the discovery run.
 
 ## 5. I3 — Qualification and release
 
@@ -148,7 +166,7 @@ No separate product-value pilot is required for this maintenance release.
 
 v0.6.3 is complete when:
 
-> **Telemetry ingestion preserves serialized semantics without blocking unrelated requests for the whole ingestion batch, and an unsupported RFC 8785 integer in one OpenAPI/AsyncAPI source is contained to that source with an explicit diagnostic rather than aborting unrelated imports.**
+> **Telemetry ingestion preserves serialized semantics without blocking unrelated requests for the whole ingestion batch, and an unsupported RFC 8785 integer in one source is converted into an explicit per-source rejection rather than escaping as an exception; the existing `PARTIAL` / no-commit run semantics remain unchanged.**
 
 The release must preserve the v0.6 architecture-question space and public Architecture Intelligence semantics unchanged.
 
@@ -159,6 +177,16 @@ The release must preserve the v0.6 architecture-question space and public Archit
 | D1 | v0.6.3 is a maintenance release with no new architecture-question class. | Accepted |
 | D2 | The POST /v1/traces stall is fixed in v0.6.3, not v0.7. | Accepted |
 | D3 | Ingestion remains serialized while blocking work moves off the event loop. | Accepted |
-| D4 | Issue #305 is included only as per-source containment plus explicit diagnosis. | Accepted |
+| D4 | Issue #305 is included only as per-source rejection/diagnosis across the full source canonicalization/mapping boundary; existing `PARTIAL` / no-commit run semantics are preserved. | Accepted |
 | D5 | Strict current RFC 8785 hashing semantics are preserved; no lossy coercion or alternate encoding. | Accepted |
 | D6 | Broader support for out-of-range integers and any canonical-hash migration are deferred. | Accepted |
+
+
+## 8. Baseline carry-forward
+
+Once v0.6.3 ships, later releases MAY rely on two maintenance guarantees:
+
+1. runtime ingestion that requires serialization remains serialized without keeping blocking work on the FastAPI event loop for the duration of the synchronous ingestion unit;
+2. an unsupported per-source canonicalization failure is converted into a deterministic source rejection and cannot escape as an unhandled exception, while the existing discovery-run commit gate remains unchanged: `PARTIAL` and `FAILED` runs commit nothing.
+
+A later release that introduces a materially different runtime-ingestion or source-import path SHALL qualify that path independently rather than assuming these guarantees automatically apply.
