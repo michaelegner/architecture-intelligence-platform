@@ -821,9 +821,12 @@ hidden through one-AIP-instance-per-system isolation.
 The first vertical slice should use independently authored composition evidence together with
 relationships already qualified by AIP. The source mode remains explicit: an authored model may
 establish declared composition or explicit Intent depending on its semantics and authority; it does
-not automatically establish observed Current State. If the source establishes the relationship but
-one side's System/Component membership is missing, conflicting, inapplicable, or unresolved, the
-crossing conclusion must remain unresolved. AIP must never infer two Systems merely because a
+not automatically establish observed Current State. A Current-State cross-boundary answer may use
+only composition/membership evidence accepted for Current-State semantics. Intent composition stays
+on the independent Intent path and may be compared through v0.9 assessment; it must not silently
+become Current-State membership. If the source establishes the relationship but one side's
+System/Component membership is missing, conflicting, inapplicable, or unresolved, the crossing
+conclusion must remain unresolved. AIP must never infer two Systems merely because a
 relation crosses a technical or deployment boundary.
 
 **Explicitly out of scope:** a generic enterprise metamodel, capability map, organizational chart,
@@ -940,18 +943,21 @@ EXPOSE
    ↓
 DISCOVER
    ↓
-ESTABLISH LOCALLY (v0.6)
+ESTABLISH QUALIFIED CURRENT STATE (v0.6+)
    ├──────────────────────────────┐
-   ↓                              ↓
-API-AWARE CURRENT STATE (v0.7)   EXPLICIT INTENT (v0.8)
    │                              │
-   └──────── qualified Current ───┤
-                                  ↓
-                         ASSESS (v0.9)
-                                  ↓
-                    CROSS BOUNDARIES (v0.10)
-                                  ↓
-                               FREEZE
+   ↓                              ↓
+API-AWARE CURRENT STATE (v0.7)   CROSS BOUNDARIES (v0.10)
+                                  ↑
+                         established composition
+                         / membership
+
+EXPLICIT INTENT (v0.8)
+   ↓
+ASSESS RELEVANT CURRENT ↔ INTENT (v0.9)
+
+                         ↓
+                       FREEZE
 ```
 
 In product-question terms, the planned release order is:
@@ -1020,9 +1026,10 @@ The semantic dependencies are narrower than the chronological release order:
    Current State; it must be attributable and qualified for authority, lifecycle, scope, and time;
 5. Current↔Intent assessment must remain read-only and downstream of both independently established
    projections relevant to the question being assessed;
-6. cross-boundary projection must be downstream of independently established composition/membership
-   and already-qualified relationships; connectivity must never manufacture System/Component
-   membership;
+6. cross-boundary projection is semantically independent of v0.9 assessment: it is downstream of
+   independently established composition/membership and already-qualified relationships;
+   connectivity must never manufacture System/Component membership, and Intent membership must not
+   be reused as Current-State membership;
 7. only implemented and qualified contracts are frozen for v1.0.
 
 `v0.3` carried a hard gate: had either real-system dossier shown the Canonical Architecture Model
