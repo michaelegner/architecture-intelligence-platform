@@ -633,6 +633,11 @@ timeless property of the relationship.
 These sources and theories constrain the design; they do not become AIP's Canonical Model and do
 not require generic adapters in v0.10.
 
+Composition evidence retains its semantic mode. A Current-State cross-boundary projection may use
+only membership/composition evidence accepted for Current-State semantics. An authored composition
+assertion that instead establishes explicit Intent remains on the Intent path and may participate in
+Current↔Intent assessment; it must not silently become Current-State membership.
+
 The governing invariant is:
 
 > **A relationship does not establish a boundary. A boundary does not establish a relationship.
@@ -2485,23 +2490,25 @@ The planned release order is linear, but the **semantic dependencies branch rath
 ```text
 DISCOVER
    ↓
-ESTABLISH CURRENT STATE LOCALLY (v0.6)
-   ├────────────────────────────────────────┐
-   ↓                                        ↓
-CONNECT API EXPOSURE / CONSUMPTION (v0.7)  REPRESENT INTENT (v0.8)
-   │                                        │
-   └──────── relevant Current State ────────┤
-                                            ↓
-                              ASSESS CURRENT ↔ INTENT (v0.9)
-                                            ↓
-                           PROJECT CROSS-BOUNDARY RELATIONS (v0.10)
-                                            ↓
-                                      FREEZE / QUALIFY
+ESTABLISH QUALIFIED CURRENT STATE (v0.6+)
+   ├───────────────────────────────────────┐
+   │                                       │
+   ↓                                       ↓
+API-AWARE CURRENT STATE (v0.7)    CROSS-BOUNDARY PROJECTION (v0.10)
+                                           ↑
+                               independently established
+                               composition / membership
+
+REPRESENT INTENT (v0.8)
+   ↓
+ASSESS RELEVANT CURRENT ↔ INTENT (v0.9)
 ```
 
 v0.7 is an additional independently qualified Current-State question, not a semantic prerequisite
-for v0.8. Assessment depends on the relevant established Current-State projection and an applicable
-Intent projection; API-specific assessment additionally depends on API-Aware Current-State semantics.
+for v0.8. v0.10 is likewise not semantically downstream of v0.9: it depends on independently
+established composition/membership plus already-qualified architectural relationships. Assessment
+depends on the relevant established Current-State projection and an applicable Intent projection;
+API-specific assessment additionally depends on API-Aware Current-State semantics.
 
 ### 26.2 v0.6 boundary: locality semantics, not distributed deployment
 
