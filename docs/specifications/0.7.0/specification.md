@@ -4,9 +4,9 @@
 
 **Target release:** v0.7.0  
 **Release theme:** API-Aware Current State  
-**Entry baseline:** Published and post-release-verified v0.6.2, with the POST /v1/traces event-loop stall explicitly removed from this release and assigned to the planned v0.6.3 maintenance release. The v0.7.0 release candidate SHALL include that maintenance correction, normally by deriving from the published v0.6.3 baseline.  
+**Entry baseline:** v0.7.0 SHALL derive from the published and post-release-verified v0.6.3 baseline.  
 **Primary outcome:** AIP can establish how an API is evidenced as exposed to configured consumers and how independently observed, consumer-attributed usage relates to those configured relationships in an explicit environment and observation window, without collapsing gateway objects, API contracts/operations, application services, consumers, access entitlements, runtime interactions, business concepts, authorization policy, or architectural Intent.  
-**Governing inputs:** [Product Doctrine and Strategic Direction](../../product-doctrine-and-strategic-direction.md), [ROADMAP.md](../../../ROADMAP.md), [Research Landscape](../../landscape.md), [v0.6.0 parent specification](../0.6.0/specification.md), [v0.6.2 specification](../0.6.2/specification.md), and the [2026-10-08 code-health review](../../reviews/code-health-review-2026-10-08.md).
+**Governing inputs:** [Product Doctrine and Strategic Direction](../../product-doctrine-and-strategic-direction.md), [ROADMAP.md](../../../ROADMAP.md), [Research Landscape](../../landscape.md), and the [v0.6.0 parent specification](../0.6.0/specification.md).
 
 ---
 
@@ -74,7 +74,7 @@ AIP remains advisory and read-only on its public Architecture Intelligence surfa
 
 **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are normative.
 
-Examples, conceptual types, candidate entity names and suggested endpoint/tool names in this Draft 0.1 are not frozen public contracts unless explicitly stated. I0–I3 increment specifications SHALL freeze the actual semantic vocabulary, schema, identifiers, source mapping and public answer contracts before fixtures or downstream clients depend on them.
+Examples, conceptual types, candidate entity names and suggested endpoint/tool names in this parent specification are not frozen public contracts unless explicitly stated. I0–I3 increment specifications SHALL freeze the actual semantic vocabulary, schema, identifiers, source mapping and public answer contracts before fixtures or downstream clients depend on them.
 
 Independent expected results, not output copied from AIP, a gateway product or an agent interpretation, constitute qualification evidence. Source documentation describes source semantics but is not semantic authority for AIP.
 
@@ -94,31 +94,10 @@ The release SHALL preserve the accepted Current-State contracts from v0.5–v0.6
 - no generic graph/Cypher correctness path;
 - no LLM required for deterministic execution or qualification;
 - read-only public Architecture Intelligence;
-- the v0.6.3 maintenance guarantees: telemetry ingestion remains serialized while blocking work is kept off the FastAPI event loop; unsupported per-source canonicalization failures are converted into deterministic source rejections rather than escaping as unhandled exceptions; and the existing discovery-run commit gate remains unchanged (`PARTIAL` / `FAILED` runs commit nothing).
+- runtime ingestion that requires serialization remains serialized without blocking the FastAPI event loop for the duration of synchronous ingestion work;
+- unsupported per-source canonicalization failures become deterministic source rejections while preserving the existing discovery-run commit gate (`PARTIAL` / `FAILED` runs commit nothing).
 
-### 3.1 Required maintenance baseline: v0.6.3
-
-The known POST /v1/traces event-loop stall is **not part of the v0.7 semantic scope**.
-
-It is assigned to a separate v0.6.3 maintenance release because:
-
-1. it preserves the existing architecture-question space;
-2. it is a semantics-preserving runtime correction, not API-aware Current State;
-3. it touches the runtime evidence write path and therefore deserves its own focused qualification;
-4. keeping it out of v0.7 prevents operational hardening from being confused with new API semantics.
-
-The v0.6.3 correction SHALL preserve ingestion serialization while moving blocking ingestion work off the FastAPI event loop, for example through an explicit single-flight lock or equivalent single-worker mechanism. A plain synchronous FastAPI route that allows concurrent ingestion is insufficient.
-
-Its minimum acceptance condition is the already recorded code-health contract:
-
-- a query is answered while deliberately slow ingestion is in progress;
-- ingestion remains serialized;
-- removing the serialization guard causes the dedicated test to fail;
-- the correlation-buffer documentation is updated if its concurrency assumption changes;
-- the full unit and integration suites pass;
-- the existing benchmarks/traces_stall.py baseline is rerun to demonstrate the stall correction without inventing a product SLO.
-
-No v0.7 increment SHALL re-specify or opportunistically broaden this fix.
+These are preserved baseline invariants, not part of the v0.7 capability scope. A v0.7 increment SHALL not re-specify or broaden them unless it introduces a materially different ingestion or source-import path that requires independent qualification.
 
 ## 4. Fixed Scope Budget
 
@@ -175,8 +154,6 @@ OpenAPI/AsyncAPI, repository, CI/CD, catalog and architecture-model sources MAY 
 | I5 | Release Candidate, Publication and Verification | One exact candidate reaches a recorded release-ready or verified-published outcome. |
 
 ~~~text
-v0.6.3 maintenance
-        ↓
 I0 → I1 → I2 → I3 → I4 → I5
 ~~~
 
@@ -381,7 +358,7 @@ An unattributed request may establish that a route/API was used, if independentl
 
 AIP SHALL not infer authorization success, policy correctness, business use, owner approval or architectural Intent merely because a request was accepted and measured.
 
-Any new runtime measurement-ingestion path introduced by v0.7 SHALL preserve the v0.6.3 ingestion-concurrency contract — blocking work must not occupy the FastAPI event loop while ingestion semantics that require serialization remain serialized — unless a reviewed increment explicitly defines and independently qualifies a different path. v0.7 SHALL not bypass or duplicate that concurrency contract merely to ingest gateway/request measurements.
+Any new runtime measurement-ingestion path introduced by v0.7 SHALL preserve the baseline ingestion-concurrency contract: blocking work must not occupy the FastAPI event loop while ingestion semantics that require serialization remain serialized. A reviewed increment MAY define a materially different path only if it independently qualifies that path.
 
 ---
 
@@ -628,7 +605,7 @@ The pilot does not change semantic truth. Product usefulness and Architecture Kn
 Before candidate freeze:
 
 - all I0–I4 completion criteria are recorded;
-- the v0.6.3 maintenance correction is present and independently qualified;
+- the required entry baseline is present and post-release verified;
 - the selected gateway source/version and replay assets are pinned;
 - the public schema/tool surface is frozen;
 - deterministic evaluation passes twice from clean state with semantically identical output;
@@ -757,9 +734,7 @@ The hosted Pitstop demo MAY be extended if it provides a suitable API/gateway sc
 | D5 | Configured access and observed usage are separate propositions. | Accepted |
 | D6 | Missing/unattributed measurements do not become zero or consumer usage. | Accepted |
 | D7 | Formal Intent remains v0.8; Current↔Intent assessment remains v0.9. | Accepted |
-| D8 | POST /v1/traces event-loop stall is assigned to **v0.6.3**, not v0.7. | Accepted |
-| D9 | v0.6.3 preserves ingestion serialization while moving blocking ingestion work off the event loop; benchmark evidence remains measurement, not an SLO. | Accepted |
-| D10 | Product-value qualification is a release gate alongside semantic correctness. | Accepted |
+| D8 | Product-value qualification is a release gate alongside semantic correctness. | Accepted |
 
 ## 35. Decisions I0 must freeze
 
@@ -788,8 +763,7 @@ This parent specification is ready for implementation planning when:
 5. the selected source can provide real consumer-attributed request measurements with bounded coverage semantics;
 6. the public answer remains question-specific and evidence-resolvable;
 7. the product-value gate is measurable;
-8. v0.6.3 cleanly owns the telemetry stall correction;
-9. no unresolved decision above is being silently assumed by implementation.
+8. no unresolved decision above is being silently assumed by implementation.
 
 ---
 
