@@ -596,9 +596,36 @@ multi-Service / multi-System knowledge
 reusable enterprise Architecture Knowledge
 ```
 
-It is a strategic semantic requirement, not an automatic pre-v1.0 feature assignment. The existing
-high-priority logical-composition gap in `docs/semantic-gaps.md` remains subject to the same
-question-driven specification and qualification rules as every other model extension.
+This strategic requirement is assigned to **v0.10 — Cross-Boundary Architecture Knowledge**. The
+release is not a generic enterprise-modeling milestone: System / Component modeling stays
+deliberately minimal and exists only to answer a bounded architecture question about relationships
+that cross established boundaries.
+
+The v0.10 product question is:
+
+> **Which evidence-qualified architectural relationships cross established System or Component
+> boundaries?**
+
+For the bounded-change workflow:
+
+> **Before changing this service, which established relationships cross the System or Component
+> boundaries around it?**
+
+The intended derivation is:
+
+```text
+independently established composition / boundary
+        +
+already qualified architectural relationship
+        ↓
+qualified cross-boundary projection
+```
+
+If either side's membership or boundary is unresolved, AIP must keep the crossing conclusion
+unresolved rather than infer composition from the relationship itself. The existing high-priority
+logical-composition gap in `docs/semantic-gaps.md` remains the semantic input, but v0.10 should
+close only the minimum part required by this question. It should not introduce a generic enterprise
+metamodel, capability map, org chart, arbitrary hierarchy browser, or ontology-driven redesign.
 
 Product evolution should also be visible as an expansion of the **architecture-question space**.
 A capability release should be explainable in terms of a materially new recurring question that AIP
@@ -618,6 +645,9 @@ v0.7  How are APIs exposed and consumed, and what can the available evidence est
 v0.8  What explicit architecture intent applies here?
 
 v0.9  Where does Current State differ from applicable Intent?
+
+v0.10 Which evidence-qualified architectural relationships cross established System or
+      Component boundaries?
 ```
 
 The technical model remains essential, but the product roadmap should explain **what new question
@@ -2404,6 +2434,15 @@ v0.9 — Qualified Architecture Assessment
   Product question:
   "Where does Current State differ from applicable Intent?"
 
+v0.10 — Cross-Boundary Architecture Knowledge
+  Product question:
+  "Which evidence-qualified architectural relationships cross established System or Component
+   boundaries?"
+  First bounded validation:
+  for one selected Service/change, establish only the System/Component boundary semantics needed
+  to identify already-qualified relationships that cross those boundaries, preserving unresolved
+  membership instead of inferring it from connectivity.
+
 v1.0.0-rc.N — Contract Freeze / Production Qualification
   Freeze and production-qualify the implemented contracts intended for v1.0;
   this is a release-candidate phase, not a new architecture-question release.
@@ -2429,6 +2468,8 @@ CONNECT API EXPOSURE / CONSUMPTION (v0.7)  REPRESENT INTENT (v0.8)
    └──────── relevant Current State ────────┤
                                             ↓
                               ASSESS CURRENT ↔ INTENT (v0.9)
+                                            ↓
+                           PROJECT CROSS-BOUNDARY RELATIONS (v0.10)
                                             ↓
                                       FREEZE / QUALIFY
 ```
@@ -2467,7 +2508,7 @@ local assessment as semantics
 distributed assessor as deployment architecture
 ```
 
-### 26.3 v0.7 API Landscape, v0.8 Intent and v0.9 Assessment are planned capabilities
+### 26.3 v0.7 API Landscape, v0.8 Intent, v0.9 Assessment and v0.10 Cross-Boundary Knowledge are planned capabilities
 
 The API Landscape addition broadens the question space within **Current State**. It needs an
 independently qualified, source-neutral vocabulary for API exposure/consumption, real gateway and
@@ -2490,17 +2531,23 @@ projections. For example, comparing evidenced *effective* gateway configuration 
 security requirement is not the same as inferring endpoint insecurity from a missing route-level
 plugin, and observed usage is context rather than compliance evidence by itself.
 
+v0.10 must add only the composition semantics required to establish System/Component boundaries and
+project already-qualified architectural relationships across them. It must not infer membership from
+connectivity, co-location, repository structure, naming, ownership, or graph proximity. The release
+must preserve Service identity independently of System membership and keep unresolved or conflicting
+membership explicit. A general enterprise metamodel is outside this capability.
+
 ### 26.4 v1.0 release-candidate qualification and freeze rule
 
-After v0.9, contract freeze and production qualification should run as a `v1.0.0-rc.N` phase
+After v0.10, contract freeze and production qualification should run as a `v1.0.0-rc.N` phase
 rather than as another capability release solely for stabilization. That phase should stabilize
-only the planned pre-v1.0 capabilities actually implemented and qualified through v0.9.
+only the planned pre-v1.0 capabilities actually implemented and qualified through v0.10.
 
 The rule is:
 
 > **Implement and qualify the planned capability before freezing its public contract.**
 
-If a planned v0.7, v0.8 or v0.9 capability does not satisfy its product-value, semantic,
+If a planned v0.7, v0.8, v0.9 or v0.10 capability does not satisfy its product-value, semantic,
 deterministic, security, performance, or real-system qualification gates, it must not be promoted
 into the stable v1.0 contract merely because it appeared on the roadmap.
 
@@ -2514,7 +2561,8 @@ removed from the v1.0 contract
 ```
 
 No additional roadmap change is required merely to specify and implement the planned v0.7 API
-Landscape, v0.8 Intent or v0.9 Assessment capabilities. The release-candidate phase must not invent
+Landscape, v0.8 Intent, v0.9 Assessment or v0.10 Cross-Boundary Architecture Knowledge capabilities.
+The release-candidate phase must not invent
 a new product question merely to justify a version number; its purpose is to freeze and qualify the
 already-implemented question space. Product-value and qualification gates still apply. A failed gate
 must result in a documented decision to narrow, defer, or remove scope; material changes to release
