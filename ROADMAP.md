@@ -776,6 +776,29 @@ qualified architectural relationship
 qualified boundary-crossing projection
 ```
 
+The governing invariant is:
+
+> **A relationship does not establish a boundary. A boundary does not establish a relationship.
+> A cross-boundary claim requires both to be independently established.**
+
+**Design inputs:**
+
+- [C4/Structurizr](docs/landscape.md#structurizrc4--declared-architecture-models-and-views) —
+  practical System/Container/Component composition and the existing Big Bank analysis that exposed
+  the logical-composition gap;
+- [FINOS CALM](docs/landscape.md#finos-calm--architecture-as-code-and-semantic-gap-experiments) —
+  an independent architecture representation whose FluxNova experiment also exposed logical
+  composition;
+- [EventCatalog](docs/landscape.md#eventcatalog--connected-architecture-catalog-for-humans-and-agents) —
+  practical System/Service/Domain membership and scoped architecture context;
+- [Bigraphs](docs/landscape.md#robin-milner--bigraphs--bigraphical-reactive-systems) — conceptual
+  separation of place/composition from link/connectivity;
+- [Semantic Spacetime](docs/landscape.md#mark-burgess--semantic-spacetime) — context, locality, time,
+  observer perspective, and the rule that a crossing conclusion is a context-bound projection.
+
+These inputs constrain the semantic design. They do **not** require generic C4, CALM, or EventCatalog
+adapters, adoption of their complete metamodels, or implementation of Bigraph/SST formalisms.
+
 The release must preserve these distinctions:
 
 ```text
@@ -796,10 +819,12 @@ proximity. Cross-system relationships remain first-class Architecture Knowledge 
 hidden through one-AIP-instance-per-system isolation.
 
 The first vertical slice should use independently authored composition evidence together with
-relationships already qualified by AIP. If the source establishes the relationship but one side's
-System/Component membership is missing, conflicting, inapplicable, or unresolved, the crossing
-conclusion must remain unresolved. AIP must never infer two Systems merely because a relation crosses
-a technical or deployment boundary.
+relationships already qualified by AIP. The source mode remains explicit: an authored model may
+establish declared composition or explicit Intent depending on its semantics and authority; it does
+not automatically establish observed Current State. If the source establishes the relationship but
+one side's System/Component membership is missing, conflicting, inapplicable, or unresolved, the
+crossing conclusion must remain unresolved. AIP must never infer two Systems merely because a
+relation crosses a technical or deployment boundary.
 
 **Explicitly out of scope:** a generic enterprise metamodel, capability map, organizational chart,
 arbitrary hierarchy browser, unrestricted C4/CALM/Structurizr import, business-capability inference,
