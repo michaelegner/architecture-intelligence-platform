@@ -161,8 +161,6 @@ I0–I3 MAY be internally sliced. A material semantic ambiguity SHALL stop the a
 
 ---
 
-# Part I — Source Capability and Semantic Freeze
-
 ## 6. I0 Gateway Capability Survey
 
 I0 SHALL survey all four currently identified gateway families:
@@ -222,8 +220,6 @@ I0 is complete only when:
 - no schema or canonical extension has been implemented merely to fit a preferred vendor.
 
 ---
-
-# Part II — API-Aware Current-State Semantics
 
 ## 9. Minimum Source-Neutral Vocabulary
 
@@ -292,8 +288,6 @@ Gateway configuration and traffic may establish bounded API exposure, access and
 
 ---
 
-# Part III — Configuration Evidence and Source Lifecycle
-
 ## 12. Gateway Configuration as Current-State Evidence
 
 The selected gateway adapter SHALL ingest the smallest source surface required to answer the first question.
@@ -332,8 +326,6 @@ Gateway configuration "latest" is not automatically authoritative over API contr
 
 ---
 
-# Part IV — Observed Consumer Usage
-
 ## 14. Request-Derived Measurement Contract
 
 The first positive observed-usage case SHALL use real or captured request-derived measurements attributable to a consumer in an explicit environment and observation window.
@@ -361,8 +353,6 @@ AIP SHALL not infer authorization success, policy correctness, business use, own
 Any new runtime measurement-ingestion path introduced by v0.7 SHALL preserve the baseline ingestion-concurrency contract: blocking work must not occupy the FastAPI event loop while ingestion semantics that require serialization remain serialized. A reviewed increment MAY define a materially different path only if it independently qualifies that path.
 
 ---
-
-# Part V — Reconciliation and Qualification
 
 ## 15. Identity and Association Reconciliation
 
@@ -459,8 +449,6 @@ Enumeration SHALL be bounded with deterministic ordering and explicit truncation
 
 ---
 
-# Part VI — Public Architecture Intelligence
-
 ## 19. Shared Semantic Owner
 
 ArchitectureIntelligenceService or its reviewed successor remains the sole semantic owner for the public API-aware question.
@@ -512,8 +500,6 @@ Every answer SHALL include enough information to establish:
 The same semantic request over the same frozen input state SHALL be deterministic.
 
 ---
-
-# Part VII — Qualification
 
 ## 22. Deterministic Semantic Qualification
 
@@ -598,8 +584,6 @@ The pilot does not change semantic truth. Product usefulness and Architecture Kn
 
 ---
 
-# Part VIII — Release Qualification and Publication
-
 ## 26. Release Candidate Gate
 
 Before candidate freeze:
@@ -638,8 +622,6 @@ Post-release verification SHALL independently check:
 The terminal outcome SHALL distinguish at least release-ready, published and post-release-verified states according to existing AIP release discipline.
 
 ---
-
-# Part IX — Security, Privacy and Operational Boundaries
 
 ## 29. Gateway Credentials and Consumer Identity
 
@@ -683,8 +665,6 @@ The release SHALL prefer unresolved/insufficient evidence over false absence.
 
 ---
 
-# Part X — Documentation and Demonstration
-
 ## 32. Required Documentation
 
 Before release, documentation SHALL explain:
@@ -720,8 +700,6 @@ AIP may identify relationships to inspect. It SHALL NOT claim which consumers de
 The hosted Pitstop demo MAY be extended if it provides a suitable API/gateway scenario, but reusing Pitstop is not a release requirement and SHALL NOT distort source selection.
 
 ---
-
-# Part XI — Decision Register
 
 ## 34. Decisions already made
 
