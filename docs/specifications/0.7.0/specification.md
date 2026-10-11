@@ -326,7 +326,7 @@ snapshot fencing
 
 A failed or partial source acquisition MUST NOT erase previously accepted source state unless the established source rules explicitly authorize that transition.
 
-A failure in one gateway/source import MUST be converted into that source's deterministic rejected outcome rather than escaping as an unhandled exception. Other discovered sources SHALL still be evaluated and reported according to the existing per-source rules, but v0.7 SHALL preserve the inherited commit gate: if any source rejection makes the run `PARTIAL`, **nothing from that run commits** and previously accepted state remains unchanged. v0.7 source adapters SHALL NOT reinterpret the v0.6.3 containment guarantee as permission for partial commits.
+A failure in one gateway/source import MUST be converted into that source's deterministic rejected outcome rather than escaping as an unhandled exception. Other discovered sources SHALL still be evaluated and reported according to the existing per-source rules, but v0.7 SHALL preserve the inherited commit gate: if any source rejection makes the run `PARTIAL`, **nothing from that run commits** and previously accepted state remains unchanged. v0.7 source adapters SHALL NOT reinterpret this baseline containment guarantee as permission for partial commits.
 
 Gateway configuration "latest" is not automatically authoritative over API contracts or application-service identity. Source authority is bounded by what the source actually owns.
 
@@ -465,7 +465,7 @@ Enumeration SHALL be bounded with deterministic ordering and explicit truncation
 
 ArchitectureIntelligenceService or its reviewed successor remains the sole semantic owner for the public API-aware question.
 
-The code-health review notes that the service is becoming a hub. Therefore v0.7 SHALL NOT simply add another large inline projection branch if doing so materially worsens that design. I3 MAY extract a dedicated API-aware projection component/repository as touch-driven refactoring, provided the semantic service remains the public owner and behavior is independently tested.
+v0.7 SHALL NOT simply add another large inline projection branch if doing so materially worsens the semantic service's role as a coordination hub. I3 MAY extract a dedicated API-aware projection component/repository as touch-driven refactoring, provided the semantic service remains the public owner and behavior is independently tested.
 
 This is not authorization for broad architectural cleanup.
 
