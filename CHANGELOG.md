@@ -19,6 +19,12 @@ aren't yet guaranteed stable pre-1.0.
   `aip_token` setting for installed plugins (the `AIP_MCP_TOKEN` environment variable still wins, and still serves
   `--plugin-dir`). Example client material only: no product, schema or MCP change.
 
+### Fixed
+
+- `POST /v1/traces` no longer blocks the event loop while a batch is ingested: ingestion runs in a worker thread, so REST,
+  MCP and UI requests are answered during it. Batches are still ingested one at a time behind a lock, and evidence
+  semantics are unchanged.
+
 ## [0.6.2] - 2026-10-09
 
 ### v0.6.2 — Live AIP Demo on Pitstop

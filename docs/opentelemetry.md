@@ -14,6 +14,10 @@ already has declared, and persists observed facts and evidence. A malformed payl
 content-type is rejected (400/415) before any Neo4j access happens, so a bad request can never
 partially write.
 
+Ingestion runs in a worker thread, so other requests are answered while a batch is being ingested.
+Batches are still ingested one at a time, because the cross-batch HTTP
+correlation buffer depends on it.
+
 AIP expects the OTLP protobuf body **uncompressed**: `POST /v1/traces` does not negotiate
 `Content-Encoding`, so gzip-compressed exports are rejected during protobuf decoding. The
 Collector's `otlphttp` exporter uses gzip by default; disable compression on the AIP leg:
