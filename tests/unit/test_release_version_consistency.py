@@ -11,6 +11,7 @@ value). This file pins the release version once and asserts every other path tra
 
 from __future__ import annotations
 
+import json
 import tomllib
 from pathlib import Path
 from typing import get_args
@@ -69,3 +70,19 @@ def test_architecture_answers_evaluator_producer_version_agrees_with_package_ver
     producer = _build_producer("f" * 40)
     assert producer.name == PRODUCER_NAME
     assert producer.version == package_version()
+
+
+def test_mcp_registry_server_json_agrees_with_package_version():
+    # `server.json` is the MCP Registry entry (metadata only: no packages, no remotes). A registry
+    # version is per publish, so it moves with each release (release-publication skill).
+    server = json.loads((_REPO_ROOT / "server.json").read_text(encoding="utf-8"))
+    assert server["version"] == package_version()
+    assert server["name"] == "io.github.michaelegner/architecture-intelligence-platform"
+    assert "packages" not in server
+    assert "remotes" not in server
+    assert server["websiteUrl"].endswith("#connect-aip-to-your-coding-agent")
+
+
+def test_server_json_website_anchor_points_at_an_existing_readme_heading():
+    readme = (_REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    assert "\n## Connect AIP to Your Coding Agent\n" in readme

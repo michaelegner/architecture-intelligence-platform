@@ -11,6 +11,9 @@ aren't yet guaranteed stable pre-1.0.
 
 ### Added
 
+- `server.json`, the metadata-only MCP Registry entry (`io.github.michaelegner/architecture-intelligence-platform`): no
+  packages or remotes, `websiteUrl` points at the README's coding-agent setup. Its `version` is pinned to the release
+  version by `tests/unit/test_release_version_consistency.py`. Metadata only: no product, schema or MCP change.
 - A Claude Code marketplace (`.claude-plugin/marketplace.json`, name `aip-plugins`) listing the Pitstop demo plugin
   `aip` and the optional mod `aip-mod`, so they install without a clone. The plugin (now `0.6.3`) gains a sensitive
   `aip_token` setting for installed plugins (the `AIP_MCP_TOKEN` environment variable still wins, and still serves
