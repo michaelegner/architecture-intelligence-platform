@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-10-04_
+_Last reviewed: 2026-10-11_
 
 ## AIP anchor
 
@@ -56,7 +56,10 @@ endorsement, dependency, or roadmap commitment.
 [Designing Delivery / Promise Thinking](#jeff-sussna--designing-delivery--promise-thinking) ·
 [Semantic Spacetime](#mark-burgess--semantic-spacetime) ·
 [SSTorytime](#mark-burgess--sstorytime-and-context-investment) ·
+[Knowledge management as spacetime](#mark-burgess--the-failure-of-knowledge-management) ·
 [Tiramemsu — historical statement memory](#tiramemsu--historical-statement-memory) ·
+[Agent knowledge graphs](#volodymyr-pavlyshyn--rdf-owl-and-shacl-for-agentic-systems) ·
+[Ontology limits and temporal semantics](#vlad-radziuk--ontology-limits-and-temporal-semantics) ·
 [Strategic DDD](#domain-driven-design--strategic-patterns) ·
 [SysML v2](#omg--sysml-v2) ·
 [Residuality](#barry-oreilly--residuality-and-architectural-representation)
@@ -71,6 +74,7 @@ promises, temporal context, and explicit system intent without collapsing them i
 [API knowledge beyond API management](#adorsys--understanding-api-landscapes-not-just-managing-them) ·
 [Structurizr/C4](#structurizrc4--declared-architecture-models-and-views) ·
 [FINOS CALM](#finos-calm--architecture-as-code-and-semantic-gap-experiments) ·
+[IcePanel](#icepanel--model-based-architecture-and-the-icepanel-loop) ·
 [API gateway evidence](#api-gateways--configured-access-and-observed-usage) ·
 [Executable architecture rules](#archunit-and-jqassistant--executable-architecture-rules) ·
 [Backstage](#backstage-software-catalog) ·
@@ -107,6 +111,8 @@ visualization, provenance, or retrieval?
 [Enola](#enola--deterministic-architecture-context-and-regression-testing) ·
 [Agent API Profile](#christian-posta--agent-api-profile) ·
 [MCP](#model-context-protocol-mcp) ·
+[Deterministic contextual tools](#tudor-girba--deterministic-contextual-tools-for-system-understanding) ·
+[MCP-washing](#erik-wilde--beyond-mcp-washing-and-ai-ready-apis) ·
 [Procedural Graphs](#lu-et-al--procedural-graphs) ·
 [Agent-ready traceability and API boundaries](#daniel-kocot--agent-ready-apis-traceability-and-preserved-intent) ·
 [BootUI](#bootui--runtime-context-for-coding-agents) ·
@@ -133,6 +139,8 @@ evidence-qualified architecture context without becoming the source of architect
 [Stewardship boundaries](#matthew-skelton--reframing-the-ai-native-sdlc-in-terms-of-stewardship-boundaries) ·
 [Expert governance and code review](#rachel-laycock--expert-governance-and-code-review-in-an-ai-heavy-sdlc) ·
 [Cognitive and intent debt](#margaret-anne-storey--cognitive-and-intent-debt) ·
+[Decision debt](#justin-miller--decision-debt) ·
+[Agent maturity and decision boundaries](#nadzeya-stalbouskaya--agent-maturity-and-decision-boundaries) ·
 [DORA architecture capability](#dora--loosely-coupled-architecture-and-teams)
 
 **Core question:** How should explicit intent, assumptions, fitness criteria, authority, and
@@ -149,6 +157,7 @@ organizational responsibility constrain agent action without being inferred from
 [The Light Factory](#martien-de-jong--the-light-factory) ·
 [OrcaReplay](#orcareplay--record-replay-and-fork-agent-runs) ·
 [Deterministic backpressure](#lucas-f-costa--backpressure-is-all-you-need) ·
+[Model passports and lifecycle evidence](#ontolith--model-passports-provenance-and-lifecycle-evidence) ·
 [Agent observability](#agent-observability)
 
 **Core question:** How should AIP keep proposal, evidence judgment, deterministic verification,
@@ -354,6 +363,30 @@ an ADR constraint must not collapse into an undifferentiated `A -> B`.
 SSTorytime is therefore most useful as an interoperability and contextual-projection reference, not
 as a replacement for AIP's Canonical Model or as additional v0.5 scope.
 
+### Mark Burgess — The Failure of Knowledge Management
+
+**Sources**
+
+- [The Failure of Knowledge Management](https://mark-burgess-oslo-mb.medium.com/the-failure-of-knowledge-management-5d97bb748fc3)
+- [Mark Burgess — knowledge-management and Semantic Spacetime essays](https://markburgess.org/blog.html)
+
+**Core idea**
+
+Burgess argues that knowledge is not usefully reduced to decontextualized database facts. Meaning
+depends on process, locality, time, observer perspective, repeated experience, and trust. His critique
+is especially relevant when configuration and monitoring are treated as if they were interchangeable
+records of one timeless system state.
+
+**Why this matters to AIP**
+
+This reinforces AIP's decision to keep **declared, configured, and observed evidence semantically
+distinct** rather than collapsing them into one architecture view. A source can establish what was
+specified, configured, or observed in a particular context; none automatically establishes the
+others.
+
+AIP should not overclaim that it formally realizes Burgess's theory. This is a strong conceptual
+reference for context, time, process, trust, and non-flattening of evidence, with **no roadmap change**.
+
 ### Tiramemsu — Historical Statement Memory
 
 **Sources**
@@ -443,6 +476,59 @@ distinction. Tiramemsu's append-only posture also cannot replace explicit source
 privacy, retention, and compaction policy. The project describes itself as new, with incomplete
 query-language conformance and no MCP server at the time of this review. This is **not** a
 storage replacement, implementation dependency, or pre-v1.0 roadmap proposal.
+
+### Volodymyr Pavlyshyn — RDF, OWL and SHACL for Agentic Systems
+
+**Source**
+
+- [Your Agent Is Its Knowledge Graph — launching *RDF, OWL and SHACL for Agentic Systems*](https://volodymyrpavlyshyn.substack.com/p/your-agent-is-its-knowledge-graph)
+
+**Core idea**
+
+Pavlyshyn frames agent memory around questions such as who asserted a statement, when it applied,
+whether it is still believed, and how conflicting sources should be handled. RDF, OWL, SHACL and
+SPARQL provide one established stack for statement identity, inference, validation, provenance, and
+graph queries.
+
+**Why this matters to AIP**
+
+The overlap is epistemic, but the product boundary is important:
+
+```text
+agent memory
+what the agent or its sources believe
+
+AIP
+what available architecture evidence is allowed to establish
+```
+
+AIP should not become an agent-memory system or import model confidence as architectural truth.
+**Source authority, model confidence, and evidence qualification are different concepts.** The
+semantic-web stack is therefore a useful comparison for representation and validation, not a reason
+to replace AIP's current model or storage.
+
+### Vlad Radziuk — Ontology Limits and Temporal Semantics
+
+**Source**
+
+- [On the Limitations of Ontologies: Contributing to a Public Discussion](https://medium.com/knowledge-driven-business/on-the-limitations-of-ontologies-contributing-to-a-public-discussion-643a30b939b0)
+
+**Core idea**
+
+Radziuk surveys both the strengths and limits of RDF/OWL-style knowledge representation, including
+reification, named graphs, contextualization, and OWL-Time. The useful lesson is not that one graph
+formalism solves every modeling problem, but that context and time need explicit semantics rather
+than being hidden inside an undifferentiated edge.
+
+**Why this matters to AIP**
+
+AIP already has several different temporal notions that must not be collapsed: source/revision time,
+runtime observation windows, future Intent effective intervals, and snapshot/qualification time.
+The reference strengthens that separation and the requirement to expose transformation loss or
+unsupported meaning when moving between representations.
+
+This is a temporal-semantics and interoperability reference, **not** a proposal to migrate AIP to RDF
+or to add historical architecture retention before the roadmap calls for it.
 
 ### Domain-Driven Design — Strategic Patterns
 
@@ -764,6 +850,36 @@ from controller-level arrows; this is a source-information limitation, not proof
 is defective. The analysis covers the authored DSL; native Structurizr validation and the
 compiled JSON/implied-relationship inventory remain open. The findings justify evaluating
 specific architecture questions before adding graph types or an adapter.
+
+### IcePanel — Model-Based Architecture and the IcePanel Loop
+
+**Sources**
+
+- [The death of architecture diagrams](https://icepanel.io/blog/death-of-architecture-diagrams)
+- [The IcePanel Loop](https://icepanel.io/the-icepanel-loop)
+
+**Core idea**
+
+IcePanel treats diagrams as views over a shared authored architecture model rather than independent
+artifacts. Its model is the kernel; humans, APIs, SDKs, and agents can update it, while the IcePanel
+Loop frames architecture as continuous **Define → Visualise → Validate → Adapt** work.
+
+**Why this matters to AIP**
+
+This is a close product-surface comparison but a different truth boundary:
+
+```text
+IcePanel
+authored shared model -> generated views -> collaboration and design
+
+AIP
+heterogeneous evidence -> qualification -> Architecture Knowledge -> bounded views
+```
+
+An IcePanel model can be valuable declared architecture evidence, but authoring or updating that
+model does not by itself establish deployed Current State. AIP should preserve the distinction
+between **model intent/declaration** and **evidence-qualified state**. The overlap suggests
+interoperability and comparison opportunities, not roadmap pull.
 
 ### ArchUnit and jQAssistant — Executable Architecture Rules
 
@@ -1612,6 +1728,36 @@ The hard boundary remains:
 That principle can guide future AIP tool design without weakening the rule that agents may reason
 over Architecture Knowledge but must never become its source.
 
+### Tudor Girba — Deterministic Contextual Tools for System Understanding
+
+**Source**
+
+- [Don't Rely on LLMs for System Understanding](https://www.linkedin.com/posts/girba_i-cannot-read-every-line-of-code-indeed-activity-7453843967554703361-_w9y)
+
+**Core idea**
+
+Girba argues that engineers do not need to read all code to understand a system. They need
+deterministic contextual tools that answer the concrete question at hand and compress a large body
+of source into a much smaller, inspectable result.
+
+**Why this matters to AIP**
+
+This is direct support for AIP's question-driven product model:
+
+```text
+do not reconstruct all architecture
+        ↓
+ask the bounded architecture question
+        ↓
+deterministic evidence-qualified projection
+        ↓
+inspect deeper evidence only when needed
+```
+
+Code-oriented contextual tools explain what code is and how it behaves. AIP adds the architecture
+layer: what heterogeneous architecture evidence establishes around that code. This strengthens the
+existing Moldable Architecture Knowledge direction and adds **no roadmap scope**.
+
 ### OpenAI — Harness Engineering and Agent Legibility
 
 **Source**
@@ -2111,6 +2257,30 @@ MCP / agent
 
 An agent must remain downstream of the deterministic architecture model and must not become the source of canonical architectural truth.
 
+### Erik Wilde — Beyond MCP-Washing and AI-Ready APIs
+
+**Sources**
+
+- [Beyond MCP-Washing: The Real Work Behind AI-Ready APIs](https://www.oop-konferenz.de/de/programm/konferenzprogramm/details-1/fr-11)
+- [How to Make Your APIs AI-Ready in 5 Steps](https://www.linkedin.com/posts/erikwilde_your-apis-are-not-ready-for-ai-yet-activity-7381553957049122816-CAKi)
+
+**Core idea**
+
+Wilde uses **MCP-washing** for the idea that wrapping an existing API landscape in MCP does not make
+it meaningfully AI-ready. Better descriptions, deterministic semantics, discovery, authorization,
+observability, and reusable workflows still matter.
+
+**Why this matters to AIP**
+
+This sharpens AIP's positioning:
+
+> **MCP makes Architecture Knowledge reachable; it does not make that knowledge trustworthy.**
+
+AIP's differentiated work happens before transport: source semantics, evidence applicability,
+identity/reconciliation, qualification, provenance, context, and explicit limitations. Publishing an
+MCP server is therefore distribution, not the product's epistemic value. This reinforces current
+boundaries and adds **no roadmap change**.
+
 ### Lu et al. — Procedural Graphs
 
 **Source**
@@ -2586,6 +2756,51 @@ automatically a binding Intent assertion, and a document's existence does not me
 understands it. AIP could inform a bounded *intent-versus-evidence* audit and supply context
 for onboarding, but measuring team cognition or attributing faster onboarding requires
 separate studies. Agents are one consumer of this knowledge, not its justification.
+
+### Justin Miller — Decision Debt
+
+**Sources**
+
+- [Decision Debt: The Cost of Delayed Governance](https://www.linkedin.com/posts/justin-miller-793a019a_the-most-expensive-technology-decision-is-activity-7487055441966006272--SQf)
+- [Technical Debt: The Gap Between Projects and Operations](https://www.linkedin.com/posts/justin-miller-793a019a_projects-end-systems-dont-that-gap-is-activity-7511053281557712896-S62P)
+
+**Core idea**
+
+Miller describes **decision debt** as the accumulation of architecture that outlives the reasoning,
+assumptions, or explicit decision that originally justified it — or that emerges while an important
+decision remains unresolved. The structure can remain long after its rationale becomes unclear or
+obsolete.
+
+**Why this matters to AIP**
+
+This strongly supports the future v0.8 Intent boundary and the unscheduled Decision History
+candidate. AIP may eventually consume explicit, attributable decisions and their rationale as
+source-bound evidence, then relate applicable Intent to qualified Current State.
+
+AIP should **not** become the organizational decision workflow, approval system, or authority that
+decides what the architecture ought to be. Decision records can inform Intent; they do not make every
+sentence authoritative, and an agent cannot manufacture organizational intent.
+
+### Nadzeya Stalbouskaya — Agent Maturity and Decision Boundaries
+
+**Source**
+
+- [AI Agents Look Like the Future. In Reality, They Require a Maturity Most Organizations Don't Have](https://www.linkedin.com/posts/nadzeya-stalbouskaya_enterprisearchitecture-artificialintelligence-activity-7439626840031535104-9Cxc)
+
+**Core idea**
+
+Stalbouskaya emphasizes that useful agent autonomy depends on organizational and architectural
+maturity: explicit decision boundaries, override authority, governance, ownership, and clear
+responsibility cannot be supplied by model capability alone.
+
+**Why this matters to AIP**
+
+This reinforces AIP's authority boundary. AIP can represent explicit architectural Intent and supply
+qualified Current State, but it cannot decide who is authorized to approve a change, manufacture
+stakeholder alignment, or turn agent confidence into organizational authority.
+
+The reference supports the existing **Current State → Intent → Assessment** separation and the rule
+that downstream action authority remains external. It adds no new capability release.
 
 ### DORA — Loosely Coupled Architecture and Teams
 
@@ -3209,6 +3424,37 @@ accept / block — before the change compounds
 ```
 
 This is close to AIP's own emphasis on deterministic Cypher analyses over LLM judgment (see "Deterministic verification" above). AIP's Current State graph is itself a natural backpressure signal: an agent's plan can be checked against it before code is written, not only reviewed against it afterwards.
+
+### Ontolith — Model Passports, Provenance, and Lifecycle Evidence
+
+**Sources**
+
+- [Ontolith](https://ontolith.com/)
+- [Ontolith platform](https://ontolith.com/platform)
+- [Ontolith sovereignty and model passports](https://ontolith.com/sovereignty)
+
+**Core idea**
+
+Ontolith treats specialized agent models as versioned production assets and emphasizes model
+identity, training lineage, evaluation history, deployment history, rollback, and signed
+**model passports**. Provenance and evaluation evidence travel with the model lifecycle rather than
+being reconstructed only after a failure or audit request.
+
+**Why this matters to AIP**
+
+This is adjacent evidence infrastructure, not architecture truth. A downstream agent may need both:
+
+```text
+model / agent lifecycle evidence
+Which model ran, how was it evaluated, what version was deployed?
+
+AIP Architecture Knowledge
+Which architecture claims did the available evidence support?
+```
+
+The two provenance chains should be linkable without being collapsed. A model passport does not
+qualify an architecture claim, and AIP's evidence refs do not certify the model that consumed them.
+This is a useful provenance and governance comparison with **no roadmap change**.
 
 ### Agent observability
 
