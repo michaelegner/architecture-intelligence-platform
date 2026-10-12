@@ -22,3 +22,18 @@ for k in ALPHA ALPHA2 CRED1; do echo "auth $k: $(curl -s -o /dev/null -w '%{http
 sleep 15
 curl -s localhost:19091/apisix/prometheus/metrics | grep -E '^apisix_http_status' | sed -E 's/,node="[^"]*"//' | sort || true
 echo "GET consumer returns plaintext key: $(curl -s $A/consumers/spike-alpha -H "$H" | grep -c SPIKE-FAKE-KEY)"
+echo "-- capture surface (revision and inventory)"
+curl -s $A/consumers -H "$H" | python3 -c '
+import sys,json
+d=json.load(sys.stdin)
+print("inventory total:", d["total"])
+for x in sorted(d["list"],key=lambda x:x["key"]):
+    print("item:", x["key"], "createdIndex", x["createdIndex"], "modifiedIndex", x["modifiedIndex"], "value fields", sorted(x["value"]))'
+curl -s $A/consumers/spike-alpha/credentials -H "$H" | python3 -c '
+import sys,json
+d=json.load(sys.stdin)
+print("credentials total:", d["total"], [x["key"] for x in d["list"]])'
+docker exec etcd-spike etcdctl get /apisix/consumers/spike-alpha -w json | python3 -c '
+import sys,json
+d=json.load(sys.stdin)
+print("etcd header revision:", d["header"]["revision"], "consumer mod_revision:", d["kvs"][0]["mod_revision"])'

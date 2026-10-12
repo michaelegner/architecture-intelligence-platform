@@ -74,6 +74,8 @@ This is a *first reading from documentation*, not the selection. "Open" means a 
 
 Candidate for further inspection ranked by documented evidence only (not a decision): APISIX is the only one with consumer-attributed request counters, a documented unauthenticated metrics endpoint and an unambiguous OSS path, all on the pages read. Kong and Gravitee each have an open gate that docs alone cannot close; Tyk's gate 3 is blocked on an undocumented custom-metric schema.
 
+**Eligible set.** The matrix does not derive a formal §12.1 eligible set: several gates are open for every candidate after the documentation pass, so none is eliminated on documentation alone. The owner chose APISIX and Tyk as spike finalists from this gate view; the spikes are feasibility evidence. The eligible set, per-criterion comparison and deciding criterion are recorded in the I0.2 selection decision (spec §12.2-12.3).
+
 ## 5. Open items that the next slice must close or carry forward
 
 1. Kong: OSS-vs-Enterprise status of `acl`, Consumer Groups, Prometheus `per_consumer`, and image availability.
