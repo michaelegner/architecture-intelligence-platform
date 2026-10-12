@@ -1,7 +1,7 @@
 # AIP v0.7.0 I0 — Completion Record
 
-**Status:** **PROPOSED COMPLETE — pending merge of PR B.** Closure SHA: `PENDING_MERGE_SHA` (the two-step closure pattern: a small follow-up PR writes the real merge SHA from `gh pr view --json mergeCommit` after PR B merges).
-**Terminal outcome (spec §18):** **`READY_FOR_I1`** — proposed by the agent, recorded by the owner on merging PR B.
+**Status:** **COMPLETE.** Closed by PR #509, merge `589574b08da8f9cf6e1a3430fa0182af29057e21` (2026-10-12T08:57:17Z). The closure SHA was written into this record after that merge (the two-step closure pattern).
+**Terminal outcome (spec §18):** **`READY_FOR_I1`** — recorded by the owner on merging PR #509.
 
 This record covers the I0 specification [`i0-gateway-capability-survey-and-semantic-freeze.md`](i0-gateway-capability-survey-and-semantic-freeze.md) (merged #507, `9009ab9`) under the accepted parent [`specification.md`](specification.md). I0 is documentation and throwaway spike evidence only; it implements no adapter, schema, REST/MCP surface or runtime ingestion.
 
@@ -10,9 +10,9 @@ This record covers the I0 specification [`i0-gateway-capability-survey-and-seman
 | Slice | Deliverables | PR | Merge commit | Merged (UTC) |
 |---|---|---|---|---|
 | I0.1 | [`i0-capability-survey-matrix.md`](i0-capability-survey-matrix.md), [`i0-spike/`](i0-spike/README.md) | #508 | `fbc8550b471886a09062f87433269ec6e50d8575` | 2026-10-12T08:02:26Z |
-| I0.2 | decision, acquisition plan, dossier, handoff, this record | PENDING | `PENDING_MERGE_SHA` | PENDING |
+| I0.2 | decision, acquisition plan, dossier, handoff, this record | #509 | `589574b08da8f9cf6e1a3430fa0182af29057e21` | 2026-10-12T08:57:17Z |
 
-Planning started at `2026-10-12T06:42:34Z` (recorded in each slice PR's hidden metadata marker). I0.1's merge commit was read from `gh pr view --json mergeCommit`.
+Planning started at `2026-10-12T06:42:34Z` (recorded in each slice PR's hidden metadata marker). The merge commits above were read from `gh pr view --json mergeCommit`, not typed from memory.
 
 ## Owner decisions
 
@@ -47,6 +47,7 @@ None triggered; see decision §11.
 
 ## Deviations from the retained plan
 
+- Review of #509 found API Contract and Application Service collapsed onto the existing `Service`; fixed in the same PR by freezing `ApiContract`/`ApiContractVersion` as distinct entities with explicit associations (decision §7).
 - The plan's A3 step ("derive the eligible set from the matrix, then the owner chooses finalists") was not performed as a separate derivation in I0.1; the eligible set is derived in the decision record §2 (as the review of #508 requested).
 - Extra APISIX Admin-API/etcd probe and a Tyk duplicate-alias probe were added after review of #508.
 

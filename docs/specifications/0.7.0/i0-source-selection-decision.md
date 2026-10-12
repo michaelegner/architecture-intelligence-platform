@@ -1,6 +1,6 @@
 # AIP v0.7.0 I0 — Source Selection Decision and Semantic Freeze
 
-**Status:** Proposed decision record — owner review in PR B (I0.2); becomes frozen on merge.
+**Status:** Frozen decision record (merged #509).
 **Governing specification:** [`i0-gateway-capability-survey-and-semantic-freeze.md`](i0-gateway-capability-survey-and-semantic-freeze.md) (Proposed, merged #507) §§12–14, 16, 18; parent [`specification.md`](specification.md) §§9–17, 29–31, 34–35.
 **Evidence:** [`i0-capability-survey-matrix.md`](i0-capability-survey-matrix.md) and [`i0-spike/README.md`](i0-spike/README.md) (merged #508, `fbc8550`). Finding numbers (F1–F16) refer to the spike README.
 **Owner decisions taken while preparing this record (2026-10-12):** select APISIX (O1); retain Tyk as the I4 cross-check; accept operator-asserted environment plus capture-metadata coverage.
@@ -163,4 +163,4 @@ Qualification vocabulary and truth table (O8, I2), enumeration limits (O9, I3), 
 | Needs a broad API-product/catalog model | Not triggered (§7) |
 | Forces a change to the parent question or Current-State/Intent boundary | Not triggered |
 
-Proposed terminal outcome: **`READY_FOR_I1`**, recorded in [`i0-completion-record.md`](i0-completion-record.md).
+Terminal outcome: **`READY_FOR_I1`**, recorded in [`i0-completion-record.md`](i0-completion-record.md).

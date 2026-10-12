@@ -1,6 +1,6 @@
 # AIP v0.7.0 I0 — Identity and Reconciliation Dossier
 
-**Status:** Proposed — frozen on merge of PR B (I0.2). Artifact 5 of spec §15.
+**Status:** Frozen (merged #509). Artifact 5 of spec §15.
 **Governing specification:** [`i0-gateway-capability-survey-and-semantic-freeze.md`](i0-gateway-capability-survey-and-semantic-freeze.md) §§7, 9; parent [`specification.md`](specification.md) §§10, 15, 29. Decisions: [`i0-source-selection-decision.md`](i0-source-selection-decision.md) §§8–9.
 Join classes are survey vocabulary (spec §9), not the I2 public vocabulary. I2 implements the pipeline and freezes outcome names.
 

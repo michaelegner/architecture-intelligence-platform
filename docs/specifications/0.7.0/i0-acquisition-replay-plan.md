@@ -1,6 +1,6 @@
 # AIP v0.7.0 I0 — Selected-Source Acquisition and Replay Plan (APISIX)
 
-**Status:** Proposed — frozen on merge of PR B (I0.2). Artifact 4 of spec §15.
+**Status:** Frozen (merged #509). Artifact 4 of spec §15.
 **Governing specification:** [`i0-gateway-capability-survey-and-semantic-freeze.md`](i0-gateway-capability-survey-and-semantic-freeze.md) §10; decisions in [`i0-source-selection-decision.md`](i0-source-selection-decision.md) §§4–5. Evidence: [`i0-spike/`](i0-spike/README.md).
 I1 owns the configuration adapter; I2 owns measurement acquisition and replay. This plan only freezes the acquisition contract far enough to show both are feasible.
 

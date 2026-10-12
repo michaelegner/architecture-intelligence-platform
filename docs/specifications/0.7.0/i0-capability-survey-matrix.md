@@ -1,6 +1,6 @@
 # AIP v0.7.0 I0 — Capability Survey Matrix
 
-**Status:** Draft 0.2 — I0.1 (docs survey plus finalist spikes on APISIX and Tyk, chosen by the owner 2026-10-12); the selection decision follows in I0.2.
+**Status:** Final (merged #508) — I0.1 (docs survey plus finalist spikes on APISIX and Tyk, chosen by the owner 2026-10-12); the selection decision is in [`i0-source-selection-decision.md`](i0-source-selection-decision.md).
 **Governing specification:** [`i0-gateway-capability-survey-and-semantic-freeze.md`](i0-gateway-capability-survey-and-semantic-freeze.md) (Proposed, merged #507, `9009ab9`) §§4–6, 8, 11; parent [`specification.md`](specification.md) §6.
 **Retrieval date for every first-party source below:** 2026-10-12 (UTC). Pages are mutable; the exact claim relied on is quoted or paraphrased per row so drift is visible.
 

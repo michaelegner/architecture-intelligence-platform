@@ -1,6 +1,6 @@
 # AIP v0.7.0 I0 → I1/I2 Handoff
 
-**Status:** Proposed — frozen on merge of PR B (I0.2). Artifact 6 of spec §15.
+**Status:** Frozen (merged #509). Artifact 6 of spec §15.
 **Governing specification:** [`i0-gateway-capability-survey-and-semantic-freeze.md`](i0-gateway-capability-survey-and-semantic-freeze.md) §§13–15, 18. Decisions: [`i0-source-selection-decision.md`](i0-source-selection-decision.md).
 
 ## 1. Frozen by I0 (I1/I2 SHALL NOT reinterpret)
