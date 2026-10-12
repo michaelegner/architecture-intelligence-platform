@@ -583,8 +583,9 @@ Bounded Context
 ```
 
 System or component membership must not be inferred merely from repository location, namespace,
-communication, naming, team ownership, or graph proximity. Membership needs attributable evidence
-or explicit Intent appropriate to that claim.
+communication, naming, team ownership, or graph proximity. Current-State membership needs
+attributable Current-State evidence appropriate to that claim. Explicit Intent may describe intended
+membership, but it must remain separate and must not substitute for Current-State composition.
 
 Likewise, System membership should not become part of a Service's identity by default. A Service may
 participate in several systems or move between architectural groupings without becoming a different
@@ -1356,10 +1357,16 @@ evidenced where they are asserted, not inferred from technical metadata. Formal 
 separate downstream path; security-policy assessment belongs downstream of independently established
 Current State and applicable Intent.
 
-## 15. Explicit Intent
+## 15. Explicit Intent — Provisional Domain
 
-Agent-readiness creates pressure to add architectural intent. AIP should support this only with a
-strict authority model. Configured API/gateway registration remains evidence of Current State;
+**Product status:** candidate semantics, not a committed AIP-owned pre-v1.0 capability. The v0.8
+product-boundary checkpoint decides whether AIP should own Intent or consume it through an
+integration with a specialized architecture/governance product. If AIP owns this domain, the rules
+below are mandatory; if Intent stays external, they remain boundary constraints on what may enter
+AIP Current-State reasoning.
+
+Agent-readiness creates pressure to add architectural intent. If AIP supports it, it must do so only
+with a strict authority model. Configured API/gateway registration remains evidence of Current State;
 it does not become governing Intent merely because access was granted or usage was observed.
 
 The preferred separation is:
@@ -1473,8 +1480,10 @@ And the strategic formulation is:
 
 ### 15.3 Source-neutral intent semantics
 
-AIP should standardize the **meaning** of architectural intent, not require every ecosystem to author
-intent using the same format.
+If AIP owns Intent, it should standardize the **meaning** of architectural intent, not require every
+ecosystem to author intent using the same format. If Intent remains external, AIP should preserve
+only the mapping semantics required at the integration boundary rather than creating a duplicate
+Intent model.
 
 Potential carriers may include:
 
@@ -1532,12 +1541,16 @@ AIP should not require a complete future-state graph.
 
 ---
 
-## 16. Qualified Current ↔ Intent Assessment
+## 16. Qualified Current ↔ Intent Assessment — Provisional Domain
 
-AIP's longer-term differentiating capability is not merely "Desired State support."
+**Product status:** candidate semantics, not a committed AIP-owned pre-v1.0 capability. The v0.8
+checkpoint first tests whether architecture-conformance products already own this function well
+while consuming AIP Current State.
 
-It is a **separate second-order assessment** over an already-established Current State and an
-independently established Intent projection.
+If AIP later owns assessment, it must be a **separate second-order assessment** over an
+already-established Current State and an independently established Intent projection. If assessment
+remains external, the same separation constrains the integration: external violation or conformance
+judgments must not rewrite AIP Current State.
 
 The dependency direction is:
 
@@ -1692,8 +1705,9 @@ local deviation
 system-wide deviation
 ```
 
-Until then, AIP should compare Current State with the Intent applicable to the selected evaluation
-time without claiming a trajectory across historical states.
+Until then, any retained AIP-owned assessment should compare Current State with the Intent applicable
+to the selected evaluation time without claiming a trajectory across historical states. If
+assessment remains external, AIP supplies the qualified Current-State side of that comparison.
 
 ---
 
@@ -1926,11 +1940,14 @@ which contextual lens would make the answer easier to inspect
 AIP decides:
 
 ```text
-what the evidence and explicit intent support
+what Current-State evidence supports
 what qualification applies
 which limitations remain
 which snapshot/context the answer belongs to
 ```
+
+If AIP later owns Intent or assessment, those semantics remain separate. If an external product owns
+them, AIP does not reinterpret that product's policy or violation judgment as Current-State truth.
 
 Every returned claim or assessment must retain:
 
@@ -2086,21 +2103,23 @@ boundary is explicitly reconsidered.
 
 ## 22. Reverse Verification
 
-AIP has a useful position on both sides of an agent-generated change.
+AIP has a useful position on both sides of an agent-generated change without owning the change or
+requiring AIP-owned Intent.
 
 ```text
 Before change:
-AIP establishes qualified architecture context
-and, where available, applicable explicit intent
+AIP establishes qualified distributed Current State
+          +
+optional separate Intent/conformance context from AIP or an external product
           ↓
 Agent reasons and changes software
           ↓
 After change:
 new declared / infrastructure / runtime evidence appears
           ↓
-AIP establishes the post-change architecture state
+AIP independently re-establishes the post-change Current State
           ↓
-AIP re-assesses the Current ↔ Intent difference
+optional separate assessment compares that Current State with applicable Intent
 ```
 
 This supports independent evaluation of post-change evidence within the supported claim scope.
