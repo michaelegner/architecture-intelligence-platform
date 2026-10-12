@@ -88,21 +88,16 @@
     },
     {
       "id": "V10",
-      "formula": "absent info.version participates as the empty string",
+      "formula": "an absent, empty or non-string info.version mints no ApiContractVersion (limitation CONTRACT_VERSION_MISSING_OR_NOT_STRING)",
       "inputs": {
         "contract_id": "api-contract:owned:cf9d0ff7ccc352fd5be0ebc38ff2611848b53c4d17a33f8528c5efe90d3b9cde",
-        "info_version": null
+        "info_versions": [
+          null,
+          "",
+          1.0
+        ]
       },
-      "expected": "api-contract-version:owned:0e9414b7aeb8a33902100c421a5867734795beacefb1a4515c15a71d3a1821c8"
-    },
-    {
-      "id": "V11",
-      "formula": "an empty-string info.version equals the absent form (same id)",
-      "inputs": {
-        "contract_id": "api-contract:owned:cf9d0ff7ccc352fd5be0ebc38ff2611848b53c4d17a33f8528c5efe90d3b9cde",
-        "info_version": ""
-      },
-      "expected": "api-contract-version:owned:0e9414b7aeb8a33902100c421a5867734795beacefb1a4515c15a71d3a1821c8"
+      "expected": null
     },
     {
       "id": "V12",
@@ -120,6 +115,27 @@
       "expected": {
         "a": "601d5476e2ccfe2c87a2bba7a322659734a05749d5b5aa781f513e4912db0d5f",
         "b": "3fafa1cf2f19a7c1129beb20cf0983f73a489a221fc0dd2f16d1be292d089205"
+      }
+    },
+    {
+      "id": "V13",
+      "formula": "source revision = apisix:<version>+etcd:<revision>; evidence id = evidence:apisix:<sha256(ld(gateway_instance_id, source_revision))>; same etcd revision with a different APISIX version differs",
+      "inputs": {
+        "gateway_instance_id": "gw-prod-1",
+        "revisions": [
+          "apisix:3.19.0+etcd:18",
+          "apisix:3.20.0+etcd:18"
+        ]
+      },
+      "expected": {
+        "revisions": [
+          "apisix:3.19.0+etcd:18",
+          "apisix:3.20.0+etcd:18"
+        ],
+        "evidence_ids": [
+          "evidence:apisix:e8b9c56a10fc159df96730647f1632da5191ea413c4d1784ced96b8c01dcb527",
+          "evidence:apisix:73b7520b08c3ae1bfb360fcc5cad7d87c3c34b38b0d6ea3fc3e876e9cc2065d6"
+        ]
       }
     }
   ]

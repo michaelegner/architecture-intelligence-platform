@@ -13,6 +13,10 @@ from pathlib import Path
 VECTORS = Path(__file__).resolve().parents[2] / "docs/specifications/0.7.0/i1-vectors"
 
 AUTH_PLUGINS = {"key-auth", "basic-auth", "jwt-auth", "hmac-auth", "ldap-auth"}
+UNSUPPORTED_AUTH_PLUGINS = {
+    "multi-auth", "openid-connect", "saml-auth", "wolf-rbac", "jwe-decrypt",
+    "cas-auth", "dingtalk-auth", "feishu-auth", "ldap-auth-advanced",
+}  # fmt: skip
 RULE_KIND = "CONSUMER_RESTRICTION_ALLOW_LIST"
 
 
@@ -48,11 +52,15 @@ def test_id_vectors_match_the_frozen_formulas() -> None:
     contract = "api-contract:owned:" + _h("urn:aip:source:filesystem:abc123")
     assert by_id["V08"]["expected"] == contract
     assert by_id["V09"]["expected"] == "api-contract-version:owned:" + _h(contract, "1.4.0")
-    assert (
-        by_id["V10"]["expected"]
-        == by_id["V11"]["expected"]
-        == "api-contract-version:owned:" + _h(contract, "")
-    )
+    assert by_id["V10"]["expected"] is None
+    assert "V11" not in by_id
+    r1, r2 = by_id["V13"]["expected"]["revisions"]
+    assert r1 == "apisix:3.19.0+etcd:18" and r2 == "apisix:3.20.0+etcd:18"
+    assert by_id["V13"]["expected"]["evidence_ids"] == [
+        "evidence:apisix:" + _h(inst, r1),
+        "evidence:apisix:" + _h(inst, r2),
+    ]
+    assert r1 != r2
     assert by_id["V12"]["expected"]["a"] != by_id["V12"]["expected"]["b"]
     for vector in by_id.values():
         assert vector["formula"]
@@ -86,8 +94,14 @@ def _interpret(capture: dict) -> dict:
         if "allowed_by_methods" in cfg:
             limit("GW_RESTRICTION_METHOD_SCOPED", rid)
             continue
-        if not AUTH_PLUGINS & set(route["plugins"]):
-            limit("GW_RESTRICTION_NO_AUTH_PLUGIN", rid)
+        plugins = set(route["plugins"])
+        if not AUTH_PLUGINS & plugins:
+            unsupported = sorted(UNSUPPORTED_AUTH_PLUGINS & plugins)
+            if unsupported:
+                for name in unsupported:
+                    limit("GW_AUTH_PLUGIN_UNSUPPORTED", f"{rid}:{name}")
+            else:
+                limit("GW_RESTRICTION_NO_AUTH_PLUGIN", rid)
             continue
         whitelist, blacklist = cfg.get("whitelist", []), cfg.get("blacklist", [])
         if not whitelist:
@@ -111,6 +125,8 @@ def _interpret(capture: dict) -> dict:
 def test_configured_access_cases_agree_with_the_reference_reading() -> None:
     doc = _load("configured-access.json")
     assert set(doc["frozen_auth_plugins"]) == AUTH_PLUGINS
+    assert set(doc["recognized_unsupported_auth_plugins"]) == UNSUPPORTED_AUTH_PLUGINS
+    assert not AUTH_PLUGINS & UNSUPPORTED_AUTH_PLUGINS
     assert doc["base_capture"]["schema"] == "aip-apisix-capture/1"
     assert doc["base_capture"]["admin_surface"] == "admin-api-etcd"
     ids = [c["id"] for c in doc["cases"]]

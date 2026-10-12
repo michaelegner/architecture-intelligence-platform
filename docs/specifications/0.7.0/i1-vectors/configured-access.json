@@ -512,7 +512,7 @@
     {
       "id": "C13",
       "spec_case": "unsupported-auth-plugin",
-      "description": "an authentication plugin outside the frozen set creates no access",
+      "description": "a recognized unsupported authentication plugin creates no access and is reported as unsupported, not absent",
       "capture": {
         "consumers": [
           {
@@ -539,8 +539,8 @@
         "configured_access": [],
         "limitations": [
           {
-            "code": "GW_RESTRICTION_NO_AUTH_PLUGIN",
-            "subject": "r1"
+            "code": "GW_AUTH_PLUGIN_UNSUPPORTED",
+            "subject": "r1:openid-connect"
           }
         ]
       }
@@ -608,6 +608,55 @@
         ],
         "limitations": []
       }
+    },
+    {
+      "id": "C15",
+      "spec_case": "unsupported-auth-plugin",
+      "description": "a supported authentication plugin alongside an unsupported one still qualifies",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {},
+              "wolf-rbac": {},
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [
+          {
+            "consumer": "alice",
+            "route": "r1",
+            "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST"
+          }
+        ],
+        "limitations": []
+      }
     }
+  ],
+  "recognized_unsupported_auth_plugins": [
+    "multi-auth",
+    "openid-connect",
+    "saml-auth",
+    "wolf-rbac",
+    "jwe-decrypt",
+    "cas-auth",
+    "dingtalk-auth",
+    "feishu-auth",
+    "ldap-auth-advanced"
   ]
 }

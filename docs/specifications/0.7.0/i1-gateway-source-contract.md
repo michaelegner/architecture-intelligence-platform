@@ -22,7 +22,7 @@ This document freezes exactly what I1 §6 assigns to I1.1. Where the I1 spec or 
 - Discovery is by registration (like Kubernetes), not by filename scan, so a fixture is proven through the real `SourceDiscoverer` with `source_kind = apisix`; `supports()` on the adapter checks `schema == "aip-apisix-capture/1"`, never the filename.
 - Envelope (`aip-apisix-capture/1`, base values in `configured-access.json`): `gateway_instance_id`, `environment`, `apisix_version`, `admin_surface`, `etcd_revision_before`, `etcd_revision_after`, `lists_complete{kind: bool}`, and one array per kind: `consumers`, `routes`, `services`, `upstreams`, `plugin_configs`, `consumer_groups`, `global_rules`.
 - **Redaction invariants (the capture tool writes them, the adapter verifies them):** a consumer is `{username, credential_ids[]}`; authentication plugins appear by name with an empty config; `consumer-restriction` keeps its full config (it is not secret); every other plugin appears by name with an empty config. Any field named `key`, `secret`, `password`, `token`, `username`/`password` pairs inside a plugin config, or any non-empty authentication-plugin config makes the capture `REJECTED_INVALID` / `GW_CAPTURE_UNREDACTED` (R07) **without echoing the value**.
-- Source revision = `etcd:<etcd_revision_after>`; capture complete only when `etcd_revision_before == etcd_revision_after` (R01) and every `lists_complete` entry is `true` (R02).
+- Source revision = `apisix:<apisix_version>+etcd:<etcd_revision_after>` (I0 acquisition plan §2: etcd header revision plus the APISIX version; vector V13); capture complete only when `etcd_revision_before == etcd_revision_after` (R01) and every `lists_complete` entry is `true` (R02).
 - `admin_surface` MUST be `admin-api-etcd`; `standalone-yaml` is `REJECTED_UNSUPPORTED` (R03). Unknown `schema` is `REJECTED_UNSUPPORTED` (R04). A missing or mistyped required field is `REJECTED_INVALID` / `GW_CAPTURE_INVALID` (R08).
 
 ## 3. Identities and canonical entities (vectors V01–V12)
@@ -36,7 +36,7 @@ All ids use `ld` = 8-byte big-endian UTF-8 byte length + bytes per part and lowe
 | `GatewayService` | `gateway-service:owned:<sha256(ld(gateway_instance_id, service id))>` | APISIX Service `id`; the kind prefix keeps a route and a service with the same raw id distinct (V05) |
 | `ConfiguredAccess` | `configured-access:owned:<sha256(ld(consumer id, route id, rule kind))>` | rule kind `CONSUMER_RESTRICTION_ALLOW_LIST` (V06) |
 | `ApiContract` | `api-contract:owned:<sha256(ld(OpenAPI SourceInstanceId))>` | the existing OpenAPI source-instance identity (I1 §3.6) |
-| `ApiContractVersion` | `api-contract-version:owned:<sha256(ld(contract id, info.version or ""))>` | exact `info.version` string; absent and `""` give the same id (V10, V11) |
+| `ApiContractVersion` | `api-contract-version:owned:<sha256(ld(contract id, info.version))>` | exact, non-empty `info.version` string; an absent, empty or non-string version mints no `ApiContractVersion` (V10) |
 
 Fields:
 - `GatewayConsumer`: `id`, `gateway_instance_id`, `username`, `credential_ids` (sorted, non-secret).
@@ -44,7 +44,7 @@ Fields:
 - `GatewayService`: `id`, `gateway_instance_id`, `service_id`, `plugin_names`.
 - `ConfiguredAccess`: `id`, `consumer_id`, `route_id`, `rule_kind`, `polarity = ALLOW`, `scope = ROUTE`, `evidence_ids`, `source_revision`. It carries no usage, authorization or approval meaning.
 - `ApiContract`: `id`, `openapi_source_instance_id`. `ApiContractVersion`: `id`, `contract_id`, `info_version`.
-- A non-string `info.version` produces no `ApiContractVersion` and a limitation `CONTRACT_VERSION_NOT_STRING`; it never rejects the OpenAPI source (existing behavior is preserved).
+- An absent, empty or non-string `info.version` produces no `ApiContractVersion` and a limitation `CONTRACT_VERSION_MISSING_OR_NOT_STRING` (no empty-string identity is manufactured); it never rejects the OpenAPI source (existing behavior is preserved).
 
 **Representation.** All of these are internal-only carrier nodes with their own labels (`GatewayConsumer`, `GatewayRoute`, `GatewayService`, `GatewayConfiguredAccess`, `ApiContract`, `ApiContractVersion`, `ApiContractAssociation`), owned by their source instance, with **no relationships to public entities**; references are id-valued properties. This follows the infrastructure-carrier precedent and keeps every existing traversal, analysis and NL/MCP surface unchanged. Public exposure is I3.
 
@@ -56,7 +56,7 @@ A `ConfiguredAccess` is created for `(consumer, route)` iff **all** hold:
 1. the route's own `plugins` contains `consumer-restriction`;
 2. `type` is omitted (APISIX default) or `consumer_name`;
 3. the config has no `allowed_by_methods`;
-4. the route's own `plugins` contains a plugin from the frozen authentication set `{key-auth, basic-auth, jwt-auth, hmac-auth, ldap-auth}` (plugins that resolve a Consumer); other authentication plugins (e.g. `openid-connect`) do not qualify (C13);
+4. the route's own `plugins` contains a plugin from the frozen supported authentication set `{key-auth, basic-auth, jwt-auth, hmac-auth, ldap-auth}` (plugins that resolve a Consumer). A recognized but unsupported authentication plugin (the *recognized unsupported set*, §4.1) does not qualify and is reported as unsupported, not as absent (C13); a supported plugin alongside an unsupported one still qualifies (C15);
 5. the name is in `whitelist`, is **not** in `blacklist`, and exists as a Consumer in the inventory.
 
 Everything else yields no access and, where noted, a **limitation record** (`code`, `subject`; sorted, deterministic):
@@ -64,16 +64,19 @@ Everything else yields no access and, where noted, a **limitation record** (`cod
 | Condition | Code | Subject |
 |---|---|---|
 | unsupported `type` (C03) | `GW_RESTRICTION_UNSUPPORTED_TYPE` | route id |
-| no qualifying auth plugin (C04, C13) | `GW_RESTRICTION_NO_AUTH_PLUGIN` | route id |
+| no authentication plugin of either set on the route (C04) | `GW_RESTRICTION_NO_AUTH_PLUGIN` | route id |
+| only recognized unsupported authentication plugins (C13) | `GW_AUTH_PLUGIN_UNSUPPORTED` | `route:plugin` (sorted, one record per plugin) |
 | whitelisted name not in the consumer inventory (C05) | `GW_WHITELIST_DANGLING_CONSUMER` | `route:name` |
 | name in whitelist and blacklist (C06) | `GW_WHITELIST_BLACKLIST_CONFLICT` | `route:name` |
 | blacklist with no whitelist (C07) | `GW_BLACKLIST_RECORDED` | route id |
 | `allowed_by_methods` present (C08) | `GW_RESTRICTION_METHOD_SCOPED` | route id |
 | `consumer-restriction` on a Service, via `plugin_config_id`, or in a global rule (C09–C11) | `GW_RESTRICTION_UNSUPPORTED_SCOPE` | `service:id` / `plugin_config:id` / `global_rule:id` |
 
+**4.1 Recognized unsupported set (APISIX 3.19 plugin list as observed in the I0 spike; a recognized list, not a claim about each plugin's consumer-binding semantics):** `multi-auth`, `openid-connect`, `saml-auth`, `wolf-rbac`, `jwe-decrypt`, `cas-auth`, `dingtalk-auth`, `feishu-auth`, `ldap-auth-advanced`. Widening the supported set later is a reviewed amendment; a plugin in neither set counts as absent.
+
 An authentication plugin without a restriction (C12) creates nothing and records nothing. Limitations are source-qualified evidence for I2, never access claims. A `GW_WHITELIST_BLACKLIST_CONFLICT` name is excluded only for that name; other whitelisted names on the route are unaffected (C06).
 
-Evidence: one `Provenance` per source (id `evidence:apisix:<sha256(ld(gateway_instance_id, source_revision))>`, `source_type = "APISIX"`, `evidence_type = DECLARED`, `source_revision`) plus the per-access rule text in the carrier's `evidence_ids`. `APISIX` is not added to the public `SourceType` enum in v0.7 I1 (that enum is part of a frozen public schema; widening it is I3's decision).
+Evidence: one `Provenance` per source (id `evidence:apisix:<sha256(ld(gateway_instance_id, source_revision))>`, so an APISIX upgrade at an unchanged etcd revision yields a different id (V13); `source_type = "APISIX"`, `evidence_type = DECLARED`, `source_revision`) plus the per-access rule text in the carrier's `evidence_ids`. `APISIX` is not added to the public `SourceType` enum in v0.7 I1 (that enum is part of a frozen public schema; widening it is I3's decision).
 
 ## 5. Lifecycle
 
