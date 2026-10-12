@@ -69,7 +69,6 @@ I0 SHALL NOT:
 
 The following parent-spec distinctions are fixed and SHALL NOT be reopened by source selection. I0 **adopts parent §§9–11 as the baseline semantic vocabulary, identity-domain separation and integration-style boundary**. Any deviation requires a reviewed amendment to this I0 specification and, where it would change the parent contract, to the parent specification.
 
-
 ~~~text
 gateway route/service != application Service != API contract/operation
 configured access != observed consumer-attributed usage
@@ -208,7 +207,7 @@ OPERATOR_ASSERTED_CAPTURE_CONTEXT
 UNRESOLVED
 ~~~
 
-A source-reported environment must identify the actual deployment/context from the measurement source. An operator-asserted capture context is acceptable only when it is explicit, provenance-bearing, immutable for the replay fixture and not inferred from an arbitrary free-form label at query time. I0 SHALL record which mode the selected path uses and what evidence binds the measurement to that environment.
+A source-reported environment must identify the actual deployment/context from the measurement source. An operator-asserted capture context is acceptable only when it is explicit, provenance-bearing, immutable for the replay fixture and not inferred from an arbitrary free-form label at query time. I0 SHALL record which mode the selected path uses and what evidence binds the measurement to that environment. `UNRESOLVED` does **not** satisfy the bounded environment/window gate in §12.1 and therefore disqualifies that candidate from selection for the first v0.7 slice.
 
 ## 9. Identity and association burden
 
@@ -305,7 +304,7 @@ Among candidates passing the mandatory gates, I0 SHALL compare:
 - synchronization/collection cost;
 - suitability for independent positive and negative cases.
 
-The decision SHALL NOT rely on an implicit preference. The source-selection record MUST contain a per-criterion comparison for every eligible candidate and name the **deciding criterion or criteria**. If two candidates are effectively tied on semantic/evidence quality, prefer the one with the simpler deterministic replay path; if still tied, prefer lower mapping/operational burden. Popularity, prior roadmap preference or implementation familiarity may not break a tie.
+The decision SHALL NOT rely on an implicit preference. The source-selection record MUST contain a per-criterion comparison for every eligible candidate and name the **deciding criterion or criteria**. Two candidates are **effectively tied on semantic/evidence quality** only when the written comparison finds no meaningful distinction in the first two criteria above: source-native semantic fidelity and quality/determinism of consumer-attributed request evidence. In that case, prefer the one with the simpler deterministic replay path; if still tied, prefer lower mapping/operational burden. Popularity, prior roadmap preference or implementation familiarity may not break a tie.
 
 ### 12.3 Selection output
 
@@ -320,7 +319,7 @@ known selected-source limitations
 required manual mappings
 planned configuration capture
 planned request-measurement capture
-cross-check gateway retained for I4, chosen because its native configured-access relationship class is materially different from the selected gateway's (for example subscription/application vs ACL/restriction vs key/policy), not merely because it ranked second
+cross-check gateway retained for I4, chosen because its native configured-access relationship class is materially different from the selected gateway's (for example application/plan/subscription vs consumer/ACL-or-restriction vs key/access-policy), not merely because it ranked second. Products that fall into the same broad class (for example Kong and APISIX if both resolve to consumer plus ACL/restriction semantics in the reviewed survey) do not satisfy this cross-check merely because they are different vendors
 ~~~
 
 A non-selected gateway is not declared unsupported by AIP generally; it is merely not chosen for the first qualified implementation.
@@ -391,11 +390,16 @@ I0 SHALL stop and require a reviewed amendment if:
 - selection would require adding a broad API-product/catalog model not justified by the first question;
 - source choice would force a change to the parent release question or Current-State/Intent boundary.
 
-Outcome mapping for these conditions:
+Outcome mapping for the stop conditions above is one-to-one:
 
-- violation of the parent semantic/evidence boundary, unavoidable credential-secret retention, or inability to express configured access without false equivalence → `STOP`;
-- viable question but only unavailable/proprietary evidence path or currently impractical deterministic replay → `DEFER`;
-- ambiguity or model breadth that can plausibly be resolved by narrowing the source/question/mapping contract → `NARROW_AND_REVIEW`.
+- none of the four sources can support consumer-attributed request evidence for the bounded question → `DEFER` if the evidence capability is plausibly expected later; otherwise `STOP` if the bounded question itself is not supportable from the surveyed source class;
+- the only viable path depends on unavailable proprietary functionality → `DEFER` while that dependency remains unavailable; this is **not** by itself a `STOP`;
+- configured access cannot be expressed without falsely equating materially different native semantics → `STOP`;
+- selected-source identity requires retaining credential secrets → `STOP`;
+- the source cannot be captured/replayed deterministically enough for I4 qualification → `DEFER` if a bounded replay path could become available later; otherwise `NARROW_AND_REVIEW` if reducing the source/question scope can make replay deterministic;
+- a required route/service/API association is inherently ambiguous and no bounded mapping mechanism is acceptable → `NARROW_AND_REVIEW` if the ambiguity can be removed by narrowing the question or mapping scope; otherwise `STOP`;
+- selection would require adding a broad API-product/catalog model not justified by the first question → `NARROW_AND_REVIEW`;
+- source choice would force a change to the parent release question or Current-State/Intent boundary → `STOP` unless the parent specification itself is explicitly amended before continuing.
 
 A stop condition is preferable to silently weakening the evidence claim.
 
@@ -442,7 +446,7 @@ The meanings are:
 - `READY_FOR_I1`: one source passes all mandatory gates, required semantics are frozen, and the I1/I2 handoff is implementable without unresolved semantic assumptions;
 - `NARROW_AND_REVIEW`: the bounded question appears viable, but the scope, source choice or semantic model must be narrowed through a reviewed amendment before implementation;
 - `DEFER`: the question remains valid, but required evidence/replay capability is not presently available or practical; no implementation starts in v0.7 until the dependency changes;
-- `STOP`: the proposed bounded question cannot be supported without violating the parent semantic/evidence boundaries or introducing unacceptable secret/proprietary/ambiguity dependencies.
+- `STOP`: the proposed bounded question cannot be supported without violating the parent semantic/evidence boundaries, requiring secret retention, or depending on ambiguity that cannot be removed by a bounded reviewed narrowing. Proprietary-only availability by itself maps to `DEFER`, not `STOP`.
 
 The **I0 specification owner / release owner** records the terminal outcome in an I0 completion record under `docs/specifications/0.7.0/`, linked from the source-selection/decision artifact and the implementing PR. A ROADMAP change is required only if the outcome changes the release direction (`DEFER`/`STOP` or a material scope change), not for ordinary `READY_FOR_I1` completion.
 
