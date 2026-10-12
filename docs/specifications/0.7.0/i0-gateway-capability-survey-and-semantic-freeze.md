@@ -4,7 +4,7 @@
 **Release / increment:** v0.7.0 / I0, API-Aware Current State  
 **Repository path:** docs/specifications/0.7.0/i0-gateway-capability-survey-and-semantic-freeze.md  
 **Entry baseline inspected:** main at 2ad3a6feeae2b93d581d49224d8bb5d441e1c88d  
-**Governing authority:** [accepted v0.7.0 parent specification](specification.md), especially §§1–11, 23–25 and 34–36; [research landscape](../../landscape.md), especially “API Gateways — Configured Access and Observed Usage”.  
+**Governing authority:** [accepted v0.7.0 parent specification](specification.md), especially §§1–11, 23–25, 29, 31 and 34–36; [research landscape](../../landscape.md), especially “API Gateways — Configured Access and Observed Usage”.  
 **Normative words:** MUST/SHALL/SHALL NOT have their parent-spec meaning. Text explicitly marked **[I0 proposal — review before freeze]** is not yet a frozen decision.
 
 ---
@@ -67,7 +67,8 @@ I0 SHALL NOT:
 
 ## 3. Frozen semantic invariants
 
-The following parent-spec distinctions are fixed and SHALL NOT be reopened by source selection:
+The following parent-spec distinctions are fixed and SHALL NOT be reopened by source selection. I0 **adopts parent §§9–11 as the baseline semantic vocabulary, identity-domain separation and integration-style boundary**. Any deviation requires a reviewed amendment to this I0 specification and, where it would change the parent contract, to the parent specification.
+
 
 ~~~text
 gateway route/service != application Service != API contract/operation
@@ -187,7 +188,7 @@ For every candidate, I0 SHALL determine whether the available source can establi
 - consumer attribution;
 - route/service/API target attribution;
 - request timestamp or bounded aggregation window;
-- environment/deployment identity or a deterministic binding supplied by the capture;
+- environment/deployment identity, distinguishing whether it is source-reported or operator-supplied capture context;
 - request count or equivalent observed-use signal;
 - measurement provenance and version;
 - sampling/retention/aggregation behavior;
@@ -195,7 +196,19 @@ For every candidate, I0 SHALL determine whether the available source can establi
 
 A dashboard total, log line or metric without deterministic consumer attribution is insufficient for the first positive v0.7 question.
 
+The observed-usage evidence SHALL be **independent of the configured-access fact**: it must come from an actual request-derived measurement path and SHALL NOT be satisfied by a gateway merely restating that a consumer was configured, matched an ACL/policy, or was permitted by configuration. The measurement may be emitted by the same gateway product, but the proposition it establishes must be based on an observed request event or request aggregation rather than the configuration relationship itself.
+
 A missing measurement path does not make a source invalid for all future AIP use; it makes it insufficient for this first bounded validation unless another independent, replayable request-derived source supplies the attribution.
+
+For environment identity, the survey SHALL record one of:
+
+~~~text
+SOURCE_REPORTED
+OPERATOR_ASSERTED_CAPTURE_CONTEXT
+UNRESOLVED
+~~~
+
+A source-reported environment must identify the actual deployment/context from the measurement source. An operator-asserted capture context is acceptable only when it is explicit, provenance-bearing, immutable for the replay fixture and not inferred from an arbitrary free-form label at query time. I0 SHALL record which mode the selected path uses and what evidence binds the measurement to that environment.
 
 ## 9. Identity and association burden
 
@@ -212,7 +225,7 @@ Gateway upstream/target
     ↔ application Service
 ~~~
 
-Each join SHALL be classified as one of:
+**[I0 proposal — review before freeze]** Each join SHALL be classified as one of:
 
 ~~~text
 EXPLICIT_SOURCE_REFERENCE
@@ -223,7 +236,7 @@ UNRESOLVED
 UNSUPPORTED
 ~~~
 
-**[I0 proposal — review before freeze]** These labels are survey vocabulary only and do not pre-freeze I2 public qualification vocabulary.
+These labels are survey vocabulary only and do not pre-freeze I2 public qualification vocabulary.
 
 Name similarity, URL similarity, path similarity or graph proximity alone SHALL NOT count as a resolved association when more than one plausible target exists.
 
@@ -251,7 +264,7 @@ I1 owns implementation of the selected gateway configuration source. I2 owns run
 
 ## 11. OSS/self-hosted and operational feasibility gate
 
-I0 SHALL not choose a source solely from semantic richness.
+I0 SHALL NOT choose a source solely from semantic richness.
 
 For each candidate it SHALL record whether the minimum first-slice path can be reproduced with:
 
@@ -283,16 +296,16 @@ A candidate is ineligible if the first bounded question cannot be demonstrated w
 
 Among candidates passing the mandatory gates, I0 SHALL compare:
 
+- semantic fidelity to the source-native configured-access meaning;
+- quality and determinism of consumer-attributed request evidence;
+- replayability and source-revision clarity;
+- OSS/self-hosted availability of the minimum path;
 - mapping burden;
-- replay complexity;
-- OSS/self-hosted availability;
 - setup cost;
 - synchronization/collection cost;
-- source revision/removal clarity;
-- semantic loss required by the minimum common model;
 - suitability for independent positive and negative cases.
 
-No popularity, prior roadmap preference or implementation familiarity may substitute for these gates.
+The decision SHALL NOT rely on an implicit preference. The source-selection record MUST contain a per-criterion comparison for every eligible candidate and name the **deciding criterion or criteria**. If two candidates are effectively tied on semantic/evidence quality, prefer the one with the simpler deterministic replay path; if still tied, prefer lower mapping/operational burden. Popularity, prior roadmap preference or implementation familiarity may not break a tie.
 
 ### 12.3 Selection output
 
@@ -307,7 +320,7 @@ known selected-source limitations
 required manual mappings
 planned configuration capture
 planned request-measurement capture
-cross-check gateway retained for I4
+cross-check gateway retained for I4, chosen because its native configured-access relationship class is materially different from the selected gateway's (for example subscription/application vs ACL/restriction vs key/policy), not merely because it ranked second
 ~~~
 
 A non-selected gateway is not declared unsupported by AIP generally; it is merely not chosen for the first qualified implementation.
@@ -346,6 +359,8 @@ I0 SHALL resolve the parent specification's open decisions only to the depth req
 | O10 REST/MCP contract | Deferred to I3 |
 | O11 Real-source replay packaging / cross-check source | Select replay strategy and cross-check source in I0; I4 freezes final qualification packaging |
 
+The parent §35 heading says “Decisions I0 must freeze”, but its own **Required before** column places O8–O10 in later increments and O11 at I4. This I0 specification intentionally narrows that heading under the parent §5 rule that increment specifications may freeze deferred details at the increment that actually needs them. I0 freezes only the parts of O5–O7/O11 needed to make I1/I2 feasible and leaves O8–O10 to their designated increments.
+
 If a parent decision cannot safely be narrowed to the depth above, I0 SHALL record it as unresolved and block the dependent increment rather than guess.
 
 ## 15. Required I0 artifacts
@@ -359,7 +374,9 @@ I0 SHALL produce, at minimum:
 5. **Identity/reconciliation dossier** listing explicit, user-authored, ambiguous and unsupported joins.
 6. **I0 → I1/I2 handoff** listing exactly what is frozen, what is deferred and what would require a reviewed amendment.
 
-These artifacts MAY be separate files or sections of one reviewed I0 completion package. The specification itself is not evidence that the survey was performed.
+These artifacts SHALL live under `docs/specifications/0.7.0/` either as separate I0 files or as one reviewed I0 completion package plus referenced evidence files. The specification itself is not evidence that the survey was performed.
+
+Survey evidence SHALL be reproducible enough for later review. For web documentation, record the URL and retrieval date and, where licensing/size permits, pin an archived excerpt, checksum, release tag or product-version-specific documentation reference. For directly inspected products, record the exact product version and fixture/configuration revision. If a vendor page is mutable and cannot be archived, record the retrieval date and the exact claim being relied on so drift is visible rather than silently accepted.
 
 ## 16. Stop conditions
 
@@ -373,6 +390,12 @@ I0 SHALL stop and require a reviewed amendment if:
 - a required route/service/API association is inherently ambiguous and no bounded mapping mechanism is acceptable;
 - selection would require adding a broad API-product/catalog model not justified by the first question;
 - source choice would force a change to the parent release question or Current-State/Intent boundary.
+
+Outcome mapping for these conditions:
+
+- violation of the parent semantic/evidence boundary, unavoidable credential-secret retention, or inability to express configured access without false equivalence → `STOP`;
+- viable question but only unavailable/proprietary evidence path or currently impractical deterministic replay → `DEFER`;
+- ambiguity or model breadth that can plausibly be resolved by narrowing the source/question/mapping contract → `NARROW_AND_REVIEW`.
 
 A stop condition is preferable to silently weakening the evidence claim.
 
@@ -395,7 +418,7 @@ I0 is complete only when all of the following are reviewed and recorded:
 - source-native configured-access semantics are explicit for all four;
 - the minimum source-neutral vocabulary can represent all four without relabelling their native relationship as a generic subscription;
 - one gateway is selected by the §12 gates;
-- one differently shaped gateway is retained for I4 semantic cross-check;
+- one differently shaped gateway is retained for I4 semantic cross-check, where “differently shaped” means a materially different native configured-access relationship class from the selected gateway;
 - selected consumer identity and secret boundary are frozen;
 - selected configuration acquisition/replay path is concrete;
 - selected request-derived measurement acquisition/replay path is concrete;
@@ -405,7 +428,7 @@ I0 is complete only when all of the following are reviewed and recorded:
 - I1 and I2 can start without inventing semantic decisions in implementation;
 - no adapter/schema/public API implementation has been smuggled into I0.
 
-The terminal I0 outcome is one of:
+**[I0 proposal — review before freeze]** The terminal I0 outcome is one of:
 
 ~~~text
 READY_FOR_I1
@@ -414,7 +437,16 @@ DEFER
 STOP
 ~~~
 
-Only READY_FOR_I1 authorizes I1 implementation.
+The meanings are:
+
+- `READY_FOR_I1`: one source passes all mandatory gates, required semantics are frozen, and the I1/I2 handoff is implementable without unresolved semantic assumptions;
+- `NARROW_AND_REVIEW`: the bounded question appears viable, but the scope, source choice or semantic model must be narrowed through a reviewed amendment before implementation;
+- `DEFER`: the question remains valid, but required evidence/replay capability is not presently available or practical; no implementation starts in v0.7 until the dependency changes;
+- `STOP`: the proposed bounded question cannot be supported without violating the parent semantic/evidence boundaries or introducing unacceptable secret/proprietary/ambiguity dependencies.
+
+The **I0 specification owner / release owner** records the terminal outcome in an I0 completion record under `docs/specifications/0.7.0/`, linked from the source-selection/decision artifact and the implementing PR. A ROADMAP change is required only if the outcome changes the release direction (`DEFER`/`STOP` or a material scope change), not for ordinary `READY_FOR_I1` completion.
+
+Only `READY_FOR_I1` authorizes I1 implementation.
 
 ## 19. Summary
 
