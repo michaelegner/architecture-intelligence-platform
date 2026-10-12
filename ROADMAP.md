@@ -589,7 +589,111 @@ Exit capability:
 > insufficiently supported in the selected context without silently inventing product, business,
 > authorization, or Intent claims.**
 
-## v0.8 — Explicit Architecture Intent (planned)
+## v0.8 — Cross-Boundary Architecture Knowledge + Product-Boundary Validation (planned)
+
+**Goal:** identify which already-qualified architectural relationships cross independently
+established System or Component boundaries.
+
+**Product question:**
+
+> **Which evidence-qualified architectural relationships cross established System or Component
+> boundaries?**
+
+The capability is deliberately **relationship-first, not ontology-first**. System / Component
+semantics are added only as far as needed to classify an already-qualified relationship as
+within-boundary, cross-boundary, or unresolved.
+
+```text
+established composition / membership
+        +
+qualified architectural relationship
+        ↓
+qualified cross-boundary projection
+```
+
+> **A relationship does not establish a boundary. A boundary does not establish a relationship.
+> A cross-boundary claim requires both to be independently established.**
+
+Design inputs are [C4/Structurizr](docs/landscape.md#structurizrc4--declared-architecture-models-and-views),
+[FINOS CALM](docs/landscape.md#finos-calm--architecture-as-code-and-semantic-gap-experiments), and
+[EventCatalog](docs/landscape.md#eventcatalog--connected-architecture-catalog-for-humans-and-agents)
+for practical composition evidence, with
+[Bigraphs](docs/landscape.md#robin-milner--bigraphs--bigraphical-reactive-systems) and
+[Semantic Spacetime](docs/landscape.md#mark-burgess--semantic-spacetime) as theoretical constraints
+on place/connectivity separation and context-bound interpretation. They constrain the design; they
+do not require generic adapters, complete source metamodels, or Bigraph/SST implementation.
+
+The release preserves:
+
+```text
+Service identity != System membership != deployment/locality != team ownership != Bounded Context
+```
+
+Membership must not be inferred from connectivity, co-location, repository structure, namespace,
+naming, ownership, or graph proximity. Source mode also remains explicit: Current-State
+cross-boundary answers use only composition/membership accepted for Current-State semantics. Intent
+or policy models from external tools must not be used to manufacture Current-State membership or
+relationships; if AIP later owns Intent, it remains a separate semantic path.
+
+**Out of scope:** a generic enterprise metamodel, capability or organizational model, arbitrary
+hierarchy browser, unrestricted architecture-model import, or business-capability/ownership
+inference.
+
+### Pitstop × Teamscale product-validation PoC
+
+v0.8 also includes a bounded product/integration PoC using **Pitstop** and **Teamscale 2026.7.x**.
+The PoC validates the product boundary; it does not make Teamscale a runtime dependency or semantic
+authority for AIP.
+
+The PoC SHALL compare, on pinned and reproducible inputs:
+
+- Teamscale's deterministic source/component dependency analysis;
+- Teamscale's AI-assisted component and architecture modeling, including inferred allow/deny
+  relationships where enabled;
+- AIP's evidence-qualified distributed Current State for the same Pitstop change context, including
+  declared/observed distinctions, provenance, environment/window, unresolved identity, and
+  cross-boundary classification;
+- the available supported integration surfaces (API/export/import) needed to preserve those
+  distinctions without flattening them into one generic dependency graph.
+
+The comparison must preserve the claim source and semantics. A Teamscale static or AI-inferred
+relationship does not become an AIP Current-State fact merely because it is plausible, and an AIP
+cross-boundary relationship does not become an architecture violation without an independently
+established Intent/policy judgment.
+
+The PoC succeeds as product evidence if it can determine, rather than assume, whether AIP contributes
+a materially different evidence dimension to architecture reasoning. A result that shows little or
+no additional value is valid evidence for narrowing or stopping the integration hypothesis.
+
+### Roadmap checkpoint after the PoC
+
+Before starting another pre-v1.0 capability release, v0.8 SHALL record a product-boundary decision
+for **Intent** and **Current↔Intent assessment**:
+
+- if a product such as Teamscale adequately owns architecture Intent and conformance while consuming
+  AIP Current State, keep AIP centered on evidence-qualified distributed Current State and
+  defer/remove the provisional v0.9/v0.10 capabilities or replace them only through a separate
+  roadmap revision;
+- if the PoC demonstrates a concrete Intent gap that AIP must own, define a narrowly scoped v0.9
+  capability from that demonstrated gap;
+- if it also demonstrates a concrete assessment gap that cannot reasonably remain in the integration
+  or conformance layer, justify and define v0.10 separately;
+- do not promote either provisional capability merely to preserve version numbering.
+
+The checkpoint decision and its evidence become an explicit v0.8 release artifact and must be
+reflected in this roadmap before work begins on v0.9.
+
+Exit capability:
+
+> **For a bounded architecture question, AIP can state which established relationships stay within
+> an established boundary, which cross one, and which remain unresolved because the relevant
+> composition evidence is insufficient — with evidence, qualification, context, and limitations
+> preserved.**
+
+## v0.9 — Explicit Architecture Intent (provisional; checkpoint-dependent)
+
+**Status:** provisional candidate scope. Execution is not authorized by this roadmap alone; the v0.8 product-boundary checkpoint must first demonstrate a material Intent problem that AIP itself should own rather than consume from an architecture-governance or conformance system.
+
 
 **Goal: Represent explicit, attributable architectural intent without allowing Intent to alter
 established Current State.**
@@ -659,9 +763,12 @@ Exit capability:
 > without treating Intent as evidence of Current State.**
 
 No Current↔Intent compliance/enforcement engine, historical trajectory model, migration scripting,
-or automatic remediation is required in v0.8.
+or automatic remediation is required in v0.9.
 
-## v0.9 — Qualified Architecture Assessment (planned)
+## v0.10 — Qualified Architecture Assessment (provisional; checkpoint-dependent)
+
+**Status:** provisional candidate scope. Execution depends on the v0.8 product-boundary checkpoint and, if retained, on a qualified v0.9 Intent capability. The checkpoint must demonstrate a material Current↔Intent assessment problem that should belong in AIP rather than in an integration or architecture-conformance layer.
+
 
 **Goal: Assess independently established Current State against independently established applicable
 Intent.**
@@ -740,7 +847,7 @@ Exit capability:
 > **AIP can explain where an independently established Current State aligns with, diverges from, or
 > cannot yet be evaluated against the explicit Intent that applies in the selected context.**
 
-Explicitly out of scope for v0.9:
+Explicitly out of scope for v0.10:
 
 - architecture trajectories / historical architecture state;
 - migration planning or transformation scripting;
@@ -749,69 +856,13 @@ Explicitly out of scope for v0.9:
 - distributed local-assessor deployment as a requirement;
 - agent-generated authoritative Intent.
 
-## v0.10 — Cross-Boundary Architecture Knowledge (planned)
-
-**Goal:** identify which already-qualified architectural relationships cross independently
-established System or Component boundaries.
-
-**Product question:**
-
-> **Which evidence-qualified architectural relationships cross established System or Component
-> boundaries?**
-
-The capability is deliberately **relationship-first, not ontology-first**. System / Component
-semantics are added only as far as needed to classify an already-qualified relationship as
-within-boundary, cross-boundary, or unresolved.
-
-```text
-established composition / membership
-        +
-qualified architectural relationship
-        ↓
-qualified cross-boundary projection
-```
-
-> **A relationship does not establish a boundary. A boundary does not establish a relationship.
-> A cross-boundary claim requires both to be independently established.**
-
-Design inputs are [C4/Structurizr](docs/landscape.md#structurizrc4--declared-architecture-models-and-views),
-[FINOS CALM](docs/landscape.md#finos-calm--architecture-as-code-and-semantic-gap-experiments), and
-[EventCatalog](docs/landscape.md#eventcatalog--connected-architecture-catalog-for-humans-and-agents)
-for practical composition evidence, with
-[Bigraphs](docs/landscape.md#robin-milner--bigraphs--bigraphical-reactive-systems) and
-[Semantic Spacetime](docs/landscape.md#mark-burgess--semantic-spacetime) as theoretical constraints
-on place/connectivity separation and context-bound interpretation. They constrain the design; they
-do not require generic adapters, complete source metamodels, or Bigraph/SST implementation.
-
-The release preserves:
-
-```text
-Service identity != System membership != deployment/locality != team ownership != Bounded Context
-```
-
-Membership must not be inferred from connectivity, co-location, repository structure, namespace,
-naming, ownership, or graph proximity. Source mode also remains explicit: Current-State
-cross-boundary answers use only composition/membership accepted for Current-State semantics; Intent
-composition stays on the independent Intent path.
-
-**Out of scope:** a generic enterprise metamodel, capability or organizational model, arbitrary
-hierarchy browser, unrestricted architecture-model import, or business-capability/ownership
-inference.
-
-Exit capability:
-
-> **For a bounded architecture question, AIP can state which established relationships stay within
-> an established boundary, which cross one, and which remain unresolved because the relevant
-> composition evidence is insufficient — with evidence, qualification, context, and limitations
-> preserved.**
-
 ## v1.0 Release-Candidate Phase — Contract Freeze / Production Qualification (planned)
 
 **Goal: Stabilize and production-qualify the architecture-intelligence contracts intended for
 v1.0 without pretending that stabilization introduces a new architecture-question class.**
 
 This phase uses `v1.0.0-rc.N` prereleases. It freezes only semantics and public contracts that have
-survived implementation, deterministic evaluation, and real-system qualification across v0.5-v0.10.
+survived implementation, deterministic evaluation, and real-system qualification across the pre-v1.0 capability releases actually implemented and accepted.
 
 Qualification/freeze scope includes, where actually implemented and accepted:
 
@@ -820,13 +871,14 @@ Qualification/freeze scope includes, where actually implemented and accepted:
 - locality/context semantics and Current-State projection contracts
 - qualified API exposure/consumption identity, source lifecycle, configured-vs-observed usage, and
   observation coverage contracts where accepted from the v0.7 pilot
-- explicit Intent assertion kinds, authority/lifecycle applicability, and versioned projection contracts
-- qualified Current↔Intent assessment contracts
 - cross-boundary projection contracts and the minimal System/Component composition semantics
-  required to support them, where accepted from the v0.10 qualification
+  required to support them, where accepted from the v0.8 qualification
+- explicit Intent assertion kinds, authority/lifecycle applicability, and versioned projection
+  contracts only if retained and qualified after the v0.8 checkpoint
+- qualified Current↔Intent assessment contracts only if retained and qualified after the v0.8 checkpoint
 - derivation-lineage and evidence/provenance requirements, including authority/lifecycle evidence
   references, rule versions, and exact projection binding
-- temporal compatibility and coverage rules for Current↔Intent assessment
+- temporal compatibility and coverage rules for Current↔Intent assessment, where that provisional capability is retained
 - REST and MCP contract stabilization
 - graph-persistence compatibility and migration rules; the internal graph representation is not
   frozen as a public Architecture Knowledge contract
@@ -876,7 +928,7 @@ capability and not a claim that AIP itself verifies implementation correctness.
 The v1.0 production-qualification phase should also test the **shape of scale** for the bounded
 question model. Adding unrelated services, systems, and retained evidence must not force every
 question to reconstruct or fingerprint the entire enterprise landscape at request time. This is a
-performance/operability qualification requirement, not a new architecture-question class. v0.10
+performance/operability qualification requirement, not a new architecture-question class. v0.8
 supplies only the minimal System/Component semantics that survive its own product and semantic
 qualification; v1.0-rc must not broaden them into a generic enterprise model.
 
@@ -888,9 +940,10 @@ v0.3  validation and hardening
   -> v0.5  broader architecture discovery
   -> v0.6  locality-aware Current State
   -> v0.7  API-Aware Current State
-  -> v0.8  explicit architecture Intent
-  -> v0.9  qualified architecture assessment
-  -> v0.10 cross-boundary Architecture Knowledge
+  -> v0.8  cross-boundary Architecture Knowledge + Teamscale/Pitstop product-boundary validation
+  -> checkpoint: decide whether AIP should own Intent and/or Current↔Intent assessment
+  -> v0.9  provisional explicit architecture Intent, only if justified
+  -> v0.10 provisional qualified architecture assessment, only if justified
   -> v1.0-rc  contract freeze and production qualification
   -> v1.0  stable platform
 ```
@@ -911,17 +964,24 @@ ESTABLISH QUALIFIED CURRENT STATE (v0.6+)
    ├──────────────────────────────┐
    │                              │
    ↓                              ↓
-API-AWARE CURRENT STATE (v0.7)   CROSS BOUNDARIES (v0.10)
+API-AWARE CURRENT STATE (v0.7)   CROSS BOUNDARIES (v0.8)
                                   ↑
                          established composition
                          / membership
+                                  ↓
+                     PRODUCT-BOUNDARY CHECKPOINT
+                         ├───────────────┐
+                         │               │
+                         ↓               ↓
+                  external owner   AIP-owned gap proven
+                                      ↓
+                          EXPLICIT INTENT (v0.9, provisional)
+                                      ↓
+                          CURRENT ↔ INTENT ASSESSMENT
+                              (v0.10, provisional)
 
-EXPLICIT INTENT (v0.8)
-   ↓
-ASSESS RELEVANT CURRENT ↔ INTENT (v0.9)
-
-                         ↓
-                       FREEZE
+                                      ↓
+                                    FREEZE
 ```
 
 In product-question terms, the planned release order is:
@@ -930,10 +990,11 @@ In product-question terms, the planned release order is:
 v0.5  WHAT is running WHERE?
 v0.6  WHERE does this architectural relationship hold?
 v0.7  HOW are APIs exposed and consumed, and what does the evidence establish?
-v0.8  WHAT explicit Intent applies here?
-v0.9  HOW does established Current State differ from applicable Intent?
-v0.10 WHICH established relationships cross System or Component boundaries?
-v1.0-rc  FREEZE and qualify the question space already implemented
+v0.8  WHICH established relationships cross System or Component boundaries?
+      + does AIP Current State compose cleanly with an architecture Intent/conformance product?
+v0.9  PROVISIONAL: WHAT explicit Intent applies here, if the v0.8 checkpoint justifies AIP ownership?
+v0.10 PROVISIONAL: HOW does established Current State differ from applicable Intent, if justified?
+v1.0-rc  FREEZE and qualify the question space actually implemented
 ```
 
 For the initial bounded-change wedge, those same capabilities have a task-level interpretation;
@@ -942,9 +1003,10 @@ this is product framing, not additional release scope:
 ```text
 v0.6  Which established relationships and contexts should I inspect before changing this service?
 v0.7  Which evidenced API consumers and exposure paths may matter before changing this API?
-v0.8  What explicit architecture constraints or promises apply to this change?
-v0.9  After the change, where does established Current State align with or differ from applicable Intent?
-v0.10 Before changing this service, which established relationships cross the System or Component boundaries around it?
+v0.8  Before changing this service, which established relationships cross the System or Component boundaries around it?
+      Can a specialized architecture product consume that Current State without AIP owning policy/conformance?
+v0.9  Provisional: what explicit architecture constraints or promises apply, if AIP ownership is justified?
+v0.10 Provisional: where does Current State align with or differ from applicable Intent, if justified?
 ```
 
 These questions expand AIP's safely answerable Architecture Knowledge in release order; the
@@ -982,19 +1044,20 @@ when correctness, interoperability, or evidence semantics require it.
 The semantic dependencies are narrower than the chronological release order:
 
 1. broader evidence must be trustworthy before it is used to establish more Current State;
-2. locality/context semantics must be stable before AIP broadens Current State with API exposure and
-   consumption, and before applicable Intent is compared with Current State;
+2. locality/context semantics must remain explicit as AIP broadens Current State with API exposure,
+   consumption, and cross-boundary projection;
 3. API exposure and consumption are an additional Current-State question: qualified cross-source
    associations and observed use must not imply products, business capabilities, ownership, or Intent;
-4. explicit Intent is an independent knowledge path and does not depend semantically on API-Aware
-   Current State; it must be attributable and qualified for authority, lifecycle, scope, and time;
-5. Current↔Intent assessment must remain read-only and downstream of both independently established
-   projections relevant to the question being assessed;
-6. cross-boundary projection is semantically independent of v0.9 assessment: it is downstream of
-   independently established composition/membership and already-qualified relationships;
-   connectivity must never manufacture System/Component membership, and Intent membership must not
-   be reused as Current-State membership;
-7. only implemented and qualified contracts are frozen for v1.0.
+4. cross-boundary projection is downstream only of independently established composition/membership
+   and already-qualified relationships; connectivity must never manufacture System/Component
+   membership, and external Intent membership must not be reused as Current-State membership;
+5. the v0.8 checkpoint decides product ownership, not Current-State truth: an adjacent tool's static,
+   AI-inferred, policy, or conformance result must not strengthen AIP Current State;
+6. if explicit Intent is retained for AIP, it remains an independent knowledge path qualified for
+   authority, lifecycle, scope, and time;
+7. if Current↔Intent assessment is retained, it remains read-only and downstream of both independently
+   established projections relevant to the question being assessed;
+8. only implemented and qualified contracts are frozen for v1.0.
 
 `v0.3` carried a hard gate: had either real-system dossier shown the Canonical Architecture Model
 needed a fundamental breaking redesign, AIP would not proceed to v0.4 until that redesign was
