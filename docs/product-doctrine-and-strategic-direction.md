@@ -1567,8 +1567,8 @@ only a qualified overlapping portion; if the evidence cannot be separated safely
 remains inconclusive. Extrapolation requires a separately qualified rule and explicit limitations.
 
 Incompatible, stale, or insufficient temporal coverage must produce an inconclusive assessment rather
-than an assertion that a promise is kept or broken. Release-specific specifications must freeze the
-compatibility and coverage rules before qualification fixtures are authored.
+than an assertion that a promise is kept or broken. Dedicated specifications must freeze the compatibility and coverage rules before qualification
+fixtures are authored.
 
 The two temporal dimensions remain independent:
 
@@ -2414,7 +2414,7 @@ That is a future research problem, not a current product commitment.
 
 ---
 
-## 27. Prioritization Framework
+## 26. Prioritization Framework
 
 A capability should not be prioritized merely because it improves the internal model.
 
@@ -2467,7 +2467,7 @@ product-surface expansion.
 
 ---
 
-## 28. Strategic Priority Order
+## 27. Strategic Priority Order
 
 Prefer work in this order:
 
@@ -2487,7 +2487,7 @@ worth owning next.
 
 ---
 
-## 29. Product Decision Filter
+## 28. Product Decision Filter
 
 For every proposed feature, ask:
 
@@ -2511,7 +2511,7 @@ For every proposed feature, ask:
 
 ---
 
-## 30. Strategic Risks
+## 29. Strategic Risks
 
 ### Product broadening before wedge validation
 
@@ -2608,7 +2608,7 @@ foundation.
 
 ---
 
-## 31. Recommended Positioning
+## 30. Recommended Positioning
 
 ### Strategic environment
 
@@ -2704,7 +2704,7 @@ it does not imply that AIP must own Intent or assessment.
 
 ---
 
-## 32. Strategic Conclusion
+## 31. Strategic Conclusion
 
 The strategic hierarchy remains:
 
