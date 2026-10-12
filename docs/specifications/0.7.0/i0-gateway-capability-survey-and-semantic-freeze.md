@@ -318,8 +318,8 @@ I0 SHALL freeze enough source-neutral meaning that I1 and I2 do not invent seman
 
 At minimum the reviewed I0 output SHALL freeze:
 
-1. the distinct concepts required for API Contract, API Contract Version, API Operation, Gateway Service, Gateway Route, Application Service, Gateway Consumer / Consumer Application, Configured Access Relationship and Observed Consumer Interaction;
-2. which of those are candidate canonical entities/relations versus source-only evidence distinctions;
+1. the exact source-neutral names and meanings required for API Contract, API Contract Version, API Operation, Gateway Service, Gateway Route, Application Service, Gateway Consumer / Consumer Application, Configured Access Relationship and Observed Consumer Interaction;
+2. which of those are canonical entities/relations versus source-only evidence distinctions;
 3. which source-native configured-access concept the selected gateway actually establishes;
 4. the selected gateway's stable consumer identity and safe identifier policy;
 5. the selected runtime attribution identity and its mapping to the configured consumer;
@@ -335,12 +335,12 @@ I0 SHALL resolve the parent specification's open decisions only to the depth req
 | Parent decision | I0 obligation |
 |---|---|
 | O1 Selected initial gateway | **Freeze in I0** |
-| O2 Exact source-neutral entity/relation vocabulary | **Freeze semantic distinctions required by I1; exact public naming may remain provisional where I3 owns it** |
+| O2 Exact source-neutral entity/relation vocabulary | **Freeze in I0 for the canonical/source-evidence model used by I1/I2; I3 only owns public wire naming/schema** |
 | O3 Source-specific configured-access mapping | **Freeze in I0 for selected gateway** |
 | O4 Consumer identity and safe stable identifier policy | **Freeze selected-source identity boundary in I0; I2 may refine runtime reconciliation details** |
 | O5 Runtime measurement source, attribution semantics and coverage model | **Freeze selected measurement source/capability and required semantics; I2 freezes implementation/truth-table details** |
-| O6 Route/service ↔ API contract/operation association rules | **Classify available evidence and allowed mapping bases; I2 freezes concrete deterministic reconciliation rules** |
-| O7 Gateway target ↔ application Service association rules | **Classify available evidence and allowed mapping bases; I2 freezes concrete deterministic reconciliation rules** |
+| O6 Route/service ↔ API contract/operation association rules | **Freeze in I0 at the semantic/rule level; I2 implements and qualifies them** |
+| O7 Gateway target ↔ application Service association rules | **Freeze in I0 at the semantic/rule level; I2 implements and qualifies them** |
 | O8 Qualification vocabulary/truth table | Deferred to I2 |
 | O9 Enumeration/truncation | Deferred to I3 |
 | O10 REST/MCP contract | Deferred to I3 |
