@@ -3,6 +3,7 @@
 carriers appear and disappear with the import request's gateway configuration, they have no
 relationships, and Operation ids never change."""
 
+import copy
 from pathlib import Path
 
 import pytest
@@ -17,10 +18,12 @@ from app.sources.model import ApisixSourceConfig, FilesystemSourceConfig
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
 
-# Recorded on the unmodified origin/main (3521d9e, before any I1.2 change) by importing the bundled
-# examples/ directory with the default configuration. A no-gateway graph must keep it exactly.
+# Recorded on the unmodified origin/main (3521d9e, before any I1.2 change), in a checkout at a
+# different path than the one this test is developed in, by importing the bundled examples/
+# directory with the default configuration and normalizing the checkout path out of the state (see
+# `_state`). A no-gateway graph must keep it exactly.
 PRE_V070_EXAMPLES_SNAPSHOT_ID = (
-    "aip:snapshot:v1:7969e93169083d4f9ad5f2d8e4029967371b6fd0bf4f21f5a2e9ef9767322d8e"
+    "aip:snapshot:v1:e90e0868c01f33b7e0c0af4c8d7891c43c0a0479496c50c57a02ba0cb5e200a1"
 )
 CARRIER_LABELS = ("ApiContract", "ApiContractVersion", "ApiContractAssociation")
 
@@ -45,9 +48,19 @@ def _import(driver, *, gateway: bool):
 
 
 def _state(driver) -> dict:
+    """The canonical snapshot state with the checkout path normalized out: a filesystem source's
+    `Evidence.source_file` is the absolute path of the document (`locator=str(candidate)`), so the
+    raw `snapshot_id` of any filesystem graph depends on where the repository is checked out."""
     with driver.session(database=DATABASE) as session:
         ensure_schema(session)
-        return canonical_snapshot_state(session, coverage_qualification_enabled=True)
+        state = copy.deepcopy(
+            canonical_snapshot_state(session, coverage_qualification_enabled=True)
+        )
+    for row in state["evidence"]:
+        source_file = row.get("source_file")
+        if source_file and source_file.startswith(str(EXAMPLES_DIR)):
+            row["source_file"] = Path(source_file).relative_to(EXAMPLES_DIR).as_posix()
+    return state
 
 
 def _count(driver, query: str) -> int:
