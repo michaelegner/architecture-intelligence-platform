@@ -25,7 +25,7 @@ This document freezes exactly what I1 §6 assigns to I1.1. Where the I1 spec or 
 - Source revision = `apisix:<apisix_version>+etcd:<etcd_revision_after>` (I0 acquisition plan §2: etcd header revision plus the APISIX version; vector V13); capture complete only when `etcd_revision_before == etcd_revision_after` (R01) and every `lists_complete` entry is `true` (R02).
 - `admin_surface` MUST be `admin-api-etcd`; `standalone-yaml` is `REJECTED_UNSUPPORTED` (R03). Unknown `schema` is `REJECTED_UNSUPPORTED` (R04). A missing or mistyped required field is `REJECTED_INVALID` / `GW_CAPTURE_INVALID` (R08).
 
-## 3. Identities and canonical entities (vectors V01–V12)
+## 3. Identities and canonical entities (vectors V01–V13; V11 was removed)
 
 All ids use `ld` = 8-byte big-endian UTF-8 byte length + bytes per part and lowercase hex SHA-256.
 
@@ -50,7 +50,7 @@ Fields:
 
 **Contract associations.** `ApiContractAssociation` is a carrier node: `kind = OPERATION_IN_CONTRACT_VERSION` (`operation_id`, `contract_version_id`) or `CONTRACT_VERSION_DECLARED_FOR_SERVICE` (`contract_version_id`, `service_id`), each with `evidence_ids` pointing at the OpenAPI provenance. Association is not equivalence; an `Operation` id is never changed (stop-and-amend).
 
-## 4. `ConfiguredAccess` interpretation (vectors C01–C14)
+## 4. `ConfiguredAccess` interpretation (vectors C01–C15)
 
 A `ConfiguredAccess` is created for `(consumer, route)` iff **all** hold:
 1. the route's own `plugins` contains `consumer-restriction`;
@@ -76,7 +76,7 @@ Everything else yields no access and, where noted, a **limitation record** (`cod
 
 An authentication plugin without a restriction (C12) creates nothing and records nothing. Limitations are source-qualified evidence for I2, never access claims. A `GW_WHITELIST_BLACKLIST_CONFLICT` name is excluded only for that name; other whitelisted names on the route are unaffected (C06).
 
-Evidence: one `Provenance` per source (id `evidence:apisix:<sha256(ld(gateway_instance_id, source_revision))>`, so an APISIX upgrade at an unchanged etcd revision yields a different id (V13); `source_type = "APISIX"`, `evidence_type = DECLARED`, `source_revision`) plus the per-access rule text in the carrier's `evidence_ids`. `APISIX` is not added to the public `SourceType` enum in v0.7 I1 (that enum is part of a frozen public schema; widening it is I3's decision).
+Evidence: one `Provenance` per source (id `evidence:apisix:<sha256(ld(gateway_instance_id, source_revision))>`, so an APISIX upgrade at an unchanged etcd revision yields a different id (V13); `source_type = "APISIX"`, `evidence_type = DECLARED`, `source_revision`). Each `ConfiguredAccess` carrier's `evidence_ids` point at that APISIX provenance record; the rule semantics are carried by `rule_kind`, not by evidence text. `APISIX` is not added to the public `SourceType` enum in v0.7 I1 (that enum is part of a frozen public schema; widening it is I3's decision).
 
 ## 5. Lifecycle
 
@@ -108,7 +108,7 @@ Diagnostic messages never include source values; `subject` strings carry only ro
 
 | I1 §5 case | Vector | Slice that proves it |
 |---|---|---|
-| whitelisted → access; `type` default/unsupported; no auth; dangling; whitelist+blacklist; blacklist/method/scope; auth without restriction; multi | C01–C14 | I1.4 |
+| whitelisted → access; `type` default/unsupported; no auth; dangling; whitelist+blacklist; blacklist/method/scope; auth without restriction; multi; unsupported + supported auth plugin | C01–C15 | I1.4 |
 | same username on two instances; id distinctness | V01–V06 | I1.4 |
 | duplicate instance id; standalone YAML; revision change; incomplete list; unredacted/canary; malformed | R01–R08 | I1.3 (capture side), I1.4 (adapter side) |
 | removal; replay identity; atomic import; discoverer path | lifecycle §5 | I1.4 |
