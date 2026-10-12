@@ -64,6 +64,16 @@ CONSTRAINTS: list[LiteralString] = [
         "CREATE CONSTRAINT infrastructure_claim_contribution_id IF NOT EXISTS "
         "FOR (c:InfrastructureClaimContribution) REQUIRE c.id IS UNIQUE"
     ),
+    # v0.7.0 I1.2 (contract §3): internal API-contract carriers - owned, id-unique, no relationships.
+    "CREATE CONSTRAINT api_contract_id IF NOT EXISTS FOR (c:ApiContract) REQUIRE c.id IS UNIQUE",
+    (
+        "CREATE CONSTRAINT api_contract_version_id IF NOT EXISTS "
+        "FOR (v:ApiContractVersion) REQUIRE v.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT api_contract_association_id IF NOT EXISTS "
+        "FOR (a:ApiContractAssociation) REQUIRE a.id IS UNIQUE"
+    ),
     # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.

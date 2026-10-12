@@ -2,6 +2,11 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+from app.canonical.api_contracts import (
+    ApiContract,
+    ApiContractAssociation,
+    ApiContractVersion,
+)
 from app.canonical.infrastructure import (
     InfrastructureClaim,
     InfrastructureContribution,
@@ -129,3 +134,8 @@ class ArchitectureModel(BaseModel):
     subscription_dead_letter_configurations: list[SubscriptionDeadLetterConfiguration] = Field(
         default_factory=list
     )
+    # v0.7.0 I1.2 (contract §3, §6): internal API-contract carriers; kept by the orchestrator only for
+    # an import request that configures a gateway source.
+    api_contracts: list[ApiContract] = Field(default_factory=list)
+    api_contract_versions: list[ApiContractVersion] = Field(default_factory=list)
+    api_contract_associations: list[ApiContractAssociation] = Field(default_factory=list)

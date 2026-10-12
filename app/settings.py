@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field, SecretStr
 
-from app.sources.model import FilesystemSourceConfig, KubernetesSourceConfig
+from app.sources.model import ApisixSourceConfig, FilesystemSourceConfig, KubernetesSourceConfig
 
 
 class _ConfigModel(BaseModel):
@@ -21,6 +21,9 @@ class SourcesConfig(BaseModel):
     # I2 Draft 0.2 slice 2b-i's second source kind - unlike `directories`, there is no sensible
     # bundled-example default for a Kubernetes cluster registration, so this defaults to empty.
     clusters: list[KubernetesSourceConfig] = Field(default_factory=list)
+    # v0.7.0 I1.1/I1.2: APISIX gateway registrations. Empty by default; a non-empty list enables the
+    # API-contract carriers for the import request (the gateway discoverer itself arrives in I1.4).
+    gateways: list[ApisixSourceConfig] = Field(default_factory=list)
     # I1 spec §5.1.1/§8.1/§9/§9.1's explicit shared-identity/migration mapping mechanism (PR4) - a
     # list, not a single fixed path, since the mechanism is general (any configured source may
     # supply one); the bundled examples/ migration artifact is simply its first real instance.

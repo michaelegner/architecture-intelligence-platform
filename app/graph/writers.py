@@ -9,6 +9,11 @@ Moved verbatim out of `importer.py`.
 
 import neo4j
 
+from app.canonical.api_contracts import (
+    API_CONTRACT_ASSOCIATION_LABEL,
+    API_CONTRACT_LABEL,
+    API_CONTRACT_VERSION_LABEL,
+)
 from app.canonical.model import ArchitectureModel, relation_key
 from app.canonical.pubsub import (
     PUBSUB_DECLARATION_LABEL,
@@ -89,6 +94,7 @@ def write_nodes(
             )
             count += 1
     count += _write_pubsub_carrier_nodes(tx, source_instance_id, model)
+    count += _write_api_contract_carrier_nodes(tx, source_instance_id, model)
     return count + _write_infrastructure_nodes(tx, source_instance_id, model)
 
 
@@ -115,6 +121,31 @@ def _write_pubsub_carrier_nodes(
                 query,  # pyright: ignore[reportArgumentType]
                 id=carrier.id,
                 props=carrier.model_dump(),
+                source_instance_id=source_instance_id,
+            )
+            count += 1
+    return count
+
+
+def _write_api_contract_carrier_nodes(
+    tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
+) -> int:
+    """v0.7.0 I1.2: the internal API-contract carriers (I1.1 contract §3), written with the same
+    MERGE-with-`owner_source_ids` template as every other canonical node. Their labels sit outside
+    `NODE_LABELS` (NL-query allowlist) and they have no relationships to public entities."""
+    count = 0
+    for label, carriers in (
+        (API_CONTRACT_LABEL, model.api_contracts),
+        (API_CONTRACT_VERSION_LABEL, model.api_contract_versions),
+        (API_CONTRACT_ASSOCIATION_LABEL, model.api_contract_associations),
+    ):
+        query = MERGE_NODE_TEMPLATE.format(label=label)
+        for carrier in carriers:
+            # `label` is a module-level constant, never input, so the formatted query is safe.
+            tx.run(
+                query,  # pyright: ignore[reportArgumentType]
+                id=carrier.id,
+                props=carrier.model_dump(exclude={"id"}),
                 source_instance_id=source_instance_id,
             )
             count += 1

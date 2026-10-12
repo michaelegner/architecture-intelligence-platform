@@ -3,6 +3,11 @@ pure canonical-model operation: no I/O, no source-adapter or graph dependency.""
 
 from collections.abc import Sequence
 
+from app.canonical.api_contracts import (
+    ApiContract,
+    ApiContractAssociation,
+    ApiContractVersion,
+)
 from app.canonical.infrastructure import (
     InfrastructureClaim,
     InfrastructureContribution,
@@ -53,6 +58,9 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
     brokers: dict[str, Broker] = {}
     pubsub_declarations: dict[str, PubSubDeclaration] = {}
     dead_letter_configurations: dict[str, SubscriptionDeadLetterConfiguration] = {}
+    api_contracts: dict[str, ApiContract] = {}
+    api_contract_versions: dict[str, ApiContractVersion] = {}
+    api_contract_associations: dict[str, ApiContractAssociation] = {}
 
     for model in models:
         for service in model.services:
@@ -81,6 +89,12 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
             pubsub_declarations.setdefault(declaration.id, declaration)
         for configuration in model.subscription_dead_letter_configurations:
             dead_letter_configurations.setdefault(configuration.id, configuration)
+        for contract in model.api_contracts:
+            api_contracts.setdefault(contract.id, contract)
+        for contract_version in model.api_contract_versions:
+            api_contract_versions.setdefault(contract_version.id, contract_version)
+        for association in model.api_contract_associations:
+            api_contract_associations.setdefault(association.id, association)
         for entity in model.infrastructure_entities:
             infrastructure_entities.setdefault(entity.id, entity)
         for contribution in model.infrastructure_contributions:
@@ -122,4 +136,7 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
         brokers=list(brokers.values()),
         pubsub_declarations=list(pubsub_declarations.values()),
         subscription_dead_letter_configurations=list(dead_letter_configurations.values()),
+        api_contracts=list(api_contracts.values()),
+        api_contract_versions=list(api_contract_versions.values()),
+        api_contract_associations=list(api_contract_associations.values()),
     )

@@ -43,6 +43,10 @@ class SourceKind(StrEnum):
     # declared identity against a configured KubernetesSourceConfig) now exists (slice 2b-i), which
     # is the "unsupported > falsely supported" prerequisite the original reserved-comment here named.
     KUBERNETES = "kubernetes"
+    # v0.7.0 I1.1 contract §1: "source_kind = apisix". The registration exists from I1.2 so the
+    # import request can gate the API-contract carriers on it; the discoverer and adapter arrive in
+    # I1.4.
+    APISIX = "apisix"
 
 
 class FilesystemSourceConfig(BaseModel):
@@ -118,6 +122,27 @@ class KubernetesSourceConfig(BaseModel):
     @property
     def resolved_stable_target_identity(self) -> str:
         return self.stable_target_identity or f"urn:aip:k8s-cluster:{self.cluster_uid}"
+
+
+class ApisixSourceConfig(BaseModel):
+    """v0.7.0 I1.1 contract §1: the configured APISIX gateway source registration. `id` is the
+    configured source id; `gateway_instance_id` is the operator-declared identity anchor for every
+    gateway entity (I0 decision §8). Mirrors `KubernetesSourceConfig`'s defaulting shape."""
+
+    id: str
+    root: Path
+    capture_relative_path: str = "apisix-capture.json"
+    gateway_instance_id: str
+    configured_scope_id: str | None = None
+    stable_target_identity: str | None = None
+
+    @property
+    def resolved_scope_id(self) -> str:
+        return self.configured_scope_id or self.id
+
+    @property
+    def resolved_stable_target_identity(self) -> str:
+        return self.stable_target_identity or f"urn:aip:apisix-gateway:{self.gateway_instance_id}"
 
 
 class IngestionResult(StrEnum):

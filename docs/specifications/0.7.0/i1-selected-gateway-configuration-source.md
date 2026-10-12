@@ -73,7 +73,7 @@ I1 shall implement the smallest configuration-source slice needed by I2:
    - `ApiContract` logical identity is the existing OpenAPI source-instance identity; `ApiContractVersion` identity is that contract identity plus the exact OpenAPI `info.version` string; I1.1 freezes the byte encoding;
    - explicitly associate `Operation` with its contract version and the contract version with the application `Service` declared by that OpenAPI source;
    - existing `Operation` identity remains unchanged; any required change is a stop-and-amend condition;
-   - to avoid changing every existing OpenAPI-only graph, these v0.7 contract entities/associations are emitted only when the discovery run contains an admitted gateway configuration source. A no-gateway run must retain the pre-v0.7 snapshot/fingerprint exactly. I1 shall pin this as a golden regression.
+   - to avoid changing every existing OpenAPI-only graph, these v0.7 contract entities/associations are emitted only when the import request configures a gateway source (each configured source is its own discovery run, so a per-run test cannot hold; amended in I1.2, see the I1.1 contract §6). A no-gateway run must retain the pre-v0.7 snapshot/fingerprint exactly. I1 shall pin this as a golden regression.
 
 ## 4. Source lifecycle
 

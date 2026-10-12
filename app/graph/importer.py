@@ -787,11 +787,17 @@ def import_all_sources(
     migration_mappings: SharedIdentityMappingIndex | None = None,
     tombstones: Sequence[Tombstone] = (),
     expected_prior_inventory_revision: str | None | NotSupplied = NOT_SUPPLIED,
+    api_contract_associations: bool = False,
 ) -> ImportRunStats:
     """Thin compatibility wrapper over `run_filesystem_discovery` + `import_discovery_run` for the
-    filesystem source kind - every existing caller/test keeps working unchanged."""
+    filesystem source kind - every existing caller/test keeps working unchanged.
+    `api_contract_associations` (v0.7.0 I1.2) is True only when the import request configures a
+    gateway source."""
     run_result = run_filesystem_discovery(
-        source_config, migration_mappings=migration_mappings, tombstones=tombstones
+        source_config,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+        api_contract_associations=api_contract_associations,
     )
     return import_discovery_run(
         driver,

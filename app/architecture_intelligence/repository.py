@@ -75,6 +75,21 @@ _SUBSCRIPTION_QUERY = (
     "MATCH (n:Subscription) RETURN n.id AS id, n.name AS name, n.protocol AS protocol, "
     "n.namespace AS namespace"
 )
+# v0.7.0 I1.2 (I1.1 contract §6): internal API-contract carriers, projected only when present so a
+# no-gateway graph keeps its exact pre-v0.7 bytes (same conditional-key rule as the v2 scoped calls).
+_API_CONTRACT_QUERY = (
+    "MATCH (n:ApiContract) RETURN n.id AS id, n.openapi_source_instance_id AS "
+    "openapi_source_instance_id, n.limitations AS limitations"
+)
+_API_CONTRACT_VERSION_QUERY = (
+    "MATCH (n:ApiContractVersion) RETURN n.id AS id, n.contract_id AS contract_id, "
+    "n.info_version AS info_version"
+)
+_API_CONTRACT_ASSOCIATION_QUERY = (
+    "MATCH (n:ApiContractAssociation) RETURN n.id AS id, n.kind AS kind, "
+    "n.contract_version_id AS contract_version_id, n.target_id AS target_id, "
+    "n.evidence_ids AS evidence_ids"
+)
 _BROKER_QUERY = "MATCH (n:Broker) RETURN n.id AS id, n.stable_broker_id AS stable_broker_id"
 _MESSAGE_QUERY = (
     "MATCH (n:Message) RETURN n.id AS id, n.name AS name, n.version AS version, "
@@ -271,6 +286,21 @@ def _project_nodes(session: neo4j.Session, query: LiteralString) -> list[dict]:
     )
 
 
+def _project_api_contracts(session: neo4j.Session) -> dict | None:
+    """The v0.7.0 I1.2 `api_contracts_v1` block, or `None` when the graph has no contract carriers.
+    List-valued properties are sorted so insertion order can never reach the fingerprint."""
+    contracts = _project_nodes(session, _API_CONTRACT_QUERY)
+    versions = _project_nodes(session, _API_CONTRACT_VERSION_QUERY)
+    associations = _project_nodes(session, _API_CONTRACT_ASSOCIATION_QUERY)
+    if not (contracts or versions or associations):
+        return None
+    for contract in contracts:
+        contract["limitations"] = sorted(contract.get("limitations") or [])
+    for association in associations:
+        association["evidence_ids"] = sorted(association.get("evidence_ids") or [])
+    return {"contracts": contracts, "versions": versions, "associations": associations}
+
+
 def _project_relations(session: neo4j.Session) -> list[dict]:
     rows = [_project_row(record) for record in session.run(_RELATION_QUERY)]
     return sorted(rows, key=lambda row: (row["type"], row["source_id"], row["target_id"]))
@@ -433,6 +463,9 @@ def canonical_snapshot_state(
     if scoped_calls:
         state["scoped_observed_calls_v2"] = scoped_calls
         state["scoped_capture_scopes_v2"] = _project_scoped_capture_scopes(session)
+    contracts = _project_api_contracts(session)
+    if contracts:
+        state["api_contracts_v1"] = contracts
     return state
 
 

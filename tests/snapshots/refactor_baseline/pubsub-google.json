@@ -35,6 +35,9 @@
   },
   "inventory_status": "COMPLETE",
   "merged_model": {
+    "api_contract_associations": [],
+    "api_contract_versions": [],
+    "api_contracts": [],
     "brokers": [
       {
         "id": "broker:owned:6543e1d2b53b99fe6698bb17f2a725bb09ef70cf64ee471a333e8a9791434d28",
@@ -425,6 +428,9 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:6543e1d2b53b99fe6698bb17f2a725bb09ef70cf64ee471a333e8a9791434d28",
@@ -568,6 +574,9 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:6543e1d2b53b99fe6698bb17f2a725bb09ef70cf64ee471a333e8a9791434d28",
@@ -759,6 +768,9 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:6543e1d2b53b99fe6698bb17f2a725bb09ef70cf64ee471a333e8a9791434d28",

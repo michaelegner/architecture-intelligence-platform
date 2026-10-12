@@ -92,6 +92,9 @@ def run_all_configured_sources(
 
     import_id = uuid.uuid4().hex
     run_results = []
+    # v0.7.0 I1.2 (I1 §3.6 as amended): each configured source is its own discovery run, so the
+    # API-contract carriers are gated on the request's configuration, not on a run's contents.
+    api_contract_associations = bool(sources.gateways)
     for source_config in sources.directories:
         start = time.perf_counter()
         run_stats = import_all_sources(
@@ -100,6 +103,7 @@ def run_all_configured_sources(
             source_config=source_config,
             migration_mappings=migration_index,
             tombstones=tombstones,
+            api_contract_associations=api_contract_associations,
         )
         duration_ms = int((time.perf_counter() - start) * 1000)
         _log_run(import_id, run_stats, duration_ms)

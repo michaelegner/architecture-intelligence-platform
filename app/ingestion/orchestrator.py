@@ -276,6 +276,8 @@ def _compute_mapping_context_digest(
     binding_index: BindingIndex,
     registry: SourceAdapterRegistry,
     shared_identity_index: SharedIdentityMappingIndex,
+    *,
+    api_contract_associations: bool = False,
 ) -> str:
     """I1 spec §5.3: the context's input is "the complete canonical index of configured and
     manifest Service bindings, shared Schema/Message mappings, Queue/destination and broker/server/
@@ -323,7 +325,23 @@ def _compute_mapping_context_digest(
             ]
         ),
     }
+    # v0.7.0 I1.2: present only when the import request configures a gateway source, so a no-gateway
+    # run keeps its pre-v0.7 digest byte-for-byte. It makes toggling the configuration change every
+    # OpenAPI source's `semantic_input_digest`, so the replay no-op cannot swallow the (dis)appearance
+    # of the contract carriers.
+    if api_contract_associations:
+        context["apiContractAssociations"] = True
     return compute_mapping_context_digest(context)
+
+
+def _without_api_contract_carriers(model: ArchitectureModel) -> ArchitectureModel:
+    return model.model_copy(
+        update={
+            "api_contracts": [],
+            "api_contract_versions": [],
+            "api_contract_associations": [],
+        }
+    )
 
 
 @dataclass(frozen=True)
@@ -362,6 +380,9 @@ _MODEL_ENTITY_FIELDS = (
     "infrastructure_entities",
     "infrastructure_contributions",
     "infrastructure_claims",
+    "api_contracts",
+    "api_contract_versions",
+    "api_contract_associations",
 )
 
 
@@ -723,6 +744,7 @@ def run_discovery(
     registry: SourceAdapterRegistry | None = None,
     migration_mappings: SharedIdentityMappingIndex | None = None,
     tombstones: Sequence[Tombstone] = (),
+    api_contract_associations: bool = False,
 ) -> DiscoveryRunResult:
     """I2 Draft 0.2 §3 prerequisite slice, items 1/3: the source-neutral discovery entry point -
     accepts any configured `SourceDiscoverer`, with no source-kind branch inside this function.
@@ -774,10 +796,26 @@ def run_discovery(
         resolver=_RunServiceIdentityResolver(_binding_index_to_pointer_bindings(binding_index)),
         shared_identity_resolver=_RunSharedIdentityResolver(shared_identity_index),
         mapping_context_digest=_compute_mapping_context_digest(
-            binding_index, registry, shared_identity_index
+            binding_index,
+            registry,
+            shared_identity_index,
+            api_contract_associations=api_contract_associations,
         ),
         run_diagnostics=run_diagnostics,
     )
+    if not api_contract_associations:
+        # v0.7.0 I1.2 (contract §6, amended): the API-contract carriers exist only for an import
+        # request that configures a gateway source; a no-gateway run behaves exactly as before.
+        source_outcomes = {
+            source_instance_id: replace(
+                run_outcome,
+                outcome=replace(
+                    run_outcome.outcome,
+                    model=_without_api_contract_carriers(run_outcome.outcome.model),
+                ),
+            )
+            for source_instance_id, run_outcome in source_outcomes.items()
+        }
     source_models = [outcome.outcome.model for outcome in source_outcomes.values()]
 
     content_conflicts, conflicted_source_instance_ids = _content_conflicts(
@@ -844,6 +882,7 @@ def run_filesystem_discovery(
     registry: SourceAdapterRegistry | None = None,
     migration_mappings: SharedIdentityMappingIndex | None = None,
     tombstones: Sequence[Tombstone] = (),
+    api_contract_associations: bool = False,
 ) -> DiscoveryRunResult:
     """Thin compatibility wrapper over `run_discovery` for the filesystem source kind - every
     existing caller/test keeps working unchanged."""
@@ -852,6 +891,7 @@ def run_filesystem_discovery(
         registry=registry,
         migration_mappings=migration_mappings,
         tombstones=tombstones,
+        api_contract_associations=api_contract_associations,
     )
 
 

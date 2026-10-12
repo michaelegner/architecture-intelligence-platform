@@ -38,6 +38,9 @@
   },
   "inventory_status": "COMPLETE",
   "merged_model": {
+    "api_contract_associations": [],
+    "api_contract_versions": [],
+    "api_contracts": [],
     "brokers": [
       {
         "id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
@@ -574,6 +577,9 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
@@ -801,6 +807,9 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
@@ -861,6 +870,9 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
@@ -999,6 +1011,9 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
@@ -1119,6 +1134,9 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
@@ -1213,6 +1231,9 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:4b02d29899b503d3e935722f71ba61b0fc3e40213140cfbe61011dfa0697a572",
