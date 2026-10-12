@@ -1,6 +1,6 @@
 # AIP v0.7.0 I0 — Gateway Capability Survey and Semantic Freeze
 
-**Status:** Draft 0.1 — for review before I1 implementation  
+**Status:** Proposed I0 specification — for review before I1 implementation  
 **Release / increment:** v0.7.0 / I0, API-Aware Current State  
 **Repository path:** docs/specifications/0.7.0/i0-gateway-capability-survey-and-semantic-freeze.md  
 **Entry baseline inspected:** main at 2ad3a6feeae2b93d581d49224d8bb5d441e1c88d  
