@@ -117,10 +117,14 @@ def test_adapter_builds_one_contract_one_version_and_associations() -> None:
 
 
 def test_absent_empty_or_non_string_version_mints_no_version() -> None:
-    for document in (_doc(with_version=False), _doc(""), _doc(None)):
+    for document in (
+        _doc(with_version=False), _doc(""), _doc(None), _doc(1.0), _doc(2), _doc(True), _doc(["1"])
+    ):  # fmt: skip
         outcome = _map(document)
         model = outcome.model
         assert outcome.result.value == "ACCEPTED"  # the source result is never changed
+        assert outcome.diagnostics == ()
+        assert [s.version for s in outcome.model.services] in ([None], [""])
         assert model.api_contract_versions == []
         assert model.api_contract_associations == []
         [contract] = model.api_contracts
@@ -183,3 +187,19 @@ def test_sources_config_defaults_to_no_gateways_and_accepts_a_registration(tmp_p
     assert gateway.resolved_scope_id == "apisix-prod"
     assert gateway.resolved_stable_target_identity == "urn:aip:apisix-gateway:gw-prod-1"
     assert SourcesConfig(gateways=[gateway]).gateways == [gateway]
+
+
+def test_a_non_string_version_is_accepted_through_a_real_discovery_run(tmp_path) -> None:
+    root = tmp_path / "src"
+    (root / "orders").mkdir(parents=True)
+    (root / "orders" / "openapi.yaml").write_text(yaml.safe_dump(_doc(1.0)))
+    for flag in (False, True):
+        run = run_filesystem_discovery(
+            FilesystemSourceConfig(id="orders", root=root), api_contract_associations=flag
+        )
+        assert run.commit_eligible
+        [outcome] = run.source_outcomes.values()
+        assert outcome.outcome.result.value == "ACCEPTED"
+        assert [s.version for s in run.merged_model.services] == [None]
+        assert len(run.merged_model.api_contracts) == (1 if flag else 0)
+        assert run.merged_model.api_contract_versions == []

@@ -273,14 +273,23 @@ class OpenApiSourceAdapter:
         evidence = declared_evidence(loaded, "OPENAPI")
         relations = stamp_evidence(relations, evidence)
 
+        info_version = info.get("version")
         services = [
-            Service(id=service_id, name=info.get("title", service_id), version=info.get("version"))
+            Service(
+                id=service_id,
+                name=info.get("title", service_id),
+                # `Service.version` is a string; a non-string `info.version` (e.g. the YAML float
+                # 1.0) used to raise here. It is now carried as no version (v0.7.0 I1.1 contract
+                # §3: a non-string version never rejects the source), and the contract carrier
+                # records CONTRACT_VERSION_MISSING_OR_NOT_STRING.
+                version=info_version if isinstance(info_version, str) else None,
+            )
             for service_id in sorted(resolved_service_ids)
         ]
 
         contracts, contract_versions, contract_associations = _api_contract_carriers(
             source_instance_id=source_instance_id,
-            info_version=info.get("version"),
+            info_version=info_version,
             service_ids=sorted(resolved_service_ids),
             operation_ids=[operation.id for operation in operations],
             evidence_id=evidence.id,
