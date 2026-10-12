@@ -117,15 +117,17 @@ Internal canonical names for v0.7; **public wire names and schema are I3 (O10)**
 
 | Parent meaning | Frozen as | Canonical entity/relation or source-only | Note |
 |---|---|---|---|
-| API Contract | the declared Service contract (existing `Service` from OpenAPI) | existing `Service` | no new contract entity |
-| API Contract Version | `Service.version` | existing attribute | no new entity; applicability stays source evidence |
-| API Operation | existing `Operation` | existing | keyed by method + path under its Service |
+| API Contract | `ApiContract` | **new** canonical entity | the declared API description (e.g. an OpenAPI document); its identity is its own and is never the identity of an application `Service` |
+| API Contract Version | `ApiContractVersion` | **new** canonical entity | identified by its `ApiContract` plus the version string; applicability stays source evidence |
+| API Operation | existing `Operation` | existing | keeps its current identity; its owning contract version is an **association** (below) |
 | Gateway Service | `GatewayService` | **new** canonical entity | APISIX Service object; kept distinct from application `Service` |
 | Gateway Route | `GatewayRoute` | **new** canonical entity | APISIX Route; carries `uri`, `methods` as source attributes |
-| Application Service | existing `Service` | existing | never inferred from a gateway object |
+| Application Service | existing `Service` | existing | never inferred from a gateway object or from a contract |
 | Gateway Consumer / Consumer Application | `GatewayConsumer` | **new** canonical entity | identity per §8 |
 | Configured Access Relationship | `ConfiguredAccess` (consumer → route, with source-native rule kind) | **new** relation/claim | allow-list semantics only (§4); polarity and rule kind are fields |
 | Observed Consumer Interaction | `ObservedConsumerInteraction` | **new** observed fact | per §5.2; separate from `ConfiguredAccess` |
+
+**Contract and application Service stay distinct identity domains** (parent §10). Today's OpenAPI ingestion derives a `Service` and its `Operation`s from one document; that does not make the contract the Service. I1 shall represent the declaring source's facts as *explicit associations* — `Operation` belongs to an `ApiContractVersion`; an `ApiContractVersion` is declared for a `Service` — each carrying the OpenAPI evidence that established it. An association is not equivalence, may be absent or conflicting, and never lets a route-to-operation resolution imply that an upstream targets that Service. Relation names and any change to `Operation` id encoding are I1 deliverables; the existing `Operation` id is not altered by I0.
 
 Source-only (not canonical in v0.7): the restriction `type`, `blacklist`, `allowed_by_methods`, credential id, plugin ordering, `labels`. Entities for API Product, Plan, Subscription, owner or authorization rule are **not** introduced (parent §9 admission rule: APISIX does not establish them).
 
@@ -140,8 +142,8 @@ Source-only (not canonical in v0.7): the restriction `type`, `blacklist`, `allow
 
 Frozen at rule level; the reconciliation pipeline is implemented and qualified in I2. Details and classes are in [`i0-identity-reconciliation-dossier.md`](i0-identity-reconciliation-dossier.md).
 
-- **Route ↔ Operation:** `USER_AUTHORED_MAPPING_REQUIRED` unless a deterministic normalization yields exactly one candidate (equal method and path template after a documented base-path rule); zero or several candidates are `UNRESOLVED` or `AMBIGUOUS`. Similarity alone never resolves.
-- **Gateway upstream/target ↔ application Service:** `USER_AUTHORED_MAPPING_REQUIRED`; host, port or name similarity never resolves. An explicit source reference (a route or service `labels` entry naming an AIP Service) is admitted as `EXPLICIT_SOURCE_REFERENCE`; the label key is an I2 decision.
+- **Route ↔ Operation (and, through the operation's contract version association, Route ↔ API Contract/Version):** `USER_AUTHORED_MAPPING_REQUIRED` unless a deterministic normalization yields exactly one candidate (equal method and path template after a documented base-path rule); zero or several candidates are `UNRESOLVED` or `AMBIGUOUS`. Similarity alone never resolves.
+- **Gateway upstream/target ↔ application Service:** independent of the route/contract join above; `USER_AUTHORED_MAPPING_REQUIRED`; host, port or name similarity never resolves. An explicit source reference (a route or service `labels` entry naming an AIP Service) is admitted as `EXPLICIT_SOURCE_REFERENCE`; the label key is an I2 decision.
 - **Consumer ↔ runtime attribution:** `EXPLICIT_SOURCE_REFERENCE` (the `consumer` label is the Consumer `username`), valid only within the same gateway instance and environment context.
 
 ## 10. What this record does not freeze
