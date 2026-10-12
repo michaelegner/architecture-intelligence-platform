@@ -1,0 +1,10 @@
+PUT create:          201
+PUT same username:   200
+POST same username:  405
+PUT credential:      201
+auth ALPHA: 401
+auth ALPHA2: 200
+auth CRED1: 200
+apisix_http_status{code="200",route="orders-route",matched_uri="/orders",matched_host="",service="",consumer="spike-alpha",request_type="traditional_http",request_llm_model="",llm_model="",response_source="upstream"} 2
+apisix_http_status{code="401",route="orders-route",matched_uri="/orders",matched_host="",service="",consumer="",request_type="traditional_http",request_llm_model="",llm_model="",response_source="apisix"} 1
+GET consumer returns plaintext key: 1

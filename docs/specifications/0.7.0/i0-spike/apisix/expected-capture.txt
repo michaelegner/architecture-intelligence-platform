@@ -1,0 +1,4 @@
+apisix_http_status{code="200",route="orders-route",matched_uri="/orders",matched_host="",service="",consumer="spike-alpha",request_type="traditional_http",request_llm_model="",llm_model="",response_source="upstream"} 3
+apisix_http_status{code="200",route="orders-route",matched_uri="/orders",matched_host="",service="",consumer="spike-beta",request_type="traditional_http",request_llm_model="",llm_model="",response_source="upstream"} 1
+apisix_http_status{code="401",route="orders-route",matched_uri="/orders",matched_host="",service="",consumer="",request_type="traditional_http",request_llm_model="",llm_model="",response_source="apisix"} 1
+apisix_http_status{code="403",route="orders-route",matched_uri="/orders",matched_host="",service="",consumer="spike-gamma",request_type="traditional_http",request_llm_model="",llm_model="",response_source="apisix"} 1
