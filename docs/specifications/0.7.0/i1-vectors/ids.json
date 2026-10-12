@@ -1,0 +1,126 @@
+{
+  "encoding": "ld(parts) = for each part: 8-byte big-endian UTF-8 byte length + UTF-8 bytes; digest = lowercase hex SHA-256 (app.common.encoding convention)",
+  "vectors": [
+    {
+      "id": "V01",
+      "formula": "gateway-consumer:owned:<sha256(ld(gateway_instance_id, username))>",
+      "inputs": {
+        "gateway_instance_id": "gw-prod-1",
+        "username": "spike-alpha"
+      },
+      "expected": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5"
+    },
+    {
+      "id": "V02",
+      "formula": "same username, other instance is a distinct id",
+      "inputs": {
+        "gateway_instance_id": "gw-prod-2",
+        "username": "spike-alpha"
+      },
+      "expected": "gateway-consumer:owned:0f705ed8e15909f69234f14c4016dd49448822f7281d21a4df9002ef4d37061c"
+    },
+    {
+      "id": "V03",
+      "formula": "gateway-route:owned:<sha256(ld(gateway_instance_id, route_id))>",
+      "inputs": {
+        "gateway_instance_id": "gw-prod-1",
+        "route_id": "orders-route"
+      },
+      "expected": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c"
+    },
+    {
+      "id": "V04",
+      "formula": "gateway-service:owned:<sha256(ld(gateway_instance_id, service_id))>",
+      "inputs": {
+        "gateway_instance_id": "gw-prod-1",
+        "service_id": "orders"
+      },
+      "expected": "gateway-service:owned:04db17e7a322fde6388bd3b025c69263d4cb19781d02fadda25e33450ff19707"
+    },
+    {
+      "id": "V05",
+      "formula": "a route and a service with the same raw id are distinct ids (kind prefix)",
+      "inputs": {
+        "gateway_instance_id": "gw-prod-1",
+        "route_id": "orders",
+        "service_id": "orders"
+      },
+      "expected": {
+        "route": "gateway-route:owned:04db17e7a322fde6388bd3b025c69263d4cb19781d02fadda25e33450ff19707",
+        "service": "gateway-service:owned:04db17e7a322fde6388bd3b025c69263d4cb19781d02fadda25e33450ff19707"
+      }
+    },
+    {
+      "id": "V06",
+      "formula": "configured-access:owned:<sha256(ld(consumer id, route id, rule kind))>",
+      "inputs": {
+        "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+        "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+        "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST"
+      },
+      "expected": "configured-access:owned:e1740ad29a54e5f8fcd89b54b545df39a65c930fd2eff91fb38c09830571c9eb"
+    },
+    {
+      "id": "V07",
+      "formula": "source instance id: urn:aip:source:apisix:<sha256(ld(configured source id, gateway_instance_id))>",
+      "inputs": {
+        "configured_source_id": "apisix-prod",
+        "gateway_instance_id": "gw-prod-1"
+      },
+      "expected": "urn:aip:source:apisix:83e8bf505d782351b746170a3d9046613c6cfc6a30a5f3abe2f93c444368cd22"
+    },
+    {
+      "id": "V08",
+      "formula": "api-contract:owned:<sha256(ld(OpenAPI SourceInstanceId))>",
+      "inputs": {
+        "openapi_source_instance_id": "urn:aip:source:filesystem:abc123"
+      },
+      "expected": "api-contract:owned:cf9d0ff7ccc352fd5be0ebc38ff2611848b53c4d17a33f8528c5efe90d3b9cde"
+    },
+    {
+      "id": "V09",
+      "formula": "api-contract-version:owned:<sha256(ld(contract id, info.version or empty))>",
+      "inputs": {
+        "contract_id": "api-contract:owned:cf9d0ff7ccc352fd5be0ebc38ff2611848b53c4d17a33f8528c5efe90d3b9cde",
+        "info_version": "1.4.0"
+      },
+      "expected": "api-contract-version:owned:cfb7abd5bed5e090646c8c55ee436e3dc99d0a89509b34e72d060f5b11710900"
+    },
+    {
+      "id": "V10",
+      "formula": "absent info.version participates as the empty string",
+      "inputs": {
+        "contract_id": "api-contract:owned:cf9d0ff7ccc352fd5be0ebc38ff2611848b53c4d17a33f8528c5efe90d3b9cde",
+        "info_version": null
+      },
+      "expected": "api-contract-version:owned:0e9414b7aeb8a33902100c421a5867734795beacefb1a4515c15a71d3a1821c8"
+    },
+    {
+      "id": "V11",
+      "formula": "an empty-string info.version equals the absent form (same id)",
+      "inputs": {
+        "contract_id": "api-contract:owned:cf9d0ff7ccc352fd5be0ebc38ff2611848b53c4d17a33f8528c5efe90d3b9cde",
+        "info_version": ""
+      },
+      "expected": "api-contract-version:owned:0e9414b7aeb8a33902100c421a5867734795beacefb1a4515c15a71d3a1821c8"
+    },
+    {
+      "id": "V12",
+      "formula": "length-delimiting prevents boundary shifts: ('ab','c') != ('a','bc')",
+      "inputs": {
+        "a": [
+          "ab",
+          "c"
+        ],
+        "b": [
+          "a",
+          "bc"
+        ]
+      },
+      "expected": {
+        "a": "601d5476e2ccfe2c87a2bba7a322659734a05749d5b5aa781f513e4912db0d5f",
+        "b": "3fafa1cf2f19a7c1129beb20cf0983f73a489a221fc0dd2f16d1be292d089205"
+      }
+    }
+  ]
+}

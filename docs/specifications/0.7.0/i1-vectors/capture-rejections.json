@@ -1,0 +1,111 @@
+{
+  "base": "configured-access.json#base_capture",
+  "cases": [
+    {
+      "id": "R01",
+      "spec_case": "revision-change",
+      "description": "etcd revision differs before and after the reads",
+      "capture_patch": {
+        "etcd_revision_after": 19
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GW_CAPTURE_INCONSISTENT"
+      }
+    },
+    {
+      "id": "R02",
+      "spec_case": "incomplete-list",
+      "description": "a required list was not read completely",
+      "capture_patch": {
+        "lists_complete": {
+          "routes": false
+        }
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GW_CAPTURE_INCOMPLETE"
+      }
+    },
+    {
+      "id": "R03",
+      "spec_case": "standalone-yaml",
+      "description": "standalone YAML is not an admitted capture surface",
+      "capture_patch": {
+        "admin_surface": "standalone-yaml"
+      },
+      "expected": {
+        "result": "REJECTED_UNSUPPORTED",
+        "code": "GW_CAPTURE_SURFACE_UNSUPPORTED"
+      }
+    },
+    {
+      "id": "R04",
+      "spec_case": "schema-version",
+      "description": "unknown capture schema version",
+      "capture_patch": {
+        "schema": "aip-apisix-capture/2"
+      },
+      "expected": {
+        "result": "REJECTED_UNSUPPORTED",
+        "code": "GW_CAPTURE_SCHEMA_UNSUPPORTED"
+      }
+    },
+    {
+      "id": "R05",
+      "spec_case": "instance-binding",
+      "description": "capture gateway_instance_id differs from the configured registration",
+      "capture_patch": {
+        "gateway_instance_id": "gw-other"
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GW_INSTANCE_MISMATCH"
+      }
+    },
+    {
+      "id": "R06",
+      "spec_case": "duplicate-instance",
+      "description": "two configured sources declare the same gateway_instance_id",
+      "sources": 2,
+      "expected": {
+        "result": "REJECTED_CONFLICT",
+        "code": "GW_DUPLICATE_INSTANCE",
+        "both_sources_rejected": true
+      }
+    },
+    {
+      "id": "R07",
+      "spec_case": "unredacted-secret",
+      "description": "a fixture still carries a credential value field (defense in depth)",
+      "capture_patch": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": [],
+            "key": "CANARY-SECRET-VALUE"
+          }
+        ]
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GW_CAPTURE_UNREDACTED",
+        "diagnostic_must_not_contain": [
+          "CANARY-SECRET-VALUE"
+        ]
+      }
+    },
+    {
+      "id": "R08",
+      "spec_case": "malformed",
+      "description": "missing required top-level field",
+      "capture_patch": {
+        "routes": null
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GW_CAPTURE_INVALID"
+      }
+    }
+  ]
+}
