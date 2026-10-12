@@ -591,104 +591,41 @@ Exit capability:
 
 ## v0.8 — Cross-Boundary Architecture Knowledge + Product-Boundary Validation (planned)
 
-**Goal:** identify which already-qualified architectural relationships cross independently
-established System or Component boundaries.
+**Goal:** classify already-qualified architectural relationships against independently established
+System or Component boundaries.
 
 **Product question:**
 
 > **Which evidence-qualified architectural relationships cross established System or Component
 > boundaries?**
 
-The capability is deliberately **relationship-first, not ontology-first**. System / Component
-semantics are added only as far as needed to classify an already-qualified relationship as
-within-boundary, cross-boundary, or unresolved.
+The core rule is:
 
-```text
-established composition / membership
-        +
-qualified architectural relationship
-        ↓
-qualified cross-boundary projection
-```
+> **A relationship does not establish a boundary. A boundary does not establish a relationship.**
 
-> **A relationship does not establish a boundary. A boundary does not establish a relationship.
-> A cross-boundary claim requires both to be independently established.**
+v0.8 adds only the Current-State composition/membership semantics needed to classify relationships as
+within-boundary, cross-boundary, or unresolved. Membership must not be inferred from connectivity,
+co-location, repository structure, namespace, naming, ownership, or graph proximity. Evidence,
+provenance, context, qualification, and unresolved cases remain explicit. A generic enterprise
+metamodel is out of scope.
 
-Design inputs are [C4/Structurizr](docs/landscape.md#structurizrc4--declared-architecture-models-and-views),
-[FINOS CALM](docs/landscape.md#finos-calm--architecture-as-code-and-semantic-gap-experiments), and
-[EventCatalog](docs/landscape.md#eventcatalog--connected-architecture-catalog-for-humans-and-agents)
-for practical composition evidence, with
-[Bigraphs](docs/landscape.md#robin-milner--bigraphs--bigraphical-reactive-systems) and
-[Semantic Spacetime](docs/landscape.md#mark-burgess--semantic-spacetime) as theoretical constraints
-on place/connectivity separation and context-bound interpretation. They constrain the design; they
-do not require generic adapters, complete source metamodels, or Bigraph/SST implementation.
+### Product-boundary validation
 
-The release preserves:
+A bounded **Pitstop × Teamscale 2026.7.x** PoC will compare Teamscale's deterministic and AI-assisted
+architecture analysis with AIP's evidence-qualified distributed Current State. The purpose is to test
+whether AIP contributes a materially different evidence dimension and whether the two products can
+compose without flattening their semantics. Teamscale is neither an AIP runtime dependency nor an
+authority for AIP Current-State facts.
 
-```text
-Service identity != System membership != deployment/locality != team ownership != Bounded Context
-```
-
-Membership must not be inferred from connectivity, co-location, repository structure, namespace,
-naming, ownership, or graph proximity. Source mode also remains explicit: Current-State
-cross-boundary answers use only composition/membership accepted for Current-State semantics. Intent
-or policy models from external tools must not be used to manufacture Current-State membership or
-relationships; if AIP later owns Intent, it remains a separate semantic path.
-
-**Out of scope:** a generic enterprise metamodel, capability or organizational model, arbitrary
-hierarchy browser, unrestricted architecture-model import, or business-capability/ownership
-inference.
-
-### Pitstop × Teamscale product-validation PoC
-
-v0.8 also includes a bounded product/integration PoC using **Pitstop** and **Teamscale 2026.7.x**.
-The PoC validates the product boundary; it does not make Teamscale a runtime dependency or semantic
-authority for AIP.
-
-The PoC SHALL compare, on pinned and reproducible inputs:
-
-- Teamscale's deterministic source/component dependency analysis;
-- Teamscale's AI-assisted component and architecture modeling, including inferred allow/deny
-  relationships where enabled;
-- AIP's evidence-qualified distributed Current State for the same Pitstop change context, including
-  declared/observed distinctions, provenance, environment/window, unresolved identity, and
-  cross-boundary classification;
-- the available supported integration surfaces (API/export/import) needed to preserve those
-  distinctions without flattening them into one generic dependency graph.
-
-The comparison must preserve the claim source and semantics. A Teamscale static or AI-inferred
-relationship does not become an AIP Current-State fact merely because it is plausible, and an AIP
-cross-boundary relationship does not become an architecture violation without an independently
-established Intent/policy judgment.
-
-The PoC succeeds as product evidence if it can determine, rather than assume, whether AIP contributes
-a materially different evidence dimension to architecture reasoning. A result that shows little or
-no additional value is valid evidence for narrowing or stopping the integration hypothesis.
-
-### Roadmap checkpoint after the PoC
-
-Before starting another pre-v1.0 capability release, v0.8 SHALL record a product-boundary decision
-for **Intent** and **Current↔Intent assessment**:
-
-- if a product such as Teamscale adequately owns architecture Intent and conformance while consuming
-  AIP Current State, keep AIP centered on evidence-qualified distributed Current State and
-  defer/remove the provisional v0.9/v0.10 capabilities or replace them only through a separate
-  roadmap revision;
-- if the PoC demonstrates a concrete Intent gap that AIP must own, define a narrowly scoped v0.9
-  capability from that demonstrated gap;
-- if it also demonstrates a concrete assessment gap that cannot reasonably remain in the integration
-  or conformance layer, justify and define v0.10 separately;
-- do not promote either provisional capability merely to preserve version numbering.
-
-The checkpoint decision and its evidence become an explicit v0.8 release artifact and must be
-reflected in this roadmap before work begins on v0.9.
+The release ends with a roadmap checkpoint on **Intent** and **Current↔Intent assessment**. The
+following releases remain provisional: retain them only if the PoC demonstrates a concrete capability
+that AIP itself should own rather than leave in an architecture-governance or conformance layer.
 
 Exit capability:
 
 > **For a bounded architecture question, AIP can state which established relationships stay within
-> an established boundary, which cross one, and which remain unresolved because the relevant
-> composition evidence is insufficient — with evidence, qualification, context, and limitations
-> preserved.**
+> an established boundary, which cross one, and which remain unresolved because composition evidence
+> is insufficient — with evidence, context, qualification, and limitations preserved.**
 
 ## v0.9 — Explicit Architecture Intent (provisional; checkpoint-dependent)
 
