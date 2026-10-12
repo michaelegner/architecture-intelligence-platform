@@ -636,7 +636,7 @@ Spacetime motivates treating the crossing conclusion as context-bound rather tha
 timeless property of the relationship.
 
 These sources and theories constrain the design; they do not become AIP's Canonical Model and do
-not require generic adapters in v0.10.
+not require generic adapters in v0.8.
 
 Composition evidence retains its semantic mode. A Current-State cross-boundary projection may use
 only membership/composition evidence accepted for Current-State semantics. An authored composition
