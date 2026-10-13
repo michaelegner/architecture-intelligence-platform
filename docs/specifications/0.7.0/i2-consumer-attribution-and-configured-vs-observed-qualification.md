@@ -152,7 +152,12 @@ A delta is usable for window qualification only when:
 
 A series present at only one boundary has no valid delta and yields `USAGE_UNESTABLISHED`; I2 does not silently treat a missing boundary as zero. A decreased counter also yields `USAGE_UNESTABLISHED`.
 
-A configured consumer/Route pair for which **no matching upstream series exists at either boundary** may still become `MEASURED_ZERO`, but only through the separate closed-world coverage rule in §8. This is not the same as manufacturing a zero-valued metric series.
+A configured consumer/Route pair may become `MEASURED_ZERO` only through the closed-world coverage rule in §8 when either:
+
+- no matching upstream series exists at either boundary; or
+- matching upstream series exist at both boundaries and their total valid delta is exactly zero.
+
+This is not the same as manufacturing a zero-valued metric series.
 
 If the window-validity conditions do not hold, the source evidence remains inspectable but runtime usage for that affected window is **unestablished**.
 
@@ -346,7 +351,7 @@ Rules:
 | Configured fact | Runtime evidence | Coverage | Usage status |
 |---|---|---|---|
 | yes/no | matching attributed upstream delta > 0 | valid window | `OBSERVED_USAGE` |
-| yes | no matching upstream series at either boundary | `SUFFICIENT_FOR_ZERO` | `MEASURED_ZERO` |
+| yes | no matching upstream series at either boundary, or matching series with total valid delta = 0 | `SUFFICIENT_FOR_ZERO` | `MEASURED_ZERO` |
 | yes | no matching upstream usage | `UNKNOWN_COVERAGE` | `USAGE_UNESTABLISHED` |
 | yes/no | matching series present at only one boundary, or counter decreased | any | `USAGE_UNESTABLISHED` |
 | no | rejected-attempt evidence only | any | `USAGE_UNESTABLISHED` |
@@ -365,7 +370,7 @@ I2 shall qualify at least the I0 cases:
 | Case | Expected |
 |---|---|
 | P1 configured C->R + attributed upstream delta | configured established; observed usage |
-| P2 configured C->R + no upstream delta + closed-world coverage | configured established; measured zero |
+| P2 configured C->R + no upstream series or zero-delta upstream series + closed-world coverage | configured established; measured zero |
 | N1 configured C->R + no upstream delta + insufficient coverage | configured established; usage unestablished |
 | N2 consumer rejected by APISIX on R | no usage established from the rejected attempt; no access fact invented |
 | N3 unattributed traffic | no consumer usage established |
@@ -435,7 +440,7 @@ Freeze:
 - observation ids/fields;
 - mapping artifact shape;
 - reconciliation outcome names;
-- qualification truth table and independent expected vectors.
+- qualification truth table and independent expected vectors, including a matching upstream series present at both boundaries with valid delta = 0.
 
 No production ingestion required.
 
@@ -478,7 +483,7 @@ I2 is complete when:
 - ambiguous/conflicting/unresolved joins stay explicit;
 - no similarity-only resolution exists;
 - qualification uses the bounded union, not a Cartesian product;
-- P1, P2 and N1-N4 pass against independently authored expected results;
+- P1, P2 and N1-N4 pass against independently authored expected results, including explicit zero-delta-series coverage;
 - rejected and unattributed traffic cannot become usage;
 - zero is emitted only under `SUFFICIENT_FOR_ZERO`, and unresolved/unattributed upstream traffic on the Route prevents zero;
 - snapshot/replay/removal behavior is deterministic;
