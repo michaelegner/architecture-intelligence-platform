@@ -24,11 +24,27 @@ def _settings(*, migrations: list[Path]) -> Settings:
     return Settings(config=config, secrets=Secrets(neo4j_user="neo4j", neo4j_password="test"))
 
 
-def test_no_configured_migrations_runs_with_no_directories_and_no_error():
+@pytest.fixture(autouse=True)
+def _no_gateway_retirement(monkeypatch):
+    """These tests use fake drivers; gateway retirement (a real graph write) is covered by the
+    integration suite and asserted explicitly below."""
+    monkeypatch.setattr("app.graph.import_runs.retire_unconfigured_gateways", lambda *a, **k: ())
+
+
+def test_no_configured_migrations_runs_with_no_directories_and_no_error(monkeypatch):
+    retired_against: list[set[str]] = []
+
+    def fake_retire(driver, *, database, configured_source_instance_ids):
+        retired_against.append(set(configured_source_instance_ids))
+        return ()
+
+    monkeypatch.setattr("app.graph.import_runs.retire_unconfigured_gateways", fake_retire)
     settings = _settings(migrations=[])
     import_id, run_results = _run_all_configured_sources(settings, driver=None)
     assert import_id
     assert run_results == []
+    # dropping the last gateway must still retire its carriers, even with nothing else configured
+    assert retired_against == [set()]
 
 
 def test_a_missing_configured_migration_file_raises_before_touching_the_driver(tmp_path):

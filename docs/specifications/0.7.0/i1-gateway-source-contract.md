@@ -87,7 +87,7 @@ Evidence: one **`GatewaySourceEvidence` carrier** per source (id `evidence:apisi
 - A rejected, inconsistent or incomplete capture commits nothing and expires nothing; the `PARTIAL` run gate is unchanged.
 - No predecessor-revision expectation is introduced in v0.7 I1.
 - Replay of the same fixture produces an identical canonical result and `semantic_input_digest`.
-- Removing a gateway registration removes its carriers through the existing source-removal path; contract carriers (§6) follow the gate in §6 on the next run.
+- Removing a gateway registration removes its carriers: a dropped registration gets no discovery run, so the request-level reconciliation (`retire_unconfigured_gateways`) removes every persisted APISIX source the request no longer configures through the same source-removal transaction (logged, not part of the frozen import report). Kubernetes registrations are unchanged; contract carriers (§6) follow the gate in §6 on the next run.
 
 ## 6. Conditional contract emission and snapshot inclusion (resolved)
 

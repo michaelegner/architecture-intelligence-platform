@@ -15,9 +15,11 @@ from app.graph.importer import (
     import_all_sources,
     import_apisix_source,
     import_kubernetes_source,
+    retire_unconfigured_gateways,
 )
 from app.ingestion.import_report import ConfiguredRun
 from app.settings import SourcesConfig
+from app.sources.identity import apisix_source_instance_id
 from app.sources.migration_mappings import load_migration_mappings
 from app.sources.tombstones import load_tombstones
 
@@ -158,5 +160,26 @@ def run_all_configured_sources(
                 root=gateway_config.root,
                 stats=run_stats,
             )
+        )
+    # v0.7.0 I1.4 (contract §5): a dropped registration gets no run above, so its persisted
+    # carriers are retired here against the request's configured registrations.
+    retired = retire_unconfigured_gateways(
+        driver,
+        database=database,
+        configured_source_instance_ids={
+            apisix_source_instance_id(
+                configured_apisix_source_id=gateway.id,
+                gateway_instance_id=gateway.gateway_instance_id,
+            )
+            for gateway in sources.gateways
+        },
+    )
+    for removal in retired:
+        logger.info(
+            "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
+            import_id,
+            removal.source_instance_id,
+            removal.nodes_expired,
+            removal.relations_expired,
         )
     return import_id, run_results

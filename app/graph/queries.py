@@ -111,6 +111,11 @@ READ_SOURCE_STATES_FOR_SCOPE_QUERY = (
     "s.scope_definition_digest AS scope_definition_digest"
 )
 
+READ_GATEWAY_SOURCE_STATES_QUERY = (
+    "MATCH (s:SourceState) WHERE s.source_instance_id STARTS WITH $prefix "
+    "RETURN s.source_instance_id AS source_instance_id"
+)
+
 DELETE_SOURCE_STATE_QUERY = (
     "MATCH (s:SourceState {source_instance_id: $source_instance_id}) DELETE s"
 )

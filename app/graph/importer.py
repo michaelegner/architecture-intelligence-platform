@@ -17,6 +17,7 @@ from app.graph.queries import (
     OWNED_NODE_IDS_QUERY,
     OWNED_RELATION_KEYS_QUERY,
     READ_CURRENT_INVENTORY_QUERY,
+    READ_GATEWAY_SOURCE_STATES_QUERY,
     READ_SOURCE_STATE_QUERY,
     READ_SOURCE_STATES_FOR_SCOPE_QUERY,
     WRITE_CURRENT_INVENTORY_QUERY,
@@ -35,6 +36,7 @@ from app.ingestion.orchestrator import (
 from app.sources.claim_reconciliation import (
     plan_source_claim_reconciliation,
 )
+from app.sources.identity import GATEWAY_SOURCE_ID_PREFIX
 from app.sources.import_stats import (
     EmittedCounts,
     ImportRunStats,
@@ -878,6 +880,35 @@ def import_kubernetes_source(
             ),
         )
     return stats
+
+
+def _retire_unconfigured_gateways_tx(
+    tx: neo4j.ManagedTransaction, *, configured_source_instance_ids: AbstractSet[str]
+) -> tuple[SourceImportStats, ...]:
+    persisted = sorted(
+        record["source_instance_id"]
+        for record in tx.run(READ_GATEWAY_SOURCE_STATES_QUERY, prefix=GATEWAY_SOURCE_ID_PREFIX)
+    )
+    retired = [sid for sid in persisted if sid not in configured_source_instance_ids]
+    return tuple(
+        _remove_source_tx(tx, source_instance_id=sid, removed_source_ids=frozenset(retired))
+        for sid in retired
+    )
+
+
+def retire_unconfigured_gateways(
+    driver: neo4j.Driver, *, database: str, configured_source_instance_ids: AbstractSet[str]
+) -> tuple[SourceImportStats, ...]:
+    """v0.7.0 I1.4 contract §5: removing a gateway registration removes its carriers. A dropped
+    registration gets no discovery run, so no per-scope removal can fire for it; the request-level
+    configuration is the authority, and every persisted APISIX source it no longer names is removed
+    through the same `_remove_source_tx` path in one transaction."""
+    with open_session(driver, database=database) as session:
+        ensure_schema(session)
+        return session.execute_write(
+            _retire_unconfigured_gateways_tx,
+            configured_source_instance_ids=configured_source_instance_ids,
+        )
 
 
 def import_apisix_source(

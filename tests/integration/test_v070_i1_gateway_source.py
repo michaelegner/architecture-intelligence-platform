@@ -238,3 +238,47 @@ def test_the_request_runs_filesystem_and_gateway_sources_and_the_report_validate
     assert _counts(driver)["GatewayConfiguredAccess"] == 3
     # configuring a gateway also enables the OpenAPI contract carriers (I1.2)
     assert _count(driver, "MATCH (c:ApiContract) RETURN count(c) AS c") > 0
+
+
+def test_dropping_the_gateway_registration_removes_its_carriers_and_the_snapshot_key(
+    driver, tmp_path
+) -> None:
+    examples = FilesystemSourceConfig(id="pin", root=REPO / "examples")
+    gateway = _config(tmp_path, _document("C14"))
+    run_all_configured_sources(
+        SourcesConfig(directories=[examples], gateways=[gateway]), driver=driver, database=DATABASE
+    )
+    assert _counts(driver)["GatewayConfiguredAccess"] == 3
+    assert "gateway_configuration_v1" in _state(driver)
+
+    run_all_configured_sources(
+        SourcesConfig(directories=[examples], gateways=[]), driver=driver, database=DATABASE
+    )
+    assert _counts(driver) == dict.fromkeys(CARRIER_LABELS, 0)
+    assert "gateway_configuration_v1" not in _state(driver)
+    assert _count(driver, "MATCH (c:ApiContract) RETURN count(c) AS c") == 0
+
+
+def test_dropping_one_of_two_gateway_registrations_keeps_the_other(driver, tmp_path) -> None:
+    keep = _config(
+        tmp_path,
+        _document("C14", gateway_instance_id="gw-a"),
+        source_id="apisix-a",
+        instance="gw-a",
+    )
+    drop = _config(
+        tmp_path,
+        _document("C14", gateway_instance_id="gw-b"),
+        source_id="apisix-b",
+        instance="gw-b",
+    )
+    run_all_configured_sources(
+        SourcesConfig(directories=[], gateways=[keep, drop]), driver=driver, database=DATABASE
+    )
+    both = _counts(driver)["GatewayConfiguredAccess"]
+    assert both == 6
+    run_all_configured_sources(
+        SourcesConfig(directories=[], gateways=[keep]), driver=driver, database=DATABASE
+    )
+    assert _counts(driver)["GatewayConfiguredAccess"] == 3
+    assert "gateway_configuration_v1" in _state(driver)

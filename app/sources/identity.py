@@ -202,6 +202,9 @@ def kubernetes_source_instance_id(
     return SourceInstanceId(f"urn:aip:source:kubernetes:{sha256_hex(stable_source_key)}")
 
 
+GATEWAY_SOURCE_ID_PREFIX = "urn:aip:source:apisix:"
+
+
 def apisix_source_instance_id(
     *, configured_apisix_source_id: str, gateway_instance_id: str
 ) -> SourceInstanceId:
@@ -211,7 +214,7 @@ def apisix_source_instance_id(
       = urn:aip:source:apisix:<sha256(ld(configured source id, gateway_instance_id))>
     """
     key = length_delimited(utf8(configured_apisix_source_id), utf8(gateway_instance_id))
-    return SourceInstanceId(f"urn:aip:source:apisix:{sha256_hex(key)}")
+    return SourceInstanceId(f"{GATEWAY_SOURCE_ID_PREFIX}{sha256_hex(key)}")
 
 
 def kubernetes_logical_resource_id(
