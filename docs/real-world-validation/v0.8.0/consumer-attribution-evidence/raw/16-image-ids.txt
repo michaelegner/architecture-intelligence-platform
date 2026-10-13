@@ -1,0 +1,6 @@
+/ecommerce-kafka image=sha256:fbbb6fa11b258a88b83f54d4f0bddfcffbf2279f99d66a843486e3da7bdfbf41 (confluentinc/cp-kafka:7.5.0)
+/ecommerce-zookeeper image=sha256:02f6c042bb9a7844382fc4cedc513a44585d8a5acae873fb9e510e3ca9dcabc6 (confluentinc/cp-zookeeper:7.5.0)
+/ecommerce-postgres image=sha256:47af0b65960b14f1c6945aa4ccae37836c632e9a6fe0eea9160936e616e5b2e9 (pgvector/pgvector:pg15)
+/ecommerce-redis image=sha256:8b81dd37ff027bec4e516d41acfbe9fe2460070dc6d4a4570a2ac5b9d59df065 (redis:7-alpine)
+/ecommerce-payment-service image=sha256:b1273e190aa5993b6eb167baf2d4b755fff6056313591f822da022a0507de842 (hungcs-r6-payment-service)
+/ecommerce-order-service image=sha256:b2d170b07b67da58e0024f95e7124705d78c42e74e619b3c872a6c67770718e7 (hungcs-r6-order-service)

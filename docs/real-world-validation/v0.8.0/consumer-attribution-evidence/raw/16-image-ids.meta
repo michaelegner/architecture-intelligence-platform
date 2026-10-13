@@ -1,0 +1,3 @@
+2026-10-13T21:48:47Z
+docker inspect -f {{.Name}} image={{.Image}} ({{.Config.Image}}) ecommerce-kafka ecommerce-zookeeper ecommerce-postgres ecommerce-redis ecommerce-payment-service ecommerce-order-service
+exit 0

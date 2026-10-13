@@ -1,6 +1,6 @@
 # AIP — Consumer Attribution Evidence-Capture Check
 
-**Status:** Planned  
+**Status:** Completed — SUPPORTED EVIDENCE PATH; see [consumer-attribution-evidence/README.md](consumer-attribution-evidence/README.md)  
 **Input:** Round 5 result and synthesis  
 **Purpose:** Close the remaining evidence gap before deciding whether broker-mediated consumer attribution justifies a bounded semantic completion.
 

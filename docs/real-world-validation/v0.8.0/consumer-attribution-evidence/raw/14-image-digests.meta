@@ -1,0 +1,3 @@
+2026-10-13T21:48:38Z
+docker images --digests --format {{.Repository}}:{{.Tag}} {{.Digest}} {{.ID}} confluentinc/cp-kafka confluentinc/cp-zookeeper pgvector/pgvector redis
+exit 1

@@ -1,0 +1,8 @@
+
+GROUP           TOPIC              PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                   HOST            CLIENT-ID
+order-service   payments.failed    0          -               0               -               consumer-order-service-2-84f33b49-e7a0-471d-a095-b4d911334880 /172.19.0.6     consumer-order-service-2
+order-service   payments.failed    1          -               0               -               consumer-order-service-2-84f33b49-e7a0-471d-a095-b4d911334880 /172.19.0.6     consumer-order-service-2
+order-service   payments.failed    2          -               0               -               consumer-order-service-2-84f33b49-e7a0-471d-a095-b4d911334880 /172.19.0.6     consumer-order-service-2
+order-service   payments.completed 0          -               0               -               consumer-order-service-1-0faa9d68-9639-4197-99b6-e8ab2d52c06f /172.19.0.6     consumer-order-service-1
+order-service   payments.completed 1          -               0               -               consumer-order-service-1-0faa9d68-9639-4197-99b6-e8ab2d52c06f /172.19.0.6     consumer-order-service-1
+order-service   payments.completed 2          -               0               -               consumer-order-service-1-0faa9d68-9639-4197-99b6-e8ab2d52c06f /172.19.0.6     consumer-order-service-1
