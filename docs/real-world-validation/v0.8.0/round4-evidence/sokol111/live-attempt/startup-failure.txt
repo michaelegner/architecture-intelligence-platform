@@ -1,0 +1,3 @@
+catalog-service: tenant.Lifecycle is nil: ensure multi-tenancy is enabled to handle tenant events
+product-query-service: tenant.Lifecycle is nil: ensure multi-tenancy is enabled to handle tenant events
+image-service: tenant.Lifecycle is nil: ensure multi-tenancy is enabled to handle tenant events

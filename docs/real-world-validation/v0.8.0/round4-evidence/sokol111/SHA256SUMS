@@ -1,0 +1,8 @@
+97ab11311554a3903f34badc715feb6de80fa009ba5f67f3a108638ea1232c8e  ./aip_probe.py
+28868fea79a4bdda16c81a6bfd33dec2131b0e34d0458d8c554dc1d4daa8a457  ./aip_probe_output.txt
+1d9f7e18a152258e4404f41848144ad83d573851f50076274f0156eb870c88ca  ./live-attempt/cfg/catalog-service.yaml
+65cf9f4a7a0f05bd3a49dcd0a851e728995fbb87bdb1517e5c6f4c45a745545a  ./live-attempt/cfg/image-service.yaml
+30657a0bb264ddf1f9bd778cbd8b847f1e4d42c915fa8775ecd28e4e4faab604  ./live-attempt/cfg/product-query-service.yaml
+ae7bda987c30df1f62df95d679be793dbf089d0380c655ad758e377a1b53638e  ./live-attempt/otel.yaml
+d8a45bb1c5c4b98de8587e98f6e5e6554b08ffbb7486cb3bdb8187f63702c1f3  ./live-attempt/run-svc.sh
+47cc11cac33514e8d0c833e22dfeaef36bf9c1610565fb1db65ffcc5bd91fea3  ./live-attempt/startup-failure.txt

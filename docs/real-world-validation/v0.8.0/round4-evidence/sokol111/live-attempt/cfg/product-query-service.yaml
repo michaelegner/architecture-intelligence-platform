@@ -1,0 +1,16 @@
+logger: {level: "info", development: false}
+server: {port: 8082}
+mongo: {host: "localhost", database: "product-query", direct-connection: true}
+multi-tenancy: {enabled: false}
+kafka:
+  brokers: "localhost:9092"
+  consumers-config:
+    default-group-id: "ecommerce-product-query-service"
+    default-auto-offset-reset: "earliest"
+    consumers:
+      - {name: "catalog-events", topic: "catalog.product.events"}
+      - {name: "catalog-attribute-events", topic: "catalog.attribute.events"}
+      - {name: "tenant-events", topic: "tenant.tenant.events"}
+tenant:
+  grpc:
+    address: "localhost:18080"
