@@ -73,5 +73,6 @@ From the AIP repository:
 examples/pitstop-demo/run.sh --down
 ```
 
-For provenance, expected answers, hosted/live modes and troubleshooting, see the full
-[Pitstop demo README](README.md) and the [walkthrough](walkthrough.md).
+For the hosted path, see [Try the Pitstop demo hosted](TRY_IT_HOSTED.md). For expected answers,
+provenance and live-mode details, see the [Pitstop demo README](README.md) and the
+[walkthrough](walkthrough.md).
