@@ -6,23 +6,23 @@
 
 ## Outcome
 
-1. **One broker semantic gap recurs and is product-relevant: consumer attribution.** Six independent
-   systems (Kafka: Sokol111, koupang, hungCS22hcmiu; RabbitMQ: sminerport, eShop, daonhan) have a
-   Service-owned consumer endpoint (Kafka group, RabbitMQ queue) that source establishes and AIP
-   cannot attribute from evidence.
+1. **One recurring product question: consumer attribution.** Six independent systems (Kafka:
+   Sokol111, koupang, hungCS22hcmiu; RabbitMQ: sminerport, eShop, daonhan) expose the same
+   consumer-attribution need in source/config. Current AIP has no demonstrated evidence path for
+   qualifying that runtime attachment in these cases. Round 5 established the question, **not** the
+   canonical abstraction: consumer groups, queues and Service Bus subscriptions are deliberately
+   different, and no common concept is assumed.
 2. **It is a candidate, not yet a justified release scope.** The promotion rule's condition 2
-   (independent evidence demonstrably establishes it) is plausible but unproven: no candidate
+   (independent evidence demonstrably establishes it) is plausible but unproven, and condition 5 (a source-independent canonical abstraction) is open: no candidate
    emits consumer identity on spans, and broker-held state was not captured in this round.
 3. **Not promoted:** headers-exchange predicates (one system; broker-specific detail), fanout
    binding keys (irrelevant), framework-generated names (undecidable), attribute-key mismatches
    (ingestion gap in 5 of 6 systems; no semantics involved).
-4. **SUPPORTED control exists:** daonhan's Azure Service Bus mode is the shape AIP already handles.
+4. **Semantic control:** daonhan's Azure Service Bus Topic/Subscription shape fits existing AIP semantics; runtime qualification was not evaluated in Round 5.
 
 ## Proposed smallest scope (if condition 2 is met)
 
-> For destination D in environment E, which Services own an attached consumer endpoint, and is that
-> attachment declared, observed, or both, without equating a consumer group or queue with a Topic
-> Subscription?
+> For destination D in environment E, which Services can available evidence safely attribute as consumers, through what broker-native evidence, and with what qualification?
 
 Unsupported by design: general broker topology, routing predicates, lag/offsets/rebalancing,
 framework-generated names, DLQ/retry topology.
@@ -42,8 +42,8 @@ runnability and fairness check that Round 5 did not perform:
 
 1. **hungCS22hcmiu/ecommerce-system** (Kafka, Compose, strong Claude Code baseline, broker group state
    already scripted) or **koupang** for Kafka attribution.
-2. **daonhan/Microservices-in-.NET** as a cross-broker qualifier: one codebase with a SUPPORTED
-   Service Bus mode and an unsupported RabbitMQ mode, plus agent docs.
+2. **daonhan/Microservices-in-.NET** as a cross-broker qualifier: one codebase with a Service Bus
+   mode whose shape fits existing semantics and an unsupported RabbitMQ mode, plus agent docs.
 3. **dotnet/eShop** as the recognisable RabbitMQ qualifier (high public-demo value; also exercises the
    destination-identity guard).
 

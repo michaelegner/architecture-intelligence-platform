@@ -70,11 +70,11 @@ Frozen revisions (default branch HEAD, read with `git rev-parse HEAD` at clone t
 | Source-known relationship | Explicit in `shared-libs/ECommerce.Shared.RabbitMq/Impl/RabbitMqHostedService.cs`, `…AzureServiceBus/Impl/AzureServiceBusHostedService.cs` (`CreateProcessor(topic, subscriptionName)`), plus `AGENTS.md`/`CLAUDE.md`/ADRs |
 | Independent evidence | RabbitMQ spans: `messaging.system=rabbitmq`, `messaging.operation.name=publish|receive`, `messaging.destination.name=<event name>`; no `messaging.operation.type`. Service Bus mode relies on the Azure SDK's own instrumentation (not inspected) |
 | AIP probe | As emitted: ignored. With `operation.type` added and a declared Topic named after the event: producer `PUBLISHES_TO` Topic is OBSERVED; consumer stays `unresolved_destination_semantics` (no Subscription identity on the span). The fanout shape itself matches the supported Pitstop topology (declared Topic + named Subscription overlays) |
-| Missing AIP distinction | Service Bus mode: none (**SUPPORTED** shape). RabbitMQ mode: consumer attribution from the queue the consumer owns; the binding key is irrelevant on fanout |
-| Classification | ASB mode **SUPPORTED**; RabbitMQ mode **INGESTION_GAP** (operation key) + **SEMANTIC_GAP** (consumer attribution at runtime); binding key **BROKER_SPECIFIC_DETAIL** |
+| Missing AIP distinction | Service Bus mode: none for the declared Topic/Subscription shape (runtime qualification not evaluated; Azure SDK instrumentation not inspected). RabbitMQ mode: consumer attribution from the queue the consumer owns; the binding key is irrelevant on fanout |
+| Classification | ASB mode **SUPPORTED** (shape only; runtime qualification not evaluated); RabbitMQ mode **INGESTION_GAP** (operation key) + **SEMANTIC_GAP** (consumer attribution at runtime); binding key **BROKER_SPECIFIC_DETAIL** |
 | Recurs Round 4 finding? | Kafka-style consumer attribution (queue instead of group); routing predicate: no |
 | Product relevance | High for the consumer-set question; the provider switch shows the same question has different identity per broker |
-| Follow-up | Candidate qualifier (has a SUPPORTED control and an unsupported sibling in one codebase) |
+| Follow-up | Candidate qualifier (has a semantic control (ASB shape fits existing semantics) and an unsupported sibling in one codebase) |
 
 ### mehdihadeli/food-delivery-microservices (RabbitMQ via Wolverine)
 

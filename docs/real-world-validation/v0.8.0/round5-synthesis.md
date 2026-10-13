@@ -7,7 +7,7 @@
 
 | Finding | Systems (independent) | Count |
 |---|---|---|
-| **Consumer endpoint ↔ Service ↔ destination** is known from source/config (Kafka consumer group, RabbitMQ per-service queue) but AIP cannot attribute the consumer from evidence | Kafka: Sokol111, koupang, hungCS22hcmiu. RabbitMQ: sminerport, eShop, daonhan | 6 |
+| **Consumer endpoint ↔ Service ↔ destination** is known from source/config (Kafka consumer group, RabbitMQ per-service queue); AIP has no demonstrated evidence path for qualifying that runtime attachment | Kafka: Sokol111, koupang, hungCS22hcmiu. RabbitMQ: sminerport, eShop, daonhan | 6 |
 | Operation/destination attribute keys used by hand-written instrumentation are not the ones AIP reads (`messaging.destination`, `messaging.operation`, `messaging.operation.name`) | Sokol111, eShop, daonhan; koupang/hungCS emit none | 3 + 2 |
 | Destination identity differs from consumer endpoint: exchange + routing key vs per-service queue | eShop (direct), daonhan (fanout), sminerport (headers) | 3 |
 | Routing predicate decides who receives (headers `x-match`) | sminerport only | 1 |
@@ -22,7 +22,7 @@
 | Destination identity (routing key vs queue) | **SEMANTIC_GAP**, weak evidence | eShop labels a routing key `destination_kind=queue`; AIP then records both sides on one observed-only Queue named after the event. That is an instrumentation mislabel, but it shows the model has no way to say "this name is a routing key, not the consumer's queue". One strong system, others compatible |
 | Headers-exchange predicate | **BROKER_SPECIFIC_DETAIL** | Only one system; consumer set is already answerable if the consumer endpoint is attributed; the predicate affects *whether a message arrives*, not *which service owns the endpoint* |
 | Fanout binding key (daonhan) | **BROKER_SPECIFIC_DETAIL** | Ignored by the broker; irrelevant to the question |
-| Service Bus topic + subscription (daonhan ASB mode) | **SUPPORTED** | Matches AIP's Subscription semantics; useful as a control |
+| Service Bus topic + subscription (daonhan ASB mode) | **SUPPORTED** (shape only) | The Topic/Subscription shape fits existing AIP semantics. Runtime qualification was **not evaluated** in Round 5 (Azure SDK instrumentation not inspected), so it is a semantic control, not a demonstrated end-to-end case |
 | Framework-generated names (food-delivery) | **INSUFFICIENT_EVIDENCE** | Not decidable without running or reading Wolverine |
 
 ## 3. Section 8 questions
@@ -43,9 +43,9 @@
 | 2. Independent evidence can establish it | Plausible, **not demonstrated**: broker state exists and is queried by repository scripts (hungCS), but nothing was captured or ingested in Round 5. This is the open point |
 | 3. Current AIP cannot represent without inventing/collapsing meaning | Met: group ≠ Subscription by design; the eShop probe shows what collapsing looks like |
 | 4. More than one independent system | Met: three Kafka + three RabbitMQ systems |
-| 5. Smallest extension source-independent at canonical level | Met in principle: a Service-owned *consumer endpoint* identified by broker-native identity and attached to a destination; adapters stay broker-specific |
+| 5. Smallest extension source-independent at canonical level | **Plausible / open, not met.** Round 5 established the recurring question, not the canonical abstraction. Kafka consumer groups, RabbitMQ queues and Service Bus subscriptions have deliberately different semantics; a common "consumer endpoint" concept is one hypothesis and must not be assumed |
 
-Result: **consumer attribution is a candidate for product work, conditional on condition 2.**
+Result: **consumer attribution is a candidate for product work, conditional on conditions 2 and 5.** The recurring *question* is demonstrated; the source-independent *abstraction* is not.
 Nothing else survives the rule: routing predicates (1 system), framework-generated identity
 (undecidable) and the attribute-key mismatch (ingestion) are not promoted.
 
@@ -53,7 +53,7 @@ Nothing else survives the rule: routing predicates (1 system), framework-generat
 
 The architecture question that must become answerable:
 
-> **For destination D in environment E, which Services own an attached consumer endpoint, and is that attachment declared, observed, or both, without equating a Kafka consumer group or RabbitMQ queue with a Topic Subscription?**
+> **For destination D in environment E, which Services can available evidence safely attribute as consumers, through what broker-native evidence, and with what qualification?**
 
 Explicitly out of scope: broker topology modelling in general, header/routing-predicate semantics,
 rebalancing/lag/offsets, framework-generated names, DLQ/retry topology.
@@ -64,7 +64,7 @@ Round 5 supports a *candidate*, not a decision. One gap in the evidence must be 
 it is cheap: capture the broker-held consumer state for one Kafka reserve (hungCS or koupang from
 their own Compose files; `kafka-consumer-groups --describe` is already in hungCS's scripts) and,
 if possible, RabbitMQ bindings/consumers for eShop or daonhan, then confirm the evidence names the
-consumer endpoint and a Service-mapping source (config) exists. If that evidence cannot be
+consumer identity and a Service-mapping source (config) exists, and record what each broker's evidence actually looks like before choosing any common abstraction. If that evidence cannot be
 captured or cannot be mapped to a Service, record "no semantic-completion scope justified".
 
 ## 7. Observation outside Round 5 scope
