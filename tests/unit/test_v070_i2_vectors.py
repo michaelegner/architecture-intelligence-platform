@@ -408,6 +408,19 @@ def test_id_vectors_match_the_frozen_formulas() -> None:
         )
     assert m["M09"]["expected"] != m["M06"]["expected"]
     assert len({m[k]["expected"] for k in ("M06", "M07", "M08")}) == 3
+    s = m["M10"]["inputs"]
+    assert m["M10"]["expected"] == "measurement-series:owned:" + _h(s["window_id"], s["series_key"])
+    assert s["window_id"] == m["M04"]["expected"]
+    li = m["M11"]["inputs"]
+    assert m["M11"]["expected"] == "measurement-limitation:owned:" + _h(
+        li["window_id"], li["code"], li["route"], li["response_source"]
+    )
+    for key in ("M12", "M13"):
+        e = m[key]["inputs"]
+        assert m[key]["expected"] == "measurement-mapping:owned:" + _h(
+            e["gateway_instance_id"], e["environment"], e["kind"], e["source_id"], e["target_id"]
+        )
+    assert m["M12"]["expected"] != m["M13"]["expected"]
     # the I1 identities this contract builds on
     gw = w["gateway_instance_id"]
     assert m["M06"]["inputs"]["consumer_id"] == "gateway-consumer:owned:" + _h(gw, "spike-alpha")

@@ -428,7 +428,15 @@ def _entries(document: Mapping[str, Any], key: str, fields: frozenset[str]) -> l
 
 def parse_mapping(raw: bytes, *, gateway_instance_id: str) -> MappingArtifact:
     """Contract §5. Duplicate or disagreeing entries are not rejected: they are reconciliation inputs."""
-    document = _load_object(raw, "GWM_MAPPING_INVALID", limit=MAX_MAPPING_BYTES)
+    return mapping_from_document(
+        _load_object(raw, "GWM_MAPPING_INVALID", limit=MAX_MAPPING_BYTES),
+        gateway_instance_id=gateway_instance_id,
+    )
+
+
+def mapping_from_document(
+    document: Mapping[str, Any], *, gateway_instance_id: str
+) -> MappingArtifact:
     if document.get("schema") != MAPPING_SCHEMA:
         raise MeasurementRejection("GWM_SCHEMA_UNSUPPORTED")
     if document.get("gateway_instance_id") != gateway_instance_id:

@@ -15,6 +15,13 @@ from app.canonical.gateway import (
     GatewayService,
     GatewaySourceEvidence,
 )
+from app.canonical.gateway_measurement import (
+    MeasurementEvidence,
+    MeasurementLimitation,
+    MeasurementMappingEntry,
+    MeasurementSeries,
+    MeasurementWindow,
+)
 from app.canonical.infrastructure import (
     InfrastructureClaim,
     InfrastructureContribution,
@@ -154,3 +161,9 @@ class ArchitectureModel(BaseModel):
     gateway_configured_accesses: list[GatewayConfiguredAccess] = Field(default_factory=list)
     gateway_limitations: list[GatewayLimitation] = Field(default_factory=list)
     gateway_source_evidence: list[GatewaySourceEvidence] = Field(default_factory=list)
+    # v0.7.0 I2.2b (I2.1 contract §4-§5): internal APISIX measurement carriers (no public exposure).
+    measurement_windows: list[MeasurementWindow] = Field(default_factory=list)
+    measurement_evidence: list[MeasurementEvidence] = Field(default_factory=list)
+    measurement_series: list[MeasurementSeries] = Field(default_factory=list)
+    measurement_limitations: list[MeasurementLimitation] = Field(default_factory=list)
+    measurement_mapping_entries: list[MeasurementMappingEntry] = Field(default_factory=list)

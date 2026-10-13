@@ -93,9 +93,11 @@ All ids use `ld` and lowercase hex SHA-256. Consumer and Route ids are the froze
 
 | Carrier | Id | Notes |
 |---|---|---|
-| Measurement window | `measurement-window:owned:<sha256(ld(gateway_instance_id, environment, window_start, window_end, start_sha256, end_sha256))>` (M04) | fields: those inputs, `apisix_version`, window reasons, per-Route coverage |
+| Measurement window | `measurement-window:owned:<sha256(ld(gateway_instance_id, environment, window_start, window_end, start_sha256, end_sha256))>` (M04) | fields: those inputs, `apisix_version`, the settled / no-restart / stable-seconds fields, `disabled_labels`, per-Route coverage as canonical JSON, the sorted window reasons (empty = valid) |
 | Measurement evidence | `evidence:apisix-measurement:<same inputs as the window>` (M05) | `evidence_type = OBSERVED`; an internal carrier, **not** a public `:Evidence` node (same reasoning as I1's `GatewaySourceEvidence`) |
-| Source-series carrier | not stored per se: I2 §6 fields `gateway_instance_id, environment, window_start, window_end, route, consumer, code, response_source, request_count_delta` plus the evidence id | one per series with a `DELTA`; other statuses are recorded as limitations |
+| `MeasurementSeries` (*refined in I2.2b; replaces the unstored “source-series carrier”*) | `measurement-series:owned:<sha256(ld(window id, series key))>` (M10); the series key is the full label string between the braces | one per series present at either boundary, whatever its status, so the consumer/route pairs of the §7 row universe survive (*amended in I2.2b after the review of #526*): the I2 §6 fields (`gateway_instance_id, environment, window_start, window_end, route, consumer, code, response_source`), `status` (§3, or `WINDOW_INVALID` for every series of a window with a reason), `request_count_delta` (only for `DELTA` / `DELTA_FIRST_IN_WINDOW`, else null), every label as canonical JSON, the evidence id |
+| `MeasurementLimitation` (*I2.2b*) | `measurement-limitation:owned:<sha256(ld(window id, code, route, response_source))>` (M11) | one per `(code, route, response_source)` for series without a usable delta in a valid window (`GWM_SERIES_ONE_BOUNDARY`, `GWM_COUNTER_DECREASED`), for the route-wide coverage downgrade (§7); holds a route id, never a count or value. None are stored for an invalid window (its reasons are on the window carrier) |
+| `MeasurementMappingEntry` (*I2.2b*) | `measurement-mapping:owned:<sha256(ld(gateway_instance_id, environment, kind, source id, target id))>` (M12, M13) | one per mapping-artifact entry (`route_operation`, `target_service_route`, `target_service_service`); an exact repeat collapses, a disagreement stays as two entries for I2.3 |
 | `ObservedConsumerInteraction` | `observed-consumer-interaction:owned:<sha256(ld(consumer id, route id, environment, window_start, window_end))>` (M06–M08) | fields: ids, `upstream_request_count`, `rejected_attempt_count`, `evidence_ids`; no cross-window identity (M07) |
 | Qualification row | `usage-qualification:owned:<sha256(ld(consumer id, route id, environment, window_start, window_end))>` (M09) | the domain prefix keeps it distinct from the interaction id over the same inputs |
 
@@ -154,6 +156,8 @@ A row never changes the configured-access status from runtime evidence, and reje
 | `GWM_DUPLICATE_SOURCE` | `REJECTED_CONFLICT` |
 | window reasons and row limitation codes (§3, §7) | informational: one `GWM_MEASUREMENT_LIMITATIONS` diagnostic with a count, no values; the source is `ACCEPTED_WITH_LIMITATIONS` when any exists |
 
+*I2.2b reading (the contract was silent):* an absent required file is rejected with that file's own code - manifest `GWM_MANIFEST_INVALID`, either extract `GWM_EXTRACT_INVALID` - before any content check; a required file that resolves outside the registered root counts as absent; the mapping artifact is optional. File-size bounds are checked before any file is parsed (`GWM_LIMIT_EXCEEDED`). The source's `content_sha256` is the length-delimited digest of the manifest, both extracts and the mapping bytes (empty when absent).
+
 Messages never include extract or manifest values beyond ids, Route ids and consumer usernames already in the inventory. How these appear in the import report is an I2.2 decision (it must amend `aip-import-report/1` additively, as I1.4 did).
 
 ## 9. Case-to-test map (I2 §9.3, §13)
@@ -195,3 +199,4 @@ These are readings the I2 spec leaves open; they are frozen here only if this PR
 7. Explicit Route→Operation statements are not cross-checked against the fallback (§6).
 8. Version compatibility is exactly `3.19.0`, the inspected release, not the whole `3.19.*` line (§3; review of #522).
 9. A series first created inside a valid, covered window whose start boundary was recorded stable for at least 20 s is read as starting at 0 (§3, amended in I2.2a; evidence-binding added after the review of #525). The recorded duration is the capture tool's attestation, not something replay can re-derive.
+10. Missing-file codes (§8) and the refined measurement carriers (§4, M10–M13) are I2.2b readings of a contract that was silent on them.

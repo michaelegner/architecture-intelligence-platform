@@ -27,6 +27,8 @@ from app.common.jcs import CanonicalIntegerDomainError, sort_entries_by_canonica
 from app.ingestion.adapter_outcomes import rejected_for_integer_domain
 from app.ingestion.apisix_adapter import ApisixSourceAdapter
 from app.ingestion.apisix_discoverer import ApisixSourceDiscoverer
+from app.ingestion.apisix_measurement_adapter import ApisixMeasurementSourceAdapter
+from app.ingestion.apisix_measurement_discoverer import ApisixMeasurementSourceDiscoverer
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
@@ -60,6 +62,7 @@ from app.sources.migration_mappings import (
 )
 from app.sources.model import (
     NOT_SUPPLIED,
+    ApisixMeasurementSourceConfig,
     ApisixSourceConfig,
     DiagnosticCode,
     DiscoveryScopeId,
@@ -96,6 +99,7 @@ _DEFAULT_ADAPTERS = (
     ManifestSourceAdapter(),
     KubernetesSourceAdapter(),
     ApisixSourceAdapter(),
+    ApisixMeasurementSourceAdapter(),
 )
 
 
@@ -393,6 +397,11 @@ _MODEL_ENTITY_FIELDS = (
     "gateway_configured_accesses",
     "gateway_limitations",
     "gateway_source_evidence",
+    "measurement_windows",
+    "measurement_evidence",
+    "measurement_series",
+    "measurement_limitations",
+    "measurement_mapping_entries",
 )
 
 
@@ -935,6 +944,28 @@ def run_apisix_discovery(
     another registration declares the same `gateway_instance_id` (I1.1 contract §1)."""
     return run_discovery(
         ApisixSourceDiscoverer(config, duplicate_gateway_instance=duplicate_gateway_instance),
+        registry=registry,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+    )
+
+
+def run_apisix_measurement_discovery(
+    config: ApisixMeasurementSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_measurement_source: bool = False,
+) -> DiscoveryRunResult:
+    """Thin wrapper over `run_discovery` for the APISIX measurement source kind (v0.7.0 I2.2b),
+    mirroring `run_apisix_discovery`. `duplicate_measurement_source` is set by the import request
+    when another registration declares the same `(gateway_instance_id, environment)` (I2.1 contract
+    §1)."""
+    return run_discovery(
+        ApisixMeasurementSourceDiscoverer(
+            config, duplicate_measurement_source=duplicate_measurement_source
+        ),
         registry=registry,
         migration_mappings=migration_mappings,
         tombstones=tombstones,

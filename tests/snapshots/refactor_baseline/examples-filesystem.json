@@ -6,6 +6,7 @@
   "inventory_snapshot": {
     "adapter_identities": [
       "apisix-adapter@1",
+      "apisix-measurement-adapter@1",
       "asyncapi-adapter@1",
       "kubernetes-adapter@1",
       "manifest-adapter@1",
@@ -27,6 +28,7 @@
     "inventory_event_id": null,
     "inventory_revision": "<scrubbed>",
     "mapping_rule_identities": [
+      "1",
       "1",
       "1",
       "v1",
@@ -58,6 +60,11 @@
     "infrastructure_claims": [],
     "infrastructure_contributions": [],
     "infrastructure_entities": [],
+    "measurement_evidence": [],
+    "measurement_limitations": [],
+    "measurement_mapping_entries": [],
+    "measurement_series": [],
+    "measurement_windows": [],
     "messages": [
       {
         "contract_digest": "0aef1a75d9a3362bacc3c45728c9575eb1f58e94d7c4984af42ed858aa973659",
@@ -603,6 +610,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "0aef1a75d9a3362bacc3c45728c9575eb1f58e94d7c4984af42ed858aa973659",
@@ -795,7 +807,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "04c0340429213b02966f74b816f02a80830a29154b56dff1f347e153ee494268"
+        "semantic_input_digest": "fc1d46c3830bbafc72891575c2010c77a552ffdb15040968acb00ae1c32f9248"
       }
     },
     "urn:aip:source:filesystem:5ce532518b49a66ac861423e9349cf12fd70d3ce513fdd1c787af9e7d8920a54": {
@@ -834,6 +846,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [],
           "operations": [],
           "provenance": [
@@ -864,7 +881,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "e6061bc6657747a099cf726378b5068644ff73a326358dfb567873bf2b5ed88d"
+        "semantic_input_digest": "28d68304fba6153b0e3fd4576f19c1f24dfcb4884b09d460b6431f39ba64be08"
       }
     },
     "urn:aip:source:filesystem:7f055a6aea1cdd580b66c8e0000308daa6fc513f8d9b62c9842470d88fcbcb56": {
@@ -903,6 +920,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [],
           "operations": [
             {
@@ -1011,7 +1033,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "8c3271b4b8412225b6254e3b31179c20ff42951cebd6425cb930128e6eed2810"
+        "semantic_input_digest": "ede6ecdbff2fcec02524d6c331a6fb8e6cb348f0244aa9b11d3ac730bcaa146c"
       }
     },
     "urn:aip:source:filesystem:833e2828fe1aab512d1943c48acb72d7b94bee00925e01a60e8c26e04a6ec189": {
@@ -1055,6 +1077,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "1323493bb8f953cd6f686d7495894c1e4594b13e52fe84d0f6190b63d7b39039",
@@ -1140,7 +1167,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "66cacfcf7bfcc78b57601d57b932109d19b2929d02b36a1f76a26aab1a9c8757"
+        "semantic_input_digest": "0511b743cdf1baab003e1057f0175e2a25dca0c26da6c703e2ee36c74449caa2"
       }
     },
     "urn:aip:source:filesystem:bc68d5827d7bed2c4ec37eb12c23fa0319e78cccdfd6e9efd163d4b1329159e5": {
@@ -1179,6 +1206,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [],
           "operations": [
             {
@@ -1243,7 +1275,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "d613700fd87c41a83b8594e0bbd1d80fbecaff7e7d9354b81c0d8d6e588109b5"
+        "semantic_input_digest": "83d0e44cfc6f58ce9fc20cd99cae86f80cde119ed1f3076a53af5928517455f4"
       }
     },
     "urn:aip:source:filesystem:bde49ebe4fc19f12fea1549011bb94c1e526e8a514e898a95b71429bdbbc0732": {
@@ -1287,6 +1319,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "0aef1a75d9a3362bacc3c45728c9575eb1f58e94d7c4984af42ed858aa973659",
@@ -1418,7 +1455,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "c465d22580f90c4c328c7132a174b251b95fc065ece6574f31589f3772b2aacc"
+        "semantic_input_digest": "62eaadcdc216960cce6954195e2818016cfa91158e603de24e4f636cf1248fd3"
       }
     }
   }

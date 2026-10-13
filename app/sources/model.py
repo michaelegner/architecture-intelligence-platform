@@ -47,6 +47,8 @@ class SourceKind(StrEnum):
     # import request can gate the API-contract carriers on it; the discoverer and adapter arrive in
     # I1.4.
     APISIX = "apisix"
+    # v0.7.0 I2.1 contract §1: the APISIX Prometheus measurement source (one observation window).
+    APISIX_MEASUREMENT = "apisix-measurement"
 
 
 class FilesystemSourceConfig(BaseModel):
@@ -143,6 +145,31 @@ class ApisixSourceConfig(BaseModel):
     @property
     def resolved_stable_target_identity(self) -> str:
         return self.stable_target_identity or f"urn:aip:apisix-gateway:{self.gateway_instance_id}"
+
+
+class ApisixMeasurementSourceConfig(BaseModel):
+    """v0.7.0 I2.1 contract §1: the configured APISIX measurement source registration. One
+    registration is one observation window; at most one per `(gateway_instance_id, environment)`.
+    `gateway_instance_id` and `environment` are the operator-declared values the APISIX configuration
+    source uses - the only link between the two sources. The fixture file names are fixed (§2)."""
+
+    id: str
+    root: Path
+    gateway_instance_id: str
+    environment: str
+    configured_scope_id: str | None = None
+    stable_target_identity: str | None = None
+
+    @property
+    def resolved_scope_id(self) -> str:
+        return self.configured_scope_id or self.id
+
+    @property
+    def resolved_stable_target_identity(self) -> str:
+        return (
+            self.stable_target_identity
+            or f"urn:aip:apisix-measurement:{self.gateway_instance_id}:{self.environment}"
+        )
 
 
 class IngestionResult(StrEnum):
@@ -273,6 +300,17 @@ class DiagnosticCode(StrEnum):
     GW_CAPTURE_LIMIT_EXCEEDED = "GW_CAPTURE_LIMIT_EXCEEDED"
     GW_DUPLICATE_INSTANCE = "GW_DUPLICATE_INSTANCE"
     GW_CONFIGURATION_LIMITATIONS = "GW_CONFIGURATION_LIMITATIONS"
+    # v0.7.0 I2.1 contract §8 / I2.2b: the APISIX measurement source's per-source outcomes. Messages
+    # are fixed text, never a source value.
+    GWM_MANIFEST_INVALID = "GWM_MANIFEST_INVALID"
+    GWM_BINDING_MISMATCH = "GWM_BINDING_MISMATCH"
+    GWM_EXTRACT_INVALID = "GWM_EXTRACT_INVALID"
+    GWM_INSTANCE_MISMATCH = "GWM_INSTANCE_MISMATCH"
+    GWM_MAPPING_INVALID = "GWM_MAPPING_INVALID"
+    GWM_SCHEMA_UNSUPPORTED = "GWM_SCHEMA_UNSUPPORTED"
+    GWM_LIMIT_EXCEEDED = "GWM_LIMIT_EXCEEDED"
+    GWM_DUPLICATE_SOURCE = "GWM_DUPLICATE_SOURCE"
+    GWM_MEASUREMENT_LIMITATIONS = "GWM_MEASUREMENT_LIMITATIONS"
     # I2 Draft 0.2 §10's own named code ("Omit object; ACCEPTED_WITH_LIMITATIONS"), for §5: "Other
     # controller kinds and API versions require an amendment; unsupported objects are omitted with
     # pointer diagnostics and ACCEPTED_WITH_LIMITATIONS" (slice 3a).
