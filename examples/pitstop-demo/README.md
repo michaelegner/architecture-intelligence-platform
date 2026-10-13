@@ -7,41 +7,13 @@ A ready-to-run local replay of an authored OpenTelemetry window over
 to, how far can the evidence resolve that topology, and what must I still inspect?"* with real AIP
 answers over MCP and REST. It does not start Pitstop.
 
-**[Try it locally with a coding agent →](TRY_IT_LOCALLY.md)**
+## Try it locally
 
-This is the **local, reproducible** mode: it replays a frozen fixture so the demo works immediately and
-offline. `run.sh --live` is the continuously running variant (see [Live mode](#live-mode)); the hosted instance is operated by the demo owner.
+For the focused, self-contained local setup — including Claude Code, the AIP skill, optional mod,
+the main task and follow-up questions — see **[Try the Pitstop demo locally](TRY_IT_LOCALLY.md)**.
 
-## Run
-
-Needs Docker with Compose v2 and `curl`. No LLM key, .NET, RabbitMQ or SQL Server is needed. The first
-run builds the AIP image. Ports 8000 and 4318 must be free, so stop the
-[Quarkus demo](../quarkus-super-heroes-demo/README.md) and the [minimal demo](../runtime-demo/README.md)
-first.
-
-```bash
-examples/pitstop-demo/run.sh
-```
-
-The script starts AIP, Neo4j and an OpenTelemetry Collector, then:
-
-1. imports the nine operator-authored AsyncAPI overlays (see [PROVENANCE.md](PROVENANCE.md)). The import is
-   all or nothing: one invalid document rejects the whole set and the script stops;
-2. replays an authored, timestamp-frozen OpenTelemetry window (`pitstop-demo`, the whole UTC day
-   `2026-10-06`) once, then stops the Collector, so nothing can ingest afterwards;
-3. checks the real `WorkshopManagementAPI` answer against the expected topology and stops if it differs;
-4. prints the MCP URL and a ready-to-copy agent prompt, also saved in `.aip-pitstop-demo/prompt.txt` at the
-   repository root.
-
-## Connect your agent
-
-```bash
-claude mcp add --transport http --scope local aip http://localhost:8000/mcp
-```
-
-For Codex CLI, Cursor or VS Code, see [`../mcp-clients/`](../mcp-clients/README.md). Then paste the prompt
-from `.aip-pitstop-demo/prompt.txt`. It already contains the environment and the observation window, which
-AIP needs to answer.
+The local mode is reproducible and works from a frozen fixture; `run.sh --live` is the continuously
+running variant described under [Live mode](#live-mode).
 
 ## Getting started for testers (hosted instance)
 
