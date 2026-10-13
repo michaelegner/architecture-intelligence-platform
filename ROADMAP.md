@@ -317,17 +317,16 @@ qualification in I2, not I1.
 Every source maps through the shared Canonical Model. Placement is retained as source/context
 evidence only; v0.5 exposes no locality-qualified claim or projection.
 
-```text
-non-observation != absence
-source disappearance != authorized source removal
-unresolved identity > guessed identity
-explicitly unsupported > incorrectly represented as supported
-Queue != Topic
-Topic != Subscription
-Service != Kubernetes Service != Workload != Pod
-co-location != dependency
-observed behavior != intent
-```
+The release preserves these distinctions:
+
+- Non-observation is not absence.
+- Source disappearance is not authorized source removal.
+- An unresolved identity is preferable to a guessed identity.
+- Explicitly unsupported semantics are preferable to incorrectly representing them as supported.
+- A Queue is distinct from a Topic, and a Topic is distinct from a Subscription.
+- A Service, Kubernetes Service, Workload, and Pod are distinct identities.
+- Co-location does not establish a dependency.
+- Observed behavior does not establish Intent.
 
 Exit capability:
 
@@ -387,17 +386,8 @@ Region, tenant, service-version locality and messaging locality are **deferred/u
 candidates**. They are not allocated to v0.7 or v0.8 by this release. The product pilot remains
 `NOT_RUN`, with its product-value gate carried into v1.0-rc stable-contract admission.
 
-Conceptually:
-
-```text
-Current-State Evidence
-        ↓
-Qualified Local Evidence Assessment
-        ↓
-Deterministic Current-State Projection
-        ↓
-Evidence-Qualified Current State
-```
+Conceptually, AIP evaluates Current-State evidence into qualified local evidence assessments and
+then uses deterministic Current-State projection to produce evidence-qualified Current State.
 
 Key requirements:
 
