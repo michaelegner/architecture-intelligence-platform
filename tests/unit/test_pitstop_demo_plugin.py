@@ -242,7 +242,9 @@ def test_tryout_guides_document_local_and_hosted_agent_setup():
 
     # both public tryout paths document the marketplace plugin and the pinned Pitstop source
     for guide in (local, hosted):
-        assert "claude plugin marketplace add michaelegner/architecture-intelligence-platform" in guide
+        assert (
+            "claude plugin marketplace add michaelegner/architecture-intelligence-platform" in guide
+        )
         assert "claude plugin install aip@aip-plugins" in guide
         assert "git clone https://github.com/EdwinVW/pitstop.git" in guide
         assert "git checkout 306b5fbd0febceb6b0d0706f152a0520ca1a993a" in guide
