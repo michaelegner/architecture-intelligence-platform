@@ -77,21 +77,10 @@ Typical examples include:
 - environment-specific relationships that do not exist in every deployment;
 - deployment/runtime relationships that source analysis cannot establish safely.
 
-The initial workflow is therefore:
-
-~~~text
-bounded change request
-        ↓
-question about distributed impact
-        ↓
-dAIP bounded projection
-        ↓
-agent knows which autonomous boundaries require inspection
-        ↓
-source/repository analysis inside each relevant component
-        ↓
-normal engineering verification
-~~~
+For a bounded change, the agent should first ask the relevant distributed-impact question. dAIP
+returns a bounded projection that identifies which autonomous boundaries require inspection. The
+agent then uses repository/source analysis inside each relevant component and continues with the
+normal engineering verification workflow.
 
 AIP does not own coding-agent planning, implementation, testing, deployment, or review. It supplies
 qualified distributed-architecture premises to those workflows.
@@ -112,20 +101,13 @@ promise, or assessment.
 
 AIP may reason about distributed relationships such as:
 
-~~~text
-REST / HTTP
-gRPC
-events
-queues / topics / streams
-brokers
-gateways
-service discovery
-deployment/runtime routing
-environment-specific dependencies
-cross-repository interactions
-cross-component interactions
-cross-team interactions where team identity is independently established
-~~~
+- REST/HTTP and gRPC interactions;
+- events, queues, topics, streams, and broker-mediated relationships;
+- gateway and service-discovery relationships;
+- deployment and runtime routing;
+- environment-specific dependencies;
+- cross-repository and cross-component interactions; and
+- cross-team interactions where team identity is independently established.
 
 It may also reason about externally visible promises and assessments of those promises when their
 ownership has been validated as an AIP product responsibility.
@@ -134,22 +116,13 @@ ownership has been validated as an AIP product responsibility.
 
 AIP should not become the primary tool for:
 
-~~~text
-classes / packages / modules
-internal layering
-internal source dependencies
-internal aggregate or domain-model structure
-repository-local architecture conformance
-generic code quality
-generic enterprise architecture modeling
-capability maps
-organization charts
-generic policy authoring
-agent orchestration
-workflow automation
-approval systems
-deployment orchestration
-~~~
+- classes, packages, modules, and internal layering;
+- internal source dependencies or aggregate/domain-model structure;
+- repository-local architecture conformance or generic code quality;
+- generic enterprise architecture modeling, capability maps, or organization charts;
+- generic policy authoring, approval systems, or workflow automation;
+- agent orchestration; or
+- deployment orchestration.
 
 Strong source and repository architecture tools already address many of these concerns. AIP should
 compose with them rather than duplicate them.
@@ -173,15 +146,9 @@ evidence or attributable intent appropriate to the claim.
 
 ## 4. Three Local Semantic Views
 
-dAIP's long-term semantic frame has three distinct local views:
-
-~~~text
-Current State
-Intent
-Assessment
-~~~
-
-They may be projected together for a question, but none is allowed to manufacture the others.
+dAIP's long-term semantic frame has three distinct local views: **Current State**, **Intent**, and
+**Assessment**. They may be projected together for a question, but none is allowed to manufacture
+the others.
 
 ### 4.1 Current State is locally observed
 
@@ -195,15 +162,13 @@ telemetry remains observed evidence; deployment/configuration evidence retains i
 
 Current-State evidence may include, where supported:
 
-~~~text
-runtime observations
-deployment/topology evidence
-broker configuration
-gateway/routing configuration
-declared API or messaging contracts
-implementation-derived evidence
-explicit identity/reconciliation mappings
-~~~
+- runtime observations;
+- deployment and topology evidence;
+- broker configuration;
+- gateway and routing configuration;
+- declared API or messaging contracts;
+- implementation-derived evidence; and
+- explicit identity/reconciliation mappings.
 
 Every supported conclusion remains bound to the locality, environment, observation window, version,
 snapshot, and evidence semantics that justify it.
@@ -212,21 +177,8 @@ The current-state rule is:
 
 > **An observed or configured dependency must never be promoted into a promise.**
 
-And:
-
-~~~text
-observed dependency
-    ≠
-provider promise
-
-client dependency
-    ≠
-provider obligation
-
-API exists
-    ≠
-approved integration contract
-~~~
+An observed dependency is not a provider promise. A client dependency is not a provider obligation.
+The existence of an API is not evidence of an approved integration contract.
 
 AIP should prefer unresolved or partial answers over stronger claims that the evidence does not
 support.
@@ -241,29 +193,19 @@ The relevant Intent is:
 
 Examples include externally attributable promises about:
 
-~~~text
-an API or event contract provided
-a capability offered
-a capability accepted or consumed
-a supported compatibility relationship
-a required or prohibited external relationship
-scope / conditions / effective interval
-~~~
+- an API or event contract that a component provides;
+- a capability that it offers;
+- a capability that it accepts or consumes;
+- a supported compatibility relationship;
+- a required or prohibited external relationship; and
+- the scope, conditions, or effective interval of those promises.
 
 Internal layering rules, package rules, class dependencies, repository-local architectural style, and
 similar internal intent are outside AIP's product center.
 
-A provider's promise and a consumer's promise remain separate:
-
-~~~text
-Provider:
-  "I provide contract X under conditions Y."
-
-Consumer:
-  "I consume/use contract X."
-~~~
-
-One does not manufacture the other.
+A provider may promise, for example, to provide contract X under conditions Y. A consumer may
+separately promise to consume or use contract X. These are distinct promises; one does not
+manufacture the other.
 
 The governing rules are:
 
@@ -288,19 +230,10 @@ Assessment answers:
 Assessment is not a universal compliance judgment. It is made for an explicit locality, time,
 evidence set, promise set, and assessment rule.
 
-For example:
-
-~~~text
-Current State:
-  WorkshopManagementAPI publishes on distributed path P
-
-Intent:
-  WorkshopManagementAPI explicitly promises external contract X
-
-Assessment:
-  evidence in context C supports / contradicts / cannot establish
-  the relevant relationship between X and observed cooperation
-~~~
+For example, Current State may establish that `WorkshopManagementAPI` publishes on distributed
+path P. An independently attributable Intent may state that `WorkshopManagementAPI` promises
+external contract X. A local Assessment can then state whether the evidence in context C supports,
+contradicts, or cannot establish the relevant relationship between X and the observed cooperation.
 
 A local assessment remains attributable to its inputs and scope. Projecting several local assessments
 into one answer does not turn them into universal truth.
@@ -319,15 +252,9 @@ to the question.
 
 AIP does not need a universal enterprise model before it can answer useful questions.
 
-The preferred model is:
-
-~~~text
-local evidence-qualified views
-        ↓
-specific distributed-architecture question
-        ↓
-bounded projection
-~~~
+The preferred model starts with local evidence-qualified views, applies a specific
+distributed-architecture question, and produces only the bounded projection needed to answer that
+question.
 
 Examples:
 
@@ -346,39 +273,12 @@ The governing invariant is:
 > **Projection may combine local views, but it must not erase their locality, authority, provenance,
 > qualification, or uncertainty.**
 
-A projection must not silently strengthen:
+A projection must not silently strengthen a claim that something was **observed here** into a claim
+that it is **true everywhere**. Likewise, evidence that a **consumer uses X** must not be transformed
+into a claim that the **provider promised X**.
 
-~~~text
-"observed here"
-~~~
-
-into:
-
-~~~text
-"true everywhere"
-~~~
-
-or:
-
-~~~text
-"consumer uses X"
-~~~
-
-into:
-
-~~~text
-"provider promised X"
-~~~
-
-The product concept **Moldable Architecture Knowledge** is retained in this narrower sense:
-
-~~~text
-same local knowledge
-        ↓
-different question
-        ↓
-different bounded projection
-~~~
+The product concept **Moldable Architecture Knowledge** is retained in this narrower sense: the same
+local knowledge may support different bounded projections when different questions are asked.
 
 Consumers may mold the question, selection, projection, composition, and representation. They may not
 mold the underlying evidence, qualification, provenance, or claim meaning.
@@ -400,16 +300,14 @@ It is the ability to say what a particular body of evidence actually supports.
 
 Core capabilities include:
 
-~~~text
-evidence applicability
-identity reconciliation
-relationship qualification
-conflict-aware reconciliation
-provenance and derivation lineage
-locality / time / observation context
-bounded uncertainty
-question-specific deterministic projection
-~~~
+- evidence applicability;
+- identity reconciliation;
+- relationship qualification;
+- conflict-aware reconciliation;
+- provenance and derivation lineage;
+- locality, time, and observation context;
+- bounded uncertainty; and
+- question-specific deterministic projection.
 
 The existing implementation concept **Qualified Local Evidence Assessment** remains compatible with
 this doctrine: it is one deterministic semantic unit for saying what current-state evidence supports
@@ -448,16 +346,14 @@ OpenTelemetry, Kubernetes, OpenAPI, AsyncAPI, a gateway, or a repository.
 
 For every public conclusion AIP should preserve enough information to inspect:
 
-~~~text
-claim meaning
-evidence references
-identity/reconciliation decisions
-context / locality / time
-qualification rule
-projection rule where relevant
-snapshot/version identity
-limitations
-~~~
+- the claim meaning;
+- evidence references;
+- identity/reconciliation decisions;
+- context, locality, and time;
+- the qualification rule;
+- the projection rule where relevant;
+- snapshot/version identity; and
+- limitations.
 
 Deterministic replay is valuable because agents and humans should be able to reason from the same
 architectural premises.
@@ -470,25 +366,22 @@ architectural premises.
 
 Repository analysis is strongest at answering questions such as:
 
-~~~text
-What code depends on this code?
-Which packages/classes/modules interact?
-Which internal architecture rule is violated?
-Which field is read here?
-~~~
+- What code depends on this code?
+- Which packages, classes, or modules interact?
+- Which internal architecture rule is violated?
+- Which field is read here?
 
 AIP should not compete with that.
 
-AIP is strongest where the distributed relation is not reducible to a source dependency:
+AIP is strongest where the distributed relation is not reducible to a source dependency, for
+example:
 
-~~~text
-service A → gateway → service B
-publisher → broker/topic/queue → consumer
-service identity selected by environment/configuration
-runtime-only dependency
-cross-repository consumer
-cross-component deployment relationship
-~~~
+- a service reaching another service through a gateway;
+- a publisher and consumer connected through a broker, topic, or queue;
+- a service identity selected by environment-specific configuration;
+- a runtime-only dependency;
+- a cross-repository consumer; or
+- a cross-component deployment relationship.
 
 The product split is:
 
@@ -555,14 +448,12 @@ This is more important than adding another source adapter or semantic abstractio
 
 ### What to compare
 
-A useful evaluation compares:
+A useful evaluation compares four conditions:
 
-~~~text
-baseline repository/source analysis
-strong architecture-analysis tool
-AIP distributed evidence
-combined workflow
-~~~
+- baseline repository/source analysis;
+- a strong architecture-analysis tool;
+- AIP distributed evidence; and
+- the combined workflow.
 
 For enterprise-scale source-analysis comparisons, do not artificially hide repositories from the
 baseline. If a tool can analyze multiple repositories in one project, let it do so.
@@ -572,20 +463,18 @@ source dependencies.
 
 ### What to measure
 
-Measure the resulting change plan and investigation boundary:
+Measure the resulting change plan and investigation boundary in terms of:
 
-~~~text
-relevant external investigation targets found
-unsupported targets introduced
-established facts kept separate from inference
-missing source/code requests identified
-distributed risks discovered before editing
-questions left explicitly unresolved
-setup and maintenance effort
-identity/mapping maintenance cost
-evidence collection/instrumentation cost
-reuse across later questions
-~~~
+- relevant external investigation targets found;
+- unsupported targets introduced;
+- whether established facts remain separate from inference;
+- missing source/code requests identified;
+- distributed risks discovered before editing;
+- questions left explicitly unresolved;
+- setup and maintenance effort;
+- identity/mapping maintenance cost;
+- evidence collection/instrumentation cost; and
+- reuse across later questions.
 
 A lower false-claim rate achieved only by returning almost everything unresolved is not product
 success. More context is not automatically better; the answer must materially improve the next
@@ -602,15 +491,8 @@ repository being changed and should establish that component through independent
 evidence such as telemetry, broker topology, gateway/routing configuration, deployment identity, or
 another qualified source.
 
-The evaluation must permit a negative result. Valid checkpoint outcomes are:
-
-~~~text
-continue
-narrow
-integrate
-defer
-stop
-~~~
+The evaluation must permit a negative result. Valid checkpoint outcomes are **continue**, **narrow**,
+**integrate**, **defer**, or **stop**.
 
 ### Success criteria
 
@@ -724,46 +606,26 @@ External theories are useful only where they sharpen the product boundary.
 Promise Theory is useful because autonomous components can make local promises without requiring a
 central authority to manufacture those promises.
 
-AIP relevance:
+AIP uses Promise Theory to preserve three distinctions:
 
-~~~text
-provider promise
-    ≠
-consumer desire
-
-external promise
-    ≠
-observed cooperation
-
-local promise assessment
-    ≠
-central compliance truth
-~~~
+- a provider promise is not a consumer desire;
+- an external promise is not observed cooperation; and
+- a local promise assessment is not central compliance truth.
 
 Promise Theory is a semantic/evaluation lens, not a required implementation model or user-facing
 vocabulary.
 
 ### Semantic Spacetime
 
-Useful principle:
-
-~~~text
-architecture meaning depends on
-context + locality + time + evidence perspective
-~~~
+The useful principle is that architecture meaning depends on **context, locality, time, and evidence
+perspective**.
 
 This supports local Current State, local Assessment, and bounded projection without claiming global
 truth.
 
 ### Bigraphs
 
-Useful principle:
-
-~~~text
-place / composition
-    ≠
-link / connectivity
-~~~
+The useful principle is that **place/composition and link/connectivity are distinct dimensions**.
 
 This reinforces the rule that boundaries and relationships are established independently.
 
@@ -772,19 +634,8 @@ This reinforces the rule that boundaries and relationships are established indep
 Strategic DDD is useful as a boundary lens because AI makes implementation cheaper without making
 domain meaning or autonomous boundaries cheaper.
 
-However:
-
-~~~text
-Bounded Context
-    ≠
-Service
-    ≠
-Repository
-    ≠
-Team
-~~~
-
-AIP should not infer one from another. Tactical DDD and internal domain-model structure are outside
+However, a **Bounded Context**, **Service**, **Repository**, and **Team** are distinct concepts. AIP
+should not infer one from another. Tactical DDD and internal domain-model structure are outside
 the product center.
 
 ---
@@ -837,38 +688,20 @@ AIP should become narrower, not broader.
 
 The product is not:
 
-~~~text
-a complete enterprise architecture model
-a source-code architecture analyzer
-a generic knowledge graph
-a policy engine
-an agent platform
-~~~
+- a complete enterprise architecture model;
+- a source-code architecture analyzer;
+- a generic knowledge graph;
+- a policy engine; or
+- an agent platform.
 
-The product is:
-
-~~~text
-local evidence-qualified distributed views
-        +
-bounded question-specific projections
-        +
-explicit uncertainty and provenance
-~~~
+The product combines **local evidence-qualified distributed views**, **bounded question-specific
+projections**, and **explicit uncertainty and provenance**.
 
 The durable center is **distributed architecture across autonomous boundaries**.
 
-Current State, Intent, and Assessment remain distinct:
-
-~~~text
-Current State
-  locally observed distributed cooperation
-
-Intent
-  locally attributable external promises
-
-Assessment
-  locally made evaluation of promise vs cooperation
-~~~
+Current State, Intent, and Assessment remain distinct. **Current State** describes locally observed
+distributed cooperation. **Intent** captures locally attributable external promises. **Assessment**
+is a locally made evaluation of the relationship between those promises and the observed cooperation.
 
 AIP may project several such local views to answer one bounded question, but it should not use that
 ability as justification for constructing a universal enterprise architecture model.
