@@ -7,6 +7,8 @@ A ready-to-run local replay of an authored OpenTelemetry window over
 to, how far can the evidence resolve that topology, and what must I still inspect?"* with real AIP
 answers over MCP and REST. It does not start Pitstop.
 
+**[Try it locally with a coding agent →](TRY_IT_LOCALLY.md)**
+
 This is the **local, reproducible** mode: it replays a frozen fixture so the demo works immediately and
 offline. `run.sh --live` is the continuously running variant (see [Live mode](#live-mode)); the hosted instance is operated by the demo owner.
 
