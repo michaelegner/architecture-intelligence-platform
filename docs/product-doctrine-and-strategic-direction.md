@@ -2,7 +2,7 @@
 
 **Status:** Working product strategy  
 **Project:** Architecture Intelligence Platform (AIP)  
-**Distributed focus:** **dAIP — distributed Architecture Intelligence Platform**  
+**Distributed focus:** architecture across autonomous service/component boundaries  
 **Revision:** 2026-10-13 — complete strategy rewrite around distributed boundaries, local views, and bounded projections  
 **Scope:** release-independent product doctrine and strategic direction  
 **Roadmap authority:** release sequencing and shipped/planned status remain in [ROADMAP.md](../ROADMAP.md)
@@ -81,7 +81,7 @@ Typical examples include:
 - environment-specific relationships that do not exist in every deployment;
 - deployment/runtime relationships that source analysis cannot establish safely.
 
-For a bounded change, the agent should first ask the relevant distributed-impact question. dAIP
+For a bounded change, the agent should first ask the relevant distributed-impact question. AIP
 returns a bounded projection that identifies which autonomous boundaries require inspection. The
 agent then uses repository/source analysis inside each relevant component and continues with the
 normal engineering verification workflow.
