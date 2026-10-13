@@ -257,6 +257,7 @@ def test_tryout_guides_document_local_and_hosted_agent_setup():
     assert "aip_mcp_url" in hosted
     assert "leave `aip_token` empty" in hosted
     assert "public demo requires no credentials" in hosted
+    assert "https://217-154-245-195.sslip.io/mcp" in hosted
     assert "standalone `aip` MCP server" in hosted
     assert "plugin:aip:aip" in hosted
     assert "429 Too Many Requests" in hosted
