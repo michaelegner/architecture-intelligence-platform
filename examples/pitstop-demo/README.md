@@ -10,7 +10,7 @@ answers over MCP and REST. It can be tried as a reproducible local replay or aga
 ## Try it
 
 - **[Try locally](TRY_IT_LOCALLY.md)** — reproducible replay, no credentials required.
-- **[Try hosted](TRY_IT_HOSTED.md)** — live demo; requires the MCP URL and token from the demo owner.
+- **[Try hosted](TRY_IT_HOSTED.md)** — live demo; request the MCP URL and token in [GitHub Discussions](https://github.com/michaelegner/architecture-intelligence-platform/discussions).
 
 ## Ask the questions
 
