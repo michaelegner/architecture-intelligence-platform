@@ -153,7 +153,7 @@ answer yet is labelled as outside the answer, not hidden.
 
 ## Pitstop: which services receive the event you are about to change?
 
-**[Try the Pitstop demo locally →](examples/pitstop-demo/TRY_IT_LOCALLY.md)**
+**[Try locally →](examples/pitstop-demo/TRY_IT_LOCALLY.md) · [Try hosted →](examples/pitstop-demo/TRY_IT_HOSTED.md)**
 
 A second real system, [Pitstop](https://github.com/EdwinVW/pitstop) (a .NET garage-management sample on
 RabbitMQ), on a different broker and stack. The task: *before replacing `StartTime` and `EndTime` in
@@ -170,8 +170,8 @@ which (`ReportingService`) no Pitstop document lists, with their evidence and th
 It states, rather than hides, that it holds no payload or field-level knowledge, so which receiver reads
 `StartTime` is what you must still inspect. The local replay is the reproducible mode. The canonical demo is a
 continuously running, instrumented Pitstop feeding a hosted AIP instance, queried for a completed UTC day (the
-local `--live` mode needs the private instrumented fork; the hosted instance is operated by the demo owner and
-reached over a token-gated MCP URL). An optional Claude Code plugin (and an optional mod that shows AIP's
+local `--live` mode needs the private instrumented fork; the hosted demo exposes only its public read-only MCP
+endpoint and requires no credentials). An optional Claude Code plugin (and an optional mod that shows AIP's
 answer next to the agent's plan) is described in the demo README; both install from this repository's Claude Code
 marketplace (`claude plugin marketplace add michaelegner/architecture-intelligence-platform`).
 
