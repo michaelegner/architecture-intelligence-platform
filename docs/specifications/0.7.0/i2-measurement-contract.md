@@ -174,6 +174,11 @@ Messages never include extract or manifest values beyond ids, Route ids and cons
 
 Capture-tool CLI shape and settle timeout defaults (I2.2); writer Cypher and constraints (I2.2–I2.4); the `api_usage_v1` snapshot block layout (I2.4); import-report amendment (I2.2); exact Python class layout; public exposure, consumer-name exposure and `SourceType` widening (I3); restart or counter-reset inference (not in v0.7).
 
+## 10.1 Findings from the I2.2a real-APISIX run (no contract semantics changed)
+
+- **Counter lag is longer than the settle rule's natural poll interval.** Against digest-pinned APISIX 3.19.0 in etcd mode, `apisix_http_status` series appeared ~14 s after the requests; scrapes taken seconds apart were identical (and empty) throughout the lag, so "two consecutive identical scrapes" alone settled on the wrong extract. The capture tool therefore requires the two identical scrapes to be at least a quiet period apart (`--quiet-seconds`, default 20 s; the bare rule is `0`). The manifest and every validation rule are unchanged: `*_settled = true` still means "stable", only the tool's evidence for it is stronger.
+- **A series first created inside the window has no start-boundary sample.** Under §3 that is `ONE_BOUNDARY_END`: no delta, so the pair is `USAGE_UNESTABLISHED` even though the counter plainly started at 0. This is the frozen, conservative reading (a missing boundary is never 0) and is left as is; whether a settled, no-restart start boundary should license reading an absent series as 0 is an owner question for I2.3/I2.4, not decided here.
+
 ## 11. Interpretations to confirm in review
 
 These are readings the I2 spec leaves open; they are frozen here only if this PR is accepted as written:
