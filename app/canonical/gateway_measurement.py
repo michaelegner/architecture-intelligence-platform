@@ -89,8 +89,10 @@ class MeasurementEvidence(BaseModel):
 
 
 class MeasurementSeries(BaseModel):
-    """One source series with a usable delta (contract §3): `DELTA` or `DELTA_FIRST_IN_WINDOW`. A
-    series without a usable delta is recorded only as a `MeasurementLimitation`."""
+    """One source series present at either boundary, with its contract §3 status. Only `DELTA` and
+    `DELTA_FIRST_IN_WINDOW` carry a delta; the others keep the series' consumer/route identity (the
+    qualification row universe is built from every attributed series, any status, I2.1 contract §7)
+    without reading it as usage. `WINDOW_INVALID` marks every series of a window with a reason."""
 
     id: str = Field(min_length=1)
     window_id: str = Field(min_length=1)
@@ -102,8 +104,10 @@ class MeasurementSeries(BaseModel):
     consumer: str  # the metric's `consumer` label; empty = unattributed
     code: str
     response_source: str = Field(pattern=r"^(upstream|apisix)$")
-    status: str = Field(pattern=r"^(DELTA|DELTA_FIRST_IN_WINDOW)$")
-    request_count_delta: int = Field(ge=0)
+    status: str = Field(
+        pattern=r"^(DELTA|DELTA_FIRST_IN_WINDOW|DECREASED|ONE_BOUNDARY_START|ONE_BOUNDARY_END|WINDOW_INVALID)$"
+    )
+    request_count_delta: int | None = Field(default=None, ge=0)  # None unless the status is usable
     # Every source label (the series identity), RFC 8785 canonical JSON.
     labels_json: str
     evidence_ids: list[str] = Field(min_length=1)

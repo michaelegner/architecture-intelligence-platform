@@ -196,7 +196,14 @@ def test_series_without_a_usable_delta_become_route_level_limitations(tmp_path) 
     assert outcome.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
     assert [d.code for d in outcome.diagnostics] == [DiagnosticCode.GWM_MEASUREMENT_LIMITATIONS]
     model = outcome.model
-    assert {(s.consumer, s.request_count_delta) for s in model.measurement_series} == {("c", 0)}
+    # every series keeps its consumer/route identity (the qualification row universe needs it);
+    # only the usable one carries a delta
+    assert {(s.consumer, s.status, s.request_count_delta) for s in model.measurement_series} == {
+        ("a", "DECREASED", None),
+        ("b", "ONE_BOUNDARY_START", None),
+        ("c", "DELTA", 0),
+        ("d", "ONE_BOUNDARY_END", None),
+    }
     assert {
         (item.code, item.route, item.response_source) for item in model.measurement_limitations
     } == {
@@ -224,7 +231,8 @@ def test_first_in_window_needs_the_recorded_start_stability(tmp_path) -> None:
         manifest_patch={"start_stable_seconds": 19},
     )
     model = _only_outcome(_run(config)).model
-    assert model.measurement_series == []
+    [series] = model.measurement_series
+    assert (series.status, series.request_count_delta) == ("ONE_BOUNDARY_END", None)
     assert [item.code for item in model.measurement_limitations] == ["GWM_SERIES_ONE_BOUNDARY"]
 
 
@@ -241,11 +249,34 @@ def test_window_reasons_are_recorded_and_an_invalid_window_stores_no_series(
     assert window.window_reasons == case["expected_reasons"]
     if case["expected_reasons"]:
         assert outcome.result is IngestionResult.ACCEPTED_WITH_LIMITATIONS
-        assert (
-            outcome.model.measurement_series == [] and outcome.model.measurement_limitations == []
-        )
+        # no delta is usable, but the series identities survive, marked as such
+        series = outcome.model.measurement_series
+        assert series and {s.status for s in series} == {"WINDOW_INVALID"}
+        assert all(s.request_count_delta is None for s in series)
+        assert outcome.model.measurement_limitations == []
     else:
         assert outcome.result is IngestionResult.ACCEPTED and outcome.model.measurement_series
+
+
+def test_a_pair_whose_only_evidence_is_a_broken_series_keeps_its_identity(tmp_path) -> None:
+    """Review of #526: the qualification row universe is every attributed series, any status, so an
+    unconfigured consumer seen only in a decreased series must still be recoverable."""
+    config = _config(tmp_path)
+    _write_fixture(
+        config,
+        start=[_line("mallory-free", "200", "upstream") + " 5"],
+        end=[_line("mallory-free", "200", "upstream") + " 2"],
+    )
+    model = _only_outcome(_run(config)).model
+    [series] = model.measurement_series
+    assert (series.consumer, series.route, series.status) == (
+        "mallory-free",
+        "orders-route",
+        "DECREASED",
+    )
+    assert series.request_count_delta is None
+    [limitation] = model.measurement_limitations
+    assert (limitation.code, limitation.route) == ("GWM_COUNTER_DECREASED", "orders-route")
 
 
 def test_the_mapping_artifact_is_stored_not_interpreted(tmp_path) -> None:

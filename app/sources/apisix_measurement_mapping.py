@@ -3,8 +3,10 @@ measurement carriers (I2.1 contract §3-§5). No I/O. It joins nothing: consumer
 Service reconciliation are I2.3, and qualification is I2.4. The expected results are the independent
 vectors in `docs/specifications/0.7.0/i2-vectors/` (`series-deltas.json`, `ids.json`).
 
-An invalid window stores the window carrier and its reasons only: no usable delta exists, so no series
-and no series limitation is recorded (contract §3).
+Every series present at either boundary is kept as a `MeasurementSeries`, so the consumer/route pairs
+that I2.4's row universe needs survive whatever their status; only `DELTA` and `DELTA_FIRST_IN_WINDOW`
+carry a delta. An invalid window has no usable delta at all: its series are kept as `WINDOW_INVALID`
+and no series limitation is recorded (the window reasons already explain it; contract §3).
 """
 
 from dataclasses import dataclass
@@ -89,30 +91,28 @@ def map_measurement(
     )
     series: list[MeasurementSeries] = []
     limitations: dict[str, MeasurementLimitation] = {}
-    if not reasons:
-        for item in validated.series_deltas():
-            labels = item.series.labels
-            if item.status in _USABLE:
-                assert item.delta is not None
-                series.append(
-                    MeasurementSeries(
-                        id=measurement_series_id(window_id, item.series.key),
-                        window_id=window_id,
-                        gateway_instance_id=manifest.gateway_instance_id,
-                        environment=manifest.environment,
-                        window_start=manifest.window_start,
-                        window_end=manifest.window_end,
-                        route=labels["route"],
-                        consumer=labels["consumer"],
-                        code=labels["code"],
-                        response_source=labels["response_source"],
-                        status=item.status,
-                        request_count_delta=item.delta,
-                        labels_json=_json(dict(sorted(labels.items()))),
-                        evidence_ids=[evidence_id],
-                    )
-                )
-                continue
+    for item in validated.series_deltas():
+        labels = item.series.labels
+        usable = not reasons and item.status in _USABLE
+        series.append(
+            MeasurementSeries(
+                id=measurement_series_id(window_id, item.series.key),
+                window_id=window_id,
+                gateway_instance_id=manifest.gateway_instance_id,
+                environment=manifest.environment,
+                window_start=manifest.window_start,
+                window_end=manifest.window_end,
+                route=labels["route"],
+                consumer=labels["consumer"],
+                code=labels["code"],
+                response_source=labels["response_source"],
+                status=item.status if not reasons else "WINDOW_INVALID",
+                request_count_delta=item.delta if usable else None,
+                labels_json=_json(dict(sorted(labels.items()))),
+                evidence_ids=[evidence_id],
+            )
+        )
+        if not reasons and not usable:
             code = COUNTER_DECREASED if item.status == "DECREASED" else SERIES_ONE_BOUNDARY
             limitation_id = measurement_limitation_id(
                 window_id, code, labels["route"], labels["response_source"]
