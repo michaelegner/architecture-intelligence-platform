@@ -1,0 +1,20 @@
+VARIANT dest_key=messaging.destination operation_type=False
+facts []
+entities []
+unresolved []
+
+VARIANT dest_key=messaging.destination.name operation_type=False
+facts []
+entities []
+unresolved []
+
+VARIANT dest_key=messaging.destination operation_type=True
+facts []
+entities []
+unresolved [('1111', 'no_destination_name'), ('1111', 'no_destination_name'), ('1111', 'no_destination_name')]
+
+VARIANT dest_key=messaging.destination.name operation_type=True
+facts [ObservedFactCandidate(subject_id=ecommerce-catalog-service, relation_type=PUBLISHES_TO, object_id=topic, environment=local, ...)
+entities []
+unresolved [('1111', 'unresolved_destination_semantics'), ('1111', 'unresolved_destination_semantics')]
+

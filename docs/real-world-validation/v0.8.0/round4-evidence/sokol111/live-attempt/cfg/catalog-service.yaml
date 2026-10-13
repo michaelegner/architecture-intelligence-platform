@@ -1,0 +1,13 @@
+logger: {level: "info", development: false}
+mongo: {host: "localhost", database: "catalog", direct-connection: true}
+multi-tenancy: {enabled: false}
+kafka:
+  brokers: "localhost:9092"
+  consumers-config:
+    default-group-id: "ecommerce-catalog-service"
+    default-auto-offset-reset: "earliest"
+    consumers:
+      - {name: "tenant-events", topic: "tenant.tenant.events"}
+tenant:
+  grpc:
+    address: "localhost:18080"

@@ -1,6 +1,6 @@
 # AIP v0.8.0 — Finalist Technical Spike, Round 4
 
-**Status:** Planned  
+**Status:** Completed — neither finalist suitable; see [round4-result.md](round4-result.md)  
 **Input:** Round 3 finalists  
 **Purpose:** Select the system and bounded-change scenario for the v0.8 product-boundary validation.
 
@@ -75,7 +75,9 @@ Do not modify the application merely to manufacture a stronger AIP case.
 
 ## 7. Evidence capture
 
-The spike SHOULD create a reproducible evidence package using the smallest practical runtime exercise.
+Round 4 SHOULD perform one minimal live runtime exercise for the leading candidate where setup cost remains reasonable. The resulting evidence SHOULD then be captured with provenance and reused as a deterministic replay fixture. Existing/documented traces may be used instead if running the relevant slice proves disproportionately expensive or fragile.
+
+For Sokol111 the minimal live slice is Kafka plus Catalog, Product Query and Image. The complete environment (Kubernetes, Helm, frontend, databases unrelated to this event flow) is not required.
 
 Prefer captured OTLP/broker/deployment evidence and replayable fixtures where current AIP already supports them. Record the commands and environment assumptions needed to reproduce the evidence.
 
