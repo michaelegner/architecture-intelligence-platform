@@ -6,6 +6,9 @@ writes the `aip-apisix-capture/1` fixture. It never emits a source value in a lo
 diagnostic: the Admin API key is read from the environment and is never echoed, and every failure
 is a fixed `CaptureError` code (I1.1 contract §2, §7).
 
+`--etcd-url` MUST point at the etcd that backs the APISIX instance being captured: the etcd header
+revision is the capture's fence and revision identity, and the Admin API exposes none.
+
     APISIX_ADMIN_KEY=... python -m app.gateway_capture.apisix \\
         --admin-url http://127.0.0.1:9180 --etcd-url http://127.0.0.1:2379 \\
         --gateway-instance-id gw-prod-1 --environment prod --apisix-version 3.19.0 \\
@@ -99,6 +102,19 @@ def _resource_id(item: Mapping[str, Any]) -> str:
     raise CaptureError("GW_CAPTURE_MALFORMED_RESOURCE")
 
 
+def _indices(item: Mapping[str, Any]) -> dict[str, int | None]:
+    """The object's etcd `createdIndex` / `modifiedIndex` (I0 acquisition plan §2.3)."""
+    created, modified = item.get("createdIndex"), item.get("modifiedIndex")
+    return {
+        "created_index": created
+        if isinstance(created, int) and not isinstance(created, bool)
+        else None,
+        "modified_index": modified
+        if isinstance(modified, int) and not isinstance(modified, bool)
+        else None,
+    }
+
+
 def normalize_plugins(plugins: object) -> dict[str, dict[str, Any]]:
     """Contract §2: every plugin by name with an empty config, except `consumer-restriction`, which
     keeps only its allow-listed access-rule fields."""
@@ -163,6 +179,7 @@ def normalize_route(item: Mapping[str, Any]) -> dict[str, Any]:
     uris = value.get("uris")
     methods = value.get("methods")
     return {
+        **_indices(item),
         "id": _resource_id(item),
         "uri": value.get("uri") if isinstance(value.get("uri"), str) else None,
         "uris": sorted(str(u) for u in uris) if isinstance(uris, list) else [],
@@ -179,6 +196,7 @@ def normalize_route(item: Mapping[str, Any]) -> dict[str, Any]:
 def normalize_service(item: Mapping[str, Any]) -> dict[str, Any]:
     value = _value(item)
     return {
+        **_indices(item),
         "id": _resource_id(item),
         "upstream_id": _optional_id(value, "upstream_id"),
         "upstream_nodes": _upstream_nodes(value),
@@ -188,11 +206,15 @@ def normalize_service(item: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def normalize_upstream(item: Mapping[str, Any]) -> dict[str, Any]:
-    return {"id": _resource_id(item), "nodes": _upstream_nodes(_value(item))}
+    return {**_indices(item), "id": _resource_id(item), "nodes": _upstream_nodes(_value(item))}
 
 
 def normalize_bundle(item: Mapping[str, Any]) -> dict[str, Any]:
-    return {"id": _resource_id(item), "plugins": normalize_plugins(_value(item).get("plugins"))}
+    return {
+        **_indices(item),
+        "id": _resource_id(item),
+        "plugins": normalize_plugins(_value(item).get("plugins")),
+    }
 
 
 def _consumer_username(item: Mapping[str, Any]) -> str:
@@ -250,7 +272,11 @@ def capture(
         "etcd_revision_after": revision_after,
         "lists_complete": {kind: lists_complete[kind] for kind in LIST_KINDS},
         "consumers": [
-            {"username": name, "credential_ids": credential_ids[name]}
+            {
+                **_indices(by_username[name]),
+                "username": name,
+                "credential_ids": credential_ids[name],
+            }
             for name in sorted(by_username)
         ],
         "routes": sorted(

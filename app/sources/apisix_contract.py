@@ -88,12 +88,22 @@ class _Strict(BaseModel):
 Plugins = dict[str, dict[str, Any]]
 
 
-class CaptureConsumer(_Strict):
+class _Provenanced(_Strict):
+    """Per-object etcd revision provenance (I0 acquisition plan §2.3): the object's `createdIndex` /
+    `modifiedIndex` as the Admin API reports them. Deterministic for unchanged state, unlike the
+    volatile `create_time` / `update_time`, which are dropped. `None` only if the source omitted
+    them; the capture tool always records what the Admin API returns."""
+
+    created_index: int | None = Field(default=None, ge=0)
+    modified_index: int | None = Field(default=None, ge=0)
+
+
+class CaptureConsumer(_Provenanced):
     username: str = Field(min_length=1)
     credential_ids: list[str]
 
 
-class CaptureRoute(_Strict):
+class CaptureRoute(_Provenanced):
     id: str = Field(min_length=1)
     uri: str | None = None
     uris: list[str] = Field(default_factory=list)
@@ -106,7 +116,7 @@ class CaptureRoute(_Strict):
     plugins: Plugins
 
 
-class CaptureService(_Strict):
+class CaptureService(_Provenanced):
     id: str = Field(min_length=1)
     upstream_id: str | None = None
     upstream_nodes: list[str] = Field(default_factory=list)
@@ -114,12 +124,12 @@ class CaptureService(_Strict):
     plugins: Plugins
 
 
-class CaptureUpstream(_Strict):
+class CaptureUpstream(_Provenanced):
     id: str = Field(min_length=1)
     nodes: list[str] = Field(default_factory=list)
 
 
-class CapturePluginBundle(_Strict):
+class CapturePluginBundle(_Provenanced):
     """A `plugin_configs`, `consumer_groups` or `global_rules` entry: only its id and plugins."""
 
     id: str = Field(min_length=1)

@@ -158,6 +158,12 @@ def test_the_real_admin_api_returns_credentials_in_plaintext_and_the_capture_red
     assert route["plugins"]["key-auth"] == {}
     assert route["upstream_nodes"] == ["orders.internal:80"]
     assert document["etcd_revision_before"] == document["etcd_revision_after"] > 0
+    # I0 acquisition plan §2.3: per-object etcd revisions are retained as provenance and never
+    # exceed the capture's own revision.
+    objects = [*document["consumers"], *document["routes"]]
+    for obj in objects:
+        assert isinstance(obj["created_index"], int) and isinstance(obj["modified_index"], int)
+        assert 0 < obj["created_index"] <= obj["modified_index"] <= document["etcd_revision_after"]
 
 
 def test_two_captures_of_unchanged_state_are_byte_identical(stack) -> None:
@@ -230,3 +236,29 @@ def test_the_real_client_refuses_a_wrong_admin_key_without_echoing_it(stack) -> 
         capture(api, gateway_instance_id="gw-real-1", environment="test", apisix_version="3.19.0")
     assert excinfo.value.code == "GW_CAPTURE_ADMIN_AUTH_FAILED"
     assert "CANARY-WRONG-ADMIN-KEY-77" not in str(excinfo.value)
+
+
+def test_updating_one_object_changes_only_its_own_modified_index(stack) -> None:
+    admin_url, _ = stack
+
+    def indices() -> dict[str, tuple[int, int]]:
+        document = capture(
+            _api(stack),
+            gateway_instance_id="gw-real-1",
+            environment="test",
+            apisix_version="3.19.0",
+        )
+        return {
+            c["username"]: (c["created_index"], c["modified_index"]) for c in document["consumers"]
+        }
+
+    before = indices()
+    _put(
+        admin_url,
+        "consumers",
+        {"username": "bob", "plugins": {"key-auth": {"key": "CANARY-REAL-BOB-KEY-2c2c"}}},
+    )
+    after = indices()
+    assert after["alice"] == before["alice"]
+    assert after["bob"][0] == before["bob"][0]  # createdIndex is stable
+    assert after["bob"][1] > before["bob"][1]  # modifiedIndex advanced

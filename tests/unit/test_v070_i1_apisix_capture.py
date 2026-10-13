@@ -167,7 +167,13 @@ def test_capture_is_redacted_valid_and_normalized() -> None:
     }  # unknown restriction fields are dropped, not carried
     assert document["upstreams"][0]["nodes"] == ["10.0.0.2:80"]
     assert document["etcd_revision_before"] == document["etcd_revision_after"] == 18
-    assert "create_time" not in raw and "update_time" not in raw and "modifiedIndex" not in raw
+    # volatile timestamps are dropped; the deterministic etcd revisions are kept (I0 plan §2.3)
+    assert "create_time" not in raw and "update_time" not in raw
+    objects = [
+        *document["consumers"], *document["routes"], *document["services"],
+        *document["upstreams"], *document["plugin_configs"], *document["global_rules"],
+    ]  # fmt: skip
+    assert objects and all(o["created_index"] == 15 and o["modified_index"] == 16 for o in objects)
 
 
 def test_output_is_byte_identical_regardless_of_source_ordering() -> None:
@@ -407,3 +413,13 @@ def test_only_http_and_https_urls_are_accepted(url: str) -> None:
     with pytest.raises(CaptureError) as excinfo:
         apisix.UrllibAdminApi(admin_url=url, admin_key="k", etcd_url="http://127.0.0.1:2379")
     assert excinfo.value.code == "GW_CAPTURE_URL_UNSUPPORTED"
+
+
+def test_missing_source_indices_are_carried_as_none_not_invented() -> None:
+    api = StubApi()
+    for item in api.resources["routes"]:
+        item.pop("createdIndex"), item.pop("modifiedIndex")
+    document = _capture(api)
+    assert validate_capture_document(document) is None
+    assert document["routes"][0]["created_index"] is None
+    assert document["routes"][0]["modified_index"] is None
