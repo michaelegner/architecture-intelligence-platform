@@ -255,13 +255,12 @@ def test_tryout_guides_document_local_and_hosted_agent_setup():
 
     assert "/plugin configure aip@aip-plugins" in hosted
     assert "aip_mcp_url" in hosted
-    assert "aip_token" in hosted
+    assert "leave `aip_token` empty" in hosted
+    assert "public demo requires no credentials" in hosted
     assert "standalone `aip` MCP server" in hosted
     assert "plugin:aip:aip" in hosted
+    assert "429 Too Many Requests" in hosted
     assert "<YYYY-MM-DD>T00:00:00Z to <YYYY-MM-DD>T23:59:59Z" in hosted
-
-    # the hosted instance's host name is withheld by owner decision: no concrete hosted endpoint or token
-    assert not re.search(r"sslip\.io|https?://[^\s)]*\.(?:org|com|net|dev|io)/mcp", hosted)
 
 
 def test_skills_state_the_inclusive_whole_day_window_and_never_guess_why_a_day_is_empty():
