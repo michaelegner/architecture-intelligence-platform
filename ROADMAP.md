@@ -905,12 +905,6 @@ a corresponding roadmap update. Apply these gates before accepting affected capa
 stable contract. Detailed pilot design belongs in release-specific specifications; see
 [Product Doctrine §8](docs/product-doctrine-and-strategic-direction.md#8-product-validation).
 
-## Additional discovery candidates (unscheduled)
-
-gRPC/protobuf and Kafka Connect configuration remain candidates outside v0.5, with no assigned
-release. Each requires a separately approved later-release specification, explicit semantics, and
-deterministic conformance tests; the adapter seam does not automatically admit additional sources.
-
 ## Future (beyond v1.0, unscheduled)
 
 Future work must remain inside the distributed product boundary and requires its own product-value
@@ -921,8 +915,10 @@ evidence. Candidates include:
 - causal runtime-flow analysis beyond pairwise interactions, only where the evidence can support it;
 - distributed/local assessor deployment options if moving qualification closer to the evidence
   locality materially improves correctness or operability;
-- additional distributed protocol/configuration evidence sources where they unlock a new bounded
-  architecture question;
+- additional distributed protocol/configuration evidence sources, including **gRPC/protobuf** and
+  **Kafka Connect configuration**, where they unlock a new bounded architecture question; these
+  require explicit semantics, deterministic qualification, and their own specification rather than
+  being admitted automatically through the adapter seam;
 - richer external-promise and local-assessment semantics if the v0.8 product checkpoint retains AIP
   ownership of those domains.
 
