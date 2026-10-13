@@ -817,7 +817,7 @@ Qualification/freeze scope includes, where actually implemented and accepted:
 - local distributed-assessment contracts only if retained and qualified after the v0.8 checkpoint
 - derivation-lineage and evidence/provenance requirements, including authority/lifecycle evidence
   references, rule versions, and exact projection binding
-- temporal compatibility and coverage rules for Current↔Intent assessment, where that provisional capability is retained
+- temporal compatibility and coverage rules for local distributed assessment, where that provisional capability is retained
 - REST and MCP contract stabilization
 - graph-persistence compatibility and migration rules; the internal graph representation is not
   frozen as a public Architecture Knowledge contract
