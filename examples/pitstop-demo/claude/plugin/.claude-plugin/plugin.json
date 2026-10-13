@@ -16,7 +16,7 @@
     "aip_token": {
       "type": "string",
       "title": "AIP token",
-      "description": "Access token of a token-gated AIP instance (leave empty for the local demo). Claude Code stores it outside the normal settings file; on Linux it was observed in a mode-600 credentials file, other platforms are not verified. With --plugin-dir the AIP_MCP_TOKEN environment variable overrides it.",
+      "description": "Optional access token for an AIP deployment that requires one. Leave empty for the local demo and the public hosted demo. Claude Code stores it outside the normal settings file; on Linux it was observed in a mode-600 credentials file, other platforms are not verified. With --plugin-dir the AIP_MCP_TOKEN environment variable overrides it.",
       "sensitive": true
     }
   }

@@ -9,6 +9,14 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+### Added
+
+- **Public read-only hosted Pitstop demo**: an external acceptance script
+  (`examples/pitstop-demo/hosted/verify_public_edge.py`) and the edge requirements for anonymous `POST /mcp`. The
+  script fails unless `tools/list` is exactly the frozen public tool allowlist and every other route, an invalid
+  Host and an oversized body are refused. No AIP behaviour, schema or MCP tool changed; the plugin's `aip_token`
+  stays optional.
+
 ## [0.6.3] - 2026-10-11
 
 ### v0.6.3 — Runtime and Import Robustness
