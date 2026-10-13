@@ -23,7 +23,7 @@ MAPPING_SCHEMA = "aip-apisix-mapping/1"
 UPSTREAM, APISIX = "upstream", "apisix"
 REQUIRED_LABELS = {"code", "consumer", "response_source", "route"}
 TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
-VERSION = re.compile(r"^3\.19\.\d+$")
+SUPPORTED_VERSION = "3.19.0"
 SERIES = re.compile(r"^apisix_http_status\{(.*)\} (\d+)$")
 LABEL = re.compile(r'([a-z_]+)="((?:[^"\\]|\\.)*)"')
 SUFFICIENT, UNKNOWN = "SUFFICIENT_FOR_ZERO", "UNKNOWN_COVERAGE"
@@ -191,7 +191,7 @@ def _window_reasons(manifest: dict[str, Any]) -> list[str]:
         reasons.add("GWM_WINDOW_RESTART")
     if manifest["window_start"] >= manifest["window_end"]:  # fixed-width UTC strings order
         reasons.add("GWM_WINDOW_ORDER_INVALID")
-    if not VERSION.match(manifest["apisix_version"]):
+    if manifest["apisix_version"] != SUPPORTED_VERSION:
         reasons.add("GWM_VERSION_INCOMPATIBLE")
     return sorted(reasons)
 

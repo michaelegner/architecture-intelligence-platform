@@ -63,14 +63,14 @@ A rejected import commits nothing and removes nothing previously accepted (I2 §
 
 **Reading frozen here:** I2 §5 lists "start and end belong to the declared same gateway instance and environment" as a delta precondition. The extracts carry no instance label, so this precondition is realized by step 3 above: a manifest that names a different gateway or environment than the registration is `REJECTED_INVALID` / `GWM_INSTANCE_MISMATCH` (X02, X03), exactly like I1 R05. Nothing is accepted that could be attributed to the wrong instance.
 
-The other §5 preconditions do not reject; the import is accepted and the window carries these **window reasons**, each a limitation code (series-deltas.json `window_validity`, W01–W10):
+The other §5 preconditions do not reject; the import is accepted and the window carries these **window reasons**, each a limitation code (series-deltas.json `window_validity`, W01–W11):
 
 | Reason | When |
 |---|---|
 | `GWM_WINDOW_NOT_SETTLED` | `start_settled` or `end_settled` is false |
 | `GWM_WINDOW_RESTART` | `no_restart` is false |
 | `GWM_WINDOW_ORDER_INVALID` | `window_start >= window_end` |
-| `GWM_VERSION_INCOMPATIBLE` | `apisix_version` does not match `3.19.<patch>` (the I1-selected release line; `3.190.0` and `3.20.0` do not match) |
+| `GWM_VERSION_INCOMPATIBLE` | `apisix_version` is not exactly `3.19.0` (the release I0 selected and inspected; `3.19.1`, `3.190.0` and `3.20.0` are all incompatible until a reviewed amendment admits them with evidence) |
 
 The window is **valid** iff it has no reason. In an invalid window no delta is usable: no `OBSERVED_USAGE`, no `MEASURED_ZERO`, counts are `null`.
 
@@ -167,7 +167,7 @@ Messages never include extract or manifest values beyond ids, Route ids and cons
 | manifest, binding, normalization, schema | X01–X19, X22 | I2.2 |
 | one window per source; one source per `(gateway, environment)` | X20, X21 | I2.2 |
 | mapping artifact | Y01–Y06 | I2.2 (parse), I2.3 (use) |
-| window validity | W01–W10 | I2.2 (flag), I2.4 (use) |
+| window validity | W01–W11 | I2.2 (flag), I2.4 (use) |
 | ids | M01–M09 | I2.2 (source, window, evidence), I2.4 (interaction, row) |
 
 ## 10. Not frozen here
@@ -185,4 +185,4 @@ These are readings the I2 spec leaves open; they are frozen here only if this PR
 5. Positive usage wins over broken series elsewhere on the Route (§7 step 1).
 6. In an invalid window, attributed pairs still get rows, with `USAGE_UNESTABLISHED` and `null` counts (§7).
 7. Explicit Route→Operation statements are not cross-checked against the fallback (§6).
-8. Version compatibility is `3.19.*` (§3).
+8. Version compatibility is exactly `3.19.0`, the inspected release, not the whole `3.19.*` line (§3; review of #522).

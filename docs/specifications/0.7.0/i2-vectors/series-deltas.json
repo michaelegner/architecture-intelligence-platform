@@ -186,21 +186,31 @@
     },
     {
       "id": "W08",
-      "description": "3.19.x patch release is compatible",
+      "description": "a later 3.19 patch is not admitted without a reviewed amendment",
       "manifest_patch": {
-        "apisix_version": "3.19.4"
+        "apisix_version": "3.19.1"
       },
-      "expected_reasons": []
+      "expected_reasons": [
+        "GWM_VERSION_INCOMPATIBLE"
+      ]
     },
     {
       "id": "W09",
-      "description": "3.190.0 is not 3.19.x",
+      "description": "3.190.0 is not 3.19.0",
       "manifest_patch": {
         "apisix_version": "3.190.0"
       },
       "expected_reasons": [
         "GWM_VERSION_INCOMPATIBLE"
       ]
+    },
+    {
+      "id": "W11",
+      "description": "the inspected release 3.19.0 is the only compatible version",
+      "manifest_patch": {
+        "apisix_version": "3.19.0"
+      },
+      "expected_reasons": []
     },
     {
       "id": "W10",
