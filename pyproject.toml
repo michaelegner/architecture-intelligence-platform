@@ -114,8 +114,8 @@ source_modules = ["app.qualification"]
 forbidden_modules = [
     "neo4j", "fastapi", "starlette", "mcp", "openai",
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.common", "app.deps", "app.graph", "app.graph_schema", "app.ingestion",
-    "app.intent", "app.main", "app.mcp", "app.provenance", "app.settings", "app.sources",
+    "app.canonical", "app.common", "app.deps", "app.gateway_capture", "app.graph", "app.graph_schema",
+    "app.ingestion", "app.intent", "app.main", "app.mcp", "app.provenance", "app.settings", "app.sources",
     "app.telemetry", "app.validation", "app.version",
 ]
 
@@ -124,7 +124,8 @@ name = "Delivery adapters (REST, MCP, app wiring) sit on top: nothing below impo
 type = "forbidden"
 source_modules = [
     "app.ai", "app.analysis", "app.architecture_intelligence", "app.canonical", "app.common",
-    "app.graph", "app.graph_schema", "app.ingestion", "app.intent", "app.provenance",
+    "app.gateway_capture", "app.graph", "app.graph_schema", "app.ingestion", "app.intent",
+    "app.provenance",
     "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
     "app.version",
 ]
@@ -134,12 +135,34 @@ forbidden_modules = ["app.api", "app.mcp", "app.main", "app.deps", "app.answer_r
 name = "The LLM layer stays out of the deterministic core and MCP"
 type = "forbidden"
 source_modules = [
-    "app.analysis", "app.architecture_intelligence", "app.canonical", "app.common", "app.graph",
-    "app.graph_schema", "app.ingestion", "app.intent", "app.mcp", "app.provenance",
+    "app.analysis", "app.architecture_intelligence", "app.canonical", "app.common",
+    "app.gateway_capture", "app.graph", "app.graph_schema", "app.ingestion", "app.intent", "app.mcp",
+    "app.provenance",
     "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
     "app.version",
 ]
 forbidden_modules = ["app.ai", "openai"]
+
+[[tool.importlinter.contracts]]
+name = "The gateway capture tools are a separate step: no ingestion, graph or delivery layer imports them (v0.7.0 I1 spec 3.2)"
+type = "forbidden"
+source_modules = [
+    "app.ai", "app.analysis", "app.api", "app.architecture_intelligence", "app.canonical",
+    "app.graph", "app.graph_schema", "app.ingestion", "app.intent", "app.main", "app.mcp",
+    "app.provenance", "app.qualification", "app.settings", "app.sources", "app.telemetry",
+    "app.validation",
+]
+forbidden_modules = ["app.gateway_capture"]
+
+[[tool.importlinter.contracts]]
+name = "The gateway capture tools touch no graph, adapter or delivery layer"
+type = "forbidden"
+source_modules = ["app.gateway_capture"]
+forbidden_modules = [
+    "neo4j", "fastapi", "starlette", "mcp", "openai", "app.ai", "app.analysis", "app.api",
+    "app.architecture_intelligence", "app.graph", "app.ingestion", "app.main", "app.mcp",
+    "app.telemetry",
+]
 
 [[tool.importlinter.contracts]]
 name = "Leaf packages import no non-leaf app package"
@@ -147,8 +170,9 @@ type = "forbidden"
 source_modules = ["app.provenance", "app.intent", "app.graph_schema", "app.version"]
 forbidden_modules = [
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.common", "app.deps", "app.graph", "app.ingestion", "app.main", "app.mcp",
-    "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
+    "app.canonical", "app.common", "app.deps", "app.gateway_capture", "app.graph", "app.ingestion",
+    "app.main", "app.mcp", "app.qualification", "app.settings", "app.sources", "app.telemetry",
+    "app.validation",
 ]
 
 [[tool.importlinter.contracts]]
@@ -171,9 +195,9 @@ type = "forbidden"
 source_modules = ["app.common"]
 forbidden_modules = [
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.deps", "app.graph", "app.graph_schema", "app.ingestion", "app.intent",
-    "app.main", "app.mcp", "app.provenance", "app.qualification", "app.settings", "app.sources",
-    "app.telemetry", "app.validation", "app.version",
+    "app.canonical", "app.deps", "app.gateway_capture", "app.graph", "app.graph_schema",
+    "app.ingestion", "app.intent", "app.main", "app.mcp", "app.provenance", "app.qualification",
+    "app.settings", "app.sources", "app.telemetry", "app.validation", "app.version",
 ]
 
 [[tool.importlinter.contracts]]
