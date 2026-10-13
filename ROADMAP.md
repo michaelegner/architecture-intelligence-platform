@@ -618,20 +618,10 @@ it the relevant Pitstop and Reporting source rather than creating an artificial 
 spot. AIP must earn its role from evidence that is genuinely outside or orthogonal to static/source
 dependencies.
 
-The stronger distributed scenario is:
-
-~~~text
-WorkshopManagementAPI
-    ∈ Pitstop / Workshop component
-
-ReportingService
-    ∈ separate Reporting component / repository
-
-independently established distributed relationship
-    from runtime / broker / deployment / other qualified evidence
-
-→ CROSS_BOUNDARY
-~~~
+The stronger distributed scenario places `WorkshopManagementAPI` in the Pitstop/Workshop component
+and `ReportingService` in a separate Reporting component and repository. AIP must establish the
+distributed relationship between them independently from runtime, broker, deployment, or other
+qualified evidence before classifying that relationship as **cross-boundary**.
 
 For this validation, AIP must not rely on the repository relation itself to discover the distributed
 relationship and must not use an operator-authored Intent artifact to manufacture Current State.
@@ -675,15 +665,9 @@ For AIP, Intent is deliberately narrower than general architecture policy or int
 Repository-local layering rules, package rules, class dependencies, and internal source conformance
 remain outside this product capability.
 
-The governing separation is:
-
-~~~text
-CURRENT STATE
-locally observed distributed cooperation
-        ≠
-INTENT
-locally attributable external promises
-~~~
+The governing separation is that **Current State describes locally observed distributed
+cooperation**, while **Intent captures locally attributable external promises**. Neither is a
+substitute for the other.
 
 Candidate external-Intent semantics include:
 
@@ -734,23 +718,10 @@ established distributed Current State and independently attributable external In
 > **What does the available evidence support about the relationship between this external promise and
 > the distributed cooperation observed here?**
 
-The dependency direction is:
+A local distributed assessment is derived from an independently established local Current-State view
+and an independently attributable external promise.
 
-~~~text
-local Current-State view
-        +
-applicable external promise
-        ↓
-local distributed assessment
-~~~
-
-Never:
-
-~~~text
-promise / policy
-        ↓
-manufactured Current State
-~~~
+A promise or policy must never be used to manufacture Current State.
 
 Assessment is explicitly local. It is bound to the participant(s), locality, observation context,
 time, evidence, promise, and rule used. A local assessment does not become a universal compliance
@@ -758,13 +729,8 @@ judgment merely because AIP can project it with other local assessments.
 
 Temporal dimensions remain independent:
 
-~~~text
-observation_window
-    = when Current-State evidence was observed
-
-effective_from / effective_until
-    = when the external promise applies
-~~~
+- **Observation window** records when Current-State evidence was observed.
+- **Effective from / effective until** records when the external promise applies.
 
 Evidence predating a promise's effective interval does not by itself establish present fulfillment or
 contradiction. Partial or incompatible coverage must remain inconclusive unless an explicit
@@ -873,82 +839,53 @@ qualification; v1.0-rc must not broaden them into a generic enterprise model.
 
 ## Sequencing principle
 
-~~~text
-v0.3  validation and hardening
-  -> v0.4  trusted architecture context for agents
-  -> v0.5  broader architecture discovery
-  -> v0.6  locality-aware Current State
-  -> v0.7  API-aware distributed Current State
-  -> v0.8  cross-boundary projection + product-boundary validation
-  -> checkpoint: does AIP add material value beyond strong source/repository analysis?
-  -> v0.9  provisional external promises, only if AIP ownership is justified
-  -> v0.10 provisional local distributed assessment, only if justified
-  -> v1.0-rc  freeze and qualify only the contracts that survived validation
-  -> v1.0  stable platform
-~~~
+The planned release sequence is:
+
+1. **v0.3** — validation and hardening.
+2. **v0.4** — trusted architecture context for agents.
+3. **v0.5** — broader architecture discovery.
+4. **v0.6** — locality-aware Current State.
+5. **v0.7** — API-aware distributed Current State.
+6. **v0.8** — cross-boundary projection and product-boundary validation.
+7. **Checkpoint** — decide whether AIP adds material value beyond strong source/repository analysis.
+8. **v0.9** — provisional external promises, only if AIP ownership is justified.
+9. **v0.10** — provisional local distributed assessment, only if justified.
+10. **v1.0-rc** — freeze and qualify only the contracts that survived validation.
+11. **v1.0** — stable platform.
 
 The durable semantic frame is:
 
-~~~text
-Current State
-  locally observed distributed cooperation
+- **Current State** describes locally observed distributed cooperation.
+- **Intent** captures locally attributable external promises.
+- **Assessment** is a locally made evaluation of promise versus cooperation.
+- A **question** produces a bounded projection over only the relevant local views.
 
-Intent
-  locally attributable external promises
-
-Assessment
-  locally made evaluation of promise vs cooperation
-
-Question
-  bounded projection over only the relevant local views
-~~~
-
-The version order is chronological planning. The semantic dependencies are narrower:
-
-~~~text
-qualified distributed Current State
-      ├─────────────→ API-aware Current State
-      │
-      └─────────────→ cross-boundary projection
-                           ↓
-                    product-boundary checkpoint
-                      ├──────────────┐
-                      │              │
-                 integrate       AIP-owned gap proven
-                      │              ↓
-                      │      external Intent (provisional)
-                      │              ↓
-                      │      local Assessment (provisional)
-                      └──────────────┴────→ freeze validated contracts
-~~~
+The version order is chronological planning, while the semantic dependencies are narrower.
+Qualified distributed Current State is the basis for both API-aware Current State and cross-boundary
+projection. Cross-boundary projection leads to the product-boundary checkpoint. If an adjacent tool
+already owns the needed capability well, AIP should integrate with it. If the checkpoint demonstrates
+an AIP-owned gap, external Intent may proceed provisionally, followed by local Assessment. Only
+capabilities that survive those product and semantic checks should enter the stable contract.
 
 The product-question sequence is:
 
-~~~text
-v0.6  WHERE does this distributed relationship hold?
-v0.7  HOW are APIs exposed/consumed, and what does the evidence establish?
-v0.8  WHICH established distributed relationships cross independently established boundaries?
-      DOES that change what the coding agent must inspect beyond source analysis?
-v0.9  PROVISIONAL: WHAT does this autonomous component explicitly promise to the outside?
-v0.10 PROVISIONAL: WHAT does the evidence support about promise vs cooperation here?
-v1.0-rc  FREEZE only what survived product and semantic qualification
-~~~
+- **v0.6:** Where does this distributed relationship hold?
+- **v0.7:** How are APIs exposed or consumed, and what does the evidence establish?
+- **v0.8:** Which established distributed relationships cross independently established boundaries,
+  and does that change what the coding agent must inspect beyond source analysis?
+- **v0.9, provisional:** What does this autonomous component explicitly promise to the outside?
+- **v0.10, provisional:** What does the evidence support about promise versus cooperation here?
+- **v1.0-rc:** Freeze only what survived product and semantic qualification.
 
-For the bounded-change wedge:
+For the bounded-change wedge, each capability should answer a concrete question:
 
-~~~text
-Current State:
-  Which external relationships make me inspect outside this component?
-
-Cross-boundary projection:
-  Which of those relationships cross the relevant autonomous boundaries?
-
-External Intent, if retained:
-  What does each relevant component explicitly promise to the outside?
-
-Local Assessment, if retained:
-  What does the available evidence support about those promises in this context?
-~~~
+- **Current State:** Which external relationships make me inspect outside this component?
+- **Cross-boundary projection:** Which of those relationships cross the relevant autonomous
+  boundaries?
+- **External Intent, if retained:** What does each relevant component explicitly promise to the
+  outside?
+- **Local Assessment, if retained:** What does the available evidence support about those promises in
+  this context?
 
 A new source adapter is not, by itself, a new product capability. It matters when it enables a
 materially new class of qualified distributed relationship or a recurring bounded question.
