@@ -2,7 +2,7 @@
 
 **Status:** Working product strategy  
 **Project:** Architecture Intelligence Platform (AIP)  
-**Product positioning:** distributed Architecture Intelligence Platform (dAIP)  
+**Distributed focus:** **dAIP — distributed Architecture Intelligence Platform**  
 **Revision:** 2026-10-13 — complete strategy rewrite around distributed boundaries, local views, and bounded projections  
 **Scope:** release-independent product doctrine and strategic direction  
 **Roadmap authority:** release sequencing and shipped/planned status remain in [ROADMAP.md](../ROADMAP.md)
@@ -15,9 +15,13 @@ AIP's mission remains:
 
 > **Build architecture intelligence that agents can consume and humans can inspect, challenge, and understand.**
 
-The product is increasingly best understood as **dAIP — distributed Architecture Intelligence
-Platform**. The repository and project may continue to use the shorter AIP name, but the strategic
-product boundary is distributed architecture.
+**dAIP — distributed Architecture Intelligence Platform** names AIP's distributed-system focus:
+evidence-qualified architecture across autonomous service/component boundaries. It covers the
+distributed relationships that currently exist, externally attributable promises where relevant,
+and local assessments of those promises against observed cooperation.
+
+The product and project name remains **AIP** throughout this document. **dAIP** is used only when the
+distributed-system boundary itself is the point being emphasized.
 
 The customer value proposition is:
 
@@ -27,16 +31,16 @@ The customer value proposition is:
 
 The durable product distinction is:
 
-> **dAIP specializes in architectural relationships across autonomous service/component boundaries
+> **AIP specializes in architectural relationships across autonomous service/component boundaries
 > that cannot be reduced reliably to source-code dependencies.**
 
 The central doctrine is:
 
 > **Current State is locally observed. Intent is locally attributable. Assessment is locally made.
-> dAIP answers distributed-architecture questions by projecting the relevant local views into a
+> AIP answers distributed-architecture questions by projecting the relevant local views into a
 > bounded, evidence-qualified result.**
 
-dAIP composes local knowledge **only as far as needed to answer a concrete
+AIP composes local knowledge **only as far as needed to answer a concrete
 distributed-architecture question**. It does not aim to construct or own a complete enterprise
 architecture model.
 
@@ -146,7 +150,7 @@ evidence or attributable intent appropriate to the claim.
 
 ## 4. Three Local Semantic Views
 
-dAIP's long-term semantic frame has three distinct local views: **Current State**, **Intent**, and
+AIP's long-term semantic frame has three distinct local views: **Current State**, **Intent**, and
 **Assessment**. They may be projected together for a question, but none is allowed to manufacture
 the others.
 
@@ -649,7 +653,7 @@ the product center.
 
 ### Product positioning
 
-> **dAIP establishes evidence-qualified architecture across distributed-system boundaries: what
+> **AIP establishes evidence-qualified architecture across distributed-system boundaries: what
 > relationships currently exist, what autonomous components promise externally, and what the
 > evidence supports about the difference.**
 
@@ -666,7 +670,7 @@ the product center.
 ### Projection principle
 
 > **Current State is locally observed. Intent is locally attributable. Assessment is locally made.
-> dAIP answers distributed-architecture questions by projecting the relevant local views into a
+> AIP answers distributed-architecture questions by projecting the relevant local views into a
 > bounded, evidence-qualified result.**
 
 ### Projection invariant
