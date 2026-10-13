@@ -142,14 +142,19 @@ delta = end_counter - start_counter
 
 A delta is usable for window qualification only when:
 
-- start and end belong to the declared same gateway instance;
+- start and end belong to the declared same gateway instance and environment;
 - APISIX version is compatible with the selected source contract;
 - `window_start < window_end`;
 - both boundaries settled;
 - `no_restart = true`;
+- the exact normalized series exists at **both** boundaries;
 - the end counter is not lower than the start counter.
 
-If these conditions do not hold, the source evidence remains inspectable but runtime usage for that affected window is **unestablished**.
+A series present at only one boundary has no valid delta and yields `USAGE_UNESTABLISHED`; I2 does not silently treat a missing boundary as zero. A decreased counter also yields `USAGE_UNESTABLISHED`.
+
+A configured consumer/Route pair for which **no matching upstream series exists at either boundary** may still become `MEASURED_ZERO`, but only through the separate closed-world coverage rule in §8. This is not the same as manufacturing a zero-valued metric series.
+
+If the window-validity conditions do not hold, the source evidence remains inspectable but runtime usage for that affected window is **unestablished**.
 
 I2 does not infer a restart or repair counter resets.
 
@@ -260,15 +265,15 @@ Its value must equal an existing canonical `Service.id` exactly.
 
 The label may appear on the APISIX Route or Gateway Service captured by I1. A user-authored mapping artifact may also bind a Gateway Route or Gateway Service id to a canonical `Service.id`.
 
-Resolution precedence:
+Resolution uses all explicit target statements available for the gateway object:
 
-1. explicit user-authored mapping;
-2. explicit `aip/service` source label;
-3. otherwise unresolved.
+1. user-authored mapping;
+2. `aip/service` on the Route;
+3. `aip/service` on its referenced Gateway Service, when one exists.
 
-A mapping and label that disagree produce `CONFLICT`.
+If these explicit statements name more than one distinct canonical `Service.id`, the result is `CONFLICT`. This includes Route-vs-Gateway-Service label disagreement and mapping-vs-label disagreement.
 
-Missing target Service produces `UNRESOLVED`.
+If exactly one target id is stated, it resolves only when that canonical Service exists. If no target is stated, or the stated target does not exist, the result is `UNRESOLVED`.
 
 Host/port, upstream-node, service-name, route-name and graph-neighbour similarity never resolve this join.
 
@@ -280,11 +285,17 @@ Coverage for **zero usage** is evaluated per Route, environment and window.
 
 It is `SUFFICIENT_FOR_ZERO` only when all are true:
 
-- both boundary captures settled;
-- `no_restart = true`;
+- the full window validity of §5 holds for the measurement source: same gateway/environment, compatible APISIX version, `window_start < window_end`, both boundaries settled and `no_restart = true`;
 - Prometheus was enabled for that Route throughout the window;
+- the Route is explicitly present in `route_coverage`;
 - the `consumer` label was not disabled;
-- the metric extracts were successfully captured and bound by the manifest.
+- the metric extracts were successfully captured and bound by the manifest;
+- there is no upstream series on that Route whose consumer attribution is empty, unresolved or otherwise cannot be assigned to a known `GatewayConsumer`;
+- every series used to support the named-consumer conclusion is either present at both boundaries with a non-decreasing counter or absent at both boundaries.
+
+A Route absent from `route_coverage` is `UNKNOWN_COVERAGE`.
+
+A decreased counter, a series present at only one boundary, or unresolved/unattributed upstream traffic on the Route downgrades coverage to `UNKNOWN_COVERAGE`; none can support `MEASURED_ZERO`.
 
 Otherwise coverage is:
 
@@ -335,14 +346,17 @@ Rules:
 | Configured fact | Runtime evidence | Coverage | Usage status |
 |---|---|---|---|
 | yes/no | matching attributed upstream delta > 0 | valid window | `OBSERVED_USAGE` |
-| yes | no matching upstream delta | sufficient for zero | `MEASURED_ZERO` |
-| yes | no matching upstream delta | unknown | `USAGE_UNESTABLISHED` |
+| yes | no matching upstream series at either boundary | `SUFFICIENT_FOR_ZERO` | `MEASURED_ZERO` |
+| yes | no matching upstream usage | `UNKNOWN_COVERAGE` | `USAGE_UNESTABLISHED` |
+| yes/no | matching series present at only one boundary, or counter decreased | any | `USAGE_UNESTABLISHED` |
 | no | rejected-attempt evidence only | any | `USAGE_UNESTABLISHED` |
-| any | unattributed evidence only | any | `USAGE_UNESTABLISHED` |
+| any | unresolved/unattributed upstream evidence on the Route | any | `USAGE_UNESTABLISHED` |
 
 For an observed-only pair, configured status is `NO_MATCHING_CONFIGURED_ACCESS_FACT`; this is not a policy finding.
 
-Rejected-attempt counts and relevant limitations are carried alongside the row but do not change the two proposition states.
+Rule precedence is conservative: `OBSERVED_USAGE` requires a valid positive attributed delta; otherwise any failed delta precondition or unresolved/unattributed upstream traffic that affects the Route prevents `MEASURED_ZERO` and yields `USAGE_UNESTABLISHED`.
+
+Rejected-attempt counts and relevant limitations are carried alongside the row but do not by themselves change the two proposition states.
 
 ### 9.3 Frozen qualification cases
 
@@ -367,6 +381,18 @@ Also required:
 
 ## 10. Snapshot and lifecycle
 
+### 10.1 Window cardinality
+
+One configured measurement source represents **exactly one current observation window**.
+
+For v0.7, at most one measurement source may be configured for a given `(gateway_instance_id, environment)`. Duplicate registrations for the same pair are rejected deterministically as a configuration conflict; I2 does not merge competing windows.
+
+A later accepted fixture for the same configured measurement source authoritatively **replaces** that source's previous I2-owned window, observations, reconciliation outcomes and qualification rows. I2 keeps no historical window series.
+
+Different gateway/environment pairs may coexist. Their state is ordered deterministically by `gateway_instance_id`, `environment`, then source/window identity.
+
+### 10.2 Snapshot
+
 Accepted I2 state shall be deterministic and snapshot-visible under one conditional internal block:
 
 ~~~text
@@ -383,7 +409,7 @@ The block contains, in deterministic order:
 
 It is absent when no accepted measurement source exists.
 
-Measurement-source replay with byte-identical normalized inputs is a semantic no-op.
+Measurement-source replay with byte-identical normalized inputs is a semantic no-op. Replacing the fixture with a later accepted window replaces, rather than appends to, that source's I2 state.
 
 Removing a measurement-source registration removes only its I2-owned window/observation/qualification state. It does not remove I1 gateway configuration or API-contract carriers.
 
@@ -405,6 +431,7 @@ Keep I2 small:
 Freeze:
 
 - measurement manifest and normalized fixture;
+- one-window-per-source and one-source-per-(gateway, environment) cardinality;
 - observation ids/fields;
 - mapping artifact shape;
 - reconciliation outcome names;
@@ -445,7 +472,7 @@ Implement:
 I2 is complete when:
 
 - measurement capture/replay is deterministic and secret-safe;
-- window/counter/coverage semantics match the I0 freeze;
+- window/counter/coverage semantics match the I0 freeze, including explicit handling of one-boundary/missing/decreasing series;
 - consumer and Route attribution are gateway/environment scoped;
 - Route->Operation and gateway-target->Service reconciliation obey §7;
 - ambiguous/conflicting/unresolved joins stay explicit;
@@ -453,7 +480,7 @@ I2 is complete when:
 - qualification uses the bounded union, not a Cartesian product;
 - P1, P2 and N1-N4 pass against independently authored expected results;
 - rejected and unattributed traffic cannot become usage;
-- zero is emitted only under `SUFFICIENT_FOR_ZERO`;
+- zero is emitted only under `SUFFICIENT_FOR_ZERO`, and unresolved/unattributed upstream traffic on the Route prevents zero;
 - snapshot/replay/removal behavior is deterministic;
 - I1 configuration behavior remains green;
 - no I3 public API/schema decision is introduced;
@@ -467,11 +494,13 @@ A reviewed amendment is required before changing:
 - `response_source="upstream"` as the usage criterion;
 - the operator-asserted environment rule;
 - the no-restart/settled counter-delta window rule;
-- the closed-world zero-coverage rule;
+- the rule that a series must exist at both boundaries for a delta, while absence at both boundaries may support zero only through closed-world coverage;
+- the closed-world zero-coverage rule and its conservative downgrade for unresolved/unattributed upstream traffic;
 - consumer identity;
 - the four reconciliation outcomes;
 - the exact-only automatic Route->Operation fallback;
 - the `aip/service` label key;
+- the one-window-per-source / one-source-per-(gateway, environment) cardinality;
 - the bounded qualification row universe;
 - the configured/usage qualification vocabulary;
 - the rule that observed-only usage is not a policy violation;
