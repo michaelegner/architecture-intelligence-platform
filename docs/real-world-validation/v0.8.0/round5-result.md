@@ -15,12 +15,14 @@
 2. **It is a candidate, not yet a justified release scope.** The promotion rule's condition 2
    (independent evidence demonstrably establishes it) is plausible but unproven, and condition 5 (a source-independent canonical abstraction) is open: no candidate
    emits consumer identity on spans, and broker-held state was not captured in this round.
-3. **Not promoted:** headers-exchange predicates (one system; broker-specific detail), fanout
-   binding keys (irrelevant), framework-generated names (undecidable), attribute-key mismatches
-   (ingestion gap in 5 of 6 systems; no semantics involved).
+3. **Not promoted:** headers-exchange predicates (sminerport only: remains a SEMANTIC_GAP, single
+   system, kept out of the scope so one RabbitMQ mechanism does not drive it), fanout binding keys
+   (irrelevant), framework-generated names (undecidable), attribute-key mismatches (an ingestion
+   gap in the 3 systems that emit mismatched keys: Sokol111, eShop, daonhan; koupang and hungCS
+   emit no messaging spans, which is missing evidence, not a key mismatch).
 4. **Semantic control:** daonhan's Azure Service Bus Topic/Subscription shape fits existing AIP semantics; runtime qualification was not evaluated in Round 5.
 
-## Proposed smallest scope (if condition 2 is met)
+## Proposed smallest scope (if conditions 2 and 5 are met)
 
 > For destination D in environment E, which Services can available evidence safely attribute as consumers, through what broker-native evidence, and with what qualification?
 

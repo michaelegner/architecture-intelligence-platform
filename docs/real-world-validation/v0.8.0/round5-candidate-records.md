@@ -95,4 +95,4 @@ Frozen revisions (default branch HEAD, read with `git rev-parse HEAD` at clone t
 | Case | Broker model | Classification |
 |---|---|---|
 | Sokol111 | Kafka, separate consumer groups, legacy `messaging.destination` keys | **SEMANTIC_GAP** (consumer attribution) + **INGESTION_GAP** (keys) |
-| sminerport | RabbitMQ headers exchange, queue bound with `x-match`/header arguments | **SEMANTIC_GAP** (binding predicate) + **INGESTION_GAP** (no topology source) |
+| sminerport | RabbitMQ headers exchange, queue bound with `x-match`/header arguments | **SEMANTIC_GAP** (binding predicate; single system, not promoted) + **INGESTION_GAP** (no topology source). Round 5 also identifies the queue-per-service consumer-attribution question here (`orders.product.update.queue` owned by Orders), which is why sminerport counts toward the six consumer-attribution systems |

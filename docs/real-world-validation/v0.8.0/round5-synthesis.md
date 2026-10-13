@@ -8,7 +8,7 @@
 | Finding | Systems (independent) | Count |
 |---|---|---|
 | **Consumer endpoint ↔ Service ↔ destination** is known from source/config (Kafka consumer group, RabbitMQ per-service queue); AIP has no demonstrated evidence path for qualifying that runtime attachment | Kafka: Sokol111, koupang, hungCS22hcmiu. RabbitMQ: sminerport, eShop, daonhan | 6 |
-| Operation/destination attribute keys used by hand-written instrumentation are not the ones AIP reads (`messaging.destination`, `messaging.operation`, `messaging.operation.name`) | Sokol111, eShop, daonhan; koupang/hungCS emit none | 3 + 2 |
+| Operation/destination attribute keys used by hand-written instrumentation are not the ones AIP reads (`messaging.destination`, `messaging.operation`, `messaging.operation.name`) | Sokol111, eShop, daonhan (koupang and hungCS emit no messaging spans: missing evidence, not a mismatch) | 3 |
 | Destination identity differs from consumer endpoint: exchange + routing key vs per-service queue | eShop (direct), daonhan (fanout), sminerport (headers) | 3 |
 | Routing predicate decides who receives (headers `x-match`) | sminerport only | 1 |
 | Framework-generated destination identity | food-delivery (Wolverine) | 1 |
@@ -20,7 +20,7 @@
 | Consumer attribution (Kafka group, RabbitMQ queue) | **SEMANTIC_GAP**, recurring | Kafka group ≠ Subscription and queue ≠ Topic Subscription (§5 rules) mean current Topic/Subscription semantics cannot carry it from evidence. For RabbitMQ the *declared* form is supported (Pitstop: declared Topic + named Subscription overlays), but nothing derives or qualifies it from independent evidence |
 | Attribute-key mismatch | **INGESTION_GAP** | Evidence fits existing semantics; AIP reads `messaging.operation.type` (send/receive/process) and `messaging.destination.name` only. Not promoted (§5) |
 | Destination identity (routing key vs queue) | **SEMANTIC_GAP**, weak evidence | eShop labels a routing key `destination_kind=queue`; AIP then records both sides on one observed-only Queue named after the event. That is an instrumentation mislabel, but it shows the model has no way to say "this name is a routing key, not the consumer's queue". One strong system, others compatible |
-| Headers-exchange predicate | **BROKER_SPECIFIC_DETAIL** | Only one system; consumer set is already answerable if the consumer endpoint is attributed; the predicate affects *whether a message arrives*, not *which service owns the endpoint* |
+| Headers-exchange predicate | **SEMANTIC_GAP**, single system, **not promoted** | For the fixed sminerport change (`product.update` header semantics) the `x-match`/header predicate directly determines whether Orders receives the message, so it is a real gap (Round 4 finding preserved). It appears in one system only and is one RabbitMQ mechanism, so it does not drive the proposed scope; it stays unsupported |
 | Fanout binding key (daonhan) | **BROKER_SPECIFIC_DETAIL** | Ignored by the broker; irrelevant to the question |
 | Service Bus topic + subscription (daonhan ASB mode) | **SUPPORTED** (shape only) | The Topic/Subscription shape fits existing AIP semantics. Runtime qualification was **not evaluated** in Round 5 (Azure SDK instrumentation not inspected), so it is a semantic control, not a demonstrated end-to-end case |
 | Framework-generated names (food-delivery) | **INSUFFICIENT_EVIDENCE** | Not decidable without running or reading Wolverine |
