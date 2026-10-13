@@ -1,6 +1,6 @@
 # AIP — Broker Semantic Gap Validation, Round 5
 
-**Status:** Planned  
+**Status:** Completed — see [round5-result.md](round5-result.md)  
 **Input:** Round 4 result plus the Round 2–3 reserve candidates  
 **Purpose:** Test whether the broker-related semantic gaps exposed by Sokol111 and sminerport recur across independently authored systems, and use that evidence to define the smallest justified semantic completion before v0.8.
 
