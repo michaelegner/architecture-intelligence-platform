@@ -153,6 +153,8 @@ answer yet is labelled as outside the answer, not hidden.
 
 ## Pitstop: which services receive the event you are about to change?
 
+**[Try the Pitstop demo locally →](examples/pitstop-demo/TRY_IT_LOCALLY.md)**
+
 A second real system, [Pitstop](https://github.com/EdwinVW/pitstop) (a .NET garage-management sample on
 RabbitMQ), on a different broker and stack. The task: *before replacing `StartTime` and `EndTime` in
 `MaintenanceJobFinished`, who receives from the exchange it is published to, and what must I still inspect?*
