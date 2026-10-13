@@ -12,7 +12,7 @@ what remains unresolved.
 The roadmap follows the doctrine:
 
 > **Current State is locally observed. Intent is locally attributable. Assessment is locally made.
-> dAIP answers distributed-architecture questions by projecting the relevant local views into a
+> AIP answers distributed-architecture questions by projecting the relevant local views into a
 > bounded, evidence-qualified result.**
 
 This does **not** make a complete enterprise architecture model a product goal. AIP may retain
