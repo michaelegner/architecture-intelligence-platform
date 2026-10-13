@@ -1,0 +1,449 @@
+{
+  "mapping_base": {
+    "schema": "aip-apisix-mapping/1",
+    "gateway_instance_id": "gw-prod-1",
+    "route_operation": [
+      {
+        "route_id": "orders-route",
+        "operation_id": "op:orders:get:/orders"
+      }
+    ],
+    "target_service": [
+      {
+        "kind": "route",
+        "id": "orders-route",
+        "service_id": "orders"
+      },
+      {
+        "kind": "service",
+        "id": "s1",
+        "service_id": "billing"
+      }
+    ]
+  },
+  "mapping_cases": [
+    {
+      "id": "Y01",
+      "description": "valid mapping",
+      "patch": {},
+      "expected": {
+        "result": "ACCEPTED",
+        "code": null
+      }
+    },
+    {
+      "id": "Y02",
+      "description": "unknown mapping schema",
+      "patch": {
+        "schema": "aip-apisix-mapping/2"
+      },
+      "expected": {
+        "result": "REJECTED_UNSUPPORTED",
+        "code": "GWM_SCHEMA_UNSUPPORTED"
+      }
+    },
+    {
+      "id": "Y03",
+      "description": "mapping bound to another gateway instance",
+      "patch": {
+        "gateway_instance_id": "gw-prod-2"
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_INSTANCE_MISMATCH"
+      }
+    },
+    {
+      "id": "Y04",
+      "description": "target_service kind outside {route, service}",
+      "patch": {
+        "target_service": [
+          {
+            "kind": "upstream",
+            "id": "u1",
+            "service_id": "orders"
+          }
+        ]
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MAPPING_INVALID"
+      }
+    },
+    {
+      "id": "Y05",
+      "description": "empty operation_id",
+      "patch": {
+        "route_operation": [
+          {
+            "route_id": "orders-route",
+            "operation_id": ""
+          }
+        ]
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MAPPING_INVALID"
+      }
+    },
+    {
+      "id": "Y06",
+      "description": "entry with an unexpected field",
+      "patch": {
+        "route_operation": [
+          {
+            "route_id": "orders-route",
+            "operation_id": "op:x",
+            "path": "/orders"
+          }
+        ]
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MAPPING_INVALID"
+      }
+    }
+  ],
+  "registration": {
+    "id": "apisix-metrics-prod",
+    "gateway_instance_id": "gw-prod-1",
+    "environment": "prod"
+  },
+  "base_manifest": {
+    "schema": "aip-apisix-measurement/1",
+    "gateway_instance_id": "gw-prod-1",
+    "environment": "prod",
+    "apisix_version": "3.19.0",
+    "window_start": "2026-10-13T10:00:00Z",
+    "window_end": "2026-10-13T10:10:00Z",
+    "start_settled": true,
+    "end_settled": true,
+    "start_scrape_count": 2,
+    "end_scrape_count": 3,
+    "no_restart": true,
+    "disabled_labels": [],
+    "route_coverage": {
+      "orders-route": true
+    },
+    "start_sha256": "37016ed92411f67d01e64485f1b41e391896bee09d5dfeb2484c71f5380cbb2e",
+    "end_sha256": "f753e83a206e90bd8b1ac0b4466b503f290b25dea2f34a1b42911dbd4734f97b"
+  },
+  "base_start_lines": [
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2",
+    "apisix_http_status{code=\"403\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"apisix\",route=\"orders-route\",service=\"\"} 0"
+  ],
+  "base_end_lines": [
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 5",
+    "apisix_http_status{code=\"403\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"apisix\",route=\"orders-route\",service=\"\"} 1"
+  ],
+  "hash_policy_note": "unless a case sets hash_policy='keep', the test recomputes start_sha256/end_sha256 from the (patched) extract bytes before applying manifest_patch, so only the intended defect is under test",
+  "cases": [
+    {
+      "id": "X01",
+      "spec_case": "schema-version",
+      "description": "unknown manifest schema version",
+      "manifest_patch": {
+        "schema": "aip-apisix-measurement/2"
+      },
+      "expected": {
+        "result": "REJECTED_UNSUPPORTED",
+        "code": "GWM_SCHEMA_UNSUPPORTED"
+      }
+    },
+    {
+      "id": "X02",
+      "spec_case": "instance-binding",
+      "description": "manifest gateway_instance_id differs from the registration's",
+      "manifest_patch": {
+        "gateway_instance_id": "gw-prod-2"
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_INSTANCE_MISMATCH"
+      }
+    },
+    {
+      "id": "X03",
+      "spec_case": "environment-mismatch",
+      "description": "manifest environment differs from the registration's (no cross-environment join)",
+      "manifest_patch": {
+        "environment": "staging"
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_INSTANCE_MISMATCH"
+      }
+    },
+    {
+      "id": "X04",
+      "spec_case": "binding",
+      "description": "start_sha256 does not match the bytes of the start extract",
+      "manifest_patch": {
+        "start_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_BINDING_MISMATCH"
+      }
+    },
+    {
+      "id": "X05",
+      "spec_case": "binding",
+      "description": "end extract edited after capture (hash kept)",
+      "end_lines_patch": {
+        "append": [
+          "apisix_http_status{code=\"200\",consumer=\"spike-beta\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 9"
+        ]
+      },
+      "hash_policy": "keep",
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_BINDING_MISMATCH"
+      }
+    },
+    {
+      "id": "X06",
+      "spec_case": "malformed",
+      "description": "required field missing (no_restart)",
+      "manifest_remove": [
+        "no_restart"
+      ],
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MANIFEST_INVALID"
+      }
+    },
+    {
+      "id": "X07",
+      "spec_case": "malformed",
+      "description": "mistyped field (no_restart is a string)",
+      "manifest_patch": {
+        "no_restart": "true"
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MANIFEST_INVALID"
+      }
+    },
+    {
+      "id": "X08",
+      "spec_case": "malformed",
+      "description": "window_start is not whole-second RFC 3339 UTC",
+      "manifest_patch": {
+        "window_start": "2026-10-13 10:00:00"
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MANIFEST_INVALID"
+      }
+    },
+    {
+      "id": "X09",
+      "spec_case": "malformed",
+      "description": "start_settled=true but start_scrape_count < 2 (two identical scrapes are what 'settled' means)",
+      "manifest_patch": {
+        "start_scrape_count": 1
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MANIFEST_INVALID"
+      }
+    },
+    {
+      "id": "X10",
+      "spec_case": "malformed",
+      "description": "route_coverage value is not boolean",
+      "manifest_patch": {
+        "route_coverage": {
+          "orders-route": "yes"
+        }
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MANIFEST_INVALID"
+      }
+    },
+    {
+      "id": "X11",
+      "spec_case": "malformed",
+      "description": "disabled_labels is not a sorted list of unique strings",
+      "manifest_patch": {
+        "disabled_labels": [
+          "service",
+          "consumer"
+        ]
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MANIFEST_INVALID"
+      }
+    },
+    {
+      "id": "X12",
+      "spec_case": "extract-not-normalized",
+      "description": "extract still carries the runtime 'node' label",
+      "start_lines_replace": [
+        "apisix_http_status{node=\"10.0.0.1\",code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2"
+      ],
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_EXTRACT_INVALID"
+      }
+    },
+    {
+      "id": "X13",
+      "spec_case": "extract-not-normalized",
+      "description": "samples not in canonical byte order",
+      "start_lines_replace": [
+        "apisix_http_status{code=\"403\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"apisix\",route=\"orders-route\",service=\"\"} 0",
+        "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2"
+      ],
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_EXTRACT_INVALID"
+      }
+    },
+    {
+      "id": "X14",
+      "spec_case": "extract-not-normalized",
+      "description": "labels not in alphabetical order",
+      "start_lines_replace": [
+        "apisix_http_status{route=\"orders-route\",code=\"200\",consumer=\"spike-alpha\",response_source=\"upstream\"} 2"
+      ],
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_EXTRACT_INVALID"
+      }
+    },
+    {
+      "id": "X15",
+      "spec_case": "extract-not-normalized",
+      "description": "duplicate series key in one extract",
+      "start_lines_replace": [
+        "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2",
+        "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2"
+      ],
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_EXTRACT_INVALID"
+      }
+    },
+    {
+      "id": "X16",
+      "spec_case": "extract-not-normalized",
+      "description": "non-integer counter value",
+      "start_lines_replace": [
+        "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2.5"
+      ],
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_EXTRACT_INVALID"
+      }
+    },
+    {
+      "id": "X17",
+      "spec_case": "extract-not-normalized",
+      "description": "required label (response_source) absent",
+      "start_lines_replace": [
+        "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",route=\"orders-route\"} 2"
+      ],
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_EXTRACT_INVALID"
+      }
+    },
+    {
+      "id": "X18",
+      "spec_case": "extract-not-normalized",
+      "description": "a metric other than apisix_http_status",
+      "start_lines_replace": [
+        "apisix_bandwidth{route=\"orders-route\"} 2"
+      ],
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_EXTRACT_INVALID"
+      }
+    },
+    {
+      "id": "X19",
+      "spec_case": "extract-not-normalized",
+      "description": "CRLF line endings",
+      "start_lines_replace": [
+        "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2"
+      ],
+      "line_ending": "CRLF",
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_EXTRACT_INVALID"
+      }
+    },
+    {
+      "id": "X22",
+      "spec_case": "extract-not-normalized",
+      "description": "response_source outside the frozen {upstream, apisix} set",
+      "start_lines_replace": [
+        "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"cache\",route=\"orders-route\",service=\"\"} 2"
+      ],
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_EXTRACT_INVALID"
+      }
+    },
+    {
+      "id": "X20",
+      "spec_case": "duplicate-source",
+      "description": "two registrations for the same (gateway_instance_id, environment): both rejected, neither commits (one window per gateway and environment)",
+      "registrations": [
+        {
+          "id": "m-a",
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod"
+        },
+        {
+          "id": "m-b",
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod"
+        }
+      ],
+      "expected": {
+        "result": "REJECTED_CONFLICT",
+        "code": "GWM_DUPLICATE_SOURCE",
+        "applies_to": [
+          "m-a",
+          "m-b"
+        ]
+      }
+    },
+    {
+      "id": "X21",
+      "spec_case": "distinct-pairs-coexist",
+      "description": "registrations differing in gateway or environment coexist",
+      "registrations": [
+        {
+          "id": "m-a",
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod"
+        },
+        {
+          "id": "m-b",
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "staging"
+        },
+        {
+          "id": "m-c",
+          "gateway_instance_id": "gw-prod-2",
+          "environment": "prod"
+        }
+      ],
+      "expected": {
+        "result": "ACCEPTED",
+        "code": null,
+        "applies_to": [
+          "m-a",
+          "m-b",
+          "m-c"
+        ]
+      }
+    }
+  ]
+}

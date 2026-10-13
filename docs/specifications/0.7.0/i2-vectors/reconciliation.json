@@ -1,0 +1,1618 @@
+{
+  "outcomes": [
+    "RESOLVED",
+    "UNRESOLVED",
+    "AMBIGUOUS",
+    "CONFLICT"
+  ],
+  "operations": [
+    {
+      "id": "op:orders:get:/orders",
+      "method": "GET",
+      "path": "/orders"
+    },
+    {
+      "id": "op:orders:post:/orders",
+      "method": "POST",
+      "path": "/orders"
+    },
+    {
+      "id": "op:billing:get:/invoices",
+      "method": "GET",
+      "path": "/invoices"
+    },
+    {
+      "id": "op:billing2:get:/invoices",
+      "method": "GET",
+      "path": "/invoices"
+    },
+    {
+      "id": "op:orders:get:/orders/{id}",
+      "method": "GET",
+      "path": "/orders/{id}"
+    }
+  ],
+  "note": "Route->Operation inputs: route{id,uri,uris,methods}, the operation inventory, explicit_route_operation, and operation_contract_versions (Operation id -> distinct contract-version ids from OPERATION_IN_CONTRACT_VERSION). Target->Service inputs: route{id,service_id,labels}, gateway_services, explicit_target_service, canonical_service_ids.",
+  "cases": [
+    {
+      "id": "J01",
+      "kind": "runtime-join",
+      "description": "exact consumer username and exact Route id resolve",
+      "inputs": {
+        "inventory": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod",
+          "consumers": [
+            "spike-alpha"
+          ],
+          "routes": [
+            "orders-route"
+          ]
+        },
+        "measurement": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod"
+        },
+        "route": "orders-route",
+        "consumer": "spike-alpha"
+      },
+      "expected": {
+        "consumer": "RESOLVED",
+        "route": "RESOLVED"
+      }
+    },
+    {
+      "id": "J02",
+      "kind": "runtime-join",
+      "description": "empty consumer label is unattributed",
+      "inputs": {
+        "inventory": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod",
+          "consumers": [
+            "spike-alpha"
+          ],
+          "routes": [
+            "orders-route"
+          ]
+        },
+        "measurement": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod"
+        },
+        "route": "orders-route",
+        "consumer": ""
+      },
+      "expected": {
+        "consumer": "UNRESOLVED",
+        "route": "RESOLVED"
+      }
+    },
+    {
+      "id": "J03",
+      "kind": "runtime-join",
+      "description": "consumer exists only on another gateway instance: no cross-join",
+      "inputs": {
+        "inventory": {
+          "gateway_instance_id": "gw-prod-2",
+          "environment": "prod",
+          "consumers": [
+            "spike-alpha"
+          ],
+          "routes": [
+            "orders-route"
+          ]
+        },
+        "measurement": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod"
+        },
+        "route": "orders-route",
+        "consumer": "spike-alpha"
+      },
+      "expected": {
+        "consumer": "UNRESOLVED",
+        "route": "UNRESOLVED"
+      }
+    },
+    {
+      "id": "J04",
+      "kind": "runtime-join",
+      "description": "inventory from another environment: no cross-join",
+      "inputs": {
+        "inventory": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "staging",
+          "consumers": [
+            "spike-alpha"
+          ],
+          "routes": [
+            "orders-route"
+          ]
+        },
+        "measurement": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod"
+        },
+        "route": "orders-route",
+        "consumer": "spike-alpha"
+      },
+      "expected": {
+        "consumer": "UNRESOLVED",
+        "route": "UNRESOLVED"
+      }
+    },
+    {
+      "id": "J05",
+      "kind": "runtime-join",
+      "description": "unknown Route id stays unresolved",
+      "inputs": {
+        "inventory": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod",
+          "consumers": [
+            "spike-alpha"
+          ],
+          "routes": [
+            "orders-route"
+          ]
+        },
+        "measurement": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod"
+        },
+        "route": "ghost-route",
+        "consumer": "spike-alpha"
+      },
+      "expected": {
+        "consumer": "RESOLVED",
+        "route": "UNRESOLVED"
+      }
+    },
+    {
+      "id": "J06",
+      "kind": "runtime-join",
+      "description": "username match is exact (case-sensitive, no trimming)",
+      "inputs": {
+        "inventory": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod",
+          "consumers": [
+            "spike-alpha"
+          ],
+          "routes": [
+            "orders-route"
+          ]
+        },
+        "measurement": {
+          "gateway_instance_id": "gw-prod-1",
+          "environment": "prod"
+        },
+        "route": "orders-route",
+        "consumer": "Spike-Alpha"
+      },
+      "expected": {
+        "consumer": "UNRESOLVED",
+        "route": "RESOLVED"
+      }
+    },
+    {
+      "id": "K01",
+      "kind": "route-operation",
+      "description": "explicit mapping is authoritative",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/anything",
+          "uris": [],
+          "methods": []
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [
+          {
+            "route_id": "r1",
+            "operation_id": "op:orders:get:/orders"
+          }
+        ],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "RESOLVED",
+        "operation_id": "op:orders:get:/orders"
+      }
+    },
+    {
+      "id": "K02",
+      "kind": "route-operation",
+      "description": "explicit mapping to an Operation that does not exist",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders",
+          "uris": [],
+          "methods": []
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [
+          {
+            "route_id": "r1",
+            "operation_id": "op:nope"
+          }
+        ],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "UNRESOLVED",
+        "operation_id": null
+      }
+    },
+    {
+      "id": "K03",
+      "kind": "route-operation",
+      "description": "two explicit mappings for one Route naming different Operations",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders",
+          "uris": [],
+          "methods": []
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [
+          {
+            "route_id": "r1",
+            "operation_id": "op:orders:get:/orders"
+          },
+          {
+            "route_id": "r1",
+            "operation_id": "op:orders:post:/orders"
+          }
+        ],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "CONFLICT",
+        "operation_id": null
+      }
+    },
+    {
+      "id": "K04",
+      "kind": "route-operation",
+      "description": "explicit mapping wins over a different unique fallback candidate",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders",
+          "uris": [],
+          "methods": []
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [
+          {
+            "route_id": "r1",
+            "operation_id": "op:billing:get:/invoices"
+          }
+        ],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "RESOLVED",
+        "operation_id": "op:billing:get:/invoices"
+      }
+    },
+    {
+      "id": "K05",
+      "kind": "route-operation",
+      "description": "fallback: literal uri + one method + one candidate",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders",
+          "uris": [],
+          "methods": [
+            "GET"
+          ]
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "RESOLVED",
+        "operation_id": "op:orders:get:/orders"
+      }
+    },
+    {
+      "id": "K06",
+      "kind": "route-operation",
+      "description": "fallback: methods absent, two Operations on the exact path",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders",
+          "uris": [],
+          "methods": []
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "AMBIGUOUS",
+        "operation_id": null
+      }
+    },
+    {
+      "id": "K07",
+      "kind": "route-operation",
+      "description": "fallback: methods absent, exactly one Operation on the path",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders/{id}",
+          "uris": [],
+          "methods": []
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "RESOLVED",
+        "operation_id": "op:orders:get:/orders/{id}"
+      }
+    },
+    {
+      "id": "K08",
+      "kind": "route-operation",
+      "description": "fallback: same path in two contracts is ambiguous",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/invoices",
+          "uris": [],
+          "methods": [
+            "GET"
+          ]
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "AMBIGUOUS",
+        "operation_id": null
+      }
+    },
+    {
+      "id": "K09",
+      "kind": "route-operation",
+      "description": "fallback: no Operation on that path",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/nothing",
+          "uris": [],
+          "methods": []
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "UNRESOLVED",
+        "operation_id": null
+      }
+    },
+    {
+      "id": "K10",
+      "kind": "route-operation",
+      "description": "fallback: wildcard uri is a pattern, never expanded",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders/*",
+          "uris": [],
+          "methods": []
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "UNRESOLVED",
+        "operation_id": null
+      }
+    },
+    {
+      "id": "K11",
+      "kind": "route-operation",
+      "description": "fallback: multiple uris is not one literal uri",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "",
+          "uris": [
+            "/orders",
+            "/invoices"
+          ],
+          "methods": []
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "UNRESOLVED",
+        "operation_id": null
+      }
+    },
+    {
+      "id": "K12",
+      "kind": "route-operation",
+      "description": "fallback: no base-path stripping",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/api/v1/orders",
+          "uris": [],
+          "methods": [
+            "GET"
+          ]
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "UNRESOLVED",
+        "operation_id": null
+      }
+    },
+    {
+      "id": "K13",
+      "kind": "route-operation",
+      "description": "fallback: methods compared after ASCII upper-casing; non-listed method matches nothing",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders",
+          "uris": [],
+          "methods": [
+            "delete"
+          ]
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "UNRESOLVED",
+        "operation_id": null
+      }
+    },
+    {
+      "id": "K14",
+      "kind": "route-operation",
+      "description": "resolved Operation with one contract-version association",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders",
+          "uris": [],
+          "methods": [
+            "GET"
+          ]
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {
+          "op:orders:get:/orders": [
+            "cv:orders:1.0"
+          ]
+        }
+      },
+      "expected": {
+        "operation": "RESOLVED",
+        "operation_id": "op:orders:get:/orders",
+        "contract_version": "RESOLVED",
+        "contract_version_id": "cv:orders:1.0"
+      }
+    },
+    {
+      "id": "K15",
+      "kind": "route-operation",
+      "description": "resolved Operation without association: contract chain unresolved, Operation stays resolved",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders",
+          "uris": [],
+          "methods": [
+            "GET"
+          ]
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "RESOLVED",
+        "operation_id": "op:orders:get:/orders",
+        "contract_version": "UNRESOLVED",
+        "contract_version_id": null
+      }
+    },
+    {
+      "id": "K16",
+      "kind": "route-operation",
+      "description": "resolved Operation with two distinct contract-version associations",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/orders",
+          "uris": [],
+          "methods": [
+            "GET"
+          ]
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {
+          "op:orders:get:/orders": [
+            "cv:orders:1.0",
+            "cv:orders:2.0"
+          ]
+        }
+      },
+      "expected": {
+        "operation": "RESOLVED",
+        "operation_id": "op:orders:get:/orders",
+        "contract_version": "CONFLICT",
+        "contract_version_id": null
+      }
+    },
+    {
+      "id": "K17",
+      "kind": "route-operation",
+      "description": "unresolved Operation: contract chain not evaluated",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "uri": "/nothing",
+          "uris": [],
+          "methods": []
+        },
+        "operations": [
+          {
+            "id": "op:orders:get:/orders",
+            "method": "GET",
+            "path": "/orders"
+          },
+          {
+            "id": "op:orders:post:/orders",
+            "method": "POST",
+            "path": "/orders"
+          },
+          {
+            "id": "op:billing:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:billing2:get:/invoices",
+            "method": "GET",
+            "path": "/invoices"
+          },
+          {
+            "id": "op:orders:get:/orders/{id}",
+            "method": "GET",
+            "path": "/orders/{id}"
+          }
+        ],
+        "explicit_route_operation": [],
+        "operation_contract_versions": {}
+      },
+      "expected": {
+        "operation": "UNRESOLVED",
+        "operation_id": null,
+        "contract_version": null,
+        "contract_version_id": null
+      }
+    },
+    {
+      "id": "T01",
+      "kind": "target-service",
+      "description": "aip/service label on the Route",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {
+            "aip/service": "orders"
+          }
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {}
+          }
+        ],
+        "explicit_target_service": [],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "RESOLVED",
+        "service_id": "orders"
+      }
+    },
+    {
+      "id": "T02",
+      "kind": "target-service",
+      "description": "aip/service label on the referenced Gateway Service",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {}
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {
+              "aip/service": "orders"
+            }
+          }
+        ],
+        "explicit_target_service": [],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "RESOLVED",
+        "service_id": "orders"
+      }
+    },
+    {
+      "id": "T03",
+      "kind": "target-service",
+      "description": "explicit mapping on the Route id",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {}
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {}
+          }
+        ],
+        "explicit_target_service": [
+          {
+            "kind": "route",
+            "id": "r1",
+            "service_id": "billing"
+          }
+        ],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "RESOLVED",
+        "service_id": "billing"
+      }
+    },
+    {
+      "id": "T04",
+      "kind": "target-service",
+      "description": "explicit mapping on the Gateway Service id",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {}
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {}
+          }
+        ],
+        "explicit_target_service": [
+          {
+            "kind": "service",
+            "id": "s1",
+            "service_id": "billing"
+          }
+        ],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "RESOLVED",
+        "service_id": "billing"
+      }
+    },
+    {
+      "id": "T05",
+      "kind": "target-service",
+      "description": "Route label and Gateway Service label agree",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {
+            "aip/service": "orders"
+          }
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {
+              "aip/service": "orders"
+            }
+          }
+        ],
+        "explicit_target_service": [],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "RESOLVED",
+        "service_id": "orders"
+      }
+    },
+    {
+      "id": "T06",
+      "kind": "target-service",
+      "description": "Route label and Gateway Service label disagree",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {
+            "aip/service": "orders"
+          }
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {
+              "aip/service": "billing"
+            }
+          }
+        ],
+        "explicit_target_service": [],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "CONFLICT",
+        "service_id": null
+      }
+    },
+    {
+      "id": "T07",
+      "kind": "target-service",
+      "description": "mapping and label disagree",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {
+            "aip/service": "orders"
+          }
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {}
+          }
+        ],
+        "explicit_target_service": [
+          {
+            "kind": "route",
+            "id": "r1",
+            "service_id": "billing"
+          }
+        ],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "CONFLICT",
+        "service_id": null
+      }
+    },
+    {
+      "id": "T08",
+      "kind": "target-service",
+      "description": "mapping and label agree",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {
+            "aip/service": "orders"
+          }
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {}
+          }
+        ],
+        "explicit_target_service": [
+          {
+            "kind": "service",
+            "id": "s1",
+            "service_id": "orders"
+          }
+        ],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "RESOLVED",
+        "service_id": "orders"
+      }
+    },
+    {
+      "id": "T09",
+      "kind": "target-service",
+      "description": "stated target Service does not exist",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {
+            "aip/service": "ghost"
+          }
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {}
+          }
+        ],
+        "explicit_target_service": [],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "UNRESOLVED",
+        "service_id": null
+      }
+    },
+    {
+      "id": "T10",
+      "kind": "target-service",
+      "description": "no target statement: similarity of names never resolves",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {
+            "team": "orders"
+          }
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {}
+          }
+        ],
+        "explicit_target_service": [],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "UNRESOLVED",
+        "service_id": null
+      }
+    },
+    {
+      "id": "T11",
+      "kind": "target-service",
+      "description": "label key must be exactly aip/service",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {
+            "AIP/Service": "orders",
+            "aip-service": "orders"
+          }
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {}
+          }
+        ],
+        "explicit_target_service": [],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "UNRESOLVED",
+        "service_id": null
+      }
+    },
+    {
+      "id": "T12",
+      "kind": "target-service",
+      "description": "Route without a Gateway Service and without statements",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": null,
+          "labels": {}
+        },
+        "gateway_services": [],
+        "explicit_target_service": [],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "UNRESOLVED",
+        "service_id": null
+      }
+    },
+    {
+      "id": "T13",
+      "kind": "target-service",
+      "description": "two mapping entries for one object naming different Services",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {}
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {}
+          }
+        ],
+        "explicit_target_service": [
+          {
+            "kind": "route",
+            "id": "r1",
+            "service_id": "orders"
+          },
+          {
+            "kind": "route",
+            "id": "r1",
+            "service_id": "billing"
+          }
+        ],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "CONFLICT",
+        "service_id": null
+      }
+    },
+    {
+      "id": "T14",
+      "kind": "target-service",
+      "description": "mapping for an unrelated object is not a statement",
+      "inputs": {
+        "route": {
+          "id": "r1",
+          "service_id": "s1",
+          "labels": {
+            "aip/service": "orders"
+          }
+        },
+        "gateway_services": [
+          {
+            "id": "s1",
+            "labels": {}
+          }
+        ],
+        "explicit_target_service": [
+          {
+            "kind": "route",
+            "id": "other",
+            "service_id": "billing"
+          }
+        ],
+        "canonical_service_ids": [
+          "orders",
+          "billing"
+        ]
+      },
+      "expected": {
+        "target": "RESOLVED",
+        "service_id": "orders"
+      }
+    },
+    {
+      "id": "T15",
+      "kind": "independence",
+      "description": "target resolves while Route->Operation is unresolved (independent chains)",
+      "inputs": {
+        "route_operation": {
+          "route": {
+            "id": "r1",
+            "uri": "/nothing",
+            "uris": [],
+            "methods": []
+          },
+          "operations": [
+            {
+              "id": "op:orders:get:/orders",
+              "method": "GET",
+              "path": "/orders"
+            },
+            {
+              "id": "op:orders:post:/orders",
+              "method": "POST",
+              "path": "/orders"
+            },
+            {
+              "id": "op:billing:get:/invoices",
+              "method": "GET",
+              "path": "/invoices"
+            },
+            {
+              "id": "op:billing2:get:/invoices",
+              "method": "GET",
+              "path": "/invoices"
+            },
+            {
+              "id": "op:orders:get:/orders/{id}",
+              "method": "GET",
+              "path": "/orders/{id}"
+            }
+          ],
+          "explicit_route_operation": [],
+          "operation_contract_versions": {}
+        },
+        "target_service": {
+          "route": {
+            "id": "r1",
+            "service_id": "s1",
+            "labels": {
+              "aip/service": "orders"
+            }
+          },
+          "gateway_services": [
+            {
+              "id": "s1",
+              "labels": {}
+            }
+          ],
+          "explicit_target_service": [],
+          "canonical_service_ids": [
+            "orders",
+            "billing"
+          ]
+        }
+      },
+      "expected": {
+        "operation": "UNRESOLVED",
+        "target": "RESOLVED",
+        "service_id": "orders"
+      }
+    },
+    {
+      "id": "T16",
+      "kind": "independence",
+      "description": "Route->Operation resolves while the target Service is unresolved",
+      "inputs": {
+        "route_operation": {
+          "route": {
+            "id": "r1",
+            "uri": "/orders",
+            "uris": [],
+            "methods": [
+              "GET"
+            ]
+          },
+          "operations": [
+            {
+              "id": "op:orders:get:/orders",
+              "method": "GET",
+              "path": "/orders"
+            },
+            {
+              "id": "op:orders:post:/orders",
+              "method": "POST",
+              "path": "/orders"
+            },
+            {
+              "id": "op:billing:get:/invoices",
+              "method": "GET",
+              "path": "/invoices"
+            },
+            {
+              "id": "op:billing2:get:/invoices",
+              "method": "GET",
+              "path": "/invoices"
+            },
+            {
+              "id": "op:orders:get:/orders/{id}",
+              "method": "GET",
+              "path": "/orders/{id}"
+            }
+          ],
+          "explicit_route_operation": [],
+          "operation_contract_versions": {}
+        },
+        "target_service": {
+          "route": {
+            "id": "r1",
+            "service_id": "s1",
+            "labels": {}
+          },
+          "gateway_services": [
+            {
+              "id": "s1",
+              "labels": {}
+            }
+          ],
+          "explicit_target_service": [],
+          "canonical_service_ids": [
+            "orders",
+            "billing"
+          ]
+        }
+      },
+      "expected": {
+        "operation": "RESOLVED",
+        "operation_id": "op:orders:get:/orders",
+        "target": "UNRESOLVED",
+        "service_id": null
+      }
+    }
+  ]
+}

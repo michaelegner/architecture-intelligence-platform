@@ -1,0 +1,110 @@
+{
+  "encoding": "ld(parts) = for each part: 8-byte big-endian UTF-8 byte length + UTF-8 bytes; digest = lowercase hex SHA-256 (app.common.encoding convention). Consumer and route ids are the frozen I1 formulas (i1-vectors/ids.json V01, V03).",
+  "vectors": [
+    {
+      "id": "M01",
+      "formula": "urn:aip:source:apisix-measurement:<sha256(ld(configured source id, gateway_instance_id, environment))>",
+      "inputs": {
+        "source_id": "apisix-metrics-prod",
+        "gateway_instance_id": "gw-prod-1",
+        "environment": "prod"
+      },
+      "expected": "urn:aip:source:apisix-measurement:fa70f1072645642df22cb72cda5113decbd9df37e28b3ed81d56d74820bf1927"
+    },
+    {
+      "id": "M02",
+      "formula": "same source id and gateway, other environment is a distinct source instance id",
+      "inputs": {
+        "source_id": "apisix-metrics-prod",
+        "gateway_instance_id": "gw-prod-1",
+        "environment": "staging"
+      },
+      "expected": "urn:aip:source:apisix-measurement:1d13c186ae92cbb8fcd305df928015e890a33c6c4b3ffeec2d738cd7ce7baae8"
+    },
+    {
+      "id": "M03",
+      "formula": "sha256 of the exact bytes of the normalized extract (lowercase hex)",
+      "inputs": {
+        "extract_lines": [
+          "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2",
+          "apisix_http_status{code=\"403\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"apisix\",route=\"orders-route\",service=\"\"} 0"
+        ]
+      },
+      "expected": "37016ed92411f67d01e64485f1b41e391896bee09d5dfeb2484c71f5380cbb2e"
+    },
+    {
+      "id": "M04",
+      "formula": "measurement-window:owned:<sha256(ld(gateway_instance_id, environment, window_start, window_end, start_sha256, end_sha256))>",
+      "inputs": {
+        "gateway_instance_id": "gw-prod-1",
+        "environment": "prod",
+        "window_start": "2026-10-13T10:00:00Z",
+        "window_end": "2026-10-13T10:10:00Z",
+        "start_sha256": "37016ed92411f67d01e64485f1b41e391896bee09d5dfeb2484c71f5380cbb2e",
+        "end_sha256": "f753e83a206e90bd8b1ac0b4466b503f290b25dea2f34a1b42911dbd4734f97b"
+      },
+      "expected": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+    },
+    {
+      "id": "M05",
+      "formula": "evidence:apisix-measurement:<sha256(ld(gateway_instance_id, environment, window_start, window_end, start_sha256, end_sha256))>; a different window or different extract bytes is a different evidence id",
+      "inputs": {
+        "gateway_instance_id": "gw-prod-1",
+        "environment": "prod",
+        "window_start": "2026-10-13T10:00:00Z",
+        "window_end": "2026-10-13T10:10:00Z",
+        "start_sha256": "37016ed92411f67d01e64485f1b41e391896bee09d5dfeb2484c71f5380cbb2e",
+        "end_sha256": "f753e83a206e90bd8b1ac0b4466b503f290b25dea2f34a1b42911dbd4734f97b"
+      },
+      "expected": "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+    },
+    {
+      "id": "M06",
+      "formula": "observed-consumer-interaction:owned:<sha256(ld(consumer id, route id, environment, window_start, window_end))>",
+      "inputs": {
+        "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+        "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+        "environment": "prod",
+        "window_start": "2026-10-13T10:00:00Z",
+        "window_end": "2026-10-13T10:10:00Z"
+      },
+      "expected": "observed-consumer-interaction:owned:9a2d3405a0721c1fedfc6d79567b0ecb479869c8d8929181e6bc463b7cbdb519"
+    },
+    {
+      "id": "M07",
+      "formula": "same pair in a later window is a distinct interaction id (no cross-window identity)",
+      "inputs": {
+        "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+        "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+        "environment": "prod",
+        "window_start": "2026-10-13T10:10:00Z",
+        "window_end": "2026-10-13T10:20:00Z"
+      },
+      "expected": "observed-consumer-interaction:owned:c9b8f83374d46b1e86465335abd583d1aa1628e64485e7823014ac94e65496c7"
+    },
+    {
+      "id": "M08",
+      "formula": "the same consumer on another route is a distinct interaction id",
+      "inputs": {
+        "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+        "route_id": "gateway-route:owned:5e5e3298f0b1d13f0230bf6a229a09c8f2926fbda7f4da835277e81f4b4ce7b5",
+        "environment": "prod",
+        "window_start": "2026-10-13T10:00:00Z",
+        "window_end": "2026-10-13T10:10:00Z"
+      },
+      "expected": "observed-consumer-interaction:owned:6cb4ec825907e818091587a3ecfee46859cc4b40001b3d84cf1787254712bc10"
+    },
+    {
+      "id": "M09",
+      "formula": "usage-qualification:owned:<sha256(ld(consumer id, route id, environment, window_start, window_end))>; its domain prefix keeps it distinct from the interaction id over the same inputs",
+      "inputs": {
+        "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+        "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+        "environment": "prod",
+        "window_start": "2026-10-13T10:00:00Z",
+        "window_end": "2026-10-13T10:10:00Z"
+      },
+      "expected": "usage-qualification:owned:9a2d3405a0721c1fedfc6d79567b0ecb479869c8d8929181e6bc463b7cbdb519"
+    }
+  ]
+}
