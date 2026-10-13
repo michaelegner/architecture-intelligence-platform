@@ -18,13 +18,10 @@ The spike must keep the baseline fair: all relevant repositories, configuration,
 
 Round 4 SHALL NOT:
 
-- run a Teamscale baseline;
-- choose a system because a specific source-analysis product is weak on it;
 - make the final v0.8 continue / narrow / integrate / defer / stop decision;
 - add new AIP semantics solely to make a candidate work;
-- hide source or repository-native context.
-
-Teamscale enters **after system selection, in v0.8 proper**.
+- hide source or repository-native context;
+- perform the final v0.8 product-boundary validation.
 
 ## 3. Finalists and fixed changes
 
@@ -127,7 +124,7 @@ The decisive field is **Plausible investigation difference?**:
 
 > **Is there a credible distributed-architecture question that source/context does not safely settle, while independent evidence can answer it and current AIP semantics can represent that answer?**
 
-This does not prove AIP adds value beyond Teamscale. That is a v0.8 question.
+This does not prove the final v0.8 product hypothesis. Round 4 only selects a system capable of testing it fairly.
 
 ## 10. Selection rule
 
@@ -141,7 +138,7 @@ Select the v0.8 validation system when:
 6. the scenario is reproducible;
 7. the scenario would make a credible public demonstration if v0.8 succeeds.
 
-Do not require Round 4 to prove that AIP changes the next action beyond every source-analysis tool.
+Do not require Round 4 to prove the final product-boundary result.
 
 ## 11. Execution order
 
@@ -155,14 +152,16 @@ Only if required:
 
 ## 12. Handoff to v0.8
 
-After selection, **v0.8 proper** performs the product-boundary validation with:
+After selection, Round 4 hands over:
 
+- the selected system and frozen revisions;
+- the fixed bounded-change scenario;
 - the fair coding-agent/source baseline;
-- Teamscale 2026.7.x with all relevant repositories;
-- the selected independent distributed evidence;
-- AIP's evidence-qualified result;
-- the test of whether AIP materially changes the investigation boundary beyond mature source analysis;
-- the roadmap checkpoint: **continue, narrow, integrate, defer, or stop**.
+- the independent distributed evidence;
+- the reproducible evidence-capture path;
+- AIP feasibility and any identified gaps.
+
+The actual product-boundary validation belongs to v0.8 proper.
 
 > **Round 4 selects a system that can fairly test the product hypothesis. v0.8 tests the hypothesis.**
 
