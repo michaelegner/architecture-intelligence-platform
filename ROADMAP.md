@@ -601,42 +601,31 @@ naming, ownership, or graph proximity. A generic enterprise metamodel remains ou
 
 ### Product-boundary validation
 
-The bounded **Pitstop × Teamscale 2026.7.x** PoC is the primary product test.
+v0.8 includes a **Pitstop × Teamscale 2026.7.x** product-boundary PoC to test whether AIP adds
+material value beyond strong repository/source architecture analysis.
 
-The comparison must be fair: where Teamscale can analyze multiple repositories in one project, give
-it the relevant Pitstop and Reporting source rather than creating an artificial repository blind
-spot. AIP must earn its role from evidence that is genuinely outside or orthogonal to static/source
-dependencies.
+The PoC should evaluate a realistic cross-repository distributed scenario in which relevant
+relationships cannot be assumed from repository structure alone. The comparison must give the
+baseline tools realistic access to the source they can analyze, while AIP must establish distributed
+relationships from independently qualified evidence.
 
-The stronger distributed scenario places `WorkshopManagementAPI` in the Pitstop/Workshop component
-and `ReportingService` in a separate Reporting component and repository. AIP must establish the
-distributed relationship between them independently from runtime, broker, deployment, or other
-qualified evidence before classifying that relationship as **cross-boundary**.
+The validation should determine whether AIP changes the investigation boundary for a bounded
+coding-agent task in ways that source analysis cannot safely reproduce, and whether that additional
+value justifies AIP's evidence and maintenance cost.
 
-For this validation, AIP must not rely on the repository relation itself to discover the distributed
-relationship and must not use an operator-authored Intent artifact to manufacture Current State.
+The checkpoint records one of **continue, narrow, integrate, defer, or stop**. AIP should not
+duplicate capabilities that an adjacent architecture-analysis product can provide equally well at
+lower cost.
 
-Teamscale is neither an AIP runtime dependency nor an authority for AIP Current-State facts.
+The same checkpoint should inform whether later AIP-owned **external Intent** and **local distributed
+Assessment** capabilities remain justified or should instead be provided through integration with
+adjacent architecture/conformance products.
 
-The checkpoint must record **continue, narrow, integrate, defer, or stop**. In particular:
+**Exit capability:**
 
-> **If Teamscale at realistic multi-repository scope produces the same useful investigation boundary
-> at lower maintenance cost, AIP adds too little and should narrow or stop rather than duplicate it.**
-
-Conversely, the PoC supports a distinct AIP role if runtime, broker, deployment, gateway, contract, or
-other independent evidence changes the investigation boundary in ways source analysis cannot safely
-recover.
-
-The release also decides whether later AIP-owned **external Intent** and **local distributed
-Assessment** capabilities are justified, or whether those concerns should remain in an adjacent
-architecture/conformance product.
-
-Exit capability:
-
-> **For a bounded distributed-architecture question, AIP can state which established relationships
-> stay within an established boundary, which cross one, and which remain unresolved — while
-> preserving locality, evidence, provenance, qualification, and uncertainty — and the product
-> checkpoint records whether that capability materially improves the coding-agent workflow.**
+> **AIP can produce an evidence-qualified cross-boundary view for a bounded distributed-architecture
+> question, and the product validation establishes whether that view materially improves the
+> coding-agent workflow beyond repository/source analysis.**
 
 ## v0.9 — External Architecture Intent (provisional; checkpoint-dependent)
 
