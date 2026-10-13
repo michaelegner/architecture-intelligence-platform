@@ -232,28 +232,34 @@ def test_no_skill_asserts_field_usage_per_queue_qualification_or_completeness():
             assert forbidden not in text, (path.name, forbidden)
 
 
-def test_readme_documents_how_to_load_the_plugin():
+def test_tryout_guides_document_local_and_hosted_agent_setup():
     readme = (DEMO_DIR / "README.md").read_text()
-    assert "claude --plugin-dir examples/pitstop-demo/claude/plugin" in readme
-    assert "/aip:inspect" in readme
-    assert "plugin:aip:aip" in readme
-    assert "export AIP_MCP_URL=" in readme
-    assert "export AIP_MCP_TOKEN=" in readme
-    # a standalone server with the same URL makes Claude Code suppress the plugin's server (spike 2026-10-08)
-    assert "standalone `aip` MCP server" in readme
-    assert "suppresses" in readme
-    # marketplace install and the settings of an installed plugin
-    assert "claude plugin marketplace add michaelegner/architecture-intelligence-platform" in readme
-    assert "claude plugin install aip@aip-plugins" in readme
-    assert "claude plugin configure aip@aip-plugins --values-stdin" in readme
-    assert "mode-600 credentials file" in readme and "not verified" in readme
-    # the testers' getting-started path: the public Pitstop clone at the demo's pin, the install and the question
-    assert "## Getting started for testers (hosted instance)" in readme
-    assert "git clone https://github.com/EdwinVW/pitstop.git" in readme
-    assert "git checkout 306b5fbd0febceb6b0d0706f152a0520ca1a993a" in readme
-    assert "<YYYY-MM-DD>T00:00:00Z to <YYYY-MM-DD>T23:59:59Z" in readme
-    # the hosted instance's host name is withheld by owner decision: no concrete host or token in the README
-    assert not re.search(r"sslip\.io|https?://[^\s)]*\.(?:org|com|net|dev|io)/mcp", readme)
+    local = (DEMO_DIR / "TRY_IT_LOCALLY.md").read_text()
+    hosted = (DEMO_DIR / "TRY_IT_HOSTED.md").read_text()
+
+    assert "[Try locally](TRY_IT_LOCALLY.md)" in readme
+    assert "[Try hosted](TRY_IT_HOSTED.md)" in readme
+
+    # both public tryout paths document the marketplace plugin and the pinned Pitstop source
+    for guide in (local, hosted):
+        assert "claude plugin marketplace add michaelegner/architecture-intelligence-platform" in guide
+        assert "claude plugin install aip@aip-plugins" in guide
+        assert "git clone https://github.com/EdwinVW/pitstop.git" in guide
+        assert "git checkout 306b5fbd0febceb6b0d0706f152a0520ca1a993a" in guide
+        assert "architecture-aware-development" in guide
+
+    assert "http://localhost:8000/mcp" in local
+    assert "No AIP credentials" in local
+
+    assert "/plugin configure aip@aip-plugins" in hosted
+    assert "aip_mcp_url" in hosted
+    assert "aip_token" in hosted
+    assert "standalone `aip` MCP server" in hosted
+    assert "plugin:aip:aip" in hosted
+    assert "<YYYY-MM-DD>T00:00:00Z to <YYYY-MM-DD>T23:59:59Z" in hosted
+
+    # the hosted instance's host name is withheld by owner decision: no concrete hosted endpoint or token
+    assert not re.search(r"sslip\.io|https?://[^\s)]*\.(?:org|com|net|dev|io)/mcp", hosted)
 
 
 def test_skills_state_the_inclusive_whole_day_window_and_never_guess_why_a_day_is_empty():
