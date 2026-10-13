@@ -43,6 +43,29 @@ next round.
 | [Itssanthoshhere/Feasto](https://github.com/Itssanthoshhere/Feasto) | Multi-role food delivery platform | REST/WebSocket-facing services | RabbitMQ | Monorepo; Docker | Active; low recognition | Payment, restaurant and rider services communicate asynchronously; realistic operational workflow despite adjacent domain. |
 | [Bruce-the-dev/food-delivery-platform](https://github.com/Bruce-the-dev/food-delivery-platform) | Spring food-delivery microservices | OpenFeign + gateway/Eureka | RabbitMQ | Monorepo; Docker Compose | Active; low recognition | Straightforward mixed sync/async order flow and service discovery make it a practical fallback candidate. |
 
+## Secondary search track — coding-agent-native systems
+
+A second discovery pass looked specifically for e-commerce/distributed systems that already contain
+coding-agent context such as `CLAUDE.md`, `AGENTS.md`, Claude Code agents/skills, or similar
+repository guidance. This is a **bonus dimension, not a requirement**. It creates a particularly fair
+v0.8 baseline because the coding agent can use both the source and the repository's own agent-readable
+architecture guidance before AIP contributes anything.
+
+| Candidate | Distributed-system fit | Coding-agent evidence | Why potentially interesting for v0.8 |
+|---|---|---|---|
+| [Sokol111 ecommerce workspace](https://github.com/Sokol111/ecommerce-catalog-service) | Real multi-repo CQRS platform; Connect-RPC/gRPC-compatible APIs, Kafka transactional outbox, independent query services, OpenTelemetry; separate infrastructure repo with k3d/Tilt and production k3s | Detailed per-repository `AGENTS.md`; workspace-wide agent rules; OpenCode integration mentioned in service guidance | **Very strong candidate.** The catalog write service publishes Kafka events that separate query-service repositories consume, while deployment/configuration lives in another repo. This naturally tests source + agent instructions versus independent distributed evidence without hiding source. |
+| [hungCS22hcmiu/ecommerce-system](https://github.com/hungCS22hcmiu/ecommerce-system) | Six Go/Java/Python services; REST, Kafka choreography, transactional outbox, payment saga/DLQ, Nginx gateway, Docker Compose | Repository explicitly says it was **built with Claude Code**; root `CLAUDE.md` and `.claude/` configuration | Excellent agent-native shape: a favorable Claude Code baseline already has a detailed service map and architecture guidance, so AIP would have to add something the repository context cannot safely establish. |
+| [JYC11/koupang](https://github.com/JYC11/koupang) | Rust commerce microservices; Kafka choreography, transactional outbox, saga integration tests, Postgres/Redis | Built with AI assistance (Claude); root and per-service `CLAUDE.md`; `.claude/skills`; persisted Claude-oriented planning/workflow material | Strong test of AIP against unusually rich agent-readable context. The downside is that the project explicitly describes itself as a learning/portfolio system. |
+| [Ngoc-Giang/Ecommerce-MVP](https://github.com/Ngoc-Giang/Ecommerce-MVP) | Microservices with REST, gRPC, Kafka, database-per-service, gateway, Redis and Docker Compose | Root `CLAUDE.md` is the working memory for Claude Code; dedicated `.claude/agents/` for BA, development and testing | Directly relevant to coding-agent workflows and mixed sync/async architecture; lower recognition and MVP scope need deeper filtering. |
+| [eoghks/ecommerce-msa](https://github.com/eoghks/ecommerce-msa) | Spring Boot e-commerce MSA; gateway, Kafka choreography saga, Redis, PostgreSQL and Docker Compose | Project-level `CLAUDE.md` plus agent-oriented project rules/documentation | Good Java/Kafka candidate with explicit agent context; appears portfolio-oriented, so production realism must be checked in Round 2. |
+| [daoductam/ecomerce-platform-quarkus](https://github.com/daoductam/ecomerce-platform-quarkus) | Five Quarkus business services; RabbitMQ, Kong gateway, Docker Compose/Kubernetes, DDD/Clean Architecture | Repository `AGENTS.md` provides explicit coding-agent architecture guidance | Useful Quarkus/RabbitMQ counterpoint with agent-readable architecture rules; low public recognition. |
+
+One additional project, [algaworks/ems-algashop-meta](https://github.com/algaworks/ems-algashop-meta),
+is noteworthy because its `AGENTS.md` explicitly guides Claude Code across a **multi-repository
+submodule** commerce system with gateways, Eureka service discovery, contracts and Docker. It is not
+promoted into the candidate pool yet because the Round 1 scan did not find meaningful asynchronous
+inter-service messaging, which is preferred for the v0.8 comparison.
+
 ## Notable systems screened out in Round 1
 
 - [dotnet-architecture/eShopOnContainers](https://github.com/dotnet-architecture/eShopOnContainers) —
@@ -60,13 +83,17 @@ next round.
 
 ## Round 1 result
 
-The longlist contains **25 candidates**: **21 e-commerce/retail systems** and **4 adjacent
-food-delivery systems** retained as fallback because they have unusually strong mixed synchronous /
-asynchronous flows.
+The combined discovery contains **31 candidates**: the original **25 architecture-first systems**
+plus **6 coding-agent-native systems** found through the secondary search track. The latter are
+especially useful because they strengthen the coding-agent baseline rather than handicapping it:
+repository-native agent context is available alongside the source before AIP is introduced.
 
 The most immediately promising systems for the next filtering round are not selected yet, but several
 stand out for different reasons: `dotnet/eShop` and `aspnetrun/run-aspnetcore-microservices` for
-recognition and strong source-analysis baselines; `biswojit65/e-commerce_application`,
+recognition and strong source-analysis baselines; the **Sokol111 multi-repo ecommerce workspace** for
+its combination of Kafka, gRPC-compatible APIs, OpenTelemetry, real deployment infrastructure and
+rich `AGENTS.md` context; `hungCS22hcmiu/ecommerce-system` and `JYC11/koupang` for unusually
+strong Claude-oriented repository context; `biswojit65/e-commerce_application`,
 `Noname2812/ecommerce-microservices-demo`, and `daonhan/Microservices-in-.NET` for production-like
 messaging/observability depth; and `jadofils/food-delivery-platform-microservices` as a strong
 non-commerce fallback with an especially clear mixed REST/RabbitMQ flow.
