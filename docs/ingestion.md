@@ -210,6 +210,29 @@ are normalized deterministically, never treated as two separate mappings. See
 combines with Path A/C into the public `DEPLOYED_AS` claim, and [`evidence.md`](evidence.md) for how
 a mapping entry's own evidence is encoded and exposed.
 
+## APISIX gateway adapter (`app/ingestion/apisix_adapter.py`, v0.7.0 I1)
+
+A fourth adapter shape, modelled on the Kubernetes source: **offline-only**, one registration per
+gateway (`sources.gateways`: `id`, `root`, `capture_relative_path`, `gateway_instance_id`), one
+bounded JSON capture (`aip-apisix-capture/1`, at most 8 MiB, 10,000 objects, nesting 64) found
+through the registration, never a live gateway connection. The capture is produced by the **separate**
+tool `python -m app.gateway_capture.apisix` (Admin API over etcd, fenced by the etcd revision before
+and after, every list complete, redacted in acquisition code); the adapter validates and replays it
+and never contacts APISIX.
+
+Per-source outcomes: an unreadable/malformed/unredacted/inconsistent/incomplete capture or an
+instance mismatch is `REJECTED_INVALID`; a standalone-YAML surface, an unknown schema version or an
+exceeded bound is `REJECTED_UNSUPPORTED`; two registrations declaring the same `gateway_instance_id`
+are both `REJECTED_CONFLICT`. A rejection makes the run `PARTIAL` and commits nothing, and removes
+nothing previously accepted. A complete accepted capture is authoritative for that gateway
+instance's interpreted objects only: objects, access records and limitations absent from a later
+accepted capture are expired. Facts the adapter records but does not interpret as access (the
+limitation codes of the I1.1 contract §4) make the source `ACCEPTED_WITH_LIMITATIONS`.
+
+Registering this adapter changes the `adapters` entry of the mapping-context digest once, so every
+source is re-evaluated once on the first import after upgrade; no graph content or snapshot id
+changes.
+
 ## Import report (v1)
 
 `POST /api/import` and `POST /api/import/service/{serviceId}` return the versioned I1 §10 import
@@ -224,7 +247,7 @@ entry per configured source run, ordered by `(kind, configured_source_id)`:
 
 | Field | Meaning |
 | --- | --- |
-| `kind`, `configured_source_id` | `filesystem` or `kubernetes`, and the configured source's id |
+| `kind`, `configured_source_id` | `filesystem`, `kubernetes` or `apisix` (v0.7.0 I1.4, additive: only present when `sources.gateways` is configured), and the configured source's id |
 | `discovery_scope_id`, `scope_definition_digest` | the run's scope identity (I1 §6), or null when discovery could not compute it |
 | `inventory_status`, `committed` | `COMPLETE`, `PARTIAL` or `FAILED`, and whether the run committed |
 | `inventory_revision` | the inventory revision the run committed; null when it did not commit |

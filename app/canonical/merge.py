@@ -58,6 +58,13 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
     brokers: dict[str, Broker] = {}
     pubsub_declarations: dict[str, PubSubDeclaration] = {}
     dead_letter_configurations: dict[str, SubscriptionDeadLetterConfiguration] = {}
+    gateway: dict[str, dict] = {
+        name: {}
+        for name in (
+            "gateway_consumers", "gateway_routes", "gateway_services",
+            "gateway_configured_accesses", "gateway_limitations", "gateway_source_evidence",
+        )
+    }  # fmt: skip
     api_contracts: dict[str, ApiContract] = {}
     api_contract_versions: dict[str, ApiContractVersion] = {}
     api_contract_associations: dict[str, ApiContractAssociation] = {}
@@ -89,6 +96,9 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
             pubsub_declarations.setdefault(declaration.id, declaration)
         for configuration in model.subscription_dead_letter_configurations:
             dead_letter_configurations.setdefault(configuration.id, configuration)
+        for name, merged in gateway.items():
+            for carrier in getattr(model, name):
+                merged.setdefault(carrier.id, carrier)
         for contract in model.api_contracts:
             api_contracts.setdefault(contract.id, contract)
         for contract_version in model.api_contract_versions:
@@ -136,6 +146,7 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
         brokers=list(brokers.values()),
         pubsub_declarations=list(pubsub_declarations.values()),
         subscription_dead_letter_configurations=list(dead_letter_configurations.values()),
+        **{name: list(merged.values()) for name, merged in gateway.items()},
         api_contracts=list(api_contracts.values()),
         api_contract_versions=list(api_contract_versions.values()),
         api_contract_associations=list(api_contract_associations.values()),

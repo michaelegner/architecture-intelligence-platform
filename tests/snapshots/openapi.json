@@ -2347,6 +2347,16 @@
           "K8S_SNAPSHOT_INCOMPLETE",
           "K8S_LIMIT_EXCEEDED",
           "K8S_STALE_INVENTORY",
+          "GW_CAPTURE_INVALID",
+          "GW_CAPTURE_INCONSISTENT",
+          "GW_CAPTURE_INCOMPLETE",
+          "GW_CAPTURE_UNREDACTED",
+          "GW_INSTANCE_MISMATCH",
+          "GW_CAPTURE_SURFACE_UNSUPPORTED",
+          "GW_CAPTURE_SCHEMA_UNSUPPORTED",
+          "GW_CAPTURE_LIMIT_EXCEEDED",
+          "GW_DUPLICATE_INSTANCE",
+          "GW_CONFIGURATION_LIMITATIONS",
           "K8S_RESOURCE_UNSUPPORTED",
           "K8S_RESOURCE_INVALID",
           "K8S_OWNER_UNRESOLVED",
@@ -4665,7 +4675,7 @@
           "source_instance_id": {
             "anyOf": [
               {
-                "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+                "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix):[0-9a-f]{64}$",
                 "type": "string"
               },
               {
@@ -4837,7 +4847,7 @@
             "$ref": "#/components/schemas/ReportEffects"
           },
           "source_instance_id": {
-            "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+            "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix):[0-9a-f]{64}$",
             "title": "Source Instance Id",
             "type": "string"
           }
@@ -4897,7 +4907,8 @@
           "kind": {
             "enum": [
               "filesystem",
-              "kubernetes"
+              "kubernetes",
+              "apisix"
             ],
             "title": "Kind",
             "type": "string"
@@ -5045,14 +5056,15 @@
             "uniqueItems": true
           },
           "source_instance_id": {
-            "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+            "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix):[0-9a-f]{64}$",
             "title": "Source Instance Id",
             "type": "string"
           },
           "source_kind": {
             "enum": [
               "filesystem",
-              "kubernetes"
+              "kubernetes",
+              "apisix"
             ],
             "title": "Source Kind",
             "type": "string"
@@ -5107,7 +5119,7 @@
             "$ref": "#/components/schemas/IngestionResult"
           },
           "source_instance_id": {
-            "pattern": "^urn:aip:source:(filesystem|kubernetes):[0-9a-f]{64}$",
+            "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix):[0-9a-f]{64}$",
             "title": "Source Instance Id",
             "type": "string"
           }

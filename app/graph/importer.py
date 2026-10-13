@@ -28,6 +28,7 @@ from app.graph.schema import ensure_schema
 from app.ingestion.orchestrator import (
     DiscoveryRunResult,
     SourceRunOutcome,
+    run_apisix_discovery,
     run_filesystem_discovery,
     run_kubernetes_discovery,
 )
@@ -47,6 +48,7 @@ from app.sources.inventory import inventory_event_id as compute_inventory_event_
 from app.sources.migration_mappings import SharedIdentityMappingIndex
 from app.sources.model import (
     NOT_SUPPLIED,
+    ApisixSourceConfig,
     DiagnosticCode,
     FilesystemSourceConfig,
     IngestionDiagnostic,
@@ -876,3 +878,25 @@ def import_kubernetes_source(
             ),
         )
     return stats
+
+
+def import_apisix_source(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    source_config: ApisixSourceConfig,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_gateway_instance: bool = False,
+) -> ImportRunStats:
+    """Thin wrapper over `run_apisix_discovery` + `import_discovery_run` for the APISIX gateway
+    source kind (v0.7.0 I1.4). There is no predecessor-revision expectation in I1 (contract §5), so
+    the generic commit gate is the only gate; a rejected, inconsistent or incomplete capture makes
+    the run PARTIAL and commits nothing."""
+    run_result = run_apisix_discovery(
+        source_config,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+        duplicate_gateway_instance=duplicate_gateway_instance,
+    )
+    return import_discovery_run(driver, database=database, run_result=run_result)

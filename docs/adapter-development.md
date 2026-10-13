@@ -80,6 +80,17 @@ declared-source adapters above have no equivalent of. See [`ingestion.md`](inges
 and the governing spec for its full contract — it is a real, third adapter shape, not a variant of
 the toy worked example below, which stays a declared-source-only illustration.
 
+## A fourth shape: the APISIX gateway adapter
+
+`app/ingestion/apisix_adapter.py` (v0.7.0 I1.4) is another offline-only `SourceAdapter`, registered in
+`default_registry()`. Like the Kubernetes adapter it turns discovery-time diagnostics into the
+correct per-source result and otherwise maps a validated fixture, but it emits **only internal
+carriers** (`app/canonical/gateway.py`) and no public entity, relation or `Provenance`. The pure
+interpretation is `app/sources/apisix_mapping.py`; the fixture envelope and its validator are shared
+with the separate capture tool in `app/sources/apisix_contract.py`. The capture tool lives in
+`app/gateway_capture/` and is kept apart by import-linter: nothing on the ingestion/graph side may
+import it, and it may touch no graph or delivery layer.
+
 ## What a runtime-source adapter must produce
 
 An `ObservationBatch` (`app/telemetry/model.py`): possibly-new entities (`ObservedOnlyEntity` stubs

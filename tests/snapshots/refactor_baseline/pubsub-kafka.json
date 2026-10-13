@@ -12,6 +12,7 @@
   "expected_prior_inventory_revision": "<not supplied>",
   "inventory_snapshot": {
     "adapter_identities": [
+      "apisix-adapter@1",
       "asyncapi-adapter@1",
       "kubernetes-adapter@1",
       "manifest-adapter@1",
@@ -37,6 +38,7 @@
     "inventory_revision": "<scrubbed>",
     "mapping_rule_identities": [
       "1",
+      "1",
       "v1",
       "v2",
       "v2"
@@ -57,6 +59,12 @@
         "stable_broker_id": "kafka:cluster-a"
       }
     ],
+    "gateway_configured_accesses": [],
+    "gateway_consumers": [],
+    "gateway_limitations": [],
+    "gateway_routes": [],
+    "gateway_services": [],
+    "gateway_source_evidence": [],
     "infrastructure_claims": [],
     "infrastructure_contributions": [],
     "infrastructure_entities": [],
@@ -110,7 +118,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "e7715340873de3255dc5f89cb1202127fa8d7e4a4aaa9594b0c2dd921f0e9dac",
+        "semantic_input_digest": "be200405b39928ad983eb9ccbd3189a2a09898d451291c2d37bb6e9f89c87ea9",
         "source_instance_id": "urn:aip:source:filesystem:48d6f53dabf186779897c470877275923890d690aeb1994f16ccd569b8c23654",
         "source_locator": "<repo>/tests/fixtures/pubsub/kafka/declarations/warehouse/asyncapi.yaml",
         "source_pointer": "/channels/inventory",
@@ -133,7 +141,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "be5bc65bd413cbc31c78c6410e9ca58ccfbea346320cbf772ba25dd724746c7b",
+        "semantic_input_digest": "b78cfebe456882d8cc100657ecc19636d86baa0af39791ce80aa85cb061817b9",
         "source_instance_id": "urn:aip:source:filesystem:ecf796cc7132bfee4d0fd356cdf2023b30f1976576d455f8da6d2fd82558a2c3",
         "source_locator": "<repo>/tests/fixtures/pubsub/kafka/declarations/stock-projector/asyncapi.yaml",
         "source_pointer": "/channels/inventory",
@@ -275,6 +283,12 @@
               "stable_broker_id": "kafka:cluster-a"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
@@ -313,7 +327,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "e7715340873de3255dc5f89cb1202127fa8d7e4a4aaa9594b0c2dd921f0e9dac",
+              "semantic_input_digest": "be200405b39928ad983eb9ccbd3189a2a09898d451291c2d37bb6e9f89c87ea9",
               "source_instance_id": "urn:aip:source:filesystem:48d6f53dabf186779897c470877275923890d690aeb1994f16ccd569b8c23654",
               "source_locator": "<repo>/tests/fixtures/pubsub/kafka/declarations/warehouse/asyncapi.yaml",
               "source_pointer": "/channels/inventory",
@@ -386,7 +400,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "e7715340873de3255dc5f89cb1202127fa8d7e4a4aaa9594b0c2dd921f0e9dac"
+        "semantic_input_digest": "be200405b39928ad983eb9ccbd3189a2a09898d451291c2d37bb6e9f89c87ea9"
       }
     },
     "urn:aip:source:filesystem:ecf796cc7132bfee4d0fd356cdf2023b30f1976576d455f8da6d2fd82558a2c3": {
@@ -428,6 +442,12 @@
               "stable_broker_id": "kafka:cluster-a"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
@@ -466,7 +486,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "be5bc65bd413cbc31c78c6410e9ca58ccfbea346320cbf772ba25dd724746c7b",
+              "semantic_input_digest": "b78cfebe456882d8cc100657ecc19636d86baa0af39791ce80aa85cb061817b9",
               "source_instance_id": "urn:aip:source:filesystem:ecf796cc7132bfee4d0fd356cdf2023b30f1976576d455f8da6d2fd82558a2c3",
               "source_locator": "<repo>/tests/fixtures/pubsub/kafka/declarations/stock-projector/asyncapi.yaml",
               "source_pointer": "/channels/inventory",
@@ -531,7 +551,7 @@
           ]
         },
         "result": "ACCEPTED_WITH_LIMITATIONS",
-        "semantic_input_digest": "be5bc65bd413cbc31c78c6410e9ca58ccfbea346320cbf772ba25dd724746c7b"
+        "semantic_input_digest": "b78cfebe456882d8cc100657ecc19636d86baa0af39791ce80aa85cb061817b9"
       }
     }
   }

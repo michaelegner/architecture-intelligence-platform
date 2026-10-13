@@ -261,6 +261,18 @@ class DiagnosticCode(StrEnum):
     # by `import_kubernetes_source`, not raised by `_import_all_sources_tx` itself - that shared
     # transaction stays source-kind-neutral.
     K8S_STALE_INVENTORY = "K8S_STALE_INVENTORY"
+    # v0.7.0 I1.1 contract §7 / I1.4: the APISIX gateway source's per-source outcomes. Messages are
+    # fixed text, never a source value.
+    GW_CAPTURE_INVALID = "GW_CAPTURE_INVALID"
+    GW_CAPTURE_INCONSISTENT = "GW_CAPTURE_INCONSISTENT"
+    GW_CAPTURE_INCOMPLETE = "GW_CAPTURE_INCOMPLETE"
+    GW_CAPTURE_UNREDACTED = "GW_CAPTURE_UNREDACTED"
+    GW_INSTANCE_MISMATCH = "GW_INSTANCE_MISMATCH"
+    GW_CAPTURE_SURFACE_UNSUPPORTED = "GW_CAPTURE_SURFACE_UNSUPPORTED"
+    GW_CAPTURE_SCHEMA_UNSUPPORTED = "GW_CAPTURE_SCHEMA_UNSUPPORTED"
+    GW_CAPTURE_LIMIT_EXCEEDED = "GW_CAPTURE_LIMIT_EXCEEDED"
+    GW_DUPLICATE_INSTANCE = "GW_DUPLICATE_INSTANCE"
+    GW_CONFIGURATION_LIMITATIONS = "GW_CONFIGURATION_LIMITATIONS"
     # I2 Draft 0.2 §10's own named code ("Omit object; ACCEPTED_WITH_LIMITATIONS"), for §5: "Other
     # controller kinds and API versions require an amendment; unsupported objects are omitted with
     # pointer diagnostics and ACCEPTED_WITH_LIMITATIONS" (slice 3a).

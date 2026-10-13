@@ -87,6 +87,27 @@ Merely *configuring* a Kubernetes source still cannot change the fingerprint thr
 still-excluded categories (Network Service selector facts, Ingress routing facts, unreferenced
 evidence) — only through the bounded Workload-identity/evidence-reachability state named above.
 
+## Gateway carriers (`app/canonical/gateway.py`, `app/canonical/api_contracts.py`) — internal-only
+
+v0.7.0 I1 adds two groups of **internal, source-owned carriers**. They are not public canonical
+entities: no relationships to any entity, no REST/MCP/natural-language exposure, owned and expired
+through the same per-source machinery as everything else. Public exposure is I3.
+
+| Carrier | Source | Id |
+| --- | --- | --- |
+| `GatewayConsumer`, `GatewayRoute`, `GatewayService` | APISIX capture (`app/ingestion/apisix_adapter.py`) | `gateway-consumer|route|service:owned:<sha256(ld(gateway_instance_id, username or object id))>` |
+| `GatewayConfiguredAccess` | the frozen allow-list `consumer-restriction` rule on a Route | `configured-access:owned:<sha256(ld(consumer id, route id, rule kind))>` |
+| `GatewayLimitation` | a source fact recorded but **not** interpreted as access (a blacklist, a method rule, an unsupported auth plugin, a restriction on a Service/plugin_config/global rule …) | `gateway-limitation:owned:…` over `(gateway_instance_id, code, subject)` |
+| `GatewaySourceEvidence` | one per source: `gateway_instance_id`, operator-asserted `environment`, `apisix_version`, `source_revision` (`apisix:<version>+etcd:<revision>`) | `evidence:apisix:<sha256(ld(gateway_instance_id, source_revision))>` |
+| `ApiContract`, `ApiContractVersion`, `ApiContractAssociation` | the OpenAPI adapter, kept only when the import request configures a gateway source | `api-contract[-version|-association]:owned:…` |
+
+Rules worth remembering: a gateway Route/Service/Consumer is never an application `Service` or
+`Operation`, and nothing here infers a Route↔Operation or gateway↔Service association; the gateway
+source's evidence is a dedicated carrier, **not** a `Provenance`/`:Evidence` node, so no public
+evidence read or natural-language query can reach it; credentials never enter the graph (the capture
+tool redacts, and the adapter rejects any capture that still carries credential material). The
+frozen decisions are in `docs/specifications/0.7.0/i1-gateway-source-contract.md`.
+
 ## Deterministic IDs (`app/canonical/ids.py`)
 
 Every entity id is a stable, deterministic string, never a database-generated surrogate key and

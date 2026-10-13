@@ -7,6 +7,14 @@ from app.canonical.api_contracts import (
     ApiContractAssociation,
     ApiContractVersion,
 )
+from app.canonical.gateway import (
+    GatewayConfiguredAccess,
+    GatewayConsumer,
+    GatewayLimitation,
+    GatewayRoute,
+    GatewayService,
+    GatewaySourceEvidence,
+)
 from app.canonical.infrastructure import (
     InfrastructureClaim,
     InfrastructureContribution,
@@ -139,3 +147,10 @@ class ArchitectureModel(BaseModel):
     api_contracts: list[ApiContract] = Field(default_factory=list)
     api_contract_versions: list[ApiContractVersion] = Field(default_factory=list)
     api_contract_associations: list[ApiContractAssociation] = Field(default_factory=list)
+    # v0.7.0 I1.4 (contract §3-§4): internal APISIX gateway carriers (no public exposure).
+    gateway_consumers: list[GatewayConsumer] = Field(default_factory=list)
+    gateway_routes: list[GatewayRoute] = Field(default_factory=list)
+    gateway_services: list[GatewayService] = Field(default_factory=list)
+    gateway_configured_accesses: list[GatewayConfiguredAccess] = Field(default_factory=list)
+    gateway_limitations: list[GatewayLimitation] = Field(default_factory=list)
+    gateway_source_evidence: list[GatewaySourceEvidence] = Field(default_factory=list)

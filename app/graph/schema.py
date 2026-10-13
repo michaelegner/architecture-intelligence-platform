@@ -74,6 +74,23 @@ CONSTRAINTS: list[LiteralString] = [
         "CREATE CONSTRAINT api_contract_association_id IF NOT EXISTS "
         "FOR (a:ApiContractAssociation) REQUIRE a.id IS UNIQUE"
     ),
+    # v0.7.0 I1.4 (contract §3-§4): internal APISIX gateway carriers - owned, id-unique, no
+    # relationships to any entity.
+    "CREATE CONSTRAINT gateway_consumer_id IF NOT EXISTS FOR (c:GatewayConsumer) REQUIRE c.id IS UNIQUE",
+    "CREATE CONSTRAINT gateway_route_id IF NOT EXISTS FOR (r:GatewayRoute) REQUIRE r.id IS UNIQUE",
+    "CREATE CONSTRAINT gateway_service_id IF NOT EXISTS FOR (s:GatewayService) REQUIRE s.id IS UNIQUE",
+    (
+        "CREATE CONSTRAINT gateway_configured_access_id IF NOT EXISTS "
+        "FOR (a:GatewayConfiguredAccess) REQUIRE a.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT gateway_limitation_id IF NOT EXISTS "
+        "FOR (l:GatewayLimitation) REQUIRE l.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT gateway_source_evidence_id IF NOT EXISTS "
+        "FOR (e:GatewaySourceEvidence) REQUIRE e.id IS UNIQUE"
+    ),
     # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.

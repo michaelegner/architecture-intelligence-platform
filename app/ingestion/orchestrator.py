@@ -25,6 +25,8 @@ from app.canonical.model import (
 )
 from app.common.jcs import CanonicalIntegerDomainError, sort_entries_by_canonical_bytes
 from app.ingestion.adapter_outcomes import rejected_for_integer_domain
+from app.ingestion.apisix_adapter import ApisixSourceAdapter
+from app.ingestion.apisix_discoverer import ApisixSourceDiscoverer
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
@@ -58,6 +60,7 @@ from app.sources.migration_mappings import (
 )
 from app.sources.model import (
     NOT_SUPPLIED,
+    ApisixSourceConfig,
     DiagnosticCode,
     DiscoveryScopeId,
     FilesystemSourceConfig,
@@ -92,6 +95,7 @@ _DEFAULT_ADAPTERS = (
     AsyncApiSourceAdapter(),
     ManifestSourceAdapter(),
     KubernetesSourceAdapter(),
+    ApisixSourceAdapter(),
 )
 
 
@@ -383,6 +387,12 @@ _MODEL_ENTITY_FIELDS = (
     "api_contracts",
     "api_contract_versions",
     "api_contract_associations",
+    "gateway_consumers",
+    "gateway_routes",
+    "gateway_services",
+    "gateway_configured_accesses",
+    "gateway_limitations",
+    "gateway_source_evidence",
 )
 
 
@@ -906,6 +916,25 @@ def run_kubernetes_discovery(
     `run_filesystem_discovery`'s exact shape (I2 Draft 0.2 slice 2b-i)."""
     return run_discovery(
         KubernetesSourceDiscoverer(config),
+        registry=registry,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+    )
+
+
+def run_apisix_discovery(
+    config: ApisixSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_gateway_instance: bool = False,
+) -> DiscoveryRunResult:
+    """Thin wrapper over `run_discovery` for the APISIX gateway source kind (v0.7.0 I1.4), mirroring
+    `run_kubernetes_discovery`. `duplicate_gateway_instance` is set by the import request when
+    another registration declares the same `gateway_instance_id` (I1.1 contract §1)."""
+    return run_discovery(
+        ApisixSourceDiscoverer(config, duplicate_gateway_instance=duplicate_gateway_instance),
         registry=registry,
         migration_mappings=migration_mappings,
         tombstones=tombstones,

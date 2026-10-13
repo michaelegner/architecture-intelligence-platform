@@ -5,6 +5,7 @@
   "expected_prior_inventory_revision": null,
   "inventory_snapshot": {
     "adapter_identities": [
+      "apisix-adapter@1",
       "asyncapi-adapter@1",
       "kubernetes-adapter@1",
       "manifest-adapter@1",
@@ -22,6 +23,7 @@
     "inventory_revision": "<scrubbed>",
     "mapping_rule_identities": [
       "1",
+      "1",
       "v1",
       "v2",
       "v2"
@@ -37,6 +39,12 @@
     "api_contract_versions": [],
     "api_contracts": [],
     "brokers": [],
+    "gateway_configured_accesses": [],
+    "gateway_consumers": [],
+    "gateway_limitations": [],
+    "gateway_routes": [],
+    "gateway_services": [],
+    "gateway_source_evidence": [],
     "infrastructure_claims": [
       {
         "evidence_refs": [
@@ -272,6 +280,12 @@
           "api_contract_versions": [],
           "api_contracts": [],
           "brokers": [],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [
             {
               "evidence_refs": [
@@ -479,7 +493,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "fbae22132711a7aa4d84ceb7bc9ca9feaf7ff2eea5ef27e6c5e2738c46821fa0"
+        "semantic_input_digest": "def01f568f58038af6bad39ebb1cb97cb6cfe0833faf9fefa0eb05f254857e58"
       }
     }
   }

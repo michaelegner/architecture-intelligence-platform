@@ -90,6 +90,47 @@ _API_CONTRACT_ASSOCIATION_QUERY = (
     "n.contract_version_id AS contract_version_id, n.target_id AS target_id, "
     "n.evidence_ids AS evidence_ids"
 )
+# v0.7.0 I1.4 (I1.1 contract §6): internal APISIX gateway carriers, projected only when present (the
+# same conditional-key rule as `api_contracts_v1`), so a graph with no gateway source keeps its exact
+# pre-v0.7 bytes. Credentials never reach the graph, so nothing here needs redaction.
+_GATEWAY_QUERIES = {
+    "consumers": (
+        "MATCH (n:GatewayConsumer) RETURN n.id AS id, n.gateway_instance_id AS gateway_instance_id, "
+        "n.environment AS environment, n.username AS username, n.credential_ids AS credential_ids, "
+        "n.created_index AS created_index, n.modified_index AS modified_index"
+    ),
+    "routes": (
+        "MATCH (n:GatewayRoute) RETURN n.id AS id, n.gateway_instance_id AS gateway_instance_id, "
+        "n.environment AS environment, n.route_id AS route_id, n.uri AS uri, n.uris AS uris, "
+        "n.methods AS methods, n.service_id AS service_id, n.plugin_config_id AS plugin_config_id, "
+        "n.upstream_id AS upstream_id, n.upstream_nodes AS upstream_nodes, "
+        "n.labels_json AS labels_json, n.auth_plugins AS auth_plugins, "
+        "n.plugin_names AS plugin_names, n.created_index AS created_index, "
+        "n.modified_index AS modified_index"
+    ),
+    "services": (
+        "MATCH (n:GatewayService) RETURN n.id AS id, n.gateway_instance_id AS gateway_instance_id, "
+        "n.environment AS environment, n.service_id AS service_id, n.upstream_id AS upstream_id, "
+        "n.upstream_nodes AS upstream_nodes, n.labels_json AS labels_json, "
+        "n.plugin_names AS plugin_names, n.created_index AS created_index, "
+        "n.modified_index AS modified_index"
+    ),
+    "configured_access": (
+        "MATCH (n:GatewayConfiguredAccess) RETURN n.id AS id, n.consumer_id AS consumer_id, "
+        "n.route_id AS route_id, n.rule_kind AS rule_kind, n.polarity AS polarity, "
+        "n.scope AS scope, n.evidence_ids AS evidence_ids, n.source_revision AS source_revision"
+    ),
+    "limitations": (
+        "MATCH (n:GatewayLimitation) RETURN n.id AS id, "
+        "n.gateway_instance_id AS gateway_instance_id, n.code AS code, n.subject AS subject"
+    ),
+    "source_evidence": (
+        "MATCH (n:GatewaySourceEvidence) RETURN n.id AS id, "
+        "n.gateway_instance_id AS gateway_instance_id, n.environment AS environment, "
+        "n.apisix_version AS apisix_version, n.source_revision AS source_revision, "
+        "n.evidence_type AS evidence_type"
+    ),
+}
 _BROKER_QUERY = "MATCH (n:Broker) RETURN n.id AS id, n.stable_broker_id AS stable_broker_id"
 _MESSAGE_QUERY = (
     "MATCH (n:Message) RETURN n.id AS id, n.name AS name, n.version AS version, "
@@ -286,6 +327,20 @@ def _project_nodes(session: neo4j.Session, query: LiteralString) -> list[dict]:
     )
 
 
+def _project_gateway_configuration(session: neo4j.Session) -> dict | None:
+    """The v0.7.0 I1.4 `gateway_configuration_v1` block, or `None` when the graph has no gateway
+    carriers. Every list-valued property is sorted so insertion order never reaches the fingerprint."""
+    block: dict[str, list[dict]] = {}
+    for name, query in _GATEWAY_QUERIES.items():
+        rows = _project_nodes(session, query)  # pyright: ignore[reportArgumentType]
+        for row in rows:
+            for key, value in row.items():
+                if isinstance(value, list):
+                    row[key] = sorted(value)
+        block[name] = rows
+    return block if any(block.values()) else None
+
+
 def _project_api_contracts(session: neo4j.Session) -> dict | None:
     """The v0.7.0 I1.2 `api_contracts_v1` block, or `None` when the graph has no contract carriers.
     List-valued properties are sorted so insertion order can never reach the fingerprint."""
@@ -463,6 +518,9 @@ def canonical_snapshot_state(
     if scoped_calls:
         state["scoped_observed_calls_v2"] = scoped_calls
         state["scoped_capture_scopes_v2"] = _project_scoped_capture_scopes(session)
+    gateway = _project_gateway_configuration(session)
+    if gateway:
+        state["gateway_configuration_v1"] = gateway
     contracts = _project_api_contracts(session)
     if contracts:
         state["api_contracts_v1"] = contracts

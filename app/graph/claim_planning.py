@@ -46,6 +46,13 @@ def model_node_ids(model: ArchitectureModel, *, source_instance_id: str) -> set[
         *(b.id for b in model.brokers),
         *(d.id for d in model.pubsub_declarations),
         *(c.id for c in model.subscription_dead_letter_configurations),
+        # v0.7.0 I1.4: internal APISIX gateway carriers ride the same ownership path.
+        *(c.id for c in model.gateway_consumers),
+        *(r.id for r in model.gateway_routes),
+        *(g.id for g in model.gateway_services),
+        *(a.id for a in model.gateway_configured_accesses),
+        *(item.id for item in model.gateway_limitations),
+        *(e.id for e in model.gateway_source_evidence),
         # v0.7.0 I1.2: internal API-contract carriers ride the same ownership path.
         *(c.id for c in model.api_contracts),
         *(v.id for v in model.api_contract_versions),

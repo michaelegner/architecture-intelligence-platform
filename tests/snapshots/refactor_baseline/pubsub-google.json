@@ -5,6 +5,7 @@
   "expected_prior_inventory_revision": "<not supplied>",
   "inventory_snapshot": {
     "adapter_identities": [
+      "apisix-adapter@1",
       "asyncapi-adapter@1",
       "kubernetes-adapter@1",
       "manifest-adapter@1",
@@ -23,6 +24,7 @@
     "inventory_event_id": null,
     "inventory_revision": "<scrubbed>",
     "mapping_rule_identities": [
+      "1",
       "1",
       "v1",
       "v2",
@@ -44,6 +46,12 @@
         "stable_broker_id": "gcp-pubsub:projects/shop"
       }
     ],
+    "gateway_configured_accesses": [],
+    "gateway_consumers": [],
+    "gateway_limitations": [],
+    "gateway_routes": [],
+    "gateway_services": [],
+    "gateway_source_evidence": [],
     "infrastructure_claims": [],
     "infrastructure_contributions": [],
     "infrastructure_entities": [],
@@ -112,7 +120,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "6e2e15a6b0f650b2a93324e821c4314a1e79336149e8651b559507f9fbaf6808",
+        "semantic_input_digest": "823f8043e12849dde2fb245da2b682db819ff4b76f8df63f6728b5aab2848cd1",
         "source_instance_id": "urn:aip:source:filesystem:3fe610deb66bf3da9124d39a091f7598c8a2867ad94ca5d4531b13b9e446e7fb",
         "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/checkout/asyncapi.yaml",
         "source_pointer": "/channels/orders",
@@ -135,7 +143,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "d90684b61a5e506756f58fd9986db29dc754dac983ada4f739d1185c15ca0e6a",
+        "semantic_input_digest": "992ceca1c08e2d7c6db9739256db62f0d2926f20ae3bad83725dbb5cba326c54",
         "source_instance_id": "urn:aip:source:filesystem:9893be892059efa44d0343d4d5005076c46822f4202e8a4ba2eefc76cceadef0",
         "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/fulfillment/asyncapi.yaml",
         "source_pointer": "/channels/orders",
@@ -158,7 +166,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "d90684b61a5e506756f58fd9986db29dc754dac983ada4f739d1185c15ca0e6a",
+        "semantic_input_digest": "992ceca1c08e2d7c6db9739256db62f0d2926f20ae3bad83725dbb5cba326c54",
         "source_instance_id": "urn:aip:source:filesystem:9893be892059efa44d0343d4d5005076c46822f4202e8a4ba2eefc76cceadef0",
         "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/fulfillment/asyncapi.yaml",
         "source_pointer": "/channels/orders/subscribe",
@@ -181,7 +189,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "04fd0e4f7d26fa39ad8211a233f3acadb244e1daf00a33c79e367e7ddfb9b89e",
+        "semantic_input_digest": "5d9d989cca2516152b5de560b492986abe018f16303e3a17fd7165ee16af92cb",
         "source_instance_id": "urn:aip:source:filesystem:d1e4011f67372dae169d42914c1b425af13236208f9408ebe8c177f568756b0b",
         "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/analytics/asyncapi.yaml",
         "source_pointer": "/channels/orders",
@@ -204,7 +212,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "04fd0e4f7d26fa39ad8211a233f3acadb244e1daf00a33c79e367e7ddfb9b89e",
+        "semantic_input_digest": "5d9d989cca2516152b5de560b492986abe018f16303e3a17fd7165ee16af92cb",
         "source_instance_id": "urn:aip:source:filesystem:d1e4011f67372dae169d42914c1b425af13236208f9408ebe8c177f568756b0b",
         "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/analytics/asyncapi.yaml",
         "source_pointer": "/channels/orders/subscribe",
@@ -437,6 +445,12 @@
               "stable_broker_id": "gcp-pubsub:projects/shop"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
@@ -475,7 +489,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "6e2e15a6b0f650b2a93324e821c4314a1e79336149e8651b559507f9fbaf6808",
+              "semantic_input_digest": "823f8043e12849dde2fb245da2b682db819ff4b76f8df63f6728b5aab2848cd1",
               "source_instance_id": "urn:aip:source:filesystem:3fe610deb66bf3da9124d39a091f7598c8a2867ad94ca5d4531b13b9e446e7fb",
               "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/checkout/asyncapi.yaml",
               "source_pointer": "/channels/orders",
@@ -548,7 +562,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "6e2e15a6b0f650b2a93324e821c4314a1e79336149e8651b559507f9fbaf6808"
+        "semantic_input_digest": "823f8043e12849dde2fb245da2b682db819ff4b76f8df63f6728b5aab2848cd1"
       }
     },
     "urn:aip:source:filesystem:9893be892059efa44d0343d4d5005076c46822f4202e8a4ba2eefc76cceadef0": {
@@ -583,6 +597,12 @@
               "stable_broker_id": "gcp-pubsub:projects/shop"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
@@ -621,7 +641,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "d90684b61a5e506756f58fd9986db29dc754dac983ada4f739d1185c15ca0e6a",
+              "semantic_input_digest": "992ceca1c08e2d7c6db9739256db62f0d2926f20ae3bad83725dbb5cba326c54",
               "source_instance_id": "urn:aip:source:filesystem:9893be892059efa44d0343d4d5005076c46822f4202e8a4ba2eefc76cceadef0",
               "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/fulfillment/asyncapi.yaml",
               "source_pointer": "/channels/orders",
@@ -644,7 +664,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "d90684b61a5e506756f58fd9986db29dc754dac983ada4f739d1185c15ca0e6a",
+              "semantic_input_digest": "992ceca1c08e2d7c6db9739256db62f0d2926f20ae3bad83725dbb5cba326c54",
               "source_instance_id": "urn:aip:source:filesystem:9893be892059efa44d0343d4d5005076c46822f4202e8a4ba2eefc76cceadef0",
               "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/fulfillment/asyncapi.yaml",
               "source_pointer": "/channels/orders/subscribe",
@@ -742,7 +762,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "d90684b61a5e506756f58fd9986db29dc754dac983ada4f739d1185c15ca0e6a"
+        "semantic_input_digest": "992ceca1c08e2d7c6db9739256db62f0d2926f20ae3bad83725dbb5cba326c54"
       }
     },
     "urn:aip:source:filesystem:d1e4011f67372dae169d42914c1b425af13236208f9408ebe8c177f568756b0b": {
@@ -777,6 +797,12 @@
               "stable_broker_id": "gcp-pubsub:projects/shop"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
@@ -815,7 +841,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "04fd0e4f7d26fa39ad8211a233f3acadb244e1daf00a33c79e367e7ddfb9b89e",
+              "semantic_input_digest": "5d9d989cca2516152b5de560b492986abe018f16303e3a17fd7165ee16af92cb",
               "source_instance_id": "urn:aip:source:filesystem:d1e4011f67372dae169d42914c1b425af13236208f9408ebe8c177f568756b0b",
               "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/analytics/asyncapi.yaml",
               "source_pointer": "/channels/orders",
@@ -838,7 +864,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "04fd0e4f7d26fa39ad8211a233f3acadb244e1daf00a33c79e367e7ddfb9b89e",
+              "semantic_input_digest": "5d9d989cca2516152b5de560b492986abe018f16303e3a17fd7165ee16af92cb",
               "source_instance_id": "urn:aip:source:filesystem:d1e4011f67372dae169d42914c1b425af13236208f9408ebe8c177f568756b0b",
               "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/analytics/asyncapi.yaml",
               "source_pointer": "/channels/orders/subscribe",
@@ -926,7 +952,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "04fd0e4f7d26fa39ad8211a233f3acadb244e1daf00a33c79e367e7ddfb9b89e"
+        "semantic_input_digest": "5d9d989cca2516152b5de560b492986abe018f16303e3a17fd7165ee16af92cb"
       }
     }
   }

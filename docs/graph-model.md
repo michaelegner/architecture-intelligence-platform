@@ -11,6 +11,15 @@ source-owned carrier nodes with their own uniqueness constraints. Like the Infra
 below, they have no relationships, are never exposed through REST or MCP, and are not snapshot
 inputs. See [Pub/Sub](#pubsub-v050-i4) below.
 
+`GatewayConsumer`, `GatewayRoute`, `GatewayService`, `GatewayConfiguredAccess`, `GatewayLimitation`
+and `GatewaySourceEvidence` (v0.7.0 I1.4, APISIX configuration) and `ApiContract`,
+`ApiContractVersion` and `ApiContractAssociation` (v0.7.0 I1.2, OpenAPI) follow the same rule:
+internal source-owned carriers with their own uniqueness constraints, no relationships, never exposed
+through REST, MCP or natural-language queries. The snapshot adds the conditional keys
+`gateway_configuration_v1` and `api_contracts_v1` **only when such carriers exist**, so a graph with
+no gateway source keeps its exact pre-v0.7 `snapshot_id`. See
+[`canonical-model.md`](canonical-model.md#gateway-carriers-appcanonicalgatewaypy-appcanonicalapi_contractspy--internal-only).
+
 `InfrastructureEntity`, `InfrastructureContribution`, `InfrastructureClaim`, and
 `InfrastructureClaimContribution` (v0.5.0 I2, Kubernetes discovery) also exist as real Neo4j node
 labels with their own uniqueness constraints, but are deliberately excluded from the public node/

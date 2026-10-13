@@ -79,7 +79,7 @@ Everything else yields no access and, where noted, a **limitation record** (`cod
 
 An authentication plugin without a restriction (C12) creates nothing and records nothing. Limitations are source-qualified evidence for I2, never access claims. A `GW_WHITELIST_BLACKLIST_CONFLICT` name is excluded only for that name; other whitelisted names on the route are unaffected (C06).
 
-Evidence: one `Provenance` per source (id `evidence:apisix:<sha256(ld(gateway_instance_id, source_revision))>`, so an APISIX upgrade at an unchanged etcd revision yields a different id (V13); `source_type = "APISIX"`, `evidence_type = DECLARED`, `source_revision`). Each `ConfiguredAccess` carrier's `evidence_ids` point at that APISIX provenance record; the rule semantics are carried by `rule_kind`, not by evidence text. `APISIX` is not added to the public `SourceType` enum in v0.7 I1 (that enum is part of a frozen public schema; widening it is I3's decision).
+Evidence: one **`GatewaySourceEvidence` carrier** per source (id `evidence:apisix:<sha256(ld(gateway_instance_id, source_revision))>`, so an APISIX upgrade at an unchanged etcd revision yields a different id (V13); fields `gateway_instance_id`, `environment`, `apisix_version`, `source_revision`, `evidence_type = DECLARED`). *Amended in I1.4: the I1.1 text said "one `Provenance`", but a `Provenance` is written as an `:Evidence` node, which the public evidence reads and the natural-language Cypher guard treat as reachable (only the Kubernetes source type is carved out of them); a dedicated internal carrier keeps gateway evidence off every public surface without widening those security-sensitive guards.* Each `ConfiguredAccess` carrier's `evidence_ids` point at that evidence record; the rule semantics are carried by `rule_kind`, not by evidence text. `APISIX` is not added to the public `SourceType` enum in v0.7 I1 (that enum is part of a frozen public schema; widening it is I3's decision).
 
 ## 5. Lifecycle
 
@@ -101,9 +101,11 @@ Evidence: one `Provenance` per source (id `evidence:apisix:<sha256(ld(gateway_in
 | Code | Outcome |
 |---|---|
 | `GW_CAPTURE_INVALID`, `GW_CAPTURE_INCONSISTENT`, `GW_CAPTURE_INCOMPLETE`, `GW_CAPTURE_UNREDACTED`, `GW_INSTANCE_MISMATCH` | `REJECTED_INVALID` |
-| `GW_CAPTURE_SURFACE_UNSUPPORTED`, `GW_CAPTURE_SCHEMA_UNSUPPORTED`, limit violations | `REJECTED_UNSUPPORTED` |
+| `GW_CAPTURE_SURFACE_UNSUPPORTED`, `GW_CAPTURE_SCHEMA_UNSUPPORTED`, `GW_CAPTURE_LIMIT_EXCEEDED` | `REJECTED_UNSUPPORTED` |
 | `GW_DUPLICATE_INSTANCE` | `REJECTED_CONFLICT` |
-| limitation codes of §4 | informational; the source is `ACCEPTED_WITH_LIMITATIONS` when any exists |
+| limitation codes of §4 | informational (one `GW_CONFIGURATION_LIMITATIONS` diagnostic with a count, no values); the source is `ACCEPTED_WITH_LIMITATIONS` when any exists |
+
+**Import report (amended in I1.4, owner decision 2026-10-13):** a gateway run appears in the `POST /api/import` report as `kind: "apisix"`. The frozen `aip-import-report/1` schema (`schemas/import/v0.5/`) is amended **additively in place**: `apisix` is added to the run/source kind enums and the source-id URN pattern, and the `GW_*` codes to the diagnostic-code enum; the report version string is unchanged and output differs only for operators who configure `sources.gateways`.
 
 Diagnostic messages never include source values; `subject` strings carry only route/service/plugin_config/global_rule ids and consumer usernames from the inventory.
 
