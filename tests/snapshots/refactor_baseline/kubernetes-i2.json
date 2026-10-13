@@ -6,6 +6,7 @@
   "inventory_snapshot": {
     "adapter_identities": [
       "apisix-adapter@1",
+      "apisix-measurement-adapter@1",
       "asyncapi-adapter@1",
       "kubernetes-adapter@1",
       "manifest-adapter@1",
@@ -22,6 +23,7 @@
     "inventory_event_id": null,
     "inventory_revision": "<scrubbed>",
     "mapping_rule_identities": [
+      "1",
       "1",
       "1",
       "v1",
@@ -203,6 +205,11 @@
         "service_type": null
       }
     ],
+    "measurement_evidence": [],
+    "measurement_limitations": [],
+    "measurement_mapping_entries": [],
+    "measurement_series": [],
+    "measurement_windows": [],
     "messages": [],
     "operations": [],
     "provenance": [
@@ -444,6 +451,11 @@
               "service_type": null
             }
           ],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [],
           "operations": [],
           "provenance": [
@@ -493,7 +505,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "def01f568f58038af6bad39ebb1cb97cb6cfe0833faf9fefa0eb05f254857e58"
+        "semantic_input_digest": "36a2714d3ef19cea570482a88bfb1738d272e88f06bdd6952ae515e79b2ced9d"
       }
     }
   }

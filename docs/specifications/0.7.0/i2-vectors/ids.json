@@ -105,6 +105,50 @@
         "window_end": "2026-10-13T10:10:00Z"
       },
       "expected": "usage-qualification:owned:9a2d3405a0721c1fedfc6d79567b0ecb479869c8d8929181e6bc463b7cbdb519"
+    },
+    {
+      "id": "M10",
+      "formula": "measurement-series:owned:<sha256(ld(window id, series key))>; the series key is the full label string between the braces of the normalized sample",
+      "inputs": {
+        "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8",
+        "series_key": "code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\""
+      },
+      "expected": "measurement-series:owned:b6243045696ca82733390d852728497cf352912a36f8a93718f731f9868d8b06"
+    },
+    {
+      "id": "M11",
+      "formula": "measurement-limitation:owned:<sha256(ld(window id, code, route, response_source))>",
+      "inputs": {
+        "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8",
+        "code": "GWM_COUNTER_DECREASED",
+        "route": "orders-route",
+        "response_source": "upstream"
+      },
+      "expected": "measurement-limitation:owned:901622c823e2ef4d29ec37501a85c6d290b23c360737be858382718165aa6575"
+    },
+    {
+      "id": "M12",
+      "formula": "measurement-mapping:owned:<sha256(ld(gateway_instance_id, environment, kind, source id, target id))>",
+      "inputs": {
+        "gateway_instance_id": "gw-prod-1",
+        "environment": "prod",
+        "kind": "route_operation",
+        "source_id": "orders-route",
+        "target_id": "op:orders:get:/orders"
+      },
+      "expected": "measurement-mapping:owned:a9da35ea415e22505d39d1cc0bd8a100d47cc0263d47ce225319aa85f78039f1"
+    },
+    {
+      "id": "M13",
+      "formula": "two entries naming different targets for one object are distinct ids (the disagreement is a reconciliation input, never collapsed)",
+      "inputs": {
+        "gateway_instance_id": "gw-prod-1",
+        "environment": "prod",
+        "kind": "route_operation",
+        "source_id": "orders-route",
+        "target_id": "op:orders:post:/orders"
+      },
+      "expected": "measurement-mapping:owned:0e47a32456ef9702d190ecbf46f87edf76e5c1c13135d4b5d8f9a2525fbd3f29"
     }
   ]
 }

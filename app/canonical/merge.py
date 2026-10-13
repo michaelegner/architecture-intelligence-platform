@@ -63,6 +63,8 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
         for name in (
             "gateway_consumers", "gateway_routes", "gateway_services",
             "gateway_configured_accesses", "gateway_limitations", "gateway_source_evidence",
+            "measurement_windows", "measurement_evidence", "measurement_series",
+            "measurement_limitations", "measurement_mapping_entries",
         )
     }  # fmt: skip
     api_contracts: dict[str, ApiContract] = {}

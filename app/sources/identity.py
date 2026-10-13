@@ -217,6 +217,22 @@ def apisix_source_instance_id(
     return SourceInstanceId(f"{GATEWAY_SOURCE_ID_PREFIX}{sha256_hex(key)}")
 
 
+MEASUREMENT_SOURCE_ID_PREFIX = "urn:aip:source:apisix-measurement:"
+
+
+def apisix_measurement_source_instance_id(
+    *, configured_source_id: str, gateway_instance_id: str, environment: str
+) -> SourceInstanceId:
+    """v0.7.0 I2.1 contract §1 (vectors M01, M02):
+
+    SourceInstanceId
+      = urn:aip:source:apisix-measurement:<sha256(ld(configured source id, gateway_instance_id,
+        environment))>
+    """
+    key = length_delimited(utf8(configured_source_id), utf8(gateway_instance_id), utf8(environment))
+    return SourceInstanceId(f"{MEASUREMENT_SOURCE_ID_PREFIX}{sha256_hex(key)}")
+
+
 def kubernetes_logical_resource_id(
     *, cluster_uid: str, api_group: str, kind: str, namespace: str, name: str
 ) -> str:
