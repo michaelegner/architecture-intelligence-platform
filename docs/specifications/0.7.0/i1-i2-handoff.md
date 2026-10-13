@@ -1,6 +1,6 @@
 # AIP v0.7.0 I1 → I2 Handoff
 
-**Status:** Proposed — frozen on merge of the I1.4 PR. Governing: [`i1-selected-gateway-configuration-source.md`](i1-selected-gateway-configuration-source.md) §7, [`i1-gateway-source-contract.md`](i1-gateway-source-contract.md), [I0 → I1/I2 handoff](i0-i1-i2-handoff.md).
+**Status:** Frozen (merged #517). Governing: [`i1-selected-gateway-configuration-source.md`](i1-selected-gateway-configuration-source.md) §7, [`i1-gateway-source-contract.md`](i1-gateway-source-contract.md), [I0 → I1/I2 handoff](i0-i1-i2-handoff.md).
 
 I1 delivers the **configuration** half of the first v0.7 question. It does not touch runtime usage, reconciliation or any public surface.
 

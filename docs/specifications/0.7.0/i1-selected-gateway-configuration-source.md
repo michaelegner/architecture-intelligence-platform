@@ -1,6 +1,6 @@
 # AIP v0.7.0 I1 — Selected Gateway Configuration Source
 
-**Status:** Proposed  
+**Status:** I1 specification — COMPLETE (see [`i1-completion-record.md`](i1-completion-record.md))  
 **Release / increment:** v0.7.0 / I1, API-Aware Current State  
 **Governing:** [v0.7.0 parent](specification.md), [I0 source-selection decision](i0-source-selection-decision.md), [I0 acquisition/replay plan](i0-acquisition-replay-plan.md), [I0 identity/reconciliation dossier](i0-identity-reconciliation-dossier.md), and [I0 → I1/I2 handoff](i0-i1-i2-handoff.md).
 

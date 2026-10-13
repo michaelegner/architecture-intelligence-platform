@@ -1,6 +1,6 @@
 # AIP v0.7.0 I1.1 — Gateway Source Contract and Identities
 
-**Status:** Proposed — frozen on merge of the I1.1 PR. Implementation slices I1.2–I1.4 SHALL NOT reinterpret it.
+**Status:** Frozen (merged #512; amended in #514, #515, #517). Implementation slices I1.2–I1.4 SHALL NOT reinterpret it.
 **Governing specification:** [`i1-selected-gateway-configuration-source.md`](i1-selected-gateway-configuration-source.md) (Proposed, merged #511, `c217b06`) §§2–6; I0 [decision](i0-source-selection-decision.md), [acquisition/replay plan](i0-acquisition-replay-plan.md), [dossier](i0-identity-reconciliation-dossier.md), [handoff](i0-i1-i2-handoff.md).
 **Vectors:** [`i1-vectors/`](i1-vectors/) — hand-authored, independent of any adapter (`ids.json`, `configured-access.json`, `capture-rejections.json`).
 **Repository precedent:** the Kubernetes source (v0.5.0 I2): one offline snapshot file, a configured registration the envelope must match, a discoverer, an adapter registered in `default_registry()`, internal-only carrier nodes with their own labels and no edges to public entities.
