@@ -80,9 +80,11 @@ For a valid window each exact series yields one status:
 |---|---|---|
 | `DELTA` | present at both boundaries, `end >= start` | `end - start` (may be 0) |
 | `DECREASED` | present at both, `end < start` | none |
-| `ONE_BOUNDARY_START` / `ONE_BOUNDARY_END` | present at one boundary only | none; a missing boundary is never treated as 0 |
+| `DELTA_FIRST_IN_WINDOW` | absent at start, present at end, **and** the window has no reason, the series' Route is `true` in `route_coverage`, and `consumer` ∉ `disabled_labels` | the end value (the start sample is read as 0) |
+| `ONE_BOUNDARY_END` | absent at start, present at end, preconditions of the row above not met | none; a missing boundary is not read as 0 |
+| `ONE_BOUNDARY_START` | present at start, absent at end | none; never repaired (a counter cannot vanish without a restart or reset) |
 
-A series absent at both boundaries does not exist; no zero-valued series is manufactured.
+A series absent at both boundaries does not exist; no zero-valued series is manufactured. *Amended in I2.2a (review of #524, I2 spec §5 amended with it):* the `DELTA_FIRST_IN_WINDOW` reading is what lets a consumer's first request in a window establish usage; it never applies in an invalid window and never to a series seen at the start.
 
 ## 4. Carriers, ids and fields (internal only)
 
@@ -177,7 +179,7 @@ Capture-tool CLI shape and settle timeout defaults (I2.2); writer Cypher and con
 ## 10.1 Findings from the I2.2a real-APISIX run (no contract semantics changed)
 
 - **Counter lag is longer than the settle rule's natural poll interval.** Against digest-pinned APISIX 3.19.0 in etcd mode, `apisix_http_status` series appeared ~14 s after the requests; scrapes taken seconds apart were identical (and empty) throughout the lag, so "two consecutive identical scrapes" alone settled on the wrong extract. The capture tool therefore requires the two identical scrapes to be at least a quiet period apart (`--quiet-seconds`, default 20 s; the bare rule is `0`). The manifest and every validation rule are unchanged: `*_settled = true` still means "stable", only the tool's evidence for it is stronger.
-- **A series first created inside the window has no start-boundary sample.** Under §3 that is `ONE_BOUNDARY_END`: no delta, so the pair is `USAGE_UNESTABLISHED` even though the counter plainly started at 0. This is the frozen, conservative reading (a missing boundary is never 0) and is left as is; whether a settled, no-restart start boundary should license reading an absent series as 0 is an owner question for I2.3/I2.4, not decided here.
+- **A series first created inside the window has no start-boundary sample.** The real run showed it: the 401 series, created by the window's own traffic, existed at the end boundary only. Read strictly (a missing boundary is never 0) a consumer's first request in a window could not establish usage; the only positive case in the run worked because a readiness request before the start boundary had already created the series. The review of #524 asked for an amendment rather than an accepted limitation, so §3 now reads such a series as starting at 0 (`DELTA_FIRST_IN_WINDOW`) under the stated preconditions, and keeps `ONE_BOUNDARY_END` otherwise. I2 spec §5, §8 and §14 are amended to match; vectors W-series, series-deltas and Q15/Q18/Q25–Q29 changed accordingly.
 
 ## 11. Interpretations to confirm in review
 
@@ -191,3 +193,4 @@ These are readings the I2 spec leaves open; they are frozen here only if this PR
 6. In an invalid window, attributed pairs still get rows, with `USAGE_UNESTABLISHED` and `null` counts (§7).
 7. Explicit Route→Operation statements are not cross-checked against the fallback (§6).
 8. Version compatibility is exactly `3.19.0`, the inspected release, not the whole `3.19.*` line (§3; review of #522).
+9. A series first created inside a valid, covered window is read as starting at 0 (§3, amended in I2.2a).

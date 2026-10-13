@@ -103,7 +103,8 @@ class Series:
 @dataclass(frozen=True)
 class SeriesDelta:
     series: Series  # the end-boundary series when present, else the start-boundary one
-    status: str  # DELTA | DECREASED | ONE_BOUNDARY_START | ONE_BOUNDARY_END
+    # DELTA | DELTA_FIRST_IN_WINDOW | DECREASED | ONE_BOUNDARY_START | ONE_BOUNDARY_END
+    status: str
     delta: int | None
 
 
@@ -118,7 +119,7 @@ class ValidatedMeasurement:
         return window_reasons(self.manifest)
 
     def series_deltas(self) -> list[SeriesDelta]:
-        return series_deltas(self.start, self.end)
+        return series_deltas(self.start, self.end, self.manifest)
 
 
 # ---- extract -------------------------------------------------------------------------------
@@ -328,10 +329,24 @@ def window_reasons(manifest: Manifest) -> list[str]:
     return sorted(reasons)
 
 
-def series_status(start: int | None, end: int | None) -> tuple[str, int | None]:
+def first_in_window_allowed(manifest: Manifest, route: str) -> bool:
+    """Contract §3 (amended in I2.2a, review of #524): an absent start sample may be read as 0 only
+    in a valid window, on a Route the operator asserts was covered, with the `consumer` label on."""
+    return (
+        not window_reasons(manifest)
+        and manifest.route_coverage.get(route) is True
+        and "consumer" not in manifest.disabled_labels
+    )
+
+
+def series_status(
+    start: int | None, end: int | None, *, first_in_window: bool = False
+) -> tuple[str, int | None]:
     if start is None and end is None:
         raise ValueError("a series exists at at least one boundary")
     if start is None:
+        if first_in_window:
+            return "DELTA_FIRST_IN_WINDOW", end
         return "ONE_BOUNDARY_END", None
     if end is None:
         return "ONE_BOUNDARY_START", None
@@ -340,13 +355,21 @@ def series_status(start: int | None, end: int | None) -> tuple[str, int | None]:
     return "DELTA", end - start
 
 
-def series_deltas(start: Mapping[str, Series], end: Mapping[str, Series]) -> list[SeriesDelta]:
+def series_deltas(
+    start: Mapping[str, Series], end: Mapping[str, Series], manifest: Manifest | None = None
+) -> list[SeriesDelta]:
+    """Per exact series. Without a manifest no first-in-window reading is possible."""
     deltas = []
     for key in sorted(start.keys() | end.keys()):
         first, last = start.get(key), end.get(key)
-        status, delta = series_status(first.value if first else None, last.value if last else None)
         carrier = last if last is not None else first
         assert carrier is not None
+        status, delta = series_status(
+            first.value if first else None,
+            last.value if last else None,
+            first_in_window=manifest is not None
+            and first_in_window_allowed(manifest, carrier.labels["route"]),
+        )
         deltas.append(SeriesDelta(series=carrier, status=status, delta=delta))
     return deltas
 

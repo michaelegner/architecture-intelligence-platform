@@ -79,8 +79,8 @@
       "code": "200",
       "response_source": "upstream",
       "matched_uri": "/orders",
-      "status": "ONE_BOUNDARY_END",
-      "delta": null
+      "status": "DELTA_FIRST_IN_WINDOW",
+      "delta": 3
     },
     {
       "route": "orders-route",
@@ -111,9 +111,114 @@
     }
   ],
   "expected_route_broken_upstream": {
-    "orders-route": 3,
+    "orders-route": 2,
     "billing-route": 0
   },
+  "first_in_window": [
+    {
+      "id": "F01",
+      "description": "absent at start, present at end, valid covered window",
+      "manifest_patch": {},
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "DELTA_FIRST_IN_WINDOW",
+      "expected_delta": 5
+    },
+    {
+      "id": "F02",
+      "description": "Route absent from route_coverage",
+      "manifest_patch": {},
+      "route": "billing-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F03",
+      "description": "Prometheus not enabled on the Route for the whole window",
+      "manifest_patch": {
+        "route_coverage": {
+          "orders-route": false
+        }
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F04",
+      "description": "consumer label disabled",
+      "manifest_patch": {
+        "disabled_labels": [
+          "consumer"
+        ]
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F05",
+      "description": "end boundary unsettled",
+      "manifest_patch": {
+        "end_settled": false,
+        "end_scrape_count": 1
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F06",
+      "description": "restart not excluded",
+      "manifest_patch": {
+        "no_restart": false
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F07",
+      "description": "present at start, absent at end is never repaired",
+      "manifest_patch": {},
+      "route": "orders-route",
+      "start": 5,
+      "end": null,
+      "expected_status": "ONE_BOUNDARY_START",
+      "expected_delta": null
+    },
+    {
+      "id": "F08",
+      "description": "first-in-window series with a zero end value",
+      "manifest_patch": {},
+      "route": "orders-route",
+      "start": null,
+      "end": 0,
+      "expected_status": "DELTA_FIRST_IN_WINDOW",
+      "expected_delta": 0
+    },
+    {
+      "id": "F09",
+      "description": "decreased counter is still decreased",
+      "manifest_patch": {},
+      "route": "orders-route",
+      "start": 5,
+      "end": 2,
+      "expected_status": "DECREASED",
+      "expected_delta": null
+    }
+  ],
   "window_validity": [
     {
       "id": "W01",

@@ -12,12 +12,14 @@ import pytest
 from app.sources.apisix_measurement_contract import (
     MeasurementRejection,
     Series,
+    first_in_window_allowed,
     measurement_evidence_id,
     measurement_window_id,
     parse_extract,
     parse_manifest,
     parse_mapping,
     series_deltas,
+    series_status,
     validate_fixture,
     window_reasons,
 )
@@ -173,6 +175,7 @@ def test_window_validity_vectors() -> None:
 
 def test_series_delta_vectors() -> None:
     doc = _load("series-deltas.json")
+    base = parse_manifest(_load("manifest-rejections.json")["base_manifest"])
     start = parse_extract(_bytes(doc["start_lines"]))
     end = parse_extract(_bytes(doc["end_lines"]))
     got = [
@@ -185,16 +188,27 @@ def test_series_delta_vectors() -> None:
             "status": d.status,
             "delta": d.delta,
         }
-        for d in series_deltas(start, end)
+        for d in series_deltas(start, end, base)
     ]
     key = lambda r: (r["route"], r["consumer"], r["code"], r["matched_uri"])
     assert sorted(got, key=key) == sorted(doc["expected_series"], key=key)
 
 
+def test_first_in_window_vectors() -> None:
+    doc = _load("series-deltas.json")
+    base = _load("manifest-rejections.json")["base_manifest"]
+    for case in doc["first_in_window"]:
+        manifest = parse_manifest({**base, **case["manifest_patch"]})
+        status, delta = series_status(
+            case["start"],
+            case["end"],
+            first_in_window=first_in_window_allowed(manifest, case["route"]),
+        )
+        assert (status, delta) == (case["expected_status"], case["expected_delta"]), case["id"]
+
+
 def test_a_series_that_exists_nowhere_is_an_error_not_a_zero() -> None:
     with pytest.raises(ValueError):
-        from app.sources.apisix_measurement_contract import series_status
-
         series_status(None, None)
 
 

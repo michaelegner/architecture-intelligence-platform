@@ -196,10 +196,23 @@ def _window_reasons(manifest: dict[str, Any]) -> list[str]:
     return sorted(reasons)
 
 
-def _series_status(start: int | None, end: int | None) -> tuple[str, int | None]:
+def _first_in_window_ok(manifest: dict[str, Any], route: str) -> bool:
+    """Contract §3 (amended in I2.2a): the preconditions for reading an absent start sample as 0."""
+    return (
+        not _window_reasons(manifest)
+        and manifest["route_coverage"].get(route) is True
+        and "consumer" not in manifest["disabled_labels"]
+    )
+
+
+def _series_status(
+    start: int | None, end: int | None, *, first_in_window: bool = False
+) -> tuple[str, int | None]:
     if start is None and end is None:
         raise AssertionError("a series exists at at least one boundary")
     if start is None:
+        if first_in_window:
+            return "DELTA_FIRST_IN_WINDOW", end
         return "ONE_BOUNDARY_END", None
     if end is None:
         return "ONE_BOUNDARY_START", None
@@ -224,8 +237,10 @@ def _qualify(
     totals: dict[tuple[str, str], dict[str, int]] = {}
     pairs = set(configured)
     for s in series:
-        status, delta = _series_status(s["start"], s["end"])
         route, consumer, source = s["route"], s["consumer"], s["response_source"]
+        status, delta = _series_status(
+            s["start"], s["end"], first_in_window=_first_in_window_ok(manifest, route)
+        )
         if route not in routes:
             continue
         attributed = consumer in consumers
@@ -468,7 +483,9 @@ def test_series_deltas_and_window_validity() -> None:
     for key in sorted(start.keys() | end.keys()):
         labels = (start[key] if key in start else end[key])[0]
         status, delta = _series_status(
-            start[key][1] if key in start else None, end[key][1] if key in end else None
+            start[key][1] if key in start else None,
+            end[key][1] if key in end else None,
+            first_in_window=_first_in_window_ok(base, labels["route"]),
         )
         got.append(
             {
@@ -497,6 +514,14 @@ def test_series_deltas_and_window_validity() -> None:
     for case in doc["window_validity"]:
         manifest = {**base, **case["manifest_patch"]}
         assert _window_reasons(manifest) == case["expected_reasons"], case["id"]
+    for case in doc["first_in_window"]:
+        manifest = {**base, **case["manifest_patch"]}
+        status, delta = _series_status(
+            case["start"],
+            case["end"],
+            first_in_window=_first_in_window_ok(manifest, case["route"]),
+        )
+        assert (status, delta) == (case["expected_status"], case["expected_delta"]), case["id"]
 
 
 def test_qualification_truth_table_vectors() -> None:
@@ -547,7 +572,9 @@ def test_every_i2_section9_case_is_covered_by_a_vector() -> None:
         "N3-rejected", "N3-unknown-consumer", "N4", "one-boundary", "decreased",
         "route-wide-downgrade", "positive-wins", "observed-only", "unknown-route",
         "invalid-window-positive", "invalid-window-observed-only", "multi-code-sum",
-        "two-routes-two-consumers",
+        "two-routes-two-consumers", "first-in-window", "first-in-window-uncovered",
+        "first-in-window-rejected", "first-in-window-observed-only",
+        "first-in-window-label-disabled",
     }  # fmt: skip
     kinds = {c["id"] for c in _load("reconciliation.json")["cases"]}
     assert {"J03", "J04", "J05", "K03", "T06", "T07"} <= kinds  # cross-join, unknown, conflicts

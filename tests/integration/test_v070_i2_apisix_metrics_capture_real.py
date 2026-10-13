@@ -155,12 +155,11 @@ def test_real_counters_settle_and_the_window_yields_attributed_and_unattributed_
         "DELTA",
         3,
     )  # I0: usage is response_source=upstream
-    # The 401 series was first created inside the window, so it exists at the end boundary only. By
-    # the frozen contract (§3) a missing boundary is never read as 0: no delta, an unestablished
-    # series. (Finding for the owner: a consumer's first-ever traffic in a window behaves the same.)
+    # The 401 series was first created inside the window, so it exists at the end boundary only. The
+    # window is valid and the Route covered, so the amended contract §3 reads its start as 0 (review
+    # of #524): a consumer's first-ever traffic in a window is measurable.
     rejected = deltas[("", "401", "apisix")]
-    assert (rejected.status, rejected.delta) == ("ONE_BOUNDARY_END", None)
-    assert rejected.series.value == 1
+    assert (rejected.status, rejected.delta) == ("DELTA_FIRST_IN_WINDOW", 1)
     assert all(b"node=" not in part for part in (fixture.start, fixture.end))
 
 
