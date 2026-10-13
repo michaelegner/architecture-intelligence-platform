@@ -67,39 +67,6 @@ PITSTOP_FORK_DIR=/path/to/pitstop-fork examples/pitstop-demo/run.sh --live
   boundary is a property of its authored fixture only.
 - `run.sh --live --down` removes the containers, volumes and `.aip-pitstop-live/`.
 
-## Public read-only profile (hosted instance)
-
-The hosted demo is reachable anonymously (no token) at its public MCP URL. AIP itself still provides no
-public-internet authentication or tenancy: the deployment edge owns the safety, and
-[`hosted/verify_public_edge.py`](hosted/verify_public_edge.py) is the external evidence that it does. The edge
-must:
-
-- publish **only `POST /mcp`** over HTTPS; `/api/*` (including `/api/import` and `/api/query`), `/v1/traces`, Neo4j
-  and every operational endpoint stay unrouted, and Pitstop, the Collector and administration stay on the internal
-  network;
-- ignore, and not forward, the `Authorization` header (the plugin sends an empty `Bearer` header when `aip_token`
-  is empty);
-- bound abuse: a per-client rate limit with a bounded burst, a request-body cap, an upstream timeout, bounded
-  concurrent requests and a global ceiling, with limits set from a real Claude Code Pitstop run so that
-  initialization, tool discovery and evidence drill-down are not blocked;
-- leave AIP's `mcp.allowed-hosts` / `mcp.allowed-origins` set to the public hostname (see `config.yaml`).
-
-Because the edge cannot tell a safe `tools/call` from a future mutating tool, the checker fails unless `tools/list`
-returns exactly the frozen public tool allowlist, and a unit test ties that list to the registered tools.
-
-With Caddy, that is a `handle` that matches only `/mcp` (everything else answers 404), `header_up -Authorization`,
-`request_body { max_size }`, `reverse_proxy` transport timeouts and `max_conns_per_host`; rate limiting needs a
-Caddy build with a rate-limit module such as `github.com/mholt/caddy-ratelimit`.
-
-```bash
-python examples/pitstop-demo/hosted/verify_public_edge.py --url https://<host>/mcp \
-  --date <completed UTC day> --expect-429-within <deployed per-client limit + 1>
-```
-
-Run it from outside the hosting network. `--expect-429-within` is optional: without it the rate-limit check is
-reported `SKIPPED`. The exit code is non-zero if any check fails. Run it, and compare the Pitstop answer for the
-latest completed UTC day with the recorded one, before publishing the anonymous URL.
-
 ## Troubleshooting
 
 - **"port 8000 is in use"**: stop whatever uses it (often another demo: `run.sh --down` of that demo, or
