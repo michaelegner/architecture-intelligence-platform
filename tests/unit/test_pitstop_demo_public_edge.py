@@ -40,6 +40,7 @@ class Guards:
         self.any_host = disabled.get("any_host", False)
         self.no_body_cap = disabled.get("no_body_cap", False)
         self.no_rate_limit = disabled.get("no_rate_limit", False)
+        self.empty_200_for_unknown_host = disabled.get("empty_200_for_unknown_host", False)
         self.mcp_requests = 0
 
 
@@ -55,6 +56,11 @@ def _edge(guards: Guards) -> ThreadingHTTPServer:
             self.end_headers()
             self.wfile.write(data)
 
+        def _send_empty_200(self) -> None:
+            self.send_response(200)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
         def _handle(self) -> None:
             length = int(self.headers.get("Content-Length") or 0)
             raw = self.rfile.read(length)
@@ -63,6 +69,8 @@ def _edge(guards: Guards) -> ThreadingHTTPServer:
             if self.path != "/mcp" or self.command != "POST":
                 return self._send(404)
             if not guards.any_host and self.headers.get("Host") != f"{HOST}":
+                if guards.empty_200_for_unknown_host:
+                    return self._send_empty_200()
                 return self._send(421)
             if not guards.no_body_cap and length > BODY_CAP:
                 return self._send(413)
@@ -131,6 +139,12 @@ def test_frozen_allowlist_is_the_live_registry():
 
 def test_correctly_gated_edge_passes_every_check():
     results = _run(Guards())
+    assert set(results.values()) == {verify.PASS}, results
+
+
+def test_an_empty_200_for_an_unknown_host_counts_as_not_served():
+    """Caddy answers a Host that matches no site with an empty 200: nothing behind the edge is reached."""
+    results = _run(Guards(empty_200_for_unknown_host=True))
     assert set(results.values()) == {verify.PASS}, results
 
 

@@ -14,7 +14,7 @@ deployment edge. This script is the evidence that the edge does its job. Checks:
 - a `get_service_dependencies` call and a `get_evidence` drill-down on its own snapshot succeed;
 - the import, ingest, query and unrelated routes are not reachable (any non-2xx, or a connection
   failure, counts as closed - the exact code is the edge's business);
-- an invalid `Host` and an oversized body are rejected;
+- an invalid `Host` is not served an MCP result (an empty 200 from the edge counts) and an oversized body is rejected;
 - the rate limit is checked only when `--expect-429-within N` is given (the deployed threshold):
   without it the check is SKIPPED, never inferred.
 
@@ -186,11 +186,17 @@ def check_closed_routes(url: str) -> tuple[str, str]:
 
 
 def check_invalid_host(url: str) -> tuple[str, str]:
+    """Rejected means no MCP result was served. Caddy answers a Host that matches no site with an empty
+    `200`; that reaches nothing behind the edge, so a non-2xx status is not required."""
     body = json.dumps({"jsonrpc": "2.0", "id": 5, "method": "tools/list", "params": {}}).encode()
-    status, _ = _request("POST", url, body, _HEADERS, host="not-the-demo.invalid")
-    if status is not None and 200 <= status < 300:
-        return FAIL, f"invalid Host accepted (HTTP {status})"
-    return PASS, f"invalid Host rejected ({'connection refused' if status is None else status})"
+    status, raw = _request("POST", url, body, _HEADERS, host="not-the-demo.invalid")
+    try:
+        served = "result" in json.loads(raw)
+    except (ValueError, TypeError):
+        served = False
+    if served:
+        return FAIL, f"invalid Host reached the MCP server (HTTP {status})"
+    return PASS, f"invalid Host not served ({'connection refused' if status is None else status})"
 
 
 def check_oversized_body(url: str, size: int) -> tuple[str, str]:
