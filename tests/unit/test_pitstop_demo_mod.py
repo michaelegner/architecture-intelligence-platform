@@ -155,18 +155,10 @@ def test_no_mod_file_holds_a_token_value():
         assert not re.search(r"[0-9a-f]{32,}", text), path.name
 
 
-def test_the_readme_documents_the_mod_and_how_to_load_both_plugins():
+def test_the_demo_docs_document_the_mod_and_how_to_install_it():
+    """The focused tryout guides (#516) replaced the README's plugin-loading section."""
     readme = (DEMO_DIR / "README.md").read_text()
-    assert (
-        "claude --plugin-dir examples/pitstop-demo/claude " in readme
-        or "claude --plugin-dir examples/pitstop-demo/claude\n" in readme
-    )
-    for needed in (
-        "/aip-evidence",
-        "Evidence",
-        "144",
-        "claude plugin validate",
-        "claude plugin test",
-        "2.1.29",
-    ):
-        assert needed in readme, needed
+    hosted = (DEMO_DIR / "TRY_IT_HOSTED.md").read_text()
+    assert "144" in readme
+    for needed in ("aip-mod@aip-plugins", "/aip-evidence", "Evidence", "2.1.29"):
+        assert needed in hosted, needed
