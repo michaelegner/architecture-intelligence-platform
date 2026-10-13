@@ -88,6 +88,7 @@ class Boundary:
     settled: bool
     scrape_count: int
     at: datetime  # when the boundary was captured (UTC)
+    stable_seconds: int  # whole seconds the final extract was observed unchanged
 
 
 DEFAULT_QUIET_SECONDS = 20.0
@@ -124,9 +125,9 @@ def settle(
         if current != previous:
             previous, stable_since = current, at
         elif at - stable_since >= quiet_seconds:
-            return Boundary(current, True, count, now())
+            return Boundary(current, True, count, now(), int(at - stable_since))
         if at >= deadline:
-            return Boundary(current, False, count, now())
+            return Boundary(current, False, count, now(), int(at - stable_since))
         sleep(poll_interval)
 
 
@@ -163,6 +164,8 @@ def build_fixture(
         "end_settled": end.settled,
         "start_scrape_count": start.scrape_count,
         "end_scrape_count": end.scrape_count,
+        "start_stable_seconds": start.stable_seconds,
+        "end_stable_seconds": end.stable_seconds,
         "no_restart": no_restart,
         "disabled_labels": sorted(set(disabled_labels)),
         "route_coverage": dict(sorted(route_coverage.items())),

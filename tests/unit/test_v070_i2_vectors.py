@@ -26,6 +26,7 @@ TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 SUPPORTED_VERSION = "3.19.0"
 SERIES = re.compile(r"^apisix_http_status\{(.*)\} (\d+)$")
 LABEL = re.compile(r'([a-z_]+)="((?:[^"\\]|\\.)*)"')
+MIN_START_STABLE_SECONDS = 20
 SUFFICIENT, UNKNOWN = "SUFFICIENT_FOR_ZERO", "UNKNOWN_COVERAGE"
 CONFIGURED, NO_FACT = "CONFIGURED_ACCESS_ESTABLISHED", "NO_MATCHING_CONFIGURED_ACCESS_FACT"
 OBSERVED, ZERO, UNESTABLISHED = "OBSERVED_USAGE", "MEASURED_ZERO", "USAGE_UNESTABLISHED"
@@ -76,6 +77,10 @@ def _check_manifest(manifest: dict[str, Any], registration: dict[str, Any]) -> N
             raise invalid from None
     for name in ("start_settled", "end_settled", "no_restart"):
         if not isinstance(manifest.get(name), bool):
+            raise invalid
+    for name in ("start_stable_seconds", "end_stable_seconds"):
+        seconds = manifest.get(name)
+        if not isinstance(seconds, int) or isinstance(seconds, bool) or seconds < 0:
             raise invalid
     for boundary in ("start", "end"):
         count = manifest.get(f"{boundary}_scrape_count")
@@ -200,6 +205,7 @@ def _first_in_window_ok(manifest: dict[str, Any], route: str) -> bool:
     """Contract §3 (amended in I2.2a): the preconditions for reading an absent start sample as 0."""
     return (
         not _window_reasons(manifest)
+        and manifest["start_stable_seconds"] >= MIN_START_STABLE_SECONDS
         and manifest["route_coverage"].get(route) is True
         and "consumer" not in manifest["disabled_labels"]
     )

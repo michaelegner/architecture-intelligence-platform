@@ -21,6 +21,7 @@ from app.sources.apisix_measurement_contract import (
     END_FILE,
     MANIFEST_FILE,
     START_FILE,
+    first_in_window_allowed,
     parse_extract,
     validate_fixture,
 )
@@ -250,6 +251,52 @@ def test_a_captured_window_is_a_fixture_the_production_validator_accepts() -> No
     assert validated.window_reasons == []
     [delta] = validated.series_deltas()
     assert (delta.status, delta.delta) == ("DELTA", 3)
+
+
+def test_the_manifest_records_how_long_each_boundary_was_stable() -> None:
+    """Review of #525: the first-in-window reading must rest on evidence the fixture itself carries."""
+    clock = Clock()
+    text = _line("a", "200", "upstream", 2)
+    fixture = capture_window(
+        ScriptedSource(text),
+        gateway_instance_id="gw-prod-1",
+        environment="prod",
+        apisix_version="3.19.0",
+        route_coverage={"orders-route": True},
+        disabled_labels=[],
+        no_restart=True,
+        window_seconds=60,
+        settle_timeout=120,
+        poll_interval=2,
+        quiet_seconds=20,
+        sleep=clock.sleep,
+        monotonic=clock.monotonic,
+        now=clock.now,
+    )
+    manifest = json.loads(fixture.manifest)
+    assert manifest["start_stable_seconds"] >= 20 and manifest["end_stable_seconds"] >= 20
+    validated = validate_fixture(
+        fixture.manifest,
+        fixture.start,
+        fixture.end,
+        gateway_instance_id="gw-prod-1",
+        environment="prod",
+    )
+    assert first_in_window_allowed(validated.manifest, "orders-route")
+
+
+def test_a_bare_contract_capture_does_not_license_the_first_in_window_reading() -> None:
+    fixture = _fixture()  # quiet_seconds=0: two identical scrapes, no stability evidence
+    manifest = json.loads(fixture.manifest)
+    assert manifest["start_stable_seconds"] < 20
+    validated = validate_fixture(
+        fixture.manifest,
+        fixture.start,
+        fixture.end,
+        gateway_instance_id="gw-prod-1",
+        environment="prod",
+    )
+    assert not first_in_window_allowed(validated.manifest, "orders-route")
 
 
 def test_no_restart_is_not_asserted_unless_the_operator_says_so() -> None:

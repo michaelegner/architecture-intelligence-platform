@@ -142,6 +142,7 @@ def test_real_counters_settle_and_the_window_yields_attributed_and_unattributed_
         environment=ENVIRONMENT,
     )
     assert validated.window_reasons == []
+    assert validated.manifest.start_stable_seconds >= 20  # the evidence the 0-start reading needs
     deltas = {
         (
             d.series.labels["consumer"],

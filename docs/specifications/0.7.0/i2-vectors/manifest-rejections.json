@@ -120,6 +120,8 @@
     "end_settled": true,
     "start_scrape_count": 2,
     "end_scrape_count": 3,
+    "start_stable_seconds": 24,
+    "end_stable_seconds": 22,
     "no_restart": true,
     "disabled_labels": [],
     "route_coverage": {
@@ -375,6 +377,42 @@
       "expected": {
         "result": "REJECTED_INVALID",
         "code": "GWM_EXTRACT_INVALID"
+      }
+    },
+    {
+      "id": "X23",
+      "spec_case": "malformed",
+      "description": "negative stable duration",
+      "manifest_patch": {
+        "start_stable_seconds": -1
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MANIFEST_INVALID"
+      }
+    },
+    {
+      "id": "X24",
+      "spec_case": "malformed",
+      "description": "end_stable_seconds missing",
+      "manifest_remove": [
+        "end_stable_seconds"
+      ],
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MANIFEST_INVALID"
+      }
+    },
+    {
+      "id": "X25",
+      "spec_case": "malformed",
+      "description": "stable duration is not a whole number of seconds",
+      "manifest_patch": {
+        "end_stable_seconds": 1.5
+      },
+      "expected": {
+        "result": "REJECTED_INVALID",
+        "code": "GWM_MANIFEST_INVALID"
       }
     },
     {

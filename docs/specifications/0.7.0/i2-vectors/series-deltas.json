@@ -209,6 +209,42 @@
       "expected_delta": 0
     },
     {
+      "id": "F10",
+      "description": "start boundary stable for 19 s: below the reviewed 20 s threshold",
+      "manifest_patch": {
+        "start_stable_seconds": 19
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F11",
+      "description": "start boundary stable for exactly the 20 s threshold",
+      "manifest_patch": {
+        "start_stable_seconds": 20
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "DELTA_FIRST_IN_WINDOW",
+      "expected_delta": 5
+    },
+    {
+      "id": "F12",
+      "description": "a short end-boundary stability does not affect the start reading",
+      "manifest_patch": {
+        "end_stable_seconds": 0
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "DELTA_FIRST_IN_WINDOW",
+      "expected_delta": 5
+    },
+    {
       "id": "F09",
       "description": "decreased counter is still decreased",
       "manifest_patch": {},

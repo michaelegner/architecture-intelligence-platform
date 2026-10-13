@@ -109,6 +109,8 @@ start_settled
 end_settled
 start_scrape_count
 end_scrape_count
+start_stable_seconds
+end_stable_seconds
 no_restart
 disabled_labels
 route_coverage
@@ -152,7 +154,7 @@ A delta is usable for window qualification only when:
 
 A series present at only one boundary has no valid delta and yields `USAGE_UNESTABLISHED`; I2 does not silently treat a missing boundary as zero, except for the first-in-window series below. A decreased counter also yields `USAGE_UNESTABLISHED`.
 
-**First-in-window series (amended in I2.2a, review of #524).** Prometheus counters are created at their first increment, so a consumer's first request in the window has no start-boundary sample. A series absent at the start boundary and present at the end boundary is read as having started at **0** (delta = its end value) only when *all* hold: the window has no reason (settled boundaries, `no_restart = true`, ordered window, compatible version); the series' Route is present in `route_coverage` and `true`; and `consumer` is not in `disabled_labels`. Otherwise the series stays `ONE_BOUNDARY_END`. A series present at the start and absent at the end is never repaired: a counter cannot disappear without a restart or reset, so it stays `ONE_BOUNDARY_START`. The reading rests on the capture tool's attestation that the start boundary was settled (the tool's default quiet period, I2.1 contract §10.1).
+**First-in-window series (amended in I2.2a, review of #524).** Prometheus counters are created at their first increment, so a consumer's first request in the window has no start-boundary sample. A series absent at the start boundary and present at the end boundary is read as having started at **0** (delta = its end value) only when *all* hold: the window has no reason (settled boundaries, `no_restart = true`, ordered window, compatible version); the manifest records the start boundary as unchanged for at least 20 whole seconds (`start_stable_seconds`, added in the review of #525, because "settled" alone is not enough evidence against the measured publication lag); the series' Route is present in `route_coverage` and `true`; and `consumer` is not in `disabled_labels`. Otherwise the series stays `ONE_BOUNDARY_END`. A series present at the start and absent at the end is never repaired: a counter cannot disappear without a restart or reset, so it stays `ONE_BOUNDARY_START`. The recorded duration is the capture tool's attestation, not something replay can re-derive.
 
 A configured consumer/Route pair may become `MEASURED_ZERO` only through the closed-world coverage rule in §8 when either:
 

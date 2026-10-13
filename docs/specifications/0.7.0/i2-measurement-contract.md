@@ -47,6 +47,7 @@ UTF-8 JSON object with these fields, all required, no unknown-field tolerance be
 | `window_start`, `window_end` | `YYYY-MM-DDTHH:MM:SSZ` (whole-second RFC 3339 UTC); `window_start >= window_end` is **not** a rejection (§3) |
 | `start_settled`, `end_settled`, `no_restart` | JSON booleans |
 | `start_scrape_count`, `end_scrape_count` | integers ≥ 1; ≥ 2 when the boundary is `settled` (two identical consecutive scrapes are what settled means) |
+| `start_stable_seconds`, `end_stable_seconds` | non-negative JSON integers: whole seconds the final extract of that boundary was observed unchanged before capture ended (*added in I2.2a, review of #525*); evidence for the first-in-window reading (§3), not a rejection input beyond type |
 | `disabled_labels` | sorted list of unique strings (Plugin Metadata `disabled_labels` for `prometheus`) |
 | `route_coverage` | `{APISIX route id: boolean}`: Prometheus plugin enabled for that Route for the whole window |
 | `start_sha256`, `end_sha256` | lowercase hex SHA-256 of the **exact bytes** of the respective extract file (M03) |
@@ -80,7 +81,7 @@ For a valid window each exact series yields one status:
 |---|---|---|
 | `DELTA` | present at both boundaries, `end >= start` | `end - start` (may be 0) |
 | `DECREASED` | present at both, `end < start` | none |
-| `DELTA_FIRST_IN_WINDOW` | absent at start, present at end, **and** the window has no reason, the series' Route is `true` in `route_coverage`, and `consumer` ∉ `disabled_labels` | the end value (the start sample is read as 0) |
+| `DELTA_FIRST_IN_WINDOW` | absent at start, present at end, **and** the window has no reason, `start_stable_seconds >= 20` (the reviewed threshold; the ~14 s publication lag measured in I2.2a plus margin), the series' Route is `true` in `route_coverage`, and `consumer` ∉ `disabled_labels` | the end value (the start sample is read as 0) |
 | `ONE_BOUNDARY_END` | absent at start, present at end, preconditions of the row above not met | none; a missing boundary is not read as 0 |
 | `ONE_BOUNDARY_START` | present at start, absent at end | none; never repaired (a counter cannot vanish without a restart or reset) |
 
@@ -178,8 +179,8 @@ Capture-tool CLI shape and settle timeout defaults (I2.2); writer Cypher and con
 
 ## 10.1 Findings from the I2.2a real-APISIX run (no contract semantics changed)
 
-- **Counter lag is longer than the settle rule's natural poll interval.** Against digest-pinned APISIX 3.19.0 in etcd mode, `apisix_http_status` series appeared ~14 s after the requests; scrapes taken seconds apart were identical (and empty) throughout the lag, so "two consecutive identical scrapes" alone settled on the wrong extract. The capture tool therefore requires the two identical scrapes to be at least a quiet period apart (`--quiet-seconds`, default 20 s; the bare rule is `0`). The manifest and every validation rule are unchanged: `*_settled = true` still means "stable", only the tool's evidence for it is stronger.
-- **A series first created inside the window has no start-boundary sample.** The real run showed it: the 401 series, created by the window's own traffic, existed at the end boundary only. Read strictly (a missing boundary is never 0) a consumer's first request in a window could not establish usage; the only positive case in the run worked because a readiness request before the start boundary had already created the series. The review of #524 asked for an amendment rather than an accepted limitation, so §3 now reads such a series as starting at 0 (`DELTA_FIRST_IN_WINDOW`) under the stated preconditions, and keeps `ONE_BOUNDARY_END` otherwise. I2 spec §5, §8 and §14 are amended to match; vectors W-series, series-deltas and Q15/Q18/Q25–Q29 changed accordingly.
+- **Counter lag is longer than the settle rule's natural poll interval.** (Bound into the manifest in I2.2a after the review of #525: `start_stable_seconds` / `end_stable_seconds` record the stability the tool actually observed, and the first-in-window reading requires `start_stable_seconds >= 20`, so a fixture captured under the bare two-scrape rule cannot license it.) Against digest-pinned APISIX 3.19.0 in etcd mode, `apisix_http_status` series appeared ~14 s after the requests; scrapes taken seconds apart were identical (and empty) throughout the lag, so "two consecutive identical scrapes" alone settled on the wrong extract. The capture tool therefore requires the two identical scrapes to be at least a quiet period apart (`--quiet-seconds`, default 20 s; the bare rule is `0`). The manifest and every validation rule are unchanged: `*_settled = true` still means "stable", only the tool's evidence for it is stronger.
+- **A series first created inside the window has no start-boundary sample.** The real run showed it: the 401 series, created by the window's own traffic, existed at the end boundary only. Read strictly (a missing boundary is never 0) a consumer's first request in a window could not establish usage; the only positive case in the run worked because a readiness request before the start boundary had already created the series. The review of #524 asked for an amendment rather than an accepted limitation, so §3 now reads such a series as starting at 0 (`DELTA_FIRST_IN_WINDOW`) under the stated preconditions, and keeps `ONE_BOUNDARY_END` otherwise. I2 spec §5, §8 and §14 are amended to match; vectors F01–F12, X23–X25 and Q15/Q18/Q25–Q30 changed accordingly.
 
 ## 11. Interpretations to confirm in review
 
@@ -193,4 +194,4 @@ These are readings the I2 spec leaves open; they are frozen here only if this PR
 6. In an invalid window, attributed pairs still get rows, with `USAGE_UNESTABLISHED` and `null` counts (§7).
 7. Explicit Route→Operation statements are not cross-checked against the fallback (§6).
 8. Version compatibility is exactly `3.19.0`, the inspected release, not the whole `3.19.*` line (§3; review of #522).
-9. A series first created inside a valid, covered window is read as starting at 0 (§3, amended in I2.2a).
+9. A series first created inside a valid, covered window whose start boundary was recorded stable for at least 20 s is read as starting at 0 (§3, amended in I2.2a; evidence-binding added after the review of #525). The recorded duration is the capture tool's attestation, not something replay can re-derive.

@@ -11,6 +11,8 @@
     ]
   },
   "base_manifest": {
+    "start_stable_seconds": 24,
+    "end_stable_seconds": 22,
     "apisix_version": "3.19.0",
     "window_start": "2026-10-13T10:00:00Z",
     "window_end": "2026-10-13T10:10:00Z",
@@ -1053,6 +1055,44 @@
           "rejected_attempt_count": 0,
           "limitations": [
             "GWM_CONSUMER_LABEL_DISABLED",
+            "GWM_SERIES_ONE_BOUNDARY"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q30",
+      "spec_case": "first-in-window-weak-settle",
+      "description": "start boundary below the 20 s stable threshold: the end-only series is not read as starting at 0",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {
+        "start_stable_seconds": 19
+      },
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": null,
+          "end": 3
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
             "GWM_SERIES_ONE_BOUNDARY"
           ]
         }
