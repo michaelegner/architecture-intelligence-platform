@@ -575,62 +575,37 @@ Exit capability:
 > insufficiently supported in the selected context without silently inventing product, business,
 > authorization, or Intent claims.**
 
-## v0.7.1 — Broker-Mediated Consumer Attribution Semantic Completion (planned)
+## v0.7.1 — Broker-Mediated Consumer Attribution (planned)
 
-**Goal:** complete the existing messaging Current-State question so AIP can safely attribute a
-Service as a consumer of a broker-mediated destination from broker-native runtime evidence plus
-separately qualified Service-mapping evidence, without collapsing distinct broker concepts.
+**Goal:** complete the existing messaging Current-State question so AIP can qualify which Services
+consume a broker-mediated destination without collapsing broker-native identities.
 
 **Product question:**
 
 > **For destination D in environment E, which Services can the available evidence safely attribute
-> as consumers, through what broker-native evidence, and with what qualification?**
+> as consumers, and with what qualification?**
 
-**Evidence basis:** Round 5 found the consumer-attribution question recurring across independent Kafka
-and RabbitMQ systems. The follow-up evidence-capture check in
-[`consumer-attribution-evidence/`](docs/real-world-validation/v0.8.0/consumer-attribution-evidence/)
-(PR #527) then demonstrated a **SUPPORTED EVIDENCE PATH** for Kafka: broker-held consumer-group/member
-state established attachment to named topics, while separate configuration and runtime-container
-evidence mapped those broker-native identities to Services without relying on name equality.
+**Evidence basis:** Round 5 found the question recurring across Kafka and RabbitMQ systems. PR #527
+then demonstrated a **SUPPORTED EVIDENCE PATH** for Kafka: broker-held group/member state established
+topic attachment, while separate configuration/runtime evidence mapped that identity to a Service
+without treating the consumer group as a Subscription.
 
-This closes the Round 5 promotion-rule evidence condition for Kafka. It does **not** yet establish a
-common canonical abstraction across Kafka consumer groups, RabbitMQ queues/bindings, and Service Bus
-subscriptions. That semantic question remains part of the v0.7.1 design work.
+Requirements:
 
-Minimum requirements:
+- define the smallest source-independent consumer-attribution semantics while keeping Kafka groups,
+  RabbitMQ queues/bindings, Service Bus subscriptions, destinations, and Services distinct;
+- keep broker evidence and Service-mapping evidence separate and preserve provenance, environment/time,
+  unresolved mappings, and the difference between attachment and actual message processing;
+- qualify the semantics against the captured Kafka case and at least one contrasting RabbitMQ shape;
+- add only the bounded ingestion/public-surface changes needed for this existing question.
 
-- define the **smallest source-independent semantic contract** needed for consumer attribution; do
-  not assume a generic `ConsumerEndpoint` or equivalent before the broker-native evidence shapes are
-  compared;
-- keep broker-native consumer identity, destination identity, and Service identity distinct; in
-  particular, a Kafka consumer group must never be promoted to or aliased as an AIP Subscription;
-- preserve broker evidence and Service-mapping evidence as separate, separately qualified claims;
-  Service-level consumer attribution is derived only when both are supported in the same applicable
-  context;
-- preserve environment/run identity, capture time or observation window, provenance, and unresolved
-  mapping cases; point-in-time group membership must not be presented as proof of message processing;
-- add only the bounded ingestion path needed to qualify the selected evidence shape. The captured
-  Kafka CLI output is qualification evidence, not a public ingestion contract; any implementation
-  should use a structured broker-state source;
-- qualify the semantic contract against the captured Kafka case and at least one contrasting
-  broker shape before treating the abstraction as source-independent;
-- expose the result through the existing Architecture Intelligence surfaces without creating a new
-  architecture-question class.
-
-Explicitly out of scope: general broker-topology modelling, routing-predicate languages,
-lag/offset/rebalancing analysis, DLQ/retry topology, framework-generated destination inference, or
-broad Kafka/RabbitMQ administration.
-
-This is a **bounded semantic completion** under the patch-release doctrine, not a new capability
-release. If the design cannot preserve the broker-native distinctions safely across the qualifying
-cases, v0.7.1 must narrow rather than invent a generic abstraction.
+Out of scope: general broker-topology modelling, routing predicates, lag/offset/rebalancing,
+DLQ/retry topology, or broad broker administration.
 
 **Exit capability:**
 
-> **AIP can qualify which Service is attached as a consumer to a broker-mediated destination in a
-> selected context when broker-native runtime evidence and an independently supported Service mapping
-> establish that attribution, while preserving the native consumer identity and refusing unsupported
-> equivalence to Subscription semantics.**
+> **AIP can evidence-qualify Service-level consumer attribution for broker-mediated destinations
+> without inventing equivalence between distinct broker-native concepts.**
 
 ## v0.8 — Cross-Boundary Architecture Knowledge + Product-Boundary Validation (planned)
 
