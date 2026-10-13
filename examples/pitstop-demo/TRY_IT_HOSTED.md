@@ -1,13 +1,13 @@
 # Try the Pitstop demo hosted
 
 This is the shortest path to try the live Pitstop demo with Claude Code. Nothing from AIP needs to run
-on your machine.
+on your machine, and the public demo requires no credentials.
 
 You need:
 
 - Git
 - Claude Code 2.1.292 or later
-- the hosted **MCP URL** and **token** — request access in [GitHub Discussions](https://github.com/michaelegner/architecture-intelligence-platform/discussions)
+- the published public Pitstop demo MCP URL
 
 ## 1. Clone Pitstop
 
@@ -33,7 +33,7 @@ claude plugin install aip@aip-plugins
 claude plugin install aip-mod@aip-plugins   # optional
 ```
 
-## 3. Configure the hosted endpoint
+## 3. Configure the public endpoint
 
 Start Claude Code and run:
 
@@ -41,7 +41,8 @@ Start Claude Code and run:
 /plugin configure aip@aip-plugins
 ```
 
-Enter the supplied `aip_mcp_url` and `aip_token`, then restart Claude Code. The token field is masked.
+Set `aip_mcp_url` to the published public demo MCP URL and leave `aip_token` empty, then restart
+Claude Code.
 
 If a standalone `aip` MCP server points at the same URL, remove it first:
 
@@ -50,6 +51,9 @@ claude mcp remove aip
 ```
 
 Otherwise Claude Code can hide the plugin's MCP server as a duplicate.
+
+The public demo exposes only the read-only MCP surface; ingestion, imports and other AIP application
+routes are intentionally not public.
 
 ## 4. Check the connection
 
@@ -91,13 +95,11 @@ With `aip-mod` installed, the status line shows the current AIP result and the *
 
 | Symptom | Likely cause |
 |---|---|
-| `/mcp` fails or shows 401 | URL or token is wrong; run `/plugin configure aip@aip-plugins` again and restart |
-| `421 Invalid Host header` | use the exact MCP URL supplied by the demo owner |
+| `/mcp` cannot connect | check that `aip_mcp_url` is the published public MCP URL, then restart Claude Code |
+| `421 Invalid Host header` | use the exact published public MCP URL |
 | no `plugin:aip:aip` in `/mcp` | restart after configuration, and remove any standalone `aip` server for the same URL |
+| `429 Too Many Requests` | the public demo rate limit was reached; wait briefly and retry |
 | the agent says the window is not over | use yesterday in UTC, not today |
-
-The token gives read access to the demo to anyone who has it. Do not paste it into prompts, Discussions,
-issues or screenshots. If it leaks, contact the demo owner through [GitHub Discussions](https://github.com/michaelegner/architecture-intelligence-platform/discussions) without posting the token.
 
 For expected answers and provenance, see the [Pitstop demo README](README.md) and
 [walkthrough](walkthrough.md).
