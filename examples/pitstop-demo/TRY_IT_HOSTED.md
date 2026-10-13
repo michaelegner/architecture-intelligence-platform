@@ -7,7 +7,7 @@ You need:
 
 - Git
 - Claude Code 2.1.292 or later
-- the hosted **MCP URL** and **token** from the demo owner
+- the hosted **MCP URL** and **token** — request access in [GitHub Discussions](https://github.com/michaelegner/architecture-intelligence-platform/discussions)
 
 ## 1. Clone Pitstop
 
@@ -96,8 +96,8 @@ With `aip-mod` installed, the status line shows the current AIP result and the *
 | no `plugin:aip:aip` in `/mcp` | restart after configuration, and remove any standalone `aip` server for the same URL |
 | the agent says the window is not over | use yesterday in UTC, not today |
 
-The token gives read access to the demo to anyone who has it. Do not paste it into prompts, issues or
-screenshots; report a leaked token to the demo owner.
+The token gives read access to the demo to anyone who has it. Do not paste it into prompts, Discussions,
+issues or screenshots. If it leaks, contact the demo owner through [GitHub Discussions](https://github.com/michaelegner/architecture-intelligence-platform/discussions) without posting the token.
 
 For expected answers and provenance, see the [Pitstop demo README](README.md) and
 [walkthrough](walkthrough.md).
