@@ -2,33 +2,44 @@
 
 **Status:** Planned  
 **Input:** Round 3 finalists  
-**Purpose:** Select the system and bounded-change scenario for the v0.8 product-boundary PoC through a concrete technical spike.
+**Purpose:** Select the system and bounded-change scenario for the v0.8 product-boundary validation.
+
+Round 4 is **pre-v0.8 selection work**. It selects a system that can fairly test the product hypothesis. It does not run the final v0.8 comparison.
 
 ## 1. Goal
 
 Round 4 SHALL answer:
 
-> **For a realistic bounded change, does AIP provide distributed-system context that materially changes the coding agent's investigation boundary beyond a fair source/agent baseline and Teamscale?**
+> **Does this finalist provide a realistic, reproducible bounded-change scenario where independent distributed-system evidence exists, fits current AIP semantics, and could plausibly add investigation context beyond all available repository/source context?**
 
-The spike must not hide relevant repositories, documentation, configuration, `AGENTS.md`, or `CLAUDE.md` from the baseline.
+The spike must keep the baseline fair: all relevant repositories, configuration, documentation, `AGENTS.md`, `CLAUDE.md`, ADRs and contracts remain available.
 
-## 2. Finalists and fixed changes
+## 2. Out of scope
+
+Round 4 SHALL NOT:
+
+- run a Teamscale baseline;
+- choose a system because a specific source-analysis product is weak on it;
+- make the final v0.8 continue / narrow / integrate / defer / stop decision;
+- add new AIP semantics solely to make a candidate work;
+- hide source or repository-native context.
+
+Teamscale enters **after system selection, in v0.8 proper**.
+
+## 3. Finalists and fixed changes
 
 Evaluate in this order:
 
-1. **Sokol111 ecommerce workspace**  
-   Change: modify the `ProductUpdatedEvent` contract.
+1. **Sokol111 ecommerce workspace** — change `ProductUpdatedEvent`.
+2. **sminerport/eCommerceMicroservices** — change the `product.update` RabbitMQ message contract/header semantics.
 
-2. **sminerport/eCommerceMicroservices**  
-   Change: modify the `product.update` RabbitMQ message contract/header semantics.
+Start with Sokol111. Evaluate sminerport only if Sokol111 is inconclusive, impractical, unsupported by current AIP semantics, or otherwise unsuitable.
 
-Start with Sokol111. Evaluate sminerport only if Sokol111 is inconclusive, impractical, or fails the product-boundary test.
+Freeze and record exact repository commits before evaluation.
 
-Exact repository commits used for the spike SHALL be recorded before evaluation.
+## 4. Sokol111 source scope
 
-## 3. Sokol111 source scope
-
-The Sokol111 baseline SHALL include at least:
+The baseline SHALL include at least:
 
 - `ecommerce-catalog-service-api`
 - `ecommerce-catalog-service`
@@ -37,124 +48,136 @@ The Sokol111 baseline SHALL include at least:
 - `ecommerce-commons`
 - `ecommerce-infrastructure`
 
-All existing repository-native agent guidance and architecture documentation remain available.
+If another repository becomes relevant, add it rather than withholding it.
 
-## 4. Coding-agent baseline
+## 5. Coding-agent/source baseline
 
-Use a fresh checkout/session and give the coding agent all relevant repositories and repository context.
+Use a fresh checkout/session with all relevant repository context.
 
-For the fixed change, record:
+Record:
 
-- which services/repositories it decides must be inspected;
-- why it includes each one;
-- which relationships it considers established versus inferred.
+- which services/repositories the agent chooses to inspect;
+- why;
+- which distributed relationships it considers established;
+- which relationships remain inferred or uncertain;
+- what source/configuration evidence supports the conclusion.
 
-One coding agent is sufficient for the spike. Claude Code is the preferred initial baseline because the selected systems already contain agent-readable project context.
+One coding agent is sufficient. Claude Code is the preferred initial baseline because the finalists already contain agent-readable context.
 
-## 5. Teamscale baseline
-
-Use **Teamscale 2026.7.1**.
-
-Import all relevant repositories for the candidate and give Teamscale the same source scope as the coding agent.
-
-Record only what Teamscale can establish from source analysis that is relevant to the bounded change.
-
-Do not restrict repositories to create an artificial advantage for AIP.
+Round 4 is not successful merely because the agent overlooks information that was available in source.
 
 ## 6. Independent distributed evidence
 
-### Sokol111
+The candidate must provide evidence independent of ordinary source dependency analysis.
 
-Prefer existing Kafka/OpenTelemetry evidence:
+For **Sokol111**, prefer existing Kafka/OpenTelemetry and deployment evidence: producer/consumer spans, runtime service identity, `messaging.system=kafka`, topic/destination attributes, trace propagation, and environment-specific topic/consumer configuration. The fixed scenario centers on Catalog producing `ProductUpdatedEvent` and Product Query plus Image consuming `catalog.product.events`.
 
-- producer and consumer spans;
-- runtime service identity;
-- `messaging.system=kafka`;
-- topic/destination attributes;
-- trace propagation;
-- environment-specific consumer/topic configuration.
+For **sminerport**, prefer RabbitMQ/deployment evidence: `products.exchange`, exchange-to-queue bindings, `orders.product.update.queue`, active consumer identity, `product.update` header semantics, and environment-specific Docker/Kubernetes configuration.
 
-### sminerport
+Do not modify the application merely to manufacture a stronger AIP case.
 
-Prefer existing RabbitMQ evidence:
+## 7. Evidence capture
 
-- exchange;
-- bindings;
-- queue;
-- active consumer;
-- environment-specific deployment/configuration.
+The spike SHOULD create a reproducible evidence package using the smallest practical runtime exercise.
 
-Existing evidence SHOULD be used rather than modifying the application to manufacture a stronger AIP case.
+Prefer captured OTLP/broker/deployment evidence and replayable fixtures where current AIP already supports them. Record the commands and environment assumptions needed to reproduce the evidence.
 
-## 7. AIP feasibility
+Synthetic/replayed evidence is acceptable only when it faithfully represents evidence from the real system and preserves provenance.
 
-Use existing AIP Current-State semantics and evidence qualification wherever possible.
+## 8. AIP feasibility
 
-Prefer replayable evidence fixtures/snapshots over implementing a new production adapter.
+Use existing AIP Current-State semantics and qualification.
 
-AIP SHALL NOT gain new broker semantics solely to make the spike succeed.
+Record:
 
-For each relationship record:
-
-- what evidence AIP can ingest;
+- what evidence current AIP can ingest;
 - what relationship it can establish;
 - qualification and provenance;
-- anything that remains unresolved or unsupported.
+- what remains unsupported or unresolved;
+- whether the result is available through the existing Architecture Intelligence surface.
 
-If existing AIP semantics cannot correctly represent the available evidence, record that as a spike result.
+Classify limitations as:
 
-## 8. Comparison
+- **ingestion gap** — evidence fits current semantics but no current ingestion path exists;
+- **semantic gap** — current semantics cannot represent the relationship correctly;
+- **qualification gap** — evidence is available but cannot be qualified correctly;
+- **no relevant evidence**.
+
+A small ingestion adapter or fixture may be acceptable if it stays within existing semantics. A semantic gap weighs strongly against selection.
+
+## 9. Comparison record
 
 | Field | Content |
 |---|---|
 | Candidate | System + frozen commits |
 | Change | Fixed bounded task |
-| Expected boundary | Services/components that actually matter |
-| Coding-agent result | Investigation boundary from all source/context |
-| Teamscale result | Relevant boundary established from source |
-| Distributed evidence | Independently observed/configured relationship |
-| AIP result | Evidence-qualified relationship AIP can establish |
-| Changed next action? | Yes / no / unclear |
-| AIP gap | None / ingestion / semantics / qualification |
+| Expected boundary | Relevant services/components |
+| Coding-agent/source result | What repository/context establishes |
+| Unresolved source question | What remains uncertain |
+| Distributed evidence | Independent observed/configured relation |
+| AIP feasibility | What current AIP can establish |
+| AIP gap | None / ingestion / semantics / qualification / no evidence |
+| Plausible investigation difference? | Yes / unclear / no |
 | Setup cost | Low / medium / high |
 | Reproducibility | Good / acceptable / poor |
 | Public-demo value | Strong / medium / weak |
-| Verdict | Select / reject |
+| Verdict | Select / fallback / reject |
 
-The decisive field is **Changed next action?**
+The decisive field is **Plausible investigation difference?**:
 
-## 9. Selection rule
+> **Is there a credible distributed-architecture question that source/context does not safely settle, while independent evidence can answer it and current AIP semantics can represent that answer?**
 
-Select a system only if:
+This does not prove AIP adds value beyond Teamscale. That is a v0.8 question.
 
-> **AIP causes the coding agent to inspect something materially relevant that the fair source/agent/Teamscale baseline did not safely establish.**
+## 10. Selection rule
 
-Runtime confirmation alone is insufficient if the same services would already have been inspected.
+Select the v0.8 validation system when:
 
-The preferred system should also be reproducible, understandable publicly, and maintainable as the v0.8 demo.
+1. the bounded change is realistic and understandable;
+2. the source/agent baseline is fair and complete;
+3. a meaningful cross-boundary question remains beyond direct source dependencies;
+4. independent evidence genuinely exists;
+5. current AIP semantics can represent and qualify that evidence, or need only a small ingestion path;
+6. the scenario is reproducible;
+7. the scenario would make a credible public demonstration if v0.8 succeeds.
 
-## 10. Execution order
+Do not require Round 4 to prove that AIP changes the next action beyond every source-analysis tool.
 
-Round 4 SHOULD proceed sequentially:
+## 11. Execution order
 
-**freeze Sokol111 → coding-agent baseline → Teamscale baseline → capture Kafka/OTel evidence → replay through AIP → compare**
+Round 4 SHOULD proceed:
 
-Only then, if required:
+**freeze Sokol111 → coding-agent/source baseline → capture Kafka/OTel evidence → test AIP ingestion/qualification → assess selection fitness**
 
-**freeze sminerport → coding-agent baseline → Teamscale baseline → capture RabbitMQ evidence → replay through AIP → compare**
+Only if required:
 
-This avoids doing two full environment setups before knowing whether the leading candidate already answers the product question.
+**freeze sminerport → coding-agent/source baseline → capture RabbitMQ evidence → test AIP ingestion/qualification → assess selection fitness**
 
-## 11. Exit criteria
+## 12. Handoff to v0.8
+
+After selection, **v0.8 proper** performs the product-boundary validation with:
+
+- the fair coding-agent/source baseline;
+- Teamscale 2026.7.x with all relevant repositories;
+- the selected independent distributed evidence;
+- AIP's evidence-qualified result;
+- the test of whether AIP materially changes the investigation boundary beyond mature source analysis;
+- the roadmap checkpoint: **continue, narrow, integrate, defer, or stop**.
+
+> **Round 4 selects a system that can fairly test the product hypothesis. v0.8 tests the hypothesis.**
+
+## 13. Exit criteria
 
 Round 4 ends with:
 
-- one selected v0.8 PoC system, or an explicit result that neither finalist demonstrates sufficient value;
+- one selected v0.8 validation system, or an explicit result that neither finalist is suitable;
 - one frozen bounded-change scenario;
 - exact repository revisions;
-- documented coding-agent, Teamscale and AIP investigation boundaries;
-- identified independent evidence;
-- any AIP ingestion/semantic limitation discovered;
-- a short **select / narrow / stop** rationale.
+- documented coding-agent/source investigation boundary;
+- identified independent distributed evidence;
+- a reproducible evidence-capture path;
+- an explicit statement of what current AIP can and cannot establish;
+- any ingestion, semantic, or qualification gap;
+- a short **select / fallback / reject** rationale.
 
-If neither candidate demonstrates material value beyond the fair baseline, the result SHALL be recorded rather than constructing a scenario to force an AIP win.
+If neither candidate is fair and technically viable, record that result rather than weakening the baseline or changing AIP semantics to force a selection.
