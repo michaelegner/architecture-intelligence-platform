@@ -1,0 +1,2 @@
+/ecommerce-payment-service id=352697958a992be1b7fcc163a0356d0616577504e3cfda3de725645c17d0e335 hostname=352697958a99
+/ecommerce-order-service id=aea2e96d9790d70cd8b804b5acc03a4561eb2e5f11a34efc2a7bff0ced22a6a2 hostname=aea2e96d9790

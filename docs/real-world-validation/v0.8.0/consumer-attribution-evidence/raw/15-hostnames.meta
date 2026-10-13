@@ -1,0 +1,3 @@
+2026-10-13T21:48:47Z
+docker inspect -f {{.Name}} id={{.Id}} hostname={{.Config.Hostname}} ecommerce-payment-service ecommerce-order-service
+exit 0

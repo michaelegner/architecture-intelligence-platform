@@ -1,0 +1,3 @@
+2026-10-13T21:48:30Z
+docker exec ecommerce-kafka kafka-consumer-groups --bootstrap-server kafka:29092 --describe --group order-service --state
+exit 0

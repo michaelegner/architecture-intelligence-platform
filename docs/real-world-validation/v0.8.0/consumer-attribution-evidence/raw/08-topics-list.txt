@@ -1,0 +1,4 @@
+__consumer_offsets
+orders.created
+payments.completed
+payments.failed

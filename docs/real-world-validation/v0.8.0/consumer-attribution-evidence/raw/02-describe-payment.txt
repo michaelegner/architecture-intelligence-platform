@@ -1,0 +1,5 @@
+
+GROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                                              HOST            CLIENT-ID
+payment-service orders.created  0          -               0               -               server@352697958a99 (github.com/segmentio/kafka-go)-13db4c2f-0d39-4e91-bf59-fa4d1aeea47c /172.19.0.7     server@352697958a99 (github.com/segmentio/kafka-go)
+payment-service orders.created  1          -               0               -               server@352697958a99 (github.com/segmentio/kafka-go)-13db4c2f-0d39-4e91-bf59-fa4d1aeea47c /172.19.0.7     server@352697958a99 (github.com/segmentio/kafka-go)
+payment-service orders.created  2          -               0               -               server@352697958a99 (github.com/segmentio/kafka-go)-13db4c2f-0d39-4e91-bf59-fa4d1aeea47c /172.19.0.7     server@352697958a99 (github.com/segmentio/kafka-go)
