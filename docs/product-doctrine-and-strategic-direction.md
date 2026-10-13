@@ -1,2788 +1,885 @@
 # AIP Product Doctrine and Strategic Direction
 
-**Status:** Working strategy — Moldable Architecture Knowledge positioning<br>
-**Project:** Architecture Intelligence Platform (AIP)<br>
-**Date:** 2026-09-21<br>
-
-**Product-positioning revision:** 2026-10-12 — evidence-qualified distributed Current State sharpened as the durable product center; integration preferred over duplication for adjacent Intent/conformance capabilities<br>
-**Scope:** Product doctrine, target wedge, semantic model, Moldable Architecture Knowledge, and strategic direction<br>
-**Current implementation center:** Evidence-qualified Current State, broader discovery, locality-aware projections, and read-only agent context<br>
+**Status:** Working product strategy  
+**Project:** Architecture Intelligence Platform (AIP)  
+**Product positioning:** distributed Architecture Intelligence Platform (dAIP)  
+**Revision:** 2026-10-13 — complete strategy rewrite around distributed boundaries, local views, and bounded projections  
+**Scope:** release-independent product doctrine and strategic direction  
+**Roadmap authority:** release sequencing and shipped/planned status remain in [ROADMAP.md](../ROADMAP.md)
 
 ---
 
-## 1. Executive Summary
+## 1. Product Thesis
 
-AIP's overarching mission is:
+AIP's mission remains:
 
 > **Build architecture intelligence that agents can consume and humans can inspect, challenge, and understand.**
 
-AIP's customer value proposition is:
+The product is increasingly best understood as **dAIP — distributed Architecture Intelligence
+Platform**. The repository and project may continue to use the shorter AIP name, but the strategic
+product boundary is distributed architecture.
 
-> **Help coding agents make bounded changes across multi-service systems without reconstructing architecture for every task.**
+The customer value proposition is:
 
-The broader strategic environment is **enterprise AI-assisted software transformation**. As implementation
-gets cheaper and more agents make more changes across existing systems, individual bounded changes
-accumulate into architecture evolution. AIP's role is not to manage that transformation; it is to
-provide the reusable, evidence-qualified Architecture Knowledge layer that keeps each change grounded
-in what the available evidence actually supports.
+> **Help coding agents make bounded changes in distributed systems without reconstructing the
+> relevant architecture from repositories, configuration, runtime evidence, contracts, and people
+> for every task.**
 
-The strategy therefore has two scales:
+The durable product distinction is:
 
-```text
-task-level value
-one bounded change
-        ↓
-evidence-qualified architecture context
+> **dAIP specializes in architectural relationships across autonomous service/component boundaries
+> that cannot be reduced reliably to source-code dependencies.**
 
-enterprise-level value
-many changes + many agents + many systems
-        ↓
-reusable Architecture Knowledge across the evolving landscape
-```
+The central doctrine is:
 
-The customer problem is **agent-ready architectural context**. A repository of code alone cannot
-reliably provide the operational and architectural knowledge required to change multi-service
-systems: contracts, configuration, deployments, observations, constraints and previous decisions
-are dispersed across sources and people. Without reusable, attributable context, every authoring
-or reviewing agent must reconstruct architectural premises, often without knowing which are
-supported, incomplete, conflicting, or stale.
+> **Current State is locally observed. Intent is locally attributable. Assessment is locally made.
+> dAIP answers distributed-architecture questions by projecting the relevant local views into a
+> bounded, evidence-qualified result.**
 
-Davis et al.'s *Context Engineering* pattern in *Agentic AI and Code Reviews* (IT Revolution,
-Fall 2026, pp. 17–19) states the broader need for engineering environments to make operational
-knowledge, architectural intent and decision history accessible. **AIP supplies the
-architecture-specific, evidence-qualified part of that environment**, not generic organizational
-memory or the authority to approve decisions. Current State, any future explicit Intent, and external
-Decision History remain distinct knowledge domains.
+This is deliberately narrower than a claim such as "enterprise-wide architecture knowledge is
+composed from local statements." dAIP does not need to construct, own, or assert a complete enterprise
+architecture model. It composes local knowledge **only as far as a concrete distributed-architecture
+question requires**.
 
-Its core product concept is **Moldable Architecture Knowledge**: establish qualified Architecture
-Knowledge once, then make small, deterministic, question-specific projections inexpensive to
-create, inspect, compose, and reuse without allowing the consumer to rewrite the underlying evidence
-or qualification.
+The product should be judged by whether this architecture context changes a useful engineering
+decision before code is edited.
 
-AIP's differentiation has two layers.
+A concise working theorem is:
 
-**Core-domain differentiation** establishes trustworthy Architecture Knowledge:
-
-- **evidence applicability and qualification** — state what the available evidence actually supports;
-- **identity reconciliation** — relate heterogeneous identities without guessing;
-- **conflict-aware reconciliation** — combine potentially disagreeing sources without flattening
-  disagreement;
-- **provenance and derivation lineage** — preserve why a claim exists and where it came from;
-- **bounded uncertainty** — keep unresolved, conflicting, unsupported, incomplete, and scoped
-  outcomes explicit.
-
-**Product-level differentiation** makes that knowledge useful repeatedly:
-
-- **deterministic projections** — turn recurring architecture questions into reproducible,
-  inspectable answers over the same qualified knowledge;
-- **moldability** — allow question, selection, composition, and representation to vary without
-  changing the established meaning underneath.
-
-Its purpose is not to make agents more autonomous. Its purpose is to make architectural
-understanding **reusable rather than repeatedly reconstructed**. Context delivery is the
-customer-facing job; establishing precisely which claims the evidence supports is the Core Domain.
-A larger prompt, generic document retrieval, or a graph visualization alone does not provide that
-qualification.
-
-The strategic hierarchy is:
-
-```text
-CUSTOMER VALUE PROPOSITION
-Help coding agents make bounded changes across multi-service systems
-without reconstructing architecture for every task
-        ↓
-PRODUCT CONCEPT
-Moldable Architecture Knowledge
-        ↓ enabled by
-CORE DOMAIN
-Establishing Evidence-Qualified Architecture Knowledge
-        ↓
-CORE-DOMAIN DIFFERENTIATION
-applicability + identity/reconciliation + qualification
-+ provenance/lineage + bounded uncertainty
-        ↓ exposed as
-PRODUCT-LEVEL DIFFERENTIATION
-deterministic question-specific projections + moldability
-        ↓
-REPLACEABLE IMPLEMENTATION
-graph/database layout, query language, storage technology,
-transport plumbing, internal traversal and persistence details
-```
-
-The product center becomes:
-
-```text
-Architecture Evidence
-        ↓
-Evidence Applicability
-        ↓
-Qualified Architecture Facts
-        ↓
-Evidence-Qualified Architecture Knowledge
-        ↓
-Question-Specific Deterministic Projection
-        ↓
-Agent / Human / Contextual Micro-Tool
-        ↓
-Reasoning / Inspection / Next Question
-```
-
-The durable product thesis is: AIP establishes **evidence-qualified distributed Current State** and
-exposes bounded projections over it. Explicit Intent and Current↔Intent assessment are semantically
-distinct adjacent domains; AIP should own them only when product evidence shows that integration with
-a specialized architecture-intent/conformance product is insufficient.
-
-The durable Current-State path is:
-
-```text
-Local Evidence
-      ↓
-Qualified Local Evidence Assessments
-      ↓
-Context-Bound Current-State Projection
-      ↓
-Cross-Boundary Current-State Projection
-```
-
-If AIP owns Intent or assessment, the separation remains a hard doctrinal rule:
-
-```text
-Current-State Evidence
-      ↓
-Current-State Projection
-
-Explicit Attributable Intent
-      ↓
-Applicable Intent Projection
-
-Current-State Projection + Intent Projection
-      ↓
-Qualified Current ↔ Intent Assessment
-```
-
-**Intent is never an input to Current-State qualification.** The same rule applies when Intent is
-owned by an external product: its policy or inferred architecture must not manufacture AIP
-Current-State facts, boundaries, or relationships.
-
-This does **not** mean that AIP should become a central planner, policy engine, migration orchestrator,
-architecture generator, or duplicate an adjacent architecture-conformance product.
-
-The durable product boundary is:
-
-> **AIP establishes what can currently be supported about distributed architecture from available
-> evidence, preserves why that conclusion was reached and where it applies, and exposes bounded,
-> deterministic views — including cross-boundary views — that humans, agents, and other architecture
-> tools can safely reason from.**
-
-Intent and conformance may be composed at an integration boundary. AIP should own them only if
-product validation demonstrates a material problem that cannot reasonably remain in the adjacent
-tool or integration layer.
-
-### 1.1 Core concept: Moldable Architecture Knowledge
-
-"Moldable" describes the **question, projection, composition, and representation** of Architecture
-Knowledge. It does not mean that facts become user-shaped or that qualification becomes negotiable.
-Both humans and agents can mold questions, explore qualified answers, follow evidence, and compose
-question-specific projections without changing the knowledge or its qualification.
-
-```text
-consumer may mold:
-  question
-  selection
-  projection
-  composition
-  representation
-  contextual tool
-
-consumer may not mold:
-  source evidence
-  claim meaning
-  qualification
-  provenance
-  snapshot identity
-  limitations
-```
-
-The product rule is:
-
-> **Architecture Knowledge should be moldable without making its evidence, qualification,
-> provenance, or semantic meaning consumer-moldable.**
-
-A recurring architecture question should move toward this lifecycle:
-
-```text
-architecture question
-        ↓
-qualified Architecture Knowledge
-        ↓
-deterministic projection
-        ↓
-inspectable answer
-        ↓
-optional contextual micro-tool
-        ↓
-reuse / refinement / next question
-```
-
-The AIP × Glamorous Toolkit reference integration validates an important version of this loop:
-agents can select AIP capabilities, chain evidence requests, preserve AIP snapshot/provenance
-semantics, and derive bounded ephemeral micro-tools while AIP remains responsible for establishing
-the qualified Architecture Knowledge exposed by its contracts and the developer controls what
-becomes permanent.
-
-This concept does not make Glamorous Toolkit an AIP dependency. GT is a reference integration that
-demonstrates the interaction model. The durable product idea is portable across agent clients,
-engineering tools, REST consumers, and future interfaces.
-
-The map-derived product distinction is:
-
-> **Customers value a reliable Architecture Knowledge capability from which recurring questions can
-> be answered deterministically. They do not need AIP's internal storage representation to become
-> part of that contract.**
-
-This does **not** make the semantic model disposable. Public architectural meaning — identity,
-relation semantics, qualification, provenance, context, evidence linkage, limitations, and
-assessment meaning — is part of the product contract even when its internal graph/database
-representation is replaceable. Until public contracts are declared stable, those semantics may still evolve through explicit,
-versioned contract changes; "not replaceable" means they are not mere implementation detail.
-
-### 1.2 DDD framing: Core Domain and supporting capabilities
-
-In Domain-Driven Design terms, AIP's **Core Domain** is:
-
-> **Establishing Evidence-Qualified Architecture Knowledge from heterogeneous, incomplete, and
-> potentially conflicting system evidence.**
-
-The core domain answers:
-
-```text
-What architectural claim can be established?
-From which applicable evidence?
-Under which identity, locality, time, and observation context?
-With what qualification?
-With what conflicts, uncertainty, or limitation?
-With what provenance and derivation lineage?
-```
-
-This is distinct from the mechanics around it:
-
-```text
-CORE DOMAIN
-Architecture Knowledge establishment and qualification
-  - evidence applicability
-  - identity and reconciliation semantics
-  - claim qualification
-  - conflict / uncertainty semantics
-  - provenance / derivation meaning
-
-PRODUCT CAPABILITY BUILT ON THE CORE DOMAIN
-Deterministic question-specific projection
-  - bounded ArchitectureAnswer contracts
-  - reusable architecture questions
-  - moldable composition / representation
-
-SUPPORTING
-Protocol-specific source discovery / ingestion mechanics,
-syntactic normalization, snapshot plumbing, evaluation harnesses,
-adapter implementation
-
-GENERIC / STANDARDIZE WHERE PRACTICAL
-MCP / HTTP transport, protocol libraries, database technology,
-graph query mechanics, standard source APIs
-```
-
-A new source adapter is therefore not automatically new product capability. It becomes strategically
-important when it enables a materially new class of qualified Architecture Knowledge, requires new
-core-domain semantics, or unlocks a materially new deterministic architecture question.
-
-The Core Domain is not the same thing as one Bounded Context. Current State, explicit Intent, and
-Current↔Intent Assessment may require distinct semantic boundaries while still contributing to AIP's
-overall Architecture Knowledge domain. In particular, Intent must remain outside Current-State
-establishment.
-
-
-### 1.3 Architecture Intelligence Platform — Strategic Wardley Map
-
-The Wardley map makes the strategy above spatial: it connects the primary customer need to the
-capabilities required to satisfy it and positions those capabilities by their stage of evolution.
-
-![Architecture Intelligence Platform — Strategic Wardley Map](../images/wardley/aip-strategic-wardley-map.png)
-
-The map should be read as an **AIP strategy map**, not as an AIP × Glamorous Toolkit integration map.
-Glamorous Toolkit appears as an independent reference consumer that validates the moldable,
-question-driven interaction model; it is not part of AIP's core value chain.
-
-The map reinforces four investment conclusions:
-
-- **differentiate in the Core Domain** — evidence applicability, identity/reconciliation,
-  qualification, provenance/lineage, conflict handling, bounded uncertainty, and public
-  Architecture Knowledge semantics;
-- **differentiate at the product level** — deterministic, reusable, question-specific projections
-  over qualified Architecture Knowledge;
-- **standardize or consume mature capabilities** — MCP/REST transport, OpenAPI/OpenTelemetry/
-  Kubernetes/Git interfaces, persistence technology, and graph/query plumbing where practical;
-- **keep external exploration separate from semantic authority** — agents, GT, and other consumers
-  may select questions, compose projections, and create contextual tools without becoming the source
-  of evidence, qualification, or architectural meaning.
-
-The strategic reading is therefore:
-
-```text
-customer need
-    ↓
-coding agent
-    ↓
-question-specific architecture answer
-    ↓
-Evidence-Qualified Architecture Knowledge
-    ↓
-qualification / reconciliation
-    ↓
-source adapters
-    ↓
-enterprise evidence sources
-```
-
-This is a **chain of needs**, not a decomposition of AIP's implementation. The horizontal position
-expresses evolution from Genesis to Commodity; the vertical position expresses visibility to the
-customer. Dashed links indicate interaction or usage rather than value-chain dependency.
+> **Distributed architecture evidence tells the agent where investigation must cross autonomous
+> boundaries; repository/source analysis tells the agent what each implementation does.**
 
 ---
 
-## 2. Primary Customer Hypothesis
+## 2. Primary Customer Job
 
-The initial product audience should remain explicit enough to prioritize work.
+The initial product wedge is **AI-assisted bounded change in existing distributed systems**.
 
-### Primary user
+The primary user is:
 
-> **Platform engineering and architecture teams enabling coding agents to change existing,
-> multi-service systems.**
+> **A developer, architect, or platform team using coding agents to change an existing distributed
+> system whose relevant dependencies may cross repositories, teams, deployment boundaries, or
+> independently operated components.**
 
-The initial wedge is **brownfield AI-assisted change**: systems where relevant architecture knowledge
-is already fragmented across repositories, configuration, runtime evidence, documentation, and
-people. The pain is strongest there because a coding agent can change code faster than it can safely
-reconstruct the surrounding architecture for every task.
+The first customer job is not "show me the architecture." It is:
 
-Brownfield is an adoption wedge, not the product boundary. Greenfield systems can establish the same
-evidence-qualified Architecture Knowledge earlier and preserve it as the system evolves; the initial
-focus is simply where reusable context has the clearest marginal value.
+> **Before I change this component, which external components and distributed relationships must I
+> inspect, why are they relevant, what evidence supports that relevance, and what remains unknown?**
 
-### Strategic environment: enterprise AI-assisted software transformation
+A repository-aware coding agent is already good at reading code that it can see. AIP should add value
+where the investigation boundary is larger than that repository.
 
-The bounded change is the initial **unit of product value**, not the ultimate scale of the problem.
-At enterprise scale, many bounded AI-assisted changes across many systems become cumulative software
-transformation:
+Typical examples include:
 
-```text
-one bounded change
+- a service publishing an event consumed by a component in another repository;
+- a raw HTTP client whose runtime target is selected by configuration or service discovery;
+- gateway or routing configuration that changes which service is actually reached;
+- broker topology that creates publisher/consumer relationships without a source dependency;
+- environment-specific relationships that do not exist in every deployment;
+- deployment/runtime relationships that source analysis cannot establish safely.
+
+The initial workflow is therefore:
+
+~~~text
+bounded change request
         ↓
-many AI-assisted changes
+question about distributed impact
         ↓
-many teams / agents / systems
+dAIP bounded projection
         ↓
-architecture evolution
+agent knows which autonomous boundaries require inspection
         ↓
-enterprise AI-assisted software transformation
-```
+source/repository analysis inside each relevant component
+        ↓
+normal engineering verification
+~~~
 
-AIP should provide an architecture-knowledge substrate for that environment without becoming an
-enterprise-transformation management platform, agent orchestrator, portfolio tool, approval system,
-or generic AI-governance suite.
-
-The strategic target is a **shared Architecture Knowledge space that can span multiple distributed
-systems and preserve qualified cross-system relationships**, rather than assuming one AIP instance
-per application. That target does not imply that all systems must be flattened into one undifferentiated
-graph or that today's implementation is already qualified for enterprise scale.
-
-These teams need to let agents work across service boundaries without forcing the agent to
-reconstruct architecture from source code, documentation, naming conventions, stale diagrams, or
-incomplete telemetry.
-
-The primary customer need is therefore not "buy an architecture graph" or "buy more agent
-autonomy." It is to obtain reliable, bounded architecture knowledge at the point where an agent must
-reason across service boundaries. AIP is an architecture-specific **Context Engineering**
-capability: make established knowledge reusable at the moment of development and review rather
-than making each agent infer it again. Operational runbooks, incident history, policy enforcement
-and organizational decision records can be relevant adjacent context without automatically
-becoming AIP-owned sources or authority.
-
-### Secondary users
-
-- senior software architects reviewing agent-generated changes;
-- developers using coding agents in distributed systems;
-- platform teams exposing architecture context through MCP or other machine interfaces;
-- engineering organizations building deterministic guardrails around probabilistic development;
-- teams managing long-running architecture evolution across environments, regions, and deployment
-  topologies.
-
-These remain secondary until the primary workflow is validated.
+AIP does not own coding-agent planning, implementation, testing, deployment, or review. It supplies
+qualified distributed-architecture premises to those workflows.
 
 ---
 
-## 3. Initial Wedge Workflow
+## 3. Product Boundary: Across Autonomous Components
 
-The first high-value workflow remains:
+The core boundary test is:
 
-> **Before a coding agent makes a bounded change, provide the evidence-qualified architecture context
-> needed to identify what must be inspected; after the change is deployed or otherwise observable,
-> independently establish the resulting architecture state again.**
+> **Does this concern interaction across an autonomous service/component boundary?**
 
-This is a question-specific context workflow: *What should be inspected before editing this
-service?* An AIP answer must expose supported relationships, evidence, snapshot/observation
-context and limits. An authoring agent and an independent reviewing agent can consult the same
-premises, but review findings, policy judgments and decisions do not thereby become AIP
-Architecture Knowledge.
+If **no**, it is probably not an AIP concern.  
+If **yes**, it is potentially an AIP concern when evidence can establish the relevant relationship,
+promise, or assessment.
 
-The wedge is deliberately **change-centric, not documentation-centric**. AIP's reusable output is the
-architecture context that helps an agent bound the next change; it is not a requirement to build or
-maintain a complete architecture twin before useful work can begin.
+### In scope
 
-Conceptually:
+AIP may reason about distributed relationships such as:
 
-```text
-Bounded change request
-     ↓
-AIP: establish relevant architecture context
-     ↓
-Agent identifies what must be inspected
-     ↓
-Agent plans and changes software
-     ↓
-Deterministic engineering verification
-(tests / build / static analysis / contract checks)
-     ↓
-Deployment / runtime evidence
-     ↓
-AIP independently re-establishes architecture state
-     ↓
-Architect / agent inspects what is now established
-```
+~~~text
+REST / HTTP
+gRPC
+events
+queues / topics / streams
+brokers
+gateways
+service discovery
+deployment/runtime routing
+environment-specific dependencies
+cross-repository interactions
+cross-component interactions
+cross-team interactions where team identity is independently established
+~~~
 
-AIP owns the **reusable, evidence-qualified architecture context** and deterministic architecture
-projections in this loop. It does not own the coding agent or the implementation-verification
-toolchain. Tests, builds, static analysis, contract checks, and similar deterministic engineering
-tools remain complementary mechanisms rather than AIP responsibilities.
+It may also reason about externally visible promises and assessments of those promises when their
+ownership has been validated as an AIP product responsibility.
 
-AIP does **not** claim that the agent caused the resulting state merely because the state changed
-after the agent's work.
+### Out of scope as a product center
 
-Post-change verification establishes:
+AIP should not become the primary tool for:
 
-```text
-what the architecture state is now
-```
+~~~text
+classes / packages / modules
+internal layering
+internal source dependencies
+internal aggregate or domain-model structure
+repository-local architecture conformance
+generic code quality
+generic enterprise architecture modeling
+capability maps
+organization charts
+generic policy authoring
+agent orchestration
+workflow automation
+approval systems
+deployment orchestration
+~~~
 
-not automatically:
+Strong source and repository architecture tools already address many of these concerns. AIP should
+compose with them rather than duplicate them.
 
-```text
-why it changed
-who caused it
-whether the change was intentional
-```
+### Boundaries are not inferred from relationships
 
-Causal attribution requires separate evidence. Independent evaluation also does not guarantee
-independent evidence: re-reading an agent-edited declaration establishes what is declared, not that
-the implementation behaves accordingly. The source-independence and verification-scope boundary in
-§22 applies to this workflow.
+The governing invariant remains:
 
-The longer-term wedge extension is:
+> **A relationship does not establish a boundary. A boundary does not establish a relationship.**
 
-```text
-Before change:
-  establish Current State
-  +
-  retrieve applicable explicit intent
-  +
-  identify qualified difference
+Repository, namespace, deployment co-location, graph proximity, naming, connectivity, or ownership
+must not silently manufacture System/Component membership.
 
-After change:
-  re-observe
-  +
-  re-assess
-  +
-  establish the new qualified difference
-```
+Likewise, membership in the same System/Component does not establish a technical relationship.
 
-This remains advisory and read-only.
+Service identity, System/Component membership, deployment locality, team ownership, and DDD Bounded
+Context are distinct concepts. They may align in a real system, but that alignment itself requires
+evidence or attributable intent appropriate to the claim.
 
 ---
 
-## 4. Product Evolution Thesis
+## 4. Three Local Semantic Views
 
-AIP should evolve by deepening the quality of architecture knowledge before broadening its authority.
+dAIP's long-term semantic frame has three distinct local views:
 
-The sequence is:
+~~~text
+Current State
+Intent
+Assessment
+~~~
 
-```text
-1. Establish architecture facts from evidence.
-2. Qualify those facts under explicit observation context.
-3. Preserve provenance and derivation.
-4. Establish facts locally before projecting them globally.
-5. Extend qualified Current State to API exposure and consumption without conflating interfaces,
-   technical implementation, products, consumers, and business capabilities.
-6. Introduce explicit attributable intent as a separate domain.
-7. Assess Current State against applicable intent.
-8. Establish which already-qualified relationships cross independently established System or
-   Component boundaries, using only the composition semantics required for that question.
-9. Represent architecture evolution as context-bound trajectories once historical-state semantics exist.
-10. Only then consider transformation reasoning.
-```
+They may be projected together for a question, but none is allowed to manufacture the others.
 
-The progression deliberately separates:
+### 4.1 Current State is locally observed
 
-```text
-KNOW
-what can currently be established
+Current State answers:
 
-from
+> **What distributed relationships can the available evidence establish in this explicit context?**
 
-INTEND
-what has explicitly been promised / required
+"Locally observed" is a product-level statement about the locality and scope of knowledge. It does
+**not** collapse AIP's evidence modes. A declared API contract remains declared evidence; runtime
+telemetry remains observed evidence; deployment/configuration evidence retains its own semantics.
 
-from
+Current-State evidence may include, where supported:
 
-ASSESS
-how Current State relates to Intent
+~~~text
+runtime observations
+deployment/topology evidence
+broker configuration
+gateway/routing configuration
+declared API or messaging contracts
+implementation-derived evidence
+explicit identity/reconciliation mappings
+~~~
 
-from
+Every supported conclusion remains bound to the locality, environment, observation window, version,
+snapshot, and evidence semantics that justify it.
 
-TRANSFORM
-how the system might safely change
-```
+The current-state rule is:
 
-AIP should not collapse these stages into one graph or one AI-generated answer.
+> **An observed or configured dependency must never be promoted into a promise.**
 
-### Multi-system Architecture Knowledge and composition
+And:
 
-The current bounded-change workflow is intentionally Service-centric, but the long-term knowledge
-space must not assume that a Service is the largest meaningful architecture boundary. Enterprise
-software landscapes contain Systems, Services, components, shared platforms, deployment units,
-bounded contexts, and organizational boundaries whose meanings must remain distinct.
+~~~text
+observed dependency
+    ≠
+provider promise
 
-AIP therefore needs a principled path toward source-neutral **System / Component / Service
-composition** when a validated architecture question requires it. The exact taxonomy and relation
-vocabulary remain to be specified and qualified; the strategy must not freeze a hierarchy merely
-because CALM, Structurizr, C4, or another source uses one.
+client dependency
+    ≠
+provider obligation
 
-The governing boundaries are:
+API exists
+    ≠
+approved integration contract
+~~~
 
-```text
-Service identity
-    !=
-System membership
-    !=
-deployment locality
-    !=
-team ownership
-    !=
-Bounded Context
-```
+AIP should prefer unresolved or partial answers over stronger claims that the evidence does not
+support.
 
-System or component membership must not be inferred merely from repository location, namespace,
-communication, naming, team ownership, or graph proximity. Current-State membership needs
-attributable Current-State evidence appropriate to that claim. Explicit Intent may describe intended
-membership, but it must remain separate and must not substitute for Current-State composition.
+### 4.2 Intent is locally attributable
 
-Likewise, System membership should not become part of a Service's identity by default. A Service may
-participate in several systems or move between architectural groupings without becoming a different
-Service. Cross-system dependencies are first-class architecture knowledge, not noise to be hidden by
-per-system isolation.
+For AIP, useful architectural Intent is not general internal design intent.
 
-This composition direction connects the initial wedge to the broader strategy:
+The relevant Intent is:
 
-```text
-bounded change
-        ↓
-Service-level architecture context
-        ↓
-multi-Service / multi-System knowledge
-        ↓
-reusable enterprise Architecture Knowledge
-```
+> **What does an autonomous service/component explicitly promise to the outside?**
 
-Cross-boundary Architecture Knowledge is a strategic capability because bounded changes often cross
-System or Component boundaries. System / Component modeling should remain deliberately minimal and
-exist only where it enables a concrete architecture question:
+Examples include externally attributable promises about:
 
-> **Which evidence-qualified architectural relationships cross established System or Component
-> boundaries?**
+~~~text
+an API or event contract provided
+a capability offered
+a capability accepted or consumed
+a supported compatibility relationship
+a required or prohibited external relationship
+scope / conditions / effective interval
+~~~
 
-For the bounded-change workflow:
+Internal layering rules, package rules, class dependencies, repository-local architectural style, and
+similar internal intent are outside AIP's product center.
 
-> **Before changing this service, which established relationships cross the System or Component
-> boundaries around it?**
+A provider's promise and a consumer's promise remain separate:
 
-The intended derivation is:
+~~~text
+Provider:
+  "I provide contract X under conditions Y."
 
-```text
-independently established composition / boundary
-        +
-already qualified architectural relationship
-        ↓
-qualified cross-boundary projection
-```
+Consumer:
+  "I consume/use contract X."
+~~~
 
-Practical design inputs such as **C4/Structurizr, FINOS CALM, and EventCatalog** may provide authored
-composition or membership concepts that AIP must preserve without adopting the source's entire
-metamodel. **Bigraphs** and **Semantic Spacetime** provide useful constraints on separating
-place/composition from link/connectivity and treating crossing conclusions as context-bound.
+One does not manufacture the other.
 
-Composition evidence retains its semantic mode. Current-State cross-boundary projection may use only
-membership/composition accepted for Current-State semantics. Intended composition remains separate and
-must not silently become Current-State membership.
+The governing rules are:
 
-The governing invariant is:
+> **A consumer dependency does not create a provider promise.**
 
-> **A relationship does not establish a boundary. A boundary does not establish a relationship.
-> A cross-boundary claim requires both to be independently established.**
+> **Enterprise policy may constrain a distributed relationship; it does not manufacture the
+> autonomous participant's promise.**
 
-If membership or boundary evidence is unresolved, the crossing conclusion remains unresolved. AIP
-should close only the minimum composition gap required by the question, not introduce a generic
-enterprise metamodel, capability map, org chart, arbitrary hierarchy browser, or ontology-driven
-redesign.
+Intent must remain explicit and attributable. Runtime frequency, naming, co-location, code structure,
+or an agent's interpretation cannot become authoritative Intent.
 
-Product evolution should be visible as expansion of the **architecture-question space**. A capability
-is strategically meaningful when it makes a materially new recurring question safely and
-deterministically answerable, rather than merely adding internal machinery.
+Whether AIP should persist and own this Intent domain, or consume it from an adjacent architecture
+product, is a product-ownership question. The semantic separation is mandatory either way.
 
-## 5. Customer Outcome Hypotheses
+### 4.3 Assessment is locally made
 
-AIP should be evaluated against customer outcomes, not only internal semantic elegance.
+Assessment answers:
 
-The current hypotheses are:
+> **What does the available evidence support about the relationship between an autonomous
+> component's external promises and the distributed interactions that actually occur?**
 
-1. **Reduce unsupported architectural assumptions before implementation.**
-2. **Reduce senior-engineer time spent reconstructing cross-service architecture during review.**
-3. **Make architecture questions reproducible across humans, agents, and tools.**
-4. **Surface uncertainty early instead of allowing agents to convert missing context into plausible
-   architecture.**
-5. **Provide an independent post-change architecture check without relying on the agent's own report
-   of success.**
-6. **Reduce ambiguity between expected evolution and unintended architecture drift.**
-7. **Allow teams to express partial architectural intent without maintaining a complete target-state
-   blueprint.**
-8. **Make locality- and time-specific differences visible instead of flattening them into one global
-   architecture view.**
-9. **Reduce the cost of turning a recurring architecture question into a reusable deterministic
-   projection or contextual tool.**
-10. **Allow agents to derive useful architecture lenses without allowing agent-generated content to
-    become Architecture Knowledge.**
-11. **Let REST, MCP, and external moldable tools consume the same semantic knowledge without
-    duplicating qualification logic.**
-12. **Reduce repeated manual cross-source investigation across change tasks and agent sessions, and
-    reduce dependence on individual experts for recurring architecture questions, without concealing
-    unresolved evidence.**
-13. **Enable authors and independent reviewers to inspect the same qualified architecture premises
-    without treating either agent's review judgment as an established architecture fact.**
-14. **Surface cross-service relationships that materially change what must be inspected before a
-    bounded change, while keeping unresolved impact outside the supported claim set.**
+Assessment is not a universal compliance judgment. It is made for an explicit locality, time,
+evidence set, promise set, and assessment rule.
 
-These are hypotheses to validate, not claims that AIP has already demonstrated these business
-outcomes.
+For example:
+
+~~~text
+Current State:
+  WorkshopManagementAPI publishes on distributed path P
+
+Intent:
+  WorkshopManagementAPI explicitly promises external contract X
+
+Assessment:
+  evidence in context C supports / contradicts / cannot establish
+  the relevant relationship between X and observed cooperation
+~~~
+
+A local assessment remains attributable to its inputs and scope. Projecting several local assessments
+into one answer does not turn them into universal truth.
+
+The assessment rule is:
+
+> **A promise must never manufacture Current State, and Current State must never manufacture a
+> promise. Assessment is downstream of both.**
 
 ---
 
-## 6. Product Success Measures
+## 5. Bounded Projections
 
-AIP needs both semantic-quality metrics and workflow-value metrics.
+The central product interaction is a **question-specific projection** across the local views relevant
+to the question.
 
-### 6.1 Semantic quality
+AIP does not need a universal enterprise model before it can answer useful questions.
+
+The preferred model is:
+
+~~~text
+local evidence-qualified views
+        ↓
+specific distributed-architecture question
+        ↓
+bounded projection
+~~~
 
 Examples:
 
-```text
-false supported-claim rate
-qualification disagreement rate
-unresolved-identity rate
-unsupported-relation rate
-deterministic replay equality
-evidence/provenance resolution rate
-snapshot reproducibility
-cross-context projection consistency
-local-assessment reconciliation consistency
-```
+> **Which external dependencies of WorkshopManagementAPI matter for this change?**
 
-Desired direction:
+> **Which observed relationships cross the Pitstop → Reporting component boundary?**
 
-```text
-false supported claims -> zero in qualified scenarios
-cross-surface semantic mismatches -> zero
-unexplained nondeterminism -> zero
-silent locality/context loss -> zero
-```
+> **Which external promises relevant to MaintenanceJobFinished are supported, conflicting, or
+> unresolved in this context?**
 
-### 6.2 Agent-context quality
+A projection may combine several local Current-State views, external promises, and local assessments.
+The underlying claims remain local and attributable.
 
-Measure:
+The governing invariant is:
 
-```text
-percentage of returned claims with:
-- qualification
-- applicable evidence
-- snapshot identity
-- observation context where relevant
-- locality/context scope where relevant
-- explicit limitations
+> **Projection may combine local views, but it must not erase their locality, authority, provenance,
+> qualification, or uncertainty.**
 
-context truncation frequency
-context completeness status
-excluded/unresolved claim count
-```
+A projection must not silently strengthen:
 
-### 6.3 Workflow value
+~~~text
+"observed here"
+~~~
 
-For pilot users, measure:
+into:
 
-```text
-time to answer "what does this service depend on?"
-time to identify what must be inspected before a bounded change
-time spent reconstructing architecture during review
-repeated cross-source searches and expert clarification for the same architecture question
-reuse of established architecture context across change tasks and agent sessions
-author/reviewer ability to resolve the same evidence and understand unresolved limitations
-unsupported assumptions surfaced before implementation
-post-change discrepancies surfaced independently
-architecture-sensitive agent tasks that query AIP before acting
-time to identify Current ↔ Intent differences
-time to distinguish local deviation from system-wide deviation
-time from recurring architecture question to deterministic reusable projection
-reuse frequency of promoted architecture questions / projections
-recurring questions answered from deterministic Architecture Knowledge rather than agent reconstruction
-```
+~~~text
+"true everywhere"
+~~~
 
-Metrics should remain small enough to support actual product decisions.
+or:
 
-### 6.4 Pilot decision gate
+~~~text
+"consumer uses X"
+~~~
 
-Validate the initial workflow on a bounded set of representative architecture tasks with and without
-AIP, using comparable source access and independently authored expected results. Record the task
-set, baseline, and success/stop thresholds before evaluating the pilot.
+into:
 
-Measure jointly:
+~~~text
+"provider promised X"
+~~~
 
-- supported-claim correctness and the proportion of questions answered usefully;
-- unresolved and unsupported outcomes, including whether abstention was justified;
-- total engineering time, including setup, source maintenance, identity mapping, and clarification;
-- independently detected post-change discrepancies and false alarms.
+The product concept **Moldable Architecture Knowledge** is retained in this narrower sense:
 
-A lower false-claim rate achieved only by returning more unresolved answers does not establish product
-value. Reduced investigation/review time must be evaluated against the added maintenance burden.
-Compare workflows with equivalent source access, measuring both time to a useful qualified answer
-and the proportion of questions that remain unresolved. A faster but misleading answer is not
-product success.
+~~~text
+same local knowledge
+        ↓
+different question
+        ↓
+different bounded projection
+~~~
 
-Pilot criteria must support an explicit continue, narrow, defer, or stop decision. Capabilities remain
-subject to product-value, semantic, and implementation qualification; failed gates require a
-documented scope or product-boundary decision. This doctrine does not claim that a pilot has already
-passed or prescribe unvalidated numerical thresholds.
+Consumers may mold the question, selection, projection, composition, and representation. They may not
+mold the underlying evidence, qualification, provenance, or claim meaning.
+
+A shared knowledge store may contain evidence from many systems. That is an implementation and scale
+choice, not a requirement to construct a global architecture truth model.
 
 ---
 
-## 7. Core Product Question
+## 6. Evidence Qualification Is the Core Domain
 
-AIP's current core epistemic question remains:
+AIP's Core Domain is now stated more narrowly as:
 
-> **What architecture can we currently support from available evidence, and what are the limits of
-> that knowledge?**
+> **Establishing and projecting evidence-qualified distributed relationships across autonomous
+> boundaries.**
 
-The longer-term question becomes:
+The durable differentiation is not the graph, database, MCP transport, or number of source adapters.
+It is the ability to say what a particular body of evidence actually supports.
 
-> **What architecture is currently established here and now, what explicit intent applies here and
-> now, and what does the evidence support about the difference?**
+Core capabilities include:
 
-This is intentionally weaker and more defensible than claiming a universal architecture "truth
-layer."
+~~~text
+evidence applicability
+identity reconciliation
+relationship qualification
+conflict-aware reconciliation
+provenance and derivation lineage
+locality / time / observation context
+bounded uncertainty
+question-specific deterministic projection
+~~~
 
-The preferred product concept is:
+The existing implementation concept **Qualified Local Evidence Assessment** remains compatible with
+this doctrine: it is one deterministic semantic unit for saying what current-state evidence supports
+within an explicit context. It is not a claim that AIP should build a complete global model from all
+such assessments.
 
-> **Moldable Architecture Knowledge**
-
-with the semantic foundation:
-
-> **evidence-qualified Architecture Knowledge**
-
-not:
-
-> technical-architecture truth layer
-
-A complementary product-design question is:
-
-> **Which recurring architecture question can AIP make deterministic next, while preserving the
-> evidence, qualification, context, and limits of the answer?**
-
----
-
-## 8. Durable Principles
+### Durable epistemic rules
 
 1. **Evidence before inference.**
 2. **Correct but incomplete is better than complete-looking but wrong.**
 3. **Non-observation is not absence.**
-4. **An agent may reason over architecture, but must not become the source of architectural truth.**
-5. **A relationship being present in a graph does not by itself qualify an architecture claim.**
-6. **Traceability proves that a chain exists; qualification determines what that chain supports.**
-7. **Different evidence modes must not be collapsed into one generic notion of truth.**
-8. **Intent, declaration, and observation are distinct semantic domains.**
-9. **Architectural intent is established only by explicit, attributable intent artifacts.**
-10. **Inferred intent is a hypothesis, never an instruction or authoritative intent source.**
-11. **Explicit promises and observed cooperation are distinct: observing cooperation does not prove
-    that the cooperation was promised or intended.**
-12. **A promise assessment is context-bound: whether evidence supports a promise depends on locality,
-    time, observation context, applicable evidence, and the assessment rule.**
-13. **Current State must be derivable entirely from current-state evidence and qualification rules;
-    Intent must never be an input to Current-State establishment.**
-14. **AIP establishes architecture locally before projecting it globally.**
-15. **System-level Current-State views are context-bound projections of qualified evidence
-    assessments. Claims about cross-boundary interactions require their own evidence and
-    qualification rules. Intent and alignment assessments remain separate knowledge domains.**
-16. **Locality and connectivity are independent: WHERE something is does not establish HOW it
-    interacts.**
-17. **Service identity, Bounded Context, deployment unit, and team boundary are distinct concepts.
-    They may align, but that alignment is itself an architectural claim requiring evidence or
-    explicit intent. API product, API contract, operation, gateway route/service, application
-    service, consumer, and business capability also retain distinct meanings; an association is
-    not automatically identity.**
-18. **Emergent behavior may establish Current State; it does not establish Intent.**
-19. **Current State and Intent may both be partial, local, and time-bound.**
-20. **Desired architecture should be declarative and partial rather than encoded as a migration
-    script.**
-21. **Assessment must preserve evidence, context, time, rule version, provenance, and limitations.**
-22. **Agent-facing convenience must not weaken deterministic semantics.**
-23. **Advisory, read-only architecture intelligence is preferred over policy enforcement in the AIP
-    core.**
-24. **AIP's semantic contracts should remain portable across model vendors, agent frameworks, coding
-    agents, and integration transports.**
-25. **Transformation planning is downstream from qualified Current State, explicit Intent, and
-    qualified difference.**
-26. **Architecture Knowledge may be molded in question, projection, composition, and representation;
-    evidence, qualification, provenance, and semantic meaning are not consumer-moldable.**
-27. **When a recurring architecture question can be answered deterministically, prefer a reusable
-    projection/tool over repeatedly asking an agent to reconstruct the answer.**
-28. **Differentiate where Architecture Knowledge is established; standardize where it is transported
-    and sourced.**
-29. **Internal representation is replaceable; public architectural meaning is a versioned semantic
-    contract, not an implementation detail.**
-30. **The product is neither the graph nor a bag of fixed answers: it is a reliable Architecture
-    Knowledge capability whose qualified semantics support reusable deterministic projections.**
-
----
-
-## 9. Epistemic Model
-
-AIP must keep Current State separate from any Intent and Current↔Intent assessment semantics it consumes or may later own.
-
-### 9.1 Current-state evidence modes
-
-Current State may be established only from evidence modes that describe or support the system as it
-is currently declared, implemented, deployed, or observed:
-
-```text
-DECLARED
-OBSERVED
-SOURCE_DERIVED / IMPLEMENTATION_DERIVED
-INFRASTRUCTURE_DERIVED
-```
-
-These modes may differ in authority and applicability, but all belong to the **Current-State path**.
-
-### 9.2 Intent artifacts are a separate normative source domain
-
-Explicit intent artifacts do **not** participate in Current-State qualification.
-
-Examples may include:
-
-```text
-OpenAPI Overlay
-AsyncAPI-compatible explicit intent artifact / extension
-standalone AIP intent artifact
-OpenSpec
-machine-readable ADR assertion
-other attributable normative specification
-```
-
-They establish candidate **Intent Assertions**, not Current-State facts.
-
-The separation is:
-
-```text
-Current-State Evidence
-        ↓
-Current-State Assessment / Projection
-
-Explicit Intent Artifact
-        ↓
-Intent Assertion / Intent Projection
-```
-
-Only a later AIP capability or external integration may compare the two; neither path may rewrite the other.
-
-### 9.3 Current-state observation context
-
-Current-state evidence may be scoped by:
-
-```text
-snapshot identity
-environment
-observation window
-source revision / source observation
-region
-cluster / namespace
-tenant
-service version
-deployment identity
-other explicitly supported locality dimensions
-```
-
-AIP must not expose a locality dimension unless it has evidence and semantics to support it.
-
-### 9.4 Intent applicability
-
-Intent has its own applicability dimensions, independently of runtime observation windows:
-
-```text
-scope
-environment / region / tenant / version where explicitly stated
-effective_from
-effective_until
-source revision
-authority / provenance
-```
-
-An intent effective interval and an evidence observation window may overlap, but they are never the
-same field and must never be silently substituted for one another.
-
-### 9.5 Important distinctions
-
-```text
-observed repeatedly
-    ≠
-intended
-
-declared
-    ≠
-observed
-
-implemented
-    ≠
-organizationally approved
-
-not observed
-    ≠
-absent
-
-co-located
-    ≠
-dependent
-
-globally projected
-    ≠
-universally true
-
-agent-inferred target
-    ≠
-explicit intent
-
-current-state evidence
-    ≠
-intent evidence
-
-observation window
-    ≠
-intent effective interval
-```
-
----
-
-## 10. Qualified Local Evidence Assessment
-
-The key semantic unit for establishing Current State should be the **Qualified Local Evidence
-Assessment**.
-
-It is intentionally independent of Intent.
-
-A conceptual form is:
-
-```text
-EvidenceAssessment(
-    subject,
-    assertion,
-    context,
-    observation_window,
-    applicable_evidence,
-    rule_version,
-    qualification,
-    provenance,
-    limitations
-)
-```
-
-There is **no `applicable_intent` field** in this assessment.
-
-The governing rule is:
-
-> **AIP qualifies what current-state evidence establishes within an explicit scope before projecting it into a broader
-> Current-State view.**
-
-Example:
-
-```text
-EU / prod:
-  OrderService -> PricingService
-  ESTABLISHED
-
-India / prod:
-  OrderService -> LegacyPricingService
-  ESTABLISHED
-```
-
-These evidence assessments can coexist without contradiction because their localities differ.
-
-Any later question about whether either state conforms to explicit intent belongs to a separate
-Current↔Intent assessment and must not alter these Current-State results.
-
----
-
-## 11. Current-State Architecture Projection
-
-A system-level Current-State view should be a deterministic projection over applicable **Qualified
-Local Evidence Assessments only**.
-
-Conceptually:
-
-```text
-CurrentState(context C, snapshot S)
-    =
-deterministic projection(
-    applicable QualifiedLocalEvidenceAssessments
-)
-```
-
-The projection must preserve:
-
-```text
-which evidence assessments contributed
-which localities were included
-which localities were excluded
-which evidence was unresolved
-which qualification / projection rules were used
-whether the projection is complete
-```
-
-Intent assertions must not influence this projection.
-
-A projection must not silently transform:
-
-```text
-"established in locality A"
-```
-
-into:
-
-```text
-"true everywhere"
-```
-
-The Current-State path is therefore:
-
-```text
-Current-State Evidence
-          ↓
-Qualified Local Evidence Assessment
-          ↓
-Current-State Architecture Projection
-```
-
-Intent remains on a separate path until an explicit advisory comparison is requested.
-
-### 11.1 Composition boundary
-
-Local means an explicit scope of applicability, not necessarily one service, team, or deployment.
-An assessment may span several components when the evidence and qualification rule support that scope.
-
-Projection may select and reconcile existing qualified claims. It must not silently create stronger
-claims. Any new cross-boundary or system-level claim requires its own qualification rule, applicable
-evidence, compatible identities and contexts, temporal compatibility, and explicit coverage limits.
-For example, independently established `A -> B` and `B -> C` relations do not by themselves establish
-one causal runtime flow `A -> B -> C`. Likewise, locally satisfied promises do not establish an
-end-to-end business outcome without a rule and evidence that support that outcome.
-
-Conflicting, excluded, stale, or unresolved inputs remain visible in the projection. Intent and
-Current↔Intent assessments are not derivable from Current-State projection alone.
-
----
-
-## 12. Locality, Connectivity, and Emergence
-
-AIP should keep two structural dimensions independent:
-
-```text
-WHERE something is
-        ≠
-HOW it interacts
-```
-
-Examples of place/locality:
-
-```text
-region
-cluster
-namespace
-workload
-process
-tenant
-bounded execution context
-```
-
-Examples of connectivity/cooperation:
-
-```text
-CALLS
-SENDS
-RECEIVES
-CONFORMS_TO
-provides / accepts capability
-```
-
-AIP must not infer interaction from co-location.
-
-AIP must not infer absence of interaction from separation.
-
-AIP must also keep technical, semantic, deployment, and organizational boundaries distinct:
-
-```text
-Service
-    ≠
-Bounded Context
-    ≠
-Deployment Unit
-    ≠
-Team Boundary
-```
-
-These concepts may align in a specific system, but the alignment is not assumed. It must itself be
-supported by evidence or explicit intent appropriate to that claim.
-
-This distinction becomes especially important with Kubernetes and broader infrastructure discovery.
-
-### Emergent behavior
-
-Operational architecture may emerge from local interactions even when nobody explicitly declared
-the resulting global topology.
-
-Therefore:
-
-```text
-emergent observed behavior
-    -> may support Current State
-
-emergent observed behavior
-    -> does not establish Intent
-```
-
-AIP may expose higher-order emergent architecture only when the aggregation semantics are
-deterministic, evidence-backed, and independently testable.
-
-Probabilistic pattern recognition may propose a hypothesis, but must not directly create canonical
-architecture truth.
-
----
-
-## 13. Evidence Applicability
-
-AIP should not assign broad authority to a source category such as "OpenTelemetry" or "Kubernetes."
-
-Applicability should be explicit at the level of:
-
-```text
-artifact type
-    ×
-claim kind
-    ×
-mapping rule/version
-    ×
-context/locality applicability
-```
-
-Conceptually:
-
-```text
-OpenAPI operation
-    + DIRECT_HTTP_CONTRACT claim
-    + openapi.operation.v2 mapping
-        -> applicable declared evidence
-
-OTel span using supported HTTP semantic conventions
-    + RUNTIME_HTTP_INTERACTION claim
-    + otel.http.client.v3 mapping
-        -> applicable observed evidence
-
-Kubernetes workload identity
-    + WORKLOAD_LOCALITY claim
-    + kubernetes.workload.v1 mapping
-        -> applicable infrastructure-derived evidence
-
-explicit intent artifact
-    + PROVIDES_CAPABILITY assertion
-    + intent.promise.v1 mapping
-        -> applicable intent evidence
-```
+4. **Declared is not observed.**
+5. **Observed cooperation is not Intent.**
+6. **Current State, Intent, and Assessment remain separate semantic paths.**
+7. **An agent may reason from AIP but must not become the source of AIP knowledge.**
+8. **A relationship in a graph is not qualified merely because it exists in the graph.**
+9. **Locality and connectivity are independent.**
+10. **A boundary and a relationship must be established independently.**
+11. **Public architectural meaning is a product contract; storage representation is replaceable.**
+12. **Unresolved identity, conflicting evidence, partial coverage, and unsupported semantics remain
+    visible.**
+13. **Question-specific projection must not strengthen its inputs silently.**
+14. **AIP remains advisory and read-only by default.**
+
+### Evidence applicability
 
 AIP should ask:
 
-> **What claim kind does this specific evidence, through this mapping rule, in this context, entitle us
-> to support?**
-
-It should not infer organizational authority, business ownership, or architectural intent merely
-from technical source type.
-
----
-
-## 14. Qualified Current State
-
-AIP's current strategic center remains the Current-State path:
-
-```text
-Available Current-State Evidence
-       ↓
-Applicability
-       ↓
-Canonical Architecture Facts
-       ↓
-Qualified Local Evidence Assessments
-       ↓
-Current-State Projection
-       ↓
-Evidence-Qualified Current State
-```
-
-This pipeline must be executable without loading, resolving, or evaluating any Intent artifact.
-
-Current State should preserve:
-
-- unresolved identities;
-- unsupported semantics;
-- conflicting evidence;
-- observation context and observation window;
-- locality;
-- qualification;
-- provenance;
-- rule versions;
-- limitations;
-- projection completeness.
-
-AIP should prefer returning less information over returning a plausible-looking relation that the
-evidence does not justify.
-
-The invariant is:
-
-> **With evidence, evaluation context, identity resolution, and mapping, qualification, and projection
-> rule versions held constant, adding, removing, or changing Intent must not change established
-> Current State.**
-
----
-
-### 14.1 API-Aware Current State
-
-API-aware architecture knowledge applies the **same Current-State qualification path** to how APIs
-are exposed and consumed, rather than creating a vendor-specific gateway graph or a general-purpose
-enterprise catalog.
-
-> **How are APIs exposed and consumed, and what can the available evidence establish about those
-> relationships?**
-
-A useful bounded question relates *configured* consumer/API access to independently *observed*
-consumer-attributed usage in an explicit environment/window. A configured
-registration, gateway ACL membership, or subscription establishes only what that source actually
-asserts. It does not by itself establish a runtime call, an approved architectural requirement, or
-business intent. No matching measurement is not proof of non-use without applicable telemetry
-coverage and supported attribution.
-
-A source-neutral semantic contract must distinguish API contract and version, API operation,
-gateway route/service, application service, gateway consumer, configured-access relationship,
-observed interaction, and any separately evidenced API product, business capability, owner, or
-authorization boundary. Similar names, URLs, graph proximity, or shared deployment do not establish
-entity equivalence or business classification. A gateway route may expose an operation and forward
-to an application service while remaining a different entity from both.
-
-Gateway configuration, consumer-attributed measurements, OpenAPI/AsyncAPI, repositories, CI/CD
-results, architecture models, and other sources may contribute only through explicit
-question-driven mappings with inventory/revision, provenance, identity/reconciliation, and coverage
-rules. No source vocabulary becomes AIP's source-neutral semantic model by default.
-
-The initial question remains wholly within **Current State**. Canonical contract authority,
-product/capability ownership, organizational accountability and authorization must be independently
-evidenced where they are asserted, not inferred from technical metadata. Formal Intent remains a
-separate downstream path; security-policy assessment belongs downstream of independently established
-Current State and applicable Intent.
-
-## 15. Explicit Intent — Adjacent Domain
-
-AIP may own Intent or consume it through an integration with a specialized architecture/governance
-product. If AIP owns this domain, the rules below are mandatory; if Intent stays external, they
-remain boundary constraints on what may enter AIP Current-State reasoning.
-
-Agent-readiness creates pressure to add architectural intent. If AIP supports it, it must do so only
-with a strict authority model. Configured API/gateway registration remains evidence of Current State;
-it does not become governing Intent merely because access was granted or usage was observed.
-
-The preferred separation is:
-
-```text
-WHAT CAN CURRENTLY BE ESTABLISHED?
-Evidence -> Qualified Current State
-
-WHAT HAS BEEN EXPLICITLY PROMISED / REQUIRED / INTENDED?
-Explicit attributable intent artifacts -> Intent Assertions
-
-Qualified Current State
-        +
-Applicable Explicit Intent
-        ↓
-Advisory Architecture Assessment
-```
-
-### 15.1 Intent authority rule
-
-> **Inference may propose architectural intent. Explicit attributable artifacts establish candidate
-> assertions; applicable authority and lifecycle evidence determine whether they are governing Intent.**
-
-AIP should not establish intent from:
-
-```text
-runtime frequency
-code structure
-naming
-co-location
-probabilistic interpretation
-agent-generated rationale
-```
-
-An inferred intent is a hypothesis, not an instruction.
-
-Attribution identifies who authored an assertion; authority establishes whether that actor may make
-that assertion for the stated scope. They must not be conflated. A requirement imposed on a service,
-a capability offered by it, and a promise made by its accountable owner are distinct assertion kinds.
-One does not imply the others.
-
-Intent applicability must account for externally evidenced approval status, authority scope,
-exceptions, effective intervals, revocation, and explicit supersession. A draft or an attributable
-but unauthorized assertion must not silently become governing Intent. An authorized exception must
-identify the assertion and scope it qualifies.
-
-When an enterprise requirement conflicts with a local promise, AIP must preserve both and report an
-unresolved authority/applicability conflict unless an explicit, attributable resolution rule or
-exception establishes precedence. AIP must not invent hierarchy from source format or specificity.
-
-AIP consumes authority and lifecycle evidence; it does not own approvals or decide who should have
-authority. Exact fields and conflict outcomes require qualification in the Intent specification.
-
-### 15.2 Promise-oriented interpretation
-
-Promise Theory provides a useful semantic interpretation of explicit architectural intent without
-making Promise Theory itself a required AIP implementation model.
-
-The key separation is:
-
-```text
-EXPLICIT INTENT ASSERTION
-an attributable requirement, capability offer, capability acceptance, constraint, or promise
-
-        ≠
-
-OBSERVED COOPERATION
-what available evidence establishes that components actually did
-
-        ≠
-
-AIP ASSESSMENT
-what that evidence supports about the relationship between promise and cooperation
-in a given locality and time
-```
-
-A promise is a distinct Intent Assertion with an explicit promiser, promised behavior or capability,
-conditions, and an identified recipient or audience where applicable. A requirement expressed by a
-consumer does not establish a provider's promise to satisfy it. Offers, acceptances, and requirements
-retain their own assertion kinds and attributable actors; none is silently converted into another.
-
-AIP does not assign promises to autonomous components. It preserves explicit, attributable promise
-artifacts where available, applies the authority and lifecycle rules in §15.1, and assesses how the
-observed or declared cooperation relates to the applicable promises.
-
-AIP should therefore prefer statements of the form:
-
-```text
-Under context C, during time T, using evidence E and rule R,
-AIP assesses promise P as qualification Q.
-```
-
-over absolute statements such as:
-
-```text
-promise P is kept
-```
-
-unless the semantics of `kept` are themselves explicitly defined and context-bound.
-
-The corresponding doctrine rule is:
-
-> **AIP distinguishes explicit promises from observed cooperation. Evidence may establish how
-> components cooperate; only explicit attributable artifacts may establish what they intended or
-> promised.**
-
-And the strategic formulation is:
-
-> **AIP establishes evidence-qualified cooperation independently, then separately assesses its
-> relationship to explicit promises in the locality and time where those promises apply.**
-
-### 15.3 Source-neutral intent semantics
-
-If AIP owns Intent, it should standardize the **meaning** of architectural intent, not require every
-ecosystem to author intent using the same format. If Intent remains external, AIP should preserve
-only the mapping semantics required at the integration boundary rather than creating a duplicate
-Intent model.
-
-Potential carriers may include:
-
-```text
-OpenAPI Overlay
-AsyncAPI x-extensions or another explicit AsyncAPI-compatible mechanism
-standalone AIP intent artifacts
-OpenSpec
-ADRs with machine-readable explicit assertions
-other versioned intent sources
-```
-
-The durable semantic layer should normalize these into source-neutral assertions such as:
-
-```text
-promise
-capability offered
-capability accepted
-constraint
-required relationship
-prohibited relationship
-scope
-effective_from
-effective_until
-provenance
-```
-
-Intent applicability is independent of Current-State observation context. An intent assertion may be
-effective during an interval while the Current-State evidence used to assess it comes from a
-different, explicitly recorded observation window. Recording both intervals is necessary but not
-sufficient: their use together must pass an explicit temporal-compatibility rule (see §16).
-
-OpenAPI Overlay should therefore be treated as **one carrier**, not as the AIP intent model.
-
-The absence of a standardized AsyncAPI Overlay equivalent is not a strategic blocker if AIP keeps
-intent semantics source-neutral.
-
-### 15.4 Declarative intent
-
-Desired architecture should answer:
-
-```text
-WHAT SHOULD HOLD?
-```
-
-not:
-
-```text
-WHICH SEQUENCE OF IMPLEMENTATION STEPS MUST BE EXECUTED?
-```
-
-AIP should not require a complete future-state graph.
-
-> **Explicit but partial intent is better than an inferred complete target architecture.**
-
----
-
-## 16. Qualified Current ↔ Intent Assessment — Adjacent Domain
-
-AIP should own this function only if product evidence shows that a specialized architecture-
-conformance product cannot consume AIP Current State without losing required semantics.
-
-If AIP later owns assessment, it must be a **separate second-order assessment** over an
-already-established Current State and an independently established Intent projection. If assessment
-remains external, the same separation constrains the integration: external violation or conformance
-judgments must not rewrite AIP Current State.
-
-The dependency direction is:
-
-```text
-Current-State Evidence
-        ↓
-Qualified Local Evidence Assessments
-        ↓
-Current-State Projection
-                                                   +--> Current ↔ Intent Assessment
-                         /
-Explicit Intent Artifacts
-        ↓
-Applicable Intent Projection
-```
-
-Never:
-
-```text
-Intent
-  ↓
-Current-State qualification
-```
-
-A conceptual comparison form is:
-
-```text
-IntentAlignmentAssessment(
-    current_state_ref,
-    current_assessment_refs,
-    intent_assertion_ref,
-    intent_projection_ref,  // identifies the versioned applicable Intent projection
-    evaluation_context,
-    evaluated_at,
-
-    current_observation_context: {
-        observation_window,
-        snapshot_id
-    },
-
-    intent_applicability: {
-        effective_from,
-        effective_until,
-        scope
-    },
-
-    assessment_rule_version,
-    qualification,
-    provenance,
-    limitations
-)
-```
-
-### Temporal comparability
-
-Assessment requires explicit temporal compatibility between evidence and Intent, including relevant
-service/deployment versions. Evidence from before an Intent became effective does not by itself
-establish present compliance or violation. For partially overlapping windows, an assessment may use
-only a qualified overlapping portion; if the evidence cannot be separated safely, the comparison
-remains inconclusive. Extrapolation requires a separately qualified rule and explicit limitations.
-
-Incompatible, stale, or insufficient temporal coverage must produce an inconclusive assessment rather
-than an assertion that a promise is kept or broken. Dedicated specifications must freeze the compatibility and coverage rules before qualification
-fixtures are authored.
-
-The two temporal dimensions remain independent:
-
-```text
-observation_window
-    = when Current-State evidence was observed
-
-effective_from / effective_until
-    = when the explicit Intent applies
-```
-
-For a given evaluation context:
-
-```text
-Current(C, S)
-    =
-projection of applicable Qualified Local Evidence Assessments
-
-Intent(C, t)
-    =
-projection of explicit Intent Assertions applicable at t
-
-Difference(C, S, t)
-    =
-qualified assessment of Current(C, S) versus Intent(C, t)
-```
-
-Possible future outcomes may distinguish:
-
-```text
-intent established
-intent not yet established
-explicit contradiction
-conflicting evidence
-unexpected observed relationship
-insufficient evidence
-intent not applicable in this context
-```
-
-Terms such as `expected transition` require temporal/historical semantics and are therefore deferred
-until trajectory support exists.
-
-Exact public vocabulary must be frozen only after deterministic truth tables exist.
-
-AIP must not reduce this to generic PASS / FAIL compliance.
-
----
-
-## 17. Architecture Trajectories — Future Direction
-
-Architecture trajectories remain a valuable long-term concept, but they require a deliberate
-historical-state foundation and should not be inferred from current snapshot semantics.
-
-A trajectory also requires capabilities that current snapshot binding does not provide.
-
-At minimum, AIP would first need a deliberate historical-state model such as:
-
-```text
-durable historical assessment / snapshot retention or import
-stable identity across historical states
-historical evidence and provenance retention
-versioned intent history and effective intervals
-deterministic temporal ordering
-trajectory continuity rules
-historical query semantics
-retention / compaction policy
-```
-
-Current snapshot identifiers bind answers to the current qualified state; they are not by themselves
-a historical architecture store.
-
-Only after those prerequisites exist should AIP ask:
-
-> **How is the evidence-qualified architecture evolving relative to the explicit intent that applied
-> in each context and time?**
-
-A future trajectory capability might then distinguish:
-
-```text
-unexpected drift
-expected migration phase
-intent not yet realized
-intent changed
-local deviation
-system-wide deviation
-```
-
-Until then, any retained AIP-owned assessment should compare Current State with the Intent applicable
-to the selected evaluation time without claiming a trajectory across historical states. If
-assessment remains external, AIP supplies the qualified Current-State side of that comparison.
-
----
-
-## 18. Distributed Local Assessment — Deployment Hypothesis
-
-If qualified local assessment becomes a core semantic unit, some evidence collection and
-deterministic qualification may naturally move closer to the locality where the evidence has
-meaning.
-
-The semantic concept of local assessment is independent of deployment topology. Physically
-distributing assessment execution toward services/workloads is a deployment hypothesis, not a
-semantic requirement.
-
-Conceptually:
-
-```text
-Service / Workload locality
-        │
-        ├── local contracts
-        ├── runtime identity
-        ├── telemetry
-        └── deployment context
-                │
-                ▼
-       Local Architecture Assessor
-                │
-                ▼
- Qualified Local Evidence Assessment
-                │
-                ▼
-            Central AIP
-                │
-        reconcile / compose
-                │
-                ▼
-    Current-State Projection
-
-Explicit Intent remains a separate input to a later
-Current ↔ Intent assessment.
-```
-
-### 18.1 Local versus global responsibility
-
-Local assessment can answer:
-
-```text
-What can be established from evidence available here?
-```
-
-Central composition can answer:
-
-```text
-What follows when applicable local assessments are reconciled across localities?
-```
-
-The local assessor should emit assessment plus evidence lineage, not only conclusions.
-
-### 18.2 Deployment form must remain flexible
-
-"Local assessor" does not imply "sidecar" as the only topology.
-
-Possible deployment forms include:
-
-```text
-sidecar
-node agent
-DaemonSet
-OTel Collector processor / extension
-local gateway
-standalone local service
-```
-
-### 18.3 Failure boundary
-
-The local assessor should not become part of the application's functional execution path.
-
-Preferred failure mode:
-
-```text
-local assessor unavailable
-    -> application continues
-    -> architecture evidence / assessment for that locality degrades
-```
-
-This preserves AIP as architecture intelligence infrastructure rather than a service mesh or runtime
-application dependency.
-
----
-
-## 19. Derivation Lineage
-
-Derivation lineage should be modeled as a **directed acyclic graph (DAG)** rather than a linear chain
-because one result may depend on several independent evidence items, mappings, qualification rules,
-contexts, and projections.
-
-The two assessment paths must have separate lineage structures.
-
-### 19.1 Current-State lineage
-
-A Current-State claim or projection depends only on Current-State evidence and Current-State rules.
-
-```text
-Current-State Claim / Projection
-├── Qualified Local Evidence Assessment(s)
-│   ├── Assertion
-│   ├── Applicable Current-State Evidence
-│   │   ├── source artifact(s)
-│   │   └── evidence mapping rule + version
-│   ├── Observation Context / Locality
-│   ├── Observation Window
-│   ├── Qualification Rule + Version
-│   ├── Provenance
-│   └── Limitations
-├── Current-State Projection Rule + Version
-├── Snapshot Identity
-└── Projection Completeness / Limitations
-```
-
-**Intent is not a dependency anywhere in this DAG.**
-
-AIP should be able to reconstruct:
-
-```text
-which Current-State evidence was used
-which mapping rule interpreted it
-which local evidence assessment was produced
-which qualification rule evaluated it
-which observation context / locality / window applied
-which projection rule produced the Current-State view
-which snapshot the result belongs to
-which limitations or unresolved items remain
-```
-
-### 19.2 Current ↔ Intent assessment lineage
-
-A Current↔Intent assessment is a separate second-order derivation. It consumes two independently
-established inputs:
-
-```text
-Current-State Projection ──────────────┐
-                                       ├──► Qualified Current ↔ Intent Assessment
-Applicable Intent Projection ──────────┘
-
-Current-State Projection lineage:
-  evidence-only; established independently
-
-Applicable Intent Projection lineage:
-  ├── Versioned Intent projection identity
-  ├── Explicit Intent Assertion(s) + source revisions
-  ├── Intent source artifact(s)
-  ├── Intent mapping rule + version
-  ├── Intent scope + evaluation context
-  ├── effective_from / effective_until
-  ├── Authority evidence + authority scope
-  ├── Lifecycle evidence (approval status, exceptions, revocation, supersession)
-  ├── Applicability / precedence rule identity + version
-  ├── Unresolved authority / applicability conflicts and limitations
-  └── Intent provenance
-
-Qualified Current ↔ Intent Assessment
-├── Current-State projection reference
-├── Current-State lineage reference(s)
-├── Applicable Intent projection reference
-├── Intent lineage reference(s)
-├── Evaluation Context
-├── Assessment Rule + Version
-├── Qualification
-├── Provenance
-└── Limitations
-```
-
-Each applicable Intent projection must have a versioned identity bound to the exact assertion
-revisions, authority and lifecycle evidence, evaluation context, and mapping/applicability rule
-versions used. These dependencies must be explicitly referenced in its lineage rather than left
-implicit in a generic provenance field. Missing or unresolved authority evidence remains a limitation,
-not an assumed approval.
-
-A Current↔Intent assessment must reference that exact projection identity. For example, revoking an
-exception must produce a distinguishable Intent projection even when the assertion text and Current
-State remain unchanged. Resolving an assessment's lineage must not silently substitute the latest
-authority or lifecycle status for the version used at evaluation. Historical retrieval and retention
-remain governed by their own retention and availability contracts; where prior dependencies are unavailable, AIP must explicitly report
-that the earlier assessment cannot be reproduced rather than claim historical replay.
-
-The assessment DAG may reference both paths, but it must never create a back-edge from Intent into
-Current-State establishment.
-
-This means:
-
-```text
-Intent ───────────────X──► Current-State Assessment
-
-Current State ────────┐
-                      ├──► Current ↔ Intent Assessment
-Intent Projection ────┘
-```
-
-Stable rule identity/version is essential in both DAGs. Evidence or intent provenance alone is
-insufficient to reproduce why AIP produced a specific result.
-
----
-
-## 20. Agent-Ready Structured Context
-
-**Context Engineering is the customer-facing application of AIP's Core Domain.** An agent-ready
-engineering environment needs accessible architectural premises whose source, claim meaning,
-applicability, qualification, and limitations remain inspectable. AIP supplies this
-architecture-specific substrate as **bounded, deterministic, moldable context**, without assuming
-responsibility for general agent memory, task reasoning or organizational execution governance.
-
-The Context Engineering pattern in Davis et al., *Agentic AI and Code Reviews* (Fall 2026,
-pp. 17–19) also calls for operational history, prior decisions, policies and ownership. That is
-the broader engineering-context need, not evidence that AIP currently ingests every such source.
-Cross-boundary Current State, explicit Intent, qualified Assessment, and externally sourced Decision
-History must preserve distinct semantic and authority paths. Product ownership of adjacent domains
-should be decided independently from their semantic separation.
-
-AIP should become more agent-ready by assembling **bounded, deterministic, moldable context**, not
-by taking over task reasoning.
-
-The agent may decide:
-
-```text
-what it needs to know
-which supported question to ask
-which evidence to follow
-which returned facts to compose
-which contextual lens would make the answer easier to inspect
-```
-
-AIP decides:
-
-```text
-what Current-State evidence supports
-what qualification applies
-which limitations remain
-which snapshot/context the answer belongs to
-```
-
-If AIP later owns Intent or assessment, those semantics remain separate. If an external product owns
-them, AIP does not reinterpret that product's policy or violation judgment as Current-State truth.
-
-Every returned claim or assessment must retain:
-
-```text
-qualification
-applicable evidence references
-applicable intent references where relevant
-snapshot / trajectory identity
-observation context
-locality/context scope
-rule version where relevant
+> **What claim kind does this specific evidence, through this explicit mapping/qualification rule,
+> in this context, entitle us to support?**
+
+Authority must not be assigned merely because a source belongs to a familiar category such as
+OpenTelemetry, Kubernetes, OpenAPI, AsyncAPI, a gateway, or a repository.
+
+### Derivation and replay
+
+For every public conclusion AIP should preserve enough information to inspect:
+
+~~~text
+claim meaning
+evidence references
+identity/reconciliation decisions
+context / locality / time
+qualification rule
+projection rule where relevant
+snapshot/version identity
 limitations
-```
+~~~
 
-The context envelope must expose completeness and truncation explicitly.
-
-A generic unbounded graph-neighborhood dump is not an acceptable agent-context API. Neither is a
-design in which an agent reconstructs qualification from raw graph facts.
-
-The desired interaction is:
-
-```text
-agent chooses question
-        ↓
-AIP returns qualified Architecture Knowledge
-        ↓
-agent may follow provenance or compose a bounded lens
-        ↓
-external tool may render an ephemeral contextual micro-tool
-        ↓
-human controls permanent promotion
-```
-
-The [AIP × Glamorous Toolkit reference integration](reference-integrations/glamorous-toolkit/README.md)
-has validated this interaction pattern through agent-selected MCP calls, evidence chaining, and
-bounded agent-derived ephemeral micro-tools.
+Deterministic replay is valuable because agents and humans should be able to reason from the same
+architectural premises.
 
 ---
 
-## 21. MCP and Interface Doctrine
+## 7. Product Differentiation and Integration
 
-MCP and REST are adapters, not the product.
+### Repository/source analysis
 
-The durable product boundary is:
+Repository analysis is strongest at answering questions such as:
 
-```text
-evidence-qualified Architecture Knowledge
-        +
-question-specific deterministic projections
-        +
-stable public architectural meaning
-```
+~~~text
+What code depends on this code?
+Which packages/classes/modules interact?
+Which internal architecture rule is violated?
+Which field is read here?
+~~~
 
-The storage representation beneath that boundary is replaceable. The semantic contract above it is
-not incidental implementation detail.
+AIP should not compete with that.
 
-The public topology is intentionally simple:
+AIP is strongest where the distributed relation is not reducible to a source dependency:
 
-```text
-                    ArchitectureIntelligenceService
-                              |
-              +---------------+---------------+
-              |                               |
-             REST                     standard negotiated MCP
-       general integrations                agent clients
-```
+~~~text
+service A → gateway → service B
+publisher → broker/topic/queue → consumer
+service identity selected by environment/configuration
+runtime-only dependency
+cross-repository consumer
+cross-component deployment relationship
+~~~
 
-The deterministic evaluator invokes `ArchitectureIntelligenceService` directly as the
-transport-independent qualification path. No public adapter owns Architecture Knowledge semantics.
+The product split is:
 
-MCP should remain as stable and boring as practical. REST should remain a general deterministic
-integration surface. Future product evolution should appear primarily through typed
-architecture-intelligence contracts and new safely answerable questions, not repeated transport
-redesign.
-
-The strategic rule is:
-
-> **Differentiate where Architecture Knowledge is established; standardize where it is transported
-> and sourced.**
-
-That means transport protocols, standard source interfaces, graph/database technology, and similar
-plumbing should be consumed as mature capabilities wherever practical. AIP-specific investment
-belongs primarily in evidence semantics, identity/reconciliation, qualification, provenance,
-uncertainty handling, and deterministic projections.
-
-### 21.1 Portability and composability
-
-AIP should remain useful across model vendors, coding agents, agent harnesses, and integration
-frameworks.
-
-The durable boundary is:
-
-```text
-Model
-  ≠
-Agent Harness
-  ≠
-Architecture Context
-  ≠
-Discovery / Evidence Source
-  ≠
-Transport Protocol
-```
-
-AIP's architecture semantics must therefore not depend on one LLM vendor, one coding-agent product,
-one agent framework, or one MCP client implementation.
-
-Open and replaceable integration boundaries should allow:
-
-```text
-model changes
-agent-framework changes
-client changes
-discovery-adapter changes
-transport evolution
-```
-
-without weakening or redefining AIP's evidence, qualification, provenance, and assessment semantics.
-
-Standard negotiated MCP is the primary agent-facing integration protocol, while REST is the general
-integration surface for tools and deterministic HTTP consumers. AIP's semantic contracts should be
-portable enough to support additional consumers without making any consumer the source of
-Architecture Knowledge.
-
-### 21.2 Semantic tool layers
-
-Conceptually, the agent-facing semantics may evolve as:
-
-```text
-REST / standard negotiated MCP / other typed integration boundary
-│
-├── Current State
-│   dependencies / drift / evidence
-│
-├── Intent
-│   applicable explicit intent
-│
-└── Assessment
-    Qualified Current ↔ Intent Assessment
-```
-
-The Current-State layer remains independent of Intent.
-
-Architecture trajectories and trajectory-facing tools require historical-state foundations first.
-
-Exact future tool names and schemas require dedicated specifications.
-
-All agent-facing architecture-intelligence tools should remain read-only unless AIP's product
-boundary is explicitly reconsidered.
-
----
-
-## 22. Reverse Verification
-
-AIP has a useful position on both sides of an agent-generated change without owning the change or
-requiring AIP-owned Intent.
-
-```text
-Before change:
-AIP establishes qualified distributed Current State
-          +
-optional separate Intent/conformance context from AIP or an external product
-          ↓
-Agent reasons and changes software
-          ↓
-After change:
-new declared / infrastructure / runtime evidence appears
-          ↓
-AIP independently re-establishes the post-change Current State
-          ↓
-optional separate assessment compares that Current State with applicable Intent
-```
-
-This supports independent evaluation of post-change evidence within the supported claim scope.
-Independent evaluation does not imply independent evidence, and neither implies complete verification
-of a change.
-
-If an agent changes both code and an API contract, re-importing that contract establishes a new
-DECLARED state. It does not independently confirm implementation or runtime behavior. An assessment
-must identify which aspects are supported by declarations, implementation-derived evidence,
-infrastructure evidence, or observations, and disclose shared origins or dependencies where known.
-Distinct source formats alone do not establish source independence; unknown independence must remain
-explicit. No unsupported corroboration may be inferred from multiple representations of one assertion.
-
-Post-change results must state what was evaluated, which sources support it, and what remains
-unverified. They do not by themselves establish causality or overall change correctness.
-
----
-
-## 23. Product Boundary
-
-### AIP should own
-
-Current and near-term core ownership:
-
-- source-to-claim semantic interpretation and evidence-applicability rules;
-- canonical architecture semantics exposed through public contracts, independent of the persistence
-  representation;
-- evidence applicability;
-- identity reconciliation;
-- declared-versus-observed qualification;
-- observation-context semantics;
-- snapshot-bound architecture answers;
-- provenance;
-- derivation lineage;
-- limitations, conflicts, unsupported cases, and unresolved states;
-- bounded deterministic architecture context;
-- question-specific deterministic Architecture Knowledge projections;
-- public semantic contracts that external moldable tools can inspect and compose without becoming
-  architecture authorities.
-
-AIP should own the **domain meaning** required for these capabilities. Standard source protocols,
-transport libraries, and persistence mechanics should remain supporting or generic wherever
-practical. Consumers should not depend on the internal database schema, graph layout, query
-implementation, or persistence model used to realize the domain semantics.
-
-Candidate capability areas, only if separately specified and validated:
-
-- API-aware Current-State exposure/consumption semantics;
-- minimal System/Component composition and deterministic cross-boundary projection over
-  already-qualified relationships;
-- source-neutral normalization of explicit attributable architectural Intent, if AIP ownership is
-  justified;
-- advisory Current ↔ Intent assessment, if AIP ownership is justified.
-
-AIP should prefer integration over duplication where an adjacent product already owns Intent,
-policy, or conformance and can consume AIP Current State without semantic loss. A generic enterprise
-metamodel, arbitrary hierarchy browser, capability map, organizational model, approval workflow, and
-policy-enforcement engine remain outside the Core Domain.
-
-Future research directions include historical-state persistence, architecture trajectories,
-trajectory-aware assessment, distributed assessor deployment, and safe transformation reasoning.
-
-### AIP should not own
-
-- agent orchestration;
-- coding-agent planning;
-- prompt management;
-- agent memory;
-- generic workflow automation;
-- generic enterprise knowledge graphs;
-- exposing AIP's internal graph/database representation as the product contract;
-- generic graph/Cypher access as a substitute for qualified architecture questions;
-- business capability ownership;
-- policy authoring;
-- approvals;
-- CI enforcement;
-- migration-script execution;
-- deployment orchestration;
-- target-state generation by an LLM;
-- automatic promotion of inferred intent into authoritative intent;
-- generic runtime service invocation;
-- service-mesh responsibilities;
-- LLM-generated architecture truth.
-
----
-
-## 24. Differentiation
-
-### Software catalogs
-
-```text
-Catalog:
-maintained system metadata and relationships
-
-AIP:
-evidence-qualified architecture knowledge
-with context, provenance, derivation, qualification, and limits
-```
+> **AIP establishes where distributed investigation must cross autonomous boundaries. Source
+> analysis establishes what each implementation does.**
 
 ### Observability systems
 
-```text
-Observability:
-what telemetry was emitted
+Observability systems provide telemetry. AIP's role is to determine which distributed-architecture
+claims supported telemetry can establish, with identity, context, qualification, and limitations.
 
-AIP:
-what architecture claims the supported telemetry
-can actually establish
-```
+### Catalogs and architecture models
 
-### Static architecture discovery
+Catalogs and authored architecture models may provide useful identity, composition, or declaration
+evidence. They do not become global truth merely because they are curated.
 
-```text
-Static discovery:
-what code appears to contain or reference
+AIP should preserve the semantic mode and provenance of what they contribute.
 
-AIP:
-how code-derived, declared, infrastructure, and observed evidence
-combine into qualified architecture knowledge
-```
+### Architecture-conformance tools
 
-### Agent platforms
+Mature tools such as Teamscale can be stronger at repository-internal architecture modeling,
+source-code dependencies, and conformance rules.
 
-```text
-Agent platform:
-reason, plan, execute, recover
+AIP should integrate rather than duplicate those capabilities.
 
-AIP:
-establish architecture premises
-the agent does not have to invent
-```
+AIP's strategic question is whether evidence-qualified distributed Current State changes the
+investigation boundary beyond what strong source/repository analysis already provides.
 
-### Moldable development environments
+The product risk is explicit:
 
-```text
-Moldable environment:
-helps humans and agents construct contextual tools and representations
+> **If a mature source/architecture tool at realistic multi-repository scope produces the same useful
+> investigation boundary at lower maintenance cost, AIP adds too little and should narrow or stop.**
 
-AIP:
-provides evidence-qualified Architecture Knowledge
-whose bounded projections can be molded without changing underlying semantics
-```
+Conversely, AIP earns a distinct product role where runtime, deployment, gateway, broker, contract, or
+other independent evidence establishes distributed relationships that source analysis cannot safely
+recover.
 
-The AIP × GT reference integration demonstrates that the layers compose: a GT-hosted agent can ask
-AIP questions over MCP, follow evidence, and derive ephemeral micro-tools while AIP remains
-responsible for the qualification semantics of the Architecture Knowledge it exposes and the
-developer controls permanence.
+### Intent and assessment ownership
 
-### Governance / policy systems
+The semantic frame includes Current State, Intent, and Assessment because all three matter at
+distributed boundaries.
 
-```text
-Governance / conformance product:
-intent, policy, permissions, allow/warn/block,
-architecture conformance
+That does **not** imply AIP must own every implementation.
 
-AIP durable center:
-evidence-qualified distributed Current State
-+
-context-bound cross-boundary projections
-```
+The preferred rule is:
 
-The preferred integration boundary is to let a specialized governance/conformance product apply its
-Intent and policy semantics to AIP Current State without importing those semantics into AIP.
-This integration boundary should be validated before AIP commits to owning Intent or assessment.
+> **Own evidence-qualified distributed semantics where AIP adds distinctive value; integrate where a
+> mature adjacent product already owns authoring, policy, approval, or conformance.**
 
-### Desired-state / compliance tools
-
-```text
-Compliance:
-compare implementation against a prescribed target
-
-AIP strategy:
-establish qualified Current State independently
-and compose with desired-state/conformance systems where useful
-```
-
-AIP should implement its own Intent or Current↔Intent assessment only when product validation shows
-that composition is insufficient for the bounded-change wedge.
-
-### Knowledge graphs
-
-```text
-Knowledge graph:
-connects and represents information
-
-AIP:
-establishes evidence-qualified Architecture Knowledge
-with public semantic meaning, provenance, context, limitations,
-and deterministic question-specific projections
-```
-
-AIP may use a graph internally, but the graph representation is not the customer contract. The
-public architectural semantics are.
+The roadmap checkpoint decides whether AIP-owned external Intent and Assessment add enough value to
+justify separate product capabilities.
 
 ---
 
-## 25. Formal and Strategic Foundations
+## 8. Product Validation
 
-AIP may use external theories as design lenses without adopting them as implementation models.
+The primary validation question is:
+
+> **When a coding agent is about to make a bounded change in an existing distributed system, does
+> AIP materially improve the agent's next decision beyond repository/source analysis and a strong
+> architecture-analysis tool?**
+
+This is more important than adding another source adapter or semantic abstraction.
+
+### What to compare
+
+A useful evaluation compares:
+
+~~~text
+baseline repository/source analysis
+strong architecture-analysis tool
+AIP distributed evidence
+combined workflow
+~~~
+
+For enterprise-scale source-analysis comparisons, do not artificially hide repositories from the
+baseline. If a tool can analyze multiple repositories in one project, let it do so.
+
+AIP must still demonstrate additional value from evidence that is genuinely outside or orthogonal to
+source dependencies.
+
+### What to measure
+
+Measure the resulting change plan and investigation boundary:
+
+~~~text
+relevant external investigation targets found
+unsupported targets introduced
+established facts kept separate from inference
+missing source/code requests identified
+distributed risks discovered before editing
+questions left explicitly unresolved
+setup and maintenance effort
+identity/mapping maintenance cost
+evidence collection/instrumentation cost
+reuse across later questions
+~~~
+
+A lower false-claim rate achieved only by returning almost everything unresolved is not product
+success. More context is not automatically better; the answer must materially improve the next
+decision.
+
+### Product proof
+
+The current product thesis is strongest when:
+
+> **Architecture context changes the next action before code is edited.**
+
+A realistic distributed evaluation should include at least one relevant component outside the
+repository being changed and should establish that component through independent distributed-system
+evidence such as telemetry, broker topology, gateway/routing configuration, deployment identity, or
+another qualified source.
+
+The evaluation must permit a negative result. Valid checkpoint outcomes are:
+
+~~~text
+continue
+narrow
+integrate
+defer
+stop
+~~~
+
+### Success criteria
+
+AIP should demonstrate all of the following before broadening the product:
+
+- materially better discovery of relevant cross-boundary investigation targets;
+- no systematic increase in unsupported architectural claims;
+- clear separation between AIP evidence and source-code findings;
+- evidence and limitations inspectable by humans and agents;
+- bounded question cost as unrelated systems/evidence grow;
+- maintenance cost justified by reuse and decision improvement.
+
+---
+
+## 9. Strategic Priorities
+
+Prefer work in this order:
+
+1. **Prove the distributed product boundary.** Show that cross-repository/runtime/deployment evidence
+   changes useful engineering decisions beyond source analysis.
+2. **Strengthen distributed Current State.** Improve evidence applicability, identity,
+   reconciliation, qualification, provenance, and bounded uncertainty for relations across autonomous
+   components.
+3. **Support bounded cross-boundary projections.** Add only the System/Component membership semantics
+   required to answer concrete distributed questions.
+4. **Validate external Intent as promises, not generic policy.** If owned by AIP, focus on explicit,
+   attributable promises to the outside.
+5. **Validate local Assessment.** Compare externally relevant promises with distributed interactions
+   without turning AIP into a centralized compliance engine.
+6. **Freeze only what survives product validation.** Stable contracts must follow evidence, not
+   strategy prose.
+7. **Keep historical trajectories and transformation reasoning downstream.**
+
+A new adapter is strategically important only when it enables a materially new class of qualified
+distributed relationship or a recurring question that AIP could not safely answer before.
+
+Transport, storage, graph layout, protocol libraries, and source APIs should be standardized or
+consumed where practical.
+
+---
+
+## 10. Product Decision Filter
+
+For a proposed capability, ask:
+
+1. **Which autonomous boundary does this concern?**
+2. **What concrete distributed-architecture question becomes safely answerable?**
+3. **What customer decision changes because of the answer?**
+4. **Is the output Current State, external Intent, local Assessment, or a bounded projection?**
+5. **What exact evidence can establish it?**
+6. **What locality, time, identity, and authority apply?**
+7. **What remains unresolved when the evidence is partial?**
+8. **Could repository/source analysis already answer this adequately?**
+9. **Could an adjacent architecture product own this better?**
+10. **Can the semantics and qualification be evaluated deterministically?**
+11. **Does this create a stronger claim than its inputs justify?**
+12. **What maintenance cost does it introduce?**
+
+If the autonomous-boundary question or changed customer decision cannot be stated clearly, the work
+is probably not a new AIP product capability.
+
+---
+
+## 11. Strategic Risks
+
+The principal risks are now intentionally few.
+
+### Losing the distributed boundary
+
+AIP becomes a generic architecture graph, catalog, source-analysis tool, or enterprise metamodel.
+
+### Reconstructing what mature tools already do
+
+AIP duplicates repository-internal architecture analysis, policy, or conformance instead of
+integrating with it.
+
+### Global-truth flattening
+
+Local observations, promises, or assessments are projected into universal conclusions without
+preserving locality, authority, evidence, and uncertainty.
+
+### Relationship / boundary conflation
+
+Connectivity manufactures membership, or membership manufactures a relationship.
+
+### Promise / dependency conflation
+
+Observed use, consumer desire, central policy, or a client dependency is promoted into a provider
+promise.
+
+### Too much maintenance for too little decision value
+
+Runtime instrumentation, mapping, reconciliation, or architecture-source maintenance costs more than
+the product value of the resulting distributed context.
+
+### Semantic overreach
+
+AIP claims field-level impact, causal flow, ownership, intent, or compliance that the available
+evidence does not establish.
+
+These risks should be tested by product experiments, not only mitigated in design prose.
+
+---
+
+## 12. Strategic Design Lenses
+
+External theories are useful only where they sharpen the product boundary.
 
 ### Promise Theory
 
-Useful principle:
-
-```text
-autonomous agents
-+
-explicit promises / capabilities
-+
-local cooperation
-+
-assessment of outcomes
-```
+Promise Theory is useful because autonomous components can make local promises without requiring a
+central authority to manufacture those promises.
 
 AIP relevance:
 
-- distinguish explicit Intent from Declared and Observed evidence;
-- model offered/accepted capabilities without assuming centralized control;
-- support explicit partial intent rather than a globally complete target blueprint;
-- distinguish promises from observed cooperation;
-- preserve the rule that observed behavior does not imply intended behavior;
-- assess the relationship between independently established cooperation and independently
-  established promises.
+~~~text
+provider promise
+    ≠
+consumer desire
 
-Promise Theory must not blur AIP's two semantic paths.
+external promise
+    ≠
+observed cooperation
 
-First, Current-State cooperation is established independently:
+local promise assessment
+    ≠
+central compliance truth
+~~~
 
-```text
-declared / observed cooperation evidence
-        +
-locality / observation context
-        +
-Current-State qualification rule
-        ↓
-Qualified Local Evidence Assessment
-        ↓
-Current-State Projection
-```
-
-Separately, explicit promises establish Intent:
-
-```text
-explicit attributable promise
-        +
-scope / effective interval
-        +
-intent mapping rule
-        ↓
-Applicable Intent Projection
-```
-
-Only then may AIP compare them:
-
-```text
-Current-State Projection
-        +
-Applicable Intent Projection
-        +
-assessment rule
-        ↓
-Qualified Current ↔ Intent Assessment
-```
-
-AIP is the observer/assessor in this relationship, not the promise-maker and not necessarily the
-promisee.
-
-The product-facing implication is:
-
-> **AIP establishes evidence-qualified cooperation independently. If AIP later owns assessment, or
-> an external conformance product consumes AIP Current State, comparison with explicit promises must
-> remain a separate semantic step.**
-
-Promise Theory should remain a semantic foundation and design lens. AIP should not require users to
-adopt Promise-Theory-specific terminology or encode the Canonical Model directly as a Promise Theory
-formalism unless a concrete product need justifies it.
+Promise Theory is a semantic/evaluation lens, not a required implementation model or user-facing
+vocabulary.
 
 ### Semantic Spacetime
 
 Useful principle:
 
-```text
-architecture meaning depends on:
-context
-locality
-time
-observer / evidence perspective
-```
+~~~text
+architecture meaning depends on
+context + locality + time + evidence perspective
+~~~
 
-AIP relevance:
-
-- qualified local assessments;
-- context-bound Current State;
-- effective-time intent;
-- cross-boundary projections, where the same qualified relationship may be classified
-  differently under different independently established composition contexts;
-- architecture trajectories;
-- explicit limits on global projection.
+This supports local Current State, local Assessment, and bounded projection without claiming global
+truth.
 
 ### Bigraphs
 
 Useful principle:
 
-```text
-PLACE / LOCALITY
-        ≠
-LINK / CONNECTIVITY
-```
+~~~text
+place / composition
+    ≠
+link / connectivity
+~~~
 
-AIP relevance:
+This reinforces the rule that boundaries and relationships are established independently.
 
-- Kubernetes/locality modeling;
-- clean separation between deployment structure and interaction structure;
-- independently established place/composition must remain
-  distinct from already-qualified link/connectivity;
-- moving identity across locality changes;
-- future architecture trajectories where place and links evolve independently, once historical-state semantics exist.
+### Strategic DDD
 
-Bigraphs should remain a **design influence**, not a replacement for the Canonical Model. AIP uses
-the place/link distinction to constrain a concrete architecture question; it does not implement a
-Bigraph formalism.
+Strategic DDD is useful as a boundary lens because AI makes implementation cheaper without making
+domain meaning or autonomous boundaries cheaper.
 
-Formal Bigraphical Reactive Systems may become relevant later when AIP has a concrete transformation
-problem involving valid reconfiguration and safe evolution.
+However:
 
-### Transformation formalisms
+~~~text
+Bounded Context
+    ≠
+Service
+    ≠
+Repository
+    ≠
+Team
+~~~
 
-Bigraphical Reactive Systems, process calculi, type systems, temporal logic, and confluence-related
-ideas may later help answer:
-
-```text
-Given:
-  Current State C
-  Explicit Intent I
-  Candidate Transformation T
-
-under which conditions is T safe?
-```
-
-That is a future research problem, not a current product commitment.
+AIP should not infer one from another. Tactical DDD and internal domain-model structure are outside
+the product center.
 
 ---
 
-## 26. Prioritization Framework
+## 13. Recommended Positioning
 
-A capability should not be prioritized merely because it improves the internal model.
+### Short positioning
 
-Prioritize using five gates.
+> **AIP gives coding agents evidence-qualified context about distributed dependencies they cannot
+> safely reconstruct from the repository alone.**
 
-### Gate A — Customer value
+### Product positioning
 
-```text
-Does this solve a recurring, high-cost architecture problem
-for the primary user?
-```
+> **dAIP establishes evidence-qualified architecture across distributed-system boundaries: what
+> relationships currently exist, what autonomous components promise externally, and what the
+> evidence supports about the difference.**
 
-### Gate B — Strategic fit
+### Customer problem
 
-```text
-Does it strengthen the customer value proposition
-without moving differentiation into transport or storage plumbing?
+> **A coding agent can understand the repository and still miss a relevant service, event consumer,
+> gateway route, broker relationship, or environment-specific dependency outside it.**
 
-Does it deepen AIP's Core Domain or Moldable Architecture Knowledge capability:
-evidence applicability, identity/reconciliation, qualification, provenance,
-bounded uncertainty, or deterministic projection?
+### Product boundary
 
-If it only adds a new source or transport, what new qualified knowledge
-or recurring architecture question does that unlock?
-```
+> **AIP is concerned with architecture between autonomous services/components, not architecture
+> inside them.**
 
-### Gate C — Semantic defensibility
+### Projection principle
 
-```text
-Can the resulting claim semantics, uncertainty, applicability,
-locality, context, and failure modes be stated independently of an LLM?
-```
+> **Current State is locally observed. Intent is locally attributable. Assessment is locally made.
+> dAIP answers distributed-architecture questions by projecting the relevant local views into a
+> bounded, evidence-qualified result.**
 
-### Gate D — Executable validation
+### Projection invariant
 
-```text
-Can the capability be evaluated deterministically
-and, where appropriate, against independently authored or real-system evidence?
-```
+> **Projection may combine local views, but it must not erase their locality, authority, provenance,
+> qualification, or uncertainty.**
 
-### Gate E — Architecture question
+### Integration principle
 
-```text
-What recurring architecture question becomes safely answerable,
-or materially more reusable, because this capability exists?
-```
-
-If that question cannot be stated clearly, the work is likely machinery or hardening rather than
-product-surface expansion.
+> **Use AIP for evidence-qualified distributed relationships; use repository/source tools for
+> implementation internals; integrate with specialized Intent/conformance products when they already
+> own the adjacent concern well.**
 
 ---
 
-## 27. Strategic Priority Order
+## 14. Strategic Conclusion
 
-Prefer work in this order:
+AIP should become narrower, not broader.
 
-1. Preserve trustworthy evidence, identity/reconciliation, provenance, qualification, locality, and
-   bounded uncertainty.
-2. Expand Current-State question coverage only when a recurring bounded-change problem justifies it.
-3. Add composition/boundary semantics only to classify already-qualified relationships; never infer
-   membership from connectivity.
-4. Validate product boundaries against mature adjacent tools before duplicating Intent, policy, or
-   conformance capabilities.
-5. Freeze or stabilize only semantics that survive product-value and executable qualification.
-6. Keep historical trajectories, distributed assessor deployment, and transformation reasoning
-   downstream of the foundations they require.
+The product is not:
 
-This order is strategic rather than chronological: product evidence may change which capability is
-worth owning next.
+~~~text
+a complete enterprise architecture model
+a source-code architecture analyzer
+a generic knowledge graph
+a policy engine
+an agent platform
+~~~
 
----
+The product is:
 
-## 28. Product Decision Filter
+~~~text
+local evidence-qualified distributed views
+        +
+bounded question-specific projections
+        +
+explicit uncertainty and provenance
+~~~
 
-For every proposed feature, ask:
+The durable center is **distributed architecture across autonomous boundaries**.
 
-1. **Who is the primary user for this capability?**
-2. **What recurring architecture question becomes safely answerable?**
-3. **What concrete job or failure mode does it address?**
-4. **What measurable customer outcome should improve?**
-5. **What claim, assessment, or context does AIP produce?**
-6. **What exact evidence can support that output?**
-7. **Which artifact type × claim kind × mapping rule defines applicability?**
-8. **Which locality/context/time dimensions are actually supported?**
-9. **Is the claim local, projected, or intended to be global?**
-10. **If intent is involved, what explicit attributable artifact establishes it?**
-11. **What happens when evidence is missing, partial, conflicting, unsupported, or local-only?**
-12. **Can the semantics be stated without relying on an LLM?**
-13. **Can behavior be validated deterministically?**
-14. **Does the capability keep AIP advisory and read-only?**
-15. **Would an integration boundary be better than AIP owning the adjacent function?**
-16. **Does the feature accidentally couple AIP to one authoring format or deployment topology?**
-17. **What more valuable work would this displace if it enters scope?**
+Current State, Intent, and Assessment remain distinct:
 
----
+~~~text
+Current State
+  locally observed distributed cooperation
 
-## 29. Strategic Risks
+Intent
+  locally attributable external promises
 
-### Product broadening before wedge validation
+Assessment
+  locally made evaluation of promise vs cooperation
+~~~
 
-API-aware semantics, Intent, Assessment, cross-boundary composition, additional source breadth, and
-local assessors may all be useful, but without a validated bounded-change workflow they can become
-parallel attractive directions.
+AIP may project several such local views to answer one bounded question, but it should not use that
+ability as justification for constructing a universal enterprise architecture model.
 
-### Adjacent-product duplication
+The strongest strategic test remains simple:
 
-AIP could dilute its Core Domain by rebuilding architecture Intent, policy, or conformance
-capabilities that an adjacent specialized product already provides well. Before owning such a
-capability, test whether an integration can preserve AIP's evidence-qualified Current-State semantics
-while the adjacent product retains authority for Intent and violation judgments. Treat this as an
-explicit product gate.
+> **Does this architecture intelligence change what a developer or coding agent needs to inspect
+> before making a distributed-system change, beyond what repository/source analysis already tells
+> them?**
 
-### Core-domain dilution
+If yes, AIP has a distinct product role.
 
-AIP could become a broad integration, catalog, graph, or protocol platform if source breadth,
-visualization, transport, and persistence capabilities grow faster than the evidence-applicability,
-identity, reconciliation, qualification, provenance, uncertainty, and projection semantics that
-differentiate the product.
-
-### Epistemic overclaiming
-
-Calling AIP a "truth layer" would contradict its own open-world semantics.
-
-### Silent incompleteness
-
-Agent context that truncates, aggregates, or projects silently would undermine the trusted-context
-proposition.
-
-### False contradiction
-
-Non-observation must never become contradiction unless an explicit closed-world rule permits that
-interpretation.
-
-### Global-truth flattening
-
-Local assessments must not be silently promoted into universal facts.
-
-### Static desired-state trap
-
-AIP should not require a complete centrally authored target graph when explicit partial intent is
-sufficient.
-
-### API boundary and vendor-model conflation
-
-An API contract, operation, gateway route/service, application service, consumer, product, business
-capability, and permission are not interchangeable objects. An adapter must not make one gateway's
-terminology the source-neutral model or infer organizational authority from technical metadata.
-Configured access must not be silently treated as explicit architectural Intent.
-
-### Composition-source lock-in
-
-C4/Structurizr, CALM, EventCatalog, Backstage, or another source must not become the source-neutral
-System/Component model by accident. Source composition semantics must remain attributable, and
-mapping loss or unsupported meaning must remain explicit.
-
-### Boundary / relationship conflation
-
-Connectivity, co-location, repository structure, namespace, naming, or ownership must not establish
-System/Component membership. Conversely, membership in a System/Component boundary must not create
-or strengthen a technical relationship. The two must be established independently.
-
-### Intent-carrier lock-in
-
-OpenAPI Overlay, AsyncAPI extensions, OpenSpec, or another format must not become the semantic model
-by accident.
-
-### Sidecar coupling
-
-A local-assessor architecture must not force every application to depend functionally on an AIP
-sidecar.
-
-### Governance drift
-
-Advisory assessment must not gradually become hidden policy authoring or CI enforcement.
-
-### Natural-language leakage into truth
-
-Natural language may help formulate questions or hypotheses, but must not become the unverified
-source of canonical facts or intent.
-
-### Formalism creep
-
-Promise Theory, Semantic Spacetime, Bigraphs, process calculi, and type systems are useful only when
-they solve concrete AIP semantic problems.
-
-### Transformation premature optimization
-
-AIP should not design migration execution before Current State and any future Intent/Assessment
-semantics are sufficiently stable. Historical trajectory semantics require a separate historical-state
-foundation.
-
----
-
-## 30. Recommended Positioning
-
-### Strategic environment
-
-> **Enterprise AI-assisted software transformation: many bounded changes, agents, and systems
-> accumulating into architecture evolution.**
-
-AIP participates in this environment as architecture-intelligence infrastructure. It does not own
-enterprise transformation strategy, organizational governance, approval, or execution.
-
-### Customer value proposition
-
-> **Help coding agents make bounded changes across multi-service systems without reconstructing architecture for every task.**
-
-### Product concept
-
-> **Moldable Architecture Knowledge.**
-
-### Core Domain
-
-> **Establishing Evidence-Qualified Architecture Knowledge from heterogeneous, incomplete, and
-> potentially conflicting system evidence.**
-
-### Differentiation
-
-> **Core domain:** evidence applicability, identity/reconciliation, qualification, provenance and
-> lineage, conflict handling, and bounded uncertainty.  
-> **Product level:** deterministic question-specific projections and moldability.
-
-### Current short positioning
-
-> **AIP gives coding agents evidence-qualified Architecture Knowledge they do not have to reconstruct.**
-
-### Customer problem: agent-ready architecture context
-
-> **Code repositories alone do not provide the architectural context agents need to change
-> multi-service systems safely. AIP makes that knowledge reusable and inspectable instead of
-> asking every authoring or reviewing agent to infer it again.**
-
-This is AIP's architecture-specific contribution to Context Engineering. It does not imply that
-AIP stores all operational knowledge, owns historical decisions, governs agents, or independently
-proves a software change safe.
-
-### Current product positioning
-
-> **AIP establishes evidence-qualified Architecture Knowledge from heterogeneous system evidence and
-> exposes bounded, deterministic projections for concrete architecture questions. The projections
-> are moldable; the evidence, qualification, provenance, and public architectural meaning are not.**
-
-### Primary customer framing
-
-> **For platform engineering and architecture teams enabling coding agents across multi-service
-> systems, AIP provides reliable, bounded Architecture Knowledge at the point where an agent would
-> otherwise have to reconstruct architecture from code, documentation, names, and partial runtime
-> evidence.**
-
-### Boundary statement
-
-> **AIP does not decide what an agent should do, and it does not turn inferred intent into
-> architectural truth.**
-
-### Agent-readiness statement
-
-> **AIP is not an agent platform or general organizational memory system. It establishes the
-> evidence-qualified Architecture Knowledge that authoring and reviewing agents can query and mold
-> into contextual views without becoming the source of that knowledge.**
-
-### Enterprise-scale product role
-
-> **Make evidence-qualified Architecture Knowledge reusable across many AI-assisted changes, agents,
-> teams, and distributed systems while preserving the boundaries and evidence behind each claim.**
-
-The initial validation remains one bounded change. Enterprise value is cumulative reuse of the same
-knowledge discipline across successive changes, not a claim that AIP centrally manages the
-transformation.
-
-### Durable product proposition
-
-> **Know what distributed architecture is established, where that knowledge applies, which
-> established boundaries its relationships cross, and what evidence supports the conclusion.**
-
-### Ecosystem hypothesis
-
-> **Compose that evidence-qualified Current State with specialized Intent and conformance systems
-> rather than requiring AIP to own every adjacent architecture-governance function.**
-
-This hypothesis should be tested against mature adjacent architecture products. AIP-owned Intent or
-assessment remains possible, but only when product evidence demonstrates a material gap that cannot
-reasonably remain outside AIP.
-
-Promise Theory remains useful as a semantic design lens for any future explicit Intent capability;
-it does not imply that AIP must own Intent or assessment.
-
-
----
-
-## 31. Strategic Conclusion
-
-The strategic hierarchy remains:
-
-```text
-Mission:
-Build architecture intelligence that agents can consume and humans can inspect, challenge, and understand.
-
-Customer value proposition:
-Help coding agents make bounded changes across multi-service systems
-without reconstructing architecture for every task
-
-Product concept:
-Moldable Architecture Knowledge
-
-Core Domain:
-establishing Evidence-Qualified Architecture Knowledge
-
-Core-domain differentiation:
-evidence applicability, identity/reconciliation, qualification,
-provenance/lineage, conflict handling, bounded uncertainty
-
-Product-level differentiation:
-deterministic question-specific projections and moldability
-```
-
-AIP's durable center is **evidence-qualified distributed Current State**. Cross-boundary knowledge
-belongs in that center because it classifies already-qualified relationships using independently
-established composition/membership; it does not require AIP to become an Intent or policy authority.
-
-The cross-boundary principle is:
-
-> **Boundary-crossing projections require independently established boundary/membership evidence and
-> an already-qualified architectural relationship; neither input creates or strengthens the other.**
-
-The corresponding integration principle is:
-
-> **External Intent, policy, static-analysis, or AI-inferred architecture may contextualize or assess
-> AIP Current State, but must not become the unverified source of AIP Current-State truth.**
-
-This gives a clean product boundary:
-
-```text
-AIP
-  -> establish evidence-qualified distributed Current State
-  -> preserve provenance, qualification, context, uncertainty
-  -> expose deterministic and cross-boundary projections
-
-specialized architecture / governance products
-  -> author or infer intended architecture
-  -> manage policy and conformance
-  -> decide allowed / denied / tolerated / violation
-
-coding agents and humans
-  -> consume both views for bounded change reasoning
-```
-
-Theoretical influences remain constraints rather than product commitments:
-
-```text
-Semantic Spacetime
-  -> context, locality, time, observer perspective
-
-Bigraphs
-  -> place/composition versus connectivity
-
-Promise Theory
-  -> useful if explicit Intent/assessment is justified
-
-AIP
-  -> evidence applicability, identity/reconciliation, qualification,
-     provenance, bounded uncertainty, deterministic Current-State projection
-```
-
-The product should preserve one durable center:
-
-> **Agents should reason about architecture, not reconstruct it probabilistically on every run.**
-
-And the strategic investment rule is:
-
-> **Differentiate where distributed Architecture Knowledge is established; integrate where mature
-> adjacent products already own Intent, policy, or conformance.**
+If no, the strategy should narrow rather than add more machinery.
