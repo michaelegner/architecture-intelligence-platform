@@ -1,0 +1,231 @@
+{
+  "note": "delta is computed per exact normalized series (all labels after dropping 'node'). The window is valid in this file's delta cases.",
+  "start_lines": [
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"billing-route\",service=\"\"} 1",
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2",
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders/v2\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 1",
+    "apisix_http_status{code=\"200\",consumer=\"spike-beta\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 4",
+    "apisix_http_status{code=\"200\",consumer=\"spike-delta\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 5",
+    "apisix_http_status{code=\"200\",consumer=\"spike-gamma\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 7",
+    "apisix_http_status{code=\"403\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"apisix\",route=\"orders-route\",service=\"\"} 0"
+  ],
+  "end_lines": [
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"billing-route\",service=\"\"} 1",
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 5",
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders/v2\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 4",
+    "apisix_http_status{code=\"200\",consumer=\"spike-beta\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 4",
+    "apisix_http_status{code=\"200\",consumer=\"spike-delta\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2",
+    "apisix_http_status{code=\"200\",consumer=\"spike-epsilon\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 3",
+    "apisix_http_status{code=\"403\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"apisix\",route=\"orders-route\",service=\"\"} 2"
+  ],
+  "expected_series": [
+    {
+      "route": "billing-route",
+      "consumer": "spike-alpha",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "DELTA",
+      "delta": 0
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-alpha",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "DELTA",
+      "delta": 3
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-alpha",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders/v2",
+      "status": "DELTA",
+      "delta": 3
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-alpha",
+      "code": "403",
+      "response_source": "apisix",
+      "matched_uri": "/orders",
+      "status": "DELTA",
+      "delta": 2
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-beta",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "DELTA",
+      "delta": 0
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-delta",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "DECREASED",
+      "delta": null
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-epsilon",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "ONE_BOUNDARY_END",
+      "delta": null
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-gamma",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "ONE_BOUNDARY_START",
+      "delta": null
+    }
+  ],
+  "expected_pair_totals": [
+    {
+      "route": "orders-route",
+      "consumer": "spike-alpha",
+      "upstream_valid_delta_total": 6,
+      "rejected_valid_delta_total": 2,
+      "broken_upstream_series": 0,
+      "note": "two upstream series (distinct matched_uri) sum; the apisix-source series is a rejected-attempt count"
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-beta",
+      "upstream_valid_delta_total": 0,
+      "rejected_valid_delta_total": 0,
+      "broken_upstream_series": 0,
+      "note": "present at both boundaries, unchanged"
+    }
+  ],
+  "expected_route_broken_upstream": {
+    "orders-route": 3,
+    "billing-route": 0
+  },
+  "window_validity": [
+    {
+      "id": "W01",
+      "description": "base manifest",
+      "manifest_patch": {},
+      "expected_reasons": []
+    },
+    {
+      "id": "W02",
+      "description": "end boundary not settled",
+      "manifest_patch": {
+        "end_settled": false,
+        "end_scrape_count": 1
+      },
+      "expected_reasons": [
+        "GWM_WINDOW_NOT_SETTLED"
+      ]
+    },
+    {
+      "id": "W03",
+      "description": "start boundary not settled",
+      "manifest_patch": {
+        "start_settled": false,
+        "start_scrape_count": 1
+      },
+      "expected_reasons": [
+        "GWM_WINDOW_NOT_SETTLED"
+      ]
+    },
+    {
+      "id": "W04",
+      "description": "restart asserted",
+      "manifest_patch": {
+        "no_restart": false
+      },
+      "expected_reasons": [
+        "GWM_WINDOW_RESTART"
+      ]
+    },
+    {
+      "id": "W05",
+      "description": "window_start == window_end",
+      "manifest_patch": {
+        "window_end": "2026-10-13T10:00:00Z"
+      },
+      "expected_reasons": [
+        "GWM_WINDOW_ORDER_INVALID"
+      ]
+    },
+    {
+      "id": "W06",
+      "description": "window_start after window_end",
+      "manifest_patch": {
+        "window_start": "2026-10-13T10:10:00Z",
+        "window_end": "2026-10-13T10:00:00Z"
+      },
+      "expected_reasons": [
+        "GWM_WINDOW_ORDER_INVALID"
+      ]
+    },
+    {
+      "id": "W07",
+      "description": "APISIX version outside 3.19.x",
+      "manifest_patch": {
+        "apisix_version": "3.20.0"
+      },
+      "expected_reasons": [
+        "GWM_VERSION_INCOMPATIBLE"
+      ]
+    },
+    {
+      "id": "W08",
+      "description": "a later 3.19 patch is not admitted without a reviewed amendment",
+      "manifest_patch": {
+        "apisix_version": "3.19.1"
+      },
+      "expected_reasons": [
+        "GWM_VERSION_INCOMPATIBLE"
+      ]
+    },
+    {
+      "id": "W09",
+      "description": "3.190.0 is not 3.19.0",
+      "manifest_patch": {
+        "apisix_version": "3.190.0"
+      },
+      "expected_reasons": [
+        "GWM_VERSION_INCOMPATIBLE"
+      ]
+    },
+    {
+      "id": "W11",
+      "description": "the inspected release 3.19.0 is the only compatible version",
+      "manifest_patch": {
+        "apisix_version": "3.19.0"
+      },
+      "expected_reasons": []
+    },
+    {
+      "id": "W10",
+      "description": "several reasons are all reported, sorted",
+      "manifest_patch": {
+        "no_restart": false,
+        "end_settled": false,
+        "end_scrape_count": 1,
+        "apisix_version": "2.15.0"
+      },
+      "expected_reasons": [
+        "GWM_VERSION_INCOMPATIBLE",
+        "GWM_WINDOW_NOT_SETTLED",
+        "GWM_WINDOW_RESTART"
+      ]
+    }
+  ]
+}
