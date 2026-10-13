@@ -11,7 +11,7 @@ deployment:
       - 0.0.0.0/0
   etcd:
     host:
-      - "http://etcd:2379"
+      - "http://127.0.0.1:2379"
 plugin_attr:
   prometheus:
     export_addr:

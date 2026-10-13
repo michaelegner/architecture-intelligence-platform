@@ -1,5 +1,5 @@
 """v0.7.0 I1.3: the capture tool against real, digest-pinned APISIX 3.19.0 and etcd 3.5.16
-containers (the images used by the I0 spike) - the real Admin API, the real etcd JSON gateway, and
+containers (the images used by the I0 spike; the upstream host is never contacted, only configured) - the real Admin API, the real etcd JSON gateway, and
 real plaintext-on-read credentials. Fake credentials only."""
 
 import json
@@ -9,20 +9,10 @@ from pathlib import Path
 
 import pytest
 from testcontainers.core.container import DockerContainer
-from testcontainers.core.network import Network
 
 from app.gateway_capture.apisix import CaptureError, UrllibAdminApi, capture, serialize
 from app.sources.apisix_contract import validate_capture_document
 
-APISIX_IMAGE = (
-    "apache/apisix@sha256:9a7e45dc943fbf10ec916d1232bae4cda9302ae28a4696cfb83c2da01d261141"
-)
-ETCD_IMAGE = (
-    "quay.io/coreos/etcd@sha256:d967d98a12dc220a1a290794711dba7eba04b8ce465e12b02383d1bfbb33e159"
-)
-WHOAMI_IMAGE = (
-    "traefik/whoami@sha256:43a68d10b9dfcfc3ffbfe4dd42100dc9aeaf29b3a5636c856337a5940f1b4f1c"
-)
 CONFIG = Path(__file__).resolve().parent.parent / "fixtures" / "apisix" / "config-etcd.yaml"
 ADMIN_KEY = "spike-admin-key-fake"
 CONSUMER_KEY_CANARY = "CANARY-REAL-CONSUMER-KEY-3c9e"
@@ -50,32 +40,34 @@ def _get_raw(admin_url: str, path: str) -> str:
 
 @pytest.fixture(scope="module")
 def stack():
-    with Network() as network:
-        etcd = (
-            DockerContainer(ETCD_IMAGE)
-            .with_network(network)
-            .with_network_aliases("etcd")
-            .with_env("ETCD_ADVERTISE_CLIENT_URLS", "http://etcd:2379")
-            .with_env("ETCD_LISTEN_CLIENT_URLS", "http://0.0.0.0:2379")
-            .with_command("/usr/local/bin/etcd")
-            .with_exposed_ports(2379)
+    """etcd and APISIX in one network namespace (APISIX joins etcd's), so the config reaches etcd at
+    127.0.0.1 and only etcd needs published ports. The images are literal and digest-pinned: the
+    repository's image-pin guard reads them from these calls."""
+    etcd = (
+        DockerContainer(
+            "quay.io/coreos/etcd:v3.5.16@sha256:d967d98a12dc220a1a290794711dba7eba04b8ce465e12b02383d1bfbb33e159"
         )
-        whoami = DockerContainer(WHOAMI_IMAGE).with_network(network).with_network_aliases("whoami")
-        with etcd, whoami:
-            _wait_for_etcd(f"http://{etcd.get_container_host_ip()}:{etcd.get_exposed_port(2379)}")
-            apisix = (
-                DockerContainer(APISIX_IMAGE)
-                .with_network(network)
-                .with_volume_mapping(str(CONFIG), "/usr/local/apisix/conf/config.yaml", "ro")
-                .with_exposed_ports(9180)
+        .with_env("ETCD_ADVERTISE_CLIENT_URLS", "http://127.0.0.1:2379")
+        .with_env("ETCD_LISTEN_CLIENT_URLS", "http://0.0.0.0:2379")
+        .with_command("/usr/local/bin/etcd")
+        .with_exposed_ports(2379, 9180)
+    )
+    with etcd:
+        host = etcd.get_container_host_ip()
+        etcd_url = f"http://{host}:{etcd.get_exposed_port(2379)}"
+        _wait_for_etcd(etcd_url)
+        apisix = (
+            DockerContainer(
+                "apache/apisix:3.19.0-debian@sha256:9a7e45dc943fbf10ec916d1232bae4cda9302ae28a4696cfb83c2da01d261141"
             )
-            with apisix:
-                host = apisix.get_container_host_ip()
-                admin_url = f"http://{host}:{apisix.get_exposed_port(9180)}"
-                etcd_url = f"http://{host}:{etcd.get_exposed_port(2379)}"
-                _wait_for_admin(admin_url)
-                _seed(admin_url)
-                yield admin_url, etcd_url
+            .with_kwargs(network_mode=f"container:{etcd.get_wrapped_container().id}")
+            .with_volume_mapping(str(CONFIG), "/usr/local/apisix/conf/config.yaml", "ro")
+        )
+        with apisix:
+            admin_url = f"http://{host}:{etcd.get_exposed_port(9180)}"
+            _wait_for_admin(admin_url)
+            _seed(admin_url)
+            yield admin_url, etcd_url
 
 
 def _wait_for_etcd(etcd_url: str) -> None:
@@ -127,7 +119,7 @@ def _seed(admin_url: str) -> None:
                 "consumer-restriction": {"whitelist": ["alice", "bob"]},
                 "prometheus": {},
             },
-            "upstream": {"type": "roundrobin", "nodes": {"whoami:80": 1}},
+            "upstream": {"type": "roundrobin", "nodes": {"orders.internal:80": 1}},
         },
     )
 
@@ -164,7 +156,7 @@ def test_the_real_admin_api_returns_credentials_in_plaintext_and_the_capture_red
     assert route["id"] == "orders-route"
     assert route["plugins"]["consumer-restriction"] == {"whitelist": ["alice", "bob"]}
     assert route["plugins"]["key-auth"] == {}
-    assert route["upstream_nodes"] == ["whoami:80"]
+    assert route["upstream_nodes"] == ["orders.internal:80"]
     assert document["etcd_revision_before"] == document["etcd_revision_after"] > 0
 
 

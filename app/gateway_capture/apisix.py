@@ -14,13 +14,12 @@ is a fixed `CaptureError` code (I1.1 contract §2, §7).
 
 import argparse
 import base64
+import http.client
 import json
 import os
 import re
 import sys
-import urllib.error
 import urllib.parse
-import urllib.request
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -46,6 +45,13 @@ _ADMIN_PATHS = {
     "global_rules": "global_rules",
 }
 _VERSION_PATTERN = re.compile(r"APISIX/(\d+\.\d+\.\d+)")
+
+
+def _split(url: str) -> tuple[str, str, int | None, str]:
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise CaptureError("GW_CAPTURE_URL_UNSUPPORTED")
+    return parts.scheme, parts.hostname, parts.port, parts.path.rstrip("/")
 
 
 class CaptureError(Exception):
@@ -282,62 +288,85 @@ def serialize(document: Mapping[str, Any]) -> bytes:
 # --------------------------------------------------------------------------------------------
 
 
-def _is_key_not_found(error: urllib.error.HTTPError) -> bool:
+def _is_key_not_found(body: bytes) -> bool:
     try:
-        payload = json.loads(error.read(4096))
-    except (ValueError, OSError):
+        payload = json.loads(body)
+    except ValueError:
         return False
     return isinstance(payload, dict) and payload.get("message") == "Key not found"
 
 
+_MAX_RESPONSE_BYTES = 32 * 1024 * 1024
+
+
 class UrllibAdminApi:
+    """The real Admin API / etcd client. Built on `http.client` with an explicit http/https scheme
+    check (a configured URL can never name `file://` or another scheme)."""
+
     def __init__(self, *, admin_url: str, admin_key: str, etcd_url: str, timeout: float = 15.0):
-        self._admin_url = admin_url.rstrip("/")
-        self._etcd_url = etcd_url.rstrip("/")
+        self._admin = _split(admin_url)
+        self._etcd = _split(etcd_url)
         self._admin_key = admin_key
         self._timeout = timeout
+        self._served: str | None = None
 
     def _request(
         self,
-        url: str,
+        target: tuple[str, str, int | None, str],
+        path: str,
         *,
         body: bytes | None = None,
         admin: bool,
         empty_on_key_not_found: bool = False,
-    ) -> tuple[bytes, Any]:
+    ) -> tuple[bytes, str | None]:
+        scheme, host, port, prefix = target
         headers = {"Accept": "application/json"}
         if admin:
             headers["X-API-KEY"] = self._admin_key
-        request = urllib.request.Request(url, data=body, headers=headers)  # noqa: S310
+        if body is not None:
+            headers["Content-Type"] = "application/json"
+        connection_class = (
+            http.client.HTTPSConnection if scheme == "https" else http.client.HTTPConnection
+        )
+        connection = connection_class(host, port, timeout=self._timeout)
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout) as response:  # noqa: S310
-                return response.read(), response.headers
-        except urllib.error.HTTPError as exc:
-            if exc.code == 404:
-                if empty_on_key_not_found and _is_key_not_found(exc):
-                    return b'{"total":0,"list":[]}', None
-                raise CaptureError("GW_CAPTURE_SURFACE_UNAVAILABLE") from None
-            if exc.code in (401, 403):
-                raise CaptureError("GW_CAPTURE_ADMIN_AUTH_FAILED") from None
-            raise CaptureError("GW_CAPTURE_ADMIN_REQUEST_FAILED") from None
-        except (urllib.error.URLError, TimeoutError, OSError):
+            connection.request("POST" if body is not None else "GET", prefix + path, body, headers)
+            response = connection.getresponse()
+            data = response.read(_MAX_RESPONSE_BYTES + 1)
+            server = response.getheader("Server")
+            status = response.status
+        except (OSError, http.client.HTTPException):
             raise CaptureError("GW_CAPTURE_UNREACHABLE") from None
+        finally:
+            connection.close()
+        if len(data) > _MAX_RESPONSE_BYTES:
+            raise CaptureError("GW_CAPTURE_MALFORMED_RESPONSE")
+        if status == 404:
+            if empty_on_key_not_found and _is_key_not_found(data):
+                return b'{"total":0,"list":[]}', None
+            raise CaptureError("GW_CAPTURE_SURFACE_UNAVAILABLE")
+        if status in (401, 403):
+            raise CaptureError("GW_CAPTURE_ADMIN_AUTH_FAILED")
+        if not 200 <= status < 300:
+            raise CaptureError("GW_CAPTURE_ADMIN_REQUEST_FAILED")
+        return data, server
 
     def etcd_revision(self) -> int:
         body = json.dumps({"key": base64.b64encode(b"\0").decode(), "limit": 1}).encode()
-        raw, _ = self._request(f"{self._etcd_url}/v3/kv/range", body=body, admin=False)
+        raw, _ = self._request(self._etcd, "/v3/kv/range", body=body, admin=False)
         try:
             return int(json.loads(raw)["header"]["revision"])
         except (ValueError, KeyError, TypeError):
             raise CaptureError("GW_CAPTURE_ETCD_REVISION_UNAVAILABLE") from None
 
     def _list(self, path: str, *, empty_on_key_not_found: bool = False) -> AdminList:
-        raw, headers = self._request(
-            f"{self._admin_url}/apisix/admin/{path}",
+        raw, server = self._request(
+            self._admin,
+            f"/apisix/admin/{path}",
             admin=True,
             empty_on_key_not_found=empty_on_key_not_found,
         )
-        self._served = headers.get("Server") if headers is not None else None
+        self._served = server
         try:
             payload = json.loads(raw)
             items = payload.get("list", [])
@@ -361,8 +390,7 @@ class UrllibAdminApi:
         )
 
     def server_version(self) -> str | None:
-        served = getattr(self, "_served", None)
-        match = _VERSION_PATTERN.search(served) if isinstance(served, str) else None
+        match = _VERSION_PATTERN.search(self._served) if self._served else None
         return match.group(1) if match else None
 
 

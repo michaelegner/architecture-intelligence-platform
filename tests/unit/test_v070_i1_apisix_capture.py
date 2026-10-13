@@ -400,3 +400,10 @@ def test_secret_scan_reports_paths_and_never_values() -> None:
     labelled = _full_document()
     labelled["routes"] = [{"id": "r1", "labels": {"key": "x"}, "plugins": {}}]
     assert unredacted_secret_paths(labelled) == []
+
+
+@pytest.mark.parametrize("url", ["file:///etc/passwd", "ftp://127.0.0.1", "127.0.0.1:9180", ""])
+def test_only_http_and_https_urls_are_accepted(url: str) -> None:
+    with pytest.raises(CaptureError) as excinfo:
+        apisix.UrllibAdminApi(admin_url=url, admin_key="k", etcd_url="http://127.0.0.1:2379")
+    assert excinfo.value.code == "GW_CAPTURE_URL_UNSUPPORTED"
