@@ -36,10 +36,9 @@ The central doctrine is:
 > dAIP answers distributed-architecture questions by projecting the relevant local views into a
 > bounded, evidence-qualified result.**
 
-This is deliberately narrower than a claim such as "enterprise-wide architecture knowledge is
-composed from local statements." dAIP does not need to construct, own, or assert a complete enterprise
-architecture model. It composes local knowledge **only as far as a concrete distributed-architecture
-question requires**.
+dAIP composes local knowledge **only as far as needed to answer a concrete
+distributed-architecture question**. It does not aim to construct or own a complete enterprise
+architecture model.
 
 The product should be judged by whether this architecture context changes a useful engineering
 decision before code is edited.
