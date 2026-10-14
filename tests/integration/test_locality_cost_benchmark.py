@@ -2,8 +2,10 @@
 
 Runs small versions of each point type against the integration Neo4j and checks the structure the
 measurement relies on: counts per point, the cursor walk covering every candidate exactly once on
-one snapshot, each cap where it applies, `k` from `S`, and `k * S` admitted pairs when every source
-covers every candidate. It asserts no timing.
+one snapshot, `k` from `S`, and `k * S` admitted pairs when every source
+covers every candidate. It asserts no timing. The Workload and membership caps are not re-run here (the benchmark's
+membership-cap point alone costs ~14 s): the caps are proven by `test_locality_oracle.py` (P03) and
+`tests/unit/test_locality_projection.py`.
 """
 
 import pytest
@@ -20,16 +22,6 @@ from benchmarks.locality_cost import Point, measure_point
             1,
         ),
         (
-            Point("workload-cap", workloads=51, pods=51),
-            {"localities": 50, "memberships": 50, "cap_reached": ["WORKLOADS"]},
-            2,
-        ),
-        (
-            Point("membership-cap", workloads=1, pods=1, operations=201),
-            {"localities": 1, "memberships": 200, "cap_reached": ["MEMBERSHIPS"]},
-            2,
-        ),
-        (
             Point("fan-out", workloads=1, pods=3, sources=5),
             {"considered_capture_sources": 5, "candidate_page_size": 400, "admitted_pairs": 3},
             1,
@@ -41,7 +33,7 @@ from benchmarks.locality_cost import Point, measure_point
             1,
         ),
     ],
-    ids=["churn", "workload-cap", "membership-cap", "fan-out", "covering-fan-out"],
+    ids=["churn", "fan-out", "covering-fan-out"],
 )
 def test_each_point_type_has_the_expected_structure(
     driver, tmp_path, point, first_page, walk_pages

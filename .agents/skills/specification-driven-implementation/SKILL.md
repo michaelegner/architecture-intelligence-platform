@@ -18,6 +18,30 @@ qualification of the specification itself, and passing tests can never resolve a
 ambiguity. If the specification is ambiguous about what "correct" means here, no amount of green
 tests answers that question — only a specification decision does.
 
+**Unit tests first; integration tests only when they earn their cost.** The default home for a test
+is `tests/unit` (pure logic, canonicalization, contract/schema parity, Cypher text, fakes of the
+graph port). An integration test (real Neo4j via Testcontainers, or Docker/Compose) is added only
+when the behavior under test cannot be observed without the real dependency: Neo4j's actual Cypher
+or constraint semantics, transactions, concurrency and the revision fence, persistence round trips,
+or one real-transport end-to-end proof per public surface. Rules that follow:
+
+- Plan and PR must state, per new integration test, the dependency-only behavior it proves and why
+  no unit test can. If the answer is "it is more realistic", write the unit test.
+- Test the risk at the shallowest layer that contains it. Service logic is proven once at the
+  service; REST and MCP get thin parity tests per answer family (shape, error mapping, transport),
+  not a re-run of every scenario. Cross-cutting invariants ("byte-identical", "revision fence
+  unchanged", "refusal writes nothing") are asserted once, parametrized, not per surface per file.
+- Share expensive setup (session-scoped Neo4j, a module-scoped world). A new frozen world or
+  fixture build that costs seconds must be reused by existing modules or justified in the plan.
+- Benchmark and tool *wiring* checks run at the smallest scale that proves structure, or as unit
+  tests with fakes. Spike and characterization suites are evidence for a finding: when the finding
+  is closed, reduce them to the few assertions still guarding live behavior or delete them.
+- Qualification and release-evidence suites (frozen references, oracle runs, real third-party
+  containers) are not per-PR checks by default. Keep them in a separate tier (marker/job) that
+  runs on release candidates and when their inputs change, unless the owner decides otherwise.
+- Time is a cost to track: new integration modules over ~5 s, or that add a container image pull,
+  need an explicit tier decision in the plan. Review `--durations` output in CI when the suite grows.
+
 **Stop on unstated semantic decisions.** If implementing the plan requires a decision the
 specification doesn't state — a precedence rule, an identity formula, a conflict-resolution
 outcome, an unsupported-case behavior — stop and return the decision to the specification (ask the
@@ -235,7 +259,8 @@ introduce a material regression>.
 <specification requirement -> implementation task, one row per requirement>
 
 ## Acceptance Criteria -> Test/Evidence Mapping
-<acceptance criterion -> test(s) or evidence that will prove it>
+<acceptance criterion -> test(s) or evidence that will prove it; mark each test unit or
+integration, and for every integration test name the dependency-only behavior it proves>
 
 ## Validation Commands
 <exact commands to run, e.g. `uv run pytest tests/unit`, `uv run pytest tests/integration`,
