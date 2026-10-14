@@ -1,6 +1,6 @@
 # AIP v0.7.0 I3 → I4 Handoff: the API-aware answer to qualify
 
-**Status:** I3.4b deliverable (I3 spec §13, "I3 → I4 handoff with frozen public vectors"). It lists what I3 built and froze, the independent truth tables I4 qualifies against, and how to run them. It claims no final-candidate qualification: an I3 run is not I4 evidence, and I4 reruns everything on the exact final candidate.
+**Status:** Frozen (merged #545). I3.4b deliverable (I3 spec §13, "I3 → I4 handoff with frozen public vectors"). It lists what I3 built and froze, the independent truth tables I4 qualifies against, and how to run them. It claims no final-candidate qualification: an I3 run is not I4 evidence, and I4 reruns everything on the exact final candidate.
 **Governing:** the [I3 specification](i3-api-aware-current-state-projection-and-public-answer.md), the [decision record](i3-decision-record.md) D1–D12, the [expected-answer matrix](i3-expected-answer-matrix.md), the [I3 completion record](i3-completion-record.md), the parent [`specification.md`](specification.md) §5, and the frozen [I2 → I3 handoff](i2-i3-handoff.md).
 
 ## 1. Public contract (frozen)

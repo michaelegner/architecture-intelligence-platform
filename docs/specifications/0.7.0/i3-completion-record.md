@@ -1,6 +1,6 @@
 # AIP v0.7.0 I3 — Completion Record
 
-**Status:** **COMPLETE** when the I3.4b PR (below) merges. The I3.4b merge SHA is written into this record in a follow-up after that merge (the two-step closure pattern, as for I1 and I2).
+**Status:** **COMPLETE.** Closed by PR #545, merge `24ffc12514df8ea19954d9dddf30625ca4f24b90` (2026-10-14T21:52:53Z). The closure SHA was written into this record after that merge (the two-step closure pattern, as for I1 and I2).
 **Release / increment:** `v0.7.0` — API-Aware Current State / I3.
 **Governing specification:** [I3 specification](i3-api-aware-current-state-projection-and-public-answer.md), merged in #529 (`bd870fd48b24fb3d228ace4d5df284cb105b2b33`), under the accepted parent [`specification.md`](specification.md). This record covers the whole of I3, slices I3.1–I3.4: the specification PR, seven slice PRs (I3.1a–c, I3.2, I3.3, I3.4a, I3.4b) and this record.
 **Not claimed:** I3 is not qualified as a final candidate, not released and not published. There is no final-candidate repeatability or two-clean-state qualification of the release candidate; that is I4. The Tyk cross-check capture and the product-value pilot are I4. The golden-path and pinned-example re-freeze to five tools is the release slice.
@@ -18,7 +18,7 @@ Merge commits and times were read with `gh pr view --json mergeCommit,mergedAt` 
 | I3.2 | same-snapshot projection and service method | #542 | `4d797cf860b48b36e7ef0f055493ceccc9e3b6bc` | 2026-10-14T19:40:10Z | 2026-10-14T19:06:37Z |
 | I3.3 | evidence mode, REST routes, the fifth MCP tool | #543 | `f700b28275a567d64cf0e2adf3b65cf6b557a05c` | 2026-10-14T20:42:25Z | 2026-10-14T19:40:43Z |
 | I3.4a | read-cost benchmark, [recorded run](i3-api-usage-cost.json), repeatability test | #544 | `2094347387ab1461b0bff1371f3450fd23006d26` | 2026-10-14T21:40:33Z | 2026-10-14T20:44:47Z |
-| I3.4b | this record, the [handoff](i3-i4-handoff.md) | this PR | written after merge | — | 2026-10-14T20:44:47Z |
+| I3.4b | this record, the [handoff](i3-i4-handoff.md) | #545 | `24ffc12514df8ea19954d9dddf30625ca4f24b90` | 2026-10-14T21:52:53Z | 2026-10-14T20:44:47Z |
 
 ## Decisions settled during I3
 
@@ -67,7 +67,7 @@ Each slice's PR body records its exact gate. For the slice PRs the CI check-runs
 | `uv run pytest tests/unit` | 4578 passed |
 | `uv run pytest tests/integration -m "not qualification"` | 832 passed, 1 skipped, 114 deselected (run before the image-pin fix, which changed no test) |
 
-This PR changes documentation only. Its own gate is recorded in its PR body.
+The I3.4b PR (#545) changed documentation only; its own gate is recorded in its PR body.
 
 ## Measurements (I3 §13; [`i3-api-usage-cost.json`](i3-api-usage-cost.json))
 
