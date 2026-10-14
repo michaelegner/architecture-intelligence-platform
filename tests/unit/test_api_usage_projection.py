@@ -192,3 +192,34 @@ def test_a_known_target_without_a_resolved_route_is_evaluated_not_refused(kind):
     answer = project(request(kind, target), state)
     assert answer.outcome is Outcome.NOT_ANSWERED and answer.data is not None
     assert code(answer) == "NO_ROUTE_SELECTED" and answer.data.rows == []
+
+
+def _none_paths(value: Any, path: str = "$") -> list[str]:
+    if isinstance(value, dict):
+        return [p for k, v in value.items() for p in _none_paths(v, f"{path}.{k}")] + [
+            f"{path}.{k}" for k, v in value.items() if v is None
+        ]
+    if isinstance(value, list):
+        return [p for i, v in enumerate(value) for p in _none_paths(v, f"{path}[{i}]")]
+    return []
+
+
+def test_an_absent_optional_field_is_omitted_never_null_on_the_wire():
+    """D4: the published schema's presence rules need it (e.g. no `association_summary` key for a
+    Route target, no counts for an invalid window)."""
+    route = project(route_request("orders-route")).model_dump(mode="json")
+    assert "association_summary" not in route["data"]
+    assert "consumer_id" not in route["data"]["request_context"]
+    assert _none_paths(route) == []
+    operation = project(request("API_OPERATION", "operation:orders-api:listOrders"))
+    assert "association_summary" in operation.model_dump(mode="json")["data"]
+    first_row = operation.model_dump(mode="json")["data"]["rows"][0]
+    assert _none_paths(first_row) == []
+
+
+def test_a_refusal_keeps_its_two_required_nullable_envelope_fields():
+    refused = refusal_answer(
+        PRODUCER, None, ApiUsageLimitationCode.SNAPSHOT_NOT_AVAILABLE
+    ).model_dump(mode="json")
+    assert refused["data"] is None and refused["snapshot"] is None
+    assert sorted(_none_paths(refused)) == ["$.data", "$.snapshot"]

@@ -42,6 +42,12 @@ from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
+from app.architecture_intelligence.api_usage_contracts import (
+    API_USAGE_TOOL_NAME,
+    ApiConsumerUsageAnswer,
+    ApiConsumerUsageQueryRequest,
+    ApiConsumerUsageRequest,
+)
 from app.architecture_intelligence.broker_contracts import EvidenceAnswer, ServiceDependenciesAnswer
 from app.architecture_intelligence.contracts import (
     TOOL_NAMES,
@@ -78,11 +84,36 @@ def register_tools(
     get_service: Callable[[], ArchitectureIntelligenceService] = wiring.get_service,
 ) -> None:
     """Registration order IS `tools/list` order - confirmed live that the SDK reports tools in
-    registration order, not sorted. I3 spec §24 requires lexicographic order:
+    registration order, not sorted. I3 spec §24 requires lexicographic order: since v0.7.0 I3.3
+    the fifth tool `get_api_consumer_usage` (I3 decision record D1) sorts first, then
     `get_architecture_drift`, `get_evidence`, `get_service_dependencies`, and since v0.6.0 I3.3b
-    the fourth tool `get_service_dependencies_by_locality` (I3 decision record D1) - registered in
-    that order below. Do not reorder without re-checking tests/unit/test_mcp_discovery.py's
+    the fourth tool `get_service_dependencies_by_locality` - registered in that order below. Do not reorder without re-checking tests/unit/test_mcp_discovery.py's
     exact-order assertion."""
+
+    @server.tool(
+        name=API_USAGE_TOOL_NAME,
+        description=(
+            "Which consumers have configured access to, and which have independently observed "
+            "usage of, an API Operation, an application Service or a gateway Route, for one "
+            "gateway instance, environment and measurement window. Configured access and usage are "
+            "separate propositions; unresolved associations stay explicit; nothing is inferred "
+            "from names, hosts or paths. A consumer is the APISIX username on that gateway "
+            "instance (source-qualified), not an application or person. With request.mode "
+            '"evidence", the same tool resolves exact evidence refs from such an answer at the '
+            "supplied snapshot."
+        ),
+        annotations=_READ_ONLY_ANNOTATIONS,
+    )
+    def get_api_consumer_usage(request: ApiConsumerUsageRequest) -> ApiConsumerUsageAnswer:
+        """v0.7.0 I3.3 (I3 decision record D1): constructs no new semantics. It dispatches on
+        `request.mode` to exactly one service method and returns that answer unchanged as
+        `structuredContent`. Every refusal is a normal returned `ApiConsumerUsageAnswer`; an
+        unexpected internal failure falls through to the SDK's own sanitization, as for the other
+        tools."""
+        parsed = request.root
+        if isinstance(parsed, ApiConsumerUsageQueryRequest):
+            return get_service().get_api_consumer_usage(parsed)
+        return get_service().get_api_consumer_usage_evidence(parsed)
 
     @server.tool(
         name="get_architecture_drift",
@@ -212,9 +243,10 @@ def register_tools(
 
     _advertise_version_union(server, "get_evidence", EvidenceAnswer)
     _advertise_version_union(server, "get_service_dependencies", ServiceDependenciesAnswer)
-    for tool_name in (*TOOL_NAMES, LOCALITY_TOOL_NAME):
+    for tool_name in (*TOOL_NAMES, LOCALITY_TOOL_NAME, API_USAGE_TOOL_NAME):
         _close_input_schema(server, tool_name)
     _reject_unexpected_arguments(server, LOCALITY_TOOL_NAME)
+    _reject_unexpected_arguments(server, API_USAGE_TOOL_NAME)
 
 
 def _reject_malformed_observation_context(context: ObservationContextInput | None) -> None:

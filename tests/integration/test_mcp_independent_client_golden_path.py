@@ -34,6 +34,7 @@ from tests.support.answer_schemas import validate_dependencies, validate_evidenc
 
 from .independent_mcp_client import (
     call_tool,
+    run_api_usage_query_to_evidence,
     run_dependency_to_evidence_golden_path,
     run_drift_to_evidence_golden_path,
     run_locality_query_to_evidence,
@@ -43,6 +44,11 @@ from .locality_oracle import world as locality_world
 from .locality_oracle.matcher import substitute
 from .support.live_server import free_loopback_port, serve_over_real_http
 from .test_locality_oracle import CASES as LOCALITY_CASES
+from .test_v070_i2_qualification import (
+    _gateway_default,
+    _run,
+    _spec_cases_measurement,
+)
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 DATABASE = "neo4j"
@@ -182,6 +188,7 @@ def test_independent_client_completes_the_real_dependency_to_evidence_golden_pat
 
     tools = tools_list(client)["tools"]
     assert [tool["name"] for tool in tools] == [
+        "get_api_consumer_usage",
         "get_architecture_drift",
         "get_evidence",
         "get_service_dependencies",
@@ -299,6 +306,7 @@ def test_independent_client_completes_the_real_drift_to_evidence_golden_path(
 
     tools = tools_list(client)["tools"]
     assert [tool["name"] for tool in tools] == [
+        "get_api_consumer_usage",
         "get_architecture_drift",
         "get_evidence",
         "get_service_dependencies",
@@ -398,11 +406,11 @@ def test_independent_client_refusal_through_the_real_app_leaves_graph_state_unch
     assert fingerprint_after == fingerprint_before
 
 
-def test_independent_client_discovers_four_tools_and_drills_a_locality_answer_down(
+def test_independent_client_discovers_five_tools_and_drills_a_locality_answer_down(
     driver, real_app_client, tmp_path
 ):
     """v0.6.0 I3.3c (I3 spec §13, §16 DoD 9): the same independent client, over real HTTP against
-    the real production app, discovers exactly the four reviewed tools, runs the locality query and
+    the real production app, discovers exactly the five reviewed tools, runs the locality query and
     then its evidence mode on the answer's own refs and snapshot, and a fresh client (a reconnect)
     gets the identical answer on the same snapshot. The world is the I3 oracle's X04 (one provider
     with two Operations), built through the real importer and per-POST persistence."""
@@ -413,6 +421,7 @@ def test_independent_client_discovers_four_tools_and_drills_a_locality_answer_do
 
     tools = tools_list(client)["tools"]
     assert [tool["name"] for tool in tools] == [
+        "get_api_consumer_usage",
         "get_architecture_drift",
         "get_evidence",
         "get_service_dependencies",
@@ -442,5 +451,57 @@ def test_independent_client_discovers_four_tools_and_drills_a_locality_answer_do
             reconnected,
             name="get_service_dependencies_by_locality",
             arguments={"request": request},
+        )
+    assert again["structuredContent"] == query["structuredContent"]
+
+
+def test_independent_client_runs_an_api_usage_query_and_resolves_its_evidence(
+    driver, real_app_client, tmp_path
+):
+    """v0.7.0 I3.3: the same independent client, over real HTTP against the real production app,
+    discovers the fifth tool, queries which consumers use a gateway Route (an APISIX configuration
+    source, the bundled OpenAPI examples and a measurement source, imported for real), resolves every
+    evidence ref the answer emitted at the answer's own snapshot, and a fresh client (a reconnect)
+    gets the identical answer. The answers validate against the schemas the server advertises."""
+    state = _run(
+        driver,
+        gateways=[_gateway_default(tmp_path)],
+        measurements=[_spec_cases_measurement(tmp_path)],
+    )
+    window = state["api_usage_v1"]["windows"][0]
+    route = next(
+        r for r in state["gateway_configuration_v1"]["routes"] if r["route_id"] == "orders-route"
+    )
+    request = {
+        "mode": "query",
+        "target": {"kind": "GATEWAY_ROUTE", "id": route["id"]},
+        "gateway_instance_id": window["gateway_instance_id"],
+        "environment": window["environment"],
+        "window_start": window["window_start"],
+        "window_end": window["window_end"],
+    }
+    real_app, client = real_app_client
+    assert real_app.state.llm_provider is None
+
+    tools = tools_list(client)["tools"]
+    assert "get_api_consumer_usage" in [tool["name"] for tool in tools]
+    output_schema = {tool["name"]: tool["outputSchema"] for tool in tools}["get_api_consumer_usage"]
+
+    result = run_api_usage_query_to_evidence(client, query_request=request)
+
+    query, evidence = result["query"], result["evidence"]
+    assert query["isError"] is False and evidence["isError"] is False
+    jsonschema.validate(instance=query["structuredContent"], schema=output_schema)
+    jsonschema.validate(instance=evidence["structuredContent"], schema=output_schema)
+    assert query["structuredContent"]["data"]["rows"], "the Route has consumers in the window"
+    assert evidence["structuredContent"]["outcome"] == "ANSWERED"
+    entries = evidence["structuredContent"]["data"]["entries"]
+    assert entries and {entry["status"] for entry in entries} == {"RESOLVED"}
+
+    with httpx.Client(
+        base_url=client.base_url, headers={"origin": client.headers["origin"]}, timeout=30.0
+    ) as reconnected:
+        again = call_tool(
+            reconnected, name="get_api_consumer_usage", arguments={"request": request}
         )
     assert again["structuredContent"] == query["structuredContent"]

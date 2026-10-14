@@ -17,11 +17,11 @@ unknown Service) - those two get their own different, spec-frozen treatment; the
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 import pydantic
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.api.request_bodies import closed_body, published_request
 from app.architecture_intelligence.broker_contracts import ServiceDependenciesAnswer
 from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
@@ -165,35 +165,8 @@ def get_service_deployments(
 
 _PATH_SUPPLIED = frozenset({"subject_service_id", "mode"})
 
-
-def _locality_body(request_type: type[pydantic.BaseModel], name: str) -> type[pydantic.BaseModel]:
-    fields: dict[str, Any] = {
-        field: (info.annotation, info)
-        for field, info in request_type.model_fields.items()
-        if field not in _PATH_SUPPLIED
-    }
-    return pydantic.create_model(
-        name, __config__=pydantic.ConfigDict(extra="forbid", frozen=True), **fields
-    )
-
-
-LocalityQueryBody = _locality_body(LocalityQueryRequest, "LocalityQueryBody")
-LocalityEvidenceBody = _locality_body(LocalityEvidenceRequest, "LocalityEvidenceBody")
-
-
-def _locality_request[R: (LocalityQueryRequest, LocalityEvidenceRequest)](
-    request_type: type[R], *, service_id: str, body: pydantic.BaseModel
-) -> R:
-    """The full published request: the body's own fields plus the path's Service and the route's
-    mode. The request model's validators (sorted lists, cursor form, `compare` within
-    `caller_localities`, ...) run here, so a body that fails them is a 422 like a malformed one."""
-    mode = "query" if request_type is LocalityQueryRequest else "evidence"
-    try:
-        return request_type.model_validate(
-            {**body.model_dump(exclude_unset=True), "mode": mode, "subject_service_id": service_id}
-        )
-    except pydantic.ValidationError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+LocalityQueryBody = closed_body(LocalityQueryRequest, "LocalityQueryBody", _PATH_SUPPLIED)
+LocalityEvidenceBody = closed_body(LocalityEvidenceRequest, "LocalityEvidenceBody", _PATH_SUPPLIED)
 
 
 @router.post("/{service_id}/dependencies/by-locality")
@@ -203,7 +176,9 @@ def get_service_dependencies_by_locality(
     service: ArchitectureIntelligenceService = Depends(get_architecture_intelligence_service),
 ) -> LocalityAnswer:
     """`POST /api/services/{service_id}/dependencies/by-locality` (D1, `mode: "query"`)."""
-    request = _locality_request(LocalityQueryRequest, service_id=service_id, body=body)
+    request = published_request(
+        LocalityQueryRequest, body, mode="query", subject_service_id=service_id
+    )
     return service.get_service_dependencies_by_locality(request)
 
 
@@ -215,5 +190,7 @@ def resolve_scoped_locality_evidence(
 ) -> LocalityAnswer:
     """`POST /api/services/{service_id}/dependencies/by-locality/evidence` (D1, D11,
     `mode: "evidence"`)."""
-    request = _locality_request(LocalityEvidenceRequest, service_id=service_id, body=body)
+    request = published_request(
+        LocalityEvidenceRequest, body, mode="evidence", subject_service_id=service_id
+    )
     return service.resolve_scoped_locality_evidence(request)

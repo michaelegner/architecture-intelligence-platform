@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from app.ai.provider import OpenAIProvider
 from app.api import (
     analysis,
+    api_consumer_usage,
     architecture_intelligence,
     evidence,
     import_api,
@@ -99,6 +100,7 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     app.include_router(query.router)
     app.include_router(evidence.router)
     app.include_router(architecture_intelligence.router)
+    app.include_router(api_consumer_usage.router)
     app.include_router(telemetry.router)
     app.include_router(runtime.runtime_router)
     app.include_router(runtime.runtime_analysis_router)

@@ -22,7 +22,16 @@ from collections.abc import Iterable, Sequence
 from enum import StrEnum
 from typing import Annotated, Any, Literal, get_args
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    RootModel,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 from pydantic.config import JsonDict
 
 from app.architecture_intelligence.contracts import (
@@ -50,6 +59,7 @@ _CURSOR_PATTERN = r"^[A-Za-z0-9_-]+$"
 ApiUsageSchemaVersion = Literal["0.7"]
 API_USAGE_SCHEMA_VERSION: ApiUsageSchemaVersion = get_args(ApiUsageSchemaVersion)[0]
 ApiUsageToolName = Literal["get_api_consumer_usage"]
+API_USAGE_TOOL_NAME: ApiUsageToolName = "get_api_consumer_usage"
 API_USAGE_TOOL_NAME: ApiUsageToolName = get_args(ApiUsageToolName)[0]
 ApiUsageMode = Literal["query", "evidence"]
 
@@ -199,6 +209,27 @@ def _check_sorted_unique_strings(values: Sequence[Any], what: str) -> None:
     _check_sorted_unique(values, lambda value: str(value), what)
 
 
+# The envelope fields that are required but nullable (D2, D6): they stay on the wire as null.
+_NULLABLE_ENVELOPE_FIELDS = frozenset({"data", "snapshot"})
+
+
+class _Model(BaseModel):
+    """D4: an absent optional field is omitted, never null - the published schema's presence rules
+    (`association_summary` absent for a `GATEWAY_ROUTE` target, counts omitted for an invalid
+    window, ...) depend on it. Every serialization (`model_dump`, REST, MCP `structuredContent`)
+    therefore drops None-valued fields, except the two required nullable envelope fields. Validation
+    and the published JSON Schema are unaffected."""
+
+    @model_serializer(mode="wrap")
+    def _omit_absent(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        serialized = handler(self)
+        return {
+            key: value
+            for key, value in serialized.items()
+            if value is not None or key in _NULLABLE_ENVELOPE_FIELDS
+        }
+
+
 def _closed(**extra: Any) -> ConfigDict:
     return ConfigDict(frozen=True, extra="forbid", **extra)
 
@@ -223,7 +254,7 @@ def _target_schema_extra(schema: dict[str, Any], _model: type[BaseModel]) -> Non
     ]
 
 
-class ApiUsageTarget(BaseModel):
+class ApiUsageTarget(_Model):
     """D3: exactly one exact target. The id pattern depends on the kind; never a display name, path
     or host."""
 
@@ -239,7 +270,7 @@ class ApiUsageTarget(BaseModel):
         return self
 
 
-class ApiUsageRequestContext(BaseModel):
+class ApiUsageRequestContext(_Model):
     """D4: the normalized query context (without `limit`, `cursor` and `snapshot_id`)."""
 
     model_config = _closed()
@@ -255,7 +286,7 @@ class ApiUsageRequestContext(BaseModel):
 # --- Cursor (D8) --------------------------------------------------------------------------------
 
 
-class ApiUsageCursor(BaseModel):
+class ApiUsageCursor(_Model):
     """The decoded D8 cursor. It is opaque to clients and carries no signature (D8 integrity); this
     model only checks its structure."""
 
@@ -335,7 +366,7 @@ def evidence_ref(
 # --- Requests (D3) ------------------------------------------------------------------------------
 
 
-class ApiConsumerUsageQueryRequest(BaseModel):
+class ApiConsumerUsageQueryRequest(_Model):
     """`mode: "query"` (D3). A reversed window is accepted: an I2 window with `window_start >=
     window_end` is accepted-but-invalid and must stay addressable."""
 
@@ -376,7 +407,7 @@ class ApiConsumerUsageQueryRequest(BaseModel):
         )
 
 
-class ApiConsumerUsageEvidenceRequest(BaseModel):
+class ApiConsumerUsageEvidenceRequest(_Model):
     """`mode: "evidence"` (D3, D9): the query context is resubmitted so the service can rebuild the
     ref map at the exact snapshot."""
 
@@ -427,21 +458,21 @@ class ApiConsumerUsageRequest(
 # --- Answer building blocks (D4) ----------------------------------------------------------------
 
 
-class RuleRef(BaseModel):
+class RuleRef(_Model):
     model_config = _closed()
 
     rule_id: _Opaque
     rule_version: _Opaque
 
 
-class Rules(BaseModel):
+class Rules(_Model):
     model_config = _closed()
 
     reconciliation: RuleRef
     qualification: RuleRef
 
 
-class ApiUsageWindow(BaseModel):
+class ApiUsageWindow(_Model):
     """D4: the I2 window the answer is about. `valid` is true iff there are no reasons."""
 
     model_config = _closed()
@@ -462,7 +493,7 @@ class ApiUsageWindow(BaseModel):
         return self
 
 
-class AssociationCounts(BaseModel):
+class AssociationCounts(_Model):
     """I3 §5.2/§5.3: all GatewayRoutes of the selected scope by the I2 outcome of one chain."""
 
     model_config = _closed()
@@ -474,7 +505,7 @@ class AssociationCounts(BaseModel):
     conflict: int = Field(ge=0)
 
 
-class AssociationSummary(BaseModel):
+class AssociationSummary(_Model):
     """Exactly one chain: `route_operation` for an `API_OPERATION` target, `target_service` for an
     `APPLICATION_SERVICE` target. Informational only."""
 
@@ -490,7 +521,7 @@ class AssociationSummary(BaseModel):
         return self
 
 
-class SelectedRoute(BaseModel):
+class SelectedRoute(_Model):
     """D4: a Route selected by the target, emitted independently of `rows`."""
 
     model_config = _closed()
@@ -512,7 +543,7 @@ class SelectedRoute(BaseModel):
         return self
 
 
-class ConfigurationSource(BaseModel):
+class ConfigurationSource(_Model):
     model_config = _closed()
 
     gateway_instance_id: _GatewayInstanceId
@@ -520,7 +551,7 @@ class ConfigurationSource(BaseModel):
     source_revision: _Opaque
 
 
-class MeasurementSource(BaseModel):
+class MeasurementSource(_Model):
     model_config = _closed()
 
     source_instance_id: _Opaque
@@ -529,7 +560,7 @@ class MeasurementSource(BaseModel):
     apisix_version: _Opaque
 
 
-class RowConsumer(BaseModel):
+class RowConsumer(_Model):
     """D7: `source_name` is the APISIX Consumer username, a source-qualified identity."""
 
     model_config = _closed()
@@ -538,7 +569,7 @@ class RowConsumer(BaseModel):
     source_name: _Opaque
 
 
-class RowRoute(BaseModel):
+class RowRoute(_Model):
     model_config = _closed()
 
     id: _RouteId
@@ -546,7 +577,7 @@ class RowRoute(BaseModel):
     source_route_id: _Opaque
 
 
-class RowApi(BaseModel):
+class RowApi(_Model):
     """The Route -> Operation -> contract-version chain, with the I2 outcomes unrenamed."""
 
     model_config = _closed()
@@ -572,7 +603,7 @@ class RowApi(BaseModel):
         return self
 
 
-class RowService(BaseModel):
+class RowService(_Model):
     model_config = _closed()
 
     reconciliation: Reconciliation
@@ -585,13 +616,13 @@ class RowService(BaseModel):
         return self
 
 
-class RowConfiguredAccess(BaseModel):
+class RowConfiguredAccess(_Model):
     model_config = _closed()
 
     status: ConfiguredAccessStatus
 
 
-class RowUsage(BaseModel):
+class RowUsage(_Model):
     """The usage proposition. The counts are omitted, never zero, when I2 could not establish them
     (an invalid window); the interaction id is an opaque row-local value (D4)."""
 
@@ -623,7 +654,7 @@ def row_key(row: ApiUsageRow) -> tuple[str, str]:
     return (row.consumer.id, row.gateway_route.id)
 
 
-class ApiUsageRow(BaseModel):
+class ApiUsageRow(_Model):
     """D4: one I2 `qualification_rows` entry, enriched only with same-snapshot reconciliation."""
 
     model_config = _closed()
@@ -652,7 +683,7 @@ class ApiUsageRow(BaseModel):
         return self
 
 
-class Page(BaseModel):
+class Page(_Model):
     model_config = _closed()
 
     limit: int = Field(ge=1, le=MAX_PAGE_LIMIT)
@@ -710,7 +741,7 @@ def _query_data_schema_extra(schema: dict[str, Any], _model: type[BaseModel]) ->
     ]
 
 
-class ApiConsumerUsageData(BaseModel):
+class ApiConsumerUsageData(_Model):
     """D4: the `mode: "query"` payload."""
 
     model_config = _closed(json_schema_extra=_query_data_schema_extra)
@@ -820,21 +851,21 @@ class ApiConsumerUsageData(BaseModel):
 # --- Evidence payloads (D9) ---------------------------------------------------------------------
 
 
-class EvidenceRoute(BaseModel):
+class EvidenceRoute(_Model):
     model_config = _closed()
 
     id: _RouteId
     source_route_id: _Opaque
 
 
-class ExtractDigests(BaseModel):
+class ExtractDigests(_Model):
     model_config = _closed()
 
     start_sha256: str = Field(pattern=_DIGEST_PATTERN)
     end_sha256: str = Field(pattern=_DIGEST_PATTERN)
 
 
-class ConfiguredAccessEvidence(BaseModel):
+class ConfiguredAccessEvidence(_Model):
     model_config = _closed()
 
     kind: Literal["CONFIGURED_ACCESS"]
@@ -848,7 +879,7 @@ class ConfiguredAccessEvidence(BaseModel):
     scope: _Opaque
 
 
-class MeasurementWindowEvidence(BaseModel):
+class MeasurementWindowEvidence(_Model):
     model_config = _closed()
 
     kind: Literal["MEASUREMENT_WINDOW"]
@@ -876,27 +907,27 @@ class MeasurementWindowEvidence(BaseModel):
         return self
 
 
-class OperationMappingStatement(BaseModel):
+class OperationMappingStatement(_Model):
     model_config = _closed()
 
     operation_id: str = Field(pattern=_OPERATION_ID_PATTERN)
 
 
-class ServiceMappingStatement(BaseModel):
+class ServiceMappingStatement(_Model):
     model_config = _closed()
 
     target: TargetCarrier
     service_id: str = Field(pattern=_SERVICE_ID_PATTERN)
 
 
-class ServiceLabelStatement(BaseModel):
+class ServiceLabelStatement(_Model):
     model_config = _closed()
 
     carrier: TargetCarrier
     service_id: str = Field(pattern=_SERVICE_ID_PATTERN)
 
 
-class RouteOperationReconciliationEvidence(BaseModel):
+class RouteOperationReconciliationEvidence(_Model):
     """Only what the frozen I2 snapshot carries (D9 provenance boundary): the outcome, the raw
     explicit mapping entries and the rule. No reconciliation basis is exposed."""
 
@@ -925,7 +956,7 @@ class RouteOperationReconciliationEvidence(BaseModel):
         return self
 
 
-class TargetServiceReconciliationEvidence(BaseModel):
+class TargetServiceReconciliationEvidence(_Model):
     model_config = _closed()
 
     kind: Literal["TARGET_SERVICE_RECONCILIATION"]
@@ -947,7 +978,7 @@ class TargetServiceReconciliationEvidence(BaseModel):
         return self
 
 
-class QualificationLimitationsEvidence(BaseModel):
+class QualificationLimitationsEvidence(_Model):
     model_config = _closed()
 
     kind: Literal["QUALIFICATION_LIMITATIONS"]
@@ -983,7 +1014,7 @@ def _evidence_entry_schema_extra(schema: dict[str, Any], _model: type[BaseModel]
     ]
 
 
-class EvidenceEntry(BaseModel):
+class EvidenceEntry(_Model):
     """D9: one requested ref. A forged, cross-snapshot and cross-context ref are all simply
     `NOT_RESOLVED` and indistinguishable (no ref history is kept)."""
 
@@ -1006,7 +1037,7 @@ class EvidenceEntry(BaseModel):
         return self
 
 
-class ApiConsumerUsageEvidenceData(BaseModel):
+class ApiConsumerUsageEvidenceData(_Model):
     """D9: the `mode: "evidence"` payload, one entry per requested ref, sorted by ref."""
 
     model_config = _closed()
@@ -1033,7 +1064,7 @@ class ApiConsumerUsageEvidenceData(BaseModel):
 # --- Envelope (D2, D6) --------------------------------------------------------------------------
 
 
-class ApiUsageLimitation(BaseModel):
+class ApiUsageLimitation(_Model):
     model_config = _closed()
 
     code: ApiUsageLimitationCode
@@ -1151,7 +1182,7 @@ def _answer_schema_extra(schema: dict[str, Any], _model: type[BaseModel]) -> Non
     ]
 
 
-class ApiConsumerUsageAnswer(BaseModel):
+class ApiConsumerUsageAnswer(_Model):
     """The 0.7 envelope (D2, D6). `data` is null if and only if the answer is a refusal (a
     pre-evaluation failure); an evaluated `NOT_ANSWERED` still carries its payload."""
 

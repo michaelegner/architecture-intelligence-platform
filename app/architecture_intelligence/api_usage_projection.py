@@ -10,9 +10,10 @@ and the snapshot id cannot describe different states.
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from app.architecture_intelligence.api_usage_contracts import (
+    REFUSAL_CODES_EVIDENCE,
     REFUSAL_CODES_QUERY,
     ApiConsumerUsageAnswer,
     ApiConsumerUsageData,
@@ -20,6 +21,7 @@ from app.architecture_intelligence.api_usage_contracts import (
     ApiUsageCursor,
     ApiUsageLimitation,
     ApiUsageLimitationCode,
+    ApiUsageRequestContext,
     ApiUsageRow,
     ApiUsageTarget,
     ApiUsageWindow,
@@ -78,39 +80,47 @@ _MESSAGES = {
     _CODE.MORE_ROWS_AVAILABLE: "More rows follow this page; continue with next_cursor.",
     _CODE.WINDOW_NOT_VALID: "The measurement window is not valid; no usage can be established.",
     _CODE.COVERAGE_UNKNOWN: "At least one selected Route has unknown measurement coverage.",
+    _CODE.EVIDENCE_REF_NOT_RESOLVED: (
+        "At least one evidence ref is not resolvable for this snapshot and query context."
+    ),
 }
 
 
-def _limitation(code: ApiUsageLimitationCode) -> ApiUsageLimitation:
+def limitation(code: ApiUsageLimitationCode) -> ApiUsageLimitation:
     return ApiUsageLimitation(code=code, message=_MESSAGES[code])
 
 
 def refusal_answer(
-    producer: Producer, snapshot: SnapshotRef | None, code: ApiUsageLimitationCode
+    producer: Producer,
+    snapshot: SnapshotRef | None,
+    code: ApiUsageLimitationCode,
+    *,
+    mode: Literal["query", "evidence"] = "query",
 ) -> ApiConsumerUsageAnswer:
-    """A D6 refusal: nothing was evaluated, so `data` is null and exactly one refusal code is set."""
-    assert code in REFUSAL_CODES_QUERY
+    """A D6 refusal: nothing was evaluated, so `data` is null and exactly one refusal code is set.
+    The evidence mode has no cursor, so it cannot refuse with `CURSOR_QUERY_MISMATCH`."""
+    assert code in (REFUSAL_CODES_QUERY if mode == "query" else REFUSAL_CODES_EVIDENCE)
     return ApiConsumerUsageAnswer(
         schema_version="0.7",
         producer=producer,
         tool="get_api_consumer_usage",
-        mode="query",
+        mode=mode,
         outcome=Outcome.NOT_ANSWERED,
         snapshot=snapshot,
         data=None,
-        limitations=[_limitation(code)],
+        limitations=[limitation(code)],
     )
 
 
-def request_digest(request: ApiConsumerUsageQueryRequest) -> str:
+def context_digest(context: ApiUsageRequestContext) -> str:
     return query_context_digest(
-        target_kind=request.target.kind.value,
-        target_id=request.target.id,
-        gateway_instance_id=request.gateway_instance_id,
-        environment=request.environment,
-        window_start=request.window_start,
-        window_end=request.window_end,
-        consumer_id=request.consumer_id,
+        target_kind=context.target.kind.value,
+        target_id=context.target.id,
+        gateway_instance_id=context.gateway_instance_id,
+        environment=context.environment,
+        window_start=context.window_start,
+        window_end=context.window_end,
+        consumer_id=context.consumer_id,
     )
 
 
@@ -147,6 +157,8 @@ class ApiUsageScope:
     limitations: Sequence[Row]
     source_evidence: Sequence[Row]
     versions: Mapping[str, Row]
+    measurement_evidence: Mapping[str, Row]
+    reconciliation_rule: Row
 
     @classmethod
     def build(
@@ -190,6 +202,8 @@ class ApiUsageScope:
             limitations=[row for row in usage("limitations") if row["window_id"] == window["id"]],
             source_evidence=[row for row in config("source_evidence") if in_scope(row)],
             versions={row["id"]: row for row in _rows(state, "api_contracts_v1", "versions")},
+            measurement_evidence={row["id"]: row for row in usage("evidence")},
+            reconciliation_rule=(state.get("api_usage_v1") or {}).get("reconciliation_rule", {}),
         )
 
     # --- D9 supporting ids (D12.13: each set holds the id that distinguishes its payload) -------
@@ -281,6 +295,16 @@ class ApiUsageScope:
             else AssociationSummary(target_service=chain)
         )
 
+    def source_rows(self, route_ids: Iterable[str], consumer_id: str | None) -> list[Row]:
+        """The `qualification_rows` of the window on the given Routes, for the consumer filter if
+        any. The row authority; nothing is derived."""
+        wanted = set(route_ids)
+        return [
+            row
+            for row in self.qualification_rows
+            if row["route_id"] in wanted and consumer_id in (None, row["consumer_id"])
+        ]
+
     # --- Public enrichment ----------------------------------------------------------------------
 
     def window_ref(self) -> str:
@@ -364,12 +388,12 @@ class ApiUsageScope:
         )
 
 
-def _find_window(state: Mapping[str, Any], request: ApiConsumerUsageQueryRequest) -> Row | None:
+def _find_window(state: Mapping[str, Any], context: ApiUsageRequestContext) -> Row | None:
     wanted = (
-        request.gateway_instance_id,
-        request.environment,
-        request.window_start,
-        request.window_end,
+        context.gateway_instance_id,
+        context.environment,
+        context.window_start,
+        context.window_end,
     )
     for window in _rows(state, "api_usage_v1", "windows"):
         key = (
@@ -398,6 +422,26 @@ def _target_refusal(
     section = "operations" if target.kind is TargetKind.API_OPERATION else "services"
     known = any(row["id"] == target.id for row in state.get(section) or ())
     return None if known else _CODE.UNKNOWN_TARGET
+
+
+def open_scope(
+    state: Mapping[str, Any],
+    context: ApiUsageRequestContext,
+    *,
+    snapshot: SnapshotRef,
+    asserted_snapshot_ids: Iterable[str | None],
+) -> ApiUsageScope | ApiUsageLimitationCode:
+    """The refusal preamble shared by both modes, in D6 order: snapshot, window, target. Returns the
+    indexed scope of the requested window, or the one refusal code."""
+    if set(asserted_snapshot_ids) - {None, snapshot.snapshot_id}:
+        return _CODE.SNAPSHOT_NOT_AVAILABLE
+    window = _find_window(state, context)
+    if window is None:
+        return _CODE.MEASUREMENT_WINDOW_NOT_AVAILABLE
+    scope = ApiUsageScope.build(
+        state, snapshot_id=snapshot.snapshot_id, digest=context_digest(context), window=window
+    )
+    return _target_refusal(state, scope, context.target) or scope
 
 
 def _window_block(scope: ApiUsageScope) -> ApiUsageWindow:
@@ -437,19 +481,15 @@ def project_api_consumer_usage(
     """The `mode: "query"` answer for the current snapshot `snapshot` whose canonical state is
     `state`. Refusals are decided in D6 order: snapshot, window, target, cursor."""
     cursor = decode_cursor(request.cursor) if request.cursor is not None else None
-    asserted = {request.snapshot_id, cursor.snapshot_id if cursor is not None else None}
-    if asserted - {None, snapshot.snapshot_id}:
-        return refusal_answer(producer, snapshot, _CODE.SNAPSHOT_NOT_AVAILABLE)
-    window = _find_window(state, request)
-    if window is None:
-        return refusal_answer(producer, snapshot, _CODE.MEASUREMENT_WINDOW_NOT_AVAILABLE)
-    digest = request_digest(request)
-    scope = ApiUsageScope.build(
-        state, snapshot_id=snapshot.snapshot_id, digest=digest, window=window
+    opened = open_scope(
+        state,
+        request.context(),
+        snapshot=snapshot,
+        asserted_snapshot_ids=[request.snapshot_id, cursor.snapshot_id if cursor else None],
     )
-    target_refusal = _target_refusal(state, scope, request.target)
-    if target_refusal is not None:
-        return refusal_answer(producer, snapshot, target_refusal)
+    if isinstance(opened, ApiUsageLimitationCode):
+        return refusal_answer(producer, snapshot, opened)
+    scope, digest, window = opened, opened.digest, opened.window
     if cursor is not None and cursor.query_digest != digest:
         return refusal_answer(producer, snapshot, _CODE.CURSOR_QUERY_MISMATCH)
 
@@ -458,9 +498,7 @@ def project_api_consumer_usage(
     rows = sorted(
         (
             scope.row(source, by_route[source["route_id"]])
-            for source in scope.qualification_rows
-            if source["route_id"] in by_route
-            and (request.consumer_id is None or source["consumer_id"] == request.consumer_id)
+            for source in scope.source_rows(by_route, request.consumer_id)
         ),
         key=row_key,
     )
@@ -525,5 +563,5 @@ def project_api_consumer_usage(
         outcome=outcome,
         snapshot=snapshot,
         data=data,
-        limitations=[_limitation(code) for code in sorted(codes, key=lambda c: c.value)],
+        limitations=[limitation(code) for code in sorted(codes, key=lambda c: c.value)],
     )

@@ -1,6 +1,6 @@
 # MCP Tools
 
-AIP exposes its validated architecture model to AI agents and other MCP clients as four
+AIP exposes its validated architecture model to AI agents and other MCP clients as five
 **read-only** tools, mounted at the single public path `/mcp`. As of `v0.5.0` I3 (ADR 0016),
 `ArchitectureIntelligenceService` is the single semantic owner of this Architecture Knowledge, and
 standard negotiated MCP is one of its two public adapters (the other is [REST](architecture.md#api-surface))
@@ -31,30 +31,31 @@ build/producer metadata, separate from the public `schema_version`. For `get_ser
 and `get_evidence` the public `schema_version` is `"0.5"` (as of `v0.5.0` I3) **unless the answer
 carries Broker data**, in which case it is `"0.6"` (since `v0.6.1` I2; see
 [Broker claims](#broker-claims-v061-i2) below). `get_architecture_drift` stays `"0.5"` and the
-fourth tool has its own `"0.6"` contract.
+fourth tool has its own `"0.6"` contract and the fifth its own `"0.7"` contract.
 
 > AIP may help agents reason about architecture, but an agent must never become the source of
 > architectural truth. — [`ROADMAP.md`](../ROADMAP.md)'s v0.4 principle.
 
-## The four tools
+## The five tools
 
-`tools/list` always returns exactly these four, in this fixed lexicographic order:
+`tools/list` always returns exactly these five, in this fixed lexicographic order:
 
 | Tool | Purpose |
 |---|---|
+| `get_api_consumer_usage` | Since v0.7.0 I3: which consumers have configured access to, and which have independently observed usage of, an API Operation, an application Service or a gateway Route, for one gateway instance, environment and measurement window; a second mode resolves the answer's evidence refs. See [below](#get_api_consumer_usage-v070-i3). |
 | `get_architecture_drift` | Direct dependencies of a service whose current evidence qualification shows a declared-versus-observed discrepancy (`OBSERVED_ONLY` or `NOT_OBSERVED_IN_WINDOW`) — never `CONFIRMED` — bound to one stable snapshot. |
 | `get_evidence` | Resolves 1-20 opaque evidence references to bounded, sanitized provenance for one explicit snapshot. |
 | `get_service_dependencies` | One-hop direct dependencies of a service, qualified against declared and observed evidence and bound to a stable snapshot. Also returns the service's Service-Workload deployment claims and resolutions (explicit annotation, configured mapping, or observed OpenTelemetry/Kubernetes linkage), reconciled across all applicable methods. |
 | `get_service_dependencies_by_locality` | Since v0.6.0 I3: where a service's direct HTTP dependencies are positively established, per evidenced caller-Workload locality, with an optional same-snapshot comparison; a second mode resolves the answer's scoped evidence refs. See [below](#get_service_dependencies_by_locality-v060-i3). |
 
-All four:
+All five:
 
 - take one `request` argument matching their JSON Schema exactly (closed `inputSchema`; an
   unrecognized field inside `request` is rejected before dispatch). An unexpected *top-level*
   argument beside `request` is rejected before dispatch by `get_service_dependencies_by_locality`
   only; for the three v0.5 tools the pinned SDK silently ignores it, unchanged since v0.5.0;
 - return `structuredContent` as an answer envelope (`ArchitectureAnswer` for the three v0.5 tools,
-  `LocalityAnswer` for the fourth) (`schema_version`, `producer`,
+  `LocalityAnswer` for the fourth, `ApiConsumerUsageAnswer` for the fifth) (`schema_version`, `producer`,
   `snapshot`, `outcome`, plus the tool-specific data/claims) validated against the tool's
   advertised `outputSchema`. For `get_service_dependencies` and `get_evidence` that `outputSchema`
   is a `oneOf` discriminated by `schema_version`: the released v0.5 answer or the Broker-aware v0.6
@@ -70,7 +71,9 @@ Schemas live at `schemas/architecture_intelligence/v0.5/`:
 `service-dependencies-by-locality-request.schema.json` (its `request` argument) and
 `service-dependencies-by-locality-answer.schema.json` (its answer); and, since v0.6.1 I2, the
 Broker-aware `architecture-answer.schema.json` and `evidence-answer.schema.json`. The v0.5 files
-are immutable.
+are immutable. The fifth tool's schemas live at `schemas/architecture_intelligence/v0.7/`:
+`api-consumer-usage-request.schema.json` (its `request` argument) and
+`api-consumer-usage-answer.schema.json` (its answer).
 
 ## Broker claims (v0.6.1 I2)
 
@@ -212,6 +215,44 @@ The REST parity routes are `POST /api/services/{service_id}/dependencies/by-loca
 other request field (no `subject_service_id`, no `mode`). A malformed body is `422`; every evaluated
 or refused answer is `200` with the same envelope MCP returns.
 
+## `get_api_consumer_usage` (v0.7.0 I3)
+
+The fifth tool answers **which consumers have configured access to, and which have independently
+observed usage of**, an API Operation, an application Service or a gateway Route, for one gateway
+instance, environment and measurement window. Its contract is the `0.7` schema
+([decision record](specifications/0.7.0/i3-decision-record.md) D1–D12), not a widening of the v0.5
+or v0.6 answers. The single `request` argument is discriminated on `mode`:
+
+- `"query"`: the exact `target` (`kind` is `API_OPERATION`, `APPLICATION_SERVICE` or
+  `GATEWAY_ROUTE`; `id` is the exact canonical id, never a name, path or host) plus
+  `gateway_instance_id`, `environment`, `window_start` and `window_end`, which must equal one
+  accepted measurement window. Optional `consumer_id` (an exact id, not a username search), `limit`
+  (1–200, default 100), `cursor` and `snapshot_id`. Rows are ordered by consumer id then Route id;
+  more rows than `limit` make the answer `PARTIAL` with `next_cursor`, bound to the snapshot, so any
+  import that changes the snapshot makes a continuation `SNAPSHOT_NOT_AVAILABLE`. An unknown
+  window, target or stale snapshot is a typed refusal with `data: null`, never a 404;
+- `"evidence"`: resolves up to 20 opaque `api-evidence:` refs from such an answer at the supplied
+  `snapshot_id`, for the resubmitted target and window. A ref that is forged, minted under another
+  snapshot or for another context is `NOT_RESOLVED`, indistinguishable from the others. `get_evidence`
+  does not resolve these refs and does not change.
+
+Each row keeps two separate propositions. `configured_access` is `CONFIGURED_ACCESS_ESTABLISHED` or
+`NO_MATCHING_CONFIGURED_ACCESS_FACT`; `usage` is `OBSERVED_USAGE`, `MEASURED_ZERO` (only under
+`SUFFICIENT_FOR_ZERO` coverage) or `USAGE_UNESTABLISHED`. Established configured access is not
+approval or intent; observed usage is not approved usage or a payload-field dependency;
+`USAGE_UNESTABLISHED` is not zero and not non-use; a missing configured-access fact is not denial or
+misconfiguration; a resolved Route-to-Operation or Route-to-Service association is not identity,
+ownership or an authorization boundary. The Operation chain and the Service chain are independent
+and never infer from names. `consumer.source_name` is the APISIX username on that gateway instance
+(source-qualified); no credential, key or plugin configuration is ever returned. An absent optional
+field is omitted, never `null` (only `data` and `snapshot` are required but nullable). This tool
+also rejects an unexpected top-level argument beside `request` before dispatch.
+
+The REST parity routes are `POST /api/api-consumer-usage` and `POST /api/api-consumer-usage/evidence`.
+The closed JSON body carries every request field except `mode`, which the route supplies. A
+malformed body is `422`; every evaluated or refused answer is `200` with the same envelope MCP
+returns.
+
 ## Connecting a negotiated client
 
 A standard MCP client — the kind a mainstream coding-agent tool ships out of the box, or a hand-
@@ -251,7 +292,7 @@ curl -s http://localhost:8000/mcp \
 `get_architecture_drift` takes the identical `request` shape (`service_id` +
 `observation_context`); `get_evidence` instead takes `{"evidence_refs": [...], "snapshot_id":
 "..."}`, both usually read from a prior answer's own `evidence_refs`/`snapshot.snapshot_id`. The
-four tools, their schemas, and their `ArchitectureAnswer` semantics are identical whether reached
+five tools, their schemas, and their answer semantics are identical whether reached
 over MCP or over the equivalent [REST endpoint](architecture.md#api-surface) — only the transport
 envelope differs (ADR 0016 decision #7).
 

@@ -158,3 +158,41 @@ def run_locality_query_to_evidence(client: httpx.Client, *, query_request: dict)
     )
 
     return {"query": query_result, "evidence": evidence_result}
+
+
+def run_api_usage_query_to_evidence(client: httpx.Client, *, query_request: dict) -> dict:
+    """v0.7.0 I3.3: `get_api_consumer_usage` in `mode: "query"` -> every evidence ref the answer
+    emits and its `snapshot_id` -> the same tool in `mode: "evidence"` with the same context on that
+    snapshot. Returns both raw tool results (`query`, `evidence`) for the caller to assert on; this
+    module does no assertion of its own."""
+    query_result = call_tool(
+        client, name="get_api_consumer_usage", arguments={"request": query_request}
+    )
+    answer = query_result["structuredContent"]
+    data = answer["data"]
+    refs = sorted(
+        {
+            *data["window"]["evidence_refs"],
+            *(ref for route in data["selected_routes"] for ref in route["evidence_refs"]),
+            *(ref for row in data["rows"] for ref in row["evidence_refs"]),
+        }
+    )
+    context = {
+        key: query_request[key]
+        for key in ("target", "gateway_instance_id", "environment", "window_start", "window_end")
+    }
+    if "consumer_id" in query_request:
+        context["consumer_id"] = query_request["consumer_id"]
+    evidence_result = call_tool(
+        client,
+        name="get_api_consumer_usage",
+        arguments={
+            "request": {
+                "mode": "evidence",
+                "snapshot_id": answer["snapshot"]["snapshot_id"],
+                "evidence_refs": refs,
+                **context,
+            }
+        },
+    )
+    return {"query": query_result, "evidence": evidence_result}

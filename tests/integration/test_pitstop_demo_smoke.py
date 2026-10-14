@@ -202,6 +202,7 @@ def test_one_command_demo_answers_the_question_ladder_at_one_snapshot():
 
         tools = [tool["name"] for tool in _mcp("tools/list", {}, 1)["tools"]]
         assert tools == [
+            "get_api_consumer_usage",
             "get_architecture_drift",
             "get_evidence",
             "get_service_dependencies",

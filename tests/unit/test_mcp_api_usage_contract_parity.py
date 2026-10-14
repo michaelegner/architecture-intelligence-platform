@@ -1,0 +1,67 @@
+"""v0.7.0 I3.3: the fifth tool advertises exactly the published 0.7 contract (I3 spec §13;
+decision record D1, D2).
+
+The advertised `inputSchema.request` must equal the published request schema, and the advertised
+`outputSchema` the published answer schema, both after resolving every local `$ref`. A model change
+that the published files do not carry, or that the SDK advertises differently, fails here (the
+frozen-contract parity rule). The published files themselves are pinned byte for byte by the I3.1b
+schema tests."""
+
+import json
+from typing import Any
+
+import pytest
+from mcp.server import MCPServer
+
+from app.architecture_intelligence.api_usage_contracts import API_USAGE_TOOL_NAME
+from app.architecture_intelligence.schema_export import (
+    API_USAGE_ANSWER_SCHEMA_PATH,
+    API_USAGE_REQUEST_SCHEMA_PATH,
+)
+from app.mcp.tools import register_tools
+
+
+def _inline(node: Any, definitions: dict[str, Any]) -> Any:
+    """Resolves every local `{"$ref": "#/$defs/X"}` in place, dropping the `$defs` table."""
+    if isinstance(node, dict):
+        if set(node) == {"$ref"}:
+            return _inline(definitions[node["$ref"].rsplit("/", 1)[-1]], definitions)
+        return {key: _inline(value, definitions) for key, value in node.items() if key != "$defs"}
+    if isinstance(node, list):
+        return [_inline(value, definitions) for value in node]
+    return node
+
+
+@pytest.fixture(scope="module")
+def advertised() -> tuple[dict, dict]:
+    server = MCPServer(name="test", version="0.7.0")
+    register_tools(server)
+    tool = server._tool_manager.get_tool(API_USAGE_TOOL_NAME)
+    assert tool is not None and tool.output_schema is not None
+    return tool.parameters, tool.output_schema
+
+
+def _published(path) -> Any:
+    schema = json.loads(path.read_text(encoding="utf-8"))
+    return _inline(schema, schema.get("$defs", {}))
+
+
+def test_the_advertised_request_argument_is_the_published_request_schema(advertised):
+    parameters, _ = advertised
+    request = _inline(parameters["properties"]["request"], parameters.get("$defs", {}))
+
+    assert request == _published(API_USAGE_REQUEST_SCHEMA_PATH)
+
+
+def test_the_advertised_output_schema_is_the_published_answer_schema(advertised):
+    _, output = advertised
+
+    assert _inline(output, output.get("$defs", {})) == _published(API_USAGE_ANSWER_SCHEMA_PATH)
+
+
+def test_the_argument_wrapper_is_closed_around_exactly_one_request(advertised):
+    parameters, _ = advertised
+
+    assert parameters["additionalProperties"] is False
+    assert set(parameters["properties"]) == {"request"}
+    assert parameters["required"] == ["request"]

@@ -60,8 +60,10 @@ from app.mcp.tools import TOOL_NAMES, register_tools
 
 _ALLOWED_ORIGIN = "http://localhost"
 _ALLOWED_HOST = "localhost"
-# v0.6.0 I3.3b (I3 decision record D1): the fourth read-only tool, in lexicographic order.
-FOUR_TOOLS = [
+# v0.6.0 I3.3b (I3 decision record D1) added the fourth read-only tool and v0.7.0 I3.3 (I3 decision
+# record D1) the fifth, in lexicographic order.
+FIVE_TOOLS = [
+    "get_api_consumer_usage",
     "get_architecture_drift",
     "get_evidence",
     "get_service_dependencies",
@@ -143,12 +145,12 @@ async def _check_unrelated_path_is_a_normal_404(client: httpx.AsyncClient) -> No
     assert "jsonrpc" not in response.text
 
 
-async def _check_tools_list_returns_exactly_four_tools_in_lexicographic_order(
+async def _check_tools_list_returns_exactly_five_tools_in_lexicographic_order(
     client: httpx.AsyncClient,
 ) -> None:
     """v0.4.0 I3.2 - I3 spec §24/§45: `tools/list` count moved 2 -> 3; v0.6.0 I3.3b (I3 decision
-    record D1) adds the fourth, `get_service_dependencies_by_locality`. No existing tool
-    name/schema meaning changes to make room for it."""
+    record D1) adds the fourth, `get_service_dependencies_by_locality`; v0.7.0 I3.3 adds the fifth,
+    `get_api_consumer_usage`. No existing tool name/schema meaning changes to make room for them."""
     response = await client.post(
         "/mcp",
         headers=_negotiated_headers(protocol_version="2025-11-25"),
@@ -161,7 +163,7 @@ async def _check_tools_list_returns_exactly_four_tools_in_lexicographic_order(
     # is spec-equivalent to "complete" (`mcp_types._types`'s own docstring), not a missing field.
     assert result.get("resultType", "complete") == "complete"
     names = [tool["name"] for tool in result["tools"]]
-    assert names == FOUR_TOOLS
+    assert names == FIVE_TOOLS
 
 
 async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> None:
@@ -186,11 +188,17 @@ async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> Non
                 "ArchitectureDriftRequest",
                 "LocalityQueryRequest",
                 "LocalityEvidenceRequest",
+                "ApiConsumerUsageQueryRequest",
+                "ApiConsumerUsageEvidenceRequest",
             }:
                 assert definition["additionalProperties"] is False
             if definition.get("title") == "EvidenceRequest":
                 evidence_request_schema = definition
-        if tool["name"] == "get_service_dependencies_by_locality":
+        if tool["name"] == "get_api_consumer_usage":
+            # D2: the 0.7 envelope, not a widened 0.5 ArchitectureAnswer or 0.6 LocalityAnswer.
+            assert tool["outputSchema"]["title"] == "ApiConsumerUsageAnswer"
+            assert tool["annotations"]["readOnlyHint"] is True
+        elif tool["name"] == "get_service_dependencies_by_locality":
             # D2: the 0.6 locality envelope, not a widened 0.5 ArchitectureAnswer.
             assert tool["outputSchema"]["title"] == "LocalityAnswer"
             assert tool["annotations"]["readOnlyHint"] is True
@@ -442,7 +450,7 @@ async def _check_negotiated_mode_issues_no_session_id(client: httpx.AsyncClient)
         json=_negotiated_tools_list_body(),
     )
     assert list_response.status_code == 200
-    assert len(list_response.json()["result"]["tools"]) == len(FOUR_TOOLS)
+    assert len(list_response.json()["result"]["tools"]) == len(FIVE_TOOLS)
 
     call_body = _negotiated_tools_call_body(
         "get_evidence",
@@ -476,7 +484,7 @@ async def _check_protocol_version_header_alone_reaches_negotiated_dispatch(
     response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
     assert response.status_code == 200
     names = [tool["name"] for tool in response.json()["result"]["tools"]]
-    assert names == FOUR_TOOLS
+    assert names == FIVE_TOOLS
 
 
 async def _check_markerless_tools_list_without_header_falls_back_to_sdk(
@@ -491,7 +499,7 @@ async def _check_markerless_tools_list_without_header_falls_back_to_sdk(
     )
     assert response.status_code == 200
     names = [tool["name"] for tool in response.json()["result"]["tools"]]
-    assert names == FOUR_TOOLS
+    assert names == FIVE_TOOLS
 
 
 async def _check_markerless_tools_call_without_header_falls_back_to_sdk(
@@ -529,7 +537,7 @@ async def _check_session_id_header_alone_does_not_change_routing(
     response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
     assert response.status_code == 200
     names = [tool["name"] for tool in response.json()["result"]["tools"]]
-    assert names == FOUR_TOOLS
+    assert names == FIVE_TOOLS
 
 
 async def _check_unrecognized_protocol_version_is_handled_by_sdk_without_dispatch(
@@ -604,7 +612,7 @@ async def _check_vscode_full_sequence_without_protocol_header_is_accepted(
     )
     assert tools_response.status_code == 200
     names = [tool["name"] for tool in tools_response.json()["result"]["tools"]]
-    assert names == FOUR_TOOLS
+    assert names == FIVE_TOOLS
 
 
 async def _check_get_is_rejected_with_405_before_sdk_invocation(
@@ -659,7 +667,7 @@ async def test_mcp_protocol_and_discovery() -> None:
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
             await _check_unrelated_path_is_a_normal_404(client)
-            await _check_tools_list_returns_exactly_four_tools_in_lexicographic_order(client)
+            await _check_tools_list_returns_exactly_five_tools_in_lexicographic_order(client)
             await _check_tools_list_schemas_are_closed(client)
             await _check_unknown_tool_name_is_a_tool_execution_error_not_a_protocol_error(client)
             await _check_unexpected_top_level_argument_no_longer_fails_before_dispatch(client)

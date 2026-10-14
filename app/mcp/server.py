@@ -42,6 +42,7 @@ the installed package - it isn't documented on the SDK's own doc pages - and sha
   `tests/unit/test_mcp_discovery.py` documents the SDK's behaviour for the three v0.5 tools. The
   fourth tool, `get_service_dependencies_by_locality` (v0.6.0 I3.3b, I3 decision record D12), does
   reject an unexpected top-level key before dispatch: `app.mcp.tools` closes its argument model.
+  So does the fifth tool, `get_api_consumer_usage` (v0.7.0 I3.3, decision record D1).
 """
 
 from __future__ import annotations

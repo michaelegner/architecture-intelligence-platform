@@ -20,9 +20,11 @@ from pydantic import BaseModel
 
 from app.architecture_intelligence.api_usage_contracts import (
     ApiConsumerUsageAnswer,
+    ApiConsumerUsageEvidenceRequest,
     ApiConsumerUsageQueryRequest,
     ApiUsageLimitationCode,
 )
+from app.architecture_intelligence.api_usage_evidence import resolve_api_consumer_usage_evidence
 from app.architecture_intelligence.api_usage_projection import (
     project_api_consumer_usage,
 )
@@ -1019,14 +1021,10 @@ class ArchitectureIntelligenceService:
             request, snapshot.extra, snapshot=snapshot_ref, producer=self._producer
         )
 
-    def get_api_consumer_usage(
-        self, request: ApiConsumerUsageQueryRequest
-    ) -> ApiConsumerUsageAnswer:
-        """v0.7.0 I3.2 - the `mode: "query"` API-aware answer (I3 spec §4-§9, §11; decision record
-        D3-D9): which consumers have configured access to, and which have observed usage of, the
-        target in one gateway instance, environment and measurement window. The answer is projected
-        from the very state that is fingerprinted into the snapshot id, so the two cannot describe
-        different committed states, and no query beyond that read is made. Read-only."""
+    def _read_api_usage_snapshot(self) -> tuple[SnapshotRef, dict] | None:
+        """One stable-read attempt of the whole canonical state: the current snapshot and that very
+        state, so an API usage answer and its snapshot id cannot describe different committed
+        states and no query beyond this read is made. `None` when no stable read was possible."""
         captured: dict[str, dict] = {}
 
         def read_state() -> dict:
@@ -1045,14 +1043,42 @@ class ArchitectureIntelligenceService:
                     read_extra=lambda: None,
                 )
         except SnapshotUnstable:
+            return None
+        ref = SnapshotRef(snapshot_id=snapshot.snapshot_id, model_revision=snapshot.model_revision)
+        return ref, captured["state"]
+
+    def get_api_consumer_usage(
+        self, request: ApiConsumerUsageQueryRequest
+    ) -> ApiConsumerUsageAnswer:
+        """v0.7.0 I3.2 - the `mode: "query"` API-aware answer (I3 spec §4-§9, §11; decision record
+        D3-D9): which consumers have configured access to, and which have observed usage of, the
+        target in one gateway instance, environment and measurement window. Read-only."""
+        read = self._read_api_usage_snapshot()
+        if read is None:
             return api_usage_refusal_answer(
                 self._producer, None, ApiUsageLimitationCode.SNAPSHOT_NOT_AVAILABLE
             )
+        snapshot, state = read
         return project_api_consumer_usage(
-            request,
-            captured["state"],
-            snapshot=SnapshotRef(
-                snapshot_id=snapshot.snapshot_id, model_revision=snapshot.model_revision
-            ),
-            producer=self._producer,
+            request, state, snapshot=snapshot, producer=self._producer
+        )
+
+    def get_api_consumer_usage_evidence(
+        self, request: ApiConsumerUsageEvidenceRequest
+    ) -> ApiConsumerUsageAnswer:
+        """v0.7.0 I3.3 - the `mode: "evidence"` exact same-snapshot resolver (I3 spec §9; decision
+        record D6, D9). It reacquires the current snapshot, rebuilds the finite ref map of the
+        resubmitted context from the same state and resolves only refs in it; there is no ref
+        history. Answered only for the supplied `snapshot_id`, never from latest data. Read-only."""
+        read = self._read_api_usage_snapshot()
+        if read is None:
+            return api_usage_refusal_answer(
+                self._producer,
+                None,
+                ApiUsageLimitationCode.SNAPSHOT_NOT_AVAILABLE,
+                mode="evidence",
+            )
+        snapshot, state = read
+        return resolve_api_consumer_usage_evidence(
+            request, state, snapshot=snapshot, producer=self._producer
         )
