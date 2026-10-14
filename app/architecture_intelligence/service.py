@@ -18,6 +18,17 @@ from dataclasses import dataclass
 import neo4j
 from pydantic import BaseModel
 
+from app.architecture_intelligence.api_usage_contracts import (
+    ApiConsumerUsageAnswer,
+    ApiConsumerUsageQueryRequest,
+    ApiUsageLimitationCode,
+)
+from app.architecture_intelligence.api_usage_projection import (
+    project_api_consumer_usage,
+)
+from app.architecture_intelligence.api_usage_projection import (
+    refusal_answer as api_usage_refusal_answer,
+)
 from app.architecture_intelligence.broker_contracts import (
     BROKER_SCHEMA_VERSION,
     ArchitectureAnswerV06,
@@ -1006,4 +1017,42 @@ class ArchitectureIntelligenceService:
             )
         return project_scoped_evidence(
             request, snapshot.extra, snapshot=snapshot_ref, producer=self._producer
+        )
+
+    def get_api_consumer_usage(
+        self, request: ApiConsumerUsageQueryRequest
+    ) -> ApiConsumerUsageAnswer:
+        """v0.7.0 I3.2 - the `mode: "query"` API-aware answer (I3 spec §4-§9, §11; decision record
+        D3-D9): which consumers have configured access to, and which have observed usage of, the
+        target in one gateway instance, environment and measurement window. The answer is projected
+        from the very state that is fingerprinted into the snapshot id, so the two cannot describe
+        different committed states, and no query beyond that read is made. Read-only."""
+        captured: dict[str, dict] = {}
+
+        def read_state() -> dict:
+            captured["state"] = canonical_snapshot_state(
+                session,
+                coverage_qualification_enabled=self._coverage_qualification_enabled,
+                service_workload_mapping_document=self._service_workload_mapping_document,
+            )
+            return captured["state"]
+
+        try:
+            with open_session(self._driver, database=self._database, read_only=True) as session:
+                snapshot = read_stable_snapshot(
+                    read_revision_fn=lambda: read_revision(session),
+                    read_state=read_state,
+                    read_extra=lambda: None,
+                )
+        except SnapshotUnstable:
+            return api_usage_refusal_answer(
+                self._producer, None, ApiUsageLimitationCode.SNAPSHOT_NOT_AVAILABLE
+            )
+        return project_api_consumer_usage(
+            request,
+            captured["state"],
+            snapshot=SnapshotRef(
+                snapshot_id=snapshot.snapshot_id, model_revision=snapshot.model_revision
+            ),
+            producer=self._producer,
         )

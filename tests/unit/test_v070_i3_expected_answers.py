@@ -32,6 +32,7 @@ from app.architecture_intelligence.schema_export import (
 )
 from app.sources.apisix_qualification import qualify
 from app.sources.apisix_reconciliation import reconcile
+from tests.api_usage_oracle.properties import check_property
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = ROOT / "docs" / "specifications" / "0.7.0"
@@ -319,50 +320,8 @@ def test_every_request_case_is_rejected_by_both_validators(case_id):
 # --- Properties ---------------------------------------------------------------------------------
 
 
-def _rows(case_id: str) -> list[dict]:
-    return CASES[case_id]["expected"]["data"]["rows"]
-
-
-def _row_keys(case_id: str) -> list[tuple[str, str]]:
-    return [(row["consumer"]["id"], row["gateway_route"]["id"]) for row in _rows(case_id)]
-
-
-def _dig(value: Any, path: str) -> Any:
-    for part in path.split("."):
-        value = value[part]
-    return value
-
-
 def _check(item: dict, case: dict) -> None:
-    op = item["op"]
-    if op == "pages_concatenate_to":
-        pages = [row for page in item["pages"] for row in _rows(page)]
-        assert pages == _rows(item["whole"]) and pages
-    elif op == "no_duplicate_rows":
-        keys = [key for page in item["cases"] for key in _row_keys(page)]
-        assert len(keys) == len(set(keys)) and keys
-    elif op == "suffix_of":
-        rows, whole = _rows(item["case"]), _rows(item["whole"])
-        assert rows and rows == whole[len(whole) - len(rows) :] and len(rows) < len(whole)
-    elif op == "row_count":
-        assert len(_rows(item["case"])) == item["equals"] > 0
-    elif op == "differ":
-        values = [_dig(CASES[c], item["path"]) for c in item["cases"]]
-        assert len(set(values)) == len(values) > 1
-    elif op == "disjoint_rows":
-        seen: set[tuple[str, str]] = set()
-        for case_id in item["cases"]:
-            keys = set(_row_keys(case_id))
-            assert keys and not (keys & seen)
-            seen |= keys
-    elif op == "absent_everywhere":
-        for other in DOC["cases"]:
-            if other["kind"] == "answer":
-                assert item["value"] not in json.dumps(other["expected"]), other["id"]
-    elif op == "present_in_world":
-        assert item["value"] in json.dumps(DOC["worlds"]["base"]["internal_only"])
-    else:  # pragma: no cover - a new op must be implemented here
-        raise AssertionError(f"unknown property op {op!r} in {case['id']}")
+    check_property(item, cases=CASES, world_text=json.dumps(DOC["worlds"]["base"]["internal_only"]))
 
 
 @pytest.mark.parametrize("case_id", _cases("property"))
