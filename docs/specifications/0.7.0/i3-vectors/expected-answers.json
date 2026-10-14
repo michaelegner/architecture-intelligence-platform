@@ -351,6 +351,7 @@
               ],
               "usage": {
                 "coverage": "UNKNOWN_COVERAGE",
+                "interaction_id": "observed-consumer-interaction:owned:72f84decc8241b7de2884e7204357b4c95d22156b4bdd82645010da4d8330775",
                 "rejected_attempt_count": 0,
                 "status": "USAGE_UNESTABLISHED",
                 "upstream_request_count": 0
@@ -4826,6 +4827,15 @@
               "consumer": "spike-alpha",
               "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
               "consumer_outcome": "RESOLVED",
+              "route": "legacy-route",
+              "route_id": "gateway-route:owned:665ab39cd2652d4c4a5ca5c559ce16fe6cfc0c026353279244b08925196a2cb0",
+              "route_outcome": "RESOLVED",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            },
+            {
+              "consumer": "spike-alpha",
+              "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "consumer_outcome": "RESOLVED",
               "route": "orders-route",
               "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
               "route_outcome": "RESOLVED",
@@ -4943,6 +4953,19 @@
               "route_id": "gateway-route:owned:6a5d2405fdf66440aec1402c6c0293e730659a201fc65cea039e4875c07fd5b5",
               "upstream_request_count": 7,
               "window_id": "measurement-window:owned:15ee6224f0d47656dd64cbc0cafc1f498c0cea0f893c963d0952832d256205c9"
+            },
+            {
+              "consumer": "spike-alpha",
+              "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "id": "observed-consumer-interaction:owned:72f84decc8241b7de2884e7204357b4c95d22156b4bdd82645010da4d8330775",
+              "rejected_attempt_count": 0,
+              "route": "legacy-route",
+              "route_id": "gateway-route:owned:665ab39cd2652d4c4a5ca5c559ce16fe6cfc0c026353279244b08925196a2cb0",
+              "upstream_request_count": 0,
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
             },
             {
               "consumer": "spike-alpha",
@@ -5088,6 +5111,7 @@
                 "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
               ],
               "id": "usage-qualification:owned:72f84decc8241b7de2884e7204357b4c95d22156b4bdd82645010da4d8330775",
+              "interaction_id": "observed-consumer-interaction:owned:72f84decc8241b7de2884e7204357b4c95d22156b4bdd82645010da4d8330775",
               "limitations": [
                 "GWM_COUNTER_DECREASED"
               ],
@@ -5337,6 +5361,23 @@
               "status": "DELTA",
               "window_end": "2026-10-13T10:10:00Z",
               "window_id": "measurement-window:owned:15ee6224f0d47656dd64cbc0cafc1f498c0cea0f893c963d0952832d256205c9",
+              "window_start": "2026-10-13T10:00:00Z"
+            },
+            {
+              "code": "200",
+              "consumer": "spike-alpha",
+              "environment": "prod",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "gateway_instance_id": "gw-prod-1",
+              "id": "measurement-series:owned:f0371feb2a7a6c4c78db73bffecd86925b4249be527b0c33ba3a4571ce2c7b4c",
+              "labels_json": "{\"code\":\"200\",\"consumer\":\"spike-alpha\",\"llm_model\":\"\",\"matched_host\":\"\",\"matched_uri\":\"/legacy-route\",\"request_llm_model\":\"\",\"request_type\":\"traditional_http\",\"response_source\":\"upstream\",\"route\":\"legacy-route\",\"service\":\"\"}",
+              "response_source": "upstream",
+              "route": "legacy-route",
+              "status": "DECREASED",
+              "window_end": "2026-10-13T10:10:00Z",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8",
               "window_start": "2026-10-13T10:00:00Z"
             }
           ],
@@ -5776,6 +5817,15 @@
               "consumer": "spike-alpha",
               "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
               "consumer_outcome": "RESOLVED",
+              "route": "legacy-route",
+              "route_id": "gateway-route:owned:665ab39cd2652d4c4a5ca5c559ce16fe6cfc0c026353279244b08925196a2cb0",
+              "route_outcome": "RESOLVED",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            },
+            {
+              "consumer": "spike-alpha",
+              "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "consumer_outcome": "RESOLVED",
               "route": "orders-route",
               "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
               "route_outcome": "RESOLVED",
@@ -5893,6 +5943,19 @@
               "route_id": "gateway-route:owned:6a5d2405fdf66440aec1402c6c0293e730659a201fc65cea039e4875c07fd5b5",
               "upstream_request_count": 7,
               "window_id": "measurement-window:owned:15ee6224f0d47656dd64cbc0cafc1f498c0cea0f893c963d0952832d256205c9"
+            },
+            {
+              "consumer": "spike-alpha",
+              "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "id": "observed-consumer-interaction:owned:72f84decc8241b7de2884e7204357b4c95d22156b4bdd82645010da4d8330775",
+              "rejected_attempt_count": 0,
+              "route": "legacy-route",
+              "route_id": "gateway-route:owned:665ab39cd2652d4c4a5ca5c559ce16fe6cfc0c026353279244b08925196a2cb0",
+              "upstream_request_count": 0,
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
             },
             {
               "consumer": "spike-alpha",
@@ -6038,6 +6101,7 @@
                 "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
               ],
               "id": "usage-qualification:owned:72f84decc8241b7de2884e7204357b4c95d22156b4bdd82645010da4d8330775",
+              "interaction_id": "observed-consumer-interaction:owned:72f84decc8241b7de2884e7204357b4c95d22156b4bdd82645010da4d8330775",
               "limitations": [
                 "GWM_COUNTER_DECREASED"
               ],
@@ -6287,6 +6351,23 @@
               "status": "DELTA",
               "window_end": "2026-10-13T10:10:00Z",
               "window_id": "measurement-window:owned:15ee6224f0d47656dd64cbc0cafc1f498c0cea0f893c963d0952832d256205c9",
+              "window_start": "2026-10-13T10:00:00Z"
+            },
+            {
+              "code": "200",
+              "consumer": "spike-alpha",
+              "environment": "prod",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "gateway_instance_id": "gw-prod-1",
+              "id": "measurement-series:owned:f0371feb2a7a6c4c78db73bffecd86925b4249be527b0c33ba3a4571ce2c7b4c",
+              "labels_json": "{\"code\":\"200\",\"consumer\":\"spike-alpha\",\"llm_model\":\"\",\"matched_host\":\"\",\"matched_uri\":\"/legacy-route\",\"request_llm_model\":\"\",\"request_type\":\"traditional_http\",\"response_source\":\"upstream\",\"route\":\"legacy-route\",\"service\":\"\"}",
+              "response_source": "upstream",
+              "route": "legacy-route",
+              "status": "DECREASED",
+              "window_end": "2026-10-13T10:10:00Z",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8",
               "window_start": "2026-10-13T10:00:00Z"
             }
           ],
@@ -8291,7 +8372,16 @@
           ]
         },
         "api_usage_v1": {
-          "attributions": [],
+          "attributions": [
+            {
+              "consumer": "no-such-consumer",
+              "consumer_outcome": "UNRESOLVED",
+              "route": "orders-route",
+              "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+              "route_outcome": "RESOLVED",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            }
+          ],
           "coverage": [
             {
               "coverage": "SUFFICIENT_FOR_ZERO",
@@ -8332,10 +8422,8 @@
               "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
             },
             {
-              "coverage": "UNKNOWN_COVERAGE",
-              "limitations": [
-                "GWM_COUNTER_DECREASED"
-              ],
+              "coverage": "SUFFICIENT_FOR_ZERO",
+              "limitations": [],
               "route_id": "gateway-route:owned:665ab39cd2652d4c4a5ca5c559ce16fe6cfc0c026353279244b08925196a2cb0",
               "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
             },
@@ -8375,15 +8463,7 @@
             }
           ],
           "interactions": [],
-          "limitations": [
-            {
-              "code": "GWM_COUNTER_DECREASED",
-              "id": "measurement-limitation:owned:539a6ddbc74174a5d7dd80628d6bfc571190400cf55e92e8604cfb62cc3a53f0",
-              "response_source": "upstream",
-              "route": "legacy-route",
-              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
-            }
-          ],
+          "limitations": [],
           "mapping_entries": [
             {
               "environment": "prod",
@@ -8517,7 +8597,26 @@
               "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
             }
           ],
-          "series": [],
+          "series": [
+            {
+              "code": "200",
+              "consumer": "no-such-consumer",
+              "environment": "prod",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "gateway_instance_id": "gw-prod-1",
+              "id": "measurement-series:owned:4497c5273c67cea99e5f6833ca18afbced3d4128de769a6c7e211842d070e750",
+              "labels_json": "{\"code\":\"200\",\"consumer\":\"no-such-consumer\",\"llm_model\":\"\",\"matched_host\":\"\",\"matched_uri\":\"/orders-route\",\"request_llm_model\":\"\",\"request_type\":\"traditional_http\",\"response_source\":\"upstream\",\"route\":\"orders-route\",\"service\":\"\"}",
+              "request_count_delta": 1,
+              "response_source": "upstream",
+              "route": "orders-route",
+              "status": "DELTA",
+              "window_end": "2026-10-13T10:10:00Z",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8",
+              "window_start": "2026-10-13T10:00:00Z"
+            }
+          ],
           "target_service": [
             {
               "route_id": "gateway-route:owned:6a5d2405fdf66440aec1402c6c0293e730659a201fc65cea039e4875c07fd5b5",

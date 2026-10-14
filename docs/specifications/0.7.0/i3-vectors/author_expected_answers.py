@@ -226,6 +226,7 @@ def _pair(
     upstream: int = 0,
     rejected: int = 0,
     interaction: bool = False,
+    series_status: str = "DELTA",
 ) -> dict:
     return {
         "consumer": consumer,
@@ -235,6 +236,7 @@ def _pair(
         "upstream_request_count": upstream,
         "rejected_attempt_count": rejected,
         "interaction": interaction,
+        "series_status": series_status,
     }
 
 
@@ -303,7 +305,14 @@ def base_world() -> dict:
             "alpha", "orders-route", configured=True, usage=OBSERVED, upstream=3, interaction=True
         ),
         _pair("alpha", "orders-v2-route", configured=True, usage=ZERO),
-        _pair("alpha", "legacy-route", configured=True, usage=UNESTABLISHED),
+        _pair(
+            "alpha",
+            "legacy-route",
+            configured=True,
+            usage=UNESTABLISHED,
+            interaction=True,
+            series_status="DECREASED",
+        ),
         _pair("alpha", "bare-route", configured=True, usage=ZERO),
         _pair(
             "beta", "orders-route", configured=False, usage=OBSERVED, upstream=2, interaction=True
@@ -459,6 +468,38 @@ def series_labels(consumer: str, route: str, code: str, response_source: str) ->
 
 def series_key(labels: dict) -> str:
     return ",".join(f'{key}="{value}"' for key, value in sorted(labels.items()))
+
+
+def series_row(
+    window: dict,
+    gateway: str,
+    environment: str,
+    consumer: str,
+    route: str,
+    code: str,
+    response_source: str,
+    status: str,
+    delta: int | None,
+) -> dict:
+    labels = series_labels(consumer, route, code, response_source)
+    row: dict[str, Any] = {
+        "id": series_id(window["id"], series_key(labels)),
+        "window_id": window["id"],
+        "gateway_instance_id": gateway,
+        "environment": environment,
+        "window_start": window["window_start"],
+        "window_end": window["window_end"],
+        "route": route,
+        "consumer": consumer,
+        "code": code,
+        "response_source": response_source,
+        "status": status,
+        "labels_json": compact_json(labels),
+        "evidence_ids": [window["evidence_id"]],
+    }
+    if delta is not None:
+        row["request_count_delta"] = delta
+    return row
 
 
 def operation_row(operation: str, world: dict) -> dict:
@@ -726,35 +767,27 @@ def api_usage_state(world: dict) -> dict:
                 "evidence_ids": [window["evidence_id"]],
             }
             if pair["interaction"]:
-                series_ids = []
                 for response_source, code, count in (
                     ("upstream", "200", pair["upstream_request_count"]),
                     ("apisix", "403", pair["rejected_attempt_count"]),
                 ):
-                    if not count:
-                        continue
-                    labels = series_labels(
-                        who["username"], route["source_route_id"], code, response_source
+                    decreased = (
+                        pair["series_status"] == "DECREASED" and response_source == "upstream"
                     )
-                    sid = series_id(wid, series_key(labels))
-                    series_ids.append(sid)
+                    if not count and not decreased:
+                        continue
                     series.append(
-                        {
-                            "id": sid,
-                            "window_id": wid,
-                            "gateway_instance_id": gateway,
-                            "environment": environment,
-                            "window_start": window["window_start"],
-                            "window_end": window["window_end"],
-                            "route": route["source_route_id"],
-                            "consumer": who["username"],
-                            "code": code,
-                            "response_source": response_source,
-                            "status": "DELTA",
-                            "request_count_delta": count,
-                            "labels_json": compact_json(labels),
-                            "evidence_ids": [window["evidence_id"]],
-                        }
+                        series_row(
+                            window,
+                            gateway,
+                            environment,
+                            who["username"],
+                            route["source_route_id"],
+                            code,
+                            response_source,
+                            "DECREASED" if decreased else "DELTA",
+                            None if decreased else count,
+                        )
                     )
                 attributions.append(
                     {
@@ -773,6 +806,32 @@ def api_usage_state(world: dict) -> dict:
                     {"id": iid, **base, **totals, "evidence_ids": [window["evidence_id"]]}
                 )
             rows.append(row)
+    for extra in world.get("unattributed_series", []):
+        window = world["windows"][extra["gateway"]]
+        route = world["_routes"][extra["route"]]
+        series.append(
+            series_row(
+                window,
+                extra["gateway"],
+                environment,
+                extra["consumer"],
+                route["source_route_id"],
+                "200",
+                "upstream",
+                "DELTA",
+                extra["count"],
+            )
+        )
+        attributions.append(
+            {
+                "window_id": window["id"],
+                "consumer": extra["consumer"],
+                "route": route["source_route_id"],
+                "consumer_outcome": "UNRESOLVED",
+                "route_outcome": "RESOLVED",
+                "route_id": route["id"],
+            }
+        )
     return {
         "windows": sort_by(("id",), windows),
         "evidence": sort_by(("id",), evidence),
@@ -841,8 +900,14 @@ def world_unattributed() -> dict:
     for route in world["routes"]:
         if route["label"] == "orders-route":
             route["route_limitations"] = ["GWM_UNATTRIBUTED_UPSTREAM"]
+        if route["label"] == "legacy-route":  # its decreased series is not part of this world
+            route["route_limitations"] = []
+            route["limitation_carriers"] = []
     world["pairs"] = [
         _pair("alpha", "orders-route", configured=True, usage=UNESTABLISHED),
+    ]
+    world["unattributed_series"] = [
+        {"gateway": GW1, "route": "orders-route", "consumer": "no-such-consumer", "count": 1}
     ]
     return finalize(world)
 

@@ -477,81 +477,22 @@ def test_the_reconciliation_sections_equal_the_i2_rule_applied_to_the_raw_facts(
         assert state["api_usage_v1"][section] == derived[section], (name, section)
 
 
-def _route_wide_series(state: dict) -> list[dict]:
-    """The series behind the route-wide limitation codes, which the world states directly: a
-    decreased counter and unattributed upstream traffic. They are injected only to let the I2
-    qualification rule derive those codes, and the rows they create are dropped again."""
-    usage, gateway = state["api_usage_v1"], state["gateway_configuration_v1"]
-    extra = []
-    for window in usage["windows"]:
-        if window["window_reasons"]:
-            continue
-        for coverage in usage["coverage"]:
-            if coverage["window_id"] != window["id"]:
-                continue
-            route = next(r for r in gateway["routes"] if r["id"] == coverage["route_id"])
-            for code in coverage["limitations"]:
-                if code == "GWM_COUNTER_DECREASED":
-                    paired = {
-                        r["consumer"]
-                        for r in usage["qualification_rows"]
-                        if r["route_id"] == route["id"]
-                    }
-                    consumer = next(
-                        c["username"]
-                        for c in gateway["consumers"]
-                        if c["gateway_instance_id"] == window["gateway_instance_id"]
-                        and c["username"] not in paired
-                    )
-                    status, delta = "DECREASED", None
-                elif code == "GWM_UNATTRIBUTED_UPSTREAM":
-                    consumer, status, delta = "no-such-consumer", "DELTA", 1
-                else:
-                    continue
-                extra.append(
-                    {
-                        "window_id": window["id"],
-                        "route": route["route_id"],
-                        "consumer": consumer,
-                        "response_source": "upstream",
-                        "status": status,
-                        "request_count_delta": delta,
-                        "evidence_ids": [window["evidence_id"]] if "evidence_id" in window else [],
-                    }
-                )
-    return extra
-
-
 @pytest.mark.parametrize(
     "name", sorted(w for w in WORLDS if "api_usage_v1" in WORLDS[w]["snapshot_state"])
 )
 def test_the_qualification_sections_equal_the_i2_rule_applied_to_the_raw_facts(name):
     state = WORLDS[name]["snapshot_state"]
     usage, gateway = state["api_usage_v1"], state["gateway_configuration_v1"]
-    extra = _route_wide_series(state)
-    inputs = _reconcile_inputs(state, extra)
-    attributions = reconcile(**inputs)["attributions"]
     derived = qualify(
         windows=usage["windows"],
         consumers=gateway["consumers"],
         routes=gateway["routes"],
         configured_access=gateway["configured_access"],
-        series=inputs["series"],
-        attributions=attributions,
+        series=usage["series"],
+        attributions=usage["attributions"],
     )
-    stated = {row["id"] for row in usage["qualification_rows"]}
-    assert derived["qualification_rule"] == usage["qualification_rule"]
-    assert derived["coverage"] == usage["coverage"]
-    assert [r for r in derived["qualification_rows"] if r["id"] in stated] == usage[
-        "qualification_rows"
-    ]
-    interaction_ids = {i["id"] for i in usage["interactions"]}
-    assert [r for r in derived["interactions"] if r["id"] in interaction_ids] == usage[
-        "interactions"
-    ]
-    # the injected series are the only source of rows the world does not state
-    extras = {r["id"] for r in derived["qualification_rows"]} - stated
-    assert len(extras) == len(extra) - sum(1 for e in extra if e["consumer"] == "no-such-consumer")
+    for section in ("qualification_rule", "coverage", "interactions", "qualification_rows"):
+        assert usage[section] == derived[section], (name, section)
 
 
 # --- Matrix -------------------------------------------------------------------------------------
