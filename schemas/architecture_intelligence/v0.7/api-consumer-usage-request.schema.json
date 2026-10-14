@@ -1,0 +1,285 @@
+{
+  "$defs": {
+    "ApiConsumerUsageEvidenceRequest": {
+      "additionalProperties": false,
+      "description": "`mode: \"evidence\"` (D3, D9): the query context is resubmitted so the service can rebuild the\nref map at the exact snapshot.",
+      "properties": {
+        "consumer_id": {
+          "anyOf": [
+            {
+              "pattern": "^gateway-consumer:owned:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Consumer Id"
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^api-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "gateway_instance_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Gateway Instance Id",
+          "type": "string"
+        },
+        "mode": {
+          "const": "evidence",
+          "title": "Mode",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/ApiUsageTarget"
+        },
+        "window_end": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window End",
+          "type": "string"
+        },
+        "window_start": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window Start",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "snapshot_id",
+        "target",
+        "gateway_instance_id",
+        "environment",
+        "window_start",
+        "window_end",
+        "evidence_refs"
+      ],
+      "title": "ApiConsumerUsageEvidenceRequest",
+      "type": "object"
+    },
+    "ApiConsumerUsageQueryRequest": {
+      "additionalProperties": false,
+      "description": "`mode: \"query\"` (D3). A reversed window is accepted: an I2 window with `window_start >=\nwindow_end` is accepted-but-invalid and must stay addressable.",
+      "properties": {
+        "consumer_id": {
+          "anyOf": [
+            {
+              "pattern": "^gateway-consumer:owned:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Consumer Id"
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cursor"
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "gateway_instance_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Gateway Instance Id",
+          "type": "string"
+        },
+        "limit": {
+          "default": 100,
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "mode": {
+          "const": "query",
+          "title": "Mode",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "anyOf": [
+            {
+              "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Snapshot Id"
+        },
+        "target": {
+          "$ref": "#/$defs/ApiUsageTarget"
+        },
+        "window_end": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window End",
+          "type": "string"
+        },
+        "window_start": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window Start",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "target",
+        "gateway_instance_id",
+        "environment",
+        "window_start",
+        "window_end"
+      ],
+      "title": "ApiConsumerUsageQueryRequest",
+      "type": "object"
+    },
+    "ApiUsageTarget": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "APPLICATION_SERVICE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^service:[^\\s\\x00-\\x1f\\x7f]*$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "API_OPERATION"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^operation:[^\\s\\x00-\\x1f\\x7f]*$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "GATEWAY_ROUTE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^gateway-route:owned:[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      ],
+      "description": "D3: exactly one exact target. The id pattern depends on the kind; never a display name, path\nor host.",
+      "properties": {
+        "id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/TargetKind"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "title": "ApiUsageTarget",
+      "type": "object"
+    },
+    "TargetKind": {
+      "enum": [
+        "APPLICATION_SERVICE",
+        "API_OPERATION",
+        "GATEWAY_ROUTE"
+      ],
+      "title": "TargetKind",
+      "type": "string"
+    }
+  },
+  "description": "The single MCP `request` argument (D1): one of the two modes, discriminated on `mode`.",
+  "discriminator": {
+    "mapping": {
+      "evidence": "#/$defs/ApiConsumerUsageEvidenceRequest",
+      "query": "#/$defs/ApiConsumerUsageQueryRequest"
+    },
+    "propertyName": "mode"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ApiConsumerUsageQueryRequest"
+    },
+    {
+      "$ref": "#/$defs/ApiConsumerUsageEvidenceRequest"
+    }
+  ],
+  "title": "ApiConsumerUsageRequest"
+}

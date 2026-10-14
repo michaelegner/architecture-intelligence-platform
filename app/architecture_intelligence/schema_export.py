@@ -1,5 +1,6 @@
 """Regenerate the frozen v0.5 ArchitectureAnswer JSON Schemas (all three since v0.4.0 I3.1) and the
-v0.6 locality request/answer schemas (v0.6.0 I3.1b, I3 decision record D2), plus the v0.6
+v0.6 locality request/answer schemas (v0.6.0 I3.1b, I3 decision record D2), the v0.7 API-consumer-usage
+request/answer schemas (v0.7.0 I3.1b, I3 decision record D2), plus the v0.6
 Broker-aware dependency/evidence answer schemas (v0.6.1 I2a, spec §5.2).
 
     uv run python -m app.architecture_intelligence.schema_export
@@ -15,6 +16,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.architecture_intelligence.api_usage_contracts import (
+    ApiConsumerUsageAnswer,
+    ApiConsumerUsageRequest,
+)
 from app.architecture_intelligence.broker_contracts import (
     ArchitectureAnswerV06,
     EvidenceDataV06,
@@ -45,6 +50,10 @@ LOCALITY_REQUEST_SCHEMA_PATH = (
 LOCALITY_ANSWER_SCHEMA_PATH = (
     _LOCALITY_SCHEMA_DIR / "service-dependencies-by-locality-answer.schema.json"
 )
+# v0.7.0 I3.1b: the API-consumer-usage pair (I3 decision record D2).
+_API_USAGE_SCHEMA_DIR = _SCHEMA_DIR.parent / "v0.7"
+API_USAGE_REQUEST_SCHEMA_PATH = _API_USAGE_SCHEMA_DIR / "api-consumer-usage-request.schema.json"
+API_USAGE_ANSWER_SCHEMA_PATH = _API_USAGE_SCHEMA_DIR / "api-consumer-usage-answer.schema.json"
 # v0.6.1 I2a: the Broker-aware pair lives beside the locality pair; the v0.5 files are immutable.
 BROKER_DEPENDENCIES_SCHEMA_PATH = _LOCALITY_SCHEMA_DIR / "architecture-answer.schema.json"
 BROKER_EVIDENCE_SCHEMA_PATH = _LOCALITY_SCHEMA_DIR / "evidence-answer.schema.json"
@@ -76,6 +85,14 @@ def generate_locality_request_schema() -> dict[str, Any]:
 
 def generate_locality_answer_schema() -> dict[str, Any]:
     return LocalityAnswer.model_json_schema()
+
+
+def generate_api_usage_request_schema() -> dict[str, Any]:
+    return ApiConsumerUsageRequest.model_json_schema()
+
+
+def generate_api_usage_answer_schema() -> dict[str, Any]:
+    return ApiConsumerUsageAnswer.model_json_schema()
 
 
 def _render(schema: dict[str, Any]) -> str:
@@ -110,6 +127,14 @@ def render_locality_answer_schema() -> str:
     return _render(generate_locality_answer_schema())
 
 
+def render_api_usage_request_schema() -> str:
+    return _render(generate_api_usage_request_schema())
+
+
+def render_api_usage_answer_schema() -> str:
+    return _render(generate_api_usage_answer_schema())
+
+
 def main() -> None:
     _SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
     DEPENDENCIES_SCHEMA_PATH.write_text(render_dependencies_schema())
@@ -118,6 +143,9 @@ def main() -> None:
     _LOCALITY_SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
     LOCALITY_REQUEST_SCHEMA_PATH.write_text(render_locality_request_schema())
     LOCALITY_ANSWER_SCHEMA_PATH.write_text(render_locality_answer_schema())
+    _API_USAGE_SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
+    API_USAGE_REQUEST_SCHEMA_PATH.write_text(render_api_usage_request_schema())
+    API_USAGE_ANSWER_SCHEMA_PATH.write_text(render_api_usage_answer_schema())
     BROKER_DEPENDENCIES_SCHEMA_PATH.write_text(render_broker_dependencies_schema())
     BROKER_EVIDENCE_SCHEMA_PATH.write_text(render_broker_evidence_schema())
 
