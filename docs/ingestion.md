@@ -260,6 +260,16 @@ Operations or Services (I2.3) and does not qualify usage (I2.4).
 The first import after this adapter appears re-evaluates every source once (the adapter registry is
 part of the mapping-context digest); no graph content or snapshot id changes for a graph without a
 measurement source.
+
+**Reconciliation (v0.7.0 I2.3).** Joining the measurement to the APISIX configuration and the OpenAPI
+contracts is not an import step: it spans several sources and persists nothing. It is a pure function
+(`app/sources/apisix_reconciliation.py`) of facts the snapshot already binds, derived while the
+snapshot state is projected and recorded as `reconciliation_rule` in `api_usage_v1`. Four outcomes
+(`RESOLVED`, `UNRESOLVED`, `AMBIGUOUS`, `CONFLICT`) for the runtime consumer/Route labels, for Route →
+Operation (an explicit mapping entry is authoritative; otherwise one literal `uri`, exact path and
+method, exactly one candidate, no base-path stripping or pattern conversion) → contract version, and,
+independently, for the gateway target → application `Service` (`aip/service` labels and mapping
+entries; two different statements are a `CONFLICT`). Nothing is inferred from names, hosts or paths.
 ## Import report (v1)
 
 `POST /api/import` and `POST /api/import/service/{serviceId}` return the versioned I1 §10 import

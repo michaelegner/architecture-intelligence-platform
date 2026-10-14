@@ -113,6 +113,10 @@ sense:
 | `MeasurementLimitation` | a route-level fact that a series had no usable delta, for the route-wide coverage rule | `measurement-limitation:owned:<sha256(ld(window id, code, route, response_source))>` |
 | `MeasurementMappingEntry` | a validated entry of the optional mapping artifact, stored verbatim for I2.3 | `measurement-mapping:owned:<sha256(ld(gateway_instance_id, environment, kind, source id, target id))>` |
 
+v0.7.0 I2.3 stores nothing new: the reconciliation outcomes between these carriers, the OpenAPI
+`Operation`s and the application `Service`s are derived into `api_usage_v1` when the snapshot is
+projected (see [`ingestion.md`](ingestion.md)).
+
 Rules worth remembering: a gateway Route/Service/Consumer is never an application `Service` or
 `Operation`, and nothing here infers a Route↔Operation or gateway↔Service association; the gateway
 source's evidence is a dedicated carrier, **not** a `Provenance`/`:Evidence` node, so no public

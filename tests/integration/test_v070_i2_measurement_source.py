@@ -151,8 +151,13 @@ def test_the_snapshot_gains_the_conditional_usage_key_with_the_vector_content(
     deltas = {s["response_source"]: s["request_count_delta"] for s in block["series"]}
     assert deltas == {"upstream": 3, "apisix": 1}
     assert block["limitations"] == [] and block["mapping_entries"] == []
-    for rows in block.values():
+    for name in ("windows", "evidence", "series", "limitations", "mapping_entries"):
+        rows = block[name]
         assert rows == sorted(rows, key=lambda row: row["id"])
+    # the derived reconciliation sections (I2.3) are present alongside the carrier sections
+    assert {"reconciliation_rule", "attributions", "route_operation", "target_service"} <= set(
+        block
+    )
     # no other key appears, and a graph without the block keeps its exact pre-I2.2 bytes
     without = {k: v for k, v in state.items() if k != "api_usage_v1"}
     assert snapshot_fingerprint(without)[0] == snapshot_fingerprint(before)[0]

@@ -19,7 +19,9 @@ through REST, MCP or natural-language queries. `MeasurementWindow`, `Measurement
 `MeasurementSeries`, `MeasurementLimitation` and `MeasurementMappingEntry` (v0.7.0 I2.2, APISIX
 measurement) join them. The snapshot adds the conditional keys `gateway_configuration_v1`,
 `api_contracts_v1` and `api_usage_v1` (sections `windows`, `evidence`, `series`, `limitations`,
-`mapping_entries`; null properties omitted, list values sorted) **only when such carriers exist**, so a
+`mapping_entries`, plus the derived reconciliation sections `reconciliation_rule`, `attributions`,
+`route_operation` and `target_service` (v0.7.0 I2.3, computed in the projection, never stored); null
+properties omitted, list values sorted) **only when such carriers exist**, so a
 graph with no gateway or measurement source keeps its exact pre-v0.7 `snapshot_id`. See
 [`canonical-model.md`](canonical-model.md#gateway-carriers-appcanonicalgatewaypy-appcanonicalapi_contractspy--internal-only).
 

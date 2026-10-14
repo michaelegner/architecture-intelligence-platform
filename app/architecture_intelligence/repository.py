@@ -25,6 +25,7 @@ from app.architecture_intelligence.contracts import (
 )
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
+from app.sources.apisix_reconciliation import reconcile
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
 
 # Bumping this - or changing any query/rule below - is a snapshot-fingerprint contract change and
@@ -578,9 +579,25 @@ def canonical_snapshot_state(
     if gateway:
         state["gateway_configuration_v1"] = gateway
     usage = _project_api_usage(session)
-    if usage:
-        state["api_usage_v1"] = usage
     contracts = _project_api_contracts(session)
+    if usage:
+        # v0.7.0 I2.3 (I2 spec §10.2): the reconciliation outcomes are a pure function of the raw
+        # facts already in this state (the v0.5.0 I3 pattern), derived here so the snapshot binds
+        # them and the rule id/version; nothing is persisted.
+        usage.update(
+            reconcile(
+                windows=usage["windows"],
+                consumers=(gateway or {}).get("consumers", []),
+                routes=(gateway or {}).get("routes", []),
+                services=(gateway or {}).get("services", []),
+                series=usage["series"],
+                mapping_entries=usage["mapping_entries"],
+                operations=state["operations"],
+                associations=(contracts or {}).get("associations", []),
+                canonical_services=state["services"],
+            )
+        )
+        state["api_usage_v1"] = usage
     if contracts:
         state["api_contracts_v1"] = contracts
     return state

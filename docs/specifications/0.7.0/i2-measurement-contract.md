@@ -191,7 +191,7 @@ Capture-tool CLI shape and settle timeout defaults (I2.2); writer Cypher and con
 §1 (cardinality, registration), §2-§3 (fixture, validation, deltas), §4 (carriers and ids), §5 (mapping
 artifact) and the I2 spec §10 lifecycle (replacement, removal, rejected import, snapshot block
 `api_usage_v1` with `windows`, `evidence`, `series`, `limitations`, `mapping_entries`) are implemented
-by I2.2a-c. §6 (reconciliation) is I2.3; §7's interactions, coverage evaluation and qualification rows
+by I2.2a-c. §6 (reconciliation) is implemented by I2.3 as a pure function (`app/sources/apisix_reconciliation.py`) of the raw facts the snapshot already binds, derived inside the projection and recorded with a rule id/version (`apisix-api-usage-reconciliation` / `1`); nothing is persisted. It adds the derived `api_usage_v1` sections `reconciliation_rule`, `attributions` (per window, distinct consumer label × route label), `route_operation` and `target_service` (per window and `GatewayRoute`), scoped per window to its `(gateway_instance_id, environment)`; a mapping entry naming no known Route produces no row. §7's interactions, coverage evaluation and qualification rows
 are I2.4. Neo4j omits null properties, so the projected rows omit `request_count_delta` for a series
 without a delta.
 
