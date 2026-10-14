@@ -136,7 +136,7 @@ _GATEWAY_QUERIES = {
 # source keeps its exact pre-I2.2 bytes.
 _API_USAGE_QUERIES = {
     "windows": (
-        "MATCH (n:MeasurementWindow) RETURN n.id AS id, "
+        "MATCH (n:MeasurementWindow) RETURN n.id AS id, n.source_instance_id AS source_instance_id, "
         "n.gateway_instance_id AS gateway_instance_id, n.environment AS environment, "
         "n.apisix_version AS apisix_version, n.window_start AS window_start, "
         "n.window_end AS window_end, n.start_settled AS start_settled, "
@@ -148,6 +148,7 @@ _API_USAGE_QUERIES = {
     ),
     "evidence": (
         "MATCH (n:MeasurementEvidence) RETURN n.id AS id, "
+        "n.source_instance_id AS source_instance_id, "
         "n.gateway_instance_id AS gateway_instance_id, n.environment AS environment, "
         "n.apisix_version AS apisix_version, n.window_start AS window_start, "
         "n.window_end AS window_end, n.start_sha256 AS start_sha256, n.end_sha256 AS end_sha256, "

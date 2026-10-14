@@ -56,7 +56,10 @@ def _json(value: dict[str, JSONValue]) -> str:
 
 
 def map_measurement(
-    validated: ValidatedMeasurement, mapping: MappingArtifact | None
+    validated: ValidatedMeasurement,
+    mapping: MappingArtifact | None,
+    *,
+    source_instance_id: str,
 ) -> MeasurementMapping:
     manifest = validated.manifest
     window_id = measurement_window_id(manifest)
@@ -64,6 +67,7 @@ def map_measurement(
     reasons = validated.window_reasons
     window = MeasurementWindow(
         id=window_id,
+        source_instance_id=source_instance_id,
         gateway_instance_id=manifest.gateway_instance_id,
         environment=manifest.environment,
         apisix_version=manifest.apisix_version,
@@ -81,6 +85,7 @@ def map_measurement(
     )
     evidence = MeasurementEvidence(
         id=evidence_id,
+        source_instance_id=source_instance_id,
         gateway_instance_id=manifest.gateway_instance_id,
         environment=manifest.environment,
         apisix_version=manifest.apisix_version,

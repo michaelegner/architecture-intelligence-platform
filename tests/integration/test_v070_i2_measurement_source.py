@@ -245,6 +245,40 @@ def test_series_without_a_usable_delta_persist_their_identity_and_a_route_limita
     assert (limitation["code"], limitation["route"]) == ("GWM_COUNTER_DECREASED", "orders-route")
 
 
+def test_changing_only_the_configured_source_id_changes_the_snapshot_but_replay_does_not(
+    driver, tmp_path
+) -> None:
+    """Review of #531: byte-identical fixture under a different configured measurement source id
+    is a different source, so the snapshot (and its provenance) must change; replaying the same
+    source stays a no-op."""
+    a = _config(tmp_path, source_id="metrics-a")
+    b = _config(tmp_path, source_id="metrics-b")
+    run_all_configured_sources(
+        SourcesConfig(directories=[], gateway_measurements=[a]), driver=driver, database=DATABASE
+    )
+    state_a = _state(driver)
+    fingerprint_a = snapshot_fingerprint(state_a)[0]
+    [window_a] = state_a["api_usage_v1"]["windows"]
+    run_all_configured_sources(
+        SourcesConfig(directories=[], gateway_measurements=[b]), driver=driver, database=DATABASE
+    )
+    state_b = _state(driver)
+    [window_b] = state_b["api_usage_v1"]["windows"]
+    assert window_a["source_instance_id"] != window_b["source_instance_id"]
+    assert window_a["id"] == window_b["id"]  # same bytes: same content-derived carrier id
+    assert (
+        state_b["api_usage_v1"]["evidence"][0]["source_instance_id"]
+        == (window_b["source_instance_id"])
+    )
+    assert snapshot_fingerprint(state_b)[0] != fingerprint_a
+    assert _counts(driver)["MeasurementWindow"] == 1  # the old registration was retired
+    # replaying the same source changes nothing
+    run_all_configured_sources(
+        SourcesConfig(directories=[], gateway_measurements=[b]), driver=driver, database=DATABASE
+    )
+    assert snapshot_fingerprint(_state(driver))[0] == snapshot_fingerprint(state_b)[0]
+
+
 def test_the_mapping_artifact_persists_as_entries(driver, tmp_path) -> None:
     mapping = {**_vectors()["mapping_base"]}
     _import(driver, _config(tmp_path, mapping=mapping))
