@@ -58,6 +58,9 @@ def measurement_mapping_entry_id(
 
 class MeasurementWindow(BaseModel):
     id: str = Field(min_length=1)
+    # The owning measurement source (I2.1 contract §1): a first-class field, so the snapshot binds the
+    # evidence's source identity. It is deliberately not an input of the content-derived id.
+    source_instance_id: str = Field(min_length=1)
     gateway_instance_id: str = Field(min_length=1)
     environment: str = Field(min_length=1)
     apisix_version: str = Field(min_length=1)
@@ -78,6 +81,7 @@ class MeasurementWindow(BaseModel):
 
 class MeasurementEvidence(BaseModel):
     id: str = Field(min_length=1)
+    source_instance_id: str = Field(min_length=1)
     gateway_instance_id: str = Field(min_length=1)
     environment: str = Field(min_length=1)
     apisix_version: str = Field(min_length=1)

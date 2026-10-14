@@ -53,6 +53,12 @@ def model_node_ids(model: ArchitectureModel, *, source_instance_id: str) -> set[
         *(a.id for a in model.gateway_configured_accesses),
         *(item.id for item in model.gateway_limitations),
         *(e.id for e in model.gateway_source_evidence),
+        # v0.7.0 I2.2c: internal APISIX measurement carriers ride the same ownership path.
+        *(w.id for w in model.measurement_windows),
+        *(e.id for e in model.measurement_evidence),
+        *(s.id for s in model.measurement_series),
+        *(item.id for item in model.measurement_limitations),
+        *(m.id for m in model.measurement_mapping_entries),
         # v0.7.0 I1.2: internal API-contract carriers ride the same ownership path.
         *(c.id for c in model.api_contracts),
         *(v.id for v in model.api_contract_versions),

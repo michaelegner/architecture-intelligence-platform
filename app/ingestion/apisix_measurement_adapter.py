@@ -77,7 +77,9 @@ class ApisixMeasurementSourceAdapter:
             artifact = mapping_from_document(
                 document["mapping"], gateway_instance_id=validated.manifest.gateway_instance_id
             )
-        mapping = map_measurement(validated, artifact)
+        mapping = map_measurement(
+            validated, artifact, source_instance_id=loaded.descriptor.source_instance_id
+        )
         model = ArchitectureModel(
             measurement_windows=[mapping.window],
             measurement_evidence=[mapping.evidence],

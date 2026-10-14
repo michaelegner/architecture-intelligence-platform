@@ -91,6 +91,22 @@ CONSTRAINTS: list[LiteralString] = [
         "CREATE CONSTRAINT gateway_source_evidence_id IF NOT EXISTS "
         "FOR (e:GatewaySourceEvidence) REQUIRE e.id IS UNIQUE"
     ),
+    # v0.7.0 I2.2c (I2.1 contract §4): internal APISIX measurement carriers - owned, id-unique, no
+    # relationships to any entity.
+    "CREATE CONSTRAINT measurement_window_id IF NOT EXISTS FOR (w:MeasurementWindow) REQUIRE w.id IS UNIQUE",
+    (
+        "CREATE CONSTRAINT measurement_evidence_id IF NOT EXISTS "
+        "FOR (e:MeasurementEvidence) REQUIRE e.id IS UNIQUE"
+    ),
+    "CREATE CONSTRAINT measurement_series_id IF NOT EXISTS FOR (s:MeasurementSeries) REQUIRE s.id IS UNIQUE",
+    (
+        "CREATE CONSTRAINT measurement_limitation_id IF NOT EXISTS "
+        "FOR (l:MeasurementLimitation) REQUIRE l.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT measurement_mapping_entry_id IF NOT EXISTS "
+        "FOR (m:MeasurementMappingEntry) REQUIRE m.id IS UNIQUE"
+    ),
     # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.

@@ -13,13 +13,15 @@ from collections import Counter
 from app.graph.importer import (
     ImportRunStats,
     import_all_sources,
+    import_apisix_measurement_source,
     import_apisix_source,
     import_kubernetes_source,
     retire_unconfigured_gateways,
+    retire_unconfigured_measurements,
 )
 from app.ingestion.import_report import ConfiguredRun
 from app.settings import SourcesConfig
-from app.sources.identity import apisix_source_instance_id
+from app.sources.identity import apisix_measurement_source_instance_id, apisix_source_instance_id
 from app.sources.migration_mappings import load_migration_mappings
 from app.sources.tombstones import load_tombstones
 
@@ -175,6 +177,56 @@ def run_all_configured_sources(
         },
     )
     for removal in retired:
+        logger.info(
+            "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
+            import_id,
+            removal.source_instance_id,
+            removal.nodes_expired,
+            removal.relations_expired,
+        )
+    # v0.7.0 I2.2c (I2.1 contract §1): two or more measurement registrations for the same
+    # (gateway_instance_id, environment) are all rejected REJECTED_CONFLICT (GWM_DUPLICATE_SOURCE);
+    # none commits. Distinct pairs coexist.
+    pair_counts = Counter(
+        (m.gateway_instance_id, m.environment) for m in sources.gateway_measurements
+    )
+    for measurement_config in sources.gateway_measurements:
+        start = time.perf_counter()
+        run_stats = import_apisix_measurement_source(
+            driver,
+            database=database,
+            source_config=measurement_config,
+            migration_mappings=migration_index,
+            tombstones=tombstones,
+            duplicate_measurement_source=pair_counts[
+                (measurement_config.gateway_instance_id, measurement_config.environment)
+            ]
+            > 1,
+        )
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        _log_run(import_id, run_stats, duration_ms)
+        run_results.append(
+            ConfiguredRun(
+                kind="apisix-measurement",
+                configured_source_id=measurement_config.id,
+                root=measurement_config.root,
+                stats=run_stats,
+            )
+        )
+    # A dropped measurement registration gets no run above; its carriers are retired here.
+    retired_measurements = retire_unconfigured_measurements(
+        driver,
+        database=database,
+        configured_source_instance_ids={
+            apisix_measurement_source_instance_id(
+                configured_source_id=measurement.id,
+                gateway_instance_id=measurement.gateway_instance_id,
+                environment=measurement.environment,
+            )
+            for measurement in sources.gateway_measurements
+        },
+    )
+    for removal in retired_measurements:
         logger.info(
             "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
             import_id,
