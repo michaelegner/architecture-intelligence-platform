@@ -95,7 +95,6 @@ VECTORS = ROOT / "docs/specifications/0.7.0"
 GATEWAY = "gw-prod-1"
 ENVIRONMENT = "prod"
 SERVICE = "service:order-service"
-IMAGE = "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93"
 
 
 @dataclass(frozen=True)
@@ -540,7 +539,9 @@ def main(argv: list[str] | None = None) -> int:
         version=package_version(),
         build_revision=args.candidate_sha,
     )
-    with Neo4jContainer(IMAGE) as container:
+    with Neo4jContainer(
+        "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93"
+    ) as container:
         driver = container.get_driver()
         try:
             result = run(args.profile, driver, configured_producer)
