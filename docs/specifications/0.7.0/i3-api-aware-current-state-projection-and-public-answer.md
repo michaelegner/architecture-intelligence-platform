@@ -120,12 +120,17 @@ No display-name, path-similarity or host-name lookup is introduced.
 Required context:
 
 ~~~text
+gateway_instance_id
 environment
 window_start
 window_end
 ~~~
 
-The environment/window MUST exactly match one row in `api_usage_v1.windows`. I3 does not silently substitute a different window. I2 keeps no historical window series, so this selects current snapshot state rather than providing a time-travel query.
+The four values MUST exactly match one row in `api_usage_v1.windows`. This makes the request deliberately single-gateway and single-window: two gateway instances may legitimately use the same environment and window bounds, so environment/window alone is not a unique observation identity.
+
+I3 does not silently substitute another gateway or window. I2 keeps no historical window series, so this selects current snapshot state rather than providing a time-travel query.
+
+If no exact `api_usage_v1.windows` row exists, the semantic answer is `NOT_ANSWERED` with `MEASUREMENT_WINDOW_NOT_AVAILABLE`. This includes a configured gateway that currently has no accepted measurement source. I3 does **not** synthesize configured-only rows outside I2's qualified row universe.
 
 Optional:
 
@@ -138,7 +143,7 @@ snapshot_id
 
 `consumer_id` is an exact `GatewayConsumer.id` filter. It is not a username search.
 
-`snapshot_id` is optional on the first page and REQUIRED by continuation and evidence drill-down. Supplying a stale snapshot yields a typed `SNAPSHOT_NOT_AVAILABLE` / stale-snapshot refusal; I3 never restarts transparently against latest state.
+`snapshot_id` is optional on the first page and REQUIRED by continuation and evidence drill-down. Supplying a stale or unavailable snapshot yields `NOT_ANSWERED` with the existing `SNAPSHOT_NOT_AVAILABLE` limitation; I3 never restarts transparently against latest state.
 
 ## 5. Target selection semantics
 
@@ -152,13 +157,28 @@ Select the exact Route directly. Its API/application associations may be resolve
 
 Select only Routes whose I2 Route -> Operation reconciliation is `RESOLVED` to the requested Operation.
 
-Unresolved, ambiguous or conflicting Routes are not silently attached to that Operation. The answer SHALL state that target selection is relative to resolved associations and SHALL report aggregate unresolved-association counts for the same evaluated gateway/window where available from the I2 handoff.
+Unresolved, ambiguous or conflicting Routes are not silently attached to that Operation. The answer SHALL state that target selection is relative to resolved associations.
+
+For an `API_OPERATION` target, `association_summary` SHALL count **all GatewayRoutes in the selected gateway/window scope** by their I2 Route → Operation outcome before target filtering:
+
+~~~text
+route_operation:
+  resolved_to_target
+  resolved_elsewhere
+  unresolved
+  ambiguous
+  conflict
+~~~
+
+This summary is informational context only; non-resolved Routes are never attached to the requested Operation.
 
 ### 5.3 APPLICATION_SERVICE
 
 Select only Routes whose independent gateway-target -> application-Service reconciliation is `RESOLVED` to the requested Service.
 
 The API chain is independent. A Route may therefore be selected for the Service while its Operation/contract association remains unresolved, ambiguous or conflicting.
+
+For an `APPLICATION_SERVICE` target, `association_summary.target_service` SHALL count all GatewayRoutes in the selected gateway/window scope as `resolved_to_target`, `resolved_elsewhere`, `unresolved`, `ambiguous` or `conflict` using the independent I2 target-Service outcome.
 
 Resolving either chain never strengthens the other.
 
@@ -171,16 +191,27 @@ Each answer SHALL contain:
 ~~~text
 snapshot_id
 model_revision
+gateway_instance_id
 environment
-window_start
-window_end
+window:
+  window_start
+  window_end
+  source_instance_id
+  valid
+  reasons[]
 target
+association_summary
+selected_routes[]
 configuration_sources[]
 measurement_sources[]
 rows[]
 limitations[]
 page
 ~~~
+
+`window.valid` is true iff the matching I2 window has no `window_reasons`; `window.reasons` is the exact public-safe projection of those reasons.
+
+`selected_routes[]` is emitted independently of `rows[]`. For every Route selected by the target it contains at least the Route id plus its I2 `coverage` and coverage limitations. Therefore `rows: []` never hides whether the window was invalid or whether a selected Route had `UNKNOWN_COVERAGE`.
 
 ### 6.1 Row
 
@@ -311,11 +342,13 @@ If more rows exist, the answer is `PARTIAL` and contains an opaque cursor. The c
 - schema/rule version;
 - snapshot id;
 - normalized target;
-- environment/window;
+- gateway instance + environment/window;
 - optional consumer filter;
 - last fully emitted row key.
 
 A cursor used with different inputs or a different snapshot is rejected. No row may silently disappear because of a page boundary.
+
+Because the cursor is bound to the whole AIP snapshot, **any import that changes the snapshot — even an unrelated source — invalidates an in-flight cursor**. Continuation then returns `SNAPSHOT_NOT_AVAILABLE`; the client must restart the query explicitly. This is an accepted v0.7 limitation, not a promise of source-local pagination stability.
 
 I3 does not create a Cartesian product. It projects I2's already bounded row universe only.
 
@@ -329,6 +362,20 @@ The answer SHALL mint/return opaque public evidence refs from the same-snapshot 
 - limitations that materially affect qualification.
 
 Raw I1/I2 internal carrier ids are not automatically public evidence.
+
+Public evidence refs SHALL be deterministic, opaque, snapshot-bound handles:
+
+~~~text
+api-evidence:<sha256(ld(
+  snapshot_id,
+  evidence_kind,
+  sorted internal supporting ids
+))>
+~~~
+
+The public answer returns only the handle. It never exposes the internal supporting ids used to mint it.
+
+For a query answer, the semantic projection builds the finite mapping `public_ref -> sanitized evidence projection` from the same snapshot inputs that produced the answer. For evidence mode, the service reacquires the requested exact snapshot, deterministically rebuilds that mapping for the bounded requested context, and resolves only refs present in it. A forged ref, a ref from another snapshot, or a ref no longer derivable from the exact request context is refused. No server-side ref history or direct graph-id lookup is introduced.
 
 The same new public capability SHALL support a second exact mode:
 
@@ -377,6 +424,8 @@ Public adapters:
 | REST evidence | `POST /api/api-consumer-usage/evidence` |
 | negotiated MCP | new read-only tool `get_api_consumer_usage` with discriminated `query` / `evidence` modes |
 
+The REST endpoint is intentionally top-level rather than `/api/services/{id}/...` because the operation has three peer target kinds (`APPLICATION_SERVICE`, `API_OPERATION`, `GATEWAY_ROUTE`). Making Service the URL parent would incorrectly privilege one target kind and force artificial routes for the other two. The body carries the discriminated target; the sibling `/evidence` path follows the existing scoped-evidence pattern.
+
 This adds one new MCP tool. Existing tools retain their existing meanings.
 
 REST and MCP adapters perform parsing, validation and transport mapping only. For the same request/snapshot their normalized semantic payload SHALL be identical to the service result.
@@ -391,10 +440,12 @@ Every answer SHALL identify the source context actually used:
 - measurement `source_instance_id` and window identity from `api_usage_v1.windows`;
 - measurement evidence identity from `api_usage_v1.evidence` / row evidence refs;
 - reconciliation and qualification rule id/version;
-- gateway instance and operator-asserted environment;
+- exact selected gateway instance and operator-asserted environment;
 - snapshot id/model revision.
 
 If configuration and measurement state cannot be related under the I2 handoff's rules, I3 returns no strengthened row and exposes the limitation.
+
+A gateway/environment/window with no accepted I2 measurement window is `NOT_ANSWERED / MEASUREMENT_WINDOW_NOT_AVAILABLE`; configured-only projection is explicitly out of scope for v0.7.
 
 I3 does not query historical snapshots. `snapshot_id` is a consistency fence, not a time-travel API.
 
@@ -416,9 +467,15 @@ At minimum:
 | exact Operation target | only Routes resolved to that Operation included |
 | exact Service target | only Routes resolved independently to that Service included |
 | unattributed traffic | no consumer row invented |
+| empty rows + invalid window | rows empty, but top-level window reasons remain visible |
+| selected Route + no pair rows | rows empty, but selected Route coverage remains visible |
+| gateway with no measurement source | NOT_ANSWERED / MEASUREMENT_WINDOW_NOT_AVAILABLE |
+| same env/window on two gateways | required gateway_instance_id selects exactly one |
 | page boundary | stable cursor; no duplicate/lost row |
-| stale snapshot | explicit refusal |
-| evidence drill-down | same-snapshot sanitized evidence |
+| unrelated import during paging | old cursor refused with SNAPSHOT_NOT_AVAILABLE |
+| stale snapshot | SNAPSHOT_NOT_AVAILABLE refusal |
+| evidence drill-down | deterministic same-snapshot public ref resolves to sanitized evidence |
+| forged/cross-snapshot evidence ref | refused |
 | credential canary | absent from every service/REST/MCP/evidence payload |
 
 Expected outputs SHALL not be generated from AIP execution.
@@ -473,7 +530,9 @@ Record:
 I3 is complete when:
 
 - the frozen I2 handoff is consumed exactly as §2 states, with `qualification_rows` as the row authority and without duplicate I2 reasoning;
-- an ordinary client can query by Operation, application Service or gateway Route;
+- an ordinary client can query by Operation, application Service or gateway Route for one exact gateway/window;
+- an absent measurement window produces the typed `MEASUREMENT_WINDOW_NOT_AVAILABLE` refusal rather than configured-only synthesis;
+- window validity and selected-Route coverage remain visible even when no qualification rows are returned;
 - configured access and usage remain independent public propositions;
 - unresolved/ambiguous/conflicting associations stay explicit;
 - measured zero appears only when I2 established it;
@@ -493,14 +552,14 @@ A reviewed amendment is required before changing:
 
 - the public question;
 - the exact target kinds;
-- exact environment/window matching;
+- exact gateway/environment/window matching and the no-measurement refusal;
 - exposure of the source-qualified consumer name;
 - configured-access or usage vocabulary/meaning;
 - reconciliation meaning;
 - measured-zero meaning;
 - the rule that target selection uses only resolved I2 associations;
 - page ordering or cursor snapshot binding;
-- public evidence safety boundary;
+- public evidence safety boundary and snapshot-bound evidence-ref derivation;
 - REST path or MCP tool/mode contract after I3.1 freeze;
 - the exact I2 section-to-I3 responsibility boundary in §2;
 - the rule that I3 projects I2 truth rather than recomputing it.
