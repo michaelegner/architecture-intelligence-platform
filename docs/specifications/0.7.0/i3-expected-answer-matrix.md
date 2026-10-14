@@ -28,12 +28,20 @@
 2. **One wildcard.** The string `{{*}}` matches any **non-empty** string and binds nothing. It is used only where the record leaves the text to I3.2: limitation `message` (D12.3) and `producer.version` / `producer.build_revision`.
 3. **Exact equality** otherwise: lists are compared positionally, because every list in the contract is sorted and duplicate-free and the validators enforce it.
 4. **Instantiation for validation.** To check that an expected answer is itself a valid 0.7 answer, each wildcard is replaced by `"x"`. This is the `instantiate()` of the machine check; it is not a match against a run.
-5. **Execution against an implementation.** The harness builds the snapshot fragment from the case's `world` (§3), injects the snapshot id of `inputs.current_snapshot` (so the refs, which are snapshot-bound, are the literals), calls the service with `request`, and requires the actual answer to equal `expected` under rules 1–3 **and** to pass `ApiConsumerUsageAnswer` and the published schema. Property cases hold when every `assert` item holds over the executed steps. For a world with `current_snapshot` ≠ the request's snapshot, the harness makes that snapshot current.
+5. **Execution against an implementation.** The harness loads the case's `world.snapshot_state` (§3) as the snapshot state, injects the snapshot id of `inputs.current_snapshot` (so the refs, which are snapshot-bound, are the literals), calls the service with `request`, and requires the actual answer to equal `expected` under rules 1–3 **and** to pass `ApiConsumerUsageAnswer` and the published schema. Property cases hold when every `assert` item holds over the executed steps. For a world with `current_snapshot` ≠ the request's snapshot, the harness makes that snapshot current.
 6. **Authority.** The author composes each answer by hand from the world: each case names the Routes and the `(consumer, Route)` pairs it contains, and the counts, limitation codes and outcome it expects. The author's helpers derive identifiers and compose JSON only; they select, filter and qualify nothing.
 
 ## 3. Worlds
 
-All worlds are synthetic **I2 snapshot fragments** in the frozen handoff shape ([handoff §1](i2-i3-handoff.md)): the `api_usage_v1` sections `windows`, `coverage`, `route_operation`, `target_service`, `interactions`, `qualification_rows` and the rule ids, plus the `gateway_configuration_v1` and `api_contracts_v1` facts that target resolution needs. Nothing is produced by AIP execution. The window is the I2 vector window (`gw-prod-1`, `prod`, 2026-10-13T10:00:00Z – 10:10:00Z, extract digests of `i2-vectors` M04). Consumer, Route, window and interaction ids follow I1 V01/V03 and I2 M01/M04–M06.
+Each world in `expected-answers.json` serializes as `{"snapshot_state", "internal_only"}`. `snapshot_state` is the **exact frozen handoff state** ([handoff §1](i2-i3-handoff.md)) in the repository's own section and row shapes, so I3.2 loads it as the snapshot state and translates nothing:
+
+- `gateway_configuration_v1`: `consumers`, `routes`, `services`, `configured_access`, `limitations`, `source_evidence`;
+- `api_usage_v1`: `windows`, `evidence`, `series`, `limitations`, `mapping_entries`, `attributions`, `reconciliation_rule`, `route_operation`, `target_service`, `qualification_rule`, `coverage`, `interactions`, `qualification_rows`;
+- `api_contracts_v1`: `contracts`, `versions`, `associations`; and the canonical `operations` and `services`.
+
+Nothing is produced by AIP execution. The columns of every raw section are checked against the repository's snapshot queries, and the id formulas against the I1 and I2 vectors. The window is the I2 vector window (`gw-prod-1`, `prod`, 2026-10-13T10:00:00Z – 10:10:00Z, extract digests of `i2-vectors` M04).
+
+**Cross-check of the derived sections.** The machine check applies the I2 rules (`reconcile`, `qualify`) to each world's raw facts and requires `attributions`, `route_operation`, `target_service`, `coverage`, `interactions` and `qualification_rows` to equal what the rules derive. This is a check of the *input*, not of the expected answers. Two route-wide limitation codes are stated directly in the world's `coverage` instead of through raw series: `GWM_COUNTER_DECREASED` (legacy-route) and `GWM_UNATTRIBUTED_UPSTREAM` (the `unattributed` world). For those the check injects the series that produce the code and ignores the extra rows they create. `series` and `attributions` are otherwise present only for pairs that have an interaction. `internal_only` is a harness-only input and not snapshot state: the credential canary stands for the plugin configuration of a Consumer and a Route, which never reaches the graph.
 
 **`base`.** Gateway `gw-prod-1` (and a second gateway `gw-prod-2` with the same environment and window, for A14/A18).
 
@@ -48,7 +56,7 @@ All worlds are synthetic **I2 snapshot fragments** in the frozen handoff shape (
 | `conflict-route` | `UNRESOLVED` | `CONFLICT` (Route label `service:orders` vs Gateway Service entry `service:billing`) | sufficient |
 | `other-route` (`gw-prod-2`) | `RESOLVED` `listOrders` | `RESOLVED` `service:orders` | sufficient |
 
-Operations: `listOrders`, `getOrder` (no Route resolves to it), `listInvoices`. Services: `service:orders`, `service:billing`. Consumers `spike-alpha`, `spike-beta`, `spike-gamma` on `gw-prod-1` and `spike-alpha` on `gw-prod-2`. Pairs: alpha×orders configured, observed 3; alpha×orders-v2 configured, measured zero; alpha×legacy configured, unestablished; alpha×bare configured, measured zero; beta×orders not configured, observed 2; beta×billing not configured, rejected attempts only (0 upstream, 2 rejected); beta×conflict configured, measured zero; gamma×billing configured, measured zero; alpha(`gw-prod-2`)×other configured, observed 7. The world's `internal_only` block holds a credential canary in a Consumer and a Route plugin configuration (D7); it is a harness input, never an answer field.
+Operations: `listOrders`, `getOrder` (no Route resolves to it), `listInvoices`. Services: `service:orders`, `service:billing`. Consumers `spike-alpha`, `spike-beta`, `spike-gamma` on `gw-prod-1` and `spike-alpha` on `gw-prod-2`. Pairs: alpha×orders configured, observed 3; alpha×orders-v2 configured, measured zero; alpha×legacy configured, unestablished; alpha×bare configured, measured zero; beta×orders not configured, observed 2; beta×billing not configured, rejected attempts only (0 upstream, 2 rejected); beta×conflict configured, measured zero; gamma×billing configured, measured zero; alpha(`gw-prod-2`)×other configured, observed 7. The `internal_only` block holds the credential canary (D7); it is a harness input, never an answer field.
 
 **Variants.** `unattributed` (A10: unattributed upstream traffic on `orders-route`, one configured pair), `not-settled` (A11: end boundary unsettled, window reason `GWM_WINDOW_NOT_SETTLED`, every Route's limitation is the window reason), `reversed` (A20: `window_start` after `window_end`, reason `GWM_WINDOW_ORDER_INVALID`), `no-measurement` (A13: configured gateway, no accepted window), `new-snapshot` (A16, A17, E02c: an unrelated import made snapshot B current; the data is unchanged).
 
@@ -116,6 +124,6 @@ A reversed window is **not** a validation error: it is the answer case A20.
 
 ## 7. Use by the next slices
 
-- **I3.2** executes every `answer` and `property` case against `ArchitectureIntelligenceService` on the world fragments, with the snapshot id injected (§2.5).
+- **I3.2** executes every `answer` and `property` case against `ArchitectureIntelligenceService` on the world snapshot states, with the snapshot id injected (§2.5).
 - **I3.3** executes the same cases over REST and MCP, adds the `request` cases to the adapters, and repeats C01 on the transport transcripts.
 - **I3.4/I4** re-run the oracle on two clean states. Any change to an expectation needs a reviewed amendment of this matrix and of the decision record it traces to.

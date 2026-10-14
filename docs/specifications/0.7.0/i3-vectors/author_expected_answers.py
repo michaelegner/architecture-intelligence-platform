@@ -281,7 +281,14 @@ def base_world() -> dict:
             svc_entries=(("GATEWAY_SERVICE", SVC_BILLING),),
             labels=(("ROUTE", SVC_ORDERS),),
         ),
-        _route("other-route", gateway=GW2, op=OP_ORDERS, svc=SVC_ORDERS, op_entries=(OP_ORDERS,)),
+        _route(
+            "other-route",
+            gateway=GW2,
+            op=OP_ORDERS,
+            svc=SVC_ORDERS,
+            op_entries=(OP_ORDERS,),
+            labels=(("ROUTE", SVC_ORDERS),),
+        ),
     ]
     consumers = [
         {"label": "alpha", "gateway": GW1, "username": "spike-alpha"},
@@ -405,8 +412,420 @@ def finalize(world: dict) -> dict:
     return world
 
 
+# --- The serialized world: the frozen I2 -> I3 handoff state (i2-i3-handoff.md §1) ----------------
+#
+# The author works with the hand-authored abstraction above (routes, pairs, windows). What a world
+# serializes is the snapshot state I3 may project: the section and row shapes of the repository's
+# `gateway_configuration_v1`, `api_usage_v1`, `api_contracts_v1`, `operations` and `services`, so
+# the I3.2 harness loads it without translating anything. These functions compose rows from the
+# authored values; they select, filter and qualify nothing (every row of a section is listed in
+# the abstraction, and the abstraction states the outcome, status and counts of every row).
+
+
+def association_id(kind: str, version: str, target: str) -> str:
+    return owned("api-contract-association", kind, version, target)
+
+
+def series_id(window: str, series_key: str) -> str:
+    return owned("measurement-series", window, series_key)  # M10
+
+
+def qualification_id(consumer: str, route: str, environment: str, start: str, end: str) -> str:
+    return owned("usage-qualification", consumer, route, environment, start, end)  # M09
+
+
+def sort_by(keys: tuple[str, ...], rows: Any) -> list[dict]:
+    return sorted(rows, key=lambda row: tuple(row[key] for key in keys))
+
+
+def compact_json(value: dict) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def series_labels(consumer: str, route: str, code: str, response_source: str) -> dict:
+    return {
+        "code": code,
+        "consumer": consumer,
+        "llm_model": "",
+        "matched_host": "",
+        "matched_uri": "/" + route,
+        "request_llm_model": "",
+        "request_type": "traditional_http",
+        "response_source": response_source,
+        "route": route,
+        "service": "",
+    }
+
+
+def series_key(labels: dict) -> str:
+    return ",".join(f'{key}="{value}"' for key, value in sorted(labels.items()))
+
+
+def operation_row(operation: str, world: dict) -> dict:
+    service = SVC_BILLING if operation == OP_INVOICES else SVC_ORDERS
+    name = operation.rsplit(":", 1)[1]
+    path = {"listOrders": "/orders", "getOrder": "/orders/{id}", "listInvoices": "/invoices"}[name]
+    return {
+        "id": operation,
+        "name": name,
+        "service_id": service,
+        "operation_id": name,
+        "method": "GET",
+        "path": path,
+    }
+
+
+def gateway_configuration_state(world: dict) -> dict:
+    environment = world["environment"]
+    consumers = [
+        {
+            "id": c["id"],
+            "gateway_instance_id": c["gateway"],
+            "environment": environment,
+            "username": c["username"],
+        }
+        for c in world["consumers"]
+    ]
+    routes = []
+    services: dict[str, dict] = {}
+    for route in world["routes"]:
+        row: dict[str, Any] = {
+            "id": route["id"],
+            "gateway_instance_id": route["gateway"],
+            "environment": environment,
+            "route_id": route["source_route_id"],
+            "uri": "/" + route["source_route_id"],
+        }
+        route_labels: dict[str, str] = {}
+        service_labels: dict[str, str] = {}
+        for carrier, sid in route["service_labels"]:
+            (route_labels if carrier == "ROUTE" else service_labels)["aip/service"] = sid
+        if route["gateway_service"]:
+            row["service_id"] = route["gateway_service"]
+            services[route["id"]] = {
+                "id": gateway_service_id(route["gateway"], route["gateway_service"]),
+                "gateway_instance_id": route["gateway"],
+                "environment": environment,
+                "service_id": route["gateway_service"],
+                "labels_json": compact_json(service_labels),
+            }
+        row["labels_json"] = compact_json(route_labels)
+        routes.append(row)
+    configured = []
+    for pair in world["pairs"]:
+        if not pair["configured"]:
+            continue
+        who = world["_consumers"][pair["consumer"]]
+        route = world["_routes"][pair["route"]]
+        revision = world["gateways"][who["gateway"]]["source_revision"]
+        configured.append(
+            {
+                "id": configured_access_id(who["id"], route["id"]),
+                "consumer_id": who["id"],
+                "route_id": route["id"],
+                "rule_kind": RULE_KIND,
+                "polarity": "ALLOW",
+                "scope": "ROUTE",
+                "evidence_ids": [source_evidence_id(who["gateway"], revision)],
+                "source_revision": revision,
+            }
+        )
+    evidence = [
+        {
+            "id": source_evidence_id(gateway, data["source_revision"]),
+            "gateway_instance_id": gateway,
+            "environment": environment,
+            "apisix_version": world["apisix_version"],
+            "source_revision": data["source_revision"],
+            "evidence_type": "DECLARED",
+        }
+        for gateway, data in world["gateways"].items()
+    ]
+    return {
+        "consumers": sort_by(("id",), consumers),
+        "routes": sort_by(("id",), routes),
+        "services": sort_by(("id",), services.values()),
+        "configured_access": sort_by(("id",), configured),
+        "limitations": [],
+        "source_evidence": sort_by(("id",), evidence),
+    }
+
+
+def api_contracts_state(world: dict) -> dict:
+    contracts = [
+        {
+            "id": cid,
+            "openapi_source_instance_id": f"urn:aip:source:openapi:{name}",
+            "limitations": [],
+        }
+        for name, cid in CONTRACTS.items()
+    ]
+    versions = [
+        {"id": VERSIONS[name], "contract_id": cid, "info_version": "1.0.0"}
+        for name, cid in CONTRACTS.items()
+    ]
+    associations = []
+    for operation, data in world["operations"].items():
+        kind = "OPERATION_IN_CONTRACT_VERSION"
+        associations.append(
+            {
+                "id": association_id(kind, data["contract_version_id"], operation),
+                "kind": kind,
+                "contract_version_id": data["contract_version_id"],
+                "target_id": operation,
+                "evidence_ids": [
+                    "evidence:openapi:" + sha("i3.1c openapi evidence", CONTRACTS[data["contract"]])
+                ],
+            }
+        )
+    return {
+        "contracts": sort_by(("id",), contracts),
+        "versions": sort_by(("id",), versions),
+        "associations": sort_by(("id",), associations),
+    }
+
+
+def api_usage_state(world: dict) -> dict:
+    environment = world["environment"]
+    windows, evidence, limitations, mappings = [], [], [], []
+    series, attributions = [], []
+    route_operation, target_service, coverage = [], [], []
+    interactions, rows = [], []
+    for gateway, window in sorted(world["windows"].items()):
+        wid = window["id"]
+        gateway_routes = [r for r in world["routes"] if r["gateway"] == gateway]
+        route_coverage = {
+            r["source_route_id"]: True
+            for r in gateway_routes
+            if "GWM_ROUTE_COVERAGE_ABSENT" not in r["route_limitations"]
+        }
+        windows.append(
+            {
+                "id": wid,
+                "source_instance_id": window["source_instance_id"],
+                "gateway_instance_id": gateway,
+                "environment": environment,
+                "apisix_version": world["apisix_version"],
+                "window_start": window["window_start"],
+                "window_end": window["window_end"],
+                "start_settled": window["start_settled"],
+                "end_settled": window["end_settled"],
+                "no_restart": window["no_restart"],
+                "start_stable_seconds": window["start_stable_seconds"],
+                "end_stable_seconds": window["end_stable_seconds"],
+                "disabled_labels": [],
+                "route_coverage_json": compact_json(route_coverage),
+                "window_reasons": sorted(window["window_reasons"]),
+                "evidence_ids": [window["evidence_id"]],
+            }
+        )
+        evidence.append(
+            {
+                "id": window["evidence_id"],
+                "source_instance_id": window["source_instance_id"],
+                "gateway_instance_id": gateway,
+                "environment": environment,
+                "apisix_version": world["apisix_version"],
+                "window_start": window["window_start"],
+                "window_end": window["window_end"],
+                "start_sha256": window["start_sha256"],
+                "end_sha256": window["end_sha256"],
+                "evidence_type": "OBSERVED",
+            }
+        )
+        valid = not window["window_reasons"]
+        for route in gateway_routes:
+            for code, response_source in route["limitation_carriers"]:
+                limitations.append(
+                    {
+                        "id": limitation_id(wid, code, route["source_route_id"], response_source),
+                        "window_id": wid,
+                        "code": code,
+                        "route": route["source_route_id"],
+                        "response_source": response_source,
+                    }
+                )
+            for kind, source, target in route_mapping_entries(route):
+                mappings.append(
+                    {
+                        "id": mapping_id(gateway, environment, kind, source, target),
+                        "gateway_instance_id": gateway,
+                        "environment": environment,
+                        "kind": kind,
+                        "source_id": source,
+                        "target_id": target,
+                    }
+                )
+            outcome, operation = route["route_operation"]
+            op_row: dict[str, Any] = {
+                "window_id": wid,
+                "route_id": route["id"],
+                "operation": outcome,
+            }
+            if operation:
+                op_row["operation_id"] = operation
+                op_row["contract_version"] = "RESOLVED"
+                op_row["contract_version_id"] = world["operations"][operation][
+                    "contract_version_id"
+                ]
+            route_operation.append(op_row)
+            target_outcome, service = route["target_service"]
+            target_row: dict[str, Any] = {
+                "window_id": wid,
+                "route_id": route["id"],
+                "target": target_outcome,
+            }
+            if target_outcome == "RESOLVED":
+                target_row["service_id"] = service
+            target_service.append(target_row)
+            limits = sorted(route["route_limitations"])
+            coverage.append(
+                {
+                    "window_id": wid,
+                    "route_id": route["id"],
+                    "coverage": "UNKNOWN_COVERAGE" if limits else "SUFFICIENT_FOR_ZERO",
+                    "limitations": limits,
+                }
+            )
+        for pair in world["pairs"]:
+            who = world["_consumers"][pair["consumer"]]
+            route = world["_routes"][pair["route"]]
+            if who["gateway"] != gateway:
+                continue
+            limits = sorted(route["route_limitations"])
+            args = (
+                who["id"],
+                route["id"],
+                environment,
+                window["window_start"],
+                window["window_end"],
+            )
+            base = {
+                "window_id": wid,
+                "consumer_id": who["id"],
+                "route_id": route["id"],
+                "consumer": who["username"],
+                "route": route["source_route_id"],
+            }
+            totals: dict[str, Any] = {}
+            if valid:
+                totals = {
+                    "upstream_request_count": pair["upstream_request_count"],
+                    "rejected_attempt_count": pair["rejected_attempt_count"],
+                }
+            row: dict[str, Any] = {
+                "id": qualification_id(*args),
+                **base,
+                "configured_status": "CONFIGURED_ACCESS_ESTABLISHED"
+                if pair["configured"]
+                else "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+                "usage_status": pair["usage_status"],
+                "coverage": "UNKNOWN_COVERAGE" if limits else "SUFFICIENT_FOR_ZERO",
+                **totals,
+                "limitations": limits,
+                "evidence_ids": [window["evidence_id"]],
+            }
+            if pair["interaction"]:
+                series_ids = []
+                for response_source, code, count in (
+                    ("upstream", "200", pair["upstream_request_count"]),
+                    ("apisix", "403", pair["rejected_attempt_count"]),
+                ):
+                    if not count:
+                        continue
+                    labels = series_labels(
+                        who["username"], route["source_route_id"], code, response_source
+                    )
+                    sid = series_id(wid, series_key(labels))
+                    series_ids.append(sid)
+                    series.append(
+                        {
+                            "id": sid,
+                            "window_id": wid,
+                            "gateway_instance_id": gateway,
+                            "environment": environment,
+                            "window_start": window["window_start"],
+                            "window_end": window["window_end"],
+                            "route": route["source_route_id"],
+                            "consumer": who["username"],
+                            "code": code,
+                            "response_source": response_source,
+                            "status": "DELTA",
+                            "request_count_delta": count,
+                            "labels_json": compact_json(labels),
+                            "evidence_ids": [window["evidence_id"]],
+                        }
+                    )
+                attributions.append(
+                    {
+                        "window_id": wid,
+                        "consumer": who["username"],
+                        "route": route["source_route_id"],
+                        "consumer_outcome": "RESOLVED",
+                        "route_outcome": "RESOLVED",
+                        "consumer_id": who["id"],
+                        "route_id": route["id"],
+                    }
+                )
+                iid = interaction_id(*args)
+                row["interaction_id"] = iid
+                interactions.append(
+                    {"id": iid, **base, **totals, "evidence_ids": [window["evidence_id"]]}
+                )
+            rows.append(row)
+    return {
+        "windows": sort_by(("id",), windows),
+        "evidence": sort_by(("id",), evidence),
+        "series": sort_by(("id",), series),
+        "limitations": sort_by(("id",), limitations),
+        "mapping_entries": sort_by(("id",), mappings),
+        "reconciliation_rule": RECONCILIATION_RULE,
+        "attributions": sort_by(("window_id", "consumer", "route"), attributions),
+        "route_operation": sort_by(("window_id", "route_id"), route_operation),
+        "target_service": sort_by(("window_id", "route_id"), target_service),
+        "qualification_rule": QUALIFICATION_RULE,
+        "coverage": sort_by(("window_id", "route_id"), coverage),
+        "interactions": sort_by(("window_id", "consumer", "route"), interactions),
+        "qualification_rows": sort_by(("window_id", "consumer", "route"), rows),
+    }
+
+
+def route_mapping_entries(route: dict) -> list[tuple[str, str, str]]:
+    entries = [
+        ("route_operation", route["source_route_id"], op)
+        for op in route["operation_mapping_entries"]
+    ]
+    for carrier, service in route["service_mapping_entries"]:
+        if carrier == "ROUTE":
+            entries.append(("target_service_route", route["source_route_id"], service))
+        else:
+            entries.append(("target_service_service", route["gateway_service"], service))
+    return entries
+
+
+def handoff_state(world: dict) -> dict:
+    state: dict[str, Any] = {
+        "gateway_configuration_v1": gateway_configuration_state(world),
+        "operations": sorted(
+            (operation_row(op, world) for op in world["operations"]), key=lambda r: r["id"]
+        ),
+        "services": [
+            {"id": sid, "name": sid.split(":", 1)[1], "version": "1.0.0"}
+            for sid in sorted(world["services"])
+        ],
+        "api_contracts_v1": api_contracts_state(world),
+    }
+    if world["windows"]:
+        state["api_usage_v1"] = api_usage_state(world)
+    return state
+
+
 def public_world(world: dict) -> dict:
-    return {key: value for key, value in world.items() if not key.startswith("_")}
+    """What a world serializes: the handoff snapshot state plus the harness-only inputs."""
+    return {
+        "snapshot_state": handoff_state(world),
+        "internal_only": world["internal_only"],
+    }
 
 
 # --- Worlds (variants of the base world) ----------------------------------------------------------

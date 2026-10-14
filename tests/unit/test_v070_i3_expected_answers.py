@@ -25,10 +25,13 @@ from app.architecture_intelligence.api_usage_contracts import (
     ApiConsumerUsageAnswer,
     ApiConsumerUsageRequest,
 )
+from app.architecture_intelligence.repository import _API_USAGE_QUERIES, _GATEWAY_QUERIES
 from app.architecture_intelligence.schema_export import (
     API_USAGE_ANSWER_SCHEMA_PATH,
     API_USAGE_REQUEST_SCHEMA_PATH,
 )
+from app.sources.apisix_qualification import qualify
+from app.sources.apisix_reconciliation import reconcile
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = ROOT / "docs" / "specifications" / "0.7.0"
@@ -357,7 +360,7 @@ def _check(item: dict, case: dict) -> None:
             if other["kind"] == "answer":
                 assert item["value"] not in json.dumps(other["expected"]), other["id"]
     elif op == "present_in_world":
-        assert item["value"] in json.dumps(DOC["worlds"]["base"])
+        assert item["value"] in json.dumps(DOC["worlds"]["base"]["internal_only"])
     else:  # pragma: no cover - a new op must be implemented here
         raise AssertionError(f"unknown property op {op!r} in {case['id']}")
 
@@ -379,7 +382,10 @@ def test_the_canary_is_in_the_world_but_in_no_expected_payload():
         if case["kind"] == "answer":
             assert canary not in json.dumps(case["expected"]), case["id"]
             assert canary not in json.dumps(case["request"]), case["id"]
-    assert canary in json.dumps(DOC["worlds"]["base"])
+    assert canary in json.dumps(DOC["worlds"]["base"]["internal_only"])
+    # credentials never reach the graph, so the snapshot state has none
+    for world in DOC["worlds"].values():
+        assert canary not in json.dumps(world["snapshot_state"])
 
 
 def test_no_expected_payload_carries_a_credential_like_key():
@@ -395,6 +401,157 @@ def test_no_expected_payload_carries_a_credential_like_key():
     for case in DOC["cases"]:
         if case["kind"] == "answer":
             assert not (keys(case["expected"]) & forbidden), case["id"]
+
+
+# --- Worlds are the frozen I2 -> I3 handoff state ------------------------------------------------
+
+WORLDS = DOC["worlds"]
+SECTIONS = {
+    "gateway_configuration_v1": {
+        "consumers", "routes", "services", "configured_access", "limitations", "source_evidence",
+    },
+    "api_usage_v1": {
+        "windows", "evidence", "series", "limitations", "mapping_entries", "reconciliation_rule",
+        "attributions", "route_operation", "target_service", "qualification_rule", "coverage",
+        "interactions", "qualification_rows",
+    },
+    "api_contracts_v1": {"contracts", "versions", "associations"},
+}  # fmt: skip
+
+
+def _columns(query: str) -> set[str]:
+    return set(re.findall(r" AS (\w+)", query))
+
+
+@pytest.mark.parametrize("name", sorted(WORLDS))
+def test_a_world_is_the_handoff_snapshot_state_and_nothing_else(name):
+    world = WORLDS[name]
+    assert set(world) == {"snapshot_state", "internal_only"}
+    state = world["snapshot_state"]
+    assert set(state) <= {"operations", "services", *SECTIONS}
+    for key, sections in SECTIONS.items():
+        if key in state:
+            assert set(state[key]) == sections, (name, key)
+
+
+@pytest.mark.parametrize("name", sorted(WORLDS))
+def test_raw_rows_use_only_the_snapshot_columns_and_are_sorted_by_id(name):
+    state = WORLDS[name]["snapshot_state"]
+    queries = {
+        ("gateway_configuration_v1", section): _columns(query)
+        for section, query in _GATEWAY_QUERIES.items()
+    } | {
+        ("api_usage_v1", section): _columns(query)  # type: ignore[arg-type]
+        for section, query in _API_USAGE_QUERIES.items()
+    }
+    for (key, section), columns in queries.items():
+        rows = state.get(key, {}).get(section, [])
+        assert [row["id"] for row in rows] == sorted(row["id"] for row in rows)
+        for row in rows:
+            assert set(row) <= columns, (name, section, set(row) - columns)
+            assert all(value is not None for value in row.values())
+
+
+def _reconcile_inputs(state: dict, extra_series: list[dict] | None = None) -> dict:
+    usage, gateway = state["api_usage_v1"], state["gateway_configuration_v1"]
+    return {
+        "windows": usage["windows"],
+        "consumers": gateway["consumers"],
+        "routes": gateway["routes"],
+        "services": gateway["services"],
+        "series": usage["series"] + (extra_series or []),
+        "mapping_entries": usage["mapping_entries"],
+        "operations": state["operations"],
+        "associations": state["api_contracts_v1"]["associations"],
+        "canonical_services": state["services"],
+    }
+
+
+@pytest.mark.parametrize(
+    "name", sorted(w for w in WORLDS if "api_usage_v1" in WORLDS[w]["snapshot_state"])
+)
+def test_the_reconciliation_sections_equal_the_i2_rule_applied_to_the_raw_facts(name):
+    state = WORLDS[name]["snapshot_state"]
+    derived = reconcile(**_reconcile_inputs(state))
+    for section in ("reconciliation_rule", "attributions", "route_operation", "target_service"):
+        assert state["api_usage_v1"][section] == derived[section], (name, section)
+
+
+def _route_wide_series(state: dict) -> list[dict]:
+    """The series behind the route-wide limitation codes, which the world states directly: a
+    decreased counter and unattributed upstream traffic. They are injected only to let the I2
+    qualification rule derive those codes, and the rows they create are dropped again."""
+    usage, gateway = state["api_usage_v1"], state["gateway_configuration_v1"]
+    extra = []
+    for window in usage["windows"]:
+        if window["window_reasons"]:
+            continue
+        for coverage in usage["coverage"]:
+            if coverage["window_id"] != window["id"]:
+                continue
+            route = next(r for r in gateway["routes"] if r["id"] == coverage["route_id"])
+            for code in coverage["limitations"]:
+                if code == "GWM_COUNTER_DECREASED":
+                    paired = {
+                        r["consumer"]
+                        for r in usage["qualification_rows"]
+                        if r["route_id"] == route["id"]
+                    }
+                    consumer = next(
+                        c["username"]
+                        for c in gateway["consumers"]
+                        if c["gateway_instance_id"] == window["gateway_instance_id"]
+                        and c["username"] not in paired
+                    )
+                    status, delta = "DECREASED", None
+                elif code == "GWM_UNATTRIBUTED_UPSTREAM":
+                    consumer, status, delta = "no-such-consumer", "DELTA", 1
+                else:
+                    continue
+                extra.append(
+                    {
+                        "window_id": window["id"],
+                        "route": route["route_id"],
+                        "consumer": consumer,
+                        "response_source": "upstream",
+                        "status": status,
+                        "request_count_delta": delta,
+                        "evidence_ids": [window["evidence_id"]] if "evidence_id" in window else [],
+                    }
+                )
+    return extra
+
+
+@pytest.mark.parametrize(
+    "name", sorted(w for w in WORLDS if "api_usage_v1" in WORLDS[w]["snapshot_state"])
+)
+def test_the_qualification_sections_equal_the_i2_rule_applied_to_the_raw_facts(name):
+    state = WORLDS[name]["snapshot_state"]
+    usage, gateway = state["api_usage_v1"], state["gateway_configuration_v1"]
+    extra = _route_wide_series(state)
+    inputs = _reconcile_inputs(state, extra)
+    attributions = reconcile(**inputs)["attributions"]
+    derived = qualify(
+        windows=usage["windows"],
+        consumers=gateway["consumers"],
+        routes=gateway["routes"],
+        configured_access=gateway["configured_access"],
+        series=inputs["series"],
+        attributions=attributions,
+    )
+    stated = {row["id"] for row in usage["qualification_rows"]}
+    assert derived["qualification_rule"] == usage["qualification_rule"]
+    assert derived["coverage"] == usage["coverage"]
+    assert [r for r in derived["qualification_rows"] if r["id"] in stated] == usage[
+        "qualification_rows"
+    ]
+    interaction_ids = {i["id"] for i in usage["interactions"]}
+    assert [r for r in derived["interactions"] if r["id"] in interaction_ids] == usage[
+        "interactions"
+    ]
+    # the injected series are the only source of rows the world does not state
+    extras = {r["id"] for r in derived["qualification_rows"]} - stated
+    assert len(extras) == len(extra) - sum(1 for e in extra if e["consumer"] == "no-such-consumer")
 
 
 # --- Matrix -------------------------------------------------------------------------------------
