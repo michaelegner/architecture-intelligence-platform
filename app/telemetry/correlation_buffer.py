@@ -47,10 +47,13 @@ class HttpCorrelationBuffer:
     which is exactly a CLIENT span's own (trace_id, span_id) - so whichever side arrives second
     finds the other already waiting under the same key, regardless of arrival order.
 
-    Deliberately simple: no background sweep task (matches this app's fully synchronous,
-    request-driven style - Neo4j calls in POST /v1/traces run directly on the event loop thread,
-    confirmed in app/api/telemetry.py, so there is no true concurrent request processing here to
-    defend against beyond cheap insurance). Eviction is lazy, checked at the top of every
+    Concurrency contract: the lock below makes each single call atomic, nothing more. A batch is a
+    sequence of calls (one `sweep_expired`, then many `offer_*`), and two batches interleaving
+    would change which spans pair up, so batches must be ingested one at a time. `POST /v1/traces`
+    guarantees that (app/api/telemetry.py): ingestion runs in a worker thread, off the event loop,
+    behind an `asyncio.Lock`. Callers outside that route must provide the same serialization.
+
+    Deliberately simple: no background sweep task. Eviction is lazy, checked at the top of every
     offer_*() call, both by TTL and by a hard max-size bound (oldest entry evicted first, via
     OrderedDict's insertion-order guarantee) - this must never become an unbounded trace store
     (spec §6.3)."""

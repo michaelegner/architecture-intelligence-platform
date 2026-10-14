@@ -2,6 +2,26 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+from app.canonical.api_contracts import (
+    ApiContract,
+    ApiContractAssociation,
+    ApiContractVersion,
+)
+from app.canonical.gateway import (
+    GatewayConfiguredAccess,
+    GatewayConsumer,
+    GatewayLimitation,
+    GatewayRoute,
+    GatewayService,
+    GatewaySourceEvidence,
+)
+from app.canonical.gateway_measurement import (
+    MeasurementEvidence,
+    MeasurementLimitation,
+    MeasurementMappingEntry,
+    MeasurementSeries,
+    MeasurementWindow,
+)
 from app.canonical.infrastructure import (
     InfrastructureClaim,
     InfrastructureContribution,
@@ -129,3 +149,21 @@ class ArchitectureModel(BaseModel):
     subscription_dead_letter_configurations: list[SubscriptionDeadLetterConfiguration] = Field(
         default_factory=list
     )
+    # v0.7.0 I1.2 (contract §3, §6): internal API-contract carriers; kept by the orchestrator only for
+    # an import request that configures a gateway source.
+    api_contracts: list[ApiContract] = Field(default_factory=list)
+    api_contract_versions: list[ApiContractVersion] = Field(default_factory=list)
+    api_contract_associations: list[ApiContractAssociation] = Field(default_factory=list)
+    # v0.7.0 I1.4 (contract §3-§4): internal APISIX gateway carriers (no public exposure).
+    gateway_consumers: list[GatewayConsumer] = Field(default_factory=list)
+    gateway_routes: list[GatewayRoute] = Field(default_factory=list)
+    gateway_services: list[GatewayService] = Field(default_factory=list)
+    gateway_configured_accesses: list[GatewayConfiguredAccess] = Field(default_factory=list)
+    gateway_limitations: list[GatewayLimitation] = Field(default_factory=list)
+    gateway_source_evidence: list[GatewaySourceEvidence] = Field(default_factory=list)
+    # v0.7.0 I2.2b (I2.1 contract §4-§5): internal APISIX measurement carriers (no public exposure).
+    measurement_windows: list[MeasurementWindow] = Field(default_factory=list)
+    measurement_evidence: list[MeasurementEvidence] = Field(default_factory=list)
+    measurement_series: list[MeasurementSeries] = Field(default_factory=list)
+    measurement_limitations: list[MeasurementLimitation] = Field(default_factory=list)
+    measurement_mapping_entries: list[MeasurementMappingEntry] = Field(default_factory=list)

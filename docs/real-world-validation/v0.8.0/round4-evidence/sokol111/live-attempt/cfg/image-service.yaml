@@ -1,0 +1,39 @@
+logger: {level: "info", development: false}
+server: {port: 8083}
+mongo: {host: "localhost", database: "image", direct-connection: true}
+multi-tenancy: {enabled: false}
+kafka:
+  brokers: "localhost:9092"
+  consumers-config:
+    default-group-id: "ecommerce-image-service"
+    default-auto-offset-reset: "earliest"
+    consumers:
+      - {name: "catalog-events", topic: "catalog.product.events"}
+      - {name: "tenant-events", topic: "tenant.tenant.events"}
+upload-token:
+  jwt-secret: "dev-secret-key-change-in-production-min-32-chars-long!"
+
+application:
+  max-upload-bytes: 5242880 # 5 MB - maximum upload size
+  small-width: 400
+  large-width: 800
+  quality: 85
+
+s3:
+  endpoint: "http://localhost:9000"
+  public-endpoint: "http://localhost:9000"
+  region: "us-east-1"
+  bucket: "images"
+  access-key-id: "minioadmin"
+  secret-key: "minioadmin123"
+  use-path-style: true
+  presign-ttl: 15m
+
+imgproxy:
+  base-url: "http://localhost:8083"
+  bucket: "images"
+  key-hex: "0000000000000000000000000000000000000000000000000000000000000000"
+  salt-hex: "1111111111111111111111111111111111111111111111111111111111111111"
+tenant:
+  grpc:
+    address: "localhost:18080"

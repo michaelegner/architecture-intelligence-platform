@@ -2,6 +2,7 @@
 `canonical`, `graph` and `telemetry` can depend on without depending on `app.sources`)."""
 
 from app.common.jcs import (
+    CanonicalIntegerDomainError,
     JSONValue,
     canonical_json_bytes,
     canonical_sha256_hex,
@@ -10,6 +11,7 @@ from app.common.jcs import (
 )
 
 __all__ = [
+    "CanonicalIntegerDomainError",
     "JSONValue",
     "canonical_json_bytes",
     "canonical_sha256_hex",

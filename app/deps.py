@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Iterator
 
 import neo4j
@@ -42,6 +43,17 @@ def get_http_correlation_buffer(request: Request) -> HttpCorrelationBuffer | Non
     """None when http-correlation is disabled via config (or in tests that never set it up) - the
     same optional-object pattern as get_llm_provider's own app.state lookup."""
     return getattr(request.app.state, "http_correlation_buffer", None)
+
+
+def get_trace_ingest_lock(request: Request) -> asyncio.Lock:
+    """The lock that serializes `POST /v1/traces` ingestion units (v0.6.3 I1). Normally created in
+    `app.main.lifespan`; created here on first use otherwise (tests set `app.state` by hand and never
+    run the lifespan). The check and the set have no `await` between them, so they cannot race on
+    the event loop."""
+    lock = getattr(request.app.state, "trace_ingest_lock", None)
+    if lock is None:
+        lock = request.app.state.trace_ingest_lock = asyncio.Lock()
+    return lock
 
 
 def get_llm_provider(request: Request) -> LLMProvider:

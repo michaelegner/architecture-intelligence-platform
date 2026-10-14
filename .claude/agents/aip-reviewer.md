@@ -144,7 +144,8 @@ Each item names the pattern, what to check, and the PR where this repository's r
 - **Tests are implementation evidence, not qualification.** Flag PR text that treats a passing
   suite as resolving what the spec means.
 - **Both suites ran.** Unless the diff is docs-only under the skill's exemption, the PR should
-  report `tests/unit` and `tests/integration` results. Spec and completion-record changes are never
+  report `tests/unit` and `tests/integration -m "not qualification"` results (plus `-m qualification`
+  when the diff touches the qualification tier's inputs). Spec and completion-record changes are never
   docs-only. (PR #77, #236)
 - **Known flaky test is not a regression.**
   `tests/integration/test_mcp_demo_script.py::TestPrerequisiteFailures::test_missing_env_exits_nonzero`

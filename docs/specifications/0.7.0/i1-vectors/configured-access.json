@@ -1,0 +1,662 @@
+{
+  "note": "Expected outputs are hand-authored from the I0 decision \u00a74 and I1 spec \u00a75, independently of any adapter. Unlisted capture fields take the base values in the contract \u00a74. Auth plugins retain no config after redaction.",
+  "base_capture": {
+    "schema": "aip-apisix-capture/1",
+    "gateway_instance_id": "gw-prod-1",
+    "environment": "prod",
+    "apisix_version": "3.19.0",
+    "admin_surface": "admin-api-etcd",
+    "etcd_revision_before": 18,
+    "etcd_revision_after": 18,
+    "lists_complete": {
+      "consumers": true,
+      "credentials": true,
+      "routes": true,
+      "services": true,
+      "upstreams": true,
+      "plugin_configs": true,
+      "consumer_groups": true,
+      "global_rules": true
+    }
+  },
+  "frozen_auth_plugins": [
+    "key-auth",
+    "basic-auth",
+    "jwt-auth",
+    "hmac-auth",
+    "ldap-auth"
+  ],
+  "cases": [
+    {
+      "id": "C01",
+      "spec_case": "whitelisted-consumer-positive",
+      "description": "a whitelisted consumer on a route with an auth plugin is configured access",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          },
+          {
+            "username": "bob",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {},
+              "consumer-restriction": {
+                "type": "consumer_name",
+                "whitelist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [
+          {
+            "consumer": "alice",
+            "route": "r1",
+            "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST"
+          }
+        ],
+        "limitations": []
+      }
+    },
+    {
+      "id": "C02",
+      "spec_case": "type-default",
+      "description": "omitted type is APISIX's consumer_name default",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {},
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [
+          {
+            "consumer": "alice",
+            "route": "r1",
+            "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST"
+          }
+        ],
+        "limitations": []
+      }
+    },
+    {
+      "id": "C03",
+      "spec_case": "type-default",
+      "description": "an explicit unsupported type creates no access",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {},
+              "consumer-restriction": {
+                "type": "route_id",
+                "whitelist": [
+                  "r2"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [],
+        "limitations": [
+          {
+            "code": "GW_RESTRICTION_UNSUPPORTED_TYPE",
+            "subject": "r1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C04",
+      "spec_case": "no-auth-plugin",
+      "description": "restriction without an authentication plugin creates no access",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "consumer-restriction": {
+                "type": "consumer_name",
+                "whitelist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [],
+        "limitations": [
+          {
+            "code": "GW_RESTRICTION_NO_AUTH_PLUGIN",
+            "subject": "r1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C05",
+      "spec_case": "dangling-whitelist",
+      "description": "a whitelisted name with no Consumer in the inventory creates no access for that name",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {},
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice",
+                  "ghost"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [
+          {
+            "consumer": "alice",
+            "route": "r1",
+            "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST"
+          }
+        ],
+        "limitations": [
+          {
+            "code": "GW_WHITELIST_DANGLING_CONSUMER",
+            "subject": "r1:ghost"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C06",
+      "spec_case": "whitelist-blacklist-conflict",
+      "description": "a name in both lists gets no access; other whitelisted names are unaffected",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          },
+          {
+            "username": "bob",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {},
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice",
+                  "bob"
+                ],
+                "blacklist": [
+                  "bob"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [
+          {
+            "consumer": "alice",
+            "route": "r1",
+            "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST"
+          }
+        ],
+        "limitations": [
+          {
+            "code": "GW_WHITELIST_BLACKLIST_CONFLICT",
+            "subject": "r1:bob"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C07",
+      "spec_case": "blacklist-only",
+      "description": "a blacklist-only restriction is recorded and creates no access",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {},
+              "consumer-restriction": {
+                "blacklist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [],
+        "limitations": [
+          {
+            "code": "GW_BLACKLIST_RECORDED",
+            "subject": "r1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C08",
+      "spec_case": "method-restriction",
+      "description": "allowed_by_methods makes the whole rule unsupported in v0.7",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {},
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice"
+                ],
+                "allowed_by_methods": [
+                  {
+                    "user": "alice",
+                    "methods": [
+                      "GET"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [],
+        "limitations": [
+          {
+            "code": "GW_RESTRICTION_METHOD_SCOPED",
+            "subject": "r1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C09",
+      "spec_case": "unsupported-scope",
+      "description": "a restriction on a Service creates no access",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {}
+            },
+            "service_id": "s1"
+          }
+        ],
+        "services": [
+          {
+            "id": "s1",
+            "plugins": {
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [],
+        "limitations": [
+          {
+            "code": "GW_RESTRICTION_UNSUPPORTED_SCOPE",
+            "subject": "service:s1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C10",
+      "spec_case": "unsupported-scope",
+      "description": "a restriction supplied by a plugin_config creates no access",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {}
+            },
+            "plugin_config_id": "pc1"
+          }
+        ],
+        "plugin_configs": [
+          {
+            "id": "pc1",
+            "plugins": {
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [],
+        "limitations": [
+          {
+            "code": "GW_RESTRICTION_UNSUPPORTED_SCOPE",
+            "subject": "plugin_config:pc1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C11",
+      "spec_case": "unsupported-scope",
+      "description": "a restriction in a global rule creates no access",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {}
+            }
+          }
+        ],
+        "global_rules": [
+          {
+            "id": "g1",
+            "plugins": {
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [],
+        "limitations": [
+          {
+            "code": "GW_RESTRICTION_UNSUPPORTED_SCOPE",
+            "subject": "global_rule:g1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C12",
+      "spec_case": "no-enumerating-restriction",
+      "description": "authentication without an enumerating restriction creates no consumer relationship and no limitation",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {}
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [],
+        "limitations": []
+      }
+    },
+    {
+      "id": "C13",
+      "spec_case": "unsupported-auth-plugin",
+      "description": "a recognized unsupported authentication plugin creates no access and is reported as unsupported, not absent",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "openid-connect": {},
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [],
+        "limitations": [
+          {
+            "code": "GW_AUTH_PLUGIN_UNSUPPORTED",
+            "subject": "r1:openid-connect"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C14",
+      "spec_case": "multi-consumer-multi-route",
+      "description": "several consumers on one route and one consumer on several routes stay distinct relationships",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          },
+          {
+            "username": "bob",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {},
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice",
+                  "bob"
+                ]
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "uri": "/r2",
+            "plugins": {
+              "basic-auth": {},
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [
+          {
+            "consumer": "alice",
+            "route": "r1",
+            "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST"
+          },
+          {
+            "consumer": "alice",
+            "route": "r2",
+            "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST"
+          },
+          {
+            "consumer": "bob",
+            "route": "r1",
+            "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST"
+          }
+        ],
+        "limitations": []
+      }
+    },
+    {
+      "id": "C15",
+      "spec_case": "unsupported-auth-plugin",
+      "description": "a supported authentication plugin alongside an unsupported one still qualifies",
+      "capture": {
+        "consumers": [
+          {
+            "username": "alice",
+            "credential_ids": []
+          }
+        ],
+        "routes": [
+          {
+            "id": "r1",
+            "uri": "/r1",
+            "plugins": {
+              "key-auth": {},
+              "wolf-rbac": {},
+              "consumer-restriction": {
+                "whitelist": [
+                  "alice"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "configured_access": [
+          {
+            "consumer": "alice",
+            "route": "r1",
+            "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST"
+          }
+        ],
+        "limitations": []
+      }
+    }
+  ],
+  "recognized_unsupported_auth_plugins": [
+    "multi-auth",
+    "openid-connect",
+    "saml-auth",
+    "wolf-rbac",
+    "jwe-decrypt",
+    "cas-auth",
+    "dingtalk-auth",
+    "feishu-auth",
+    "ldap-auth-advanced"
+  ]
+}

@@ -140,3 +140,16 @@ the original assertions execute unchanged. JSON retains generated capture bytes/
 and per-POST costs, graph counts, phase costs and full-walk disposition/selection denominators.
 The five timing repetitions are repeated reads within a point, not five independent hosts or
 five reimports. No timing is a product SLO.
+
+## `/v1/traces` event-loop stall
+
+`benchmarks/traces_stall.py` measures how long other requests wait while one `POST /v1/traces`
+batch is ingested (code-health review 2026-10-08, finding 1). Measurement only; no result artifact
+is committed, record numbers where they are used.
+
+```bash
+uv run python -m benchmarks.traces_stall --pairs 15 150 1500 --reps 3
+```
+
+`--pairs N` sends N client+server span pairs (2N spans). Per batch size and probe route it reports
+the idle probe latency, the ingest wall time, and the worst and p95 probe latency during the ingest.

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
@@ -73,6 +74,7 @@ async def lifespan(app: FastAPI):
         if http_correlation.enabled
         else None
     )
+    app.state.trace_ingest_lock = asyncio.Lock()
     async with AsyncExitStack() as stack:
         await stack.enter_async_context(mcp_session_manager_lifespan())
         yield

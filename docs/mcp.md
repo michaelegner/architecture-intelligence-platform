@@ -275,6 +275,10 @@ allowlists (`app/settings.py`, both passed to the SDK's `TransportSecuritySettin
 coding-agent client on the other end may still need its own account or model access, independent of
 AIP.
 
+A constrained public read-only demo profile (anonymous `POST /mcp` for the hosted Pitstop demo) is made safe by
+its deployment edge, not by AIP; see [`examples/pitstop-demo/README.md`](../examples/pitstop-demo/README.md#public-read-only-profile-hosted-instance)
+and [`docs/security-model.md`](security-model.md). That statement does not change what AIP itself provides.
+
 ## Evidence drill-down
 
 Every claim from `get_architecture_drift`/`get_service_dependencies` carries `evidence_refs` (and,

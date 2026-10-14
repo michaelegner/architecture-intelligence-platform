@@ -1,0 +1,9 @@
+## configured-access capture (normalized: sorted by alias, last_updated and key material dropped)
+{"access_rights": {"orders-api": {"api_id": "orders-api", "versions": ["Default"]}}, "alias": "spike-alpha", "org_id": "spike-org"}
+{"access_rights": {"orders-api": {"api_id": "orders-api", "versions": ["Default"]}}, "alias": "spike-beta", "org_id": "spike-org"}
+{"access_rights": {"other-api": {"api_id": "other-api", "versions": ["Default"]}}, "alias": "spike-gamma", "org_id": "spike-org"}
+## request-derived measurement (normalized: instance label dropped, sorted)
+tyk_spike_requests_total{api_id="orders-api",code="200",job="tyk-spike",key_alias="spike-alpha"} 3
+tyk_spike_requests_total{api_id="orders-api",code="200",job="tyk-spike",key_alias="spike-beta"} 1
+tyk_spike_requests_total{api_id="orders-api",code="401",job="tyk-spike",key_alias="unattributed"} 1
+tyk_spike_requests_total{api_id="orders-api",code="403",job="tyk-spike",key_alias="spike-gamma"} 1

@@ -1,6 +1,6 @@
 [project]
 name = "architecture-intelligence-platform"
-version = "0.6.2"
+version = "0.6.3"
 description = "Evidence-backed architecture intelligence from OpenAPI, AsyncAPI and OpenTelemetry."
 requires-python = ">=3.13"
 dependencies = [
@@ -63,7 +63,7 @@ extend-exclude = ["*.md"]
 [tool.ruff.lint]
 # On top of ruff's defaults: bugbear, naive datetimes, blind excepts, import order, pyupgrade,
 # bandit security checks and ruff's own rules (including stale `# noqa` detection).
-extend-select = ["B", "DTZ", "BLE", "I", "UP", "S", "RUF"]
+extend-select = ["B", "C901", "DTZ", "BLE", "I", "UP", "S", "RUF"]
 ignore = [
     "S101",   # asserts are this repo's narrowing/invariant idiom (the image never runs with -O)
     "S603",   # subprocess with list args (never shell=True) is the intended pattern
@@ -75,6 +75,11 @@ ignore = [
 # Bandit checks target shipped code; tests, examples, benchmarks and demo tooling use fixed test
 # credentials, /tmp paths and localhost URLs by design.
 "!app/**" = ["S"]
+
+[tool.ruff.lint.mccabe]
+# Ratchet: the highest complexity when C901 was enabled (evaluation/i4 compare_runs = 28). Lower
+# it as those functions are refactored; never raise it.
+max-complexity = 28
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body"]
@@ -94,6 +99,7 @@ venv = ".venv"
 testpaths = ["tests"]
 markers = [
     "demo_e2e: Compose-based end-to-end tests for the runtime demo lifecycle",
+    "qualification: slow frozen-reference / oracle / real-container integration suites; a separate CI tier (see tests/integration/conftest.py)",
 ]
 
 [tool.importlinter]
@@ -109,8 +115,8 @@ source_modules = ["app.qualification"]
 forbidden_modules = [
     "neo4j", "fastapi", "starlette", "mcp", "openai",
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.common", "app.deps", "app.graph", "app.graph_schema", "app.ingestion",
-    "app.intent", "app.main", "app.mcp", "app.provenance", "app.settings", "app.sources",
+    "app.canonical", "app.common", "app.deps", "app.gateway_capture", "app.graph", "app.graph_schema",
+    "app.ingestion", "app.intent", "app.main", "app.mcp", "app.provenance", "app.settings", "app.sources",
     "app.telemetry", "app.validation", "app.version",
 ]
 
@@ -119,7 +125,8 @@ name = "Delivery adapters (REST, MCP, app wiring) sit on top: nothing below impo
 type = "forbidden"
 source_modules = [
     "app.ai", "app.analysis", "app.architecture_intelligence", "app.canonical", "app.common",
-    "app.graph", "app.graph_schema", "app.ingestion", "app.intent", "app.provenance",
+    "app.gateway_capture", "app.graph", "app.graph_schema", "app.ingestion", "app.intent",
+    "app.provenance",
     "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
     "app.version",
 ]
@@ -129,12 +136,34 @@ forbidden_modules = ["app.api", "app.mcp", "app.main", "app.deps", "app.answer_r
 name = "The LLM layer stays out of the deterministic core and MCP"
 type = "forbidden"
 source_modules = [
-    "app.analysis", "app.architecture_intelligence", "app.canonical", "app.common", "app.graph",
-    "app.graph_schema", "app.ingestion", "app.intent", "app.mcp", "app.provenance",
+    "app.analysis", "app.architecture_intelligence", "app.canonical", "app.common",
+    "app.gateway_capture", "app.graph", "app.graph_schema", "app.ingestion", "app.intent", "app.mcp",
+    "app.provenance",
     "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
     "app.version",
 ]
 forbidden_modules = ["app.ai", "openai"]
+
+[[tool.importlinter.contracts]]
+name = "The gateway capture tools are a separate step: no ingestion, graph or delivery layer imports them (v0.7.0 I1 spec 3.2)"
+type = "forbidden"
+source_modules = [
+    "app.ai", "app.analysis", "app.api", "app.architecture_intelligence", "app.canonical",
+    "app.graph", "app.graph_schema", "app.ingestion", "app.intent", "app.main", "app.mcp",
+    "app.provenance", "app.qualification", "app.settings", "app.sources", "app.telemetry",
+    "app.validation",
+]
+forbidden_modules = ["app.gateway_capture"]
+
+[[tool.importlinter.contracts]]
+name = "The gateway capture tools touch no graph, adapter or delivery layer"
+type = "forbidden"
+source_modules = ["app.gateway_capture"]
+forbidden_modules = [
+    "neo4j", "fastapi", "starlette", "mcp", "openai", "app.ai", "app.analysis", "app.api",
+    "app.architecture_intelligence", "app.graph", "app.ingestion", "app.main", "app.mcp",
+    "app.telemetry",
+]
 
 [[tool.importlinter.contracts]]
 name = "Leaf packages import no non-leaf app package"
@@ -142,8 +171,9 @@ type = "forbidden"
 source_modules = ["app.provenance", "app.intent", "app.graph_schema", "app.version"]
 forbidden_modules = [
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.common", "app.deps", "app.graph", "app.ingestion", "app.main", "app.mcp",
-    "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
+    "app.canonical", "app.common", "app.deps", "app.gateway_capture", "app.graph", "app.ingestion",
+    "app.main", "app.mcp", "app.qualification", "app.settings", "app.sources", "app.telemetry",
+    "app.validation",
 ]
 
 [[tool.importlinter.contracts]]
@@ -166,9 +196,9 @@ type = "forbidden"
 source_modules = ["app.common"]
 forbidden_modules = [
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.deps", "app.graph", "app.graph_schema", "app.ingestion", "app.intent",
-    "app.main", "app.mcp", "app.provenance", "app.qualification", "app.settings", "app.sources",
-    "app.telemetry", "app.validation", "app.version",
+    "app.canonical", "app.deps", "app.gateway_capture", "app.graph", "app.graph_schema",
+    "app.ingestion", "app.intent", "app.main", "app.mcp", "app.provenance", "app.qualification",
+    "app.settings", "app.sources", "app.telemetry", "app.validation", "app.version",
 ]
 
 [[tool.importlinter.contracts]]

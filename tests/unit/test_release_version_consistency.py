@@ -1,5 +1,5 @@
 """v0.4.2 I1 - spec §23, carried forward by v0.5.0 I6 §6 and the v0.5.1 release: package/producer
-version metadata SHALL report the current release version (`0.6.2`) consistently.
+version metadata SHALL report the current release version (`0.6.3`) consistently.
 
 Every active call site - `pyproject.toml`, `uv.lock`'s root project version, the MCP server's
 advertised version, the production-wired `Producer`, and the architecture-answers evaluator's own
@@ -11,6 +11,7 @@ value). This file pins the release version once and asserts every other path tra
 
 from __future__ import annotations
 
+import json
 import tomllib
 from pathlib import Path
 from typing import get_args
@@ -23,7 +24,7 @@ from app.version import package_version
 from evaluation.architecture_answers.runner import _build_producer
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_RELEASE_VERSION = "0.6.2"
+_RELEASE_VERSION = "0.6.3"
 
 
 def _uv_lock_root_project_version() -> str:
@@ -69,3 +70,19 @@ def test_architecture_answers_evaluator_producer_version_agrees_with_package_ver
     producer = _build_producer("f" * 40)
     assert producer.name == PRODUCER_NAME
     assert producer.version == package_version()
+
+
+def test_mcp_registry_server_json_agrees_with_package_version():
+    # `server.json` is the MCP Registry entry (metadata only: no packages, no remotes). A registry
+    # version is per publish, so it moves with each release (release-publication skill).
+    server = json.loads((_REPO_ROOT / "server.json").read_text(encoding="utf-8"))
+    assert server["version"] == package_version()
+    assert server["name"] == "io.github.michaelegner/architecture-intelligence-platform"
+    assert "packages" not in server
+    assert "remotes" not in server
+    assert server["websiteUrl"].endswith("#connect-aip-to-your-coding-agent")
+
+
+def test_server_json_website_anchor_points_at_an_existing_readme_heading():
+    readme = (_REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    assert "\n## Connect AIP to Your Coding Agent\n" in readme

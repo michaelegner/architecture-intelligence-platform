@@ -55,7 +55,7 @@ Ask the owner which path applies if the release spec doesn't say.
 
 Follow the most recent prep PR as the template (#264 for v0.5.0, #274 for v0.5.1). It contains:
 
-- **Version bump:** `pyproject.toml`, the root project version in `uv.lock` (the lock diff should be
+- **Version bump:** `pyproject.toml`, `server.json` (the MCP Registry entry's `version`), the root project version in `uv.lock` (the lock diff should be
   that one line), `_RELEASE_VERSION` in `tests/unit/test_release_version_consistency.py`, and
   `producer.version` in every `evaluation/architecture_answers/scenarios/*/expected_answer.json`
   (one line each). Frozen tests that pin a released version (such as the I5 freeze test's
@@ -79,6 +79,9 @@ After the owner merges the prep PR, read `CANDIDATE_SHA` from git and check it a
 
 - **CI:** every check-run succeeded on that SHA, read from
   `gh api repos/<owner>/<repo>/commits/<sha>/check-runs`, not from `gh pr checks`.
+  The `integration-qualification (heavy|oracle|other)` check-runs must be present and green on
+  that SHA: they run on pushes to `main`, so a skipped or missing tier means the candidate is not
+  qualified (re-run via `workflow_dispatch` on that SHA if needed).
 - **Clean build:** in a clean detached worktree at the SHA, build the image with `--no-cache` and
   `--build-arg AIP_BUILD_REVISION=<sha>`, and record the image id and base-image digests.
 - **Golden path:** run
@@ -125,6 +128,9 @@ pushed digest. Take `FINAL_IMAGE_DIGEST` from the job summary.
 - **Code scanning** on `refs/tags/vX.Y.Z` is compared with the previous tag, and any new finding is
   dispositioned.
 - **Release body:** every link returns 200.
+- **MCP Registry:** after the GitHub Release exists, the owner runs `mcp-publisher validate server.json`, then
+  `mcp-publisher login github` and `mcp-publisher publish`, and the search in the registry API returns the new
+  version. Never run by the agent without the owner's explicit go.
 
 ## 6. Closure PR
 

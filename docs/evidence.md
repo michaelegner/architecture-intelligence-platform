@@ -26,6 +26,16 @@ end-to-end, not just produced in-memory during ingestion and discarded.
 
 ## Internal-only evidence, and its narrow v0.5.0 I3 exposure
 
+> v0.7.0 I1: an APISIX gateway source does **not** write a `Provenance`/`:Evidence` record. Its source
+> evidence is the dedicated internal carrier `GatewaySourceEvidence` (and `ConfiguredAccess` carries
+> its id), so it needs no widening of the public evidence reads or of the natural-language Cypher
+> guard below; public exposure of gateway evidence is a later, explicit decision (I3).
+
+> v0.7.0 I2.2: an APISIX measurement source follows the same rule. Its evidence is the internal
+> carrier `MeasurementEvidence` (`evidence_type = OBSERVED`, bound to the two extract hashes), pointed
+> to by the window and every series; no `Provenance`/`:Evidence` is written and no public read or
+> natural-language query can reach it. Consumer usernames live only in the internal series carriers.
+
 A Kubernetes source (`app/ingestion/kubernetes_adapter.py`, v0.5.0 I2) writes ordinary
 `Evidence`/`Provenance` records — `source_type: KUBERNETES` — for the facts it contributes, using
 the exact same `Evidence` node label and shape described above. They are real, committed graph

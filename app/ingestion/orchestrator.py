@@ -23,7 +23,12 @@ from app.canonical.model import (
     ArchitectureModel,
     relation_key,
 )
-from app.common.jcs import sort_entries_by_canonical_bytes
+from app.common.jcs import CanonicalIntegerDomainError, sort_entries_by_canonical_bytes
+from app.ingestion.adapter_outcomes import rejected_for_integer_domain
+from app.ingestion.apisix_adapter import ApisixSourceAdapter
+from app.ingestion.apisix_discoverer import ApisixSourceDiscoverer
+from app.ingestion.apisix_measurement_adapter import ApisixMeasurementSourceAdapter
+from app.ingestion.apisix_measurement_discoverer import ApisixMeasurementSourceDiscoverer
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
@@ -57,6 +62,8 @@ from app.sources.migration_mappings import (
 )
 from app.sources.model import (
     NOT_SUPPLIED,
+    ApisixMeasurementSourceConfig,
+    ApisixSourceConfig,
     DiagnosticCode,
     DiscoveryScopeId,
     FilesystemSourceConfig,
@@ -91,6 +98,8 @@ _DEFAULT_ADAPTERS = (
     AsyncApiSourceAdapter(),
     ManifestSourceAdapter(),
     KubernetesSourceAdapter(),
+    ApisixSourceAdapter(),
+    ApisixMeasurementSourceAdapter(),
 )
 
 
@@ -275,6 +284,8 @@ def _compute_mapping_context_digest(
     binding_index: BindingIndex,
     registry: SourceAdapterRegistry,
     shared_identity_index: SharedIdentityMappingIndex,
+    *,
+    api_contract_associations: bool = False,
 ) -> str:
     """I1 spec §5.3: the context's input is "the complete canonical index of configured and
     manifest Service bindings, shared Schema/Message mappings, Queue/destination and broker/server/
@@ -322,7 +333,23 @@ def _compute_mapping_context_digest(
             ]
         ),
     }
+    # v0.7.0 I1.2: present only when the import request configures a gateway source, so a no-gateway
+    # run keeps its pre-v0.7 digest byte-for-byte. It makes toggling the configuration change every
+    # OpenAPI source's `semantic_input_digest`, so the replay no-op cannot swallow the (dis)appearance
+    # of the contract carriers.
+    if api_contract_associations:
+        context["apiContractAssociations"] = True
     return compute_mapping_context_digest(context)
+
+
+def _without_api_contract_carriers(model: ArchitectureModel) -> ArchitectureModel:
+    return model.model_copy(
+        update={
+            "api_contracts": [],
+            "api_contract_versions": [],
+            "api_contract_associations": [],
+        }
+    )
 
 
 @dataclass(frozen=True)
@@ -361,6 +388,20 @@ _MODEL_ENTITY_FIELDS = (
     "infrastructure_entities",
     "infrastructure_contributions",
     "infrastructure_claims",
+    "api_contracts",
+    "api_contract_versions",
+    "api_contract_associations",
+    "gateway_consumers",
+    "gateway_routes",
+    "gateway_services",
+    "gateway_configured_accesses",
+    "gateway_limitations",
+    "gateway_source_evidence",
+    "measurement_windows",
+    "measurement_evidence",
+    "measurement_series",
+    "measurement_limitations",
+    "measurement_mapping_entries",
 )
 
 
@@ -628,13 +669,21 @@ def _map_sources(
                     )
                 }
             )
-            outcome = adapter.map(
-                enriched,
-                service_identity=resolver,
-                shared_identity=shared_identity_resolver,
-                upstream_model=phase_upstream_model,
-                mapping_context_digest=mapping_context_digest,
-            )
+            try:
+                outcome = adapter.map(
+                    enriched,
+                    service_identity=resolver,
+                    shared_identity=shared_identity_resolver,
+                    upstream_model=phase_upstream_model,
+                    mapping_context_digest=mapping_context_digest,
+                )
+            except CanonicalIntegerDomainError:
+                # v0.6.3 I2 (#305): every document-content canonicalization (schema hashes, message
+                # digests, the semantic-input digest) runs inside an adapter's `map`, so one source
+                # holding an integer RFC 8785 cannot represent is rejected here, as a source, instead
+                # of aborting the whole run. The run is then PARTIAL and commits nothing, as for any
+                # other rejected source.
+                outcome = rejected_for_integer_domain(enriched)
             source_outcomes[source_instance_id] = SourceRunOutcome(
                 descriptor_locator=loaded.descriptor.locator,
                 outcome=outcome,
@@ -714,6 +763,7 @@ def run_discovery(
     registry: SourceAdapterRegistry | None = None,
     migration_mappings: SharedIdentityMappingIndex | None = None,
     tombstones: Sequence[Tombstone] = (),
+    api_contract_associations: bool = False,
 ) -> DiscoveryRunResult:
     """I2 Draft 0.2 §3 prerequisite slice, items 1/3: the source-neutral discovery entry point -
     accepts any configured `SourceDiscoverer`, with no source-kind branch inside this function.
@@ -765,10 +815,26 @@ def run_discovery(
         resolver=_RunServiceIdentityResolver(_binding_index_to_pointer_bindings(binding_index)),
         shared_identity_resolver=_RunSharedIdentityResolver(shared_identity_index),
         mapping_context_digest=_compute_mapping_context_digest(
-            binding_index, registry, shared_identity_index
+            binding_index,
+            registry,
+            shared_identity_index,
+            api_contract_associations=api_contract_associations,
         ),
         run_diagnostics=run_diagnostics,
     )
+    if not api_contract_associations:
+        # v0.7.0 I1.2 (contract §6, amended): the API-contract carriers exist only for an import
+        # request that configures a gateway source; a no-gateway run behaves exactly as before.
+        source_outcomes = {
+            source_instance_id: replace(
+                run_outcome,
+                outcome=replace(
+                    run_outcome.outcome,
+                    model=_without_api_contract_carriers(run_outcome.outcome.model),
+                ),
+            )
+            for source_instance_id, run_outcome in source_outcomes.items()
+        }
     source_models = [outcome.outcome.model for outcome in source_outcomes.values()]
 
     content_conflicts, conflicted_source_instance_ids = _content_conflicts(
@@ -835,6 +901,7 @@ def run_filesystem_discovery(
     registry: SourceAdapterRegistry | None = None,
     migration_mappings: SharedIdentityMappingIndex | None = None,
     tombstones: Sequence[Tombstone] = (),
+    api_contract_associations: bool = False,
 ) -> DiscoveryRunResult:
     """Thin compatibility wrapper over `run_discovery` for the filesystem source kind - every
     existing caller/test keeps working unchanged."""
@@ -843,6 +910,7 @@ def run_filesystem_discovery(
         registry=registry,
         migration_mappings=migration_mappings,
         tombstones=tombstones,
+        api_contract_associations=api_contract_associations,
     )
 
 
@@ -857,6 +925,47 @@ def run_kubernetes_discovery(
     `run_filesystem_discovery`'s exact shape (I2 Draft 0.2 slice 2b-i)."""
     return run_discovery(
         KubernetesSourceDiscoverer(config),
+        registry=registry,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+    )
+
+
+def run_apisix_discovery(
+    config: ApisixSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_gateway_instance: bool = False,
+) -> DiscoveryRunResult:
+    """Thin wrapper over `run_discovery` for the APISIX gateway source kind (v0.7.0 I1.4), mirroring
+    `run_kubernetes_discovery`. `duplicate_gateway_instance` is set by the import request when
+    another registration declares the same `gateway_instance_id` (I1.1 contract §1)."""
+    return run_discovery(
+        ApisixSourceDiscoverer(config, duplicate_gateway_instance=duplicate_gateway_instance),
+        registry=registry,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+    )
+
+
+def run_apisix_measurement_discovery(
+    config: ApisixMeasurementSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_measurement_source: bool = False,
+) -> DiscoveryRunResult:
+    """Thin wrapper over `run_discovery` for the APISIX measurement source kind (v0.7.0 I2.2b),
+    mirroring `run_apisix_discovery`. `duplicate_measurement_source` is set by the import request
+    when another registration declares the same `(gateway_instance_id, environment)` (I2.1 contract
+    §1)."""
+    return run_discovery(
+        ApisixMeasurementSourceDiscoverer(
+            config, duplicate_measurement_source=duplicate_measurement_source
+        ),
         registry=registry,
         migration_mappings=migration_mappings,
         tombstones=tombstones,

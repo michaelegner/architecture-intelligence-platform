@@ -1,0 +1,26 @@
+consumers:
+  - username: spike-alpha
+    plugins:
+      key-auth:
+        key: SPIKE-FAKE-KEY-ALPHA
+  - username: spike-beta
+    plugins:
+      key-auth:
+        key: SPIKE-FAKE-KEY-BETA
+  - username: spike-gamma
+    plugins:
+      key-auth:
+        key: SPIKE-FAKE-KEY-GAMMA
+routes:
+  - id: orders-route
+    uri: /orders
+    plugins:
+      key-auth: {}
+      consumer-restriction:
+        whitelist: [spike-alpha, spike-beta]
+      prometheus: {}
+    upstream:
+      type: roundrobin
+      nodes:
+        "whoami:80": 1
+#END

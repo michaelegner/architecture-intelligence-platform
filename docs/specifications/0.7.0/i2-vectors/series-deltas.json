@@ -1,0 +1,372 @@
+{
+  "note": "delta is computed per exact normalized series (all labels after dropping 'node'). The window is valid in this file's delta cases.",
+  "start_lines": [
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"billing-route\",service=\"\"} 1",
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2",
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders/v2\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 1",
+    "apisix_http_status{code=\"200\",consumer=\"spike-beta\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 4",
+    "apisix_http_status{code=\"200\",consumer=\"spike-delta\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 5",
+    "apisix_http_status{code=\"200\",consumer=\"spike-gamma\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 7",
+    "apisix_http_status{code=\"403\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"apisix\",route=\"orders-route\",service=\"\"} 0"
+  ],
+  "end_lines": [
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"billing-route\",service=\"\"} 1",
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 5",
+    "apisix_http_status{code=\"200\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders/v2\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 4",
+    "apisix_http_status{code=\"200\",consumer=\"spike-beta\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 4",
+    "apisix_http_status{code=\"200\",consumer=\"spike-delta\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 2",
+    "apisix_http_status{code=\"200\",consumer=\"spike-epsilon\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"upstream\",route=\"orders-route\",service=\"\"} 3",
+    "apisix_http_status{code=\"403\",consumer=\"spike-alpha\",llm_model=\"\",matched_host=\"\",matched_uri=\"/orders\",request_llm_model=\"\",request_type=\"traditional_http\",response_source=\"apisix\",route=\"orders-route\",service=\"\"} 2"
+  ],
+  "expected_series": [
+    {
+      "route": "billing-route",
+      "consumer": "spike-alpha",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "DELTA",
+      "delta": 0
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-alpha",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "DELTA",
+      "delta": 3
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-alpha",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders/v2",
+      "status": "DELTA",
+      "delta": 3
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-alpha",
+      "code": "403",
+      "response_source": "apisix",
+      "matched_uri": "/orders",
+      "status": "DELTA",
+      "delta": 2
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-beta",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "DELTA",
+      "delta": 0
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-delta",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "DECREASED",
+      "delta": null
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-epsilon",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "DELTA_FIRST_IN_WINDOW",
+      "delta": 3
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-gamma",
+      "code": "200",
+      "response_source": "upstream",
+      "matched_uri": "/orders",
+      "status": "ONE_BOUNDARY_START",
+      "delta": null
+    }
+  ],
+  "expected_pair_totals": [
+    {
+      "route": "orders-route",
+      "consumer": "spike-alpha",
+      "upstream_valid_delta_total": 6,
+      "rejected_valid_delta_total": 2,
+      "broken_upstream_series": 0,
+      "note": "two upstream series (distinct matched_uri) sum; the apisix-source series is a rejected-attempt count"
+    },
+    {
+      "route": "orders-route",
+      "consumer": "spike-beta",
+      "upstream_valid_delta_total": 0,
+      "rejected_valid_delta_total": 0,
+      "broken_upstream_series": 0,
+      "note": "present at both boundaries, unchanged"
+    }
+  ],
+  "expected_route_broken_upstream": {
+    "orders-route": 2,
+    "billing-route": 0
+  },
+  "first_in_window": [
+    {
+      "id": "F01",
+      "description": "absent at start, present at end, valid covered window",
+      "manifest_patch": {},
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "DELTA_FIRST_IN_WINDOW",
+      "expected_delta": 5
+    },
+    {
+      "id": "F02",
+      "description": "Route absent from route_coverage",
+      "manifest_patch": {},
+      "route": "billing-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F03",
+      "description": "Prometheus not enabled on the Route for the whole window",
+      "manifest_patch": {
+        "route_coverage": {
+          "orders-route": false
+        }
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F04",
+      "description": "consumer label disabled",
+      "manifest_patch": {
+        "disabled_labels": [
+          "consumer"
+        ]
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F05",
+      "description": "end boundary unsettled",
+      "manifest_patch": {
+        "end_settled": false,
+        "end_scrape_count": 1
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F06",
+      "description": "restart not excluded",
+      "manifest_patch": {
+        "no_restart": false
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F07",
+      "description": "present at start, absent at end is never repaired",
+      "manifest_patch": {},
+      "route": "orders-route",
+      "start": 5,
+      "end": null,
+      "expected_status": "ONE_BOUNDARY_START",
+      "expected_delta": null
+    },
+    {
+      "id": "F08",
+      "description": "first-in-window series with a zero end value",
+      "manifest_patch": {},
+      "route": "orders-route",
+      "start": null,
+      "end": 0,
+      "expected_status": "DELTA_FIRST_IN_WINDOW",
+      "expected_delta": 0
+    },
+    {
+      "id": "F10",
+      "description": "start boundary stable for 19 s: below the reviewed 20 s threshold",
+      "manifest_patch": {
+        "start_stable_seconds": 19
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "ONE_BOUNDARY_END",
+      "expected_delta": null
+    },
+    {
+      "id": "F11",
+      "description": "start boundary stable for exactly the 20 s threshold",
+      "manifest_patch": {
+        "start_stable_seconds": 20
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "DELTA_FIRST_IN_WINDOW",
+      "expected_delta": 5
+    },
+    {
+      "id": "F12",
+      "description": "a short end-boundary stability does not affect the start reading",
+      "manifest_patch": {
+        "end_stable_seconds": 0
+      },
+      "route": "orders-route",
+      "start": null,
+      "end": 5,
+      "expected_status": "DELTA_FIRST_IN_WINDOW",
+      "expected_delta": 5
+    },
+    {
+      "id": "F09",
+      "description": "decreased counter is still decreased",
+      "manifest_patch": {},
+      "route": "orders-route",
+      "start": 5,
+      "end": 2,
+      "expected_status": "DECREASED",
+      "expected_delta": null
+    }
+  ],
+  "window_validity": [
+    {
+      "id": "W01",
+      "description": "base manifest",
+      "manifest_patch": {},
+      "expected_reasons": []
+    },
+    {
+      "id": "W02",
+      "description": "end boundary not settled",
+      "manifest_patch": {
+        "end_settled": false,
+        "end_scrape_count": 1
+      },
+      "expected_reasons": [
+        "GWM_WINDOW_NOT_SETTLED"
+      ]
+    },
+    {
+      "id": "W03",
+      "description": "start boundary not settled",
+      "manifest_patch": {
+        "start_settled": false,
+        "start_scrape_count": 1
+      },
+      "expected_reasons": [
+        "GWM_WINDOW_NOT_SETTLED"
+      ]
+    },
+    {
+      "id": "W04",
+      "description": "restart asserted",
+      "manifest_patch": {
+        "no_restart": false
+      },
+      "expected_reasons": [
+        "GWM_WINDOW_RESTART"
+      ]
+    },
+    {
+      "id": "W05",
+      "description": "window_start == window_end",
+      "manifest_patch": {
+        "window_end": "2026-10-13T10:00:00Z"
+      },
+      "expected_reasons": [
+        "GWM_WINDOW_ORDER_INVALID"
+      ]
+    },
+    {
+      "id": "W06",
+      "description": "window_start after window_end",
+      "manifest_patch": {
+        "window_start": "2026-10-13T10:10:00Z",
+        "window_end": "2026-10-13T10:00:00Z"
+      },
+      "expected_reasons": [
+        "GWM_WINDOW_ORDER_INVALID"
+      ]
+    },
+    {
+      "id": "W07",
+      "description": "APISIX version outside 3.19.x",
+      "manifest_patch": {
+        "apisix_version": "3.20.0"
+      },
+      "expected_reasons": [
+        "GWM_VERSION_INCOMPATIBLE"
+      ]
+    },
+    {
+      "id": "W08",
+      "description": "a later 3.19 patch is not admitted without a reviewed amendment",
+      "manifest_patch": {
+        "apisix_version": "3.19.1"
+      },
+      "expected_reasons": [
+        "GWM_VERSION_INCOMPATIBLE"
+      ]
+    },
+    {
+      "id": "W09",
+      "description": "3.190.0 is not 3.19.0",
+      "manifest_patch": {
+        "apisix_version": "3.190.0"
+      },
+      "expected_reasons": [
+        "GWM_VERSION_INCOMPATIBLE"
+      ]
+    },
+    {
+      "id": "W11",
+      "description": "the inspected release 3.19.0 is the only compatible version",
+      "manifest_patch": {
+        "apisix_version": "3.19.0"
+      },
+      "expected_reasons": []
+    },
+    {
+      "id": "W10",
+      "description": "several reasons are all reported, sorted",
+      "manifest_patch": {
+        "no_restart": false,
+        "end_settled": false,
+        "end_scrape_count": 1,
+        "apisix_version": "2.15.0"
+      },
+      "expected_reasons": [
+        "GWM_VERSION_INCOMPATIBLE",
+        "GWM_WINDOW_NOT_SETTLED",
+        "GWM_WINDOW_RESTART"
+      ]
+    }
+  ]
+}

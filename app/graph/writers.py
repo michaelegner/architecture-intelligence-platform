@@ -9,6 +9,26 @@ Moved verbatim out of `importer.py`.
 
 import neo4j
 
+from app.canonical.api_contracts import (
+    API_CONTRACT_ASSOCIATION_LABEL,
+    API_CONTRACT_LABEL,
+    API_CONTRACT_VERSION_LABEL,
+)
+from app.canonical.gateway import (
+    GATEWAY_CONFIGURED_ACCESS_LABEL,
+    GATEWAY_CONSUMER_LABEL,
+    GATEWAY_LIMITATION_LABEL,
+    GATEWAY_ROUTE_LABEL,
+    GATEWAY_SERVICE_LABEL,
+    GATEWAY_SOURCE_EVIDENCE_LABEL,
+)
+from app.canonical.gateway_measurement import (
+    MEASUREMENT_EVIDENCE_LABEL,
+    MEASUREMENT_LIMITATION_LABEL,
+    MEASUREMENT_MAPPING_ENTRY_LABEL,
+    MEASUREMENT_SERIES_LABEL,
+    MEASUREMENT_WINDOW_LABEL,
+)
 from app.canonical.model import ArchitectureModel, relation_key
 from app.canonical.pubsub import (
     PUBSUB_DECLARATION_LABEL,
@@ -89,6 +109,9 @@ def write_nodes(
             )
             count += 1
     count += _write_pubsub_carrier_nodes(tx, source_instance_id, model)
+    count += _write_api_contract_carrier_nodes(tx, source_instance_id, model)
+    count += _write_gateway_carrier_nodes(tx, source_instance_id, model)
+    count += _write_measurement_carrier_nodes(tx, source_instance_id, model)
     return count + _write_infrastructure_nodes(tx, source_instance_id, model)
 
 
@@ -115,6 +138,86 @@ def _write_pubsub_carrier_nodes(
                 query,  # pyright: ignore[reportArgumentType]
                 id=carrier.id,
                 props=carrier.model_dump(),
+                source_instance_id=source_instance_id,
+            )
+            count += 1
+    return count
+
+
+def _write_api_contract_carrier_nodes(
+    tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
+) -> int:
+    """v0.7.0 I1.2: the internal API-contract carriers (I1.1 contract §3), written with the same
+    MERGE-with-`owner_source_ids` template as every other canonical node. Their labels sit outside
+    `NODE_LABELS` (NL-query allowlist) and they have no relationships to public entities."""
+    count = 0
+    for label, carriers in (
+        (API_CONTRACT_LABEL, model.api_contracts),
+        (API_CONTRACT_VERSION_LABEL, model.api_contract_versions),
+        (API_CONTRACT_ASSOCIATION_LABEL, model.api_contract_associations),
+    ):
+        query = MERGE_NODE_TEMPLATE.format(label=label)
+        for carrier in carriers:
+            # `label` is a module-level constant, never input, so the formatted query is safe.
+            tx.run(
+                query,  # pyright: ignore[reportArgumentType]
+                id=carrier.id,
+                props=carrier.model_dump(exclude={"id"}),
+                source_instance_id=source_instance_id,
+            )
+            count += 1
+    return count
+
+
+def _write_gateway_carrier_nodes(
+    tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
+) -> int:
+    """v0.7.0 I1.4: the internal APISIX gateway carriers (I1.1 contract §3-§4), written with the
+    same MERGE-with-`owner_source_ids` template as every other canonical node. Their labels sit
+    outside `NODE_LABELS` and they have no relationships."""
+    count = 0
+    for label, carriers in (
+        (GATEWAY_CONSUMER_LABEL, model.gateway_consumers),
+        (GATEWAY_ROUTE_LABEL, model.gateway_routes),
+        (GATEWAY_SERVICE_LABEL, model.gateway_services),
+        (GATEWAY_CONFIGURED_ACCESS_LABEL, model.gateway_configured_accesses),
+        (GATEWAY_LIMITATION_LABEL, model.gateway_limitations),
+        (GATEWAY_SOURCE_EVIDENCE_LABEL, model.gateway_source_evidence),
+    ):
+        query = MERGE_NODE_TEMPLATE.format(label=label)
+        for carrier in carriers:
+            # `label` is a module-level constant, never input, so the formatted query is safe.
+            tx.run(
+                query,  # pyright: ignore[reportArgumentType]
+                id=carrier.id,
+                props=carrier.model_dump(exclude={"id"}),
+                source_instance_id=source_instance_id,
+            )
+            count += 1
+    return count
+
+
+def _write_measurement_carrier_nodes(
+    tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
+) -> int:
+    """v0.7.0 I2.2c: the internal APISIX measurement carriers (I2.1 contract §4), written with the
+    same MERGE-with-`owner_source_ids` template as every other canonical node. Their labels sit
+    outside `NODE_LABELS` and they have no relationships."""
+    count = 0
+    for label, carriers in (
+        (MEASUREMENT_WINDOW_LABEL, model.measurement_windows),
+        (MEASUREMENT_EVIDENCE_LABEL, model.measurement_evidence),
+        (MEASUREMENT_SERIES_LABEL, model.measurement_series),
+        (MEASUREMENT_LIMITATION_LABEL, model.measurement_limitations),
+        (MEASUREMENT_MAPPING_ENTRY_LABEL, model.measurement_mapping_entries),
+    ):
+        query = MERGE_NODE_TEMPLATE.format(label=label)
+        for carrier in carriers:
+            # `label` is a module-level constant, never input, so the formatted query is safe.
+            tx.run(
+                query,  # pyright: ignore[reportArgumentType]
+                id=carrier.id,
+                props=carrier.model_dump(exclude={"id"}),
                 source_instance_id=source_instance_id,
             )
             count += 1

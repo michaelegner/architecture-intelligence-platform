@@ -5,6 +5,8 @@
   "expected_prior_inventory_revision": null,
   "inventory_snapshot": {
     "adapter_identities": [
+      "apisix-adapter@1",
+      "apisix-measurement-adapter@1",
       "asyncapi-adapter@1",
       "kubernetes-adapter@1",
       "manifest-adapter@1",
@@ -22,6 +24,8 @@
     "inventory_revision": "<scrubbed>",
     "mapping_rule_identities": [
       "1",
+      "1",
+      "1",
       "v1",
       "v2",
       "v2"
@@ -33,7 +37,16 @@
   },
   "inventory_status": "COMPLETE",
   "merged_model": {
+    "api_contract_associations": [],
+    "api_contract_versions": [],
+    "api_contracts": [],
     "brokers": [],
+    "gateway_configured_accesses": [],
+    "gateway_consumers": [],
+    "gateway_limitations": [],
+    "gateway_routes": [],
+    "gateway_services": [],
+    "gateway_source_evidence": [],
     "infrastructure_claims": [
       {
         "evidence_refs": [
@@ -192,6 +205,11 @@
         "service_type": null
       }
     ],
+    "measurement_evidence": [],
+    "measurement_limitations": [],
+    "measurement_mapping_entries": [],
+    "measurement_series": [],
+    "measurement_windows": [],
     "messages": [],
     "operations": [],
     "provenance": [
@@ -265,7 +283,16 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [
             {
               "evidence_refs": [
@@ -424,6 +451,11 @@
               "service_type": null
             }
           ],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [],
           "operations": [],
           "provenance": [
@@ -473,7 +505,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "fbae22132711a7aa4d84ceb7bc9ca9feaf7ff2eea5ef27e6c5e2738c46821fa0"
+        "semantic_input_digest": "36a2714d3ef19cea570482a88bfb1738d272e88f06bdd6952ae515e79b2ced9d"
       }
     }
   }

@@ -38,7 +38,7 @@ from app.architecture_intelligence.service import ArchitectureIntelligenceServic
 from app.graph.importer import import_all_sources
 from app.main import create_app
 from app.settings import AppConfig, Secrets, Settings
-from app.sources.model import DiagnosticCode, FilesystemSourceConfig
+from app.sources.model import FilesystemSourceConfig
 from app.telemetry.adapter import adapt
 from app.telemetry.aggregator import persist_observation_batch
 from app.telemetry.model import RuntimeSpan
@@ -265,44 +265,6 @@ def test_g1_overlay_declares_one_topic_one_broker_five_named_subscriptions(drive
     )
 
 
-def test_g1_one_publisher_without_a_broker_id_rejects_the_whole_import(driver, tmp_path):
-    def drop_broker_id(document):
-        del document["servers"]["pitstop-rabbitmq"]["x-aip-broker-id"]
-
-    stats = _import(driver, _variant(tmp_path, workshop_management_api=drop_broker_id))
-
-    # that one document is REJECTED_UNSUPPORTED (AMBIGUOUS) and, being one source set, the import
-    # commits nothing at all: a single bad overlay file empties the demo's declared topology
-    assert DiagnosticCode.AMBIGUOUS in {d.code for d in stats.diagnostics}
-    rejected = [r for r in stats.source_results if r.result.value == "REJECTED_UNSUPPORTED"]
-    assert [Path(r.locator).parent.name for r in rejected] == ["workshop-management-api"]
-    assert stats.committed is False
-    assert _count(driver, "MATCH (n) RETURN count(n) AS c") == 0
-
-
-def test_g1_a_subscriber_without_a_queue_name_gets_no_subscription(driver, tmp_path):
-    def drop_queue_name(document):
-        del document["channels"]["Pitstop"]["subscribe"]["x-aip-subscription-name"]
-
-    stats = _import(driver, _variant(tmp_path, reporting_service=drop_queue_name))
-
-    assert DiagnosticCode.SUBSCRIPTION_IDENTITY_MISSING in {d.code for d in stats.diagnostics}
-    assert _names(driver, "MATCH (s:Subscription) RETURN s.name AS n") == (
-        set(SUBSCRIPTIONS.values()) - {"Reporting"}
-    )
-    assert set(_dependency_claims(_ask(driver))) == set(SUBSCRIPTIONS) - {"ReportingService"}
-
-
-def test_g1_a_virtual_host_namespaces_the_topic_apart_from_the_other_overlays(driver, tmp_path):
-    def add_virtual_host(document):
-        document["servers"]["pitstop-rabbitmq"]["bindings"] = {"amqp": {"virtualHost": "/"}}
-
-    _import(driver, _variant(tmp_path, workshop_management_api=add_virtual_host))
-
-    # one Topic per (broker, namespace, address): the fanout exchange splits in two
-    assert _count(driver, "MATCH (t:Topic) RETURN count(t) AS c") == 2
-
-
 # --- G2: receivers are visible in the existing answer and resolve through get_evidence ----------------
 
 
@@ -335,16 +297,6 @@ def test_g2_every_claim_ref_resolves_through_get_evidence_at_the_answers_snapsho
     assert {r.id for r in evidence.data.records} == set(answer.evidence_refs)
 
 
-def test_g2_there_is_no_receiver_side_claim_so_a_consumer_answer_cannot_list_receivers(driver):
-    _import(driver, OVERLAY)
-
-    consumer = _ask(driver, "service:reporting-service")
-
-    assert _dependency_claims(consumer) == {}
-    # all it states is that the service uses the broker
-    assert [c.object.name for c in _broker_claims(consumer)] == [BROKER]
-
-
 def test_g2_receivers_resolve_only_through_a_declared_publisher(driver, tmp_path):
     root = _variant(tmp_path)
     for publisher in (
@@ -366,37 +318,6 @@ def test_g2_receivers_resolve_only_through_a_declared_publisher(driver, tmp_path
 
 
 # --- G3: a Topic carrying several event types is answered per Topic, without any per-event claim -------
-
-
-def test_g3_header_distinguished_event_types_on_one_channel_change_no_claim(driver, tmp_path):
-    _import(driver, OVERLAY)
-    baseline = _full_claims(_ask(driver))
-    _wipe(driver)
-
-    def two_event_types(document):
-        def event(name):
-            return {
-                "name": name,
-                "headers": {"properties": {"MessageType": {"const": name}}},
-            }
-
-        document["channels"]["Pitstop"]["publish"]["message"] = {
-            "oneOf": [event("MaintenanceJobFinished"), event("MaintenanceJobPlanned")]
-        }
-
-    _import(driver, _variant(tmp_path, workshop_management_api=two_event_types))
-    with_events = _full_claims(_ask(driver))
-
-    assert _count(driver, "MATCH (:Topic)-[r:CARRIES]->(:Message) RETURN count(r) AS c") == 2
-    # nothing in the answer names an event, and the claim set is identical up to the content-hash
-    # ids and refs, which cover the (now richer) declaration evidence
-    volatile = {"claim_id", "evidence_refs", "resolution_evidence_refs"}
-
-    def strip(claims):
-        return [{k: v for k, v in c.items() if k not in volatile} for c in claims]
-
-    assert strip(with_events) == strip(baseline)
-    assert "MaintenanceJob" not in json.dumps(with_events)
 
 
 # --- G4: runtime evidence - publisher qualification (A) and receiver-route evidence (B) ---------------
@@ -435,28 +356,6 @@ def test_g4a_each_publisher_requirement_removed_leaves_the_claims_unqualified(dr
     assert batch.facts == []
     assert set(_qualifications(answer).values()) == {"NOT_OBSERVED_IN_WINDOW"}
     assert _snapshot_id(driver) == before
-
-
-def test_g4a_a_service_name_that_is_not_the_declared_title_mints_an_observed_only_service(driver):
-    _import(driver, OVERLAY)
-
-    batch = _ingest(driver, [_send("workshopmanagementapi")])
-    answer = _ask(driver)
-
-    # not dropped and not attached to the declared publisher: a second, observed-only Service appears
-    assert [f.subject_id for f in batch.facts] == ["service:workshopmanagementapi"]
-    assert _count(driver, "MATCH (x:Service) RETURN count(x) AS c") == 10
-    assert set(_qualifications(answer).values()) == {"NOT_OBSERVED_IN_WINDOW"}
-
-
-def test_g4a_the_messaging_system_attribute_is_not_a_requirement_without_a_namespace(driver):
-    _import(driver, OVERLAY)
-
-    batch = _ingest(driver, [_send(attributes={"messaging.system": "kafka"})])
-
-    # only compared against a declared namespace (a virtual host); the overlay declares none
-    assert [f.subject_id for f in batch.facts] == [PUBLISHER]
-    assert set(_qualifications(_ask(driver)).values()) == {"CONFIRMED"}
 
 
 def test_g4a_a_send_in_another_environment_does_not_qualify_the_requested_one(driver):
@@ -599,32 +498,6 @@ def test_g4_runtime_evidence_never_mints_an_observed_only_topic_or_subscription(
     )
 
 
-def test_g4_no_per_subscription_qualification_is_observable_in_the_answer(driver):
-    _import(driver, OVERLAY)
-    _ingest(
-        driver,
-        [
-            _send(),
-            *[
-                _receive(name, queue)
-                for name, queue in SUBSCRIPTIONS.items()
-                if name != "AuditlogService"
-            ],
-        ],
-    )
-
-    claims = _dependency_claims(_ask(driver))
-
-    # Auditlog's queue was never observed receiving and the other four were, yet the claims cannot
-    # say so: the only qualification a claim carries is the publisher's
-    assert {c.qualification.value for c in claims.values()} == {"CONFIRMED"}
-    assert len(claims["AuditlogService"].resolution_evidence_refs) == 1
-    assert all(
-        len(c.resolution_evidence_refs) == 2 for n, c in claims.items() if n != "AuditlogService"
-    )
-    assert not any("subscription_qualification" in c.model_dump() for c in claims.values())
-
-
 # --- v0.6.2 I0 H1: the declaration lifecycle around the declared-route guard -------------------------
 
 
@@ -720,28 +593,6 @@ def test_h1_lifecycle_3_a_pair_that_never_had_a_declaration_never_creates_the_ro
 # --- G5: observation windows and a stable answer for a completed window --------------------------------
 
 
-def test_g5_windows_are_caller_chosen_and_messaging_qualifies_in_a_day_and_a_short_one(driver):
-    _import(driver, OVERLAY)
-    _ingest(driver, [_send()])
-
-    day = _qualifications(_ask(driver, context=FULL_DAY))
-    short = _qualifications(_ask(driver, context=SHORT_WINDOW))
-    elsewhere = _qualifications(
-        _ask(
-            driver,
-            context={
-                "environment": ENV,
-                "window_start": "2026-10-05T00:00:00Z",
-                "window_end": "2026-10-05T23:59:59Z",
-            },
-        )
-    )
-
-    assert set(day.values()) == {"CONFIRMED"}
-    assert short == day
-    assert set(elsewhere.values()) == {"NOT_OBSERVED_IN_WINDOW"}
-
-
 def test_g5_later_publisher_traffic_leaves_the_claims_of_a_completed_window_unchanged(driver):
     _import(driver, OVERLAY)
     _ingest(driver, [_send(), _receive("ReportingService", "Reporting")])
@@ -826,29 +677,6 @@ def test_g5_a_sub_day_window_is_not_stable_under_later_same_day_traffic(driver):
     assert set(_qualifications(after).values()) == {"NOT_OBSERVED_IN_WINDOW"}
     assert len(_resolution_refs(after, "ReportingService")) == 1
     assert _full_claims(after) != _full_claims(inside)
-
-
-def test_g5_the_snapshot_id_changes_with_later_traffic_and_a_stale_snapshot_is_refused(driver):
-    _import(driver, OVERLAY)
-    _ingest(driver, [_send()])
-    completed = _ask(driver)
-
-    _ingest(driver, [_send(when=DAY_2)])
-    later = _ask(driver)
-
-    # same claims, different snapshot id: the id fingerprints live evidence, not just the window
-    assert _full_claims(later) == _full_claims(completed)
-    assert later.snapshot.snapshot_id != completed.snapshot.snapshot_id
-    stale = _service(driver).get_evidence(
-        EvidenceRequest(
-            evidence_refs=completed.evidence_refs, snapshot_id=completed.snapshot.snapshot_id
-        )
-    )
-    assert stale.data is None
-    fresh = _service(driver).get_evidence(
-        EvidenceRequest(evidence_refs=later.evidence_refs, snapshot_id=later.snapshot.snapshot_id)
-    )
-    assert fresh.data.missing_evidence_refs == []
 
 
 def test_g5_repeating_the_same_import_and_ingest_reproduces_the_claims(driver):

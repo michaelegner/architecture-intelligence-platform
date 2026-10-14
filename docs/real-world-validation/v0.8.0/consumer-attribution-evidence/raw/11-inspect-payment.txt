@@ -1,0 +1,1 @@
+/ecommerce-payment-service hungcs-r6_backend=172.19.0.7 

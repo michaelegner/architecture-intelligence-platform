@@ -5,6 +5,8 @@
   "expected_prior_inventory_revision": "<not supplied>",
   "inventory_snapshot": {
     "adapter_identities": [
+      "apisix-adapter@1",
+      "apisix-measurement-adapter@1",
       "asyncapi-adapter@1",
       "kubernetes-adapter@1",
       "manifest-adapter@1",
@@ -24,6 +26,8 @@
     "inventory_revision": "<scrubbed>",
     "mapping_rule_identities": [
       "1",
+      "1",
+      "1",
       "v1",
       "v2",
       "v2"
@@ -35,15 +39,29 @@
   },
   "inventory_status": "COMPLETE",
   "merged_model": {
+    "api_contract_associations": [],
+    "api_contract_versions": [],
+    "api_contracts": [],
     "brokers": [
       {
         "id": "broker:owned:6543e1d2b53b99fe6698bb17f2a725bb09ef70cf64ee471a333e8a9791434d28",
         "stable_broker_id": "gcp-pubsub:projects/shop"
       }
     ],
+    "gateway_configured_accesses": [],
+    "gateway_consumers": [],
+    "gateway_limitations": [],
+    "gateway_routes": [],
+    "gateway_services": [],
+    "gateway_source_evidence": [],
     "infrastructure_claims": [],
     "infrastructure_contributions": [],
     "infrastructure_entities": [],
+    "measurement_evidence": [],
+    "measurement_limitations": [],
+    "measurement_mapping_entries": [],
+    "measurement_series": [],
+    "measurement_windows": [],
     "messages": [
       {
         "contract_digest": "1631e96a052889a3c481e6209e01bb59d5d46a6350d372c48db1e69ea33e71ce",
@@ -109,7 +127,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "6e2e15a6b0f650b2a93324e821c4314a1e79336149e8651b559507f9fbaf6808",
+        "semantic_input_digest": "b1de313deb2f38943d348fc7edc62a15b8f7dfcaa974b8974cd7beefcdf0e6be",
         "source_instance_id": "urn:aip:source:filesystem:3fe610deb66bf3da9124d39a091f7598c8a2867ad94ca5d4531b13b9e446e7fb",
         "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/checkout/asyncapi.yaml",
         "source_pointer": "/channels/orders",
@@ -132,7 +150,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "d90684b61a5e506756f58fd9986db29dc754dac983ada4f739d1185c15ca0e6a",
+        "semantic_input_digest": "c85dfd191e88033ee4b2553e44ca7fa6556153daa8d2651e91c6c0be15e04e30",
         "source_instance_id": "urn:aip:source:filesystem:9893be892059efa44d0343d4d5005076c46822f4202e8a4ba2eefc76cceadef0",
         "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/fulfillment/asyncapi.yaml",
         "source_pointer": "/channels/orders",
@@ -155,7 +173,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "d90684b61a5e506756f58fd9986db29dc754dac983ada4f739d1185c15ca0e6a",
+        "semantic_input_digest": "c85dfd191e88033ee4b2553e44ca7fa6556153daa8d2651e91c6c0be15e04e30",
         "source_instance_id": "urn:aip:source:filesystem:9893be892059efa44d0343d4d5005076c46822f4202e8a4ba2eefc76cceadef0",
         "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/fulfillment/asyncapi.yaml",
         "source_pointer": "/channels/orders/subscribe",
@@ -178,7 +196,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "04fd0e4f7d26fa39ad8211a233f3acadb244e1daf00a33c79e367e7ddfb9b89e",
+        "semantic_input_digest": "31b2df174806277479a996e722991e2a7f7e70fc398264da9768050ef943a93a",
         "source_instance_id": "urn:aip:source:filesystem:d1e4011f67372dae169d42914c1b425af13236208f9408ebe8c177f568756b0b",
         "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/analytics/asyncapi.yaml",
         "source_pointer": "/channels/orders",
@@ -201,7 +219,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "04fd0e4f7d26fa39ad8211a233f3acadb244e1daf00a33c79e367e7ddfb9b89e",
+        "semantic_input_digest": "31b2df174806277479a996e722991e2a7f7e70fc398264da9768050ef943a93a",
         "source_instance_id": "urn:aip:source:filesystem:d1e4011f67372dae169d42914c1b425af13236208f9408ebe8c177f568756b0b",
         "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/analytics/asyncapi.yaml",
         "source_pointer": "/channels/orders/subscribe",
@@ -425,15 +443,29 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:6543e1d2b53b99fe6698bb17f2a725bb09ef70cf64ee471a333e8a9791434d28",
               "stable_broker_id": "gcp-pubsub:projects/shop"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "1631e96a052889a3c481e6209e01bb59d5d46a6350d372c48db1e69ea33e71ce",
@@ -469,7 +501,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "6e2e15a6b0f650b2a93324e821c4314a1e79336149e8651b559507f9fbaf6808",
+              "semantic_input_digest": "b1de313deb2f38943d348fc7edc62a15b8f7dfcaa974b8974cd7beefcdf0e6be",
               "source_instance_id": "urn:aip:source:filesystem:3fe610deb66bf3da9124d39a091f7598c8a2867ad94ca5d4531b13b9e446e7fb",
               "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/checkout/asyncapi.yaml",
               "source_pointer": "/channels/orders",
@@ -542,7 +574,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "6e2e15a6b0f650b2a93324e821c4314a1e79336149e8651b559507f9fbaf6808"
+        "semantic_input_digest": "b1de313deb2f38943d348fc7edc62a15b8f7dfcaa974b8974cd7beefcdf0e6be"
       }
     },
     "urn:aip:source:filesystem:9893be892059efa44d0343d4d5005076c46822f4202e8a4ba2eefc76cceadef0": {
@@ -568,15 +600,29 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:6543e1d2b53b99fe6698bb17f2a725bb09ef70cf64ee471a333e8a9791434d28",
               "stable_broker_id": "gcp-pubsub:projects/shop"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "1631e96a052889a3c481e6209e01bb59d5d46a6350d372c48db1e69ea33e71ce",
@@ -612,7 +658,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "d90684b61a5e506756f58fd9986db29dc754dac983ada4f739d1185c15ca0e6a",
+              "semantic_input_digest": "c85dfd191e88033ee4b2553e44ca7fa6556153daa8d2651e91c6c0be15e04e30",
               "source_instance_id": "urn:aip:source:filesystem:9893be892059efa44d0343d4d5005076c46822f4202e8a4ba2eefc76cceadef0",
               "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/fulfillment/asyncapi.yaml",
               "source_pointer": "/channels/orders",
@@ -635,7 +681,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "d90684b61a5e506756f58fd9986db29dc754dac983ada4f739d1185c15ca0e6a",
+              "semantic_input_digest": "c85dfd191e88033ee4b2553e44ca7fa6556153daa8d2651e91c6c0be15e04e30",
               "source_instance_id": "urn:aip:source:filesystem:9893be892059efa44d0343d4d5005076c46822f4202e8a4ba2eefc76cceadef0",
               "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/fulfillment/asyncapi.yaml",
               "source_pointer": "/channels/orders/subscribe",
@@ -733,7 +779,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "d90684b61a5e506756f58fd9986db29dc754dac983ada4f739d1185c15ca0e6a"
+        "semantic_input_digest": "c85dfd191e88033ee4b2553e44ca7fa6556153daa8d2651e91c6c0be15e04e30"
       }
     },
     "urn:aip:source:filesystem:d1e4011f67372dae169d42914c1b425af13236208f9408ebe8c177f568756b0b": {
@@ -759,15 +805,29 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:6543e1d2b53b99fe6698bb17f2a725bb09ef70cf64ee471a333e8a9791434d28",
               "stable_broker_id": "gcp-pubsub:projects/shop"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "1631e96a052889a3c481e6209e01bb59d5d46a6350d372c48db1e69ea33e71ce",
@@ -803,7 +863,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "04fd0e4f7d26fa39ad8211a233f3acadb244e1daf00a33c79e367e7ddfb9b89e",
+              "semantic_input_digest": "31b2df174806277479a996e722991e2a7f7e70fc398264da9768050ef943a93a",
               "source_instance_id": "urn:aip:source:filesystem:d1e4011f67372dae169d42914c1b425af13236208f9408ebe8c177f568756b0b",
               "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/analytics/asyncapi.yaml",
               "source_pointer": "/channels/orders",
@@ -826,7 +886,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "04fd0e4f7d26fa39ad8211a233f3acadb244e1daf00a33c79e367e7ddfb9b89e",
+              "semantic_input_digest": "31b2df174806277479a996e722991e2a7f7e70fc398264da9768050ef943a93a",
               "source_instance_id": "urn:aip:source:filesystem:d1e4011f67372dae169d42914c1b425af13236208f9408ebe8c177f568756b0b",
               "source_locator": "<repo>/tests/fixtures/pubsub/google-pubsub/declarations/analytics/asyncapi.yaml",
               "source_pointer": "/channels/orders/subscribe",
@@ -914,7 +974,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "04fd0e4f7d26fa39ad8211a233f3acadb244e1daf00a33c79e367e7ddfb9b89e"
+        "semantic_input_digest": "31b2df174806277479a996e722991e2a7f7e70fc398264da9768050ef943a93a"
       }
     }
   }

@@ -11,10 +11,40 @@ aren't yet guaranteed stable pre-1.0.
 
 ### Added
 
+- **Public read-only hosted Pitstop demo**: an external acceptance script
+  (`examples/pitstop-demo/hosted/verify_public_edge.py`) and the edge requirements for anonymous `POST /mcp`. The
+  script fails unless `tools/list` is exactly the frozen public tool allowlist and every other route, an invalid
+  Host and an oversized body are refused. No AIP behaviour, schema or MCP tool changed; the plugin's `aip_token`
+  stays optional.
+
+## [0.6.3] - 2026-10-11
+
+### v0.6.3 — Runtime and Import Robustness
+
+See the [release notes](docs/release-validation/v0.6.3-release-notes.md) and the
+[specification](docs/specifications/0.6.3/specification.md). A maintenance release: two bounded robustness fixes
+and no new capability, schema, claim type or MCP tool.
+
+### Added
+
+- `server.json`, the metadata-only MCP Registry entry (`io.github.michaelegner/architecture-intelligence-platform`): no
+  packages or remotes, `websiteUrl` points at the README's coding-agent setup. Its `version` is pinned to the release
+  version by `tests/unit/test_release_version_consistency.py`. Metadata only: no product, schema or MCP change.
 - A Claude Code marketplace (`.claude-plugin/marketplace.json`, name `aip-plugins`) listing the Pitstop demo plugin
   `aip` and the optional mod `aip-mod`, so they install without a clone. The plugin (now `0.6.3`) gains a sensitive
   `aip_token` setting for installed plugins (the `AIP_MCP_TOKEN` environment variable still wins, and still serves
   `--plugin-dir`). Example client material only: no product, schema or MCP change.
+
+### Fixed
+
+- A source document containing an integer outside RFC 8785's safe range (for example an `int64`/`uint64` `maximum`) no
+  longer aborts `POST /api/import` with an uncaught `IntegerDomainError` (#305). That source is rejected with a
+  `DOCUMENT_PARSE_INVALID` diagnostic naming where the integer is (never its value); the run is `PARTIAL` and commits
+  nothing, as for any other rejected source, and other configured directories are unaffected. Hashing of in-range
+  documents is unchanged.
+- `POST /v1/traces` no longer blocks the event loop while a batch is ingested: ingestion runs in a worker thread, so REST,
+  MCP and UI requests are answered during it. Batches are still ingested one at a time behind a lock, and evidence
+  semantics are unchanged.
 
 ## [0.6.2] - 2026-10-09
 

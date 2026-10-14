@@ -5,6 +5,8 @@
   "expected_prior_inventory_revision": "<not supplied>",
   "inventory_snapshot": {
     "adapter_identities": [
+      "apisix-adapter@1",
+      "apisix-measurement-adapter@1",
       "asyncapi-adapter@1",
       "kubernetes-adapter@1",
       "manifest-adapter@1",
@@ -26,6 +28,8 @@
     "inventory_revision": "<scrubbed>",
     "mapping_rule_identities": [
       "1",
+      "1",
+      "1",
       "v1",
       "v2",
       "v2"
@@ -37,15 +41,29 @@
   },
   "inventory_status": "COMPLETE",
   "merged_model": {
+    "api_contract_associations": [],
+    "api_contract_versions": [],
+    "api_contracts": [],
     "brokers": [
       {
         "id": "broker:owned:84bde618576516f8625f3d12f95e5b383e81743a80cde7d41666c276671ec70a",
         "stable_broker_id": "azure-sb:commerce"
       }
     ],
+    "gateway_configured_accesses": [],
+    "gateway_consumers": [],
+    "gateway_limitations": [],
+    "gateway_routes": [],
+    "gateway_services": [],
+    "gateway_source_evidence": [],
     "infrastructure_claims": [],
     "infrastructure_contributions": [],
     "infrastructure_entities": [],
+    "measurement_evidence": [],
+    "measurement_limitations": [],
+    "measurement_mapping_entries": [],
+    "measurement_series": [],
+    "measurement_windows": [],
     "messages": [
       {
         "contract_digest": "211506f2bb9280354fc6bc603d77533fd5f6ce0b38809169aa3a0213b3c14c90",
@@ -149,7 +167,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "93f2d644197680c90e5f348f24a872bdff4ab37b72713e8a50d2bf96ae9b7df0",
+        "semantic_input_digest": "0a6b51457cd3ef27c7232433e0264392e10d92f67131c8e56e4b7e958950198e",
         "source_instance_id": "urn:aip:source:filesystem:800d7de93179d3e2bf383ae937f8e5ed23410db03fee82b38052f78ba7876042",
         "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/orders/asyncapi.yaml",
         "source_pointer": "/channels/order-events",
@@ -172,7 +190,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "aa3de79b2bd0d8f1b5805a4cdd9fd9ba71fefdc27d52f0244df2dc33ddb8c4de",
+        "semantic_input_digest": "2accfd5915d163f4bea03bcf0f2a107e98cb338f7a80ea28698219c6f42cc91b",
         "source_instance_id": "urn:aip:source:filesystem:8142c9f5b46bfd99d018f518d5cf1024df276f8ae557dd4c522d17299be2f0f4",
         "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/audit/asyncapi.yaml",
         "source_pointer": "/channels/order-events",
@@ -195,7 +213,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "aa3de79b2bd0d8f1b5805a4cdd9fd9ba71fefdc27d52f0244df2dc33ddb8c4de",
+        "semantic_input_digest": "2accfd5915d163f4bea03bcf0f2a107e98cb338f7a80ea28698219c6f42cc91b",
         "source_instance_id": "urn:aip:source:filesystem:8142c9f5b46bfd99d018f518d5cf1024df276f8ae557dd4c522d17299be2f0f4",
         "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/audit/asyncapi.yaml",
         "source_pointer": "/channels/order-events/subscribe",
@@ -218,7 +236,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "ac7b52ff509dc65d867bea5b4557dcf10a373de9e3ce59d18a8374347bdc0d49",
+        "semantic_input_digest": "f0e78be6197133f1d7a3c9dabebaf4ac7dbebe29aa0bbad216ecf7a8c83cee12",
         "source_instance_id": "urn:aip:source:filesystem:d3ad63dfe28a0e2acf89f30c9bf3ab84bf8549a3b4f63fe52f0bf6cdaafb01a0",
         "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/billing/asyncapi.yaml",
         "source_pointer": "/channels/order-events",
@@ -241,7 +259,7 @@
         "mapping_rule_id": "asyncapi-adapter@1",
         "mapping_rule_version": "v2",
         "namespace": null,
-        "semantic_input_digest": "ac7b52ff509dc65d867bea5b4557dcf10a373de9e3ce59d18a8374347bdc0d49",
+        "semantic_input_digest": "f0e78be6197133f1d7a3c9dabebaf4ac7dbebe29aa0bbad216ecf7a8c83cee12",
         "source_instance_id": "urn:aip:source:filesystem:d3ad63dfe28a0e2acf89f30c9bf3ab84bf8549a3b4f63fe52f0bf6cdaafb01a0",
         "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/billing/asyncapi.yaml",
         "source_pointer": "/channels/order-events/subscribe",
@@ -592,15 +610,29 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:84bde618576516f8625f3d12f95e5b383e81743a80cde7d41666c276671ec70a",
               "stable_broker_id": "azure-sb:commerce"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "211506f2bb9280354fc6bc603d77533fd5f6ce0b38809169aa3a0213b3c14c90",
@@ -644,7 +676,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "93f2d644197680c90e5f348f24a872bdff4ab37b72713e8a50d2bf96ae9b7df0",
+              "semantic_input_digest": "0a6b51457cd3ef27c7232433e0264392e10d92f67131c8e56e4b7e958950198e",
               "source_instance_id": "urn:aip:source:filesystem:800d7de93179d3e2bf383ae937f8e5ed23410db03fee82b38052f78ba7876042",
               "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/orders/asyncapi.yaml",
               "source_pointer": "/channels/order-events",
@@ -756,7 +788,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "93f2d644197680c90e5f348f24a872bdff4ab37b72713e8a50d2bf96ae9b7df0"
+        "semantic_input_digest": "0a6b51457cd3ef27c7232433e0264392e10d92f67131c8e56e4b7e958950198e"
       }
     },
     "urn:aip:source:filesystem:8142c9f5b46bfd99d018f518d5cf1024df276f8ae557dd4c522d17299be2f0f4": {
@@ -782,15 +814,29 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:84bde618576516f8625f3d12f95e5b383e81743a80cde7d41666c276671ec70a",
               "stable_broker_id": "azure-sb:commerce"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "211506f2bb9280354fc6bc603d77533fd5f6ce0b38809169aa3a0213b3c14c90",
@@ -826,7 +872,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "aa3de79b2bd0d8f1b5805a4cdd9fd9ba71fefdc27d52f0244df2dc33ddb8c4de",
+              "semantic_input_digest": "2accfd5915d163f4bea03bcf0f2a107e98cb338f7a80ea28698219c6f42cc91b",
               "source_instance_id": "urn:aip:source:filesystem:8142c9f5b46bfd99d018f518d5cf1024df276f8ae557dd4c522d17299be2f0f4",
               "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/audit/asyncapi.yaml",
               "source_pointer": "/channels/order-events",
@@ -849,7 +895,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "aa3de79b2bd0d8f1b5805a4cdd9fd9ba71fefdc27d52f0244df2dc33ddb8c4de",
+              "semantic_input_digest": "2accfd5915d163f4bea03bcf0f2a107e98cb338f7a80ea28698219c6f42cc91b",
               "source_instance_id": "urn:aip:source:filesystem:8142c9f5b46bfd99d018f518d5cf1024df276f8ae557dd4c522d17299be2f0f4",
               "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/audit/asyncapi.yaml",
               "source_pointer": "/channels/order-events/subscribe",
@@ -937,7 +983,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "aa3de79b2bd0d8f1b5805a4cdd9fd9ba71fefdc27d52f0244df2dc33ddb8c4de"
+        "semantic_input_digest": "2accfd5915d163f4bea03bcf0f2a107e98cb338f7a80ea28698219c6f42cc91b"
       }
     },
     "urn:aip:source:filesystem:8e633b33048428bf21a37229562e44ed7e708ab8dde8f760d6e1d58b313b9b1d": {
@@ -963,15 +1009,29 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:84bde618576516f8625f3d12f95e5b383e81743a80cde7d41666c276671ec70a",
               "stable_broker_id": "azure-sb:commerce"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "211506f2bb9280354fc6bc603d77533fd5f6ce0b38809169aa3a0213b3c14c90",
@@ -1057,7 +1117,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "d73e9bd3fe859d08ff17cd34a6bdcc8f406e6528bca16e505b67f6bdf6f9c498"
+        "semantic_input_digest": "3c9361444dd2c0fe81e842aadc6232a2eacb0e10a035020932eecbad101515b6"
       }
     },
     "urn:aip:source:filesystem:ae1ec1902f1ebaf4c322da59c93c4ce9883352f27a50ba0994645e06fb804ec0": {
@@ -1083,15 +1143,29 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:84bde618576516f8625f3d12f95e5b383e81743a80cde7d41666c276671ec70a",
               "stable_broker_id": "azure-sb:commerce"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "211506f2bb9280354fc6bc603d77533fd5f6ce0b38809169aa3a0213b3c14c90",
@@ -1177,7 +1251,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "589bba4a6cfb1697c573d680b55fc6f8e26ebf119b0c16214af7f0d46be72014"
+        "semantic_input_digest": "fa98438963baeb0620b60a894eb418085b82ed4709cdada543d8746b39757ffc"
       }
     },
     "urn:aip:source:filesystem:d3ad63dfe28a0e2acf89f30c9bf3ab84bf8549a3b4f63fe52f0bf6cdaafb01a0": {
@@ -1203,15 +1277,29 @@
       "outcome": {
         "diagnostics": [],
         "model": {
+          "api_contract_associations": [],
+          "api_contract_versions": [],
+          "api_contracts": [],
           "brokers": [
             {
               "id": "broker:owned:84bde618576516f8625f3d12f95e5b383e81743a80cde7d41666c276671ec70a",
               "stable_broker_id": "azure-sb:commerce"
             }
           ],
+          "gateway_configured_accesses": [],
+          "gateway_consumers": [],
+          "gateway_limitations": [],
+          "gateway_routes": [],
+          "gateway_services": [],
+          "gateway_source_evidence": [],
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "measurement_evidence": [],
+          "measurement_limitations": [],
+          "measurement_mapping_entries": [],
+          "measurement_series": [],
+          "measurement_windows": [],
           "messages": [
             {
               "contract_digest": "211506f2bb9280354fc6bc603d77533fd5f6ce0b38809169aa3a0213b3c14c90",
@@ -1247,7 +1335,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "ac7b52ff509dc65d867bea5b4557dcf10a373de9e3ce59d18a8374347bdc0d49",
+              "semantic_input_digest": "f0e78be6197133f1d7a3c9dabebaf4ac7dbebe29aa0bbad216ecf7a8c83cee12",
               "source_instance_id": "urn:aip:source:filesystem:d3ad63dfe28a0e2acf89f30c9bf3ab84bf8549a3b4f63fe52f0bf6cdaafb01a0",
               "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/billing/asyncapi.yaml",
               "source_pointer": "/channels/order-events",
@@ -1270,7 +1358,7 @@
               "mapping_rule_id": "asyncapi-adapter@1",
               "mapping_rule_version": "v2",
               "namespace": null,
-              "semantic_input_digest": "ac7b52ff509dc65d867bea5b4557dcf10a373de9e3ce59d18a8374347bdc0d49",
+              "semantic_input_digest": "f0e78be6197133f1d7a3c9dabebaf4ac7dbebe29aa0bbad216ecf7a8c83cee12",
               "source_instance_id": "urn:aip:source:filesystem:d3ad63dfe28a0e2acf89f30c9bf3ab84bf8549a3b4f63fe52f0bf6cdaafb01a0",
               "source_locator": "<repo>/tests/fixtures/pubsub/azure-service-bus/declarations/billing/asyncapi.yaml",
               "source_pointer": "/channels/order-events/subscribe",
@@ -1368,7 +1456,7 @@
           ]
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "ac7b52ff509dc65d867bea5b4557dcf10a373de9e3ce59d18a8374347bdc0d49"
+        "semantic_input_digest": "f0e78be6197133f1d7a3c9dabebaf4ac7dbebe29aa0bbad216ecf7a8c83cee12"
       }
     }
   }

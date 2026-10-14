@@ -1,4 +1,13 @@
 from app.canonical import ids
+from app.canonical.api_contracts import (
+    CONTRACT_VERSION_LIMITATION,
+    ApiContract,
+    ApiContractAssociation,
+    ApiContractVersion,
+    api_contract_association_id,
+    api_contract_id,
+    api_contract_version_id,
+)
 from app.canonical.model import ArchitectureModel, Operation, Relation, Schema, Service
 from app.ingestion.adapter_outcomes import (
     composition_limitation_diagnostic,
@@ -264,10 +273,27 @@ class OpenApiSourceAdapter:
         evidence = declared_evidence(loaded, "OPENAPI")
         relations = stamp_evidence(relations, evidence)
 
+        info_version = info.get("version")
         services = [
-            Service(id=service_id, name=info.get("title", service_id), version=info.get("version"))
+            Service(
+                id=service_id,
+                name=info.get("title", service_id),
+                # `Service.version` is a string; a non-string `info.version` (e.g. the YAML float
+                # 1.0) used to raise here. It is now carried as no version (v0.7.0 I1.1 contract
+                # §3: a non-string version never rejects the source), and the contract carrier
+                # records CONTRACT_VERSION_MISSING_OR_NOT_STRING.
+                version=info_version if isinstance(info_version, str) else None,
+            )
             for service_id in sorted(resolved_service_ids)
         ]
+
+        contracts, contract_versions, contract_associations = _api_contract_carriers(
+            source_instance_id=source_instance_id,
+            info_version=info_version,
+            service_ids=sorted(resolved_service_ids),
+            operation_ids=[operation.id for operation in operations],
+            evidence_id=evidence.id,
+        )
 
         model = ArchitectureModel(
             services=services,
@@ -275,6 +301,9 @@ class OpenApiSourceAdapter:
             schemas=list(schemas_by_id.values()),
             relations=relations,
             provenance=[evidence],
+            api_contracts=contracts,
+            api_contract_versions=contract_versions,
+            api_contract_associations=contract_associations,
         )
 
         digest = semantic_input_digest(
@@ -291,3 +320,55 @@ class OpenApiSourceAdapter:
         return AdapterOutcome(
             result=result, model=model, diagnostics=diagnostics, semantic_input_digest=digest
         )
+
+
+def _api_contract_carriers(
+    *,
+    source_instance_id: str,
+    info_version: object,
+    service_ids: list[str],
+    operation_ids: list[str],
+    evidence_id: str,
+) -> tuple[list[ApiContract], list[ApiContractVersion], list[ApiContractAssociation]]:
+    """v0.7.0 I1.2 (contract §3): this OpenAPI source's internal contract carriers. Always computed;
+    the orchestrator keeps them only for an import request that configures a gateway source. An
+    absent, empty or non-string `info.version` mints no `ApiContractVersion` (and so no association)
+    and is recorded as a limitation on the contract - it never changes the source's result, so
+    existing OpenAPI behavior is preserved. Operation and Service ids are only referenced."""
+    contract_id = api_contract_id(source_instance_id)
+    if not isinstance(info_version, str) or not info_version:
+        contract = ApiContract(
+            id=contract_id,
+            openapi_source_instance_id=source_instance_id,
+            limitations=[CONTRACT_VERSION_LIMITATION],
+        )
+        return [contract], [], []
+    version_id = api_contract_version_id(contract_id, info_version)
+    associations = [
+        ApiContractAssociation(
+            id=api_contract_association_id(
+                "OPERATION_IN_CONTRACT_VERSION", version_id, operation_id
+            ),
+            kind="OPERATION_IN_CONTRACT_VERSION",
+            contract_version_id=version_id,
+            target_id=operation_id,
+            evidence_ids=[evidence_id],
+        )
+        for operation_id in operation_ids
+    ] + [
+        ApiContractAssociation(
+            id=api_contract_association_id(
+                "CONTRACT_VERSION_DECLARED_FOR_SERVICE", version_id, service_id
+            ),
+            kind="CONTRACT_VERSION_DECLARED_FOR_SERVICE",
+            contract_version_id=version_id,
+            target_id=service_id,
+            evidence_ids=[evidence_id],
+        )
+        for service_id in service_ids
+    ]
+    return (
+        [ApiContract(id=contract_id, openapi_source_instance_id=source_instance_id)],
+        [ApiContractVersion(id=version_id, contract_id=contract_id, info_version=info_version)],
+        sorted(associations, key=lambda association: association.id),
+    )

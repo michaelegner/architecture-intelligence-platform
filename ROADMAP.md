@@ -1,10 +1,25 @@
 # Roadmap
 
-**Product mission:** Build architecture intelligence that agents can consume and humans can inspect, challenge, and understand.
+**Product mission:** Build architecture intelligence that agents can consume and humans can inspect,
+challenge, and understand.
 
-This mission guides human and agent exploration of the same evidence-qualified architecture
-knowledge; it does not introduce additional release scope or alter the qualification requirements
-below.
+The current product boundary is **distributed architecture across autonomous services/components**.
+The initial adoption wedge remains AI-assisted bounded change in existing distributed systems: before
+editing one component, help the agent identify which external components and distributed
+relationships require inspection, why they are relevant, what evidence supports that relevance, and
+what remains unresolved.
+
+The roadmap follows the doctrine:
+
+> **Current State is locally observed. Intent is locally attributable. Assessment is locally made.
+> AIP answers distributed-architecture questions by projecting the relevant local views into a
+> bounded, evidence-qualified result.**
+
+This does **not** make a complete enterprise architecture model a product goal. AIP may retain
+evidence from many systems, but it composes local views only as far as a concrete
+distributed-architecture question requires. Repository/source analysis remains complementary:
+AIP should establish where investigation crosses autonomous boundaries; source analysis should
+establish what each implementation does.
 
 ## Versioning
 
@@ -302,17 +317,16 @@ qualification in I2, not I1.
 Every source maps through the shared Canonical Model. Placement is retained as source/context
 evidence only; v0.5 exposes no locality-qualified claim or projection.
 
-```text
-non-observation != absence
-source disappearance != authorized source removal
-unresolved identity > guessed identity
-explicitly unsupported > incorrectly represented as supported
-Queue != Topic
-Topic != Subscription
-Service != Kubernetes Service != Workload != Pod
-co-location != dependency
-observed behavior != intent
-```
+The release preserves these distinctions:
+
+- Non-observation is not absence.
+- Source disappearance is not authorized source removal.
+- An unresolved identity is preferable to a guessed identity.
+- Explicitly unsupported semantics are preferable to incorrectly representing them as supported.
+- A Queue is distinct from a Topic, and a Topic is distinct from a Subscription.
+- A Service, Kubernetes Service, Workload, and Pod are distinct identities.
+- Co-location does not establish a dependency.
+- Observed behavior does not establish Intent.
 
 Exit capability:
 
@@ -372,17 +386,8 @@ Region, tenant, service-version locality and messaging locality are **deferred/u
 candidates**. They are not allocated to v0.7 or v0.8 by this release. The product pilot remains
 `NOT_RUN`, with its product-value gate carried into v1.0-rc stable-contract admission.
 
-Conceptually:
-
-```text
-Current-State Evidence
-        ↓
-Qualified Local Evidence Assessment
-        ↓
-Deterministic Current-State Projection
-        ↓
-Evidence-Qualified Current State
-```
+Conceptually, AIP evaluates Current-State evidence into qualified local evidence assessments and
+then uses deterministic Current-State projection to produce evidence-qualified Current State.
 
 Key requirements:
 
@@ -484,6 +489,22 @@ Exit capability:
 > the limits of that knowledge, and identify what still needs inspection without reconstructing the
 > topology from the checkout alone.**
 
+## v0.6.3 — Runtime and Import Robustness (shipped)
+
+Published **v0.6.3 on 2026-10-11**; terminal outcome **SHIPPED_VERIFIED**. See the
+[release record](docs/release-validation/v0.6.3-release-record.md).
+
+**Goal: fix two bounded robustness defects without changing the v0.6 architecture-question space or evidence semantics.**
+
+See the accepted maintenance specification in [docs/specifications/0.6.3/specification.md](docs/specifications/0.6.3/specification.md).
+
+The release contains exactly two maintenance corrections:
+
+- **Telemetry responsiveness:** POST /v1/traces currently calls synchronous ingestion on the FastAPI event loop, so REST, MCP and UI requests can wait for the whole batch. Move blocking ingestion work off the event loop while preserving serialized ingestion. The committed benchmarks/traces_stall.py baseline remains measurement evidence, not a product SLO.
+- **Per-source import rejection/diagnosis (#305):** an OpenAPI/AsyncAPI document containing an integer outside RFC 8785's safe integer domain must be rejected with an explicit diagnostic instead of escaping as an uncaught exception. The overall discovery run remains `PARTIAL`, nothing from that run commits, and previously accepted state is preserved. Preserve strict current hashing semantics; do not add lossy coercion, alternate encoding or a hash migration in this patch release.
+
+No API-aware Current-State semantics, new source family, canonical relationship, public Architecture Intelligence question or MCP tool belongs in v0.6.3. Broader support for out-of-range JSON integers is deferred to a separate semantic decision.
+
 ## v0.7 — API-Aware Current State (planned)
 
 **Goal: Establish evidence-qualified Current-State knowledge of how APIs are exposed and consumed,
@@ -554,165 +575,202 @@ Exit capability:
 > insufficiently supported in the selected context without silently inventing product, business,
 > authorization, or Intent claims.**
 
-## v0.8 — Explicit Architecture Intent (planned)
+## v0.7.1 — Broker-Mediated Consumer Attribution (planned)
 
-**Goal: Represent explicit, attributable architectural intent without allowing Intent to alter
-established Current State.**
+**Goal:** complete the existing messaging Current-State question so AIP can qualify which Services
+consume a broker-mediated destination without collapsing broker-native identities.
 
 **Product question:**
 
-> **What explicit architecture intent applies here?**
+> **For destination D in environment E, which Services can the available evidence safely attribute
+> as consumers, and with what qualification?**
 
-Focus: introduce a source-neutral Intent/Assertion model after the Current-State path is already
-locality-aware and independently qualified.
+**Evidence basis:** Round 5 found the question recurring across Kafka and RabbitMQ systems. PR #527
+then demonstrated a **SUPPORTED EVIDENCE PATH** for Kafka: broker-held group/member state established
+topic attachment, while separate configuration/runtime evidence mapped that identity to a Service
+without treating the consumer group as a Subscription.
 
-The governing invariant is:
+Requirements:
 
-> **With evidence, evaluation context, identity resolution, and mapping, qualification, and projection
-> rule versions held constant, changing Intent must not change established Current State.**
+- define the smallest source-independent consumer-attribution semantics while keeping Kafka groups,
+  RabbitMQ queues/bindings, Service Bus subscriptions, destinations, and Services distinct;
+- keep broker evidence and Service-mapping evidence separate and preserve provenance, environment/time,
+  unresolved mappings, and the difference between attachment and actual message processing;
+- qualify the semantics against the captured Kafka case and at least one contrasting RabbitMQ shape;
+- add only the bounded ingestion/public-surface changes needed for this existing question.
 
-Conceptually:
+Out of scope: general broker-topology modelling, routing predicates, lag/offset/rebalancing,
+DLQ/retry topology, or broad broker administration.
 
-```text
-CURRENT-STATE PATH
+**Exit capability:**
 
-Current-State Evidence
-        ↓
-Qualified Local Evidence Assessments
-        ↓
-Current-State Projection
+> **AIP can evidence-qualify Service-level consumer attribution for broker-mediated destinations
+> without inventing equivalence between distinct broker-native concepts.**
 
+## v0.8 — Cross-Boundary Architecture Knowledge + Product-Boundary Validation (planned)
 
-INTENT PATH
+**Goal:** add only the Current-State composition/membership semantics needed for bounded
+cross-boundary projections, while proving that AIP contributes material distributed-system context
+beyond strong repository/source analysis.
 
-Explicit Attributable Intent Artifact
-        ↓
-Intent Assertion
-        ↓
-Applicable Intent Projection
-```
+**Product question:**
 
-Candidate Intent semantics include explicit promises, capability offers and acceptances, requirements,
-constraints, required or prohibited relationships, scope, effective interval, and provenance.
-Requirements, offers, acceptances, and promises retain distinct assertion kinds and attributable
-actors. A consumer requirement does not establish a provider promise; a promise identifies its
-promiser, content, conditions, and recipient or audience where applicable.
+> **Which evidence-qualified distributed relationships cross independently established System or
+> Component boundaries?**
 
-Intent applicability must distinguish authorship from authority and account for externally evidenced
-approval status, authority scope, exceptions, revocation, and explicit supersession. Conflicting or
-missing authority remains unresolved unless an explicit applicable resolution rule establishes
-precedence. AIP consumes these decisions and does not own approval workflows.
+**Product-boundary question:**
 
-Each applicable Intent projection requires a versioned identity and explicit lineage references to
-its assertion revisions, authority/lifecycle evidence, evaluation context, and mapping/applicability
-rule versions. Revoking an exception must produce a distinguishable projection even if the Intent
-text remains unchanged. Identity/versioning does not promise historical retention or retrieval;
-unavailable prior dependencies must be reported explicitly.
+> **Does that cross-boundary evidence materially change what a coding agent needs to inspect before a
+> bounded change, beyond what repository/source analysis already provides?**
 
-Potential carriers may include OpenAPI Overlay, AsyncAPI-compatible explicit extensions/artifacts,
-standalone AIP Intent artifacts, OpenSpec, or other attributable machine-readable specifications.
-The carrier must not become the semantic model: AIP should normalize Intent into source-neutral
-assertions.
+The core rule remains:
+
+> **A relationship does not establish a boundary. A boundary does not establish a relationship.**
+
+v0.8 may classify already-qualified relationships as within-boundary, cross-boundary, or unresolved.
+Membership must not be inferred from connectivity, repository structure, namespace, co-location,
+naming, ownership, or graph proximity. A generic enterprise metamodel remains out of scope.
+
+### Product-boundary validation
+
+v0.8 includes a **Pitstop × Teamscale 2026.7.x** product-boundary PoC to test whether AIP adds
+material value beyond strong repository/source architecture analysis.
+
+The PoC should evaluate a realistic cross-repository distributed scenario in which relevant
+relationships cannot be assumed from repository structure alone. The comparison must give the
+baseline tools realistic access to the source they can analyze, while AIP must establish distributed
+relationships from independently qualified evidence.
+
+The validation should determine whether AIP changes the investigation boundary for a bounded
+coding-agent task in ways that source analysis cannot safely reproduce, and whether that additional
+value justifies AIP's evidence and maintenance cost.
+
+The checkpoint records one of **continue, narrow, integrate, defer, or stop**. AIP should not
+duplicate capabilities that an adjacent architecture-analysis product can provide equally well at
+lower cost.
+
+The same checkpoint should inform whether later AIP-owned **external Intent** and **local distributed
+Assessment** capabilities remain justified or should instead be provided through integration with
+adjacent architecture/conformance products.
+
+**Exit capability:**
+
+> **AIP can produce an evidence-qualified cross-boundary view for a bounded distributed-architecture
+> question, and the product validation establishes whether that view materially improves the
+> coding-agent workflow beyond repository/source analysis.**
+
+## v0.9 — External Architecture Intent (provisional; checkpoint-dependent)
+
+**Status:** provisional candidate scope. Execution is not authorized by this roadmap alone. The v0.8
+checkpoint must first demonstrate that AIP should own external distributed Intent rather than consume
+it from an adjacent architecture/governance product.
+
+**Goal:** represent explicit, locally attributable promises made by autonomous components to the
+outside, without allowing those promises to alter established Current State.
+
+**Product question:**
+
+> **What does this autonomous service/component explicitly promise to the outside in this context?**
+
+For AIP, Intent is deliberately narrower than general architecture policy or internal design intent.
+Repository-local layering rules, package rules, class dependencies, and internal source conformance
+remain outside this product capability.
+
+The governing separation is that **Current State describes locally observed distributed
+cooperation**, while **Intent captures locally attributable external promises**. Neither is a
+substitute for the other.
+
+Candidate external-Intent semantics include:
+
+- a provider promise to expose or publish a contract/capability;
+- a consumer promise to consume/use an external contract/capability;
+- explicit offer/acceptance semantics where the distinction matters;
+- required or prohibited external relationships where an accountable participant actually makes the
+  assertion;
+- conditions, scope, effective interval, attribution, provenance, and lifecycle.
+
+A provider promise and a consumer promise remain separate. A consumer dependency or desire does not
+create a provider obligation. Central enterprise policy may constrain a relationship but does not
+manufacture an autonomous participant's promise.
 
 Intent must never be inferred as authoritative from runtime frequency, code structure, naming,
-co-location, probabilistic interpretation, or agent-generated rationale.
+co-location, repository structure, probabilistic interpretation, or agent-generated rationale.
+
+Potential carriers may include OpenAPI Overlay, AsyncAPI-compatible explicit extensions/artifacts,
+standalone AIP artifacts, or externally managed architecture-intent systems. The carrier must not
+become the semantic model.
+
+The Current-State invariant remains:
+
+> **With Current-State evidence and qualification inputs held constant, adding, removing, or changing
+> external Intent must not change established Current State.**
 
 Exit capability:
 
-> **AIP can ingest distinct, attributable Intent assertions and establish their applicability from
-> authority, lifecycle, scope, and time evidence, preserving versioned projection identity and lineage
-> without treating Intent as evidence of Current State.**
+> **AIP can represent an explicit external promise with its attributable participant, scope,
+> conditions, effective interval, provenance, and unresolved authority/lifecycle limits without
+> treating that promise as evidence that the distributed relationship currently exists.**
 
-No Current↔Intent compliance/enforcement engine, historical trajectory model, migration scripting,
-or automatic remediation is required in v0.8.
+No internal architecture conformance engine, approval workflow, generic policy model, Current↔Intent
+assessment, historical trajectory model, migration scripting, or automatic remediation is required.
 
-## v0.9 — Qualified Architecture Assessment (planned)
+## v0.10 — Local Distributed Architecture Assessment (provisional; checkpoint-dependent)
 
-**Goal: Assess independently established Current State against independently established applicable
-Intent.**
+**Status:** provisional candidate scope. Execution depends on the v0.8 product-boundary checkpoint
+and, if AIP-owned external Intent is retained, on a qualified v0.9 capability. The checkpoint must
+show that AIP adds material value by assessing external promises against distributed cooperation
+rather than leaving that function entirely to an adjacent conformance product.
+
+**Goal:** make a local, evidence-qualified assessment of the relationship between independently
+established distributed Current State and independently attributable external Intent.
 
 **Product question:**
 
-> **Where does Current State differ from applicable Intent?**
+> **What does the available evidence support about the relationship between this external promise and
+> the distributed cooperation observed here?**
 
-Focus: add a separate, read-only, evidence-linked assessment layer over the two already independent
-semantic paths.
+A local distributed assessment is derived from an independently established local Current-State view
+and an independently attributable external promise.
 
-The dependency direction is:
+A promise or policy must never be used to manufacture Current State.
 
-```text
-Current-State Evidence
-        ↓
-Qualified Local Evidence Assessments
-        ↓
-Current-State Projection
-                         \
-                          +--> Qualified Current ↔ Intent Assessment
-                         /
-Explicit Intent Artifacts
-        ↓
-Applicable Intent Projection
-```
+Assessment is explicitly local. It is bound to the participant(s), locality, observation context,
+time, evidence, promise, and rule used. A local assessment does not become a universal compliance
+judgment merely because AIP can project it with other local assessments.
 
-Never:
+Temporal dimensions remain independent:
 
-```text
-Intent
-  ↓
-Current-State qualification
-```
+- **Observation window** records when Current-State evidence was observed.
+- **Effective from / effective until** records when the external promise applies.
 
-Assessment semantics must preserve both temporal dimensions independently:
+Evidence predating a promise's effective interval does not by itself establish present fulfillment or
+contradiction. Partial or incompatible coverage must remain inconclusive unless an explicit
+qualification rule supports a narrower conclusion.
 
-```text
-observation_window
-    = when Current-State evidence was observed
+Exact public outcome vocabulary must be frozen only after deterministic truth tables and real-system
+fixtures exist. "Not observed" must never become "contradicted" without a supported closed-world
+rule.
 
-effective_from / effective_until
-    = when the explicit Intent applies
-```
-
-Assessment also requires explicit temporal compatibility between evidence and Intent, including
-relevant service/deployment versions. Evidence predating an Intent's effective interval does not by
-itself establish present fulfillment or violation. Partial overlaps require a qualified comparable
-portion; otherwise the result remains inconclusive. Compatibility and coverage rules must be frozen
-before qualification fixtures are authored.
-
-Each assessment must reference the exact Current-State and versioned applicable-Intent projections
-used, with their rule and evidence lineage. It must not silently replace earlier authority/lifecycle
-inputs with their latest status. Where dependencies are unavailable, reproducibility limitations
-must be explicit; historical retrieval remains beyond v1.0.
-
-Independent evaluation does not imply independent evidence or complete verification of a change.
-Assessments must preserve source modes and disclose known shared origins or unknown independence.
-Re-importing an agent-edited contract establishes a declaration, not independent confirmation of
-implementation or runtime behavior.
-
-Possible assessment outcomes may include concepts such as `ESTABLISHED`, `CONTRADICTED`,
-`NOT_ESTABLISHED`, `INSUFFICIENT_EVIDENCE`, and `CONFLICTING_EVIDENCE`, but the exact public
-vocabulary must not be frozen until deterministic truth tables and independently authored evaluation
-fixtures exist.
-
-`CONTRADICTED` must never mean merely "not observed" unless an explicit closed-world rule permits
-that interpretation.
-
-The agent-facing surface may gain additional read-only Architecture Intelligence capabilities if
-needed, but MCP transport should remain stable and generic graph/Cypher access should remain outside
-the correctness path.
+A bounded projection may combine several local assessments to answer a larger
+distributed-architecture question, but it must preserve each assessment's locality, authority,
+provenance, qualification, and uncertainty.
 
 Exit capability:
 
-> **AIP can explain where an independently established Current State aligns with, diverges from, or
-> cannot yet be evaluated against the explicit Intent that applies in the selected context.**
+> **AIP can state what evidence supports, contradicts, or cannot establish about an applicable
+> external promise in a specific distributed context, and can include that local assessment in a
+> bounded question-specific projection without turning it into global truth.**
 
-Explicitly out of scope for v0.9:
+Explicitly out of scope:
 
-- architecture trajectories / historical architecture state;
+- repository-internal architecture assessment;
+- generic enterprise compliance;
+- policy authoring or approval;
+- CI blocking;
 - migration planning or transformation scripting;
 - automatic remediation;
-- policy authoring, approval workflow, or CI blocking;
-- distributed local-assessor deployment as a requirement;
-- agent-generated authoritative Intent.
+- agent-generated authoritative Intent;
+- historical architecture trajectories.
 
 ## v1.0 Release-Candidate Phase — Contract Freeze / Production Qualification (planned)
 
@@ -720,7 +778,7 @@ Explicitly out of scope for v0.9:
 v1.0 without pretending that stabilization introduces a new architecture-question class.**
 
 This phase uses `v1.0.0-rc.N` prereleases. It freezes only semantics and public contracts that have
-survived implementation, deterministic evaluation, and real-system qualification across v0.5-v0.9.
+survived implementation, deterministic evaluation, and real-system qualification across the pre-v1.0 capability releases actually implemented and accepted.
 
 Qualification/freeze scope includes, where actually implemented and accepted:
 
@@ -729,11 +787,14 @@ Qualification/freeze scope includes, where actually implemented and accepted:
 - locality/context semantics and Current-State projection contracts
 - qualified API exposure/consumption identity, source lifecycle, configured-vs-observed usage, and
   observation coverage contracts where accepted from the v0.7 pilot
-- explicit Intent assertion kinds, authority/lifecycle applicability, and versioned projection contracts
-- qualified Current↔Intent assessment contracts
+- cross-boundary projection contracts and the minimal System/Component composition semantics
+  required to support them, where accepted from the v0.8 qualification
+- external-Intent promise semantics, attribution, applicability, and versioned projection contracts
+  only if retained and qualified after the v0.8 checkpoint
+- local distributed-assessment contracts only if retained and qualified after the v0.8 checkpoint
 - derivation-lineage and evidence/provenance requirements, including authority/lifecycle evidence
   references, rule versions, and exact projection binding
-- temporal compatibility and coverage rules for Current↔Intent assessment
+- temporal compatibility and coverage rules for local distributed assessment, where that provisional capability is retained
 - REST and MCP contract stabilization
 - graph-persistence compatibility and migration rules; the internal graph representation is not
   frozen as a public Architecture Knowledge contract
@@ -741,7 +802,9 @@ Qualification/freeze scope includes, where actually implemented and accepted:
 - Configuration-format stabilization
 - Migration and deprecation rules
 - Security and production-operability qualification
-- Performance and resilience qualification
+- Performance and resilience qualification, including evidence that bounded architecture questions
+  do not become unbounded in cost merely because unrelated systems/evidence share the same knowledge
+  space
 - Release/support policy
 
 Any known breaking redesign required for the stable contract must be completed before the final
@@ -771,110 +834,84 @@ remain outside v1.0 under this roadmap. Moving any of those domains into the sta
 require an explicit roadmap revision plus its own product-value, semantic, and executable validation;
 landscape relevance or conceptual fit alone does not promote a future capability into v1.0.
 
+The stable-product demonstration should make the bounded-change workflow tangible on a realistic
+existing distributed system: establish relevant architecture context, use it to guide inspection and
+planning, let the coding agent implement a bounded change, verify implementation behavior with the
+normal deterministic engineering toolchain, and independently re-establish the resulting architecture
+state with AIP. This is a product demonstration of the existing contracts, not a new v1.0 semantic
+capability and not a claim that AIP itself verifies implementation correctness.
+
+The v1.0 production-qualification phase should also test the **shape of scale** for the bounded
+question model. Adding unrelated services, systems, and retained evidence must not force every
+question to reconstruct or fingerprint the entire enterprise landscape at request time. This is a
+performance/operability qualification requirement, not a new architecture-question class. v0.8
+supplies only the minimal System/Component semantics that survive its own product and semantic
+qualification; v1.0-rc must not broaden them into a generic enterprise model.
+
 ## Sequencing principle
 
-```text
-v0.3  validation and hardening
-  -> v0.4  trusted architecture context for agents
-  -> v0.5  broader architecture discovery
-  -> v0.6  locality-aware Current State
-  -> v0.7  API-Aware Current State
-  -> v0.8  explicit architecture Intent
-  -> v0.9  qualified architecture assessment
-  -> v1.0-rc  contract freeze and production qualification
-  -> v1.0  stable platform
-```
+The planned release sequence is:
 
-The version list above is the **planned release order**, not a claim that every immediately preceding
-release is a semantic prerequisite for the next one.
+1. **v0.3** — validation and hardening.
+2. **v0.4** — trusted architecture context for agents.
+3. **v0.5** — broader architecture discovery.
+4. **v0.6** — locality-aware Current State.
+5. **v0.7** — API-aware distributed Current State.
+6. **v0.8** — cross-boundary projection and product-boundary validation.
+7. **Checkpoint** — decide whether AIP adds material value beyond strong source/repository analysis.
+8. **v0.9** — provisional external promises, only if AIP ownership is justified.
+9. **v0.10** — provisional local distributed assessment, only if justified.
+10. **v1.0-rc** — freeze and qualify only the contracts that survived validation.
+11. **v1.0** — stable platform.
 
-In capability terms, the semantic dependencies branch rather than form one linear chain:
+The durable semantic frame is:
 
-```text
-VALIDATE
-   ↓
-EXPOSE
-   ↓
-DISCOVER
-   ↓
-ESTABLISH LOCALLY (v0.6)
-   ├──────────────────────────────┐
-   ↓                              ↓
-API-AWARE CURRENT STATE (v0.7)   EXPLICIT INTENT (v0.8)
-   │                              │
-   └──────── qualified Current ───┤
-                                  ↓
-                         ASSESS (v0.9)
-                                  ↓
-                               FREEZE
-```
+- **Current State** describes locally observed distributed cooperation.
+- **Intent** captures locally attributable external promises.
+- **Assessment** is a locally made evaluation of promise versus cooperation.
+- A **question** produces a bounded projection over only the relevant local views.
 
-In product-question terms, the planned release order is:
+The version order is chronological planning, while the semantic dependencies are narrower.
+Qualified distributed Current State is the basis for both API-aware Current State and cross-boundary
+projection. Cross-boundary projection leads to the product-boundary checkpoint. If an adjacent tool
+already owns the needed capability well, AIP should integrate with it. If the checkpoint demonstrates
+an AIP-owned gap, external Intent may proceed provisionally, followed by local Assessment. Only
+capabilities that survive those product and semantic checks should enter the stable contract.
 
-```text
-v0.5  WHAT is running WHERE?
-v0.6  WHERE does this architectural relationship hold?
-v0.7  HOW are APIs exposed and consumed, and what does the evidence establish?
-v0.8  WHAT explicit Intent applies here?
-v0.9  HOW does established Current State differ from applicable Intent?
-v1.0-rc  FREEZE and qualify the question space already implemented
-```
+The product-question sequence is:
 
-These questions expand AIP's safely answerable Architecture Knowledge in release order; the
-branching dependency structure above, not the version adjacency, defines semantic prerequisite
-relationships.
+- **v0.6:** Where does this distributed relationship hold?
+- **v0.7:** How are APIs exposed or consumed, and what does the evidence establish?
+- **v0.8:** Which established distributed relationships cross independently established boundaries,
+  and does that change what the coding agent must inspect beyond source analysis?
+- **v0.9, provisional:** What does this autonomous component explicitly promise to the outside?
+- **v0.10, provisional:** What does the evidence support about promise versus cooperation here?
+- **v1.0-rc:** Freeze only what survived product and semantic qualification.
 
-The Wardley-mapping result adds an investment rule:
+For the bounded-change wedge, each capability should answer a concrete question:
 
-```text
-DIFFERENTIATE
-evidence qualification
-identity / reconciliation
-provenance and bounded uncertainty
-Architecture Knowledge semantics
-deterministic question-specific projections
+- **Current State:** Which external relationships make me inspect outside this component?
+- **Cross-boundary projection:** Which of those relationships cross the relevant autonomous
+  boundaries?
+- **External Intent, if retained:** What does each relevant component explicitly promise to the
+  outside?
+- **Local Assessment, if retained:** What does the available evidence support about those promises in
+  this context?
 
-STANDARDIZE / CONSUME
-MCP and REST transport
-OpenAPI / OpenTelemetry / Kubernetes / Git interfaces
-graph/database and persistence plumbing
-other mature infrastructure
-```
+A new source adapter is not, by itself, a new product capability. It matters when it enables a
+materially new class of qualified distributed relationship or a recurring bounded question.
 
-Roadmap scope should therefore prioritize expansion of AIP's safely answerable
-architecture-question space. Core Domain work is justified where it is required to establish those
-answers safely; Core Domain hardening without a materially new architecture-question class does not,
-by itself, justify another `0.x.0` capability release.
+The stable parts of the roadmap are therefore:
 
-Likewise, a new source adapter is not, by itself, a new product capability or capability-release
-justification. It is strategically relevant when it enables materially new qualified Architecture
-Knowledge, requires new evidence/reconciliation semantics, or unlocks a materially new recurring
-architecture question. Proprietary transport, storage, or source plumbing should enter scope only
-when correctness, interoperability, or evidence semantics require it.
+1. Current State remains independent from Intent.
+2. External promises do not manufacture observed/configured relationships.
+3. Relationships and boundaries are established independently.
+4. Assessment is downstream of independently established Current State and external Intent.
+5. Bounded projections preserve locality, authority, provenance, qualification, and uncertainty.
+6. Internal repository architecture remains complementary source-analysis territory.
+7. Only implemented, product-validated, and independently qualified contracts are frozen for v1.0.
 
-The semantic dependencies are narrower than the chronological release order:
-
-1. broader evidence must be trustworthy before it is used to establish more Current State;
-2. locality/context semantics must be stable before AIP broadens Current State with API exposure and
-   consumption, and before applicable Intent is compared with Current State;
-3. API exposure and consumption are an additional Current-State question: qualified cross-source
-   associations and observed use must not imply products, business capabilities, ownership, or Intent;
-4. explicit Intent is an independent knowledge path and does not depend semantically on API-Aware
-   Current State; it must be attributable and qualified for authority, lifecycle, scope, and time;
-5. Current↔Intent assessment must remain read-only and downstream of both independently established
-   projections relevant to the question being assessed;
-6. only implemented and qualified contracts are frozen for v1.0.
-
-`v0.3` carried a hard gate: had either real-system dossier shown the Canonical Architecture Model
-needed a fundamental breaking redesign, AIP would not proceed to v0.4 until that redesign was
-specified, implemented, and revalidated — I4's
-[`canonical-redesign-gate.md`](docs/real-world-validation/cross-system/decisions/canonical-redesign-gate.md)
-answered `NO`, so that gate did not block.
-
-None of the above are committed dates — this is a planning sequence, not a schedule. The detailed
-scope of each planned release remains subject to its release specification and qualification gate;
-the semantic dependency structure and the independence of Current State, Intent, and Assessment are
-the stable parts of this roadmap.
+None of the above are committed dates. Detailed scope still belongs in release specifications.
 
 ## Product validation gates
 
@@ -898,33 +935,28 @@ Record a continue, narrow, defer, or stop decision when evaluating these gates. 
 a documented scope decision and, where release assignment or product boundaries change materially,
 a corresponding roadmap update. Apply these gates before accepting affected capabilities into the
 stable contract. Detailed pilot design belongs in release-specific specifications; see
-[Product Doctrine §6.4](docs/product-doctrine-and-strategic-direction.md#64-pilot-decision-gate).
-
-## Additional discovery candidates (unscheduled)
-
-gRPC/protobuf and Kafka Connect configuration remain candidates outside v0.5, with no assigned
-release. Each requires a separately approved later-release specification, explicit semantics, and
-deterministic conformance tests; the adapter seam does not automatically admit additional sources.
+[Product Doctrine §8](docs/product-doctrine-and-strategic-direction.md#8-product-validation).
 
 ## Future (beyond v1.0, unscheduled)
 
-- Externally sourced architecture decision-history linkage: relate a qualified finding or
-  assessment to its review, accountable actor/team, recorded decision, rationale, and effective
-  exception interval, without making AIP the approval authority or implying historical architecture
-  reconstruction
-- Historical architecture-state retention/import sufficient for principled temporal reasoning
-- Architecture trajectories (how evidence-qualified Current State and applicable Intent evolve over
-  time, once historical identity/provenance continuity exists)
-- Distributed Local Architecture Assessor deployment options (for example sidecar, DaemonSet, OTel
-  extension, or local gateway) if real-system evidence shows that moving deterministic qualification
-  closer to the locality provides correctness or operational value
-- Safe architecture transformation research, potentially including Bigraphical Reactive Systems,
-  process calculi, type systems, temporal logic, or related formalisms
-- Causal runtime flow analysis (beyond pairwise CLIENT/SERVER and send/receive correlation)
-- GraphRAG (retrieval over the graph as LLM context, distinct from today's Cypher-generation-only
-  query layer)
-- Architecture Wiki (auto-generated narrative documentation from the graph)
-- Backstage integration (surfacing the Architecture Knowledge Graph as a Backstage catalog/plugin)
+Future work must remain inside the distributed product boundary and requires its own product-value
+evidence. Candidates include:
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) if you want to help with any of it, and open an issue
-before starting significant work on a roadmap item so it doesn't go to waste.
+- historical retention of evidence-qualified distributed relationships sufficient for principled
+  temporal comparison and trajectories;
+- causal runtime-flow analysis beyond pairwise interactions, only where the evidence can support it;
+- distributed/local assessor deployment options if moving qualification closer to the evidence
+  locality materially improves correctness or operability;
+- additional distributed protocol/configuration evidence sources, including **gRPC/protobuf** and
+  **Kafka Connect configuration**, where they unlock a new bounded architecture question; these
+  require explicit semantics, deterministic qualification, and their own specification rather than
+  being admitted automatically through the adapter seam;
+- richer external-promise and local-assessment semantics if the v0.8 product checkpoint retains AIP
+  ownership of those domains.
+
+Generic enterprise modeling, architecture wikis, broad GraphRAG, organization/capability modeling,
+internal source-architecture conformance, and transformation orchestration are not default roadmap
+directions. They require an explicit product-strategy revision rather than entering through the
+"future" list.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) before starting significant roadmap work.

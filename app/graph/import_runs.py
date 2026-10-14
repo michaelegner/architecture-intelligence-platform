@@ -8,14 +8,20 @@ Moved out of `app.api.import_api` so the route only maps outcomes to HTTP.
 import logging
 import time
 import uuid
+from collections import Counter
 
 from app.graph.importer import (
     ImportRunStats,
     import_all_sources,
+    import_apisix_measurement_source,
+    import_apisix_source,
     import_kubernetes_source,
+    retire_unconfigured_gateways,
+    retire_unconfigured_measurements,
 )
 from app.ingestion.import_report import ConfiguredRun
 from app.settings import SourcesConfig
+from app.sources.identity import apisix_measurement_source_instance_id, apisix_source_instance_id
 from app.sources.migration_mappings import load_migration_mappings
 from app.sources.tombstones import load_tombstones
 
@@ -92,6 +98,9 @@ def run_all_configured_sources(
 
     import_id = uuid.uuid4().hex
     run_results = []
+    # v0.7.0 I1.2 (I1 §3.6 as amended): each configured source is its own discovery run, so the
+    # API-contract carriers are gated on the request's configuration, not on a run's contents.
+    api_contract_associations = bool(sources.gateways)
     for source_config in sources.directories:
         start = time.perf_counter()
         run_stats = import_all_sources(
@@ -100,6 +109,7 @@ def run_all_configured_sources(
             source_config=source_config,
             migration_mappings=migration_index,
             tombstones=tombstones,
+            api_contract_associations=api_contract_associations,
         )
         duration_ms = int((time.perf_counter() - start) * 1000)
         _log_run(import_id, run_stats, duration_ms)
@@ -129,5 +139,99 @@ def run_all_configured_sources(
                 root=cluster_config.root,
                 stats=run_stats,
             )
+        )
+    # v0.7.0 I1.4 (contract §1): two registrations that declare the same gateway_instance_id are
+    # both rejected REJECTED_CONFLICT (GW_DUPLICATE_INSTANCE); neither commits.
+    instance_counts = Counter(gateway.gateway_instance_id for gateway in sources.gateways)
+    for gateway_config in sources.gateways:
+        start = time.perf_counter()
+        run_stats = import_apisix_source(
+            driver,
+            database=database,
+            source_config=gateway_config,
+            migration_mappings=migration_index,
+            tombstones=tombstones,
+            duplicate_gateway_instance=instance_counts[gateway_config.gateway_instance_id] > 1,
+        )
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        _log_run(import_id, run_stats, duration_ms)
+        run_results.append(
+            ConfiguredRun(
+                kind="apisix",
+                configured_source_id=gateway_config.id,
+                root=gateway_config.root,
+                stats=run_stats,
+            )
+        )
+    # v0.7.0 I1.4 (contract §5): a dropped registration gets no run above, so its persisted
+    # carriers are retired here against the request's configured registrations.
+    retired = retire_unconfigured_gateways(
+        driver,
+        database=database,
+        configured_source_instance_ids={
+            apisix_source_instance_id(
+                configured_apisix_source_id=gateway.id,
+                gateway_instance_id=gateway.gateway_instance_id,
+            )
+            for gateway in sources.gateways
+        },
+    )
+    for removal in retired:
+        logger.info(
+            "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
+            import_id,
+            removal.source_instance_id,
+            removal.nodes_expired,
+            removal.relations_expired,
+        )
+    # v0.7.0 I2.2c (I2.1 contract §1): two or more measurement registrations for the same
+    # (gateway_instance_id, environment) are all rejected REJECTED_CONFLICT (GWM_DUPLICATE_SOURCE);
+    # none commits. Distinct pairs coexist.
+    pair_counts = Counter(
+        (m.gateway_instance_id, m.environment) for m in sources.gateway_measurements
+    )
+    for measurement_config in sources.gateway_measurements:
+        start = time.perf_counter()
+        run_stats = import_apisix_measurement_source(
+            driver,
+            database=database,
+            source_config=measurement_config,
+            migration_mappings=migration_index,
+            tombstones=tombstones,
+            duplicate_measurement_source=pair_counts[
+                (measurement_config.gateway_instance_id, measurement_config.environment)
+            ]
+            > 1,
+        )
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        _log_run(import_id, run_stats, duration_ms)
+        run_results.append(
+            ConfiguredRun(
+                kind="apisix-measurement",
+                configured_source_id=measurement_config.id,
+                root=measurement_config.root,
+                stats=run_stats,
+            )
+        )
+    # A dropped measurement registration gets no run above; its carriers are retired here.
+    retired_measurements = retire_unconfigured_measurements(
+        driver,
+        database=database,
+        configured_source_instance_ids={
+            apisix_measurement_source_instance_id(
+                configured_source_id=measurement.id,
+                gateway_instance_id=measurement.gateway_instance_id,
+                environment=measurement.environment,
+            )
+            for measurement in sources.gateway_measurements
+        },
+    )
+    for removal in retired_measurements:
+        logger.info(
+            "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
+            import_id,
+            removal.source_instance_id,
+            removal.nodes_expired,
+            removal.relations_expired,
         )
     return import_id, run_results

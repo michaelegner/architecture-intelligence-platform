@@ -1,0 +1,7 @@
+{
+  "name": "orders", "api_id": "orders-api", "org_id": "spike-org", "active": true,
+  "use_keyless": false, "auth": {"auth_header_name": "Authorization"}, "use_standard_auth": true,
+  "enable_signature_checking": false,
+  "version_data": {"not_versioned": true, "versions": {"Default": {"name": "Default"}}},
+  "proxy": {"listen_path": "/orders/", "target_url": "http://whoami:80/", "strip_listen_path": true}
+}

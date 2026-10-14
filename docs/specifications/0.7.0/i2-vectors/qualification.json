@@ -1,0 +1,1102 @@
+{
+  "inventory": {
+    "consumers": [
+      "spike-alpha",
+      "spike-beta",
+      "spike-gamma"
+    ],
+    "routes": [
+      "orders-route",
+      "billing-route"
+    ]
+  },
+  "base_manifest": {
+    "start_stable_seconds": 24,
+    "end_stable_seconds": 22,
+    "apisix_version": "3.19.0",
+    "window_start": "2026-10-13T10:00:00Z",
+    "window_end": "2026-10-13T10:10:00Z",
+    "start_settled": true,
+    "end_settled": true,
+    "no_restart": true,
+    "disabled_labels": [],
+    "route_coverage": {
+      "orders-route": true,
+      "billing-route": true
+    }
+  },
+  "note": "series are abstract: one entry per exact series; 'start'/'end' null = absent at that boundary. Expected rows are ordered by (consumer, route). Limitations are the sorted set of codes that apply to the row: window reasons (only when the window is invalid), else route-level (GWM_CONSUMER_LABEL_DISABLED, GWM_ROUTE_COVERAGE_ABSENT, GWM_ROUTE_PROMETHEUS_DISABLED) and route-wide series codes (GWM_SERIES_ONE_BOUNDARY, GWM_COUNTER_DECREASED, GWM_UNATTRIBUTED_UPSTREAM) of the row's Route.",
+  "cases": [
+    {
+      "id": "Q01",
+      "spec_case": "P1",
+      "description": "configured C->R plus attributed upstream delta",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 2,
+          "end": 5
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "OBSERVED_USAGE",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 3,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q02",
+      "spec_case": "P2",
+      "description": "configured C->R, no series at either boundary, closed-world coverage",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "MEASURED_ZERO",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q03",
+      "spec_case": "P2-zero-delta",
+      "description": "configured C->R, upstream series present at both boundaries with delta 0",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 4,
+          "end": 4
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "MEASURED_ZERO",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q04",
+      "spec_case": "N1-unsettled",
+      "description": "configured C->R, no series, end boundary unsettled",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {
+        "end_settled": false,
+        "end_scrape_count": 1
+      },
+      "series": [],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": null,
+          "rejected_attempt_count": null,
+          "limitations": [
+            "GWM_WINDOW_NOT_SETTLED"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q05",
+      "spec_case": "N1-restart",
+      "description": "configured C->R, no series, restart asserted",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {
+        "no_restart": false
+      },
+      "series": [],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": null,
+          "rejected_attempt_count": null,
+          "limitations": [
+            "GWM_WINDOW_RESTART"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q06",
+      "spec_case": "N1-label-disabled",
+      "description": "configured C->R, no series, consumer label disabled in Plugin Metadata",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {
+        "disabled_labels": [
+          "consumer"
+        ]
+      },
+      "series": [],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_CONSUMER_LABEL_DISABLED"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q07",
+      "spec_case": "N1-route-absent",
+      "description": "configured C->R, no series, route missing from route_coverage",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {
+        "route_coverage": {
+          "billing-route": true
+        }
+      },
+      "series": [],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_ROUTE_COVERAGE_ABSENT"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q08",
+      "spec_case": "N1-prometheus-disabled",
+      "description": "configured C->R, no series, Prometheus not enabled on R for the whole window",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {
+        "route_coverage": {
+          "orders-route": false,
+          "billing-route": true
+        }
+      },
+      "series": [],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_ROUTE_PROMETHEUS_DISABLED"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q09",
+      "spec_case": "N2",
+      "description": "consumer rejected by APISIX on R: no usage, no access fact invented",
+      "configured_access": [],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-beta",
+          "code": "403",
+          "response_source": "apisix",
+          "start": 0,
+          "end": 2
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-beta",
+          "route": "orders-route",
+          "configured_status": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 2,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q10",
+      "spec_case": "N2-configured",
+      "description": "configured C->R with only a rejected attempt: measured zero, rejected count carried",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "403",
+          "response_source": "apisix",
+          "start": 0,
+          "end": 1
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "MEASURED_ZERO",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 1,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q11",
+      "spec_case": "N3",
+      "description": "unattributed upstream traffic on R: no consumer usage, zero suppressed",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 0,
+          "end": 5
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_UNATTRIBUTED_UPSTREAM"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q12",
+      "spec_case": "N3-rejected",
+      "description": "unattributed rejected attempt (apisix source) does not suppress zero",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "",
+          "code": "401",
+          "response_source": "apisix",
+          "start": 0,
+          "end": 1
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "MEASURED_ZERO",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q13",
+      "spec_case": "N3-unknown-consumer",
+      "description": "consumer label not in the inventory is unattributed upstream traffic",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "mallory",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 0,
+          "end": 1
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_UNATTRIBUTED_UPSTREAM"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q14",
+      "spec_case": "N4",
+      "description": "configured C->R1 plus usage on R2: R1 not marked used; R2 is its own row",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "billing-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 1,
+          "end": 4
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "billing-route",
+          "configured_status": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+          "usage_status": "OBSERVED_USAGE",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 3,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        },
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "MEASURED_ZERO",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q15",
+      "spec_case": "one-boundary",
+      "description": "configured C->R, upstream series only at the start boundary",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 3,
+          "end": null
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_SERIES_ONE_BOUNDARY"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q16",
+      "spec_case": "decreased",
+      "description": "configured C->R, upstream counter decreased",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 5,
+          "end": 2
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_COUNTER_DECREASED"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q17",
+      "spec_case": "route-wide-downgrade",
+      "description": "another consumer's broken series on R suppresses C's zero (route-wide coverage)",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-beta",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 5,
+          "end": 2
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_COUNTER_DECREASED"
+          ]
+        },
+        {
+          "consumer": "spike-beta",
+          "route": "orders-route",
+          "configured_status": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_COUNTER_DECREASED"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q18",
+      "spec_case": "positive-wins",
+      "description": "valid positive delta is OBSERVED_USAGE even when another series on R is broken",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 0,
+          "end": 3
+        },
+        {
+          "route": "orders-route",
+          "consumer": "spike-beta",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 1,
+          "end": null
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "OBSERVED_USAGE",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 3,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_SERIES_ONE_BOUNDARY"
+          ]
+        },
+        {
+          "consumer": "spike-beta",
+          "route": "orders-route",
+          "configured_status": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_SERIES_ONE_BOUNDARY"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q19",
+      "spec_case": "observed-only",
+      "description": "attributed usage with no configured fact: observed-only row, not a policy finding",
+      "configured_access": [],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 0,
+          "end": 2
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+          "usage_status": "OBSERVED_USAGE",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 2,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q20",
+      "spec_case": "unknown-route",
+      "description": "series for a Route not in the inventory yields no row and no attribution",
+      "configured_access": [],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "ghost-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 0,
+          "end": 2
+        }
+      ],
+      "expected_rows": []
+    },
+    {
+      "id": "Q21",
+      "spec_case": "invalid-window-positive",
+      "description": "positive series in an invalid window never becomes usage",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {
+        "start_settled": false,
+        "start_scrape_count": 1
+      },
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 0,
+          "end": 3
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": null,
+          "rejected_attempt_count": null,
+          "limitations": [
+            "GWM_WINDOW_NOT_SETTLED"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q22",
+      "spec_case": "invalid-window-observed-only",
+      "description": "attributed pair in an invalid window still gets a row, never usage",
+      "configured_access": [],
+      "manifest_patch": {
+        "apisix_version": "3.20.0"
+      },
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-beta",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 0,
+          "end": 3
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-beta",
+          "route": "orders-route",
+          "configured_status": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": null,
+          "rejected_attempt_count": null,
+          "limitations": [
+            "GWM_VERSION_INCOMPATIBLE"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q23",
+      "spec_case": "multi-code-sum",
+      "description": "several upstream status codes for one pair sum into one interaction",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 0,
+          "end": 3
+        },
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "500",
+          "response_source": "upstream",
+          "start": 0,
+          "end": 2
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "OBSERVED_USAGE",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 5,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q24",
+      "spec_case": "two-routes-two-consumers",
+      "description": "bounded universe: only configured pairs plus attributed observed pairs, no Cartesian product",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ],
+        [
+          "spike-beta",
+          "billing-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "billing-route",
+          "consumer": "spike-gamma",
+          "code": "200",
+          "response_source": "upstream",
+          "start": 0,
+          "end": 1
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "MEASURED_ZERO",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        },
+        {
+          "consumer": "spike-beta",
+          "route": "billing-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "MEASURED_ZERO",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        },
+        {
+          "consumer": "spike-gamma",
+          "route": "billing-route",
+          "configured_status": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+          "usage_status": "OBSERVED_USAGE",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 1,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q25",
+      "spec_case": "first-in-window",
+      "description": "configured C->R, series created inside a valid covered window establishes usage",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": null,
+          "end": 3
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "OBSERVED_USAGE",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 3,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q26",
+      "spec_case": "first-in-window-uncovered",
+      "description": "same series on a Route missing from route_coverage stays unestablished",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {
+        "route_coverage": {
+          "billing-route": true
+        }
+      },
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": null,
+          "end": 3
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_ROUTE_COVERAGE_ABSENT",
+            "GWM_SERIES_ONE_BOUNDARY"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q27",
+      "spec_case": "first-in-window-rejected",
+      "description": "first-in-window rejected attempts are counted but never usage",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "403",
+          "response_source": "apisix",
+          "start": null,
+          "end": 2
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "MEASURED_ZERO",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 2,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q28",
+      "spec_case": "first-in-window-observed-only",
+      "description": "first-in-window usage with no configured fact: observed-only row",
+      "configured_access": [],
+      "manifest_patch": {},
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-beta",
+          "code": "200",
+          "response_source": "upstream",
+          "start": null,
+          "end": 2
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-beta",
+          "route": "orders-route",
+          "configured_status": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+          "usage_status": "OBSERVED_USAGE",
+          "coverage": "SUFFICIENT_FOR_ZERO",
+          "upstream_request_count": 2,
+          "rejected_attempt_count": 0,
+          "limitations": []
+        }
+      ]
+    },
+    {
+      "id": "Q29",
+      "spec_case": "first-in-window-label-disabled",
+      "description": "consumer label disabled: the end-only series is not read as starting at 0",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {
+        "disabled_labels": [
+          "consumer"
+        ]
+      },
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": null,
+          "end": 3
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_CONSUMER_LABEL_DISABLED",
+            "GWM_SERIES_ONE_BOUNDARY"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q30",
+      "spec_case": "first-in-window-weak-settle",
+      "description": "start boundary below the 20 s stable threshold: the end-only series is not read as starting at 0",
+      "configured_access": [
+        [
+          "spike-alpha",
+          "orders-route"
+        ]
+      ],
+      "manifest_patch": {
+        "start_stable_seconds": 19
+      },
+      "series": [
+        {
+          "route": "orders-route",
+          "consumer": "spike-alpha",
+          "code": "200",
+          "response_source": "upstream",
+          "start": null,
+          "end": 3
+        }
+      ],
+      "expected_rows": [
+        {
+          "consumer": "spike-alpha",
+          "route": "orders-route",
+          "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+          "usage_status": "USAGE_UNESTABLISHED",
+          "coverage": "UNKNOWN_COVERAGE",
+          "upstream_request_count": 0,
+          "rejected_attempt_count": 0,
+          "limitations": [
+            "GWM_SERIES_ONE_BOUNDARY"
+          ]
+        }
+      ]
+    }
+  ]
+}

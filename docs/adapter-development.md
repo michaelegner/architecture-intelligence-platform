@@ -80,6 +80,27 @@ declared-source adapters above have no equivalent of. See [`ingestion.md`](inges
 and the governing spec for its full contract — it is a real, third adapter shape, not a variant of
 the toy worked example below, which stays a declared-source-only illustration.
 
+## A fourth shape: the APISIX gateway adapter
+
+`app/ingestion/apisix_adapter.py` (v0.7.0 I1.4) is another offline-only `SourceAdapter`, registered in
+`default_registry()`. Like the Kubernetes adapter it turns discovery-time diagnostics into the
+correct per-source result and otherwise maps a validated fixture, but it emits **only internal
+carriers** (`app/canonical/gateway.py`) and no public entity, relation or `Provenance`. The pure
+interpretation is `app/sources/apisix_mapping.py`; the fixture envelope and its validator are shared
+with the separate capture tool in `app/sources/apisix_contract.py`. The capture tool lives in
+`app/gateway_capture/` and is kept apart by import-linter: nothing on the ingestion/graph side may
+import it, and it may touch no graph or delivery layer.
+
+## A fifth shape: the APISIX measurement adapter
+
+`app/ingestion/apisix_measurement_adapter.py` (v0.7.0 I2.2) is the same offline-only shape for the
+runtime half: it maps a validated fixture directory to **internal measurement carriers**
+(`app/canonical/gateway_measurement.py`) and nothing public. The pure interpretation is
+`app/sources/apisix_measurement_mapping.py`; the manifest, extract and mapping validators (shared
+with the capture tool) are `app/sources/apisix_measurement_contract.py`. The discoverer is
+registration-based with four fixed file names and reports the contract's `GWM_*` codes. The capture
+tool is `app/gateway_capture/apisix_metrics.py`, kept apart by the same import-linter contract.
+
 ## What a runtime-source adapter must produce
 
 An `ObservationBatch` (`app/telemetry/model.py`): possibly-new entities (`ObservedOnlyEntity` stubs

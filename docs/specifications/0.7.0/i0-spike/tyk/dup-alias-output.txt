@@ -1,0 +1,7 @@
+spike-alpha series before duplicate:
+tyk_spike_requests_total{api_id="orders-api",code="200",job="tyk-spike",key_alias="spike-alpha"} 3
+duplicate-alias key request: 200
+spike-alpha series after duplicate:
+tyk_spike_requests_total{api_id="orders-api",code="200",job="tyk-spike",key_alias="spike-alpha"} 4
+keys sharing alias spike-alpha:
+2
