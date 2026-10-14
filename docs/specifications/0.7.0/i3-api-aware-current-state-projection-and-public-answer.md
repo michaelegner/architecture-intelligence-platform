@@ -1,6 +1,6 @@
 # AIP v0.7.0 I3 — API-Aware Current-State Projection and Public Answer
 
-**Status:** Proposed.  
+**Status:** Proposed; **I3 COMPLETE** (I3.1–I3.4, see the [I3 completion record](i3-completion-record.md) and the [I4 handoff](i3-i4-handoff.md)). The items this text left open were settled by the [decision record](i3-decision-record.md) D1–D12 and implemented as recorded there; this text is kept as proposed, not rewritten. I3 is not a qualified or released final candidate (I4–I5).  
 **Governing:** [v0.7.0 parent specification](specification.md), [I1 → I2 handoff](i1-i2-handoff.md), [I2 specification](i2-consumer-attribution-and-configured-vs-observed-qualification.md), and the frozen [I2 → I3 handoff](i2-i3-handoff.md).  
 **Purpose:** expose the v0.7 configured-consumer / observed-usage question as one deterministic Architecture Intelligence answer without changing I2 truth.
 
