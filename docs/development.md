@@ -3,7 +3,8 @@
 ```bash
 uv sync                                # install dependencies
 uv run pytest tests/unit               # fast unit tests (no Neo4j needed)
-uv run pytest tests/integration        # Testcontainers-backed tests (needs Docker)
+uv run pytest tests/integration -m "not qualification"   # per-PR integration tier (Testcontainers; needs Docker)
+uv run pytest tests/integration -m qualification          # slow frozen-reference/oracle/real-container tier
 uv run ruff check .                    # lint (incl. C901: complexity ratchet in pyproject.toml, lower it, never raise it)
 uv run ruff format .                   # format
 uv run pyright                         # type check (app/)
@@ -170,6 +171,13 @@ reachable, `POST /api/import` should work immediately against the bundled refere
 - `tests/integration/` — Testcontainers-backed against a real Neo4j; the integration suite shares
   one session-scoped Neo4j container, while individual modules/tests reset and populate graph state
   as required for isolation.
+  Tiers: modules listed in `QUALIFICATION_MODULES` (`tests/integration/conftest.py`) carry the
+  `qualification` marker. CI's `integration-core` runs everything else on every run;
+  `integration-qualification` runs on pushes to `main` and version tags, nightly, on manual dispatch,
+  on PRs labelled `run-qualification`, and on PRs whose diff matches the path filter in the
+  `changes` job of `.github/workflows/ci.yml`. A PR that skips the tier is covered by the main-push
+  run; a regression there is fixed forward. Move a module into or out of the tier only in that one
+  list.
 - `tests/fixtures/` — shared synthetic fixture data used across both.
 - `examples/` — the reference test-fixture landscape used across unit/integration tests and the
   local Quick Start (`order-service` calls `product-service` and sends to `payment-q`;

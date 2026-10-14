@@ -24,6 +24,7 @@
       "Bash(uv run ruff format --check .)",
       "Bash(uv run pytest tests/unit)",
       "Bash(uv run pytest tests/integration)",
+      "Bash(uv run pytest tests/integration -m *)",
       "Bash(gh pr view *)",
       "Bash(gh pr checks *)",
       "Bash(gh run list *)",

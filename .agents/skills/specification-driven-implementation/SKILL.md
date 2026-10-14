@@ -108,8 +108,9 @@ the repository adopts one, but the timestamp remains in the hidden PR metadata m
    implementation starts, that's a return to phase 3, not a silent in-flight redefinition.
 
 8. **Execute the specified validation and qualification steps** — the plan's own "Validation
-   Commands" section, run in full (this repo's real `tests/unit`/`tests/integration` suites, lint,
-   format — not a hand-picked subset), **except for the documentation-only pre-PR validation
+   Commands" section, run in full (this repo's real `tests/unit` and `tests/integration -m "not qualification"`
+   suites, lint, format — not a hand-picked subset; add `-m qualification` when the change touches the
+   qualification tier's inputs, see `docs/development.md`), **except for the documentation-only pre-PR validation
    exemption above**. For a qualifying docs-only PR, do not run unit/integration suites before PR
    creation solely to satisfy this phase; record the inspected diff and any lightweight
    documentation validation instead, then rely on normal PR CI for repository-wide checks. For all
@@ -238,7 +239,7 @@ introduce a material regression>.
 <acceptance criterion -> test(s) or evidence that will prove it>
 
 ## Validation Commands
-<exact commands to run, e.g. `uv run pytest tests/unit`, `uv run pytest tests/integration`,
+<exact commands to run, e.g. `uv run pytest tests/unit`, `uv run pytest tests/integration -m "not qualification"`,
 `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright`, `uv run lint-imports`>
 
 ## Open Questions / Assumptions / Stop Conditions
