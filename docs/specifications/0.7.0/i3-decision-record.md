@@ -1,6 +1,6 @@
 # AIP v0.7.0 I3 — Decision Record (I3.1)
 
-**Status:** Proposed (I3.1a). Once merged it is the contract that I3.1b (models and published schemas), I3.1c (independent expected answers), I3.2 (projection) and I3.3 (REST, MCP, evidence) implement. Each decision settles an item the [I3 specification](i3-api-aware-current-state-projection-and-public-answer.md) leaves open; none reopens an I3 §15 item, an I2 truth or the [I2 → I3 handoff](i2-i3-handoff.md). Any later change is a reviewed amendment to this record.  
+**Status:** D1–D11 frozen by I3.1a (#539); D12 (representation details) added by I3.1b. This is the contract that I3.1b (models and published schemas), I3.1c (independent expected answers), I3.2 (projection) and I3.3 (REST, MCP, evidence) implement. Each decision settles an item the [I3 specification](i3-api-aware-current-state-projection-and-public-answer.md) leaves open; none reopens an I3 §15 item, an I2 truth or the [I2 → I3 handoff](i2-i3-handoff.md). Any later change is a reviewed amendment to this record.  
 **Release / increment:** `v0.7.0` — API-Aware Current State / I3, slice I3.1  
 **Governing specification:** I3 specification (Proposed, merged #529, `bd870fd48b24fb3d228ace4d5df284cb105b2b33`).  
 **Entry baseline:** `main` at `63e1764` (I2 closed by #536 and #537).  
@@ -211,6 +211,25 @@ I3.1c authors independent expected answers for these cases (ids final in the I3.
 | E02 | forged / cross-snapshot / cross-context ref | `NOT_RESOLVED` |
 | C01 | credential canary | absent from every answer and evidence payload |
 | V01… | request validation | bad ids, patterns, `limit`, ref count/order/duplicates, `cursor` without `snapshot_id`, undecodable cursor |
+
+## D12 — Representation details of the published schemas (I3.1b)
+
+These settle choices the models in `app/architecture_intelligence/api_usage_contracts.py` and the files under `schemas/architecture_intelligence/v0.7/` had to make. They only represent D1–D11; none changes their meaning.
+
+| # | Detail |
+|---|---|
+| D12.1 | **Envelope.** `data` is null if and only if the answer is a refusal (D6). A refusal carries exactly one code: query ∈ the five refusal codes, evidence ∈ the first four. A refusal code never accompanies data. Both directions are validators and a schema if/then keyed on the code and `mode`. |
+| D12.2 | **Evaluated `NOT_ANSWERED`.** Query: iff `NO_ROUTE_SELECTED` is among the codes, and the answer carries data. If the window is also invalid the codes are `{NO_ROUTE_SELECTED, WINDOW_NOT_VALID}`. Evidence: iff no ref resolved (`EVIDENCE_REF_NOT_RESOLVED`). `limitations` is exactly the set the data implies (`MORE_ROWS_AVAILABLE` ⇔ `page.next_cursor`; `WINDOW_NOT_VALID` ⇔ `window.valid = false`; `COVERAGE_UNKNOWN` ⇔ a selected Route is `UNKNOWN_COVERAGE`; `NO_ROUTE_SELECTED` ⇔ no selected Route), sorted, one per code. |
+| D12.3 | **Free text.** A limitation `message` is any non-empty string (I3.2 chooses deterministic text); it carries no request value. |
+| D12.4 | **Tokens.** Ids that D3 does not give a stricter form (`source_name`, `source_route_id`, source and rule ids, contract ids) are opaque tokens: non-empty, no whitespace or control characters. `gateway_instance_id` and `environment` use the existing environment pattern (≤ 256 / ≤ 128). The interaction id is `observed-consumer-interaction:owned:<64 hex>`. |
+| D12.5 | **Window and Routes.** `window.valid` ⇔ no reasons. A Route is `SUFFICIENT_FOR_ZERO` ⇔ it has no limitations, and has evidence refs ⇔ it has limitations. A row carries its Route's coverage, limitations and `source_route_id` unchanged. |
+| D12.6 | **Row truth-table guards** (the I2 §9.2 table, so a malformed answer cannot contradict I2): `OBSERVED_USAGE` needs a positive upstream count; `MEASURED_ZERO` needs a zero count, `SUFFICIENT_FOR_ZERO` coverage and `CONFIGURED_ACCESS_ESTABLISHED`; `USAGE_UNESTABLISHED` has no positive count; the two counts are present together or absent together; counts are present exactly when the window is valid, and an invalid window establishes no usage. |
+| D12.7 | **Associations.** `api.operation_id` and `contract_version_reconciliation` ⇔ the Operation is `RESOLVED`; `contract_version_id` ⇔ the version is `RESOLVED`; `application_service.service_id` ⇔ `RESOLVED`. `association_summary` is absent for `GATEWAY_ROUTE`, otherwise carries exactly the chain of the target kind, and its `resolved_to_target` equals the number of selected Routes. A `GATEWAY_ROUTE` target selects exactly that Route. |
+| D12.8 | **Rows and pages.** Rows are sorted and distinct by `(consumer.id, gateway_route.id)`, each on a selected Route of the requested gateway, matching the consumer filter if given; `page.returned` equals the row count; `rows` ≤ 200. `page.limit` echoes the applied limit; `limit` is not part of the cursor binding or of `request_context`. `next_cursor` must decode and be bound to the answer's `snapshot_id` and to the D9 query-context digest of `request_context`. |
+| D12.9 | **Evidence payloads.** Five closed models, discriminated by `kind` inside `evidence`; an entry's `kind` must equal its payload's. Internal supporting ids appear in no model. The reconciliation payloads carry only D9's provenance-bounded fields. |
+| D12.10 | **Codes.** The ten `GWM_*` window and coverage codes are one closed enum for rows, Routes and evidence; `window.reasons` use its four-member window subset. Both are mirrored by value from the I2 constants and a parity test pins them. |
+| D12.11 | **Helpers.** The module also holds the two frozen D9 derivations (`query_context_digest`, `evidence_ref`) and the D8 cursor codec, as pure functions; a known-answer test recomputes them with the standard library only. |
+| D12.12 | **What the schema cannot express** (sortedness of non-string arrays, cross-field rules D12.2 beyond the code sets, D12.5–D12.8, cursor decoding) is enforced by Pydantic and tested as Pydantic-only. |
 
 ## Needs a reviewed amendment if it changes
 

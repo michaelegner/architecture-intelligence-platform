@@ -1,0 +1,2004 @@
+{
+  "$defs": {
+    "ApiConsumerUsageData": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "request_context": {
+                "properties": {
+                  "target": {
+                    "properties": {
+                      "kind": {
+                        "const": "GATEWAY_ROUTE"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "request_context"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "association_summary"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "request_context": {
+                "properties": {
+                  "target": {
+                    "properties": {
+                      "kind": {
+                        "const": "API_OPERATION"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "request_context"
+            ]
+          },
+          "then": {
+            "properties": {
+              "association_summary": {
+                "required": [
+                  "route_operation"
+                ]
+              }
+            },
+            "required": [
+              "association_summary"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "request_context": {
+                "properties": {
+                  "target": {
+                    "properties": {
+                      "kind": {
+                        "const": "APPLICATION_SERVICE"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "request_context"
+            ]
+          },
+          "then": {
+            "properties": {
+              "association_summary": {
+                "required": [
+                  "target_service"
+                ]
+              }
+            },
+            "required": [
+              "association_summary"
+            ]
+          }
+        }
+      ],
+      "description": "D4: the `mode: \"query\"` payload.",
+      "properties": {
+        "association_summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssociationSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "configuration_sources": {
+          "items": {
+            "$ref": "#/$defs/ConfigurationSource"
+          },
+          "title": "Configuration Sources",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "measurement_sources": {
+          "items": {
+            "$ref": "#/$defs/MeasurementSource"
+          },
+          "minItems": 1,
+          "title": "Measurement Sources",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "page": {
+          "$ref": "#/$defs/Page"
+        },
+        "request_context": {
+          "$ref": "#/$defs/ApiUsageRequestContext"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/ApiUsageRow"
+          },
+          "maxItems": 200,
+          "title": "Rows",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "rules": {
+          "$ref": "#/$defs/Rules"
+        },
+        "selected_routes": {
+          "items": {
+            "$ref": "#/$defs/SelectedRoute"
+          },
+          "title": "Selected Routes",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "window": {
+          "$ref": "#/$defs/ApiUsageWindow"
+        }
+      },
+      "required": [
+        "request_context",
+        "window",
+        "rules",
+        "selected_routes",
+        "configuration_sources",
+        "measurement_sources",
+        "rows",
+        "page"
+      ],
+      "title": "ApiConsumerUsageData",
+      "type": "object"
+    },
+    "ApiConsumerUsageEvidenceData": {
+      "additionalProperties": false,
+      "description": "D9: the `mode: \"evidence\"` payload, one entry per requested ref, sorted by ref.",
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/EvidenceEntry"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Entries",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "request_context": {
+          "$ref": "#/$defs/ApiUsageRequestContext"
+        }
+      },
+      "required": [
+        "request_context",
+        "entries"
+      ],
+      "title": "ApiConsumerUsageEvidenceData",
+      "type": "object"
+    },
+    "ApiUsageLimitation": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ApiUsageLimitationCode"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "ApiUsageLimitation",
+      "type": "object"
+    },
+    "ApiUsageLimitationCode": {
+      "description": "D6: the closed 0.7 envelope codes, separate from the 0.5 `LimitationCode` and the 0.6\nlocality enum. The first five are refusal codes.",
+      "enum": [
+        "SNAPSHOT_NOT_AVAILABLE",
+        "MEASUREMENT_WINDOW_NOT_AVAILABLE",
+        "UNKNOWN_TARGET",
+        "TARGET_NOT_IN_WINDOW_SCOPE",
+        "CURSOR_QUERY_MISMATCH",
+        "NO_ROUTE_SELECTED",
+        "MORE_ROWS_AVAILABLE",
+        "WINDOW_NOT_VALID",
+        "COVERAGE_UNKNOWN",
+        "EVIDENCE_REF_NOT_RESOLVED"
+      ],
+      "title": "ApiUsageLimitationCode",
+      "type": "string"
+    },
+    "ApiUsageRequestContext": {
+      "additionalProperties": false,
+      "description": "D4: the normalized query context (without `limit`, `cursor` and `snapshot_id`).",
+      "properties": {
+        "consumer_id": {
+          "anyOf": [
+            {
+              "pattern": "^gateway-consumer:owned:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Consumer Id"
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "gateway_instance_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Gateway Instance Id",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/ApiUsageTarget"
+        },
+        "window_end": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window End",
+          "type": "string"
+        },
+        "window_start": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window Start",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target",
+        "gateway_instance_id",
+        "environment",
+        "window_start",
+        "window_end"
+      ],
+      "title": "ApiUsageRequestContext",
+      "type": "object"
+    },
+    "ApiUsageRow": {
+      "additionalProperties": false,
+      "description": "D4: one I2 `qualification_rows` entry, enriched only with same-snapshot reconciliation.",
+      "properties": {
+        "api": {
+          "$ref": "#/$defs/RowApi"
+        },
+        "application_service": {
+          "$ref": "#/$defs/RowService"
+        },
+        "configured_access": {
+          "$ref": "#/$defs/RowConfiguredAccess"
+        },
+        "consumer": {
+          "$ref": "#/$defs/RowConsumer"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^api-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "gateway_route": {
+          "$ref": "#/$defs/RowRoute"
+        },
+        "limitations": {
+          "items": {
+            "$ref": "#/$defs/MeasurementCode"
+          },
+          "title": "Limitations",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "usage": {
+          "$ref": "#/$defs/RowUsage"
+        }
+      },
+      "required": [
+        "consumer",
+        "gateway_route",
+        "api",
+        "application_service",
+        "configured_access",
+        "usage",
+        "evidence_refs",
+        "limitations"
+      ],
+      "title": "ApiUsageRow",
+      "type": "object"
+    },
+    "ApiUsageTarget": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "APPLICATION_SERVICE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^service:[^\\s\\x00-\\x1f\\x7f]*$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "API_OPERATION"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^operation:[^\\s\\x00-\\x1f\\x7f]*$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "GATEWAY_ROUTE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^gateway-route:owned:[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      ],
+      "description": "D3: exactly one exact target. The id pattern depends on the kind; never a display name, path\nor host.",
+      "properties": {
+        "id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/TargetKind"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "title": "ApiUsageTarget",
+      "type": "object"
+    },
+    "ApiUsageWindow": {
+      "additionalProperties": false,
+      "description": "D4: the I2 window the answer is about. `valid` is true iff there are no reasons.",
+      "properties": {
+        "evidence_refs": {
+          "items": {
+            "pattern": "^api-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/WindowReasonCode"
+          },
+          "title": "Reasons",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "source_instance_id": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "valid": {
+          "title": "Valid",
+          "type": "boolean"
+        },
+        "window_end": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window End",
+          "type": "string"
+        },
+        "window_start": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window Start",
+          "type": "string"
+        }
+      },
+      "required": [
+        "window_start",
+        "window_end",
+        "source_instance_id",
+        "valid",
+        "reasons",
+        "evidence_refs"
+      ],
+      "title": "ApiUsageWindow",
+      "type": "object"
+    },
+    "AssociationCounts": {
+      "additionalProperties": false,
+      "description": "I3 \u00a75.2/\u00a75.3: all GatewayRoutes of the selected scope by the I2 outcome of one chain.",
+      "properties": {
+        "ambiguous": {
+          "minimum": 0,
+          "title": "Ambiguous",
+          "type": "integer"
+        },
+        "conflict": {
+          "minimum": 0,
+          "title": "Conflict",
+          "type": "integer"
+        },
+        "resolved_elsewhere": {
+          "minimum": 0,
+          "title": "Resolved Elsewhere",
+          "type": "integer"
+        },
+        "resolved_to_target": {
+          "minimum": 0,
+          "title": "Resolved To Target",
+          "type": "integer"
+        },
+        "unresolved": {
+          "minimum": 0,
+          "title": "Unresolved",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "resolved_to_target",
+        "resolved_elsewhere",
+        "unresolved",
+        "ambiguous",
+        "conflict"
+      ],
+      "title": "AssociationCounts",
+      "type": "object"
+    },
+    "AssociationSummary": {
+      "additionalProperties": false,
+      "description": "Exactly one chain: `route_operation` for an `API_OPERATION` target, `target_service` for an\n`APPLICATION_SERVICE` target. Informational only.",
+      "properties": {
+        "route_operation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssociationCounts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_service": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssociationCounts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "AssociationSummary",
+      "type": "object"
+    },
+    "ConfigurationSource": {
+      "additionalProperties": false,
+      "properties": {
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "gateway_instance_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Gateway Instance Id",
+          "type": "string"
+        },
+        "source_revision": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Source Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "gateway_instance_id",
+        "environment",
+        "source_revision"
+      ],
+      "title": "ConfigurationSource",
+      "type": "object"
+    },
+    "ConfiguredAccessEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "consumer": {
+          "$ref": "#/$defs/RowConsumer"
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "gateway_instance_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Gateway Instance Id",
+          "type": "string"
+        },
+        "gateway_route": {
+          "$ref": "#/$defs/EvidenceRoute"
+        },
+        "kind": {
+          "const": "CONFIGURED_ACCESS",
+          "title": "Kind",
+          "type": "string"
+        },
+        "polarity": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Polarity",
+          "type": "string"
+        },
+        "rule_kind": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Rule Kind",
+          "type": "string"
+        },
+        "scope": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Scope",
+          "type": "string"
+        },
+        "source_revision": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Source Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "gateway_instance_id",
+        "environment",
+        "source_revision",
+        "consumer",
+        "gateway_route",
+        "rule_kind",
+        "polarity",
+        "scope"
+      ],
+      "title": "ConfiguredAccessEvidence",
+      "type": "object"
+    },
+    "ConfiguredAccessStatus": {
+      "enum": [
+        "CONFIGURED_ACCESS_ESTABLISHED",
+        "NO_MATCHING_CONFIGURED_ACCESS_FACT"
+      ],
+      "title": "ConfiguredAccessStatus",
+      "type": "string"
+    },
+    "Coverage": {
+      "enum": [
+        "SUFFICIENT_FOR_ZERO",
+        "UNKNOWN_COVERAGE"
+      ],
+      "title": "Coverage",
+      "type": "string"
+    },
+    "EvidenceEntry": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              ]
+            }
+          },
+          "if": {
+            "properties": {
+              "status": {
+                "const": "RESOLVED"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "kind",
+              "evidence"
+            ]
+          }
+        }
+      ],
+      "description": "D9: one requested ref. A forged, cross-snapshot and cross-context ref are all simply\n`NOT_RESOLVED` and indistinguishable (no ref history is kept).",
+      "properties": {
+        "evidence": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "CONFIGURED_ACCESS": "#/$defs/ConfiguredAccessEvidence",
+                  "MEASUREMENT_WINDOW": "#/$defs/MeasurementWindowEvidence",
+                  "QUALIFICATION_LIMITATIONS": "#/$defs/QualificationLimitationsEvidence",
+                  "ROUTE_OPERATION_RECONCILIATION": "#/$defs/RouteOperationReconciliationEvidence",
+                  "TARGET_SERVICE_RECONCILIATION": "#/$defs/TargetServiceReconciliationEvidence"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ConfiguredAccessEvidence"
+                },
+                {
+                  "$ref": "#/$defs/MeasurementWindowEvidence"
+                },
+                {
+                  "$ref": "#/$defs/RouteOperationReconciliationEvidence"
+                },
+                {
+                  "$ref": "#/$defs/TargetServiceReconciliationEvidence"
+                },
+                {
+                  "$ref": "#/$defs/QualificationLimitationsEvidence"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ref": {
+          "pattern": "^api-evidence:[0-9a-f]{64}$",
+          "title": "Ref",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/EvidenceStatus"
+        }
+      },
+      "required": [
+        "ref",
+        "status"
+      ],
+      "title": "EvidenceEntry",
+      "type": "object"
+    },
+    "EvidenceKind": {
+      "enum": [
+        "CONFIGURED_ACCESS",
+        "MEASUREMENT_WINDOW",
+        "ROUTE_OPERATION_RECONCILIATION",
+        "TARGET_SERVICE_RECONCILIATION",
+        "QUALIFICATION_LIMITATIONS"
+      ],
+      "title": "EvidenceKind",
+      "type": "string"
+    },
+    "EvidenceRoute": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^gateway-route:owned:[0-9a-f]{64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "source_route_id": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Source Route Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source_route_id"
+      ],
+      "title": "EvidenceRoute",
+      "type": "object"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "RESOLVED",
+        "NOT_RESOLVED"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "ExtractDigests": {
+      "additionalProperties": false,
+      "properties": {
+        "end_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "End Sha256",
+          "type": "string"
+        },
+        "start_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Start Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_sha256",
+        "end_sha256"
+      ],
+      "title": "ExtractDigests",
+      "type": "object"
+    },
+    "MeasurementCode": {
+      "description": "Every I2 limitation code a Route or row can carry: the window reasons and the route-level\ncoverage codes (contract \u00a77).",
+      "enum": [
+        "GWM_WINDOW_NOT_SETTLED",
+        "GWM_WINDOW_RESTART",
+        "GWM_WINDOW_ORDER_INVALID",
+        "GWM_VERSION_INCOMPATIBLE",
+        "GWM_CONSUMER_LABEL_DISABLED",
+        "GWM_ROUTE_COVERAGE_ABSENT",
+        "GWM_ROUTE_PROMETHEUS_DISABLED",
+        "GWM_COUNTER_DECREASED",
+        "GWM_SERIES_ONE_BOUNDARY",
+        "GWM_UNATTRIBUTED_UPSTREAM"
+      ],
+      "title": "MeasurementCode",
+      "type": "string"
+    },
+    "MeasurementSource": {
+      "additionalProperties": false,
+      "properties": {
+        "apisix_version": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Apisix Version",
+          "type": "string"
+        },
+        "source_instance_id": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "window_end": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window End",
+          "type": "string"
+        },
+        "window_start": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window Start",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_instance_id",
+        "window_start",
+        "window_end",
+        "apisix_version"
+      ],
+      "title": "MeasurementSource",
+      "type": "object"
+    },
+    "MeasurementWindowEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "apisix_version": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Apisix Version",
+          "type": "string"
+        },
+        "end_settled": {
+          "title": "End Settled",
+          "type": "boolean"
+        },
+        "end_stable_seconds": {
+          "minimum": 0,
+          "title": "End Stable Seconds",
+          "type": "integer"
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "evidence_type": {
+          "const": "OBSERVED",
+          "title": "Evidence Type",
+          "type": "string"
+        },
+        "extract_digests": {
+          "$ref": "#/$defs/ExtractDigests"
+        },
+        "gateway_instance_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Gateway Instance Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "MEASUREMENT_WINDOW",
+          "title": "Kind",
+          "type": "string"
+        },
+        "no_restart": {
+          "title": "No Restart",
+          "type": "boolean"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/WindowReasonCode"
+          },
+          "title": "Reasons",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "source_instance_id": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "start_settled": {
+          "title": "Start Settled",
+          "type": "boolean"
+        },
+        "start_stable_seconds": {
+          "minimum": 0,
+          "title": "Start Stable Seconds",
+          "type": "integer"
+        },
+        "valid": {
+          "title": "Valid",
+          "type": "boolean"
+        },
+        "window_end": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window End",
+          "type": "string"
+        },
+        "window_start": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "title": "Window Start",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "source_instance_id",
+        "gateway_instance_id",
+        "environment",
+        "window_start",
+        "window_end",
+        "apisix_version",
+        "start_settled",
+        "end_settled",
+        "no_restart",
+        "start_stable_seconds",
+        "end_stable_seconds",
+        "valid",
+        "reasons",
+        "evidence_type",
+        "extract_digests"
+      ],
+      "title": "MeasurementWindowEvidence",
+      "type": "object"
+    },
+    "OperationMappingStatement": {
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "pattern": "^operation:[^\\s\\x00-\\x1f\\x7f]*$",
+          "title": "Operation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "title": "OperationMappingStatement",
+      "type": "object"
+    },
+    "Outcome": {
+      "enum": [
+        "ANSWERED",
+        "PARTIAL",
+        "NOT_ANSWERED"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "Page": {
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        },
+        "returned": {
+          "maximum": 200,
+          "minimum": 0,
+          "title": "Returned",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "limit",
+        "returned"
+      ],
+      "title": "Page",
+      "type": "object"
+    },
+    "Producer": {
+      "additionalProperties": false,
+      "properties": {
+        "build_revision": {
+          "title": "Build Revision",
+          "type": "string"
+        },
+        "name": {
+          "const": "architecture-intelligence-platform",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "build_revision"
+      ],
+      "title": "Producer",
+      "type": "object"
+    },
+    "QualificationLimitationsEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "codes": {
+          "items": {
+            "$ref": "#/$defs/MeasurementCode"
+          },
+          "title": "Codes",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "gateway_route": {
+          "$ref": "#/$defs/EvidenceRoute"
+        },
+        "kind": {
+          "const": "QUALIFICATION_LIMITATIONS",
+          "title": "Kind",
+          "type": "string"
+        },
+        "window_valid": {
+          "title": "Window Valid",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "gateway_route",
+        "coverage",
+        "codes",
+        "window_valid"
+      ],
+      "title": "QualificationLimitationsEvidence",
+      "type": "object"
+    },
+    "Reconciliation": {
+      "enum": [
+        "RESOLVED",
+        "UNRESOLVED",
+        "AMBIGUOUS",
+        "CONFLICT"
+      ],
+      "title": "Reconciliation",
+      "type": "string"
+    },
+    "RouteOperationReconciliationEvidence": {
+      "additionalProperties": false,
+      "description": "Only what the frozen I2 snapshot carries (D9 provenance boundary): the outcome, the raw\nexplicit mapping entries and the rule. No reconciliation basis is exposed.",
+      "properties": {
+        "contract_version_id": {
+          "anyOf": [
+            {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contract Version Id"
+        },
+        "contract_version_reconciliation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reconciliation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "gateway_route": {
+          "$ref": "#/$defs/EvidenceRoute"
+        },
+        "kind": {
+          "const": "ROUTE_OPERATION_RECONCILIATION",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mapping_entries": {
+          "items": {
+            "$ref": "#/$defs/OperationMappingStatement"
+          },
+          "title": "Mapping Entries",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "operation_id": {
+          "anyOf": [
+            {
+              "pattern": "^operation:[^\\s\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operation Id"
+        },
+        "outcome": {
+          "$ref": "#/$defs/Reconciliation"
+        },
+        "rule": {
+          "$ref": "#/$defs/RuleRef"
+        }
+      },
+      "required": [
+        "kind",
+        "gateway_route",
+        "outcome",
+        "mapping_entries",
+        "rule"
+      ],
+      "title": "RouteOperationReconciliationEvidence",
+      "type": "object"
+    },
+    "RowApi": {
+      "additionalProperties": false,
+      "description": "The Route -> Operation -> contract-version chain, with the I2 outcomes unrenamed.",
+      "properties": {
+        "contract_id": {
+          "anyOf": [
+            {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contract Id"
+        },
+        "contract_version_id": {
+          "anyOf": [
+            {
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contract Version Id"
+        },
+        "contract_version_reconciliation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reconciliation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "operation_id": {
+          "anyOf": [
+            {
+              "pattern": "^operation:[^\\s\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operation Id"
+        },
+        "reconciliation": {
+          "$ref": "#/$defs/Reconciliation"
+        }
+      },
+      "required": [
+        "reconciliation"
+      ],
+      "title": "RowApi",
+      "type": "object"
+    },
+    "RowConfiguredAccess": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/ConfiguredAccessStatus"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "RowConfiguredAccess",
+      "type": "object"
+    },
+    "RowConsumer": {
+      "additionalProperties": false,
+      "description": "D7: `source_name` is the APISIX Consumer username, a source-qualified identity.",
+      "properties": {
+        "id": {
+          "pattern": "^gateway-consumer:owned:[0-9a-f]{64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "source_name": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Source Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source_name"
+      ],
+      "title": "RowConsumer",
+      "type": "object"
+    },
+    "RowRoute": {
+      "additionalProperties": false,
+      "properties": {
+        "gateway_instance_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Gateway Instance Id",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^gateway-route:owned:[0-9a-f]{64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "source_route_id": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Source Route Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "gateway_instance_id",
+        "source_route_id"
+      ],
+      "title": "RowRoute",
+      "type": "object"
+    },
+    "RowService": {
+      "additionalProperties": false,
+      "properties": {
+        "reconciliation": {
+          "$ref": "#/$defs/Reconciliation"
+        },
+        "service_id": {
+          "anyOf": [
+            {
+              "pattern": "^service:[^\\s\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Id"
+        }
+      },
+      "required": [
+        "reconciliation"
+      ],
+      "title": "RowService",
+      "type": "object"
+    },
+    "RowUsage": {
+      "additionalProperties": false,
+      "description": "The usage proposition. The counts are omitted, never zero, when I2 could not establish them\n(an invalid window); the interaction id is an opaque row-local value (D4).",
+      "properties": {
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "interaction_id": {
+          "anyOf": [
+            {
+              "pattern": "^observed-consumer-interaction:owned:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interaction Id"
+        },
+        "rejected_attempt_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rejected Attempt Count"
+        },
+        "status": {
+          "$ref": "#/$defs/UsageStatus"
+        },
+        "upstream_request_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Upstream Request Count"
+        }
+      },
+      "required": [
+        "status",
+        "coverage"
+      ],
+      "title": "RowUsage",
+      "type": "object"
+    },
+    "RuleRef": {
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "rule_version": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Rule Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_id",
+        "rule_version"
+      ],
+      "title": "RuleRef",
+      "type": "object"
+    },
+    "Rules": {
+      "additionalProperties": false,
+      "properties": {
+        "qualification": {
+          "$ref": "#/$defs/RuleRef"
+        },
+        "reconciliation": {
+          "$ref": "#/$defs/RuleRef"
+        }
+      },
+      "required": [
+        "reconciliation",
+        "qualification"
+      ],
+      "title": "Rules",
+      "type": "object"
+    },
+    "SelectedRoute": {
+      "additionalProperties": false,
+      "description": "D4: a Route selected by the target, emitted independently of `rows`.",
+      "properties": {
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^api-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "limitations": {
+          "items": {
+            "$ref": "#/$defs/MeasurementCode"
+          },
+          "title": "Limitations",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "route_id": {
+          "pattern": "^gateway-route:owned:[0-9a-f]{64}$",
+          "title": "Route Id",
+          "type": "string"
+        },
+        "source_route_id": {
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Source Route Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "route_id",
+        "source_route_id",
+        "coverage",
+        "limitations",
+        "evidence_refs"
+      ],
+      "title": "SelectedRoute",
+      "type": "object"
+    },
+    "ServiceLabelStatement": {
+      "additionalProperties": false,
+      "properties": {
+        "carrier": {
+          "$ref": "#/$defs/TargetCarrier"
+        },
+        "service_id": {
+          "pattern": "^service:[^\\s\\x00-\\x1f\\x7f]*$",
+          "title": "Service Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "carrier",
+        "service_id"
+      ],
+      "title": "ServiceLabelStatement",
+      "type": "object"
+    },
+    "ServiceMappingStatement": {
+      "additionalProperties": false,
+      "properties": {
+        "service_id": {
+          "pattern": "^service:[^\\s\\x00-\\x1f\\x7f]*$",
+          "title": "Service Id",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/TargetCarrier"
+        }
+      },
+      "required": [
+        "target",
+        "service_id"
+      ],
+      "title": "ServiceMappingStatement",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "properties": {
+        "model_revision": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Model Revision",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "model_revision"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    },
+    "TargetCarrier": {
+      "enum": [
+        "ROUTE",
+        "GATEWAY_SERVICE"
+      ],
+      "title": "TargetCarrier",
+      "type": "string"
+    },
+    "TargetKind": {
+      "enum": [
+        "APPLICATION_SERVICE",
+        "API_OPERATION",
+        "GATEWAY_ROUTE"
+      ],
+      "title": "TargetKind",
+      "type": "string"
+    },
+    "TargetServiceReconciliationEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "gateway_route": {
+          "$ref": "#/$defs/EvidenceRoute"
+        },
+        "kind": {
+          "const": "TARGET_SERVICE_RECONCILIATION",
+          "title": "Kind",
+          "type": "string"
+        },
+        "labels": {
+          "items": {
+            "$ref": "#/$defs/ServiceLabelStatement"
+          },
+          "title": "Labels",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "mapping_entries": {
+          "items": {
+            "$ref": "#/$defs/ServiceMappingStatement"
+          },
+          "title": "Mapping Entries",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "outcome": {
+          "$ref": "#/$defs/Reconciliation"
+        },
+        "rule": {
+          "$ref": "#/$defs/RuleRef"
+        },
+        "service_id": {
+          "anyOf": [
+            {
+              "pattern": "^service:[^\\s\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Id"
+        }
+      },
+      "required": [
+        "kind",
+        "gateway_route",
+        "outcome",
+        "mapping_entries",
+        "labels",
+        "rule"
+      ],
+      "title": "TargetServiceReconciliationEvidence",
+      "type": "object"
+    },
+    "UsageStatus": {
+      "enum": [
+        "OBSERVED_USAGE",
+        "MEASURED_ZERO",
+        "USAGE_UNESTABLISHED"
+      ],
+      "title": "UsageStatus",
+      "type": "string"
+    },
+    "WindowReasonCode": {
+      "description": "The I2 window reasons (contract \u00a73).",
+      "enum": [
+        "GWM_WINDOW_NOT_SETTLED",
+        "GWM_WINDOW_RESTART",
+        "GWM_WINDOW_ORDER_INVALID",
+        "GWM_VERSION_INCOMPATIBLE"
+      ],
+      "title": "WindowReasonCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "required": [
+                  "request_context",
+                  "entries"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "query"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "required": [
+                  "request_context",
+                  "rows"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "else": {
+        "properties": {
+          "limitations": {
+            "items": {
+              "properties": {
+                "code": {
+                  "not": {
+                    "enum": [
+                      "CURSOR_QUERY_MISMATCH",
+                      "MEASUREMENT_WINDOW_NOT_AVAILABLE",
+                      "SNAPSHOT_NOT_AVAILABLE",
+                      "TARGET_NOT_IN_WINDOW_SCOPE",
+                      "UNKNOWN_TARGET"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "items": {
+              "properties": {
+                "code": {
+                  "enum": [
+                    "CURSOR_QUERY_MISMATCH",
+                    "MEASUREMENT_WINDOW_NOT_AVAILABLE",
+                    "SNAPSHOT_NOT_AVAILABLE",
+                    "TARGET_NOT_IN_WINDOW_SCOPE",
+                    "UNKNOWN_TARGET"
+                  ]
+                }
+              }
+            },
+            "maxItems": 1,
+            "minItems": 1
+          },
+          "outcome": {
+            "const": "NOT_ANSWERED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "allOf": [
+          {
+            "properties": {
+              "data": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "data"
+            ]
+          },
+          {
+            "properties": {
+              "mode": {
+                "const": "evidence"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "items": {
+              "properties": {
+                "code": {
+                  "enum": [
+                    "MEASUREMENT_WINDOW_NOT_AVAILABLE",
+                    "SNAPSHOT_NOT_AVAILABLE",
+                    "TARGET_NOT_IN_WINDOW_SCOPE",
+                    "UNKNOWN_TARGET"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "ANSWERED"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "PARTIAL"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "snapshot": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "snapshot"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "contains": {
+              "properties": {
+                "code": {
+                  "enum": [
+                    "SNAPSHOT_NOT_AVAILABLE"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "limitations"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "mode": {
+            "const": "query"
+          },
+          "outcome": {
+            "const": "NOT_ANSWERED"
+          }
+        },
+        "required": [
+          "mode",
+          "outcome",
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "contains": {
+              "properties": {
+                "code": {
+                  "enum": [
+                    "NO_ROUTE_SELECTED"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "limitations"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "mode": {
+            "const": "evidence"
+          },
+          "outcome": {
+            "const": "NOT_ANSWERED"
+          }
+        },
+        "required": [
+          "mode",
+          "outcome",
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "contains": {
+              "properties": {
+                "code": {
+                  "enum": [
+                    "EVIDENCE_REF_NOT_RESOLVED"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "limitations"
+        ]
+      }
+    }
+  ],
+  "description": "The 0.7 envelope (D2, D6). `data` is null if and only if the answer is a refusal (a\npre-evaluation failure); an evaluated `NOT_ANSWERED` still carries its payload.",
+  "properties": {
+    "data": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApiConsumerUsageData"
+        },
+        {
+          "$ref": "#/$defs/ApiConsumerUsageEvidenceData"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Data"
+    },
+    "limitations": {
+      "items": {
+        "$ref": "#/$defs/ApiUsageLimitation"
+      },
+      "title": "Limitations",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "mode": {
+      "enum": [
+        "query",
+        "evidence"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome"
+    },
+    "producer": {
+      "$ref": "#/$defs/Producer"
+    },
+    "schema_version": {
+      "const": "0.7",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "snapshot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SnapshotRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tool": {
+      "const": "get_api_consumer_usage",
+      "title": "Tool",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "producer",
+    "tool",
+    "mode",
+    "outcome",
+    "snapshot",
+    "data",
+    "limitations"
+  ],
+  "title": "ApiConsumerUsageAnswer",
+  "type": "object"
+}
