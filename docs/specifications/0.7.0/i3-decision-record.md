@@ -110,7 +110,7 @@ Envelope limitation codes (closed enum, separate from the 0.5 `LimitationCode` a
 
 `SNAPSHOT_NOT_AVAILABLE`, `MEASUREMENT_WINDOW_NOT_AVAILABLE`, `UNKNOWN_TARGET`, `TARGET_NOT_IN_WINDOW_SCOPE`, `CURSOR_QUERY_MISMATCH`, `NO_ROUTE_SELECTED`, `MORE_ROWS_AVAILABLE`, `WINDOW_NOT_VALID`, `COVERAGE_UNKNOWN`, `EVIDENCE_REF_NOT_RESOLVED`.
 
-A **refusal** evaluated nothing: `data` is null, `outcome` is `NOT_ANSWERED` and `limitations` has exactly one code, one of the first five above.
+A **refusal** evaluated nothing: `data` is null, `outcome` is `NOT_ANSWERED` and `limitations` has exactly one code, one of the first five above. The set is mode-specific: **query** can refuse with all five; **evidence** can refuse with the first four only, because the evidence request has no `cursor`, so `CURSOR_QUERY_MISMATCH` is query/continuation-only and unreachable in evidence mode.
 
 | Situation | Outcome | Code | `data` |
 |---|---|---|---|
@@ -126,11 +126,11 @@ A **refusal** evaluated nothing: `data` is null, `outcome` is `NOT_ANSWERED` and
 | Evaluated; ≥ 1 selected Route is `UNKNOWN_COVERAGE` | `PARTIAL` | `COVERAGE_UNKNOWN` | present |
 | Evaluated; none of the above | `ANSWERED` | — | present |
 
-- Refusals are evaluated in table order (snapshot, then window, then target, then cursor), so a request with several defects gets one deterministic code.
+- Refusals are evaluated in table order (snapshot, then window, then target, then cursor; evidence mode has no cursor step), so a request with several defects gets one deterministic code.
 - Several `PARTIAL` codes can hold at once; `limitations` is the sorted set of exactly the codes the data implies (a validator in I3.1b, as v0.6 D9).
 - A row-level or Route-level `UNRESOLVED` / `AMBIGUOUS` / `CONFLICT` association never changes the outcome: it is explicit in the row and the summary (I3 §7). `USAGE_UNESTABLISHED` is likewise a row fact, not a limitation.
 - Empty `rows` with a known selection is `ANSWERED` or `PARTIAL` by the rules above, never `NOT_ANSWERED`.
-- Evidence mode: `ANSWERED` when every ref resolves, `PARTIAL` with `EVIDENCE_REF_NOT_RESOLVED` when some resolve, `NOT_ANSWERED` with `EVIDENCE_REF_NOT_RESOLVED` (data present, every entry `NOT_RESOLVED`) when none does. The same five refusals apply before any ref is looked at.
+- Evidence mode: `ANSWERED` when every ref resolves, `PARTIAL` with `EVIDENCE_REF_NOT_RESOLVED` when some resolve, `NOT_ANSWERED` with `EVIDENCE_REF_NOT_RESOLVED` (data present, every entry `NOT_RESOLVED`) when none does. The same first four refusals (snapshot, window, unknown target, target outside the window scope) apply before any ref is looked at; `CURSOR_QUERY_MISMATCH` does not exist in this mode.
 
 ## D7 — Consumer and credential exposure (I3 §6.2)
 
