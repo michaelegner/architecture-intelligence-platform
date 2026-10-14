@@ -31,7 +31,8 @@ REQUIRED_CI_CHECKS = frozenset(
     {
         "quality",
         "changes",
-        "integration-core",
+        "integration-core (heavy)",
+        "integration-core (rest)",
         "integration-qualification (heavy)",
         "integration-qualification (oracle)",
         "integration-qualification (other)",

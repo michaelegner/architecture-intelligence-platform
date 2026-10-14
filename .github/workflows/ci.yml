@@ -8,7 +8,10 @@ name: CI
 # `run-qualification` label (see the `changes` job). The Compose demo E2E stays its own job so it
 # does not extend the integration critical path.
 on:
+  # Branch pushes are covered by their pull_request run; running both doubled the runner load.
   push:
+    branches: [main]
+    tags: ["v*"]
   pull_request:
     types: [opened, synchronize, reopened, labeled]
   schedule:
@@ -17,6 +20,19 @@ on:
 
 permissions:
   contents: read
+
+# A newer push to the same pull request supersedes the running one; main, tags, nightly and manual
+# runs are never cancelled (they are release evidence).
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Pin the interpreter. `.python-version` is git-ignored, so uv otherwise picks the newest CPython
+  # (3.15 at the time of writing), for which wheels such as pydantic-core, jiter and uvloop do not
+  # exist yet: every job compiled them from source (~90 s) and tested an interpreter that does not
+  # ship. Keep in step with the Dockerfile's Python.
+  UV_PYTHON: "3.14"
 
 jobs:
   quality:
@@ -108,9 +124,28 @@ jobs:
           echo "qualification=$run" >> "$GITHUB_OUTPUT"
 
   integration-core:
-    # Everything but the qualification tier and the Compose demo E2E; one Neo4j container.
-    name: integration-core
+    # Two parallel shards, each with its own Neo4j container. `heavy` names the slowest modules (about
+    # half of the tier's time); `rest` runs everything else, so a new module needs no entry here.
+    name: integration-core (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [heavy, rest]
+    env:
+      HEAVY_MODULES: >-
+        tests/integration/test_locality_cost_benchmark.py
+        tests/integration/test_v062_i1_gate_spike.py
+        tests/integration/test_architecture_intelligence_service.py
+        tests/integration/test_scoped_applicability.py
+        tests/integration/test_v060_i4_bridges.py
+        tests/integration/test_api.py
+        tests/integration/test_importer.py
+        tests/integration/test_scoped_evidence_persistence.py
+        tests/integration/test_v060_i4_growth.py
+        tests/integration/test_api_architecture_intelligence_equivalence.py
+        tests/integration/test_scoped_evidence_ledger.py
+        tests/integration/test_i3_cross_source_qualification.py
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -125,7 +160,16 @@ jobs:
 
       # Testcontainers-backed - needs Docker, which is preinstalled on ubuntu-latest runners.
       - name: Core integration tests
-        run: uv run pytest tests/integration -m "not demo_e2e and not qualification" --durations=25
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          case "$SHARD" in
+            heavy) selection=$HEAVY_MODULES ;;
+            *) selection="tests/integration $(printf -- '--ignore=%s ' $HEAVY_MODULES)" ;;
+          esac
+          # Unquoted on purpose: word-splits into the module paths / --ignore options.
+          # shellcheck disable=SC2086
+          uv run pytest $selection -m "not demo_e2e and not qualification" --durations=25
 
   integration-qualification:
     # Three parallel shards, each with its own Neo4j container. `heavy` and `oracle` name the slowest
