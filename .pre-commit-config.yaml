@@ -1,0 +1,15 @@
+# Ruff uses the Python environment resolved by uv.lock, like the CI commands.
+# This config intentionally has no independent Ruff rev/pin.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff check (uv.lock)
+        entry: uv run ruff check
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: Ruff format (uv.lock)
+        entry: uv run ruff format
+        language: system
+        types_or: [python, pyi]
