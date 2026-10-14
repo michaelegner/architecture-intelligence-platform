@@ -153,3 +153,46 @@ uv run python -m benchmarks.traces_stall --pairs 15 150 1500 --reps 3
 
 `--pairs N` sends N client+server span pairs (2N spans). Per batch size and probe route it reports
 the idle probe latency, the ingest wall time, and the worst and p95 probe latency during the ingest.
+
+# API consumer usage answer read cost (v0.7.0 I3.4a)
+
+`benchmarks/api_usage_cost.py` records the read cost of the API-aware answer
+(`get_api_consumer_usage`) for v0.7.0 I3 (spec
+[`docs/specifications/0.7.0/i3-api-aware-current-state-projection-and-public-answer.md`](../docs/specifications/0.7.0/i3-api-aware-current-state-projection-and-public-answer.md)
+§13 "I3.4" and §14). As for the locality answer, each phase is measured by calling the real
+function on its own; production code does not log timings.
+
+```bash
+uv run python -m benchmarks.api_usage_cost --profile smoke --candidate-sha <full-sha>
+uv run python -m benchmarks.api_usage_cost --profile i3 --out <path.json> --candidate-sha <full-sha>
+```
+
+The sha must be `HEAD` of a clean, committed checkout. An I3 run records its own commit and is not
+I4 evidence.
+
+- **Points (`i3` profile):**
+  - a row universe of 100, 1,000, 5,000 and 10,000 qualification rows for an
+    `APPLICATION_SERVICE` target that selects every Route, so the largest point pages 50 times
+    and `consumers * routes` is ten times the rows;
+  - a `GATEWAY_ROUTE` target (rows bounded by one Route's pairs);
+  - an invalid window (counts omitted, rows still enumerated).
+
+  `smoke` is a three-point subset.
+- **World:** each point is one clean graph built through real write paths: an APISIX configuration
+  capture (consumers, Routes with an allow-list and the `aip/service` label), an APISIX measurement
+  source (attributed upstream series, including for consumers that are not allow-listed) and the
+  bundled `examples/` OpenAPI, imported with `run_all_configured_sources`.
+- **Timings** (medians of 5): end to end; the whole canonical snapshot state read the answer is
+  projected from, and its fingerprint; the projection (`project_api_consumer_usage`); serialization;
+  and the evidence mode over at most 20 refs, next to the finite ref map it rebuilds for the whole
+  selection.
+- **Counts and bounds:**
+  - the qualification rows against `consumers * routes` and against the union of configured and
+    observed pairs;
+  - the first page's counts, a full cursor walk on one snapshot (pages, rows seen and distinct,
+    rows per page) and the stable-read retries;
+  - the refs per evidence request.
+
+It records observed values only, with no threshold or SLO. The I3 completion record reports the
+`i3` result (`docs/specifications/0.7.0/i3-api-usage-cost.json`).
+`tests/integration/test_api_usage_cost_benchmark.py` checks its wiring in CI and asserts no timing.
