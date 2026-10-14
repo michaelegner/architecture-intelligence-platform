@@ -79,6 +79,9 @@ After the owner merges the prep PR, read `CANDIDATE_SHA` from git and check it a
 
 - **CI:** every check-run succeeded on that SHA, read from
   `gh api repos/<owner>/<repo>/commits/<sha>/check-runs`, not from `gh pr checks`.
+  The `integration-qualification (heavy|oracle|other)` check-runs must be present and green on
+  that SHA: they run on pushes to `main`, so a skipped or missing tier means the candidate is not
+  qualified (re-run via `workflow_dispatch` on that SHA if needed).
 - **Clean build:** in a clean detached worktree at the SHA, build the image with `--no-cache` and
   `--build-arg AIP_BUILD_REVISION=<sha>`, and record the image id and base-image digests.
 - **Golden path:** run

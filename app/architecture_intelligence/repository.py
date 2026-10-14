@@ -25,6 +25,8 @@ from app.architecture_intelligence.contracts import (
 )
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
+from app.sources.apisix_qualification import qualify
+from app.sources.apisix_reconciliation import reconcile
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
 
 # Bumping this - or changing any query/rule below - is a snapshot-fingerprint contract change and
@@ -129,6 +131,47 @@ _GATEWAY_QUERIES = {
         "n.gateway_instance_id AS gateway_instance_id, n.environment AS environment, "
         "n.apisix_version AS apisix_version, n.source_revision AS source_revision, "
         "n.evidence_type AS evidence_type"
+    ),
+}
+# v0.7.0 I2.2c (I2.1 contract §4): internal APISIX measurement carriers, projected only when present
+# (the same conditional-key rule as `gateway_configuration_v1`), so a graph with no measurement
+# source keeps its exact pre-I2.2 bytes.
+_API_USAGE_QUERIES = {
+    "windows": (
+        "MATCH (n:MeasurementWindow) RETURN n.id AS id, n.source_instance_id AS source_instance_id, "
+        "n.gateway_instance_id AS gateway_instance_id, n.environment AS environment, "
+        "n.apisix_version AS apisix_version, n.window_start AS window_start, "
+        "n.window_end AS window_end, n.start_settled AS start_settled, "
+        "n.end_settled AS end_settled, n.no_restart AS no_restart, "
+        "n.start_stable_seconds AS start_stable_seconds, "
+        "n.end_stable_seconds AS end_stable_seconds, n.disabled_labels AS disabled_labels, "
+        "n.route_coverage_json AS route_coverage_json, n.window_reasons AS window_reasons, "
+        "n.evidence_ids AS evidence_ids"
+    ),
+    "evidence": (
+        "MATCH (n:MeasurementEvidence) RETURN n.id AS id, "
+        "n.source_instance_id AS source_instance_id, "
+        "n.gateway_instance_id AS gateway_instance_id, n.environment AS environment, "
+        "n.apisix_version AS apisix_version, n.window_start AS window_start, "
+        "n.window_end AS window_end, n.start_sha256 AS start_sha256, n.end_sha256 AS end_sha256, "
+        "n.evidence_type AS evidence_type"
+    ),
+    "series": (
+        "MATCH (n:MeasurementSeries) RETURN n.id AS id, n.window_id AS window_id, "
+        "n.gateway_instance_id AS gateway_instance_id, n.environment AS environment, "
+        "n.window_start AS window_start, n.window_end AS window_end, n.route AS route, "
+        "n.consumer AS consumer, n.code AS code, n.response_source AS response_source, "
+        "n.status AS status, n.request_count_delta AS request_count_delta, "
+        "n.labels_json AS labels_json, n.evidence_ids AS evidence_ids"
+    ),
+    "limitations": (
+        "MATCH (n:MeasurementLimitation) RETURN n.id AS id, n.window_id AS window_id, "
+        "n.code AS code, n.route AS route, n.response_source AS response_source"
+    ),
+    "mapping_entries": (
+        "MATCH (n:MeasurementMappingEntry) RETURN n.id AS id, "
+        "n.gateway_instance_id AS gateway_instance_id, n.environment AS environment, "
+        "n.kind AS kind, n.source_id AS source_id, n.target_id AS target_id"
     ),
 }
 _BROKER_QUERY = "MATCH (n:Broker) RETURN n.id AS id, n.stable_broker_id AS stable_broker_id"
@@ -341,6 +384,21 @@ def _project_gateway_configuration(session: neo4j.Session) -> dict | None:
     return block if any(block.values()) else None
 
 
+def _project_api_usage(session: neo4j.Session) -> dict | None:
+    """The v0.7.0 I2.2c `api_usage_v1` block (I2 spec §10.2), or `None` when the graph has no
+    measurement carriers. Every list-valued property is sorted so insertion order never reaches the
+    fingerprint; I2.3 and I2.4 extend the block additively."""
+    block: dict[str, list[dict]] = {}
+    for name, query in _API_USAGE_QUERIES.items():
+        rows = _project_nodes(session, query)  # pyright: ignore[reportArgumentType]
+        for row in rows:
+            for key, value in row.items():
+                if isinstance(value, list):
+                    row[key] = sorted(value)
+        block[name] = rows
+    return block if any(block.values()) else None
+
+
 def _project_api_contracts(session: neo4j.Session) -> dict | None:
     """The v0.7.0 I1.2 `api_contracts_v1` block, or `None` when the graph has no contract carriers.
     List-valued properties are sorted so insertion order can never reach the fingerprint."""
@@ -521,7 +579,38 @@ def canonical_snapshot_state(
     gateway = _project_gateway_configuration(session)
     if gateway:
         state["gateway_configuration_v1"] = gateway
+    usage = _project_api_usage(session)
     contracts = _project_api_contracts(session)
+    if usage:
+        # v0.7.0 I2.3 (I2 spec §10.2): the reconciliation outcomes are a pure function of the raw
+        # facts already in this state (the v0.5.0 I3 pattern), derived here so the snapshot binds
+        # them and the rule id/version; nothing is persisted.
+        usage.update(
+            reconcile(
+                windows=usage["windows"],
+                consumers=(gateway or {}).get("consumers", []),
+                routes=(gateway or {}).get("routes", []),
+                services=(gateway or {}).get("services", []),
+                series=usage["series"],
+                mapping_entries=usage["mapping_entries"],
+                operations=state["operations"],
+                associations=(contracts or {}).get("associations", []),
+                canonical_services=state["services"],
+            )
+        )
+        # v0.7.0 I2.4 (I2 spec §§8-10.2): coverage, interactions and the configured-vs-observed
+        # qualification rows, derived the same way from the raw facts plus the I2.3 attributions.
+        usage.update(
+            qualify(
+                windows=usage["windows"],
+                consumers=(gateway or {}).get("consumers", []),
+                routes=(gateway or {}).get("routes", []),
+                configured_access=(gateway or {}).get("configured_access", []),
+                series=usage["series"],
+                attributions=usage["attributions"],
+            )
+        )
+        state["api_usage_v1"] = usage
     if contracts:
         state["api_contracts_v1"] = contracts
     return state

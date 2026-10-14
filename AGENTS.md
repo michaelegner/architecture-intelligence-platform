@@ -64,9 +64,13 @@ including this file.** If anything below conflicts with a specification, the spe
   welcome.
 - Before opening a pull request or pushing a commit meant to pass CI, run the full local gate in
   this order: `uv run ruff format .`, `uv run ruff check .`, `uv run pyright`,
-  `uv run lint-imports`, then `uv run pytest tests/unit` **and** `uv run pytest tests/integration`.
-  Run both suites, not the one that seems relevant: contract changes that stay unit-green have
-  broken integration tests here before. This applies to small changes too. The only exception is the documentation-only
+  `uv run lint-imports`, then `uv run pytest tests/unit` **and**
+  `uv run pytest tests/integration -m "not qualification"` (the qualification tier is the slow
+  frozen-reference/oracle/real-container set marked in `tests/integration/conftest.py`; CI runs it
+  on main, tags, nightly and on PRs touching its inputs, see `docs/development.md`). Run both
+  suites, not the one that seems relevant: contract changes that stay unit-green have broken
+  integration tests here before. Also run `-m qualification` when the change touches its inputs
+  or the PR will carry the `run-qualification` label. This applies to small changes too. The only exception is the documentation-only
   exemption in the specification-driven-implementation skill, which never covers specifications,
   completion records, release notes, schemas or fixtures.
 - Never merge a pull request, force-push, or push directly to `main`; the owner merges. This rule is

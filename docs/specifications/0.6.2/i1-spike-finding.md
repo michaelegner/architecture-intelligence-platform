@@ -2,7 +2,7 @@
 
 **Status:** Result of the spike specified in [`specification.md`](specification.md) §3.2 (Draft, 2026-10-07).
 **Baseline:** v0.6.1 (`main` at `68ea59d`), real Neo4j, no `app/` change.
-**Evidence:** [`tests/integration/test_v062_i1_gate_spike.py`](../../../tests/integration/test_v062_i1_gate_spike.py) (31 characterization tests; fixtures under
+**Evidence:** [`tests/integration/test_v062_i1_gate_spike.py`](../../../tests/integration/test_v062_i1_gate_spike.py) (characterization tests, reduced after v0.6.2 to the 23 that still pin live behaviour; fixtures under
 `tests/fixtures/pitstop_spike/overlay/`). Planning started 2026-10-07T09:15:52Z.
 
 The tests freeze what v0.6.1 *actually does* for the Pitstop-shaped world (nine AsyncAPI 2.6.0 overlays: four publishers and

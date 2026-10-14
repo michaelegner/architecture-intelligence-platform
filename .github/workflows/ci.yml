@@ -1,15 +1,38 @@
 name: CI
 
 # H5 spec §26: checkout -> Python setup -> {dependency install, ruff check, ruff format --check,
-# unit tests, integration tests}. The integration baseline is split across required jobs so the
-# Compose demo E2E does not extend the core integration critical path, and the core integration
-# tests themselves run as two parallel shards.
+# unit tests, integration tests}. Integration tests run in tiers: `integration-core` (every run) and
+# `integration-qualification` (`-m qualification`: the slow frozen-reference / oracle / real-container
+# suites, listed in tests/integration/conftest.py). The qualification tier runs on pushes to main and
+# version tags, nightly, on manual dispatch, and on pull requests that touch its inputs or carry the
+# `run-qualification` label (see the `changes` job). The Compose demo E2E stays its own job so it
+# does not extend the integration critical path.
 on:
+  # Branch pushes are covered by their pull_request run; running both doubled the runner load.
   push:
+    branches: [main]
+    tags: ["v*"]
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+# A newer push to the same pull request supersedes the running one; main, tags, nightly and manual
+# runs are never cancelled (they are release evidence).
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Pin the interpreter. `.python-version` is git-ignored, so uv otherwise picks the newest CPython
+  # (3.15 at the time of writing), for which wheels such as pydantic-core, jiter and uvloop do not
+  # exist yet: every job compiled them from source (~90 s) and tested an interpreter that does not
+  # ship. Keep in step with the Dockerfile's Python.
+  UV_PYTHON: "3.14"
 
 jobs:
   quality:
@@ -59,30 +82,70 @@ jobs:
           HYPOTHESIS_PROFILE: ci
         run: uv run pytest tests/unit
 
+  changes:
+    # Decides whether the qualification tier runs. Always runs, so the required check never waits on
+    # a skipped dependency.
+    name: changes
+    runs-on: ubuntu-latest
+    outputs:
+      qualification: ${{ steps.decide.outputs.qualification }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether the qualification tier runs
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          BASE_REF: ${{ github.base_ref }}
+          LABELLED: ${{ contains(github.event.pull_request.labels.*.name, 'run-qualification') }}
+        run: |
+          run=false
+          case "$EVENT" in
+            schedule | workflow_dispatch) run=true ;;
+            push)
+              case "$REF" in
+                refs/heads/main | refs/tags/*) run=true ;;
+              esac ;;
+            pull_request)
+              if [ "$LABELLED" = true ]; then
+                run=true
+              else
+                # Inputs of the qualification suites: fixtures, examples, schemas, the capture and
+                # qualification code, the locality/scoped/broker answer code, sources, and the
+                # suites and CI definition themselves. Anything else is caught on main.
+                pattern='^(tests/(fixtures|support)/|tests/integration/(conftest\.py|support/|locality_oracle/|test_(locality_(oracle|surface_parity|query|rehearsal_replay)|i4_pubsub_qualification|broker_qualification|evaluation_architecture_answers|v070_i[12]_apisix_.*_real)\.py)|examples/|schemas/|benchmarks/|app/(qualification|gateway_capture|sources)/|app/architecture_intelligence/.*(locality|scoped|broker)|pyproject\.toml|uv\.lock|\.github/workflows/ci\.yml)'
+                if git diff --name-only "origin/${BASE_REF}...HEAD" | grep -Eq "$pattern"; then run=true; fi
+              fi ;;
+          esac
+          echo "qualification=$run" >> "$GITHUB_OUTPUT"
+
   integration-core:
-    # Three parallel shards, each with its own Neo4j container. `heavy` and `oracle` name the slowest
-    # modules; `rest` runs everything else, so a new module needs no entry here.
+    # Two parallel shards, each with its own Neo4j container. `heavy` names the slowest modules (about
+    # half of the tier's time); `rest` runs everything else, so a new module needs no entry here.
     name: integration-core (${{ matrix.shard }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [heavy, oracle, rest]
+        shard: [heavy, rest]
     env:
-      # Order matters: pytest runs these in the listed order, and test_locality_query.py's replays
-      # are only reused by test_locality_rehearsal_replay.py when they run first.
       HEAVY_MODULES: >-
-        tests/integration/test_locality_query.py
-        tests/integration/test_locality_rehearsal_replay.py
-        tests/integration/test_evaluation_architecture_answers.py
-        tests/integration/test_i4_pubsub_qualification.py
-        tests/integration/test_adapter.py
+        tests/integration/test_locality_cost_benchmark.py
+        tests/integration/test_v062_i1_gate_spike.py
         tests/integration/test_architecture_intelligence_service.py
-      # The I3 oracle and its cross-surface parity run (v0.6.0 I3.3c), which builds the same
-      # worlds; both check the live graph's snapshot before reusing a replay.
-      ORACLE_MODULES: >-
-        tests/integration/test_locality_oracle.py
-        tests/integration/test_locality_surface_parity.py
+        tests/integration/test_scoped_applicability.py
+        tests/integration/test_v060_i4_bridges.py
+        tests/integration/test_api.py
+        tests/integration/test_importer.py
+        tests/integration/test_scoped_evidence_persistence.py
+        tests/integration/test_v060_i4_growth.py
+        tests/integration/test_api_architecture_intelligence_equivalence.py
+        tests/integration/test_scoped_evidence_ledger.py
+        tests/integration/test_i3_cross_source_qualification.py
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -102,12 +165,60 @@ jobs:
         run: |
           case "$SHARD" in
             heavy) selection=$HEAVY_MODULES ;;
+            *) selection="tests/integration $(printf -- '--ignore=%s ' $HEAVY_MODULES)" ;;
+          esac
+          # Unquoted on purpose: word-splits into the module paths / --ignore options.
+          # shellcheck disable=SC2086
+          uv run pytest $selection -m "not demo_e2e and not qualification" --durations=25
+
+  integration-qualification:
+    # Three parallel shards, each with its own Neo4j container. `heavy` and `oracle` name the slowest
+    # modules; `other` runs every remaining qualification-marked module, so a new one needs no entry.
+    name: integration-qualification (${{ matrix.shard }})
+    needs: changes
+    if: needs.changes.outputs.qualification == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [heavy, oracle, other]
+    env:
+      # Order matters: pytest runs these in the listed order, and test_locality_query.py's replays
+      # are only reused by test_locality_rehearsal_replay.py when they run first.
+      HEAVY_MODULES: >-
+        tests/integration/test_locality_query.py
+        tests/integration/test_locality_rehearsal_replay.py
+        tests/integration/test_evaluation_architecture_answers.py
+        tests/integration/test_i4_pubsub_qualification.py
+      # The I3 oracle and its cross-surface parity run (v0.6.0 I3.3c), which builds the same
+      # worlds; both check the live graph's snapshot before reusing a replay.
+      ORACLE_MODULES: >-
+        tests/integration/test_locality_oracle.py
+        tests/integration/test_locality_surface_parity.py
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Qualification integration tests
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          case "$SHARD" in
+            heavy) selection=$HEAVY_MODULES ;;
             oracle) selection=$ORACLE_MODULES ;;
             *) selection="tests/integration $(printf -- '--ignore=%s ' $HEAVY_MODULES $ORACLE_MODULES)" ;;
           esac
           # Unquoted on purpose: word-splits into the module paths / --ignore options.
           # shellcheck disable=SC2086
-          uv run pytest $selection -m "not demo_e2e" --durations=25
+          uv run pytest $selection -m "qualification and not demo_e2e" --durations=25
 
   demo-e2e:
     name: demo-e2e
@@ -131,17 +242,20 @@ jobs:
     # Keep the existing branch-protection context while making all three parallel jobs mandatory.
     name: lint + test
     if: always()
-    needs: [quality, integration-core, demo-e2e]
+    needs: [quality, integration-core, integration-qualification, demo-e2e]
     runs-on: ubuntu-latest
     steps:
       - name: Verify required test jobs
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
           INTEGRATION_CORE_RESULT: ${{ needs['integration-core'].result }}
+          INTEGRATION_QUALIFICATION_RESULT: ${{ needs['integration-qualification'].result }}
           DEMO_E2E_RESULT: ${{ needs['demo-e2e'].result }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$INTEGRATION_CORE_RESULT" = success
+          # Skipped when the `changes` job decided the qualification tier does not apply.
+          test "$INTEGRATION_QUALIFICATION_RESULT" = success || test "$INTEGRATION_QUALIFICATION_RESULT" = skipped
           test "$DEMO_E2E_RESULT" = success
 
   dependency-audit:

@@ -1,11 +1,13 @@
 """v0.4.2 I3 - closes a real gap found while writing the retrospective I1 completion record (spec
 `docs/specifications/0.4.2/i3-client-qualification-and-release-preparation.md` §3.1/§3.3/§8.3
-"automated zero-write result"): zero-write evidence is real but split across three per-tool files
+"automated zero-write result"): zero-write evidence was split across three per-tool files
 (`test_mcp_service_dependencies_equivalence.py`, `test_mcp_architecture_drift_equivalence.py`,
 `test_mcp_evidence_equivalence.py`), each proving one tool leaves the revision fence unchanged. None
-of them - nor any other file - proves "zero graph writes across every routing path" (all three
+of them - nor any other file - proved "zero graph writes across every routing path" (all three
 tools, including malformed/rejected requests) in one consolidated run, which is exactly what the I1
-completion record needs to cite as evidence.
+completion record needs to cite as evidence. The per-tool success-path fence tests have since been
+removed from those files; this is now the only success-path zero-write proof (their refusal-path
+fence tests remain).
 
 v0.5.0 I3 slice 5a retires the v0.4.x direct MCP envelope (ADR 0016, spec §14.1) - `POST /mcp` now
 serves standard negotiated MCP only, so this file's own former "direct mode" success/rejection

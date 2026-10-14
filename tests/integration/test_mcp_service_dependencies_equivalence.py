@@ -181,30 +181,6 @@ async def test_two_identical_mcp_calls_produce_byte_identical_structured_content
 
 
 @pytest.mark.asyncio
-async def test_successful_mcp_call_leaves_revision_fence_unchanged(driver):
-    import_all_sources(
-        driver,
-        database=DATABASE,
-        source_config=FilesystemSourceConfig(
-            id="test-mcp-service-dependencies-equivalence-examples", root=EXAMPLES_DIR
-        ),
-    )
-    with driver.session(database=DATABASE) as session:
-        before = read_revision(session)
-
-    server, app = _build_server_and_app(driver)
-    async with mcp_session_manager_lifespan(server):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=_ALLOWED_ORIGIN) as client:
-            result = await _call_mcp(client, _request_payload(ids.service_id("order-service")))
-            assert result["isError"] is False
-
-    with driver.session(database=DATABASE) as session:
-        after = read_revision(session)
-    assert after == before
-
-
-@pytest.mark.asyncio
 async def test_refusal_mcp_call_leaves_revision_fence_unchanged(driver):
     """A stale/mismatched snapshot_id forces `NOT_ANSWERED`/`SNAPSHOT_NOT_AVAILABLE` (spec §12) -
     still zero graph writes."""

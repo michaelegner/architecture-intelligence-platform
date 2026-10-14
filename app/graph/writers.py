@@ -22,6 +22,13 @@ from app.canonical.gateway import (
     GATEWAY_SERVICE_LABEL,
     GATEWAY_SOURCE_EVIDENCE_LABEL,
 )
+from app.canonical.gateway_measurement import (
+    MEASUREMENT_EVIDENCE_LABEL,
+    MEASUREMENT_LIMITATION_LABEL,
+    MEASUREMENT_MAPPING_ENTRY_LABEL,
+    MEASUREMENT_SERIES_LABEL,
+    MEASUREMENT_WINDOW_LABEL,
+)
 from app.canonical.model import ArchitectureModel, relation_key
 from app.canonical.pubsub import (
     PUBSUB_DECLARATION_LABEL,
@@ -104,6 +111,7 @@ def write_nodes(
     count += _write_pubsub_carrier_nodes(tx, source_instance_id, model)
     count += _write_api_contract_carrier_nodes(tx, source_instance_id, model)
     count += _write_gateway_carrier_nodes(tx, source_instance_id, model)
+    count += _write_measurement_carrier_nodes(tx, source_instance_id, model)
     return count + _write_infrastructure_nodes(tx, source_instance_id, model)
 
 
@@ -175,6 +183,33 @@ def _write_gateway_carrier_nodes(
         (GATEWAY_CONFIGURED_ACCESS_LABEL, model.gateway_configured_accesses),
         (GATEWAY_LIMITATION_LABEL, model.gateway_limitations),
         (GATEWAY_SOURCE_EVIDENCE_LABEL, model.gateway_source_evidence),
+    ):
+        query = MERGE_NODE_TEMPLATE.format(label=label)
+        for carrier in carriers:
+            # `label` is a module-level constant, never input, so the formatted query is safe.
+            tx.run(
+                query,  # pyright: ignore[reportArgumentType]
+                id=carrier.id,
+                props=carrier.model_dump(exclude={"id"}),
+                source_instance_id=source_instance_id,
+            )
+            count += 1
+    return count
+
+
+def _write_measurement_carrier_nodes(
+    tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
+) -> int:
+    """v0.7.0 I2.2c: the internal APISIX measurement carriers (I2.1 contract §4), written with the
+    same MERGE-with-`owner_source_ids` template as every other canonical node. Their labels sit
+    outside `NODE_LABELS` and they have no relationships."""
+    count = 0
+    for label, carriers in (
+        (MEASUREMENT_WINDOW_LABEL, model.measurement_windows),
+        (MEASUREMENT_EVIDENCE_LABEL, model.measurement_evidence),
+        (MEASUREMENT_SERIES_LABEL, model.measurement_series),
+        (MEASUREMENT_LIMITATION_LABEL, model.measurement_limitations),
+        (MEASUREMENT_MAPPING_ENTRY_LABEL, model.measurement_mapping_entries),
     ):
         query = MERGE_NODE_TEMPLATE.format(label=label)
         for carrier in carriers:

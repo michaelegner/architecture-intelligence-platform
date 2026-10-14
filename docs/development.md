@@ -3,7 +3,8 @@
 ```bash
 uv sync                                # install dependencies
 uv run pytest tests/unit               # fast unit tests (no Neo4j needed)
-uv run pytest tests/integration        # Testcontainers-backed tests (needs Docker)
+uv run pytest tests/integration -m "not qualification"   # per-PR integration tier (Testcontainers; needs Docker)
+uv run pytest tests/integration -m qualification          # slow frozen-reference/oracle/real-container tier
 uv run ruff check .                    # lint (incl. C901: complexity ratchet in pyproject.toml, lower it, never raise it)
 uv run ruff format .                   # format
 uv run pyright                         # type check (app/)
@@ -32,6 +33,30 @@ docker compose up
 
 For the OpenTelemetry Collector-based runtime demo, see the README's "Runtime telemetry" section
 and [`opentelemetry.md`](opentelemetry.md).
+
+## Capturing an APISIX measurement window (v0.7.0 I2.2)
+
+The measurement source replays a fixture; the separate capture tool produces it from the `prometheus`
+plugin's text endpoint of one APISIX 3.19.0 instance. It needs no Admin API key or other credential:
+
+```bash
+uv run python -m app.gateway_capture.apisix_metrics \
+  --metrics-url http://127.0.0.1:9091/apisix/prometheus/metrics \
+  --gateway-instance-id gw-prod-1 --environment prod --apisix-version 3.19.0 \
+  --route-coverage orders-route=true --no-restart --window-seconds 600 --out ./measurement
+```
+
+The tool settles each boundary (two identical normalized scrapes at least `--quiet-seconds` apart,
+default 20 s: series appeared ~14 s after traffic against real APISIX in etcd mode), waits
+`--window-seconds`, settles the end boundary and writes `apisix-metrics-start.txt`,
+`apisix-metrics-end.txt` and `apisix-measurement-manifest.json`. `--route-coverage`, `--disabled-label`
+and `--no-restart` are **operator assertions** (a scrape cannot prove them); without `--no-restart`
+the window is recorded as unestablished rather than guessed. Register the output directory under
+`sources.gateway_measurements` (`id`, `root`, `gateway_instance_id`, `environment`) next to the
+APISIX configuration source of the same `gateway_instance_id` and `environment`; add an optional
+`apisix-mapping.json` (`aip-apisix-mapping/1`) to bind Routes to Operations and Routes/Gateway
+Services to application Services explicitly. The frozen rules are in
+[`specifications/0.7.0/i2-measurement-contract.md`](specifications/0.7.0/i2-measurement-contract.md).
 
 ## Troubleshooting
 
@@ -146,6 +171,13 @@ reachable, `POST /api/import` should work immediately against the bundled refere
 - `tests/integration/` — Testcontainers-backed against a real Neo4j; the integration suite shares
   one session-scoped Neo4j container, while individual modules/tests reset and populate graph state
   as required for isolation.
+  Tiers: modules listed in `QUALIFICATION_MODULES` (`tests/integration/conftest.py`) carry the
+  `qualification` marker. CI's `integration-core` runs everything else on every run;
+  `integration-qualification` runs on pushes to `main` and version tags, nightly, on manual dispatch,
+  on PRs labelled `run-qualification`, and on PRs whose diff matches the path filter in the
+  `changes` job of `.github/workflows/ci.yml`. A PR that skips the tier is covered by the main-push
+  run; a regression there is fixed forward. Move a module into or out of the tier only in that one
+  list.
 - `tests/fixtures/` — shared synthetic fixture data used across both.
 - `examples/` — the reference test-fixture landscape used across unit/integration tests and the
   local Quick Start (`order-service` calls `product-service` and sends to `payment-q`;

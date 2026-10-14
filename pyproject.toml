@@ -99,6 +99,7 @@ venv = ".venv"
 testpaths = ["tests"]
 markers = [
     "demo_e2e: Compose-based end-to-end tests for the runtime demo lifecycle",
+    "qualification: slow frozen-reference / oracle / real-container integration suites; a separate CI tier (see tests/integration/conftest.py)",
 ]
 
 [tool.importlinter]

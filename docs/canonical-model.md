@@ -101,6 +101,25 @@ through the same per-source machinery as everything else. Public exposure is I3.
 | `GatewaySourceEvidence` | one per source: `gateway_instance_id`, operator-asserted `environment`, `apisix_version`, `source_revision` (`apisix:<version>+etcd:<revision>`) | `evidence:apisix:<sha256(ld(gateway_instance_id, source_revision))>` |
 | `ApiContract`, `ApiContractVersion`, `ApiContractAssociation` | the OpenAPI adapter, kept only when the import request configures a gateway source | `api-contract[-version|-association]:owned:…` |
 
+v0.7.0 I2.2 adds the **measurement carriers** (`app/canonical/gateway_measurement.py`), built from the
+APISIX measurement fixture (`app/ingestion/apisix_measurement_adapter.py`), internal-only in the same
+sense:
+
+| Carrier | Meaning | Id |
+| --- | --- | --- |
+| `MeasurementWindow` | one observation window: gateway/environment, version, settled / no-restart / stable-seconds assertions, `disabled_labels`, per-Route coverage, the sorted window reasons (empty = valid) | `measurement-window:owned:<sha256(ld(gateway_instance_id, environment, window_start, window_end, start_sha256, end_sha256))>` |
+| `MeasurementEvidence` | the window's `OBSERVED` evidence, bound to both extract hashes | `evidence:apisix-measurement:<same inputs>` |
+| `MeasurementSeries` | every series present at either boundary with its status (`DELTA`, `DELTA_FIRST_IN_WINDOW`, `DECREASED`, `ONE_BOUNDARY_START`, `ONE_BOUNDARY_END`, `WINDOW_INVALID`); only the first two carry a delta | `measurement-series:owned:<sha256(ld(window id, series key))>` |
+| `MeasurementLimitation` | a route-level fact that a series had no usable delta, for the route-wide coverage rule | `measurement-limitation:owned:<sha256(ld(window id, code, route, response_source))>` |
+| `MeasurementMappingEntry` | a validated entry of the optional mapping artifact, stored verbatim for I2.3 | `measurement-mapping:owned:<sha256(ld(gateway_instance_id, environment, kind, source id, target id))>` |
+
+v0.7.0 I2.3 stores nothing new: the reconciliation outcomes between these carriers, the OpenAPI
+`Operation`s and the application `Service`s are derived into `api_usage_v1` when the snapshot is
+projected (see [`ingestion.md`](ingestion.md)). v0.7.0 I2.4 does the same for the
+`ObservedConsumerInteraction` rows (`observed-consumer-interaction:owned:<sha256(ld(consumer id, route
+id, environment, window_start, window_end))>`), the per-Route coverage and the configured-vs-observed
+qualification rows (`usage-qualification:owned:<same inputs>`): derived, id-bearing, internal-only.
+
 Rules worth remembering: a gateway Route/Service/Consumer is never an application `Service` or
 `Operation`, and nothing here infers a Route↔Operation or gateway↔Service association; the gateway
 source's evidence is a dedicated carrier, **not** a `Provenance`/`:Evidence` node, so no public
