@@ -1003,6 +1003,30 @@ def test_the_evidence_ref_is_the_sha256_of_the_length_delimited_parts():
     )
 
 
+def test_two_routes_with_no_stored_limitation_carrier_get_distinct_limitation_refs():
+    """D12.13: the supporting ids of QUALIFICATION_LIMITATIONS include the Route id, so Routes of
+    one window that have no `MeasurementLimitation` do not collapse to one ref."""
+    digest = digest_of(context())
+    window_id = "measurement-window:owned:w"
+    refs = {
+        evidence_ref(
+            snapshot_id=SNAPSHOT_ID,
+            query_digest=digest,
+            kind="QUALIFICATION_LIMITATIONS",
+            internal_ids=[route, window_id],
+        )
+        for route in (R1, R2)
+    }
+    assert len(refs) == 2
+    only_window = evidence_ref(
+        snapshot_id=SNAPSHOT_ID,
+        query_digest=digest,
+        kind="QUALIFICATION_LIMITATIONS",
+        internal_ids=[window_id],
+    )
+    assert only_window not in refs
+
+
 def test_the_evidence_ref_binds_snapshot_context_kind_and_ids():
     digest = digest_of(context())
     base = {
