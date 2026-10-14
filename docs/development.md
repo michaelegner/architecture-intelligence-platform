@@ -33,6 +33,30 @@ docker compose up
 For the OpenTelemetry Collector-based runtime demo, see the README's "Runtime telemetry" section
 and [`opentelemetry.md`](opentelemetry.md).
 
+## Capturing an APISIX measurement window (v0.7.0 I2.2)
+
+The measurement source replays a fixture; the separate capture tool produces it from the `prometheus`
+plugin's text endpoint of one APISIX 3.19.0 instance. It needs no Admin API key or other credential:
+
+```bash
+uv run python -m app.gateway_capture.apisix_metrics \
+  --metrics-url http://127.0.0.1:9091/apisix/prometheus/metrics \
+  --gateway-instance-id gw-prod-1 --environment prod --apisix-version 3.19.0 \
+  --route-coverage orders-route=true --no-restart --window-seconds 600 --out ./measurement
+```
+
+The tool settles each boundary (two identical normalized scrapes at least `--quiet-seconds` apart,
+default 20 s: series appeared ~14 s after traffic against real APISIX in etcd mode), waits
+`--window-seconds`, settles the end boundary and writes `apisix-metrics-start.txt`,
+`apisix-metrics-end.txt` and `apisix-measurement-manifest.json`. `--route-coverage`, `--disabled-label`
+and `--no-restart` are **operator assertions** (a scrape cannot prove them); without `--no-restart`
+the window is recorded as unestablished rather than guessed. Register the output directory under
+`sources.gateway_measurements` (`id`, `root`, `gateway_instance_id`, `environment`) next to the
+APISIX configuration source of the same `gateway_instance_id` and `environment`; add an optional
+`apisix-mapping.json` (`aip-apisix-mapping/1`) to bind Routes to Operations and Routes/Gateway
+Services to application Services explicitly. The frozen rules are in
+[`specifications/0.7.0/i2-measurement-contract.md`](specifications/0.7.0/i2-measurement-contract.md).
+
 ## Troubleshooting
 
 ### Neo4j authentication failures or startup health problems

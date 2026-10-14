@@ -186,6 +186,15 @@ Capture-tool CLI shape and settle timeout defaults (I2.2); writer Cypher and con
 - **Counter lag is longer than the settle rule's natural poll interval.** (Bound into the manifest in I2.2a after the review of #525: `start_stable_seconds` / `end_stable_seconds` record the stability the tool actually observed, and the first-in-window reading requires `start_stable_seconds >= 20`, so a fixture captured under the bare two-scrape rule cannot license it.) Against digest-pinned APISIX 3.19.0 in etcd mode, `apisix_http_status` series appeared ~14 s after the requests; scrapes taken seconds apart were identical (and empty) throughout the lag, so "two consecutive identical scrapes" alone settled on the wrong extract. The capture tool therefore requires the two identical scrapes to be at least a quiet period apart (`--quiet-seconds`, default 20 s; the bare rule is `0`). The manifest and every validation rule are unchanged: `*_settled = true` still means "stable", only the tool's evidence for it is stronger.
 - **A series first created inside the window has no start-boundary sample.** The real run showed it: the 401 series, created by the window's own traffic, existed at the end boundary only. Read strictly (a missing boundary is never 0) a consumer's first request in a window could not establish usage; the only positive case in the run worked because a readiness request before the start boundary had already created the series. The review of #524 asked for an amendment rather than an accepted limitation, so §3 now reads such a series as starting at 0 (`DELTA_FIRST_IN_WINDOW`) under the stated preconditions, and keeps `ONE_BOUNDARY_END` otherwise. I2 spec §5, §8 and §14 are amended to match; vectors F01–F12, X23–X25 and Q15/Q18/Q25–Q30 changed accordingly.
 
+## 10.2 Implementation status
+
+§1 (cardinality, registration), §2-§3 (fixture, validation, deltas), §4 (carriers and ids), §5 (mapping
+artifact) and the I2 spec §10 lifecycle (replacement, removal, rejected import, snapshot block
+`api_usage_v1` with `windows`, `evidence`, `series`, `limitations`, `mapping_entries`) are implemented
+by I2.2a-c. §6 (reconciliation) is I2.3; §7's interactions, coverage evaluation and qualification rows
+are I2.4. Neo4j omits null properties, so the projected rows omit `request_count_delta` for a series
+without a delta.
+
 ## 11. Interpretations to confirm in review
 
 These are readings the I2 spec leaves open; they are frozen here only if this PR is accepted as written:

@@ -15,9 +15,12 @@ inputs. See [Pub/Sub](#pubsub-v050-i4) below.
 and `GatewaySourceEvidence` (v0.7.0 I1.4, APISIX configuration) and `ApiContract`,
 `ApiContractVersion` and `ApiContractAssociation` (v0.7.0 I1.2, OpenAPI) follow the same rule:
 internal source-owned carriers with their own uniqueness constraints, no relationships, never exposed
-through REST, MCP or natural-language queries. The snapshot adds the conditional keys
-`gateway_configuration_v1` and `api_contracts_v1` **only when such carriers exist**, so a graph with
-no gateway source keeps its exact pre-v0.7 `snapshot_id`. See
+through REST, MCP or natural-language queries. `MeasurementWindow`, `MeasurementEvidence`,
+`MeasurementSeries`, `MeasurementLimitation` and `MeasurementMappingEntry` (v0.7.0 I2.2, APISIX
+measurement) join them. The snapshot adds the conditional keys `gateway_configuration_v1`,
+`api_contracts_v1` and `api_usage_v1` (sections `windows`, `evidence`, `series`, `limitations`,
+`mapping_entries`; null properties omitted, list values sorted) **only when such carriers exist**, so a
+graph with no gateway or measurement source keeps its exact pre-v0.7 `snapshot_id`. See
 [`canonical-model.md`](canonical-model.md#gateway-carriers-appcanonicalgatewaypy-appcanonicalapi_contractspy--internal-only).
 
 `InfrastructureEntity`, `InfrastructureContribution`, `InfrastructureClaim`, and

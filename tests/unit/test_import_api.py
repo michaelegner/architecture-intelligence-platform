@@ -26,9 +26,12 @@ def _settings(*, migrations: list[Path]) -> Settings:
 
 @pytest.fixture(autouse=True)
 def _no_gateway_retirement(monkeypatch):
-    """These tests use fake drivers; gateway retirement (a real graph write) is covered by the
-    integration suite and asserted explicitly below."""
+    """These tests use fake drivers; gateway and measurement retirement (real graph writes) are
+    covered by the integration suite and asserted explicitly below."""
     monkeypatch.setattr("app.graph.import_runs.retire_unconfigured_gateways", lambda *a, **k: ())
+    monkeypatch.setattr(
+        "app.graph.import_runs.retire_unconfigured_measurements", lambda *a, **k: ()
+    )
 
 
 def test_no_configured_migrations_runs_with_no_directories_and_no_error(monkeypatch):
@@ -44,6 +47,18 @@ def test_no_configured_migrations_runs_with_no_directories_and_no_error(monkeypa
     assert import_id
     assert run_results == []
     # dropping the last gateway must still retire its carriers, even with nothing else configured
+    assert retired_against == [set()]
+
+
+def test_dropping_the_last_measurement_registration_still_retires_its_carriers(monkeypatch):
+    retired_against: list[set[str]] = []
+
+    def fake_retire(driver, *, database, configured_source_instance_ids):
+        retired_against.append(set(configured_source_instance_ids))
+        return ()
+
+    monkeypatch.setattr("app.graph.import_runs.retire_unconfigured_measurements", fake_retire)
+    _run_all_configured_sources(_settings(migrations=[]), driver=None)
     assert retired_against == [set()]
 
 
