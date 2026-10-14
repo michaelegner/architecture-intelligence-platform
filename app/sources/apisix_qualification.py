@@ -70,9 +70,10 @@ def _route_wide_codes(window_series: Sequence[Row], attributions: Mapping[Pair, 
         if attribution is None or attribution["route_outcome"] != RESOLVED:
             continue
         status = item["status"]
+        # independent reasons: an unattributed series that is also broken carries both codes
         if attribution["consumer_outcome"] != RESOLVED:
             codes[item["route"]].add(UNATTRIBUTED_UPSTREAM)
-        elif status == "DECREASED":
+        if status == "DECREASED":
             codes[item["route"]].add(COUNTER_DECREASED)
         elif status.startswith("ONE_BOUNDARY"):
             codes[item["route"]].add(SERIES_ONE_BOUNDARY)

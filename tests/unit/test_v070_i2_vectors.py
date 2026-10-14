@@ -259,7 +259,7 @@ def _qualify(
             continue  # rejected attempts never affect coverage or usage state
         if not attributed:
             broken.setdefault(route, set()).add("GWM_UNATTRIBUTED_UPSTREAM")
-        elif status == "DECREASED":
+        if status == "DECREASED":
             broken.setdefault(route, set()).add("GWM_COUNTER_DECREASED")
         elif status.startswith("ONE_BOUNDARY"):
             broken.setdefault(route, set()).add("GWM_SERIES_ONE_BOUNDARY")

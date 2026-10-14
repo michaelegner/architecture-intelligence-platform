@@ -349,3 +349,34 @@ def test_output_is_independent_of_input_order() -> None:
     for rows in (consumers, routes, access, series_rows, attributions):
         rng.shuffle(rows)
     assert run() == baseline
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "code"),
+    [
+        (5, 2, "GWM_COUNTER_DECREASED"),
+        (None, 3, "GWM_SERIES_ONE_BOUNDARY"),
+        (4, None, "GWM_SERIES_ONE_BOUNDARY"),
+    ],
+    ids=["decreased", "one-boundary-end", "one-boundary-start"],
+)
+@pytest.mark.parametrize("consumer", ["", "mallory"], ids=["empty", "unknown"])
+def test_an_unattributed_and_broken_upstream_series_keeps_both_limitations(
+    consumer: str, start: int | None, end: int | None, code: str
+) -> None:
+    doc = _vectors("qualification.json")
+    document = {**doc["base_manifest"], "start_stable_seconds": 5}  # no first-in-window reading
+    series = [
+        {
+            "route": "orders-route",
+            "consumer": consumer,
+            "code": "200",
+            "response_source": "upstream",
+            "start": start,
+            "end": end,
+        }
+    ]
+    result = _run(document, doc["inventory"], [["spike-alpha", "orders-route"]], series)
+    [row] = result["qualification_rows"]
+    assert row["limitations"] == sorted([code, "GWM_UNATTRIBUTED_UPSTREAM"])
+    assert row["coverage"] == "UNKNOWN_COVERAGE" and row["usage_status"] == "USAGE_UNESTABLISHED"
