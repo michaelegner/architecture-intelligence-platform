@@ -115,7 +115,10 @@ sense:
 
 v0.7.0 I2.3 stores nothing new: the reconciliation outcomes between these carriers, the OpenAPI
 `Operation`s and the application `Service`s are derived into `api_usage_v1` when the snapshot is
-projected (see [`ingestion.md`](ingestion.md)).
+projected (see [`ingestion.md`](ingestion.md)). v0.7.0 I2.4 does the same for the
+`ObservedConsumerInteraction` rows (`observed-consumer-interaction:owned:<sha256(ld(consumer id, route
+id, environment, window_start, window_end))>`), the per-Route coverage and the configured-vs-observed
+qualification rows (`usage-qualification:owned:<same inputs>`): derived, id-bearing, internal-only.
 
 Rules worth remembering: a gateway Route/Service/Consumer is never an application `Service` or
 `Operation`, and nothing here infers a Route↔Operation or gateway↔Service association; the gateway

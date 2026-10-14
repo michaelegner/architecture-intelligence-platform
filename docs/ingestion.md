@@ -270,6 +270,18 @@ Operation (an explicit mapping entry is authoritative; otherwise one literal `ur
 method, exactly one candidate, no base-path stripping or pattern conversion) → contract version, and,
 independently, for the gateway target → application `Service` (`aip/service` labels and mapping
 entries; two different statements are a `CONFLICT`). Nothing is inferred from names, hosts or paths.
+
+**Qualification (v0.7.0 I2.4).** The configured-vs-observed qualification is derived the same way, by
+`app/sources/apisix_qualification.py`, from the configuration carriers, the measurement windows and
+series (with the status I2.2 stored) and the I2.3 attributions; it persists nothing and is recorded as
+`qualification_rule` in `api_usage_v1`. It adds `coverage` (per window and `GatewayRoute`:
+`SUFFICIENT_FOR_ZERO` / `UNKNOWN_COVERAGE` with limitation codes), `interactions` (per attributed
+consumer × Route pair with at least one series: upstream and rejected-attempt counts, evidence ids)
+and `qualification_rows` over the bounded union of configured pairs and attributed observed pairs
+(never a Cartesian product), each with `configured_status` and an independent `usage_status`
+(`OBSERVED_USAGE`, `MEASURED_ZERO`, `USAGE_UNESTABLISHED`). Only a positive valid upstream delta
+establishes usage; rejected and unattributed traffic never does; zero needs a configured pair and
+`SUFFICIENT_FOR_ZERO`. `NO_MATCHING_CONFIGURED_ACCESS_FACT` is not a denial or a policy finding.
 ## Import report (v1)
 
 `POST /api/import` and `POST /api/import/service/{serviceId}` return the versioned I1 §10 import

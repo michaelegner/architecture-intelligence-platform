@@ -56,6 +56,31 @@ def measurement_mapping_entry_id(
     )
 
 
+def observed_consumer_interaction_id(
+    consumer_id: str, route_id: str, environment: str, window_start: str, window_end: str
+) -> str:
+    """`observed-consumer-interaction:owned:<sha256(ld(consumer id, route id, environment,
+    window_start, window_end))>` (M06-M08); no cross-window identity."""
+    return _owned(
+        "observed-consumer-interaction",
+        consumer_id,
+        route_id,
+        environment,
+        window_start,
+        window_end,
+    )
+
+
+def usage_qualification_id(
+    consumer_id: str, route_id: str, environment: str, window_start: str, window_end: str
+) -> str:
+    """`usage-qualification:owned:<sha256(ld(same inputs))>` (M09); the domain prefix keeps it
+    distinct from the interaction id over the same inputs."""
+    return _owned(
+        "usage-qualification", consumer_id, route_id, environment, window_start, window_end
+    )
+
+
 class MeasurementWindow(BaseModel):
     id: str = Field(min_length=1)
     # The owning measurement source (I2.1 contract §1): a first-class field, so the snapshot binds the

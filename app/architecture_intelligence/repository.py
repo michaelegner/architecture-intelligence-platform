@@ -25,6 +25,7 @@ from app.architecture_intelligence.contracts import (
 )
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
+from app.sources.apisix_qualification import qualify
 from app.sources.apisix_reconciliation import reconcile
 from app.sources.service_workload_mapping import ServiceWorkloadMappingDocument
 
@@ -595,6 +596,18 @@ def canonical_snapshot_state(
                 operations=state["operations"],
                 associations=(contracts or {}).get("associations", []),
                 canonical_services=state["services"],
+            )
+        )
+        # v0.7.0 I2.4 (I2 spec §§8-10.2): coverage, interactions and the configured-vs-observed
+        # qualification rows, derived the same way from the raw facts plus the I2.3 attributions.
+        usage.update(
+            qualify(
+                windows=usage["windows"],
+                consumers=(gateway or {}).get("consumers", []),
+                routes=(gateway or {}).get("routes", []),
+                configured_access=(gateway or {}).get("configured_access", []),
+                series=usage["series"],
+                attributions=usage["attributions"],
             )
         )
         state["api_usage_v1"] = usage
