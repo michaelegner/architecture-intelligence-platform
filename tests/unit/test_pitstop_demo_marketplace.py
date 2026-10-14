@@ -92,4 +92,4 @@ def test_the_marketplace_file_holds_no_token_or_hostname():
     text = MARKETPLACE.read_text()
     assert "Bearer" not in text
     assert not re.search(r"[0-9a-f]{32,}", text)
-    assert not re.search(r"sslip\.io|https?://\d", text)
+    assert not re.search(r"sslip\.io|daip\.io|https?://\d", text)
