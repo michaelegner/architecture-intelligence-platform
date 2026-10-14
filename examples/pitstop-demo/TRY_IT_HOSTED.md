@@ -7,7 +7,7 @@ You need:
 
 - Git
 - Claude Code 2.1.292 or later
-- the public Pitstop demo MCP URL: `https://217-154-245-195.sslip.io/mcp`
+- the public Pitstop demo MCP URL: `https://mcp.daip.io/mcp`
 
 ## 1. Clone Pitstop
 
@@ -44,7 +44,7 @@ Start Claude Code and run:
 Set:
 
 ```text
-aip_mcp_url = https://217-154-245-195.sslip.io/mcp
+aip_mcp_url = https://mcp.daip.io/mcp
 aip_token   = empty
 ```
 
@@ -101,8 +101,8 @@ With `aip-mod` installed, the status line shows the current AIP result and the *
 
 | Symptom | Likely cause |
 |---|---|
-| `/mcp` cannot connect | check that `aip_mcp_url` is `https://217-154-245-195.sslip.io/mcp`, then restart Claude Code |
-| `421 Invalid Host header` | use `https://217-154-245-195.sslip.io/mcp` exactly |
+| `/mcp` cannot connect | check that `aip_mcp_url` is `https://mcp.daip.io/mcp`, then restart Claude Code |
+| `421 Invalid Host header` | use `https://mcp.daip.io/mcp` exactly |
 | no `plugin:aip:aip` in `/mcp` | restart after configuration, and remove any standalone `aip` server for the same URL |
 | `429 Too Many Requests` | the public demo rate limit was reached; wait briefly and retry |
 | the agent says the window is not over | use yesterday in UTC, not today |
