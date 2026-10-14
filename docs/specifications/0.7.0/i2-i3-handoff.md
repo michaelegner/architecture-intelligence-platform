@@ -1,6 +1,6 @@
 # AIP v0.7.0 I2 → I3 Handoff
 
-**Status:** Frozen when merged with I2.4. Governing: [`i2-consumer-attribution-and-configured-vs-observed-qualification.md`](i2-consumer-attribution-and-configured-vs-observed-qualification.md) §§10–13, [`i2-measurement-contract.md`](i2-measurement-contract.md), [I1 → I2 handoff](i1-i2-handoff.md).
+**Status:** Frozen (merged #536). Governing: [`i2-consumer-attribution-and-configured-vs-observed-qualification.md`](i2-consumer-attribution-and-configured-vs-observed-qualification.md) §§10–13, [`i2-measurement-contract.md`](i2-measurement-contract.md), [I1 → I2 handoff](i1-i2-handoff.md).
 
 I2 delivers the **runtime** half of the first v0.7 question and the qualification of configured against observed access. It adds no public surface: no REST, MCP, `SourceType`, public evidence or consumer-name exposure. I3 owns all of that.
 

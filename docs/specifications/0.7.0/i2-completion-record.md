@@ -1,6 +1,6 @@
 # AIP v0.7.0 I2 — Completion Record
 
-**Status:** **COMPLETE** when the I2.4 PR (below) merges. The I2.4 merge SHA is written into this record in a follow-up after that merge (the two-step closure pattern, as for I1).
+**Status:** **COMPLETE.** Closed by PR #536, merge `97d459227fa879322258195e1e866b52db8a2970` (2026-10-14T13:25:53Z). The closure SHA was written into this record after that merge (the two-step closure pattern, as for I1).
 
 This record covers the I2 specification [`i2-consumer-attribution-and-configured-vs-observed-qualification.md`](i2-consumer-attribution-and-configured-vs-observed-qualification.md) (merged #520) under the accepted parent [`specification.md`](specification.md). I2 implements runtime measurement, reconciliation and the configured-vs-observed qualification as internal state; it implements no public answer (I3).
 
@@ -15,7 +15,7 @@ This record covers the I2 specification [`i2-consumer-attribution-and-configured
 | I2.2b | measurement source, discoverer, adapter | #526 | `9d6a53c6b682f98626430fc91a5e74f10013a85a` | 2026-10-13T22:09:14Z |
 | I2.2c | persistence, lifecycle, `api_usage_v1` | #531 | `2b1ec0e596dbb5c71a149e02d8d8561453da1c39` | 2026-10-14T07:34:44Z |
 | I2.3 | reconciliation | #535 | `7820408267bf148621147d71bb8d16dda502c017` | 2026-10-14T12:05:06Z |
-| I2.4 | qualification, this record, the handoff | this PR | written after merge | — |
+| I2.4 | qualification, this record, the handoff | #536 | `97d459227fa879322258195e1e866b52db8a2970` | 2026-10-14T13:25:53Z |
 
 The merge commits above were read from `gh pr view --json mergeCommit`. Each slice PR carries its own planning-start marker.
 
