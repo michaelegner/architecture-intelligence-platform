@@ -1,6 +1,6 @@
 # AIP v0.7.0 I3 — Decision Record (I3.1)
 
-**Status:** D1–D11 frozen by I3.1a (#539); D12 (representation details) added by I3.1b. This is the contract that I3.1b (models and published schemas), I3.1c (independent expected answers), I3.2 (projection) and I3.3 (REST, MCP, evidence) implement. Each decision settles an item the [I3 specification](i3-api-aware-current-state-projection-and-public-answer.md) leaves open; none reopens an I3 §15 item, an I2 truth or the [I2 → I3 handoff](i2-i3-handoff.md). Any later change is a reviewed amendment to this record.  
+**Status:** D1–D11 frozen by I3.1a (#539); D12 (representation details) added by I3.1b; the D11 case ids are final in the [I3.1c expected-answer matrix](i3-expected-answer-matrix.md). This is the contract that I3.1b (models and published schemas), I3.1c (independent expected answers), I3.2 (projection) and I3.3 (REST, MCP, evidence) implement. Each decision settles an item the [I3 specification](i3-api-aware-current-state-projection-and-public-answer.md) leaves open; none reopens an I3 §15 item, an I2 truth or the [I2 → I3 handoff](i2-i3-handoff.md). Any later change is a reviewed amendment to this record.  
 **Release / increment:** `v0.7.0` — API-Aware Current State / I3, slice I3.1  
 **Governing specification:** I3 specification (Proposed, merged #529, `bd870fd48b24fb3d228ace4d5df284cb105b2b33`).  
 **Entry baseline:** `main` at `63e1764` (I2 closed by #536 and #537).  
