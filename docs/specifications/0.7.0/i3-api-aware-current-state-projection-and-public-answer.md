@@ -130,7 +130,7 @@ The four values MUST exactly match one row in `api_usage_v1.windows`. This makes
 
 I3 does not silently substitute another gateway or window. I2 keeps no historical window series, so this selects current snapshot state rather than providing a time-travel query.
 
-If no exact `api_usage_v1.windows` row exists, the semantic answer is `NOT_ANSWERED` with `MEASUREMENT_WINDOW_NOT_AVAILABLE`. This includes a configured gateway that currently has no accepted measurement source. I3 does **not** synthesize configured-only rows outside I2's qualified row universe.
+If no exact `api_usage_v1.windows` row exists, the semantic answer is `NOT_ANSWERED` with the new v0.7 public limitation code `MEASUREMENT_WINDOW_NOT_AVAILABLE`. This includes a configured gateway that currently has no accepted measurement source. I3 does **not** synthesize configured-only rows outside I2's qualified row universe.
 
 Optional:
 
@@ -368,6 +368,7 @@ Public evidence refs SHALL be deterministic, opaque, snapshot-bound handles:
 ~~~text
 api-evidence:<sha256(ld(
   snapshot_id,
+  normalized_query_context_digest,
   evidence_kind,
   sorted internal supporting ids
 ))>
@@ -375,12 +376,24 @@ api-evidence:<sha256(ld(
 
 The public answer returns only the handle. It never exposes the internal supporting ids used to mint it.
 
-For a query answer, the semantic projection builds the finite mapping `public_ref -> sanitized evidence projection` from the same snapshot inputs that produced the answer. For evidence mode, the service reacquires the requested exact snapshot, deterministically rebuilds that mapping for the bounded requested context, and resolves only refs present in it. A forged ref, a ref from another snapshot, or a ref no longer derivable from the exact request context is refused. No server-side ref history or direct graph-id lookup is introduced.
+For a query answer, the semantic projection builds the finite mapping `public_ref -> sanitized evidence projection` from the same snapshot inputs and normalized query context that produced the answer. The query-context digest binds target, gateway instance, environment, window and consumer filter, but not pagination position.
+
+For evidence mode, the caller resubmits that same bounded query context. The service reacquires the requested exact snapshot, deterministically rebuilds the mapping for that context, and resolves only refs present in it. A forged ref, a ref from another snapshot, or a ref from another target/gateway/window/filter context is refused. No server-side ref history or direct graph-id lookup is introduced.
 
 The same new public capability SHALL support a second exact mode:
 
 ~~~text
-get_api_consumer_usage(mode = "evidence", snapshot_id, evidence_refs[])
+get_api_consumer_usage(
+  mode = "evidence",
+  snapshot_id,
+  target,
+  gateway_instance_id,
+  environment,
+  window_start,
+  window_end,
+  consumer_id?,
+  evidence_refs[]
+)
 ~~~
 
 with **1–20** refs.
@@ -393,7 +406,7 @@ POST /api/api-consumer-usage/evidence
 
 The resolver SHALL:
 
-- require the exact answer `snapshot_id`;
+- require the exact answer `snapshot_id` and the same normalized query context used to mint the refs;
 - return sanitized typed evidence only;
 - preserve configuration vs measurement evidence distinction;
 - expose source/product revision and bounded relevant facts;
