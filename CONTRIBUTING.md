@@ -35,8 +35,12 @@ pipx run pre-commit install     # installs the optional Git hooks in this checko
 pipx run pre-commit run --all-files
 ```
 
-The `.pre-commit-config.yaml` runs `ruff-check` and `ruff-format`; CI remains the required
-source of truth, and no extra runtime dependency is needed.
+The `.pre-commit-config.yaml` uses local `ruff-check` and `ruff-format` hooks, invoking
+`uv run ruff check` and `uv run ruff format` on Python and `.pyi` files. By default
+these hooks apply to staged files; `--all-files` covers all tracked matching files.
+Ruff's version comes from `uv.lock`, not a separate `ruff-pre-commit` pin. Run
+`uv sync` first to prepare the project environment. CI remains the source of truth;
+these optional hooks add no runtime dependency.
 
 ## Branch workflow
 
