@@ -233,6 +233,33 @@ Registering this adapter changes the `adapters` entry of the mapping-context dig
 source is re-evaluated once on the first import after upgrade; no graph content or snapshot id
 changes.
 
+## APISIX measurement adapter (`app/ingestion/apisix_measurement_adapter.py`, v0.7.0 I2.2)
+
+A fifth shape, the runtime half of the first v0.7 question: **offline-only**, one registration per
+observation window (`sources.gateway_measurements`: `id`, `root`, `gateway_instance_id`,
+`environment`), at most one registration per `(gateway_instance_id, environment)`. The fixture is four
+fixed file names under the registered root: `apisix-metrics-start.txt`, `apisix-metrics-end.txt`,
+`apisix-measurement-manifest.json` (`aip-apisix-measurement/1`) and the optional
+`apisix-mapping.json` (`aip-apisix-mapping/1`). It is produced by the **separate** tool
+`python -m app.gateway_capture.apisix_metrics` (Prometheus text endpoint only: two settled
+boundaries, a quiet period, operator-asserted route coverage and no-restart; no credential) and
+validated, never repaired, by `app/sources/apisix_measurement_contract.py` in the contract's order
+(schema, fields, registration binding, hash binding, extract normalization).
+
+Per-source outcomes: a missing/malformed manifest, a hash mismatch, a non-normalized extract, a
+malformed mapping or a gateway/environment mismatch is `REJECTED_INVALID`; an unknown schema or an
+exceeded bound is `REJECTED_UNSUPPORTED`; two registrations for the same `(gateway_instance_id,
+environment)` are both `REJECTED_CONFLICT`. A rejection makes the run `PARTIAL`, commits nothing and
+removes nothing previously accepted. A window with a reason (unsettled boundary, restart not
+excluded, bad order, APISIX other than 3.19.0) is accepted with limitations: its series keep their
+identity but carry no delta. A later accepted fixture for the same registration replaces the previous
+window; removing the registration (or the request no longer naming it) removes only its own carriers,
+never the APISIX configuration source's. The adapter does not reconcile consumers, Routes,
+Operations or Services (I2.3) and does not qualify usage (I2.4).
+
+The first import after this adapter appears re-evaluates every source once (the adapter registry is
+part of the mapping-context digest); no graph content or snapshot id changes for a graph without a
+measurement source.
 ## Import report (v1)
 
 `POST /api/import` and `POST /api/import/service/{serviceId}` return the versioned I1 §10 import
@@ -247,7 +274,7 @@ entry per configured source run, ordered by `(kind, configured_source_id)`:
 
 | Field | Meaning |
 | --- | --- |
-| `kind`, `configured_source_id` | `filesystem`, `kubernetes` or `apisix` (v0.7.0 I1.4, additive: only present when `sources.gateways` is configured), and the configured source's id |
+| `kind`, `configured_source_id` | `filesystem`, `kubernetes`, `apisix` or `apisix-measurement` (v0.7.0 I1.4 / I2.2, additive: only present when `sources.gateways` / `sources.gateway_measurements` is configured), and the configured source's id |
 | `discovery_scope_id`, `scope_definition_digest` | the run's scope identity (I1 §6), or null when discovery could not compute it |
 | `inventory_status`, `committed` | `COMPLETE`, `PARTIAL` or `FAILED`, and whether the run committed |
 | `inventory_revision` | the inventory revision the run committed; null when it did not commit |

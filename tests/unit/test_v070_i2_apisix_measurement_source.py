@@ -163,6 +163,27 @@ def test_an_accepted_window_maps_the_carriers_and_replays_deterministically(tmp_
     assert not (model.services or model.operations or model.relations or model.provenance)
 
 
+def test_window_and_evidence_carry_the_owning_source_instance_id(tmp_path) -> None:
+    """Review of #531: the snapshot must bind the evidence's source identity. It is a carrier field,
+    not an id input: the same bytes under another configured source id keep the carrier ids."""
+    a = _config(tmp_path, source_id="metrics-a")
+    b = _config(tmp_path, source_id="metrics-b")
+    _write_fixture(a)
+    _write_fixture(b)
+    model_a, model_b = _only_outcome(_run(a)).model, _only_outcome(_run(b)).model
+    id_a = apisix_measurement_source_instance_id(
+        configured_source_id="metrics-a", gateway_instance_id=GW, environment=ENV
+    )
+    id_b = apisix_measurement_source_instance_id(
+        configured_source_id="metrics-b", gateway_instance_id=GW, environment=ENV
+    )
+    assert model_a.measurement_windows[0].source_instance_id == id_a
+    assert model_a.measurement_evidence[0].source_instance_id == id_a
+    assert model_b.measurement_windows[0].source_instance_id == id_b
+    assert model_a.measurement_windows[0].id == model_b.measurement_windows[0].id
+    assert model_a.measurement_evidence[0].id == model_b.measurement_evidence[0].id
+
+
 def test_a_later_window_has_distinct_ids_and_the_same_bytes_have_identical_ones(tmp_path) -> None:
     config = _config(tmp_path)
     _write_fixture(config)

@@ -5,7 +5,12 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field, SecretStr
 
-from app.sources.model import ApisixSourceConfig, FilesystemSourceConfig, KubernetesSourceConfig
+from app.sources.model import (
+    ApisixMeasurementSourceConfig,
+    ApisixSourceConfig,
+    FilesystemSourceConfig,
+    KubernetesSourceConfig,
+)
 
 
 class _ConfigModel(BaseModel):
@@ -24,6 +29,9 @@ class SourcesConfig(BaseModel):
     # v0.7.0 I1.1/I1.2: APISIX gateway registrations. Empty by default; a non-empty list enables the
     # API-contract carriers for the import request (the gateway discoverer itself arrives in I1.4).
     gateways: list[ApisixSourceConfig] = Field(default_factory=list)
+    # v0.7.0 I2.2c (I2.1 contract §1): APISIX measurement registrations, one observation window each,
+    # at most one per (gateway_instance_id, environment). Empty by default.
+    gateway_measurements: list[ApisixMeasurementSourceConfig] = Field(default_factory=list)
     # I1 spec §5.1.1/§8.1/§9/§9.1's explicit shared-identity/migration mapping mechanism (PR4) - a
     # list, not a single fixed path, since the mechanism is general (any configured source may
     # supply one); the bundled examples/ migration artifact is simply its first real instance.

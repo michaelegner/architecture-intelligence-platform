@@ -24,14 +24,17 @@ REQUIRED_CASES = {
     *(f"B{i:02}" for i in range(2, 7)),
 }
 
-# Required jobs in ci.yml and codeql.yml, including CI's emitted "lint + test" aggregate.
+# Required jobs in ci.yml and codeql.yml, including CI's emitted "lint + test" aggregate. A release
+# candidate is a main commit, so the qualification tier (skipped on unrelated PRs) always ran.
 # "CodeQL" is a workflow title, not an emitted check; both analysis jobs remain mandatory.
 REQUIRED_CI_CHECKS = frozenset(
     {
         "quality",
-        "integration-core (heavy)",
-        "integration-core (oracle)",
-        "integration-core (rest)",
+        "changes",
+        "integration-core",
+        "integration-qualification (heavy)",
+        "integration-qualification (oracle)",
+        "integration-qualification (other)",
         "demo-e2e",
         "lint + test",
         "dependency security scan (pip-audit, spec §29)",
