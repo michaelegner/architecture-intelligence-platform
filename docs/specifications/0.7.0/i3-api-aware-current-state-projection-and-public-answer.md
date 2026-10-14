@@ -1,7 +1,7 @@
 # AIP v0.7.0 I3 — API-Aware Current-State Projection and Public Answer
 
 **Status:** Proposed.  
-**Governing:** [v0.7.0 parent specification](specification.md), [I1 → I2 handoff](i1-i2-handoff.md), [I2 specification](i2-consumer-attribution-and-configured-vs-observed-qualification.md), and the reviewed I2 → I3 handoff once I2 closes.  
+**Governing:** [v0.7.0 parent specification](specification.md), [I1 → I2 handoff](i1-i2-handoff.md), [I2 specification](i2-consumer-attribution-and-configured-vs-observed-qualification.md), and the frozen [I2 → I3 handoff](i2-i3-handoff.md).  
 **Purpose:** expose the v0.7 configured-consumer / observed-usage question as one deterministic Architecture Intelligence answer without changing I2 truth.
 
 ## 1. Exit outcome
@@ -23,22 +23,42 @@ I2 qualified Current State
   -> same-snapshot evidence drill-down
 ~~~
 
-## 2. Entry gate and authority
+## 2. Frozen I2 input and authority
 
-I3 implementation SHALL start only after I2 freezes an I2 → I3 handoff naming the exact internal state and snapshot fields I3 may read.
+I2 is complete and the [I2 → I3 handoff](i2-i3-handoff.md) is the authority for the internal state I3 may project.
 
-The handoff must provide, at minimum:
+I3 reads the current stable snapshot only. Its primary input is the conditional `api_usage_v1` block:
 
-- the accepted measurement window identity, environment and exact window;
-- qualified consumer/Route rows with configured-access status, usage status, coverage, counts and limitations;
-- Route -> Operation/contract reconciliation outcome;
-- gateway-target -> application-Service reconciliation outcome;
-- source revision/evidence references required to substantiate the row;
-- deterministic ordering and lifecycle semantics under `api_usage_v1`.
+| I2 section | I3 use |
+|---|---|
+| `windows` | exact gateway/environment/window identity, source identity and window validity context |
+| `evidence` | internal measurement evidence available for sanitized public projection |
+| `reconciliation_rule` | binds the reconciliation semantics used by the snapshot |
+| `attributions` | resolved/unresolved consumer and Route attribution context |
+| `route_operation` | Route → Operation → contract-version reconciliation |
+| `target_service` | independent gateway-target → application-Service reconciliation |
+| `qualification_rule` | binds the qualification semantics used by the snapshot |
+| `coverage` | Route-level `SUFFICIENT_FOR_ZERO` / `UNKNOWN_COVERAGE` and limitation codes |
+| `interactions` | attributed window-local upstream/rejected counts and internal evidence refs |
+| `qualification_rows` | **primary public-row source**: bounded configured/observed consumer–Route pairs with both proposition states |
 
-Until that handoff exists, this specification freezes the **public meaning**, not an assumed internal carrier layout.
+I3 also reads:
 
-I3 SHALL NOT re-run I2 reconciliation or qualification in REST, MCP, serialization code, or a second semantic engine.
+- `gateway_configuration_v1` for source-qualified consumer/Route data, configured-source evidence and configuration source revision;
+- `api_contracts_v1` for contract/version context already associated by I2;
+- the ordinary canonical `Operation` and application `Service` state already bound into the same snapshot.
+
+The following I2 facts are frozen inputs, not I3 decisions:
+
+- `CONFIGURED_ACCESS_ESTABLISHED` / `NO_MATCHING_CONFIGURED_ACCESS_FACT`;
+- `OBSERVED_USAGE` / `MEASURED_ZERO` / `USAGE_UNESTABLISHED`;
+- `SUFFICIENT_FOR_ZERO` / `UNKNOWN_COVERAGE`;
+- `RESOLVED` / `UNRESOLVED` / `AMBIGUOUS` / `CONFLICT`;
+- one current window per configured measurement source and at most one source per `(gateway_instance_id, environment)`;
+- counts are omitted, not zero, when the window is invalid;
+- reconciliation, coverage, interactions and qualification rows are derived snapshot state whose rule ids/versions are fingerprint-bound.
+
+I3 SHALL project these results. It SHALL NOT recompute measurement deltas, consumer/Route joins, reconciliation, coverage or qualification in REST, MCP, serialization code or a second semantic engine.
 
 ## 3. Scope and non-goals
 
@@ -105,7 +125,7 @@ window_start
 window_end
 ~~~
 
-The environment/window MUST exactly identify an accepted current I2 measurement window. I3 does not silently substitute the newest window.
+The environment/window MUST exactly match one row in `api_usage_v1.windows`. I3 does not silently substitute a different window. I2 keeps no historical window series, so this selects current snapshot state rather than providing a time-travel query.
 
 Optional:
 
@@ -164,7 +184,7 @@ page
 
 ### 6.1 Row
 
-One row represents one I2 qualified `GatewayConsumer / GatewayRoute` pair.
+One row represents one entry from I2 `api_usage_v1.qualification_rows`, enriched only with same-snapshot reconciliation and source context.
 
 It contains at least:
 
@@ -195,6 +215,7 @@ usage:
   coverage
   upstream_request_count?
   rejected_attempt_count?
+  interaction_id?
 
 evidence_refs[]
 limitations[]
@@ -240,7 +261,7 @@ Credential ids, credential values, keys, tokens and authentication-plugin secret
 
 `upstream_request_count` and `rejected_attempt_count` are window-local I2 results, not analytics time series.
 
-They are null when I2 could not establish a valid count. Null is not zero.
+They are omitted when I2 could not establish a valid count, including an invalid window. Absence is not zero.
 
 A rejected-attempt count never changes configured access or establishes usage.
 
@@ -300,7 +321,7 @@ I3 does not create a Cartesian product. It projects I2's already bounded row uni
 
 ## 9. Evidence drill-down
 
-The answer SHALL return opaque public evidence refs sufficient to explain:
+The answer SHALL mint/return opaque public evidence refs from the same-snapshot I1/I2 internal evidence necessary to explain:
 
 - configured-access establishment;
 - measurement/window evidence;
@@ -366,9 +387,11 @@ Malformed request shape is a transport validation error. Semantic refusals such 
 
 Every answer SHALL identify the source context actually used:
 
-- applicable APISIX configuration source revision;
-- measurement source/window identity;
-- gateway instance and environment;
+- applicable APISIX configuration source revision from `gateway_configuration_v1.source_evidence`;
+- measurement `source_instance_id` and window identity from `api_usage_v1.windows`;
+- measurement evidence identity from `api_usage_v1.evidence` / row evidence refs;
+- reconciliation and qualification rule id/version;
+- gateway instance and operator-asserted environment;
 - snapshot id/model revision.
 
 If configuration and measurement state cannot be related under the I2 handoff's rules, I3 returns no strengthened row and exposes the limitation.
@@ -420,7 +443,7 @@ No semantic implementation required.
 
 ### I3.2 — Internal projection
 
-Implement the same-snapshot bounded projection behind ArchitectureIntelligenceService using the exact I2 handoff.
+Implement the same-snapshot bounded projection behind ArchitectureIntelligenceService directly from the frozen I2 handoff sections named in §2. `qualification_rows` is the row authority; I3 only performs target selection, bounded enumeration and public enrichment.
 
 No public adapter reasoning.
 
@@ -449,7 +472,7 @@ Record:
 
 I3 is complete when:
 
-- the exact I2 handoff is frozen and consumed without duplicate qualification logic;
+- the frozen I2 handoff is consumed exactly as §2 states, with `qualification_rows` as the row authority and without duplicate I2 reasoning;
 - an ordinary client can query by Operation, application Service or gateway Route;
 - configured access and usage remain independent public propositions;
 - unresolved/ambiguous/conflicting associations stay explicit;
@@ -479,4 +502,5 @@ A reviewed amendment is required before changing:
 - page ordering or cursor snapshot binding;
 - public evidence safety boundary;
 - REST path or MCP tool/mode contract after I3.1 freeze;
+- the exact I2 section-to-I3 responsibility boundary in §2;
 - the rule that I3 projects I2 truth rather than recomputing it.
