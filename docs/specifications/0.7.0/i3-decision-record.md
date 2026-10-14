@@ -146,7 +146,8 @@ A **refusal** evaluated nothing: `data` is null, `outcome` is `NOT_ANSWERED` and
 | `after` | The `(consumer.id, gateway_route.id)` of the last row **fully emitted** on the previous page. Rows are ordered by that pair, bytewise ascending, so the next page is the rows strictly after it. |
 | `query_digest` | The D9 `normalized_query_context_digest` of the request (target, gateway, environment, window, consumer filter). `limit` is not bound, so a client may change page size between pages. |
 | Validation | Not decodable, unknown `v`, or a malformed field: a **validation error**. Well-formed but `query_digest` differs from the request's: `CURSOR_QUERY_MISMATCH`. `snapshot_id` is not the current snapshot (including after any unrelated import): `SNAPSHOT_NOT_AVAILABLE`, the client restarts explicitly (I3 §8). |
-| Pages | A page is `PARTIAL` with `MORE_ROWS_AVAILABLE` iff rows remain after it; the last page carries no `next_cursor` and no such code. No row is duplicated or lost across a boundary within one snapshot. |
+| Pages | A page is `PARTIAL` with `MORE_ROWS_AVAILABLE` iff rows remain after it; the last page carries no `next_cursor` and no such code. Within one snapshot, a client that passes server-issued cursors back unmodified sees no row duplicated or lost across a boundary (D8 integrity below). |
+| Integrity | The cursor is a **position token, not an integrity-protected capability**, the same as the v0.6 locality cursor. It is not signed: AIP is stateless and deterministic and holds no server secret, and an unkeyed digest over the payload would add nothing because a client can recompute it. A client that decodes the cursor and substitutes a different well-formed `after` simply starts its continuation at that position. This is bounded: the rows still come from the same snapshot and the same query context (checked by `snapshot_id` and `query_digest`), only rows of the selection are ever returned, and the read-only API already returns any of those rows to a client that asks for them. It can therefore skip rows only for the client that forged the position. The no-duplicate/no-loss guarantee is for unmodified server-issued cursors. `after` must still be a well-formed `(consumer_id, route_id)` pair, otherwise it is a validation error. A keyed (MAC) cursor would need a server secret and a key lifecycle and is a reviewed amendment if a deployment ever needs one. |
 | Authority | A cursor grants no access and attests no evidence. |
 
 ## D9 — Evidence refs and the evidence mode (I3 §9)
@@ -199,7 +200,7 @@ I3.1c authors independent expected answers for these cases (ids final in the I3.
 | A12 | selected Route, no pair rows | `rows: []`, Route coverage visible |
 | A13 | gateway without measurement source | `NOT_ANSWERED` / `MEASUREMENT_WINDOW_NOT_AVAILABLE`, `data` null |
 | A14 | same env/window on two gateways | `gateway_instance_id` selects exactly one |
-| A15 | page boundary | stable cursor, no duplicate or lost row |
+| A15 | page boundary | stable cursor, no duplicate or lost row for unmodified cursors; a substituted well-formed `after` returns only rows of the same selection strictly after it |
 | A16 | unrelated import during paging | old cursor → `SNAPSHOT_NOT_AVAILABLE` |
 | A17 | stale snapshot | `SNAPSHOT_NOT_AVAILABLE` |
 | A18 | unknown target / route in another gateway | `UNKNOWN_TARGET` / `TARGET_NOT_IN_WINDOW_SCOPE` |
