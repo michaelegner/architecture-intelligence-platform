@@ -15,6 +15,7 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
+| [`v0.7.0-release-readiness.md`](v0.7.0-release-readiness.md) | v0.7.0 technical readiness on the exact rc.3 candidate: all gates, security and SBOM, scope statements; decision `GO`. Does not authorize publication. Artifacts in [`v0.7.0-rc.3-qualification-artifacts/`](v0.7.0-rc.3-qualification-artifacts/). |
 | [`v0.7.0-rc.3-candidate-preparation.md`](v0.7.0-rc.3-candidate-preparation.md) | v0.7.0 candidate preparation: the rc.3 identity (rc.1 and rc.2 superseded), version surfaces, stale-tool search, golden-path pins and the `api-usage` harness, the parent §32 documentation map. |
 | [`v0.7.0-release-notes.md`](v0.7.0-release-notes.md) | v0.7.0 release notes (candidate): API-aware Current State, the fifth tool, the APISIX-only qualification, mapping dependence, known limitations. |
 | [`v0.6.3-release-record.md`](v0.6.3-release-record.md) | v0.6.3's one-page record for the lightweight release path: identities, readiness on the exact candidate, post-release verification by digest, owner steps. |

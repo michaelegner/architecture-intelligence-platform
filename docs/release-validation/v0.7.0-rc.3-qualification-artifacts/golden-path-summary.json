@@ -1,0 +1,43 @@
+{
+  "image_ref": "aip-rc3-candidate",
+  "package_version": "0.7.0",
+  "passed": true,
+  "phases": {
+    "api-usage": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "demo": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "k8s-agree": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "k8s-conflict": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "k8s-unresolved": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "locality": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    },
+    "pubsub": {
+      "error": null,
+      "failed_checks": [],
+      "passed": true
+    }
+  },
+  "release_candidate_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e"
+}
