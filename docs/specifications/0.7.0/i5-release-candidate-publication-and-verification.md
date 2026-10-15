@@ -1,6 +1,6 @@
 # AIP v0.7.0 I5 — Release Candidate, Publication, and Verification
 
-**Status:** Draft 0.1  
+**Status:** Draft 0.2  
 **Increment:** I5 — Release Candidate, Publication, and Verification  
 **Entry:** I4 is complete and merged (#558). The [I4 completion record](i4-completion-record.md) records the qualified semantic candidate `c662f3c440733a7b75252ba2466fee14c1c88f4a`, the product-pilot disposition `CONTINUE`, and the reviewed Tyk `MODEL_GAP` scope exclusion. I4 does **not** qualify a later release candidate or authorize publication.  
 **Authority:** accepted [v0.7.0 parent specification](specification.md), especially §§26–28 and §32; [I4 completion record](i4-completion-record.md); [I4 → I5 handoff](i4-i5-handoff.md); [ROADMAP](../../../ROADMAP.md); and the repository [release-publication skill](../../../.agents/skills/release-publication/SKILL.md) as procedural guidance only.
@@ -85,13 +85,15 @@ Before candidate freeze, the release-preparation PR SHALL reconcile all release-
 At minimum:
 
 1. product/package/runtime/MCP/Producer version is `0.7.0`;
-2. the release golden path and client/demo documentation advertise **exactly five** read-only MCP tools, including `get_api_consumer_usage`;
-3. the release golden path exercises the API-aware Current-State question through the public surface;
-4. release notes state that the configured-access implementation is **qualified for APISIX only**;
-5. release notes state the Route/Operation and target/Application-Service **mapping dependence**: without an explicit mapping or the frozen exact-match rule the association remains unresolved;
-6. known limitations include F1–F3 and any still-applicable #323/security disposition;
-7. release notes and CHANGELOG do not overclaim authorization, ownership, Intent, complete consumer population, or production/customer value;
-8. the I4 pilot is described only as one bounded session with disposition `CONTINUE`, not user research.
+2. the release golden path and release-facing client/demo documentation advertise the correct public tool set, with **exactly five** read-only MCP tools on the v0.7 surface, including `get_api_consumer_usage`;
+3. repository-wide stale-tool wording is dispositioned before freeze: a search for `four tools`, `four read-only`, and `exactly four` is either empty for release-facing v0.7 content or every remaining hit is recorded as intentionally scoped to an older/pinned demo or contract in the candidate-preparation record;
+4. the release golden path exercises the API-aware Current-State question through the public surface;
+5. release notes state that the configured-access implementation is **qualified for APISIX only**;
+6. release notes state the Route/Operation and target/Application-Service **mapping dependence**: without an explicit mapping or the frozen exact-match rule the association remains unresolved;
+7. known limitations include F1–F3 and any still-applicable #323/security disposition;
+8. release notes and CHANGELOG do not overclaim authorization, ownership, Intent, complete consumer population, or production/customer value;
+9. the I4 pilot is described only as one bounded session with disposition `CONTINUE`, not user research;
+10. the parent §32 documentation checklist is satisfied explicitly (§4 and §6): every required topic is mapped to one release-visible document or recorded as a release blocker/gap before technical `GO`.
 
 ### 3.4 Five-tool golden-path re-freeze
 
@@ -104,10 +106,11 @@ It SHALL:
 - exercise `get_api_consumer_usage` in query mode;
 - exercise same-snapshot evidence resolution for the API-aware answer;
 - demonstrate an expected unresolved/insufficient case rather than only a happy path;
+- run the API-aware phase with its own controlled APISIX import/graph state so gateway-specific conditional keys do not mutate the legacy phases' pinned snapshot identities or legacy `expected.json` truth;
 - run against a pinned APISIX replay state already qualified by I4, not a new hand-authored semantic oracle;
 - verify every public answer carries `producer.version = 0.7.0` and `build_revision = RELEASE_CANDIDATE_SHA`.
 
-The golden path is release replay of already-qualified semantics. It MUST NOT invent new expected truth during I5.
+The golden path is release replay of already-qualified semantics. It MUST NOT invent new expected truth during I5. If any file listed by `examples/release-golden-path/SHA256SUMS` changes, candidate preparation SHALL re-pin exactly the changed entries and record them; unrelated pins SHALL remain unchanged.
 
 ### 3.5 Tyk `MODEL_GAP` stays scoped out
 
@@ -129,19 +132,34 @@ The release-preparation PR SHALL contain every qualification-relevant release ch
 
 Minimum content:
 
-1. set version `0.7.0` consistently across active version-bearing surfaces, including `pyproject.toml`, root project version in `uv.lock`, runtime/MCP/Producer version pins, and release-version consistency tests;
-2. update the four stale four-tool references identified by the I4 handoff:
-   - `examples/release-golden-path/golden_path.py` (`TOOLS`);
-   - `examples/mcp-clients/cursor.md`;
-   - `examples/mcp-clients/vscode.md`;
-   - `examples/runtime-demo/hero-demo.md`;
-3. re-freeze the release golden path with the v0.7 API-aware phase (§3.4);
-4. create `docs/release-validation/v0.7.0-release-notes.md`;
-5. add the v0.7 release section to `CHANGELOG.md`, leaving the release candidate described as candidate-ready rather than already shipped;
-6. update the release-validation index;
-7. add the APISIX-only qualification statement, mapping-dependence statement, I4 pilot limitation, and known limitations;
-8. update any MCP Registry/server metadata that is part of the repository release artifact to version `0.7.0`;
-9. make any required release-workflow or security hardening **before** candidate freeze.
+1. set version `0.7.0` consistently across active version-bearing surfaces, including:
+   - `pyproject.toml`;
+   - root project version in `uv.lock`;
+   - runtime/MCP/Producer version pins;
+   - `_RELEASE_VERSION` in `tests/unit/test_release_version_consistency.py`;
+   - `producer.version` in every `evaluation/architecture_answers/scenarios/*/expected_answer.json` where the released producer version is part of the scenario contract;
+   - repository MCP Registry metadata such as `server.json`;
+2. update release-facing stale four-tool references. The I4 handoff list is a starting point, not an exhaustive whitelist. Before freeze, search the repository for `four tools`, `four read-only`, and `exactly four`; update v0.7 release-facing hits to five tools and record any deliberately retained older-demo/older-contract hit with its reason in the candidate-preparation record;
+3. if any release-golden-path pinned file changes, update exactly its corresponding `examples/release-golden-path/SHA256SUMS` entry and no unrelated pin;
+4. re-freeze the release golden path with the v0.7 API-aware phase (§3.4);
+5. create `docs/release-validation/v0.7.0-release-notes.md`;
+6. add the v0.7 release section to `CHANGELOG.md`, leaving the release candidate described as candidate-ready rather than already shipped;
+7. update the release-validation index;
+8. add the APISIX-only qualification statement, mapping-dependence statement, I4 pilot limitation, and known limitations;
+9. map every parent §32 documentation requirement to a release-visible document, including:
+   - the v0.7 product question;
+   - APISIX selection and the I0 four-gateway survey;
+   - source-native configured-access meaning;
+   - consumer attribution and configured-vs-observed qualification;
+   - identity/association and measurement-coverage rules;
+   - API contract/operation vs gateway route/service vs application Service;
+   - why subscription/product/owner/authorization/Intent are not inferred;
+   - REST and MCP examples;
+   - evidence drill-down;
+   - limitations/unsupported cases;
+   - replay/qualification procedure;
+   - product-value pilot result;
+10. make any required release-workflow or security hardening **before** candidate freeze.
 
 The release-preparation PR MUST NOT change I4 truth, expected answers, or replay fixtures merely to make release checks pass.
 
@@ -161,7 +179,10 @@ It records at least:
 - APISIX-only/Tyk scope statement;
 - mapping-dependence statement;
 - publication workflow identity;
-- security issue dispositions carried into the candidate.
+- security issue dispositions carried into the candidate;
+- stale four-tool search/disposition results;
+- changed golden-path SHA256 pins;
+- parent §32 documentation checklist with one document/gap per required topic.
 
 ## 5. Exact-candidate qualification — I5.2
 
@@ -191,12 +212,31 @@ uv run pytest tests/integration
 
 Also verify exact-SHA GitHub check-runs for every mandatory CI, CodeQL, dependency/security, and demo job. Missing, skipped, cancelled, or failed mandatory jobs block technical readiness unless the governing repository policy explicitly marks them non-mandatory.
 
-### 5.2 Re-run v0.7 I4 qualification on the release candidate
+**Ordering:** exact-SHA CI/check-runs SHALL be complete before starting the I4 A/B qualification, because the I4 coordinator validates those checks as part of its result.
+
+### 5.2 Deterministic architecture-answers evaluation ×2
+
+From two clean states on the exact candidate, run the repository's deterministic architecture-answers evaluation twice using the current supported evaluation entry point. The second run must not reuse mutable output from the first.
+
+Required:
+
+- both runs pass;
+- emitted result files / canonical output bytes are identical;
+- no expected answer is rewritten between runs;
+- both runs are bound to `RELEASE_CANDIDATE_SHA`.
+
+This gate satisfies parent §26 independently of the v0.7-specific I4 A/B qualification.
+
+### 5.3 Re-run v0.7 I4 qualification on the release candidate
 
 Run the frozen v0.7 I4 qualification on the exact candidate:
 
 ~~~bash
-uv run python -m evaluation.i4   --profile v0.7   --candidate-sha "$RELEASE_CANDIDATE_SHA"   --out "$OUT/i4"
+test ! -e "$OUT/i4"
+uv run python -m evaluation.i4 \
+  --profile v0.7 \
+  --candidate-sha "$RELEASE_CANDIDATE_SHA" \
+  --out "$OUT/i4"
 ~~~
 
 Required:
@@ -211,19 +251,22 @@ Required:
 
 I5 does not re-author or mutate the I4 oracle.
 
-### 5.3 Re-run v0.7 API cost evidence
+### 5.4 Re-run v0.7 API cost evidence
 
 Run the existing v0.7 API-usage cost wrapper on the exact candidate:
 
 ~~~bash
-uv run python -m evaluation.i4.api_usage_cost_run   --candidate-sha "$RELEASE_CANDIDATE_SHA"   --out "$OUT/api-usage-cost.json"
+test ! -e "$OUT/api-usage-cost.json"
+uv run python -m evaluation.i4.api_usage_cost_run \
+  --candidate-sha "$RELEASE_CANDIDATE_SHA" \
+  --out "$OUT/api-usage-cost.json"
 ~~~
 
 This is evidence, not an SLO.
 
 Confirm only that the final candidate does not invalidate the accepted I4 disposition and that F1–F3 remain explicit. I5 does not require optimization before release merely because the known costs are visible.
 
-### 5.4 Candidate image and release golden path
+### 5.5 Candidate image and release golden path
 
 Build one candidate image from the exact SHA with:
 
@@ -243,7 +286,7 @@ Required:
 - at least one expected unresolved/insufficient API-aware case remains explicit;
 - every answer reports version `0.7.0` and the exact candidate build revision.
 
-### 5.5 Version and public-surface gate
+### 5.6 Version and public-surface gate
 
 Verify at the candidate:
 
@@ -256,7 +299,7 @@ Verify at the candidate:
 - release docs state APISIX-only qualification and mapping dependence;
 - no release claim converts configured access or observed usage into authorization, ownership, policy, Intent, or “safe to change”.
 
-### 5.6 Security, SBOM and public-content gate
+### 5.7 Security, SBOM and public-content gate
 
 Before technical `GO`, review:
 
@@ -285,7 +328,8 @@ It names exactly one `RELEASE_CANDIDATE_SHA` and records:
 - source and candidate-image identity;
 - exact commands and relevant tool/runtime versions;
 - repository gate results;
-- exact-SHA CI/check-run ids;
+- exact-SHA CI/check-run ids and confirmation they completed before I4 A/B;
+- deterministic architecture-answers evaluation ×2 and byte-identity result;
 - I4 report and artifact digests;
 - API cost artifact;
 - golden-path result;
@@ -293,6 +337,8 @@ It names exactly one `RELEASE_CANDIDATE_SHA` and records:
 - security/SBOM findings and dispositions;
 - APISIX-only/Tyk scope statement;
 - mapping-dependence statement;
+- parent §32 documentation checklist;
+- stale four-tool search/disposition and golden-path re-pin record;
 - I4 pilot `CONTINUE` carry-forward;
 - every skipped, failed or unmeasured item;
 - release blockers.
@@ -310,18 +356,25 @@ If `NO_GO`, write `docs/release-validation/v0.7.0-rc.N-no-go.md` and either prep
 
 ## 7. Publication authority — I5.4
 
-After technical `GO`, the repository owner chooses one of:
+After technical `GO`, the repository owner makes **two independent publication decisions**:
 
 ~~~text
-DO_NOT_PUBLISH
-AUTHORIZE_V0.7.0_PUBLICATION
+Release artifact:
+  DO_NOT_PUBLISH
+  AUTHORIZE_V0.7.0_PUBLICATION
+
+MCP Registry:
+  DO_NOT_PUBLISH_MCP_REGISTRY
+  AUTHORIZE_V0.7.0_MCP_REGISTRY_PUBLICATION
 ~~~
 
-Record the decision in:
+MCP Registry authorization is separate: authorization to create the GitHub Release/GHCR artifact does not imply authorization to publish or update the Registry entry, and vice versa.
+
+Record both decisions in:
 
 `docs/release-validation/v0.7.0-publication-decision.md`
 
-No tag, GitHub Release, or final GHCR image is created before explicit owner authorization for the exact candidate.
+No tag, GitHub Release, or final GHCR image is created before explicit owner authorization for the exact candidate. No MCP Registry publication/update occurs before its separate explicit authorization.
 
 If the owner chooses `DO_NOT_PUBLISH`, I5 may close as:
 
@@ -399,23 +452,40 @@ Required:
 - unresolved/insufficient behavior remains explicit;
 - all answers report version `0.7.0` and `build_revision = RELEASE_CANDIDATE_SHA`.
 
-### 9.5 API-aware published smoke
+### 9.5 Deterministic published APISIX replay
 
-Against the published image, verify at least one bounded APISIX replay question through:
+Parent §28 requires deterministic replay of the selected real-source qualification after publication.
+
+Against the pulled immutable image digest and tagged source, replay the frozen I4 APISIX qualification package using the already-reviewed inputs and expectations. The published-artifact replay SHALL cover, at minimum:
+
+- one configured + observed case;
+- one measured-zero case under sufficient bounded coverage;
+- one no-applicable/insufficient measurement case;
+- one observed-without-matching-configured-access case;
+- one unattributed request case;
+- the R1 → R2 revision/removal transition;
+- stale cursor and stale evidence-ref refusal after the revision;
+- same-snapshot evidence resolution.
+
+For every public case exercised:
 
 ~~~text
-service/REST result
+service result
+==
+REST result
 ==
 negotiated MCP result
 ~~~
 
-and resolve at least one evidence ref against the same snapshot.
+The replay uses the frozen I4 truth; it SHALL NOT author new expected output after observing the published artifact.
 
-This is a release-artifact smoke over the already-qualified I4 truth, not a new oracle.
+### 9.6 v0.6 golden-path preservation
 
-### 9.6 Registry and release links
+Post-release verification SHALL also run or explicitly reuse the tagged-source published-image golden-path phases that prove preservation of the v0.6 locality and messaging behavior required by parent §28. Any intentional omission must be recorded as a reviewed deviation before `SHIPPED_VERIFIED`.
 
-If MCP Registry publication is part of the release workflow, verify the registry lists `0.7.0` as the intended current version.
+### 9.7 Registry and release links
+
+If and only if the owner separately authorized MCP Registry publication, verify the registry lists `0.7.0` as the intended current version and that its metadata is version-consistent with the tagged release. If Registry publication was not authorized, record that explicitly and do not treat absence as a release failure.
 
 Verify all links in the GitHub Release body resolve to content that exists at the release tag, except any explicitly documented closure-link step that necessarily targets the post-release closure commit.
 
@@ -445,13 +515,16 @@ Before publication, stop the current attempt as `NO_GO` if any of these occur:
 - the APISIX replay or evidence/snapshot fences regress;
 - legacy v0.5/v0.6 tool meanings regress;
 - the golden path does not advertise exactly five tools;
+- stale release-facing four-tool claims remain undispositioned;
+- required golden-path pins were changed without exact re-pinning;
+- deterministic architecture-answers evaluation ×2 differs;
 - the published v0.7 schema and actual API-aware response diverge;
 - release content hides the APISIX-only qualification boundary or mapping dependence;
 - version/build identity is inconsistent;
 - security/SBOM findings remain undispositioned;
 - release notes overclaim authorization, ownership, Intent, complete usage, production capacity, customer value, or pilot evidence.
 
-After publication, any tag/digest/build-revision mismatch, failed anonymous pull, published-image golden-path failure, API-aware published-smoke failure, or final security blocker yields `POST_RELEASE_FAILED`.
+After publication, any tag/digest/build-revision mismatch, failed anonymous pull, published-image golden-path failure, deterministic published APISIX replay failure, required v0.6 locality/messaging preservation failure, or final security blocker yields `POST_RELEASE_FAILED`.
 
 ## 12. Definition of Done
 
@@ -462,14 +535,16 @@ One exact candidate is technically ready only when:
 1. release-facing content is re-frozen for v0.7;
 2. version `0.7.0` is consistent;
 3. exactly five MCP tools are documented and advertised;
-4. repository gate and exact-SHA CI/security checks pass;
-5. v0.7 I4 qualification passes unchanged on the release candidate;
-6. API cost evidence is rerun and accepted limitations remain explicit;
-7. candidate image golden path passes, including API-aware query/evidence behavior;
-8. public schemas and actual service/REST/MCP surfaces agree;
-9. APISIX-only qualification and mapping dependence are explicit;
-10. candidate security/SBOM review has no undispositioned blocker;
-11. `v0.7.0-release-readiness.md` says `GO`.
+4. repository gate and exact-SHA CI/security checks pass and are complete before I4 A/B;
+5. deterministic architecture-answers evaluation passes twice from clean state with byte-identical output;
+6. v0.7 I4 qualification passes unchanged on the release candidate;
+7. API cost evidence is rerun and accepted limitations remain explicit;
+8. candidate image golden path passes, including API-aware query/evidence behavior;
+9. public schemas and actual service/REST/MCP surfaces agree;
+10. APISIX-only qualification and mapping dependence are explicit;
+11. all parent §32 documentation requirements are mapped to release-visible documentation;
+12. candidate security/SBOM review has no undispositioned blocker;
+13. `v0.7.0-release-readiness.md` says `GO`.
 
 ### Unpublished success
 
