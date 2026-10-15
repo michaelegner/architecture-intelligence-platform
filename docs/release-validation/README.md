@@ -15,7 +15,7 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
-| [`v0.7.0-rc.2-candidate-preparation.md`](v0.7.0-rc.2-candidate-preparation.md) | v0.7.0 candidate preparation: the rc.2 identity (rc.1 superseded before qualification), version surfaces, stale-tool search, golden-path pins and the `api-usage` harness, the parent §32 documentation map. |
+| [`v0.7.0-rc.3-candidate-preparation.md`](v0.7.0-rc.3-candidate-preparation.md) | v0.7.0 candidate preparation: the rc.3 identity (rc.1 and rc.2 superseded), version surfaces, stale-tool search, golden-path pins and the `api-usage` harness, the parent §32 documentation map. |
 | [`v0.7.0-release-notes.md`](v0.7.0-release-notes.md) | v0.7.0 release notes (candidate): API-aware Current State, the fifth tool, the APISIX-only qualification, mapping dependence, known limitations. |
 | [`v0.6.3-release-record.md`](v0.6.3-release-record.md) | v0.6.3's one-page record for the lightweight release path: identities, readiness on the exact candidate, post-release verification by digest, owner steps. |
 | [`v0.6.3-release-notes.md`](v0.6.3-release-notes.md) | v0.6.3 maintenance release notes (candidate): `/v1/traces` off the event loop, rejection of out-of-range integers (#305), known limitations. |
