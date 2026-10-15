@@ -49,8 +49,8 @@ examples/runtime-demo/mcp-demo.sh
 
 The script starts AIP + Neo4j + an OTel Collector, imports the bundled example architecture, seeds
 one timestamp-frozen batch of runtime telemetry, then drives `tools/list` →
-`get_architecture_drift` → `get_evidence` over plain HTTP/JSON-RPC — the same direct `2026-07-28`
-request path a compatible MCP client would take.
+`get_architecture_drift` → `get_evidence` over plain HTTP/JSON-RPC — the same request path a
+compatible MCP client would take.
 
 Asking `get_architecture_drift` about `order-service` returns two findings:
 
@@ -189,9 +189,10 @@ or diagram. AIP surfaces them as `OBSERVED_ONLY`, with the observation window th
 dependency and in both directions — declared but not observed, observed but never declared — each
 qualified rather than asserted.
 
-**Give a coding agent context it can cite.** Three read-only MCP tools hand an agent direct
-dependencies, drift and provenance bound to one graph snapshot, so it can tell a fact from a guess
-— and so it can never write to the model it is reading from.
+**Give a coding agent context it can cite.** Five read-only MCP tools hand an agent direct
+dependencies, drift, provenance, caller locality and API consumer usage, each bound to one graph
+snapshot, so it can tell a fact from a guess — and so it can never write to the model it is reading
+from.
 
 ## Connect AIP to Your Coding Agent
 
@@ -290,7 +291,7 @@ initialization (see [Boundaries](#boundaries)) as exactly five **read-only** too
 | `get_service_dependencies_by_locality` | Where are direct HTTP dependencies established for evidenced caller Workloads, how do supported results compare, and which scoped evidence supports them? |
 | `get_api_consumer_usage` | Which consumers have configured access to, and which have independently observed usage of, an API Operation, an application Service or a gateway Route in one environment and measurement window, and what remains unresolved? Qualified for the APISIX source. See [`docs/api-aware-current-state.md`](docs/api-aware-current-state.md). |
 
-All four perform zero graph writes and need no LLM API key — the whole surface is deterministic —
+All five perform zero graph writes and need no LLM API key — the whole surface is deterministic —
 and none of them will invent, guess, or upgrade an unresolved fact: insufficient evidence comes back
 as a `limitations` entry, never as silence.
 
@@ -464,10 +465,12 @@ the platform works with no LLM provider configured, and no MCP tool depends on i
 
 ## Boundaries
 
-What the original three MCP tools return, and what they deliberately don't. The fourth tool
-adds the separately versioned [locality contract](docs/mcp.md#get_service_dependencies_by_locality-v060-i3).
+What the MCP tools return, and what they deliberately don't. The original three tools share the
+`ArchitectureAnswer` envelope below; the fourth adds the separately versioned
+[locality contract](docs/mcp.md#get_service_dependencies_by_locality-v060-i3) and the fifth the
+separately versioned [API consumer usage contract](docs/mcp.md#get_api_consumer_usage-v070-i3).
 
-**One envelope.** Every tool returns the same `ArchitectureAnswer` (`schema_version`, `producer`,
+**One envelope.** The original three tools return the same `ArchitectureAnswer` (`schema_version`, `producer`,
 `tool`, `outcome`, `snapshot`, `observation_context`, `data`, `claims`, `evidence_refs`,
 `limitations`), validated against a closed, published JSON Schema. Dependency and drift answers
 populate `claims`/`evidence_refs`, while `get_evidence` resolves evidence records into `data` and
@@ -491,11 +494,9 @@ mappings). Runtime telemetry can confirm them but never invents them, and AIP ha
 discovery for Kafka, Azure Service Bus, Google Pub/Sub or RabbitMQ (see
 [`docs/ingestion.md`](docs/ingestion.md#topic-and-subscription-v050-i4)).
 
-**One path, two connection modes.** `/mcp` speaks the strict `2026-07-28` per-request envelope as
-before, and also accepts standard negotiated MCP client initialization on that same path — both
-expose identical architecture semantics (see [`docs/mcp.md`](docs/mcp.md)), and a request that is
-neither a valid direct call nor valid negotiated traffic is rejected rather than silently downgraded
-to whichever path is more permissive.
+**One path, one connection mode.** `/mcp` serves standard negotiated MCP only (see
+[`docs/mcp.md`](docs/mcp.md)); the `v0.4.x` direct envelope is retired, and a request that is not
+valid negotiated MCP traffic is rejected.
 
 **Local or trusted network.** As with the rest of AIP, `/mcp` is built for a local or
 trusted-network posture; it is not hardened for direct public-internet exposure — see
