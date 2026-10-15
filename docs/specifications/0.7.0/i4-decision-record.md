@@ -1,6 +1,6 @@
 # AIP v0.7.0 I4 — Decision Record (I4.1)
 
-**Status:** I4.1a decision table under review. Once I4.1a, I4.1b and I4.1c have merged, the decisions below are **frozen** and no candidate may be chosen before then. Each settles an item the [I4 specification](i4-deterministic-real-system-and-product-value-qualification.md) revision 0.2 leaves to I4.1. None reopens a parent, I0–I3 or public-contract semantic.
+**Status:** frozen. I4.1a (#551), I4.1b (#552) and I4.1c (#553, `d3cea3a`) have merged; the decisions below are read-only inputs of the candidate (D9). Each settles an item the [I4 specification](i4-deterministic-real-system-and-product-value-qualification.md) revision 0.2 leaves to I4.1. None reopens a parent, I0–I3 or public-contract semantic.
 **Governing:** I4 specification §§3–6, 8–10, 12–13; parent [`specification.md`](specification.md) §§22–26; [I0 source-selection decision](i0-source-selection-decision.md); [I0 acquisition/replay plan](i0-acquisition-replay-plan.md) §§4–5; the [coverage register](i4-coverage-register.md).
 **Precedent:** the v0.6.0 I4 decision record and ledger design ([`../0.6.0/i4-decision-record.md`](../0.6.0/i4-decision-record.md), [`../0.6.0/i4-ledger-and-comparator-design.md`](../0.6.0/i4-ledger-and-comparator-design.md)).
 

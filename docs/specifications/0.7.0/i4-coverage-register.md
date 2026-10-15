@@ -1,6 +1,6 @@
 # AIP v0.7.0 I4 — Coverage and Expectation Register
 
-**Status:** I4.1a deliverable (I4 spec §4.1, §10). It freezes the mapping from each of the twelve parent §22 requirements to independent truth and an executable check, and the positive-versus-abstaining counts of §10. It claims no executed I4 run.
+**Status:** I4.1a deliverable (I4 spec §4.1, §10). It freezes the mapping from each of the twelve parent §22 requirements to independent truth and an executable check, and the positive-versus-abstaining counts of §10. It is frozen with I4.1 (D9 of the [decision record](i4-decision-record.md)) and claims no executed I4 run; I4.2 executes it (see the [execution runbook](i4-execution-runbook.md)).
 **Governing:** the [I4 specification](i4-deterministic-real-system-and-product-value-qualification.md) revision 0.2, parent [§22](specification.md), the [I4 decision record](i4-decision-record.md).
 **Independent truth:** the frozen I3 oracle ([`i3-vectors/expected-answers.json`](i3-vectors/expected-answers.json): answer cases `A01`–`A20`, `E01a`–`E02c`, property cases `A14c`, `A15`, `C01`, request cases `V01`–`V22`), the I2 reconciliation vectors [`i2-vectors/reconciliation.json`](i2-vectors/reconciliation.json) (`K06`, `K08`) and the I4-only bridge vector `B07a`–`B07c` in [`i4-vectors/expected-i4.json`](i4-vectors/expected-i4.json), authored by [`i4-vectors/author_i4_expected.py`](i4-vectors/author_i4_expected.py) (stdlib only, no `app` import).
 
