@@ -66,13 +66,18 @@ def test_the_v07_run_is_the_runner_then_the_worker_tests():
     assert workers[5:-2] == V07.worker_tests() and workers[-2:] == ["--i4-out", "out"]
 
 
-def test_v07_requires_the_57_frozen_i3_cases_and_the_three_bridge_cases():
+def test_v07_requires_the_57_frozen_i3_cases_the_bridge_and_the_replay_cases():
     i3 = json.loads(
         (ROOT / "docs/specifications/0.7.0/i3-vectors/expected-answers.json").read_text()
     )
     ids = {case["id"] for case in i3["cases"]}
     assert len(ids) == 57
-    assert V07.required_cases == ids | {"B07a", "B07b", "B07c"}
+    replay = json.loads(
+        (ROOT / "docs/specifications/0.7.0/i4-replay/expected-replay.json").read_text()
+    )
+    replay_ids = {case["id"] for case in replay["cases"]} | {"EV", "REVd", "REVe"}
+    assert len(replay_ids) == 16
+    assert V07.required_cases == ids | {"B07a", "B07b", "B07c"} | replay_ids
     assert V07.rejection_prefix == "V" and all(
         f"V{n:02d}" in V07.required_cases for n in range(1, 23)
     )

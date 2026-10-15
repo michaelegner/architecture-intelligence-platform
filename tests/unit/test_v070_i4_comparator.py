@@ -22,6 +22,13 @@ CASES = {
     for name in ("i3-vectors/expected-answers.json", "i4-vectors/expected-i4.json")
     for case in json.loads((SPEC / name).read_text(encoding="utf-8"))["cases"]
 }
+# the real APISIX replay: every case is an answer on the three surfaces, plus the structural ones
+CASES |= {
+    case["id"]: "answer"
+    for case in json.loads((SPEC / "i4-replay/expected-replay.json").read_text(encoding="utf-8"))[
+        "cases"
+    ]
+} | {case: "answer" for case in ("EV", "REVd", "REVe")}
 ANSWERS = sorted(c for c, kind in CASES.items() if kind == "answer")
 PROPERTIES = sorted(c for c, kind in CASES.items() if kind == "property")
 REQUESTS = sorted(c for c, kind in CASES.items() if kind == "request")
@@ -98,7 +105,7 @@ def _change(root, mutation):
 
 def test_the_profile_requires_exactly_the_frozen_cases():
     assert V07.required_cases == set(CASES)
-    assert len(CASES) == 60 and V07.rejection_prefix == "V"
+    assert len(CASES) == 76 and V07.rejection_prefix == "V"
 
 
 def test_complete_evidence_passes(tmp_path):

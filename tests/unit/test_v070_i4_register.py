@@ -49,7 +49,7 @@ STATE = DOC["worlds"]["bridge"]["snapshot_state"]
 STATUSES = {"COVERED", "PARTIAL", "NEW_I4", "DOSSIER_ONLY", "NOT_COVERED"}
 _ROW = re.compile(r"^\| (S22-\d\d) \|(.*)\|$")
 _CITED = re.compile(r"`(tests/[^`]+?\.py::[^`]+)`")
-_ID = re.compile(r"`([AEVBK]\d\d[a-c]?)`")
+_ID = re.compile(r"`([AEVBK]\d\d[a-c]?|P\d|N\d[b]?|OBS|EV|REV[a-e]|W-INVALID|W-NONE)`")
 
 
 def _rows() -> dict[str, list[str]]:
@@ -81,6 +81,9 @@ def _oracle_ids() -> frozenset[str]:
     ids.update(case["id"] for case in i3["cases"])
     i2 = json.loads((SPEC / "i2-vectors/reconciliation.json").read_text(encoding="utf-8"))
     ids.update(case["id"] for case in i2["cases"])
+    replay = json.loads((SPEC / "i4-replay/expected-replay.json").read_text(encoding="utf-8"))
+    ids.update(case["id"] for case in replay["cases"])
+    ids.update({"EV", "REVd", "REVe"})
     return frozenset(ids)
 
 

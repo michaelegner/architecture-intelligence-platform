@@ -626,7 +626,8 @@ def case_b07c() -> dict:
 # lists are authored by hand, once, from each case's purpose in the I3 matrix and the register's
 # class table; they are not derived from any expected answer or any run, so a run cannot move a case
 # between the denominators. `RT01a`-`RT01d` are the questions of the I4 runner's generated
-# real-import world (a page, its continuation and the evidence resolve; a stale snapshot is refused).
+# real-import world (a page, its continuation and the evidence resolve; a stale snapshot is refused);
+# the replay ids are those of `../i4-replay/expected-replay.json` and its structural fences.
 
 POSITIVE = [
     *("A01", "A02", "A04", "A08", "A09", "A14", "A14b"),
@@ -634,6 +635,8 @@ POSITIVE = [
     *("E01a", "E01b", "E01c", "B07c"),
     *("A14c", "A15", "C01"),
     *("RT01a", "RT01b", "RT01c"),
+    # the APISIX replay (real captures; decision record D4)
+    *("P1", "P2", "N4", "N4b", "OBS", "REVa", "REVc", "EV"),
 ]
 ABSTAINING = [
     *("A03", "A05", "A06", "A07", "A10", "A11", "A12", "A13", "A15e"),
@@ -641,6 +644,7 @@ ABSTAINING = [
     *("E02a", "E02b", "E02c", "B07a", "B07b"),
     *(f"V{n:02d}" for n in range(1, 23)),
     "RT01d",
+    *("N1", "N2", "N3", "REVb", "REVd", "REVe", "W-INVALID", "W-NONE"),
 ]
 
 

@@ -552,6 +552,137 @@ def _independent_client(driver: Any, asked: list[tuple[str, dict[str, Any]]]) ->
     return recorded
 
 
+# --- The APISIX replay package -----------------------------------------------------------------------
+
+
+def _ask_three(
+    recorder: Recorder,
+    service: Any,
+    items: list[tuple[str, dict[str, Any]]],
+    judge: Callable[[str, dict[str, Any]], bool],
+) -> dict[str, dict[str, Any]]:
+    """Ask each question of the real service, REST and negotiated MCP and record all three answers;
+    `judge` decides, from the frozen reading, whether an answer is the expected one."""
+    mcp_results = mcp_calls(service, [(lambda: None, request) for _, request in items])
+    answers: dict[str, dict[str, Any]] = {}
+    for (case_id, request), mcp in zip(items, mcp_results, strict=True):
+        rest = rest_post(service, request)
+        assert rest.status_code == 200 and mcp["isError"] is False, case_id
+        payloads = [
+            ("service", service_answer(service, request)),
+            ("rest", rest.json()),
+            ("mcp", mcp["structuredContent"]),
+        ]
+        answers[case_id] = payloads[0][1]
+        for surface, payload in payloads:
+            ok = judge(case_id, payload)
+            recorder.write(
+                payload,
+                surface=surface,
+                comparison_key=f"{case_id}/1",
+                case_id=case_id,
+                request=request,
+                oracle_match=ok,
+                classification=_classification(case_id, ok),
+            )
+    return answers
+
+
+def _refused_as_stale(_: str, payload: dict[str, Any]) -> bool:
+    return payload["data"] is None and [x["code"] for x in payload["limitations"]] == [
+        "SNAPSHOT_NOT_AVAILABLE"
+    ]
+
+
+def run_replay(recorder: Recorder, driver: Any, producer: Producer, work: Path) -> None:
+    """The real APISIX captures, imported through the production path, asked of the service, REST and
+    MCP, against the frozen readings (decision record D4)."""
+    from evaluation.i4 import apisix_replay as replay
+
+    cases = {case["id"]: case for case in replay.PLAN["cases"]}
+    service = ArchitectureIntelligenceService(driver, database=DATABASE, producer=producer)
+
+    def readings(state: dict[str, Any]) -> Callable[[str, dict[str, Any]], bool]:
+        return lambda case_id, payload: not replay.reading_problems(cases[case_id], payload, state)
+
+    # R1 / W1: the real captures P1, P2, N1-N4, OBS and the never-imported window
+    assert not replay.package_problems(), replay.package_problems()
+    _clean_state(recorder, driver)
+    replay.import_revision(driver, "r1", work)
+    state1 = replay.read_state(driver)
+    first = [c for c in replay.PLAN["cases"] if c["world"] == "r1" and c["id"] != "W-INVALID"]
+    asked = [(c["id"], replay.request_for(c, state1)) for c in first]
+    answers = _ask_three(recorder, service, asked, readings(state1))
+
+    # evidence of the first answer resolves at its own snapshot
+    page = answers["P1"]["data"]
+    refs = sorted(
+        {
+            *page["window"]["evidence_refs"],
+            *(r for route in page["selected_routes"] for r in route["evidence_refs"]),
+            *(r for row in page["rows"] for r in row["evidence_refs"]),
+        }
+    )[: api_usage_cost.MAX_EVIDENCE_REFS]
+    context = ("target", "gateway_instance_id", "environment", "window_start", "window_end")
+    p1 = dict(asked)["P1"]
+    evidence = {
+        "mode": "evidence",
+        "snapshot_id": answers["P1"]["snapshot"]["snapshot_id"],
+        "evidence_refs": refs,
+        "consumer_id": p1["consumer_id"],
+        **{key: p1[key] for key in context},
+    }
+    _ask_three(
+        recorder,
+        service,
+        [("EV", evidence)],
+        lambda _, payload: (
+            payload["outcome"] == "ANSWERED"
+            and {e["status"] for e in payload["data"]["entries"]} == {"RESOLVED"}
+        ),
+    )
+
+    # the derived variant: the real W1 manifest with an unsettled end boundary
+    replay.import_revision(driver, "r1", work, unsettled_end=True)
+    unsettled = replay.read_state(driver)
+    invalid = cases["W-INVALID"]
+    _ask_three(
+        recorder,
+        service,
+        [("W-INVALID", replay.request_for(invalid, unsettled))],
+        readings(unsettled),
+    )
+
+    # R1 again (the same bytes, so the same snapshot), a cursor and a ref minted under it
+    replay.import_revision(driver, "r1", work)
+    state_again = replay.read_state(driver)
+    orders = replay.request_for(cases["P1"], state_again) | {"limit": 1}
+    orders.pop("consumer_id", None)
+    page_one = service_answer(service, orders)
+    assert page_one["data"]["page"]["next_cursor"], "the R1 Route has more than one row"
+    stale_query = {
+        **orders,
+        "cursor": page_one["data"]["page"]["next_cursor"],
+        "snapshot_id": page_one["snapshot"]["snapshot_id"],
+    }
+    stale_evidence = {**evidence, "snapshot_id": page_one["snapshot"]["snapshot_id"]}
+    stale_evidence.pop("consumer_id")
+
+    # R2 / W2: authoritative update after a restart
+    replay.import_revision(driver, "r2", work)
+    state2 = replay.read_state(driver)
+    removed = replay.route_ids(state1)
+    second = [c for c in replay.PLAN["cases"] if c["world"] == "r2"]
+    _ask_three(
+        recorder,
+        service,
+        [(c["id"], replay.request_for(c, state2, removed_routes=removed)) for c in second],
+        readings(state2),
+    )
+    _ask_three(recorder, service, [("REVd", stale_query)], _refused_as_stale)
+    _ask_three(recorder, service, [("REVe", stale_evidence)], _refused_as_stale)
+
+
 # --- Entry point -----------------------------------------------------------------------------------
 
 
@@ -594,6 +725,7 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 with tempfile.TemporaryDirectory(prefix="aip-i4-real-") as work:
                     run_real_import(recorder, driver, producer, Path(work))
+                    run_replay(recorder, driver, producer, Path(work) / "replay")
             finally:
                 driver.close()
     except Exception:  # noqa: BLE001 - recorded in the ledger, then re-raised as a failed run

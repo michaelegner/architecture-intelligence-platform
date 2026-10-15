@@ -1,0 +1,1 @@
+apisix_http_status{code="200",consumer="alice",llm_model="",matched_host="",matched_uri="/reports-route",request_llm_model="",request_type="traditional_http",response_source="upstream",route="reports-route",service=""} 2

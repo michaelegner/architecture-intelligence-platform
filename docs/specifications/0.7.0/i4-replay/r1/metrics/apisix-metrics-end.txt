@@ -1,0 +1,5 @@
+apisix_http_status{code="200",consumer="",llm_model="",matched_host="",matched_uri="/open-route",request_llm_model="",request_type="traditional_http",response_source="upstream",route="open-route",service=""} 2
+apisix_http_status{code="200",consumer="alice",llm_model="",matched_host="",matched_uri="/orders-route",request_llm_model="",request_type="traditional_http",response_source="upstream",route="orders-route",service=""} 3
+apisix_http_status{code="200",consumer="erin",llm_model="",matched_host="",matched_uri="/billing-route",request_llm_model="",request_type="traditional_http",response_source="upstream",route="billing-route",service=""} 4
+apisix_http_status{code="200",consumer="frank",llm_model="",matched_host="",matched_uri="/shared-route",request_llm_model="",request_type="traditional_http",response_source="upstream",route="shared-route",service=""} 2
+apisix_http_status{code="403",consumer="carol",llm_model="",matched_host="",matched_uri="/orders-route",request_llm_model="",request_type="traditional_http",response_source="apisix",route="orders-route",service=""} 2

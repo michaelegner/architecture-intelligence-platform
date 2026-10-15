@@ -39,6 +39,7 @@ def _one_run(name: str, out: Path, driver, producer: Producer, tmp_path: Path) -
     recorder.ledger["container_id"] = f"container-{name}"
     runner.run_oracle(recorder, producer)
     runner.run_real_import(recorder, driver, producer, tmp_path / f"world-{name}")
+    runner.run_replay(recorder, driver, producer, tmp_path / f"replay-{name}")
     for record in recorder.records:
         record["container_id"] = recorder.ledger["container_id"]
     recorder.ledger["process_id"] = {"A": 1, "B": 2}[name]
@@ -65,5 +66,6 @@ def test_the_runner_records_what_the_comparator_requires(driver, identity, tmp_p
     assert {"RT01a", "RT01b", "RT01c", "RT01d"} <= cases
     assert all(record["oracle_match"] is True for record in ledger["records"])
     assert sum(r["surface"] == "mcp-independent-client" for r in ledger["records"]) == 3
-    assert ledger["resets"] == [{"nodes_before_schema": 0}]
+    # one reset per world: the real import and the replay each start from an empty graph
+    assert ledger["resets"] == [{"nodes_before_schema": 0}] * 2
     assert ledger["profile"] == "v0.7" and ledger["schema"] == "i4-ledger/1"

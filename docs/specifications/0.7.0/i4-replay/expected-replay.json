@@ -1,0 +1,573 @@
+{
+  "authored": "I4.1c, by author_replay_expected.py (stdlib only), before any capture",
+  "cases": [
+    {
+      "consumer": "alice",
+      "derived": null,
+      "expect": {
+        "limitations": [],
+        "outcome": "ANSWERED",
+        "route_limitations": [],
+        "rows": [
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "alice",
+            "coverage": "SUFFICIENT_FOR_ZERO",
+            "limitations": [],
+            "rejected_attempt_count": 0,
+            "upstream_request_count": 3,
+            "usage": "OBSERVED_USAGE"
+          }
+        ],
+        "window_valid": true
+      },
+      "id": "P1",
+      "origin": "real",
+      "spec_refs": "replay plan P1; parent §22.1",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "orders-route"
+      },
+      "title": "Allow-listed consumer with upstream usage",
+      "world": "r1"
+    },
+    {
+      "consumer": "bob",
+      "derived": null,
+      "expect": {
+        "limitations": [],
+        "outcome": "ANSWERED",
+        "route_limitations": [],
+        "rows": [
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "bob",
+            "coverage": "SUFFICIENT_FOR_ZERO",
+            "limitations": [],
+            "rejected_attempt_count": 0,
+            "upstream_request_count": 0,
+            "usage": "MEASURED_ZERO"
+          }
+        ],
+        "window_valid": true
+      },
+      "id": "P2",
+      "origin": "real",
+      "spec_refs": "replay plan P2; parent §22.3",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "orders-route"
+      },
+      "title": "Allow-listed consumer, closed coverage, no series: measured zero",
+      "world": "r1"
+    },
+    {
+      "consumer": null,
+      "derived": null,
+      "expect": {
+        "limitations": [
+          "COVERAGE_UNKNOWN"
+        ],
+        "outcome": "PARTIAL",
+        "route_limitations": [
+          "GWM_ROUTE_PROMETHEUS_DISABLED"
+        ],
+        "rows": [
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "alice",
+            "coverage": "UNKNOWN_COVERAGE",
+            "limitations": [
+              "GWM_ROUTE_PROMETHEUS_DISABLED"
+            ],
+            "rejected_attempt_count": 0,
+            "upstream_request_count": 0,
+            "usage": "USAGE_UNESTABLISHED"
+          }
+        ],
+        "window_valid": true
+      },
+      "id": "N1",
+      "origin": "real",
+      "spec_refs": "replay plan N1; parent §22.2",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "legacy-route"
+      },
+      "title": "Prometheus disabled on the Route: configured access, usage unestablished",
+      "world": "r1"
+    },
+    {
+      "consumer": "carol",
+      "derived": null,
+      "expect": {
+        "limitations": [],
+        "outcome": "ANSWERED",
+        "route_limitations": [],
+        "rows": [
+          {
+            "configured_access": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+            "consumer": "carol",
+            "coverage": "SUFFICIENT_FOR_ZERO",
+            "limitations": [],
+            "rejected_attempt_count": 2,
+            "upstream_request_count": 0,
+            "usage": "USAGE_UNESTABLISHED"
+          }
+        ],
+        "window_valid": true
+      },
+      "id": "N2",
+      "origin": "real",
+      "spec_refs": "replay plan N2; parent §22.4",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "orders-route"
+      },
+      "title": "Not allow-listed, rejected by the gateway: no access fact, no usage",
+      "world": "r1"
+    },
+    {
+      "consumer": null,
+      "derived": null,
+      "expect": {
+        "limitations": [
+          "COVERAGE_UNKNOWN"
+        ],
+        "outcome": "PARTIAL",
+        "route_limitations": [
+          "GWM_UNATTRIBUTED_UPSTREAM"
+        ],
+        "rows": [],
+        "window_valid": true
+      },
+      "id": "N3",
+      "origin": "real",
+      "spec_refs": "replay plan N3; parent §22.5",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "open-route"
+      },
+      "title": "Unattributed upstream traffic invents no consumer row",
+      "world": "r1"
+    },
+    {
+      "consumer": "erin",
+      "derived": null,
+      "expect": {
+        "limitations": [],
+        "outcome": "ANSWERED",
+        "route_limitations": [],
+        "rows": [
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "erin",
+            "coverage": "SUFFICIENT_FOR_ZERO",
+            "limitations": [],
+            "rejected_attempt_count": 0,
+            "upstream_request_count": 0,
+            "usage": "MEASURED_ZERO"
+          }
+        ],
+        "window_valid": true
+      },
+      "id": "N4",
+      "origin": "real",
+      "spec_refs": "replay plan N4",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "orders-route"
+      },
+      "title": "Usage on another Route is not usage of this Route",
+      "world": "r1"
+    },
+    {
+      "consumer": "erin",
+      "derived": null,
+      "expect": {
+        "limitations": [],
+        "outcome": "ANSWERED",
+        "route_limitations": [],
+        "rows": [
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "erin",
+            "coverage": "SUFFICIENT_FOR_ZERO",
+            "limitations": [],
+            "rejected_attempt_count": 0,
+            "upstream_request_count": 4,
+            "usage": "OBSERVED_USAGE"
+          }
+        ],
+        "window_valid": true
+      },
+      "id": "N4b",
+      "origin": "real",
+      "spec_refs": "replay plan N4",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "billing-route"
+      },
+      "title": "...and it is usage of the Route it happened on",
+      "world": "r1"
+    },
+    {
+      "consumer": null,
+      "derived": null,
+      "expect": {
+        "limitations": [],
+        "outcome": "ANSWERED",
+        "route_limitations": [],
+        "rows": [
+          {
+            "configured_access": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+            "consumer": "frank",
+            "coverage": "SUFFICIENT_FOR_ZERO",
+            "limitations": [],
+            "rejected_attempt_count": 0,
+            "upstream_request_count": 2,
+            "usage": "OBSERVED_USAGE"
+          }
+        ],
+        "window_valid": true
+      },
+      "id": "OBS",
+      "origin": "real",
+      "spec_refs": "parent §22.4",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "shared-route"
+      },
+      "title": "Observed usage with no matching configured access",
+      "world": "r1"
+    },
+    {
+      "consumer": null,
+      "derived": null,
+      "expect": {
+        "limitations": [],
+        "outcome": "ANSWERED",
+        "route_limitations": [],
+        "rows": [
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "alice",
+            "coverage": "SUFFICIENT_FOR_ZERO",
+            "limitations": [],
+            "rejected_attempt_count": 0,
+            "upstream_request_count": 0,
+            "usage": "MEASURED_ZERO"
+          },
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "erin",
+            "coverage": "SUFFICIENT_FOR_ZERO",
+            "limitations": [],
+            "rejected_attempt_count": 0,
+            "upstream_request_count": 0,
+            "usage": "MEASURED_ZERO"
+          }
+        ],
+        "window_valid": true
+      },
+      "id": "REVa",
+      "origin": "real",
+      "spec_refs": "parent §22.9",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "orders-route"
+      },
+      "title": "After R2 the Route holds only the current allow-list",
+      "world": "r2"
+    },
+    {
+      "consumer": null,
+      "derived": null,
+      "expect": {
+        "limitations": [
+          "UNKNOWN_TARGET"
+        ],
+        "outcome": "NOT_ANSWERED",
+        "refusal": "UNKNOWN_TARGET"
+      },
+      "id": "REVb",
+      "origin": "real",
+      "spec_refs": "parent §22.9",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "billing-route"
+      },
+      "title": "After R2 a Route removed by R2 is unknown",
+      "world": "r2"
+    },
+    {
+      "consumer": "alice",
+      "derived": null,
+      "expect": {
+        "limitations": [],
+        "outcome": "ANSWERED",
+        "route_limitations": [],
+        "rows": [
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "alice",
+            "coverage": "SUFFICIENT_FOR_ZERO",
+            "limitations": [],
+            "rejected_attempt_count": 0,
+            "upstream_request_count": 2,
+            "usage": "OBSERVED_USAGE"
+          }
+        ],
+        "window_valid": true
+      },
+      "id": "REVc",
+      "origin": "real",
+      "spec_refs": "parent §22.9",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "reports-route"
+      },
+      "title": "After R2 the new Route's usage is established",
+      "world": "r2"
+    },
+    {
+      "consumer": null,
+      "derived": "the manifest of the real P1 window with end_settled set to false",
+      "expect": {
+        "limitations": [
+          "COVERAGE_UNKNOWN",
+          "WINDOW_NOT_VALID"
+        ],
+        "outcome": "PARTIAL",
+        "route_limitations": [
+          "GWM_WINDOW_NOT_SETTLED"
+        ],
+        "rows": [
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "alice",
+            "coverage": "UNKNOWN_COVERAGE",
+            "limitations": [
+              "GWM_WINDOW_NOT_SETTLED"
+            ],
+            "rejected_attempt_count": null,
+            "upstream_request_count": null,
+            "usage": "USAGE_UNESTABLISHED"
+          },
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "bob",
+            "coverage": "UNKNOWN_COVERAGE",
+            "limitations": [
+              "GWM_WINDOW_NOT_SETTLED"
+            ],
+            "rejected_attempt_count": null,
+            "upstream_request_count": null,
+            "usage": "USAGE_UNESTABLISHED"
+          },
+          {
+            "configured_access": "NO_MATCHING_CONFIGURED_ACCESS_FACT",
+            "consumer": "carol",
+            "coverage": "UNKNOWN_COVERAGE",
+            "limitations": [
+              "GWM_WINDOW_NOT_SETTLED"
+            ],
+            "rejected_attempt_count": null,
+            "upstream_request_count": null,
+            "usage": "USAGE_UNESTABLISHED"
+          },
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "dave",
+            "coverage": "UNKNOWN_COVERAGE",
+            "limitations": [
+              "GWM_WINDOW_NOT_SETTLED"
+            ],
+            "rejected_attempt_count": null,
+            "upstream_request_count": null,
+            "usage": "USAGE_UNESTABLISHED"
+          },
+          {
+            "configured_access": "CONFIGURED_ACCESS_ESTABLISHED",
+            "consumer": "erin",
+            "coverage": "UNKNOWN_COVERAGE",
+            "limitations": [
+              "GWM_WINDOW_NOT_SETTLED"
+            ],
+            "rejected_attempt_count": null,
+            "upstream_request_count": null,
+            "usage": "USAGE_UNESTABLISHED"
+          }
+        ],
+        "window_valid": false
+      },
+      "id": "W-INVALID",
+      "origin": "derived",
+      "spec_refs": "parent §22.2",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "orders-route"
+      },
+      "title": "An unsettled end boundary: rows keep their identity, carry no counts",
+      "world": "r1"
+    },
+    {
+      "consumer": null,
+      "derived": "a request whose window_end is one hour after the imported window's",
+      "expect": {
+        "limitations": [
+          "MEASUREMENT_WINDOW_NOT_AVAILABLE"
+        ],
+        "outcome": "NOT_ANSWERED",
+        "refusal": "MEASUREMENT_WINDOW_NOT_AVAILABLE"
+      },
+      "id": "W-NONE",
+      "origin": "derived",
+      "spec_refs": "parent §22.2",
+      "target": {
+        "kind": "GATEWAY_ROUTE",
+        "route": "orders-route"
+      },
+      "title": "A window that was never imported is refused, not synthesized",
+      "world": "r1"
+    }
+  ],
+  "consumers": [
+    "alice",
+    "bob",
+    "carol",
+    "dave",
+    "erin",
+    "frank"
+  ],
+  "contract": "aip-v0.7-i4-replay-expected",
+  "environment": "replay",
+  "gateway_instance_id": "gw-i4-replay",
+  "governing": [
+    "docs/specifications/0.7.0/i4-decision-record.md D4",
+    "docs/specifications/0.7.0/i0-acquisition-replay-plan.md §5"
+  ],
+  "revisions": {
+    "R1": {
+      "billing-route": {
+        "allow": [
+          "alice",
+          "erin"
+        ],
+        "auth": true,
+        "prometheus": true
+      },
+      "legacy-route": {
+        "allow": [
+          "alice"
+        ],
+        "auth": true,
+        "prometheus": false
+      },
+      "open-route": {
+        "allow": null,
+        "auth": false,
+        "prometheus": true
+      },
+      "orders-route": {
+        "allow": [
+          "alice",
+          "bob",
+          "dave",
+          "erin"
+        ],
+        "auth": true,
+        "prometheus": true
+      },
+      "shared-route": {
+        "allow": null,
+        "auth": true,
+        "prometheus": true
+      }
+    },
+    "R2": {
+      "legacy-route": {
+        "allow": [
+          "alice"
+        ],
+        "auth": true,
+        "prometheus": false
+      },
+      "open-route": {
+        "allow": null,
+        "auth": false,
+        "prometheus": true
+      },
+      "orders-route": {
+        "allow": [
+          "alice",
+          "erin"
+        ],
+        "auth": true,
+        "prometheus": true
+      },
+      "reports-route": {
+        "allow": [
+          "alice"
+        ],
+        "auth": true,
+        "prometheus": true
+      },
+      "shared-route": {
+        "allow": null,
+        "auth": true,
+        "prometheus": true
+      }
+    }
+  },
+  "traffic": {
+    "W1": [
+      {
+        "answered_by": "upstream",
+        "consumer": "alice",
+        "count": 3,
+        "route": "orders-route"
+      },
+      {
+        "answered_by": "apisix",
+        "code": 403,
+        "consumer": "carol",
+        "count": 2,
+        "route": "orders-route"
+      },
+      {
+        "answered_by": "upstream",
+        "consumer": "",
+        "count": 2,
+        "route": "open-route"
+      },
+      {
+        "answered_by": "upstream",
+        "consumer": "erin",
+        "count": 4,
+        "route": "billing-route"
+      },
+      {
+        "answered_by": "upstream",
+        "consumer": "frank",
+        "count": 2,
+        "route": "shared-route"
+      },
+      {
+        "answered_by": "upstream",
+        "consumer": "alice",
+        "count": 1,
+        "route": "legacy-route"
+      }
+    ],
+    "W2": [
+      {
+        "answered_by": "upstream",
+        "consumer": "alice",
+        "count": 2,
+        "route": "reports-route"
+      }
+    ]
+  },
+  "vector_set": 1
+}

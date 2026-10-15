@@ -1,0 +1,25 @@
+{
+  "apisix_version": "3.19.0",
+  "disabled_labels": [],
+  "end_scrape_count": 17,
+  "end_settled": true,
+  "end_sha256": "f8fe5401713c9d08c7d3816a4b1f9ad18055402cfb47d0e0a1ed66d8ad7b6253",
+  "end_stable_seconds": 20,
+  "environment": "replay",
+  "gateway_instance_id": "gw-i4-replay",
+  "no_restart": true,
+  "route_coverage": {
+    "billing-route": true,
+    "legacy-route": false,
+    "open-route": true,
+    "orders-route": true,
+    "shared-route": true
+  },
+  "schema": "aip-apisix-measurement/1",
+  "start_scrape_count": 11,
+  "start_settled": true,
+  "start_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "start_stable_seconds": 20,
+  "window_end": "2026-10-15T08:15:38Z",
+  "window_start": "2026-10-15T08:15:03Z"
+}

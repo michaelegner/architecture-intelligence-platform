@@ -1,0 +1,176 @@
+{
+  "admin_surface": "admin-api-etcd",
+  "apisix_version": "3.19.0",
+  "consumer_groups": [],
+  "consumers": [
+    {
+      "created_index": 15,
+      "credential_ids": [],
+      "modified_index": 15,
+      "username": "alice"
+    },
+    {
+      "created_index": 16,
+      "credential_ids": [],
+      "modified_index": 16,
+      "username": "bob"
+    },
+    {
+      "created_index": 17,
+      "credential_ids": [],
+      "modified_index": 17,
+      "username": "carol"
+    },
+    {
+      "created_index": 18,
+      "credential_ids": [],
+      "modified_index": 18,
+      "username": "dave"
+    },
+    {
+      "created_index": 19,
+      "credential_ids": [],
+      "modified_index": 19,
+      "username": "erin"
+    },
+    {
+      "created_index": 20,
+      "credential_ids": [],
+      "modified_index": 20,
+      "username": "frank"
+    }
+  ],
+  "environment": "replay",
+  "etcd_revision_after": 31,
+  "etcd_revision_before": 31,
+  "gateway_instance_id": "gw-i4-replay",
+  "global_rules": [],
+  "lists_complete": {
+    "consumer_groups": true,
+    "consumers": true,
+    "credentials": true,
+    "global_rules": true,
+    "plugin_configs": true,
+    "routes": true,
+    "services": true,
+    "upstreams": true
+  },
+  "plugin_configs": [],
+  "routes": [
+    {
+      "created_index": 22,
+      "id": "legacy-route",
+      "labels": {},
+      "methods": [],
+      "modified_index": 26,
+      "plugin_config_id": null,
+      "plugins": {
+        "consumer-restriction": {
+          "type": "consumer_name",
+          "whitelist": [
+            "alice"
+          ]
+        },
+        "key-auth": {}
+      },
+      "service_id": null,
+      "upstream_id": null,
+      "upstream_nodes": [
+        "127.0.0.1:8081"
+      ],
+      "uri": "/legacy-route",
+      "uris": []
+    },
+    {
+      "created_index": 23,
+      "id": "open-route",
+      "labels": {},
+      "methods": [],
+      "modified_index": 27,
+      "plugin_config_id": null,
+      "plugins": {
+        "prometheus": {}
+      },
+      "service_id": null,
+      "upstream_id": null,
+      "upstream_nodes": [
+        "127.0.0.1:8081"
+      ],
+      "uri": "/open-route",
+      "uris": []
+    },
+    {
+      "created_index": 24,
+      "id": "orders-route",
+      "labels": {},
+      "methods": [],
+      "modified_index": 28,
+      "plugin_config_id": null,
+      "plugins": {
+        "consumer-restriction": {
+          "type": "consumer_name",
+          "whitelist": [
+            "alice",
+            "erin"
+          ]
+        },
+        "key-auth": {},
+        "prometheus": {}
+      },
+      "service_id": null,
+      "upstream_id": null,
+      "upstream_nodes": [
+        "127.0.0.1:8081"
+      ],
+      "uri": "/orders-route",
+      "uris": []
+    },
+    {
+      "created_index": 29,
+      "id": "reports-route",
+      "labels": {},
+      "methods": [],
+      "modified_index": 29,
+      "plugin_config_id": null,
+      "plugins": {
+        "consumer-restriction": {
+          "type": "consumer_name",
+          "whitelist": [
+            "alice"
+          ]
+        },
+        "key-auth": {},
+        "prometheus": {}
+      },
+      "service_id": null,
+      "upstream_id": null,
+      "upstream_nodes": [
+        "127.0.0.1:8081"
+      ],
+      "uri": "/reports-route",
+      "uris": []
+    },
+    {
+      "created_index": 25,
+      "id": "shared-route",
+      "labels": {},
+      "methods": [],
+      "modified_index": 30,
+      "plugin_config_id": null,
+      "plugins": {
+        "key-auth": {},
+        "prometheus": {}
+      },
+      "service_id": null,
+      "upstream_id": null,
+      "upstream_nodes": [
+        "127.0.0.1:8081"
+      ],
+      "uri": "/shared-route",
+      "uris": []
+    }
+  ],
+  "schema": "aip-apisix-capture/1",
+  "services": [],
+  "upstreams": []
+}

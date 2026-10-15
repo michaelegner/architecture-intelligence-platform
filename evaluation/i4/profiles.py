@@ -143,10 +143,18 @@ _V07_SPEC = ROOT / "docs/specifications/0.7.0"
 _V07_REGISTER = _V07_SPEC / "i4-coverage-register.md"
 
 
+# The structural questions of the replay's revision step: fences, not readings of captured data.
+_REPLAY_STRUCTURAL_CASES = ("EV", "REVd", "REVe")
+
+
 def _v07_required_cases() -> frozenset[str]:
-    """The 57 frozen I3 cases and the I4 bridge cases; the APISIX replay cases join in I4.1c."""
-    ids: set[str] = set()
-    for vectors in ("i3-vectors/expected-answers.json", "i4-vectors/expected-i4.json"):
+    """The 57 frozen I3 cases, the I4 bridge cases and the APISIX replay cases."""
+    ids: set[str] = set(_REPLAY_STRUCTURAL_CASES)
+    for vectors in (
+        "i3-vectors/expected-answers.json",
+        "i4-vectors/expected-i4.json",
+        "i4-replay/expected-replay.json",
+    ):
         document = json.loads((_V07_SPEC / vectors).read_text(encoding="utf-8"))
         ids.update(case["id"] for case in document["cases"])
     return frozenset(ids)

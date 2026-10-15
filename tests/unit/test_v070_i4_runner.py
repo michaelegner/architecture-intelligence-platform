@@ -16,6 +16,7 @@ from app.version import package_version
 from benchmarks import i4_metadata
 from evaluation.i4 import api_usage_cost_run as cost_run
 from evaluation.i4 import api_usage_runner as runner
+from evaluation.i4 import apisix_replay as replay
 from evaluation.i4.profiles import V07
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,7 +48,8 @@ def test_the_oracle_step_records_every_case_on_every_surface_and_all_match(recor
         "derived-properties": 3,
     }
     assert all(record["oracle_match"] is True for record in recorder.records)
-    assert {r["case_id"] for r in recorder.records} == V07.required_cases
+    # the replay cases are recorded by the replay step, which needs a graph
+    assert {r["case_id"] for r in recorder.records} == V07.required_cases - set(replay.case_ids())
     assert all(
         r["producer_build_revision"] == SHA for r in recorder.records if r["surface"] == "service"
     )

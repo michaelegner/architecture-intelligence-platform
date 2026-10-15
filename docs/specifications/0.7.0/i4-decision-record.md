@@ -41,6 +41,8 @@ Pins: APISIX 3.19.0 `apache/apisix@sha256:9a7e45dc943fbf10ec916d1232bae4cda9302a
 | `W-INVALID` | **derived**, mutation fixed here | the real `P1` manifest with `end_settled` set to `false` | window reasons `[GWM_WINDOW_NOT_SETTLED]`; rows keep their identities and carry no counts; `WINDOW_NOT_VALID` |
 | `W-NONE` | request-level | a request for a window that was never imported | `MEASUREMENT_WINDOW_NOT_AVAILABLE`, `data` null |
 
+**Case ids and the first-attempt note (I4.1c).** The replay cases are `P1`, `P2`, `N1`, `N2`, `N3`, `N4`, `N4b`, `OBS`, `REVa`, `REVb`, `REVc`, `W-INVALID` and `W-NONE` (frozen in `i4-replay/expected-replay.json`), plus the structural `EV`, `REVd` and `REVe` (an evidence request, and a cursor and a reference minted under R1 and refused after R2). `N4b` is the other half of `N4`: the usage belongs to the Route it happened on. `R1`→`R2` is `REVa`–`REVe`. The first capture attempt was discarded because readiness probes created series outside the plan; the readings were not changed (`i4-replay/README.md`).
+
 `B07` is not a replay case: it is the synthetic exact-handoff-state bridge vector of the register (S22-07).
 
 ## D5 — B07 is frozen here (I4 spec §4.1 row 7, §13)
