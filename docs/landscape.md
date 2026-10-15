@@ -1730,33 +1730,40 @@ over Architecture Knowledge but must never become its source.
 
 ### Tudor Girba — Deterministic Contextual Tools for System Understanding
 
-**Source**
+**Sources**
 
 - [Don't Rely on LLMs for System Understanding](https://www.linkedin.com/posts/girba_i-cannot-read-every-line-of-code-indeed-activity-7453843967554703361-_w9y)
+- [Reading Code is Not the Answer to Understanding Systems](https://www.linkedin.com/posts/girba_the-post-below-succinctly-exposes-a-misinformed-activity-7510453563073048576-Bth3)
 
 **Core idea**
 
-Girba argues that engineers do not need to read all code to understand a system. They need
-deterministic contextual tools that answer the concrete question at hand and compress a large body
-of source into a much smaller, inspectable result.
+Girba argues that system understanding should not depend on developers reading enough code to build
+a plausible mental model. That was already unreliable before GenAI: systems are too large to read
+completely, so developers infer until time runs out and then decide from an incomplete model.
+
+The alternative is to make understanding explicit as **questions answered by deterministic
+contextual tools**. If an answer is present in the system, build a specific tool that exposes it in
+the relevant context, during and as part of development. Girba compares this discipline to tests:
+manual inspection should not be the default when a deterministic check or projection can answer the
+question directly.
 
 **Why this matters to AIP**
 
-This is direct support for AIP's question-driven product model:
+This is direct support for AIP's question-driven product interaction. A coding agent should not have
+to reconstruct distributed architecture by reading repositories and documentation until it has a
+plausible answer. It should ask the concrete distributed-architecture question and receive a bounded,
+deterministic, evidence-qualified projection that establishes what the available evidence supports.
 
-```text
-do not reconstruct all architecture
-        ↓
-ask the bounded architecture question
-        ↓
-deterministic evidence-qualified projection
-        ↓
-inspect deeper evidence only when needed
-```
+Code-oriented contextual tools can answer questions about implementation. AIP's distinct role is to
+answer questions whose evidence crosses autonomous boundaries and heterogeneous sources such as
+contracts, gateways, brokers, runtime telemetry and deployment/configuration evidence.
 
-Code-oriented contextual tools explain what code is and how it behaves. AIP adds the architecture
-layer: what heterogeneous architecture evidence establishes around that code. This strengthens the
-existing Moldable Architecture Knowledge direction and adds **no roadmap scope**.
+AIP also needs one additional discipline: a contextual tool must be able to say when the available
+evidence does **not** establish the requested relationship. Qualification, provenance, limitations and
+unresolved results are therefore part of the answer rather than gaps for the agent to fill by
+inference.
+
+This strengthens the existing Moldable Architecture Knowledge direction and adds **no roadmap scope**.
 
 ### OpenAI — Harness Engineering and Agent Legibility
 
