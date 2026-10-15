@@ -1,6 +1,6 @@
 # v0.7.0 I4 — Completion record
 
-**Status: I4 complete for v0.7.0.** Governing: the [I4 specification](i4-deterministic-real-system-and-product-value-qualification.md) revision 0.2, §14. Qualified candidate: `c662f3c440733a7b75252ba2466fee14c1c88f4a`. This record claims no release readiness and no production capacity.
+**Status: I4.2 qualification passed; I4.3 pilot incomplete, so I4 is not complete.** Governing: the [I4 specification](i4-deterministic-real-system-and-product-value-qualification.md) revision 0.2, §14. Qualified candidate: `c662f3c440733a7b75252ba2466fee14c1c88f4a`. The first pilot session did not follow the frozen method (agent shell and file access; the refreshed R2 window never queried through the AIP tool), so the §14 product-value item is open until the pilot is rerun once as specified and the pilot record is replaced. This record claims no release readiness and no production capacity.
 
 ## Definition of Done (§14)
 
@@ -15,9 +15,9 @@
 | v0.5/v0.6 regressions pass | Yes: unit 4,668 passed; integration 837 passed and 1 skipped (a private-fork smoke test, not a qualification case); the register anchors ran in both workers |
 | Security, read-only and credential boundaries intact | Yes: no replay fake credential appears in the evidence bundle; the credential canary case passed |
 | Cost and known limitations recorded | Yes: [cost artifact](../../release-validation/v0.7.0-i4.2/api-usage-cost.json) and the replay measurements ([execution record](i4-execution-record.md)); F1 to F3 and #323 carried |
-| Product-value pilot ends in a disposition | `CONTINUE` ([pilot record](i4-pilot-record.md)), from one session with stated deviations |
+| Product-value pilot ends in a disposition | **Open.** The first session ended in `CONTINUE` ([pilot record](i4-pilot-record.md)) but deviated from the method; a rerun is required, and its disposition replaces this one |
 | Every mandatory result bound to one exact SHA, no unexplained skip | Yes: `c662f3c`, 13 of 13 required CI checks green on that SHA; no mandatory case skipped |
-| Completion record and I4 → I5 handoff reviewed | This record and the [handoff](i4-i5-handoff.md), for owner review in the PR |
+| Completion record and I4 → I5 handoff reviewed | Open until the pilot is rerun: this record and the [handoff](i4-i5-handoff.md) are to be finalized then |
 
 ## Findings the owner should keep in view
 

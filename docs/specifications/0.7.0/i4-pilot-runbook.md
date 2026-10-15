@@ -34,7 +34,7 @@ Give the agent this task, unchanged:
 
 > An agent is about to change an API Operation and asks which configured consumers are related to that exposure, which have independently observed usage in the selected completed window, and what remains unresolved.
 
-The Operation is `POST /orders` of the order service (id `operation:service:order-service:POST:/orders`). Run the agent with the AIP tools only: no Neo4j access, no source files of the replay, no Cypher.
+The Operation is `POST /orders` of the order service (id `operation:service:order-service:POST:/orders`). Run the agent with the AIP tools only: no Neo4j access, no source files of the replay, no Cypher. Enforce it by starting the client with its built-in tools disabled (`claude --tools ""`), and check with `/mcp` that the five AIP tools are still available. Paste only the operator's own shell commands into your own terminal, never into the agent. After the Phase 3 refresh, ask with the **R2** window from the new manifest.
 
 ## 3. Phases
 

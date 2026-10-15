@@ -1,5 +1,7 @@
 # v0.7.0 I4 → I5 handoff
 
+**Status: provisional. I4.3 is not complete until the pilot is rerun (see the [completion record](i4-completion-record.md)); I5 does not start before that.**
+
 **Qualified candidate:** `c662f3c440733a7b75252ba2466fee14c1c88f4a` (I4.2: PASS, 13 of 13 CI checks, A/B byte-identical). See the [completion record](i4-completion-record.md) and [execution record](i4-execution-record.md).
 
 ## What I5 owns
@@ -13,7 +15,7 @@ Release candidate freeze, release-content re-freeze, publication and post-public
 - **Mapping dependence.** State that associations to Operations and Services need an operator mapping or an exact contract match; without one the answer is unresolved by design.
 - **Package version.** The package version is still `0.6.3`.
 - **Known limits.** F1 to F3 (cost grows with the whole selection, not the page) and #323.
-- **Pilot.** Disposition `CONTINUE` from one session with stated deviations ([pilot record](i4-pilot-record.md)). It is not user research.
+- **Pilot.** The first session (`CONTINUE`, [pilot record](i4-pilot-record.md)) deviated from the method and is to be replaced by a rerun. It is not user research.
 
 ## Not done in I4
 

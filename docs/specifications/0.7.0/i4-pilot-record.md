@@ -1,6 +1,6 @@
 # v0.7.0 I4.3 — Product-value pilot record
 
-The owner's single recorded coding-agent session, run with the [pilot runbook](i4-pilot-runbook.md). Method: [decision record](i4-decision-record.md) D7. **This is one recorded session, not user research.** The disposition is the owner's and rests on this session alone. The record is the owner's, with sections 2 to 5 drafted from the session transcript at the owner's request (the transcript is kept outside the repository and not committed).
+The owner's first recorded coding-agent session, which deviated from the frozen method (see sections 3 and 4) and is to be replaced by a rerun, run with the [pilot runbook](i4-pilot-runbook.md). Method: [decision record](i4-decision-record.md) D7. **This is one recorded session, not user research.** The disposition is the owner's and rests on this session alone. The record is the owner's, with sections 2 to 5 drafted from the session transcript at the owner's request (the transcript is kept outside the repository and not committed).
 
 ## 1. Session
 
