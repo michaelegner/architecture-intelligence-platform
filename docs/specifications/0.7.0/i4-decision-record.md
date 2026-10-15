@@ -45,7 +45,7 @@ Pins: APISIX 3.19.0 `apache/apisix@sha256:9a7e45dc943fbf10ec916d1232bae4cda9302a
 
 ## D5 — B07 is frozen here (I4 spec §4.1 row 7, §13)
 
-`B07a`, `B07b` and `B07c` in [`i4-vectors/expected-i4.json`](i4-vectors/expected-i4.json) are authored by hand before any I4 execution, from the K06/K08 shape: a Route with no explicit mapping whose exact path and method are exposed by two Operations of two contracts. No test in the I4.1 freeze projects them. The first projection is the I4.2 runner on the candidate. A disagreement is a defect or a reviewed specification question; the expectation is never edited to fit a run.
+`B07a`, `B07b` and `B07c` in [`i4-vectors/expected-i4.json`](i4-vectors/expected-i4.json) are authored by hand before any I4 execution, from the K06/K08 shape: a Route with no explicit mapping whose exact path and method are exposed by two Operations of two contracts. No test of the I4.1a freeze projected them. The I4.1b runner smoke (`tests/integration/test_v070_i4_runner.py`, development mode, never eligible to qualify) executes them as part of exercising the tooling; they matched the hand-authored expectation unchanged, and the expectation was not edited by it. The first *qualifying* projection is the I4.2 runner on the candidate. A disagreement is a defect or a reviewed specification question; the expectation is never edited to fit a run.
 
 ## D6 — Tyk dossier structure (I4 spec §6)
 

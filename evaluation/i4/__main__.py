@@ -6,84 +6,43 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
 
+from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from benchmarks.snapshot_read_cost import resolve_candidate_sha
+from evaluation.i4.profiles import BASELINE_ANCESTOR, DEFAULT_PROFILE, PROFILES, V06, Profile
 
 ROOT = Path(__file__).resolve().parents[2]
-REGISTER = ROOT / "docs/specifications/0.6.0/i4-coverage-register.md"
-REQUIRED_CASES = {
-    *(f"X{i:02}" for i in range(1, 29)),
-    *(f"P{i:02}" for i in range(1, 10)),
-    *(f"Q{i:02}" for i in range(1, 9)),
-    "B01a",
-    "B01b",
-    *(f"B{i:02}" for i in range(2, 7)),
-}
 
-# Required jobs in ci.yml and codeql.yml, including CI's emitted "lint + test" aggregate. A release
-# candidate is a main commit, so the qualification tier (skipped on unrelated PRs) always ran.
-# "CodeQL" is a workflow title, not an emitted check; both analysis jobs remain mandatory.
-REQUIRED_CI_CHECKS = frozenset(
-    {
-        "quality",
-        "changes",
-        "integration-core (heavy)",
-        "integration-core (rest)",
-        "integration-qualification (heavy)",
-        "integration-qualification (oracle)",
-        "integration-qualification (other)",
-        "demo-e2e",
-        "lint + test",
-        "dependency security scan (pip-audit, spec §29)",
-        "static analysis (semgrep)",
-        "analyze (python)",
-        "analyze (actions)",
-    }
-)
+# The pre-profile module-level names stay importable (tests, the pytest capture plugin and the
+# benchmarks use them) and are the v0.6 profile's values.
+REGISTER = V06.register
+REQUIRED_CASES = set(V06.required_cases)
+REQUIRED_CI_CHECKS = V06.required_ci_checks
 
 
-def ci_blockers(check_runs: list[dict], candidate_sha: str) -> list[str]:
+def ci_blockers(
+    check_runs: list[dict], candidate_sha: str, required: frozenset[str] = REQUIRED_CI_CHECKS
+) -> list[str]:
     """Require every mandatory gate to succeed on the candidate, even for partial API results."""
     blockers = []
-    missing = REQUIRED_CI_CHECKS - {c["name"] for c in check_runs}
+    missing = required - {c["name"] for c in check_runs}
     if missing:
         blockers.append(f"missing mandatory CI checks: {sorted(missing)}")
     for check in check_runs:
         if check["head_sha"] != candidate_sha:
             blockers.append(f"CI candidate identity mismatch: {check['name']}/{check['id']}")
-        allowed = (
-            {"success"}
-            if check["name"] in REQUIRED_CI_CHECKS
-            else {"success", "skipped", "neutral"}
-        )
+        allowed = {"success"} if check["name"] in required else {"success", "skipped", "neutral"}
         if check["status"] != "completed" or check["conclusion"] not in allowed:
             blockers.append(f"CI check not successful: {check['name']}/{check['id']}")
     return sorted(set(blockers))
 
 
-def worker_tests() -> list[str]:
-    """Every register anchor plus the specified end-to-end gates; full regression runs once."""
-    anchors = set(re.findall(r"`(tests/[^`]+?\.py)::", REGISTER.read_text()))
-    return sorted(
-        anchors
-        | {
-            "tests/integration/test_v060_i4_bridges.py",
-            "tests/integration/test_locality_surface_parity.py",
-            "tests/integration/test_scoped_evidence_persistence.py",
-            "tests/integration/test_scoped_evidence_ledger.py",
-            "tests/integration/test_locality_rehearsal_replay.py",
-            "tests/integration/test_mcp_independent_client_golden_path.py",
-            "tests/integration/test_evaluation_architecture_answers.py::test_every_bundled_scenario_passes_with_identical_two_pass_output",
-            "tests/integration/test_i4_pubsub_qualification.py",
-            "tests/unit/test_mcp_locality_contract_parity.py",
-            "tests/unit/test_locality_contracts_schema_frozen.py",
-            "tests/unit/test_architecture_intelligence_schema_frozen.py",
-        }
-    )
+def worker_tests(profile: Profile = V06) -> list[str]:
+    """The pytest worker list of a profile (the v0.6 list by default)."""
+    return profile.worker_tests()
 
 
 def verify_candidate(candidate: str, *, development: bool = False) -> str:
@@ -101,7 +60,7 @@ def verify_candidate(candidate: str, *, development: bool = False) -> str:
             "git",
             "merge-base",
             "--is-ancestor",
-            "efe2fc301d9dc8e8a5a4eaf2afceb9f48f38772a",
+            BASELINE_ANCESTOR,
             candidate,
         ],
         check=True,
@@ -109,7 +68,7 @@ def verify_candidate(candidate: str, *, development: bool = False) -> str:
     return head
 
 
-def compare_runs(root: Path) -> dict:
+def compare_runs(root: Path, profile: Profile = V06) -> dict:
     runs = [json.loads((root / run / "ledger.json").read_text()) for run in ("A", "B")]
     blockers = []
     if runs[0]["candidate_sha"] != runs[1]["candidate_sha"]:
@@ -141,7 +100,7 @@ def compare_runs(root: Path) -> dict:
     for run in runs:
         if not run.get("qualification_eligible", False):
             blockers.append(f"run {run['run']} is development evidence only")
-        missing = REQUIRED_CASES - {record["case_id"] for record in run["records"]}
+        missing = profile.required_cases - {record["case_id"] for record in run["records"]}
         if missing:
             blockers.append(f"run {run['run']} missing required cases: {sorted(missing)}")
         if run["exit_code"] != 0:
@@ -162,19 +121,19 @@ def compare_runs(root: Path) -> dict:
             ):
                 blockers.append(f"record identity mismatch: {record['key']}")
             if (
-                not record["case_id"].startswith("Q")
-                and record["surface"] != "legacy-relations"
+                not record["case_id"].startswith(profile.rejection_prefix)
+                and record["surface"] not in profile.producer_exempt_surfaces
                 and record["producer_build_revision"] != run["candidate_sha"]
             ):
                 blockers.append(f"producer identity mismatch: {record['key']}")
             grouped.setdefault(record["comparison_key"], {})[record["surface"]] = record
         for key, group in grouped.items():
-            # Invalid Q requests compare rejection gates, not different transport error bodies.
-            if next(iter(group.values()))["case_id"].startswith("Q"):
+            # Invalid requests (the profile's rejection prefix) compare rejection gates, not transport bodies.
+            if next(iter(group.values()))["case_id"].startswith(profile.rejection_prefix):
                 if not {"rest", "mcp"} <= group.keys():
                     blockers.append(f"missing adapter rejection: {run['run']}/{key}")
                 continue
-            if next(iter(group.values()))["surface"].startswith("legacy-"):
+            if next(iter(group.values()))["surface"].startswith(profile.derived_surface_prefixes):
                 continue
             if not {"service", "rest", "mcp"} <= group.keys():
                 blockers.append(f"missing parity surface: {run['run']}/{key}")
@@ -204,48 +163,97 @@ def compare_runs(root: Path) -> dict:
     }
 
 
+def run_commands(
+    profile: Profile, candidate_sha: str, run: str, destination: Path
+) -> list[list[str]]:
+    """The commands that perform one run of a profile into `destination`."""
+    if profile.runner_module is None:
+        return [
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-p",
+                "evaluation.i4.pytest_plugin",
+                *profile.worker_tests(),
+                "--i4-candidate-sha",
+                candidate_sha,
+                "--i4-run",
+                run,
+                "--i4-out",
+                str(destination),
+            ]
+        ]
+    return [
+        [
+            sys.executable,
+            "-m",
+            profile.runner_module,
+            "--candidate-sha",
+            candidate_sha,
+            "--run",
+            run,
+            "--out",
+            str(destination),
+        ],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-p",
+            "evaluation.i4.test_outcomes",
+            *profile.worker_tests(),
+            "--i4-out",
+            str(destination),
+        ],
+    ]
+
+
+def merge_test_outcomes(destination: Path) -> None:
+    """Fold the worker tests' outcomes into the run's ledger (profiles with a runner module)."""
+    outcomes = destination / "tests.json"
+    if not outcomes.exists():
+        return
+    ledger_path = destination / "ledger.json"
+    ledger = json.loads(ledger_path.read_text())
+    recorded = json.loads(outcomes.read_text())
+    ledger["tests"] = [*ledger.get("tests", []), *recorded["tests"]]
+    ledger["exit_code"] = max(int(ledger.get("exit_code", 0)), int(recorded["exit_code"]))
+    ledger_path.write_bytes(canonical_json_bytes(ledger) + b"\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidate-sha", required=True)
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--profile", choices=sorted(PROFILES), default=DEFAULT_PROFILE)
     args = parser.parse_args()
+    profile = PROFILES[args.profile]
     verify_candidate(args.candidate_sha)
     root = args.out.resolve()
     root.mkdir(parents=True, exist_ok=False)
     for run in ("A", "B"):
         destination = root / run
         destination.mkdir()
-        command = [
-            sys.executable,
-            "-m",
-            "pytest",
-            "-p",
-            "evaluation.i4.pytest_plugin",
-            *worker_tests(),
-            "--i4-candidate-sha",
-            args.candidate_sha,
-            "--i4-run",
-            run,
-            "--i4-out",
-            str(destination),
-        ]
         with (destination / "pytest.txt").open("w") as log:
-            subprocess.run(
-                command,
-                env={
-                    **os.environ,
-                    "I4_CANDIDATE_SHA": args.candidate_sha,
-                    "AIP_BUILD_REVISION": args.candidate_sha,
-                },
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                check=False,
-            )
+            for command in run_commands(profile, args.candidate_sha, run, destination):
+                subprocess.run(
+                    command,
+                    env={
+                        **os.environ,
+                        "I4_CANDIDATE_SHA": args.candidate_sha,
+                        "AIP_BUILD_REVISION": args.candidate_sha,
+                    },
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                )
         if not (destination / "ledger.json").exists():
             raise RuntimeError(
                 f"run {run} failed before producing its ledger; inspect {destination / 'pytest.txt'}"
             )
-    result = compare_runs(root)
+        merge_test_outcomes(destination)
+    result = compare_runs(root, profile)
     checks = subprocess.run(
         [
             "gh",
@@ -276,16 +284,14 @@ def main() -> int:
             }
             for c in check_runs
         ]
-        result["required_ci_checks"] = sorted(REQUIRED_CI_CHECKS)
-        result["blockers"].extend(ci_blockers(check_runs, args.candidate_sha))
+        result["profile"] = profile.name
+        result["required_ci_checks"] = sorted(profile.required_ci_checks)
+        result["blockers"].extend(
+            ci_blockers(check_runs, args.candidate_sha, profile.required_ci_checks)
+        )
     result["status"] = "PASS" if not result["blockers"] else "BLOCKED"
-    result["known_debt"] = [
-        "#323 remains open; I4 does not correct legacy NL/Kubernetes evidence exposure"
-    ]
-    result["remaining"] = [
-        "I4.3 growth evidence and capacity disposition",
-        "I6 exact-final-candidate requalification",
-    ]
+    result["known_debt"] = list(profile.known_debt)
+    result["remaining"] = list(profile.remaining)
     (root / "report.json").write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
     return int(bool(result["blockers"]))

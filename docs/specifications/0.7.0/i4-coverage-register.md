@@ -59,5 +59,5 @@ A class cannot pass because every execution abstained: each class names at least
 
 - The I3 oracle's worlds are synthetic handoff states with synthetic snapshot ids; refs and cursors are literal only under those ids. The I4.2 runner on a real import compares structure and rebinds refs; it never edits an expected literal.
 - `B07` is a synthetic world in the exact frozen I2 handoff shape. It is neither a real capture nor the APISIX replay.
-- The `B07` expectation is frozen here and may not change after the first execution (I4 spec §13). Executing it in the unit tier before the candidate exists is deliberately not done: no test in this freeze projects `B07`.
+- The `B07` expectation is frozen here and may not change after the first execution (I4 spec §13). The I4.1a freeze projected nothing. The I4.1b runner smoke (development mode, never eligible to qualify) exercises the tooling on it and matched the expectation unchanged; the first qualifying execution is the I4.2 runner on the candidate.
 - Parent §22 item 3 holds "if the selected source can establish complete bounded coverage". I4.1c records whether the pinned APISIX capture procedure establishes it.

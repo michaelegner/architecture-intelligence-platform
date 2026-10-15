@@ -39,29 +39,42 @@ def input_pins(root: Path) -> dict:
     }
 
 
+# The inputs pinned by the v0.6 benchmarks; other releases pass their own to `metadata`.
+V06_PIN_ROOTS = (
+    ROOT / "benchmarks",
+    ROOT / "schemas/architecture_intelligence",
+    ROOT / "docs/specifications/0.6.0",
+    ROOT / "tests/integration/locality_oracle",
+)
+V06_PIN_FILES = (
+    ROOT / "tests/integration/test_v060_i4_bridges.py",
+    ROOT / "tests/integration/test_scoped_applicability.py",
+    ROOT / "tests/integration/test_locality_oracle.py",
+)
+
+
 def metadata(
-    candidate_sha: str, configured_producer: Producer, container, configuration: dict
+    candidate_sha: str,
+    configured_producer: Producer,
+    container,
+    configuration: dict,
+    *,
+    pin_roots: tuple[Path, ...] = V06_PIN_ROOTS,
+    pin_files: tuple[Path, ...] = V06_PIN_FILES,
+    skip_pins: tuple[str, ...] = (),
 ) -> dict:
+    """The identity block of a qualifying benchmark. `skip_pins` names file-name suffixes that are
+    results, not inputs (a recorded artifact would pin itself)."""
     verify_candidate(candidate_sha)
     assert configured_producer.build_revision == candidate_sha
     assert configured_producer.version == package_version()
-    roots = [
-        ROOT / "benchmarks",
-        ROOT / "schemas/architecture_intelligence",
-        ROOT / "docs/specifications/0.6.0",
-        ROOT / "tests/integration/locality_oracle",
-    ]
     pins = {
         str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
-        for root in roots
+        for root in pin_roots
         for path in sorted(root.rglob("*"))
-        if path.is_file() and "__pycache__" not in path.parts
+        if path.is_file() and "__pycache__" not in path.parts and not path.name.endswith(skip_pins)
     }
-    for path in (
-        ROOT / "tests/integration/test_v060_i4_bridges.py",
-        ROOT / "tests/integration/test_scoped_applicability.py",
-        ROOT / "tests/integration/test_locality_oracle.py",
-    ):
+    for path in pin_files:
         pins[str(path.relative_to(ROOT))] = hashlib.sha256(path.read_bytes()).hexdigest()
     return {
         "candidate_sha": candidate_sha,
