@@ -1,0 +1,109 @@
+{
+  "benchmark": "i4-apisix-replay-measurement",
+  "candidate_sha": "c662f3c440733a7b75252ba2466fee14c1c88f4a",
+  "container_image": "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93",
+  "dirty_worktree": false,
+  "manual_mappings_supplied": 0,
+  "measured_at": "2026-10-15T12:09:29Z",
+  "repeats": 5,
+  "scope": "run_all_configured_sources over the examples directory and the committed real APISIX configuration capture and measurement fixture of the revision",
+  "state": {
+    "r1": {
+      "attributions": 5,
+      "configured_access": 7,
+      "configured_status": {
+        "CONFIGURED_ACCESS_ESTABLISHED": 7,
+        "NO_MATCHING_CONFIGURED_ACCESS_FACT": 2
+      },
+      "consumer_outcome": {
+        "RESOLVED": 4,
+        "UNRESOLVED": 1
+      },
+      "consumers": 6,
+      "mapping_entries": 0,
+      "observed_interactions": 4,
+      "qualification_rows": 9,
+      "route_coverage": {
+        "SUFFICIENT_FOR_ZERO": 3,
+        "UNKNOWN_COVERAGE": 2
+      },
+      "route_operation": {
+        "UNRESOLVED": 5
+      },
+      "route_outcome": {
+        "RESOLVED": 5
+      },
+      "routes": 5,
+      "series": 5,
+      "target_service": {
+        "UNRESOLVED": 5
+      },
+      "usage_status": {
+        "MEASURED_ZERO": 4,
+        "OBSERVED_USAGE": 3,
+        "USAGE_UNESTABLISHED": 2
+      }
+    },
+    "r2": {
+      "attributions": 1,
+      "configured_access": 4,
+      "configured_status": {
+        "CONFIGURED_ACCESS_ESTABLISHED": 4
+      },
+      "consumer_outcome": {
+        "RESOLVED": 1
+      },
+      "consumers": 6,
+      "mapping_entries": 0,
+      "observed_interactions": 1,
+      "qualification_rows": 4,
+      "route_coverage": {
+        "SUFFICIENT_FOR_ZERO": 4,
+        "UNKNOWN_COVERAGE": 1
+      },
+      "route_operation": {
+        "UNRESOLVED": 5
+      },
+      "route_outcome": {
+        "RESOLVED": 1
+      },
+      "routes": 5,
+      "series": 1,
+      "target_service": {
+        "UNRESOLVED": 5
+      },
+      "usage_status": {
+        "MEASURED_ZERO": 2,
+        "OBSERVED_USAGE": 1,
+        "USAGE_UNESTABLISHED": 1
+      }
+    }
+  },
+  "timings_seconds": {
+    "r1_from_empty": {
+      "all": [
+        7.68,
+        1.562,
+        0.859,
+        0.833,
+        0.74
+      ],
+      "max": 7.68,
+      "median": 0.859,
+      "min": 0.74
+    },
+    "r2_update": {
+      "all": [
+        4.404,
+        1.172,
+        0.873,
+        0.713,
+        0.627
+      ],
+      "max": 4.404,
+      "median": 0.873,
+      "min": 0.627
+    }
+  },
+  "verified_head": "c662f3c440733a7b75252ba2466fee14c1c88f4a"
+}

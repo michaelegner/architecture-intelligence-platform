@@ -72,7 +72,33 @@ The one skip is `tests/integration/test_pitstop_demo_live_smoke.py`, which needs
 
 Every complete cursor walk saw exactly its row count, with no refusal. The I3 findings are carried, unchanged and still open: **F1** (the projection builds the whole selection before paging; deferred past the candidate, D2), **F2** (every request reads the whole canonical state) and **F3** (evidence mode rebuilds the ref map for the whole selection). The measurements are consistent with them: end-to-end cost grows with the whole selection, not the page.
 
-The benchmark is the I3 synthetic-scale tool run through the I4 identity wrapper. It does not itself report the APISIX replay's import cost, its unresolved/ambiguous rates or manual mappings (spec §8). From the replay ledger: the replay world has 8 positive and 8 abstaining cases by design (above), every abstention equals its frozen expected limitation, and **no manual mapping** was supplied to obtain any answer (the replay sources are the two captured directories and the examples, imported through `run_all_configured_sources`). No new measurement was taken for the replay import duration; the pilot (I4.3) records effort and cost to keep evidence current.
+### Selected-source (APISIX) import/replay cost and association rates (spec §8)
+
+The I3 benchmark above is the synthetic-scale tool run through the I4 identity wrapper; it does not report the selected-source replay. These items were measured afterwards on the same clean candidate checkout (`HEAD` equals the candidate, `git status` empty) with [`replay_measurement.py`](../../release-validation/v0.7.0-i4.2/replay_measurement.py), which uses only the frozen replay path (`evaluation.i4.apisix_replay`, the committed real captures, `run_all_configured_sources`), changes no qualification code, expectation or fixture, and asserts nothing about answers. Output: [`replay-measurement.json`](../../release-validation/v0.7.0-i4.2/replay-measurement.json). Five repetitions, each into an emptied disposable Neo4j 5.26.31 (digest-pinned); the association counts were identical in every repetition (the script asserts it). The committed script was formatted by `ruff format` after the run; the formatting is the only difference. Evidence, not an SLO.
+
+**Import/replay cost** (seconds; each import runs the examples directory and the APISIX configuration and measurement sources of the revision through the production path):
+
+| Import | Median | Min | Max | All five |
+|---|---|---|---|---|
+| R1 into an empty graph | 0.86 | 0.74 | 7.68 | 7.68, 1.56, 0.86, 0.83, 0.74 |
+| R2 over R1 (authoritative update) | 0.87 | 0.63 | 4.40 | 4.40, 1.17, 0.87, 0.71, 0.63 |
+
+The first repetition of each is a cold start; the spread is stated, not trimmed.
+
+**Unresolved and ambiguous rates in the imported replay state.** There are no `AMBIGUOUS` outcomes anywhere in the replay state. The unresolved rates are high, by construction of the replay world and not a defect: the replay gateway's Routes expose no contract Operation of the examples, and **no mapping entry was supplied** (`mapping_entries` = 0), so no manual mapping was needed to obtain any answer and none could have resolved an association.
+
+| Measure | R1 (window W1) | R2 (window W2) |
+|---|---|---|
+| Routes | 5 | 5 |
+| Route → Operation | 5 `UNRESOLVED` (5 / 5) | 5 `UNRESOLVED` (5 / 5) |
+| Route → application Service target | 5 `UNRESOLVED` (5 / 5) | 5 `UNRESOLVED` (5 / 5) |
+| Measurement attribution: consumer | 4 `RESOLVED`, 1 `UNRESOLVED` (the unattributed `consumer=""` series, `N3`) | 1 `RESOLVED` |
+| Measurement attribution: Route | 5 `RESOLVED` | 1 `RESOLVED` |
+| Route coverage | 3 `SUFFICIENT_FOR_ZERO`, 2 `UNKNOWN_COVERAGE` | 4 `SUFFICIENT_FOR_ZERO`, 1 `UNKNOWN_COVERAGE` |
+| Qualification rows | 9: configured access 7 established, 2 with no matching configured access (`OBS`) | 4: 4 established |
+| Usage status of the rows | 3 `OBSERVED_USAGE`, 4 `MEASURED_ZERO`, 2 `USAGE_UNESTABLISHED` | 2 `MEASURED_ZERO`, 1 `OBSERVED_USAGE`, 1 `USAGE_UNESTABLISHED` |
+
+The product-relevant reading is that, from a gateway capture alone, APISIX Routes are not associated to API contract Operations or application Services without a contract match or an operator mapping. That is the frozen v0.7 behaviour (parent §§10 and 15: association is not entity equivalence and is never invented), it is not a qualification failure, and it is the identity-mapping effort the I4.3 pilot has to weigh.
 
 ## Auditable artifacts
 
@@ -80,6 +106,7 @@ Under [`docs/release-validation/v0.7.0-i4.2/`](../../release-validation/v0.7.0-i
 [`report.json`](../../release-validation/v0.7.0-i4.2/report.json) (PASS, zero mismatches, the 13-check CI inventory);
 [`ci-check-runs.json`](../../release-validation/v0.7.0-i4.2/ci-check-runs.json) (each check's id, candidate identity, conclusion and details URL);
 [`api-usage-cost.json`](../../release-validation/v0.7.0-i4.2/api-usage-cost.json);
+[`replay-measurement.json`](../../release-validation/v0.7.0-i4.2/replay-measurement.json) and its script;
 [`raw-evidence-c662f3c.tar.gz`](../../release-validation/v0.7.0-i4.2/raw-evidence-c662f3c.tar.gz) (both ledgers, all 430 canonical byte files, the test outcomes and the pytest logs; SHA-256 `8ef9163b4b239c5b271aa0d2296ad0d0e27dcbb897d5ffac846f4047143a1ff3`).
 
 Extract the bundle and call `compare_runs(Path("aip-i4.2-qualification-c662f3c"), V07)` from `evaluation.i4.__main__` (with `V07` from `evaluation.i4.profiles`) to repeat the comparison independently; the evidence was re-compared from the extracted bundle before it was committed and returned no blocker. The `/tmp` paths in the report identify the execution location; relative contents are retained beneath the archive's top-level directory. The replay fixtures and their digests are the committed `i4-replay/` package at the candidate; none of its readings was edited after any run (`EXPECTED.sha256`). A scan of the bundle for the replay package's fake credential values found none.
