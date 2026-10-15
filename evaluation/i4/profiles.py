@@ -13,6 +13,7 @@ import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -59,6 +60,9 @@ class Profile:
     worker_tests: Callable[[], list[str]]
     known_debt: tuple[str, ...]
     remaining: tuple[str, ...]
+    # The classification each case must carry, derived from the independently frozen expectation
+    # (None for a profile that does not validate classifications, as v0.6 never did).
+    expected_classification: Callable[[str], str | None] | None = None
     # A module run once per A/B run to capture the semantic records (`python -m <module>
     # --candidate-sha S --run R --out DIR`); None selects the pytest capture plugin.
     runner_module: str | None = None
@@ -121,6 +125,20 @@ V06 = Profile(
 
 # --- v0.7 ---------------------------------------------------------------------------------------
 
+# The I4-only result vocabulary of I4 spec §10; it never becomes public API vocabulary.
+I4_VOCABULARY = frozenset(
+    {
+        "I4_CORRECT",
+        "I4_EXPECTED_NEGATIVE",
+        "I4_SEMANTIC_DEFECT",
+        "I4_REPLAY_DEFECT",
+        "I4_SURFACE_MISMATCH",
+        "I4_MODEL_GAP",
+        "I4_PRODUCT_VALUE_FAIL",
+        "I4_NOT_RUN",
+    }
+)
+
 _V07_SPEC = ROOT / "docs/specifications/0.7.0"
 _V07_REGISTER = _V07_SPEC / "i4-coverage-register.md"
 
@@ -132,6 +150,19 @@ def _v07_required_cases() -> frozenset[str]:
         document = json.loads((_V07_SPEC / vectors).read_text(encoding="utf-8"))
         ids.update(case["id"] for case in document["cases"])
     return frozenset(ids)
+
+
+@cache
+def _v07_classes() -> dict[str, str]:
+    """The hand-authored class of every required case and of the runner's real-import questions
+    (`i4-vectors/expected-i4.json`, written by `author_i4_expected.py`): the label is a property of
+    the case's frozen purpose, never of an answer or a run."""
+    document = json.loads((_V07_SPEC / "i4-vectors/expected-i4.json").read_text(encoding="utf-8"))
+    return dict(document["classifications"])
+
+
+def _v07_expected_classification(case_id: str) -> str | None:
+    return _v07_classes().get(case_id)
 
 
 def _v07_worker_tests() -> list[str]:
@@ -182,6 +213,7 @@ V07 = Profile(
         "I5 release candidate, release-content re-freeze, publication and verification",
     ),
     runner_module="evaluation.i4.api_usage_runner",
+    expected_classification=_v07_expected_classification,
 )
 
 PROFILES = {profile.name: profile for profile in (V06, V07)}

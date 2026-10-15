@@ -291,18 +291,13 @@ def mcp_calls(
 # --- The frozen oracle ---------------------------------------------------------------------------
 
 
-def _is_negative(expected: dict[str, Any]) -> bool:
-    """An expected abstention or refusal: the answer carries a limitation, is not `ANSWERED`, or a
-    row stays unestablished or unresolved. Only ever a label on a *matched* answer."""
-    if expected["outcome"] != "ANSWERED" or expected["limitations"]:
-        return True
-    rows = (expected.get("data") or {}).get("rows", [])
-    return any(
-        row["usage"]["status"] == "USAGE_UNESTABLISHED"
-        or row["api"]["reconciliation"] != "RESOLVED"
-        or row["application_service"]["reconciliation"] != "RESOLVED"
-        for row in rows
-    )
+def _classification(case_id: str, matched: bool) -> str:
+    """The label of a case is a property of its frozen expectation; a mismatch is a defect."""
+    if not matched:
+        return "I4_SEMANTIC_DEFECT"
+    expected = V07.expected_classification(case_id)
+    assert expected is not None, f"{case_id} has no frozen classification"
+    return expected
 
 
 def run_oracle(recorder: Recorder, producer: Producer) -> None:
@@ -350,13 +345,7 @@ def run_oracle(recorder: Recorder, producer: Producer) -> None:
                 case_id=case["id"],
                 request=request,
                 oracle_match=matched,
-                classification=(
-                    "I4_SEMANTIC_DEFECT"
-                    if not matched
-                    else "I4_EXPECTED_NEGATIVE"
-                    if _is_negative(expected)
-                    else "I4_CORRECT"
-                ),
+                classification=_classification(case["id"], matched),
             )
     run_requests(recorder, i3, service)
     run_properties(recorder, i3, executed)
@@ -383,7 +372,7 @@ def run_requests(recorder: Recorder, i3: dict[str, Any], service: WorldService) 
                 case_id=case["id"],
                 request=request,
                 oracle_match=rejected,
-                classification="I4_EXPECTED_NEGATIVE" if rejected else "I4_SEMANTIC_DEFECT",
+                classification=_classification(case["id"], rejected),
             )
     assert service.calls == 0, "a rejected request reached the service"
 
@@ -408,7 +397,7 @@ def run_properties(
             case_id=case["id"],
             request={"steps": case["steps"]},
             oracle_match=holds,
-            classification="I4_CORRECT" if holds else "I4_SEMANTIC_DEFECT",
+            classification=_classification(case["id"], holds),
         )
 
 
@@ -498,13 +487,7 @@ def run_real_import(recorder: Recorder, driver: Any, producer: Producer, work: P
                 case_id=name,
                 request=request,
                 oracle_match=expected_true,
-                classification=(
-                    "I4_SEMANTIC_DEFECT"
-                    if not expected_true
-                    else "I4_EXPECTED_NEGATIVE"
-                    if payload["data"] is None
-                    else "I4_CORRECT"
-                ),
+                classification=_classification(name, expected_true),
             )
 
 

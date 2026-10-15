@@ -39,6 +39,7 @@ def _record(case, surface, payload, *, mode="query"):
         "canonical_digest": hashlib.sha256(raw).hexdigest(),
         "bytes_ref": f"{case}-{surface}.json",
         "oracle_match": True,
+        "classification": V07.expected_classification(case),
         "candidate_sha": SHA,
         "head": SHA,
         "producer_build_revision": SHA,
@@ -217,3 +218,65 @@ def test_a_byte_difference_between_the_runs_is_never_normalized_away(tmp_path):
     (tmp_path / "B/ledger.json").write_text(json.dumps(ledger))
     result = compare_runs(tmp_path, V07)
     assert not result["ab_equal"] and result["differences"]
+
+
+def _relabel(root, key, label):
+    def mutation(ledger):
+        next(r for r in ledger["records"] if r["key"] == key)["classification"] = label
+
+    _change(root, mutation)
+
+
+def test_the_frozen_classes_cover_every_required_and_real_import_case():
+    assert all(V07.expected_classification(c) for c in V07.required_cases)
+    assert {V07.expected_classification(c) for c in ("RT01a", "RT01b", "RT01c")} == {"I4_CORRECT"}
+    assert V07.expected_classification("RT01d") == "I4_EXPECTED_NEGATIVE"
+    assert V07.expected_classification("A03") == "I4_EXPECTED_NEGATIVE"
+    assert V07.expected_classification("A01") == "I4_CORRECT"
+    assert {V07.expected_classification(c) for c in REQUESTS} == {"I4_EXPECTED_NEGATIVE"}
+    assert {V07.expected_classification(c) for c in PROPERTIES} == {"I4_CORRECT"}
+    assert V06.expected_classification is None
+
+
+@pytest.mark.parametrize(
+    ("key", "label", "reason"),
+    [
+        (
+            "A03/service",
+            "I4_CORRECT",
+            "classification mismatch",
+        ),  # an abstention relabelled positive
+        ("A01/service", "I4_EXPECTED_NEGATIVE", "classification mismatch"),  # and the reverse
+        (f"{REQUESTS[0]}/rest", "I4_CORRECT", "classification mismatch"),
+        (f"{PROPERTIES[0]}/derived-properties", "I4_EXPECTED_NEGATIVE", "classification mismatch"),
+        ("B07b/mcp", "I4_CORRECT", "classification mismatch"),
+        ("A01/rest", "I4_MADE_UP", "unknown classification"),
+        ("A01/mcp", None, "unknown classification"),
+        ("A01/service", "I4_SEMANTIC_DEFECT", "classification mismatch"),
+    ],
+)
+def test_a_wrong_or_unknown_classification_blocks_qualification(tmp_path, key, label, reason):
+    _runs(tmp_path)
+    assert compare_runs(tmp_path, V07)["blockers"] == []
+
+    _relabel(tmp_path, key, label)
+
+    assert any(reason in b for b in compare_runs(tmp_path, V07)["blockers"])
+
+
+def test_a_case_without_a_frozen_classification_blocks(tmp_path):
+    _runs(tmp_path)
+
+    def mutation(ledger):
+        next(r for r in ledger["records"] if r["key"] == "A01/service")["case_id"] = "A99"
+
+    _change(tmp_path, mutation)
+    assert any("unclassified case" in b for b in compare_runs(tmp_path, V07)["blockers"])
+
+
+def test_the_v06_profile_does_not_validate_classifications(tmp_path):
+    """v0.6 records carried their own vocabulary; its comparator must stay as it was."""
+    from evaluation.i4.__main__ import classification_blockers
+
+    run = {"run": "A", "records": [{"key": "k", "case_id": "X01", "classification": "anything"}]}
+    assert classification_blockers(run, V06) == []

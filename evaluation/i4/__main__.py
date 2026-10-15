@@ -12,7 +12,14 @@ from pathlib import Path
 
 from app.architecture_intelligence.canonical_json import canonical_json_bytes
 from benchmarks.snapshot_read_cost import resolve_candidate_sha
-from evaluation.i4.profiles import BASELINE_ANCESTOR, DEFAULT_PROFILE, PROFILES, V06, Profile
+from evaluation.i4.profiles import (
+    BASELINE_ANCESTOR,
+    DEFAULT_PROFILE,
+    I4_VOCABULARY,
+    PROFILES,
+    V06,
+    Profile,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -68,6 +75,30 @@ def verify_candidate(candidate: str, *, development: bool = False) -> str:
     return head
 
 
+def classification_blockers(run: dict, profile: Profile) -> list[str]:
+    """Each record's I4 result label must be in the I4 vocabulary and equal the label its case's
+    independently frozen expectation implies (decision record D3). A positive case relabelled as an
+    expected abstention, or the reverse, changes the qualification record's denominators, so it
+    blocks. A profile without a classification rule (v0.6) is not checked."""
+    if profile.expected_classification is None:
+        return []
+    blockers = []
+    for record in run["records"]:
+        actual, expected = (
+            record.get("classification"),
+            profile.expected_classification(record["case_id"]),
+        )
+        if actual not in I4_VOCABULARY:
+            blockers.append(f"unknown classification: {run['run']}/{record['key']}")
+        elif expected is None:
+            blockers.append(f"unclassified case: {run['run']}/{record['key']}")
+        elif actual != expected:
+            blockers.append(
+                f"classification mismatch: {run['run']}/{record['key']} ({actual} != {expected})"
+            )
+    return blockers
+
+
 def compare_runs(root: Path, profile: Profile = V06) -> dict:
     runs = [json.loads((root / run / "ledger.json").read_text()) for run in ("A", "B")]
     blockers = []
@@ -107,6 +138,7 @@ def compare_runs(root: Path, profile: Profile = V06) -> dict:
             blockers.append(f"run {run['run']} failed")
         if any(t["outcome"] != "passed" for t in run["tests"]):
             blockers.append(f"run {run['run']} has failed/skipped tests")
+        blockers.extend(classification_blockers(run, profile))
         if not all(r["oracle_match"] is True for r in run["records"]):
             blockers.append(f"run {run['run']} has unverified or failing oracle checks")
         client_records = [r for r in run["records"] if r["surface"] == "mcp-independent-client"]

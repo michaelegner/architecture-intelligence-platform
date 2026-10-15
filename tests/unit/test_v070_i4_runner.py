@@ -197,3 +197,11 @@ def test_v07_metadata_pins_the_v07_inputs_and_not_the_recorded_result(monkeypatc
     assert "evaluation/i4/profiles.py" in pins
     assert not any(path.endswith("-cost.json") for path in pins)
     assert not any(path.startswith("docs/specifications/0.6.0/") for path in pins)
+
+
+def test_every_recorded_label_is_the_frozen_label_of_its_case(recorder):
+    runner.run_oracle(recorder, PRODUCER)
+    for record in recorder.records:
+        assert record["classification"] == V07.expected_classification(record["case_id"]), record[
+            "key"
+        ]

@@ -320,3 +320,52 @@ def test_the_assertions_are_not_vacuous():
     assert "operation_id" not in operation and "basis" not in operation
     assert {e["status"] for e in c["data"]["entries"]} == {"RESOLVED"}
     assert c["outcome"] == "ANSWERED"
+
+
+def test_the_frozen_classes_cover_every_case_and_match_the_register_tables():
+    """The comparator holds each ledger record to this label (decision record D3), so the register's
+    positive and abstaining columns must say the same thing as the hand-authored classes."""
+    classes = DOC["classifications"]
+    required = {
+        case["id"]
+        for case in json.loads((SPEC / "i3-vectors/expected-answers.json").read_text())["cases"]
+    }
+    required |= set(CASES)
+    assert required <= set(classes)
+    assert set(classes.values()) == {"I4_CORRECT", "I4_EXPECTED_NEGATIVE"}
+    table = REGISTER.split("## 2. Positive and abstaining outcomes")[1].split("## 3.")[0]
+    for line in table.splitlines():
+        if line.startswith("| ") and not line.startswith("| Class") and not line.startswith("|---"):
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            for case in _ID.findall(cells[2]):
+                assert classes[case] == "I4_CORRECT", (cells[0], case)
+            for case in _ID.findall(cells[3]):
+                assert classes[case] == "I4_EXPECTED_NEGATIVE", (cells[0], case)
+
+
+def test_every_abstaining_class_member_really_abstains_or_is_rejected():
+    """A cross-check of the hand-authored labels against the frozen answers, so a typo in the lists
+    cannot silently move a case: a positive answer case is ANSWERED or a paging PARTIAL, an
+    abstaining one is not an unqualified success."""
+    answers = {
+        c["id"]: c
+        for c in json.loads((SPEC / "i3-vectors/expected-answers.json").read_text())["cases"]
+    }
+    answers |= CASES
+    for case, label in DOC["classifications"].items():
+        expected = answers.get(case, {}).get("expected")
+        if label == "I4_EXPECTED_NEGATIVE" and expected and case[0] in "AEB":
+            data = expected.get("data")
+            assert (
+                expected["outcome"] != "ANSWERED"
+                or expected["limitations"]
+                or (
+                    data
+                    and any(
+                        r["usage"]["status"] == "USAGE_UNESTABLISHED"
+                        or r["api"]["reconciliation"] != "RESOLVED"
+                        or r["application_service"]["reconciliation"] != "RESOLVED"
+                        for r in data.get("rows", [])
+                    )
+                )
+            ), case

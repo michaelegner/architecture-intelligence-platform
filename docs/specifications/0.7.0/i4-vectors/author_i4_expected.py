@@ -619,6 +619,38 @@ def case_b07c() -> dict:
     }
 
 
+# --- The frozen result class of every required case ---------------------------------------------
+#
+# I4 spec §10: a case is `I4_EXPECTED_NEGATIVE` when the outcome it tests is an abstention, a
+# refusal or a rejection, and `I4_CORRECT` when it tests a positive or resolved outcome. These two
+# lists are authored by hand, once, from each case's purpose in the I3 matrix and the register's
+# class table; they are not derived from any expected answer or any run, so a run cannot move a case
+# between the denominators. `RT01a`-`RT01d` are the questions of the I4 runner's generated
+# real-import world (a page, its continuation and the evidence resolve; a stale snapshot is refused).
+
+POSITIVE = [
+    *("A01", "A02", "A04", "A08", "A09", "A14", "A14b"),
+    *("A15a", "A15b", "A15c", "A15d"),
+    *("E01a", "E01b", "E01c", "B07c"),
+    *("A14c", "A15", "C01"),
+    *("RT01a", "RT01b", "RT01c"),
+]
+ABSTAINING = [
+    *("A03", "A05", "A06", "A07", "A10", "A11", "A12", "A13", "A15e"),
+    *("A16", "A17", "A18a", "A18b", "A19", "A20"),
+    *("E02a", "E02b", "E02c", "B07a", "B07b"),
+    *(f"V{n:02d}" for n in range(1, 23)),
+    "RT01d",
+]
+
+
+def classifications() -> dict[str, str]:
+    classes = {case: "I4_CORRECT" for case in POSITIVE}
+    classes.update({case: "I4_EXPECTED_NEGATIVE" for case in ABSTAINING})
+    assert len(classes) == len(POSITIVE) + len(ABSTAINING), "a case is in both lists"
+    return dict(sorted(classes.items()))
+
+
 def document() -> dict:
     return {
         "contract": "aip-v0.7-i4-bridge-expected",
@@ -636,6 +668,7 @@ def document() -> dict:
         "the wildcard matches any non-empty string)",
         "snapshots": {"A": dict(SNAPSHOT)},
         "worlds": {"bridge": {"snapshot_state": snapshot_state()}},
+        "classifications": classifications(),
         "cases": [case_b07a(), case_b07b(), case_b07c()],
     }
 
