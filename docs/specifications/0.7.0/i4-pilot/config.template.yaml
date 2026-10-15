@@ -1,0 +1,22 @@
+# Pilot configuration (v0.7.0 I4.3b; runbook i4-pilot-runbook.md). Replace @REPO@ with the absolute
+# path of the AIP checkout and @PILOT@ with the absolute path of the pilot working directory.
+# Nothing here is a secret: NEO4J_PASSWORD comes from the environment only.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: examples
+        root: "@REPO@/examples"
+    gateways:
+      - id: apisix-replay
+        root: "@PILOT@/gateway"
+        gateway_instance_id: gw-i4-replay
+    gateway_measurements:
+      - id: apisix-replay-metrics
+        root: "@PILOT@/metrics"
+        gateway_instance_id: gw-i4-replay
+        environment: replay
+  graph:
+    uri: bolt://localhost:17687
+    database: neo4j
+  llm:
+    enabled: false
