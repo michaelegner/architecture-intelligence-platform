@@ -1,6 +1,6 @@
 # AIP v0.7.0 I4 — Deterministic, Real-System and Product-Value Qualification
 
-**Status:** Proposed — revision 0.1, for owner review. This specification freezes the I4 qualification method and exit gates; it does not claim that I4 has run, that a release candidate is qualified, or that v0.7.0 is release-ready.  
+**Status:** Proposed — revision 0.2, incorporating PR #547 review. This specification freezes the I4 qualification method and exit gates; it does not claim that I4 has run, that a release candidate is qualified, or that v0.7.0 is release-ready. Revision 0.2 makes parent §22 coverage explicit, treats Tyk consumer ambiguity as a dossier-only semantic check, hardens the Route→Operation bridge shape, and makes v0.7 qualification-tooling generalization an I4.1 prerequisite.  
 **Release / increment:** v0.7.0 / I4, Deterministic, Real-System and Product-Value Qualification.  
 **Entry:** I3 is complete and closed by #546 (`e5f0379d04f7628f57501b878aab6509d1e78c8d`). The frozen [I3 completion record](i3-completion-record.md) and [I3 → I4 handoff](i3-i4-handoff.md) are the qualification inputs.  
 **Authority:** [accepted v0.7.0 parent](specification.md), especially §§22–26; [I0 source-selection decision](i0-source-selection-decision.md); [I0 acquisition/replay plan](i0-acquisition-replay-plan.md), especially §§4–5; [I0 → I1/I2 handoff](i0-i1-i2-handoff.md), including the O11 remainder owned by I4; [I3 decision record](i3-decision-record.md) D1–D12; [I3 expected-answer matrix](i3-expected-answer-matrix.md); [I2 → I3 handoff](i2-i3-handoff.md). The v0.7 public schemas and the I3 oracle remain frozen.
@@ -56,7 +56,7 @@ A disagreement with frozen expected truth is a defect or a reviewed specificatio
 
 I4 SHALL select one full 40-hex `I4_CANDIDATE_SHA`.
 
-I4 SHALL **extend the existing qualification machinery**, not replace it: `evaluation/i4` remains the candidate/CI/A-B comparison foundation (`verify_candidate`, `ci_blockers(...)`, `compare_runs`), and `benchmarks/i4_metadata.py` remains the identity/pin helper where applicable. v0.7 may add API-usage-specific ledger fields and replay steps around that machinery. The I3 benchmark `benchmarks/api_usage_cost.py` is a historical measurement tool only: an I4 cost artifact must run through an I4 wrapper or amendment that also verifies the exact candidate and check-run identity required below.
+I4 SHALL **generalize and extend the existing qualification machinery**, not silently reuse it as-is: `evaluation/i4` is currently v0.6-specific (worker test list, register/required cases/checks, pytest capture and v0.6 baseline pinning). I4.1 SHALL introduce a reviewed per-release/profile mechanism or equivalent generalization that preserves the reproducibility of the v0.6 I4 record while adding the v0.7 API-usage profile. `verify_candidate`, `ci_blockers(...)`, `compare_runs` and `benchmarks/i4_metadata.py` remain the preferred building blocks. This qualification-tooling change SHALL land and be reviewed **before `I4_CANDIDATE_SHA` is selected**; qualification-tooling code is part of the candidate identity. The I3 benchmark `benchmarks/api_usage_cost.py` is a historical measurement tool only: an I4 cost artifact must run through an I4 wrapper or amendment that also verifies the exact candidate and check-run identity required below.
 
 Every I4 harness, replay, benchmark and result artifact SHALL record and verify:
 
@@ -103,15 +103,15 @@ I4.1 SHALL freeze a register with one row for **each of the twelve parent §22 r
 | 3 configured + measured zero | frozen I3 A02 + APISIX closed-coverage replay |
 | 4 observed + no configured access | frozen I3 A04 + APISIX replay |
 | 5 unattributed request | frozen I3 A10 + APISIX replay |
-| 6 ambiguous consumer identity | **I4-only cross-source bridge case** grounded in Tyk spike F6: two distinct keys share one alias and one metric series; alias-only attribution MUST NOT resolve one canonical consumer |
-| 7 ambiguous Route→Operation mapping | I2 independent reconciliation vectors **K06/K08** establish `AMBIGUOUS`; I4 SHALL author one additive public-projection bridge vector from the frozen I2 handoff shape, before execution, proving that the public Route answer preserves `AMBIGUOUS` and attaches no Operation |
-| 8 gateway object distinct from application Service | frozen I3 association cases + identity invariants |
+| 6 ambiguous consumer identity | **Dossier-only cross-source qualification** grounded in Tyk spike F6. The frozen APISIX/I2 pipeline has no `AMBIGUOUS` consumer outcome, so I4 SHALL NOT invent one. The Tyk dossier must decide whether duplicate-alias attribution is `REPRESENTABLE_WITH_SOURCE_SPECIFIC_DISTINCTION` or exposes a `MODEL_GAP`. If an APISIX-shaped executable sanity case is retained, it may only assert the already-qualified A10-style behavior: an unresolvable label yields no consumer row and route-wide unattributed/insufficient evidence; it is not new ambiguity evidence. |
+| 7 ambiguous Route→Operation mapping | I2 independent reconciliation vectors **K06/K08** establish `AMBIGUOUS`; I4 SHALL author one additive public-projection bridge vector **as the exact frozen I2 handoff state**, before execution. Its stdlib-only author script uses new I4 ids and imports nothing from `app`; tests cross-check the raw facts through the existing `reconcile`/`qualify` rules before projecting. The expected answer must assert `api.reconciliation = AMBIGUOUS` with no `operation_id`, increment the `ambiguous` count in the `API_OPERATION` association summary, and show that an `API_OPERATION` target query does not select that Route. |
+| 8 gateway object distinct from application Service | frozen I3 A06–A09 and A19 + identity invariants |
 | 9 source revision removal/update | real APISIX revision transition (§4.2 / §5) |
 | 10 same-snapshot evidence | frozen E01/E02 + APISIX replay |
 | 11 deterministic ordering/replay | frozen paging/property cases + A/B runs |
 | 12 v0.5/v0.6 regression | §4.3 legacy regression |
 
-The two additive I4 bridge expectations are qualification-only assets with new I4 ids. They SHALL be authored and reviewed **before** the candidate is executed against them. They do not modify the 57-case I3 oracle or public contract.
+Only the Route→Operation case is an additive executable I4 bridge expectation. It SHALL be authored and reviewed **before** the candidate is executed against it and shall follow the exact-handoff-state discipline learned in I3.1c. The Tyk consumer-identity row is dossier-only because the frozen v0.7 pipeline cannot express an `AMBIGUOUS` consumer outcome. Neither changes the 57-case I3 oracle or public contract.
 
 ### 4.2 Source revision update/removal
 
@@ -260,13 +260,13 @@ Carry the I3 findings explicitly:
 - whole selection enriched before page slicing;
 - evidence ref map rebuilt for the whole selection.
 
-**F1 sequencing is frozen here:** page-before-enrich is deferred past the I4 candidate. I4.2 qualifies and measures the implementation handed over by I3. If F1 is implemented before I4.2 starts, that change becomes part of the candidate and all qualification/cost gates run on it; once I4.2 has started on a pinned candidate, F1 SHALL NOT land without selecting a new candidate and rerunning the affected gates.
+**F1 sequencing decision:** the owner SHALL decide in I4.1, before `I4_CANDIDATE_SHA` is selected, whether page-before-enrich lands before qualification or is deferred past I4. If it lands first, all qualification/cost gates run on that changed implementation. If it is deferred, I4.2 qualifies the I3-handoff implementation unchanged. I4.2 SHALL NOT start while this choice is open; once the candidate is pinned, F1 SHALL NOT land without selecting a new candidate and rerunning the affected gates.
 
 I4 may recommend optimization but SHALL NOT hide qualification findings by changing semantics, dropping rows or weakening evidence rules.
 
 ## 9. Product-value pilot
 
-The pilot SHALL use a **realistic coding-agent task**, not a dashboard exercise. The owner runs one recorded coding-agent session against the **pinned APISIX replay world used by I4.2**, using the public Architecture Intelligence surface. The record SHALL name the agent/client and model/version used; the agent is a consumer of AIP, never semantic authority.
+The pilot SHALL use a **realistic coding-agent task**, not a dashboard exercise. The owner runs **one recorded coding-agent session** against the **pinned APISIX replay world used by I4.2**, using the public Architecture Intelligence surface. The record SHALL name the agent/client and model/version used; the agent is a consumer of AIP, never semantic authority. This is intentionally a bounded single-session pilot, so its `CONTINUE | NARROW | DEFER | STOP` disposition SHALL be reported as evidence from that one session, not generalized user research.
 
 Preferred task:
 
@@ -351,7 +351,7 @@ Keep I4 bounded:
 
 | Slice | Work | Exit evidence |
 |---|---|---|
-| **I4.1 — Freeze qualification plan** | Twelve-row parent §22 coverage register, the two additive I4 bridge expectations, exact candidate/tooling rules, APISIX real-vs-derived replay package/case set, Tyk F6 dossier structure, pilot method | Reviewed register with no parent §22–25 gap; replay assets and expectations frozen before execution |
+| **I4.1 — Freeze qualification plan** | Twelve-row parent §22 coverage register; one executable Route→Operation bridge expectation; dossier-only Tyk consumer-ambiguity qualification; reviewed per-release generalization of `evaluation/i4`; F1 before/defer owner decision; exact candidate rules; APISIX real-vs-derived replay package/case set; pilot method | Reviewed register with no parent §22–25 gap; qualification tooling, replay assets and expectations frozen before candidate selection/execution; v0.6 I4 remains reproducible |
 | **I4.2 — Deterministic + APISIX qualification** | Two clean runs, full frozen oracle, surface parity, legacy/security regression, selected-source replay, cost rerun | Zero unexplained semantic/surface/replay mismatch on one exact SHA |
 | **I4.3 — Cross-source + product value + handoff** | Tyk semantic check, coding-agent pilot, disposition, completion record and I5 handoff | Cross-source result + explicit product disposition + reviewed handoff |
 
@@ -376,7 +376,7 @@ A fix requires a reviewed change and a rerun at a new candidate SHA. Do not repa
 I4 is complete only when:
 
 - all 57 frozen I3 cases pass unchanged on the exact candidate;
-- all twelve parent §22 cases are explicitly mapped in the coverage register, including I4's ambiguous-consumer and ambiguous-Route→Operation bridge cases;
+- all twelve parent §22 cases are explicitly mapped in the coverage register, with consumer ambiguity qualified by the Tyk dossier and Route→Operation ambiguity by the executable exact-handoff-state bridge case;
 - two fresh runs are semantically identical;
 - APISIX real-source replay passes positive, negative/insufficient, revision and evidence cases;
 - service, REST and MCP are equivalent;
