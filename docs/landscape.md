@@ -75,6 +75,8 @@ promises, temporal context, and explicit system intent without collapsing them i
 [Structurizr/C4](#structurizrc4--declared-architecture-models-and-views) ·
 [FINOS CALM](#finos-calm--architecture-as-code-and-semantic-gap-experiments) ·
 [IcePanel](#icepanel--model-based-architecture-and-the-icepanel-loop) ·
+[Teamscale 2026.7](#teamscale-20267--source-centric-architecture-analysis-and-agentic-reviews) ·
+[API product semantics](#daniel-kocot--api-product-as-a-distinct-semantic-layer) ·
 [API gateway evidence](#api-gateways--configured-access-and-observed-usage) ·
 [Executable architecture rules](#archunit-and-jqassistant--executable-architecture-rules) ·
 [Backstage](#backstage-software-catalog) ·
@@ -112,6 +114,7 @@ visualization, provenance, or retrieval?
 [Agent API Profile](#christian-posta--agent-api-profile) ·
 [MCP](#model-context-protocol-mcp) ·
 [Deterministic contextual tools](#tudor-girba--deterministic-contextual-tools-for-system-understanding) ·
+[Contextual tools beyond code reading](#simon-wardley--contextual-tools-beyond-code-reading) ·
 [MCP-washing](#erik-wilde--beyond-mcp-washing-and-ai-ready-apis) ·
 [Procedural Graphs](#lu-et-al--procedural-graphs) ·
 [Agent-ready traceability and API boundaries](#daniel-kocot--agent-ready-apis-traceability-and-preserved-intent) ·
@@ -140,7 +143,8 @@ evidence-qualified architecture context without becoming the source of architect
 [Expert governance and code review](#rachel-laycock--expert-governance-and-code-review-in-an-ai-heavy-sdlc) ·
 [Cognitive and intent debt](#margaret-anne-storey--cognitive-and-intent-debt) ·
 [Decision debt](#justin-miller--decision-debt) ·
-[Agent maturity and decision boundaries](#nadzeya-stalbouskaya--agent-maturity-and-decision-boundaries) ·
+[Governance signals](#daniel-kocot--from-governance-findings-to-governance-signals) ·
+[Architecture knowledge debt and decision boundaries](#nadzeya-stalbouskaya--architecture-knowledge-debt-and-decision-boundaries) ·
 [DORA architecture capability](#dora--loosely-coupled-architecture-and-teams)
 
 **Core question:** How should explicit intent, assumptions, fitness criteria, authority, and
@@ -757,6 +761,34 @@ gateway-specific canonical terminology. Explicit architectural Intent remains in
 established in v0.8 and Current↔Intent assessment in v0.9. The research source is not semantic
 authority for AIP; qualification against real, independently authored evidence is still required.
 
+### Daniel Kocot — API Product as a Distinct Semantic Layer
+
+**Source**
+
+- [We Can Describe an API. But How Do We Describe an API Product?](https://architecturalbytes.substack.com/p/we-can-describe-an-api-but-how-do)
+
+**Core idea**
+
+Kocot argues that interface specifications and API products are different semantic concepts.
+OpenAPI, AsyncAPI, GraphQL SDL, and Protocol Buffers describe interfaces; a product may group several
+of those interfaces together with documentation, workflows, SDKs, examples, and other resources.
+The important question is whether that product membership deserves an explicit, portable,
+machine-readable representation rather than being reconstructed independently by each platform.
+
+**Why this matters to AIP**
+
+This is relevant to the emerging **landscape-as-projection** view. An API landscape can include
+multiple interaction styles without collapsing them into one interface model, while a product or
+other higher-level grouping can supply additional context when it is explicitly sourced.
+
+AIP should not infer product membership, capability, or ownership from paths, names, gateway
+configuration, or traffic. If a product relationship becomes necessary for a bounded
+distributed-architecture question, it should enter as its own attributable relation and retain its
+authority and provenance.
+
+This is a useful semantic-gap hypothesis for later projections, not a reason to expand the current
+v0.7 Current-State scope.
+
 ### API Gateways — Configured Access and Observed Usage
 
 **Sources**
@@ -880,6 +912,40 @@ An IcePanel model can be valuable declared architecture evidence, but authoring 
 model does not by itself establish deployed Current State. AIP should preserve the distinction
 between **model intent/declaration** and **evidence-qualified state**. The overlap suggests
 interoperability and comparison opportunities, not roadmap pull.
+
+### Teamscale 2026.7 — Source-Centric Architecture Analysis and Agentic Reviews
+
+**Sources**
+
+- [What's New for Teamscale 2026.7](https://docs.teamscale.com/changelog/v2026.7.x/)
+- [Teamscale for Agents](https://teamscale.com/for-agents)
+
+**Core idea**
+
+Teamscale 2026.7 combines mature source-code analysis and architecture conformance with AI-assisted
+architecture modeling and agentic reviews. It can infer an initial component structure and
+allowed/forbidden dependency policies from code, refine the model from natural-language guidance,
+and bring architecture-aware review into the development workflow.
+
+**Why this matters to AIP**
+
+Teamscale is the strongest adjacent product baseline for AIP's product boundary. It is deliberately
+strong where AIP should not compete: repository-internal structure, source dependencies,
+architecture rules, and continuous conformance.
+
+The relevant AIP question is therefore not whether AIP can also model source architecture, but:
+
+> **With all relevant repositories available to a strong architecture-analysis tool, what
+> distributed architecture can AIP still establish that source analysis cannot?**
+
+AIP must earn its place where evidence crosses autonomous boundaries and source repositories are not
+sufficient on their own: runtime communication, broker-mediated relationships, gateway exposure,
+deployment/configuration evidence, and cross-source reconciliation.
+
+This directly supports the existing v0.8 product-boundary validation. The test must remain fair:
+if Teamscale at realistic scope produces the same useful investigation boundary at lower maintenance
+cost, AIP adds too little and should narrow or stop. No Teamscale-specific semantic model belongs in
+AIP.
 
 ### ArchUnit and jQAssistant — Executable Architecture Rules
 
@@ -1764,6 +1830,36 @@ unresolved results are therefore part of the answer rather than gaps for the age
 inference.
 
 This strengthens the existing Moldable Architecture Knowledge direction and adds **no roadmap scope**.
+
+### Simon Wardley — Contextual Tools Beyond Code Reading
+
+**Sources**
+
+- [Reading code to understand a system is already beyond repair](https://www.linkedin.com/posts/simonwardley_for-those-wondering-about-my-warning-from-activity-7473097333409300481-7H4j)
+- [Software engineering needs contextual tools, not one generic toolset](https://www.linkedin.com/posts/simonwardley_x-whats-the-worse-thing-about-software-activity-7470403677426585600-RyeL)
+
+**Core idea**
+
+Wardley argues that reading code is an increasingly untenable way to understand large systems,
+especially as AI accelerates code production. The deeper problem is the toolset: software
+development relies too heavily on generic tools and human reconstruction instead of contextual
+tools built to answer the question at hand. At larger scale, maintaining situational awareness
+requires tools that expose structure and consequences without requiring linear inspection of the
+code base.
+
+**Why this matters to AIP**
+
+This complements Girba's question-driven contextual-tool model with a product-scale framing:
+architecture understanding should be an explicit capability of the development environment, not a
+mental model reconstructed from enough code before time runs out.
+
+AIP fits as one such contextual tool for **distributed architecture**. It does not replace source
+analysis. It answers the questions whose relevant evidence spans autonomous components and
+heterogeneous sources, then exposes the bounded investigation context a coding agent still needs.
+
+The implication is not that AIP should build a universal map. Its role is narrower: provide
+deterministic, evidence-qualified projections for concrete distributed-architecture questions so
+agents and humans can orient themselves before deciding where deeper inspection is required.
 
 ### OpenAI — Harness Engineering and Agent Legibility
 
@@ -2788,26 +2884,66 @@ AIP should **not** become the organizational decision workflow, approval system,
 decides what the architecture ought to be. Decision records can inform Intent; they do not make every
 sentence authoritative, and an agent cannot manufacture organizational intent.
 
-### Nadzeya Stalbouskaya — Agent Maturity and Decision Boundaries
+### Daniel Kocot — From Governance Findings to Governance Signals
 
 **Source**
 
-- [AI Agents Look Like the Future. In Reality, They Require a Maturity Most Organizations Don't Have](https://www.linkedin.com/posts/nadzeya-stalbouskaya_enterprisearchitecture-artificialintelligence-activity-7439626840031535104-9Cxc)
+- [From Governance Findings to Governance Signals](https://adorsys.de/en/techradar/from-governance-findings-to-governance-signals%20/)
 
 **Core idea**
 
-Stalbouskaya emphasizes that useful agent autonomy depends on organizational and architectural
-maturity: explicit decision boundaries, override authority, governance, ownership, and clear
-responsibility cannot be supplied by model capability alone.
+Kocot argues that governance information should not remain as isolated outputs of linters,
+security scanners, architecture reviews, tickets, or exception processes. Observations, reviews,
+decisions, rationale, and later feedback become more useful when their relationships survive the
+tool or process that originally produced them.
 
 **Why this matters to AIP**
 
-This reinforces AIP's authority boundary. AIP can represent explicit architectural Intent and supply
-qualified Current State, but it cannot decide who is authorized to approve a change, manufacture
-stakeholder alignment, or turn agent confidence into organizational authority.
+This is most relevant to future **Assessment** and decision-history semantics. AIP may eventually
+need to relate evidence-qualified Current State and explicit Intent to source-bound findings,
+decisions, exceptions, and reviews without turning those artifacts into one undifferentiated truth.
 
-The reference supports the existing **Current State → Intent → Assessment** separation and the rule
-that downstream action authority remains external. It adds no new capability release.
+The important boundary is the same as elsewhere in AIP: a finding is not Current State, a review
+decision is not automatically participant Intent, and a governance outcome does not manufacture the
+evidence it assessed. Their provenance, authority, applicability, and effective time must remain
+explicit.
+
+This is a strong landscape input for later Assessment work, not a current release requirement.
+
+### Nadzeya Stalbouskaya — Architecture Knowledge Debt and Decision Boundaries
+
+**Sources**
+
+- [AI Agents Look Like the Future. In Reality, They Require a Maturity Most Organizations Don't Have](https://www.linkedin.com/posts/nadzeya-stalbouskaya_enterprisearchitecture-artificialintelligence-activity-7439626840031535104-9Cxc)
+- [The room went quiet when I asked who made this decision — “Ask Martin”](https://www.linkedin.com/posts/nadzeya-stalbouskaya_enterprisearchitecture-architecturedebt-activity-7516075624726298624-P2hO)
+
+**Core idea**
+
+Stalbouskaya emphasizes two related problems. Useful agent autonomy depends on explicit decision
+boundaries, override authority, governance, ownership, and responsibility. At the same time,
+organizations can have extensive architecture documentation and still be unable to answer basic
+knowledge questions: why a decision was made, which representation is current, whether a standard is
+mandatory, or who owns the decision now.
+
+The resulting architecture knowledge debt is therefore not simply missing documentation. It is the
+loss of connection between architectural statements and their current authority, ownership,
+rationale, and context.
+
+**Why this matters to AIP**
+
+This reinforces AIP's locality and authority boundaries. AIP can supply evidence-qualified Current
+State and, where explicitly sourced, attributable Intent. It should not infer why an architecture
+exists, who owns a decision, or whether a document remains authoritative from the existence or
+proximity of technical artifacts.
+
+The “Ask Martin” failure mode is especially relevant to future Intent and decision-history work:
+architecture knowledge that matters to a concrete question needs identifiable provenance,
+currentness, authority, and scope rather than merely being retrievable somewhere in the
+organization.
+
+This supports the existing **Current State → Intent → Assessment** separation without turning AIP
+into a general enterprise knowledge-management system. Downstream action authority remains external,
+and this adds no current capability release.
 
 ### DORA — Loosely Coupled Architecture and Teams
 
