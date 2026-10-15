@@ -665,8 +665,10 @@ def run_replay(recorder: Recorder, driver: Any, producer: Producer, work: Path) 
         "cursor": page_one["data"]["page"]["next_cursor"],
         "snapshot_id": page_one["snapshot"]["snapshot_id"],
     }
+    # the same context as EV, so that after R2 only the snapshot differs
     stale_evidence = {**evidence, "snapshot_id": page_one["snapshot"]["snapshot_id"]}
-    stale_evidence.pop("consumer_id")
+    before = service_answer(service, stale_evidence)
+    assert {e["status"] for e in before["data"]["entries"]} == {"RESOLVED"}, "resolves under R1"
 
     # R2 / W2: authoritative update after a restart
     replay.import_revision(driver, "r2", work)
