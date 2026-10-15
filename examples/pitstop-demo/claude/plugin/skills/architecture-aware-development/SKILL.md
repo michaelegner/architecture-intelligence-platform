@@ -45,6 +45,8 @@ says how far each claim is evidenced. Use it to bound your plan, never to replac
 5. **Write the Evidence section** (below) into your plan before the plan's steps.
 6. **Compare with the repository's documents yourself.** If a document lists different consumers than AIP
    resolves, say so, labelled as **your reading of the documents**, not as an AIP drift claim.
+7. **Validate the plan against its evidence.** Before finalizing a plan, check every architecture claim against
+   its evidence and preserve every unresolved gap as a question rather than filling it with an assumption.
 
 ## Service ids
 
