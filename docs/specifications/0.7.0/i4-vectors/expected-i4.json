@@ -1,0 +1,790 @@
+{
+  "authored": "I4.1a, by author_i4_expected.py (stdlib only, no app import), before any execution on the I4 candidate",
+  "cases": [
+    {
+      "expected": {
+        "data": {
+          "configuration_sources": [
+            {
+              "environment": "prod",
+              "gateway_instance_id": "gw-prod-1",
+              "source_revision": "apisix:3.19.0+etcd:4242"
+            }
+          ],
+          "measurement_sources": [
+            {
+              "apisix_version": "3.19.0",
+              "source_instance_id": "urn:aip:source:apisix-measurement:fa70f1072645642df22cb72cda5113decbd9df37e28b3ed81d56d74820bf1927",
+              "window_end": "2026-10-13T10:10:00Z",
+              "window_start": "2026-10-13T10:00:00Z"
+            }
+          ],
+          "page": {
+            "limit": 100,
+            "returned": 2
+          },
+          "request_context": {
+            "environment": "prod",
+            "gateway_instance_id": "gw-prod-1",
+            "target": {
+              "id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "kind": "GATEWAY_ROUTE"
+            },
+            "window_end": "2026-10-13T10:10:00Z",
+            "window_start": "2026-10-13T10:00:00Z"
+          },
+          "rows": [
+            {
+              "api": {
+                "reconciliation": "AMBIGUOUS"
+              },
+              "application_service": {
+                "reconciliation": "RESOLVED",
+                "service_id": "service:billing"
+              },
+              "configured_access": {
+                "status": "CONFIGURED_ACCESS_ESTABLISHED"
+              },
+              "consumer": {
+                "id": "gateway-consumer:owned:5ec399b9a9411f084b94fd86667a70d6bf0804ce7f5cc57e78438c7256a4ef70",
+                "source_name": "spike-beta"
+              },
+              "evidence_refs": [
+                "api-evidence:075c100253bb3c716b959a9e933d83a12bbd4805afde7dda33e42d84909473aa",
+                "api-evidence:13d5180b3ec97bf1cdf24ab11e727dce25550d3861d39d793fd873c4140aa8b8",
+                "api-evidence:276396859227e5494d5bc2411e3cdf0e2637101a04191d578859afda7df5b983",
+                "api-evidence:f48e92543d97cc4ed46b790e1c05e84d49521e448571bf16e227224e0d96ff36"
+              ],
+              "gateway_route": {
+                "gateway_instance_id": "gw-prod-1",
+                "id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+                "source_route_id": "invoices-route"
+              },
+              "limitations": [],
+              "usage": {
+                "coverage": "SUFFICIENT_FOR_ZERO",
+                "rejected_attempt_count": 0,
+                "status": "MEASURED_ZERO",
+                "upstream_request_count": 0
+              }
+            },
+            {
+              "api": {
+                "reconciliation": "AMBIGUOUS"
+              },
+              "application_service": {
+                "reconciliation": "RESOLVED",
+                "service_id": "service:billing"
+              },
+              "configured_access": {
+                "status": "CONFIGURED_ACCESS_ESTABLISHED"
+              },
+              "consumer": {
+                "id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+                "source_name": "spike-alpha"
+              },
+              "evidence_refs": [
+                "api-evidence:13d5180b3ec97bf1cdf24ab11e727dce25550d3861d39d793fd873c4140aa8b8",
+                "api-evidence:276396859227e5494d5bc2411e3cdf0e2637101a04191d578859afda7df5b983",
+                "api-evidence:87bd86426726aa68d78b82acd20e31c254fb95a3b5127fd9ee3b63eb242ce0e0",
+                "api-evidence:f48e92543d97cc4ed46b790e1c05e84d49521e448571bf16e227224e0d96ff36"
+              ],
+              "gateway_route": {
+                "gateway_instance_id": "gw-prod-1",
+                "id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+                "source_route_id": "invoices-route"
+              },
+              "limitations": [],
+              "usage": {
+                "coverage": "SUFFICIENT_FOR_ZERO",
+                "interaction_id": "observed-consumer-interaction:owned:12094373abbaacb073f41a7bd7c217dfba6f97692e4a9359674837cce8098603",
+                "rejected_attempt_count": 0,
+                "status": "OBSERVED_USAGE",
+                "upstream_request_count": 4
+              }
+            }
+          ],
+          "rules": {
+            "qualification": {
+              "rule_id": "apisix-configured-vs-observed-qualification",
+              "rule_version": "1"
+            },
+            "reconciliation": {
+              "rule_id": "apisix-api-usage-reconciliation",
+              "rule_version": "1"
+            }
+          },
+          "selected_routes": [
+            {
+              "coverage": "SUFFICIENT_FOR_ZERO",
+              "evidence_refs": [],
+              "limitations": [],
+              "route_id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "source_route_id": "invoices-route"
+            }
+          ],
+          "window": {
+            "evidence_refs": [
+              "api-evidence:276396859227e5494d5bc2411e3cdf0e2637101a04191d578859afda7df5b983"
+            ],
+            "reasons": [],
+            "source_instance_id": "urn:aip:source:apisix-measurement:fa70f1072645642df22cb72cda5113decbd9df37e28b3ed81d56d74820bf1927",
+            "valid": true,
+            "window_end": "2026-10-13T10:10:00Z",
+            "window_start": "2026-10-13T10:00:00Z"
+          }
+        },
+        "limitations": [],
+        "mode": "query",
+        "outcome": "ANSWERED",
+        "producer": {
+          "build_revision": "{{*}}",
+          "name": "architecture-intelligence-platform",
+          "version": "{{*}}"
+        },
+        "schema_version": "0.7",
+        "snapshot": {
+          "model_revision": "sha256:3b16436851c1fd44dc3facd03d247828f63e651f01dabc6cf39f370664a99285",
+          "snapshot_id": "aip:snapshot:v1:3b16436851c1fd44dc3facd03d247828f63e651f01dabc6cf39f370664a99285"
+        },
+        "tool": "get_api_consumer_usage"
+      },
+      "id": "B07a",
+      "inputs": {
+        "current_snapshot": "A",
+        "world": "bridge"
+      },
+      "kind": "answer",
+      "request": {
+        "environment": "prod",
+        "gateway_instance_id": "gw-prod-1",
+        "mode": "query",
+        "target": {
+          "id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+          "kind": "GATEWAY_ROUTE"
+        },
+        "window_end": "2026-10-13T10:10:00Z",
+        "window_start": "2026-10-13T10:00:00Z"
+      },
+      "spec_refs": [
+        "I4 §4.1 row 7",
+        "parent §22.7",
+        "I2 K08"
+      ],
+      "title": "An ambiguous Route to Operation outcome stays ambiguous in the public row"
+    },
+    {
+      "expected": {
+        "data": {
+          "association_summary": {
+            "route_operation": {
+              "ambiguous": 1,
+              "conflict": 0,
+              "resolved_elsewhere": 1,
+              "resolved_to_target": 0,
+              "unresolved": 0
+            }
+          },
+          "configuration_sources": [
+            {
+              "environment": "prod",
+              "gateway_instance_id": "gw-prod-1",
+              "source_revision": "apisix:3.19.0+etcd:4242"
+            }
+          ],
+          "measurement_sources": [
+            {
+              "apisix_version": "3.19.0",
+              "source_instance_id": "urn:aip:source:apisix-measurement:fa70f1072645642df22cb72cda5113decbd9df37e28b3ed81d56d74820bf1927",
+              "window_end": "2026-10-13T10:10:00Z",
+              "window_start": "2026-10-13T10:00:00Z"
+            }
+          ],
+          "page": {
+            "limit": 100,
+            "returned": 0
+          },
+          "request_context": {
+            "environment": "prod",
+            "gateway_instance_id": "gw-prod-1",
+            "target": {
+              "id": "operation:billing-api:listInvoices",
+              "kind": "API_OPERATION"
+            },
+            "window_end": "2026-10-13T10:10:00Z",
+            "window_start": "2026-10-13T10:00:00Z"
+          },
+          "rows": [],
+          "rules": {
+            "qualification": {
+              "rule_id": "apisix-configured-vs-observed-qualification",
+              "rule_version": "1"
+            },
+            "reconciliation": {
+              "rule_id": "apisix-api-usage-reconciliation",
+              "rule_version": "1"
+            }
+          },
+          "selected_routes": [],
+          "window": {
+            "evidence_refs": [
+              "api-evidence:9bbca6696a3e8d1a0f9beb4c8fffaca11f0abdb6a020ba5a8ec56f6bdd6605ee"
+            ],
+            "reasons": [],
+            "source_instance_id": "urn:aip:source:apisix-measurement:fa70f1072645642df22cb72cda5113decbd9df37e28b3ed81d56d74820bf1927",
+            "valid": true,
+            "window_end": "2026-10-13T10:10:00Z",
+            "window_start": "2026-10-13T10:00:00Z"
+          }
+        },
+        "limitations": [
+          {
+            "code": "NO_ROUTE_SELECTED",
+            "message": "{{*}}"
+          }
+        ],
+        "mode": "query",
+        "outcome": "NOT_ANSWERED",
+        "producer": {
+          "build_revision": "{{*}}",
+          "name": "architecture-intelligence-platform",
+          "version": "{{*}}"
+        },
+        "schema_version": "0.7",
+        "snapshot": {
+          "model_revision": "sha256:3b16436851c1fd44dc3facd03d247828f63e651f01dabc6cf39f370664a99285",
+          "snapshot_id": "aip:snapshot:v1:3b16436851c1fd44dc3facd03d247828f63e651f01dabc6cf39f370664a99285"
+        },
+        "tool": "get_api_consumer_usage"
+      },
+      "id": "B07b",
+      "inputs": {
+        "current_snapshot": "A",
+        "world": "bridge"
+      },
+      "kind": "answer",
+      "request": {
+        "environment": "prod",
+        "gateway_instance_id": "gw-prod-1",
+        "mode": "query",
+        "target": {
+          "id": "operation:billing-api:listInvoices",
+          "kind": "API_OPERATION"
+        },
+        "window_end": "2026-10-13T10:10:00Z",
+        "window_start": "2026-10-13T10:00:00Z"
+      },
+      "spec_refs": [
+        "I4 §4.1 row 7",
+        "I3 §5.2",
+        "parent §22.7"
+      ],
+      "title": "An Operation target never selects a Route whose Operation is ambiguous"
+    },
+    {
+      "expected": {
+        "data": {
+          "entries": [
+            {
+              "evidence": {
+                "gateway_route": {
+                  "id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+                  "source_route_id": "invoices-route"
+                },
+                "kind": "TARGET_SERVICE_RECONCILIATION",
+                "labels": [
+                  {
+                    "carrier": "ROUTE",
+                    "service_id": "service:billing"
+                  }
+                ],
+                "mapping_entries": [],
+                "outcome": "RESOLVED",
+                "rule": {
+                  "rule_id": "apisix-api-usage-reconciliation",
+                  "rule_version": "1"
+                },
+                "service_id": "service:billing"
+              },
+              "kind": "TARGET_SERVICE_RECONCILIATION",
+              "ref": "api-evidence:13d5180b3ec97bf1cdf24ab11e727dce25550d3861d39d793fd873c4140aa8b8",
+              "status": "RESOLVED"
+            },
+            {
+              "evidence": {
+                "gateway_route": {
+                  "id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+                  "source_route_id": "invoices-route"
+                },
+                "kind": "ROUTE_OPERATION_RECONCILIATION",
+                "mapping_entries": [],
+                "outcome": "AMBIGUOUS",
+                "rule": {
+                  "rule_id": "apisix-api-usage-reconciliation",
+                  "rule_version": "1"
+                }
+              },
+              "kind": "ROUTE_OPERATION_RECONCILIATION",
+              "ref": "api-evidence:f48e92543d97cc4ed46b790e1c05e84d49521e448571bf16e227224e0d96ff36",
+              "status": "RESOLVED"
+            }
+          ],
+          "request_context": {
+            "environment": "prod",
+            "gateway_instance_id": "gw-prod-1",
+            "target": {
+              "id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "kind": "GATEWAY_ROUTE"
+            },
+            "window_end": "2026-10-13T10:10:00Z",
+            "window_start": "2026-10-13T10:00:00Z"
+          }
+        },
+        "limitations": [],
+        "mode": "evidence",
+        "outcome": "ANSWERED",
+        "producer": {
+          "build_revision": "{{*}}",
+          "name": "architecture-intelligence-platform",
+          "version": "{{*}}"
+        },
+        "schema_version": "0.7",
+        "snapshot": {
+          "model_revision": "sha256:3b16436851c1fd44dc3facd03d247828f63e651f01dabc6cf39f370664a99285",
+          "snapshot_id": "aip:snapshot:v1:3b16436851c1fd44dc3facd03d247828f63e651f01dabc6cf39f370664a99285"
+        },
+        "tool": "get_api_consumer_usage"
+      },
+      "id": "B07c",
+      "inputs": {
+        "current_snapshot": "A",
+        "world": "bridge"
+      },
+      "kind": "answer",
+      "request": {
+        "environment": "prod",
+        "evidence_refs": [
+          "api-evidence:13d5180b3ec97bf1cdf24ab11e727dce25550d3861d39d793fd873c4140aa8b8",
+          "api-evidence:f48e92543d97cc4ed46b790e1c05e84d49521e448571bf16e227224e0d96ff36"
+        ],
+        "gateway_instance_id": "gw-prod-1",
+        "mode": "evidence",
+        "snapshot_id": "aip:snapshot:v1:3b16436851c1fd44dc3facd03d247828f63e651f01dabc6cf39f370664a99285",
+        "target": {
+          "id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+          "kind": "GATEWAY_ROUTE"
+        },
+        "window_end": "2026-10-13T10:10:00Z",
+        "window_start": "2026-10-13T10:00:00Z"
+      },
+      "spec_refs": [
+        "I4 §4.1 row 7",
+        "I3 D9 provenance boundary"
+      ],
+      "title": "The ambiguous outcome is evidenced as raw facts only, with no basis"
+    }
+  ],
+  "contract": "aip-v0.7-i4-bridge-expected",
+  "governing": [
+    "docs/specifications/0.7.0/i4-deterministic-real-system-and-product-value-qualification.md §4.1 row 7",
+    "docs/specifications/0.7.0/i3-expected-answer-matrix.md §2"
+  ],
+  "matching": "docs/specifications/0.7.0/i3-expected-answer-matrix.md §2 (exact equality; the wildcard matches any non-empty string)",
+  "snapshots": {
+    "A": {
+      "model_revision": "sha256:3b16436851c1fd44dc3facd03d247828f63e651f01dabc6cf39f370664a99285",
+      "snapshot_id": "aip:snapshot:v1:3b16436851c1fd44dc3facd03d247828f63e651f01dabc6cf39f370664a99285"
+    }
+  },
+  "vector_set": 1,
+  "worlds": {
+    "bridge": {
+      "snapshot_state": {
+        "api_contracts_v1": {
+          "associations": [
+            {
+              "contract_version_id": "api-contract-version:owned:412562c42543b2c66ec69c09bc3e4781431946ade45bc267541fe7e2556fda02",
+              "evidence_ids": [
+                "evidence:openapi:b924e8e4b4c4d852aeb1eb45c0f7a9cd5462d91271f0414a6011c4766d983f50"
+              ],
+              "id": "api-contract-association:owned:1807b7e19e531a9f9857aa68436a4ccc2a209ded2cf7a347732de55721a76d93",
+              "kind": "OPERATION_IN_CONTRACT_VERSION",
+              "target_id": "operation:billing-api:listInvoices"
+            },
+            {
+              "contract_version_id": "api-contract-version:owned:e4b241759a228686edd273b3ba864d54aafd9e3b33b7971306a47268dcca8e86",
+              "evidence_ids": [
+                "evidence:openapi:568b07e00fe24d4283015a6a6a8672f4ce80498d2b47c42b712cb223ca7d177b"
+              ],
+              "id": "api-contract-association:owned:727e6511cab3340f8a6f7dc0d8b52da2c9f026249bb6baa04ddba39b24af8770",
+              "kind": "OPERATION_IN_CONTRACT_VERSION",
+              "target_id": "operation:billing2-api:listInvoices"
+            },
+            {
+              "contract_version_id": "api-contract-version:owned:1fd3138c085c911dd6ceb314fb9114c6ebf8d995713d47f2aedd86308dfe8479",
+              "evidence_ids": [
+                "evidence:openapi:50eea101af7dea62d3924cd798784edca308040482763b124487bf292b6355dc"
+              ],
+              "id": "api-contract-association:owned:9a1b9e385a41c5fa441aa3b7b8c15961581e17f86da38926a2a870121e436a6e",
+              "kind": "OPERATION_IN_CONTRACT_VERSION",
+              "target_id": "operation:orders-api:listOrders"
+            }
+          ],
+          "contracts": [
+            {
+              "id": "api-contract:owned:2d7701208c354bc8fd87a6f4bca9861418ccae39954aaa519517e3598c958f78",
+              "limitations": [],
+              "openapi_source_instance_id": "urn:aip:source:openapi:billing2-api"
+            },
+            {
+              "id": "api-contract:owned:7ff0e074025704e816214a90a9db7b232bf9ab867ac46c77e59bf1bb65ab6532",
+              "limitations": [],
+              "openapi_source_instance_id": "urn:aip:source:openapi:billing-api"
+            },
+            {
+              "id": "api-contract:owned:de72e4747a0decfeb0cbbbe213ead8d9f5319b71589a0ad05d1b930ddf848f94",
+              "limitations": [],
+              "openapi_source_instance_id": "urn:aip:source:openapi:orders-api"
+            }
+          ],
+          "versions": [
+            {
+              "contract_id": "api-contract:owned:de72e4747a0decfeb0cbbbe213ead8d9f5319b71589a0ad05d1b930ddf848f94",
+              "id": "api-contract-version:owned:1fd3138c085c911dd6ceb314fb9114c6ebf8d995713d47f2aedd86308dfe8479",
+              "info_version": "1.0.0"
+            },
+            {
+              "contract_id": "api-contract:owned:7ff0e074025704e816214a90a9db7b232bf9ab867ac46c77e59bf1bb65ab6532",
+              "id": "api-contract-version:owned:412562c42543b2c66ec69c09bc3e4781431946ade45bc267541fe7e2556fda02",
+              "info_version": "1.0.0"
+            },
+            {
+              "contract_id": "api-contract:owned:2d7701208c354bc8fd87a6f4bca9861418ccae39954aaa519517e3598c958f78",
+              "id": "api-contract-version:owned:e4b241759a228686edd273b3ba864d54aafd9e3b33b7971306a47268dcca8e86",
+              "info_version": "1.0.0"
+            }
+          ]
+        },
+        "api_usage_v1": {
+          "attributions": [
+            {
+              "consumer": "spike-alpha",
+              "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "consumer_outcome": "RESOLVED",
+              "route": "invoices-route",
+              "route_id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "route_outcome": "RESOLVED",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            }
+          ],
+          "coverage": [
+            {
+              "coverage": "SUFFICIENT_FOR_ZERO",
+              "limitations": [],
+              "route_id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            },
+            {
+              "coverage": "SUFFICIENT_FOR_ZERO",
+              "limitations": [],
+              "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            }
+          ],
+          "evidence": [
+            {
+              "apisix_version": "3.19.0",
+              "end_sha256": "f753e83a206e90bd8b1ac0b4466b503f290b25dea2f34a1b42911dbd4734f97b",
+              "environment": "prod",
+              "evidence_type": "OBSERVED",
+              "gateway_instance_id": "gw-prod-1",
+              "id": "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8",
+              "source_instance_id": "urn:aip:source:apisix-measurement:fa70f1072645642df22cb72cda5113decbd9df37e28b3ed81d56d74820bf1927",
+              "start_sha256": "37016ed92411f67d01e64485f1b41e391896bee09d5dfeb2484c71f5380cbb2e",
+              "window_end": "2026-10-13T10:10:00Z",
+              "window_start": "2026-10-13T10:00:00Z"
+            }
+          ],
+          "interactions": [
+            {
+              "consumer": "spike-alpha",
+              "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "id": "observed-consumer-interaction:owned:12094373abbaacb073f41a7bd7c217dfba6f97692e4a9359674837cce8098603",
+              "rejected_attempt_count": 0,
+              "route": "invoices-route",
+              "route_id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "upstream_request_count": 4,
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            }
+          ],
+          "limitations": [],
+          "mapping_entries": [],
+          "qualification_rows": [
+            {
+              "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+              "consumer": "spike-alpha",
+              "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "coverage": "SUFFICIENT_FOR_ZERO",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "id": "usage-qualification:owned:12094373abbaacb073f41a7bd7c217dfba6f97692e4a9359674837cce8098603",
+              "interaction_id": "observed-consumer-interaction:owned:12094373abbaacb073f41a7bd7c217dfba6f97692e4a9359674837cce8098603",
+              "limitations": [],
+              "rejected_attempt_count": 0,
+              "route": "invoices-route",
+              "route_id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "upstream_request_count": 4,
+              "usage_status": "OBSERVED_USAGE",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            },
+            {
+              "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+              "consumer": "spike-alpha",
+              "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "coverage": "SUFFICIENT_FOR_ZERO",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "id": "usage-qualification:owned:9a2d3405a0721c1fedfc6d79567b0ecb479869c8d8929181e6bc463b7cbdb519",
+              "limitations": [],
+              "rejected_attempt_count": 0,
+              "route": "orders-route",
+              "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+              "upstream_request_count": 0,
+              "usage_status": "MEASURED_ZERO",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            },
+            {
+              "configured_status": "CONFIGURED_ACCESS_ESTABLISHED",
+              "consumer": "spike-beta",
+              "consumer_id": "gateway-consumer:owned:5ec399b9a9411f084b94fd86667a70d6bf0804ce7f5cc57e78438c7256a4ef70",
+              "coverage": "SUFFICIENT_FOR_ZERO",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "id": "usage-qualification:owned:3fdb362cc79fa16fd6615b1d8d84c392e6ba34a4a52e7f07320b7b45e007927c",
+              "limitations": [],
+              "rejected_attempt_count": 0,
+              "route": "invoices-route",
+              "route_id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "upstream_request_count": 0,
+              "usage_status": "MEASURED_ZERO",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            }
+          ],
+          "qualification_rule": {
+            "rule_id": "apisix-configured-vs-observed-qualification",
+            "rule_version": "1"
+          },
+          "reconciliation_rule": {
+            "rule_id": "apisix-api-usage-reconciliation",
+            "rule_version": "1"
+          },
+          "route_operation": [
+            {
+              "operation": "AMBIGUOUS",
+              "route_id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            },
+            {
+              "contract_version": "RESOLVED",
+              "contract_version_id": "api-contract-version:owned:1fd3138c085c911dd6ceb314fb9114c6ebf8d995713d47f2aedd86308dfe8479",
+              "operation": "RESOLVED",
+              "operation_id": "operation:orders-api:listOrders",
+              "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            }
+          ],
+          "series": [
+            {
+              "code": "200",
+              "consumer": "spike-alpha",
+              "environment": "prod",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "gateway_instance_id": "gw-prod-1",
+              "id": "measurement-series:owned:79155bf78c5b19d4af8a97fb528ea39ccb2eb9ed7137036d2eecedb3b396b684",
+              "labels_json": "{\"code\":\"200\",\"consumer\":\"spike-alpha\",\"llm_model\":\"\",\"matched_host\":\"\",\"matched_uri\":\"/invoices-route\",\"request_llm_model\":\"\",\"request_type\":\"traditional_http\",\"response_source\":\"upstream\",\"route\":\"invoices-route\",\"service\":\"\"}",
+              "request_count_delta": 4,
+              "response_source": "upstream",
+              "route": "invoices-route",
+              "status": "DELTA",
+              "window_end": "2026-10-13T10:10:00Z",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8",
+              "window_start": "2026-10-13T10:00:00Z"
+            }
+          ],
+          "target_service": [
+            {
+              "route_id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "service_id": "service:billing",
+              "target": "RESOLVED",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            },
+            {
+              "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+              "service_id": "service:orders",
+              "target": "RESOLVED",
+              "window_id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+            }
+          ],
+          "windows": [
+            {
+              "apisix_version": "3.19.0",
+              "disabled_labels": [],
+              "end_settled": true,
+              "end_stable_seconds": 22,
+              "environment": "prod",
+              "evidence_ids": [
+                "evidence:apisix-measurement:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8"
+              ],
+              "gateway_instance_id": "gw-prod-1",
+              "id": "measurement-window:owned:6ad12d9125ac4151d1b4936e96b4d5f8788ddb4a6c7beae1af8423f341d674a8",
+              "no_restart": true,
+              "route_coverage_json": "{\"invoices-route\":true,\"orders-route\":true}",
+              "source_instance_id": "urn:aip:source:apisix-measurement:fa70f1072645642df22cb72cda5113decbd9df37e28b3ed81d56d74820bf1927",
+              "start_settled": true,
+              "start_stable_seconds": 24,
+              "window_end": "2026-10-13T10:10:00Z",
+              "window_reasons": [],
+              "window_start": "2026-10-13T10:00:00Z"
+            }
+          ]
+        },
+        "gateway_configuration_v1": {
+          "configured_access": [
+            {
+              "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "evidence_ids": [
+                "evidence:apisix:62804c39f3086df693fd36c3777095bf0e2fabb89b84589441e6b419a0319a73"
+              ],
+              "id": "configured-access:owned:ae2a9dff0dcbbbcfd2469104dd2793e30c553b0cc0933fdef0d3deaa2b768ff2",
+              "polarity": "ALLOW",
+              "route_id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST",
+              "scope": "ROUTE",
+              "source_revision": "apisix:3.19.0+etcd:4242"
+            },
+            {
+              "consumer_id": "gateway-consumer:owned:5ec399b9a9411f084b94fd86667a70d6bf0804ce7f5cc57e78438c7256a4ef70",
+              "evidence_ids": [
+                "evidence:apisix:62804c39f3086df693fd36c3777095bf0e2fabb89b84589441e6b419a0319a73"
+              ],
+              "id": "configured-access:owned:b15d1f7eec75a3197fdf10777555015a105dee780cf51d399ee4a91415170d27",
+              "polarity": "ALLOW",
+              "route_id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST",
+              "scope": "ROUTE",
+              "source_revision": "apisix:3.19.0+etcd:4242"
+            },
+            {
+              "consumer_id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "evidence_ids": [
+                "evidence:apisix:62804c39f3086df693fd36c3777095bf0e2fabb89b84589441e6b419a0319a73"
+              ],
+              "id": "configured-access:owned:e1740ad29a54e5f8fcd89b54b545df39a65c930fd2eff91fb38c09830571c9eb",
+              "polarity": "ALLOW",
+              "route_id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+              "rule_kind": "CONSUMER_RESTRICTION_ALLOW_LIST",
+              "scope": "ROUTE",
+              "source_revision": "apisix:3.19.0+etcd:4242"
+            }
+          ],
+          "consumers": [
+            {
+              "environment": "prod",
+              "gateway_instance_id": "gw-prod-1",
+              "id": "gateway-consumer:owned:5ec399b9a9411f084b94fd86667a70d6bf0804ce7f5cc57e78438c7256a4ef70",
+              "username": "spike-beta"
+            },
+            {
+              "environment": "prod",
+              "gateway_instance_id": "gw-prod-1",
+              "id": "gateway-consumer:owned:c7673a877c35021ca85c216009c3e95813769cc3e08d6bb02a497078771103c5",
+              "username": "spike-alpha"
+            }
+          ],
+          "limitations": [],
+          "routes": [
+            {
+              "environment": "prod",
+              "gateway_instance_id": "gw-prod-1",
+              "id": "gateway-route:owned:4a5b8706fde29da1bc557e00831e107c4b17fd8286f9c67b090c4065d2cee661",
+              "labels_json": "{\"aip/service\":\"service:billing\"}",
+              "methods": [
+                "GET"
+              ],
+              "route_id": "invoices-route",
+              "uri": "/invoices"
+            },
+            {
+              "environment": "prod",
+              "gateway_instance_id": "gw-prod-1",
+              "id": "gateway-route:owned:b13aab6ea0a025474585707f644ea346dfa0e702f2cf527375298ba22cedfa6c",
+              "labels_json": "{\"aip/service\":\"service:orders\"}",
+              "methods": [
+                "GET"
+              ],
+              "route_id": "orders-route",
+              "uri": "/orders"
+            }
+          ],
+          "services": [],
+          "source_evidence": [
+            {
+              "apisix_version": "3.19.0",
+              "environment": "prod",
+              "evidence_type": "DECLARED",
+              "gateway_instance_id": "gw-prod-1",
+              "id": "evidence:apisix:62804c39f3086df693fd36c3777095bf0e2fabb89b84589441e6b419a0319a73",
+              "source_revision": "apisix:3.19.0+etcd:4242"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "id": "operation:billing-api:listInvoices",
+            "method": "GET",
+            "name": "listInvoices",
+            "operation_id": "listInvoices",
+            "path": "/invoices",
+            "service_id": "service:billing"
+          },
+          {
+            "id": "operation:billing2-api:listInvoices",
+            "method": "GET",
+            "name": "listInvoices",
+            "operation_id": "listInvoices",
+            "path": "/invoices",
+            "service_id": "service:billing"
+          },
+          {
+            "id": "operation:orders-api:listOrders",
+            "method": "GET",
+            "name": "listOrders",
+            "operation_id": "listOrders",
+            "path": "/orders",
+            "service_id": "service:orders"
+          }
+        ],
+        "services": [
+          {
+            "id": "service:billing",
+            "name": "billing",
+            "version": "1.0.0"
+          },
+          {
+            "id": "service:orders",
+            "name": "orders",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    }
+  }
+}

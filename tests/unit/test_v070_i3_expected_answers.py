@@ -25,13 +25,11 @@ from app.architecture_intelligence.api_usage_contracts import (
     ApiConsumerUsageAnswer,
     ApiConsumerUsageRequest,
 )
-from app.architecture_intelligence.repository import _API_USAGE_QUERIES, _GATEWAY_QUERIES
 from app.architecture_intelligence.schema_export import (
     API_USAGE_ANSWER_SCHEMA_PATH,
     API_USAGE_REQUEST_SCHEMA_PATH,
 )
-from app.sources.apisix_qualification import qualify
-from app.sources.apisix_reconciliation import reconcile
+from tests.api_usage_oracle import state_checks
 from tests.api_usage_oracle.properties import check_property
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -365,93 +363,32 @@ def test_no_expected_payload_carries_a_credential_like_key():
 # --- Worlds are the frozen I2 -> I3 handoff state ------------------------------------------------
 
 WORLDS = DOC["worlds"]
-SECTIONS = {
-    "gateway_configuration_v1": {
-        "consumers", "routes", "services", "configured_access", "limitations", "source_evidence",
-    },
-    "api_usage_v1": {
-        "windows", "evidence", "series", "limitations", "mapping_entries", "reconciliation_rule",
-        "attributions", "route_operation", "target_service", "qualification_rule", "coverage",
-        "interactions", "qualification_rows",
-    },
-    "api_contracts_v1": {"contracts", "versions", "associations"},
-}  # fmt: skip
-
-
-def _columns(query: str) -> set[str]:
-    return set(re.findall(r" AS (\w+)", query))
 
 
 @pytest.mark.parametrize("name", sorted(WORLDS))
 def test_a_world_is_the_handoff_snapshot_state_and_nothing_else(name):
     world = WORLDS[name]
     assert set(world) == {"snapshot_state", "internal_only"}
-    state = world["snapshot_state"]
-    assert set(state) <= {"operations", "services", *SECTIONS}
-    for key, sections in SECTIONS.items():
-        if key in state:
-            assert set(state[key]) == sections, (name, key)
+    assert state_checks.shape_problems(world["snapshot_state"]) == []
 
 
 @pytest.mark.parametrize("name", sorted(WORLDS))
 def test_raw_rows_use_only_the_snapshot_columns_and_are_sorted_by_id(name):
-    state = WORLDS[name]["snapshot_state"]
-    queries = {
-        ("gateway_configuration_v1", section): _columns(query)
-        for section, query in _GATEWAY_QUERIES.items()
-    } | {
-        ("api_usage_v1", section): _columns(query)  # type: ignore[arg-type]
-        for section, query in _API_USAGE_QUERIES.items()
-    }
-    for (key, section), columns in queries.items():
-        rows = state.get(key, {}).get(section, [])
-        assert [row["id"] for row in rows] == sorted(row["id"] for row in rows)
-        for row in rows:
-            assert set(row) <= columns, (name, section, set(row) - columns)
-            assert all(value is not None for value in row.values())
-
-
-def _reconcile_inputs(state: dict, extra_series: list[dict] | None = None) -> dict:
-    usage, gateway = state["api_usage_v1"], state["gateway_configuration_v1"]
-    return {
-        "windows": usage["windows"],
-        "consumers": gateway["consumers"],
-        "routes": gateway["routes"],
-        "services": gateway["services"],
-        "series": usage["series"] + (extra_series or []),
-        "mapping_entries": usage["mapping_entries"],
-        "operations": state["operations"],
-        "associations": state["api_contracts_v1"]["associations"],
-        "canonical_services": state["services"],
-    }
+    assert state_checks.raw_row_problems(WORLDS[name]["snapshot_state"]) == []
 
 
 @pytest.mark.parametrize(
     "name", sorted(w for w in WORLDS if "api_usage_v1" in WORLDS[w]["snapshot_state"])
 )
 def test_the_reconciliation_sections_equal_the_i2_rule_applied_to_the_raw_facts(name):
-    state = WORLDS[name]["snapshot_state"]
-    derived = reconcile(**_reconcile_inputs(state))
-    for section in ("reconciliation_rule", "attributions", "route_operation", "target_service"):
-        assert state["api_usage_v1"][section] == derived[section], (name, section)
+    assert state_checks.reconciliation_problems(WORLDS[name]["snapshot_state"]) == []
 
 
 @pytest.mark.parametrize(
     "name", sorted(w for w in WORLDS if "api_usage_v1" in WORLDS[w]["snapshot_state"])
 )
 def test_the_qualification_sections_equal_the_i2_rule_applied_to_the_raw_facts(name):
-    state = WORLDS[name]["snapshot_state"]
-    usage, gateway = state["api_usage_v1"], state["gateway_configuration_v1"]
-    derived = qualify(
-        windows=usage["windows"],
-        consumers=gateway["consumers"],
-        routes=gateway["routes"],
-        configured_access=gateway["configured_access"],
-        series=usage["series"],
-        attributions=usage["attributions"],
-    )
-    for section in ("qualification_rule", "coverage", "interactions", "qualification_rows"):
-        assert usage[section] == derived[section], (name, section)
+    assert state_checks.qualification_problems(WORLDS[name]["snapshot_state"]) == []
 
 
 # --- Matrix -------------------------------------------------------------------------------------
