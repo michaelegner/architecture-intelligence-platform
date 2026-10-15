@@ -74,9 +74,10 @@ curl -s http://localhost:8000/mcp \
   | jq '.result.tools[].name'
 ```
 
-Expect exactly four tools, in this order: `get_architecture_drift`, `get_evidence`,
-`get_service_dependencies`, `get_service_dependencies_by_locality` (v0.6 I3's lexicographic
-order). This demo has no scoped caller identity and must abstain on locality.
+Expect exactly five tools, in this order: `get_api_consumer_usage`, `get_architecture_drift`,
+`get_evidence`, `get_service_dependencies`, `get_service_dependencies_by_locality` (lexicographic
+order). This demo has no scoped caller identity and must abstain on locality, and it configures no
+gateway source, so there is no measurement window for `get_api_consumer_usage` to answer for.
 
 ## 6. Ask `GET /api/services/{id}/drift` (REST)
 

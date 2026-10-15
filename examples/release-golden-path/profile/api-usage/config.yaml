@@ -1,0 +1,32 @@
+# AIP configuration for the `api-usage` golden-path phase (v0.7.0 I5 §3.4). Paths are relative to
+# the AIP container's working directory (/app). The bundled `examples` directory supplies the
+# OpenAPI Operations; the gateway and measurement roots do not exist at start: api_usage_replay.py
+# copies the frozen I4 APISIX replay files (docs/specifications/0.7.0/i4-replay/) there, revision
+# R1 and then R2 over the same roots, so R2 replaces R1 as one source updated in place.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: aip-bundled-examples-v0.5
+        root: examples
+        stable_target_identity: urn:aip:logical-root:bundled-examples
+    gateways:
+      - id: apisix-replay
+        root: /app/golden-path/api-usage/gateway
+        gateway_instance_id: gw-i4-replay
+    gateway_measurements:
+      - id: apisix-replay-metrics
+        root: /app/golden-path/api-usage/metrics
+        gateway_instance_id: gw-i4-replay
+        environment: replay
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+    max_traversal_depth: 5
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  intent_router:
+    deterministic_threshold: 0.9

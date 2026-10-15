@@ -280,7 +280,7 @@ evidence references at the same snapshot without creating new architecture claim
 ## MCP Tools
 
 AIP exposes the validated architecture model at `/mcp` through standard negotiated MCP client
-initialization (see [Boundaries](#boundaries)) as exactly four **read-only** tools:
+initialization (see [Boundaries](#boundaries)) as exactly five **read-only** tools:
 
 | Tool | Answers |
 |---|---|
@@ -288,6 +288,7 @@ initialization (see [Boundaries](#boundaries)) as exactly four **read-only** too
 | `get_architecture_drift` | Which of those direct dependencies disagree with what was declared — observed but undocumented, or declared but not observed in this window? |
 | `get_evidence` | What is the actual provenance behind those claims — which spec file, manifest, or observation window? |
 | `get_service_dependencies_by_locality` | Where are direct HTTP dependencies established for evidenced caller Workloads, how do supported results compare, and which scoped evidence supports them? |
+| `get_api_consumer_usage` | Which consumers have configured access to, and which have independently observed usage of, an API Operation, an application Service or a gateway Route in one environment and measurement window, and what remains unresolved? Qualified for the APISIX source. See [`docs/api-aware-current-state.md`](docs/api-aware-current-state.md). |
 
 All four perform zero graph writes and need no LLM API key — the whole surface is deterministic —
 and none of them will invent, guess, or upgrade an unresolved fact: insufficient evidence comes back
@@ -363,7 +364,7 @@ per-service telemetry coverage). None of these involve the LLM — see
 
 ## Core Capabilities
 
-- Evidence-qualified service dependencies and architecture drift, via four read-only MCP tools
+- Evidence-qualified service dependencies and architecture drift, via five read-only MCP tools
 - OpenAPI, AsyncAPI and OpenTelemetry evidence, reconciled into one graph
 - Queue *and* source-independent Pub/Sub semantics. Topic fan-out is expressed only through
   explicitly declared Subscriptions, and a Kafka consumer group is never treated as a Subscription.
@@ -502,7 +503,7 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 
 ## Documentation
 
-- [`docs/mcp.md`](docs/mcp.md) — the four read-only MCP tools for AI agents, and a runnable
+- [`docs/mcp.md`](docs/mcp.md) — the five read-only MCP tools for AI agents, and a runnable
   hero-demo walkthrough
 - [`docs/architecture.md`](docs/architecture.md) — pipeline, API surface
 - [`docs/canonical-model.md`](docs/canonical-model.md) — entities and deterministic ids

@@ -1,0 +1,6 @@
+# Golden-path phase `api-usage`: the AIP container's only mount is its configuration. The frozen
+# I4 replay files are copied in by api_usage_replay.py (revision R1, then R2 over the same roots).
+services:
+  architecture-intelligence:
+    volumes:
+      - ./examples/release-golden-path/profile/api-usage/config.yaml:/app/golden-path/config.yaml:ro

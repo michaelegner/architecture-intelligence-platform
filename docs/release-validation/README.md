@@ -15,6 +15,7 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
+| [`v0.7.0-release-notes.md`](v0.7.0-release-notes.md) | v0.7.0 release notes (candidate): API-aware Current State, the fifth tool, the APISIX-only qualification, mapping dependence, known limitations. |
 | [`v0.6.3-release-record.md`](v0.6.3-release-record.md) | v0.6.3's one-page record for the lightweight release path: identities, readiness on the exact candidate, post-release verification by digest, owner steps. |
 | [`v0.6.3-release-notes.md`](v0.6.3-release-notes.md) | v0.6.3 maintenance release notes (candidate): `/v1/traces` off the event loop, rejection of out-of-range integers (#305), known limitations. |
 | [`v0.6.2-release-record.md`](v0.6.2-release-record.md) | v0.6.2's one-page record for the lightweight release path: identities, the hosted instance facts (host withheld), the §7.1 sanity run, readiness on the exact candidate, post-release verification by digest. |

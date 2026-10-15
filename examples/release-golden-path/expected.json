@@ -655,8 +655,24 @@
       "52 recorded requests accepted once",
       "default-on configuration",
       "supplied image and build identity",
-      "four tools",
+      "five tools",
       "v0.6 schemas and product version"
+    ]
+  },
+  "api_usage_phase": {
+    "id": "api-usage",
+    "source": [
+      "docs/specifications/0.7.0/i4-replay/expected-replay.json",
+      "docs/specifications/0.7.0/i5-release-candidate-publication-and-verification.md"
+    ],
+    "checks": [
+      "supplied image and build identity",
+      "five tools",
+      "R1 readings P1, P2, N1, N3, OBS over REST and negotiated MCP",
+      "same-snapshot evidence resolution",
+      "R2 readings REVa, REVb, REVc over REST and negotiated MCP",
+      "stale cursor and stale evidence refusal after the revision",
+      "v0.7 schema, product version and build revision"
     ]
   }
 }

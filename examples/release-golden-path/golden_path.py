@@ -54,6 +54,7 @@ HOST_PORTS = (8000, 4318, 17687)
 MCP_PROTOCOL_VERSION = "2025-11-25"
 DRIFT_QUALIFICATIONS = ("OBSERVED_ONLY", "NOT_OBSERVED_IN_WINDOW")
 TOOLS = [
+    "get_api_consumer_usage",
     "get_architecture_drift",
     "get_evidence",
     "get_service_dependencies",
@@ -1102,6 +1103,11 @@ def main(argv: list[str]) -> int:
         for name in PHASES
     ]
     results.append(run_locality_phase(image_ref=image_ref, sha=sha, out_dir=out_dir))
+    import api_usage_replay
+
+    results.append(
+        api_usage_replay.run_api_usage_phase(image_ref=image_ref, sha=sha, out_dir=out_dir)
+    )
     summary = {
         "image_ref": image_ref,
         "release_candidate_sha": sha,

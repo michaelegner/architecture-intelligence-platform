@@ -4,7 +4,7 @@ Runs the real `run.sh` against the real Compose stack, the same way a user would
 result independently over standard negotiated MCP:
 
 - `run.sh` exits 0, which means its own `check_ready.py` accepted the §4.4 answer shape;
-- `tools/list` advertises exactly the four read-only tools;
+- `tools/list` advertises exactly the five read-only tools;
 - Q1/Q2: the publisher's `get_service_dependencies` answer validates against the published v0.6 schema,
   passes the same pinned shape (`check_ready.check_answer`, imported rather than duplicated) and lists
   the five receivers through their queues, plus one Broker claim;

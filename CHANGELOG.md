@@ -17,6 +17,34 @@ aren't yet guaranteed stable pre-1.0.
   Host and an oversized body are refused. No AIP behaviour, schema or MCP tool changed; the plugin's `aip_token`
   stays optional.
 
+## [0.7.0] - candidate
+
+### v0.7.0 — API-Aware Current State (candidate, not published)
+
+See the [release notes](docs/release-validation/v0.7.0-release-notes.md) and the
+[guide](docs/api-aware-current-state.md).
+
+### Added
+
+- A fifth read-only MCP tool, `get_api_consumer_usage`, and REST `POST /api/api-consumer-usage` and
+  `/evidence`: which consumers have configured access to, and which have independently observed usage
+  of, an API Operation, an application Service or a gateway Route in one environment and measurement
+  window, with explicit unresolved associations, coverage and same-snapshot evidence. Published `0.7`
+  request and answer schemas.
+- An APISIX gateway configuration source (`sources.gateways`) and measurement source
+  (`sources.gateway_measurements`) with capture tools (`app.gateway_capture.apisix`,
+  `app.gateway_capture.apisix_metrics`), an optional `apisix-mapping.json`, and API contract carriers.
+- A release golden-path `api-usage` phase and `api_usage_replay.py`, replaying the pinned APISIX
+  qualification package against the supplied image.
+- [`docs/api-aware-current-state.md`](docs/api-aware-current-state.md).
+
+### Changed
+
+- Product, Producer and MCP server version `0.7.0`. MCP advertises five tools; the earlier four and
+  their schemas are unchanged. The release golden path, client guides and demo walkthrough list five.
+- The configured-access model is qualified for APISIX only; associations without an explicit mapping or
+  an exact match are unresolved by design.
+
 ## [0.6.3] - 2026-10-11
 
 ### v0.6.3 — Runtime and Import Robustness

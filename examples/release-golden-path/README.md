@@ -154,3 +154,31 @@ A/B final-candidate qualification required in I6.2.
 Replay requires cached dependencies/images, no live Kubernetes, Kafka, upstream build or LLM.
 C1 comparison uses the capture taken during overlap; C2 makes P1 attribution unresolved and refuses
 stale C1 requests. Saved files do not provide historical snapshot access or prove local absence.
+
+## v0.7.0 re-freeze
+
+v0.7.0 (API-aware Current State) re-freezes this profile; the frozen earlier dossiers are untouched.
+- **Five tools.** `TOOLS` is now `get_api_consumer_usage`, `get_architecture_drift`, `get_evidence`,
+  `get_service_dependencies`, `get_service_dependencies_by_locality`, in that lexicographic order.
+  The legacy phases and the `locality` worker (`evaluation/i5/evaluate.py`) check exactly that list.
+  Their pins, answers and snapshot ids are unchanged: with no gateway source the canonical snapshot
+  has none of the conditional v0.7 keys.
+- **The `api-usage` phase** runs last, through `api_usage_replay.py`, in its own Compose project and
+  with its own fresh graph, so the legacy phases cannot be affected. It never rebuilds the supplied
+  image. It copies the frozen I4 APISIX replay files
+  (`docs/specifications/0.7.0/i4-replay/`, revision R1) into the container at one fixed root,
+  imports them with `POST /api/import`, asks the cases `P1`, `P2`, `N1`, `N3` and `OBS` and the
+  same-snapshot evidence request through REST and through an independent negotiated MCP client, then
+  copies revision R2 over the same files, imports again and asks `REVa`, `REVb`, `REVc` and the stale
+  cursor and evidence-ref refusals. The expected readings are the frozen I4 ones
+  (`expected-replay.json`); the phase authors none. It also checks that every answer validates
+  against the published `0.7` schema and carries the package version and `build_revision`.
+  `N1` (usage unestablished) and `N3` (unattributed traffic) are its expected unresolved or
+  insufficient cases. Results are under `<OUT_DIR>/api-usage/`.
+- **Standalone use.** `RELEASE_CANDIDATE_SHA=<40-hex> python examples/release-golden-path/api_usage_replay.py <IMAGE_REF> <OUT_DIR>`
+  runs only this phase, which is how the published image is checked after publication.
+- Service-level equality is not re-claimed from outside the image; the exact-candidate I4 A/B
+  qualification covers it. MCP needs host port 8000 (the default host allow-list).
+- `SHA256SUMS` re-pins `expected.json`, `examples/mcp-clients/cursor.md`, `vscode.md` and
+  `examples/runtime-demo/hero-demo.md`, and adds the new profile, compose file, harness and the
+  frozen `expected-replay.json`.

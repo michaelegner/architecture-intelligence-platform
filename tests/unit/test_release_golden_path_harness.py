@@ -368,3 +368,76 @@ def test_validate_schema_selects_the_frozen_schema_of_the_required_version(monke
     ):
         with pytest.raises(gp.HarnessError):
             gp.validate_schema("dependencies", wrong)
+
+
+# --- v0.7.0 I5: five tools and the `api-usage` phase ----------------------------------------------
+
+
+def _load_api_usage_replay():
+    import sys
+
+    sys.path.insert(0, str(GP_DIR))
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "api_usage_replay", GP_DIR / "api_usage_replay.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.path.remove(str(GP_DIR))
+
+
+def test_the_release_profile_advertises_the_five_tools_in_lexicographic_order():
+    assert len(gp.TOOLS) == 5 and gp.TOOLS == sorted(gp.TOOLS)
+    assert gp.TOOLS[0] == "get_api_consumer_usage"
+
+
+def test_the_api_usage_phase_mounts_only_its_frozen_configuration():
+    override = _yaml(GP_DIR / "compose" / "api-usage.yml")
+    [service] = override["services"].values()
+    assert set(service) == {"volumes"}
+    assert service["volumes"] == [
+        "./examples/release-golden-path/profile/api-usage/config.yaml:/app/golden-path/config.yaml:ro"
+    ]
+    assert gp.compose_argv("api-usage", "up")[3] == "gp-api-usage"
+
+
+def test_the_api_usage_configuration_registers_the_roots_the_harness_fills():
+    api = _load_api_usage_replay()
+    sources = _yaml(GP_DIR / "profile" / "api-usage" / "config.yaml")["architecture_intelligence"][
+        "sources"
+    ]
+    [gateway] = sources["gateways"]
+    [measurement] = sources["gateway_measurements"]
+    assert gateway["root"] == f"{api.CONTAINER_ROOT}/gateway"
+    assert measurement["root"] == f"{api.CONTAINER_ROOT}/metrics"
+    assert gateway["gateway_instance_id"] == measurement["gateway_instance_id"]
+    assert measurement["environment"] == "replay"
+
+
+def test_the_api_usage_cases_are_frozen_i4_cases_and_the_harness_authors_none():
+    api = _load_api_usage_replay()
+    frozen = {c["id"] for c in api.replay.PLAN["cases"]}
+    assert set(api.R1_CASES) | set(api.R2_CASES) <= frozen
+    assert (GP_DIR / "api_usage_replay.py").read_text().count("expected-replay.json") >= 1
+    block = json.loads((GP_DIR / "expected.json").read_text())["api_usage_phase"]
+    assert block["id"] == "api-usage"
+    assert all((REPO / path).exists() for path in block["source"])
+
+
+def test_the_api_usage_pure_checks_pass_and_fail():
+    api = _load_api_usage_replay()
+    stale = {"data": None, "limitations": [{"code": "SNAPSHOT_NOT_AVAILABLE"}]}
+    assert api._refused_as_stale(stale)
+    assert not api._refused_as_stale({"data": None, "limitations": [{"code": "UNKNOWN_TARGET"}]})
+    assert not api._refused_as_stale({"data": {}, "limitations": []})
+    assert api._agree("x", {"a": 1, "b": 2}, {"b": 2, "a": 1}) == []
+    assert api._agree("x", {"a": 1}, {"a": 2}) == ["x: REST and MCP differ"]
+    resolved = {"outcome": "ANSWERED", "data": {"entries": [{"status": "RESOLVED"}]}}
+    assert api._resolved(resolved)
+    assert not api._resolved(
+        {"outcome": "ANSWERED", "data": {"entries": [{"status": "NOT_RESOLVED"}]}}
+    )
+    wrong = [("P1", "rest", {"schema_version": "0.6", "producer": {"version": "0.6.3"}})]
+    assert len(api._identity_problems(wrong, "0.7.0", "a" * 40)) >= 3

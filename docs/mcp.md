@@ -330,7 +330,7 @@ calls read the same immutable graph state.
 ## Try it end to end
 
 [`examples/runtime-demo/hero-demo.md`](../examples/runtime-demo/hero-demo.md) is a complete,
-deterministic, ~5-minute walkthrough: bring up AIP, seed frozen evidence, discover all four tools
+deterministic, ~5-minute walkthrough: bring up AIP, seed frozen evidence, discover all five tools
 via `tools/list`, then exercise the drift → evidence path via plain `curl` and see a real
 `OBSERVED_ONLY` finding (`OrderService -> LegacyPricingService`) plus its evidence — no AIP internal
 module, no LLM.
