@@ -1,6 +1,6 @@
 # AIP v0.7.0 I5 — Release Candidate, Publication, and Verification
 
-**Status:** Draft 0.2  
+**Status:** Draft 0.3  
 **Increment:** I5 — Release Candidate, Publication, and Verification  
 **Entry:** I4 is complete and merged (#558). The [I4 completion record](i4-completion-record.md) records the qualified semantic candidate `c662f3c440733a7b75252ba2466fee14c1c88f4a`, the product-pilot disposition `CONTINUE`, and the reviewed Tyk `MODEL_GAP` scope exclusion. I4 does **not** qualify a later release candidate or authorize publication.  
 **Authority:** accepted [v0.7.0 parent specification](specification.md), especially §§26–28 and §32; [I4 completion record](i4-completion-record.md); [I4 → I5 handoff](i4-i5-handoff.md); [ROADMAP](../../../ROADMAP.md); and the repository [release-publication skill](../../../.agents/skills/release-publication/SKILL.md) as procedural guidance only.
@@ -34,7 +34,9 @@ RELEASE_READY_NOT_PUBLISHED
 SHIPPED_VERIFIED
   the owner authorized publication;
   the exact qualified candidate was tagged and published;
-  tagged source and immutable GHCR digest passed post-publication verification
+  tagged source and immutable GHCR digest passed the published-image golden path,
+  deterministic APISIX replay, required v0.6 locality/messaging preservation,
+  and final security/identity verification
 
 NO_GO
   one or more mandatory pre-publication gates failed or remain undispositioned
@@ -86,7 +88,7 @@ At minimum:
 
 1. product/package/runtime/MCP/Producer version is `0.7.0`;
 2. the release golden path and release-facing client/demo documentation advertise the correct public tool set, with **exactly five** read-only MCP tools on the v0.7 surface, including `get_api_consumer_usage`;
-3. repository-wide stale-tool wording is dispositioned before freeze: a search for `four tools`, `four read-only`, and `exactly four` is either empty for release-facing v0.7 content or every remaining hit is recorded as intentionally scoped to an older/pinned demo or contract in the candidate-preparation record;
+3. repository-wide stale-tool wording is dispositioned before freeze: searches for `four tools`, `four read-only`, `exactly four`, `four-tool`, and `4 tools` are either empty for release-facing v0.7 content or every remaining hit is recorded as intentionally scoped to an older/pinned demo, historical text, or contract in the candidate-preparation record;
 4. the release golden path exercises the API-aware Current-State question through the public surface;
 5. release notes state that the configured-access implementation is **qualified for APISIX only**;
 6. release notes state the Route/Operation and target/Application-Service **mapping dependence**: without an explicit mapping or the frozen exact-match rule the association remains unresolved;
@@ -139,14 +141,22 @@ Minimum content:
    - `_RELEASE_VERSION` in `tests/unit/test_release_version_consistency.py`;
    - `producer.version` in every `evaluation/architecture_answers/scenarios/*/expected_answer.json` where the released producer version is part of the scenario contract;
    - repository MCP Registry metadata such as `server.json`;
-2. update release-facing stale four-tool references. The I4 handoff list is a starting point, not an exhaustive whitelist. Before freeze, search the repository for `four tools`, `four read-only`, and `exactly four`; update v0.7 release-facing hits to five tools and record any deliberately retained older-demo/older-contract hit with its reason in the candidate-preparation record;
+2. update release-facing stale four-tool references. The I4 handoff list is a starting point, not an exhaustive whitelist. Before freeze, search the repository for `four tools`, `four read-only`, `exactly four`, `four-tool`, and `4 tools`; update v0.7 release-facing hits to five tools and record any deliberately retained older-demo/historical/older-contract hit with its reason in the candidate-preparation record;
 3. if any release-golden-path pinned file changes, update exactly its corresponding `examples/release-golden-path/SHA256SUMS` entry and no unrelated pin;
 4. re-freeze the release golden path with the v0.7 API-aware phase (§3.4);
-5. create `docs/release-validation/v0.7.0-release-notes.md`;
-6. add the v0.7 release section to `CHANGELOG.md`, leaving the release candidate described as candidate-ready rather than already shipped;
-7. update the release-validation index;
-8. add the APISIX-only qualification statement, mapping-dependence statement, I4 pilot limitation, and known limitations;
-9. map every parent §32 documentation requirement to a release-visible document, including:
+5. add and freeze a published-artifact APISIX replay harness under `examples/release-golden-path/` (recommended name: `api_usage_replay.py`) that:
+   - starts/uses the supplied candidate or published image with a fresh graph;
+   - imports the frozen I4 APISIX replay package through the production HTTP import path;
+   - executes the §9.5 case subset through REST and an independent negotiated MCP client over the image's public HTTP boundary;
+   - compares both public surfaces to the frozen I4 expected readings;
+   - records deterministic machine-readable output;
+   - accepts `RELEASE_CANDIDATE_SHA` / image reference explicitly and never rebuilds the image;
+6. include that replay harness in the golden-path pin/review surface before candidate freeze;
+7. create `docs/release-validation/v0.7.0-release-notes.md`;
+8. add the v0.7 release section to `CHANGELOG.md`, leaving the release candidate described as candidate-ready rather than already shipped;
+9. update the release-validation index;
+10. add the APISIX-only qualification statement, mapping-dependence statement, I4 pilot limitation, and known limitations;
+11. map every parent §32 documentation requirement to a release-visible document, including:
    - the v0.7 product question;
    - APISIX selection and the I0 four-gateway survey;
    - source-native configured-access meaning;
@@ -159,7 +169,7 @@ Minimum content:
    - limitations/unsupported cases;
    - replay/qualification procedure;
    - product-value pilot result;
-10. make any required release-workflow or security hardening **before** candidate freeze.
+12. make any required release-workflow or security hardening **before** candidate freeze.
 
 The release-preparation PR MUST NOT change I4 truth, expected answers, or replay fixtures merely to make release checks pass.
 
@@ -175,6 +185,7 @@ It records at least:
 - version-bearing surfaces changed;
 - five-tool list;
 - golden-path source/profile identities;
+- published-artifact APISIX replay harness path, checksum/pin and supported image-bound invocation;
 - release-note scope and known limitations;
 - APISIX-only/Tyk scope statement;
 - mapping-dependence statement;
@@ -216,7 +227,20 @@ Also verify exact-SHA GitHub check-runs for every mandatory CI, CodeQL, dependen
 
 ### 5.2 Deterministic architecture-answers evaluation ×2
 
-From two clean states on the exact candidate, run the repository's deterministic architecture-answers evaluation twice using the current supported evaluation entry point. The second run must not reuse mutable output from the first.
+Run the concrete architecture-answers evaluator twice from clean state on the exact candidate:
+
+~~~bash
+uv run python -m evaluation answers --candidate-sha "$RELEASE_CANDIDATE_SHA"
+cp evaluation/architecture_answers/results/architecture-answers-evaluation-result.json "$OUT/answers-run-1.json"
+
+git restore -- evaluation/architecture_answers/results/architecture-answers-evaluation-result.json
+uv run python -m evaluation answers --candidate-sha "$RELEASE_CANDIDATE_SHA"
+cp evaluation/architecture_answers/results/architecture-answers-evaluation-result.json "$OUT/answers-run-2.json"
+
+cmp "$OUT/answers-run-1.json" "$OUT/answers-run-2.json"
+~~~
+
+The second run uses a fresh evaluator/Testcontainers state and must not reuse mutable output from the first.
 
 Required:
 
@@ -286,6 +310,8 @@ Required:
 - at least one expected unresolved/insufficient API-aware case remains explicit;
 - every answer reports version `0.7.0` and the exact candidate build revision.
 
+Then run the frozen published-artifact APISIX replay harness (§4 item 5) against the **candidate image** before technical GO. It must pass the same REST/MCP/frozen-expectation checks later required in §9.5. This proves the post-publication harness itself is part of the qualified candidate rather than untested release-time machinery.
+
 ### 5.6 Version and public-surface gate
 
 Verify at the candidate:
@@ -333,6 +359,7 @@ It names exactly one `RELEASE_CANDIDATE_SHA` and records:
 - I4 report and artifact digests;
 - API cost artifact;
 - golden-path result;
+- published-artifact APISIX replay harness identity/pin and pre-publication candidate-image result;
 - version/schema/five-tool checks;
 - security/SBOM findings and dispositions;
 - APISIX-only/Tyk scope statement;
@@ -456,7 +483,9 @@ Required:
 
 Parent §28 requires deterministic replay of the selected real-source qualification after publication.
 
-Against the pulled immutable image digest and tagged source, replay the frozen I4 APISIX qualification package using the already-reviewed inputs and expectations. The published-artifact replay SHALL cover, at minimum:
+Use the **published-artifact APISIX replay harness frozen in candidate preparation (§4)** against the pulled immutable image digest and tagged source. The harness is candidate content; it MUST NOT be authored or semantically changed after publication.
+
+It imports the frozen I4 APISIX replay package through the production HTTP import path and exercises, at minimum:
 
 - one configured + observed case;
 - one measured-zero case under sufficient bounded coverage;
@@ -467,17 +496,19 @@ Against the pulled immutable image digest and tagged source, replay the frozen I
 - stale cursor and stale evidence-ref refusal after the revision;
 - same-snapshot evidence resolution.
 
-For every public case exercised:
+For every public case exercised against the image:
 
 ~~~text
-service result
-==
 REST result
 ==
 negotiated MCP result
+==
+frozen I4 expected reading
 ~~~
 
-The replay uses the frozen I4 truth; it SHALL NOT author new expected output after observing the published artifact.
+Direct in-process service equality is **not** re-claimed from an external image boundary; it remains covered by the exact-candidate I4 A/B qualification in §5.3. If a future harness chooses to run an additional service check inside the container, that is supplementary and must still use the frozen expectation.
+
+The published-artifact replay SHALL emit deterministic machine-readable evidence identifying the image digest and `RELEASE_CANDIDATE_SHA`. It uses the frozen I4 truth and SHALL NOT author new expected output after observing the published artifact.
 
 ### 9.6 v0.6 golden-path preservation
 
@@ -539,7 +570,7 @@ One exact candidate is technically ready only when:
 5. deterministic architecture-answers evaluation passes twice from clean state with byte-identical output;
 6. v0.7 I4 qualification passes unchanged on the release candidate;
 7. API cost evidence is rerun and accepted limitations remain explicit;
-8. candidate image golden path passes, including API-aware query/evidence behavior;
+8. candidate image golden path passes, including API-aware query/evidence behavior, and the published-artifact APISIX replay harness is frozen as candidate content;
 9. public schemas and actual service/REST/MCP surfaces agree;
 10. APISIX-only qualification and mapping dependence are explicit;
 11. all parent §32 documentation requirements are mapped to release-visible documentation;
@@ -556,7 +587,7 @@ If technical readiness passes but publication is not authorized:
 
 If publication is authorized:
 
-> **`SHIPPED_VERIFIED`** — the exact qualified candidate is tagged as v0.7.0, the immutable published image digest identifies that candidate, final security/SBOM evidence is bound to that digest, and the tagged-source/published-image golden path including the API-aware query and evidence drill-down passes.
+> **`SHIPPED_VERIFIED`** — the exact qualified candidate is tagged as v0.7.0, the immutable published image digest identifies that candidate, final security/SBOM evidence is bound to that digest, the tagged-source/published-image golden path passes, the frozen published-artifact APISIX replay passes over REST and negotiated MCP, and the required v0.6 locality/messaging golden-path behavior remains preserved.
 
 ## 13. Permitted release claim
 
