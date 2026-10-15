@@ -130,7 +130,7 @@ jobs:
           output: sbom.cdx.json
 
       - name: Retain release security evidence
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: release-security-${{ steps.pushed.outputs.slug }}
           path: |
