@@ -1,11 +1,12 @@
 """Standalone known-answer generator for ids.json. Uses only hashlib; imports nothing from app.
 
 ld(*parts) = for each part: 8-byte big-endian UTF-8 byte length, then the UTF-8 bytes.
-Run: python3 vector-hashes.py   (prints the JSON that ids.json must equal)
+Run: python3 vector-hashes.py   (prints the object that must equal ids.json["vectors"])
 """
 
 import hashlib
 import json
+import unicodedata
 
 
 def ld(*parts: str) -> bytes:
@@ -31,11 +32,11 @@ def source_instance(source_id: str, broker: str, env: str, groups: list[str]) ->
 
 
 def consumer(broker: str, env: str, group: str) -> str:
-    return "consumer:owned:" + sha(ld("kafka_consumer_group", broker, env, group))
+    return "consumer:" + sha(ld("kafka_consumer_state", broker, env, group))
 
 
 def topic(broker: str, topic_name: str) -> str:
-    return "topic:owned:" + sha(ld(broker, "", topic_name))
+    return "topic:owned:" + sha(ld(broker, "", unicodedata.normalize("NFC", topic_name)))
 
 
 def attachment(consumer_id: str, topic_id: str) -> str:
@@ -58,5 +59,7 @@ vectors = {
     "K09_topic_orders_created": t_orders,
     "K10_attachment_payment_orders": attachment(c_pay, t_orders),
     "K11_consumer_groupid_verbatim_case": consumer(B, E, "Payment-Service"),
+    "K12_topic_nfc_composed": topic(B, "caf\u00e9"),
+    "K13_topic_nfc_decomposed_equal": topic(B, "cafe\u0301"),
 }
 print(json.dumps(vectors, indent=2))

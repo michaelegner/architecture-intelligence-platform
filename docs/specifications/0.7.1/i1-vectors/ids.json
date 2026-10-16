@@ -15,12 +15,14 @@
     "K02_scope_digest_order_independent": "3b3a5b5eb1320a85f7b35f9788fbb7aead0c07a7d1ae3a2ff6ac506b272230f7",
     "K03_source_instance": "urn:aip:source:kafka-consumer-state:cd771834f511958d1df98701d3a11e5d3aff8b5b2c8901a582a5104584ce4413",
     "K04_source_instance_other_scope": "urn:aip:source:kafka-consumer-state:75cadbd3db57c43e30b759d170e3bb7bda4eaf602f22dabc31329cbc79ff02e6",
-    "K05_consumer_payment": "consumer:owned:4c6ee490876bc6140abf962d2c0d0706b3e735e59d6944881a04182f5401fea7",
-    "K06_consumer_other_environment": "consumer:owned:1125b45f617f46c0f0a351885bf645b4627c8ff2dc0b6de0150d0f13a5ac211e",
-    "K07_consumer_other_broker": "consumer:owned:7b2b354dc0da221c7be2ff3814957696f0ccc2f1003ea5f315db95de9a3bbd2d",
-    "K08_consumer_order": "consumer:owned:18a85aed81fff9872b056268e19d71a69af4ce1b3634f945d805ed3581b0a9ff",
+    "K05_consumer_payment": "consumer:6dd5a1428a85b93b6f3128e252eb1629cfbb7cd0c24c1932a2cab153244d1363",
+    "K06_consumer_other_environment": "consumer:8e4d712e6cadc0afcd103f6b75cbdae1165ac35914747e859d890c734ab934b7",
+    "K07_consumer_other_broker": "consumer:f1ac7da8008711181aa4e2b675da52b3ae32136aead47eda21246802e6bf811c",
+    "K08_consumer_order": "consumer:3c069f1d6bba2fa3da3c56f1de1e9c9945953c6ee2b1681fdf1ee19cf52c064f",
     "K09_topic_orders_created": "topic:owned:08b7ff9d660d5b2e4f27fbc4fc9905e54bfb3938a6de06174765ec9319ca8119",
-    "K10_attachment_payment_orders": "kafka-attachment:owned:7fcd3813e08483c42c560758cfb958ccaac36d5f7ecec366c8c81207aacd0a6c",
-    "K11_consumer_groupid_verbatim_case": "consumer:owned:737a99d79ad0d4a345fa71b9cc6fa52cc5ec4c65d0cfaefa14f6e797233de749"
+    "K10_attachment_payment_orders": "kafka-attachment:owned:3d81c3bd1cbd9c5e8c7eed4959812442bffb5700f2280310a4ec4508283bdfec",
+    "K11_consumer_groupid_verbatim_case": "consumer:f67f696d7d8a72995153165e0b1d313345567c0d0da794880cc0b831c0a5c1ab",
+    "K12_topic_nfc_composed": "topic:owned:921326150531c08f30f0786be97e27a48c27cf949ba773502b63769dcbdfca8b",
+    "K13_topic_nfc_decomposed_equal": "topic:owned:921326150531c08f30f0786be97e27a48c27cf949ba773502b63769dcbdfca8b"
   }
 }

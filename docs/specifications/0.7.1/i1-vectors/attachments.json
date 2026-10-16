@@ -102,7 +102,7 @@
     {
       "id": "L01",
       "i1_case": "exact same normalized capture replayed",
-      "expected": "state identical; no write; T unchanged"
+      "expected": "state identical; no write; T unchanged (same normalized capture, same captured_at)"
     },
     {
       "id": "L02",
