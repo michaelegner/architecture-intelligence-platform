@@ -17,9 +17,9 @@ aren't yet guaranteed stable pre-1.0.
   Host and an oversized body are refused. No AIP behaviour, schema or MCP tool changed; the plugin's `aip_token`
   stays optional.
 
-## [0.7.0] - candidate
+## [0.7.0] - 2026-10-16
 
-### v0.7.0 — API-Aware Current State (candidate, not published)
+### v0.7.0 — API-Aware Current State
 
 See the [release notes](docs/release-validation/v0.7.0-release-notes.md) and the
 [guide](docs/api-aware-current-state.md).

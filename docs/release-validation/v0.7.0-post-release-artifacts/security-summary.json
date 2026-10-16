@@ -1,0 +1,22 @@
+{
+  "code_scanning_open_alerts": {
+    "identical_set": true,
+    "refs/tags/v0.6.3": 48,
+    "refs/tags/v0.7.0": 48
+  },
+  "critical": 0,
+  "findings_gone": 0,
+  "high": 52,
+  "image": "ghcr.io/michaelegner/architecture-intelligence-platform@sha256:ae59a4eeef75bdc4eae22f8029223139fd5af842c80603a4c6b79c1d7da2d4f3",
+  "new_findings": 0,
+  "previous_release": {
+    "critical": 0,
+    "digest": "sha256:e6632982c965e0cb73c4cb4fc5edd218d55ef075d6276a541286eb328f0a50fe",
+    "high": 52,
+    "tag": "v0.6.3"
+  },
+  "sbom_components": 1223,
+  "sbom_sha256": "4dcc4e0031340bea5fab1fd64e1611f6264b3f9698ff626e24a4ae43c68fd91b",
+  "scanner": "Trivy 0.70.0, HIGH and CRITICAL including unfixed findings (the release workflow's own report)",
+  "workflow_report_sha256": "769a555572454ee586282158373acc4c70e59ce58e832adce8e44cbfa0a5fe31"
+}
