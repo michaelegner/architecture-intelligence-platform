@@ -65,6 +65,8 @@ The existing capture may be reused or refreshed, but its limits must stay explic
 
 Deployment-resolved configuration or another stable reviewed source SHOULD be the mapping authority where available. Name equality alone is not sufficient.
 
+Production ingestion SHOULD prefer structured broker/admin data; human-formatted CLI output requires an explicit reviewed parser contract.
+
 ### RabbitMQ
 
 Before freezing a common carrier, I0 SHALL test the proposed semantics against at least one RabbitMQ consumer/binding shape.
@@ -80,6 +82,8 @@ At minimum, qualification must cover:
 - attachment + defensible Service mapping -> attributed;
 - attachment + unresolved Service mapping -> unresolved;
 - Service mapping + missing/insufficient broker evidence -> not a negative;
+- insufficient broker coverage/context remains explicit;
+- unsupported source object remains explicit;
 - ambiguous or conflicting mapping remains explicit;
 - incompatible environment/time context is not combined;
 - multiple group members do not imply multiple Services;
@@ -101,11 +105,11 @@ The product check is intentionally small:
 
 > **Does broker evidence materially improve the answer to "which Services consume this destination?" compared with repository/configuration analysis alone?**
 
-Record mapping effort, unresolved/ambiguous rate, source setup effort, and whether the evidence changes the coding-agent investigation boundary.
+Record mapping effort, unresolved/ambiguous rate, source setup effort, and whether the evidence changes the coding-agent investigation boundary. End with one owner-reviewed disposition: **CONTINUE | NARROW | DEFER | STOP**.
 
 ## 5. Public Surface
 
-v0.7.1 SHALL expose the bounded question through the shared semantic service and REST + negotiated MCP.
+v0.7.1 SHALL expose the bounded question through the shared semantic service and REST + negotiated MCP. Destination and environment/context are required request inputs.
 
 I3 decides whether this belongs in an existing tool or requires a new tool. A sixth MCP tool is **not** pre-authorized.
 
@@ -118,7 +122,7 @@ The answer must preserve:
 - evidence for both attachment and Service mapping;
 - temporal basis of the evidence.
 
-The public surface remains deterministic, read-only, and secret-free.
+The public surface remains deterministic, read-only, and secret-free. The meaning of the five v0.7.0 MCP tools remains unchanged.
 
 ## 6. Scope
 
@@ -147,10 +151,10 @@ Out of scope:
 ## 7. Increment Plan
 
 **I0 — Semantic freeze**  
-Freeze consumer identity, attachment, mapping, temporal semantics, Kafka/RabbitMQ distinction, reconciliation, and qualification cases.
+Freeze consumer identity, attachment, mapping, temporal semantics, Kafka/RabbitMQ distinction, reconciliation, qualification cases, deterministic ids, source ownership, and snapshot shape.
 
 **I1 — Kafka source**  
-Implement the smallest deterministic Kafka broker-state source with replay/removal and provenance.
+Implement the smallest deterministic Kafka broker-state source with provenance, authoritative removal/replay, and clean absence when unconfigured.
 
 **I2 — Mapping + attribution**  
 Implement Service mapping, reconciliation, ambiguity/conflict handling, and derived attribution.
@@ -159,7 +163,7 @@ Implement Service mapping, reconciliation, ambiguity/conflict handling, and deri
 Expose the product question through Architecture Intelligence, REST and MCP.
 
 **I4 — Qualification**  
-Run deterministic qualification, Kafka replay, RabbitMQ contrast, public-surface parity, and the lightweight product-value check.
+Run exact-candidate A/B deterministic qualification, Kafka replay, RabbitMQ contrast, public-surface parity, and the lightweight product-value check.
 
 **I5 — Release**  
 Use the exact-candidate release process established by v0.7.0. Before freeze, re-check release-facing wording and the current state of every issue/CVE/limitation named in release material.
@@ -177,8 +181,9 @@ v0.7.1 is done when:
 7. attachment is not presented as message processing;
 8. the public answer is deterministic and evidence-linked;
 9. v0.7.0 behavior is unchanged when the new source is absent;
-10. real-system qualification and product-value check pass;
-11. the exact release candidate is published and verified.
+10. exact-candidate A/B and real-system qualification pass;
+11. the product-value check ends with an owner-reviewed disposition;
+12. the exact release candidate is published and verified.
 
 ## 9. Permitted Release Claim
 
