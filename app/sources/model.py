@@ -49,6 +49,8 @@ class SourceKind(StrEnum):
     APISIX = "apisix"
     # v0.7.0 I2.1 contract §1: the APISIX Prometheus measurement source (one observation window).
     APISIX_MEASUREMENT = "apisix-measurement"
+    # v0.7.1 I1.1 contract §1: the Kafka consumer-state source (point-in-time group attachment).
+    KAFKA_CONSUMER_STATE = "kafka_consumer_state"
 
 
 class FilesystemSourceConfig(BaseModel):
@@ -169,6 +171,40 @@ class ApisixMeasurementSourceConfig(BaseModel):
         return (
             self.stable_target_identity
             or f"urn:aip:apisix-measurement:{self.gateway_instance_id}:{self.environment}"
+        )
+
+
+class KafkaConsumerStateSourceConfig(BaseModel):
+    """v0.7.1 I1.1 contract §1: the configured Kafka consumer-state source registration. `broker_id`
+    is the declared-Topic broker id (`x-aip-broker-id`), never a bootstrap address. `consumer_groups`
+    is the explicit allow-list that is the capture's complete scope (I1 spec §3, §5)."""
+
+    id: str = Field(min_length=1)
+    root: Path
+    capture_relative_path: str = "kafka-consumer-state.json"
+    broker_id: str = Field(min_length=1)
+    environment: str = Field(min_length=1)
+    consumer_groups: list[str] = Field(min_length=1)
+    configured_scope_id: str | None = None
+    stable_target_identity: str | None = None
+
+    @model_validator(mode="after")
+    def _allow_list_is_unique_and_non_empty(self) -> "KafkaConsumerStateSourceConfig":
+        if any(not group for group in self.consumer_groups):
+            raise ValueError("consumer_groups entries must be non-empty")
+        if len(set(self.consumer_groups)) != len(self.consumer_groups):
+            raise ValueError("consumer_groups entries must be unique")
+        return self
+
+    @property
+    def resolved_scope_id(self) -> str:
+        return self.configured_scope_id or self.id
+
+    @property
+    def resolved_stable_target_identity(self) -> str:
+        return (
+            self.stable_target_identity
+            or f"urn:aip:kafka-consumer-state:{self.broker_id}:{self.environment}"
         )
 
 

@@ -233,6 +233,50 @@ def apisix_measurement_source_instance_id(
     return SourceInstanceId(f"{MEASUREMENT_SOURCE_ID_PREFIX}{sha256_hex(key)}")
 
 
+KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX = "urn:aip:source:kafka-consumer-state:"
+KAFKA_CONSUMER_SOURCE_KIND = "kafka_consumer_state"
+
+
+def kafka_scope_digest(consumer_groups: Sequence[str]) -> str:
+    """v0.7.1 I1.1 contract §2 (vectors K01, K02): sha256(ld(sorted exact group ids)). Sorted by
+    code point, so the digest is independent of the order the allow-list is written in."""
+    return sha256_hex(length_delimited(*(utf8(group) for group in sorted(consumer_groups))))
+
+
+def kafka_consumer_state_source_instance_id(
+    *, configured_source_id: str, broker_id: str, environment: str, consumer_groups: Sequence[str]
+) -> SourceInstanceId:
+    """v0.7.1 I1.1 contract §2 (vectors K03, K04):
+
+    SourceInstanceId = urn:aip:source:kafka-consumer-state:<sha256(ld(configured source id,
+      broker id, environment, scope digest))>
+    """
+    key = length_delimited(
+        utf8(configured_source_id),
+        utf8(broker_id),
+        utf8(environment),
+        utf8(kafka_scope_digest(consumer_groups)),
+    )
+    return SourceInstanceId(f"{KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX}{sha256_hex(key)}")
+
+
+def kafka_consumer_id(*, broker_id: str, environment: str, group_id: str) -> str:
+    """v0.7.1 I1.1 contract §2 (vectors K05-K08, K11): the I0 D1 / I1 §3 consumer identity,
+    `consumer:` + sha256(ld(source kind, broker id, environment, exact group id)). The group id is
+    verbatim: no case folding and no normalization."""
+    key = length_delimited(
+        utf8(KAFKA_CONSUMER_SOURCE_KIND), utf8(broker_id), utf8(environment), utf8(group_id)
+    )
+    return f"consumer:{sha256_hex(key)}"
+
+
+def kafka_attachment_id(*, consumer_id: str, topic_id: str) -> str:
+    """v0.7.1 I1.1 contract §2 (vector K10): capture time is never an input."""
+    return (
+        f"kafka-attachment:owned:{sha256_hex(length_delimited(utf8(consumer_id), utf8(topic_id)))}"
+    )
+
+
 def kubernetes_logical_resource_id(
     *, cluster_uid: str, api_group: str, kind: str, namespace: str, name: str
 ) -> str:

@@ -9,6 +9,7 @@ from app.sources.model import (
     ApisixMeasurementSourceConfig,
     ApisixSourceConfig,
     FilesystemSourceConfig,
+    KafkaConsumerStateSourceConfig,
     KubernetesSourceConfig,
 )
 
@@ -32,6 +33,9 @@ class SourcesConfig(BaseModel):
     # v0.7.0 I2.2c (I2.1 contract §1): APISIX measurement registrations, one observation window each,
     # at most one per (gateway_instance_id, environment). Empty by default.
     gateway_measurements: list[ApisixMeasurementSourceConfig] = Field(default_factory=list)
+    # v0.7.1 I1.2 (I1.1 contract §1): Kafka consumer-state registrations. Empty by default; the
+    # capture is read offline, and the import wiring arrives in I1.3.
+    kafka_consumer_state: list[KafkaConsumerStateSourceConfig] = Field(default_factory=list)
     # I1 spec §5.1.1/§8.1/§9/§9.1's explicit shared-identity/migration mapping mechanism (PR4) - a
     # list, not a single fixed path, since the mechanism is general (any configured source may
     # supply one); the bundled examples/ migration artifact is simply its first real instance.
