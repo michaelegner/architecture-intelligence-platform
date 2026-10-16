@@ -56,6 +56,8 @@ The completed Kafka evidence capture demonstrated a supported path:
 
 That is enough to justify semantic completion, but **not** enough to assume that Kafka groups, RabbitMQ queues/bindings, and Service Bus subscriptions are the same concept.
 
+The pinned Kafka capture is deliberately weaker than a production qualification: it is one system, one local Docker Compose run, and a **point-in-time** observation rather than a measurement window. One Service join in that capture depends on an ephemeral container IP, and the recorded runtime join keys differ by client library. I0 SHALL therefore decide explicitly whether that capture is sufficient as frozen qualification input or must be refreshed, and SHALL freeze which Service-mapping evidence is authoritative. A code default or an ephemeral runtime join alone is insufficient where deployment-resolved configuration is available and contradicts or refines it.
+
 ## 3. Preserved Baseline
 
 v0.7.1 SHALL preserve all accepted Current-State contracts from v0.7.0, including:
@@ -114,6 +116,8 @@ Attachment MUST preserve:
 - destination identity;
 - qualification/coverage limits.
 
+I0 SHALL freeze the temporal semantics of broker attachment. In particular, a broker-state capture at time **T** is a point-in-time Current-State observation unless the source contract independently establishes a bounded interval. It MUST NOT be silently treated as equivalent to the v0.7.0 request-measurement window model, and an old attachment capture MUST NOT be read as proof of current attachment outside the source's reviewed freshness/lifecycle rules.
+
 Attachment does **not** by itself establish:
 
 - the application Service using G;
@@ -165,6 +169,8 @@ A negative result MUST NOT mean “this Service does not consume” unless the s
 
 No such closed-world negative rule is assumed by this parent specification.
 
+The qualifier SHALL also preserve the temporal basis of the result: point-in-time attachment, bounded observation window, or another explicitly supported source interval. Results from incompatible temporal bases MUST NOT be combined merely because their entity identities match.
+
 ## 6. Source Strategy
 
 ### 6.1 Primary production path: Kafka
@@ -206,6 +212,16 @@ A second production adapter is not required solely for symmetry.
 The release SHALL qualify at least one real Service-mapping path where name equality is not the authority.
 
 The existing Kafka evidence capture may be reused if its source/config/runtime mapping remains pinned and reproducible.
+
+If reused, I0/I4 SHALL carry its limits explicitly:
+
+- one local Compose system/run;
+- point-in-time broker state, not a window;
+- one mapping path that uses an ephemeral container-IP runtime join;
+- client-library-specific member identity shapes;
+- no message-processing observation.
+
+For release qualification, the preferred mapping authority is deployment-resolved configuration or another stable reviewed source that establishes which broker-native consumer identity the Service actually uses in that environment. Ephemeral runtime joins may corroborate that mapping but SHALL NOT silently outrank stronger configuration evidence.
 
 ## 7. Canonical and Persistence Constraints
 
@@ -282,7 +298,7 @@ A/B deterministic runs on the exact candidate are required before release.
 
 The release SHALL include:
 
-1. the already captured/pinned Kafka real-system evidence path or an equally strong refreshed capture;
+1. the already captured/pinned Kafka real-system evidence path or an equally strong refreshed capture; the qualification record SHALL state whether it reuses or refreshes the capture and why;
 2. at least one contrasting RabbitMQ semantic shape;
 3. one end-to-end candidate run proving broker evidence + independent Service mapping + public answer;
 4. at least one unresolved/insufficient real or realistic case;
@@ -290,7 +306,7 @@ The release SHALL include:
 
 Qualification SHALL explicitly state what the source establishes and what remains unmeasured.
 
-In particular, a stable consumer group attached to a Topic is not evidence that an application message was processed during the observation.
+In particular, a stable consumer group attached to a Topic is not evidence that an application message was processed during the observation. Qualification SHALL also state whether each broker fact is point-in-time or interval/window based, and SHALL not present a point-in-time capture as current beyond its reviewed temporal scope.
 
 ## 11. Product-Value Check
 
@@ -410,7 +426,11 @@ Use the established exact-candidate release discipline from v0.7.0:
 - candidate-image verification;
 - owner publication decision;
 - immutable artifact publication;
-- post-release verification by digest.
+- post-release verification by digest;
+- a **release-facing wording sweep** across README, release notes, CHANGELOG, ROADMAP, public MCP/REST documentation, examples and release metadata. The sweep SHALL look for stale counts, tool names, version/status wording and superseded architectural statements; it MUST NOT rely on one fixed list of search phrases;
+- a **known-issue state check**: every issue/CVE/limitation identifier named in release-facing content or readiness evidence SHALL be checked against its current repository/security state before candidate freeze. Closed or superseded items must not remain presented as live release limitations.
+
+These two gates are explicit because v0.7.0 produced superseded candidates from stale release-facing wording and stale known-issue status despite otherwise correct technical qualification.
 
 ## 14. Release Exit Criteria
 
@@ -427,7 +447,8 @@ v0.7.1 is complete only when all of the following hold:
 9. no new source configured => v0.7.0 behavior remains unchanged;
 10. exact-candidate A/B and real-system qualification pass;
 11. the product-value check has an explicit disposition;
-12. release publication and published-artifact verification complete successfully.
+12. release-facing wording and every named known-issue state have been re-checked on the exact candidate;
+13. release publication and published-artifact verification complete successfully.
 
 ## 15. Permitted Release Claim
 
