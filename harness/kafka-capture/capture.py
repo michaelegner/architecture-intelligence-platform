@@ -117,7 +117,7 @@ def main() -> int:
     )
     leaked = secret_findings(document, _secret_values(config))
     if leaked:
-        print(f"refusing to write: secret material at {leaked[0]}", file=sys.stderr)
+        print(f"refusing to write: {len(leaked)} secret finding(s) in the capture", file=sys.stderr)
         return 3
     args.out.write_bytes(serialize(document))
     print(f"wrote {args.out} complete={document['complete']}")

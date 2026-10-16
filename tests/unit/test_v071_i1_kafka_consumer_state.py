@@ -43,6 +43,7 @@ IDS = json.loads((VECTORS / "ids.json").read_text())
 REJECTIONS = json.loads((VECTORS / "capture-rejections.json").read_text())["cases"]
 BROKER, ENV = IDS["inputs"]["broker_id"], IDS["inputs"]["environment"]
 CANARY = "CANARY-KAFKA-SECRET-5d2e"
+NEUTRAL = "CANARY-NAME-91ab"
 
 
 def _config(root: Path, **overrides: object) -> KafkaConsumerStateSourceConfig:
@@ -263,7 +264,7 @@ def test_rejection_vectors(case: dict, tmp_path: Path) -> None:
 def test_rejection_never_echoes_a_rejected_value(tmp_path: Path) -> None:
     document = _example()
     _password_key_in_member(document)
-    assert unredacted_secret_paths(document) == ["/groups/1/members/0/password"]
+    assert unredacted_secret_paths(document) == ["/groups/1/members/0/<redacted-key>"]
     _write(tmp_path, document)
     result = load_capture(_config(tmp_path))
     assert isinstance(result, RejectedKafkaCapture)
@@ -452,3 +453,24 @@ def test_capture_utility_refuses_a_capture_holding_a_client_secret() -> None:
     document = _normalize(leaky)
     assert secret_findings(document, [CANARY]) == ["/groups/1/members/0/member_id"]
     assert secret_findings(_normalize(_described()), [CANARY]) == []
+
+
+def test_rejection_paths_never_carry_a_key_name(tmp_path: Path) -> None:
+    document = _example()
+    _payment(document)[f"password-{CANARY}"] = "x"
+    _payment(document)[f"unknown-{CANARY}"] = "x"
+    assert unredacted_secret_paths(document) == ["/groups/1/<redacted-key>"]
+    _write(tmp_path, document)
+    flagged = load_capture(_config(tmp_path))
+    assert isinstance(flagged, RejectedKafkaCapture)
+    assert flagged.problem.code == "KAFKA_CAPTURE_UNREDACTED"
+    assert CANARY not in repr(flagged)
+
+    plain = _example()
+    _payment(plain)[f"unknown-{NEUTRAL}"] = "x"
+    _write(tmp_path, plain)
+    unknown = load_capture(_config(tmp_path))
+    assert isinstance(unknown, RejectedKafkaCapture)
+    assert unknown.problem.code == "KAFKA_CAPTURE_INVALID"
+    assert unknown.problem.subject == "/groups/1"
+    assert NEUTRAL not in repr(unknown)

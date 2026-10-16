@@ -56,6 +56,8 @@ _SECRET_KEY_MARKERS = (
     "authorization",
 )
 
+REDACTED_KEY = "<redacted-key>"
+
 _RFC3339_UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$")
 
 
@@ -116,7 +118,7 @@ class KafkaCaptureProblem:
 
 
 def unredacted_secret_paths(document: object, forbidden_values: Collection[str] = ()) -> list[str]:
-    """JSON paths (never values) of everything a redacted capture must not contain: an object key
+    """JSON paths (never values, and never the name of an offending key) of everything a redacted capture must not contain: an object key
     that names a credential or security property, or a string (key or value) that contains one of
     the `forbidden_values`. A secret's value cannot be recognized by shape, so the value check only
     covers the secret values the caller knows (for example the capture client's own settings, or a
@@ -130,12 +132,12 @@ def unredacted_secret_paths(document: object, forbidden_values: Collection[str] 
     def walk(node: object, path: str) -> None:
         if isinstance(node, Mapping):
             for name, child in node.items():
-                child_path = f"{path}/{name}"
                 lowered = str(name).lower()
                 if any(marker in lowered for marker in _SECRET_KEY_MARKERS) or leaks(str(name)):
-                    found.append(child_path)
+                    # The key itself may carry the secret, so it is never part of a reported path.
+                    found.append(f"{path}/{REDACTED_KEY}")
                     continue
-                walk(child, child_path)
+                walk(child, f"{path}/{name}")
         elif isinstance(node, list):
             for index, child in enumerate(node):
                 walk(child, f"{path}/{index}")
@@ -178,9 +180,10 @@ def validate_capture_document(
         envelope = KafkaConsumerStateEnvelope.model_validate(document)
     except ValidationError as exc:
         first = exc.errors(include_input=False, include_url=False)[0]
-        return KafkaCaptureProblem(
-            CAPTURE_INVALID, "/" + "/".join(str(part) for part in first["loc"])
-        )
+        location = first["loc"]
+        if first["type"] == "extra_forbidden":
+            location = location[:-1]  # an unknown key's name is source content: report its parent
+        return KafkaCaptureProblem(CAPTURE_INVALID, "/" + "/".join(str(part) for part in location))
     if not _captured_at_is_rfc3339_utc(envelope.captured_at):
         return KafkaCaptureProblem(CAPTURE_INVALID, "/captured_at")
     if _first_duplicate(envelope.group_scope) is not None:
