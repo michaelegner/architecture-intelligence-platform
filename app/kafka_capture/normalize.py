@@ -9,7 +9,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from app.sources.kafka_consumer_state_contract import SCHEMA_ID
+from app.sources.kafka_consumer_state_contract import SCHEMA_ID, unredacted_secret_paths
 
 DESCRIBE_FAILED = "DESCRIBE_FAILED"
 UNKNOWN_STATE = "Unknown"
@@ -82,6 +82,12 @@ def normalize_capture(
         "group_scope": scope,
         "groups": groups,
     }
+
+
+def secret_findings(document: dict[str, Any], secret_values: Iterable[str]) -> list[str]:
+    """JSON paths where the finished capture holds a secret-named key or any of the secret values the
+    capture client was configured with. The caller refuses to write the file when this is non-empty."""
+    return unredacted_secret_paths(document, list(secret_values))
 
 
 def serialize(document: dict[str, Any]) -> bytes:

@@ -10,7 +10,7 @@ most, the JSON path of an offending field.
 
 import re
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -115,22 +115,32 @@ class KafkaCaptureProblem:
     subject: str | None = None
 
 
-def unredacted_secret_paths(document: object) -> list[str]:
-    """JSON paths of every object key that names a credential or security property."""
+def unredacted_secret_paths(document: object, forbidden_values: Collection[str] = ()) -> list[str]:
+    """JSON paths (never values) of everything a redacted capture must not contain: an object key
+    that names a credential or security property, or a string (key or value) that contains one of
+    the `forbidden_values`. A secret's value cannot be recognized by shape, so the value check only
+    covers the secret values the caller knows (for example the capture client's own settings, or a
+    canary); it is the caller's job to supply them."""
+    forbidden = [value for value in forbidden_values if value]
     found: list[str] = []
+
+    def leaks(text: str) -> bool:
+        return any(value in text for value in forbidden)
 
     def walk(node: object, path: str) -> None:
         if isinstance(node, Mapping):
             for name, child in node.items():
                 child_path = f"{path}/{name}"
                 lowered = str(name).lower()
-                if any(marker in lowered for marker in _SECRET_KEY_MARKERS):
+                if any(marker in lowered for marker in _SECRET_KEY_MARKERS) or leaks(str(name)):
                     found.append(child_path)
                     continue
                 walk(child, child_path)
         elif isinstance(node, list):
             for index, child in enumerate(node):
                 walk(child, f"{path}/{index}")
+        elif isinstance(node, str) and leaks(node):
+            found.append(path)
 
     walk(document, "")
     return sorted(set(found))
@@ -150,7 +160,9 @@ def _captured_at_is_rfc3339_utc(value: str) -> bool:
     return True
 
 
-def validate_capture_document(document: object) -> KafkaCaptureProblem | None:
+def validate_capture_document(
+    document: object, forbidden_values: Collection[str] = ()
+) -> KafkaCaptureProblem | None:
     """The registration-independent checks, in the order the I1.1 vectors require: schema (R11),
     unredacted secrets (R09), structure (R10), duplicates (R13). `None` means acceptable."""
     if not isinstance(document, Mapping):
@@ -159,7 +171,7 @@ def validate_capture_document(document: object) -> KafkaCaptureProblem | None:
         return KafkaCaptureProblem(CAPTURE_INVALID, "/schema")
     if document["schema"] != SCHEMA_ID:
         return KafkaCaptureProblem(UNSUPPORTED_SCHEMA, "/schema")
-    secret_paths = unredacted_secret_paths(document)
+    secret_paths = unredacted_secret_paths(document, forbidden_values)
     if secret_paths:
         return KafkaCaptureProblem(CAPTURE_UNREDACTED, secret_paths[0])
     try:

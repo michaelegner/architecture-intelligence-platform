@@ -14,6 +14,7 @@ from app.kafka_capture.normalize import (
     DescribedGroup,
     DescribedMember,
     normalize_capture,
+    secret_findings,
     serialize,
 )
 from app.settings import SourcesConfig
@@ -397,3 +398,57 @@ def test_normalizer_copies_no_field_outside_the_schema() -> None:
     document = _normalize(_described())
     assert unredacted_secret_paths(document) == []
     assert set(document) == set(_example())
+
+
+# ---- R09 value-level canary ------------------------------------------------------------------
+
+
+def _canary_in(field_path: tuple) -> dict:
+    document = _example()
+    node = document
+    for part in field_path[:-1]:
+        node = node[part]
+    node[field_path[-1]] = f"prefix-{CANARY}-suffix"
+    return document
+
+
+@pytest.mark.parametrize(
+    "field_path",
+    [
+        ("groups", 1, "members", 0, "client_id"),
+        ("groups", 1, "members", 0, "member_id"),
+        ("groups", 1, "members", 0, "host"),
+        ("groups", 1, "members", 0, "assignments", 0, "topic"),
+        ("groups", 1, "group_id"),
+        ("tool_version",),
+    ],
+    ids=lambda p: "/".join(str(x) for x in p),
+)
+def test_canary_value_under_a_non_secret_key_is_rejected_and_not_echoed(
+    field_path: tuple, tmp_path: Path
+) -> None:
+    _write(tmp_path, _canary_in(field_path))
+    result = load_capture(_config(tmp_path), forbidden_values=[CANARY])
+    assert isinstance(result, RejectedKafkaCapture)
+    assert result.problem.code == "KAFKA_CAPTURE_UNREDACTED"
+    assert CANARY not in repr(result)
+    assert CANARY not in str(result.problem.subject)
+
+
+def test_value_check_needs_known_values_and_ignores_none(tmp_path: Path) -> None:
+    _write(tmp_path, _canary_in(("groups", 1, "members", 0, "client_id")))
+    # A secret's value cannot be recognized by shape: without a known value nothing is flagged.
+    assert isinstance(load_capture(_config(tmp_path)), LoadedKafkaCapture)
+    assert isinstance(load_capture(_config(tmp_path), forbidden_values=[""]), LoadedKafkaCapture)
+
+
+def test_capture_utility_refuses_a_capture_holding_a_client_secret() -> None:
+    leaky = _described()
+    leaky[0] = DescribedGroup(
+        "payment-service",
+        "Stable",
+        [DescribedMember(f"m-{CANARY}", "c", "/h", [("orders.created", 0)])],
+    )
+    document = _normalize(leaky)
+    assert secret_findings(document, [CANARY]) == ["/groups/1/members/0/member_id"]
+    assert secret_findings(_normalize(_described()), [CANARY]) == []

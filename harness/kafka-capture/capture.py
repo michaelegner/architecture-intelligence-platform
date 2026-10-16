@@ -28,6 +28,7 @@ from app.kafka_capture.normalize import (
     DescribedGroup,
     DescribedMember,
     normalize_capture,
+    secret_findings,
     serialize,
 )
 
@@ -72,9 +73,20 @@ def _describe(admin: AdminClient, groups: list[str]) -> list[DescribedGroup]:
     return described
 
 
-def _broker_version(admin: AdminClient) -> str:
-    # The Admin API exposes no broker version; record the client library version honestly.
-    return f"client-{client_version()}"
+# The Admin API exposes no broker version. Record that honestly; the client library version is
+# capture-tool provenance and goes into `tool_version`.
+KAFKA_VERSION_NOT_ESTABLISHED = "not-established"
+
+
+def _secret_values(client_config: dict[str, object]) -> list[str]:
+    """String values of every client setting whose name looks like a credential or security
+    property. Used only to prove the finished capture does not contain them."""
+    markers = ("password", "secret", "token", "credential", "jaas", "sasl", "ssl.", "key")
+    return [
+        value
+        for name, value in client_config.items()
+        if isinstance(value, str) and value and any(m in name.lower() for m in markers)
+    ]
 
 
 def main() -> int:
@@ -98,11 +110,15 @@ def main() -> int:
         broker_id=args.broker_id,
         environment=args.environment,
         captured_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        tool_version=TOOL_VERSION,
-        kafka_version=_broker_version(admin),
+        tool_version=f"{TOOL_VERSION}+confluent-kafka-{client_version()}",
+        kafka_version=KAFKA_VERSION_NOT_ESTABLISHED,
         group_scope=args.groups,
         described=_describe(admin, args.groups),
     )
+    leaked = secret_findings(document, _secret_values(config))
+    if leaked:
+        print(f"refusing to write: secret material at {leaked[0]}", file=sys.stderr)
+        return 3
     args.out.write_bytes(serialize(document))
     print(f"wrote {args.out} complete={document['complete']}")
     return 0 if document["complete"] else 1

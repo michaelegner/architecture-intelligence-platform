@@ -5,6 +5,7 @@ Wiring into discovery/import and any persistence is I1.3."""
 
 import hashlib
 import json
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
@@ -56,7 +57,7 @@ def _capture_path(config: KafkaConsumerStateSourceConfig) -> Path | None:
 
 
 def load_capture(
-    config: KafkaConsumerStateSourceConfig,
+    config: KafkaConsumerStateSourceConfig, *, forbidden_values: Collection[str] = ()
 ) -> LoadedKafkaCapture | RejectedKafkaCapture:
     path = _capture_path(config)
     if path is None:
@@ -74,7 +75,7 @@ def load_capture(
         return RejectedKafkaCapture(KafkaCaptureProblem(CAPTURE_INVALID))
     if _nesting_depth(document) > MAX_NESTING:
         return RejectedKafkaCapture(KafkaCaptureProblem(CAPTURE_INVALID))
-    problem = validate_capture_document(document)
+    problem = validate_capture_document(document, forbidden_values)
     if problem is not None:
         return RejectedKafkaCapture(problem)
     envelope = KafkaConsumerStateEnvelope.model_validate(document)
