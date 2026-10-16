@@ -1,0 +1,133 @@
+{
+  "schema": "aip-v071-i1-vectors-attachments/1",
+  "declared_topics": {
+    "broker_id": "kafka:cluster-a",
+    "namespace": "",
+    "topics": [
+      "orders.created",
+      "payments.completed"
+    ]
+  },
+  "note": "Expected results are authored from the I0/I1 rules, independent of any adapter. Ids use ids.json formulas.",
+  "capture_cases": [
+    {
+      "id": "A01",
+      "i1_case": "live member on declared Topic",
+      "capture": "payment-service Stable, 1 member on orders.created",
+      "expected_attachments": [
+        {
+          "group": "payment-service",
+          "topic": "orders.created"
+        }
+      ],
+      "expected_diagnostics": []
+    },
+    {
+      "id": "A02",
+      "i1_case": "several members of one group on one Topic",
+      "capture": "order-service Stable, 2 members both on payments.completed",
+      "expected_attachments": [
+        {
+          "group": "order-service",
+          "topic": "payments.completed"
+        }
+      ],
+      "expected_diagnostics": []
+    },
+    {
+      "id": "A03",
+      "i1_case": "one group on several Topics",
+      "capture": "order-service Stable, members on orders.created and payments.completed",
+      "expected_attachments": [
+        {
+          "group": "order-service",
+          "topic": "orders.created"
+        },
+        {
+          "group": "order-service",
+          "topic": "payments.completed"
+        }
+      ],
+      "expected_diagnostics": []
+    },
+    {
+      "id": "A04",
+      "i1_case": "Empty group with committed offsets",
+      "capture": "payment-service Empty, no members",
+      "expected_attachments": [],
+      "expected_diagnostics": []
+    },
+    {
+      "id": "A05",
+      "i1_case": "Dead (deleted) configured group",
+      "capture": "payment-service Dead",
+      "expected_attachments": [],
+      "expected_diagnostics": []
+    },
+    {
+      "id": "A06",
+      "i1_case": "live assignment to undeclared Topic",
+      "capture": "payment-service Stable, member on payments.failed (not declared)",
+      "expected_attachments": [],
+      "expected_diagnostics": [
+        "KAFKA_TOPIC_NOT_DECLARED:payment-service:payments.failed"
+      ]
+    },
+    {
+      "id": "A07",
+      "i1_case": "member, client and host change, group and Topic remain",
+      "capture": "payment-service Stable, new member_id/client_id/host, still orders.created",
+      "expected_attachments": [
+        {
+          "group": "payment-service",
+          "topic": "orders.created"
+        }
+      ],
+      "expected_diagnostics": []
+    },
+    {
+      "id": "A08",
+      "i1_case": "same group id on a different environment",
+      "capture": "payment-service on broker kafka:cluster-a env staging",
+      "expected_attachments": [
+        {
+          "group": "payment-service",
+          "topic": "orders.created"
+        }
+      ],
+      "expected_diagnostics": []
+    }
+  ],
+  "lifecycle_cases": [
+    {
+      "id": "L01",
+      "i1_case": "exact same normalized capture replayed",
+      "expected": "state identical; no write; T unchanged"
+    },
+    {
+      "id": "L02",
+      "i1_case": "same attachments, later captured_at",
+      "expected": "attachment and consumer ids unchanged; captured_at and evidence refreshed"
+    },
+    {
+      "id": "L03",
+      "i1_case": "later complete capture without the assignment",
+      "expected": "prior attachment removed for this source"
+    },
+    {
+      "id": "L04",
+      "i1_case": "rejected capture after an accepted one",
+      "expected": "prior accepted state preserved"
+    },
+    {
+      "id": "L05",
+      "i1_case": "Kafka source unconfigured",
+      "expected": "no Kafka state is written; v0.7.0 behavior unchanged"
+    },
+    {
+      "id": "L06",
+      "i1_case": "allow-list changed",
+      "expected": "new scope digest, new SourceInstanceId (ids.json K03/K04); old source retired by configuration, new source empty until its first complete capture; no detachment inferred"
+    }
+  ]
+}

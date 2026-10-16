@@ -1,0 +1,26 @@
+{
+  "schema": "aip-v071-i1-vectors-ids/1",
+  "note": "Known answers computed by vector-hashes.py (hashlib only; no app import). ld = 8-byte big-endian UTF-8 length + bytes per part. K09 was cross-checked once against app.sources.owner_ids.topic_owned_id.",
+  "inputs": {
+    "source_id": "kafka-prod",
+    "broker_id": "kafka:cluster-a",
+    "environment": "prod",
+    "group_scope": [
+      "order-service",
+      "payment-service"
+    ]
+  },
+  "vectors": {
+    "K01_scope_digest": "3b3a5b5eb1320a85f7b35f9788fbb7aead0c07a7d1ae3a2ff6ac506b272230f7",
+    "K02_scope_digest_order_independent": "3b3a5b5eb1320a85f7b35f9788fbb7aead0c07a7d1ae3a2ff6ac506b272230f7",
+    "K03_source_instance": "urn:aip:source:kafka-consumer-state:cd771834f511958d1df98701d3a11e5d3aff8b5b2c8901a582a5104584ce4413",
+    "K04_source_instance_other_scope": "urn:aip:source:kafka-consumer-state:75cadbd3db57c43e30b759d170e3bb7bda4eaf602f22dabc31329cbc79ff02e6",
+    "K05_consumer_payment": "consumer:owned:4c6ee490876bc6140abf962d2c0d0706b3e735e59d6944881a04182f5401fea7",
+    "K06_consumer_other_environment": "consumer:owned:1125b45f617f46c0f0a351885bf645b4627c8ff2dc0b6de0150d0f13a5ac211e",
+    "K07_consumer_other_broker": "consumer:owned:7b2b354dc0da221c7be2ff3814957696f0ccc2f1003ea5f315db95de9a3bbd2d",
+    "K08_consumer_order": "consumer:owned:18a85aed81fff9872b056268e19d71a69af4ce1b3634f945d805ed3581b0a9ff",
+    "K09_topic_orders_created": "topic:owned:08b7ff9d660d5b2e4f27fbc4fc9905e54bfb3938a6de06174765ec9319ca8119",
+    "K10_attachment_payment_orders": "kafka-attachment:owned:7fcd3813e08483c42c560758cfb958ccaac36d5f7ecec366c8c81207aacd0a6c",
+    "K11_consumer_groupid_verbatim_case": "consumer:owned:737a99d79ad0d4a345fa71b9cc6fa52cc5ec4c65d0cfaefa14f6e797233de749"
+  }
+}
