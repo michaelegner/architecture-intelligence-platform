@@ -52,6 +52,9 @@ class KafkaConsumerAttachment(BaseModel):
 class KafkaCaptureEvidence(BaseModel):
     id: str = Field(min_length=1)
     source_instance_id: str = Field(min_length=1)
+    # The registration that produced this source: a changed allow-list gives a new source instance
+    # id, and retirement must still know which registration the old one belonged to.
+    configured_source_id: str = Field(min_length=1)
     broker_id: str = Field(min_length=1)
     environment: str = Field(min_length=1)
     captured_at: str = Field(min_length=1)

@@ -245,6 +245,7 @@ def run_all_configured_sources(
     # points at are already committed. Registrations that share a broker, environment and a group
     # are all rejected (KAFKA_DUPLICATE_SOURCE); none commits.
     duplicate_kafka = duplicate_registrations(sources.kafka_consumer_state)
+    uncommitted_kafka: set[str] = set()
     for kafka_config in sources.kafka_consumer_state:
         start = time.perf_counter()
         run_stats = import_kafka_consumer_state_source(
@@ -255,6 +256,8 @@ def run_all_configured_sources(
             tombstones=tombstones,
             duplicate_registration=kafka_config.id in duplicate_kafka,
         )
+        if not run_stats.committed:
+            uncommitted_kafka.add(kafka_config.id)
         duration_ms = int((time.perf_counter() - start) * 1000)
         _log_run(import_id, run_stats, duration_ms)
         run_results.append(
@@ -279,6 +282,9 @@ def run_all_configured_sources(
             )
             for kafka in sources.kafka_consumer_state
         },
+        # A still-configured registration whose replacement did not commit keeps its previous
+        # source until a replacement is accepted.
+        protected_configured_source_ids=uncommitted_kafka,
     )
     for removal in retired_kafka:
         logger.info(

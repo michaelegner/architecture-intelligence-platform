@@ -400,7 +400,8 @@ _KAFKA_CONSUMER_STATE_QUERIES = {
     ),
     "evidence": (
         "MATCH (n:KafkaCaptureEvidence) RETURN n.id AS id, "
-        "n.source_instance_id AS source_instance_id, n.broker_id AS broker_id, "
+        "n.source_instance_id AS source_instance_id, "
+        "n.configured_source_id AS configured_source_id, n.broker_id AS broker_id, "
         "n.environment AS environment, n.captured_at AS captured_at, "
         "n.capture_content_sha256 AS capture_content_sha256, n.scope_digest AS scope_digest, "
         "n.source_revision AS source_revision, n.group_states_json AS group_states_json, "

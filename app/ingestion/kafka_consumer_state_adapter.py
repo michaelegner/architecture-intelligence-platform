@@ -18,7 +18,10 @@ from app.canonical.kafka_consumer_state import (
 from app.canonical.model import ArchitectureModel
 from app.common.encoding import unicode_nfc
 from app.common.jcs import JSONValue, canonical_json_bytes
-from app.ingestion.kafka_consumer_state_discoverer import DECLARED_TOPIC_IDS_KEY
+from app.ingestion.kafka_consumer_state_discoverer import (
+    CONFIGURED_SOURCE_ID_KEY,
+    DECLARED_TOPIC_IDS_KEY,
+)
 from app.sources.identity import (
     kafka_attachment_id,
     kafka_consumer_id,
@@ -138,6 +141,7 @@ class KafkaConsumerStateSourceAdapter:
         evidence = KafkaCaptureEvidence(
             id=evidence_id,
             source_instance_id=source_id,
+            configured_source_id=document[CONFIGURED_SOURCE_ID_KEY],
             broker_id=envelope.broker_id,
             environment=envelope.environment,
             captured_at=envelope.captured_at,

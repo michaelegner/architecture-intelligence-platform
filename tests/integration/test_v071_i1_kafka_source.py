@@ -13,8 +13,11 @@ import pytest
 
 from app.architecture_intelligence.repository import canonical_snapshot_state, snapshot_fingerprint
 from app.graph.import_runs import run_all_configured_sources
+from app.graph.importer import import_discovery_run, kafka_commit_guard
 from app.graph.schema import ensure_schema
 from app.ingestion.import_report import build_import_report
+from app.ingestion.kafka_consumer_state_discoverer import PriorKafkaCapture
+from app.ingestion.orchestrator import run_kafka_consumer_state_discovery
 from app.settings import SourcesConfig
 from app.sources.model import (
     FilesystemSourceConfig,
@@ -313,3 +316,87 @@ def test_the_carrier_labels_stay_outside_the_natural_language_allowlist() -> Non
     from app.graph.labels import NODE_LABELS
 
     assert set(LABELS).isdisjoint(NODE_LABELS)
+
+
+# ---- review of #582: graph-dependent rules hold at commit time, not only at discovery time ----
+
+
+def _topic_ids(driver) -> frozenset[str]:
+    with driver.session(database=DATABASE) as session:
+        return frozenset(r["id"] for r in session.run("MATCH (t:Topic) RETURN t.id AS id"))
+
+
+def _prior(driver) -> PriorKafkaCapture | None:
+    with driver.session(database=DATABASE) as session:
+        record = session.run(
+            "MATCH (e:KafkaCaptureEvidence) RETURN e.captured_at AS t, "
+            "e.capture_content_sha256 AS s"
+        ).single()
+    return None if record is None else PriorKafkaCapture(record["t"], record["s"])
+
+
+def _discover(driver, kafka: KafkaConsumerStateSourceConfig):
+    declared = _topic_ids(driver)
+    return run_kafka_consumer_state_discovery(
+        kafka,
+        declared_topic_resolver=lambda ids: frozenset(ids) & declared,
+        prior_capture=_prior(driver),
+    )
+
+
+def test_a_delayed_older_capture_cannot_overwrite_a_newer_one_committed_meanwhile(
+    driver, tmp_path
+) -> None:
+    kafka = _kafka(tmp_path)
+    _write(kafka.root, captured_at="2026-10-16T09:00:00Z")
+    _request(driver, kafka)
+    _write(kafka.root, captured_at="2026-10-16T10:00:00Z")
+    delayed = _discover(driver, kafka)  # validated against T9: passes
+    assert delayed.commit_eligible
+    _write(kafka.root, captured_at="2026-10-16T11:00:00Z")
+    _request(driver, kafka)  # T11 commits first
+    stats = import_discovery_run(
+        driver, database=DATABASE, run_result=delayed, commit_guard=kafka_commit_guard(delayed)
+    )
+    assert not stats.committed
+    assert {r.result for r in stats.source_results} == {IngestionResult.REJECTED_CONFLICT}
+    assert "KAFKA_STALE_CAPTURE" in {d.code for d in stats.diagnostics}
+    evidence = _state(driver)["kafka_consumer_state_v1"]["evidence"][0]
+    assert evidence["captured_at"] == "2026-10-16T11:00:00Z"
+
+
+def test_a_topic_removed_between_discovery_and_commit_blocks_the_attachment(
+    driver, tmp_path
+) -> None:
+    _request(driver)  # the declaring source commits the Topic
+    kafka = _kafka(tmp_path)
+    _write(kafka.root)
+    pending = _discover(driver, kafka)
+    [outcome] = pending.source_outcomes.values()
+    assert len(outcome.outcome.model.kafka_consumer_attachments) == 1  # resolved as declared
+    with driver.session(database=DATABASE) as session:
+        session.run("MATCH (t:Topic) DETACH DELETE t")  # a concurrent declaring change commits
+    stats = import_discovery_run(
+        driver, database=DATABASE, run_result=pending, commit_guard=kafka_commit_guard(pending)
+    )
+    assert not stats.committed
+    assert {r.result for r in stats.source_results} == {IngestionResult.REJECTED_CONFLICT}
+    assert _counts(driver) == dict.fromkeys(LABELS, 0)
+
+
+def test_a_rejected_capture_after_an_allow_list_change_keeps_the_previous_state(
+    driver, tmp_path
+) -> None:
+    kafka = _kafka(tmp_path)
+    _write(kafka.root)
+    _request(driver, kafka)
+    before = (_counts(driver), snapshot_fingerprint(_state(driver))[0])
+    narrower = _kafka(tmp_path, scope=("stock-projector",))
+    _write(narrower.root, scope=("audit-sink", "stock-projector"))  # scope mismatch: rejected
+    _, runs = _request(driver, narrower)
+    assert not _kafka_run(runs).stats.committed
+    assert (_counts(driver), snapshot_fingerprint(_state(driver))[0]) == before
+    _write(narrower.root, scope=("stock-projector",))  # an accepted replacement
+    _request(driver, narrower)
+    block = _state(driver)["kafka_consumer_state_v1"]
+    assert [g["group_id"] for g in block["groups"]] == ["stock-projector"]  # old source retired

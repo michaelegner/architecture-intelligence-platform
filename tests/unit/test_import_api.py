@@ -40,8 +40,11 @@ def _no_gateway_retirement(monkeypatch):
 def test_dropping_the_last_kafka_registration_still_retires_its_carriers(monkeypatch):
     retired_against: list[set[str]] = []
 
-    def fake_retire(driver, *, database, configured_source_instance_ids):
+    def fake_retire(
+        driver, *, database, configured_source_instance_ids, protected_configured_source_ids
+    ):
         retired_against.append(set(configured_source_instance_ids))
+        assert set(protected_configured_source_ids) == set()
         return ()
 
     monkeypatch.setattr(

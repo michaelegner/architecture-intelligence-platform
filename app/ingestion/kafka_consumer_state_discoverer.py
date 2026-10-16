@@ -37,8 +37,9 @@ from app.sources.registry import DiscoveryOutcome
 
 _EMPTY_CONTENT_SHA256 = hashlib.sha256(b"").hexdigest()
 DECLARED_TOPIC_IDS_KEY = "declared_topic_ids"
+CONFIGURED_SOURCE_ID_KEY = "configured_source_id"
 
-_MESSAGES = {
+MESSAGES = {
     DiagnosticCode.KAFKA_BROKER_MISMATCH: "the capture's broker id does not match the registration",
     DiagnosticCode.KAFKA_ENVIRONMENT_MISMATCH: "the capture's environment does not match the registration",
     DiagnosticCode.KAFKA_SCOPE_MISMATCH: "the capture's group scope does not match the registered allow-list",
@@ -81,12 +82,14 @@ def candidate_topic_ids(envelope: KafkaConsumerStateEnvelope) -> frozenset[str]:
     )
 
 
-def _ordering_problem(
-    envelope: KafkaConsumerStateEnvelope, content_sha256: str, prior: PriorKafkaCapture | None
+def capture_ordering_problem(
+    captured_at: str, content_sha256: str, prior: PriorKafkaCapture | None
 ) -> DiagnosticCode | None:
+    """I1.1 contract §4 capture ordering (R14, R15). Used at discovery time and again inside the
+    commit transaction, against the evidence actually committed then."""
     if prior is None:
         return None
-    captured = datetime.fromisoformat(envelope.captured_at)
+    captured = datetime.fromisoformat(captured_at)
     committed = datetime.fromisoformat(prior.captured_at)
     if captured < committed:
         return DiagnosticCode.KAFKA_STALE_CAPTURE
@@ -191,7 +194,7 @@ class KafkaConsumerStateSourceDiscoverer:
             return self._loaded(
                 document={},
                 diagnostics=[
-                    IngestionDiagnostic(code=code, message=_MESSAGES[code], source_pointer=pointer)
+                    IngestionDiagnostic(code=code, message=MESSAGES[code], source_pointer=pointer)
                 ],
                 content_sha256=content_sha256,
                 revision=None,
@@ -203,7 +206,9 @@ class KafkaConsumerStateSourceDiscoverer:
         result = load_capture(config)
         if isinstance(result, RejectedKafkaCapture):
             return reject(DiagnosticCode(result.problem.code), result.problem.subject or "/capture")
-        ordering = _ordering_problem(result.envelope, result.content_sha256, self._prior)
+        ordering = capture_ordering_problem(
+            result.envelope.captured_at, result.content_sha256, self._prior
+        )
         if ordering is not None:
             return reject(ordering, "/captured_at", result.content_sha256)
         candidates = candidate_topic_ids(result.envelope)
@@ -211,6 +216,7 @@ class KafkaConsumerStateSourceDiscoverer:
         document = {
             "capture": result.envelope.model_dump(by_alias=True),
             "capture_content_sha256": result.content_sha256,
+            CONFIGURED_SOURCE_ID_KEY: config.id,
             DECLARED_TOPIC_IDS_KEY: declared,
         }
         return self._loaded(

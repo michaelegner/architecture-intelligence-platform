@@ -119,9 +119,22 @@ READ_GATEWAY_SOURCE_STATES_QUERY = (
 # v0.7.1 I1.3 (I1.1 contract §4, §6): the declared Topics among a capture's candidate ids, and the
 # committed capture of one Kafka consumer-state source (its evidence carrier) for the ordering rule.
 READ_DECLARED_TOPIC_IDS_QUERY = "MATCH (t:Topic) WHERE t.id IN $ids RETURN t.id AS id"
+# Takes each Topic node's exclusive write lock until the transaction ends (set and remove a scratch
+# property, leaving the node unchanged, as `revision_fence` does) and returns the ids still present.
+LOCK_DECLARED_TOPICS_QUERY = (
+    "MATCH (t:Topic) WHERE t.id IN $ids "
+    "SET t.kafka_attachment_lock_probe = true REMOVE t.kafka_attachment_lock_probe "
+    "RETURN t.id AS id"
+)
 READ_KAFKA_CAPTURE_EVIDENCE_QUERY = (
     "MATCH (e:KafkaCaptureEvidence {id: $id}) "
     "RETURN e.captured_at AS captured_at, e.capture_content_sha256 AS content_sha256"
+)
+
+READ_KAFKA_SOURCE_REGISTRATIONS_QUERY = (
+    "MATCH (e:KafkaCaptureEvidence) "
+    "RETURN e.source_instance_id AS source_instance_id, "
+    "e.configured_source_id AS configured_source_id"
 )
 
 DELETE_SOURCE_STATE_QUERY = (
