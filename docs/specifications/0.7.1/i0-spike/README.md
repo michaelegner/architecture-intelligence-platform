@@ -22,15 +22,15 @@ Raw: [`rabbitmq/raw/`](rabbitmq/raw/), setup: [`rabbitmq/commands.md`](rabbitmq/
 
 | Observation | Evidence |
 |---|---|
-| Native consumer identity is **vhost + queue + consumer tag + channel**. There is no group concept. | `01-consumers` |
+| Native consumer identity is **vhost + queue + consumer tag + channel**. There is no group concept. The channel number is only unique within its connection (channel 1 and 2 appear on different connections), so the connection scope must be part of the identity. | `01-consumers` |
 | Attachment = a live consumer registered on a **Queue**. The destination is a Queue, not a Topic or Subscription. | `01-consumers`, `02-queues` |
 | S1: two consumers on one queue are competing consumers of one connection. They must not become two Services. | `01-consumers` (`s1-c1`, `s1-c2`, same connection) |
 | S2: fan-out is expressed by exchange **bindings** to separate queues, not by consumers. Consumer attribution stays per queue. | `03-bindings`, `01-consumers` |
-| S4: a bound queue with no consumer has `consumers: 0`, which is no attachment evidence and not a negative. | `02-queues`, `03-bindings` |
+| S4: a bound queue with no consumer has `consumers: 0`. That is evidence of zero live attachment at capture time T. It is not evidence that no Service consumes the Queue, and not a configured negative. | `02-queues`, `03-bindings` |
 | Service-mapping evidence offered by the broker: connection user and the client-supplied `connection_name` property. Both are client-asserted, not authoritative. The consumer-to-connection join key is the peer address string, which is ephemeral. | `01-consumers`, `04-connections` |
 | Default-exchange bindings exist for every queue; they are not routing intent. | `03-bindings` |
 
-**Proposed outcome: SOURCE_SPECIFIC.** Attribution works (live consumer on a declared Queue plus an independent Service mapping), but the native identity (consumer tag on a Queue, no group) must stay source-specific and must not be coerced to a Kafka consumer group or a Subscription. No MODEL_GAP seen in S1–S4.
+**Proposed outcome: SOURCE_SPECIFIC for broker attachment and consumer identity.** A live consumer on a Queue is observable, but its native identity (consumer tag on a Queue, no group) must stay source-specific and must not be coerced to a Kafka consumer group or a Subscription. The spike does **not** show end-to-end Service attribution: the broker-side Service hints are client-asserted or ephemeral, so attribution still needs an independent accepted Service-mapping source. No MODEL_GAP seen in S1–S4. I0.2 decides whether that is sufficient for the contrast.
 
 ## 3. Handed to I0.2
 
