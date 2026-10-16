@@ -41,7 +41,7 @@ A configured source has:
 - an explicit non-empty allow-list of consumer group ids;
 - path to one normalized Kafka capture.
 
-The allow-list is the authoritative capture scope for v0.7.1. I1 does not claim completeness for every group on the broker. Changing the configured allow-list is a source-scope change, not evidence that a removed group detached; normal source reconfiguration/removal semantics apply instead.
+The allow-list is the authoritative capture scope for v0.7.1. I1 does not claim completeness for every group on the broker. Its sorted exact values form a deterministic scope digest. Changing that scope requires a new source registration/scope identity; it must never be interpreted as broker evidence that a removed group detached.
 
 The stable broker id must use the same identity domain as declared Topic ownership (x-aip-broker-id / existing broker identity rules). Bootstrap-server addresses are not broker identity.
 
@@ -51,6 +51,7 @@ The source instance id is deterministic from:
 configured source id
 stable broker id
 environment
+scope digest
 ~~~
 
 The Kafka consumer identity id follows I0 D1:
@@ -193,6 +194,7 @@ At minimum:
 | live assignment to undeclared Topic | source diagnostic only; Topic not minted |
 | capture broker id or environment differs from configured source | capture rejected |
 | capture group scope differs from configured allow-list | capture rejected |
+| configured allow-list changes without a new source/scope identity | configuration rejected; no detach inferred |
 | same group id on different broker/environment | distinct consumer identities |
 | known-answer consumer-id vectors authored independently | exact expected hash/id |
 | exact same normalized capture replayed | no semantic change |
