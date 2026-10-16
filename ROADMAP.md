@@ -505,7 +505,13 @@ The release contains exactly two maintenance corrections:
 
 No API-aware Current-State semantics, new source family, canonical relationship, public Architecture Intelligence question or MCP tool belongs in v0.6.3. Broader support for out-of-range JSON integers is deferred to a separate semantic decision.
 
-## v0.7 — API-Aware Current State (planned)
+## v0.7 — API-Aware Current State (shipped)
+
+Published **v0.7.0 on 2026-10-16**; terminal outcome **SHIPPED_VERIFIED**. See the
+[post-release verification](docs/release-validation/v0.7.0-post-release-verification.md) and the
+[release notes](docs/release-validation/v0.7.0-release-notes.md). Apache APISIX was selected as the
+reference gateway in I0 (Kong, Gravitee and Tyk were surveyed); the configured-access model is qualified for
+APISIX only, and associations need a mapping or an exact match. The scope below is the original plan.
 
 **Goal: Establish evidence-qualified Current-State knowledge of how APIs are exposed and consumed,
 while retaining the distinct meanings of contracts, operations, gateway objects, application services,
@@ -522,8 +528,8 @@ consumers, and observed interactions.**
 > environment and observation window, and which remain unestablished from the available evidence?**
 
 The first vertical slice SHALL use **real gateway configuration and consumer-attributed usage
-measurements**. Kong is the proposed initial reference system, not AIP's canonical terminology or a
-required gateway for later adapters. Its actual source capability determines whether a relationship
+measurements**. The reference system is not AIP's canonical terminology or a
+required gateway for later adapters (APISIX was selected in I0). Its actual source capability determines whether a relationship
 can be described as a product subscription, access registration, ACL membership, or another
 configured relationship; AIP must not invent a subscription from the mere presence of a consumer.
 Broader gateway/provider support remains incremental and separately qualified.

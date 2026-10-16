@@ -1,6 +1,6 @@
 # AIP v0.7.0 I5 — Release Candidate, Publication, and Verification
 
-**Status:** Draft 0.3  
+**Status:** Complete — `SHIPPED_VERIFIED` ([completion record](i5-completion-record.md))  
 **Increment:** I5 — Release Candidate, Publication, and Verification  
 **Entry:** I4 is complete and merged (#558). The [I4 completion record](i4-completion-record.md) records the qualified semantic candidate `c662f3c440733a7b75252ba2466fee14c1c88f4a`, the product-pilot disposition `CONTINUE`, and the reviewed Tyk `MODEL_GAP` scope exclusion. I4 does **not** qualify a later release candidate or authorize publication.  
 **Authority:** accepted [v0.7.0 parent specification](specification.md), especially §§26–28 and §32; [I4 completion record](i4-completion-record.md); [I4 → I5 handoff](i4-i5-handoff.md); [ROADMAP](../../../ROADMAP.md); and the repository [release-publication skill](../../../.agents/skills/release-publication/SKILL.md) as procedural guidance only.

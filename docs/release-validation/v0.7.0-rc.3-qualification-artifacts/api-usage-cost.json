@@ -1,0 +1,644 @@
+{
+  "benchmark": "api_usage_cost",
+  "candidate_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+  "ci": {
+    "blockers": [],
+    "checks": [
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116676637406,
+        "name": "lint + test",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675084980,
+        "name": "integration-qualification (oracle)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675084955,
+        "name": "integration-qualification (heavy)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675084768,
+        "name": "integration-qualification (other)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675038276,
+        "name": "quality",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675038234,
+        "name": "static analysis (semgrep)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675038181,
+        "name": "integration-core (heavy)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675038176,
+        "name": "demo-e2e",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675038157,
+        "name": "integration-core (rest)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675038129,
+        "name": "changes",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675037739,
+        "name": "dependency security scan (pip-audit, spec \u00a729)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675037612,
+        "name": "analyze (actions)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+        "id": 116675037178,
+        "name": "analyze (python)",
+        "status": "completed"
+      }
+    ]
+  },
+  "command": [
+    "/tmp/claude-1001/-home-michael-code-ArchitectureIntelligencePlatform/e3536880-e2cc-4c20-a20e-647de0571def/scratchpad/cand3-wt/evaluation/i4/api_usage_cost_run.py",
+    "--candidate-sha",
+    "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+    "--out",
+    "../i53/api-usage-cost.json"
+  ],
+  "commit": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+  "configuration": {
+    "page_limit": 200,
+    "profile": "i3"
+  },
+  "configuration_sha256": "dc2167a791c52b83cc5305da167c2b29950a4a31e25b92d9dfbdcdee88981269",
+  "container_id": "a1becce524059ab5b1380bc707926df935cd28cb48f6575831346d6103f55c7c",
+  "container_image": "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93",
+  "dirty_worktree": false,
+  "input_pins": {
+    "benchmarks/README.md": "84e8eecb975b28a0381eecf8ee42798dcddb048a838bd45f60ccacd410b73307",
+    "benchmarks/__init__.py": "c7ec1c306fe12b11297096964c06f7c0010f4fd7c038b4d0dc1ad67812732436",
+    "benchmarks/__main__.py": "2fb80e02d07a14e2a2538681c719a884d12c51d5e1ca9194f8437d0cc2fdc66c",
+    "benchmarks/api_usage_cost.py": "50287c1dd9c9cfd8e76709d1af5a84e059a16bbc365fbf516e3636cd02e11be8",
+    "benchmarks/i4_metadata.py": "a36c2656c441b81bccad5c82a1bf9ac6eddc8d99c45e5debb1a02c7ea5f5e59a",
+    "benchmarks/i4_replacement.py": "e5475aae0ff9cc51695f44fed96c2d08eda673a6e20ffdd7b54529f74c9ef518",
+    "benchmarks/locality_cost.py": "0e9b973c45853204fb538b37111831a615e869326e3993ddc1900e3cb073a9a3",
+    "benchmarks/scoped_churn_cost.py": "d9d14b4bc154bb9d2432cf5a83de3a4dbaa698b262e869fd35c2800badedc536",
+    "benchmarks/snapshot_read_cost.py": "cb865b84d299681d6ee681a2ae1232b7acf3a2502bd9e5705eaba9f96809b737",
+    "benchmarks/snapshot_read_cost.schema.json": "82fda7a843cd91680e8257d630093b3e0287b65d37a92f4b7e8e5618332f8c0b",
+    "benchmarks/traces_stall.py": "31b4fbee2c1672c3b893d4a973a3182d1f9f0a85ef6ebacab575f4bdd45108b1",
+    "docs/specifications/0.7.0/i0-acquisition-replay-plan.md": "0edc86205bd456d2146b0929d52c78d8ca1a697e3f5cedd9b7cb2c93b089379a",
+    "docs/specifications/0.7.0/i0-capability-survey-matrix.md": "981e760511028fef92c961b736aa50698f17113fe1dbd7876675f7ebf2aa9b94",
+    "docs/specifications/0.7.0/i0-completion-record.md": "ac669f34bbb765d3a89abac40b22c15e9a20d14c8c9f05d96072e34b8c584c00",
+    "docs/specifications/0.7.0/i0-gateway-capability-survey-and-semantic-freeze.md": "91178602ed7cadbbbe3555c94c05f5335e37d29a56c8b7d93ff480f0911e075f",
+    "docs/specifications/0.7.0/i0-i1-i2-handoff.md": "d00c1a2648f55454123a16b70e26aa4e7f8a1ce938dd2b6470c25f2160bfb1bf",
+    "docs/specifications/0.7.0/i0-identity-reconciliation-dossier.md": "8cb434eb2f377f200a06ae801859cc7a1c8feafb704d7da97ef3aa5604d78899",
+    "docs/specifications/0.7.0/i0-source-selection-decision.md": "e5f4d0d9870387cb9b6f450c8ad754951653e1f90bf7e6f65df1a9c42444cb46",
+    "docs/specifications/0.7.0/i0-spike/README.md": "43c0b16092b4a5e7ef0c9ed33de77a7d9d56df0de1ea8585543178b7c6389eaa",
+    "docs/specifications/0.7.0/i0-spike/apisix-etcd/config.yaml": "b7564628ce9003cab67778be9adcfb77ed6d72096fe97d3e83c3d0d9354ca30f",
+    "docs/specifications/0.7.0/i0-spike/apisix-etcd/probe-output.txt": "4ffb5de1b1114cf12028cbddcbdc864594e6f07c5e42670eaaeb5ee909fdcfc6",
+    "docs/specifications/0.7.0/i0-spike/apisix-etcd/probe.sh": "252ee369e71b5c2c7d48cb94a9b8e5b74db73084c49a7269e4ce7e2c360fbdfe",
+    "docs/specifications/0.7.0/i0-spike/apisix/apisix.yaml": "066de5cdb4c7c3fabde0730b09eaab68d40c1c50511901eaa0cd3c1b9d5403f9",
+    "docs/specifications/0.7.0/i0-spike/apisix/config.yaml": "7511a10dcf8294915b250f826d0ef921a05efccd0ab46c1fcf02b47820a3f2dd",
+    "docs/specifications/0.7.0/i0-spike/apisix/expected-capture.txt": "07fa29e180d22e047b244eb5ea3ef623435e7f1106b8bd0b8472758c05af06f0",
+    "docs/specifications/0.7.0/i0-spike/apisix/run.sh": "49caedaf9aad5272688175943fd8e18e0185e8afe0234d73f669a0b97db81be8",
+    "docs/specifications/0.7.0/i0-spike/tyk/apps/orders.json": "668094c077d6ba35ebc7ee7b8caf004995d22ea18d2e1fa9ce2c81bf42828484",
+    "docs/specifications/0.7.0/i0-spike/tyk/dup-alias-output.txt": "22aefb171ab691b9900114610ba46c842d1031215421851dd9b874938f49543f",
+    "docs/specifications/0.7.0/i0-spike/tyk/dup-alias-probe.sh": "8b44f93dcee2750608f9f23c8dae3947aedd5667c98a79dd48f637f10445e867",
+    "docs/specifications/0.7.0/i0-spike/tyk/expected-capture.txt": "76e9cb6e5c8186b28028b0f92134dd7788073b37917e27823187511783f27660",
+    "docs/specifications/0.7.0/i0-spike/tyk/otel.yaml": "5a368ff47133a4d4f5a27a2db57c00cfcf77527191982a4559866795695740fb",
+    "docs/specifications/0.7.0/i0-spike/tyk/run.sh": "190c908bcc1f501c331bc875d4a432d5cc887d5a8906d23beee0b92747a2696a",
+    "docs/specifications/0.7.0/i0-spike/tyk/tyk.conf": "dca474c896ba46fa36393b79ea28bbf12624286ff6b92185ffb0ec249dc1b3f5",
+    "docs/specifications/0.7.0/i1-completion-record.md": "da0a76aebb8b86fd4e211e8bb49116f08b263ae6b4d62cb514514d23b294b34b",
+    "docs/specifications/0.7.0/i1-gateway-source-contract.md": "e592f7e258c78f8650a36bd09f07dda9184be39619f1bb74a98f179374b1bcdd",
+    "docs/specifications/0.7.0/i1-i2-handoff.md": "de8dce4c8ff9ff3bee1688944718e40081ec4b6b9269c1cc3e1ad2401019b37e",
+    "docs/specifications/0.7.0/i1-selected-gateway-configuration-source.md": "ac990dd14b203f124c45fa4d959bab432334d2a637166631fd4798eafee08718",
+    "docs/specifications/0.7.0/i1-vectors/capture-rejections.json": "dc7a45ec18ca5b7a9217b247dd0238d9d5e57d62fcd56f41ecbe790d1670c496",
+    "docs/specifications/0.7.0/i1-vectors/configured-access.json": "7e36adb8a46a9cb44a96982f8d94236c29a8064b13ef1d8c9f0a01f07360158e",
+    "docs/specifications/0.7.0/i1-vectors/ids.json": "06918d3873ae9bdfa101b5ebe15733224528563a5bfea7c8a2ee6f919ddac374",
+    "docs/specifications/0.7.0/i2-completion-record.md": "bbec53cfac9f4eba373b7228c4eefba166e6602f1bf96b48c2a6a3899c158eab",
+    "docs/specifications/0.7.0/i2-consumer-attribution-and-configured-vs-observed-qualification.md": "75afd5f7dd32e6d01899f5468d3b77a40be56e59a1d01e3979dba4852af790a5",
+    "docs/specifications/0.7.0/i2-i3-handoff.md": "dc921b7074336d83e400d597d033c2f4b59dc22f419c1cb2a6b05cbf1574f44d",
+    "docs/specifications/0.7.0/i2-measurement-contract.md": "2c495896bf69da21d11af2a151573b165e88c0a5ce883c5dadd7f47b8497b175",
+    "docs/specifications/0.7.0/i2-vectors/ids.json": "1ed95bbad3703205bc037f40d33cbecf1dcdde13cbd7ddea5c846f4cb18dc351",
+    "docs/specifications/0.7.0/i2-vectors/manifest-rejections.json": "0fdd759611e69964060bd998fdf140e9c3fe69345afa0af6fa56551cfc327027",
+    "docs/specifications/0.7.0/i2-vectors/qualification.json": "63874ddc2e5e92906073edd0f235bade7df33b740ce329e13d5b0ed78b6cb872",
+    "docs/specifications/0.7.0/i2-vectors/reconciliation.json": "b802c9830c99591ca19566d17d293329439c61c6a1dc0ff601eb3f7a7b5ebeea",
+    "docs/specifications/0.7.0/i2-vectors/series-deltas.json": "b1712d7784459c7219f5da4f06109e652dcd51b2a240d11bc3e527254d53b421",
+    "docs/specifications/0.7.0/i3-api-aware-current-state-projection-and-public-answer.md": "5338b9bfad3802498469d0c8ca5fe458e000942426aca5395a3a1925183ae1ef",
+    "docs/specifications/0.7.0/i3-completion-record.md": "0d0249913f28071a04f34d0d0960b506acde06894eae382c282e353ced4c13b6",
+    "docs/specifications/0.7.0/i3-decision-record.md": "290363e5420143bd782534036fb71ac5bfbbebc810f36cda41a6c7ad2262b8b9",
+    "docs/specifications/0.7.0/i3-expected-answer-matrix.md": "2bfc4aa2d4cb49d0d9924da17b05a5e58209f5367dd239c76a419b73cc2fe2d4",
+    "docs/specifications/0.7.0/i3-i4-handoff.md": "7aed8dd578d8860f71a0621e1a1e181d8a087df912d5a772976f0856fab8bf49",
+    "docs/specifications/0.7.0/i3-vectors/author_expected_answers.py": "fd845b916e5fb8b57119154d55be0b3aa6fee9e4d6e97705497e1183dcad5c2c",
+    "docs/specifications/0.7.0/i3-vectors/expected-answers.json": "6a6098cbce1afd42178d20f620ab6a730bf33784a4afd642a214af35d96dbbc7",
+    "docs/specifications/0.7.0/i4-completion-record.md": "9a3e1ea8186c5836a9c026fb82d6f025f1f262ba60a67bff820334bb0d4f9bab",
+    "docs/specifications/0.7.0/i4-coverage-register.md": "6aa893d6abc1edb5dbea830a18b82bb7bd1f4c8c4d0d9d17c6a71b0cc63096b9",
+    "docs/specifications/0.7.0/i4-decision-record.md": "2c092d6bc642a815c2de4806a7ff5fb851d25af4402a453390dca92b2cdea35e",
+    "docs/specifications/0.7.0/i4-deterministic-real-system-and-product-value-qualification.md": "684b001c245032fc9b03185d9adfddea9d470c8352b65ef2f32bcfb84bc16beb",
+    "docs/specifications/0.7.0/i4-execution-record.md": "e0563a4bb926e3a347fa9d8df4cfafee69c07aa44ae981ee67dfab195f33a7fc",
+    "docs/specifications/0.7.0/i4-execution-runbook.md": "77cb4cf6d1f61bc53b065e4d51a22d6b984bd47f5e124ab6a02401bc5cba236e",
+    "docs/specifications/0.7.0/i4-i5-handoff.md": "b07d1f96ee98b3c804e41886a1a51f326f0940e9a85789585a3bedeeeca8142e",
+    "docs/specifications/0.7.0/i4-pilot-record-template.md": "24a251c8d71cc5e2c90b62bf8dbfe671036a68cfe403b19293dfb3512108454c",
+    "docs/specifications/0.7.0/i4-pilot-record.md": "37c3c57286390f6eb2f1020ee7d7630536cdeff450874c2751faab5a8b0e7e7d",
+    "docs/specifications/0.7.0/i4-pilot-runbook.md": "97f2a9b9953c397897fda036814964506eb3697925137d1fda3c0fc313d4368d",
+    "docs/specifications/0.7.0/i4-pilot/config.template.yaml": "9987ffb44f5225f25e0b0b8b58aee26c797ca77060e32d54640c3410735862bb",
+    "docs/specifications/0.7.0/i4-replay/EXPECTED.sha256": "15a53d20ea1a260112f4958564a5f00ecb2723a12ea40f4e1870bf17b2526bfd",
+    "docs/specifications/0.7.0/i4-replay/README.md": "68a09976884058cd6b4848413e65038eee8e7f9609eee076b12e04acd7085a01",
+    "docs/specifications/0.7.0/i4-replay/SHA256SUMS": "f4a4014a5da507aec86cab00581ecf855d6076516109b0c18f8f21cb274a90c9",
+    "docs/specifications/0.7.0/i4-replay/author_replay_expected.py": "8651c59be40273369fdde35c76c5b85ee28450056cb1988b8a054b8da3d2be6b",
+    "docs/specifications/0.7.0/i4-replay/capture_session.py": "d710e790e9dff6ff38e3317beea42ab5ea2f6b8995083e6fcb95d340ba277b2c",
+    "docs/specifications/0.7.0/i4-replay/expected-replay.json": "aea9ff474efefda0cc3c0e2b13824dd31ac8d5c6f6c61ab47c8e83fa5bec6b91",
+    "docs/specifications/0.7.0/i4-replay/r1/gateway/apisix-capture.json": "60b7eb6384d7c9633e69b14cd925e5145bd22b4187a7f1608a304796b07bc249",
+    "docs/specifications/0.7.0/i4-replay/r1/metrics/apisix-measurement-manifest.json": "06f0b35289eed53f4c7477482ae986a2d33d3032ea6d27b37ef4f04cd123121a",
+    "docs/specifications/0.7.0/i4-replay/r1/metrics/apisix-metrics-end.txt": "f8fe5401713c9d08c7d3816a4b1f9ad18055402cfb47d0e0a1ed66d8ad7b6253",
+    "docs/specifications/0.7.0/i4-replay/r1/metrics/apisix-metrics-start.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/specifications/0.7.0/i4-replay/r2/gateway/apisix-capture.json": "9f4152e54ec6f637c3a6fe448545c6ff872dc6711a94edd669c19343e72f1ec3",
+    "docs/specifications/0.7.0/i4-replay/r2/metrics/apisix-measurement-manifest.json": "dfb1e10bae5f5dfca32dd05fe5f07af3c7f367802ece04bc21770c3b59e198e6",
+    "docs/specifications/0.7.0/i4-replay/r2/metrics/apisix-metrics-end.txt": "5bb7eab3ef4bd17f045df82c10100ba46354a0d0a9c28ed8fdf28df1b425717e",
+    "docs/specifications/0.7.0/i4-replay/r2/metrics/apisix-metrics-start.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/specifications/0.7.0/i4-tyk-dossier.md": "5793c6bf0da1820788e40f75907153c5876868a302180574faa8155845196cd4",
+    "docs/specifications/0.7.0/i4-vectors/author_i4_expected.py": "288b2e699703a4c50d69093ba92bd387dbf6b8d467822f1f1794568259f856bc",
+    "docs/specifications/0.7.0/i4-vectors/expected-i4.json": "7ac7dacdb368db9a3c571279399476327bc63a446f35442336b40f5cb26faa2d",
+    "docs/specifications/0.7.0/i5-release-candidate-publication-and-verification.md": "7a288fffd4fabb307630d7d1e3da42247fd0167d86ef833abf8390ce6f73e668",
+    "docs/specifications/0.7.0/specification.md": "6dd11fb6927c0fa93432ad33e4faf4dfaf6f6d3496ae2de2c54eab82102dd674",
+    "evaluation/i4/__init__.py": "5cecab59e469ab491e3f548d00e93e88b3c5a6b90c478102229053e5953f6679",
+    "evaluation/i4/__main__.py": "d05e63b363414885e3a3bbe291016f19fd719cebb519008980c7d5a986d15c57",
+    "evaluation/i4/api_usage_cost_run.py": "d656d321f36c7a060c4f16ce052f3f0d2d6dcd176a7428ae708e474478ce885d",
+    "evaluation/i4/api_usage_runner.py": "bbd39564c59c28bd30dfaaad81deaf484d0fa4c78d6ad66c789b2f1649a7f975",
+    "evaluation/i4/apisix_replay.py": "d35c4f2b85f6a62c2d05c874ca4bd4c47d489e69716c1f1452ec70579c6de787",
+    "evaluation/i4/profiles.py": "e40a76f9bf0c1b3bdcfd4891889b982dd3aa8189f75331f92c7a43195a09a68b",
+    "evaluation/i4/pytest_plugin.py": "bfecb2486f0ddacd7e52056ffda411083af48221958ac0544d2a3862d2c32b16",
+    "evaluation/i4/test_outcomes.py": "85b62702c479518ecee908fe5e939c68519655dfc3661c3316186a4ab3cab349",
+    "schemas/architecture_intelligence/v0.7/api-consumer-usage-answer.schema.json": "b94489907ad590a74427f82e1ca0958d9fda7a97e3a083dd4aaf9dbf84700e54",
+    "schemas/architecture_intelligence/v0.7/api-consumer-usage-request.schema.json": "272dc5621d3078b2c78c78b2079633b2024ac7a3c2920ef0dd3b511a3f0abb02"
+  },
+  "measured_at": "2026-10-15T22:08:00Z",
+  "page_limit": 200,
+  "points": [
+    {
+      "bounds": {
+        "cartesian_pairs": 200,
+        "configured_pairs": 100,
+        "consumers": 20,
+        "evidence_refs_per_request": 20,
+        "observed_pairs": 20,
+        "page_limit": 200,
+        "qualification_rows": 100,
+        "routes": 10,
+        "rows_equal_the_bounded_union": true,
+        "rows_of_the_target": 100,
+        "rows_on_first_page": 100
+      },
+      "evidence": {
+        "outcome": "ANSWERED",
+        "ref_map_size": 121,
+        "refs_looked_up": 20,
+        "resolved": 20
+      },
+      "first_page": {
+        "has_next_cursor": false,
+        "limitations": [],
+        "rows": 100,
+        "selected_routes": 10,
+        "target_service_summary": {
+          "ambiguous": 0,
+          "conflict": 0,
+          "resolved_elsewhere": 0,
+          "resolved_to_target": 10,
+          "unresolved": 0
+        },
+        "window_valid": true
+      },
+      "ingestion": {
+        "import_seconds": 10.372
+      },
+      "invalid_window": false,
+      "outcome": "ANSWERED",
+      "point": "rows",
+      "retained_graph": {
+        "nodes": 208,
+        "relationships": 30
+      },
+      "stable_read_retries": 0,
+      "target": "service",
+      "timings": {
+        "end_to_end_ms_median": 170.719,
+        "evidence_lookup_ms_median": 125.264,
+        "evidence_ref_map_ms_median": 0.491,
+        "projection_ms_median": 6.382,
+        "serialization_ms_median": 2.233,
+        "snapshot_fingerprint_ms_median": 2.822,
+        "state_read_ms_median": 129.917
+      },
+      "walk": {
+        "distinct_rows_seen": 100,
+        "max_rows_per_page": 100,
+        "pages": 1,
+        "per_page_outcomes": [
+          "ANSWERED"
+        ],
+        "refusals": 0,
+        "rows_seen": 100
+      }
+    },
+    {
+      "bounds": {
+        "cartesian_pairs": 2000,
+        "configured_pairs": 800,
+        "consumers": 100,
+        "evidence_refs_per_request": 20,
+        "observed_pairs": 300,
+        "page_limit": 200,
+        "qualification_rows": 1000,
+        "routes": 20,
+        "rows_equal_the_bounded_union": true,
+        "rows_of_the_target": 1000,
+        "rows_on_first_page": 200
+      },
+      "evidence": {
+        "outcome": "ANSWERED",
+        "ref_map_size": 841,
+        "refs_looked_up": 20,
+        "resolved": 20
+      },
+      "first_page": {
+        "has_next_cursor": true,
+        "limitations": [
+          "MORE_ROWS_AVAILABLE"
+        ],
+        "rows": 200,
+        "selected_routes": 20,
+        "target_service_summary": {
+          "ambiguous": 0,
+          "conflict": 0,
+          "resolved_elsewhere": 0,
+          "resolved_to_target": 20,
+          "unresolved": 0
+        },
+        "window_valid": true
+      },
+      "ingestion": {
+        "import_seconds": 8.754
+      },
+      "invalid_window": false,
+      "outcome": "PARTIAL",
+      "point": "rows",
+      "retained_graph": {
+        "nodes": 1278,
+        "relationships": 30
+      },
+      "stable_read_retries": 0,
+      "target": "service",
+      "timings": {
+        "end_to_end_ms_median": 314.137,
+        "evidence_lookup_ms_median": 169.581,
+        "evidence_ref_map_ms_median": 3.858,
+        "projection_ms_median": 48.546,
+        "serialization_ms_median": 5.069,
+        "snapshot_fingerprint_ms_median": 24.222,
+        "state_read_ms_median": 167.626
+      },
+      "walk": {
+        "distinct_rows_seen": 1000,
+        "max_rows_per_page": 200,
+        "pages": 5,
+        "per_page_outcomes": [
+          "ANSWERED",
+          "PARTIAL"
+        ],
+        "refusals": 0,
+        "rows_seen": 1000
+      }
+    },
+    {
+      "bounds": {
+        "cartesian_pairs": 25000,
+        "configured_pairs": 4500,
+        "consumers": 500,
+        "evidence_refs_per_request": 20,
+        "observed_pairs": 1000,
+        "page_limit": 200,
+        "qualification_rows": 5000,
+        "routes": 50,
+        "rows_equal_the_bounded_union": true,
+        "rows_of_the_target": 5000,
+        "rows_on_first_page": 200
+      },
+      "evidence": {
+        "outcome": "ANSWERED",
+        "ref_map_size": 4601,
+        "refs_looked_up": 20,
+        "resolved": 20
+      },
+      "first_page": {
+        "has_next_cursor": true,
+        "limitations": [
+          "MORE_ROWS_AVAILABLE"
+        ],
+        "rows": 200,
+        "selected_routes": 50,
+        "target_service_summary": {
+          "ambiguous": 0,
+          "conflict": 0,
+          "resolved_elsewhere": 0,
+          "resolved_to_target": 50,
+          "unresolved": 0
+        },
+        "window_valid": true
+      },
+      "ingestion": {
+        "import_seconds": 71.666
+      },
+      "invalid_window": false,
+      "outcome": "PARTIAL",
+      "point": "rows",
+      "retained_graph": {
+        "nodes": 6108,
+        "relationships": 30
+      },
+      "stable_read_retries": 0,
+      "target": "service",
+      "timings": {
+        "end_to_end_ms_median": 869.464,
+        "evidence_lookup_ms_median": 537.975,
+        "evidence_ref_map_ms_median": 24.864,
+        "projection_ms_median": 320.806,
+        "serialization_ms_median": 6.292,
+        "snapshot_fingerprint_ms_median": 115.364,
+        "state_read_ms_median": 406.657
+      },
+      "walk": {
+        "distinct_rows_seen": 5000,
+        "max_rows_per_page": 200,
+        "pages": 25,
+        "per_page_outcomes": [
+          "ANSWERED",
+          "PARTIAL"
+        ],
+        "refusals": 0,
+        "rows_seen": 5000
+      }
+    },
+    {
+      "bounds": {
+        "cartesian_pairs": 100000,
+        "configured_pairs": 9000,
+        "consumers": 1000,
+        "evidence_refs_per_request": 20,
+        "observed_pairs": 3000,
+        "page_limit": 200,
+        "qualification_rows": 10000,
+        "routes": 100,
+        "rows_equal_the_bounded_union": true,
+        "rows_of_the_target": 10000,
+        "rows_on_first_page": 200
+      },
+      "evidence": {
+        "outcome": "ANSWERED",
+        "ref_map_size": 9201,
+        "refs_looked_up": 20,
+        "resolved": 20
+      },
+      "first_page": {
+        "has_next_cursor": true,
+        "limitations": [
+          "MORE_ROWS_AVAILABLE"
+        ],
+        "rows": 200,
+        "selected_routes": 100,
+        "target_service_summary": {
+          "ambiguous": 0,
+          "conflict": 0,
+          "resolved_elsewhere": 0,
+          "resolved_to_target": 100,
+          "unresolved": 0
+        },
+        "window_valid": true
+      },
+      "ingestion": {
+        "import_seconds": 223.915
+      },
+      "invalid_window": false,
+      "outcome": "PARTIAL",
+      "point": "rows",
+      "retained_graph": {
+        "nodes": 13158,
+        "relationships": 30
+      },
+      "stable_read_retries": 0,
+      "target": "service",
+      "timings": {
+        "end_to_end_ms_median": 1715.048,
+        "evidence_lookup_ms_median": 1206.449,
+        "evidence_ref_map_ms_median": 57.735,
+        "projection_ms_median": 596.749,
+        "serialization_ms_median": 5.366,
+        "snapshot_fingerprint_ms_median": 241.23,
+        "state_read_ms_median": 724.988
+      },
+      "walk": {
+        "distinct_rows_seen": 10000,
+        "max_rows_per_page": 200,
+        "pages": 50,
+        "per_page_outcomes": [
+          "ANSWERED",
+          "PARTIAL"
+        ],
+        "refusals": 0,
+        "rows_seen": 10000
+      }
+    },
+    {
+      "bounds": {
+        "cartesian_pairs": 4000,
+        "configured_pairs": 2000,
+        "consumers": 200,
+        "evidence_refs_per_request": 20,
+        "observed_pairs": 400,
+        "page_limit": 200,
+        "qualification_rows": 2200,
+        "routes": 20,
+        "rows_equal_the_bounded_union": true,
+        "rows_of_the_target": 110,
+        "rows_on_first_page": 110
+      },
+      "evidence": {
+        "outcome": "ANSWERED",
+        "ref_map_size": 103,
+        "refs_looked_up": 20,
+        "resolved": 20
+      },
+      "first_page": {
+        "has_next_cursor": false,
+        "limitations": [],
+        "rows": 110,
+        "selected_routes": 1,
+        "target_service_summary": null,
+        "window_valid": true
+      },
+      "ingestion": {
+        "import_seconds": 17.674
+      },
+      "invalid_window": false,
+      "outcome": "ANSWERED",
+      "point": "route-target",
+      "retained_graph": {
+        "nodes": 2678,
+        "relationships": 30
+      },
+      "stable_read_retries": 0,
+      "target": "route",
+      "timings": {
+        "end_to_end_ms_median": 302.715,
+        "evidence_lookup_ms_median": 238.883,
+        "evidence_ref_map_ms_median": 0.522,
+        "projection_ms_median": 6.2,
+        "serialization_ms_median": 2.238,
+        "snapshot_fingerprint_ms_median": 54.258,
+        "state_read_ms_median": 229.228
+      },
+      "walk": {
+        "distinct_rows_seen": 110,
+        "max_rows_per_page": 110,
+        "pages": 1,
+        "per_page_outcomes": [
+          "ANSWERED"
+        ],
+        "refusals": 0,
+        "rows_seen": 110
+      }
+    },
+    {
+      "bounds": {
+        "cartesian_pairs": 2000,
+        "configured_pairs": 800,
+        "consumers": 100,
+        "evidence_refs_per_request": 20,
+        "observed_pairs": 100,
+        "page_limit": 200,
+        "qualification_rows": 800,
+        "routes": 20,
+        "rows_equal_the_bounded_union": true,
+        "rows_of_the_target": 800,
+        "rows_on_first_page": 200
+      },
+      "evidence": {
+        "outcome": "ANSWERED",
+        "ref_map_size": 861,
+        "refs_looked_up": 20,
+        "resolved": 20
+      },
+      "first_page": {
+        "has_next_cursor": true,
+        "limitations": [
+          "COVERAGE_UNKNOWN",
+          "MORE_ROWS_AVAILABLE",
+          "WINDOW_NOT_VALID"
+        ],
+        "rows": 200,
+        "selected_routes": 20,
+        "target_service_summary": {
+          "ambiguous": 0,
+          "conflict": 0,
+          "resolved_elsewhere": 0,
+          "resolved_to_target": 20,
+          "unresolved": 0
+        },
+        "window_valid": false
+      },
+      "ingestion": {
+        "import_seconds": 5.971
+      },
+      "invalid_window": true,
+      "outcome": "PARTIAL",
+      "point": "invalid-window",
+      "retained_graph": {
+        "nodes": 1078,
+        "relationships": 30
+      },
+      "stable_read_retries": 0,
+      "target": "service",
+      "timings": {
+        "end_to_end_ms_median": 179.429,
+        "evidence_lookup_ms_median": 115.755,
+        "evidence_ref_map_ms_median": 3.311,
+        "projection_ms_median": 38.873,
+        "serialization_ms_median": 3.981,
+        "snapshot_fingerprint_ms_median": 14.793,
+        "state_read_ms_median": 101.356
+      },
+      "walk": {
+        "distinct_rows_seen": 800,
+        "max_rows_per_page": 200,
+        "pages": 4,
+        "per_page_outcomes": [
+          "PARTIAL"
+        ],
+        "refusals": 0,
+        "rows_seen": 800
+      }
+    }
+  ],
+  "process_id": 22441,
+  "producer": {
+    "build_revision": "fdbabcfa949836fbc654d01f2041bafb394bb74e",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.0"
+  },
+  "profile": "i3",
+  "qualification_eligible": true,
+  "repeats": 5,
+  "runtime": {
+    "aip_package_version": "0.7.0",
+    "architecture": "x86_64",
+    "container_runtime_version": "docker/29.8.2",
+    "cpu_model": "x86_64",
+    "logical_cpu_count": 14,
+    "memory_total_bytes": 16511672320,
+    "neo4j_version": "5.26.31",
+    "os": "Linux",
+    "os_release": "5.15.153.1-microsoft-standard-WSL2",
+    "python_version": "3.13.14"
+  },
+  "schema_version": "aip-benchmark-api-usage-cost/1",
+  "verified_head": "fdbabcfa949836fbc654d01f2041bafb394bb74e"
+}
