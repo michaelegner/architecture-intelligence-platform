@@ -22,6 +22,8 @@ Keep three things distinct:
 
 The derivation must retain both evidence paths.
 
+A Service mapping is valid only when it resolves to an already-established Service through the existing messaging Service-identity guard (`decide_service_identity`). Name equality alone is insufficient, and broker evidence must never mint a Service.
+
 ## 3. Identity
 
 These identities remain distinct:
@@ -41,6 +43,8 @@ I0 freezes a minimal consumer-identity carrier with:
 
 The carrier may be common or source-specific, but it must preserve native meaning.
 
+Destination D must already resolve to an AIP Topic, Queue, or Subscription through the existing messaging destination guards. Broker evidence may qualify that destination but must not mint a runtime-only destination.
+
 ## 4. Kafka Reference
 
 Kafka is the v0.7.1 production reference.
@@ -54,7 +58,9 @@ I0 decides whether to reuse or refresh that capture.
 
 Its limits remain explicit: one local Compose run, point-in-time state, one ephemeral container-IP join, client-library-specific member identity, and no message-processing evidence.
 
-Deployment-resolved configuration or another stable reviewed source is preferred for Service mapping. Name equality alone is insufficient.
+Deployment-resolved configuration or another stable reviewed source is preferred for Service mapping.
+
+For Kafka in v0.7.1, **attachment at capture time requires live group/member assignment to the Topic**. Committed offsets or historical group state without a live member assignment may be retained as evidence, but do not establish current attachment.
 
 ## 5. RabbitMQ Contrast
 
@@ -91,10 +97,12 @@ Freeze these internal outcomes:
 
 Examples:
 
-- group + one defensible Service mapping -> RESOLVED;
-- group + no defensible Service mapping -> UNRESOLVED;
-- two plausible Services -> AMBIGUOUS;
-- authoritative mappings disagree -> CONFLICT.
+- group + one accepted mapping to one existing Service -> RESOLVED;
+- group + no accepted Service mapping -> UNRESOLVED;
+- two plausible Services with no accepted authority selecting one -> AMBIGUOUS;
+- two independently accepted mapping sources that should agree resolve to different Services -> CONFLICT.
+
+AMBIGUOUS means several candidates remain and no accepted evidence selects one. CONFLICT means accepted evidence sources that should agree contradict each other; I0 defines no precedence rule that silently chooses a winner.
 
 Public answer vocabulary remains I2/I3 work.
 
@@ -109,6 +117,9 @@ I0 must define expected semantics for:
 - incompatible environment/time;
 - multiple group members without inventing multiple Services;
 - one group attached to multiple Topics;
+- group attached to a destination AIP does not already declare -> unsupported; do not mint the destination;
+- Service mapping to an identity that does not resolve through the existing Service guard -> unresolved; do not mint the Service;
+- committed offsets/historical group state without live member assignment -> not current attachment;
 - unsupported broker object;
 - attachment without message-processing evidence.
 
@@ -134,6 +145,8 @@ I0 produces only:
 1. **semantic decision record** — carrier, attachment/mapping, reconciliation, time;
 2. **Kafka evidence decision** — reuse or refresh, plus mapping authority;
 3. **RabbitMQ contrast record** — REPRESENTABLE, SOURCE_SPECIFIC, or MODEL_GAP.
+
+These records are produced in follow-up I0 PRs after this specification; the final I0 decision/completion PR freezes them and records the outcome.
 
 ## 11. Exit
 
