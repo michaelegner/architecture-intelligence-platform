@@ -126,6 +126,18 @@ LOCK_DECLARED_TOPICS_QUERY = (
     "SET t.kafka_attachment_lock_probe = true REMOVE t.kafka_attachment_lock_probe "
     "RETURN t.id AS id"
 )
+# Review of #582: R14/R15 are defined per source instance, which the discovery-scope lock does not
+# key (an optional configured_scope_id / stable_target_identity changes the scope, not the source).
+# MERGE on the uniquely constrained key takes that source's exclusive lock until the transaction
+# ends, also before any evidence exists. The node is internal metadata: no architecture fact, never
+# in the snapshot, removed with the source.
+LOCK_KAFKA_SOURCE_QUERY = (
+    "MERGE (l:KafkaSourceLock {source_instance_id: $source_instance_id}) "
+    "SET l.lock_probe = true REMOVE l.lock_probe"
+)
+DELETE_KAFKA_SOURCE_LOCK_QUERY = (
+    "MATCH (l:KafkaSourceLock {source_instance_id: $source_instance_id}) DELETE l"
+)
 READ_KAFKA_CAPTURE_EVIDENCE_QUERY = (
     "MATCH (e:KafkaCaptureEvidence {id: $id}) "
     "RETURN e.captured_at AS captured_at, e.capture_content_sha256 AS content_sha256"

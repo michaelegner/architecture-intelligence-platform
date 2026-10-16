@@ -121,6 +121,12 @@ CONSTRAINTS: list[LiteralString] = [
         "CREATE CONSTRAINT kafka_capture_evidence_id IF NOT EXISTS "
         "FOR (e:KafkaCaptureEvidence) REQUIRE e.id IS UNIQUE"
     ),
+    # The per-source-instance commit lock of the R14/R15 guard (review of #582). The constraint is
+    # what makes the guard's MERGE a lock even when two first-ever imports race.
+    (
+        "CREATE CONSTRAINT kafka_source_lock_id IF NOT EXISTS "
+        "FOR (l:KafkaSourceLock) REQUIRE l.source_instance_id IS UNIQUE"
+    ),
     # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.

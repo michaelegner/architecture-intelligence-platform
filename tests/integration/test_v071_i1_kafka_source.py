@@ -400,3 +400,68 @@ def test_a_rejected_capture_after_an_allow_list_change_keeps_the_previous_state(
     _request(driver, narrower)
     block = _state(driver)["kafka_consumer_state_v1"]
     assert [g["group_id"] for g in block["groups"]] == ["stock-projector"]  # old source retired
+
+
+def test_r14_holds_across_two_scopes_of_one_source_instance_under_real_concurrency(
+    driver, tmp_path
+) -> None:
+    """Re-review of #582: one SourceInstanceId registered under two discovery scopes (an optional
+    `configured_scope_id` is not a source-identity input). A delayed T10 run that passed its guard
+    and is still open must not let a concurrent T11 run of the other scope commit first and then be
+    overwritten. The T10 run is held open inside its guard; the T11 run must block on the
+    source-instance lock rather than pass its own guard against the same old evidence."""
+    import threading
+
+    root = tmp_path / "shared"
+    scope_a = KafkaConsumerStateSourceConfig(
+        id="kafka-prod", root=root, broker_id=BROKER, environment=ENV,
+        consumer_groups=["audit-sink", "stock-projector"], configured_scope_id="scope-a",
+    )  # fmt: skip
+    scope_b = scope_a.model_copy(update={"configured_scope_id": "scope-b"})
+    _write(root, captured_at="2026-10-16T09:00:00Z")
+    _request(driver, scope_a)
+    # no live assignment, so no Topic lock can serialize the two runs by accident
+    idle = {"stock-projector": ("Empty", [])}
+    _write(root, groups=idle, captured_at="2026-10-16T10:00:00Z")
+    older = _discover(driver, scope_a)
+    _write(root, groups=idle, captured_at="2026-10-16T11:00:00Z")
+    newer = _discover(driver, scope_b)
+    assert older.discovery_scope_id != newer.discovery_scope_id
+    assert set(older.source_outcomes) == set(newer.source_outcomes)  # one source instance
+
+    older_checked, release_older, newer_checked = (threading.Event() for _ in range(3))
+    older_guard, newer_guard = kafka_commit_guard(older), kafka_commit_guard(newer)
+    assert older_guard is not None and newer_guard is not None
+
+    def hold_older(tx):
+        result = older_guard(tx)
+        older_checked.set()
+        release_older.wait(timeout=30)
+        return result
+
+    def track_newer(tx):
+        result = newer_guard(tx)
+        newer_checked.set()
+        return result
+
+    results: dict[str, object] = {}
+
+    def commit(name, run, guard):
+        results[name] = import_discovery_run(
+            driver, database=DATABASE, run_result=run, commit_guard=guard
+        )
+
+    first = threading.Thread(target=commit, args=("older", older, hold_older))
+    first.start()
+    assert older_checked.wait(timeout=30)
+    second = threading.Thread(target=commit, args=("newer", newer, track_newer))
+    second.start()
+    # the newer run cannot get past the source-instance lock while the older one is open
+    assert not newer_checked.wait(timeout=3)
+    release_older.set()
+    first.join(timeout=60)
+    second.join(timeout=60)
+    assert results["older"].committed  # type: ignore[attr-defined]
+    assert results["newer"].committed  # type: ignore[attr-defined]
+    evidence = _state(driver)["kafka_consumer_state_v1"]["evidence"][0]
+    assert evidence["captured_at"] == "2026-10-16T11:00:00Z"

@@ -13,8 +13,10 @@ from app.graph.labels import (
 )
 from app.graph.queries import (
     ANY_SCOPED_OBSERVED_CALL_QUERY,
+    DELETE_KAFKA_SOURCE_LOCK_QUERY,
     DELETE_SOURCE_STATE_QUERY,
     LOCK_DECLARED_TOPICS_QUERY,
+    LOCK_KAFKA_SOURCE_QUERY,
     NODE_LABELS_QUERY,
     OWNED_NODE_IDS_QUERY,
     OWNED_RELATION_KEYS_QUERY,
@@ -1069,6 +1071,8 @@ def _retire_unconfigured_kafka_consumer_state_tx(
         if sid not in configured_source_instance_ids
         and registration_of.get(sid) not in protected_configured_source_ids
     ]
+    for sid in retired:
+        tx.run(DELETE_KAFKA_SOURCE_LOCK_QUERY, source_instance_id=sid)
     return tuple(
         _remove_source_tx(tx, source_instance_id=sid, removed_source_ids=frozenset(retired))
         for sid in retired
@@ -1175,9 +1179,10 @@ def kafka_commit_guard(run_result: DiscoveryRunResult) -> CommitGuard | None:
     """The graph-dependent Kafka rules, re-checked inside the commit transaction so no concurrent
     import can slip between discovery and commit (review of #582):
 
-    - capture ordering (R14/R15) against the evidence committed for this source at that moment;
-      the run already holds this source's scope lock, so a second import of the same source waits
-      and then sees the first one's evidence;
+    - capture ordering (R14/R15) against the evidence committed for this source at that moment,
+      read under this source instance's own lock (`KafkaSourceLock`), not the discovery-scope lock:
+      two registrations can share a source instance with different scopes, so a second import of
+      the same source instance waits and then sees the first one's evidence;
     - every Topic an attachment points at is write-locked and must still exist, so a concurrent
       declaring source cannot remove it before this run commits.
 
@@ -1199,6 +1204,7 @@ def kafka_commit_guard(run_result: DiscoveryRunResult) -> CommitGuard | None:
     )
 
     def guard(tx: neo4j.ManagedTransaction) -> IngestionDiagnostic | None:
+        tx.run(LOCK_KAFKA_SOURCE_QUERY, source_instance_id=capture.source_instance_id).consume()
         committed = tx.run(READ_KAFKA_CAPTURE_EVIDENCE_QUERY, id=capture.id).single()
         prior = (
             None
