@@ -143,7 +143,7 @@ The meaning of the five v0.7.0 MCP tools remains unchanged.
 I0 produces only:
 
 1. **semantic decision record** — carrier, attachment/mapping, reconciliation, time;
-2. **Kafka evidence decision** — reuse or refresh, plus mapping authority;
+2. **Kafka evidence decision** — reuse or refresh, plus the explicitly accepted Service-mapping source(s) and mapping authority;
 3. **RabbitMQ contrast record** — REPRESENTABLE, SOURCE_SPECIFIC, or MODEL_GAP.
 
 These records are produced in follow-up I0 PRs after this specification; the final I0 decision/completion PR freezes them and records the outcome.
