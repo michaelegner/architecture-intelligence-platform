@@ -21,7 +21,7 @@ Copy `.env.example` to `.env` and fill these in for local development.
 
 | Section | Fields (defaults) |
 |---|---|
-| `sources` | `directories` (`["./repositories"]`) — where to scan for OpenAPI/AsyncAPI/manifest files; v0.7.0: optional `gateways` (APISIX configuration captures: `id`, `root`, `gateway_instance_id`) and `gateway_measurements` (measurement windows: `id`, `root`, `gateway_instance_id`, `environment`), both empty by default — see [`api-aware-current-state.md`](api-aware-current-state.md) |
+| `sources` | `directories` (`["./repositories"]`) — where to scan for OpenAPI/AsyncAPI/manifest files; v0.7.0: optional `gateways` (APISIX configuration captures: `id`, `root`, `gateway_instance_id`) and `gateway_measurements` (measurement windows: `id`, `root`, `gateway_instance_id`, `environment`), both empty by default — see [`api-aware-current-state.md`](api-aware-current-state.md); v0.7.1: optional `kafka_consumer_state` (a normalized Kafka consumer-group capture read offline: `id`, `root`, `capture_relative_path`, `broker_id`, `environment`, `consumer_groups` allow-list), empty by default; it records which consumer groups are attached to already-declared Topics as internal carriers and exposes no public answer yet (the capture step is `harness/kafka-capture`) |
 | `graph` | `uri` (`bolt://localhost:7687`), `database` (`neo4j`), `max_traversal_depth` (`5`) |
 | `import` | `openapi`, `asyncapi`, `architecture_manifest` — each `true`, toggles that adapter |
 | `llm` | `enabled` (`true`), `max_result_rows` (`100`) — `enabled: false` (or a missing API key) fully disables the LLM query layer with no other effect |

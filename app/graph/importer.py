@@ -1,9 +1,10 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import replace
 
 import neo4j
 
+from app.canonical.kafka_consumer_state import kafka_capture_evidence_id
 from app.canonical.model import ArchitectureModel, relation_key
 from app.graph import claim_planning, writers
 from app.graph.labels import (
@@ -17,7 +18,9 @@ from app.graph.queries import (
     OWNED_NODE_IDS_QUERY,
     OWNED_RELATION_KEYS_QUERY,
     READ_CURRENT_INVENTORY_QUERY,
+    READ_DECLARED_TOPIC_IDS_QUERY,
     READ_GATEWAY_SOURCE_STATES_QUERY,
+    READ_KAFKA_CAPTURE_EVIDENCE_QUERY,
     READ_SOURCE_STATE_QUERY,
     READ_SOURCE_STATES_FOR_SCOPE_QUERY,
     WRITE_CURRENT_INVENTORY_QUERY,
@@ -26,18 +29,25 @@ from app.graph.queries import (
 from app.graph.repository import open_session
 from app.graph.revision_fence import bump_revision, lock_revision
 from app.graph.schema import ensure_schema
+from app.ingestion.kafka_consumer_state_discoverer import PriorKafkaCapture
 from app.ingestion.orchestrator import (
     DiscoveryRunResult,
     SourceRunOutcome,
     run_apisix_discovery,
     run_apisix_measurement_discovery,
     run_filesystem_discovery,
+    run_kafka_consumer_state_discovery,
     run_kubernetes_discovery,
 )
 from app.sources.claim_reconciliation import (
     plan_source_claim_reconciliation,
 )
-from app.sources.identity import GATEWAY_SOURCE_ID_PREFIX, MEASUREMENT_SOURCE_ID_PREFIX
+from app.sources.identity import (
+    GATEWAY_SOURCE_ID_PREFIX,
+    KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX,
+    MEASUREMENT_SOURCE_ID_PREFIX,
+    kafka_consumer_state_source_instance_id,
+)
 from app.sources.import_stats import (
     EmittedCounts,
     ImportRunStats,
@@ -57,6 +67,7 @@ from app.sources.model import (
     FilesystemSourceConfig,
     IngestionDiagnostic,
     IngestionResult,
+    KafkaConsumerStateSourceConfig,
     KubernetesCaptureScope,
     KubernetesSourceConfig,
     NotSupplied,
@@ -984,5 +995,103 @@ def import_apisix_measurement_source(
         migration_mappings=migration_mappings,
         tombstones=tombstones,
         duplicate_measurement_source=duplicate_measurement_source,
+    )
+    return import_discovery_run(driver, database=database, run_result=run_result)
+
+
+def _retire_unconfigured_kafka_consumer_state_tx(
+    tx: neo4j.ManagedTransaction, *, configured_source_instance_ids: AbstractSet[str]
+) -> tuple[SourceImportStats, ...]:
+    persisted = sorted(
+        record["source_instance_id"]
+        for record in tx.run(
+            READ_GATEWAY_SOURCE_STATES_QUERY, prefix=KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX
+        )
+    )
+    retired = [sid for sid in persisted if sid not in configured_source_instance_ids]
+    return tuple(
+        _remove_source_tx(tx, source_instance_id=sid, removed_source_ids=frozenset(retired))
+        for sid in retired
+    )
+
+
+def retire_unconfigured_kafka_consumer_state(
+    driver: neo4j.Driver, *, database: str, configured_source_instance_ids: AbstractSet[str]
+) -> tuple[SourceImportStats, ...]:
+    """v0.7.1 I1.3 (I1.1 contract §5): removing a registration, or changing its allow-list (which
+    changes the source instance id), retires that source's carriers. A dropped registration gets no
+    discovery run, so the request-level configuration is the authority; this is a change of
+    configuration and never evidence that a group detached."""
+    with open_session(driver, database=database) as session:
+        ensure_schema(session)
+        return session.execute_write(
+            _retire_unconfigured_kafka_consumer_state_tx,
+            configured_source_instance_ids=configured_source_instance_ids,
+        )
+
+
+def _read_declared_topic_ids(
+    driver: neo4j.Driver, *, database: str, ids: Collection[str]
+) -> frozenset[str]:
+    if not ids:
+        return frozenset()
+    with open_session(driver, database=database) as session:
+        ensure_schema(session)
+        return frozenset(
+            record["id"]
+            for record in session.execute_read(
+                lambda tx: list(tx.run(READ_DECLARED_TOPIC_IDS_QUERY, ids=sorted(ids)))
+            )
+        )
+
+
+def _read_prior_kafka_capture(
+    driver: neo4j.Driver, *, database: str, evidence_id: str
+) -> PriorKafkaCapture | None:
+    with open_session(driver, database=database) as session:
+        ensure_schema(session)
+        records = session.execute_read(
+            lambda tx: list(tx.run(READ_KAFKA_CAPTURE_EVIDENCE_QUERY, id=evidence_id))
+        )
+    if not records:
+        return None
+    return PriorKafkaCapture(
+        captured_at=records[0]["captured_at"], content_sha256=records[0]["content_sha256"]
+    )
+
+
+def import_kafka_consumer_state_source(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    source_config: KafkaConsumerStateSourceConfig,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_registration: bool = False,
+) -> ImportRunStats:
+    """Thin wrapper over `run_kafka_consumer_state_discovery` + `import_discovery_run` for the Kafka
+    consumer-state source kind (v0.7.1 I1.3). The graph is read only here: the committed capture of
+    this source (ordering rule, contract §4) and which candidate Topics are already declared
+    (contract §6). A later accepted capture authoritatively replaces this source's carriers through
+    the generic same-source claim reconciliation; a rejected one makes the run PARTIAL and commits
+    nothing."""
+    source_instance_id = kafka_consumer_state_source_instance_id(
+        configured_source_id=source_config.id,
+        broker_id=source_config.broker_id,
+        environment=source_config.environment,
+        consumer_groups=source_config.consumer_groups,
+    )
+    prior = _read_prior_kafka_capture(
+        driver, database=database, evidence_id=kafka_capture_evidence_id(source_instance_id)
+    )
+    run_result = run_kafka_consumer_state_discovery(
+        source_config,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+        duplicate_registration=duplicate_registration,
+        declared_topic_resolver=lambda ids: _read_declared_topic_ids(
+            driver, database=database, ids=ids
+        ),
+        prior_capture=prior,
     )
     return import_discovery_run(driver, database=database, run_result=run_result)

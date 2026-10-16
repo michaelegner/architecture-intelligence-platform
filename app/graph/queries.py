@@ -116,6 +116,14 @@ READ_GATEWAY_SOURCE_STATES_QUERY = (
     "RETURN s.source_instance_id AS source_instance_id"
 )
 
+# v0.7.1 I1.3 (I1.1 contract §4, §6): the declared Topics among a capture's candidate ids, and the
+# committed capture of one Kafka consumer-state source (its evidence carrier) for the ordering rule.
+READ_DECLARED_TOPIC_IDS_QUERY = "MATCH (t:Topic) WHERE t.id IN $ids RETURN t.id AS id"
+READ_KAFKA_CAPTURE_EVIDENCE_QUERY = (
+    "MATCH (e:KafkaCaptureEvidence {id: $id}) "
+    "RETURN e.captured_at AS captured_at, e.capture_content_sha256 AS content_sha256"
+)
+
 DELETE_SOURCE_STATE_QUERY = (
     "MATCH (s:SourceState {source_instance_id: $source_instance_id}) DELETE s"
 )

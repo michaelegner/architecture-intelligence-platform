@@ -8,6 +8,7 @@
       "apisix-adapter@1",
       "apisix-measurement-adapter@1",
       "asyncapi-adapter@1",
+      "kafka-consumer-state-adapter@1",
       "kubernetes-adapter@1",
       "manifest-adapter@1",
       "openapi-adapter@1"
@@ -23,6 +24,7 @@
     "inventory_event_id": null,
     "inventory_revision": "<scrubbed>",
     "mapping_rule_identities": [
+      "1",
       "1",
       "1",
       "1",
@@ -205,6 +207,9 @@
         "service_type": null
       }
     ],
+    "kafka_capture_evidence": [],
+    "kafka_consumer_attachments": [],
+    "kafka_consumer_groups": [],
     "measurement_evidence": [],
     "measurement_limitations": [],
     "measurement_mapping_entries": [],
@@ -451,6 +456,9 @@
               "service_type": null
             }
           ],
+          "kafka_capture_evidence": [],
+          "kafka_consumer_attachments": [],
+          "kafka_consumer_groups": [],
           "measurement_evidence": [],
           "measurement_limitations": [],
           "measurement_mapping_entries": [],
@@ -505,7 +513,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "36a2714d3ef19cea570482a88bfb1738d272e88f06bdd6952ae515e79b2ced9d"
+        "semantic_input_digest": "5b62e8415a34c77c46a0705831f7a73969b2fb096d76779b2b6179412151ad33"
       }
     }
   }

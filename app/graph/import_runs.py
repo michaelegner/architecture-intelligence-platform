@@ -15,13 +15,20 @@ from app.graph.importer import (
     import_all_sources,
     import_apisix_measurement_source,
     import_apisix_source,
+    import_kafka_consumer_state_source,
     import_kubernetes_source,
     retire_unconfigured_gateways,
+    retire_unconfigured_kafka_consumer_state,
     retire_unconfigured_measurements,
 )
 from app.ingestion.import_report import ConfiguredRun
 from app.settings import SourcesConfig
-from app.sources.identity import apisix_measurement_source_instance_id, apisix_source_instance_id
+from app.sources.identity import (
+    apisix_measurement_source_instance_id,
+    apisix_source_instance_id,
+    kafka_consumer_state_source_instance_id,
+)
+from app.sources.kafka_consumer_state_contract import duplicate_registrations
 from app.sources.migration_mappings import load_migration_mappings
 from app.sources.tombstones import load_tombstones
 
@@ -227,6 +234,53 @@ def run_all_configured_sources(
         },
     )
     for removal in retired_measurements:
+        logger.info(
+            "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
+            import_id,
+            removal.source_instance_id,
+            removal.nodes_expired,
+            removal.relations_expired,
+        )
+    # v0.7.1 I1.3 (I1.1 contract §1, §6): runs after every declaring source so the Topics a capture
+    # points at are already committed. Registrations that share a broker, environment and a group
+    # are all rejected (KAFKA_DUPLICATE_SOURCE); none commits.
+    duplicate_kafka = duplicate_registrations(sources.kafka_consumer_state)
+    for kafka_config in sources.kafka_consumer_state:
+        start = time.perf_counter()
+        run_stats = import_kafka_consumer_state_source(
+            driver,
+            database=database,
+            source_config=kafka_config,
+            migration_mappings=migration_index,
+            tombstones=tombstones,
+            duplicate_registration=kafka_config.id in duplicate_kafka,
+        )
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        _log_run(import_id, run_stats, duration_ms)
+        run_results.append(
+            ConfiguredRun(
+                kind="kafka-consumer-state",
+                configured_source_id=kafka_config.id,
+                root=kafka_config.root,
+                stats=run_stats,
+            )
+        )
+    # A dropped registration, or one whose allow-list changed (a new source instance id), gets no
+    # run above; the stale source's carriers are retired here (I1.1 contract §5).
+    retired_kafka = retire_unconfigured_kafka_consumer_state(
+        driver,
+        database=database,
+        configured_source_instance_ids={
+            kafka_consumer_state_source_instance_id(
+                configured_source_id=kafka.id,
+                broker_id=kafka.broker_id,
+                environment=kafka.environment,
+                consumer_groups=kafka.consumer_groups,
+            )
+            for kafka in sources.kafka_consumer_state
+        },
+    )
+    for removal in retired_kafka:
         logger.info(
             "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
             import_id,

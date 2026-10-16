@@ -384,6 +384,45 @@ def _project_gateway_configuration(session: neo4j.Session) -> dict | None:
     return block if any(block.values()) else None
 
 
+# v0.7.1 I1.3 (I1.1 contract §6): internal Kafka consumer-state carriers, projected only when present
+# (the same conditional-key rule as `api_usage_v1`), so a graph with no Kafka source keeps its exact
+# pre-I1.3 bytes. Rows are sorted by id and list-valued properties by value (I0 D6).
+_KAFKA_CONSUMER_STATE_QUERIES = {
+    "groups": (
+        "MATCH (n:KafkaConsumerGroup) RETURN n.id AS id, n.source_instance_id AS source_instance_id, "
+        "n.group_id AS group_id, n.broker_id AS broker_id, n.environment AS environment"
+    ),
+    "attachments": (
+        "MATCH (n:KafkaConsumerAttachment) RETURN n.id AS id, "
+        "n.source_instance_id AS source_instance_id, n.consumer_id AS consumer_id, "
+        "n.topic_id AS topic_id, n.captured_at AS captured_at, n.evidence_ids AS evidence_ids, "
+        "n.support_json AS support_json"
+    ),
+    "evidence": (
+        "MATCH (n:KafkaCaptureEvidence) RETURN n.id AS id, "
+        "n.source_instance_id AS source_instance_id, n.broker_id AS broker_id, "
+        "n.environment AS environment, n.captured_at AS captured_at, "
+        "n.capture_content_sha256 AS capture_content_sha256, n.scope_digest AS scope_digest, "
+        "n.source_revision AS source_revision, n.group_states_json AS group_states_json, "
+        "n.evidence_type AS evidence_type"
+    ),
+}
+
+
+def _project_kafka_consumer_state(session: neo4j.Session) -> dict | None:
+    """The v0.7.1 I1.3 `kafka_consumer_state_v1` block, or `None` when the graph has no Kafka
+    carriers."""
+    block: dict[str, list[dict]] = {}
+    for name, query in _KAFKA_CONSUMER_STATE_QUERIES.items():
+        rows = _project_nodes(session, query)  # pyright: ignore[reportArgumentType]
+        for row in rows:
+            for key, value in row.items():
+                if isinstance(value, list):
+                    row[key] = sorted(value)
+        block[name] = rows
+    return block if any(block.values()) else None
+
+
 def _project_api_usage(session: neo4j.Session) -> dict | None:
     """The v0.7.0 I2.2c `api_usage_v1` block (I2 spec §10.2), or `None` when the graph has no
     measurement carriers. Every list-valued property is sorted so insertion order never reaches the
@@ -613,6 +652,9 @@ def canonical_snapshot_state(
         state["api_usage_v1"] = usage
     if contracts:
         state["api_contracts_v1"] = contracts
+    kafka = _project_kafka_consumer_state(session)
+    if kafka:
+        state["kafka_consumer_state_v1"] = kafka
     return state
 
 

@@ -107,6 +107,20 @@ CONSTRAINTS: list[LiteralString] = [
         "CREATE CONSTRAINT measurement_mapping_entry_id IF NOT EXISTS "
         "FOR (m:MeasurementMappingEntry) REQUIRE m.id IS UNIQUE"
     ),
+    # v0.7.1 I1.3 (I1.1 contract §6): internal Kafka consumer-state carriers - owned, id-unique, no
+    # relationships to any entity.
+    (
+        "CREATE CONSTRAINT kafka_consumer_group_id IF NOT EXISTS "
+        "FOR (g:KafkaConsumerGroup) REQUIRE g.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT kafka_consumer_attachment_id IF NOT EXISTS "
+        "FOR (a:KafkaConsumerAttachment) REQUIRE a.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT kafka_capture_evidence_id IF NOT EXISTS "
+        "FOR (e:KafkaCaptureEvidence) REQUIRE e.id IS UNIQUE"
+    ),
     # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.

@@ -32,6 +32,23 @@ def _no_gateway_retirement(monkeypatch):
     monkeypatch.setattr(
         "app.graph.import_runs.retire_unconfigured_measurements", lambda *a, **k: ()
     )
+    monkeypatch.setattr(
+        "app.graph.import_runs.retire_unconfigured_kafka_consumer_state", lambda *a, **k: ()
+    )
+
+
+def test_dropping_the_last_kafka_registration_still_retires_its_carriers(monkeypatch):
+    retired_against: list[set[str]] = []
+
+    def fake_retire(driver, *, database, configured_source_instance_ids):
+        retired_against.append(set(configured_source_instance_ids))
+        return ()
+
+    monkeypatch.setattr(
+        "app.graph.import_runs.retire_unconfigured_kafka_consumer_state", fake_retire
+    )
+    _run_all_configured_sources(_settings(migrations=[]), driver=None)
+    assert retired_against == [set()]
 
 
 def test_no_configured_migrations_runs_with_no_directories_and_no_error(monkeypatch):

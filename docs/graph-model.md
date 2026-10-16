@@ -17,7 +17,11 @@ and `GatewaySourceEvidence` (v0.7.0 I1.4, APISIX configuration) and `ApiContract
 internal source-owned carriers with their own uniqueness constraints, no relationships, never exposed
 through REST, MCP or natural-language queries. `MeasurementWindow`, `MeasurementEvidence`,
 `MeasurementSeries`, `MeasurementLimitation` and `MeasurementMappingEntry` (v0.7.0 I2.2, APISIX
-measurement) join them. The snapshot adds the conditional keys `gateway_configuration_v1`,
+measurement) join them, as do `KafkaConsumerGroup`, `KafkaConsumerAttachment` and
+`KafkaCaptureEvidence` (v0.7.1 I1.3, Kafka consumer state: a consumer group attached to an
+already-declared Topic at capture time; no Topic, Subscription or Service is ever minted from it). The
+snapshot adds the conditional keys `kafka_consumer_state_v1` (sections `groups`, `attachments`,
+`evidence`), `gateway_configuration_v1`,
 `api_contracts_v1` and `api_usage_v1` (sections `windows`, `evidence`, `series`, `limitations`,
 `mapping_entries`, plus the derived reconciliation sections `reconciliation_rule`, `attributions`,
 `route_operation` and `target_service` (v0.7.0 I2.3), and `qualification_rule`, `coverage`,
