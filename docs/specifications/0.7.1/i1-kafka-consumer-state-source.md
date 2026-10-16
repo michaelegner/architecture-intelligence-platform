@@ -38,7 +38,10 @@ A configured source has:
 - configured source id;
 - explicit stable broker id;
 - environment;
+- an explicit non-empty allow-list of consumer group ids;
 - path to one normalized Kafka capture.
+
+The allow-list is the authoritative capture scope for v0.7.1. I1 does not claim completeness for every group on the broker. Changing the configured allow-list is a source-scope change, not evidence that a removed group detached; normal source reconfiguration/removal semantics apply instead.
 
 The stable broker id must use the same identity domain as declared Topic ownership (x-aip-broker-id / existing broker identity rules). Bootstrap-server addresses are not broker identity.
 
@@ -68,11 +71,14 @@ Group id is preserved verbatim as the source-native id.
 
 Production ingestion consumes a **structured normalized capture**, not human-formatted Kafka CLI output.
 
-A separate capture step uses Kafka Admin API-equivalent data and records at least:
+A separate **operator-run capture utility** uses Kafka Admin API-equivalent data and writes the normalized file. The AIP server/import runtime never connects to Kafka and never receives Kafka credentials. Any Kafka client dependency and credential handling stay isolated to this capture utility.
+
+The capture records at least:
 
 - capture time T;
 - stable broker id and environment;
 - Kafka version / capture-tool version where available;
+- the configured consumer-group allow-list;
 - consumer groups;
 - group state;
 - members;
@@ -89,22 +95,29 @@ Credentials, security properties and broker secrets must never enter the retaine
 
 Authoritative removal is allowed only from a **complete accepted capture**.
 
+For v0.7.1, the configured consumer-group allow-list is the complete scope. The capture utility describes every configured group directly; dynamic broker-wide discovery is not removal authority.
+
 A complete capture requires:
 
-- successful enumeration of the configured Kafka consumer-group scope;
-- successful description of every enumerated group needed by that scope;
-- no acquisition error or explicitly missing/truncated group result;
-- a valid capture time, broker id and environment.
+- capture broker id and environment exactly match the configured source;
+- the capture's group scope exactly matches the configured allow-list;
+- successful description of every configured group;
+- every described group is in a non-transitional state suitable for a point-in-time reading: **Stable** for positive attachment or explicit **Empty** for zero live attachment;
+- PreparingRebalance, CompletingRebalance, unknown/transitional state, acquisition error, or missing/truncated group result makes the whole capture incomplete;
+- a valid capture time.
+
+Because the scope is explicit and every group is described, no separate list/describe inventory race exists in v0.7.1.
 
 If completeness cannot be established, reject the capture and preserve prior accepted state.
 
 For a later complete capture:
 
-- attachments absent from the new capture are removed for this source;
+- attachments absent from the new complete reading of the same configured scope are removed for this source;
 - live assignments in the new capture replace the prior attachment set;
-- identical semantic input is a no-op.
+- replaying the **same normalized capture**, including T, is a no-op;
+- a new accepted capture with the same attachment set but a later T refreshes the point-in-time provenance/observation time. Consumer and attachment identities remain unchanged, but the observation is not treated as an identical replay.
 
-A group with no live member assignment contributes no current attachment at T.
+An explicitly Empty group contributes zero live attachment at T. A Stable group contributes only its live member assignments.
 
 ## 6. Topic Resolution
 
@@ -118,7 +131,7 @@ The join uses:
 
 The derived Topic id must already exist in the upstream canonical model.
 
-If no declared Topic exists, I1 records the source fact as unsupported/unresolved evidence as appropriate, but creates no Topic and no attachment edge.
+If no declared Topic exists, I1 creates no consumer attachment state for that assignment and emits a deterministic source diagnostic only. It creates no Topic and no attachment edge. The diagnostic remains source-qualified; it is not a persisted unresolved architecture relation for I2.
 
 Name similarity, group id, member id, bootstrap host, or Service name must never create or select a Topic.
 
@@ -175,10 +188,15 @@ At minimum:
 | live group member assigned to declared Topic | attachment recorded |
 | several members of one group on one Topic | one consumer identity / one Topic attachment |
 | one group on several Topics | distinct Topic attachments |
-| committed offsets but no live members | no current attachment |
-| live assignment to undeclared Topic | unsupported/unresolved; Topic not minted |
+| explicit Empty group / committed offsets but no live members | zero current attachment at T |
+| PreparingRebalance / CompletingRebalance / unknown transitional state | whole capture rejected; prior state preserved |
+| live assignment to undeclared Topic | source diagnostic only; Topic not minted |
+| capture broker id or environment differs from configured source | capture rejected |
+| capture group scope differs from configured allow-list | capture rejected |
 | same group id on different broker/environment | distinct consumer identities |
-| identical replay | no semantic change |
+| known-answer consumer-id vectors authored independently | exact expected hash/id |
+| exact same normalized capture replayed | no semantic change |
+| later capture has same attachments but later T | provenance T refreshed; identities unchanged |
 | later complete capture removes assignment | prior attachment removed |
 | failed/partial capture | prior state preserved |
 | unconfigured Kafka source | no new state; v0.7.0 behavior unchanged |
@@ -192,10 +210,10 @@ Expected results should be authored independently from the production adapter.
 Keep I1 small:
 
 **I1.1 — source contract + fixture**  
-Freeze source registration, capture schema, ids and independent expected vectors.
+Freeze source registration, explicit group scope, capture schema, ids and independent known-answer vectors.
 
 **I1.2 — capture + replay source**  
-Add structured Kafka capture, source discovery and normalized replay.
+Add the operator-run structured Kafka capture utility, source discovery and normalized replay. The AIP server/import runtime remains offline with respect to Kafka.
 
 **I1.3 — canonical attachment + lifecycle**  
 Persist consumer carriers/attachments, enforce declared-Topic guard, replay/removal and evidence.
@@ -215,7 +233,7 @@ I2 receives:
 - resolved declared Topic id;
 - attachment evidence/provenance;
 - source revision/lifecycle identity;
-- unsupported/unresolved source cases.
+- source-qualified diagnostics for rejected/unsupported capture facts where needed by qualification.
 
 I2 owns:
 
