@@ -66,7 +66,7 @@ Rules:
 - a later valid artifact replaces that source's prior mappings;
 - a rejected artifact keeps the previous accepted state.
 
-The mapping source may reference a group even when I1 currently has no attachment for it. Mapping evidence must remain independent from broker evidence.
+The mapping source may reference a group even when I1 currently has no attachment for it. Mapping evidence must remain independent from broker evidence and must not create a `KafkaConsumerGroup`.
 
 ## 4. Service resolution and reconciliation
 
@@ -91,6 +91,8 @@ No source silently wins over another.
 ## 5. Derived attribution
 
 For each I1 attachment, I2 combines the current mapping outcome for the same group, broker and environment.
+
+The mapping artifact has no observation time. It combines with an attachment only in the same environment and snapshot generation; the resulting attribution reports broker capture time T and does not claim that the mapping itself was observed at T.
 
 | Mapping outcome | Attribution |
 |---|---|
@@ -137,6 +139,7 @@ I2 must not create:
 - `RECEIVES_FROM`;
 - a new Service→Topic relationship;
 - a Subscription from a Kafka group;
+- a `KafkaConsumerGroup` from mapping evidence;
 - a Service from broker evidence.
 
 ## 7. Required cases
@@ -154,6 +157,7 @@ At minimum:
 | two mapping sources -> same Service | one `RESOLVED` result with both provenance paths |
 | two mapping sources -> different Services | `CONFLICT` |
 | broker/environment mismatch | no cross-join |
+| several members in one group + one mapping | one Service attribution, not one per member |
 | one group attached to two Topics | two attribution rows, one Service |
 | I1 attachment disappears | derived attribution disappears, mapping remains |
 | mapping disappears | attachment remains, attribution becomes `UNRESOLVED` |
@@ -176,7 +180,11 @@ Implement source ingestion, DECLARED-only Service resolution and the four outcom
 **I2.3 — attribution + handoff**  
 Derive per-attachment attribution, expose `kafka_consumer_attribution_v1`, complete qualification cases, and hand the stable internal state to I3.
 
-## 9. Exit
+## 9. I2 → I3 handoff
+
+I2 hands I3: consumer group identity, destination, capture time T, reconciliation/attribution outcome, Service id when resolved, and evidence references for both attachment and mapping.
+
+## 10. Exit
 
 I2 is complete when:
 
@@ -184,7 +192,7 @@ I2 is complete when:
 - only explicit mapping to a declared Service can resolve attribution;
 - unresolved, ambiguous and conflicting mappings remain explicit;
 - resolved attribution carries both evidence paths and capture time T;
-- mapping alone creates no consumer claim;
+- mapping alone creates no consumer claim or Kafka consumer identity;
 - attribution does not create new canonical messaging relationships;
 - required cases pass deterministically;
 - I1 and v0.7.0 behavior remain unchanged when the new mapping source is absent;
