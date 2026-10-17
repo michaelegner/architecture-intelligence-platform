@@ -16,7 +16,7 @@ I1 delivers broker evidence only: which consumer group is attached to which alre
 
 ## 2. Canonical, source-qualified, unresolved
 
-- **Canonical (I1-owned):** the carriers, their ids and the lifecycle (a complete accepted capture is authoritative for its source; a rejected one commits and removes nothing; ordering R14/R15 holds at commit time).
+- **Canonical (I1-owned):** the carriers, their ids and the lifecycle (a complete accepted capture is authoritative for its source; a rejected one does not commit and removes nothing; ordering R14/R15 holds at commit time).
 - **Source-qualified:** member, client, host and partitions in `support_json`; group states; undeclared-Topic diagnostics.
 - **Unresolved for I2:** consumer identity → Service. I1 emits no such association and infers none from group, member, client or host names.
 
