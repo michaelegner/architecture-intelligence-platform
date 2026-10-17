@@ -68,25 +68,32 @@ Rules:
 
 The mapping source may reference a group even when I1 currently has no attachment for it. Mapping evidence must remain independent from broker evidence and must not create a `KafkaConsumerGroup`.
 
+Multiple mapping-source registrations for the same broker/environment are allowed. They remain separate evidence authorities so agreement and disagreement can be represented explicitly.
+
 ## 4. Service resolution and reconciliation
 
 Each mapping entry resolves its Service through `decide_service_identity`.
 
-| Result | I2 outcome |
+I2 passes the declared Service candidates from the same snapshot and the request's configured `telemetry.service_aliases`. I2 introduces no additional alias mechanism.
+
+| Guard result | I2 outcome |
 |---|---|
-| one `DECLARED` Service | candidate for `RESOLVED` |
+| one `DECLARED` Service | resolved candidate |
 | `OBSERVED_ONLY` / no declared Service | `UNRESOLVED` |
+| placeholder identity | `UNRESOLVED` |
 | several possible declared Services | `AMBIGUOUS` |
-| conflicting declared identity | `CONFLICT` |
+| conflicting declared Service identity | `CONFLICT` |
 
-If several accepted mapping sources exist for the same group:
+For all accepted mapping entries for the same group:
 
-- all resolve to the same Service -> `RESOLVED`;
-- they resolve to different Services -> `CONFLICT`;
-- none resolves but at least one is ambiguous -> `AMBIGUOUS`;
-- otherwise -> `UNRESOLVED`.
+1. a `CONFLICTING_SERVICE_IDENTITY` result makes the outcome `CONFLICT` with reason `SERVICE_IDENTITY_CONFLICT`;
+2. otherwise collect all entries that resolve to a declared Service;
+3. if they resolve to more than one distinct Service -> `CONFLICT` with reason `MAPPING_SOURCE_DISAGREEMENT`;
+4. if they resolve to exactly one Service -> `RESOLVED`; non-resolving or ambiguous entries remain visible as limitations but do not override the resolved mapping;
+5. if none resolves and at least one is ambiguous -> `AMBIGUOUS`;
+6. otherwise -> `UNRESOLVED`.
 
-No source silently wins over another.
+This ordering is the explicit reconciliation rule; no source silently wins over another.
 
 ## 5. Derived attribution
 
@@ -101,10 +108,12 @@ The mapping artifact has no observation time. It combines with an attachment onl
 | `AMBIGUOUS` | ambiguous |
 | `CONFLICT` | conflict |
 
-A resolved attribution must retain both evidence paths:
+Every attribution outcome retains both evidence paths where available:
 
 - I1 attachment evidence;
-- I2 mapping evidence.
+- ids/evidence for every contributing I2 mapping entry.
+
+This applies to `UNRESOLVED`, `AMBIGUOUS` and `CONFLICT` as well as `RESOLVED`.
 
 The claim is deliberately narrow:
 
@@ -152,10 +161,12 @@ At minimum:
 | attachment + no mapping | `UNRESOLVED` |
 | mapping + no attachment | mapping retained, no attribution |
 | mapping target would be `OBSERVED_ONLY` | `UNRESOLVED`, no Service minted |
+| placeholder Service identity | `UNRESOLVED` |
 | ambiguous declared Service | `AMBIGUOUS` |
-| conflicting Service identity | `CONFLICT` |
+| conflicting Service identity | `CONFLICT` / `SERVICE_IDENTITY_CONFLICT` |
 | two mapping sources -> same Service | one `RESOLVED` result with both provenance paths |
-| two mapping sources -> different Services | `CONFLICT` |
+| two mapping sources -> different Services | `CONFLICT` / `MAPPING_SOURCE_DISAGREEMENT` |
+| one mapping source resolves S, another is unresolved or ambiguous | `RESOLVED` to S; non-resolving source retained as limitation |
 | broker/environment mismatch | no cross-join |
 | several members in one group + one mapping | one Service attribution, not one per member |
 | one group attached to two Topics | two attribution rows, one Service |
@@ -182,7 +193,7 @@ Derive per-attachment attribution, expose `kafka_consumer_attribution_v1`, compl
 
 ## 9. I2 → I3 handoff
 
-I2 hands I3: consumer group identity, destination, capture time T, reconciliation/attribution outcome, Service id when resolved, and evidence references for both attachment and mapping.
+I2 hands I3: consumer group identity, destination, capture time T, reconciliation/attribution outcome, Service id when resolved, conflict/limitation reason, and evidence references for attachment plus every contributing mapping entry.
 
 ## 10. Exit
 
@@ -191,6 +202,8 @@ I2 is complete when:
 - broker attachment and Service mapping remain independent evidence paths;
 - only explicit mapping to a declared Service can resolve attribution;
 - unresolved, ambiguous and conflicting mappings remain explicit;
+- mixed-source reconciliation follows the frozen rule in §4;
+- every attribution outcome retains the evidence needed to explain it;
 - resolved attribution carries both evidence paths and capture time T;
 - mapping alone creates no consumer claim or Kafka consumer identity;
 - attribution does not create new canonical messaging relationships;
