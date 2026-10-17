@@ -182,7 +182,9 @@ def test_the_snapshot_gains_the_conditional_key_and_is_otherwise_unchanged(
     }  # fmt: skip
     [attachment] = block["attachments"]
     assert attachment["evidence_ids"] == [evidence["id"]]
-    assert len(json.loads(attachment["support_json"])) == 1
+    assert json.loads(attachment["support_json"]) == {
+        "member_count": 1, "member_partitions": [[0, 1]],
+    }  # fmt: skip
     without = {k: v for k, v in state.items() if k != "kafka_consumer_state_v1"}
     assert snapshot_fingerprint(without)[0] == snapshot_fingerprint(before)[0]
 
@@ -465,3 +467,25 @@ def test_r14_holds_across_two_scopes_of_one_source_instance_under_real_concurren
     assert results["newer"].committed  # type: ignore[attr-defined]
     evidence = _state(driver)["kafka_consumer_state_v1"]["evidence"][0]
     assert evidence["captured_at"] == "2026-10-16T11:00:00Z"
+
+
+def test_client_supplied_member_text_never_reaches_the_graph(driver, tmp_path) -> None:
+    """Review of #583: a value a client puts into its member id, client id or host is not in any
+    stored property, the snapshot or the import report."""
+    secret = "CANARY-UNKNOWN-SECRET-3f9c"
+    member = {
+        "member_id": f"m-{secret}",
+        "client_id": f"c-{secret}",
+        "host": f"/{secret}",
+        "assignments": [{"topic": "inventory", "partitions": [0, 1]}],
+    }
+    kafka = _kafka(tmp_path)
+    _write(kafka.root, groups={"stock-projector": ("Stable", [member])})
+    import_id, runs = _request(driver, kafka)
+    assert _kafka_run(runs).stats.committed
+    assert _counts(driver)["KafkaConsumerAttachment"] == 1
+    with driver.session(database=DATABASE) as session:
+        stored = [dict(record["n"]) for record in session.run("MATCH (n) RETURN n")]
+    assert secret not in json.dumps(stored, default=str)
+    assert secret not in json.dumps(_state(driver), default=str)
+    assert secret not in build_import_report(import_id, runs).model_dump_json()

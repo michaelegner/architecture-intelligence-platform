@@ -114,7 +114,9 @@ def test_a02_several_members_one_group_one_topic_one_identity(tmp_path: Path) ->
     run = _run(tmp_path, _capture(order=("Stable", members)))
     assert _attachments(run) == _expected("A02")
     [attachment] = run.merged_model.kafka_consumer_attachments
-    assert len(json.loads(attachment.support_json)) == 2
+    assert json.loads(attachment.support_json) == {
+        "member_count": 2, "member_partitions": [[0, 1, 2], [0, 1, 2]],
+    }  # fmt: skip
     assert len(run.merged_model.kafka_consumer_groups) == 2  # still one per allow-listed group
 
 
@@ -304,3 +306,18 @@ def test_loader_and_discoverer_agree_on_the_example_capture(tmp_path: Path) -> N
     loaded = load_capture(_config(root))
     assert evidence.capture_content_sha256 == loaded.content_sha256  # type: ignore[union-attr]
     assert evidence.id == kafka_capture_evidence_id(next(iter(run.source_outcomes)))
+
+
+def test_client_supplied_member_text_never_enters_aip_state(tmp_path: Path) -> None:
+    """Review of #583 (I1 §4, §12): member ids, client ids and hosts are client-supplied text that
+    may carry a secret no shape check can recognize, so the carriers keep only the member count and
+    partitions."""
+    secret = "CANARY-UNKNOWN-SECRET-3f9c"
+    member = _member(f"m-{secret}", "orders.created", host=f"/{secret}", client=f"c-{secret}")
+    run = _run(tmp_path, _capture(payment=("Stable", [member])))
+    assert _outcome(run).result is IngestionResult.ACCEPTED
+    assert secret not in run.merged_model.model_dump_json()
+    [attachment] = run.merged_model.kafka_consumer_attachments
+    assert json.loads(attachment.support_json) == {
+        "member_count": 1, "member_partitions": [[0, 1, 2]],
+    }  # fmt: skip

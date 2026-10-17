@@ -56,6 +56,15 @@ _RESULT_BY_CODE = {
 }
 
 
+def _support_json(member_partitions: list[list[int]]) -> str:
+    ordered: list[JSONValue] = [list[JSONValue](p) for p in sorted(member_partitions)]
+    support: dict[str, JSONValue] = {
+        "member_count": len(member_partitions),
+        "member_partitions": ordered,
+    }
+    return canonical_json_bytes(support).decode("utf-8")
+
+
 class KafkaConsumerStateSourceAdapter:
     adapter_identity = "kafka-consumer-state-adapter@1"
     mapping_rule_version = "1"
@@ -108,16 +117,13 @@ class KafkaConsumerStateSourceAdapter:
             )
             if group.state != STABLE:
                 continue  # Empty / Dead: explicit zero live attachment, no attachment rows
-            by_topic: dict[str, list[JSONValue]] = defaultdict(list)
-            for member in sorted(group.members, key=lambda m: m.member_id):
+            # Only the member count and each member's partitions are kept (review of #583): member
+            # ids, client ids and hosts are client-supplied text that may carry anything, and no
+            # identity, mapping or attribution rule needs them (I0 D3), so they never enter AIP state.
+            by_topic: dict[str, list[list[int]]] = defaultdict(list)
+            for member in group.members:
                 for assignment in member.assignments:
-                    support: dict[str, JSONValue] = {
-                        "member_id": member.member_id,
-                        "client_id": member.client_id,
-                        "host": member.host,
-                        "partitions": list[JSONValue](sorted(assignment.partitions)),
-                    }
-                    by_topic[unicode_nfc(assignment.topic)].append(support)
+                    by_topic[unicode_nfc(assignment.topic)].append(sorted(assignment.partitions))
             for topic in sorted(by_topic):
                 topic_id = topic_owned_id(
                     stable_broker_id=envelope.broker_id,
@@ -135,7 +141,7 @@ class KafkaConsumerStateSourceAdapter:
                         topic_id=topic_id,
                         captured_at=envelope.captured_at,
                         evidence_ids=[evidence_id],
-                        support_json=canonical_json_bytes(by_topic[topic]).decode("utf-8"),
+                        support_json=_support_json(by_topic[topic]),
                     )
                 )
         evidence = KafkaCaptureEvidence(

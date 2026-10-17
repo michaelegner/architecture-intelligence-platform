@@ -5,8 +5,8 @@ evidence id is `kafka-capture:owned:<sha256(ld(source instance id))>`.
 
 Like the gateway evidence, the capture evidence is a dedicated carrier, not a `Provenance`: a
 `Provenance` is written as an `:Evidence` node, which the public evidence reads treat as publicly
-reachable. Public exposure is I3's decision. No member id, client id, host or partition is a
-canonical identity; they live only in `support_json` / `group_states_json`, as evidence detail.
+reachable. Public exposure is I3's decision. No member id, client id or host is ever stored: they
+are client-supplied text, needed by no identity, mapping or attribution rule (review of #583).
 """
 
 from pydantic import BaseModel, Field
@@ -44,9 +44,9 @@ class KafkaConsumerAttachment(BaseModel):
     topic_id: str = Field(min_length=1)
     captured_at: str = Field(min_length=1)
     evidence_ids: list[str] = Field(min_length=1)
-    # RFC 8785 canonical JSON of the members and partitions that support this attachment (Neo4j
-    # cannot hold a nested map). Evidence detail only.
-    support_json: str = "[]"
+    # RFC 8785 canonical JSON `{"member_count": n, "member_partitions": [[...], ...]}`: how many live
+    # members hold this Topic and their sorted partitions (Neo4j cannot hold a nested map).
+    support_json: str = '{"member_count":0,"member_partitions":[]}'
 
 
 class KafkaCaptureEvidence(BaseModel):

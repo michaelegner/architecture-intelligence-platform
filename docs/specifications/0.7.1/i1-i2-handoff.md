@@ -9,7 +9,7 @@ I1 delivers broker evidence only: which consumer group is attached to which alre
 | State | Fields | Notes |
 |---|---|---|
 | `KafkaConsumerGroup` | consumer id, `group_id`, `broker_id`, `environment` | one per allow-listed group, any state; id = contract §2 (K05) |
-| `KafkaConsumerAttachment` | consumer id, declared `topic_id`, `captured_at`, `evidence_ids`, `support_json` | only for live `Stable` assignments to a declared Topic; id = K10, T is not an id input |
+| `KafkaConsumerAttachment` | consumer id, declared `topic_id`, `captured_at`, `evidence_ids`, `support_json` (`member_count`, `member_partitions`) | only for live `Stable` assignments to a declared Topic; id = K10, T is not an id input; no member id, client id or host is stored |
 | `KafkaCaptureEvidence` | `captured_at`, capture content digest, scope digest, source revision, `group_states_json`, `configured_source_id` | one per source instance: the last accepted capture |
 | snapshot key | `kafka_consumer_state_v1` (`groups`, `attachments`, `evidence`) | present only when Kafka carriers exist |
 | diagnostics | `KAFKA_*` codes, fixed text | `KAFKA_TOPIC_NOT_DECLARED` is a diagnostic only, never state |
@@ -17,8 +17,8 @@ I1 delivers broker evidence only: which consumer group is attached to which alre
 ## 2. Canonical, source-qualified, unresolved
 
 - **Canonical (I1-owned):** the carriers, their ids and the lifecycle (a complete accepted capture is authoritative for its source; a rejected one does not commit and removes nothing; ordering R14/R15 holds at commit time).
-- **Source-qualified:** member, client, host and partitions in `support_json`; group states; undeclared-Topic diagnostics.
-- **Unresolved for I2:** consumer identity → Service. I1 emits no such association and infers none from group, member, client or host names.
+- **Source-qualified:** member count and partitions in `support_json`; group states; undeclared-Topic diagnostics.
+- **Unresolved for I2:** consumer identity → Service. I1 emits no such association and infers none from group names. Member ids, client ids and hosts are not in AIP state, so I2 cannot use a runtime host join even as corroboration unless it brings its own source for it.
 
 ## 3. Facts I2 must respect
 
