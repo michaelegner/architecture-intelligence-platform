@@ -27,7 +27,7 @@ The merge commits above were read from `gh pr view --json mergeCommit,mergedAt`.
 | 4 | Conditional snapshot key `kafka_consumer_state_v1`; additive `aip-import-report/1` run kind `kafka-consumer-state`; registering the adapter re-evaluates every source once after upgrade (no content change). | #582 |
 | 5 | Graph-dependent rules are re-checked inside the commit transaction through a source-neutral `commit_guard`: R14/R15 under a per-source-instance `KafkaSourceLock` (uniquely constrained), declared Topics write-locked and re-verified. | #582 review, two rounds |
 | 6 | A still-configured registration whose replacement run did not commit keeps its previous source (`configured_source_id` on the evidence carrier). | #582 CodeRabbit |
-| 7 | AIP stores only the member count and each member's partitions per attachment; member id, client id and host never enter AIP state (they are client-supplied text no identity, mapping or attribution rule needs, I0 D3). The operator-side capture file still contains them as evidence for the operator. | #583 review |
+| 7 | AIP stores only the member count and each member's partitions per attachment; member id, client id and host never enter AIP state (they are client-supplied text no identity, mapping or attribution rule needs, I0 D3). The operator-side capture file still contains them as evidence for the operator. I1 §4, §8, §9 and §12 amended to say this. | #583 review |
 
 ## Exit criteria (I1 §12)
 

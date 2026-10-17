@@ -86,11 +86,11 @@ The capture records at least:
 - each member's topic assignments;
 - capture completeness.
 
-Member ids, client ids, host addresses and partition assignments are retained only as evidence detail needed to explain the attachment. They are not canonical Services or consumer identities.
+The operator-side capture file may contain member ids, client ids, host addresses and partition assignments as evidence for the operator. AIP-retained state keeps only the minimum attachment evidence: the member count and each member's partitions. Member ids, client ids and host addresses are client-supplied text and never enter AIP state (amended in I1.4, completion record decision 7). None of them is a canonical Service or consumer identity.
 
 The normalized capture must be deterministic: stable field representation and sorted groups, members and assignments.
 
-Credentials, security properties and broker secrets must never enter the retained capture.
+Credentials, security properties and broker secrets must never enter the capture file or AIP-retained state.
 
 ## 5. Completeness and Lifecycle
 
@@ -175,7 +175,7 @@ Every accepted attachment must be explainable by retained source evidence contai
 - broker id and environment;
 - capture time;
 - group id;
-- member/assignment detail supporting the Topic attachment;
+- the member count and partitions supporting the Topic attachment;
 - capture completeness.
 
 Evidence remains source-qualified. I1 does not expose a new public answer.
@@ -203,7 +203,7 @@ At minimum:
 | failed/partial capture | prior state preserved |
 | unconfigured Kafka source | no new state; v0.7.0 behavior unchanged |
 | member/client/host changes but group+Topic remain | same consumer identity and attachment semantics |
-| secret/canary input | absent from retained capture/provenance/diagnostics |
+| secret/canary input | absent from AIP-retained state, provenance and diagnostics |
 
 Expected results should be authored independently from the production adapter.
 
@@ -254,7 +254,7 @@ I1 is complete when:
 - no Topic, Subscription or Service is minted from broker state;
 - consumer ids and source ownership match I0;
 - complete capture replacement and failed/partial preservation are tested;
-- secrets do not enter retained state;
+- secrets do not enter AIP-retained state;
 - no-source behavior remains unchanged;
 - the I1 → I2 handoff is explicit.
 
