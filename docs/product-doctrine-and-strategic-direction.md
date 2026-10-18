@@ -452,8 +452,8 @@ The product risk is explicit:
 > investigation boundary at lower maintenance cost, AIP adds too little and should narrow or stop.**
 
 Conversely, AIP earns a distinct product role where runtime, deployment, gateway, broker, contract, or
-other independent evidence establishes distributed relationships that source analysis cannot safely
-recover.
+other independent evidence establishes distributed knowledge that source analysis or direct
+execution cannot safely establish.
 
 ### Intent and assessment ownership
 
