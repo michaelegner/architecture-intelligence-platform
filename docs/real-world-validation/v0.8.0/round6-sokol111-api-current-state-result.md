@@ -4,9 +4,12 @@
 **Date:** 2026-10-18  
 **Primary disposition:** **INSUFFICIENT_EVIDENCE**
 
-Round 6 tested whether Sokol111's native API, Traefik, Logto and runtime evidence can support the
-released v0.7 configured-vs-observed API Current-State question without adding APISIX or changing
-the system.
+Round 6 tested whether Sokol111's native API, Traefik, Logto and runtime evidence can satisfy the
+released **source-independent v0.7 API Current-State contract** without changing the system.
+
+APISIX is only the first implemented and qualified v0.7 source adapter. It is not part of the
+semantic definition tested here. Round 6 therefore applies the existing v0.7 distinctions to a
+second, non-APISIX evidence architecture.
 
 ## 1. Frozen inputs
 
@@ -88,7 +91,7 @@ source inspection already showed no existing evidence path that could safely att
 `GetProductList` request to admin-ui as a stable application consumer. A driven local request
 would therefore demonstrate request execution, not the full consumer-attributed v0.7 relation.
 
-## 4. v0.7 semantic fit
+## 4. Fit to the source-independent v0.7 contract
 
 | v0.7 distinction | Result | Finding |
 |---|---|---|
@@ -103,20 +106,32 @@ would therefore demonstrate request execution, not the full consumer-attributed 
 
 Per the Round 6 ordering, the result is **INSUFFICIENT_EVIDENCE**.
 
-The blocker occurs before adapter availability: Sokol111's native evidence does not establish the
-full configured-consumer plus consumer-attributed observed-usage question for this operation.
-Therefore this round does **not** justify either a Traefik/Logto adapter or a new AIP semantic
-extension.
+The blocker occurs before adapter availability: Sokol111's current native evidence does not
+establish the full configured-consumer plus consumer-attributed observed-usage question for this
+operation.
+
+This is **not** a limitation of the v0.7 semantic model and does not make APISIX part of that model.
+The source-independent v0.7 distinctions remain applicable; the present Sokol111 evidence simply
+does not satisfy them strongly enough to evaluate a new source adapter. No semantic extension is
+indicated by this round.
 
 This is also not evidence that the API is unused, that admin-ui lacks access, or that no other
 consumer exists.
 
 ## 6. v0.8 consequence
 
-Do **not** add this Sokol111 API scenario to the later product-boundary comparison.
+Do **not** add the **current** Sokol111 API scenario to the later product-boundary comparison as-is.
 
-The useful finding is narrower: v0.7 semantics need a native source that can establish a stable
-consumer identity and consumer-specific configured/observed API evidence. Sokol111's current
-Traefik + Logto + internal-service path does not provide that evidence without changing the system.
+The useful finding is narrower: to satisfy the already source-independent v0.7 contract, a native
+evidence path must establish a stable consumer identity plus consumer-specific configured access and
+independently observed usage. Sokol111's current Traefik + Logto + internal-service path does not
+yet provide those facts strongly enough.
+
+A follow-up experiment may enhance Sokol111 itself to expose a trustworthy application identity in
+its normal identity/telemetry path and an explicit application-level configured-access relation,
+then rerun the **unchanged v0.7 semantics**. If that evidence becomes sufficient but AIP cannot
+ingest it, the expected result would be `SOURCE_ADAPTER_GAP`. Only a genuinely useful distinction
+that cannot be represented safely by the existing v0.7 vocabulary would constitute
+`SEMANTIC_GAP`.
 
 The Sokol111 messaging scenario remains independent of this result.
