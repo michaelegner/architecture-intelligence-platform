@@ -226,10 +226,21 @@ Re-reviews are limited to:
   regressions introduced by the fixes.
 
 Maintain a clear disposition of prior blockers, distinguish genuinely new blockers from unresolved
-ones, and explain why any new blocker was not reasonably identifiable earlier. Do not extend the
-review with cosmetic, procedural, or merely preferable changes; record worthwhile out-of-scope work
-separately. Once the blocker list is empty and required evidence is green, approve or explicitly
-report no blocking findings.
+ones, and explain why any new blocker was not reasonably identifiable earlier. When a material
+finding represents a repeated pattern within the changed surface, inspect and resolve the same class
+of occurrence across that bounded surface rather than fixing only the cited line. Do not turn that
+into unrelated repository-wide cleanup. Do not extend the review with cosmetic, procedural, or
+merely preferable changes; record worthwhile out-of-scope work separately. Once the blocker list is
+empty and required evidence is green, approve or explicitly report no blocking findings.
+
+### Promote recurring findings into reusable guards
+
+If the same material review finding recurs across multiple PRs, do not rely indefinitely on review
+comments to catch it. Propose the smallest durable enforcement point in a separate scoped change:
+an existing test/invariant, a static or lint check, the `aip-reviewer` checklist, `AGENTS.md`, or
+this skill. Prefer mechanical enforcement when the rule is mechanical. Do not enlarge the current
+implementation PR merely to institutionalize the lesson unless that guard is already inside its
+approved scope.
 
 Use this compact comment shape when useful:
 
@@ -266,6 +277,10 @@ integration, and for every integration test name the dependency-only behavior it
 ## Validation Commands
 <exact commands to run, e.g. `uv run pytest tests/unit`, `uv run pytest tests/integration -m "not qualification"`,
 `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright`, `uv run lint-imports`>
+
+## Rollback / Recovery (when applicable)
+<for migrations, persisted-state changes, release/build behavior, or other hard-to-reverse paths,
+state how to recover or roll back; omit when not applicable>
 
 ## Open Questions / Assumptions / Stop Conditions
 <anything unresolved, any assumption made explicit, any condition that should halt implementation
