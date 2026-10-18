@@ -634,7 +634,9 @@ The core rule remains:
 
 v0.8 may classify already-qualified relationships as within-boundary, cross-boundary, or unresolved.
 System/Component membership must be established independently; it must not be inferred from
-connectivity, repository structure, naming, deployment placement, or graph proximity.
+connectivity, repository structure, naming, deployment placement, or graph proximity. Only the
+composition/membership semantics needed for the bounded cross-boundary question are in scope; a
+generic enterprise architecture metamodel remains out of scope.
 
 ### Real-world product demonstration
 
@@ -650,9 +652,9 @@ not manufacture positive evidence merely to exercise a feature.
 
 The comparison should give source-analysis tooling realistic access to the repositories,
 configuration and contracts it can analyze, while AIP contributes independently qualified
-distributed-system evidence. The product test is whether the combined workflow materially improves
-the coding agent's investigation boundary and preserves uncertainty more safely than source analysis
-alone.
+distributed-system evidence. The product test is whether the combined workflow materially improves the coding agent's
+investigation boundary beyond strong source analysis without introducing unsupported architectural
+claims.
 
 **Exit capability:**
 
