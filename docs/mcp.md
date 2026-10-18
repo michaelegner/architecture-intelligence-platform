@@ -57,7 +57,8 @@ All six:
   `get_api_consumer_usage` and `get_destination_consumers`; for the three v0.5 tools the pinned
   SDK silently ignores it, unchanged since v0.5.0;
 - return `structuredContent` as an answer envelope (`ArchitectureAnswer` for the three v0.5 tools,
-  `LocalityAnswer` for the fourth, `ApiConsumerUsageAnswer` for the fifth) (`schema_version`, `producer`,
+  `LocalityAnswer` for the fourth, `ApiConsumerUsageAnswer` for the fifth,
+  `DestinationConsumersAnswer` for the sixth) (`schema_version`, `producer`,
   `snapshot`, `outcome`, plus the tool-specific data/claims) validated against the tool's
   advertised `outputSchema`. For `get_service_dependencies` and `get_evidence` that `outputSchema`
   is a `oneOf` discriminated by `schema_version`: the released v0.5 answer or the Broker-aware v0.6
@@ -75,7 +76,9 @@ Schemas live at `schemas/architecture_intelligence/v0.5/`:
 Broker-aware `architecture-answer.schema.json` and `evidence-answer.schema.json`. The v0.5 files
 are immutable. The fifth tool's schemas live at `schemas/architecture_intelligence/v0.7/`:
 `api-consumer-usage-request.schema.json` (its `request` argument) and
-`api-consumer-usage-answer.schema.json` (its answer).
+`api-consumer-usage-answer.schema.json` (its answer). The sixth tool's schemas live at
+`schemas/architecture_intelligence/v0.7.1/`: `destination-consumers-request.schema.json` (its
+`request` argument) and `destination-consumers-answer.schema.json` (its answer).
 
 ## Broker claims (v0.6.1 I2)
 
