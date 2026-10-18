@@ -651,6 +651,11 @@ API-aware Current State**, and broker-mediated consumer attribution — and then
 cross-boundary projection. Partial, unresolved and unsupported results remain valid; the demo must
 not manufacture positive evidence merely to exercise a feature.
 
+Where the demonstration depends on transient runtime or environment evidence, freeze the relevant
+evidence, context, mappings and rules so the same architectural conclusion can be replayed
+deterministically. Replay of a captured snapshot is not evidence that the same Current State still
+holds later; freshness requires new evidence.
+
 The comparison should give source-analysis tooling realistic access to the repositories,
 configuration and contracts it can analyze, while retaining realistic direct-execution checks
 available to the coding agent. AIP contributes independently qualified distributed-system evidence.
@@ -937,8 +942,9 @@ Reducing false claims only by returning more unresolved answers does not establi
 For **every capability release**, product qualification must include at least one recurring
 architecture question that the capability turns into a **reusable, deterministic, evidence-qualified
 answer or bounded context**. Validate that answer end to end: the consumer can resolve its evidence,
-qualification, context and limitations, and the workflow is compared with reconstruction from the
-same available source and direct-execution access. Internal semantic correctness alone is necessary but not sufficient
+qualification, context and limitations, the conclusion can be reproduced from the same frozen
+premises, and the workflow is compared with reconstruction from the same available source and
+direct-execution access. Internal semantic correctness alone is necessary but not sufficient
 evidence of product value.
 
 Record a continue, narrow, defer, or stop decision when evaluating these gates. Failed gates require
