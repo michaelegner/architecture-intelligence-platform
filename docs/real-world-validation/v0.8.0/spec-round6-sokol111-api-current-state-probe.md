@@ -27,7 +27,7 @@ Use the Catalog API and one concrete operation:
 
 > **`ProductService.GetProductList`**
 
-This is suitable because the frozen Sokol111 sources already show:
+This is suitable because the existing Sokol111 sources show:
 
 - a Connect-RPC Catalog API with explicit ProductService operations;
 - Traefik ingress exposing the Catalog service;
@@ -62,7 +62,7 @@ Inspect only enough to classify the v0.7 question.
 | API / operation | protobuf / Connect-RPC contract and Catalog handlers |
 | API exposure | Traefik / Kubernetes ingress for Catalog |
 | consumer identity | Logto application identity and/or runtime request identity, if attributable |
-| configured access | Logto application/role/scope configuration, but only if it actually establishes access for the identified consumer |
+| configured access | Logto application/role/scope configuration, but only where the access grant can be tied to the identified consumer |
 | observed usage | existing request telemetry/logs that identify both the operation and consumer |
 | environment/window | deployment configuration plus timestamped runtime evidence |
 
