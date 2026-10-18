@@ -25,7 +25,9 @@ and `KafkaServiceMappingEntry` and `KafkaServiceMappingEvidence` (v0.7.1 I2.2, a
 consumer-group -> Service mapping stored exactly as written; the Service is resolved per snapshot,
 so no Service or `KafkaConsumerGroup` is ever created from it). The
 snapshot adds the conditional keys `kafka_consumer_state_v1` (sections `groups`, `attachments`,
-`evidence`), `kafka_consumer_attribution_v1` (v0.7.1 I2.3: sections `rule`, `mapping_sources`,
+`evidence`) with `kafka_topic_brokers_v1` beside it (v0.7.1 I3.1: the declared broker of each Topic,
+`topic_id`/`broker_id` only, so a destination-consumer answer is a function of the snapshot),
+`kafka_consumer_attribution_v1` (v0.7.1 I2.3: sections `rule`, `mapping_sources`,
 `mapping_entries`, `aliases_applied`, `groups`, `attributions`, derived in the projection from the
 mapping carriers, the I1 attachments, the declared Services and the configured
 `telemetry.service_aliases`; present only when a mapping carrier exists), `gateway_configuration_v1`,
