@@ -1,0 +1,15 @@
+{
+  "schema": "aip-kafka-consumer-service-mapping/1",
+  "broker_id": "kafka:cluster-a",
+  "environment": "prod",
+  "mappings": [
+    {
+      "group_id": "order-service",
+      "service_name": "billing"
+    },
+    {
+      "group_id": "payment-service",
+      "service_name": "payment-service"
+    }
+  ]
+}

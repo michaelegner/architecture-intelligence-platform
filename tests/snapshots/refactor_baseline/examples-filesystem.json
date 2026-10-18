@@ -8,6 +8,8 @@
       "apisix-adapter@1",
       "apisix-measurement-adapter@1",
       "asyncapi-adapter@1",
+      "kafka-consumer-state-adapter@1",
+      "kafka-service-mapping-adapter@1",
       "kubernetes-adapter@1",
       "manifest-adapter@1",
       "openapi-adapter@1"
@@ -28,6 +30,8 @@
     "inventory_event_id": null,
     "inventory_revision": "<scrubbed>",
     "mapping_rule_identities": [
+      "1",
+      "1",
       "1",
       "1",
       "1",
@@ -60,6 +64,11 @@
     "infrastructure_claims": [],
     "infrastructure_contributions": [],
     "infrastructure_entities": [],
+    "kafka_capture_evidence": [],
+    "kafka_consumer_attachments": [],
+    "kafka_consumer_groups": [],
+    "kafka_service_mapping_entries": [],
+    "kafka_service_mapping_evidence": [],
     "measurement_evidence": [],
     "measurement_limitations": [],
     "measurement_mapping_entries": [],
@@ -610,6 +619,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "kafka_capture_evidence": [],
+          "kafka_consumer_attachments": [],
+          "kafka_consumer_groups": [],
+          "kafka_service_mapping_entries": [],
+          "kafka_service_mapping_evidence": [],
           "measurement_evidence": [],
           "measurement_limitations": [],
           "measurement_mapping_entries": [],
@@ -807,7 +821,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "fc1d46c3830bbafc72891575c2010c77a552ffdb15040968acb00ae1c32f9248"
+        "semantic_input_digest": "7682a0574a58411bd27d3cfd047d46ec50c703c4c743a283c44ac27df1fa8a74"
       }
     },
     "urn:aip:source:filesystem:5ce532518b49a66ac861423e9349cf12fd70d3ce513fdd1c787af9e7d8920a54": {
@@ -846,6 +860,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "kafka_capture_evidence": [],
+          "kafka_consumer_attachments": [],
+          "kafka_consumer_groups": [],
+          "kafka_service_mapping_entries": [],
+          "kafka_service_mapping_evidence": [],
           "measurement_evidence": [],
           "measurement_limitations": [],
           "measurement_mapping_entries": [],
@@ -881,7 +900,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "28d68304fba6153b0e3fd4576f19c1f24dfcb4884b09d460b6431f39ba64be08"
+        "semantic_input_digest": "5c3a83cd8a512b7493c0af93c22230d1cb874a45aa1aa88eea37f1905de5b43d"
       }
     },
     "urn:aip:source:filesystem:7f055a6aea1cdd580b66c8e0000308daa6fc513f8d9b62c9842470d88fcbcb56": {
@@ -920,6 +939,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "kafka_capture_evidence": [],
+          "kafka_consumer_attachments": [],
+          "kafka_consumer_groups": [],
+          "kafka_service_mapping_entries": [],
+          "kafka_service_mapping_evidence": [],
           "measurement_evidence": [],
           "measurement_limitations": [],
           "measurement_mapping_entries": [],
@@ -1033,7 +1057,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "ede6ecdbff2fcec02524d6c331a6fb8e6cb348f0244aa9b11d3ac730bcaa146c"
+        "semantic_input_digest": "72802609abb11b5e646267655d7bdc26cc51407e11827d6347fcf98f84a804c2"
       }
     },
     "urn:aip:source:filesystem:833e2828fe1aab512d1943c48acb72d7b94bee00925e01a60e8c26e04a6ec189": {
@@ -1077,6 +1101,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "kafka_capture_evidence": [],
+          "kafka_consumer_attachments": [],
+          "kafka_consumer_groups": [],
+          "kafka_service_mapping_entries": [],
+          "kafka_service_mapping_evidence": [],
           "measurement_evidence": [],
           "measurement_limitations": [],
           "measurement_mapping_entries": [],
@@ -1167,7 +1196,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "0511b743cdf1baab003e1057f0175e2a25dca0c26da6c703e2ee36c74449caa2"
+        "semantic_input_digest": "92732ae92ea6e3e07a976414e87f12cd5102c167dba19f5e03f31c49bc3d0e92"
       }
     },
     "urn:aip:source:filesystem:bc68d5827d7bed2c4ec37eb12c23fa0319e78cccdfd6e9efd163d4b1329159e5": {
@@ -1206,6 +1235,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "kafka_capture_evidence": [],
+          "kafka_consumer_attachments": [],
+          "kafka_consumer_groups": [],
+          "kafka_service_mapping_entries": [],
+          "kafka_service_mapping_evidence": [],
           "measurement_evidence": [],
           "measurement_limitations": [],
           "measurement_mapping_entries": [],
@@ -1275,7 +1309,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "83d0e44cfc6f58ce9fc20cd99cae86f80cde119ed1f3076a53af5928517455f4"
+        "semantic_input_digest": "d8a16af1b05cacf13e3c677db35f8c40b7465f35f9c8ff3fb5e26ad0ebf3e7bb"
       }
     },
     "urn:aip:source:filesystem:bde49ebe4fc19f12fea1549011bb94c1e526e8a514e898a95b71429bdbbc0732": {
@@ -1319,6 +1353,11 @@
           "infrastructure_claims": [],
           "infrastructure_contributions": [],
           "infrastructure_entities": [],
+          "kafka_capture_evidence": [],
+          "kafka_consumer_attachments": [],
+          "kafka_consumer_groups": [],
+          "kafka_service_mapping_entries": [],
+          "kafka_service_mapping_evidence": [],
           "measurement_evidence": [],
           "measurement_limitations": [],
           "measurement_mapping_entries": [],
@@ -1455,7 +1494,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "62eaadcdc216960cce6954195e2818016cfa91158e603de24e4f636cf1248fd3"
+        "semantic_input_digest": "1241b567cef2aece3f5a6d2e09eb061659de1ed404f3790e95aef4bf178e9be7"
       }
     }
   }

@@ -1,4 +1,7 @@
-"""Locator sanitisation shared by the public evidence projection and the import report."""
+"""Locator sanitisation shared by the public evidence projection and the import report, and the
+root-confined path resolution shared by the single-file source loaders."""
+
+from pathlib import Path, PurePosixPath
 
 
 def sanitize_source_locator(source_file: str | None) -> str | None:
@@ -21,3 +24,14 @@ def sanitize_source_locator(source_file: str | None) -> str | None:
     if any(segment in ("", ".", "..") for segment in segments):
         return None
     return source_file
+
+
+def confined_path(root: Path, relative_path: str) -> Path | None:
+    """`root / relative_path` resolved, or `None` when the relative path is absolute, empty, has a
+    `..` segment or resolves (for example through a symlink) outside the resolved root."""
+    relative = PurePosixPath(relative_path)
+    if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+        return None
+    resolved_root = root.resolve()
+    path = (resolved_root / relative).resolve()
+    return path if path.is_relative_to(resolved_root) else None
