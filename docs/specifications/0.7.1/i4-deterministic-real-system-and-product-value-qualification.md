@@ -20,6 +20,8 @@ Minimum coverage:
 | Live Kafka group attachment + reviewed mapping to a declared Service | `RESOLVED`; group, Topic, T and **both independent evidence paths** |
 | Attachment without mapping; runtime-only/unknown Service | `UNRESOLVED`, no invented Service; `NO_MAPPING_SOURCE` when appropriate |
 | Ambiguous/conflicting mappings | Exact frozen I2 outcome and explanation; no chosen Service |
+| Mapping exists but no live group attachment | No attribution row and no “Service does not consume” claim |
+| Historical group/committed offsets without live member assignment | No attachment inferred from historical state |
 | Accepted capture with no matching attachment, or groups outside its configured allow-list | No negative “not consuming” claim; `CAPTURE_SCOPE_LIMITED` remains visible |
 | Incomplete capture (I1 `KAFKA_CAPTURE_INCOMPLETE`) | Rejected, never accepted; previous committed state remains unchanged |
 | Multiple members, multiple Topics, two environments | One row per group/Topic attachment; correct destination/environment selection |
@@ -34,6 +36,8 @@ Verify public parity on the candidate: **semantic service = REST response body =
 Run a **controlled Kafka instance** and capture its actual broker-held group/member assignments once with [`harness/kafka-capture/capture.py`](../../../harness/kafka-capture/README.md) (`uv run --with confluent-kafka==2.16.0 …`). Record the **pinned Kafka container image digest**, version and capture command; do not rely on a moving tag. Freeze the normalized file for A/B replay.
 
 Import it with already-declared Topics/Services and a separate reviewed mapping artifact through the real I1/I2 adapters. The declared AsyncAPI Topic must have **no namespace**, use the same `x-aip-broker-id` as the capture registration, and use the **exact Kafka topic name as its channel address**. Otherwise I1 cannot join the attachment and the resolved case is not qualified.
+
+**Before importing into AIP**, record independent expected group → Topic attachments from the running Kafka broker and expected group → Service mappings from the application's actual configuration. Compare AIP's conclusions against those expectations, **not against AIP-generated output**.
 
 Prove at least one **resolved** and one **unresolved or insufficient** public answer, including same-snapshot evidence drill-down over REST and MCP. Record fixture/config revision, capture T, scope, source revisions, artifact hashes and the actual answer. For update/removal, use another **accepted real capture** if available, or a clearly labelled, deterministic **derived variant** of the frozen capture. Do not present the derived variant as independently observed broker behavior.
 
@@ -53,7 +57,7 @@ Record **SOURCE_SPECIFIC / MODEL_GAP** and explain any gap. Do not force RabbitM
 
 Have the **owner run one realistic coding-agent investigation**: an engineer is changing a Kafka-published event or Topic and wants to know which Services may be affected. Save the prompt, redacted transcript and observed result in `docs/specifications/0.7.1/i4-evidence/agent-session.md`.
 
-Compare the same question **without** broker evidence (repository/configuration view) and **with** the qualified I3 public answer and evidence drill-down. Record briefly:
+Compare the same question **without** broker evidence (repository/configuration view) and **with** the qualified I3 public answer and evidence drill-down. Include a case where configuration shows a **possible consumer** but broker evidence changes or qualifies that conclusion through actual attachment **at T** (or explicitly insufficient evidence). Check whether this changes the agent's next investigation or action; do **not** present an at-T observation as a complete change-impact assessment. Record briefly:
 
 - what the agent could and could not conclude in each case;
 - whether broker evidence changed the investigation or next action;
@@ -67,9 +71,9 @@ Finish with **one owner-reviewed decision: `CONTINUE | NARROW | DEFER | STOP`**,
 I4 is complete when:
 
 1. The independently expected cases and **two clean runs on one SHA** pass, with no unexplained mismatch.
-2. Real Kafka ingestion produces a resolved and an unresolved/insufficient end-to-end answer, with public evidence and T.
+2. Real Kafka ingestion produces a resolved and an unresolved/insufficient end-to-end answer **matching independently recorded broker/configuration ground truth**, with public evidence and T.
 3. RabbitMQ distinctions remain explicit; any model gap has a reviewed scope decision.
 4. REST/MCP parity, evidence safety, source lifecycle and existing-tool compatibility pass.
-5. The product-value check ends with an explicit decision.
+5. The product-value check demonstrates whether broker evidence changes an actual coding-agent decision, and ends with an explicit decision.
 
 Produce **one concise I4 result record** containing the candidate SHA, test/replay commands, fixture/source hashes, A/B outcome, real Kafka evidence, RabbitMQ result, significant limitations and product decision. Hand the qualified SHA and remaining release work to I5. **I5**, not I4, owns release-facing tool-count/golden re-freeze, publication and post-publication verification.
