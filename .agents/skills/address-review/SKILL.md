@@ -24,7 +24,10 @@ Do not turn reviewer preferences into new product semantics.
 4. **Make evidence-backed fixes.** For a behavior defect, add or strengthen a regression test when
    that test provides real proof. For a documentation/claim defect, verify the corrected claim
    against the actual code, schema, fixture or pinned evidence rather than inventing a test solely
-   for ceremony. Preserve the retained plan and reconciliation for specification-governed work.
+   for ceremony. When a material finding exposes a repeated pattern within the changed surface,
+   inspect and fix the same class of occurrence there rather than patching only the cited line; do
+   not widen this into unrelated repository cleanup. Preserve the retained plan and reconciliation
+   for specification-governed work.
 5. **Validate economically.** Run targeted checks while iterating. After the final source-relevant
    change, run the full AGENTS.md gate once. If the complete fix is documentation-only, use the
    documentation-only exemption. Any source change after the full gate invalidates that gate.
@@ -44,5 +47,7 @@ Do not turn reviewer preferences into new product semantics.
 
 Every material review finding is either fixed with evidence or explicitly returned to the owner as
 a design/specification decision; required validation is green; and any required independent
-self-review has no BLOCKER/MAJOR findings. If commit/push was not explicitly authorized, finish by
-reporting that the fixes are ready but uncommitted. Leave merge to the owner.
+self-review has no BLOCKER/MAJOR findings. If the same material finding is recurring across PRs,
+report a candidate reusable guard separately rather than expanding the current PR. If commit/push
+was not explicitly authorized, finish by reporting that the fixes are ready but uncommitted. Leave
+merge to the owner.
