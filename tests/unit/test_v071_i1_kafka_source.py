@@ -9,7 +9,11 @@ from pathlib import Path
 import pytest
 
 from app.canonical.kafka_consumer_state import kafka_capture_evidence_id
-from app.ingestion.kafka_consumer_state_discoverer import PriorKafkaCapture
+from app.ingestion.kafka_consumer_state_adapter import KafkaConsumerStateSourceAdapter
+from app.ingestion.kafka_consumer_state_discoverer import (
+    KafkaConsumerStateSourceDiscoverer,
+    PriorKafkaCapture,
+)
 from app.ingestion.orchestrator import run_kafka_consumer_state_discovery
 from app.sources.kafka_consumer_state_loader import load_capture
 from app.sources.model import DiagnosticCode, IngestionResult, KafkaConsumerStateSourceConfig
@@ -321,3 +325,18 @@ def test_client_supplied_member_text_never_enters_aip_state(tmp_path: Path) -> N
     assert json.loads(attachment.support_json) == {
         "member_count": 1, "member_partitions": [[0, 1, 2]],
     }  # fmt: skip
+
+
+def test_the_adapter_supports_by_schema_string_not_by_filename(tmp_path: Path) -> None:
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "kafka-consumer-state.json").write_text(json.dumps(_capture()))
+    discoverer = KafkaConsumerStateSourceDiscoverer(
+        _config(root), declared_topic_resolver=_resolver()
+    )
+    [loaded] = discoverer.discover().loaded_sources
+    adapter = KafkaConsumerStateSourceAdapter()
+    assert adapter.supports(loaded)
+    other_schema = copy.deepcopy(loaded.document)
+    other_schema["capture"]["schema"] = "aip-kafka-consumer-state/2"
+    assert not adapter.supports(loaded.model_copy(update={"document": other_schema}))

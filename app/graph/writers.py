@@ -34,6 +34,10 @@ from app.canonical.kafka_consumer_state import (
     KAFKA_CONSUMER_ATTACHMENT_LABEL,
     KAFKA_CONSUMER_GROUP_LABEL,
 )
+from app.canonical.kafka_service_mapping import (
+    KAFKA_SERVICE_MAPPING_ENTRY_LABEL,
+    KAFKA_SERVICE_MAPPING_EVIDENCE_LABEL,
+)
 from app.canonical.model import ArchitectureModel, relation_key
 from app.canonical.pubsub import (
     PUBSUB_DECLARATION_LABEL,
@@ -233,14 +237,17 @@ def _write_measurement_carrier_nodes(
 def _write_kafka_carrier_nodes(
     tx: neo4j.ManagedTransaction, source_instance_id: str, model: ArchitectureModel
 ) -> int:
-    """v0.7.1 I1.3: the internal Kafka consumer-state carriers (I1.1 contract §6), written with the
-    same MERGE-with-`owner_source_ids` template as every other canonical node. Their labels sit
-    outside `NODE_LABELS` and they have no relationships."""
+    """v0.7.1 I1.3 / I2.2: the internal Kafka consumer-state carriers (I1.1 contract §6) and Service-
+    mapping carriers (I2.1 contract §5), written with the same MERGE-with-`owner_source_ids` template
+    as every other canonical node. Their labels sit outside `NODE_LABELS` and they have no
+    relationships."""
     count = 0
     for label, carriers in (
         (KAFKA_CONSUMER_GROUP_LABEL, model.kafka_consumer_groups),
         (KAFKA_CONSUMER_ATTACHMENT_LABEL, model.kafka_consumer_attachments),
         (KAFKA_CAPTURE_EVIDENCE_LABEL, model.kafka_capture_evidence),
+        (KAFKA_SERVICE_MAPPING_ENTRY_LABEL, model.kafka_service_mapping_entries),
+        (KAFKA_SERVICE_MAPPING_EVIDENCE_LABEL, model.kafka_service_mapping_evidence),
     ):
         query = MERGE_NODE_TEMPLATE.format(label=label)
         for carrier in carriers:

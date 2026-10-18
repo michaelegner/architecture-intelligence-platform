@@ -20,7 +20,10 @@ through REST, MCP or natural-language queries. `MeasurementWindow`, `Measurement
 measurement) join them, as do `KafkaConsumerGroup`, `KafkaConsumerAttachment` and
 `KafkaCaptureEvidence` (v0.7.1 I1.3, Kafka consumer state: a consumer group attached to an
 already-declared Topic at capture time; no Topic, Subscription or Service is ever minted from it;
-one `KafkaSourceLock` node per source instance is internal commit-lock metadata, never in the snapshot). The
+one `KafkaSourceLock` node per source instance is internal commit-lock metadata, never in the snapshot),
+and `KafkaServiceMappingEntry` and `KafkaServiceMappingEvidence` (v0.7.1 I2.2, an operator-supplied
+consumer-group -> Service mapping stored exactly as written; the Service is resolved per snapshot,
+so no Service or `KafkaConsumerGroup` is ever created from it). The
 snapshot adds the conditional keys `kafka_consumer_state_v1` (sections `groups`, `attachments`,
 `evidence`), `gateway_configuration_v1`,
 `api_contracts_v1` and `api_usage_v1` (sections `windows`, `evidence`, `series`, `limitations`,

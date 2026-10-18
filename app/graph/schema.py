@@ -121,6 +121,16 @@ CONSTRAINTS: list[LiteralString] = [
         "CREATE CONSTRAINT kafka_capture_evidence_id IF NOT EXISTS "
         "FOR (e:KafkaCaptureEvidence) REQUIRE e.id IS UNIQUE"
     ),
+    # v0.7.1 I2.2 (I2.1 contract §5): internal Kafka Service-mapping carriers - owned, id-unique, no
+    # relationships to any entity.
+    (
+        "CREATE CONSTRAINT kafka_service_mapping_entry_id IF NOT EXISTS "
+        "FOR (m:KafkaServiceMappingEntry) REQUIRE m.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT kafka_service_mapping_evidence_id IF NOT EXISTS "
+        "FOR (e:KafkaServiceMappingEvidence) REQUIRE e.id IS UNIQUE"
+    ),
     # The per-source-instance commit lock of the R14/R15 guard (review of #582). The constraint is
     # what makes the guard's MERGE a lock even when two first-ever imports race.
     (

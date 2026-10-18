@@ -148,6 +148,12 @@ READ_KAFKA_SOURCE_REGISTRATIONS_QUERY = (
     "RETURN e.source_instance_id AS source_instance_id, "
     "e.configured_source_id AS configured_source_id"
 )
+# v0.7.1 I2.2: the registration behind each persisted Kafka Service-mapping source, for retirement.
+READ_KAFKA_MAPPING_SOURCE_REGISTRATIONS_QUERY = (
+    "MATCH (e:KafkaServiceMappingEvidence) "
+    "RETURN e.source_instance_id AS source_instance_id, "
+    "e.configured_source_id AS configured_source_id"
+)
 
 DELETE_SOURCE_STATE_QUERY = (
     "MATCH (s:SourceState {source_instance_id: $source_instance_id}) DELETE s"

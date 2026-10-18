@@ -16,9 +16,11 @@ from app.graph.importer import (
     import_apisix_measurement_source,
     import_apisix_source,
     import_kafka_consumer_state_source,
+    import_kafka_service_mapping_source,
     import_kubernetes_source,
     retire_unconfigured_gateways,
     retire_unconfigured_kafka_consumer_state,
+    retire_unconfigured_kafka_service_mappings,
     retire_unconfigured_measurements,
 )
 from app.ingestion.import_report import ConfiguredRun
@@ -27,8 +29,12 @@ from app.sources.identity import (
     apisix_measurement_source_instance_id,
     apisix_source_instance_id,
     kafka_consumer_state_source_instance_id,
+    kafka_service_mapping_source_instance_id,
 )
 from app.sources.kafka_consumer_state_contract import duplicate_registrations
+from app.sources.kafka_service_mapping_contract import (
+    duplicate_registrations as duplicate_mapping_registrations,
+)
 from app.sources.migration_mappings import load_migration_mappings
 from app.sources.tombstones import load_tombstones
 
@@ -287,6 +293,54 @@ def run_all_configured_sources(
         protected_configured_source_ids=uncommitted_kafka,
     )
     for removal in retired_kafka:
+        logger.info(
+            "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
+            import_id,
+            removal.source_instance_id,
+            removal.nodes_expired,
+            removal.relations_expired,
+        )
+    # v0.7.1 I2.2 (I2.1 contract §1): Kafka Service-mapping artifacts. They read no graph state, so
+    # their position in the request does not matter. Registrations sharing an id are all rejected
+    # (KSM_DUPLICATE_SOURCE); distinct ids for one broker and environment are separate authorities.
+    duplicate_mappings = duplicate_mapping_registrations(sources.kafka_service_mappings)
+    uncommitted_mappings: set[str] = set()
+    for mapping_config in sources.kafka_service_mappings:
+        start = time.perf_counter()
+        run_stats = import_kafka_service_mapping_source(
+            driver,
+            database=database,
+            source_config=mapping_config,
+            migration_mappings=migration_index,
+            tombstones=tombstones,
+            duplicate_registration=mapping_config.id in duplicate_mappings,
+        )
+        if not run_stats.committed:
+            uncommitted_mappings.add(mapping_config.id)
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        _log_run(import_id, run_stats, duration_ms)
+        run_results.append(
+            ConfiguredRun(
+                kind="kafka-service-mapping",
+                configured_source_id=mapping_config.id,
+                root=mapping_config.root,
+                stats=run_stats,
+            )
+        )
+    retired_mappings = retire_unconfigured_kafka_service_mappings(
+        driver,
+        database=database,
+        configured_source_instance_ids={
+            kafka_service_mapping_source_instance_id(
+                configured_source_id=mapping.id,
+                broker_id=mapping.broker_id,
+                environment=mapping.environment,
+            )
+            for mapping in sources.kafka_service_mappings
+        },
+        protected_configured_source_ids=uncommitted_mappings,
+    )
+    for removal in retired_mappings:
         logger.info(
             "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
             import_id,

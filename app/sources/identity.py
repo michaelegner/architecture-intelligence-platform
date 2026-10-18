@@ -277,6 +277,40 @@ def kafka_attachment_id(*, consumer_id: str, topic_id: str) -> str:
     )
 
 
+KAFKA_SERVICE_MAPPING_SOURCE_ID_PREFIX = "urn:aip:source:kafka-service-mapping:"
+
+
+def kafka_service_mapping_source_instance_id(
+    *, configured_source_id: str, broker_id: str, environment: str
+) -> SourceInstanceId:
+    """v0.7.1 I2.1 contract §2 (vectors M01-M03):
+
+    SourceInstanceId = urn:aip:source:kafka-service-mapping:<sha256(ld(configured source id,
+      broker id, environment))>
+    """
+    key = length_delimited(utf8(configured_source_id), utf8(broker_id), utf8(environment))
+    return SourceInstanceId(f"{KAFKA_SERVICE_MAPPING_SOURCE_ID_PREFIX}{sha256_hex(key)}")
+
+
+def kafka_service_mapping_entry_id(*, source_instance_id: str, group_id: str) -> str:
+    """v0.7.1 I2.1 contract §2 (vectors M04, M05): one entry per exact group id per mapping source."""
+    key = length_delimited(utf8(source_instance_id), utf8(group_id))
+    return f"kafka-service-mapping:owned:{sha256_hex(key)}"
+
+
+def kafka_service_mapping_evidence_id(source_instance_id: str) -> str:
+    """v0.7.1 I2.1 contract §2 (vector M06): one evidence carrier per mapping source instance."""
+    return (
+        "kafka-service-mapping-evidence:owned:"
+        f"{sha256_hex(length_delimited(utf8(source_instance_id)))}"
+    )
+
+
+def kafka_service_mapping_source_revision(artifact_sha256: str) -> str:
+    """v0.7.1 I2.1 contract §2 (vector M09): the artifact has no observation time."""
+    return f"artifact-sha256:{artifact_sha256}"
+
+
 def kubernetes_logical_resource_id(
     *, cluster_uid: str, api_group: str, kind: str, namespace: str, name: str
 ) -> str:

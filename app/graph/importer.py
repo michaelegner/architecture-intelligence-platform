@@ -1,6 +1,7 @@
 from collections.abc import Callable, Collection, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import replace
+from typing import LiteralString
 
 import neo4j
 
@@ -24,6 +25,7 @@ from app.graph.queries import (
     READ_DECLARED_TOPIC_IDS_QUERY,
     READ_GATEWAY_SOURCE_STATES_QUERY,
     READ_KAFKA_CAPTURE_EVIDENCE_QUERY,
+    READ_KAFKA_MAPPING_SOURCE_REGISTRATIONS_QUERY,
     READ_KAFKA_SOURCE_REGISTRATIONS_QUERY,
     READ_SOURCE_STATE_QUERY,
     READ_SOURCE_STATES_FOR_SCOPE_QUERY,
@@ -45,6 +47,7 @@ from app.ingestion.orchestrator import (
     run_apisix_measurement_discovery,
     run_filesystem_discovery,
     run_kafka_consumer_state_discovery,
+    run_kafka_service_mapping_discovery,
     run_kubernetes_discovery,
 )
 from app.sources.claim_reconciliation import (
@@ -53,6 +56,7 @@ from app.sources.claim_reconciliation import (
 from app.sources.identity import (
     GATEWAY_SOURCE_ID_PREFIX,
     KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX,
+    KAFKA_SERVICE_MAPPING_SOURCE_ID_PREFIX,
     MEASUREMENT_SOURCE_ID_PREFIX,
     kafka_consumer_state_source_instance_id,
 )
@@ -76,6 +80,7 @@ from app.sources.model import (
     IngestionDiagnostic,
     IngestionResult,
     KafkaConsumerStateSourceConfig,
+    KafkaServiceMappingSourceConfig,
     KubernetesCaptureScope,
     KubernetesSourceConfig,
     NotSupplied,
@@ -1049,28 +1054,46 @@ def import_apisix_measurement_source(
     return import_discovery_run(driver, database=database, run_result=run_result)
 
 
+def _unconfigured_source_ids(
+    tx: neo4j.ManagedTransaction,
+    *,
+    prefix: str,
+    registrations_query: LiteralString,
+    configured_source_instance_ids: AbstractSet[str],
+    protected_configured_source_ids: AbstractSet[str],
+) -> list[str]:
+    """The persisted sources of one kind (by id prefix) that the request no longer configures, minus
+    those whose registration (read from its evidence carrier by `registrations_query`) is still
+    configured but did not commit a replacement in this request."""
+    persisted = sorted(
+        record["source_instance_id"]
+        for record in tx.run(READ_GATEWAY_SOURCE_STATES_QUERY, prefix=prefix)
+    )
+    registration_of = {
+        record["source_instance_id"]: record["configured_source_id"]
+        for record in tx.run(registrations_query)
+    }
+    return [
+        sid
+        for sid in persisted
+        if sid not in configured_source_instance_ids
+        and registration_of.get(sid) not in protected_configured_source_ids
+    ]
+
+
 def _retire_unconfigured_kafka_consumer_state_tx(
     tx: neo4j.ManagedTransaction,
     *,
     configured_source_instance_ids: AbstractSet[str],
     protected_configured_source_ids: AbstractSet[str],
 ) -> tuple[SourceImportStats, ...]:
-    persisted = sorted(
-        record["source_instance_id"]
-        for record in tx.run(
-            READ_GATEWAY_SOURCE_STATES_QUERY, prefix=KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX
-        )
+    retired = _unconfigured_source_ids(
+        tx,
+        prefix=KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX,
+        registrations_query=READ_KAFKA_SOURCE_REGISTRATIONS_QUERY,
+        configured_source_instance_ids=configured_source_instance_ids,
+        protected_configured_source_ids=protected_configured_source_ids,
     )
-    registration_of = {
-        record["source_instance_id"]: record["configured_source_id"]
-        for record in tx.run(READ_KAFKA_SOURCE_REGISTRATIONS_QUERY)
-    }
-    retired = [
-        sid
-        for sid in persisted
-        if sid not in configured_source_instance_ids
-        and registration_of.get(sid) not in protected_configured_source_ids
-    ]
     for sid in retired:
         tx.run(DELETE_KAFKA_SOURCE_LOCK_QUERY, source_instance_id=sid)
     return tuple(
@@ -1101,6 +1124,69 @@ def retire_unconfigured_kafka_consumer_state(
             configured_source_instance_ids=configured_source_instance_ids,
             protected_configured_source_ids=protected_configured_source_ids,
         )
+
+
+def _retire_unconfigured_kafka_service_mappings_tx(
+    tx: neo4j.ManagedTransaction,
+    *,
+    configured_source_instance_ids: AbstractSet[str],
+    protected_configured_source_ids: AbstractSet[str],
+) -> tuple[SourceImportStats, ...]:
+    retired = _unconfigured_source_ids(
+        tx,
+        prefix=KAFKA_SERVICE_MAPPING_SOURCE_ID_PREFIX,
+        registrations_query=READ_KAFKA_MAPPING_SOURCE_REGISTRATIONS_QUERY,
+        configured_source_instance_ids=configured_source_instance_ids,
+        protected_configured_source_ids=protected_configured_source_ids,
+    )
+    return tuple(
+        _remove_source_tx(tx, source_instance_id=sid, removed_source_ids=frozenset(retired))
+        for sid in retired
+    )
+
+
+def retire_unconfigured_kafka_service_mappings(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    configured_source_instance_ids: AbstractSet[str],
+    protected_configured_source_ids: AbstractSet[str] = frozenset(),
+) -> tuple[SourceImportStats, ...]:
+    """v0.7.1 I2.2 (I2.1 contract §1): removing a mapping registration, or changing its broker or
+    environment (a new source instance id), retires that source's carriers. As for the consumer-state
+    source, a still-configured registration whose run did not commit keeps its previous source, so a
+    rejected artifact never erases the last accepted entries (L04)."""
+    with open_session(driver, database=database) as session:
+        ensure_schema(session)
+        return session.execute_write(
+            _retire_unconfigured_kafka_service_mappings_tx,
+            configured_source_instance_ids=configured_source_instance_ids,
+            protected_configured_source_ids=protected_configured_source_ids,
+        )
+
+
+def import_kafka_service_mapping_source(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    source_config: KafkaServiceMappingSourceConfig,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_registration: bool = False,
+) -> ImportRunStats:
+    """Thin wrapper over `run_kafka_service_mapping_discovery` + `import_discovery_run` for the Kafka
+    Service-mapping source kind (v0.7.1 I2.2). No commit guard: the artifact has no ordering rule and
+    references no graph entity, and two imports of one source instance share its discovery scope,
+    whose lock serializes them. A later accepted artifact replaces this source's entries through the
+    generic same-source claim reconciliation; a byte-identical one is a no-op; a rejected one commits
+    nothing."""
+    run_result = run_kafka_service_mapping_discovery(
+        source_config,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+        duplicate_registration=duplicate_registration,
+    )
+    return import_discovery_run(driver, database=database, run_result=run_result)
 
 
 def _read_declared_topic_ids(

@@ -51,6 +51,8 @@ class SourceKind(StrEnum):
     APISIX_MEASUREMENT = "apisix-measurement"
     # v0.7.1 I1.1 contract §1: the Kafka consumer-state source (point-in-time group attachment).
     KAFKA_CONSUMER_STATE = "kafka_consumer_state"
+    # v0.7.1 I2.1 contract §1: the operator-supplied Kafka consumer-group -> Service mapping.
+    KAFKA_SERVICE_MAPPING = "kafka_service_mapping"
 
 
 class FilesystemSourceConfig(BaseModel):
@@ -208,6 +210,23 @@ class KafkaConsumerStateSourceConfig(BaseModel):
         )
 
 
+class KafkaServiceMappingSourceConfig(BaseModel):
+    """v0.7.1 I2.1 contract §1: one Kafka Service-mapping artifact registration. Several may exist for
+    one broker and environment; each is a separate evidence authority. There is deliberately no scope
+    override: the discovery scope derives from the id, broker and environment only, so two imports of
+    one source instance always share the scope lock."""
+
+    id: str = Field(min_length=1)
+    root: Path
+    artifact_relative_path: str = "kafka-service-mapping.json"
+    broker_id: str = Field(min_length=1)
+    environment: str = Field(min_length=1)
+
+    @property
+    def stable_target_identity(self) -> str:
+        return f"urn:aip:kafka-service-mapping:{self.broker_id}:{self.environment}"
+
+
 class IngestionResult(StrEnum):
     """I1 spec §10: "Each source receives exactly one result." """
 
@@ -362,6 +381,15 @@ class DiagnosticCode(StrEnum):
     KAFKA_STALE_CAPTURE = "KAFKA_STALE_CAPTURE"
     KAFKA_CAPTURE_CONFLICT = "KAFKA_CAPTURE_CONFLICT"
     KAFKA_TOPIC_NOT_DECLARED = "KAFKA_TOPIC_NOT_DECLARED"
+    # v0.7.1 I2.1 contract §4 / I2.2: the Kafka Service-mapping source's rejections. Fixed text, never
+    # a source value or key name.
+    KSM_UNSUPPORTED_SCHEMA = "KSM_UNSUPPORTED_SCHEMA"
+    KSM_BROKER_MISMATCH = "KSM_BROKER_MISMATCH"
+    KSM_ENVIRONMENT_MISMATCH = "KSM_ENVIRONMENT_MISMATCH"
+    KSM_DUPLICATE_GROUP = "KSM_DUPLICATE_GROUP"
+    KSM_ARTIFACT_INVALID = "KSM_ARTIFACT_INVALID"
+    KSM_LIMIT_EXCEEDED = "KSM_LIMIT_EXCEEDED"
+    KSM_DUPLICATE_SOURCE = "KSM_DUPLICATE_SOURCE"
     # I2 Draft 0.2 §10's own named code ("Omit object; ACCEPTED_WITH_LIMITATIONS"), for §5: "Other
     # controller kinds and API versions require an amendment; unsupported objects are omitted with
     # pointer diagnostics and ACCEPTED_WITH_LIMITATIONS" (slice 3a).

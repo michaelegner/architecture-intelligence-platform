@@ -29,7 +29,11 @@ from app.sources.identity import (
     normalized_document_and_reference_projection_bytes,
     semantic_input_digest,
 )
-from app.sources.kafka_consumer_state_contract import STABLE, KafkaConsumerStateEnvelope
+from app.sources.kafka_consumer_state_contract import (
+    SCHEMA_ID,
+    STABLE,
+    KafkaConsumerStateEnvelope,
+)
 from app.sources.model import (
     DiagnosticCode,
     IngestionDiagnostic,
@@ -71,7 +75,13 @@ class KafkaConsumerStateSourceAdapter:
     dependency_phase = 0
 
     def supports(self, loaded: LoadedSource) -> bool:
-        return loaded.descriptor.source_kind == SourceKind.KAFKA_CONSUMER_STATE
+        """I1.1 contract §1: the schema string, never the filename. A rejected capture carries its
+        diagnostic and no document, and is still this adapter's to report with its frozen result."""
+        if loaded.descriptor.source_kind != SourceKind.KAFKA_CONSUMER_STATE:
+            return False
+        if loaded.diagnostics:
+            return True
+        return loaded.document.get("capture", {}).get("schema") == SCHEMA_ID
 
     def map(
         self,

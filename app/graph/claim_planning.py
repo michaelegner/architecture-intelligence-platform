@@ -63,6 +63,9 @@ def model_node_ids(model: ArchitectureModel, *, source_instance_id: str) -> set[
         *(g.id for g in model.kafka_consumer_groups),
         *(a.id for a in model.kafka_consumer_attachments),
         *(e.id for e in model.kafka_capture_evidence),
+        # v0.7.1 I2.2: internal Kafka Service-mapping carriers ride the same ownership path.
+        *(m.id for m in model.kafka_service_mapping_entries),
+        *(e.id for e in model.kafka_service_mapping_evidence),
         # v0.7.0 I1.2: internal API-contract carriers ride the same ownership path.
         *(c.id for c in model.api_contracts),
         *(v.id for v in model.api_contract_versions),
