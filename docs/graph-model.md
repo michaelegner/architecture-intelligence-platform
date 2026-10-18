@@ -25,7 +25,10 @@ and `KafkaServiceMappingEntry` and `KafkaServiceMappingEvidence` (v0.7.1 I2.2, a
 consumer-group -> Service mapping stored exactly as written; the Service is resolved per snapshot,
 so no Service or `KafkaConsumerGroup` is ever created from it). The
 snapshot adds the conditional keys `kafka_consumer_state_v1` (sections `groups`, `attachments`,
-`evidence`), `gateway_configuration_v1`,
+`evidence`), `kafka_consumer_attribution_v1` (v0.7.1 I2.3: sections `rule`, `mapping_sources`,
+`mapping_entries`, `aliases_applied`, `groups`, `attributions`, derived in the projection from the
+mapping carriers, the I1 attachments, the declared Services and the configured
+`telemetry.service_aliases`; present only when a mapping carrier exists), `gateway_configuration_v1`,
 `api_contracts_v1` and `api_usage_v1` (sections `windows`, `evidence`, `series`, `limitations`,
 `mapping_entries`, plus the derived reconciliation sections `reconciliation_rule`, `attributions`,
 `route_operation` and `target_service` (v0.7.0 I2.3), and `qualification_rule`, `coverage`,

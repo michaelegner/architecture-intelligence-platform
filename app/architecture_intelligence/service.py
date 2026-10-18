@@ -326,6 +326,7 @@ class ArchitectureIntelligenceService:
                     session,
                     coverage_qualification_enabled=self._coverage_qualification_enabled,
                     service_workload_mapping_document=self._service_workload_mapping_document,
+                    service_aliases=self._service_aliases,
                 )
                 fingerprint_holder["snapshot_id"] = snapshot_fingerprint(state)[0]
                 return state
@@ -711,6 +712,7 @@ class ArchitectureIntelligenceService:
                 session,
                 coverage_qualification_enabled=self._coverage_qualification_enabled,
                 service_workload_mapping_document=self._service_workload_mapping_document,
+                service_aliases=self._service_aliases,
             )
             fingerprint_holder["snapshot_id"] = snapshot_fingerprint(state)[0]
             return state
@@ -915,6 +917,7 @@ class ArchitectureIntelligenceService:
                 request,
                 coverage_qualification_enabled=self._coverage_qualification_enabled,
                 service_workload_mapping_document=self._service_workload_mapping_document,
+                service_aliases=self._service_aliases,
                 after_id=after_id,
                 page_size=page_size,
             )
@@ -945,6 +948,7 @@ class ArchitectureIntelligenceService:
                     locality,
                     coverage_qualification_enabled=self._coverage_qualification_enabled,
                     service_workload_mapping_document=self._service_workload_mapping_document,
+                    service_aliases=self._service_aliases,
                     after_id=cursor.after_id if cursor is not None else None,
                     read_candidates=early is None,
                 )
@@ -992,6 +996,7 @@ class ArchitectureIntelligenceService:
                     session,
                     coverage_qualification_enabled=self._coverage_qualification_enabled,
                     service_workload_mapping_document=self._service_workload_mapping_document,
+                    service_aliases=self._service_aliases,
                     read_extra=lambda runner: read_scoped_evidence(
                         runner,
                         subject_id=request.subject_service_id,
@@ -1032,6 +1037,7 @@ class ArchitectureIntelligenceService:
                 session,
                 coverage_qualification_enabled=self._coverage_qualification_enabled,
                 service_workload_mapping_document=self._service_workload_mapping_document,
+                service_aliases=self._service_aliases,
             )
             return captured["state"]
 

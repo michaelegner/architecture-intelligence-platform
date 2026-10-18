@@ -495,10 +495,12 @@ class _FakeReads:
         *,
         coverage_qualification_enabled,
         service_workload_mapping_document,
+        service_aliases,
         after_id,
         read_candidates,
     ):
         assert service_workload_mapping_document is None  # the service under test has none
+        assert service_aliases == {}  # nor any configured alias
         self.calls.append({"after_id": after_id, "read_candidates": read_candidates})
         if self._unstable:
             raise SnapshotUnstable("never settles")
