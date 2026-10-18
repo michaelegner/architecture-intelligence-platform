@@ -40,9 +40,12 @@ increment specs.
 3. Work through every checklist section below that applies to the diff. Skip a section only when
    the diff clearly cannot touch it.
 4. For each candidate finding, confirm it with concrete evidence (file:line, a grep result, a test
-   run, a spec clause). Drop anything you cannot substantiate. Do not report style or formatting
-   issues that `ruff` would catch. "The diff was truncated, so I couldn't review it" is itself a
-   claim: before reporting it, check `git show <sha> -- <path>` and the `patch` field from
+   run, a spec clause). Drop anything you cannot substantiate. Once a material pattern is confirmed,
+   inspect the bounded changed surface for same-class occurrences and consolidate them into the same
+   finding rather than reporting only the first line found. Do not broaden this into unrelated
+   repository-wide cleanup. Do not report style or formatting issues that `ruff` would catch.
+   "The diff was truncated, so I couldn't review it" is itself a claim: before reporting it, check
+   `git show <sha> -- <path>` and the `patch` field from
    `gh api repos/<owner>/<repo>/pulls/<n>/files`. (PR #187)
 5. Report in the output format below.
 
