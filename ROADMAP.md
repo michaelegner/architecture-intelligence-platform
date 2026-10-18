@@ -647,11 +647,22 @@ mature tooling in the source/repository analysis space may be substituted or add
 a comparable baseline.
 
 The demonstration should use one realistic bounded change that naturally crosses repositories and
-distributed interaction styles, preferably both API and broker-mediated relationships. It should
-exercise the complete applicable AIP product surface available at v0.8 entry — including dependency
-and evidence drill-down, deployment, locality, messaging, **v0.7.0 API-aware Current State**, and
-broker-mediated consumer attribution — before v0.8 projects those established relationships across
-independently established System/Component boundaries.
+distributed interaction styles, preferably both API and broker-mediated relationships. It should use
+the applicable AIP Current-State capabilities already available at v0.8 entry where Sokol111 can
+provide legitimate evidence — including dependency/evidence drill-down, deployment, locality,
+messaging, **v0.7.0 API-aware Current State**, and broker-mediated consumer attribution — and then
+apply the new v0.8 cross-boundary projection. The demo is not required to make every existing
+capability return a positive result; partial, unresolved and unsupported cases are valid product
+evidence.
+
+The new v0.8 result must be established from **two independent inputs**:
+
+1. an already evidence-qualified distributed relationship; and
+2. independently established System/Component membership for the relationship endpoints.
+
+Boundary membership must therefore have its own legitimate evidence or attributable declaration in
+Sokol111. It must not be inferred from repository layout, service naming, Kubernetes placement,
+connectivity, broker participation, or the distributed relationship itself.
 
 The comparison must give the source-analysis tool realistic access to all relevant repositories,
 configuration and contracts it can analyze. It must not artificially hide source from the baseline.
@@ -661,29 +672,35 @@ other supported sources. The combined workflow should show what source analysis 
 implementation internals and what AIP independently establishes about the distributed system.
 
 Where practical, the demonstration should acquire evidence from a real running Sokol111 environment
-and freeze that evidence for deterministic replay. The demo must preserve partial, unresolved and
-unsupported cases rather than modifying Sokol111 or AIP merely to make every capability return a
-positive answer.
+and freeze that evidence for deterministic replay. Bounded source support may be added where needed
+to expose semantics AIP already supports, but neither Sokol111 nor AIP should be redesigned merely
+to make the demo return a positive answer. In particular, v0.7.0 may legitimately contribute
+observed-only API usage with no matching configured-access fact when that is what the evidence
+supports.
 
 Success is not a larger graph or a longer answer. The product test is whether the combined
 source-analysis + AIP workflow materially improves the coding agent's bounded-change investigation:
 which external components require inspection, which relationships are established in the relevant
 environment/window, which are only source-derived possibilities, and what remains uncertain.
 
-The checkpoint records one of **continue, narrow, integrate, defer, or stop**. AIP should not
-duplicate capabilities that an adjacent architecture-analysis product can provide equally well at
-lower cost.
+**Technical exit capability:**
 
-The same checkpoint should inform whether later AIP-owned **external Intent** and **local distributed
-Assessment** capabilities remain justified or should instead be provided through integration with
-adjacent architecture/conformance products.
+> **AIP can demonstrate end to end on Sokol111 how independently evidenced System/Component
+> membership and already-qualified distributed Current State compose into a bounded cross-boundary
+> view for a realistic change.**
 
-**Exit capability:**
+**Product checkpoint:**
 
-> **AIP can demonstrate end to end, on a real distributed system and alongside strong source
-> analysis, how its evidence-qualified Current-State capabilities compose into a bounded
-> cross-boundary view that materially improves — or demonstrably does not improve — the coding-agent
-> workflow beyond repository/source analysis alone.**
+The comparison determines whether that cross-boundary view materially improves the coding-agent
+workflow beyond strong repository/source analysis. The checkpoint records one of **continue, narrow,
+integrate, defer, or stop**. A technically correct v0.8 capability may still produce a negative
+product-value result; that outcome is recorded by the checkpoint rather than redefined as a product
+capability.
+
+AIP should not duplicate capabilities that an adjacent architecture-analysis product can provide
+equally well at lower cost. The same checkpoint should inform whether later AIP-owned **external
+Intent** and **local distributed Assessment** capabilities remain justified or should instead be
+provided through integration with adjacent architecture/conformance products.
 
 ## v0.9 — External Architecture Intent (provisional; checkpoint-dependent)
 
