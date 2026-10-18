@@ -489,3 +489,16 @@ def test_the_published_schema_and_the_model_reject_the_same_broken_answers(mutat
         jsonschema.validate(wire, ANSWER_SCHEMA)
     with pytest.raises(ValidationError):
         DestinationConsumersAnswer.model_validate(wire)
+
+
+def test_a_next_cursor_on_an_empty_page_is_a_contract_violation_not_an_index_error() -> None:
+    """Review of #592: the model must reject the shape with a ValidationError, and the published
+    schema must reject it too."""
+    wire = _answer(_three(), _request(limit=1))
+    assert wire["data"]["page"]["next_cursor"]
+    wire["data"]["rows"] = []
+    wire["data"]["page"]["returned"] = 0
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(wire, ANSWER_SCHEMA)
+    with pytest.raises(ValidationError):
+        DestinationConsumersAnswer.model_validate(wire)

@@ -355,8 +355,15 @@ class ConsumerRow(_Model):
         return self
 
 
+def _page_schema_extra(schema: dict[str, Any], _model: type[BaseModel]) -> None:
+    """Mirrors `Page._check_page`: a continuation follows at least one returned row."""
+    schema["allOf"] = [
+        {"if": {"required": ["next_cursor"]}, "then": {"properties": {"returned": {"minimum": 1}}}}
+    ]
+
+
 class Page(_Model):
-    model_config = _closed()
+    model_config = _closed(json_schema_extra=_page_schema_extra)
 
     limit: int = Field(ge=1, le=MAX_PAGE_LIMIT)
     returned: int = Field(ge=0, le=MAX_PAGE_LIMIT)
@@ -373,6 +380,8 @@ class Page(_Model):
     def _check_page(self) -> Page:
         if self.returned > self.limit:
             raise ValueError("returned must not exceed limit")
+        if self.next_cursor is not None and self.returned == 0:
+            raise ValueError("a next_cursor continues after at least one returned row")
         return self
 
 

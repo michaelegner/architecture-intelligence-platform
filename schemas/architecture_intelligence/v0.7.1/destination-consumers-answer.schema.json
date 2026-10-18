@@ -273,6 +273,22 @@
     },
     "Page": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "next_cursor"
+            ]
+          },
+          "then": {
+            "properties": {
+              "returned": {
+                "minimum": 1
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "limit": {
           "maximum": 200,
