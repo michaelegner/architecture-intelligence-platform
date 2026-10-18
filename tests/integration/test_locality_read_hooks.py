@@ -86,6 +86,7 @@ def test_a_smaller_page_size_walks_every_candidate_once(graph, session, tmp_path
             _request(),
             coverage_qualification_enabled=False,
             service_workload_mapping_document=None,
+            service_aliases={},
             after_id=after_id,
             page_size=2,
         )
@@ -112,12 +113,14 @@ def test_the_default_page_is_unchanged(graph, session, tmp_path):
         _request(),
         coverage_qualification_enabled=False,
         service_workload_mapping_document=None,
+        service_aliases={},
     )
     explicit = read_scoped_applicability(
         session,
         _request(),
         coverage_qualification_enabled=False,
         service_workload_mapping_document=None,
+        service_aliases={},
         page_size=500,
     )
 
@@ -208,6 +211,7 @@ def test_the_hook_runs_inside_the_stable_snapshot_attempt(graph, session, tmp_pa
         session,
         coverage_qualification_enabled=False,
         service_workload_mapping_document=None,
+        service_aliases={},
         read_extra=lambda runner: _page(runner, page_size_for=page_size_for),
     )
 

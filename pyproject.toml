@@ -7,7 +7,7 @@ dependencies = [
     "fastapi>=0.141.1",
     "jinja2>=3.1.6",
     "jsonschema>=4.26.0",
-    "mcp==2.2.0",
+    "mcp==2.3.0",
     # Imported directly by app/mcp (mcp_types.*), not only through mcp.
     "mcp-types>=2.2.0",
     "neo4j>=6.2.0",
@@ -115,7 +115,7 @@ source_modules = ["app.qualification"]
 forbidden_modules = [
     "neo4j", "fastapi", "starlette", "mcp", "openai",
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.common", "app.deps", "app.gateway_capture", "app.graph", "app.graph_schema",
+    "app.canonical", "app.common", "app.deps", "app.gateway_capture", "app.kafka_capture", "app.graph", "app.graph_schema",
     "app.ingestion", "app.intent", "app.main", "app.mcp", "app.provenance", "app.settings", "app.sources",
     "app.telemetry", "app.validation", "app.version",
 ]
@@ -125,7 +125,7 @@ name = "Delivery adapters (REST, MCP, app wiring) sit on top: nothing below impo
 type = "forbidden"
 source_modules = [
     "app.ai", "app.analysis", "app.architecture_intelligence", "app.canonical", "app.common",
-    "app.gateway_capture", "app.graph", "app.graph_schema", "app.ingestion", "app.intent",
+    "app.gateway_capture", "app.kafka_capture", "app.graph", "app.graph_schema", "app.ingestion", "app.intent",
     "app.provenance",
     "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
     "app.version",
@@ -137,7 +137,7 @@ name = "The LLM layer stays out of the deterministic core and MCP"
 type = "forbidden"
 source_modules = [
     "app.analysis", "app.architecture_intelligence", "app.canonical", "app.common",
-    "app.gateway_capture", "app.graph", "app.graph_schema", "app.ingestion", "app.intent", "app.mcp",
+    "app.gateway_capture", "app.kafka_capture", "app.graph", "app.graph_schema", "app.ingestion", "app.intent", "app.mcp",
     "app.provenance",
     "app.qualification", "app.settings", "app.sources", "app.telemetry", "app.validation",
     "app.version",
@@ -166,12 +166,33 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
+name = "The Kafka capture step is separate: no ingestion, graph or delivery layer imports it (v0.7.1 I1 spec 4)"
+type = "forbidden"
+source_modules = [
+    "app.ai", "app.analysis", "app.api", "app.architecture_intelligence", "app.canonical",
+    "app.graph", "app.graph_schema", "app.ingestion", "app.intent", "app.main", "app.mcp",
+    "app.provenance", "app.qualification", "app.settings", "app.sources", "app.telemetry",
+    "app.validation",
+]
+forbidden_modules = ["app.kafka_capture"]
+
+[[tool.importlinter.contracts]]
+name = "The Kafka capture step touches no Kafka client, graph, adapter or delivery layer"
+type = "forbidden"
+source_modules = ["app.kafka_capture"]
+forbidden_modules = [
+    "confluent_kafka", "kafka", "neo4j", "fastapi", "starlette", "mcp", "openai", "app.ai",
+    "app.analysis", "app.api", "app.architecture_intelligence", "app.graph", "app.ingestion",
+    "app.main", "app.mcp", "app.telemetry",
+]
+
+[[tool.importlinter.contracts]]
 name = "Leaf packages import no non-leaf app package"
 type = "forbidden"
 source_modules = ["app.provenance", "app.intent", "app.graph_schema", "app.version"]
 forbidden_modules = [
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.common", "app.deps", "app.gateway_capture", "app.graph", "app.ingestion",
+    "app.canonical", "app.common", "app.deps", "app.gateway_capture", "app.kafka_capture", "app.graph", "app.ingestion",
     "app.main", "app.mcp", "app.qualification", "app.settings", "app.sources", "app.telemetry",
     "app.validation",
 ]
@@ -196,7 +217,7 @@ type = "forbidden"
 source_modules = ["app.common"]
 forbidden_modules = [
     "app.ai", "app.analysis", "app.answer_router", "app.api", "app.architecture_intelligence",
-    "app.canonical", "app.deps", "app.gateway_capture", "app.graph", "app.graph_schema",
+    "app.canonical", "app.deps", "app.gateway_capture", "app.kafka_capture", "app.graph", "app.graph_schema",
     "app.ingestion", "app.intent", "app.main", "app.mcp", "app.provenance", "app.qualification",
     "app.settings", "app.sources", "app.telemetry", "app.validation", "app.version",
 ]

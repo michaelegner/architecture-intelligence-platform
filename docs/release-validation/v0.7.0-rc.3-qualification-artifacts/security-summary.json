@@ -1,0 +1,31 @@
+{
+  "candidate_image": {
+    "critical": 0,
+    "high": 52,
+    "id": "sha256:7f17138b90c5ed2d5617e0edc787a7852f57a7839ad19ed9194a484732ffadd1",
+    "ref": "aip-rc3-candidate (local build)"
+  },
+  "findings_gone": 0,
+  "full_report_sha256": {
+    "candidate": "795f1744dc35a29c0560feb4974734318e99a38e2949f15cd8c8a3ffb3bb3f83",
+    "v0.6.3": "709b6865b3b9c4ef2283d020027df675ef2cc41074f9cf768f3b87a188a073bb"
+  },
+  "new_findings": 0,
+  "previous_release": {
+    "critical": 0,
+    "high": 52,
+    "ref": "ghcr.io/michaelegner/architecture-intelligence-platform@sha256:e6632982c965e0cb73c4cb4fc5edd218d55ef075d6276a541286eb328f0a50fe",
+    "tag": "v0.6.3"
+  },
+  "sbom": {
+    "components": 1223,
+    "file": "candidate-image.sbom.cdx.json.gz",
+    "format": "CycloneDX",
+    "uncompressed_sha256": "59943b58536d97d756c2de0a3f7d864da620380b8c117ef3029731f06bc687b6"
+  },
+  "scanner": "Trivy 0.70.0 (ghcr.io/aquasecurity/trivy:0.70.0), HIGH and CRITICAL, unfixed findings included",
+  "secret_scan": {
+    "findings": 0,
+    "tool": "Trivy fs --scanners secret over the candidate checkout"
+  }
+}

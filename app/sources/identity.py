@@ -233,6 +233,84 @@ def apisix_measurement_source_instance_id(
     return SourceInstanceId(f"{MEASUREMENT_SOURCE_ID_PREFIX}{sha256_hex(key)}")
 
 
+KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX = "urn:aip:source:kafka-consumer-state:"
+KAFKA_CONSUMER_SOURCE_KIND = "kafka_consumer_state"
+
+
+def kafka_scope_digest(consumer_groups: Sequence[str]) -> str:
+    """v0.7.1 I1.1 contract §2 (vectors K01, K02): sha256(ld(sorted exact group ids)). Sorted by
+    code point, so the digest is independent of the order the allow-list is written in."""
+    return sha256_hex(length_delimited(*(utf8(group) for group in sorted(consumer_groups))))
+
+
+def kafka_consumer_state_source_instance_id(
+    *, configured_source_id: str, broker_id: str, environment: str, consumer_groups: Sequence[str]
+) -> SourceInstanceId:
+    """v0.7.1 I1.1 contract §2 (vectors K03, K04):
+
+    SourceInstanceId = urn:aip:source:kafka-consumer-state:<sha256(ld(configured source id,
+      broker id, environment, scope digest))>
+    """
+    key = length_delimited(
+        utf8(configured_source_id),
+        utf8(broker_id),
+        utf8(environment),
+        utf8(kafka_scope_digest(consumer_groups)),
+    )
+    return SourceInstanceId(f"{KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX}{sha256_hex(key)}")
+
+
+def kafka_consumer_id(*, broker_id: str, environment: str, group_id: str) -> str:
+    """v0.7.1 I1.1 contract §2 (vectors K05-K08, K11): the I0 D1 / I1 §3 consumer identity,
+    `consumer:` + sha256(ld(source kind, broker id, environment, exact group id)). The group id is
+    verbatim: no case folding and no normalization."""
+    key = length_delimited(
+        utf8(KAFKA_CONSUMER_SOURCE_KIND), utf8(broker_id), utf8(environment), utf8(group_id)
+    )
+    return f"consumer:{sha256_hex(key)}"
+
+
+def kafka_attachment_id(*, consumer_id: str, topic_id: str) -> str:
+    """v0.7.1 I1.1 contract §2 (vector K10): capture time is never an input."""
+    return (
+        f"kafka-attachment:owned:{sha256_hex(length_delimited(utf8(consumer_id), utf8(topic_id)))}"
+    )
+
+
+KAFKA_SERVICE_MAPPING_SOURCE_ID_PREFIX = "urn:aip:source:kafka-service-mapping:"
+
+
+def kafka_service_mapping_source_instance_id(
+    *, configured_source_id: str, broker_id: str, environment: str
+) -> SourceInstanceId:
+    """v0.7.1 I2.1 contract §2 (vectors M01-M03):
+
+    SourceInstanceId = urn:aip:source:kafka-service-mapping:<sha256(ld(configured source id,
+      broker id, environment))>
+    """
+    key = length_delimited(utf8(configured_source_id), utf8(broker_id), utf8(environment))
+    return SourceInstanceId(f"{KAFKA_SERVICE_MAPPING_SOURCE_ID_PREFIX}{sha256_hex(key)}")
+
+
+def kafka_service_mapping_entry_id(*, source_instance_id: str, group_id: str) -> str:
+    """v0.7.1 I2.1 contract §2 (vectors M04, M05): one entry per exact group id per mapping source."""
+    key = length_delimited(utf8(source_instance_id), utf8(group_id))
+    return f"kafka-service-mapping:owned:{sha256_hex(key)}"
+
+
+def kafka_service_mapping_evidence_id(source_instance_id: str) -> str:
+    """v0.7.1 I2.1 contract §2 (vector M06): one evidence carrier per mapping source instance."""
+    return (
+        "kafka-service-mapping-evidence:owned:"
+        f"{sha256_hex(length_delimited(utf8(source_instance_id)))}"
+    )
+
+
+def kafka_service_mapping_source_revision(artifact_sha256: str) -> str:
+    """v0.7.1 I2.1 contract §2 (vector M09): the artifact has no observation time."""
+    return f"artifact-sha256:{artifact_sha256}"
+
+
 def kubernetes_logical_resource_id(
     *, cluster_uid: str, api_group: str, kind: str, namespace: str, name: str
 ) -> str:

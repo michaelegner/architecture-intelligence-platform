@@ -1,0 +1,69 @@
+{
+  "schema": "aip-v071-i2-vectors-mapping-rejections/1",
+  "note": "Mutations of kafka-service-mapping.example.json (Q09: of the registrations). All reject the whole artifact; prior accepted state is kept; no diagnostic echoes a value or a key name.",
+  "cases": [
+    {
+      "id": "Q01",
+      "mutation": "schema is not aip-kafka-consumer-service-mapping/1",
+      "code": "KSM_UNSUPPORTED_SCHEMA",
+      "result": "REJECTED_UNSUPPORTED",
+      "state_written": false
+    },
+    {
+      "id": "Q02",
+      "mutation": "broker_id differs from the registration",
+      "code": "KSM_BROKER_MISMATCH",
+      "result": "REJECTED_INVALID",
+      "state_written": false
+    },
+    {
+      "id": "Q03",
+      "mutation": "environment differs from the registration",
+      "code": "KSM_ENVIRONMENT_MISMATCH",
+      "result": "REJECTED_INVALID",
+      "state_written": false
+    },
+    {
+      "id": "Q04",
+      "mutation": "two entries share a group_id",
+      "code": "KSM_DUPLICATE_GROUP",
+      "result": "REJECTED_INVALID",
+      "state_written": false
+    },
+    {
+      "id": "Q05",
+      "mutation": "an unknown field (for example client_id, host or password) in the envelope or an entry",
+      "code": "KSM_ARTIFACT_INVALID",
+      "result": "REJECTED_INVALID",
+      "state_written": false
+    },
+    {
+      "id": "Q06",
+      "mutation": "a required field is missing, empty or not a string; service_namespace present but empty",
+      "code": "KSM_ARTIFACT_INVALID",
+      "result": "REJECTED_INVALID",
+      "state_written": false
+    },
+    {
+      "id": "Q07",
+      "mutation": "the file is missing, not JSON, or resolves outside the registered root",
+      "code": "KSM_ARTIFACT_INVALID",
+      "result": "REJECTED_INVALID",
+      "state_written": false
+    },
+    {
+      "id": "Q08",
+      "mutation": "the file exceeds 1 MiB, 10,000 entries or nesting 64",
+      "code": "KSM_LIMIT_EXCEEDED",
+      "result": "REJECTED_UNSUPPORTED",
+      "state_written": false
+    },
+    {
+      "id": "Q09",
+      "mutation": "two registrations share the same configured id",
+      "code": "KSM_DUPLICATE_SOURCE",
+      "result": "REJECTED_CONFLICT",
+      "state_written": false
+    }
+  ]
+}

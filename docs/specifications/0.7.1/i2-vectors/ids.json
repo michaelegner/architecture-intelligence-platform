@@ -1,0 +1,23 @@
+{
+  "schema": "aip-v071-i2-vectors-ids/1",
+  "note": "Known answers computed by vector-hashes.py (hashlib only; no app import). ld = 8-byte big-endian UTF-8 length + bytes per part. M07 equals I1 vector K05 (the join key).",
+  "inputs": {
+    "broker_id": "kafka:cluster-a",
+    "environment": "prod",
+    "source_ids": [
+      "map-a",
+      "map-b"
+    ]
+  },
+  "vectors": {
+    "M01_source_instance_map_a": "urn:aip:source:kafka-service-mapping:2324c59249d5518480fcbb2ef462ba743b869998bb55b9de3a398f9bfd70ba2a",
+    "M02_source_instance_map_b": "urn:aip:source:kafka-service-mapping:22baaffc4bd08f2f88e11efa04216ff9a4e2a1dfd332a432cb392907cad43b98",
+    "M03_source_instance_other_environment": "urn:aip:source:kafka-service-mapping:9f082558df57c2ff0115aa555d9f6325d59c2ff96504e317d2d2c14fe0bb582e",
+    "M04_entry_map_a_payment": "kafka-service-mapping:owned:36f304a0ab93de80fd45987d5c448f0834a834e38fcd5a2be3a9267726667873",
+    "M05_entry_map_a_order": "kafka-service-mapping:owned:29313b4d80b65c7a255bbe0f7c13fe5524642a8ed164f5aba2384cbcd25c8fc0",
+    "M06_evidence_map_a": "kafka-service-mapping-evidence:owned:9b2babfbd36222a05ab7580bfe2fa487a0007c6bb0787a5cc3369d9a2d92f3b3",
+    "M07_join_key_payment_equals_i1_k05": "consumer:6dd5a1428a85b93b6f3128e252eb1629cfbb7cd0c24c1932a2cab153244d1363",
+    "M08_join_key_case_is_exact": "consumer:f67f696d7d8a72995153165e0b1d313345567c0d0da794880cc0b831c0a5c1ab",
+    "M09_source_revision_example": "artifact-sha256:50d858e0985ecc7f60418aaf0cc5ab587f42c2570a884095a9e8ccacd0f6545c"
+  }
+}

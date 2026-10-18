@@ -107,6 +107,36 @@ CONSTRAINTS: list[LiteralString] = [
         "CREATE CONSTRAINT measurement_mapping_entry_id IF NOT EXISTS "
         "FOR (m:MeasurementMappingEntry) REQUIRE m.id IS UNIQUE"
     ),
+    # v0.7.1 I1.3 (I1.1 contract §6): internal Kafka consumer-state carriers - owned, id-unique, no
+    # relationships to any entity.
+    (
+        "CREATE CONSTRAINT kafka_consumer_group_id IF NOT EXISTS "
+        "FOR (g:KafkaConsumerGroup) REQUIRE g.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT kafka_consumer_attachment_id IF NOT EXISTS "
+        "FOR (a:KafkaConsumerAttachment) REQUIRE a.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT kafka_capture_evidence_id IF NOT EXISTS "
+        "FOR (e:KafkaCaptureEvidence) REQUIRE e.id IS UNIQUE"
+    ),
+    # v0.7.1 I2.2 (I2.1 contract §5): internal Kafka Service-mapping carriers - owned, id-unique, no
+    # relationships to any entity.
+    (
+        "CREATE CONSTRAINT kafka_service_mapping_entry_id IF NOT EXISTS "
+        "FOR (m:KafkaServiceMappingEntry) REQUIRE m.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT kafka_service_mapping_evidence_id IF NOT EXISTS "
+        "FOR (e:KafkaServiceMappingEvidence) REQUIRE e.id IS UNIQUE"
+    ),
+    # The per-source-instance commit lock of the R14/R15 guard (review of #582). The constraint is
+    # what makes the guard's MERGE a lock even when two first-ever imports race.
+    (
+        "CREATE CONSTRAINT kafka_source_lock_id IF NOT EXISTS "
+        "FOR (l:KafkaSourceLock) REQUIRE l.source_instance_id IS UNIQUE"
+    ),
     # v0.4.0 I1.2, spec §19: read_revision()/bump_revision() rely on (:AipInternalState {id}) being
     # a true singleton (read_revision() uses .single()) - without this, a concurrent
     # ensure_revision_singleton() race could create a duplicate and break stable-read fencing.
