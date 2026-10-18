@@ -10,7 +10,7 @@ record must still be returned and then judged (I1 L10b, L17d).
 
 import dataclasses
 from collections import defaultdict
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 import neo4j
@@ -375,6 +375,7 @@ def read_scoped_applicability(
     *,
     coverage_qualification_enabled: bool,
     service_workload_mapping_document: ServiceWorkloadMappingDocument | None,
+    service_aliases: Mapping[str, str],
     after_id: str | None = None,
     page_size: int = DEFAULT_PAGE_SIZE,
     max_attempts: int = 3,
@@ -387,7 +388,8 @@ def read_scoped_applicability(
 
     `service_workload_mapping_document` is required, not defaulted: it enters the canonical snapshot
     state, so the caller must pass the same configured artifact every v0.5 read passes, or this
-    read's `snapshot_id` would differ from theirs (one canonical snapshot, I2 §11; I3.3a)."""
+    read's `snapshot_id` would differ from theirs (one canonical snapshot, I2 §11; I3.3a). The same
+    holds for `service_aliases` (v0.7.1 I2.3: the Kafka attribution block depends on them)."""
     if not 1 <= page_size <= DEFAULT_PAGE_SIZE:
         raise ValueError(f"page_size must be between 1 and {DEFAULT_PAGE_SIZE}")
     preflight(request)
@@ -396,6 +398,7 @@ def read_scoped_applicability(
         session,
         coverage_qualification_enabled=coverage_qualification_enabled,
         service_workload_mapping_document=service_workload_mapping_document,
+        service_aliases=service_aliases,
         read_extra=lambda runner: read_applicability_page(
             runner, request, after_id=after_id, page_size_for=lambda _count: page_size
         ),
@@ -449,6 +452,7 @@ def read_locality_inventory(
     *,
     coverage_qualification_enabled: bool,
     service_workload_mapping_document: ServiceWorkloadMappingDocument | None,
+    service_aliases: Mapping[str, str],
     after_id: str | None,
     read_candidates: bool,
     max_attempts: int = 3,
@@ -474,6 +478,7 @@ def read_locality_inventory(
         session,
         coverage_qualification_enabled=coverage_qualification_enabled,
         service_workload_mapping_document=service_workload_mapping_document,
+        service_aliases=service_aliases,
         read_extra=read_extra,
         max_attempts=max_attempts,
     )

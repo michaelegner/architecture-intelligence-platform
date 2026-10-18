@@ -27,6 +27,15 @@ from app.canonical.infrastructure import (
     InfrastructureContribution,
     InfrastructureEntity,
 )
+from app.canonical.kafka_consumer_state import (
+    KafkaCaptureEvidence,
+    KafkaConsumerAttachment,
+    KafkaConsumerGroup,
+)
+from app.canonical.kafka_service_mapping import (
+    KafkaServiceMappingEntry,
+    KafkaServiceMappingEvidence,
+)
 from app.canonical.pubsub import PubSubDeclaration, SubscriptionDeadLetterConfiguration
 from app.provenance.model import Provenance
 
@@ -167,3 +176,10 @@ class ArchitectureModel(BaseModel):
     measurement_series: list[MeasurementSeries] = Field(default_factory=list)
     measurement_limitations: list[MeasurementLimitation] = Field(default_factory=list)
     measurement_mapping_entries: list[MeasurementMappingEntry] = Field(default_factory=list)
+    # v0.7.1 I1.3 (I1.1 contract §6): internal Kafka consumer-state carriers (no public exposure).
+    kafka_consumer_groups: list[KafkaConsumerGroup] = Field(default_factory=list)
+    kafka_consumer_attachments: list[KafkaConsumerAttachment] = Field(default_factory=list)
+    kafka_capture_evidence: list[KafkaCaptureEvidence] = Field(default_factory=list)
+    # v0.7.1 I2.2 (I2.1 contract §5): internal Kafka Service-mapping carriers (no public exposure).
+    kafka_service_mapping_entries: list[KafkaServiceMappingEntry] = Field(default_factory=list)
+    kafka_service_mapping_evidence: list[KafkaServiceMappingEvidence] = Field(default_factory=list)

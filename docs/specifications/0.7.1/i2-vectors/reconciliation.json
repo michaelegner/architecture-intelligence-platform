@@ -1,0 +1,714 @@
+{
+  "schema": "aip-v071-i2-vectors-reconciliation/1",
+  "note": "Hand-authored from the I2 spec §4-§5 rules and the decide_service_identity semantics; independent of the production reconciliation code. Mapping entries are named <source>/<group_id>. Registrations: map-a and map-b for kafka:cluster-a/prod, map-staging for kafka:cluster-a/staging.",
+  "rule": {
+    "id": "kafka-consumer-attribution",
+    "version": "1"
+  },
+  "broker_id": "kafka:cluster-a",
+  "environment": "prod",
+  "declared_candidates": [
+    {
+      "id": "service:payment-service",
+      "name": "payment-service",
+      "namespace": null
+    },
+    {
+      "id": "service:billing",
+      "name": "billing",
+      "namespace": null
+    },
+    {
+      "id": "service:shop:orders",
+      "name": "orders",
+      "namespace": "shop"
+    },
+    {
+      "id": "service:other:orders",
+      "name": "orders",
+      "namespace": "other"
+    },
+    {
+      "id": "service:dup-a",
+      "name": "dup",
+      "namespace": null
+    },
+    {
+      "id": "service:dup-b",
+      "name": "dup",
+      "namespace": null
+    }
+  ],
+  "runtime_stub": {
+    "id": "service:not-declared-svc",
+    "name": "not-declared-svc",
+    "namespace": null,
+    "note": "a runtime-only stub (no owner_source_ids): never a candidate"
+  },
+  "aliases": {
+    "pay": "service:payment-service",
+    "ghost": "service:nope"
+  },
+  "attachments": {
+    "A1": {
+      "group_id": "payment-service",
+      "topic": "orders.created"
+    },
+    "A2": {
+      "group_id": "order-service",
+      "topic": "payments.completed"
+    },
+    "A3": {
+      "group_id": "order-service",
+      "topic": "orders.created"
+    }
+  },
+  "cases": [
+    {
+      "id": "C01",
+      "case": "attachment + one mapping to one declared Service",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "payment-service"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "RESOLVED",
+          "service_id": "service:payment-service"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "RESOLVED",
+          "mapping_entries": [
+            "map-a/payment-service"
+          ],
+          "service_id": "service:payment-service"
+        }
+      ]
+    },
+    {
+      "id": "C02",
+      "case": "attachment + no mapping (a mapping source exists without an entry for the group)",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "order-service",
+          "service_name": "billing"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "order-service",
+          "outcome": "RESOLVED",
+          "service_id": "service:billing"
+        },
+        {
+          "group_id": "payment-service",
+          "outcome": "UNRESOLVED",
+          "reason": "NO_MAPPING"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "UNRESOLVED",
+          "mapping_entries": [],
+          "reason": "NO_MAPPING"
+        }
+      ]
+    },
+    {
+      "id": "C03",
+      "case": "mapping + no attachment",
+      "attachments": [],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "payment-service"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "RESOLVED",
+          "service_id": "service:payment-service"
+        }
+      ],
+      "expected_attributions": []
+    },
+    {
+      "id": "C04",
+      "case": "mapping target would be OBSERVED_ONLY (only a runtime stub has that name)",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "not-declared-svc"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "UNRESOLVED",
+          "reason": "SERVICE_NOT_DECLARED"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "UNRESOLVED",
+          "mapping_entries": [
+            "map-a/payment-service"
+          ],
+          "reason": "SERVICE_NOT_DECLARED"
+        }
+      ]
+    },
+    {
+      "id": "C05",
+      "case": "placeholder Service identity",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "unknown"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "UNRESOLVED",
+          "reason": "SERVICE_IDENTITY_PLACEHOLDER"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "UNRESOLVED",
+          "mapping_entries": [
+            "map-a/payment-service"
+          ],
+          "reason": "SERVICE_IDENTITY_PLACEHOLDER"
+        }
+      ]
+    },
+    {
+      "id": "C06",
+      "case": "ambiguous declared Service (two declared 'dup', no namespace)",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "dup"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "AMBIGUOUS",
+          "reason": "SERVICE_IDENTITY_AMBIGUOUS"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "AMBIGUOUS",
+          "mapping_entries": [
+            "map-a/payment-service"
+          ],
+          "reason": "SERVICE_IDENTITY_AMBIGUOUS"
+        }
+      ]
+    },
+    {
+      "id": "C07",
+      "case": "alias whose target is not a declared Service",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "ghost"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "AMBIGUOUS",
+          "reason": "SERVICE_IDENTITY_AMBIGUOUS"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "AMBIGUOUS",
+          "mapping_entries": [
+            "map-a/payment-service"
+          ],
+          "reason": "SERVICE_IDENTITY_AMBIGUOUS"
+        }
+      ]
+    },
+    {
+      "id": "C08",
+      "case": "conflicting Service identity (namespace 'third' vs declared 'shop'/'other')",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "orders",
+          "service_namespace": "third"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "CONFLICT",
+          "reason": "SERVICE_IDENTITY_CONFLICT"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "CONFLICT",
+          "mapping_entries": [
+            "map-a/payment-service"
+          ],
+          "reason": "SERVICE_IDENTITY_CONFLICT"
+        }
+      ]
+    },
+    {
+      "id": "C09",
+      "case": "two mapping sources -> same Service",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "payment-service"
+        },
+        {
+          "source": "map-b",
+          "group_id": "payment-service",
+          "service_name": "payment-service"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "RESOLVED",
+          "service_id": "service:payment-service"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "RESOLVED",
+          "mapping_entries": [
+            "map-a/payment-service",
+            "map-b/payment-service"
+          ],
+          "service_id": "service:payment-service"
+        }
+      ]
+    },
+    {
+      "id": "C10",
+      "case": "two mapping sources -> different Services",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "payment-service"
+        },
+        {
+          "source": "map-b",
+          "group_id": "payment-service",
+          "service_name": "billing"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "CONFLICT",
+          "reason": "MAPPING_SOURCE_DISAGREEMENT"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "CONFLICT",
+          "mapping_entries": [
+            "map-a/payment-service",
+            "map-b/payment-service"
+          ],
+          "reason": "MAPPING_SOURCE_DISAGREEMENT"
+        }
+      ]
+    },
+    {
+      "id": "C11",
+      "case": "one source resolves S, another is not declared",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "payment-service"
+        },
+        {
+          "source": "map-b",
+          "group_id": "payment-service",
+          "service_name": "not-declared-svc"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "RESOLVED",
+          "service_id": "service:payment-service",
+          "limitations": [
+            {
+              "entry": "map-b/payment-service",
+              "reason": "SERVICE_NOT_DECLARED"
+            }
+          ]
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "RESOLVED",
+          "mapping_entries": [
+            "map-a/payment-service",
+            "map-b/payment-service"
+          ],
+          "service_id": "service:payment-service"
+        }
+      ]
+    },
+    {
+      "id": "C12",
+      "case": "one source resolves S, another is ambiguous",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "payment-service"
+        },
+        {
+          "source": "map-b",
+          "group_id": "payment-service",
+          "service_name": "dup"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "RESOLVED",
+          "service_id": "service:payment-service",
+          "limitations": [
+            {
+              "entry": "map-b/payment-service",
+              "reason": "SERVICE_IDENTITY_AMBIGUOUS"
+            }
+          ]
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "RESOLVED",
+          "mapping_entries": [
+            "map-a/payment-service",
+            "map-b/payment-service"
+          ],
+          "service_id": "service:payment-service"
+        }
+      ]
+    },
+    {
+      "id": "C13",
+      "case": "one source resolves S, another has an identity conflict (step 1 first)",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "payment-service"
+        },
+        {
+          "source": "map-b",
+          "group_id": "payment-service",
+          "service_name": "orders",
+          "service_namespace": "third"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "CONFLICT",
+          "reason": "SERVICE_IDENTITY_CONFLICT"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "CONFLICT",
+          "mapping_entries": [
+            "map-a/payment-service",
+            "map-b/payment-service"
+          ],
+          "reason": "SERVICE_IDENTITY_CONFLICT"
+        }
+      ]
+    },
+    {
+      "id": "C14",
+      "case": "broker/environment mismatch: the mapping source is for 'staging', the attachment is 'prod'",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-staging",
+          "group_id": "payment-service",
+          "service_name": "payment-service"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "UNRESOLVED",
+          "reason": "NO_MAPPING"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "UNRESOLVED",
+          "mapping_entries": [],
+          "reason": "NO_MAPPING"
+        }
+      ]
+    },
+    {
+      "id": "C15",
+      "case": "group id differs only in case: no join",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "Payment-Service",
+          "service_name": "payment-service"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "Payment-Service",
+          "outcome": "RESOLVED",
+          "service_id": "service:payment-service"
+        },
+        {
+          "group_id": "payment-service",
+          "outcome": "UNRESOLVED",
+          "reason": "NO_MAPPING"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "UNRESOLVED",
+          "mapping_entries": [],
+          "reason": "NO_MAPPING"
+        }
+      ]
+    },
+    {
+      "id": "C16",
+      "case": "several members in one group + one mapping (I1 already stores one attachment per group and Topic)",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "payment-service"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "RESOLVED",
+          "service_id": "service:payment-service"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "RESOLVED",
+          "mapping_entries": [
+            "map-a/payment-service"
+          ],
+          "service_id": "service:payment-service"
+        }
+      ]
+    },
+    {
+      "id": "C17",
+      "case": "one group attached to two Topics",
+      "attachments": [
+        "A2",
+        "A3"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "order-service",
+          "service_name": "billing"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "order-service",
+          "outcome": "RESOLVED",
+          "service_id": "service:billing"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A2",
+          "outcome": "RESOLVED",
+          "mapping_entries": [
+            "map-a/order-service"
+          ],
+          "service_id": "service:billing"
+        },
+        {
+          "attachment": "A3",
+          "outcome": "RESOLVED",
+          "mapping_entries": [
+            "map-a/order-service"
+          ],
+          "service_id": "service:billing"
+        }
+      ]
+    },
+    {
+      "id": "C18",
+      "case": "alias to a declared Service",
+      "attachments": [
+        "A1"
+      ],
+      "mapping_entries": [
+        {
+          "source": "map-a",
+          "group_id": "payment-service",
+          "service_name": "pay"
+        }
+      ],
+      "expected_groups": [
+        {
+          "group_id": "payment-service",
+          "outcome": "RESOLVED",
+          "service_id": "service:payment-service"
+        }
+      ],
+      "expected_attributions": [
+        {
+          "attachment": "A1",
+          "outcome": "RESOLVED",
+          "mapping_entries": [
+            "map-a/payment-service"
+          ],
+          "service_id": "service:payment-service"
+        }
+      ]
+    }
+  ],
+  "lifecycle_cases": [
+    {
+      "id": "L01",
+      "case": "I1 attachment disappears",
+      "expected": "the attribution row disappears; the mapping entry and its group row remain"
+    },
+    {
+      "id": "L02",
+      "case": "the mapping entry disappears while its source stays",
+      "expected": "the attachment remains; attribution becomes UNRESOLVED / NO_MAPPING"
+    },
+    {
+      "id": "L03",
+      "case": "the last mapping source is removed",
+      "expected": "the kafka_consumer_attribution_v1 block disappears; I1 bytes are unchanged"
+    },
+    {
+      "id": "L04",
+      "case": "a rejected mapping update",
+      "expected": "the previous accepted entries remain; snapshot unchanged"
+    },
+    {
+      "id": "L05",
+      "case": "no mapping source configured",
+      "expected": "no block; no mapping invented; I1 state and snapshot unchanged"
+    },
+    {
+      "id": "L06",
+      "case": "no Kafka and no mapping source",
+      "expected": "v0.7.0 behavior and snapshot bytes unchanged"
+    },
+    {
+      "id": "L07",
+      "case": "byte-identical artifact replayed",
+      "expected": "semantic no-op"
+    },
+    {
+      "id": "L08",
+      "case": "a later valid artifact for the same source",
+      "expected": "replaces that source's entries; other sources' entries unchanged"
+    }
+  ]
+}

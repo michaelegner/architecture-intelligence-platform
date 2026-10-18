@@ -1,0 +1,72 @@
+{
+  "schema": "aip-kafka-consumer-state/1",
+  "broker_id": "kafka:cluster-a",
+  "environment": "prod",
+  "captured_at": "2026-10-16T09:00:00Z",
+  "tool_version": "aip-kafka-capture/1",
+  "kafka_version": "3.7.0",
+  "complete": true,
+  "group_scope": [
+    "order-service",
+    "payment-service"
+  ],
+  "groups": [
+    {
+      "group_id": "order-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "consumer-order-service-1-aaaa",
+          "client_id": "consumer-order-service-1",
+          "host": "/10.0.0.6",
+          "assignments": [
+            {
+              "topic": "payments.completed",
+              "partitions": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "consumer-order-service-2-bbbb",
+          "client_id": "consumer-order-service-2",
+          "host": "/10.0.0.6",
+          "assignments": [
+            {
+              "topic": "payments.failed",
+              "partitions": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group_id": "payment-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "server@host1-cccc",
+          "client_id": "server@host1",
+          "host": "/10.0.0.7",
+          "assignments": [
+            {
+              "topic": "orders.created",
+              "partitions": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
