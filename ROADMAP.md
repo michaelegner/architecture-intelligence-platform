@@ -938,7 +938,7 @@ For **every capability release**, product qualification must include at least on
 architecture question that the capability turns into a **reusable, deterministic, evidence-qualified
 answer or bounded context**. Validate that answer end to end: the consumer can resolve its evidence,
 qualification, context and limitations, and the workflow is compared with reconstruction from the
-same available source access. Internal semantic correctness alone is necessary but not sufficient
+same available source and direct-execution access. Internal semantic correctness alone is necessary but not sufficient
 evidence of product value.
 
 Record a continue, narrow, defer, or stop decision when evaluating these gates. Failed gates require
