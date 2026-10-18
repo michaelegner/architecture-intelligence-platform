@@ -49,6 +49,10 @@ class SourceKind(StrEnum):
     APISIX = "apisix"
     # v0.7.0 I2.1 contract §1: the APISIX Prometheus measurement source (one observation window).
     APISIX_MEASUREMENT = "apisix-measurement"
+    # v0.7.1 I1.1 contract §1: the Kafka consumer-state source (point-in-time group attachment).
+    KAFKA_CONSUMER_STATE = "kafka_consumer_state"
+    # v0.7.1 I2.1 contract §1: the operator-supplied Kafka consumer-group -> Service mapping.
+    KAFKA_SERVICE_MAPPING = "kafka_service_mapping"
 
 
 class FilesystemSourceConfig(BaseModel):
@@ -170,6 +174,57 @@ class ApisixMeasurementSourceConfig(BaseModel):
             self.stable_target_identity
             or f"urn:aip:apisix-measurement:{self.gateway_instance_id}:{self.environment}"
         )
+
+
+class KafkaConsumerStateSourceConfig(BaseModel):
+    """v0.7.1 I1.1 contract §1: the configured Kafka consumer-state source registration. `broker_id`
+    is the declared-Topic broker id (`x-aip-broker-id`), never a bootstrap address. `consumer_groups`
+    is the explicit allow-list that is the capture's complete scope (I1 spec §3, §5)."""
+
+    id: str = Field(min_length=1)
+    root: Path
+    capture_relative_path: str = "kafka-consumer-state.json"
+    broker_id: str = Field(min_length=1)
+    environment: str = Field(min_length=1)
+    consumer_groups: list[str] = Field(min_length=1)
+    configured_scope_id: str | None = None
+    stable_target_identity: str | None = None
+
+    @model_validator(mode="after")
+    def _allow_list_is_unique_and_non_empty(self) -> "KafkaConsumerStateSourceConfig":
+        if any(not group for group in self.consumer_groups):
+            raise ValueError("consumer_groups entries must be non-empty")
+        if len(set(self.consumer_groups)) != len(self.consumer_groups):
+            raise ValueError("consumer_groups entries must be unique")
+        return self
+
+    @property
+    def resolved_scope_id(self) -> str:
+        return self.configured_scope_id or self.id
+
+    @property
+    def resolved_stable_target_identity(self) -> str:
+        return (
+            self.stable_target_identity
+            or f"urn:aip:kafka-consumer-state:{self.broker_id}:{self.environment}"
+        )
+
+
+class KafkaServiceMappingSourceConfig(BaseModel):
+    """v0.7.1 I2.1 contract §1: one Kafka Service-mapping artifact registration. Several may exist for
+    one broker and environment; each is a separate evidence authority. There is deliberately no scope
+    override: the discovery scope derives from the id, broker and environment only, so two imports of
+    one source instance always share the scope lock."""
+
+    id: str = Field(min_length=1)
+    root: Path
+    artifact_relative_path: str = "kafka-service-mapping.json"
+    broker_id: str = Field(min_length=1)
+    environment: str = Field(min_length=1)
+
+    @property
+    def stable_target_identity(self) -> str:
+        return f"urn:aip:kafka-service-mapping:{self.broker_id}:{self.environment}"
 
 
 class IngestionResult(StrEnum):
@@ -311,6 +366,30 @@ class DiagnosticCode(StrEnum):
     GWM_LIMIT_EXCEEDED = "GWM_LIMIT_EXCEEDED"
     GWM_DUPLICATE_SOURCE = "GWM_DUPLICATE_SOURCE"
     GWM_MEASUREMENT_LIMITATIONS = "GWM_MEASUREMENT_LIMITATIONS"
+    # v0.7.1 I1.1 contract §8 / I1.3: the Kafka consumer-state source's per-source outcomes. Messages
+    # are fixed text, never a source value.
+    KAFKA_BROKER_MISMATCH = "KAFKA_BROKER_MISMATCH"
+    KAFKA_ENVIRONMENT_MISMATCH = "KAFKA_ENVIRONMENT_MISMATCH"
+    KAFKA_SCOPE_MISMATCH = "KAFKA_SCOPE_MISMATCH"
+    KAFKA_GROUP_NOT_DESCRIBED = "KAFKA_GROUP_NOT_DESCRIBED"
+    KAFKA_STATE_NOT_STABLE = "KAFKA_STATE_NOT_STABLE"
+    KAFKA_CAPTURE_INCOMPLETE = "KAFKA_CAPTURE_INCOMPLETE"
+    KAFKA_CAPTURE_UNREDACTED = "KAFKA_CAPTURE_UNREDACTED"
+    KAFKA_CAPTURE_INVALID = "KAFKA_CAPTURE_INVALID"
+    KAFKA_UNSUPPORTED_SCHEMA = "KAFKA_UNSUPPORTED_SCHEMA"
+    KAFKA_DUPLICATE_SOURCE = "KAFKA_DUPLICATE_SOURCE"
+    KAFKA_STALE_CAPTURE = "KAFKA_STALE_CAPTURE"
+    KAFKA_CAPTURE_CONFLICT = "KAFKA_CAPTURE_CONFLICT"
+    KAFKA_TOPIC_NOT_DECLARED = "KAFKA_TOPIC_NOT_DECLARED"
+    # v0.7.1 I2.1 contract §4 / I2.2: the Kafka Service-mapping source's rejections. Fixed text, never
+    # a source value or key name.
+    KSM_UNSUPPORTED_SCHEMA = "KSM_UNSUPPORTED_SCHEMA"
+    KSM_BROKER_MISMATCH = "KSM_BROKER_MISMATCH"
+    KSM_ENVIRONMENT_MISMATCH = "KSM_ENVIRONMENT_MISMATCH"
+    KSM_DUPLICATE_GROUP = "KSM_DUPLICATE_GROUP"
+    KSM_ARTIFACT_INVALID = "KSM_ARTIFACT_INVALID"
+    KSM_LIMIT_EXCEEDED = "KSM_LIMIT_EXCEEDED"
+    KSM_DUPLICATE_SOURCE = "KSM_DUPLICATE_SOURCE"
     # I2 Draft 0.2 §10's own named code ("Omit object; ACCEPTED_WITH_LIMITATIONS"), for §5: "Other
     # controller kinds and API versions require an amendment; unsupported objects are omitted with
     # pointer diagnostics and ACCEPTED_WITH_LIMITATIONS" (slice 3a).

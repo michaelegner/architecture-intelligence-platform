@@ -58,3 +58,18 @@ def sort_entries_by_canonical_bytes(entries: Sequence[JSONValue]) -> list[JSONVa
     equivalent and must not be used interchangeably.
     """
     return sorted(entries, key=canonical_json_bytes)
+
+
+def json_nesting_depth(node: object) -> int:
+    """Depth of a parsed JSON document (a scalar is 1), computed iteratively so a hostile document
+    cannot exhaust the stack."""
+    deepest = 0
+    stack: list[tuple[object, int]] = [(node, 1)]
+    while stack:
+        current, depth = stack.pop()
+        deepest = max(deepest, depth)
+        if isinstance(current, dict):
+            stack.extend((child, depth + 1) for child in current.values())
+        elif isinstance(current, list):
+            stack.extend((child, depth + 1) for child in current)
+    return deepest

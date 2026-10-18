@@ -77,6 +77,19 @@ from app.architecture_intelligence.deployment_reconciliation import (
     filter_for_service,
     run_whole_graph_reconciliation,
 )
+from app.architecture_intelligence.destination_consumer_contracts import (
+    DestinationConsumersAnswer,
+    DestinationConsumersQueryRequest,
+)
+from app.architecture_intelligence.destination_consumer_contracts import (
+    LimitationCode as DestinationLimitationCode,
+)
+from app.architecture_intelligence.destination_consumer_projection import (
+    project_destination_consumers,
+)
+from app.architecture_intelligence.destination_consumer_projection import (
+    refusal_answer as destination_refusal_answer,
+)
 from app.architecture_intelligence.drift_projection import project_architecture_drift
 from app.architecture_intelligence.evidence_projection import (
     EvidenceProjectionResult,
@@ -326,6 +339,7 @@ class ArchitectureIntelligenceService:
                     session,
                     coverage_qualification_enabled=self._coverage_qualification_enabled,
                     service_workload_mapping_document=self._service_workload_mapping_document,
+                    service_aliases=self._service_aliases,
                 )
                 fingerprint_holder["snapshot_id"] = snapshot_fingerprint(state)[0]
                 return state
@@ -711,6 +725,7 @@ class ArchitectureIntelligenceService:
                 session,
                 coverage_qualification_enabled=self._coverage_qualification_enabled,
                 service_workload_mapping_document=self._service_workload_mapping_document,
+                service_aliases=self._service_aliases,
             )
             fingerprint_holder["snapshot_id"] = snapshot_fingerprint(state)[0]
             return state
@@ -915,6 +930,7 @@ class ArchitectureIntelligenceService:
                 request,
                 coverage_qualification_enabled=self._coverage_qualification_enabled,
                 service_workload_mapping_document=self._service_workload_mapping_document,
+                service_aliases=self._service_aliases,
                 after_id=after_id,
                 page_size=page_size,
             )
@@ -945,6 +961,7 @@ class ArchitectureIntelligenceService:
                     locality,
                     coverage_qualification_enabled=self._coverage_qualification_enabled,
                     service_workload_mapping_document=self._service_workload_mapping_document,
+                    service_aliases=self._service_aliases,
                     after_id=cursor.after_id if cursor is not None else None,
                     read_candidates=early is None,
                 )
@@ -992,6 +1009,7 @@ class ArchitectureIntelligenceService:
                     session,
                     coverage_qualification_enabled=self._coverage_qualification_enabled,
                     service_workload_mapping_document=self._service_workload_mapping_document,
+                    service_aliases=self._service_aliases,
                     read_extra=lambda runner: read_scoped_evidence(
                         runner,
                         subject_id=request.subject_service_id,
@@ -1021,10 +1039,11 @@ class ArchitectureIntelligenceService:
             request, snapshot.extra, snapshot=snapshot_ref, producer=self._producer
         )
 
-    def _read_api_usage_snapshot(self) -> tuple[SnapshotRef, dict] | None:
+    def _read_state_snapshot(self) -> tuple[SnapshotRef, dict] | None:
         """One stable-read attempt of the whole canonical state: the current snapshot and that very
-        state, so an API usage answer and its snapshot id cannot describe different committed
-        states and no query beyond this read is made. `None` when no stable read was possible."""
+        state, so an answer projected from it and its snapshot id cannot describe different
+        committed states and no query beyond this read is made. `None` when no stable read was
+        possible. Shared by the API usage and destination-consumer answers."""
         captured: dict[str, dict] = {}
 
         def read_state() -> dict:
@@ -1032,6 +1051,7 @@ class ArchitectureIntelligenceService:
                 session,
                 coverage_qualification_enabled=self._coverage_qualification_enabled,
                 service_workload_mapping_document=self._service_workload_mapping_document,
+                service_aliases=self._service_aliases,
             )
             return captured["state"]
 
@@ -1047,13 +1067,30 @@ class ArchitectureIntelligenceService:
         ref = SnapshotRef(snapshot_id=snapshot.snapshot_id, model_revision=snapshot.model_revision)
         return ref, captured["state"]
 
+    def get_destination_consumers(
+        self, request: DestinationConsumersQueryRequest
+    ) -> DestinationConsumersAnswer:
+        """v0.7.1 I3.1 - the `mode: "query"` destination-consumer answer (I3 spec §2-§3): which
+        Services AIP can evidence-qualify as consumers of one Kafka Topic in one broker and
+        environment, projected from one stable read of the canonical state (including the declared
+        Topic brokers, so the answer is a function of the snapshot). Read-only."""
+        read = self._read_state_snapshot()
+        if read is None:
+            return destination_refusal_answer(
+                self._producer, None, DestinationLimitationCode.SNAPSHOT_NOT_AVAILABLE
+            )
+        snapshot, state = read
+        return project_destination_consumers(
+            request, state, snapshot=snapshot, producer=self._producer
+        )
+
     def get_api_consumer_usage(
         self, request: ApiConsumerUsageQueryRequest
     ) -> ApiConsumerUsageAnswer:
         """v0.7.0 I3.2 - the `mode: "query"` API-aware answer (I3 spec §4-§9, §11; decision record
         D3-D9): which consumers have configured access to, and which have observed usage of, the
         target in one gateway instance, environment and measurement window. Read-only."""
-        read = self._read_api_usage_snapshot()
+        read = self._read_state_snapshot()
         if read is None:
             return api_usage_refusal_answer(
                 self._producer, None, ApiUsageLimitationCode.SNAPSHOT_NOT_AVAILABLE
@@ -1070,7 +1107,7 @@ class ArchitectureIntelligenceService:
         record D6, D9). It reacquires the current snapshot, rebuilds the finite ref map of the
         resubmitted context from the same state and resolves only refs in it; there is no ref
         history. Answered only for the supplied `snapshot_id`, never from latest data. Read-only."""
-        read = self._read_api_usage_snapshot()
+        read = self._read_state_snapshot()
         if read is None:
             return api_usage_refusal_answer(
                 self._producer,

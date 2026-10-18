@@ -17,7 +17,20 @@ and `GatewaySourceEvidence` (v0.7.0 I1.4, APISIX configuration) and `ApiContract
 internal source-owned carriers with their own uniqueness constraints, no relationships, never exposed
 through REST, MCP or natural-language queries. `MeasurementWindow`, `MeasurementEvidence`,
 `MeasurementSeries`, `MeasurementLimitation` and `MeasurementMappingEntry` (v0.7.0 I2.2, APISIX
-measurement) join them. The snapshot adds the conditional keys `gateway_configuration_v1`,
+measurement) join them, as do `KafkaConsumerGroup`, `KafkaConsumerAttachment` and
+`KafkaCaptureEvidence` (v0.7.1 I1.3, Kafka consumer state: a consumer group attached to an
+already-declared Topic at capture time; no Topic, Subscription or Service is ever minted from it;
+one `KafkaSourceLock` node per source instance is internal commit-lock metadata, never in the snapshot),
+and `KafkaServiceMappingEntry` and `KafkaServiceMappingEvidence` (v0.7.1 I2.2, an operator-supplied
+consumer-group -> Service mapping stored exactly as written; the Service is resolved per snapshot,
+so no Service or `KafkaConsumerGroup` is ever created from it). The
+snapshot adds the conditional keys `kafka_consumer_state_v1` (sections `groups`, `attachments`,
+`evidence`) with `kafka_topic_brokers_v1` beside it (v0.7.1 I3.1: the declared broker of each Topic,
+`topic_id`/`broker_id` only, so a destination-consumer answer is a function of the snapshot),
+`kafka_consumer_attribution_v1` (v0.7.1 I2.3: sections `rule`, `mapping_sources`,
+`mapping_entries`, `aliases_applied`, `groups`, `attributions`, derived in the projection from the
+mapping carriers, the I1 attachments, the declared Services and the configured
+`telemetry.service_aliases`; present only when a mapping carrier exists), `gateway_configuration_v1`,
 `api_contracts_v1` and `api_usage_v1` (sections `windows`, `evidence`, `series`, `limitations`,
 `mapping_entries`, plus the derived reconciliation sections `reconciliation_rule`, `attributions`,
 `route_operation` and `target_service` (v0.7.0 I2.3), and `qualification_rule`, `coverage`,

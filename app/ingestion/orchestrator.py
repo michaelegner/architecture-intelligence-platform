@@ -31,6 +31,14 @@ from app.ingestion.apisix_measurement_adapter import ApisixMeasurementSourceAdap
 from app.ingestion.apisix_measurement_discoverer import ApisixMeasurementSourceDiscoverer
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
+from app.ingestion.kafka_consumer_state_adapter import KafkaConsumerStateSourceAdapter
+from app.ingestion.kafka_consumer_state_discoverer import (
+    KafkaConsumerStateSourceDiscoverer,
+    PriorKafkaCapture,
+    TopicResolver,
+)
+from app.ingestion.kafka_service_mapping_adapter import KafkaServiceMappingSourceAdapter
+from app.ingestion.kafka_service_mapping_discoverer import KafkaServiceMappingSourceDiscoverer
 from app.ingestion.kubernetes_adapter import KubernetesSourceAdapter
 from app.ingestion.kubernetes_discoverer import KubernetesSourceDiscoverer
 from app.ingestion.manifest_adapter import ManifestSourceAdapter
@@ -69,6 +77,8 @@ from app.sources.model import (
     FilesystemSourceConfig,
     IngestionDiagnostic,
     IngestionResult,
+    KafkaConsumerStateSourceConfig,
+    KafkaServiceMappingSourceConfig,
     KubernetesSourceConfig,
     LoadedSource,
     NotSupplied,
@@ -100,6 +110,8 @@ _DEFAULT_ADAPTERS = (
     KubernetesSourceAdapter(),
     ApisixSourceAdapter(),
     ApisixMeasurementSourceAdapter(),
+    KafkaConsumerStateSourceAdapter(),
+    KafkaServiceMappingSourceAdapter(),
 )
 
 
@@ -402,6 +414,11 @@ _MODEL_ENTITY_FIELDS = (
     "measurement_series",
     "measurement_limitations",
     "measurement_mapping_entries",
+    "kafka_consumer_groups",
+    "kafka_consumer_attachments",
+    "kafka_capture_evidence",
+    "kafka_service_mapping_entries",
+    "kafka_service_mapping_evidence",
 )
 
 
@@ -966,6 +983,52 @@ def run_apisix_measurement_discovery(
         ApisixMeasurementSourceDiscoverer(
             config, duplicate_measurement_source=duplicate_measurement_source
         ),
+        registry=registry,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+    )
+
+
+def run_kafka_consumer_state_discovery(
+    config: KafkaConsumerStateSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_registration: bool = False,
+    declared_topic_resolver: TopicResolver | None = None,
+    prior_capture: PriorKafkaCapture | None = None,
+) -> DiscoveryRunResult:
+    """Thin wrapper over `run_discovery` for the Kafka consumer-state source kind (v0.7.1 I1.3),
+    mirroring `run_apisix_measurement_discovery`. The import request supplies the duplicate flag
+    (I1.1 contract §1), the resolver of already-declared Topic ids (§6) and the committed capture of
+    this source for the ordering rule (§4); the run itself never touches the graph."""
+    return run_discovery(
+        KafkaConsumerStateSourceDiscoverer(
+            config,
+            duplicate_registration=duplicate_registration,
+            declared_topic_resolver=declared_topic_resolver,
+            prior_capture=prior_capture,
+        ),
+        registry=registry,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+    )
+
+
+def run_kafka_service_mapping_discovery(
+    config: KafkaServiceMappingSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_registration: bool = False,
+) -> DiscoveryRunResult:
+    """Thin wrapper over `run_discovery` for the Kafka Service-mapping source kind (v0.7.1 I2.2). The
+    import request supplies only the duplicate flag (I2.1 contract §1); the run never touches the
+    graph."""
+    return run_discovery(
+        KafkaServiceMappingSourceDiscoverer(config, duplicate_registration=duplicate_registration),
         registry=registry,
         migration_mappings=migration_mappings,
         tombstones=tombstones,

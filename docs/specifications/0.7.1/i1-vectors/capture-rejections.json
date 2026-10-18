@@ -1,0 +1,96 @@
+{
+  "schema": "aip-v071-i1-vectors-capture-rejections/1",
+  "note": "Each case is a mutation of kafka-consumer-state-capture.example.json (R12: of the registrations). All are rejected; prior accepted state is preserved; no diagnostic echoes a rejected value.",
+  "cases": [
+    {
+      "id": "R01",
+      "mutation": "broker_id differs from registration",
+      "reason": "KAFKA_BROKER_MISMATCH",
+      "state_written": false
+    },
+    {
+      "id": "R02",
+      "mutation": "environment differs from registration",
+      "reason": "KAFKA_ENVIRONMENT_MISMATCH",
+      "state_written": false
+    },
+    {
+      "id": "R03",
+      "mutation": "group_scope differs from the allow-list, or groups[] contains a group outside the allow-list",
+      "reason": "KAFKA_SCOPE_MISMATCH",
+      "state_written": false
+    },
+    {
+      "id": "R04",
+      "mutation": "an allow-listed group has no entry in groups[]",
+      "reason": "KAFKA_GROUP_NOT_DESCRIBED",
+      "state_written": false
+    },
+    {
+      "id": "R05",
+      "mutation": "a group is PreparingRebalance",
+      "reason": "KAFKA_STATE_NOT_STABLE",
+      "state_written": false
+    },
+    {
+      "id": "R06",
+      "mutation": "a group is CompletingRebalance",
+      "reason": "KAFKA_STATE_NOT_STABLE",
+      "state_written": false
+    },
+    {
+      "id": "R07",
+      "mutation": "a group state is unknown or missing",
+      "reason": "KAFKA_STATE_NOT_STABLE",
+      "state_written": false
+    },
+    {
+      "id": "R08",
+      "mutation": "complete is false, or any group entry carries an acquisition error or a not-found/lookup failure instead of a broker-reported state",
+      "reason": "KAFKA_CAPTURE_INCOMPLETE",
+      "state_written": false
+    },
+    {
+      "id": "R09",
+      "mutation": "a field named like a credential (for example sasl.jaas.config) or a canary value is present; the value is never echoed",
+      "reason": "KAFKA_CAPTURE_UNREDACTED",
+      "state_written": false
+    },
+    {
+      "id": "R10",
+      "mutation": "a required field is missing or mistyped, or captured_at is not RFC 3339 UTC",
+      "reason": "KAFKA_CAPTURE_INVALID",
+      "state_written": false
+    },
+    {
+      "id": "R11",
+      "mutation": "schema is not aip-kafka-consumer-state/1",
+      "reason": "KAFKA_UNSUPPORTED_SCHEMA",
+      "state_written": false
+    },
+    {
+      "id": "R12",
+      "mutation": "two registrations share broker_id and environment and an allow-listed group",
+      "reason": "KAFKA_DUPLICATE_SOURCE",
+      "state_written": false
+    },
+    {
+      "id": "R13",
+      "mutation": "groups[] contains two entries with the same group_id (or group_scope repeats an id)",
+      "reason": "KAFKA_CAPTURE_INVALID",
+      "state_written": false
+    },
+    {
+      "id": "R14",
+      "mutation": "captured_at is earlier than the latest accepted capture of this source",
+      "reason": "KAFKA_STALE_CAPTURE",
+      "state_written": false
+    },
+    {
+      "id": "R15",
+      "mutation": "captured_at equals the latest accepted capture but the normalized content differs",
+      "reason": "KAFKA_CAPTURE_CONFLICT",
+      "state_written": false
+    }
+  ]
+}
