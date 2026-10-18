@@ -7,8 +7,9 @@ import hashlib
 import json
 from collections.abc import Collection
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
 
+from app.common.jcs import json_nesting_depth
+from app.common.locators import confined_path
 from app.sources.kafka_consumer_state_contract import (
     CAPTURE_INVALID,
     KafkaCaptureProblem,
@@ -34,32 +35,10 @@ class RejectedKafkaCapture:
     problem: KafkaCaptureProblem
 
 
-def _nesting_depth(node: object) -> int:
-    deepest = 0
-    stack: list[tuple[object, int]] = [(node, 1)]
-    while stack:
-        current, depth = stack.pop()
-        deepest = max(deepest, depth)
-        if isinstance(current, dict):
-            stack.extend((child, depth + 1) for child in current.values())
-        elif isinstance(current, list):
-            stack.extend((child, depth + 1) for child in current)
-    return deepest
-
-
-def _capture_path(config: KafkaConsumerStateSourceConfig) -> Path | None:
-    relative = PurePosixPath(config.capture_relative_path)
-    if relative.is_absolute() or ".." in relative.parts or not relative.parts:
-        return None
-    root = config.root.resolve()
-    path = (root / relative).resolve()
-    return path if path.is_relative_to(root) else None
-
-
 def load_capture(
     config: KafkaConsumerStateSourceConfig, *, forbidden_values: Collection[str] = ()
 ) -> LoadedKafkaCapture | RejectedKafkaCapture:
-    path = _capture_path(config)
+    path = confined_path(config.root, config.capture_relative_path)
     if path is None:
         return RejectedKafkaCapture(KafkaCaptureProblem(CAPTURE_INVALID, "/capture_relative_path"))
     try:
@@ -73,7 +52,7 @@ def load_capture(
         document = json.loads(content)
     except (ValueError, RecursionError):
         return RejectedKafkaCapture(KafkaCaptureProblem(CAPTURE_INVALID))
-    if _nesting_depth(document) > MAX_NESTING:
+    if json_nesting_depth(document) > MAX_NESTING:
         return RejectedKafkaCapture(KafkaCaptureProblem(CAPTURE_INVALID))
     problem = validate_capture_document(document, forbidden_values)
     if problem is not None:

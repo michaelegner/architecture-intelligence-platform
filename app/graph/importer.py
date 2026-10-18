@@ -1,9 +1,11 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import replace
+from typing import LiteralString
 
 import neo4j
 
+from app.canonical.kafka_consumer_state import kafka_capture_evidence_id
 from app.canonical.model import ArchitectureModel, relation_key
 from app.graph import claim_planning, writers
 from app.graph.labels import (
@@ -12,12 +14,19 @@ from app.graph.labels import (
 )
 from app.graph.queries import (
     ANY_SCOPED_OBSERVED_CALL_QUERY,
+    DELETE_KAFKA_SOURCE_LOCK_QUERY,
     DELETE_SOURCE_STATE_QUERY,
+    LOCK_DECLARED_TOPICS_QUERY,
+    LOCK_KAFKA_SOURCE_QUERY,
     NODE_LABELS_QUERY,
     OWNED_NODE_IDS_QUERY,
     OWNED_RELATION_KEYS_QUERY,
     READ_CURRENT_INVENTORY_QUERY,
+    READ_DECLARED_TOPIC_IDS_QUERY,
     READ_GATEWAY_SOURCE_STATES_QUERY,
+    READ_KAFKA_CAPTURE_EVIDENCE_QUERY,
+    READ_KAFKA_MAPPING_SOURCE_REGISTRATIONS_QUERY,
+    READ_KAFKA_SOURCE_REGISTRATIONS_QUERY,
     READ_SOURCE_STATE_QUERY,
     READ_SOURCE_STATES_FOR_SCOPE_QUERY,
     WRITE_CURRENT_INVENTORY_QUERY,
@@ -26,18 +35,31 @@ from app.graph.queries import (
 from app.graph.repository import open_session
 from app.graph.revision_fence import bump_revision, lock_revision
 from app.graph.schema import ensure_schema
+from app.ingestion.kafka_consumer_state_discoverer import MESSAGES as KAFKA_MESSAGES
+from app.ingestion.kafka_consumer_state_discoverer import (
+    PriorKafkaCapture,
+    capture_ordering_problem,
+)
 from app.ingestion.orchestrator import (
     DiscoveryRunResult,
     SourceRunOutcome,
     run_apisix_discovery,
     run_apisix_measurement_discovery,
     run_filesystem_discovery,
+    run_kafka_consumer_state_discovery,
+    run_kafka_service_mapping_discovery,
     run_kubernetes_discovery,
 )
 from app.sources.claim_reconciliation import (
     plan_source_claim_reconciliation,
 )
-from app.sources.identity import GATEWAY_SOURCE_ID_PREFIX, MEASUREMENT_SOURCE_ID_PREFIX
+from app.sources.identity import (
+    GATEWAY_SOURCE_ID_PREFIX,
+    KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX,
+    KAFKA_SERVICE_MAPPING_SOURCE_ID_PREFIX,
+    MEASUREMENT_SOURCE_ID_PREFIX,
+    kafka_consumer_state_source_instance_id,
+)
 from app.sources.import_stats import (
     EmittedCounts,
     ImportRunStats,
@@ -57,6 +79,8 @@ from app.sources.model import (
     FilesystemSourceConfig,
     IngestionDiagnostic,
     IngestionResult,
+    KafkaConsumerStateSourceConfig,
+    KafkaServiceMappingSourceConfig,
     KubernetesCaptureScope,
     KubernetesSourceConfig,
     NotSupplied,
@@ -82,6 +106,22 @@ class StalePredecessorError(RuntimeError):
     prerequisite slice, item 4. Raising aborts the whole transaction before any write, so prior
     committed state is left untouched; `import_discovery_run` catches this and reports the run as
     not committed."""
+
+
+class CommitGuardRejectedError(RuntimeError):
+    """Raised inside `_import_all_sources_tx` when a caller-supplied commit guard rejects the run
+    against the state it reads under the transaction's locks. Raising aborts the whole transaction
+    before any write; `import_discovery_run` reports the run as not committed, its sources as
+    `REJECTED_CONFLICT`, with the guard's fixed-text diagnostic."""
+
+    def __init__(self, diagnostic: IngestionDiagnostic):
+        super().__init__(diagnostic.message)
+        self.diagnostic = diagnostic
+
+
+# A source-kind-neutral hook: called once inside the commit transaction, after the scope lock and
+# the predecessor check and before any write. Returning a diagnostic rejects the whole run.
+CommitGuard = Callable[[neo4j.ManagedTransaction], "IngestionDiagnostic | None"]
 
 
 # The public canonical node labels (the `NODE_LABELS` entities, minus Evidence). Every other owned
@@ -461,6 +501,7 @@ def _import_all_sources_tx(
     *,
     run_result: DiscoveryRunResult,
     expected_prior_inventory_revision: str | None | NotSupplied = NOT_SUPPLIED,
+    commit_guard: CommitGuard | None = None,
 ) -> tuple[
     dict[str, SourceImportStats],
     tuple[str, ...],
@@ -520,6 +561,11 @@ def _import_all_sources_tx(
                 f"scope {run_result.discovery_scope_id!r}, but the currently committed revision "
                 f"is {actual_committed_revision!r}"
             )
+
+    if commit_guard is not None:
+        rejection = commit_guard(tx)
+        if rejection is not None:
+            raise CommitGuardRejectedError(rejection)
 
     if run_result.inventory_snapshot is None:
         raise ValueError(
@@ -710,6 +756,7 @@ def import_discovery_run(
     database: str,
     run_result: DiscoveryRunResult,
     expected_prior_inventory_revision: str | None | NotSupplied = NOT_SUPPLIED,
+    commit_guard: CommitGuard | None = None,
 ) -> ImportRunStats:
     """I2 Draft 0.2 §3 prerequisite slice, items 2/4: the source-neutral commit entry point - takes
     an already-computed `DiscoveryRunResult` (from `run_discovery` or any source-neutral discovery
@@ -749,6 +796,25 @@ def import_discovery_run(
                 _import_all_sources_tx,
                 run_result=run_result,
                 expected_prior_inventory_revision=expected_prior_inventory_revision,
+                commit_guard=commit_guard,
+            )
+        except CommitGuardRejectedError as exc:
+            return ImportRunStats(
+                inventory_status=run_result.inventory_status,
+                committed=False,
+                per_source={},
+                removed_source_instance_ids=(),
+                diagnostics=(*run_result.diagnostics, exc.diagnostic),
+                source_results=tuple(
+                    replace(
+                        result,
+                        result=IngestionResult.REJECTED_CONFLICT,
+                        diagnostics=(*result.diagnostics, exc.diagnostic),
+                    )
+                    for result in source_results
+                ),
+                discovery_scope_id=run_result.discovery_scope_id,
+                scope_definition_digest=run_result.scope_definition_digest,
             )
         except StalePredecessorError as exc:
             return ImportRunStats(
@@ -986,3 +1052,267 @@ def import_apisix_measurement_source(
         duplicate_measurement_source=duplicate_measurement_source,
     )
     return import_discovery_run(driver, database=database, run_result=run_result)
+
+
+def _unconfigured_source_ids(
+    tx: neo4j.ManagedTransaction,
+    *,
+    prefix: str,
+    registrations_query: LiteralString,
+    configured_source_instance_ids: AbstractSet[str],
+    protected_configured_source_ids: AbstractSet[str],
+) -> list[str]:
+    """The persisted sources of one kind (by id prefix) that the request no longer configures, minus
+    those whose registration (read from its evidence carrier by `registrations_query`) is still
+    configured but did not commit a replacement in this request."""
+    persisted = sorted(
+        record["source_instance_id"]
+        for record in tx.run(READ_GATEWAY_SOURCE_STATES_QUERY, prefix=prefix)
+    )
+    registration_of = {
+        record["source_instance_id"]: record["configured_source_id"]
+        for record in tx.run(registrations_query)
+    }
+    return [
+        sid
+        for sid in persisted
+        if sid not in configured_source_instance_ids
+        and registration_of.get(sid) not in protected_configured_source_ids
+    ]
+
+
+def _retire_unconfigured_kafka_consumer_state_tx(
+    tx: neo4j.ManagedTransaction,
+    *,
+    configured_source_instance_ids: AbstractSet[str],
+    protected_configured_source_ids: AbstractSet[str],
+) -> tuple[SourceImportStats, ...]:
+    retired = _unconfigured_source_ids(
+        tx,
+        prefix=KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX,
+        registrations_query=READ_KAFKA_SOURCE_REGISTRATIONS_QUERY,
+        configured_source_instance_ids=configured_source_instance_ids,
+        protected_configured_source_ids=protected_configured_source_ids,
+    )
+    for sid in retired:
+        tx.run(DELETE_KAFKA_SOURCE_LOCK_QUERY, source_instance_id=sid)
+    return tuple(
+        _remove_source_tx(tx, source_instance_id=sid, removed_source_ids=frozenset(retired))
+        for sid in retired
+    )
+
+
+def retire_unconfigured_kafka_consumer_state(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    configured_source_instance_ids: AbstractSet[str],
+    protected_configured_source_ids: AbstractSet[str] = frozenset(),
+) -> tuple[SourceImportStats, ...]:
+    """v0.7.1 I1.3 (I1.1 contract §5): removing a registration, or changing its allow-list (which
+    changes the source instance id), retires that source's carriers. A dropped registration gets no
+    discovery run, so the request-level configuration is the authority; this is a change of
+    configuration and never evidence that a group detached.
+
+    `protected_configured_source_ids` names registrations still configured whose run in this
+    request did not commit: their previous source keeps its carriers until a replacement capture
+    is accepted (review of #582), so a rejected capture after an allow-list change erases nothing."""
+    with open_session(driver, database=database) as session:
+        ensure_schema(session)
+        return session.execute_write(
+            _retire_unconfigured_kafka_consumer_state_tx,
+            configured_source_instance_ids=configured_source_instance_ids,
+            protected_configured_source_ids=protected_configured_source_ids,
+        )
+
+
+def _retire_unconfigured_kafka_service_mappings_tx(
+    tx: neo4j.ManagedTransaction,
+    *,
+    configured_source_instance_ids: AbstractSet[str],
+    protected_configured_source_ids: AbstractSet[str],
+) -> tuple[SourceImportStats, ...]:
+    retired = _unconfigured_source_ids(
+        tx,
+        prefix=KAFKA_SERVICE_MAPPING_SOURCE_ID_PREFIX,
+        registrations_query=READ_KAFKA_MAPPING_SOURCE_REGISTRATIONS_QUERY,
+        configured_source_instance_ids=configured_source_instance_ids,
+        protected_configured_source_ids=protected_configured_source_ids,
+    )
+    return tuple(
+        _remove_source_tx(tx, source_instance_id=sid, removed_source_ids=frozenset(retired))
+        for sid in retired
+    )
+
+
+def retire_unconfigured_kafka_service_mappings(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    configured_source_instance_ids: AbstractSet[str],
+    protected_configured_source_ids: AbstractSet[str] = frozenset(),
+) -> tuple[SourceImportStats, ...]:
+    """v0.7.1 I2.2 (I2.1 contract §1): removing a mapping registration, or changing its broker or
+    environment (a new source instance id), retires that source's carriers. As for the consumer-state
+    source, a still-configured registration whose run did not commit keeps its previous source, so a
+    rejected artifact never erases the last accepted entries (L04)."""
+    with open_session(driver, database=database) as session:
+        ensure_schema(session)
+        return session.execute_write(
+            _retire_unconfigured_kafka_service_mappings_tx,
+            configured_source_instance_ids=configured_source_instance_ids,
+            protected_configured_source_ids=protected_configured_source_ids,
+        )
+
+
+def import_kafka_service_mapping_source(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    source_config: KafkaServiceMappingSourceConfig,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_registration: bool = False,
+) -> ImportRunStats:
+    """Thin wrapper over `run_kafka_service_mapping_discovery` + `import_discovery_run` for the Kafka
+    Service-mapping source kind (v0.7.1 I2.2). No commit guard: the artifact has no ordering rule and
+    references no graph entity, and two imports of one source instance share its discovery scope,
+    whose lock serializes them. A later accepted artifact replaces this source's entries through the
+    generic same-source claim reconciliation; a byte-identical one is a no-op; a rejected one commits
+    nothing."""
+    run_result = run_kafka_service_mapping_discovery(
+        source_config,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+        duplicate_registration=duplicate_registration,
+    )
+    return import_discovery_run(driver, database=database, run_result=run_result)
+
+
+def _read_declared_topic_ids(
+    driver: neo4j.Driver, *, database: str, ids: Collection[str]
+) -> frozenset[str]:
+    if not ids:
+        return frozenset()
+    with open_session(driver, database=database) as session:
+        ensure_schema(session)
+        return frozenset(
+            record["id"]
+            for record in session.execute_read(
+                lambda tx: list(tx.run(READ_DECLARED_TOPIC_IDS_QUERY, ids=sorted(ids)))
+            )
+        )
+
+
+def _read_prior_kafka_capture(
+    driver: neo4j.Driver, *, database: str, evidence_id: str
+) -> PriorKafkaCapture | None:
+    with open_session(driver, database=database) as session:
+        ensure_schema(session)
+        records = session.execute_read(
+            lambda tx: list(tx.run(READ_KAFKA_CAPTURE_EVIDENCE_QUERY, id=evidence_id))
+        )
+    if not records:
+        return None
+    return PriorKafkaCapture(
+        captured_at=records[0]["captured_at"], content_sha256=records[0]["content_sha256"]
+    )
+
+
+def import_kafka_consumer_state_source(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    source_config: KafkaConsumerStateSourceConfig,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_registration: bool = False,
+) -> ImportRunStats:
+    """Thin wrapper over `run_kafka_consumer_state_discovery` + `import_discovery_run` for the Kafka
+    consumer-state source kind (v0.7.1 I1.3). The graph is read only here: the committed capture of
+    this source (ordering rule, contract §4) and which candidate Topics are already declared
+    (contract §6). A later accepted capture authoritatively replaces this source's carriers through
+    the generic same-source claim reconciliation; a rejected one makes the run PARTIAL and commits
+    nothing."""
+    source_instance_id = kafka_consumer_state_source_instance_id(
+        configured_source_id=source_config.id,
+        broker_id=source_config.broker_id,
+        environment=source_config.environment,
+        consumer_groups=source_config.consumer_groups,
+    )
+    prior = _read_prior_kafka_capture(
+        driver, database=database, evidence_id=kafka_capture_evidence_id(source_instance_id)
+    )
+    run_result = run_kafka_consumer_state_discovery(
+        source_config,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+        duplicate_registration=duplicate_registration,
+        declared_topic_resolver=lambda ids: _read_declared_topic_ids(
+            driver, database=database, ids=ids
+        ),
+        prior_capture=prior,
+    )
+    return import_discovery_run(
+        driver,
+        database=database,
+        run_result=run_result,
+        commit_guard=kafka_commit_guard(run_result),
+    )
+
+
+def kafka_commit_guard(run_result: DiscoveryRunResult) -> CommitGuard | None:
+    """The graph-dependent Kafka rules, re-checked inside the commit transaction so no concurrent
+    import can slip between discovery and commit (review of #582):
+
+    - capture ordering (R14/R15) against the evidence committed for this source at that moment,
+      read under this source instance's own lock (`KafkaSourceLock`), not the discovery-scope lock:
+      two registrations can share a source instance with different scopes, so a second import of
+      the same source instance waits and then sees the first one's evidence;
+    - every Topic an attachment points at is write-locked and must still exist, so a concurrent
+      declaring source cannot remove it before this run commits.
+
+    `None` when the run carries no accepted capture (nothing to guard)."""
+    evidence = [
+        item
+        for outcome in run_result.source_outcomes.values()
+        for item in outcome.outcome.model.kafka_capture_evidence
+    ]
+    if not evidence:
+        return None
+    [capture] = evidence
+    topic_ids = sorted(
+        {
+            attachment.topic_id
+            for outcome in run_result.source_outcomes.values()
+            for attachment in outcome.outcome.model.kafka_consumer_attachments
+        }
+    )
+
+    def guard(tx: neo4j.ManagedTransaction) -> IngestionDiagnostic | None:
+        tx.run(LOCK_KAFKA_SOURCE_QUERY, source_instance_id=capture.source_instance_id).consume()
+        committed = tx.run(READ_KAFKA_CAPTURE_EVIDENCE_QUERY, id=capture.id).single()
+        prior = (
+            None
+            if committed is None
+            else PriorKafkaCapture(committed["captured_at"], committed["content_sha256"])
+        )
+        ordering = capture_ordering_problem(
+            capture.captured_at, capture.capture_content_sha256, prior
+        )
+        if ordering is not None:
+            return IngestionDiagnostic(
+                code=ordering, message=KAFKA_MESSAGES[ordering], source_pointer="/captured_at"
+            )
+        locked = {record["id"] for record in tx.run(LOCK_DECLARED_TOPICS_QUERY, ids=topic_ids)}
+        if locked != set(topic_ids):
+            return IngestionDiagnostic(
+                code=DiagnosticCode.STALE_INVENTORY_PREDECESSOR,
+                message=(
+                    "a Topic this capture attaches to stopped being declared before the import "
+                    "committed; nothing was written"
+                ),
+            )
+        return None
+
+    return guard

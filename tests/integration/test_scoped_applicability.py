@@ -264,6 +264,7 @@ def _read(session, request, **kwargs):
         request,
         coverage_qualification_enabled=False,
         service_workload_mapping_document=None,
+        service_aliases={},
         **kwargs,
     )
 

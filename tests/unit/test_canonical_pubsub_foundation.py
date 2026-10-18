@@ -59,10 +59,16 @@ def test_internal_pubsub_carriers_stay_out_of_public_and_nl_query_surfaces():
     snapshot_queries = " ".join(
         value
         for name, value in vars(repository).items()
-        if name.endswith("_QUERY") and isinstance(value, str)
+        if name.endswith("_QUERY")
+        and isinstance(value, str)
+        # v0.7.1 I3.1 (review of #592): the one allowed read projects only the derived
+        # (Topic id, broker id) pairs, never declaration carrier content - pinned below.
+        and name != "_KAFKA_TOPIC_BROKERS_QUERY"
     )
     for label in internal:
         assert label not in snapshot_queries
+    returned = repository._KAFKA_TOPIC_BROKERS_QUERY.split(" RETURN ", 1)[1]
+    assert returned == "DISTINCT d.entity_id AS topic_id, d.broker_id AS broker_id"
 
 
 def test_topic_and_subscription_uniqueness_constraints_are_declared():

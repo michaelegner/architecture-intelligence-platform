@@ -547,6 +547,7 @@ def measure_reads(
                 locality,
                 coverage_qualification_enabled=True,
                 service_workload_mapping_document=None,
+                service_aliases={},
                 after_id=None,
                 read_candidates=True,
             )
