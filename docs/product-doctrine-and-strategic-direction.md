@@ -374,8 +374,18 @@ For every public conclusion AIP should preserve enough information to inspect:
 - snapshot/version identity; and
 - limitations.
 
-Deterministic replay is valuable because agents and humans should be able to reason from the same
-architectural premises.
+Reproducibility is a product property of AIP's reasoning, not a claim that distributed reality itself
+is repeatable:
+
+> **Reality may change; AIP's reasoning over the same frozen evidence, context, mappings and rules
+> must be reproducible.**
+
+New evidence may establish a different Current State. Replaying an old evidence snapshot does not
+prove that its conclusion is still true now; it proves that the recorded conclusion can be inspected
+and reproduced from the premises that justified it.
+
+This distinction lets agents and humans reason from the same architectural premises without turning
+a transient production observation or a previous agent's narration into timeless truth.
 
 ---
 
@@ -539,6 +549,7 @@ AIP should demonstrate all of the following before broadening the product:
 - no systematic increase in unsupported architectural claims;
 - clear separation between AIP evidence and source-code findings;
 - evidence and limitations inspectable by humans and agents;
+- public conclusions reproducible from the same frozen evidence, context, mappings and rules;
 - bounded question cost as unrelated systems/evidence grow;
 - maintenance cost justified by reuse and decision improvement.
 
@@ -587,7 +598,8 @@ For a proposed capability, ask:
 9. **If not, is there independent external evidence from which AIP can safely establish the
    relevant claim?**
 10. **Could an adjacent architecture product own this better?**
-11. **Can the semantics and qualification be evaluated deterministically?**
+11. **Can the conclusion be replayed deterministically from frozen evidence, context, mappings and
+    rules?**
 12. **Does this create a stronger claim than its inputs justify?**
 13. **What maintenance cost does it introduce?**
 
