@@ -1,0 +1,721 @@
+{
+  "$defs": {
+    "AttributionOutcome": {
+      "description": "The I2 outcome (`kafka-consumer-attribution` / `1`), unrenamed.",
+      "enum": [
+        "RESOLVED",
+        "UNRESOLVED",
+        "AMBIGUOUS",
+        "CONFLICT"
+      ],
+      "title": "AttributionOutcome",
+      "type": "string"
+    },
+    "AttributionReason": {
+      "description": "The I2 reasons, unrenamed.",
+      "enum": [
+        "SERVICE_IDENTITY_CONFLICT",
+        "MAPPING_SOURCE_DISAGREEMENT",
+        "SERVICE_IDENTITY_AMBIGUOUS",
+        "SERVICE_NOT_DECLARED",
+        "SERVICE_IDENTITY_PLACEHOLDER",
+        "NO_MAPPING"
+      ],
+      "title": "AttributionReason",
+      "type": "string"
+    },
+    "CaptureSource": {
+      "additionalProperties": false,
+      "description": "One accepted I1 capture of the requested broker and environment, with its own T (spec \u00a73:\nseveral captures are never collapsed into one invented T).",
+      "properties": {
+        "captured_at": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "scope_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scope Digest",
+          "type": "string"
+        },
+        "source_instance_id": {
+          "pattern": "^urn:aip:source:kafka-consumer-state:[0-9a-f]{64}$",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "source_revision": {
+          "minLength": 1,
+          "title": "Source Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_instance_id",
+        "captured_at",
+        "source_revision",
+        "scope_digest"
+      ],
+      "title": "CaptureSource",
+      "type": "object"
+    },
+    "ConsumerRow": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "not": {
+              "required": [
+                "service_id"
+              ]
+            },
+            "properties": {
+              "limitations": {
+                "maxItems": 0
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "RESOLVED"
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "reason"
+              ]
+            },
+            "required": [
+              "service_id"
+            ]
+          }
+        }
+      ],
+      "description": "Spec \u00a73: one row per I1 attachment on the queried Topic, in the requested broker and\nenvironment. `consumer_id` and `group_id` are the Kafka-native group identity, not a Service\nor Subscription.",
+      "properties": {
+        "attachment_evidence_refs": {
+          "items": {
+            "pattern": "^destination-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Attachment Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "captured_at": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "consumer_id": {
+          "pattern": "^consumer:[0-9a-f]{64}$",
+          "title": "Consumer Id",
+          "type": "string"
+        },
+        "group_id": {
+          "minLength": 1,
+          "title": "Group Id",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "$ref": "#/$defs/RowLimitation"
+          },
+          "title": "Limitations",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "mapping_evidence_refs": {
+          "items": {
+            "pattern": "^destination-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Mapping Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "outcome": {
+          "$ref": "#/$defs/AttributionOutcome"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttributionReason"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "service_id": {
+          "anyOf": [
+            {
+              "pattern": "^service:[^\\s\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Id"
+        }
+      },
+      "required": [
+        "consumer_id",
+        "group_id",
+        "outcome",
+        "limitations",
+        "captured_at",
+        "attachment_evidence_refs",
+        "mapping_evidence_refs"
+      ],
+      "title": "ConsumerRow",
+      "type": "object"
+    },
+    "DestinationConsumersData": {
+      "additionalProperties": false,
+      "description": "The query payload. `mapping_source_present` says whether any accepted mapping source exists\nfor the broker and environment, which decides `NO_MAPPING_SOURCE`.",
+      "properties": {
+        "capture_sources": {
+          "items": {
+            "$ref": "#/$defs/CaptureSource"
+          },
+          "minItems": 1,
+          "title": "Capture Sources",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "mapping_source_present": {
+          "title": "Mapping Source Present",
+          "type": "boolean"
+        },
+        "page": {
+          "$ref": "#/$defs/Page"
+        },
+        "request_context": {
+          "$ref": "#/$defs/RequestContext"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/ConsumerRow"
+          },
+          "maxItems": 200,
+          "title": "Rows",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "request_context",
+        "capture_sources",
+        "mapping_source_present",
+        "rows",
+        "page"
+      ],
+      "title": "DestinationConsumersData",
+      "type": "object"
+    },
+    "Limitation": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/LimitationCode"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "Limitation",
+      "type": "object"
+    },
+    "LimitationCode": {
+      "description": "Spec \u00a73: the closed top-level codes, distinct from the I2 row reasons. The first six are\nrefusals (`data` is null).",
+      "enum": [
+        "SNAPSHOT_NOT_AVAILABLE",
+        "UNKNOWN_DESTINATION",
+        "DESTINATION_NOT_KAFKA_TOPIC",
+        "BROKER_MISMATCH",
+        "NO_ACCEPTED_CAPTURE",
+        "CURSOR_QUERY_MISMATCH",
+        "CAPTURE_SCOPE_LIMITED",
+        "NO_MAPPING_SOURCE",
+        "MORE_ROWS_AVAILABLE",
+        "EVIDENCE_REF_NOT_RESOLVED"
+      ],
+      "title": "LimitationCode",
+      "type": "string"
+    },
+    "Outcome": {
+      "enum": [
+        "ANSWERED",
+        "PARTIAL",
+        "NOT_ANSWERED"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "Page": {
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        },
+        "returned": {
+          "maximum": 200,
+          "minimum": 0,
+          "title": "Returned",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "limit",
+        "returned"
+      ],
+      "title": "Page",
+      "type": "object"
+    },
+    "Producer": {
+      "additionalProperties": false,
+      "properties": {
+        "build_revision": {
+          "title": "Build Revision",
+          "type": "string"
+        },
+        "name": {
+          "const": "architecture-intelligence-platform",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "build_revision"
+      ],
+      "title": "Producer",
+      "type": "object"
+    },
+    "RequestContext": {
+      "additionalProperties": false,
+      "description": "Spec \u00a72: the exact query context. Page position, `limit` and `snapshot_id` are not part of\nit.",
+      "properties": {
+        "broker_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Broker Id",
+          "type": "string"
+        },
+        "destination_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Destination Id",
+          "type": "string"
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        }
+      },
+      "required": [
+        "destination_id",
+        "broker_id",
+        "environment"
+      ],
+      "title": "RequestContext",
+      "type": "object"
+    },
+    "RowLimitation": {
+      "additionalProperties": false,
+      "description": "A non-resolving mapping entry of a RESOLVED group, with the ref of its mapping evidence.",
+      "properties": {
+        "mapping_evidence_ref": {
+          "pattern": "^destination-evidence:[0-9a-f]{64}$",
+          "title": "Mapping Evidence Ref",
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/$defs/AttributionReason"
+        }
+      },
+      "required": [
+        "reason",
+        "mapping_evidence_ref"
+      ],
+      "title": "RowLimitation",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "properties": {
+        "model_revision": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Model Revision",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "model_revision"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "limitations": {
+            "contains": {
+              "properties": {
+                "code": {
+                  "const": "CAPTURE_SCOPE_LIMITED"
+                }
+              }
+            },
+            "items": {
+              "properties": {
+                "code": {
+                  "not": {
+                    "enum": [
+                      "BROKER_MISMATCH",
+                      "CURSOR_QUERY_MISMATCH",
+                      "DESTINATION_NOT_KAFKA_TOPIC",
+                      "NO_ACCEPTED_CAPTURE",
+                      "SNAPSHOT_NOT_AVAILABLE",
+                      "UNKNOWN_DESTINATION"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "outcome": {
+            "const": "PARTIAL"
+          },
+          "snapshot": {
+            "not": {
+              "type": "null"
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "items": {
+              "properties": {
+                "code": {
+                  "enum": [
+                    "BROKER_MISMATCH",
+                    "CURSOR_QUERY_MISMATCH",
+                    "DESTINATION_NOT_KAFKA_TOPIC",
+                    "NO_ACCEPTED_CAPTURE",
+                    "SNAPSHOT_NOT_AVAILABLE",
+                    "UNKNOWN_DESTINATION"
+                  ]
+                }
+              }
+            },
+            "maxItems": 1,
+            "minItems": 1
+          },
+          "outcome": {
+            "const": "NOT_ANSWERED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "snapshot": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "snapshot"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "contains": {
+              "properties": {
+                "code": {
+                  "const": "SNAPSHOT_NOT_AVAILABLE"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "limitations"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data": {
+            "properties": {
+              "mapping_source_present": {
+                "const": false
+              }
+            },
+            "required": [
+              "mapping_source_present"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "contains": {
+              "properties": {
+                "code": {
+                  "const": "NO_MAPPING_SOURCE"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "limitations"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data": {
+            "properties": {
+              "mapping_source_present": {
+                "const": true
+              }
+            },
+            "required": [
+              "mapping_source_present"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "items": {
+              "properties": {
+                "code": {
+                  "not": {
+                    "const": "NO_MAPPING_SOURCE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "else": {
+        "properties": {
+          "limitations": {
+            "items": {
+              "properties": {
+                "code": {
+                  "not": {
+                    "const": "MORE_ROWS_AVAILABLE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "data": {
+            "properties": {
+              "page": {
+                "required": [
+                  "next_cursor"
+                ]
+              }
+            },
+            "required": [
+              "page"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "contains": {
+              "properties": {
+                "code": {
+                  "const": "MORE_ROWS_AVAILABLE"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "limitations"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "limitations": {
+          "items": {
+            "properties": {
+              "code": {
+                "not": {
+                  "const": "EVIDENCE_REF_NOT_RESOLVED"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "The 0.7.1 envelope. `data` is null if and only if the answer is a refusal. An evaluated\nanswer is always `PARTIAL`: an accepted capture covers only its configured group allow-list at\nits own T, so `CAPTURE_SCOPE_LIMITED` is always present and no answer claims completeness.",
+  "properties": {
+    "data": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DestinationConsumersData"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "limitations": {
+      "items": {
+        "$ref": "#/$defs/Limitation"
+      },
+      "title": "Limitations",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "mode": {
+      "const": "query",
+      "title": "Mode",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome"
+    },
+    "producer": {
+      "$ref": "#/$defs/Producer"
+    },
+    "schema_version": {
+      "const": "0.7.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "snapshot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SnapshotRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tool": {
+      "const": "get_destination_consumers",
+      "title": "Tool",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "producer",
+    "tool",
+    "mode",
+    "outcome",
+    "snapshot",
+    "data",
+    "limitations"
+  ],
+  "title": "DestinationConsumersAnswer",
+  "type": "object"
+}

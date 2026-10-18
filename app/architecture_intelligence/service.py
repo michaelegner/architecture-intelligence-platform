@@ -77,6 +77,22 @@ from app.architecture_intelligence.deployment_reconciliation import (
     filter_for_service,
     run_whole_graph_reconciliation,
 )
+from app.architecture_intelligence.destination_consumer_contracts import (
+    DestinationConsumersAnswer,
+    DestinationConsumersQueryRequest,
+)
+from app.architecture_intelligence.destination_consumer_contracts import (
+    LimitationCode as DestinationLimitationCode,
+)
+from app.architecture_intelligence.destination_consumer_projection import (
+    project_destination_consumers,
+)
+from app.architecture_intelligence.destination_consumer_projection import (
+    refusal_answer as destination_refusal_answer,
+)
+from app.architecture_intelligence.destination_consumer_repository import (
+    read_topic_declaration_brokers,
+)
 from app.architecture_intelligence.drift_projection import project_architecture_drift
 from app.architecture_intelligence.evidence_projection import (
     EvidenceProjectionResult,
@@ -1030,6 +1046,15 @@ class ArchitectureIntelligenceService:
         """One stable-read attempt of the whole canonical state: the current snapshot and that very
         state, so an API usage answer and its snapshot id cannot describe different committed
         states and no query beyond this read is made. `None` when no stable read was possible."""
+        read = self._read_state_snapshot(lambda _session: None)
+        return None if read is None else (read[0], read[1])
+
+    def _read_state_snapshot[T](
+        self, read_extra: Callable[[neo4j.Session], T]
+    ) -> tuple[SnapshotRef, dict, T] | None:
+        """One stable-read attempt of the whole canonical state plus `read_extra`, both fenced by the
+        same revision, so the answer, its extra rows and its snapshot id describe one committed
+        state. `None` when no stable read was possible."""
         captured: dict[str, dict] = {}
 
         def read_state() -> dict:
@@ -1046,12 +1071,35 @@ class ArchitectureIntelligenceService:
                 snapshot = read_stable_snapshot(
                     read_revision_fn=lambda: read_revision(session),
                     read_state=read_state,
-                    read_extra=lambda: None,
+                    read_extra=lambda: read_extra(session),
                 )
         except SnapshotUnstable:
             return None
         ref = SnapshotRef(snapshot_id=snapshot.snapshot_id, model_revision=snapshot.model_revision)
-        return ref, captured["state"]
+        return ref, captured["state"], snapshot.extra
+
+    def get_destination_consumers(
+        self, request: DestinationConsumersQueryRequest
+    ) -> DestinationConsumersAnswer:
+        """v0.7.1 I3.1 - the `mode: "query"` destination-consumer answer (I3 spec §2-§3): which
+        Services AIP can evidence-qualify as consumers of one Kafka Topic in one broker and
+        environment. The broker ids of the Topic's declarations are read in the same stable
+        attempt as the state (owner decision: the Topic node records no broker). Read-only."""
+        read = self._read_state_snapshot(
+            lambda session: read_topic_declaration_brokers(session, topic_id=request.destination_id)
+        )
+        if read is None:
+            return destination_refusal_answer(
+                self._producer, None, DestinationLimitationCode.SNAPSHOT_NOT_AVAILABLE
+            )
+        snapshot, state, declared_brokers = read
+        return project_destination_consumers(
+            request,
+            state,
+            declared_brokers=declared_brokers,
+            snapshot=snapshot,
+            producer=self._producer,
+        )
 
     def get_api_consumer_usage(
         self, request: ApiConsumerUsageQueryRequest

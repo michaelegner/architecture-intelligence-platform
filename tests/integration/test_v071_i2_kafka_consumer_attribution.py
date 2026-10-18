@@ -11,6 +11,9 @@ from pathlib import Path
 import pytest
 
 from app.architecture_intelligence.contracts import Producer
+from app.architecture_intelligence.destination_consumer_contracts import (
+    DestinationConsumersQueryRequest,
+)
 from app.architecture_intelligence.locality_contracts import (
     LocalityEvidenceRequest,
     LocalityQueryRequest,
@@ -282,6 +285,20 @@ def _snapshot_ids(service: ArchitectureIntelligenceService, expected: str) -> se
             }
         )
     )
+    with service._driver.session(database=DATABASE) as session:
+        record = session.run("MATCH (t:Topic {name: 'inventory'}) RETURN t.id AS id").single()
+    assert record is not None
+    destination = service.get_destination_consumers(
+        DestinationConsumersQueryRequest.model_validate(
+            {
+                "mode": "query",
+                "destination_id": record["id"],
+                "broker_id": BROKER,
+                "environment": ENV,
+            }
+        )
+    )
+    assert destination.snapshot is not None
     assert usage is not None and dependencies.snapshot is not None
     assert locality.snapshot is not None and scoped_evidence.snapshot is not None
     return {
@@ -291,6 +308,7 @@ def _snapshot_ids(service: ArchitectureIntelligenceService, expected: str) -> se
         locality.snapshot.snapshot_id,
         assessment.snapshot_id,
         scoped_evidence.snapshot.snapshot_id,
+        destination.snapshot.snapshot_id,
     }
 
 
