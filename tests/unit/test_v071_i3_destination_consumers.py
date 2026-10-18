@@ -167,7 +167,13 @@ def _answer(state, request=None, *, brokers=(BROKER,)) -> dict:
 
 
 def _with_brokers(state: dict) -> dict:
-    return {**state, "kafka_topic_brokers_v1": [{"topic_id": TOPIC, "broker_id": BROKER}]}
+    return {
+        **state,
+        "kafka_topic_brokers_v1": [
+            {"topic_id": TOPIC, "broker_id": BROKER},
+            {"topic_id": OTHER_TOPIC, "broker_id": BROKER},
+        ],
+    }
 
 
 def _codes(answer: dict) -> list[str]:

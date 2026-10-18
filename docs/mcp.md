@@ -1,6 +1,6 @@
 # MCP Tools
 
-AIP exposes its validated architecture model to AI agents and other MCP clients as five
+AIP exposes its validated architecture model to AI agents and other MCP clients as six
 **read-only** tools, mounted at the single public path `/mcp`. As of `v0.5.0` I3 (ADR 0016),
 `ArchitectureIntelligenceService` is the single semantic owner of this Architecture Knowledge, and
 standard negotiated MCP is one of its two public adapters (the other is [REST](architecture.md#api-surface))
@@ -36,24 +36,26 @@ fourth tool has its own `"0.6"` contract and the fifth its own `"0.7"` contract.
 > AIP may help agents reason about architecture, but an agent must never become the source of
 > architectural truth. — [`ROADMAP.md`](../ROADMAP.md)'s v0.4 principle.
 
-## The five tools
+## The six tools
 
-`tools/list` always returns exactly these five, in this fixed lexicographic order:
+`tools/list` always returns exactly these six, in this fixed lexicographic order:
 
 | Tool | Purpose |
 |---|---|
 | `get_api_consumer_usage` | Since v0.7.0 I3: which consumers have configured access to, and which have independently observed usage of, an API Operation, an application Service or a gateway Route, for one gateway instance, environment and measurement window; a second mode resolves the answer's evidence refs. See [below](#get_api_consumer_usage-v070-i3). |
 | `get_architecture_drift` | Direct dependencies of a service whose current evidence qualification shows a declared-versus-observed discrepancy (`OBSERVED_ONLY` or `NOT_OBSERVED_IN_WINDOW`) — never `CONFIRMED` — bound to one stable snapshot. |
+| `get_destination_consumers` | Since v0.7.1 I3: which Services AIP can evidence-qualify as consumers of one Kafka Topic, for one broker and environment: each consumer group attached at capture time T with its Service attribution from explicit mapping evidence; a second mode resolves the answer's evidence refs. See [below](#get_destination_consumers-v071-i3). |
 | `get_evidence` | Resolves 1-20 opaque evidence references to bounded, sanitized provenance for one explicit snapshot. |
 | `get_service_dependencies` | One-hop direct dependencies of a service, qualified against declared and observed evidence and bound to a stable snapshot. Also returns the service's Service-Workload deployment claims and resolutions (explicit annotation, configured mapping, or observed OpenTelemetry/Kubernetes linkage), reconciled across all applicable methods. |
 | `get_service_dependencies_by_locality` | Since v0.6.0 I3: where a service's direct HTTP dependencies are positively established, per evidenced caller-Workload locality, with an optional same-snapshot comparison; a second mode resolves the answer's scoped evidence refs. See [below](#get_service_dependencies_by_locality-v060-i3). |
 
-All five:
+All six:
 
 - take one `request` argument matching their JSON Schema exactly (closed `inputSchema`; an
   unrecognized field inside `request` is rejected before dispatch). An unexpected *top-level*
-  argument beside `request` is rejected before dispatch by `get_service_dependencies_by_locality`
-  only; for the three v0.5 tools the pinned SDK silently ignores it, unchanged since v0.5.0;
+  argument beside `request` is rejected before dispatch by `get_service_dependencies_by_locality`,
+  `get_api_consumer_usage` and `get_destination_consumers`; for the three v0.5 tools the pinned
+  SDK silently ignores it, unchanged since v0.5.0;
 - return `structuredContent` as an answer envelope (`ArchitectureAnswer` for the three v0.5 tools,
   `LocalityAnswer` for the fourth, `ApiConsumerUsageAnswer` for the fifth) (`schema_version`, `producer`,
   `snapshot`, `outcome`, plus the tool-specific data/claims) validated against the tool's
@@ -253,6 +255,41 @@ The closed JSON body carries every request field except `mode`, which the route 
 malformed body is `422`; every evaluated or refused answer is `200` with the same envelope MCP
 returns.
 
+## `get_destination_consumers` (v0.7.1 I3)
+
+The sixth tool answers **which Services AIP can evidence-qualify as consumers of one Kafka Topic**
+in one broker and environment ([I3 spec](specifications/0.7.1/i3-destination-consumer-public-answer.md)).
+Its contract is the `0.7.1` schema
+(`schemas/architecture_intelligence/v0.7.1/destination-consumers-{request,answer}.schema.json`). The
+single `request` argument is discriminated on `mode`:
+
+- `"query"`: the exact `destination_id` (a canonical Topic id, never a name), `broker_id` and
+  `environment`; optional `limit` (1–200, default 100), `cursor` and `snapshot_id`. One row per
+  Kafka consumer group attached to the Topic at capture time T, ordered by `consumer_id`, with the
+  I2 attribution unchanged: `outcome` (`RESOLVED`, `UNRESOLVED`, `AMBIGUOUS`, `CONFLICT`),
+  `service_id` only when `RESOLVED`, `reason` otherwise, limitations for non-resolving mapping
+  entries, and evidence refs for the broker path and every contributing mapping entry.
+  `capture_sources` lists each accepted capture with its own T. An unknown destination, a Queue or
+  a Topic bound to another protocol, a broker the Topic is not declared on, no accepted capture for
+  the broker and environment, a stale snapshot or a cursor of another query is a typed refusal with
+  `data: null`;
+- `"evidence"`: resolves up to 20 opaque `destination-evidence:` refs from such an answer at the
+  supplied `snapshot_id`, for the resubmitted destination, broker and environment, to two closed
+  payloads (the capture source, revision and T of the attachment; the mapping source, revision,
+  artifact digest and the mapping as written, with its reading). A forged, cross-snapshot or
+  cross-context ref is `NOT_RESOLVED`. `get_evidence` does not resolve these refs and does not
+  change.
+
+An evaluated query is always `PARTIAL` with `CAPTURE_SCOPE_LIMITED`: each capture covers only its
+configured consumer groups at its own T, so an empty or short list is never "no consumers".
+`NO_MAPPING_SOURCE` says no mapping source exists for the broker and environment. Attachment is not
+message processing and does not mean the Service still consumes the Topic after T; declared
+Subscriptions are not part of this answer. Member ids, client ids and hosts are never stored, so
+none can be returned.
+
+The REST parity routes are `POST /api/destination-consumers` and
+`POST /api/destination-consumers/evidence`, with the same closed-body rules as the API usage routes.
+
 ## Connecting a negotiated client
 
 A standard MCP client — the kind a mainstream coding-agent tool ships out of the box, or a hand-
@@ -292,7 +329,7 @@ curl -s http://localhost:8000/mcp \
 `get_architecture_drift` takes the identical `request` shape (`service_id` +
 `observation_context`); `get_evidence` instead takes `{"evidence_refs": [...], "snapshot_id":
 "..."}`, both usually read from a prior answer's own `evidence_refs`/`snapshot.snapshot_id`. The
-five tools, their schemas, and their answer semantics are identical whether reached
+six tools, their schemas, and their answer semantics are identical whether reached
 over MCP or over the equivalent [REST endpoint](architecture.md#api-surface) — only the transport
 envelope differs (ADR 0016 decision #7).
 
@@ -330,7 +367,7 @@ calls read the same immutable graph state.
 ## Try it end to end
 
 [`examples/runtime-demo/hero-demo.md`](../examples/runtime-demo/hero-demo.md) is a complete,
-deterministic, ~5-minute walkthrough: bring up AIP, seed frozen evidence, discover all five tools
+deterministic, ~5-minute walkthrough: bring up AIP, seed frozen evidence, discover the tools
 via `tools/list`, then exercise the drift → evidence path via plain `curl` and see a real
 `OBSERVED_ONLY` finding (`OrderService -> LegacyPricingService`) plus its evidence — no AIP internal
 module, no LLM.

@@ -190,6 +190,7 @@ def test_independent_client_completes_the_real_dependency_to_evidence_golden_pat
     assert [tool["name"] for tool in tools] == [
         "get_api_consumer_usage",
         "get_architecture_drift",
+        "get_destination_consumers",
         "get_evidence",
         "get_service_dependencies",
         "get_service_dependencies_by_locality",
@@ -308,6 +309,7 @@ def test_independent_client_completes_the_real_drift_to_evidence_golden_path(
     assert [tool["name"] for tool in tools] == [
         "get_api_consumer_usage",
         "get_architecture_drift",
+        "get_destination_consumers",
         "get_evidence",
         "get_service_dependencies",
         "get_service_dependencies_by_locality",
@@ -406,11 +408,11 @@ def test_independent_client_refusal_through_the_real_app_leaves_graph_state_unch
     assert fingerprint_after == fingerprint_before
 
 
-def test_independent_client_discovers_five_tools_and_drills_a_locality_answer_down(
+def test_independent_client_discovers_six_tools_and_drills_a_locality_answer_down(
     driver, real_app_client, tmp_path
 ):
     """v0.6.0 I3.3c (I3 spec §13, §16 DoD 9): the same independent client, over real HTTP against
-    the real production app, discovers exactly the five reviewed tools, runs the locality query and
+    the real production app, discovers exactly the six reviewed tools, runs the locality query and
     then its evidence mode on the answer's own refs and snapshot, and a fresh client (a reconnect)
     gets the identical answer on the same snapshot. The world is the I3 oracle's X04 (one provider
     with two Operations), built through the real importer and per-POST persistence."""
@@ -423,6 +425,7 @@ def test_independent_client_discovers_five_tools_and_drills_a_locality_answer_do
     assert [tool["name"] for tool in tools] == [
         "get_api_consumer_usage",
         "get_architecture_drift",
+        "get_destination_consumers",
         "get_evidence",
         "get_service_dependencies",
         "get_service_dependencies_by_locality",

@@ -535,7 +535,8 @@ def _independent_client(driver: Any, asked: list[tuple[str, dict[str, Any]]]) ->
             httpx.Client(base_url=base_url, headers={"origin": base_url}, timeout=60.0) as client,
         ):
             tools = [t["name"] for t in independent_mcp_client.tools_list(client)["tools"]]
-            assert API_USAGE_TOOL_NAME in tools and len(tools) == 5, tools
+            # v0.7.1 I3.2 added the sixth tool, `get_destination_consumers`.
+            assert API_USAGE_TOOL_NAME in tools and len(tools) == 6, tools
             for name, request in asked[:3]:
                 result = independent_mcp_client.call_tool(
                     client, name=API_USAGE_TOOL_NAME, arguments={"request": request}
