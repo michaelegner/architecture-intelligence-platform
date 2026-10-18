@@ -27,12 +27,14 @@ Use the Catalog API and one concrete operation:
 
 > **`ProductService.GetProductList`**
 
-This is suitable because the existing Sokol111 sources show:
+Preliminary repository inspection suggests the following candidate evidence:
 
 - a Connect-RPC Catalog API with explicit ProductService operations;
 - Traefik ingress exposing the Catalog service;
 - Logto roles/scopes including `products:read`;
 - `ecommerce-admin-ui` calling `ProductService.GetProductList`.
+
+These are **hypotheses for Round 6**, not yet qualification findings. Step 1 must confirm or reject them against the frozen revisions before they are used in the result.
 
 The engineering framing is:
 
@@ -42,14 +44,14 @@ Round 6 does not need to plan or implement the API change.
 
 ## 3. Inputs
 
-Reuse the Round 4 frozen revisions where applicable:
+Reuse and record the exact Round 4 frozen revisions where applicable:
 
 - `Sokol111/ecommerce-catalog-service-api`;
 - `Sokol111/ecommerce-catalog-service`;
 - `Sokol111/ecommerce-infrastructure`;
 - `Sokol111/ecommerce-workspace` where useful.
 
-Add `Sokol111/ecommerce-admin-ui` because it is a concrete Catalog API consumer. Freeze its exact revision before recording the result.
+Add `Sokol111/ecommerce-admin-ui` because it is a candidate concrete Catalog API consumer. Freeze its exact revision before using its source as Round 6 evidence.
 
 Do not add a gateway or modify Sokol111 merely to create evidence.
 
@@ -63,7 +65,7 @@ Inspect only enough to classify the v0.7 question.
 | API exposure | Traefik / Kubernetes ingress for Catalog |
 | consumer identity | Logto application identity and/or runtime request identity, if attributable |
 | configured access | Logto application/role/scope configuration, but only where the access grant can be tied to the identified consumer |
-| observed usage | existing request telemetry/logs that identify both the operation and consumer |
+| observed usage | existing request telemetry/logs, or an allowed local run, that identify both the operation and consumer |
 | environment/window | deployment configuration plus timestamped runtime evidence |
 
 Important guards:
@@ -76,9 +78,9 @@ Important guards:
 
 ## 5. Method
 
-### Step 1 — Establish the source-side facts
+### Step 1 — Freeze and establish the source-side facts
 
-Record, with exact source paths:
+Before treating the §2 hypotheses as findings, freeze the Round 6 source revisions and record, with exact source paths:
 
 - the operation definition;
 - Catalog exposure through ingress;
@@ -89,16 +91,20 @@ This establishes what the repositories/configuration say, not the v0.7 answer.
 
 ### Step 2 — Check independent evidence
 
-Look for existing native evidence that could establish:
+First look for existing native evidence that could establish:
 
 1. a stable consumer identity;
 2. a request to `ProductService.GetProductList`;
 3. the environment;
 4. an observation time/window.
 
-Prefer existing telemetry, access logs or identity-bearing request evidence. Do not add instrumentation merely to make the probe succeed.
+Prefer existing telemetry, access logs or identity-bearing request evidence.
 
-If the system does not expose enough evidence to associate a request with a consumer, record that explicitly and stop the observed-usage path there.
+A local run is allowed **only** when it uses unmodified Sokol111 components, existing instrumentation and identities created through Sokol111's normal configuration. Generated test traffic is allowed; fabricated consumer identities, added instrumentation or gateway changes are not.
+
+If obtaining such a run requires expanding into the high-cost full-stack setup already identified in Round 4, the round may stop the runtime path and record `INSUFFICIENT_EVIDENCE` rather than modifying the system to make the experiment succeed.
+
+If the available runtime evidence cannot associate a request with a consumer, record that explicitly and stop the observed-usage path there.
 
 ### Step 3 — Map to v0.7 semantics
 
@@ -113,12 +119,16 @@ Do not reinterpret Traefik, Logto or application code merely to match the APISIX
 
 ## 6. Result classification
 
-Round 6 ends with exactly one primary disposition:
+Round 6 ends with exactly one primary disposition. Choose it in this order:
 
-- **SUPPORTED_EVIDENCE_PATH** — native Sokol111 evidence can establish the full bounded v0.7 question and current AIP can consume it without semantic change;
-- **SOURCE_ADAPTER_GAP** — the evidence is semantically sufficient for v0.7, but current AIP lacks the required source adapter/mapping;
-- **SEMANTIC_GAP** — the native evidence establishes a product-relevant distinction that existing v0.7 semantics cannot represent safely;
-- **INSUFFICIENT_EVIDENCE** — Sokol111's native evidence cannot establish the configured-consumer and/or consumer-attributed observed-usage question.
+1. **INSUFFICIENT_EVIDENCE** — the native evidence cannot establish the full bounded configured-consumer plus consumer-attributed observed-usage question.
+2. **SEMANTIC_GAP** — the native evidence is sufficient, but it establishes a product-relevant distinction that existing v0.7 semantics cannot represent safely.
+3. **SOURCE_ADAPTER_GAP** — the native evidence is sufficient and fits v0.7 semantics, but current AIP lacks the required source adapter or mapping.
+4. **SUPPORTED_EVIDENCE_PATH** — the native evidence is sufficient, fits v0.7 semantics, and current AIP already has an applicable ingestion path.
+
+The per-distinction table retains partial findings even when the primary disposition is decided earlier in this sequence.
+
+With current Traefik/Logto support, `SUPPORTED_EVIDENCE_PATH` is a control outcome rather than an expected result; do not weaken `SOURCE_ADAPTER_GAP` merely to make it reachable.
 
 A source-adapter gap must not be promoted into a semantic gap.
 
@@ -130,7 +140,7 @@ Round 6 SHALL NOT:
 - add APISIX;
 - replace Traefik;
 - add synthetic consumer identities;
-- modify Sokol111 instrumentation for the purpose of the experiment;
+- add or modify Sokol111 instrumentation for the purpose of the experiment;
 - treat Logto permissions as gateway subscriptions;
 - implement a Traefik or Logto adapter;
 - change AIP semantics;
@@ -138,7 +148,7 @@ Round 6 SHALL NOT:
 
 Those are later decisions only if this probe demonstrates a useful native evidence path.
 
-## 8. Output
+## 8. Output and v0.8 consequence
 
 Record the result in:
 
@@ -152,6 +162,8 @@ Keep it compact:
 4. v0.7 semantic-fit table;
 5. one primary disposition;
 6. one short consequence for later v0.8 product-boundary validation.
+
+Round 6 does not itself perform or decide the v0.8 product-boundary comparison. If it establishes a semantically sufficient native API evidence path, that path may become an additional Current-State scenario in the later product-boundary validation. If it ends in `INSUFFICIENT_EVIDENCE` or `SEMANTIC_GAP`, record that limitation instead of constructing a comparison around it.
 
 ## 9. Exit
 
