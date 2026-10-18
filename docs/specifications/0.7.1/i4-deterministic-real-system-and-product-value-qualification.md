@@ -11,7 +11,7 @@ I4 **qualifies the I3 product**, not another architecture model. Do not change I
 
 ## 2. Deterministic qualification
 
-Use **one exact candidate commit SHA** and independently written expected results. **Capture live Kafka once**, then freeze the normalized capture file and the separately reviewed mapping artifact (including T and hashes). Replay those **same files** twice from clean state (**run A and B**) through the production import path; never compare two independently acquired live captures, because T would differ. Assert identical snapshot ids, sorted public answers, evidence refs and evidence payloads. Record the SHA and input digests; after a behavior/input fix, rerun affected checks on the new candidate.
+Use **one exact candidate commit SHA** and independently written expected results. **Capture live Kafka once**, then freeze the normalized capture file (including T) and the separately reviewed mapping artifact (**no observation time**). Record T and both artifact hashes in replay metadata. Replay those **same files** twice from clean state (**run A and B**) through the production import path; never compare two independently acquired live captures, because T would differ. Assert identical snapshot ids, sorted public answers, evidence refs and evidence payloads. Record the SHA and input digests; after a behavior/input fix, rerun affected checks on the new candidate.
 
 Minimum coverage:
 
@@ -22,11 +22,12 @@ Minimum coverage:
 | Ambiguous/conflicting mappings | Exact frozen I2 outcome and explanation; no chosen Service |
 | Mapping exists but no live group attachment | No attribution row and no “Service does not consume” claim |
 | Historical group/committed offsets without live member assignment | No attachment inferred from historical state |
-| Accepted capture with no matching attachment, or groups outside its configured allow-list | No negative “not consuming” claim; `CAPTURE_SCOPE_LIMITED` remains visible |
+| Accepted capture with no matching attachment; Topic query whose possible consumers include groups **outside the capture allow-list** | No negative “not consuming” claim about unobserved groups; `CAPTURE_SCOPE_LIMITED` remains visible (out-of-scope groups are **not** in the accepted capture) |
 | Incomplete capture (I1 `KAFKA_CAPTURE_INCOMPLETE`) | Rejected, never accepted; previous committed state remains unchanged |
 | Multiple members, multiple Topics, two environments | One row per group/Topic attachment; correct destination/environment selection |
 | Accepted update, authoritative removal, rejected update, identical replay | No stale attribution; rejected input preserves accepted state; deterministic replay |
-| Wrong broker, unknown Topic, stale snapshot or forged evidence ref | Correct typed refusal/`NOT_RESOLVED`; no cross-snapshot evidence |
+| Query: wrong broker, unknown Topic, stale snapshot, no accepted capture | `NOT_ANSWERED` with respectively `BROKER_MISMATCH`, `UNKNOWN_DESTINATION`, `SNAPSHOT_NOT_AVAILABLE`, `NO_ACCEPTED_CAPTURE` |
+| Evidence mode: forged or cross-context ref, or stale snapshot | Invalid ref → `NOT_RESOLVED` entry with `EVIDENCE_REF_NOT_RESOLVED`; stale snapshot → `NOT_ANSWERED / SNAPSHOT_NOT_AVAILABLE`; never resolve cross-snapshot evidence |
 | No new Kafka source configured | Existing v0.7.0 tool *semantics* unchanged (the sixth tool still exists) |
 
 Verify public parity on the candidate: **semantic service = REST response body = negotiated MCP `structuredContent`** for query, evidence, partial result and refusal; include a paged query. Keep the five pre-existing MCP tools' contracts unchanged and check the advertised six-tool list. Reuse the I1–I3 integration tests and a small A/B replay script; `evaluation/i4/` already serves v0.7.0 API usage and need not gain another framework or generic runner.
@@ -37,7 +38,7 @@ Run a **controlled Kafka instance** and capture its actual broker-held group/mem
 
 Import it with already-declared Topics/Services and a separate reviewed mapping artifact through the real I1/I2 adapters. The declared AsyncAPI Topic must have **no namespace**, use the same `x-aip-broker-id` as the capture registration, and use the **exact Kafka topic name as its channel address**. Otherwise I1 cannot join the attachment and the resolved case is not qualified.
 
-**Before importing into AIP**, record independent expected group → Topic attachments from the running Kafka broker and expected group → Service mappings from the application's actual configuration. Compare AIP's conclusions against those expectations, **not against AIP-generated output**.
+**Before importing into AIP**, record expected group → Topic attachments by independently inspecting the running Kafka broker (e.g. stock `kafka-consumer-groups.sh --describe --members --verbose`, **not** the AIP capture utility), and expected group → Service mappings from the application's actual configuration. Compare AIP's conclusions against those expectations, **not against AIP-generated output**.
 
 Prove at least one **resolved** and one **unresolved or insufficient** public answer, including same-snapshot evidence drill-down over REST and MCP. Record fixture/config revision, capture T, scope, source revisions, artifact hashes and the actual answer. For update/removal, use another **accepted real capture** if available, or a clearly labelled, deterministic **derived variant** of the frozen capture. Do not present the derived variant as independently observed broker behavior.
 
@@ -47,7 +48,7 @@ The [October 2026 Kafka capture](../../real-world-validation/v0.8.0/consumer-att
 
 Reuse the [I0 RabbitMQ captures and shapes](i0-spike/README.md) as an **independent semantic check**, not a second adapter.
 
-Verify: RabbitMQ identity is a **consumer tag scoped to a channel (identified within its connection) on a Queue**, not a Kafka consumer group. Two channels on one connection can reuse a tag; multiple consumers can compete without implying multiple Services; bindings express fan-out; `consumers: 0` means zero live attachments **at T**, not “no Service consumes”; broker-side hints are insufficient Service-mapping authority.
+Verify: RabbitMQ native identity includes **vhost + queue + consumer tag + connection/channel scope**, not a Kafka consumer group. The consumer tag is channel-scoped; two channels on one connection can reuse a tag, and the Queue is vhost-qualified; multiple consumers can compete without implying multiple Services; bindings express fan-out; `consumers: 0` means zero live attachments **at T**, not “no Service consumes”; broker-side hints are insufficient Service-mapping authority.
 
 Verify the **public boundary**, too: querying a RabbitMQ Queue id via `get_destination_consumers` returns `NOT_ANSWERED / DESTINATION_NOT_KAFKA_TOPIC`, not an empty Kafka consumer list.
 
