@@ -613,11 +613,12 @@ DLQ/retry topology, or broad broker administration.
 > **AIP can evidence-qualify Service-level consumer attribution for broker-mediated destinations
 > without inventing equivalence between distinct broker-native concepts.**
 
-## v0.8 — Cross-Boundary Architecture Knowledge + Product-Boundary Validation (planned)
+## v0.8 — Cross-Boundary Architecture Knowledge + Real-World Product Demonstration (planned)
 
-**Goal:** add only the Current-State composition/membership semantics needed for bounded
-cross-boundary projections, while proving that AIP contributes material distributed-system context
-beyond strong repository/source analysis.
+**Goal:** deliver the first complete real-world product demonstration of AIP on Sokol111 while adding
+only the Current-State composition/membership semantics needed for bounded cross-boundary projections,
+and prove whether AIP contributes material distributed-system context beyond strong repository/source
+analysis.
 
 **Product question:**
 
@@ -637,19 +638,37 @@ v0.8 may classify already-qualified relationships as within-boundary, cross-boun
 Membership must not be inferred from connectivity, repository structure, namespace, co-location,
 naming, ownership, or graph proximity. A generic enterprise metamodel remains out of scope.
 
-### Product-boundary validation
+### Complete product demonstration and product-boundary validation
 
-v0.8 includes a **Pitstop × Teamscale 2026.7.x** product-boundary PoC to test whether AIP adds
-material value beyond strong repository/source architecture analysis.
+v0.8 uses **Sokol111** as the real-world demonstration system and compares AIP with a mature
+repository/source architecture-analysis tool. **Teamscale 2026.7.x is the initial representative
+tool for this comparison, not a normative AIP dependency or the only valid comparator.** Equivalent
+mature tooling in the source/repository analysis space may be substituted or added when it provides
+a comparable baseline.
 
-The PoC should evaluate a realistic cross-repository distributed scenario in which relevant
-relationships cannot be assumed from repository structure alone. The comparison must give the
-baseline tools realistic access to the source they can analyze, while AIP must establish distributed
-relationships from independently qualified evidence.
+The demonstration should use one realistic bounded change that naturally crosses repositories and
+distributed interaction styles, preferably both API and broker-mediated relationships. It should
+exercise the complete applicable AIP product surface available at v0.8 entry — including dependency
+and evidence drill-down, deployment, locality, messaging, **v0.7.0 API-aware Current State**, and
+broker-mediated consumer attribution — before v0.8 projects those established relationships across
+independently established System/Component boundaries.
 
-The validation should determine whether AIP changes the investigation boundary for a bounded
-coding-agent task in ways that source analysis cannot safely reproduce, and whether that additional
-value justifies AIP's evidence and maintenance cost.
+The comparison must give the source-analysis tool realistic access to all relevant repositories,
+configuration and contracts it can analyze. It must not artificially hide source from the baseline.
+AIP must establish its additional distributed relationships from independently qualified evidence
+such as runtime telemetry, broker state, deployment/configuration evidence, API usage evidence, or
+other supported sources. The combined workflow should show what source analysis establishes about
+implementation internals and what AIP independently establishes about the distributed system.
+
+Where practical, the demonstration should acquire evidence from a real running Sokol111 environment
+and freeze that evidence for deterministic replay. The demo must preserve partial, unresolved and
+unsupported cases rather than modifying Sokol111 or AIP merely to make every capability return a
+positive answer.
+
+Success is not a larger graph or a longer answer. The product test is whether the combined
+source-analysis + AIP workflow materially improves the coding agent's bounded-change investigation:
+which external components require inspection, which relationships are established in the relevant
+environment/window, which are only source-derived possibilities, and what remains uncertain.
 
 The checkpoint records one of **continue, narrow, integrate, defer, or stop**. AIP should not
 duplicate capabilities that an adjacent architecture-analysis product can provide equally well at
@@ -661,9 +680,10 @@ adjacent architecture/conformance products.
 
 **Exit capability:**
 
-> **AIP can produce an evidence-qualified cross-boundary view for a bounded distributed-architecture
-> question, and the product validation establishes whether that view materially improves the
-> coding-agent workflow beyond repository/source analysis.**
+> **AIP can demonstrate end to end, on a real distributed system and alongside strong source
+> analysis, how its evidence-qualified Current-State capabilities compose into a bounded
+> cross-boundary view that materially improves — or demonstrably does not improve — the coding-agent
+> workflow beyond repository/source analysis alone.**
 
 ## v0.9 — External Architecture Intent (provisional; checkpoint-dependent)
 
