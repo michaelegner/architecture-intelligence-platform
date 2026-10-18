@@ -7,7 +7,7 @@ dependencies = [
     "fastapi>=0.141.1",
     "jinja2>=3.1.6",
     "jsonschema>=4.26.0",
-    "mcp==2.2.0",
+    "mcp==2.3.0",
     # Imported directly by app/mcp (mcp_types.*), not only through mcp.
     "mcp-types>=2.2.0",
     "neo4j>=6.2.0",
