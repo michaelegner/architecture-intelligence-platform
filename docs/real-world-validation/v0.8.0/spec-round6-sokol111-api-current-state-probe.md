@@ -1,6 +1,6 @@
 # AIP — Sokol111 API Current-State Probe, Round 6
 
-**Status:** Draft  
+**Status:** Completed — see [round6-sokol111-api-current-state-result.md](round6-sokol111-api-current-state-result.md)  
 **Input:** Round 4 Sokol111 evidence plus the released v0.7.0 API-aware Current-State semantics  
 **Purpose:** Test whether Sokol111's native API, ingress, identity/access and runtime evidence can support the v0.7 configured-vs-observed API question without adding APISIX or otherwise changing the system.
 
