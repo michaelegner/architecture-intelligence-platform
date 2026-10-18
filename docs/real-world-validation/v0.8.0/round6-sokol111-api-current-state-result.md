@@ -106,32 +106,44 @@ would therefore demonstrate request execution, not the full consumer-attributed 
 
 Per the Round 6 ordering, the result is **INSUFFICIENT_EVIDENCE**.
 
-The blocker occurs before adapter availability: Sokol111's current native evidence does not
-establish the full configured-consumer plus consumer-attributed observed-usage question for this
-operation.
+The blocker occurs before adapter availability: Sokol111's current native evidence does not establish
+consumer-attributed observed usage for `admin-ui -> GetProductList` in an explicit environment/window.
 
 This is **not** a limitation of the v0.7 semantic model and does not make APISIX part of that model.
 The source-independent v0.7 distinctions remain applicable; the present Sokol111 evidence simply
-does not satisfy them strongly enough to evaluate a new source adapter. No semantic extension is
+does not establish the runtime attribution needed for this scenario. No semantic extension is
 indicated by this round.
+
+A subsequent review of the released v0.7 contract clarified one point in the interpretation of this
+result: **application-level configured access is not required for an observed consumer pair to be
+representable.** v0.7 explicitly supports an observed-only row with
+`NO_MATCHING_CONFIGURED_ACCESS_FACT` plus `OBSERVED_USAGE`. Round 6's primary disposition remains
+unchanged because the missing fact here is trustworthy consumer-attributed runtime usage, not the
+absence of an application-level configured-access relation.
 
 This is also not evidence that the API is unused, that admin-ui lacks access, or that no other
 consumer exists.
 
 ## 6. v0.8 consequence
 
-Do **not** add the **current** Sokol111 API scenario to the later product-boundary comparison as-is.
+Do **not** add the **current** Sokol111 API scenario to the later product-boundary comparison as-is:
+the existing evidence does not establish `admin-ui` as the observed application consumer of
+`GetProductList`.
 
-The useful finding is narrower: to satisfy the already source-independent v0.7 contract, a native
-evidence path must establish a stable consumer identity plus consumer-specific configured access and
-independently observed usage. Sokol111's current Traefik + Logto + internal-service path does not
-yet provide those facts strongly enough.
+A follow-up only needs a trustworthy native evidence path that attributes the operation call to a
+stable application consumer in an explicit environment/window. It does **not** need to manufacture
+an application-level configured-access relation. If Sokol111 legitimately exposes such runtime
+attribution, the unchanged v0.7 semantics can represent the result as observed-only when no matching
+configured-access fact exists:
 
-A follow-up experiment may enhance Sokol111 itself to expose a trustworthy application identity in
-its normal identity/telemetry path and an explicit application-level configured-access relation,
-then rerun the **unchanged v0.7 semantics**. If that evidence becomes sufficient but AIP cannot
-ingest it, the expected result would be `SOURCE_ADAPTER_GAP`. Only a genuinely useful distinction
-that cannot be represented safely by the existing v0.7 vocabulary would constitute
-`SEMANTIC_GAP`.
+~~~text
+NO_MATCHING_CONFIGURED_ACCESS_FACT
++
+OBSERVED_USAGE
+~~~
+
+If that evidence becomes sufficient but AIP cannot ingest it, the expected result is
+`SOURCE_ADAPTER_GAP`. Only a genuinely useful distinction that cannot be represented safely by the
+existing v0.7 vocabulary would constitute `SEMANTIC_GAP`.
 
 The Sokol111 messaging scenario remains independent of this result.
