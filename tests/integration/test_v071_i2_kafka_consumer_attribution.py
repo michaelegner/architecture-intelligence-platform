@@ -263,7 +263,7 @@ def _snapshot_ids(service: ArchitectureIntelligenceService, expected: str) -> se
         ServiceDependenciesRequest.model_validate({"service_id": "service:stock-projector"})
     )
     evidence_snapshot, _ = service.list_public_evidence()
-    usage = service._read_api_usage_snapshot()
+    usage = service._read_state_snapshot()
     query = LocalityQueryRequest.model_validate(
         {
             "mode": "query",

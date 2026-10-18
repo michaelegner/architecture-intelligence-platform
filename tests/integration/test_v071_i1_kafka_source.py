@@ -185,7 +185,12 @@ def test_the_snapshot_gains_the_conditional_key_and_is_otherwise_unchanged(
     assert json.loads(attachment["support_json"]) == {
         "member_count": 1, "member_partitions": [[0, 1]],
     }  # fmt: skip
-    without = {k: v for k, v in state.items() if k != "kafka_consumer_state_v1"}
+    # v0.7.1 I3.1 adds `kafka_topic_brokers_v1` beside the Kafka block (review of #592).
+    without = {
+        k: v
+        for k, v in state.items()
+        if k not in {"kafka_consumer_state_v1", "kafka_topic_brokers_v1"}
+    }
     assert snapshot_fingerprint(without)[0] == snapshot_fingerprint(before)[0]
 
 

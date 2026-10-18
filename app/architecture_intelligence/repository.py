@@ -425,6 +425,27 @@ def _project_kafka_consumer_state(session: neo4j.Session) -> dict | None:
     return block if any(block.values()) else None
 
 
+# v0.7.1 I3.1 (review of #592): the declared broker of each Topic, read from the Topic declarations.
+# The Topic node records no broker, so a public answer that checks "declared on this broker" must
+# find it in the fingerprinted state, or the same snapshot id could carry two answers. Only the two
+# derived columns are projected - no declaration carrier content - and only beside
+# `kafka_consumer_state_v1`, so a graph without a Kafka source keeps its exact bytes.
+_KAFKA_TOPIC_BROKERS_QUERY = (
+    "MATCH (d:PubSubDeclaration {entity_kind: 'TOPIC'}) WHERE d.broker_id IS NOT NULL "
+    "RETURN DISTINCT d.entity_id AS topic_id, d.broker_id AS broker_id"
+)
+
+
+def _project_kafka_topic_brokers(session: neo4j.Session) -> list[dict]:
+    return sorted(
+        (
+            {"topic_id": r["topic_id"], "broker_id": r["broker_id"]}
+            for r in session.run(_KAFKA_TOPIC_BROKERS_QUERY)
+        ),
+        key=lambda row: (row["topic_id"], row["broker_id"]),
+    )
+
+
 # v0.7.1 I2.3 (I2.1 contract §9): the mapping carriers and the Service rows the attribution block is
 # derived from. `owner_source_ids` is read only to tell declared Services from runtime-only stubs
 # (contract §6); it never enters the state itself.
@@ -705,6 +726,7 @@ def canonical_snapshot_state(
     kafka = _project_kafka_consumer_state(session)
     if kafka:
         state["kafka_consumer_state_v1"] = kafka
+        state["kafka_topic_brokers_v1"] = _project_kafka_topic_brokers(session)
     attribution = _project_kafka_consumer_attribution(session, kafka, service_aliases or {})
     if attribution:
         state["kafka_consumer_attribution_v1"] = attribution

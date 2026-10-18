@@ -207,3 +207,19 @@ def test_a_configured_alias_decides_the_attribution(driver, tmp_path) -> None:
     answer = _ask(driver, aliases={"projector": "service:stock-projector"})
     [row] = answer["data"]["rows"]
     assert (row["outcome"], row["service_id"]) == ("RESOLVED", "service:stock-projector")
+
+
+def test_a_changed_topic_broker_association_changes_the_snapshot_id(driver, tmp_path) -> None:
+    """Review of #592: the broker check reads only fingerprinted state. A re-import that removes a
+    Topic's broker association (possible for a configured Topic id) changes the snapshot id, so one
+    snapshot id never carries two answers."""
+    _import(driver, kafka=[_kafka(tmp_path, "prod")])
+    before = _ask(driver)
+    assert before["outcome"] == "PARTIAL"
+    with driver.session(database=DATABASE) as session:  # what such a re-import leaves behind
+        session.run(
+            "MATCH (d:PubSubDeclaration {entity_kind: 'TOPIC'}) REMOVE d.broker_id"
+        ).consume()
+    after = _ask(driver)
+    assert _codes(after) == ["BROKER_MISMATCH"]
+    assert after["snapshot"]["snapshot_id"] != before["snapshot"]["snapshot_id"]

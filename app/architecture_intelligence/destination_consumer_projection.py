@@ -1,14 +1,14 @@
 """v0.7.1 I3.1 - the `mode: "query"` destination-consumer answer (I3 spec §2-§3).
 
-It reads nothing: the caller hands it the `canonical_snapshot_state` it fingerprinted and the broker
-ids of the destination's Topic declarations, read in the same stable-snapshot attempt. Rows come
+It reads nothing: the caller hands it the `canonical_snapshot_state` it fingerprinted, including the
+declared Topic brokers (`kafka_topic_brokers_v1`), so the answer is a function of the snapshot. Rows come
 from the I2 `kafka_consumer_attribution_v1` block. When there is no mapping carrier there is no
 block, and the rows come from the same pure I2 `attribution_block` called with empty mapping inputs:
 no reconciliation rule is reimplemented here. The projection only selects, filters, mints opaque
 evidence refs and pages.
 """
 
-from collections.abc import Callable, Collection, Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from app.architecture_intelligence.contracts import Outcome, Producer, SnapshotRef
@@ -41,6 +41,7 @@ _CODE = LimitationCode
 KAFKA_PROTOCOL = "kafka"
 _KAFKA_STATE = "kafka_consumer_state_v1"
 _ATTRIBUTION = "kafka_consumer_attribution_v1"
+_TOPIC_BROKERS = "kafka_topic_brokers_v1"
 
 _MESSAGES = {
     _CODE.SNAPSHOT_NOT_AVAILABLE: "the requested snapshot is not the current snapshot",
@@ -88,11 +89,13 @@ def _rows(state: Mapping[str, Any], key: str, section: str) -> list[Row]:
 
 
 def destination_refusal(
-    state: Mapping[str, Any], destination_id: str, broker_id: str, declared_brokers: Collection[str]
+    state: Mapping[str, Any], destination_id: str, broker_id: str
 ) -> LimitationCode | None:
     """Spec §2 destination checks, in order. A Queue id or a Topic bound to another protocol is not
     a Kafka Topic. A Topic without a protocol binding (the usual Kafka AsyncAPI shape) counts as
-    Kafka through its declaration broker; the accepted Kafka capture check follows."""
+    Kafka through its declaration broker; the accepted Kafka capture check follows. Without any
+    Kafka consumer state there is no accepted capture for any broker, and the declared brokers are
+    not in the snapshot, so the answer is `NO_ACCEPTED_CAPTURE`."""
     topic = next((row for row in state.get("topics") or () if row["id"] == destination_id), None)
     if topic is None:
         if any(row["id"] == destination_id for row in state.get("queues") or ()):
@@ -100,6 +103,13 @@ def destination_refusal(
         return _CODE.UNKNOWN_DESTINATION
     if topic.get("protocol") not in (None, KAFKA_PROTOCOL):
         return _CODE.DESTINATION_NOT_KAFKA_TOPIC
+    if _KAFKA_STATE not in state:
+        return _CODE.NO_ACCEPTED_CAPTURE
+    declared_brokers = {
+        row["broker_id"]
+        for row in state.get(_TOPIC_BROKERS) or ()
+        if row["topic_id"] == destination_id
+    }
     if broker_id not in declared_brokers:
         return _CODE.BROKER_MISMATCH
     return None
@@ -161,20 +171,19 @@ def project_destination_consumers(
     request: DestinationConsumersQueryRequest,
     state: Mapping[str, Any],
     *,
-    declared_brokers: Collection[str],
     snapshot: SnapshotRef,
     producer: Producer,
 ) -> DestinationConsumersAnswer:
     """The query answer for the current snapshot whose canonical state is `state`. Refusals are
-    decided in order: snapshot, destination, accepted capture, cursor."""
+    decided in order: snapshot, destination (unknown, not a Kafka Topic, broker mismatch), accepted
+    capture, cursor. Without any Kafka consumer state, `NO_ACCEPTED_CAPTURE` comes before the
+    broker check: the declared Topic brokers are only in the snapshot beside that state."""
     cursor = decode_cursor(request.cursor) if request.cursor is not None else None
     asserted = {request.snapshot_id, cursor.snapshot_id if cursor else None} - {None}
     if asserted - {snapshot.snapshot_id}:
         return refusal_answer(producer, snapshot, _CODE.SNAPSHOT_NOT_AVAILABLE)
     context = request.context()
-    refused = destination_refusal(
-        state, context.destination_id, context.broker_id, declared_brokers
-    )
+    refused = destination_refusal(state, context.destination_id, context.broker_id)
     if refused is not None:
         return refusal_answer(producer, snapshot, refused)
     broker_id, environment = context.broker_id, context.environment

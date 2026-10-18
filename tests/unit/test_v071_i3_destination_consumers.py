@@ -147,16 +147,27 @@ def _request(**overrides) -> DestinationConsumersQueryRequest:
 
 
 def _answer(state, request=None, *, brokers=(BROKER,)) -> dict:
+    """`brokers`: the declared brokers of TOPIC in `kafka_topic_brokers_v1` (when Kafka state
+    exists)."""
+    if "kafka_consumer_state_v1" in state:
+        state = {
+            **state,
+            "kafka_topic_brokers_v1": sorted(
+                [{"topic_id": TOPIC, "broker_id": b} for b in brokers]
+                + [{"topic_id": OTHER_TOPIC, "broker_id": BROKER}],
+                key=lambda row: (row["topic_id"], row["broker_id"]),
+            ),
+        }
     answer = project_destination_consumers(
-        request or _request(),
-        state,
-        declared_brokers=frozenset(brokers),
-        snapshot=SNAPSHOT,
-        producer=PRODUCER,
+        request or _request(), state, snapshot=SNAPSHOT, producer=PRODUCER
     )
     wire = json.loads(answer.model_dump_json())
     jsonschema.validate(wire, ANSWER_SCHEMA)
     return wire
+
+
+def _with_brokers(state: dict) -> dict:
+    return {**state, "kafka_topic_brokers_v1": [{"topic_id": TOPIC, "broker_id": BROKER}]}
 
 
 def _codes(answer: dict) -> list[str]:
@@ -329,6 +340,17 @@ def test_a_kafka_binding_is_accepted_and_no_capture_wins_over_an_existing_mappin
     assert _codes(_answer(state, _request(environment="dev"))) == ["NO_ACCEPTED_CAPTURE"]
 
 
+def test_without_any_kafka_state_the_answer_is_no_accepted_capture() -> None:
+    """No Kafka source: there is no accepted capture for any broker, and the declared Topic brokers
+    are not in the snapshot (review of #592), so the broker is not judged."""
+    state = _state(attachments=[], groups=[])
+    del state["kafka_consumer_state_v1"]
+    assert _codes(_answer(state)) == ["NO_ACCEPTED_CAPTURE"]
+    assert _codes(_answer(state, _request(destination_id="topic:owned:" + "0" * 64))) == [
+        "UNKNOWN_DESTINATION"
+    ]
+
+
 def test_a_stale_snapshot_is_refused_before_the_destination() -> None:
     state = _state(attachments=[], groups=[])
     request = _request(destination_id="topic:owned:" + "0" * 64, snapshot_id=OTHER_SNAPSHOT)
@@ -371,7 +393,7 @@ def test_a_cursor_without_snapshot_id_is_an_invalid_request() -> None:
 def test_a_cursor_from_another_snapshot_is_stale() -> None:
     older = SnapshotRef(snapshot_id=OTHER_SNAPSHOT, model_revision="sha256:" + "2" * 64)
     stale = project_destination_consumers(
-        _request(limit=1), _three(), declared_brokers={BROKER}, snapshot=older, producer=PRODUCER
+        _request(limit=1), _with_brokers(_three()), snapshot=older, producer=PRODUCER
     ).data
     assert stale is not None and stale.page.next_cursor is not None
     request = _request(limit=1, cursor=stale.page.next_cursor, snapshot_id=SNAPSHOT.snapshot_id)
@@ -386,7 +408,7 @@ def test_evidence_refs_are_bound_to_the_snapshot() -> None:
     older = SnapshotRef(snapshot_id=OTHER_SNAPSHOT, model_revision="sha256:" + "2" * 64)
     current = _answer(state)["data"]["rows"][0]
     previous = project_destination_consumers(
-        _request(), state, declared_brokers={BROKER}, snapshot=older, producer=PRODUCER
+        _request(), _with_brokers(state), snapshot=older, producer=PRODUCER
     ).data
     assert previous is not None
     [row] = previous.rows
