@@ -65,5 +65,6 @@ def test_an_out_of_bound_applicability_page_size_is_rejected_before_any_read(pag
             request,
             coverage_qualification_enabled=False,
             service_workload_mapping_document=None,
+            service_aliases={},
             page_size=page_size,
         )

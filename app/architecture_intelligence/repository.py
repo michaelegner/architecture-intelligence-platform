@@ -9,7 +9,7 @@ This is the `ArchitectureReadRepository` the I1 spec's architecture diagram plac
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import LiteralString
@@ -23,6 +23,7 @@ from app.architecture_intelligence.contracts import (
     DEPLOYMENT_RECONCILIATION_RULE_VERSION,
     SNAPSHOT_ID_PREFIX,
 )
+from app.architecture_intelligence.kafka_consumer_attribution import attribution_block
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
 from app.sources.apisix_qualification import qualify
@@ -424,6 +425,49 @@ def _project_kafka_consumer_state(session: neo4j.Session) -> dict | None:
     return block if any(block.values()) else None
 
 
+# v0.7.1 I2.3 (I2.1 contract §9): the mapping carriers and the Service rows the attribution block is
+# derived from. `owner_source_ids` is read only to tell declared Services from runtime-only stubs
+# (contract §6); it never enters the state itself.
+_KAFKA_MAPPING_SOURCES_QUERY = (
+    "MATCH (n:KafkaServiceMappingEvidence) RETURN n.id AS id, "
+    "n.source_instance_id AS source_instance_id, n.configured_source_id AS configured_source_id, "
+    "n.broker_id AS broker_id, n.environment AS environment, "
+    "n.artifact_sha256 AS artifact_sha256, n.source_revision AS source_revision"
+)
+_KAFKA_MAPPING_ENTRIES_QUERY = (
+    "MATCH (n:KafkaServiceMappingEntry) RETURN n.id AS id, "
+    "n.source_instance_id AS source_instance_id, n.broker_id AS broker_id, "
+    "n.environment AS environment, n.group_id AS group_id, n.consumer_id AS consumer_id, "
+    "n.service_name AS service_name, n.service_namespace AS service_namespace, "
+    "n.evidence_ids AS evidence_ids"
+)
+_SERVICE_CANDIDATE_ROWS_QUERY = (
+    "MATCH (s:Service) RETURN s.id AS id, s.name AS name, s.namespace AS namespace, "
+    "coalesce(s.owner_source_ids, []) AS owner_source_ids"
+)
+
+
+def _project_kafka_consumer_attribution(
+    session: neo4j.Session, kafka: dict | None, service_aliases: Mapping[str, str]
+) -> dict | None:
+    """The v0.7.1 I2.3 `kafka_consumer_attribution_v1` block, or `None` when the graph has no
+    mapping carrier (contract §9), so a graph with Kafka attachments and no mapping source keeps its
+    exact I1 bytes. Derived from this snapshot's rows and the configured aliases; nothing is
+    persisted."""
+    sources = _project_nodes(session, _KAFKA_MAPPING_SOURCES_QUERY)
+    entries = _project_nodes(session, _KAFKA_MAPPING_ENTRIES_QUERY)
+    if not sources and not entries:
+        return None
+    return attribution_block(
+        sources=sources,
+        entries=entries,
+        attachments=(kafka or {}).get("attachments", []),
+        consumer_groups=(kafka or {}).get("groups", []),
+        service_rows=[dict(record) for record in session.run(_SERVICE_CANDIDATE_ROWS_QUERY)],
+        aliases=service_aliases,
+    )
+
+
 def _project_api_usage(session: neo4j.Session) -> dict | None:
     """The v0.7.0 I2.2c `api_usage_v1` block (I2 spec §10.2), or `None` when the graph has no
     measurement carriers. Every list-valued property is sorted so insertion order never reaches the
@@ -561,6 +605,7 @@ def canonical_snapshot_state(
     *,
     coverage_qualification_enabled: bool,
     service_workload_mapping_document: ServiceWorkloadMappingDocument | None = None,
+    service_aliases: Mapping[str, str] | None = None,
 ) -> dict:
     """The complete queryable canonical model-and-evidence state, as an allowlisted (spec §18),
     canonically-ordered plain dict ready for `canonical_json_bytes`. Excludes Neo4j element ids,
@@ -571,6 +616,10 @@ def canonical_snapshot_state(
     `service_workload_mapping_document` is the currently configured I3 Path B artifact (or `None`),
     supplied by the caller rather than read from Neo4j here, mirroring `coverage_qualification_
     enabled`'s own "externally configured semantic value" shape - see `_semantic_config_state`.
+
+    `service_aliases` is the configured `telemetry.service_aliases` (v0.7.1 I2.3): the Kafka
+    attribution block resolves mapping entries with them and records the ones it used, so every
+    production snapshot reader must pass the same configured aliases.
     """
     state = {
         "version": _CANONICALIZATION_VERSION,
@@ -656,6 +705,9 @@ def canonical_snapshot_state(
     kafka = _project_kafka_consumer_state(session)
     if kafka:
         state["kafka_consumer_state_v1"] = kafka
+    attribution = _project_kafka_consumer_attribution(session, kafka, service_aliases or {})
+    if attribution:
+        state["kafka_consumer_attribution_v1"] = attribution
     return state
 
 
@@ -711,6 +763,7 @@ def read_stable_snapshot_from_session[T](
     *,
     coverage_qualification_enabled: bool,
     service_workload_mapping_document: ServiceWorkloadMappingDocument | None = None,
+    service_aliases: Mapping[str, str] | None = None,
     read_extra: Callable[[neo4j.Session], T] = lambda _session: None,
     max_attempts: int = 3,
 ) -> StableSnapshot[T]:
@@ -725,6 +778,7 @@ def read_stable_snapshot_from_session[T](
             session,
             coverage_qualification_enabled=coverage_qualification_enabled,
             service_workload_mapping_document=service_workload_mapping_document,
+            service_aliases=service_aliases,
         ),
         read_extra=lambda: read_extra(session),
         max_attempts=max_attempts,
