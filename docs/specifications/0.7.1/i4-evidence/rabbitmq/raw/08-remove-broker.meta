@@ -1,0 +1,3 @@
+utc: 2026-10-19T09:16:08Z
+command: docker rm -f aip-i43-rmq
+exit_code: 0

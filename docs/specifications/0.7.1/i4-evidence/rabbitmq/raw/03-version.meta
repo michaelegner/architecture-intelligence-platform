@@ -1,0 +1,3 @@
+utc: 2026-10-19T09:15:26Z
+command: docker exec aip-i43-rmq rabbitmqctl version
+exit_code: 0
