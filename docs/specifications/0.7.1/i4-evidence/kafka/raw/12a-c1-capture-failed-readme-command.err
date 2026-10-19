@@ -1,0 +1,9 @@
+Using CPython 3.13.14
+Creating virtual environment at: .venv
+Installed 75 packages in 340ms
+Traceback (most recent call last):
+  File "/home/michael/code/aip-i41/harness/kafka-capture/capture.py", line 27, in <module>
+    from app.kafka_capture.normalize import (
+    ...<5 lines>...
+    )
+ModuleNotFoundError: No module named 'app'
