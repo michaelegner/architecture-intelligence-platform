@@ -5,7 +5,7 @@ Operator-run step that writes the capture file the v0.7.1 Kafka consumer-state s
 groups you pass, through the Kafka Admin API. The AIP server never connects to Kafka.
 
 ```bash
-export KAFKA_BOOTSTRAP_SERVERS=broker:9092
+export KAFKA_BOOTSTRAP_SERVERS=broker:9092 PYTHONPATH=.   # run from the repository root
 uv run --with confluent-kafka==2.16.0 python harness/kafka-capture/capture.py \
   --broker-id kafka:cluster-a --environment prod \
   --group payment-service --group order-service --out kafka-consumer-state.json
