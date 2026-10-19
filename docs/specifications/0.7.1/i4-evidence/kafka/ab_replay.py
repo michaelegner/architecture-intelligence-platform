@@ -48,6 +48,8 @@ def main() -> int:
     parser.add_argument("--candidate-sha", required=True)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
+    # Absolute, so the pytest processes started from REPO write to the same place.
+    args.out = args.out.resolve()
     args.out.mkdir(parents=True, exist_ok=False)
     pinned_before = _pinned(args.candidate_sha)
 

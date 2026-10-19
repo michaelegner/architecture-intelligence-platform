@@ -132,12 +132,15 @@ def _assert_expected(answers: dict[str, dict], expected: dict[str, dict], captur
         answer = answers[topic]
         assert answer["outcome"] == "PARTIAL", topic
         assert [item["code"] for item in answer["limitations"]] == want["limitations"], topic
-        got = {}
-        for row in answer["data"]["rows"]:
+        rows = answer["data"]["rows"]
+        for row in rows:
             assert row["captured_at"] == captured_at
             assert row["attachment_evidence_refs"], row
-            got[row["group_id"]] = row
-        assert sorted(got) == sorted(r["group_id"] for r in want["rows"]), topic
+        # Exactly one row per expected group: a duplicate must fail, not overwrite.
+        assert sorted(r["group_id"] for r in rows) == sorted(r["group_id"] for r in want["rows"]), (
+            topic
+        )
+        got = {row["group_id"]: row for row in rows}
         for expected_row in want["rows"]:
             row = got[expected_row["group_id"]]
             assert row["outcome"] == expected_row["outcome"], (topic, row)
