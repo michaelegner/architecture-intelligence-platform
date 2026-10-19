@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[3]
+REPO = HERE.parents[4]
 TEST = "tests/integration/test_v071_i4_kafka_replay.py"
 
 
