@@ -15,6 +15,7 @@ JSON for the A/B byte comparison (`ab_replay.py`).
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -170,9 +171,48 @@ def _dump(steps: dict) -> None:
         Path(out).write_text(json.dumps(steps, sort_keys=True, indent=1) + "\n")
 
 
-def test_the_expectations_are_the_committed_ones() -> None:
+def _capture_assignments(capture: str) -> set[tuple[str, str, str, tuple[int, ...]]]:
+    document = json.loads((KAFKA / capture / "kafka-consumer-state.json").read_text())
+    return {
+        (group["group_id"], member["member_id"], item["topic"], tuple(item["partitions"]))
+        for group in document["groups"]
+        for member in group["members"]
+        for item in member["assignments"]
+    }
+
+
+def _cli_assignments(pattern: str) -> set[tuple[str, str, str, tuple[int, ...]]]:
+    """Rows of the stock `kafka-consumer-groups --describe --members --verbose` output."""
+    rows = set()
+    for path in sorted((KAFKA / "raw").glob(pattern)):
+        for line in path.read_text().splitlines()[2:]:
+            if not line.strip():
+                continue
+            member = re.match(r"^\S+\s+(.*?)\s+/\d", line)
+            assignment = re.search(r"(\S+)\(([\d,]+)\)\s*$", line)
+            assert member and assignment, line
+            partitions = tuple(int(p) for p in assignment.group(2).split(","))
+            rows.add((line.split()[0], member.group(1), assignment.group(1), partitions))
+    return rows
+
+
+def test_the_frozen_inputs_match_the_committed_ground_truth() -> None:
     [line] = (KAFKA / "EXPECTED.sha256").read_text().splitlines()
     assert line.split() == [hashlib.sha256(EXPECTED_BYTES).hexdigest(), "expected.json"]
+    # C1 holds exactly the assignments the stock CLI reported for the allow-listed groups (G1).
+    allow_listed = "|".join(EXPECTED["capture_allow_list"])
+    g1 = {
+        row
+        for row in _cli_assignments("0[2-5]-g1-members-*.txt")
+        if re.fullmatch(allow_listed, row[0])
+    }
+    assert _capture_assignments("c1") == g1
+    # C2's group states are the broker-reported G2 states.
+    c2 = json.loads((KAFKA / "c2/kafka-consumer-state.json").read_text())
+    assert {g["group_id"]: g["state"] for g in c2["groups"]} == EXPECTED["c2"]["group_states"]
+    assert _capture_assignments("c2") == {
+        row for row in _capture_assignments("c1") if row[0] == "order-service"
+    }
 
 
 @pytest.mark.asyncio
@@ -274,6 +314,8 @@ async def test_the_frozen_real_capture_replays_to_the_independent_expectations(
     runs = _import(driver, kafka_root, mapping=True)
     [kafka_run] = [r for r in runs if r.kind == "kafka-consumer-state"]
     assert not kafka_run.stats.committed
+    codes = {d.code for s in kafka_run.stats.source_results for d in s.diagnostics}
+    assert codes == {"KAFKA_CAPTURE_INCOMPLETE"}
     assert await _ask_all(service, topic_ids) == answers
 
     # C2, a second real capture: payment-service and ops-tail are Empty with committed offsets.

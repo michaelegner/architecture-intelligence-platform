@@ -5,10 +5,13 @@ its own session-scoped Neo4j container, so both start from a clean state. Each r
 answers of every step (snapshot ids, sorted answers, evidence refs and payloads) as canonical JSON;
 the two files must be byte-identical. No normalization is applied.
 
-    uv run python docs/specifications/0.7.1/i4-evidence/kafka/ab_replay.py --out <new directory>
+    uv run python docs/specifications/0.7.1/i4-evidence/kafka/ab_replay.py \
+        --candidate-sha "$(git rev-parse HEAD)" --out <new directory outside the checkout>
 
-Writes `run-a.json`, `run-b.json` and `ab-result.json` (HEAD, worktree state, input digests, the
-digest of each run and the verdict). Exits 1 on any mismatch or test failure.
+The candidate is explicit: HEAD must equal it and the worktree must be clean both before and after
+the two runs, otherwise the verdict is never `IDENTICAL`. Writes `run-a.json`, `run-b.json` and
+`ab-result.json` (candidate, identity checks, input digests, the digest of each run and the
+verdict). Exits 1 on any mismatch, identity failure or test failure.
 """
 
 import argparse
@@ -30,6 +33,10 @@ def _git(*args: str) -> str:
     ).stdout.strip()
 
 
+def _pinned(candidate_sha: str) -> bool:
+    return _git("rev-parse", "HEAD") == candidate_sha and _git("status", "--porcelain") == ""
+
+
 def _run(out: Path) -> int:
     env = {**os.environ, "AIP_I4_REPLAY_OUT": str(out)}
     command = ["uv", "run", "pytest", TEST, "-q", "-p", "no:cacheprovider", "-m", "qualification"]
@@ -38,9 +45,11 @@ def _run(out: Path) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--candidate-sha", required=True)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=False)
+    pinned_before = _pinned(args.candidate_sha)
 
     sums = subprocess.run(
         ["sha256sum", "-c", "--quiet", "SHA256SUMS"],
@@ -60,14 +69,19 @@ def main() -> int:
         and None not in digests.values()
         and runs["a"].read_bytes() == runs["b"].read_bytes()
     )
+    pinned_after = _pinned(args.candidate_sha)
     result = {
-        "head": _git("rev-parse", "HEAD"),
-        "worktree_clean": _git("status", "--porcelain") == "",
+        "candidate_sha": args.candidate_sha,
+        "head_is_candidate_and_clean": {"before": pinned_before, "after": pinned_after},
         "inputs_sha256sums": (HERE / "SHA256SUMS").read_text().splitlines(),
         "inputs_verified": sums.returncode == 0,
         "pytest_exit_codes": codes,
         "run_sha256": digests,
-        "verdict": "IDENTICAL" if identical and sums.returncode == 0 else "MISMATCH",
+        "verdict": (
+            "IDENTICAL"
+            if identical and sums.returncode == 0 and pinned_before and pinned_after
+            else "MISMATCH"
+        ),
     }
     (args.out / "ab-result.json").write_text(json.dumps(result, indent=1, sort_keys=True) + "\n")
     print(json.dumps(result, indent=1, sort_keys=True))

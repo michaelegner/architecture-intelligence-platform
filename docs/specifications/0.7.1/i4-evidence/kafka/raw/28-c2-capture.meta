@@ -1,4 +1,4 @@
 utc: 2026-10-19T06:23:28Z
-command: uv run --with confluent-kafka==2.16.0 python harness/kafka-capture/capture.py --broker-id kafka:ecommerce-local --environment local --group order-service --group payment-service --group ops-tail --out /home/michael/code/aip-i41/docs/specifications/0.7.1/i4-evidence/kafka/c2/kafka-consumer-state.json
+command: uv run --with confluent-kafka==2.16.0 python harness/kafka-capture/capture.py --broker-id kafka:ecommerce-local --environment local --group order-service --group payment-service --group ops-tail --out c2/kafka-consumer-state.json
 exit_code: 0
 env: KAFKA_BOOTSTRAP_SERVERS=localhost:9092 PYTHONPATH=.

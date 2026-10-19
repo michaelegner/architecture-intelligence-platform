@@ -19,6 +19,14 @@ docker compose -p aip-i41 --env-file env.txt -f docker-compose.yml -f override.y
 
 Each step is recorded in `raw/NN-*.txt` (unchanged stdout), `raw/NN-*.meta` (UTC, exact command, exit code, and the environment where it matters) and `raw/NN-*.err` (non-empty stderr only). Broker commands ran in `ecommerce-kafka` with `--bootstrap-server kafka:29092`.
 
+`.txt` and `.err` files are verbatim. Three kinds of edit were made to `.meta` files after recording:
+
+- an `env:` line was appended to 12, 12a and 28;
+- the local evidence-directory prefix was shortened in the `--out` paths of 12, 12a and 28;
+- the local clone path in 17 became `<ecommerce-system checkout>`.
+
+Timestamps, commands and exit codes are unchanged.
+
 | Files | Step |
 |---|---|
 | 00a, 00b | start stock `kafka-console-consumer` groups `ops-tail` (`orders.created`) and `analytics-tap` (`payments.completed`) |
