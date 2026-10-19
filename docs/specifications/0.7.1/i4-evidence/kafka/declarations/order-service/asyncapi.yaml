@@ -1,0 +1,60 @@
+asyncapi: '2.6.0'
+info:
+  title: order-service
+  version: "1.0.0"
+  description: >-
+    Authored for v0.7.1 I4 from hungCS22hcmiu/ecommerce-system@cd65365838ea880185a02e6536fa347439bfa274
+    (order-service OutboxPublisher.java:33, PaymentEventConsumer.java:29,60, application.yaml:39).
+x-aip-service-id: service:order-service
+servers:
+  kafka:
+    url: kafka:29092
+    protocol: kafka
+    x-aip-broker-id: kafka:ecommerce-local
+channels:
+  orders.created:
+    x-aip-destination-kind: topic
+    publish:
+      operationId: publishOrderCreated
+      message:
+        $ref: '#/components/messages/OrderCreated'
+  payments.completed:
+    x-aip-destination-kind: topic
+    subscribe:
+      operationId: onPaymentCompleted
+      x-aip-consumer-group: order-service
+      message:
+        $ref: '#/components/messages/PaymentCompleted'
+  payments.failed:
+    x-aip-destination-kind: topic
+    subscribe:
+      operationId: onPaymentFailed
+      x-aip-consumer-group: order-service
+      message:
+        $ref: '#/components/messages/PaymentFailed'
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        type: object
+        properties:
+          orderId: {type: string}
+          userId: {type: string}
+          totalAmount: {type: number}
+          items: {type: array}
+    PaymentCompleted:
+      name: PaymentCompleted
+      payload:
+        type: object
+        properties:
+          orderId: {type: string}
+          paymentId: {type: string}
+          amount: {type: number}
+    PaymentFailed:
+      name: PaymentFailed
+      payload:
+        type: object
+        properties:
+          orderId: {type: string}
+          reason: {type: string}

@@ -1,0 +1,3 @@
+utc: 2026-10-19T06:20:02Z
+command: docker image inspect --format {{json .RepoDigests}} {{.Id}} confluentinc/cp-kafka:7.5.0@sha256:fbbb6fa11b258a88b83f54d4f0bddfcffbf2279f99d66a843486e3da7bdfbf41
+exit_code: 0

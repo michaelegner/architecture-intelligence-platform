@@ -1,0 +1,21 @@
+
+GROUP           TOPIC              PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                           HOST            CLIENT-ID
+analytics-tap   payments.completed 0          2               2               0               console-consumer-2ce7e555-76b3-4cd6-ba66-49f6f2c1d17b /172.19.0.5     console-consumer
+analytics-tap   payments.completed 1          2               2               0               console-consumer-2ce7e555-76b3-4cd6-ba66-49f6f2c1d17b /172.19.0.5     console-consumer
+analytics-tap   payments.completed 2          2               2               0               console-consumer-2ce7e555-76b3-4cd6-ba66-49f6f2c1d17b /172.19.0.5     console-consumer
+
+GROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+ops-tail        orders.created  0          0               0               0               -               -               -
+ops-tail        orders.created  1          6               6               0               -               -               -
+ops-tail        orders.created  2          0               0               0               -               -               -
+
+GROUP           TOPIC              PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                   HOST            CLIENT-ID
+order-service   payments.completed 0          2               2               0               consumer-order-service-1-b5e1bf84-ff36-4627-8e87-ad382efadef9 /172.19.0.7     consumer-order-service-1
+order-service   payments.completed 1          2               2               0               consumer-order-service-1-b5e1bf84-ff36-4627-8e87-ad382efadef9 /172.19.0.7     consumer-order-service-1
+order-service   payments.completed 2          2               2               0               consumer-order-service-1-b5e1bf84-ff36-4627-8e87-ad382efadef9 /172.19.0.7     consumer-order-service-1
+order-service   payments.failed    0          -               0               -               consumer-order-service-2-885777b8-54a6-4239-9520-a874118d764c /172.19.0.7     consumer-order-service-2
+order-service   payments.failed    1          -               0               -               consumer-order-service-2-885777b8-54a6-4239-9520-a874118d764c /172.19.0.7     consumer-order-service-2
+order-service   payments.failed    2          -               0               -               consumer-order-service-2-885777b8-54a6-4239-9520-a874118d764c /172.19.0.7     consumer-order-service-2
+
+GROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+payment-service orders.created  1          6               6               0               -               -               -
