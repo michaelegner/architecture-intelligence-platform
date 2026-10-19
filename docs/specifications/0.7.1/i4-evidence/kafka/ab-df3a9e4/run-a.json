@@ -1,0 +1,1060 @@
+{
+ "0-no-capture": {
+  "data": null,
+  "limitations": [
+   {
+    "code": "NO_ACCEPTED_CAPTURE",
+    "message": "no accepted Kafka consumer-state capture exists for this broker and environment"
+   }
+  ],
+  "mode": "query",
+  "outcome": "NOT_ANSWERED",
+  "producer": {
+   "build_revision": "t",
+   "name": "architecture-intelligence-platform",
+   "version": "0.7.1"
+  },
+  "schema_version": "0.7.1",
+  "snapshot": {
+   "model_revision": "sha256:62df6789a3505a049a8fc56da9b0e98f6d228f62e9bcb4f3678a4508364d8771",
+   "snapshot_id": "aip:snapshot:v1:62df6789a3505a049a8fc56da9b0e98f6d228f62e9bcb4f3678a4508364d8771"
+  },
+  "tool": "get_destination_consumers"
+ },
+ "1-c1-without-mapping": {
+  "orders.created": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:21:23Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z"
+     }
+    ],
+    "mapping_source_present": false,
+    "page": {
+     "limit": 100,
+     "returned": 2
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f",
+     "environment": "local"
+    },
+    "rows": [
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:6c9c7898f2ba889286d59b395260bd326cf39cbbec0a84572605b611ea34cd02"
+      ],
+      "captured_at": "2026-10-19T06:21:23Z",
+      "consumer_id": "consumer:37f66261ce84fc3157afc0b5a907a1222f8bb82fc92e8a3f14ef81ca73f5f6d6",
+      "group_id": "payment-service",
+      "limitations": [],
+      "mapping_evidence_refs": [],
+      "outcome": "UNRESOLVED",
+      "reason": "NO_MAPPING"
+     },
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:4011dfe7d5992fb1ab0a4f809f9b2dbdb8aaa65776bfc1a4f532cdbf4589dc2f"
+      ],
+      "captured_at": "2026-10-19T06:21:23Z",
+      "consumer_id": "consumer:56dc75271b151a66c6931b8835d3aa5592adc9e2fd4117bf037d34e006155e25",
+      "group_id": "ops-tail",
+      "limitations": [],
+      "mapping_evidence_refs": [],
+      "outcome": "UNRESOLVED",
+      "reason": "NO_MAPPING"
+     }
+    ]
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    },
+    {
+     "code": "NO_MAPPING_SOURCE",
+     "message": "no accepted Service-mapping source exists for this broker and environment"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:ce1b34f703418149a8f4bc375b7f2aa77b958daaf15e370ade5b8201683babcb",
+    "snapshot_id": "aip:snapshot:v1:ce1b34f703418149a8f4bc375b7f2aa77b958daaf15e370ade5b8201683babcb"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "payments.completed": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:21:23Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z"
+     }
+    ],
+    "mapping_source_present": false,
+    "page": {
+     "limit": 100,
+     "returned": 1
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:eada6b2f3ba85cc5a0b76c8319ae85a9f34d8e5b58017c5e529369434b615719",
+     "environment": "local"
+    },
+    "rows": [
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:f6b9039c60574f85bb17f06bd7e8046a648f35b7064c2537177938cc29a203bd"
+      ],
+      "captured_at": "2026-10-19T06:21:23Z",
+      "consumer_id": "consumer:a50d4348f99e9c7f26f7ff29d529c95df7560de107509c30080ea5c21de2a811",
+      "group_id": "order-service",
+      "limitations": [],
+      "mapping_evidence_refs": [],
+      "outcome": "UNRESOLVED",
+      "reason": "NO_MAPPING"
+     }
+    ]
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    },
+    {
+     "code": "NO_MAPPING_SOURCE",
+     "message": "no accepted Service-mapping source exists for this broker and environment"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:ce1b34f703418149a8f4bc375b7f2aa77b958daaf15e370ade5b8201683babcb",
+    "snapshot_id": "aip:snapshot:v1:ce1b34f703418149a8f4bc375b7f2aa77b958daaf15e370ade5b8201683babcb"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "payments.dlq": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:21:23Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z"
+     }
+    ],
+    "mapping_source_present": false,
+    "page": {
+     "limit": 100,
+     "returned": 0
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:698afb0faa97fdffcefeb2607074c121238d44081a8ed407367e261e5f8965ec",
+     "environment": "local"
+    },
+    "rows": []
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    },
+    {
+     "code": "NO_MAPPING_SOURCE",
+     "message": "no accepted Service-mapping source exists for this broker and environment"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:ce1b34f703418149a8f4bc375b7f2aa77b958daaf15e370ade5b8201683babcb",
+    "snapshot_id": "aip:snapshot:v1:ce1b34f703418149a8f4bc375b7f2aa77b958daaf15e370ade5b8201683babcb"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "payments.failed": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:21:23Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z"
+     }
+    ],
+    "mapping_source_present": false,
+    "page": {
+     "limit": 100,
+     "returned": 1
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:cc6f79e63795e0e88a994ca376f7144fdfc6b27a9c97edeff64bb50aa898619b",
+     "environment": "local"
+    },
+    "rows": [
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:c8bbf59df5c93c3e360d04dc88d50fd3e97cc3cf97c8944831356e877d2a74d5"
+      ],
+      "captured_at": "2026-10-19T06:21:23Z",
+      "consumer_id": "consumer:a50d4348f99e9c7f26f7ff29d529c95df7560de107509c30080ea5c21de2a811",
+      "group_id": "order-service",
+      "limitations": [],
+      "mapping_evidence_refs": [],
+      "outcome": "UNRESOLVED",
+      "reason": "NO_MAPPING"
+     }
+    ]
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    },
+    {
+     "code": "NO_MAPPING_SOURCE",
+     "message": "no accepted Service-mapping source exists for this broker and environment"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:ce1b34f703418149a8f4bc375b7f2aa77b958daaf15e370ade5b8201683babcb",
+    "snapshot_id": "aip:snapshot:v1:ce1b34f703418149a8f4bc375b7f2aa77b958daaf15e370ade5b8201683babcb"
+   },
+   "tool": "get_destination_consumers"
+  }
+ },
+ "2-c1-with-mapping": {
+  "orders.created": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:21:23Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z"
+     }
+    ],
+    "mapping_source_present": true,
+    "page": {
+     "limit": 100,
+     "returned": 2
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f",
+     "environment": "local"
+    },
+    "rows": [
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:36a9039a7bd4f7541c2e0ee5c5958e1c3359f5c38bfd8dae4adf3359dd4fac25"
+      ],
+      "captured_at": "2026-10-19T06:21:23Z",
+      "consumer_id": "consumer:37f66261ce84fc3157afc0b5a907a1222f8bb82fc92e8a3f14ef81ca73f5f6d6",
+      "group_id": "payment-service",
+      "limitations": [],
+      "mapping_evidence_refs": [
+       "destination-evidence:385d0c7dcaffb43aa45d2adeada65181358efb01547923b3520ce136ce864a74"
+      ],
+      "outcome": "RESOLVED",
+      "service_id": "service:payment-service"
+     },
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:84bcd63480d966347ad30885e5fa01f772f726d0a47a925bc501f1fd49babbe8"
+      ],
+      "captured_at": "2026-10-19T06:21:23Z",
+      "consumer_id": "consumer:56dc75271b151a66c6931b8835d3aa5592adc9e2fd4117bf037d34e006155e25",
+      "group_id": "ops-tail",
+      "limitations": [],
+      "mapping_evidence_refs": [],
+      "outcome": "UNRESOLVED",
+      "reason": "NO_MAPPING"
+     }
+    ]
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2",
+    "snapshot_id": "aip:snapshot:v1:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "payments.completed": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:21:23Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z"
+     }
+    ],
+    "mapping_source_present": true,
+    "page": {
+     "limit": 100,
+     "returned": 1
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:eada6b2f3ba85cc5a0b76c8319ae85a9f34d8e5b58017c5e529369434b615719",
+     "environment": "local"
+    },
+    "rows": [
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:e914a015bb34084ca014ec1a6061dfc0e2052d0fecdcd74d36da8b9b4cfa5cef"
+      ],
+      "captured_at": "2026-10-19T06:21:23Z",
+      "consumer_id": "consumer:a50d4348f99e9c7f26f7ff29d529c95df7560de107509c30080ea5c21de2a811",
+      "group_id": "order-service",
+      "limitations": [],
+      "mapping_evidence_refs": [
+       "destination-evidence:0a71a53280feb072c1b44dd03a658ad90a9ff6b42ab5c2bbb55fe17db20967d2"
+      ],
+      "outcome": "RESOLVED",
+      "service_id": "service:order-service"
+     }
+    ]
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2",
+    "snapshot_id": "aip:snapshot:v1:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "payments.dlq": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:21:23Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z"
+     }
+    ],
+    "mapping_source_present": true,
+    "page": {
+     "limit": 100,
+     "returned": 0
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:698afb0faa97fdffcefeb2607074c121238d44081a8ed407367e261e5f8965ec",
+     "environment": "local"
+    },
+    "rows": []
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2",
+    "snapshot_id": "aip:snapshot:v1:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "payments.failed": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:21:23Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z"
+     }
+    ],
+    "mapping_source_present": true,
+    "page": {
+     "limit": 100,
+     "returned": 1
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:cc6f79e63795e0e88a994ca376f7144fdfc6b27a9c97edeff64bb50aa898619b",
+     "environment": "local"
+    },
+    "rows": [
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:736221eb3394312ef163c698067342c1f325c24d3cb219a3d17c3b42e6079534"
+      ],
+      "captured_at": "2026-10-19T06:21:23Z",
+      "consumer_id": "consumer:a50d4348f99e9c7f26f7ff29d529c95df7560de107509c30080ea5c21de2a811",
+      "group_id": "order-service",
+      "limitations": [],
+      "mapping_evidence_refs": [
+       "destination-evidence:6c9963e64bd99f407dd61bb27e3eeb3696c0c537814c18dab5daf15c660ae103"
+      ],
+      "outcome": "RESOLVED",
+      "service_id": "service:order-service"
+     }
+    ]
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2",
+    "snapshot_id": "aip:snapshot:v1:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2"
+   },
+   "tool": "get_destination_consumers"
+  }
+ },
+ "3-c1-evidence": {
+  "answered": {
+   "data": {
+    "entries": [
+     {
+      "evidence": {
+       "capture_content_sha256": "cc2f84870b0e732d8476b8e06dc207cd5ca562dfb1d66ff48c39c469908f2e92",
+       "capture_source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+       "capture_source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z",
+       "captured_at": "2026-10-19T06:21:23Z",
+       "consumer_id": "consumer:37f66261ce84fc3157afc0b5a907a1222f8bb82fc92e8a3f14ef81ca73f5f6d6",
+       "group_id": "payment-service",
+       "kind": "KAFKA_ATTACHMENT",
+       "topic_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f"
+      },
+      "kind": "KAFKA_ATTACHMENT",
+      "ref": "destination-evidence:36a9039a7bd4f7541c2e0ee5c5958e1c3359f5c38bfd8dae4adf3359dd4fac25",
+      "status": "RESOLVED"
+     },
+     {
+      "evidence": {
+       "artifact_sha256": "72873c02cdf89d85aa5683e196e2c530af20085faef5f5d788670e6f3e2909d9",
+       "consumer_id": "consumer:37f66261ce84fc3157afc0b5a907a1222f8bb82fc92e8a3f14ef81ca73f5f6d6",
+       "group_id": "payment-service",
+       "kind": "KAFKA_SERVICE_MAPPING",
+       "mapping_source_instance_id": "urn:aip:source:kafka-service-mapping:02de48c399b360eb705ef9c2df8cf8ddb5a1f42669abeeb44e6b670e5bc113f9",
+       "mapping_source_revision": "artifact-sha256:72873c02cdf89d85aa5683e196e2c530af20085faef5f5d788670e6f3e2909d9",
+       "service_id": "service:payment-service",
+       "service_name": "payment-service"
+      },
+      "kind": "KAFKA_SERVICE_MAPPING",
+      "ref": "destination-evidence:385d0c7dcaffb43aa45d2adeada65181358efb01547923b3520ce136ce864a74",
+      "status": "RESOLVED"
+     },
+     {
+      "evidence": {
+       "capture_content_sha256": "cc2f84870b0e732d8476b8e06dc207cd5ca562dfb1d66ff48c39c469908f2e92",
+       "capture_source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+       "capture_source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z",
+       "captured_at": "2026-10-19T06:21:23Z",
+       "consumer_id": "consumer:56dc75271b151a66c6931b8835d3aa5592adc9e2fd4117bf037d34e006155e25",
+       "group_id": "ops-tail",
+       "kind": "KAFKA_ATTACHMENT",
+       "topic_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f"
+      },
+      "kind": "KAFKA_ATTACHMENT",
+      "ref": "destination-evidence:84bcd63480d966347ad30885e5fa01f772f726d0a47a925bc501f1fd49babbe8",
+      "status": "RESOLVED"
+     }
+    ],
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f",
+     "environment": "local"
+    }
+   },
+   "limitations": [],
+   "mode": "evidence",
+   "outcome": "ANSWERED",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2",
+    "snapshot_id": "aip:snapshot:v1:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "partial": {
+   "data": {
+    "entries": [
+     {
+      "ref": "destination-evidence:0000000000000000000000000000000000000000000000000000000000000000",
+      "status": "NOT_RESOLVED"
+     },
+     {
+      "evidence": {
+       "capture_content_sha256": "cc2f84870b0e732d8476b8e06dc207cd5ca562dfb1d66ff48c39c469908f2e92",
+       "capture_source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+       "capture_source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z",
+       "captured_at": "2026-10-19T06:21:23Z",
+       "consumer_id": "consumer:37f66261ce84fc3157afc0b5a907a1222f8bb82fc92e8a3f14ef81ca73f5f6d6",
+       "group_id": "payment-service",
+       "kind": "KAFKA_ATTACHMENT",
+       "topic_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f"
+      },
+      "kind": "KAFKA_ATTACHMENT",
+      "ref": "destination-evidence:36a9039a7bd4f7541c2e0ee5c5958e1c3359f5c38bfd8dae4adf3359dd4fac25",
+      "status": "RESOLVED"
+     }
+    ],
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f",
+     "environment": "local"
+    }
+   },
+   "limitations": [
+    {
+     "code": "EVIDENCE_REF_NOT_RESOLVED",
+     "message": "an evidence ref was not issued for this query and snapshot"
+    }
+   ],
+   "mode": "evidence",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2",
+    "snapshot_id": "aip:snapshot:v1:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2"
+   },
+   "tool": "get_destination_consumers"
+  }
+ },
+ "4-c1-paged": {
+  "first": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:21:23Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z"
+     }
+    ],
+    "mapping_source_present": true,
+    "page": {
+     "limit": 1,
+     "next_cursor": "eyJhZnRlciI6ImNvbnN1bWVyOjM3ZjY2MjYxY2U4NGZjMzE1N2FmYzBiNWE5MDdhMTIyMmY4YmI4MmZjOTJlOGEzZjE0ZWY4MWNhNzNmNWY2ZDYiLCJxdWVyeV9kaWdlc3QiOiJmMzY3NThhNGI0YWRiOGM4OTZiOWQyZTczZjdjYWJhODhlZTk4NDJmY2E3MTA0MTljYWFiMGM2YzQ4ZTQ3MGFkIiwic2NoZW1hX3ZlcnNpb24iOiIwLjcuMSIsInNuYXBzaG90X2lkIjoiYWlwOnNuYXBzaG90OnYxOjVlMzgwYjNjN2M5OTE3MzYyYThiNWI4ZTY4NzVhN2RiOTM0MzFkMWYyNWRlZGM0YTY2NTk4NjBjMmRiMjIzYzIiLCJ2IjoxfQ",
+     "returned": 1
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f",
+     "environment": "local"
+    },
+    "rows": [
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:36a9039a7bd4f7541c2e0ee5c5958e1c3359f5c38bfd8dae4adf3359dd4fac25"
+      ],
+      "captured_at": "2026-10-19T06:21:23Z",
+      "consumer_id": "consumer:37f66261ce84fc3157afc0b5a907a1222f8bb82fc92e8a3f14ef81ca73f5f6d6",
+      "group_id": "payment-service",
+      "limitations": [],
+      "mapping_evidence_refs": [
+       "destination-evidence:385d0c7dcaffb43aa45d2adeada65181358efb01547923b3520ce136ce864a74"
+      ],
+      "outcome": "RESOLVED",
+      "service_id": "service:payment-service"
+     }
+    ]
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    },
+    {
+     "code": "MORE_ROWS_AVAILABLE",
+     "message": "more rows are available with next_cursor"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2",
+    "snapshot_id": "aip:snapshot:v1:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "second": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:21:23Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:21:23Z"
+     }
+    ],
+    "mapping_source_present": true,
+    "page": {
+     "limit": 1,
+     "returned": 1
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f",
+     "environment": "local"
+    },
+    "rows": [
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:84bcd63480d966347ad30885e5fa01f772f726d0a47a925bc501f1fd49babbe8"
+      ],
+      "captured_at": "2026-10-19T06:21:23Z",
+      "consumer_id": "consumer:56dc75271b151a66c6931b8835d3aa5592adc9e2fd4117bf037d34e006155e25",
+      "group_id": "ops-tail",
+      "limitations": [],
+      "mapping_evidence_refs": [],
+      "outcome": "UNRESOLVED",
+      "reason": "NO_MAPPING"
+     }
+    ]
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2",
+    "snapshot_id": "aip:snapshot:v1:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2"
+   },
+   "tool": "get_destination_consumers"
+  }
+ },
+ "5-refusal-BROKER_MISMATCH": {
+  "data": null,
+  "limitations": [
+   {
+    "code": "BROKER_MISMATCH",
+    "message": "the destination is not declared on the requested broker"
+   }
+  ],
+  "mode": "query",
+  "outcome": "NOT_ANSWERED",
+  "producer": {
+   "build_revision": "t",
+   "name": "architecture-intelligence-platform",
+   "version": "0.7.1"
+  },
+  "schema_version": "0.7.1",
+  "snapshot": {
+   "model_revision": "sha256:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2",
+   "snapshot_id": "aip:snapshot:v1:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2"
+  },
+  "tool": "get_destination_consumers"
+ },
+ "5-refusal-UNKNOWN_DESTINATION": {
+  "data": null,
+  "limitations": [
+   {
+    "code": "UNKNOWN_DESTINATION",
+    "message": "no declared Topic has this destination id"
+   }
+  ],
+  "mode": "query",
+  "outcome": "NOT_ANSWERED",
+  "producer": {
+   "build_revision": "t",
+   "name": "architecture-intelligence-platform",
+   "version": "0.7.1"
+  },
+  "schema_version": "0.7.1",
+  "snapshot": {
+   "model_revision": "sha256:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2",
+   "snapshot_id": "aip:snapshot:v1:5e380b3c7c9917362a8b5b8e6875a7db93431d1f25dedc4a6659860c2db223c2"
+  },
+  "tool": "get_destination_consumers"
+ },
+ "6-c2-with-mapping": {
+  "orders.created": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:23:28Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:23:28Z"
+     }
+    ],
+    "mapping_source_present": true,
+    "page": {
+     "limit": 100,
+     "returned": 0
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f",
+     "environment": "local"
+    },
+    "rows": []
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb",
+    "snapshot_id": "aip:snapshot:v1:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "payments.completed": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:23:28Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:23:28Z"
+     }
+    ],
+    "mapping_source_present": true,
+    "page": {
+     "limit": 100,
+     "returned": 1
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:eada6b2f3ba85cc5a0b76c8319ae85a9f34d8e5b58017c5e529369434b615719",
+     "environment": "local"
+    },
+    "rows": [
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:e5ed07ef26e7f8fce06d0d458c5134830f5b569c64468b046dc1f6802e701e3e"
+      ],
+      "captured_at": "2026-10-19T06:23:28Z",
+      "consumer_id": "consumer:a50d4348f99e9c7f26f7ff29d529c95df7560de107509c30080ea5c21de2a811",
+      "group_id": "order-service",
+      "limitations": [],
+      "mapping_evidence_refs": [
+       "destination-evidence:34b915f7f801f60f55481c839c957ad128f5edcc7e2362f474f0be276fc8a802"
+      ],
+      "outcome": "RESOLVED",
+      "service_id": "service:order-service"
+     }
+    ]
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb",
+    "snapshot_id": "aip:snapshot:v1:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "payments.dlq": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:23:28Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:23:28Z"
+     }
+    ],
+    "mapping_source_present": true,
+    "page": {
+     "limit": 100,
+     "returned": 0
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:698afb0faa97fdffcefeb2607074c121238d44081a8ed407367e261e5f8965ec",
+     "environment": "local"
+    },
+    "rows": []
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb",
+    "snapshot_id": "aip:snapshot:v1:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "payments.failed": {
+   "data": {
+    "capture_sources": [
+     {
+      "captured_at": "2026-10-19T06:23:28Z",
+      "scope_digest": "d4bdbe80c77d4794832fc3c0ae97d3d3724de4ca66f51db116bb6413af21555a",
+      "source_instance_id": "urn:aip:source:kafka-consumer-state:29df063e025c9214b4d9ea0e27940ff897b853e03adacf0fccc3492f62be5c93",
+      "source_revision": "kafka:not-established+capture:2026-10-19T06:23:28Z"
+     }
+    ],
+    "mapping_source_present": true,
+    "page": {
+     "limit": 100,
+     "returned": 1
+    },
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:cc6f79e63795e0e88a994ca376f7144fdfc6b27a9c97edeff64bb50aa898619b",
+     "environment": "local"
+    },
+    "rows": [
+     {
+      "attachment_evidence_refs": [
+       "destination-evidence:ab8cd5d142752654590b4261013c7d5a395612cc45acb8bc217b60d571e2c1e7"
+      ],
+      "captured_at": "2026-10-19T06:23:28Z",
+      "consumer_id": "consumer:a50d4348f99e9c7f26f7ff29d529c95df7560de107509c30080ea5c21de2a811",
+      "group_id": "order-service",
+      "limitations": [],
+      "mapping_evidence_refs": [
+       "destination-evidence:d4d378afd081aa096e71d9affd5c77dd973050ea4e58b67dbe9c9d592ed5d54c"
+      ],
+      "outcome": "RESOLVED",
+      "service_id": "service:order-service"
+     }
+    ]
+   },
+   "limitations": [
+    {
+     "code": "CAPTURE_SCOPE_LIMITED",
+     "message": "each capture covers only its configured consumer groups at its own capture time; the rows are not a complete list of consumers"
+    }
+   ],
+   "mode": "query",
+   "outcome": "PARTIAL",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb",
+    "snapshot_id": "aip:snapshot:v1:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb"
+   },
+   "tool": "get_destination_consumers"
+  }
+ },
+ "7-c1-refs-after-c2": {
+  "cross": {
+   "data": {
+    "entries": [
+     {
+      "ref": "destination-evidence:36a9039a7bd4f7541c2e0ee5c5958e1c3359f5c38bfd8dae4adf3359dd4fac25",
+      "status": "NOT_RESOLVED"
+     },
+     {
+      "ref": "destination-evidence:385d0c7dcaffb43aa45d2adeada65181358efb01547923b3520ce136ce864a74",
+      "status": "NOT_RESOLVED"
+     },
+     {
+      "ref": "destination-evidence:84bcd63480d966347ad30885e5fa01f772f726d0a47a925bc501f1fd49babbe8",
+      "status": "NOT_RESOLVED"
+     }
+    ],
+    "request_context": {
+     "broker_id": "kafka:ecommerce-local",
+     "destination_id": "topic:owned:d50263b3b6fb95e3e67b5ad7bc404874526fee87b3a9b333cc1c7fd1d87f413f",
+     "environment": "local"
+    }
+   },
+   "limitations": [
+    {
+     "code": "EVIDENCE_REF_NOT_RESOLVED",
+     "message": "an evidence ref was not issued for this query and snapshot"
+    }
+   ],
+   "mode": "evidence",
+   "outcome": "NOT_ANSWERED",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb",
+    "snapshot_id": "aip:snapshot:v1:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "stale_evidence": {
+   "data": null,
+   "limitations": [
+    {
+     "code": "SNAPSHOT_NOT_AVAILABLE",
+     "message": "the requested snapshot is not the current snapshot"
+    }
+   ],
+   "mode": "evidence",
+   "outcome": "NOT_ANSWERED",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb",
+    "snapshot_id": "aip:snapshot:v1:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb"
+   },
+   "tool": "get_destination_consumers"
+  },
+  "stale_query": {
+   "data": null,
+   "limitations": [
+    {
+     "code": "SNAPSHOT_NOT_AVAILABLE",
+     "message": "the requested snapshot is not the current snapshot"
+    }
+   ],
+   "mode": "query",
+   "outcome": "NOT_ANSWERED",
+   "producer": {
+    "build_revision": "t",
+    "name": "architecture-intelligence-platform",
+    "version": "0.7.1"
+   },
+   "schema_version": "0.7.1",
+   "snapshot": {
+    "model_revision": "sha256:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb",
+    "snapshot_id": "aip:snapshot:v1:b85d6ba3fd3fedeef3b155a1bb9b75d33f8afe82b29f1bbb01f9233075640afb"
+   },
+   "tool": "get_destination_consumers"
+  }
+ }
+}
