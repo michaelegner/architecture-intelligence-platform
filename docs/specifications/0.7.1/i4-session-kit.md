@@ -4,7 +4,7 @@ This is for the owner's one coding-agent session ([I4 spec](i4-deterministic-rea
 
 ## Setup
 
-Start from a clean `main` (≥ `1d2bf3a`) and record `git rev-parse HEAD`. You need Docker and `uv`. Run the setup, the C2 refresh and the teardown in **one shell**, which keeps `WORK` and `K`. Everything listens on loopback only.
+Start from a clean `main` (≥ `1d2bf3a`) and record `git rev-parse HEAD`. You need Docker and `uv`. Run the setup, the C2 refresh and the teardown in **one shell**, which keeps `WORK` and `K`. Everything listens on loopback only. If a wait times out, it prints the log; stop there and fix it before importing.
 
 ```sh
 uv sync
@@ -13,11 +13,13 @@ mkdir "$WORK/kafka" && cp "$K/c1/kafka-consumer-state.json" "$WORK/kafka/"
 sed "s|@REPO@|$PWD|g; s|@WORK@|$WORK|g" docs/specifications/0.7.1/i4-evidence/session/config.template.yaml > "$WORK/config.yaml"
 docker run -d --name aip-session-neo4j -p 127.0.0.1:17687:7687 -e NEO4J_AUTH=neo4j/session-local-only \
   neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93
-until docker logs aip-session-neo4j 2>&1 | grep -q "Started."; do sleep 2; done   # Neo4j is up
+timeout 120 sh -c 'until docker logs aip-session-neo4j 2>&1 | grep -q "Started."; do sleep 2; done' \
+  || docker logs --tail 20 aip-session-neo4j        # Neo4j is up; on timeout, shows its log
 NEO4J_PASSWORD=session-local-only CONFIG_PATH="$WORK/config.yaml" \
   uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 > "$WORK/server.log" 2>&1 &
 SERVER=$!
-until curl -s -o /dev/null localhost:8000/docs; do sleep 2; done                  # the server is up
+timeout 60 sh -c 'until curl -s -o /dev/null localhost:8000/docs; do sleep 2; done' \
+  || tail -20 "$WORK/server.log"                     # the server is up; on timeout, shows its log
 curl -s -X POST localhost:8000/api/import
 ```
 
