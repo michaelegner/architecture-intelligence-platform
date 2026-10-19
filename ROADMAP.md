@@ -727,8 +727,10 @@ unsupported architectural claims.
 
 **Exit capability:**
 
-> **AIP can compose independently established System/Component membership with evidence-qualified
-> distributed Current State into a bounded cross-boundary view on a real system.**
+> **The v0.8 workflow can combine independently established System/Component membership with
+> evidence-qualified distributed Current State into a bounded cross-boundary view on a real system;
+> AIP owns composition semantics only where v0.7.2 shows that the context/agent layer cannot safely
+> preserve them.**
 
 The product checkpoint records **continue, narrow, integrate, defer, or stop** based on whether that
 view materially improves the coding-agent workflow and justifies AIP's evidence and maintenance
