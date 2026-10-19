@@ -1,0 +1,3 @@
+utc: 2026-10-19T06:20:02Z
+command: docker exec ecommerce-kafka kafka-topics --version
+exit_code: 0

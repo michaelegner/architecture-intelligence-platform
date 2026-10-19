@@ -1,0 +1,47 @@
+{
+  "authored": "2026-10-19, by hand, before any AIP import of the captures",
+  "sources": {
+    "attachments": "stock kafka-consumer-groups output in raw/01-07 (G1), not the AIP capture utility",
+    "services": "application configuration at hungCS22hcmiu/ecommerce-system@cd65365838ea880185a02e6536fa347439bfa274, see mapping-review.md"
+  },
+  "broker_id": "kafka:ecommerce-local",
+  "environment": "local",
+  "capture_allow_list": ["order-service", "ops-tail", "payment-service"],
+  "c1": {
+    "with_mapping": {
+      "orders.created": {
+        "rows": [
+          {"group_id": "ops-tail", "outcome": "UNRESOLVED", "reason": "NO_MAPPING"},
+          {"group_id": "payment-service", "outcome": "RESOLVED", "service": "payment-service"}
+        ],
+        "limitations": ["CAPTURE_SCOPE_LIMITED"],
+        "never_named": ["analytics-tap"]
+      },
+      "payments.completed": {
+        "rows": [{"group_id": "order-service", "outcome": "RESOLVED", "service": "order-service"}],
+        "limitations": ["CAPTURE_SCOPE_LIMITED"],
+        "never_named": ["analytics-tap"]
+      },
+      "payments.failed": {
+        "rows": [{"group_id": "order-service", "outcome": "RESOLVED", "service": "order-service"}],
+        "limitations": ["CAPTURE_SCOPE_LIMITED"],
+        "never_named": []
+      },
+      "payments.dlq": {
+        "rows": [],
+        "limitations": ["CAPTURE_SCOPE_LIMITED"],
+        "never_named": []
+      }
+    },
+    "without_mapping_source": {
+      "orders.created": {
+        "rows": [
+          {"group_id": "ops-tail", "outcome": "UNRESOLVED", "reason": "NO_MAPPING"},
+          {"group_id": "payment-service", "outcome": "UNRESOLVED", "reason": "NO_MAPPING"}
+        ],
+        "limitations": ["CAPTURE_SCOPE_LIMITED", "NO_MAPPING_SOURCE"],
+        "never_named": ["analytics-tap"]
+      }
+    }
+  }
+}

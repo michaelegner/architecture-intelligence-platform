@@ -1,0 +1,3 @@
+
+GROUP           CONSUMER-ID                                           HOST            CLIENT-ID        #PARTITIONS     ASSIGNMENT
+ops-tail        console-consumer-cb2efe36-cdf8-4cc7-a210-81a5020e402f /172.19.0.5     console-consumer 3               orders.created(0,1,2)

@@ -1,0 +1,3 @@
+utc: 2026-10-19T06:19:32Z
+command: docker exec -d ecommerce-kafka kafka-console-consumer --bootstrap-server kafka:29092 --topic payments.completed --group analytics-tap
+exit_code: 0
