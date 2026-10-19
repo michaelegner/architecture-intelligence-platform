@@ -33,7 +33,7 @@ For each arm, record:
 
 -
 
-### 3. With AIP, C2 (after the refresh)
+### 3. With AIP, C2 (after the refresh, continuing the arm-2 conversation)
 
 -
 

@@ -4,17 +4,21 @@ This is for the owner's one coding-agent session ([I4 spec](i4-deterministic-rea
 
 ## Setup
 
-Start from a clean `main` (≥ `1d2bf3a`) and record `git rev-parse HEAD`. You need Docker and `uv`.
+Start from a clean `main` (≥ `1d2bf3a`) and record `git rev-parse HEAD`. You need Docker and `uv`. Run the setup, the C2 refresh and the teardown in **one shell**, which keeps `WORK` and `K`. Everything listens on loopback only.
 
 ```sh
 uv sync
 export WORK=$(mktemp -d) K=docs/specifications/0.7.1/i4-evidence/kafka
 mkdir "$WORK/kafka" && cp "$K/c1/kafka-consumer-state.json" "$WORK/kafka/"
 sed "s|@REPO@|$PWD|g; s|@WORK@|$WORK|g" docs/specifications/0.7.1/i4-evidence/session/config.template.yaml > "$WORK/config.yaml"
-docker run -d --name aip-session-neo4j -p 17687:7687 -e NEO4J_AUTH=neo4j/session-local-only \
+docker run -d --name aip-session-neo4j -p 127.0.0.1:17687:7687 -e NEO4J_AUTH=neo4j/session-local-only \
   neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93
-NEO4J_PASSWORD=session-local-only CONFIG_PATH="$WORK/config.yaml" uv run uvicorn app.main:app --port 8000
-curl -s -X POST localhost:8000/api/import        # in a second shell
+until docker logs aip-session-neo4j 2>&1 | grep -q "Started."; do sleep 2; done   # Neo4j is up
+NEO4J_PASSWORD=session-local-only CONFIG_PATH="$WORK/config.yaml" \
+  uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 > "$WORK/server.log" 2>&1 &
+SERVER=$!
+until curl -s -o /dev/null localhost:8000/docs; do sleep 2; done                  # the server is up
+curl -s -X POST localhost:8000/api/import
 ```
 
 For the agent, check out `hungCS22hcmiu/ecommerce-system` at `cd65365838ea880185a02e6536fa347439bfa274` in its own directory. Connect the "with AIP" arms to `http://localhost:8000/mcp`. `tools/list` must show six tools, including `get_destination_consumers`. The installed `aip` plugin is older (four tools), so don't use it here.
@@ -33,14 +37,14 @@ Give the agent this card in the AIP arms, and note anything else you give it:
 
 ## Arms
 
-Start each arm as a fresh agent session in the ecommerce-system checkout. In every arm the agent may read the code and run commands, including starting the system locally.
+The agent works in the ecommerce-system checkout. In every arm it may read the code and run commands, including starting the system locally.
 
-1. **Without AIP:** no AIP tools.
-2. **With AIP, C1:** the AIP tools, with C1 imported.
-3. **With AIP, C2:** in the same session as arm 2, refresh the capture, then ask the prompt again:
+1. **Without AIP:** a fresh agent conversation with no AIP tools.
+2. **With AIP, C1:** a fresh agent conversation with the AIP tools, with C1 imported.
+3. **With AIP, C2:** this deliberately **continues the arm-2 conversation**, so the record shows whether the agent notices the changed state at a new T and does not read it as "no consumer". In the setup shell, refresh the capture, then ask the prompt again in that conversation:
    ```sh
    cp "$K/c2/kafka-consumer-state.json" "$WORK/kafka/"
    curl -s -X POST localhost:8000/api/import
    ```
 
-Teardown: stop the server, then `docker rm -f aip-session-neo4j`.
+Teardown, in the setup shell: `kill $SERVER; docker rm -f aip-session-neo4j`.
