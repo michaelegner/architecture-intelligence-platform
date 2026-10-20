@@ -12,6 +12,7 @@ This record is filled in by the owner after the session ([kit](../i4-session-kit
 | ecommerce-system checkout | `cd65365838ea880185a02e6536fa347439bfa274` |
 | Context card given (verbatim, plus anything extra) | |
 | Setup effort (minutes, to `tools/list` showing six tools) | |
+| Capture times T (from [`replay-metadata.json`](kafka/replay-metadata.json)) | C1 `2026-10-19T06:21:23Z` (arm 2), C2 `2026-10-19T06:23:28Z` (arm 3) |
 
 ## Arms
 
