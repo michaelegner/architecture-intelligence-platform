@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Architecture Intelligence Platform MCP server](https://mcprush.com/badge/architecture-intelligence-platform-mcp/card.svg)](https://mcprush.com/to/architecture-intelligence-platform-mcp?ref=badge)
+[![Architecture Intelligence Platform on mcprush](https://mcprush.com/badge/architecture-intelligence-platform-mcp/score.svg)](https://mcprush.com/to/architecture-intelligence-platform-mcp?ref=badge)
 
 ## Agents should reason about architecture — not reconstruct it.
 
