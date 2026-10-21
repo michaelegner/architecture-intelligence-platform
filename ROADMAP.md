@@ -581,7 +581,10 @@ Exit capability:
 > insufficiently supported in the selected context without silently inventing product, business,
 > authorization, or Intent claims.**
 
-## v0.7.1 — Broker-Mediated Consumer Attribution (planned)
+## v0.7.1 — Broker-Mediated Consumer Attribution (shipped)
+
+Published **v0.7.1 on 2026-10-21**; terminal outcome **SHIPPED_VERIFIED**. See the
+[release record](docs/release-validation/v0.7.1-release-record.md).
 
 **Goal:** complete the existing messaging Current-State question so AIP can qualify which Services
 consume a broker-mediated destination without collapsing broker-native identities.

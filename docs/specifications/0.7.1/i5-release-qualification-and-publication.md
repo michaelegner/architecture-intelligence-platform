@@ -1,6 +1,6 @@
 # AIP v0.7.1 I5 — Release
 
-**Status:** Proposed  
+**Status:** Released in [`v0.7.1`](../../release-validation/v0.7.1-release-record.md) (2026-10-21)  
 **Basis:** [I4 result](i4-result-record.md) (`CONTINUE`), [I4 → I5 handoff](i4-i5-handoff.md), [release specification](specification.md) §7–§9.
 
 ## Goal
