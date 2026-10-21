@@ -9,6 +9,14 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+### Security
+
+- The runtime image no longer contains the base image's system pip, which AIP never uses (uv installs into
+  `/app/.venv`, which has no pip). This removes pip's bundled `certifi`, `urllib3`, `setuptools` and `msgpack` from
+  the image, including GHSA-6q48-6c7w-9gw2. The `python:3.14.8-slim` base is re-pinned to its current digest, which
+  carries the fixed `ca-certificates` (DSA-6572-1) and `liblzma5` (DSA-6549-1). No AIP behaviour, schema or MCP tool
+  changed.
+
 ## [0.7.1] - 2026-10-21
 
 ### v0.7.1 — Broker-Mediated Consumer Attribution
