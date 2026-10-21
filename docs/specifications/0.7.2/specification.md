@@ -1,7 +1,7 @@
 # AIP v0.7.2 — Hosted Interoperability and Product Checkpoint
 
-**Status:** Proposed
-**Baseline:** released v0.7.1. Governing: ROADMAP.md v0.7.2.
+**Status:** Proposed  
+**Baseline:** released v0.7.1 plus merged image-security fix [#617](https://github.com/michaelegner/architecture-intelligence-platform/pull/617) (`f71e1a0`), scheduled to ship in v0.7.2. Governing: ROADMAP.md v0.7.2.
 
 ## Product question
 
@@ -32,7 +32,7 @@ Reuse v0.7.1 qualification where behavior is unchanged. I1 needs an external six
 
 I4 follows the **lightweight v0.7.1 release path**: normal CI/security checks, relevant image and hosted verification, owner go, publication and one short record. Requalify affected behavior if it changes; avoid repeating established campaigns for docs or unrelated dependency updates.
 
-Carry forward the two v0.7.1 image-security findings (bundled pip/certifi and OS certificates) as a **separate small maintenance fix**, rather than mixing them into the product experiment.
+The v0.7.1 image-security follow-up is **already implemented on `main`** by #617: system pip is removed and the pinned Python base updated, resolving the recorded bundled-pip and OS-certificate findings in its scan. Treat this as part of the v0.7.2 baseline, not new I1–I4 work. Normal release security/image checks verify the final candidate; do not repeat the remediation unless a finding recurs.
 
 ## Out of scope
 
