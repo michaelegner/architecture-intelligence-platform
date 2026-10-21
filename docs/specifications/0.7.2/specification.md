@@ -13,7 +13,7 @@ v0.7.2 **qualifies the existing product**, rather than adding another architectu
 
 > With equivalent access to repositories, execution and distributed-system evidence, does adding AIP materially improve what a coding agent can establish, needs to inspect, or changes beyond a mature context engine alone?
 
-The hosted product-validation system moves from **Pitstop to Sokol111**. Pitstop remains historical and regression material. **Unblocked is the fixed context-engine comparator for v0.7.2.** Its open-source `context-engine-simulator` is an optional experiment runner, not a substitute for a real Unblocked setup or a requirement to use its default A/B comparison.
+The hosted product-validation system moves from **Pitstop to Sokol111**. Pitstop remains historical and regression material. **Unblocked is the fixed context-engine comparator for v0.7.2.** Use Unblocked's open-source [`context-engine-simulator`](https://github.com/unblocked/context-engine-simulator) as the **preferred I3 evaluation harness**, with a small adaptation of its default A/B workflow. It complements, rather than replaces, the real Unblocked setup.
 
 **Release promise:**
 
@@ -80,7 +80,9 @@ A functional AIP connection is not evidence of distinct product value. A mature 
 - Fix the **same Unblocked workspace, indexed sources, account permissions, agent model/settings and prompt** for both experiment arms. Record the source list, repository revision(s), indexing state/time and any additional organizational sources enabled. Do not let extra Slack/docs/issues access appear in only one arm.
 - Configure the hosted **AIP MCP** separately. Verify its six tools and evidence drill-down on the frozen Sokol111 dataset. Enable AIP **only in the combined arm**; Unblocked remains enabled and unchanged in both. Ensure the baseline agent has no implicit access to AIP via shared MCP settings, prepared context bundles or previous chat history.
 - Run one small **Unblocked-only smoke query** asking about the selected change and check the citations. If Unblocked cannot access the relevant indexed data, fix setup before comparing rather than interpreting missing setup as an AIP benefit.
-- Record the exact tool versions/configuration and connections used, including whether Unblocked exposes `context_research`/`context_get_urls`. Unblocked's open-source `context-engine-simulator` may be used for orchestration/reporting, but its default *no pre-gathering vs pre-gathered context* arms **do not** equal *Unblocked vs Unblocked + AIP*. Configure two genuinely distinct MCP-access arms or run two controlled isolated sessions and compare their outputs. Do not present a simulator score as this product comparison unless that distinction is enforced.
+- Record the exact tool versions/configuration and connections used, including whether Unblocked exposes `context_research`/`context_get_urls`.
+- **Preferred harness: `context-engine-simulator`.** Reuse its isolated Git worktrees, task fixture, acceptance criteria, evaluation, attribution and HTML/JSON reporting. Its default baseline (no pre-gathering) versus enhanced (pre-gathering plus extra planning passes) measures the value of context preparation—not AIP. **Adapt both arms to perform the same Unblocked context-gathering and agent workflow**, with the same steps, prompts and budgets; make the **AIP MCP connection available only in the combined arm**. AIP use must be attributable to the additional tool access, not extra prework or a different planning path.
+- Scope the adaptation to per-arm MCP availability and equivalent workflow, with a small regression check that the baseline cannot invoke AIP and both arms can invoke Unblocked. Avoid building a new benchmarking framework. If the simulator cannot support a fair comparison without disproportionate changes, document that constraint and use two isolated manual sessions with the same fixed inputs.
 
 **Setup references:** [Unblocked GitHub integration](https://getunblocked.com/integrations/github/), [Unblocked MCP instructions](https://getunblocked.com/download/), [context-engine-simulator](https://github.com/unblocked/context-engine-simulator).
 
@@ -91,14 +93,14 @@ Run the **same bounded Sokol111 change** in two fresh coding-agent sessions:
 1. **Baseline:** Unblocked connected and usable, **without AIP**.
 2. **Combined:** the **same Unblocked setup** with AIP's qualified hosted MCP surface additionally enabled.
 
-**Hold constant:** agent model/version/configuration, initial prompt/context card, repository commits, Sokol111 dataset/configuration and frozen evidence snapshot, execution permissions, tools other than AIP and access to raw distributed evidence. **AIP is the only added capability.** Record unavoidable environmental differences and their effect; do not call an unfair run a controlled comparison.
+**Hold constant:** agent model/version/configuration, initial prompt/context card, repository commits, Sokol111 dataset/configuration and frozen evidence snapshot, execution permissions, tools other than AIP, context-gathering/planning workflow, and access to raw distributed evidence. **AIP is the only added capability.** Record unavoidable environmental differences and their effect; do not call an unfair run a controlled comparison.
 
 Allow both sessions realistic source browsing and direct execution, including raw broker/runtime checks where available. Independent evidence, not either agent's story, is the ground truth.
 
 ### 5.4 Acceptance
 
 Produce **one short comparison record** with:
-- verified Unblocked account/MCP/GitHub indexing setup, fixed source scope and relevant raw-evidence access;
+- verified Unblocked account/MCP/GitHub indexing setup, fixed source scope and relevant raw-evidence access; simulator version/fixture (or documented manual fallback) and proof of equivalent arm workflows;
 - external Services/components found or missed, evidence-qualified confidence and unsupported claims;
 - **whether historical documents, old captures or retrieved organizational context were confused with established Current State**, and whether evidence time/coverage was preserved;
 - what was left unresolved versus asserted; provenance and evidence drill-down actually used;
@@ -141,7 +143,7 @@ No seventh tool or new canonical semantics are required for success.
 | D1 | v0.7.2 is a six-tool interoperability and product-boundary checkpoint, not another architecture-question release. | Roadmap accepted |
 | D2 | I1 may qualify six-tool hosting on Pitstop, including typed absence for the two newer source-dependent tools; I2 moves the hosted system to Sokol111. | Proposed clarification |
 | D3 | Sokol111 is the forward demo; Pitstop remains regression/history. | Roadmap accepted |
-| D4 | Unblocked is the **required** v0.7.2 comparator; both arms have the same working Unblocked setup and baseline inputs/rights, with AIP added only to the second arm. | v0.7.2 decision |
+| D4 | Unblocked is the **required** comparator. `context-engine-simulator` is the **preferred I3 harness**, adapted for identical Unblocked-based workflows with AIP enabled only in the second arm; a documented manual fallback is allowed. | v0.7.2 decision |
 | D5 | No seventh search tool or AIP-owned cross-view composition is pre-authorized. | Roadmap accepted |
 | D6 | #617 image-security remediation is baseline; the exact published digest is checked before hosted release. | Implemented / release verification pending |
 | D7 | One owner product checkpoint decides what, if anything, AIP should own in v0.8. | Pending evidence |
