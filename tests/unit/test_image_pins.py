@@ -245,3 +245,18 @@ def test_testcontainers_neo4j_matches_the_dev_compose_pin():
         image for source, image in _compose_refs() if source == "docker-compose.demo.yml"
     ]
     assert expected in demo_images
+
+
+def test_the_runtime_image_drops_the_system_pip_before_switching_user():
+    """The runtime never uses the base image's pip (uv installs into /app/.venv, which has none), so
+    the root Dockerfile uninstalls it as root; its bundled packages would otherwise reach the scan."""
+    instructions = _dockerfile_instructions((REPO_ROOT / "Dockerfile").read_text())
+    keywords = [words[0].upper() for words in instructions]
+    uninstall = [
+        i
+        for i, words in enumerate(instructions)
+        if words[0].upper() == "RUN"
+        and words[1:] == ["/usr/local/bin/python", "-m", "pip", "uninstall", "--yes", "pip"]
+    ]
+    assert uninstall, "the root Dockerfile no longer uninstalls the system pip"
+    assert uninstall[0] < keywords.index("USER"), "pip must be uninstalled while still root"
