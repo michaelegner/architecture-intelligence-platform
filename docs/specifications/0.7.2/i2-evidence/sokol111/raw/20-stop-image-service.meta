@@ -1,0 +1,3 @@
+utc: 2026-10-21T17:54:32Z
+command: kubectl -n dev scale deployment/ecommerce-image-service --replicas=0
+exit: 0

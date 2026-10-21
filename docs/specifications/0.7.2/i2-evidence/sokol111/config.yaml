@@ -1,0 +1,33 @@
+# Hosted AIP configuration for the Sokol111 dataset (v0.7.2 I2.2). The deployment copies this
+# package into the AIP container at /app/sokol111/: declarations/ and mapping/ unchanged, and one
+# frozen capture (c1/ or c2/kafka-consumer-state.json) as kafka/kafka-consumer-state.json. The graph
+# connection comes from the deployment's NEO4J_* environment.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: sokol111-declarations
+        root: /app/sokol111/declarations
+    kafka_consumer_state:
+      - id: sokol111-kafka
+        root: /app/sokol111/kafka
+        broker_id: kafka:sokol111-local
+        environment: local
+        consumer_groups:
+          - ecommerce-catalog-service
+          - ecommerce-category-query-service
+          - ecommerce-image-service
+          - ecommerce-product-query-service
+    kafka_service_mappings:
+      - id: sokol111-mapping
+        root: /app/sokol111/mapping
+        broker_id: kafka:sokol111-local
+        environment: local
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
