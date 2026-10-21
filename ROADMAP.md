@@ -650,7 +650,9 @@ Scope:
 - evaluate architecture correctness and useful investigation impact first: relevant external
   components found or missed, unsupported claims, preserved unresolved cases, provenance/context,
   and material changes to the plan/implementation. Time, tokens and cost are secondary product
-  measures;
+  measures. Evaluate whether the agent discovers and uses AIP during planning, distinguishes
+  historical context from established Current State, and avoids unsupported architectural
+  conclusions. Time, tokens and cost remain secondary product measures;
 - record whether task vocabulary can reach the existing canonical AIP query contexts naturally.
   A new discovery/search capability is **not pre-authorized**; if navigation is a material blocker,
   record the finding and make an explicit scope decision before adding public semantics or tools.
@@ -726,7 +728,9 @@ configuration and contracts it can analyze, while retaining realistic direct-exe
 available to the coding agent. AIP contributes independently qualified distributed-system evidence.
 The product test is whether the combined workflow materially improves what the coding agent can
 establish and must inspect beyond strong source analysis and direct execution without introducing
-unsupported architectural claims.
+unsupported architectural claims. The demonstration should show whether AIP enables systematic
+investigation of a concrete change-impact hypothesis, leading to a better-supported implementation
+plan rather than merely providing additional context.
 
 **Exit capability:**
 
