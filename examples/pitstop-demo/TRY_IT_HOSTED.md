@@ -69,7 +69,9 @@ Start Claude Code in the Pitstop folder:
 claude
 ```
 
-Run `/mcp`. `plugin:aip:aip` should be connected with four tools.
+Run `/mcp`. `plugin:aip:aip` should be connected with six tools. The Pitstop demo has no gateway or Kafka
+source, so `get_api_consumer_usage` and `get_destination_consumers` answer with a typed refusal
+(`NOT_ANSWERED`) there.
 
 ## 5. Ask the main question
 

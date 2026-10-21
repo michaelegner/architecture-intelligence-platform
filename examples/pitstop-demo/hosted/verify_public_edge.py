@@ -12,6 +12,8 @@ deployment edge. This script is the evidence that the edge does its job. Checks:
   (the edge only knows `POST /mcp`; it cannot tell a safe `tools/call` from a future mutating tool, so
   the tool inventory is a hard acceptance boundary - any extra or missing tool fails; no name heuristics);
 - a `get_service_dependencies` call and a `get_evidence` drill-down on its own snapshot succeed;
+- the two source-dependent tools (`get_api_consumer_usage`, `get_destination_consumers`) answer with a
+  typed refusal: the Pitstop demo has no gateway or Kafka source, so any evaluated answer would be invented;
 - the import, ingest, query and unrelated routes are not reachable (any non-2xx, or a connection
   failure, counts as closed - the exact code is the edge's business);
 - an invalid `Host` is not served an MCP result (an empty 200 from the edge counts) and an oversized body is rejected;
@@ -35,10 +37,33 @@ import urllib.parse
 # (tests/unit/test_pitstop_demo_public_edge.py compares it with the registry).
 PUBLIC_TOOL_ALLOWLIST = frozenset(
     {
+        "get_api_consumer_usage",
         "get_architecture_drift",
+        "get_destination_consumers",
         "get_evidence",
         "get_service_dependencies",
         "get_service_dependencies_by_locality",
+    }
+)
+# The closed refusal codes of the two source-dependent tools' query mode (a refusal has `data: null` and
+# exactly one of these). Copied so the script stays stdlib-only; the unit test pins them to the contracts.
+API_USAGE_REFUSAL_CODES = frozenset(
+    {
+        "CURSOR_QUERY_MISMATCH",
+        "MEASUREMENT_WINDOW_NOT_AVAILABLE",
+        "SNAPSHOT_NOT_AVAILABLE",
+        "TARGET_NOT_IN_WINDOW_SCOPE",
+        "UNKNOWN_TARGET",
+    }
+)
+DESTINATION_REFUSAL_CODES = frozenset(
+    {
+        "BROKER_MISMATCH",
+        "CURSOR_QUERY_MISMATCH",
+        "DESTINATION_NOT_KAFKA_TOPIC",
+        "NO_ACCEPTED_CAPTURE",
+        "SNAPSHOT_NOT_AVAILABLE",
+        "UNKNOWN_DESTINATION",
     }
 )
 SERVICE_ID = "service:workshop-management-api"
@@ -171,6 +196,52 @@ def check_pitstop_answer_and_drilldown(url: str, date: str) -> tuple[str, str]:
     return PASS, f"{date}: answered with {len(refs)} refs; get_evidence resolved on its snapshot"
 
 
+def _refusal_code(answer: dict, allowed: frozenset[str]) -> str | None:
+    """The single refusal code of a typed non-answer, or None if the answer is anything else."""
+    codes = [item.get("code") for item in answer.get("limitations") or []]
+    if answer.get("outcome") == "NOT_ANSWERED" and answer.get("data") is None and len(codes) == 1:
+        return codes[0] if codes[0] in allowed else None
+    return None
+
+
+def check_source_dependent_tools_refuse(url: str, date: str) -> tuple[str, str]:
+    """Pitstop has no gateway or Kafka source: both tools must refuse, never evaluate."""
+    calls = (
+        (
+            "get_api_consumer_usage",
+            {
+                "mode": "query",
+                "target": {"kind": "APPLICATION_SERVICE", "id": SERVICE_ID},
+                "gateway_instance_id": "pitstop-demo-gateway",
+                "environment": ENVIRONMENT,
+                "window_start": f"{date}T00:00:00Z",
+                "window_end": f"{date}T23:59:59Z",
+            },
+            API_USAGE_REFUSAL_CODES,
+        ),
+        (
+            "get_destination_consumers",
+            {
+                "mode": "query",
+                "destination_id": "topic:owned:" + "0" * 64,
+                "broker_id": "kafka:pitstop-demo",
+                "environment": ENVIRONMENT,
+            },
+            DESTINATION_REFUSAL_CODES,
+        ),
+    )
+    seen = []
+    for request_id, (name, request, allowed) in enumerate(calls, start=8):
+        ok, answer = _tool_call(url, request_id, name, {"request": request})
+        if not ok:
+            return FAIL, str(answer)
+        code = _refusal_code(answer, allowed)
+        if code is None:
+            return FAIL, f"{name}: not a typed refusal (outcome {answer.get('outcome')})"
+        seen.append(f"{name} {code}")
+    return PASS, "; ".join(seen)
+
+
 def check_closed_routes(url: str) -> tuple[str, str]:
     parts = urllib.parse.urlsplit(url)
     base = f"{parts.scheme}://{parts.netloc}"
@@ -227,6 +298,10 @@ def run(args: argparse.Namespace) -> list[tuple[str, str, str]]:
         (
             "Pitstop answer + evidence drill-down",
             lambda: check_pitstop_answer_and_drilldown(args.url, args.date),
+        ),
+        (
+            "source-dependent tools refuse",
+            lambda: check_source_dependent_tools_refuse(args.url, args.date),
         ),
         ("non-MCP routes closed", lambda: check_closed_routes(args.url)),
         ("invalid Host rejected", lambda: check_invalid_host(args.url)),

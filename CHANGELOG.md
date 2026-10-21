@@ -9,6 +9,12 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+### Changed
+
+- The hosted demo's acceptance check (`examples/pitstop-demo/hosted/verify_public_edge.py`) expects the six-tool
+  v0.7.1 surface and requires `get_api_consumer_usage` and `get_destination_consumers` to answer with a typed refusal
+  on the Pitstop demo, which has no gateway or Kafka source (v0.7.2 I1).
+
 ### Security
 
 - The runtime image no longer contains the base image's system pip, which AIP never uses (uv installs into

@@ -7,6 +7,7 @@ guard removed, and require the matching check (and only it) to FAIL - proving ev
 
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import json
 import re
@@ -16,8 +17,9 @@ from pathlib import Path
 
 import pytest
 
-from app.architecture_intelligence.contracts import TOOL_NAMES
-from app.architecture_intelligence.locality_contracts import LOCALITY_TOOL_NAME
+from app.architecture_intelligence.api_usage_contracts import REFUSAL_CODES_QUERY
+from app.architecture_intelligence.destination_consumer_contracts import REFUSAL_CODES
+from app.mcp.server import mcp_server
 
 REPO = Path(__file__).resolve().parents[2]
 DEMO_DIR = REPO / "examples" / "pitstop-demo"
@@ -30,7 +32,7 @@ _spec.loader.exec_module(verify)
 
 HOST = "demo.example"
 BODY_CAP = 64 * 1024
-RATE_LIMIT = 5
+RATE_LIMIT = 8  # above the six MCP requests the earlier checks make
 
 
 class Guards:
@@ -41,6 +43,7 @@ class Guards:
         self.no_body_cap = disabled.get("no_body_cap", False)
         self.no_rate_limit = disabled.get("no_rate_limit", False)
         self.empty_200_for_unknown_host = disabled.get("empty_200_for_unknown_host", False)
+        self.invented_answer = disabled.get("invented_answer", False)
         self.mcp_requests = 0
 
 
@@ -86,6 +89,19 @@ def _edge(guards: Guards) -> ThreadingHTTPServer:
                     {"import_graph"} if guards.extra_tool else set()
                 )
                 result = {"tools": [{"name": name} for name in sorted(names)]}
+            elif message["params"]["name"] in (
+                "get_api_consumer_usage",
+                "get_destination_consumers",
+            ):
+                code = (
+                    "MEASUREMENT_WINDOW_NOT_AVAILABLE"
+                    if message["params"]["name"] == "get_api_consumer_usage"
+                    else "UNKNOWN_DESTINATION"
+                )
+                answer = {"outcome": "NOT_ANSWERED", "data": None, "limitations": [{"code": code}]}
+                if guards.invented_answer:
+                    answer = {"outcome": "PARTIAL", "data": {"rows": []}, "limitations": []}
+                result = {"structuredContent": answer}
             elif message["params"]["name"] == "get_service_dependencies":
                 result = {
                     "structuredContent": {
@@ -130,11 +146,13 @@ def _run(guards: Guards, *, rate_limit: int | None = RATE_LIMIT + 1) -> dict[str
 
 
 def test_frozen_allowlist_is_the_live_registry():
-    assert verify.PUBLIC_TOOL_ALLOWLIST == {*TOOL_NAMES, LOCALITY_TOOL_NAME}
-    source = (REPO / "app" / "mcp" / "tools.py").read_text()
-    assert (
-        set(re.findall(r'@server\.tool\(\s*name="(\w+)"', source)) <= verify.PUBLIC_TOOL_ALLOWLIST
-    )
+    registered = {tool.name for tool in asyncio.run(mcp_server.list_tools())}
+    assert verify.PUBLIC_TOOL_ALLOWLIST == registered
+
+
+def test_copied_refusal_codes_match_the_contracts():
+    assert verify.API_USAGE_REFUSAL_CODES == {code.value for code in REFUSAL_CODES_QUERY}
+    assert verify.DESTINATION_REFUSAL_CODES == {code.value for code in REFUSAL_CODES}
 
 
 def test_correctly_gated_edge_passes_every_check():
@@ -162,6 +180,7 @@ def test_rate_limit_is_skipped_not_inferred_without_a_threshold():
         ("any_host", "invalid Host rejected"),
         ("no_body_cap", "oversized body rejected"),
         ("no_rate_limit", "rate limit enforced"),
+        ("invented_answer", "source-dependent tools refuse"),
     ],
 )
 def test_each_check_fails_when_its_guard_is_removed(guard, failing_check):
