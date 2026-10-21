@@ -708,8 +708,8 @@ question are in scope; a generic enterprise architecture metamodel remains out o
 ### Real-world product demonstration
 
 v0.8 uses **Sokol111** for one bounded-change workflow, informed by the v0.7.2
-checkpoint. **Teamscale 2026.7.x** provides complementary repository/source analysis (or
-equivalent mature tooling). **Unblocked + AIP** becomes the preferred coding-agent workflow
+checkpoint. **Teamscale 2026.7.x** provides complementary repository/source analysis and
+conformance checks (or equivalent mature tooling). **Unblocked + AIP** becomes the preferred coding-agent workflow
 only if v0.7.2 demonstrates material value; otherwise its role remains subject to that result.
 
 The demonstration should use the applicable AIP Current-State capabilities available at v0.8
