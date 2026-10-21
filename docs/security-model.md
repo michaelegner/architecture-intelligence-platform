@@ -56,7 +56,7 @@ loopback-only origins and must be overridden deliberately for any non-local depl
 whose `Origin`/`Host` isn't allow-listed is rejected (`403`) before any tool executes
 (`mcp.server.transport_security`).
 
-The one exception is a deliberately constrained **public read-only demo profile** (the hosted Pitstop demo): anonymous
+The one exception is a deliberately constrained **public read-only demo profile** (the hosted demo instance): anonymous
 access to `POST /mcp` only, made safe by the deployment edge (route allowlist, rate and size limits, timeouts and
 Host/Origin checks), not by AIP. AIP still provides no public-internet authentication or tenancy, and this is not a
 general public-hosting capability. Because the edge cannot distinguish tools, the exposed tool inventory is a hard

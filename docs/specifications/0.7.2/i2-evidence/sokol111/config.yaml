@@ -1,7 +1,7 @@
 # Hosted AIP configuration for the Sokol111 dataset (v0.7.2 I2.2). The deployment copies this
 # package into the AIP container at /app/sokol111/: declarations/ and mapping/ unchanged, and one
 # frozen capture (c1/ or c2/kafka-consumer-state.json) as kafka/kafka-consumer-state.json. The graph
-# connection comes from the deployment's NEO4J_* environment.
+# connection comes from the deployment's NEO4J_* environment; mcp lists the public host (mcp.daip.io).
 architecture_intelligence:
   sources:
     directories:
@@ -31,3 +31,12 @@ architecture_intelligence:
     architecture_manifest: true
   llm:
     enabled: false
+  mcp:
+    allowed-hosts:
+      - "127.0.0.1:8000"
+      - "localhost:8000"
+      - "mcp.daip.io"
+    allowed-origins:
+      - "http://127.0.0.1:8000"
+      - "http://localhost:8000"
+      - "https://mcp.daip.io"

@@ -46,8 +46,8 @@ git checkout 306b5fbd0febceb6b0d0706f152a0520ca1a993a
 claude
 ```
 
-Run `/mcp` and check that `plugin:aip:aip` is connected. Then paste the prompt generated in
-`.aip-pitstop-demo/prompt.txt`.
+Run `/mcp` and check that `plugin:aip:aip` is connected (Claude Code 2.1.292 or later). Then paste the
+prompt generated in `.aip-pitstop-demo/prompt.txt`.
 
 The main task asks the agent to replace `StartTime` and `EndTime` in `MaintenanceJobFinished`
 with `Duration` and plan the change.
@@ -65,6 +65,9 @@ Useful follow-up questions:
 The important behavior is that AIP helps establish **where to inspect** without pretending to know
 what only source inspection can establish.
 
+With `aip-mod` installed, the status line shows the current AIP result and the **Evidence** button
+(or `/aip-evidence`) opens the evidence pane.
+
 ## Stop the demo
 
 From the AIP repository:
@@ -73,6 +76,6 @@ From the AIP repository:
 examples/pitstop-demo/run.sh --down
 ```
 
-For the hosted path, see [Try the Pitstop demo hosted](TRY_IT_HOSTED.md). For expected answers,
+The public hosted instance now serves a Sokol111 dataset ([Try hosted](TRY_IT_HOSTED.md)). For expected answers,
 provenance and live-mode details, see the [Pitstop demo README](README.md) and the
 [walkthrough](walkthrough.md).

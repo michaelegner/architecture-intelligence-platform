@@ -20,6 +20,7 @@ import pytest
 from app.architecture_intelligence.api_usage_contracts import REFUSAL_CODES_QUERY
 from app.architecture_intelligence.destination_consumer_contracts import REFUSAL_CODES
 from app.mcp.server import mcp_server
+from app.sources.owner_ids import topic_owned_id
 
 REPO = Path(__file__).resolve().parents[2]
 DEMO_DIR = REPO / "examples" / "pitstop-demo"
@@ -44,6 +45,7 @@ class Guards:
         self.no_rate_limit = disabled.get("no_rate_limit", False)
         self.empty_200_for_unknown_host = disabled.get("empty_200_for_unknown_host", False)
         self.invented_answer = disabled.get("invented_answer", False)
+        self.no_sokol111_attachment = disabled.get("no_sokol111_attachment", False)
         self.mcp_requests = 0
 
 
@@ -89,6 +91,11 @@ def _edge(guards: Guards) -> ThreadingHTTPServer:
                     {"import_graph"} if guards.extra_tool else set()
                 )
                 result = {"tools": [{"name": name} for name in sorted(names)]}
+            elif (
+                message["params"]["name"] == "get_destination_consumers"
+                and args["request"]["destination_id"] == verify.SOKOL111_TOPIC_ID
+            ):
+                result = {"structuredContent": _sokol111_answer(args["request"], guards)}
             elif message["params"]["name"] in (
                 "get_api_consumer_usage",
                 "get_destination_consumers",
@@ -120,12 +127,44 @@ def _edge(guards: Guards) -> ThreadingHTTPServer:
     return ThreadingHTTPServer(("127.0.0.1", 0), Handler)
 
 
-def _run(guards: Guards, *, rate_limit: int | None = RATE_LIMIT + 1) -> dict[str, str]:
+def _sokol111_answer(request: dict, guards: Guards) -> dict:
+    """The frozen Sokol111 C1 reading, as the hosted instance answers it."""
+    if request["mode"] == "evidence":
+        assert request["evidence_refs"] == ["destination-evidence:a", "destination-evidence:b"]
+        return {"outcome": "ANSWERED", "data": {"entries": [{"status": "RESOLVED"}] * 2}}
+    rows = [
+        {
+            "group_id": "ecommerce-image-service",
+            "outcome": "RESOLVED",
+            "service_id": "service:ecommerce-image-service",
+            "captured_at": "2026-10-21T17:53:57Z",
+            "attachment_evidence_refs": ["destination-evidence:a"],
+            "mapping_evidence_refs": ["destination-evidence:b"],
+        }
+    ]
+    return {
+        "outcome": "PARTIAL",
+        "snapshot": {"snapshot_id": "aip:snapshot:v1:" + "1" * 64},
+        "data": {"rows": [] if guards.no_sokol111_attachment else rows},
+        "limitations": [{"code": "CAPTURE_SCOPE_LIMITED"}],
+    }
+
+
+def _run(
+    guards: Guards, *, rate_limit: int | None = RATE_LIMIT + 1, profile: str = "pitstop"
+) -> dict[str, str]:
     server = _edge(guards)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
         port = server.server_address[1]
-        argv = ["--url", f"http://127.0.0.1:{port}/mcp", "--date", "2026-10-12"]
+        argv = [
+            "--url",
+            f"http://127.0.0.1:{port}/mcp",
+            "--date",
+            "2026-10-12",
+            "--profile",
+            profile,
+        ]
         if rate_limit is not None:
             argv += ["--expect-429-within", str(rate_limit)]
         args = verify.build_parser().parse_args(argv)
@@ -198,3 +237,24 @@ def test_current_user_facing_docs_do_not_call_the_hosted_demo_token_gated():
         DEMO_DIR / "claude" / "plugin" / ".claude-plugin" / "plugin.json",
     ):
         assert not re.search(r"token[- ]gated", path.read_text(), re.IGNORECASE), path.name
+
+
+def test_the_sokol111_topic_id_is_the_frozen_package_topic():
+    assert verify.SOKOL111_TOPIC_ID == topic_owned_id(
+        stable_broker_id=verify.SOKOL111_BROKER,
+        normalized_namespace_or_empty="",
+        exact_topic_address="catalog.product.events",
+    )
+
+
+def test_the_sokol111_profile_passes_on_a_correctly_gated_edge():
+    results = _run(Guards(), profile="sokol111")
+    assert "Pitstop answer + evidence drill-down" not in results
+    assert set(results.values()) == {verify.PASS}, results
+
+
+def test_the_sokol111_check_fails_without_a_resolved_attachment():
+    results = _run(Guards(no_sokol111_attachment=True), profile="sokol111")
+    assert {k for k, v in results.items() if v == verify.FAIL} == {
+        "Sokol111 consumers + evidence drill-down"
+    }, results
