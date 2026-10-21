@@ -8,7 +8,7 @@ move to Sokol111 is I2.
 
 | Item | Value |
 |---|---|
-| Public MCP endpoint | `https://mcp.daip.io/mcp` (anonymous, read-only; the host is not named here) |
+| Public MCP endpoint | `https://mcp.daip.io/mcp` (anonymous, read-only; the deployment server is not named here) |
 | AIP image | `ghcr.io/michaelegner/architecture-intelligence-platform@sha256:2f6f2a211da941bb48a27e5d90d0732facf66913509153870e8db5d88d850a47`, the published v0.7.1 digest ([release record](../../release-validation/v0.7.1-release-record.md)). The previous image was the v0.6.3 digest `sha256:e6632982…0a50fe` |
 | Identity in the answers | `producer.version 0.7.1`, `build_revision b0d7448469cb2e84acf09a2759f061767822eaba` |
 | What changed | The owner set the image digest in the deployment's environment file and recreated only the AIP service (`docker compose up -d --no-deps`). Unchanged: the graph volume, Neo4j, the Collector, the traffic generator, the Pitstop services and the Caddy edge with its configuration |

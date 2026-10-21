@@ -1,0 +1,12 @@
+diff --git a/environments/local/compose/logto.yml b/environments/local/compose/logto.yml
+index 024b744..847d157 100644
+--- a/environments/local/compose/logto.yml
++++ b/environments/local/compose/logto.yml
+@@ -50,7 +50,6 @@ services:
+     build:
+       context: ../../..
+       dockerfile: environments/local/docker/Dockerfile.logto-seed
+-      network: host
+     container_name: logto-seed
+     environment:
+       DB_URL: postgres://postgres:postgres@logto-db:5432/logto
