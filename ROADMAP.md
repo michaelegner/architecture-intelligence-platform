@@ -707,15 +707,10 @@ question are in scope; a generic enterprise architecture metamodel remains out o
 
 ### Real-world product demonstration
 
-v0.8 uses **Sokol111** for one realistic bounded-change workflow and builds on the
-product-boundary findings of v0.7.2. **Teamscale 2026.7.x is the initial complementary
-repository/source-analysis capability**, particularly for component structure and dependency
-conformance; it is not a normative dependency, and equivalent mature tooling may be used.
-
-**If v0.7.2 demonstrates material value from Unblocked + AIP, that integration becomes the preferred
-coding-agent workflow for v0.8.** Otherwise the v0.7.2 checkpoint determines whether Unblocked
-should be retained, narrowed or omitted. v0.8 must not assume a successful integration before
-the evidence exists, nor repeat an isolated AIP-versus-Teamscale contest that ignores the result.
+v0.8 uses **Sokol111** for one bounded-change workflow, informed by the v0.7.2
+checkpoint. **Teamscale 2026.7.x** provides complementary repository/source analysis (or
+equivalent mature tooling). **Unblocked + AIP** becomes the preferred coding-agent workflow
+only if v0.7.2 demonstrates material value; otherwise its role remains subject to that result.
 
 The demonstration should use the applicable AIP Current-State capabilities available at v0.8
 entry — including dependency/evidence drill-down, deployment, locality, messaging, **v0.7.0
