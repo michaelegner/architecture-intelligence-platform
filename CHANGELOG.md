@@ -9,13 +9,44 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-10-21
+
+### v0.7.1 — Broker-Mediated Consumer Attribution
+
+See the [release notes](docs/release-validation/v0.7.1-release-notes.md) and the
+[`get_destination_consumers` reference](docs/mcp.md#get_destination_consumers-v071-i3).
+
 ### Added
 
+- A sixth read-only MCP tool, `get_destination_consumers`, and REST `POST /api/destination-consumers` and
+  `/evidence`: which Services the evidence can attribute as consumers of one Kafka Topic in one broker and
+  environment. Each row is a consumer group attached at capture time T, with its Service attribution
+  (`RESOLVED`, `UNRESOLVED`, `AMBIGUOUS` or `CONFLICT`) from explicit mapping evidence and same-snapshot evidence
+  refs. Published `0.7.1` request and answer schemas.
+- A Kafka consumer-state source (`sources.kafka_consumer_state`) with the capture harness `harness/kafka-capture`,
+  and a Service-mapping source (`sources.kafka_service_mappings`, `aip-kafka-consumer-service-mapping/1`).
+- A release golden-path `destination-consumers` phase and `destination_consumers_replay.py`, replaying the frozen
+  real-Kafka qualification package against the supplied image.
 - **Public read-only hosted Pitstop demo**: an external acceptance script
   (`examples/pitstop-demo/hosted/verify_public_edge.py`) and the edge requirements for anonymous `POST /mcp`. The
   script fails unless `tools/list` is exactly the frozen public tool allowlist and every other route, an invalid
   Host and an oversized body are refused. No AIP behaviour, schema or MCP tool changed; the plugin's `aip_token`
   stays optional.
+
+### Changed
+
+- Product, Producer and MCP server version `0.7.1`. MCP advertises six tools; the earlier five and their schemas are
+  unchanged. The release golden path, client guides and demo walkthrough list six. The `get_destination_consumers`
+  description and `docs/mcp.md` state that `evidence_refs` must be duplicate-free and sorted as plain strings.
+- With Kafka consumer state configured, snapshot ids differ from v0.7.0 (the declared Topic brokers are part of the
+  snapshot). Without it, every earlier snapshot is unchanged.
+- Attachment at T is not message processing, and the consumer list is never complete (`CAPTURE_SCOPE_LIMITED`).
+  RabbitMQ stays a semantic contrast case; no RabbitMQ adapter ships.
+
+### Security
+
+- The dev-only `certifi` dependency moves to 2026.10.19 (PYSEC-2026-4320, #611). The runtime image does not
+  install it.
 
 ## [0.7.0] - 2026-10-16
 

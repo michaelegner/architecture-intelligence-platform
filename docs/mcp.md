@@ -280,8 +280,10 @@ single `request` argument is discriminated on `mode`:
   supplied `snapshot_id`, for the resubmitted destination, broker and environment, to two closed
   payloads (the capture source, revision and T of the attachment; the mapping source, revision,
   artifact digest and the mapping as written, with its reading). A forged, cross-snapshot or
-  cross-context ref is `NOT_RESOLVED`. `get_evidence` does not resolve these refs and does not
-  change.
+  cross-context ref is `NOT_RESOLVED`. `evidence_refs` must be duplicate-free and sorted in
+  ascending order as plain strings (the order Python's `sorted()` gives), with no normalization;
+  an unsorted list is rejected as a validation error. `get_evidence` does not resolve these refs and
+  does not change.
 
 An evaluated query is always `PARTIAL` with `CAPTURE_SCOPE_LIMITED`: each capture covers only its
 configured consumer groups at its own T, so an empty or short list is never "no consumers".

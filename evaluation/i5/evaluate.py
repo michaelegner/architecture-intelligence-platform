@@ -129,6 +129,7 @@ def main(state: str, output_path: str, dossier_path: str) -> None:
     assert [tool["name"] for tool in tools["result"]["tools"]] == [
         "get_api_consumer_usage",
         "get_architecture_drift",
+        "get_destination_consumers",
         "get_evidence",
         "get_service_dependencies",
         "get_service_dependencies_by_locality",

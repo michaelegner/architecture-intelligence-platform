@@ -1,0 +1,32 @@
+# AIP configuration for the `destination-consumers` golden-path phase (v0.7.1 I5 scope 4). The
+# roots do not exist at start: destination_consumers_replay.py copies the frozen I4.1 package
+# (docs/specifications/0.7.1/i4-evidence/kafka/) there - the declarations and the mapping once, the
+# capture C1 and then C2 over the same file, so C2 replaces C1 as one source updated in place.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: ecommerce-declarations
+        root: /app/golden-path/destination-consumers/declarations
+    kafka_consumer_state:
+      - id: ecommerce-kafka
+        root: /app/golden-path/destination-consumers/kafka
+        broker_id: kafka:ecommerce-local
+        environment: local
+        consumer_groups: [order-service, ops-tail, payment-service]
+    kafka_service_mappings:
+      - id: ecommerce-mapping
+        root: /app/golden-path/destination-consumers/mapping
+        broker_id: kafka:ecommerce-local
+        environment: local
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+    max_traversal_depth: 5
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  intent_router:
+    deterministic_threshold: 0.9

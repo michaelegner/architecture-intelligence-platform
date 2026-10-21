@@ -56,6 +56,7 @@ DRIFT_QUALIFICATIONS = ("OBSERVED_ONLY", "NOT_OBSERVED_IN_WINDOW")
 TOOLS = [
     "get_api_consumer_usage",
     "get_architecture_drift",
+    "get_destination_consumers",
     "get_evidence",
     "get_service_dependencies",
     "get_service_dependencies_by_locality",
@@ -1107,6 +1108,13 @@ def main(argv: list[str]) -> int:
 
     results.append(
         api_usage_replay.run_api_usage_phase(image_ref=image_ref, sha=sha, out_dir=out_dir)
+    )
+    import destination_consumers_replay
+
+    results.append(
+        destination_consumers_replay.run_destination_consumers_phase(
+            image_ref=image_ref, sha=sha, out_dir=out_dir
+        )
     )
     summary = {
         "image_ref": image_ref,

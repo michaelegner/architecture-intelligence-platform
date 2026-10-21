@@ -156,7 +156,8 @@ def register_tools(
             "from explicit mapping evidence. Attachment is not message processing and the list is "
             "never complete: each capture covers only its configured groups. With request.mode "
             '"evidence", the same tool resolves exact evidence refs from such an answer at the '
-            "supplied snapshot."
+            "supplied snapshot; evidence_refs must be duplicate-free and sorted in ascending "
+            "order as plain strings."
         ),
         annotations=_READ_ONLY_ANNOTATIONS,
     )
