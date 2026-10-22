@@ -1,9 +1,9 @@
-"""External acceptance check for the public read-only hosted Pitstop demo.
+"""External acceptance check for the public read-only hosted demo (Pitstop, or Sokol111 since v0.7.2 I2).
 
 Run from OUTSIDE the demo's network, with no credentials:
 
     python examples/pitstop-demo/hosted/verify_public_edge.py --url https://<host>/mcp \
-        [--date YYYY-MM-DD] [--expect-429-within N]
+        [--profile pitstop|sokol111] [--date YYYY-MM-DD] [--expect-429-within N]
 
 AIP itself has no public-internet authentication; the safety of the anonymous deployment is owned by the
 deployment edge. This script is the evidence that the edge does its job. Checks:
@@ -11,9 +11,13 @@ deployment edge. This script is the evidence that the edge does its job. Checks:
 - anonymous `initialize` / `tools/list` succeed, and `tools/list` returns EXACTLY `PUBLIC_TOOL_ALLOWLIST`
   (the edge only knows `POST /mcp`; it cannot tell a safe `tools/call` from a future mutating tool, so
   the tool inventory is a hard acceptance boundary - any extra or missing tool fails; no name heuristics);
-- a `get_service_dependencies` call and a `get_evidence` drill-down on its own snapshot succeed;
-- the two source-dependent tools (`get_api_consumer_usage`, `get_destination_consumers`) answer with a
-  typed refusal: the Pitstop demo has no gateway or Kafka source, so any evaluated answer would be invented;
+- `--profile pitstop` (default): a `get_service_dependencies` call and a `get_evidence` drill-down on its
+  own snapshot succeed;
+- `--profile sokol111`: `get_destination_consumers` for the frozen Sokol111 Topic `catalog.product.events`
+  answers `PARTIAL` with `CAPTURE_SCOPE_LIMITED` and at least one `RESOLVED` row with its capture time T,
+  and the same-snapshot evidence drill-down resolves every ref (a frozen observation at T, not live use);
+- `get_api_consumer_usage` (no gateway source on either demo) and `get_destination_consumers` for an
+  unknown Topic answer with a typed refusal; any evaluated answer there would be invented;
 - the import, ingest, query and unrelated routes are not reachable (any non-2xx, or a connection
   failure, counts as closed - the exact code is the edge's business);
 - an invalid `Host` is not served an MCP result (an empty 200 from the edge counts) and an oversized body is rejected;
@@ -67,6 +71,11 @@ DESTINATION_REFUSAL_CODES = frozenset(
     }
 )
 SERVICE_ID = "service:workshop-management-api"
+# The frozen Sokol111 package (docs/specifications/0.7.2/i2-evidence/sokol111/): `topic:owned:` id of
+# `catalog.product.events` on broker `kafka:sokol111-local` (app.sources.owner_ids.topic_owned_id).
+SOKOL111_TOPIC_ID = "topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539"
+SOKOL111_BROKER = "kafka:sokol111-local"
+SOKOL111_ENVIRONMENT = "local"
 ENVIRONMENT = "pitstop-demo"
 PROTOCOL_VERSION = "2025-11-25"
 CLOSED_PATHS = (
@@ -242,6 +251,54 @@ def check_source_dependent_tools_refuse(url: str, date: str) -> tuple[str, str]:
     return PASS, "; ".join(seen)
 
 
+def check_sokol111_consumers_and_drilldown(url: str) -> tuple[str, str]:
+    context = {
+        "destination_id": SOKOL111_TOPIC_ID,
+        "broker_id": SOKOL111_BROKER,
+        "environment": SOKOL111_ENVIRONMENT,
+    }
+    ok, answer = _tool_call(
+        url, 10, "get_destination_consumers", {"request": {"mode": "query", **context}}
+    )
+    if not ok:
+        return FAIL, str(answer)
+    codes = [item.get("code") for item in answer.get("limitations") or []]
+    rows = (answer.get("data") or {}).get("rows") or []
+    resolved = sorted(row["service_id"] for row in rows if row.get("outcome") == "RESOLVED")
+    if answer.get("outcome") != "PARTIAL" or "CAPTURE_SCOPE_LIMITED" not in codes or not resolved:
+        return (
+            FAIL,
+            f"outcome {answer.get('outcome')}, limitations {codes}, {len(resolved)} resolved",
+        )
+    times = sorted({row.get("captured_at") for row in rows})
+    if None in times:
+        return FAIL, "a row has no capture time"
+    refs = sorted(
+        {
+            r
+            for row in rows
+            for r in [*row["attachment_evidence_refs"], *row["mapping_evidence_refs"]]
+        }
+    )
+    snapshot_id = (answer.get("snapshot") or {}).get("snapshot_id")
+    request = {
+        "mode": "evidence",
+        "snapshot_id": snapshot_id,
+        "evidence_refs": refs[:20],
+        **context,
+    }
+    ok, evidence = _tool_call(url, 11, "get_destination_consumers", {"request": request})
+    if not ok:
+        return FAIL, str(evidence)
+    entries = (evidence.get("data") or {}).get("entries") or []
+    if evidence.get("outcome") != "ANSWERED" or {e.get("status") for e in entries} != {"RESOLVED"}:
+        return FAIL, f"evidence drill-down: outcome {evidence.get('outcome')}"
+    return PASS, (
+        f"T {', '.join(times)}; RESOLVED {', '.join(resolved)}; {len(rows) - len(resolved)} other rows; "
+        f"{len(entries)} refs resolved on its snapshot"
+    )
+
+
 def check_closed_routes(url: str) -> tuple[str, str]:
     parts = urllib.parse.urlsplit(url)
     base = f"{parts.scheme}://{parts.netloc}"
@@ -296,8 +353,15 @@ def run(args: argparse.Namespace) -> list[tuple[str, str, str]]:
         ("anonymous initialize", lambda: check_initialize(args.url)),
         ("tool inventory (frozen allowlist)", lambda: check_tool_inventory(args.url)),
         (
-            "Pitstop answer + evidence drill-down",
-            lambda: check_pitstop_answer_and_drilldown(args.url, args.date),
+            (
+                "Sokol111 consumers + evidence drill-down",
+                lambda: check_sokol111_consumers_and_drilldown(args.url),
+            )
+            if args.profile == "sokol111"
+            else (
+                "Pitstop answer + evidence drill-down",
+                lambda: check_pitstop_answer_and_drilldown(args.url, args.date),
+            )
         ),
         (
             "source-dependent tools refuse",
@@ -316,6 +380,12 @@ def build_parser() -> argparse.ArgumentParser:
     yesterday = datetime.datetime.now(datetime.UTC).date() - datetime.timedelta(days=1)
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--url", required=True, help="the public MCP URL, e.g. https://host/mcp")
+    parser.add_argument(
+        "--profile",
+        choices=("pitstop", "sokol111"),
+        default="pitstop",
+        help="which hosted dataset the supported-answer check expects",
+    )
     parser.add_argument(
         "--date", default=yesterday.isoformat(), help="completed UTC day (default: yesterday)"
     )

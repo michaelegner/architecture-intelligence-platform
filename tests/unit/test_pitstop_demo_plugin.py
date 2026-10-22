@@ -240,8 +240,12 @@ def test_tryout_guides_document_local_and_hosted_agent_setup():
     assert "[Try locally](TRY_IT_LOCALLY.md)" in readme
     assert "[Try hosted](TRY_IT_HOSTED.md)" in readme
 
-    # both public tryout paths document the marketplace plugin and the pinned Pitstop source
-    for guide in (local, hosted):
+    # the hosted instance serves the frozen Sokol111 dataset since v0.7.2 I2: its guide names the exact
+    # Topic id the public check queries, and the Pitstop plugin path is the local one
+    assert "https://mcp.daip.io/mcp" in hosted
+    assert "topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539" in hosted
+    assert "2026-10-21T17:53:57Z" in hosted
+    for guide in (local,):  # the Pitstop plugin path
         assert (
             "claude plugin marketplace add michaelegner/architecture-intelligence-platform" in guide
         )
@@ -253,15 +257,10 @@ def test_tryout_guides_document_local_and_hosted_agent_setup():
     assert "http://localhost:8000/mcp" in local
     assert "No AIP credentials" in local
 
-    assert "/plugin configure aip@aip-plugins" in hosted
-    assert "aip_mcp_url" in hosted
-    assert "aip_token   = empty" in hosted
-    assert "public demo requires no credentials" in hosted
-    assert "https://mcp.daip.io/mcp" in hosted
-    assert "standalone `aip` MCP server" in hosted
-    assert "plugin:aip:aip" in hosted
+    assert "No credentials are required" in hosted
+    assert "CAPTURE_SCOPE_LIMITED" in hosted
     assert "429 Too Many Requests" in hosted
-    assert "<YYYY-MM-DD>T00:00:00Z to <YYYY-MM-DD>T23:59:59Z" in hosted
+    assert "[run locally](TRY_IT_LOCALLY.md)" in hosted
 
 
 def test_skills_state_the_inclusive_whole_day_window_and_never_guess_why_a_day_is_empty():

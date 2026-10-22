@@ -14,6 +14,10 @@ aren't yet guaranteed stable pre-1.0.
 - The hosted demo's acceptance check (`examples/pitstop-demo/hosted/verify_public_edge.py`) expects the six-tool
   v0.7.1 surface and requires `get_api_consumer_usage` and `get_destination_consumers` to answer with a typed refusal
   on the Pitstop demo, which has no gateway or Kafka source (v0.7.2 I1).
+- The public hosted instance serves the frozen Sokol111 Kafka dataset instead of Pitstop (v0.7.2 I2). The acceptance
+  check gains `--profile sokol111`: a `get_destination_consumers` answer for `catalog.product.events` with its capture
+  time and same-snapshot evidence drill-down. `TRY_IT_HOSTED.md` describes the hosted dataset; the Pitstop demo and its
+  Claude Code plugin are the local path.
 
 ### Security
 

@@ -158,7 +158,7 @@ def test_no_mod_file_holds_a_token_value():
 def test_the_demo_docs_document_the_mod_and_how_to_install_it():
     """The focused tryout guides (#516) replaced the README's plugin-loading section."""
     readme = (DEMO_DIR / "README.md").read_text()
-    hosted = (DEMO_DIR / "TRY_IT_HOSTED.md").read_text()
+    local = (DEMO_DIR / "TRY_IT_LOCALLY.md").read_text()
     assert "144" in readme
     for needed in ("aip-mod@aip-plugins", "/aip-evidence", "Evidence", "2.1.29"):
-        assert needed in hosted, needed
+        assert needed in local, needed
