@@ -4,7 +4,7 @@ Governing: [spec §5](specification.md), kit and rubric in [`i3-evidence/`](i3-e
 
 ## Result
 
-**No additional value from AIP in this run, because the agent never made a valid `get_destination_consumers` query.** All 14 `get_destination_consumers` calls of the AIP arm were refused (`UNKNOWN_DESTINATION` or `BROKER_MISMATCH`), although the hosted instance serves the right answer (a [post-run check](#setup) at 11:59:59Z returned both consumers). The agent did not reach the AIP query context even though AIP's own answers contained the ids; the identifier forms and refusal messages misled it (Finding 2). That is the finding for the owner checkpoint (spec §5.4, last paragraph). Both arms found the correct consumer set from source, configuration and the stock `rpk` files, so AIP changed nothing the engineers would have done. No new tool is proposed here.
+**No additional value from AIP in this run, because the agent never made a valid `get_destination_consumers` query.** All 14 `get_destination_consumers` calls of the AIP arm were refused (`UNKNOWN_DESTINATION` or `BROKER_MISMATCH`), although the hosted instance serves the right answer (a [post-run check](#setup) at 11:59:59Z returned both consumers). The agent did not reach the AIP query context even though AIP's own answers contained the ids; the identifier forms and refusal messages misled it (Finding 2). That is the finding for the owner checkpoint (spec §5.4, last paragraph). Both arms found the correct consumer set from source, configuration and the stock `rpk` files, so AIP changed nothing the engineers would have done. After the wording fix (run 3, hosted candidate) the agent reached AIP at once, and AIP still changed nothing material: its typed codes labelled the unobserved production more precisely, but the consumer set, change list and rollout gates were the same. No new tool is proposed here.
 
 ## Setup
 
@@ -69,9 +69,30 @@ Run 2 measured the **unfixed** wording. This PR changes only text: the `get_dest
 - **Checks after the switch:** `verify_public_edge.py --profile sokol111` all PASS (17:58:56Z). The snapshot id is unchanged (`aip:snapshot:v1:a08b1bad…`), so only the wording differs from run 2. The new text is visible on both refusals: a topic name gives `UNKNOWN_DESTINATION` with "destination_id must be the canonical Topic id, not a topic name", and the broker's canonical id gives `BROKER_MISMATCH` with "broker_id must be the stable broker id, the BrokerRef name, not the canonical broker:owned: id".
 - **Run:** the same fixture (`fixture.yaml`, unchanged since `de51afd`), same task, no context card, arm B on `https://mcp.daip.io/mcp`, each arm in a standalone clone. The v0.7.2 release replaces the candidate with the published digest (spec §6.2).
 
+## Run 3 result (hosted candidate, 2026-10-22T17:59:45Z–18:21:29Z)
+
+Outputs: [`results/run3/`](i3-evidence/results/run3/). **Incomplete:** at 20:21:14 (Europe/Berlin) both arms hit the Claude session limit during the implement step, so implementation, eval and attribution did not complete (that score is invalid). Steps 1–5 (context, pattern, plan, plan context, review) are complete in both arms, and the rubric scores those. Checks: the arm gate passed before the run; no token and no answer-key content in any output; `gh`/`curl` attempted 4 times per arm, all denied; `context_get_urls` never called; no 429s; neither arm saw the other's refs (standalone clones); post-run `verify_public_edge.py --expect-429-within 121` all PASS.
+
+| # | Unblocked only (A) | Unblocked + AIP (B) |
+|---|---|---|
+| R1 | product-query and image-service; category-query and catalog ruled out; tenant-service "medium, probably not" | The same set and the same rulings |
+| R3 | "Local snapshot … 2026-10-21 ~17:53Z … that stack is no longer running" | Same, and cites AIP's typed answers |
+| R4 | Production consumers not observed (Helm values only); readers that leave no trace; missing repos; api 1.3.7/1.3.8 delta | The same, plus "AIP returned `NO_ACCEPTED_CAPTURE` for production" and `CAPTURE_SCOPE_LIMITED` |
+| R5 | `context_research`, source, `rpk` files | The same, plus 27 AIP calls: 9 `get_destination_consumers` (2 in evidence mode, answered), 14 `get_service_dependencies`, 2 `get_evidence`, 2 `get_architecture_drift` |
+| R6 | — | **No change** to the consumer set, the change list or the rollout gates. B states the unobserved production and the capture limits with AIP's typed codes; A states the same facts from the `rpk` files and the Helm values |
+| R7 | n/a | **Resolved.** The first `get_destination_consumers` call was valid (`topic:owned:5534…`, `kafka:sokol111-local`, `local`), answered `PARTIAL` with both consumers `RESOLVED`. Production gave the correct `NO_ACCEPTED_CAPTURE`. One later guess used a non-existent `kafka:sokol111-prod` and was refused with `UNKNOWN_DESTINATION` |
+| R8 | Pass | Pass |
+
+**Reading it.**
+- The wording fix removed the navigation blocker: 9 `get_destination_consumers` calls, the first valid, against 14 refused in run 2.
+- With AIP reachable, the investigation did not change in substance. Source, configuration and the stock `rpk` files already gave the same consumer set and the same uncertainty, so on this task AIP gave **no material additional value**; at most a small gain in precision, where the typed codes label what is unobserved.
+- Neither arm confused history with Current State.
+- Limits: one run per arm, one model, one task, incomplete implementation steps. The stock `rpk` output was available to both arms by design (spec §5.3); without it, AIP's observed attachment would be the only runtime evidence, and that case was not tested.
+
 ## Effort and cost
 
 - **Setup:** planning started 05:47Z and the first run started 07:37Z, about 1h50m. That includes the harness patch, the synthetic repo, the owner's Unblocked organization and token steps, and the isolation probes (plugins and auto-memory leaked until explicitly disabled).
+- **Run 3:** arm A 21m42s, $8.24; arm B 21m41s, $9.27 (both to the cut-off). Total $17.50.
 - **Run 2:** arm A 17m50s, $9.23; arm B 21m52s, $10.27 (3 minutes longer, 11% more cost). Run 1 added about $18 that produced nothing usable.
 - **Upkeep:** every new Sokol111 capture needs an AIP mapping review and an import, about 40 minutes once the environment exists (I2 record).
 
