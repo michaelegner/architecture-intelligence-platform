@@ -14,8 +14,9 @@ deployment edge. This script is the evidence that the edge does its job. Checks:
 - `--profile pitstop` (default): a `get_service_dependencies` call and a `get_evidence` drill-down on its
   own snapshot succeed;
 - `--profile sokol111`: `get_destination_consumers` for the frozen Sokol111 Topic `catalog.product.events`
-  answers `PARTIAL` with `CAPTURE_SCOPE_LIMITED` and at least one `RESOLVED` row with its capture time T,
-  and the same-snapshot evidence drill-down resolves every ref (a frozen observation at T, not live use);
+  answers `PARTIAL` with `CAPTURE_SCOPE_LIMITED`, exactly the frozen C1 `RESOLVED` Services, and every row
+  at the C1 capture time T; the same-snapshot evidence drill-down returns exactly the requested refs, each
+  `RESOLVED` (a frozen observation at T, not live use);
 - `get_api_consumer_usage` (no gateway source on either demo) and `get_destination_consumers` for an
   unknown Topic answer with a typed refusal; any evaluated answer there would be invented;
 - the import, ingest, query and unrelated routes are not reachable (any non-2xx, or a connection
@@ -76,6 +77,13 @@ SERVICE_ID = "service:workshop-management-api"
 SOKOL111_TOPIC_ID = "topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539"
 SOKOL111_BROKER = "kafka:sokol111-local"
 SOKOL111_ENVIRONMENT = "local"
+# Its C1 answer (expected.json `c1`): the two RESOLVED consumers, all captured at T.
+SOKOL111_RESOLVED = frozenset(
+    {"service:ecommerce-image-service", "service:ecommerce-product-query-service"}
+)
+SOKOL111_CAPTURED_AT = "2026-10-21T17:53:57Z"
+# get_destination_consumers takes at most this many refs per evidence request.
+MAX_EVIDENCE_REFS = 20
 ENVIRONMENT = "pitstop-demo"
 PROTOCOL_VERSION = "2025-11-25"
 CLOSED_PATHS = (
@@ -265,14 +273,18 @@ def check_sokol111_consumers_and_drilldown(url: str) -> tuple[str, str]:
     codes = [item.get("code") for item in answer.get("limitations") or []]
     rows = (answer.get("data") or {}).get("rows") or []
     resolved = sorted(row["service_id"] for row in rows if row.get("outcome") == "RESOLVED")
-    if answer.get("outcome") != "PARTIAL" or "CAPTURE_SCOPE_LIMITED" not in codes or not resolved:
+    if (
+        answer.get("outcome") != "PARTIAL"
+        or "CAPTURE_SCOPE_LIMITED" not in codes
+        or resolved != sorted(SOKOL111_RESOLVED)
+    ):
         return (
             FAIL,
-            f"outcome {answer.get('outcome')}, limitations {codes}, {len(resolved)} resolved",
+            f"outcome {answer.get('outcome')}, limitations {codes}, RESOLVED {resolved}",
         )
-    times = sorted({row.get("captured_at") for row in rows})
-    if None in times:
-        return FAIL, "a row has no capture time"
+    times = sorted({str(row.get("captured_at")) for row in rows})
+    if times != [SOKOL111_CAPTURED_AT]:
+        return FAIL, f"capture times {times}, expected {SOKOL111_CAPTURED_AT}"
     refs = sorted(
         {
             r
@@ -280,22 +292,35 @@ def check_sokol111_consumers_and_drilldown(url: str) -> tuple[str, str]:
             for r in [*row["attachment_evidence_refs"], *row["mapping_evidence_refs"]]
         }
     )
+    if not refs:
+        return FAIL, "no evidence refs to drill down"
     snapshot_id = (answer.get("snapshot") or {}).get("snapshot_id")
-    request = {
-        "mode": "evidence",
-        "snapshot_id": snapshot_id,
-        "evidence_refs": refs[:20],
-        **context,
-    }
-    ok, evidence = _tool_call(url, 11, "get_destination_consumers", {"request": request})
-    if not ok:
-        return FAIL, str(evidence)
-    entries = (evidence.get("data") or {}).get("entries") or []
-    if evidence.get("outcome") != "ANSWERED" or {e.get("status") for e in entries} != {"RESOLVED"}:
-        return FAIL, f"evidence drill-down: outcome {evidence.get('outcome')}"
+    for start in range(0, len(refs), MAX_EVIDENCE_REFS):
+        batch = refs[start : start + MAX_EVIDENCE_REFS]
+        request = {
+            "mode": "evidence",
+            "snapshot_id": snapshot_id,
+            "evidence_refs": batch,
+            **context,
+        }
+        ok, evidence = _tool_call(
+            url, 11 + start // MAX_EVIDENCE_REFS, "get_destination_consumers", {"request": request}
+        )
+        if not ok:
+            return FAIL, str(evidence)
+        entries = (evidence.get("data") or {}).get("entries") or []
+        if (
+            evidence.get("outcome") != "ANSWERED"
+            or [e.get("ref") for e in entries] != batch
+            or {e.get("status") for e in entries} != {"RESOLVED"}
+        ):
+            return (
+                FAIL,
+                f"evidence drill-down: outcome {evidence.get('outcome')}, {len(entries)}/{len(batch)} entries",
+            )
     return PASS, (
-        f"T {', '.join(times)}; RESOLVED {', '.join(resolved)}; {len(rows) - len(resolved)} other rows; "
-        f"{len(entries)} refs resolved on its snapshot"
+        f"T {SOKOL111_CAPTURED_AT}; RESOLVED {', '.join(resolved)}; {len(rows) - len(resolved)} other rows; "
+        f"{len(refs)} refs resolved on its snapshot"
     )
 
 
