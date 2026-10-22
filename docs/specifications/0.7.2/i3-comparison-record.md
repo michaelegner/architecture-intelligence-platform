@@ -4,7 +4,7 @@ Governing: [spec §5](specification.md), kit and rubric in [`i3-evidence/`](i3-e
 
 ## Result
 
-**No additional value from AIP in this run, because it never reached AIP's data.** All 14 `get_destination_consumers` calls of the AIP arm were refused (`UNKNOWN_DESTINATION` or `BROKER_MISMATCH`), although the hosted instance serves the right answer (a [post-run check](#setup) at 11:59:59Z returned both consumers). Task vocabulary did not reach the AIP query context: that is the finding for the owner checkpoint (spec §5.4, last paragraph). Both arms found the correct consumer set from source, configuration and the stock `rpk` files, so AIP changed nothing the engineers would have done. No new tool is proposed here.
+**No additional value from AIP in this run, because the agent never made a valid query.** All 14 `get_destination_consumers` calls of the AIP arm were refused (`UNKNOWN_DESTINATION` or `BROKER_MISMATCH`), although the hosted instance serves the right answer (a [post-run check](#setup) at 11:59:59Z returned both consumers). The agent did not reach the AIP query context even though AIP's own answers contained the ids; the identifier forms and refusal messages misled it (Finding 2). That is the finding for the owner checkpoint (spec §5.4, last paragraph). Both arms found the correct consumer set from source, configuration and the stock `rpk` files, so AIP changed nothing the engineers would have done. No new tool is proposed here.
 
 ## Setup
 
@@ -39,7 +39,11 @@ R8 detail, for both arms: the Unblocked token appears in no output; neither the 
 ## Findings
 
 1. **Source plus Unblocked was already strong.** The correct consumer set, its evidence and its uncertainty came from Unblocked, the code and the stock `rpk` files alone. This repeats the Round 4 baseline (`round4-sokol111-baseline.md`).
-2. **The obstacle was navigation, not data.** Reaching a Topic answer needs an AIP-owned Topic id (`topic:owned:…`) together with the exact broker id (`kafka:sokol111-local`) and environment (`local`). The task's words contain none of them, and the refusals do not say which pair is right. The agent kept honest uncertainty ("AIP gives no answer") instead of inventing an answer. That is good behavior and zero value.
+2. **The obstacle was navigation, not data, and the ids were discoverable.** One `get_service_dependencies` answer for the catalog service already gave the agent `topic:owned:5534…` (the Topic's **id**, named `catalog.product.events`) and a broker with id `broker:owned:69a6…` and **name** `kafka:sokol111-local`. The query needs the Topic's id together with the broker's name; the answers label both as "id". The agent tried each half correctly once, never both in one call:
+   - calls 7–10: correct Topic id, broker **id** → `BROKER_MISMATCH`;
+   - calls 11–12: Topic **name**, correct broker name → `UNKNOWN_DESTINATION`.
+
+   The refusal text did not help: `BROKER_MISMATCH` ("not declared on the requested broker") reads as a wrong pairing, and `UNKNOWN_DESTINATION` ("no declared Topic has this destination id") does not say that the Topic's owned id is needed. After call 12 the agent stopped, guessed a non-existent `kafka:sokol111-prod`, and reported "AIP gives no answer". It kept honest uncertainty instead of inventing an answer, which is good behavior with zero value. This is an existing-contract clarity finding (identifier forms in the tool description and the two refusal messages), recorded for the owner checkpoint. It is not a case for a discovery tool, and none is proposed.
 3. **No confusion of history with Current State** in either arm. Both kept the single local capture dated and marked its environment as gone.
 4. **What this does not show.** It does not show that AIP adds nothing once the right context is known. A run with the context card (Topic id, broker id, environment), as in the v0.7.1 session kit, would test AIP's value separately from discovery. It is one run per arm, one model, one task.
 5. **Simulator limits.** Both agents committed their work, so the simulator's diff stat (0 files) and its evaluator score (10/100 in both arms) are meaningless and are not used. The patch's `--check-arms` and init recording worked as designed.
