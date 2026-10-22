@@ -266,8 +266,9 @@ Its contract is the `0.7.1` schema
 (`schemas/architecture_intelligence/v0.7.1/destination-consumers-{request,answer}.schema.json`). The
 single `request` argument is discriminated on `mode`:
 
-- `"query"`: the exact `destination_id` (a canonical Topic id, never a name), `broker_id` and
-  `environment`; optional `limit` (1–200, default 100), `cursor` and `snapshot_id`. One row per
+- `"query"`: the exact `destination_id` (a canonical Topic id, never a name), `broker_id` (the
+  stable broker id, which a dependency answer shows as the `BrokerRef` `name`, not its canonical
+  `broker:owned:` `id`) and `environment`; optional `limit` (1–200, default 100), `cursor` and `snapshot_id`. One row per
   Kafka consumer group attached to the Topic at capture time T, ordered by `consumer_id`, with the
   I2 attribution unchanged: `outcome` (`RESOLVED`, `UNRESOLVED`, `AMBIGUOUS`, `CONFLICT`),
   `service_id` only when `RESOLVED`, `reason` otherwise, limitations for non-resolving mapping

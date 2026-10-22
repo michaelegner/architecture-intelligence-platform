@@ -48,6 +48,17 @@ R8 detail, for both arms: the Unblocked token appears in no output; neither the 
 4. **What this does not show.** It does not show that AIP adds nothing once the right context is known. A run with the context card (Topic id, broker id, environment), as in the v0.7.1 session kit, would test AIP's value separately from discovery. It is one run per arm, one model, one task.
 5. **Simulator limits.** Both agents committed their work, so the simulator's diff stat (0 files) and its evaluator score (10/100 in both arms) are meaningless and are not used. The patch's `--check-arms` and init recording worked as designed.
 
+## Follow-up in this PR
+
+Run 2 measured the **unfixed** wording. This PR changes only text: the `get_destination_consumers` tool description and the `UNKNOWN_DESTINATION` / `BROKER_MISMATCH` refusal messages now say that `destination_id` is the canonical Topic id (never a name) and `broker_id` is the stable broker id (the `BrokerRef` `name`, not its canonical `broker:owned:` id). Refusal codes, `data: null`, the request and answer schemas, and the tool inventory are unchanged.
+
+- **Run 3 (pending the usage-limit reset and the owner's GO), in two stages.** Both use the same task and no context card. The arm config variant for each stage is committed before that stage runs. Run 2 stays the record of the shipped v0.7.1 wording.
+  1. **Probe, local:** arm B's initial-context step only (about $3), against a local AIP built from this branch on the frozen C1 package. It passes if a `get_destination_consumers` call returns the two RESOLVED consumers instead of a refusal. A local server is enough for this yes/no question.
+  2. **Full run, hosted, only if the probe passes:** both arms, with arm B on `https://mcp.daip.io/mcp` serving a candidate image of this branch. This keeps the same server, edge and frozen data as run 2, so only the wording changes; whether the snapshot id is also unchanged is checked and recorded. The image is loaded onto the VPS directly (`docker save | docker load`), never published, and set in `.env` as in I1. The record notes the temporary candidate, and the v0.7.2 release replaces it with the published digest and re-verifies (spec §6.2).
+
+  If the probe fails, the wording is not enough on its own, and the next step is the schema-description idea below.
+- **v0.7.3 candidate:** field `description`s for `destination_id` and `broker_id` in the request schema, where agents read them in `inputSchema`. That regenerates the frozen 0.7.1 request schema and needs a deliberate spec edit, so it is not part of this PR.
+
 ## Effort and cost
 
 - **Setup:** planning started 05:47Z and the first run started 07:37Z, about 1h50m. That includes the harness patch, the synthetic repo, the owner's Unblocked organization and token steps, and the isolation probes (plugins and auto-memory leaked until explicitly disabled).
