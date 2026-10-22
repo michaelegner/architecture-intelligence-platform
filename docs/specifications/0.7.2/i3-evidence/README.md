@@ -50,14 +50,18 @@ Disclosed differences from the real workspace:
 - `go.work` names six workspace repositories that are not included;
 - there is no upstream git history.
 
-Unblocked indexes the owner's forks of the same 8 repositories at the same commits. Forks do not carry upstream pull requests or issues.
+Unblocked indexes forks of the same 8 repositories, at the same commits, in the GitHub organization `architecture-intelligence-platform`. Unblocked installs only into organizations. That org holds only these forks.
+
+Two disclosures:
+- Forks do not carry upstream pull requests or issues.
+- The org name appears in Unblocked citations in **both** arms. It is held constant and gives arm A no AIP access. The after-run scan checks for the answer key itself: `michaelegner/architecture-intelligence-platform`, `i2-evidence` and `expected.json`.
 
 ## Steps
 
 **Owner, once:**
 1. Create an Unblocked account.
-2. Fork the 8 repositories into your account.
-3. In Unblocked, go to Team Settings → Data Sources → GitHub and select **only those forks**. Connect no other data source.
+2. Fork the 8 repositories into the org. Use `gh repo fork Sokol111/<repo> --org architecture-intelligence-platform --clone=false --default-branch-only`, then check each HEAD against the freeze.
+3. Install the Unblocked GitHub app on that org, select its 8 repositories in Unblocked, and turn off automatic ingestion. Connect no other data source.
 4. Create a Personal API token limited to that source and save it in `~/.config/unblocked-i3.token` (mode 600).
 
 **Me:**
@@ -87,7 +91,7 @@ $RUN                           # the experiment
    - no `gh`, `curl` or `wget`;
    - no path outside the arm's own worktree;
    - no other arm's `ces-*` branch in `git worktree list`, `git branch -a` or `git log --all` output;
-   - no AIP repository content;
+   - no AIP repository content (`michaelegner/architecture-intelligence-platform`, `i2-evidence`, `expected.json`);
    - no AIP in arm A.
 3. List every `context_get_urls` argument in both arms. A URL of the AIP repository or of `daip.io` is contamination.
 4. List arm B's AIP errors and HTTP 429s. The edge has a rate limit, and a limited call is an environmental difference, not an AIP answer.
