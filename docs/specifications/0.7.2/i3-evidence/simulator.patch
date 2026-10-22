@@ -2615,7 +2615,7 @@ index dc105e9..213bd3b 100644
            const hit = detectContamination(e, opts.bannedMcpServers);
            if (hit) {
 diff --git a/src/types.ts b/src/types.ts
-index 47997ba..d7e4967 100644
+index 47997ba..6197189 100644
 --- a/src/types.ts
 +++ b/src/types.ts
 @@ -31,6 +31,8 @@ export interface AgentResult {
@@ -2666,7 +2666,16 @@ index 47997ba..d7e4967 100644
    totalCostUsd: number;
    totalDurationMs: number;
  }
-@@ -128,6 +145,31 @@ export class ContaminationError extends Error {
+@@ -119,6 +136,8 @@ export interface ExperimentResult {
+ export interface WorktreeInfo {
+   path: string;
+   branch: string;
++  /** Same-chain mode: a standalone local clone, so no arm can see another arm's refs. */
++  clone?: boolean;
+ }
+ 
+ export class ContaminationError extends Error {
+@@ -128,6 +147,31 @@ export class ContaminationError extends Error {
    }
  }
  
@@ -2698,17 +2707,17 @@ index 47997ba..d7e4967 100644
  export type AgentName = "claude" | "codex" | "grok" | "cursor";
  
  export interface CliConfig {
-@@ -146,4 +188,5 @@ export interface CliConfig {
+@@ -146,4 +190,5 @@ export interface CliConfig {
    keepWorktrees: boolean;
    apiUrl?: string;
    disabledMcpServers: string[];
 +  arms?: SameChainArms;
  }
 diff --git a/src/worktree.ts b/src/worktree.ts
-index 79ba2fc..a7a169d 100644
+index 79ba2fc..762125a 100644
 --- a/src/worktree.ts
 +++ b/src/worktree.ts
-@@ -1,15 +1,18 @@
+@@ -1,14 +1,23 @@
  import { execSync } from "node:child_process";
  import { randomBytes } from "node:crypto";
 +import fs from "node:fs";
@@ -2722,10 +2731,25 @@ index 79ba2fc..a7a169d 100644
 +export function createWorktree(repoPath: string, name: string, baseBranch: string, isolated = false): WorktreeInfo {
    const suffix = randomBytes(4).toString("hex");
    const worktreeName = `${WORKTREE_PREFIX}-${name}-${suffix}`;
--  const worktreeDir = path.join(os.tmpdir(), "context-engine-sim", worktreeName);
-+  // isolated: a fresh parent per worktree, so an arm has no sibling worktree next to it.
-+  const parent = isolated ? fs.mkdtempSync(path.join(os.tmpdir(), `${WORKTREE_PREFIX}-`)) : path.join(os.tmpdir(), "context-engine-sim");
-+  const worktreeDir = path.join(parent, worktreeName);
++  // isolated: a standalone clone under a fresh parent. A worktree would share the repository's refs,
++  // so `git branch` in one arm would list the other arm's branch.
++  if (isolated) {
++    const worktreeDir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), `${WORKTREE_PREFIX}-`)), worktreeName);
++    execSync(`git clone --quiet --no-hardlinks --single-branch --branch "${baseBranch}" "${repoPath}" "${worktreeDir}"`, { stdio: "pipe" });
++    execSync(`git checkout --quiet -b "${worktreeName}"`, { cwd: worktreeDir, stdio: "pipe" });
++    return { path: worktreeDir, branch: worktreeName, clone: true };
++  }
+   const worktreeDir = path.join(os.tmpdir(), "context-engine-sim", worktreeName);
  
    execSync(`git worktree add -b "${worktreeName}" "${worktreeDir}" "${baseBranch}"`, {
-     cwd: repoPath,
+@@ -20,6 +29,10 @@ export function createWorktree(repoPath: string, name: string, baseBranch: strin
+ }
+ 
+ export function removeWorktree(repoPath: string, info: WorktreeInfo): void {
++  if (info.clone) {
++    fs.rmSync(path.dirname(info.path), { recursive: true, force: true });
++    return;
++  }
+   try {
+     execSync(`git worktree remove --force "${info.path}"`, {
+       cwd: repoPath,

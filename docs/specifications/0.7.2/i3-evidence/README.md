@@ -30,7 +30,7 @@ The patch adds a same-chain mode (`arms:` in the fixture, Claude only):
   - in arm A, no server, tool or skill containing `aip`.
   A failure aborts the arm.
 - **Call guard.** A Claude-format guard aborts arm A on any `mcp__*aip*` call.
-- **Worktrees.** Each arm works in its own worktree, under its own new temp directory, not side by side.
+- **Isolated checkouts.** Each arm works in its own standalone clone of the synthetic repository (`git clone --single-branch`), under its own new temp directory. Runs 1 and 2 used git worktrees, which share the repository's refs, so a `git branch` in one arm listed the other arm's branch name. The patch was changed after run 2, so that from run 3 on, no arm can see another arm's refs.
 - **`--check-arms` gate.** It runs one minimal invocation per arm. With `--swap-arms`, both must fail.
 - **Reports.** The terminal, HTML and JSON reports show six steps and attribution for both arms, under the arm names.
 - **Lock file.** It carries a regenerated `package-lock.json`, because upstream's lock file is out of sync with its `package.json` (`npm ci` fails: `Missing: eslint@9.39.5`).
