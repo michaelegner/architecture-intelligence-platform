@@ -1,0 +1,1316 @@
+From 6f9173281008c22133e56379fdda286257ea8e1d Mon Sep 17 00:00:00 2001
+From: Michael Egner <m.egner@gmx.net>
+Date: Thu, 22 Oct 2026 13:57:39 +0200
+Subject: [PATCH 1/3] release: v1.3.9 - add optional sku to Product and
+ ProductUpdatedEvent
+
+Adds `optional string sku` to catalog.v1.Product (13), CreateProductRequest (10),
+UpdateProductRequest (11) and catalog.events.v1.ProductUpdatedEvent (13).
+Request fields are validated with min_len 1, max_len 64 and
+pattern ^[A-Za-z0-9][A-Za-z0-9._-]*$ (a leading '$' must be rejected because
+query-side read models write the value inside aggregation pipelines).
+
+NOTE: gen/ (Go and TypeScript) was NOT regenerated - no buf toolchain was
+available. Run `make generate` with the pinned tools and amend gen/ into this
+release before pushing VERSION to master.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ ecommerce-catalog-service-api/VERSION                 |  2 +-
+ .../proto/catalog/events/v1/product_events.proto      |  1 +
+ .../proto/catalog/v1/product.proto                    | 11 +++++++++++
+ 3 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/ecommerce-catalog-service-api/VERSION b/ecommerce-catalog-service-api/VERSION
+index e05cb33..d4c4950 100644
+--- a/ecommerce-catalog-service-api/VERSION
++++ b/ecommerce-catalog-service-api/VERSION
+@@ -1 +1 @@
+-1.3.8
++1.3.9
+diff --git a/ecommerce-catalog-service-api/proto/catalog/events/v1/product_events.proto b/ecommerce-catalog-service-api/proto/catalog/events/v1/product_events.proto
+index a1e7443..435d35e 100644
+--- a/ecommerce-catalog-service-api/proto/catalog/events/v1/product_events.proto
++++ b/ecommerce-catalog-service-api/proto/catalog/events/v1/product_events.proto
+@@ -44,6 +44,7 @@ message ProductUpdatedEvent {
+   google.protobuf.Timestamp created_at = 10;
+   google.protobuf.Timestamp modified_at = 11;
+   repeated AttributeValue attributes = 12;
++  optional string sku = 13;
+ }
+ 
+ // Business data for product deletion event.
+diff --git a/ecommerce-catalog-service-api/proto/catalog/v1/product.proto b/ecommerce-catalog-service-api/proto/catalog/v1/product.proto
+index 7f8100a..0ba308b 100644
+--- a/ecommerce-catalog-service-api/proto/catalog/v1/product.proto
++++ b/ecommerce-catalog-service-api/proto/catalog/v1/product.proto
+@@ -47,6 +47,7 @@ message Product {
+   repeated AttributeValue attributes = 10;
+   google.protobuf.Timestamp created_at = 11;
+   google.protobuf.Timestamp modified_at = 12;
++  optional string sku = 13;
+ }
+ 
+ // ==================== REQUESTS ====================
+@@ -75,6 +76,11 @@ message CreateProductRequest {
+   optional string category_id = 7 [(buf.validate.field).string.uuid = true];
+   bool enabled = 8;
+   repeated AttributeValueInput attributes = 9;
++  optional string sku = 10 [(buf.validate.field).string = {
++    min_len: 1
++    max_len: 64
++    pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*$"
++  }];
+ }
+ 
+ message UpdateProductRequest {
+@@ -91,6 +97,11 @@ message UpdateProductRequest {
+   bool enabled = 8;
+   int64 version = 9 [(buf.validate.field).int64.gte = 0];
+   repeated AttributeValueInput attributes = 10;
++  optional string sku = 11 [(buf.validate.field).string = {
++    min_len: 1
++    max_len: 64
++    pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*$"
++  }];
+ }
+ 
+ message GetProductByIdRequest {
+-- 
+2.43.0
+
+
+From 7b1449807127ad7ac80936cbd87cea126ed79d06 Mon Sep 17 00:00:00 2001
+From: Michael Egner <m.egner@gmx.net>
+Date: Thu, 22 Oct 2026 13:57:39 +0200
+Subject: [PATCH 2/3] feat(product): add optional SKU to product aggregate,
+ persistence, RPC and event
+
+- Product gains SKU *string; NewProduct/NewProductWithID/Reconstruct/Update take
+  sku after description. Update always assigns it (nil clears, full-replace).
+- validateSKU rejects "", >64 chars, and values not matching the API pattern.
+- Mongo entity stores `sku,omitempty`; mapper maps both directions.
+- Connect handlers read req.Msg.Sku directly (not GetSku()); toProtoProduct and
+  ProductUpdatedEvent carry Sku.
+- Tests updated for the new signatures, plus SKU validation, handler, mapper,
+  repository (clear on update) and event factory coverage.
+
+Requires ecommerce-catalog-service-api v1.3.9 (generated Sku fields).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../application/product/create_product.go     |   5 +-
+ .../product/create_product_test.go            |   9 +-
+ .../internal/application/product/product.go   |  52 ++++++-
+ .../application/product/product_test.go       | 131 +++++++++++++++++-
+ .../product/query_handlers_test.go            |   1 +
+ .../application/product/update_product.go     |   3 +-
+ .../product/update_product_test.go            |  56 +++++++-
+ .../inbound/connect/product_handler.go        |   3 +
+ .../outbound/kafka/product_event_factory.go   |   1 +
+ .../kafka/product_event_factory_test.go       |  49 +++++++
+ .../outbound/mongo/product_entity.go          |   1 +
+ .../outbound/mongo/product_mapper.go          |   2 +
+ .../outbound/mongo/product_mapper_test.go     |  35 +++++
+ .../product_repository_integration_test.go    |  50 ++++++-
+ 14 files changed, 380 insertions(+), 18 deletions(-)
+ create mode 100644 ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory_test.go
+
+diff --git a/ecommerce-catalog-service/internal/application/product/create_product.go b/ecommerce-catalog-service/internal/application/product/create_product.go
+index af82c35..6afb010 100644
+--- a/ecommerce-catalog-service/internal/application/product/create_product.go
++++ b/ecommerce-catalog-service/internal/application/product/create_product.go
+@@ -18,6 +18,7 @@ type CreateProductCommand struct {
+ 	ID          *uuid.UUID
+ 	Name        string
+ 	Description *string
++	SKU         *string
+ 	Price       float64
+ 	Quantity    int32
+ 	ImageID     *string
+@@ -124,9 +125,9 @@ func (h *createProductHandler) createProduct(cmd CreateProductCommand) (*Product
+ 	var err error
+ 
+ 	if cmd.ID != nil {
+-		p, err = NewProductWithID(cmd.ID.String(), cmd.Name, cmd.Description, cmd.Price, cmd.Quantity, cmd.ImageID, cmd.CategoryID, cmd.Enabled, cmd.Attributes)
++		p, err = NewProductWithID(cmd.ID.String(), cmd.Name, cmd.Description, cmd.SKU, cmd.Price, cmd.Quantity, cmd.ImageID, cmd.CategoryID, cmd.Enabled, cmd.Attributes)
+ 	} else {
+-		p, err = NewProduct(cmd.Name, cmd.Description, cmd.Price, cmd.Quantity, cmd.ImageID, cmd.CategoryID, cmd.Enabled, cmd.Attributes)
++		p, err = NewProduct(cmd.Name, cmd.Description, cmd.SKU, cmd.Price, cmd.Quantity, cmd.ImageID, cmd.CategoryID, cmd.Enabled, cmd.Attributes)
+ 	}
+ 	if err != nil {
+ 		return nil, fmt.Errorf("failed to create product: %w", err)
+diff --git a/ecommerce-catalog-service/internal/application/product/create_product_test.go b/ecommerce-catalog-service/internal/application/product/create_product_test.go
+index cb343dc..78027ed 100644
+--- a/ecommerce-catalog-service/internal/application/product/create_product_test.go
++++ b/ecommerce-catalog-service/internal/application/product/create_product_test.go
+@@ -59,6 +59,7 @@ func TestCreateProductHandler_Handle_Success(t *testing.T) {
+ 	cmd := CreateProductCommand{
+ 		Name:        "Test Product",
+ 		Description: ptr("Test description"),
++		SKU:         ptr("SKU-123"),
+ 		Price:       99.99,
+ 		Quantity:    10,
+ 		ImageID:     ptr("image-123"),
+@@ -72,9 +73,11 @@ func TestCreateProductHandler_Handle_Success(t *testing.T) {
+ 		Exists(mock.Anything, categoryID).
+ 		Return(true, nil)
+ 
+-	// Mock event factory
++	// Mock event factory - the event is built from a product carrying the command's SKU
+ 	eventFactory.EXPECT().
+-		NewProductUpdatedOutboxMessage(mock.Anything, mock.AnythingOfType("*product.Product")).
++		NewProductUpdatedOutboxMessage(mock.Anything, mock.MatchedBy(func(p *Product) bool {
++			return p.SKU != nil && *p.SKU == *cmd.SKU
++		})).
+ 		Return(outbox.Message{})
+ 
+ 	// Mock transaction - execute the function passed to it
+@@ -102,6 +105,7 @@ func TestCreateProductHandler_Handle_Success(t *testing.T) {
+ 	require.NotNil(t, result)
+ 	assert.Equal(t, cmd.Name, result.Name)
+ 	assert.Equal(t, cmd.Description, result.Description)
++	assert.Equal(t, cmd.SKU, result.SKU)
+ 	assert.Equal(t, cmd.Price, result.Price)
+ 	assert.Equal(t, cmd.Quantity, result.Quantity)
+ 	assert.Equal(t, cmd.CategoryID, result.CategoryID)
+@@ -331,6 +335,7 @@ func createTestProduct() *Product {
+ 		1,
+ 		"Original Product",
+ 		ptr("Original description"),
++		nil,
+ 		99.99,
+ 		10,
+ 		ptr("image-123"),
+diff --git a/ecommerce-catalog-service/internal/application/product/product.go b/ecommerce-catalog-service/internal/application/product/product.go
+index a721e91..c3f672f 100644
+--- a/ecommerce-catalog-service/internal/application/product/product.go
++++ b/ecommerce-catalog-service/internal/application/product/product.go
+@@ -2,6 +2,7 @@ package product
+ 
+ import (
+ 	"fmt"
++	"regexp"
+ 	"time"
+ 
+ 	"github.com/google/uuid"
+@@ -18,12 +19,18 @@ type AttributeValue struct {
+ 	BooleanValue     *bool    // Boolean value (for boolean type)
+ }
+ 
++// skuPattern mirrors the protovalidate rule in the API contract. A leading '$' must be
++// rejected because query-side read models write the value inside aggregation pipelines,
++// where such a string would be interpreted as a field path.
++var skuPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
++
+ // Product - domain aggregate root
+ type Product struct {
+ 	ID          string
+ 	Version     int64
+ 	Name        string
+ 	Description *string
++	SKU         *string
+ 	Price       float64
+ 	Quantity    int32
+ 	ImageID     *string
+@@ -35,11 +42,15 @@ type Product struct {
+ }
+ 
+ // NewProduct creates a new product with validation
+-func NewProduct(name string, description *string, price float64, quantity int32, imageID *string, categoryID *string, enabled bool, attributes []AttributeValue) (*Product, error) {
++func NewProduct(name string, description *string, sku *string, price float64, quantity int32, imageID *string, categoryID *string, enabled bool, attributes []AttributeValue) (*Product, error) {
+ 	if err := validateProductData(name, price, quantity); err != nil {
+ 		return nil, err
+ 	}
+ 
++	if err := validateSKU(sku); err != nil {
++		return nil, err
++	}
++
+ 	if err := validateEnabledState(enabled, price, quantity, imageID, categoryID); err != nil {
+ 		return nil, err
+ 	}
+@@ -50,6 +61,7 @@ func NewProduct(name string, description *string, price float64, quantity int32,
+ 		Version:     1,
+ 		Name:        name,
+ 		Description: description,
++		SKU:         sku,
+ 		Price:       price,
+ 		Quantity:    quantity,
+ 		ImageID:     imageID,
+@@ -62,11 +74,15 @@ func NewProduct(name string, description *string, price float64, quantity int32,
+ }
+ 
+ // NewProductWithID creates a product with a specific ID (for idempotency)
+-func NewProductWithID(id, name string, description *string, price float64, quantity int32, imageID *string, categoryID *string, enabled bool, attributes []AttributeValue) (*Product, error) {
++func NewProductWithID(id, name string, description *string, sku *string, price float64, quantity int32, imageID *string, categoryID *string, enabled bool, attributes []AttributeValue) (*Product, error) {
+ 	if err := validateProductData(name, price, quantity); err != nil {
+ 		return nil, err
+ 	}
+ 
++	if err := validateSKU(sku); err != nil {
++		return nil, err
++	}
++
+ 	if err := validateEnabledState(enabled, price, quantity, imageID, categoryID); err != nil {
+ 		return nil, err
+ 	}
+@@ -77,6 +93,7 @@ func NewProductWithID(id, name string, description *string, price float64, quant
+ 		Version:     1,
+ 		Name:        name,
+ 		Description: description,
++		SKU:         sku,
+ 		Price:       price,
+ 		Quantity:    quantity,
+ 		ImageID:     imageID,
+@@ -89,12 +106,13 @@ func NewProductWithID(id, name string, description *string, price float64, quant
+ }
+ 
+ // Reconstruct rebuilds a product from persistence (no validation)
+-func Reconstruct(id string, version int64, name string, description *string, price float64, quantity int32, imageID *string, categoryID *string, enabled bool, attributes []AttributeValue, createdAt, modifiedAt time.Time) *Product {
++func Reconstruct(id string, version int64, name string, description *string, sku *string, price float64, quantity int32, imageID *string, categoryID *string, enabled bool, attributes []AttributeValue, createdAt, modifiedAt time.Time) *Product {
+ 	return &Product{
+ 		ID:          id,
+ 		Version:     version,
+ 		Name:        name,
+ 		Description: description,
++		SKU:         sku,
+ 		Price:       price,
+ 		Quantity:    quantity,
+ 		ImageID:     imageID,
+@@ -107,17 +125,22 @@ func Reconstruct(id string, version int64, name string, description *string, pri
+ }
+ 
+ // Update modifies product data with validation
+-func (p *Product) Update(name string, description *string, price float64, quantity int32, imageID *string, categoryID *string, enabled bool, attributes []AttributeValue) error {
++func (p *Product) Update(name string, description *string, sku *string, price float64, quantity int32, imageID *string, categoryID *string, enabled bool, attributes []AttributeValue) error {
+ 	if err := validateProductData(name, price, quantity); err != nil {
+ 		return err
+ 	}
+ 
++	if err := validateSKU(sku); err != nil {
++		return err
++	}
++
+ 	if err := validateEnabledState(enabled, price, quantity, imageID, categoryID); err != nil {
+ 		return err
+ 	}
+ 
+ 	p.Name = name
+ 	p.Description = description
++	p.SKU = sku
+ 	p.Price = price
+ 	p.Quantity = quantity
+ 	p.ImageID = imageID
+@@ -150,6 +173,27 @@ func validateProductData(name string, price float64, quantity int32) error {
+ 	return nil
+ }
+ 
++// validateSKU validates the optional SKU (nil means not set)
++func validateSKU(sku *string) error {
++	if sku == nil {
++		return nil
++	}
++
++	if *sku == "" {
++		return fmt.Errorf("%w: sku cannot be empty", ErrInvalidProductData)
++	}
++
++	if len(*sku) > 64 {
++		return fmt.Errorf("%w: sku is too long (max 64 characters)", ErrInvalidProductData)
++	}
++
++	if !skuPattern.MatchString(*sku) {
++		return fmt.Errorf("%w: sku contains invalid characters", ErrInvalidProductData)
++	}
++
++	return nil
++}
++
+ // validateEnabledState validates that a product can be enabled
+ func validateEnabledState(enabled bool, price float64, quantity int32, imageID *string, categoryID *string) error {
+ 	if !enabled {
+diff --git a/ecommerce-catalog-service/internal/application/product/product_test.go b/ecommerce-catalog-service/internal/application/product/product_test.go
+index d2be82f..a21ae49 100644
+--- a/ecommerce-catalog-service/internal/application/product/product_test.go
++++ b/ecommerce-catalog-service/internal/application/product/product_test.go
+@@ -14,6 +14,7 @@ func TestNewProduct(t *testing.T) {
+ 		name        string
+ 		productName string
+ 		description *string
++		sku         *string
+ 		price       float64
+ 		quantity    int32
+ 		imageID     *string
+@@ -129,6 +130,60 @@ func TestNewProduct(t *testing.T) {
+ 			wantErr:     true,
+ 			errContains: "cannot enable product without categoryID",
+ 		},
++		{
++			name:        "valid product with sku",
++			productName: "Test Product",
++			sku:         ptr("ABC-123_x.1"),
++			enabled:     false,
++			wantErr:     false,
++		},
++		{
++			name:        "valid product with sku at max length",
++			productName: "Test Product",
++			sku:         ptr(strings.Repeat("A", 64)),
++			enabled:     false,
++			wantErr:     false,
++		},
++		{
++			name:        "error when sku is empty",
++			productName: "Test Product",
++			sku:         ptr(""),
++			enabled:     false,
++			wantErr:     true,
++			errContains: "sku cannot be empty",
++		},
++		{
++			name:        "error when sku is too long",
++			productName: "Test Product",
++			sku:         ptr(strings.Repeat("A", 65)),
++			enabled:     false,
++			wantErr:     true,
++			errContains: "sku is too long",
++		},
++		{
++			name:        "error when sku starts with dollar sign",
++			productName: "Test Product",
++			sku:         ptr("$ABC"),
++			enabled:     false,
++			wantErr:     true,
++			errContains: "sku contains invalid characters",
++		},
++		{
++			name:        "error when sku starts with separator",
++			productName: "Test Product",
++			sku:         ptr("-ABC"),
++			enabled:     false,
++			wantErr:     true,
++			errContains: "sku contains invalid characters",
++		},
++		{
++			name:        "error when sku contains whitespace",
++			productName: "Test Product",
++			sku:         ptr("ABC 123"),
++			enabled:     false,
++			wantErr:     true,
++			errContains: "sku contains invalid characters",
++		},
+ 	}
+ 
+ 	for _, tt := range tests {
+@@ -136,6 +191,7 @@ func TestNewProduct(t *testing.T) {
+ 			product, err := NewProduct(
+ 				tt.productName,
+ 				tt.description,
++				tt.sku,
+ 				tt.price,
+ 				tt.quantity,
+ 				tt.imageID,
+@@ -156,6 +212,7 @@ func TestNewProduct(t *testing.T) {
+ 				assert.Equal(t, int64(1), product.Version)
+ 				assert.Equal(t, tt.productName, product.Name)
+ 				assert.Equal(t, tt.description, product.Description)
++				assert.Equal(t, tt.sku, product.SKU)
+ 				assert.Equal(t, tt.price, product.Price)
+ 				assert.Equal(t, tt.quantity, product.Quantity)
+ 				assert.Equal(t, tt.imageID, product.ImageID)
+@@ -174,6 +231,7 @@ func TestNewProductWithID(t *testing.T) {
+ 		name        string
+ 		id          string
+ 		productName string
++		sku         *string
+ 		price       float64
+ 		quantity    int32
+ 		enabled     bool
+@@ -197,6 +255,22 @@ func TestNewProductWithID(t *testing.T) {
+ 			enabled:     false,
+ 			wantErr:     true,
+ 		},
++		{
++			name:        "valid product with custom ID and sku",
++			id:          "custom-id-123",
++			productName: "Test Product",
++			sku:         ptr("SKU-1"),
++			enabled:     false,
++			wantErr:     false,
++		},
++		{
++			name:        "sku validation applies with custom ID",
++			id:          "custom-id-123",
++			productName: "Test Product",
++			sku:         ptr("$ABC"),
++			enabled:     false,
++			wantErr:     true,
++		},
+ 	}
+ 
+ 	for _, tt := range tests {
+@@ -205,6 +279,7 @@ func TestNewProductWithID(t *testing.T) {
+ 				tt.id,
+ 				tt.productName,
+ 				nil,
++				tt.sku,
+ 				tt.price,
+ 				tt.quantity,
+ 				nil,
+@@ -220,6 +295,7 @@ func TestNewProductWithID(t *testing.T) {
+ 				require.NoError(t, err)
+ 				require.NotNil(t, product)
+ 				assert.Equal(t, tt.id, product.ID)
++				assert.Equal(t, tt.sku, product.SKU)
+ 			}
+ 		})
+ 	}
+@@ -231,6 +307,7 @@ func TestProduct_Update(t *testing.T) {
+ 		setup       func() *Product
+ 		newName     string
+ 		description *string
++		sku         *string
+ 		price       float64
+ 		quantity    int32
+ 		imageID     *string
+@@ -243,7 +320,7 @@ func TestProduct_Update(t *testing.T) {
+ 		{
+ 			name: "successful update",
+ 			setup: func() *Product {
+-				p, _ := NewProduct("Original", nil, 0, 0, nil, nil, false, nil)
++				p, _ := NewProduct("Original", nil, nil, 0, 0, nil, nil, false, nil)
+ 				return p
+ 			},
+ 			newName:     "Updated Name",
+@@ -259,7 +336,7 @@ func TestProduct_Update(t *testing.T) {
+ 		{
+ 			name: "error when updating with empty name",
+ 			setup: func() *Product {
+-				p, _ := NewProduct("Original", nil, 0, 0, nil, nil, false, nil)
++				p, _ := NewProduct("Original", nil, nil, 0, 0, nil, nil, false, nil)
+ 				return p
+ 			},
+ 			newName:  "",
+@@ -271,7 +348,7 @@ func TestProduct_Update(t *testing.T) {
+ 		{
+ 			name: "error when enabling without required fields",
+ 			setup: func() *Product {
+-				p, _ := NewProduct("Original", nil, 0, 0, nil, nil, false, nil)
++				p, _ := NewProduct("Original", nil, nil, 0, 0, nil, nil, false, nil)
+ 				return p
+ 			},
+ 			newName:  "Updated",
+@@ -281,6 +358,50 @@ func TestProduct_Update(t *testing.T) {
+ 			enabled:  true,
+ 			wantErr:  true,
+ 		},
++		{
++			name: "update sets sku",
++			setup: func() *Product {
++				p, _ := NewProduct("Original", nil, nil, 0, 0, nil, nil, false, nil)
++				return p
++			},
++			newName: "Updated",
++			sku:     ptr("NEW-SKU"),
++			enabled: false,
++			wantErr: false,
++		},
++		{
++			name: "update with nil sku clears it",
++			setup: func() *Product {
++				p, _ := NewProduct("Original", nil, ptr("OLD-SKU"), 0, 0, nil, nil, false, nil)
++				return p
++			},
++			newName: "Updated",
++			sku:     nil,
++			enabled: false,
++			wantErr: false,
++		},
++		{
++			name: "error when updating with empty sku",
++			setup: func() *Product {
++				p, _ := NewProduct("Original", nil, nil, 0, 0, nil, nil, false, nil)
++				return p
++			},
++			newName: "Updated",
++			sku:     ptr(""),
++			enabled: false,
++			wantErr: true,
++		},
++		{
++			name: "error when updating with sku starting with dollar sign",
++			setup: func() *Product {
++				p, _ := NewProduct("Original", nil, nil, 0, 0, nil, nil, false, nil)
++				return p
++			},
++			newName: "Updated",
++			sku:     ptr("$ABC"),
++			enabled: false,
++			wantErr: true,
++		},
+ 	}
+ 
+ 	for _, tt := range tests {
+@@ -291,6 +412,7 @@ func TestProduct_Update(t *testing.T) {
+ 			err := product.Update(
+ 				tt.newName,
+ 				tt.description,
++				tt.sku,
+ 				tt.price,
+ 				tt.quantity,
+ 				tt.imageID,
+@@ -306,6 +428,7 @@ func TestProduct_Update(t *testing.T) {
+ 				require.NoError(t, err)
+ 				assert.Equal(t, tt.newName, product.Name)
+ 				assert.Equal(t, tt.description, product.Description)
++				assert.Equal(t, tt.sku, product.SKU)
+ 				assert.Equal(t, tt.price, product.Price)
+ 				assert.Equal(t, tt.quantity, product.Quantity)
+ 				assert.Equal(t, tt.imageID, product.ImageID)
+@@ -326,6 +449,7 @@ func TestReconstruct(t *testing.T) {
+ 			5,
+ 			"", // Empty name would fail validation in NewProduct
+ 			nil,
++			ptr(""),
+ 			-100, // Negative price would fail validation
+ 			-50,  // Negative quantity would fail validation
+ 			nil,
+@@ -340,6 +464,7 @@ func TestReconstruct(t *testing.T) {
+ 		assert.Equal(t, "id-123", product.ID)
+ 		assert.Equal(t, int64(5), product.Version)
+ 		assert.Equal(t, "", product.Name)
++		assert.Equal(t, ptr(""), product.SKU)
+ 		assert.Equal(t, float64(-100), product.Price)
+ 		assert.Equal(t, int32(-50), product.Quantity)
+ 		assert.True(t, product.Enabled)
+diff --git a/ecommerce-catalog-service/internal/application/product/query_handlers_test.go b/ecommerce-catalog-service/internal/application/product/query_handlers_test.go
+index 810de17..ed0253b 100644
+--- a/ecommerce-catalog-service/internal/application/product/query_handlers_test.go
++++ b/ecommerce-catalog-service/internal/application/product/query_handlers_test.go
+@@ -23,6 +23,7 @@ func createTestProductForQuery(id string) *Product {
+ 		1,
+ 		"Test Product",
+ 		ptr("Test description"),
++		nil,
+ 		99.99,
+ 		10,
+ 		ptr("image-123"),
+diff --git a/ecommerce-catalog-service/internal/application/product/update_product.go b/ecommerce-catalog-service/internal/application/product/update_product.go
+index f302812..15ba70b 100644
+--- a/ecommerce-catalog-service/internal/application/product/update_product.go
++++ b/ecommerce-catalog-service/internal/application/product/update_product.go
+@@ -20,6 +20,7 @@ type UpdateProductCommand struct {
+ 	Version     int64
+ 	Name        string
+ 	Description *string
++	SKU         *string
+ 	Price       float64
+ 	Quantity    int32
+ 	ImageID     *string
+@@ -74,7 +75,7 @@ func (h *updateProductHandler) Handle(ctx context.Context, cmd UpdateProductComm
+ 		return nil, err
+ 	}
+ 
+-	if err = p.Update(cmd.Name, cmd.Description, cmd.Price, cmd.Quantity, cmd.ImageID, cmd.CategoryID, cmd.Enabled, attrs); err != nil {
++	if err = p.Update(cmd.Name, cmd.Description, cmd.SKU, cmd.Price, cmd.Quantity, cmd.ImageID, cmd.CategoryID, cmd.Enabled, attrs); err != nil {
+ 		return nil, fmt.Errorf("failed to update product: %w", err)
+ 	}
+ 
+diff --git a/ecommerce-catalog-service/internal/application/product/update_product_test.go b/ecommerce-catalog-service/internal/application/product/update_product_test.go
+index e2239e9..6751dcc 100644
+--- a/ecommerce-catalog-service/internal/application/product/update_product_test.go
++++ b/ecommerce-catalog-service/internal/application/product/update_product_test.go
+@@ -57,6 +57,7 @@ func TestUpdateProductHandler_Handle_Success(t *testing.T) {
+ 		Version:     existingProduct.Version,
+ 		Name:        "Updated Product",
+ 		Description: ptr("Updated description"),
++		SKU:         ptr("SKU-456"),
+ 		Price:       199.99,
+ 		Quantity:    20,
+ 		ImageID:     ptr("image-456"),
+@@ -89,9 +90,11 @@ func TestUpdateProductHandler_Handle_Success(t *testing.T) {
+ 			return p, nil
+ 		})
+ 
+-	// Mock event factory
++	// Mock event factory - the event is built from a product carrying the command's SKU
+ 	eventFactory.EXPECT().
+-		NewProductUpdatedOutboxMessage(mock.Anything, mock.Anything).
++		NewProductUpdatedOutboxMessage(mock.Anything, mock.MatchedBy(func(p *Product) bool {
++			return p.SKU != nil && *p.SKU == *cmd.SKU
++		})).
+ 		Return(outbox.Message{})
+ 
+ 	// Mock outbox
+@@ -107,10 +110,59 @@ func TestUpdateProductHandler_Handle_Success(t *testing.T) {
+ 	require.NotNil(t, result)
+ 	assert.Equal(t, cmd.Name, result.Name)
+ 	assert.Equal(t, cmd.Description, result.Description)
++	assert.Equal(t, cmd.SKU, result.SKU)
+ 	assert.Equal(t, cmd.Price, result.Price)
+ 	assert.Equal(t, cmd.Quantity, result.Quantity)
+ }
+ 
++func TestUpdateProductHandler_Handle_NilSKUClearsExisting(t *testing.T) {
++	repo, _, _, outboxMock, txManager, eventFactory, handler := setupUpdateProductHandler(t)
++
++	ctx := testCtxUpdate()
++	existingProduct := createTestProduct()
++	existingProduct.SKU = ptr("OLD-SKU")
++
++	cmd := UpdateProductCommand{
++		ID:      existingProduct.ID,
++		Version: existingProduct.Version,
++		Name:    "Updated Product",
++		SKU:     nil,
++		Enabled: false,
++	}
++
++	repo.EXPECT().
++		FindByID(mock.Anything, existingProduct.ID).
++		Return(existingProduct, nil)
++
++	txManager.EXPECT().
++		WithTransaction(mock.Anything, mock.Anything).
++		RunAndReturn(func(ctx context.Context, fn func(context.Context) (any, error)) (any, error) {
++			return fn(ctx)
++		})
++
++	repo.EXPECT().
++		Update(mock.Anything, mock.AnythingOfType("*product.Product")).
++		RunAndReturn(func(_ context.Context, p *Product) (*Product, error) {
++			return p, nil
++		})
++
++	eventFactory.EXPECT().
++		NewProductUpdatedOutboxMessage(mock.Anything, mock.MatchedBy(func(p *Product) bool {
++			return p.SKU == nil
++		})).
++		Return(outbox.Message{})
++
++	outboxMock.EXPECT().
++		Create(mock.Anything, mock.Anything).
++		Return(mockSendFunc, nil)
++
++	result, err := handler.Handle(ctx, cmd)
++
++	require.NoError(t, err)
++	require.NotNil(t, result)
++	assert.Nil(t, result.SKU)
++}
++
+ func TestUpdateProductHandler_Handle_ProductNotFound(t *testing.T) {
+ 	repo, _, _, _, _, _, handler := setupUpdateProductHandler(t)
+ 
+diff --git a/ecommerce-catalog-service/internal/infrastructure/inbound/connect/product_handler.go b/ecommerce-catalog-service/internal/infrastructure/inbound/connect/product_handler.go
+index e075bea..7322653 100644
+--- a/ecommerce-catalog-service/internal/infrastructure/inbound/connect/product_handler.go
++++ b/ecommerce-catalog-service/internal/infrastructure/inbound/connect/product_handler.go
+@@ -39,6 +39,7 @@ func (h *ProductHandler) CreateProduct(ctx context.Context, req *connect.Request
+ 	cmd := product.CreateProductCommand{
+ 		Name:        req.Msg.GetName(),
+ 		Description: req.Msg.Description,
++		SKU:         req.Msg.Sku, // read directly: nil means unset, GetSku() would yield ""
+ 		Price:       req.Msg.GetPrice(),
+ 		Quantity:    req.Msg.GetQuantity(),
+ 		ImageID:     req.Msg.ImageId,
+@@ -66,6 +67,7 @@ func (h *ProductHandler) UpdateProduct(ctx context.Context, req *connect.Request
+ 		Version:     req.Msg.GetVersion(),
+ 		Name:        req.Msg.GetName(),
+ 		Description: req.Msg.Description,
++		SKU:         req.Msg.Sku, // read directly: nil means unset, GetSku() would yield ""
+ 		Price:       req.Msg.GetPrice(),
+ 		Quantity:    req.Msg.GetQuantity(),
+ 		ImageID:     req.Msg.ImageId,
+@@ -147,6 +149,7 @@ func toProtoProduct(p *product.Product) *catalogv1.Product {
+ 		Version:     int64(p.Version),
+ 		Name:        p.Name,
+ 		Description: p.Description,
++		Sku:         p.SKU,
+ 		Price:       p.Price,
+ 		Quantity:    int32(p.Quantity), //nolint:gosec // Quantity is a product inventory count, practically bounded
+ 		ImageId:     p.ImageID,
+diff --git a/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory.go b/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory.go
+index c711c80..9443398 100644
+--- a/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory.go
++++ b/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory.go
+@@ -61,6 +61,7 @@ func (f *productEventFactory) newProductUpdatedEvent(p *product.Product) *events
+ 		CreatedAt:   timestamppb.New(p.CreatedAt),
+ 		ModifiedAt:  timestamppb.New(p.ModifiedAt),
+ 		Attributes:  toProductEventAttributes(p.Attributes),
++		Sku:         p.SKU,
+ 	}
+ }
+ 
+diff --git a/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory_test.go b/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory_test.go
+new file mode 100644
+index 0000000..fadebf2
+--- /dev/null
++++ b/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory_test.go
+@@ -0,0 +1,49 @@
++package kafka
++
++import (
++	"testing"
++	"time"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++
++	"github.com/Sokol111/ecommerce-catalog-service/internal/application/product"
++)
++
++func testProduct(sku *string) *product.Product {
++	now := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
++	return product.Reconstruct(
++		"product-123",
++		3,
++		"Test Product",
++		new("Test description"),
++		sku,
++		99.99,
++		10,
++		new("image-123"),
++		new("category-123"),
++		true,
++		nil,
++		now,
++		now,
++	)
++}
++
++func TestNewProductUpdatedEvent_MapsSKU(t *testing.T) {
++	f := &productEventFactory{}
++
++	t.Run("sku set", func(t *testing.T) {
++		event := f.newProductUpdatedEvent(testProduct(new("SKU-123")))
++
++		require.NotNil(t, event.Sku)
++		assert.Equal(t, "SKU-123", *event.Sku)
++		assert.Equal(t, "product-123", event.ProductId)
++		assert.Equal(t, int64(3), event.Version)
++	})
++
++	t.Run("sku nil", func(t *testing.T) {
++		event := f.newProductUpdatedEvent(testProduct(nil))
++
++		assert.Nil(t, event.Sku)
++	})
++}
+diff --git a/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_entity.go b/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_entity.go
+index 4f49e04..45989c2 100644
+--- a/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_entity.go
++++ b/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_entity.go
+@@ -21,6 +21,7 @@ type ProductEntity struct {
+ 	Version     int64                    `bson:"version"`
+ 	Name        string                   `bson:"name"`
+ 	Description *string                  `bson:"description,omitempty"`
++	SKU         *string                  `bson:"sku,omitempty"`
+ 	Price       float64                  `bson:"price"`
+ 	Quantity    int32                    `bson:"quantity"`
+ 	ImageID     *string                  `bson:"imageId,omitempty"`
+diff --git a/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_mapper.go b/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_mapper.go
+index a609c6e..81c83a4 100644
+--- a/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_mapper.go
++++ b/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_mapper.go
+@@ -17,6 +17,7 @@ func (m *ProductMapper) ToEntity(p *product.Product) *ProductEntity {
+ 		Version:     p.Version,
+ 		Name:        p.Name,
+ 		Description: p.Description,
++		SKU:         p.SKU,
+ 		Price:       p.Price,
+ 		Quantity:    p.Quantity,
+ 		ImageID:     p.ImageID,
+@@ -34,6 +35,7 @@ func (m *ProductMapper) ToDomain(e *ProductEntity) *product.Product {
+ 		e.Version,
+ 		e.Name,
+ 		e.Description,
++		e.SKU,
+ 		e.Price,
+ 		e.Quantity,
+ 		e.ImageID,
+diff --git a/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_mapper_test.go b/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_mapper_test.go
+index d82750b..db57844 100644
+--- a/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_mapper_test.go
++++ b/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_mapper_test.go
+@@ -28,6 +28,7 @@ func TestProductMapper_ToEntity(t *testing.T) {
+ 			2,
+ 			"iPhone 15 Pro",
+ 			ptr("Latest iPhone model"),
++			ptr("IPH-15-PRO"),
+ 			999.99,
+ 			50,
+ 			ptr("image-123"),
+@@ -58,6 +59,7 @@ func TestProductMapper_ToEntity(t *testing.T) {
+ 		assert.Equal(t, int64(2), entity.Version)
+ 		assert.Equal(t, "iPhone 15 Pro", entity.Name)
+ 		assert.Equal(t, ptr("Latest iPhone model"), entity.Description)
++		assert.Equal(t, ptr("IPH-15-PRO"), entity.SKU)
+ 		assert.Equal(t, float64(999.99), entity.Price)
+ 		assert.Equal(t, int32(50), entity.Quantity)
+ 		assert.Equal(t, ptr("image-123"), entity.ImageID)
+@@ -84,6 +86,7 @@ func TestProductMapper_ToEntity(t *testing.T) {
+ 			1,
+ 			"Simple Product",
+ 			nil,
++			nil,
+ 			10.0,
+ 			100,
+ 			nil,
+@@ -100,6 +103,7 @@ func TestProductMapper_ToEntity(t *testing.T) {
+ 		assert.Equal(t, "prod-456", entity.ID)
+ 		assert.Equal(t, "Simple Product", entity.Name)
+ 		assert.Nil(t, entity.Description)
++		assert.Nil(t, entity.SKU)
+ 		assert.Nil(t, entity.ImageID)
+ 		assert.Nil(t, entity.CategoryID)
+ 		assert.False(t, entity.Enabled)
+@@ -113,6 +117,7 @@ func TestProductMapper_ToEntity(t *testing.T) {
+ 			1,
+ 			"Test Product",
+ 			nil,
++			nil,
+ 			50.0,
+ 			10,
+ 			nil,
+@@ -150,6 +155,7 @@ func TestProductMapper_ToDomain(t *testing.T) {
+ 			Version:     5,
+ 			Name:        "MacBook Pro",
+ 			Description: ptr("Professional laptop"),
++			SKU:         ptr("MBP-14-M3"),
+ 			Price:       2499.99,
+ 			Quantity:    25,
+ 			ImageID:     ptr("img-macbook"),
+@@ -171,6 +177,7 @@ func TestProductMapper_ToDomain(t *testing.T) {
+ 		assert.Equal(t, int64(5), domain.Version)
+ 		assert.Equal(t, "MacBook Pro", domain.Name)
+ 		assert.Equal(t, ptr("Professional laptop"), domain.Description)
++		assert.Equal(t, ptr("MBP-14-M3"), domain.SKU)
+ 		assert.Equal(t, float64(2499.99), domain.Price)
+ 		assert.Equal(t, int32(25), domain.Quantity)
+ 		assert.Equal(t, ptr("img-macbook"), domain.ImageID)
+@@ -202,6 +209,7 @@ func TestProductMapper_ToDomain(t *testing.T) {
+ 		require.NotNil(t, domain)
+ 		assert.Equal(t, "prod-456", domain.ID)
+ 		assert.Nil(t, domain.Description)
++		assert.Nil(t, domain.SKU)
+ 		assert.Nil(t, domain.ImageID)
+ 		assert.Nil(t, domain.CategoryID)
+ 		assert.Nil(t, domain.Attributes)
+@@ -265,6 +273,7 @@ func TestProductMapper_RoundTrip(t *testing.T) {
+ 			3,
+ 			"Samsung Galaxy S24",
+ 			ptr("Flagship smartphone"),
++			ptr("SGS24-PB"),
+ 			899.99,
+ 			100,
+ 			ptr("img-galaxy"),
+@@ -288,6 +297,7 @@ func TestProductMapper_RoundTrip(t *testing.T) {
+ 		assert.Equal(t, original.Version, restored.Version)
+ 		assert.Equal(t, original.Name, restored.Name)
+ 		assert.Equal(t, original.Description, restored.Description)
++		assert.Equal(t, original.SKU, restored.SKU)
+ 		assert.Equal(t, original.Price, restored.Price)
+ 		assert.Equal(t, original.Quantity, restored.Quantity)
+ 		assert.Equal(t, original.ImageID, restored.ImageID)
+@@ -306,6 +316,31 @@ func TestProductMapper_RoundTrip(t *testing.T) {
+ 			assert.Equal(t, attr.BooleanValue, restored.Attributes[i].BooleanValue)
+ 		}
+ 	})
++
++	t.Run("domain -> entity -> domain preserves nil sku", func(t *testing.T) {
++		now := time.Now().UTC().Truncate(time.Millisecond)
++		original := product.Reconstruct(
++			"prod-roundtrip-nil-sku",
++			1,
++			"No SKU Product",
++			nil,
++			nil,
++			10.0,
++			1,
++			nil,
++			nil,
++			false,
++			nil,
++			now,
++			now,
++		)
++
++		entity := mapper.ToEntity(original)
++		assert.Nil(t, entity.SKU)
++
++		restored := mapper.ToDomain(entity)
++		assert.Nil(t, restored.SKU)
++	})
+ }
+ 
+ func TestMapProductAttributeToEntity(t *testing.T) {
+diff --git a/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_repository_integration_test.go b/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_repository_integration_test.go
+index 16657d1..32342b0 100644
+--- a/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_repository_integration_test.go
++++ b/ecommerce-catalog-service/internal/infrastructure/outbound/mongo/product_repository_integration_test.go
+@@ -24,6 +24,7 @@ func TestProductRepository_Insert(t *testing.T) {
+ 	prod, err := product.NewProduct(
+ 		"Test Product",
+ 		new("A test product description"),
++		new("TEST-SKU-1"),
+ 		99.99,
+ 		10,
+ 		&imageID,
+@@ -45,6 +46,7 @@ func TestProductRepository_Insert(t *testing.T) {
+ 	assert.Equal(t, prod.ID, found.ID)
+ 	assert.Equal(t, prod.Name, found.Name)
+ 	assert.Equal(t, *prod.Description, *found.Description)
++	assert.Equal(t, prod.SKU, found.SKU)
+ 	assert.Equal(t, prod.Price, found.Price)
+ 	assert.True(t, found.Enabled)
+ 	assert.Len(t, found.Attributes, 2)
+@@ -58,6 +60,7 @@ func TestProductRepository_Update(t *testing.T) {
+ 	prod, err := product.NewProduct(
+ 		"Original Name",
+ 		nil,
++		nil,
+ 		10.00,
+ 		5,
+ 		nil,
+@@ -73,7 +76,7 @@ func TestProductRepository_Update(t *testing.T) {
+ 	// Update using domain method (modifies in place) - enable product requires image and category
+ 	imageID := uuid.New().String()
+ 	categoryID := uuid.New().String()
+-	err = prod.Update("Updated Name", new("New description"), 20.00, 15, &imageID, &categoryID, true, nil)
++	err = prod.Update("Updated Name", new("New description"), nil, 20.00, 15, &imageID, &categoryID, true, nil)
+ 	require.NoError(t, err)
+ 
+ 	result, err := testProductRepo.Update(ctx, prod)
+@@ -88,6 +91,44 @@ func TestProductRepository_Update(t *testing.T) {
+ 	assert.Equal(t, result.Version, found.Version)
+ }
+ 
++func TestProductRepository_UpdateClearsSKU(t *testing.T) {
++	cleanupCollection(t, "product")
++
++	ctx := context.Background()
++
++	prod, err := product.NewProduct(
++		"SKU Product",
++		nil,
++		new("SKU-TO-CLEAR"),
++		10.00,
++		5,
++		nil,
++		nil,
++		false,
++		nil,
++	)
++	require.NoError(t, err)
++
++	err = testProductRepo.Insert(ctx, prod)
++	require.NoError(t, err)
++
++	found, err := testProductRepo.FindByID(ctx, prod.ID)
++	require.NoError(t, err)
++	require.NotNil(t, found.SKU)
++	assert.Equal(t, "SKU-TO-CLEAR", *found.SKU)
++
++	// Full-replace update without SKU must remove the stored field
++	err = found.Update("SKU Product", nil, nil, 10.00, 5, nil, nil, false, nil)
++	require.NoError(t, err)
++
++	_, err = testProductRepo.Update(ctx, found)
++	require.NoError(t, err)
++
++	cleared, err := testProductRepo.FindByID(ctx, prod.ID)
++	require.NoError(t, err)
++	assert.Nil(t, cleared.SKU)
++}
++
+ func TestProductRepository_FindByID(t *testing.T) {
+ 	cleanupCollection(t, "product")
+ 
+@@ -96,6 +137,7 @@ func TestProductRepository_FindByID(t *testing.T) {
+ 	prod, err := product.NewProduct(
+ 		"Find Me",
+ 		nil,
++		nil,
+ 		5.00,
+ 		1,
+ 		nil,
+@@ -128,9 +170,9 @@ func TestProductRepository_FindList(t *testing.T) {
+ 	imageID := uuid.New().String()
+ 
+ 	// Create test products
+-	prod1, _ := product.NewProduct("Product 1", nil, 10.00, 1, nil, nil, false, nil)
+-	prod2, _ := product.NewProduct("Product 2", nil, 20.00, 2, &imageID, &categoryID, true, nil)
+-	prod3, _ := product.NewProduct("Product 3", nil, 30.00, 3, &imageID, &categoryID, true, nil)
++	prod1, _ := product.NewProduct("Product 1", nil, nil, 10.00, 1, nil, nil, false, nil)
++	prod2, _ := product.NewProduct("Product 2", nil, nil, 20.00, 2, &imageID, &categoryID, true, nil)
++	prod3, _ := product.NewProduct("Product 3", nil, nil, 30.00, 3, &imageID, &categoryID, true, nil)
+ 
+ 	// Add delay to ensure different createdAt times
+ 	require.NoError(t, testProductRepo.Insert(ctx, prod1))
+-- 
+2.43.0
+
+
+From f10d3f321ec0401f7fa4d6d373448a0452dbe736 Mon Sep 17 00:00:00 2001
+From: Michael Egner <m.egner@gmx.net>
+Date: Thu, 22 Oct 2026 13:57:39 +0200
+Subject: [PATCH 3/3] feat(productview): project optional SKU from
+ ProductUpdatedEvent
+
+- ProductView gains SKU *string; NewProductView/Reconstruct take sku after
+  description.
+- Kafka handler passes e.Sku (field, not GetSku()).
+- Mongo entity stores `sku,omitempty`; mapper maps both directions. Upsert's
+  $replaceWith/$mergeObjects already sets or removes the field.
+- Add stdlib tests for the mapper round trip and the event handler.
+
+Requires ecommerce-catalog-service-api v1.3.9 (generated Sku field).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../application/productview/product_view.go   |  7 +-
+ .../inbound/kafka/product_handler.go          |  1 +
+ .../inbound/kafka/product_handler_test.go     | 75 +++++++++++++++++++
+ .../outbound/mongo/product_view_entity.go     |  1 +
+ .../outbound/mongo/product_view_mapper.go     |  2 +
+ .../mongo/product_view_mapper_test.go         | 58 ++++++++++++++
+ 6 files changed, 142 insertions(+), 2 deletions(-)
+ create mode 100644 ecommerce-product-query-service/internal/infrastructure/inbound/kafka/product_handler_test.go
+ create mode 100644 ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_mapper_test.go
+
+diff --git a/ecommerce-product-query-service/internal/application/productview/product_view.go b/ecommerce-product-query-service/internal/application/productview/product_view.go
+index 743c054..e3aa398 100644
+--- a/ecommerce-product-query-service/internal/application/productview/product_view.go
++++ b/ecommerce-product-query-service/internal/application/productview/product_view.go
+@@ -22,6 +22,7 @@ type ProductView struct {
+ 	Version       int64
+ 	Name          string
+ 	Description   *string
++	SKU           *string
+ 	Price         float64
+ 	Quantity      int32
+ 	ImageID       *string
+@@ -36,12 +37,13 @@ type ProductView struct {
+ }
+ 
+ // Reconstruct creates a ProductView from persistence data
+-func Reconstruct(id string, version int64, name string, description *string, price float64, quantity int32, imageID *string, smallImageURL *string, largeImageURL *string, categoryID *string, enabled bool, createdAt, modifiedAt time.Time, attributes []AttributeValue, attrs map[string]any) *ProductView {
++func Reconstruct(id string, version int64, name string, description *string, sku *string, price float64, quantity int32, imageID *string, smallImageURL *string, largeImageURL *string, categoryID *string, enabled bool, createdAt, modifiedAt time.Time, attributes []AttributeValue, attrs map[string]any) *ProductView {
+ 	return &ProductView{
+ 		ID:            id,
+ 		Version:       version,
+ 		Name:          name,
+ 		Description:   description,
++		SKU:           sku,
+ 		Price:         price,
+ 		Quantity:      quantity,
+ 		ImageID:       imageID,
+@@ -57,12 +59,13 @@ func Reconstruct(id string, version int64, name string, description *string, pri
+ }
+ 
+ // NewProductView creates a new product view from event data
+-func NewProductView(id string, version int64, name string, description *string, price float64, quantity int32, imageID *string, categoryID *string, enabled bool, createdAt, modifiedAt time.Time, attributes []AttributeValue, attrs map[string]any) *ProductView {
++func NewProductView(id string, version int64, name string, description *string, sku *string, price float64, quantity int32, imageID *string, categoryID *string, enabled bool, createdAt, modifiedAt time.Time, attributes []AttributeValue, attrs map[string]any) *ProductView {
+ 	return &ProductView{
+ 		ID:            id,
+ 		Version:       version,
+ 		Name:          name,
+ 		Description:   description,
++		SKU:           sku,
+ 		Price:         price,
+ 		Quantity:      quantity,
+ 		ImageID:       imageID,
+diff --git a/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/product_handler.go b/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/product_handler.go
+index 1ec3a46..0b88b63 100644
+--- a/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/product_handler.go
++++ b/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/product_handler.go
+@@ -37,6 +37,7 @@ func (h *ProductHandler) HandleProductUpdated(ctx context.Context, e *catalog_ev
+ 		e.Version,
+ 		e.Name,
+ 		e.Description,
++		e.Sku, // field, not GetSku(): nil keeps "not set" distinct from ""
+ 		e.Price,
+ 		e.Quantity,
+ 		e.ImageId,
+diff --git a/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/product_handler_test.go b/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/product_handler_test.go
+new file mode 100644
+index 0000000..0579d56
+--- /dev/null
++++ b/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/product_handler_test.go
+@@ -0,0 +1,75 @@
++package kafka
++
++import (
++	"context"
++	"testing"
++	"time"
++
++	catalog_eventsv1 "github.com/Sokol111/ecommerce-catalog-service-api/gen/go/catalog/events/v1"
++	"github.com/Sokol111/ecommerce-commons/pkg/core/logger"
++	"github.com/Sokol111/ecommerce-product-query-service/internal/application/productview"
++	"go.uber.org/zap"
++	"google.golang.org/protobuf/types/known/timestamppb"
++)
++
++// fakeUpsertHandler records the commands it receives.
++type fakeUpsertHandler struct {
++	cmds []productview.UpsertProductCommand
++}
++
++func (f *fakeUpsertHandler) Handle(_ context.Context, cmd productview.UpsertProductCommand) error {
++	f.cmds = append(f.cmds, cmd)
++	return nil
++}
++
++func newTestEvent(sku *string) *catalog_eventsv1.ProductUpdatedEvent {
++	now := timestamppb.New(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
++	return &catalog_eventsv1.ProductUpdatedEvent{
++		ProductId:  "product-123",
++		Name:       "Test Product",
++		Price:      99.99,
++		Quantity:   10,
++		Version:    2,
++		CreatedAt:  now,
++		ModifiedAt: now,
++		Sku:        sku,
++	}
++}
++
++func TestProductHandler_HandleProductUpdated_SKU(t *testing.T) {
++	ctx := logger.With(context.Background(), zap.NewNop())
++
++	t.Run("sku set", func(t *testing.T) {
++		upsert := &fakeUpsertHandler{}
++		h := NewProductHandler(upsert, nil, nil)
++		sku := "SKU-123"
++
++		if err := h.HandleProductUpdated(ctx, newTestEvent(&sku)); err != nil {
++			t.Fatalf("HandleProductUpdated() error = %v", err)
++		}
++
++		if len(upsert.cmds) != 1 {
++			t.Fatalf("upsert called %d times, want 1", len(upsert.cmds))
++		}
++		got := upsert.cmds[0].Product.SKU
++		if got == nil || *got != sku {
++			t.Fatalf("Product.SKU = %v, want %q", got, sku)
++		}
++	})
++
++	t.Run("sku nil", func(t *testing.T) {
++		upsert := &fakeUpsertHandler{}
++		h := NewProductHandler(upsert, nil, nil)
++
++		if err := h.HandleProductUpdated(ctx, newTestEvent(nil)); err != nil {
++			t.Fatalf("HandleProductUpdated() error = %v", err)
++		}
++
++		if len(upsert.cmds) != 1 {
++			t.Fatalf("upsert called %d times, want 1", len(upsert.cmds))
++		}
++		if got := upsert.cmds[0].Product.SKU; got != nil {
++			t.Fatalf("Product.SKU = %q, want nil", *got)
++		}
++	})
++}
+diff --git a/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_entity.go b/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_entity.go
+index 0d7e783..a11aa26 100644
+--- a/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_entity.go
++++ b/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_entity.go
+@@ -23,6 +23,7 @@ type ProductViewEntity struct {
+ 	Version       int64                    `bson:"version"`
+ 	Name          string                   `bson:"name"`
+ 	Description   *string                  `bson:"description,omitempty"`
++	SKU           *string                  `bson:"sku,omitempty"`
+ 	Price         float64                  `bson:"price"`
+ 	Quantity      int32                    `bson:"quantity"`
+ 	ImageID       *string                  `bson:"imageId,omitempty"`
+diff --git a/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_mapper.go b/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_mapper.go
+index 3fcc42a..cab7577 100644
+--- a/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_mapper.go
++++ b/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_mapper.go
+@@ -21,6 +21,7 @@ func (m *ProductViewMapper) ToEntity(domain *productview.ProductView) *ProductVi
+ 		Version:       domain.Version,
+ 		Name:          domain.Name,
+ 		Description:   domain.Description,
++		SKU:           domain.SKU,
+ 		Price:         domain.Price,
+ 		Quantity:      domain.Quantity,
+ 		ImageID:       domain.ImageID,
+@@ -41,6 +42,7 @@ func (m *ProductViewMapper) ToDomain(entity *ProductViewEntity) *productview.Pro
+ 		entity.Version,
+ 		entity.Name,
+ 		entity.Description,
++		entity.SKU,
+ 		entity.Price,
+ 		entity.Quantity,
+ 		entity.ImageID,
+diff --git a/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_mapper_test.go b/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_mapper_test.go
+new file mode 100644
+index 0000000..44f1957
+--- /dev/null
++++ b/ecommerce-product-query-service/internal/infrastructure/outbound/mongo/product_view_mapper_test.go
+@@ -0,0 +1,58 @@
++package mongo
++
++import (
++	"testing"
++	"time"
++
++	"github.com/Sokol111/ecommerce-product-query-service/internal/application/productview"
++)
++
++func newTestProductView(sku *string) *productview.ProductView {
++	now := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
++	return productview.NewProductView(
++		"product-123",
++		2,
++		"Test Product",
++		nil,
++		sku,
++		99.99,
++		10,
++		nil,
++		nil,
++		false,
++		now,
++		now,
++		nil,
++		nil,
++	)
++}
++
++func TestProductViewMapper_SKURoundTrip(t *testing.T) {
++	mapper := NewProductViewMapper()
++
++	t.Run("sku set", func(t *testing.T) {
++		sku := "SKU-123"
++
++		entity := mapper.ToEntity(newTestProductView(&sku))
++		if entity.SKU == nil || *entity.SKU != sku {
++			t.Fatalf("entity.SKU = %v, want %q", entity.SKU, sku)
++		}
++
++		restored := mapper.ToDomain(entity)
++		if restored.SKU == nil || *restored.SKU != sku {
++			t.Fatalf("restored.SKU = %v, want %q", restored.SKU, sku)
++		}
++	})
++
++	t.Run("sku nil", func(t *testing.T) {
++		entity := mapper.ToEntity(newTestProductView(nil))
++		if entity.SKU != nil {
++			t.Fatalf("entity.SKU = %q, want nil", *entity.SKU)
++		}
++
++		restored := mapper.ToDomain(entity)
++		if restored.SKU != nil {
++			t.Fatalf("restored.SKU = %q, want nil", *restored.SKU)
++		}
++	})
++}
+-- 
+2.43.0
+

@@ -16,7 +16,7 @@ deployment edge. This script is the evidence that the edge does its job. Checks:
 - `--profile sokol111`: `get_destination_consumers` for the frozen Sokol111 Topic `catalog.product.events`
   answers `PARTIAL` with `CAPTURE_SCOPE_LIMITED`, exactly the frozen C1 `RESOLVED` Services, and every row
   at the C1 capture time T; the same-snapshot evidence drill-down returns exactly the requested refs, each
-  `RESOLVED` (a frozen observation at T, not live use);
+  `RESOLVED` with its `kind` and `evidence` (a frozen observation at T, not live use);
 - `get_api_consumer_usage` (no gateway source on either demo) and `get_destination_consumers` for an
   unknown Topic answer with a typed refusal; any evaluated answer there would be invented;
 - the import, ingest, query and unrelated routes are not reachable (any non-2xx, or a connection
@@ -313,6 +313,7 @@ def check_sokol111_consumers_and_drilldown(url: str) -> tuple[str, str]:
             evidence.get("outcome") != "ANSWERED"
             or [e.get("ref") for e in entries] != batch
             or {e.get("status") for e in entries} != {"RESOLVED"}
+            or not all(e.get("kind") and e.get("evidence") for e in entries)
         ):
             return (
                 FAIL,

@@ -49,6 +49,7 @@ class Guards:
         self.only_image_row = disabled.get("only_image_row", False)
         self.later_capture = disabled.get("later_capture", False)
         self.missing_entry = disabled.get("missing_entry", False)
+        self.empty_evidence = disabled.get("empty_evidence", False)
         self.many_refs = disabled.get("many_refs", False)
         self.evidence_batches: list[list[str]] = []
         self.mcp_requests = 0
@@ -138,7 +139,12 @@ def _sokol111_answer(request: dict, guards: Guards) -> dict:
         refs = request["evidence_refs"]
         assert len(refs) <= verify.MAX_EVIDENCE_REFS
         guards.evidence_batches.append(refs)
-        entries = [{"ref": ref, "status": "RESOLVED"} for ref in refs]
+        content = (
+            {}
+            if guards.empty_evidence
+            else {"kind": "ATTACHMENT", "evidence": {"kind": "ATTACHMENT"}}
+        )
+        entries = [{"ref": ref, "status": "RESOLVED", **content} for ref in refs]
         return {
             "outcome": "ANSWERED",
             "data": {"entries": entries[1:] if guards.missing_entry else entries},
@@ -273,7 +279,14 @@ def test_the_sokol111_profile_passes_on_a_correctly_gated_edge():
 @pytest.mark.parametrize(
     "guard",
     # no attachment; one frozen consumer missing; a row at C2's T; one requested ref unanswered
-    ["no_sokol111_attachment", "only_image_row", "later_capture", "missing_entry"],
+    # ...; a RESOLVED entry without its kind and evidence content
+    [
+        "no_sokol111_attachment",
+        "only_image_row",
+        "later_capture",
+        "missing_entry",
+        "empty_evidence",
+    ],
 )
 def test_the_sokol111_check_fails_when_the_answer_departs_from_c1(guard):
     results = _run(Guards(**{guard: True}), profile="sokol111")
