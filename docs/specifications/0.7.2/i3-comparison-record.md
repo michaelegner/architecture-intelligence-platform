@@ -64,6 +64,11 @@ Run 2 measured the **unfixed** wording. This PR changes only text: the `get_dest
 - **What AIP added here:** a qualified Service attribution with its capture time, and a typed statement that production is unobserved. It did not change the consumer set, which source and the `rpk` files already gave. Whether that changes the plan or the rollout gate is what the full run (stage 2) measures.
 - **v0.7.3 candidate:** field `description`s for `destination_id` and `broker_id` in the request schema, where agents read them in `inputSchema`. That regenerates the frozen 0.7.1 request schema and needs a deliberate spec edit, so it is not part of this PR.
 
+**Run 3 stage 2 setup (hosted candidate), 2026-10-22T17:58Z.** The owner loaded a candidate image of this branch onto the VPS and recreated only the AIP service (`.env` line `AIP_IMAGE`; the previous v0.7.1 digest is kept in `.env.bak-before-candidate`). The candidate is not published.
+- **Identity:** commit `09bd454921d462f8a00ed9a87a1938d632fcb06c` (the PR head when built), image id `sha256:79d7e06e…9487fcf`, tarball sha256 `e290f0478fd058f2…`. It reports `producer.version 0.7.1` and `build_revision unknown`, because the build had no revision injected; the image id is the identity.
+- **Checks after the switch:** `verify_public_edge.py --profile sokol111` all PASS (17:58:56Z). The snapshot id is unchanged (`aip:snapshot:v1:a08b1bad…`), so only the wording differs from run 2. The new text is visible on both refusals: a topic name gives `UNKNOWN_DESTINATION` with "destination_id must be the canonical Topic id, not a topic name", and the broker's canonical id gives `BROKER_MISMATCH` with "broker_id must be the stable broker id, the BrokerRef name, not the canonical broker:owned: id".
+- **Run:** the same fixture (`fixture.yaml`, unchanged since `de51afd`), same task, no context card, arm B on `https://mcp.daip.io/mcp`, each arm in a standalone clone. The v0.7.2 release replaces the candidate with the published digest (spec §6.2).
+
 ## Effort and cost
 
 - **Setup:** planning started 05:47Z and the first run started 07:37Z, about 1h50m. That includes the harness patch, the synthetic repo, the owner's Unblocked organization and token steps, and the isolation probes (plugins and auto-memory leaked until explicitly disabled).
