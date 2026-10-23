@@ -146,7 +146,7 @@ No seventh tool or new canonical semantics are required for success.
 | D4 | Unblocked is the **required** comparator. `context-engine-simulator` is the **preferred I3 harness**, adapted for identical Unblocked-based workflows with AIP enabled only in the second arm; a documented manual fallback is allowed. | v0.7.2 decision |
 | D5 | No seventh search tool or AIP-owned cross-view composition is pre-authorized. | Roadmap accepted |
 | D6 | #617 image-security remediation is baseline; the exact published digest is checked before hosted release. | Implemented / release verification pending |
-| D7 | One owner product checkpoint decides what, if anything, AIP should own in v0.8. | Pending evidence |
+| D7 | One owner product checkpoint decides what, if anything, AIP should own in v0.8. | Decided 2026-10-23: **DEFER** ([record](i3-comparison-record.md#owner-checkpoint-i4-defer)) |
 
 ## 9. Baseline carry-forward
 
