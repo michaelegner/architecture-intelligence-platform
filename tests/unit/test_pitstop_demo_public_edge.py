@@ -46,6 +46,12 @@ class Guards:
         self.empty_200_for_unknown_host = disabled.get("empty_200_for_unknown_host", False)
         self.invented_answer = disabled.get("invented_answer", False)
         self.no_sokol111_attachment = disabled.get("no_sokol111_attachment", False)
+        self.only_image_row = disabled.get("only_image_row", False)
+        self.later_capture = disabled.get("later_capture", False)
+        self.missing_entry = disabled.get("missing_entry", False)
+        self.empty_evidence = disabled.get("empty_evidence", False)
+        self.many_refs = disabled.get("many_refs", False)
+        self.evidence_batches: list[list[str]] = []
         self.mcp_requests = 0
 
 
@@ -130,18 +136,35 @@ def _edge(guards: Guards) -> ThreadingHTTPServer:
 def _sokol111_answer(request: dict, guards: Guards) -> dict:
     """The frozen Sokol111 C1 reading, as the hosted instance answers it."""
     if request["mode"] == "evidence":
-        assert request["evidence_refs"] == ["destination-evidence:a", "destination-evidence:b"]
-        return {"outcome": "ANSWERED", "data": {"entries": [{"status": "RESOLVED"}] * 2}}
+        refs = request["evidence_refs"]
+        assert len(refs) <= verify.MAX_EVIDENCE_REFS
+        guards.evidence_batches.append(refs)
+        content = (
+            {}
+            if guards.empty_evidence
+            else {"kind": "ATTACHMENT", "evidence": {"kind": "ATTACHMENT"}}
+        )
+        entries = [{"ref": ref, "status": "RESOLVED", **content} for ref in refs]
+        return {
+            "outcome": "ANSWERED",
+            "data": {"entries": entries[1:] if guards.missing_entry else entries},
+        }
+    extra = [f"destination-evidence:x{i:02d}" for i in range(25)] if guards.many_refs else []
     rows = [
         {
-            "group_id": "ecommerce-image-service",
+            "group_id": group,
             "outcome": "RESOLVED",
-            "service_id": "service:ecommerce-image-service",
+            "service_id": f"service:{group}",
             "captured_at": "2026-10-21T17:53:57Z",
-            "attachment_evidence_refs": ["destination-evidence:a"],
-            "mapping_evidence_refs": ["destination-evidence:b"],
+            "attachment_evidence_refs": [f"destination-evidence:{group}-a", *extra],
+            "mapping_evidence_refs": [f"destination-evidence:{group}-m"],
         }
+        for group in ("ecommerce-image-service", "ecommerce-product-query-service")
     ]
+    if guards.only_image_row:
+        rows = rows[:1]
+    if guards.later_capture:
+        rows[1]["captured_at"] = "2026-10-21T17:56:03Z"
     return {
         "outcome": "PARTIAL",
         "snapshot": {"snapshot_id": "aip:snapshot:v1:" + "1" * 64},
@@ -253,8 +276,27 @@ def test_the_sokol111_profile_passes_on_a_correctly_gated_edge():
     assert set(results.values()) == {verify.PASS}, results
 
 
-def test_the_sokol111_check_fails_without_a_resolved_attachment():
-    results = _run(Guards(no_sokol111_attachment=True), profile="sokol111")
+@pytest.mark.parametrize(
+    "guard",
+    # no attachment; one frozen consumer missing; a row at C2's T; one requested ref unanswered
+    # ...; a RESOLVED entry without its kind and evidence content
+    [
+        "no_sokol111_attachment",
+        "only_image_row",
+        "later_capture",
+        "missing_entry",
+        "empty_evidence",
+    ],
+)
+def test_the_sokol111_check_fails_when_the_answer_departs_from_c1(guard):
+    results = _run(Guards(**{guard: True}), profile="sokol111")
     assert {k for k, v in results.items() if v == verify.FAIL} == {
         "Sokol111 consumers + evidence drill-down"
     }, results
+
+
+def test_the_sokol111_drilldown_resolves_more_than_twenty_refs_in_batches():
+    guards = Guards(many_refs=True)
+    results = _run(guards, rate_limit=None, profile="sokol111")
+    assert results["Sokol111 consumers + evidence drill-down"] == verify.PASS, results
+    assert [len(batch) for batch in guards.evidence_batches] == [20, 9]

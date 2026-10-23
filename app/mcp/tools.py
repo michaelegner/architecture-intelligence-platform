@@ -157,7 +157,10 @@ def register_tools(
             "never complete: each capture covers only its configured groups. With request.mode "
             '"evidence", the same tool resolves exact evidence refs from such an answer at the '
             "supplied snapshot; evidence_refs must be duplicate-free and sorted in ascending "
-            "order as plain strings."
+            "order as plain strings. In query mode, destination_id is the canonical Topic id "
+            "(topic:owned:..., as returned in get_service_dependencies), never a topic name; "
+            "broker_id is the stable broker id (the name of the BrokerRef, such as kafka:...), "
+            "not the canonical Broker id broker:owned:..."
         ),
         annotations=_READ_ONLY_ANNOTATIONS,
     )
