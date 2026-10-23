@@ -62,7 +62,7 @@ Run 2 measured the **unfixed** wording. This PR changes only text: the `get_dest
 - **R7 navigation:** the agent's **first** `get_destination_consumers` call was valid (`topic:owned:5534…`, `kafka:sokol111-local`, `local`). It answered `PARTIAL` with both consumers `RESOLVED` and `CAPTURE_SCOPE_LIMITED`; a second valid-form call for `production` got the correct `NO_ACCEPTED_CAPTURE`. In run 2, all 14 calls were refused.
 - **R3:** the context bundle reports both consumers from "the 2026-10-21T17:53:57Z capture", keeps `CAPTURE_SCOPE_LIMITED`, notes that AIP's answer derives from the same capture as the stock `rpk` files, and records production as **not observed** (`NO_ACCEPTED_CAPTURE`), not as "no consumers".
 - **What AIP added here:** a qualified Service attribution with its capture time, and a typed statement that production is unobserved. It did not change the consumer set, which source and the `rpk` files already gave. Whether that changes the plan or the rollout gate is what the full run (stage 2) measures.
-- **v0.7.3 candidate:** field `description`s for `destination_id` and `broker_id` in the request schema, where agents read them in `inputSchema`. That regenerates the frozen 0.7.1 request schema and needs a deliberate spec edit, so it is not part of this PR.
+- **Not planned:** field `description`s for `destination_id` and `broker_id` in the request schema, where agents read them in `inputSchema`. That regenerates the frozen 0.7.1 request schema and needs a deliberate spec edit, so it is not part of this PR.
 
 **Run 3 stage 2 setup (hosted candidate), 2026-10-22T17:58Z.** The owner loaded a candidate image of this branch onto the VPS and recreated only the AIP service (`.env` line `AIP_IMAGE`; the previous v0.7.1 digest is kept in `.env.bak-before-candidate`). The candidate is not published.
 - **Identity:** commit `09bd454921d462f8a00ed9a87a1938d632fcb06c` (the PR head when built), image id `sha256:79d7e06e…9487fcf`, tarball sha256 `e290f0478fd058f2…`. It reports `producer.version 0.7.1` and `build_revision unknown`, because the build had no revision injected; the image id is the identity.
@@ -128,8 +128,7 @@ Production Alloy also exports traces only to Grafana Cloud (Tempo); nothing send
 - The only place AIP could add information, window-based runtime evidence with caller attribution, is not available from Sokol111 as found (audit above; Round 6).
 - The evidence is one run per arm, one model and one task, so this is a deferral, not a finding that AIP has no value.
 
-**For v0.8** (spec §6.1): keep cross-view synthesis in the context-engine and agent layer; no AIP-owned composition and no seventh or discovery tool is introduced on this evidence. The v0.8 scope is set when v0.8 starts. The `destination_id` / `broker_id` schema descriptions remain a v0.7.3 candidate, not part of this decision.
-
+**For v0.8** (spec §6.1): keep cross-view synthesis in the context-engine and agent layer; no AIP-owned composition and no seventh or discovery tool is introduced on this evidence. The v0.8 scope is set when v0.8 starts.
 ## Known limits
 
 - The org name `architecture-intelligence-platform` is visible to both arms and held constant (disclosed in the kit README).
