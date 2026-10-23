@@ -616,7 +616,10 @@ DLQ/retry topology, or broad broker administration.
 > **AIP can evidence-qualify Service-level consumer attribution for broker-mediated destinations
 > without inventing equivalence between distinct broker-native concepts.**
 
-## v0.7.2 — Context-Engine Interoperability + Product-Boundary Qualification (planned)
+## v0.7.2 — Context-Engine Interoperability + Product-Boundary Qualification (shipped)
+
+Published **v0.7.2 on 2026-10-23**; terminal outcome **SHIPPED_VERIFIED**; owner product disposition **DEFER**.
+See the [release record](docs/release-validation/v0.7.2-release-record.md).
 
 **Goal:** make the complete v0.7.x Architecture Intelligence MCP surface consumable through the
 hosted read-only endpoint and use a mature context engine to challenge AIP's product boundary before
