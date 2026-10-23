@@ -96,6 +96,30 @@ Outputs: [`results/run3/`](i3-evidence/results/run3/). **Incomplete:** at 20:21:
 - **Run 2:** arm A 17m50s, $9.23; arm B 21m52s, $10.27 (3 minutes longer, 11% more cost). Run 1 added about $18 that produced nothing usable.
 - **Upkeep:** every new Sokol111 capture needs an AIP mapping review and an import, about 40 minutes once the environment exists (I2 record).
 
+## Runtime-evidence audit of Sokol111 (after run 3)
+
+Run 3 gave no AIP-only value, and a question inventory over the hosted package showed why: its declarations and mapping were authored from the same repositories and Helm values the agents read, and its one independent input, the Kafka consumer-state capture, is the same broker state `rpk` shows. AIP's possible advantage would therefore need window-based runtime evidence with caller attribution. This audit reads the frozen Sokol111 checkouts (synthetic repo `3d6a311`, see [`freeze.md`](i2-evidence/sokol111/freeze.md)) to see whether the system emits what AIP reads ([OpenTelemetry](../../opentelemetry.md)). Nothing was run and nothing was modified. It extends [Round 6](../../real-world-validation/v0.8.0/round6-sokol111-api-current-state-result.md), which covered HTTP and authentication only.
+
+| AIP reads | Sokol111 emits? | Where |
+|---|---|---|
+| `peer.service` | No | Absent from all Go, YAML and TS sources |
+| `messaging.operation.type` | No | `kafka.produce` / `kafka.consume` set only `messaging.system`, `messaging.destination`, and message id, partition, offset and key (`ecommerce-commons` `outbox/trace_propagator.go:57-59`, `consumer/tracing.go:58-62`) |
+| `messaging.destination.name` | No | The older key `messaging.destination` is used, which AIP does not read |
+| `messaging.destination.subscription.name` | No | The consumer group exists only in Helm configuration |
+| `service.name`, `deployment.environment.name` | Yes | `pkg/observability/fxconfig/resource.go:19-21` |
+| `k8s.pod.uid` | No | Local Alloy does not extract it and deletes it from trace resources (`environments/local/values/alloy.yaml:76-77, 87-88`); production Alloy has no Kubernetes processor |
+| `http.route`, `url.template` | Unverified | Server uses `otelhttp.NewHandler(handler, "http-server")` v0.69.0 (`pkg/http/server/fxconfig/module.go:27`); the library's route behaviour at that version was not checked |
+| CLIENT spans for outbound HTTP | No | The HTTP client has no `otelhttp` transport (`pkg/http/client/client.go`); only the gRPC client is instrumented (`otelgrpc`, `rpc.*`) |
+
+| AIP capability | Result | Blocker |
+|---|---|---|
+| Kafka destination consumers from traces | Cannot | Best case (Round 4 variant D): Catalog `PUBLISHES_TO` observed; consumers stay `unresolved_destination_semantics`, since a consumer group never becomes a Subscription |
+| Service dependencies and drift (HTTP/RPC) | Cannot | No `peer.service` and no outbound HTTP CLIENT spans, so a call target cannot be identified |
+| API-consumer usage | Cannot | No stable caller identity on SERVER spans; a SERVER-only span stays `UNRESOLVED` (agrees with Round 6) |
+| Runtime identity observation | Cannot | `k8s.pod.uid` is not present |
+
+Production Alloy also exports traces only to Grafana Cloud (Tempo); nothing sends them to AIP. A faithful Sokol111 therefore cannot supply the runtime evidence in which AIP could outperform source analysis. Changing that means modifying Sokol111 (HTTP client tracing, `peer.service`, current messaging conventions, keeping `k8s.pod.uid`, an AIP exporter), after which the result would no longer describe Sokol111 as found.
+
 ## For the owner checkpoint (I4)
 
 The record supports **NARROW or DEFER** over CONTINUE as it stands: AIP's data is correct and hosted, but a coding agent given ordinary task vocabulary did not reach it, and when it did not, nothing changed. The decision is yours. The navigation finding is recorded and no seventh or discovery tool is proposed or pre-authorized.
