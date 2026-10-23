@@ -1,6 +1,6 @@
 # AIP v0.7.2 — Hosted Interoperability and Product-Boundary Qualification
 
-**Status:** Proposed  
+**Status:** Released in [`v0.7.2`](../../release-validation/v0.7.2-release-record.md) (2026-10-23)  
 **Target:** `v0.7.2`  
 **Baseline:** published and verified `v0.7.1`, plus the merged runtime-image security fix [#617](https://github.com/michaelegner/architecture-intelligence-platform/pull/617).  
 **Scope authority:** [ROADMAP.md — v0.7.2](../../../ROADMAP.md)
