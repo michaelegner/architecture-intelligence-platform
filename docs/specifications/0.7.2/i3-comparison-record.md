@@ -120,9 +120,15 @@ Run 3 gave no AIP-only value, and a question inventory over the hosted package s
 
 Production Alloy also exports traces only to Grafana Cloud (Tempo); nothing sends them to AIP. A faithful Sokol111 therefore cannot supply the runtime evidence in which AIP could outperform source analysis. Changing that means modifying Sokol111 (HTTP client tracing, `peer.service`, current messaging conventions, keeping `k8s.pod.uid`, an AIP exporter), after which the result would no longer describe Sokol111 as found.
 
-## For the owner checkpoint (I4)
+## Owner checkpoint (I4): DEFER
 
-The record supports **NARROW or DEFER** over CONTINUE as it stands: AIP's data is correct and hosted, but a coding agent given ordinary task vocabulary did not reach it, and when it did not, nothing changed. The decision is yours. The navigation finding is recorded and no seventh or discovery tool is proposed or pre-authorized.
+**Disposition: DEFER** (owner, 2026-10-23). Basis:
+- AIP's data is correct and hosted. The wording fix removed the navigation blocker, and with AIP reachable it still changed no consumer set, change list or rollout gate (run 3, R6).
+- On the packaged dataset no change-impact question is answerable only by AIP. Its declarations and mapping derive from sources the agents already read, and its capture is the same broker state `rpk` shows. AIP added typed uncertainty and traceable references, not new information.
+- The only place AIP could add information, window-based runtime evidence with caller attribution, is not available from Sokol111 as found (audit above; Round 6).
+- The evidence is one run per arm, one model and one task, so this is a deferral, not a finding that AIP has no value.
+
+**For v0.8** (spec §6.1): keep cross-view synthesis in the context-engine and agent layer; no AIP-owned composition and no seventh or discovery tool is introduced on this evidence. The v0.8 scope is set when v0.8 starts. The `destination_id` / `broker_id` schema descriptions remain a v0.7.3 candidate, not part of this decision.
 
 ## Known limits
 
