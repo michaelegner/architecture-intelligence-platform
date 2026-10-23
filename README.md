@@ -551,12 +551,12 @@ public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 ## Project Status
 
 Latest release:
-[`v0.7.1`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.7.1)
-— **Broker-Mediated Consumer Attribution**.
+[`v0.7.2`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.7.2)
+— **Context-Engine Interoperability + Product-Boundary Qualification**.
 
 Pre-1.0: the REST/MCP surface, Graph Schema, Canonical Model, Adapter SPI and configuration format
 may still change on a minor version bump. Every release ships a published-artifact verification —
-[`docs/release-validation/v0.7.1-release-record.md`](docs/release-validation/v0.7.1-release-record.md)
+[`docs/release-validation/v0.7.2-release-record.md`](docs/release-validation/v0.7.2-release-record.md)
 is the most recent. See [`CHANGELOG.md`](CHANGELOG.md) for what shipped in each release and
 [`ROADMAP.md`](ROADMAP.md) for what's next.
 
