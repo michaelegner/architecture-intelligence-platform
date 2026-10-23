@@ -47,9 +47,16 @@ _TOPIC_BROKERS = "kafka_topic_brokers_v1"
 
 _MESSAGES = {
     _CODE.SNAPSHOT_NOT_AVAILABLE: "the requested snapshot is not the current snapshot",
-    _CODE.UNKNOWN_DESTINATION: "no declared Topic has this destination id",
+    _CODE.UNKNOWN_DESTINATION: (
+        "no declared Topic has this destination id "
+        "(destination_id must be the canonical Topic id, not a topic name)"
+    ),
     _CODE.DESTINATION_NOT_KAFKA_TOPIC: "the destination is not a Kafka Topic",
-    _CODE.BROKER_MISMATCH: "the destination is not declared on the requested broker",
+    _CODE.BROKER_MISMATCH: (
+        "the destination is not declared on the requested broker "
+        "(broker_id must be the stable broker id, the BrokerRef name, "
+        "not the canonical broker:owned: id)"
+    ),
     _CODE.NO_ACCEPTED_CAPTURE: (
         "no accepted Kafka consumer-state capture exists for this broker and environment"
     ),

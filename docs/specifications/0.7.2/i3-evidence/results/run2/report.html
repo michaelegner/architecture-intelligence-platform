@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context Engine Simulator — Experiment Results</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface-2: #1a1a26;
+    --border: #2a2a3a;
+    --text: #e4e4ed;
+    --text-muted: #8888a0;
+    --accent: #7c3aed;
+    --accent-light: #a78bfa;
+    --accent-glow: rgba(124, 58, 237, 0.15);
+    --green: #22c55e;
+    --green-bg: rgba(34, 197, 94, 0.1);
+    --red: #ef4444;
+    --yellow: #eab308;
+    --blue: #3b82f6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .container { max-width: 1600px; margin: 0 auto; padding: 40px 48px; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .logo {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 22px; color: white;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--text), var(--accent-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 40px;
+  }
+  .brand-tag {
+    display: inline-block;
+    background: var(--accent-glow);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-size: 12px;
+    color: var(--accent-light);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  a.brand-tag:hover {
+    background: rgba(124, 58, 237, 0.3);
+    border-color: var(--accent-light);
+  }
+
+  /* Book a Demo CTA */
+  .cta-row {
+    display: flex;
+    justify-content: center;
+    margin: 32px 0;
+  }
+  .cta-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    padding: 16px 140px;
+    border-radius: 10px;
+    box-shadow: 0 4px 24px var(--accent-glow), 0 0 0 1px rgba(124, 58, 237, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 36px rgba(124, 58, 237, 0.45), 0 0 0 1px var(--accent-light);
+  }
+  .cta-button .arrow { transition: transform 0.15s ease; }
+  .cta-button:hover .arrow { transform: translateX(4px); }
+
+  /* Hero metrics */
+  .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+  .hero-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  }
+  .hero-card.positive::before {
+    background: linear-gradient(90deg, var(--green), #4ade80);
+  }
+  .hero-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .hero-value {
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+  .hero-value.positive { color: var(--green); }
+  .hero-value.negative { color: var(--red); }
+  .hero-value.neutral { color: var(--accent-light); }
+  .hero-detail {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  /* Comparison bars */
+  .section { margin-bottom: 40px; }
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::before {
+    content: '';
+    width: 4px; height: 20px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  .comparison-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .comp-label {
+    font-size: 14px;
+    color: var(--text-muted);
+    text-align: right;
+  }
+  .bar-group { display: flex; flex-direction: column; gap: 6px; }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .bar-tag {
+    font-size: 11px;
+    font-weight: 600;
+    width: 62px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .bar-tag.baseline { color: var(--text-muted); }
+  .bar-tag.context { color: var(--accent-light); }
+  .bar-track {
+    flex: 1;
+    height: 28px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: width 0.6s ease;
+  }
+  .bar-fill.baseline { background: rgba(136, 136, 160, 0.25); color: var(--text-muted); }
+  .bar-fill.context { background: rgba(124, 58, 237, 0.3); color: var(--accent-light); }
+  .bar-fill.overhead { background: rgba(234, 179, 8, 0.2); color: var(--yellow); }
+
+  /* Score display */
+  .score-comparison {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  .score-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+  }
+  .score-box.winner {
+    border-color: var(--accent);
+    box-shadow: 0 0 30px var(--accent-glow);
+  }
+  .score-arm {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .score-num {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .score-max {
+    font-size: 24px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+  .score-arrow {
+    font-size: 32px;
+    color: var(--text-muted);
+  }
+
+  /* Phase table */
+  .phase-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .phase-table th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(42, 42, 58, 0.5);
+  }
+  .phase-table tr:last-child td { border-bottom: none; }
+  .phase-table .context-phase td {
+    background: rgba(124, 58, 237, 0.05);
+  }
+  .ctx-badge {
+    display: inline-block;
+    background: var(--accent-glow);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10px;
+    color: var(--accent-light);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+  }
+
+  .arm-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .arm-header {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .arm-name {
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .arm-score {
+    font-weight: 700;
+    font-size: 15px;
+    padding: 4px 12px;
+    border-radius: 8px;
+  }
+
+  /* Context overhead callout */
+  .overhead-callout {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.08), rgba(234, 179, 8, 0.03));
+    border: 1px solid rgba(234, 179, 8, 0.2);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+  }
+  .overhead-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--yellow);
+    margin-bottom: 8px;
+  }
+  .overhead-body {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .overhead-stat {
+    display: inline-block;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* Reasoning */
+  .reasoning-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .reasoning-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .reasoning-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  /* Meta */
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .meta-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .meta-key { color: var(--text-muted); font-size: 13px; }
+  .meta-val { font-weight: 600; font-size: 13px; }
+
+  /* Attribution */
+  .attr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+  .attr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .attr-category {
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .attr-impact {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .attr-impact.high { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+  .attr-impact.medium { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+  .attr-impact.low { background: rgba(234, 179, 8, 0.15); color: var(--yellow); }
+  .attr-impact.none { background: rgba(136, 136, 160, 0.1); color: var(--text-muted); }
+  .attr-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    margin-top: 10px;
+  }
+  .attr-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .attr-list li {
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 2px 0;
+    padding-left: 16px;
+    position: relative;
+  }
+  .attr-list li::before {
+    content: '›';
+    position: absolute;
+    left: 4px;
+    color: var(--text-muted);
+  }
+  .attr-list.used li::before {
+    content: '✓';
+    color: var(--green);
+    font-size: 11px;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .footer a { color: var(--accent-light); text-decoration: none; }
+
+  /* Diff display */
+  .diff-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: auto;
+    max-height: 600px;
+  }
+  .diff-block pre {
+    margin: 0;
+    padding: 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    tab-size: 4;
+  }
+  .diff-block code { white-space: pre; }
+  .diff-file { color: var(--accent-light); font-weight: 700; }
+  .diff-meta { color: var(--text-muted); }
+  .diff-hunk { color: var(--blue); }
+  .diff-add { color: var(--green); background: rgba(34, 197, 94, 0.08); display: inline-block; width: 100%; }
+  .diff-del { color: var(--red); background: rgba(239, 68, 68, 0.08); display: inline-block; width: 100%; }
+  .diff-summary {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .diff-summary .diff-added { color: var(--green); font-weight: 600; }
+  .diff-summary .diff-removed { color: var(--red); font-weight: 600; }
+
+  @media (max-width: 768px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .score-comparison { grid-template-columns: 1fr; }
+    .score-arrow { transform: rotate(90deg); text-align: center; }
+    .meta-grid { grid-template-columns: 1fr; }
+    .comparison-row { grid-template-columns: 1fr; }
+    .comp-label { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">U</div>
+    <h1>Context Engine Simulator</h1>
+  </div>
+  <div class="subtitle">
+    Experiment Results &mdash; October 22, 2026 at 01:58 PM &nbsp;
+    <a class="brand-tag" href="https://getunblocked.com" target="_blank" rel="noopener">Powered by Unblocked</a>
+  </div>
+
+  <!-- Meta -->
+  <div class="meta-grid">
+    <div class="meta-item">
+      <span class="meta-key">Repository</span>
+      <span class="meta-val">sokol111-i3</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-key">Branch</span>
+      <span class="meta-val">main</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-key">Agent</span>
+      <span class="meta-val">claude</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-key">Model</span>
+      <span class="meta-val">claude-opus-5-5</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-key">Duration</span>
+      <span class="meta-val">21m 53s</span>
+    </div>
+  </div>
+
+  <!-- Hero Metrics -->
+  <div class="hero-grid">
+    
+    <div class="hero-card">
+      <div class="hero-label">Quality Improvement</div>
+      <div class="hero-value neutral">
+        0
+      </div>
+      <div class="hero-detail">10 &rarr; 10 out of 100</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Task Speed</div>
+      <div class="hero-value neutral">
+        +19%
+      </div>
+      <div class="hero-detail">10m 08s &rarr; 12m 01s</div>
+    </div>
+    <div class="hero-card positive">
+      <div class="hero-label">Task Cost</div>
+      <div class="hero-value positive">
+        -4%
+      </div>
+      <div class="hero-detail">$5.1668 &rarr; $4.9670</div>
+    </div>
+  </div>
+
+  
+  <!-- Quality Scores -->
+  <div class="section">
+    <div class="section-title">Quality Score</div>
+    <div class="score-comparison">
+      <div class="score-box">
+        <div class="score-arm">Unblocked only</div>
+        <div class="score-num" style="color: #ef4444">
+          10<span class="score-max">/100</span>
+        </div>
+      </div>
+      <div class="score-arrow">&rarr;</div>
+      <div class="score-box winner">
+        <div class="score-arm">Unblocked + AIP</div>
+        <div class="score-num" style="color: #ef4444">
+          10<span class="score-max">/100</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+  <!-- Task -->
+  <div class="section">
+    <div class="section-title">Task</div>
+    <div class="reasoning-box">
+      <div class="reasoning-text">You are working in the Sokol111 e-commerce workspace: the workspace root and the service and library<br>repositories it uses are checked out here (see go.work and AGENTS.md).<br><br>Products need a stock keeping unit. Add an optional `sku` (string) to catalog products, carry it on<br>`ProductUpdatedEvent` (ecommerce-catalog-service-api), populate it in ecommerce-catalog-service, and<br>make the changes that the services consuming this event need.<br><br>Before you change anything, establish which services consume `ProductUpdatedEvent` and how sure you<br>can be about each one. In your final answer, list each consuming service with the evidence for it,<br>say what you could not establish, and give the rollout order and the checks you would require before<br>deploying.</div>
+    </div>
+  </div>
+
+  
+  <!-- Acceptance Criteria -->
+  <div class="section">
+    <div class="section-title">Acceptance Criteria</div>
+    <div class="reasoning-box">
+      <div class="reasoning-text">1. `sku` is added to `ProductUpdatedEvent` as a new optional field with an unused field number;<br>   existing field numbers are unchanged, and the generated code is regenerated or the regeneration<br>   step is stated.<br>2. ecommerce-catalog-service carries `sku` through its product model and populates it in the<br>   `ProductUpdatedEvent` it publishes.<br>3. The consumers of `catalog.product.events` are identified as ecommerce-product-query-service and<br>   ecommerce-image-service, each with evidence; ecommerce-category-query-service and the catalog<br>   service itself are not claimed as consumers.<br>4. Consumer changes match what each consumer reads: product-query stores or exposes the field if<br>   needed; image-service needs no functional change.<br>5. The answer separates configured relationships (source and deployment config) from observed ones<br>   (broker state), keeps the observation time of any observed evidence, and asserts no consumer<br>   without evidence.<br>6. The rollout order is safe for an additive field (contract, then tolerant consumers, then the<br>   producer), with concrete pre-deploy checks.</div>
+    </div>
+  </div>
+  
+
+  <!-- Comparison Bars -->
+  <div class="section">
+    <div class="section-title">Head-to-Head</div>
+
+    <div class="comparison-row">
+      <div class="comp-label">Task Time</div>
+      <div class="bar-group">
+        <div class="bar-row">
+          <span class="bar-tag baseline">Unblocked only</span>
+          <div class="bar-track">
+            <div class="bar-fill baseline" style="width: 84%">10m 08s</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-tag context">Unblocked + AIP</span>
+          <div class="bar-track">
+            <div class="bar-fill context" style="width: 100%">12m 01s</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comparison-row">
+      <div class="comp-label">Task Cost</div>
+      <div class="bar-group">
+        <div class="bar-row">
+          <span class="bar-tag baseline">Unblocked only</span>
+          <div class="bar-track">
+            <div class="bar-fill baseline" style="width: 100%">$5.1668</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-tag context">Unblocked + AIP</span>
+          <div class="bar-track">
+            <div class="bar-fill context" style="width: 96%">$4.9670</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  
+
+  <!-- Context Attribution -->
+  
+  <div class="section">
+    <div class="section-title">Where Context Came From — Unblocked only</div>
+    
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Code Search</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+        <div class="attr-sub">Gathered</div>
+        <ul class="attr-list"><li>Producer and consumer paths for ProductUpdatedEvent: catalog-service emits it via the outbox; product-query-service and image-service consume it; category-query is ruled out</li><li>Next free proto field numbers: event field 13; RPC fields Product 13, CreateProductRequest 10, UpdateProductRequest 11</li><li>Positional domain constructors (NewProduct, NewProductWithID, Reconstruct, Update) and the list of every caller, including tests</li><li>Description *string as the model for an optional field end to end (entity, mapper, event factory, connect handler)</li><li>product-query upsert is guarded by version and uses $replaceWith, which blocks backfill</li><li>Validation style (validateProductData, ErrInvalidProductData) and the mismatch between counting bytes and counting runes</li><li>Test conventions: ptr[T] helper, table-driven tests with testify, mockery; product-query-service has no tests</li><li>Prod and local Helm values: no DLQ on the image-service consumer, product-query has DLQ and 5 retries</li><li>Seeder go.mod pins api v1.3.4; seederJob CronJob is suspended; outbox stores the payload as bytes</li><li>Toolchain limits: no go or buf; go.work references directories that are missing</li></ul>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Slack</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+        <div class="attr-sub">Gathered</div>
+        <ul class="attr-list"><li>No Slack MCP was available in this session</li></ul>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Notion / Confluence</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+        <div class="attr-sub">Gathered</div>
+        <ul class="attr-list"><li>No Notion or Confluence MCP available; local docs/architecture/product-update-flow.md and the release-api SKILL.md were read through code search</li></ul>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Jira / Linear</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+        <div class="attr-sub">Gathered</div>
+        <ul class="attr-list"><li>No Jira or Linear MCP available; the gh issue and PR searches were denied by permissions</li></ul>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Git History</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+        <div class="attr-sub">Gathered</div>
+        <ul class="attr-list"><li>Frozen snapshot with a single commit 3d6a311 and no nested .git directories, so no per-file history; versions 1.3.7 and 1.3.8 cannot be diffed</li></ul>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Other MCP</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+        <div class="attr-sub">Gathered</div>
+        <ul class="attr-list"><li>Unblocked (about 10 queries) confirmed that product-query and image-service are the only consumers</li><li>Unblocked showed that tenant-service prod values have no consumer config</li><li>Unblocked found that the mirror's seeder updateProduct builds the request field by field, so re-seeding would erase SKUs</li><li>Unblocked found the commons ResultHandler always commits, and the image-service consumer falls back to a noop DLQ</li><li>Unblocked found no SKU design docs, incidents, or repair runbooks, and nothing on the 1.3.7 or 1.3.8 changes</li><li>Caveat: the Unblocked mirror org does not fully match this checkout</li></ul>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <div class="section-title">Where Context Came From — Unblocked + AIP</div>
+    
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Code Search</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+        <div class="attr-sub">Gathered</div>
+        <ul class="attr-list"><li>ProductUpdatedEvent proto uses fields 1–12, so the next free numbers are 13 for the event and RPC Product, 10 for CreateProductRequest and 11 for UpdateProductRequest</li><li>Two consumers found in code: product-query-service registers HandleProductUpdated; image-service also registers it but reads only ImageId and ProductId</li><li>Catalog layers that sku must pass through: domain Product constructors and Update, event factory, Mongo entity and mapper, Connect handler</li><li>product-query layers: handler, ProductView, entity, mapper; the version-guarded Upsert with $replaceWith/$mergeObjects</li><li>Conventions: optional fields are read directly rather than through GetX(); validation errors wrap ErrInvalidProductData; bson camelCase with omitempty</li><li>Server-side protovalidate interceptor is active in commons</li><li>Commons consumer commit config (AutoCommitMarks, 3s), retry defaults, no-op DLQ handler for image-service</li><li>product-query has no tests and no mockery config; catalog uses testify with inline mockery mocks</li><li>Lists of positional constructor call sites that break if the signature changes</li><li>Helm values: replicaCount 1, prod retry and DLQ settings, deploy.yml and api-release.yml gates</li><li>go, buf and protoc-gen tools are not installed; five go.work modules and the UIs are missing</li></ul>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Slack</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Notion / Confluence</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Jira / Linear</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Git History</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+        <div class="attr-sub">Gathered</div>
+        <ul class="attr-list"><li>The worktree is a single frozen commit (3d6a311) with no per-file history</li><li>Pin drift: catalog pins catalog-service-api v1.3.8, the query services and image-service pin v1.3.6, the seeder pins v1.3.4</li><li>gh CLI was denied permission, so no PR or issue history</li></ul>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+    <div class="attr-card">
+      <div class="attr-header">
+        <span class="attr-category">Other MCP</span>
+        <span class="attr-impact none">none impact</span>
+      </div>
+      
+        <div class="attr-sub">Gathered</div>
+        <ul class="attr-list"><li>Unblocked: no earlier discussion of sku and no incidents; surfaced prod values showing image-service has no retry or DLQ, the release-api skill, and the api-release/deploy workflows; its claims that only product-query consumes the topic and that stale events are no-ops were wrong</li><li>Unblocked: no admin-UI or product-query-api sources are indexed</li><li>AIP: get_destination_consumers returned UNKNOWN_DESTINATION / BROKER_MISMATCH; the declared PUBLISHES_TO edge is NOT_OBSERVED_IN_WINDOW; the drift query returned zero claims</li></ul>
+      
+      <div class="attr-sub" style="color: var(--text-muted); font-style: italic;">Not reflected in implementation</div>
+    </div>
+  </div>
+
+  <!-- Phase Breakdown: Baseline -->
+  <div class="section">
+    <div class="section-title">Phase Breakdown</div>
+
+    <div class="arm-section">
+      <div class="arm-header">
+        <span class="arm-name">Unblocked only</span>
+        <span class="arm-score" style="background: #ef444422; color: #ef4444">10/100</span>
+      </div>
+      <table class="phase-table">
+        <thead>
+          <tr><th>Phase</th><th>Time</th><th>Cost</th><th>Tokens</th><th>Turns</th></tr>
+        </thead>
+        <tbody>
+          
+    <tr class="context-phase">
+      <td><span class="ctx-badge">CTX</span> Initial Context</td>
+      <td>4m 28s</td>
+      <td>$2.7096</td>
+      <td>~3.9k</td>
+      <td>40</td>
+    </tr>
+  
+    <tr class="context-phase">
+      <td><span class="ctx-badge">CTX</span> Pattern Extraction</td>
+      <td>25s</td>
+      <td>$0.1604</td>
+      <td>~1.5k</td>
+      <td>1</td>
+    </tr>
+  
+    <tr class="">
+      <td>Plan</td>
+      <td>2m 22s</td>
+      <td>$1.1147</td>
+      <td>9.5k</td>
+      <td>10</td>
+    </tr>
+  
+    <tr class="context-phase">
+      <td><span class="ctx-badge">CTX</span> Plan Context</td>
+      <td>1m 56s</td>
+      <td>$0.9272</td>
+      <td>~2.7k</td>
+      <td>18</td>
+    </tr>
+  
+    <tr class="">
+      <td>Review</td>
+      <td>2m 39s</td>
+      <td>$1.1977</td>
+      <td>13.5k</td>
+      <td>13</td>
+    </tr>
+  
+    <tr class="">
+      <td>Implement</td>
+      <td>5m 07s</td>
+      <td>$2.8543</td>
+      <td>23.2k</td>
+      <td>28</td>
+    </tr>
+  
+          
+          <tr style="color: var(--text-muted)">
+            <td>Eval</td>
+            <td>8s</td>
+            <td>$0.0928</td>
+            <td></td><td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="arm-section" style="border-color: rgba(124, 58, 237, 0.3);">
+      <div class="arm-header" style="border-bottom-color: rgba(124, 58, 237, 0.2);">
+        <span class="arm-name">Unblocked + AIP</span>
+        <span class="arm-score" style="background: #ef444422; color: #ef4444">10/100</span>
+      </div>
+      <table class="phase-table">
+        <thead>
+          <tr><th>Phase</th><th>Time</th><th>Cost</th><th>Tokens</th><th>Turns</th></tr>
+        </thead>
+        <tbody>
+          
+    <tr class="context-phase">
+      <td><span class="ctx-badge">CTX</span> Initial Context</td>
+      <td>4m 21s</td>
+      <td>$2.9567</td>
+      <td>~4.4k</td>
+      <td>49</td>
+    </tr>
+  
+    <tr class="context-phase">
+      <td><span class="ctx-badge">CTX</span> Pattern Extraction</td>
+      <td>41s</td>
+      <td>$0.2752</td>
+      <td>~1.1k</td>
+      <td>1</td>
+    </tr>
+  
+    <tr class="">
+      <td>Plan</td>
+      <td>2m 19s</td>
+      <td>$1.0091</td>
+      <td>8.1k</td>
+      <td>9</td>
+    </tr>
+  
+    <tr class="context-phase">
+      <td><span class="ctx-badge">CTX</span> Plan Context</td>
+      <td>3m 39s</td>
+      <td>$1.7261</td>
+      <td>~3.3k</td>
+      <td>20</td>
+    </tr>
+  
+    <tr class="">
+      <td>Review</td>
+      <td>3m 21s</td>
+      <td>$1.1378</td>
+      <td>16.0k</td>
+      <td>15</td>
+    </tr>
+  
+    <tr class="">
+      <td>Implement</td>
+      <td>6m 21s</td>
+      <td>$2.8202</td>
+      <td>21.0k</td>
+      <td>25</td>
+    </tr>
+  
+          
+          <tr style="color: var(--text-muted)">
+            <td>Eval</td>
+            <td>28s</td>
+            <td>$0.1653</td>
+            <td></td><td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  
+  <!-- Eval Reasoning -->
+  <div class="section">
+    <div class="section-title">Evaluator Reasoning</div>
+    <div class="reasoning-box">
+      <div class="reasoning-label">Unblocked only (10/100)</div>
+      <div class="reasoning-text">The code diff is empty, so none of the claimed changes can be verified. The agent describes three commits (df4feff, 1b1ca0e, 8a82931) adding `sku` to the proto, catalog-service and product-query-service, but none of that appears in the ground truth. Even if those commits exist, the answer misses several criteria. Criterion 1 is at best partly met: the proto field is described as optional with field number 13 and regeneration is stated as still needed. But the agent also bumped the API VERSION without regenerated code, which it admits could publish a broken release. Criterion 3 is not met: the answer never lists which services consume `catalog.product.events`, gives no evidence for any consumer, and never mentions ecommerce-image-service. Criterion 4 is not met for image-service, which is never mentioned. Criterion 5 is not met: there is no split between configured and observed relationships, no broker-state evidence with an observation time, and no statement of what could not be established. Criterion 6 is not met: there is no explicit rollout order of contract, then tolerant consumers, then producer. The pre-deploy checks are deferred to &quot;the §6 production checks&quot; in a plan that is not included. The required investigation and reporting are largely missing, and no file changes are verifiable.</div>
+    </div>
+    <div class="reasoning-box">
+      <div class="reasoning-label">Unblocked + AIP (10/100)</div>
+      <div class="reasoning-text">The code diff shows no file changes. The agent says it made local commits in three nested repos, and a root-level diff might not pick those up, but I can't check that, so the code claims are unconfirmed. Even taking the agent's description at face value, several criteria fail. Criterion 3 is unmet: the answer never names product-query-service and image-service as consumers of catalog.product.events and gives no evidence for either. It also never says that category-query and the catalog service are not consumers; image-service is only mentioned as &quot;unchanged&quot;. Criterion 5 is unmet: the answer doesn't separate configured relationships (source and deployment config) from observed broker state, gives no observation times, and doesn't say what couldn't be established. Criterion 6 is mostly unmet: there is no rollout order (contract, then consumers, then producer) and no concrete pre-deploy checks, only a note that the version pins wait for the v1.3.9 release. Criterion 1 is partly met: the agent says it used field 13 and states the `make generate` step, but `gen/` wasn't regenerated and I can't confirm the field number is unused. Criteria 2 and 4 are claimed but nothing was compiled, linted or tested. The catalog design also has problems: `Update` always sets the SKU, so omitting it clears it, and validation rejects an empty SKU. Both work against the field being optional and additive. Leaving image-service unchanged fits criterion 4, but no reason is given. With no verified changes and the required analysis largely missing, the score is very low.</div>
+    </div>
+  </div>
+  
+
+  <!-- Code Changes: Baseline -->
+  <div class="section">
+    <div class="section-title">Code Changes &mdash; Unblocked only</div>
+    <div class="diff-summary">
+      <span>0 files</span>
+      <span class="diff-added">+0</span>
+      <span class="diff-removed">-0</span>
+    </div>
+    <div class="diff-block"><pre><code><span style="color: var(--text-muted)">(no file changes detected)</span></code></pre></div>
+  </div>
+
+  <!-- Code Changes: Context-Enhanced -->
+  <div class="section">
+    <div class="section-title">Code Changes &mdash; Unblocked + AIP</div>
+    <div class="diff-summary">
+      <span>0 files</span>
+      <span class="diff-added">+0</span>
+      <span class="diff-removed">-0</span>
+    </div>
+    <div class="diff-block"><pre><code><span style="color: var(--text-muted)">(no file changes detected)</span></code></pre></div>
+  </div>
+
+  <!-- Bottom CTA -->
+  <div class="cta-row">
+    <a class="cta-button" href="https://getunblocked.com/demo" target="_blank" rel="noopener">
+      Book a Demo <span class="arrow">&rarr;</span>
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    Generated by Context Engine Simulator &mdash;
+    <a href="https://getunblocked.com" target="_blank" rel="noopener">Unblocked</a>
+  </div>
+
+</div>
+</body>
+</html>

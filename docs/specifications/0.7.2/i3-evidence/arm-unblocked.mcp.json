@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "unblocked": {
+      "type": "http",
+      "url": "https://getunblocked.com/api/mcpsse",
+      "headers": {"Authorization": "Bearer ${UNBLOCKED_API_TOKEN}"}
+    }
+  }
+}

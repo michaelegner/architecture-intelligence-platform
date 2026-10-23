@@ -266,8 +266,9 @@ Its contract is the `0.7.1` schema
 (`schemas/architecture_intelligence/v0.7.1/destination-consumers-{request,answer}.schema.json`). The
 single `request` argument is discriminated on `mode`:
 
-- `"query"`: the exact `destination_id` (a canonical Topic id, never a name), `broker_id` and
-  `environment`; optional `limit` (1–200, default 100), `cursor` and `snapshot_id`. One row per
+- `"query"`: the exact `destination_id` (a canonical Topic id, never a name), `broker_id` (the
+  stable broker id, which a dependency answer shows as the `BrokerRef` `name`, not its canonical
+  `broker:owned:` `id`) and `environment`; optional `limit` (1–200, default 100), `cursor` and `snapshot_id`. One row per
   Kafka consumer group attached to the Topic at capture time T, ordered by `consumer_id`, with the
   I2 attribution unchanged: `outcome` (`RESOLVED`, `UNRESOLVED`, `AMBIGUOUS`, `CONFLICT`),
   `service_id` only when `RESOLVED`, `reason` otherwise, limitations for non-resolving mapping
@@ -358,7 +359,7 @@ allowlists (`app/settings.py`, both passed to the SDK's `TransportSecuritySettin
 coding-agent client on the other end may still need its own account or model access, independent of
 AIP.
 
-A constrained public read-only demo profile (anonymous `POST /mcp` for the hosted Pitstop demo) is made safe by
+A constrained public read-only demo profile (anonymous `POST /mcp` for the hosted demo instance) is made safe by
 its deployment edge, not by AIP; see [`examples/pitstop-demo/README.md`](../examples/pitstop-demo/README.md#public-read-only-profile-hosted-instance)
 and [`docs/security-model.md`](security-model.md). That statement does not change what AIP itself provides.
 

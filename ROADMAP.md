@@ -672,6 +672,14 @@ decision.
 Record **continue, narrow, integrate, defer, or stop**. The result is an input to the v0.8 scope:
 v0.8 must not duplicate context-engine composition that v0.7.2 shows can be done safely outside AIP.
 
+**Checkpoint result (owner, 2026-10-23): DEFER.** On the controlled Sokol111 comparison AIP's data was
+correct and hosted, but it changed no consumer set, change list or rollout gate, and no change-impact
+question on the packaged dataset was answerable only by AIP. Sokol111 as found does not emit the runtime
+caller-attribution evidence where AIP could add value. v0.8 therefore keeps cross-view synthesis in the
+context-engine/agent layer, introduces no AIP-owned composition or discovery tool on this evidence, and
+sets its scope when it starts. The record is
+[`i3-comparison-record.md`](docs/specifications/0.7.2/i3-comparison-record.md#owner-checkpoint-i4-defer).
+
 ## v0.8 — Cross-Boundary Architecture Knowledge + Real-World Product Demonstration (planned; scope shaped by v0.7.2)
 
 **Goal:** deliver the first complete real-world product demonstration of AIP on Sokol111, with
@@ -707,9 +715,11 @@ question are in scope; a generic enterprise architecture metamodel remains out o
 
 ### Real-world product demonstration
 
-v0.8 uses **Sokol111** for one realistic bounded-change workflow and compares AIP with strong
-repository/source analysis. **Teamscale 2026.7.x is the initial representative tool, not a normative
-dependency or exclusive comparator; equivalent mature tooling may be substituted or added.**
+v0.8 uses **Sokol111** for one bounded-change workflow, informed by the v0.7.2
+checkpoint. **Teamscale 2026.7.x** provides complementary repository/source analysis and
+conformance checks (or equivalent mature tooling). **Unblocked + AIP** becomes the preferred coding-agent workflow
+only if v0.7.2 demonstrates material value; otherwise its role remains subject to that result.
+v0.7.2 recorded DEFER, so that role is not established.
 
 The demonstration should use the applicable AIP Current-State capabilities available at v0.8
 entry — including dependency/evidence drill-down, deployment, locality, messaging, **v0.7.0
