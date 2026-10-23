@@ -9,6 +9,12 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-10-23
+
+### v0.7.2 — Context-Engine Interoperability + Product-Boundary Qualification
+
+See the [release notes](docs/release-validation/v0.7.2-release-notes.md).
+
 ### Changed
 
 - The hosted demo's acceptance check (`examples/pitstop-demo/hosted/verify_public_edge.py`) expects the six-tool
@@ -18,6 +24,11 @@ aren't yet guaranteed stable pre-1.0.
   check gains `--profile sokol111`: a `get_destination_consumers` answer for `catalog.product.events` with its capture
   time and same-snapshot evidence drill-down. `TRY_IT_HOSTED.md` describes the hosted dataset; the Pitstop demo and its
   Claude Code plugin are the local path.
+- The `get_destination_consumers` tool description and the `UNKNOWN_DESTINATION` / `BROKER_MISMATCH` refusal
+  messages state the identifier forms: `destination_id` is the canonical Topic id (never a name) and `broker_id` is the
+  stable broker id (the `BrokerRef` name, not the canonical `broker:owned:` id). Refusal codes, schemas and the tool
+  inventory are unchanged (v0.7.2 I3).
+- The locked `opentelemetry-api` moves to 1.45.1 (CVE-2026-114603).
 
 ### Security
 
