@@ -1,0 +1,62 @@
+{
+  "schema": "aip-kafka-consumer-state/1",
+  "broker_id": "kafka:ecommerce-local",
+  "environment": "local",
+  "captured_at": "2026-10-19T06:23:28Z",
+  "tool_version": "aip-kafka-capture/1+confluent-kafka-2.16.0",
+  "kafka_version": "not-established",
+  "complete": true,
+  "group_scope": [
+    "ops-tail",
+    "order-service",
+    "payment-service"
+  ],
+  "groups": [
+    {
+      "group_id": "ops-tail",
+      "state": "Empty",
+      "members": []
+    },
+    {
+      "group_id": "order-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "consumer-order-service-1-b5e1bf84-ff36-4627-8e87-ad382efadef9",
+          "client_id": "consumer-order-service-1",
+          "host": "/172.19.0.7",
+          "assignments": [
+            {
+              "topic": "payments.completed",
+              "partitions": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "consumer-order-service-2-885777b8-54a6-4239-9520-a874118d764c",
+          "client_id": "consumer-order-service-2",
+          "host": "/172.19.0.7",
+          "assignments": [
+            {
+              "topic": "payments.failed",
+              "partitions": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group_id": "payment-service",
+      "state": "Empty",
+      "members": []
+    }
+  ]
+}

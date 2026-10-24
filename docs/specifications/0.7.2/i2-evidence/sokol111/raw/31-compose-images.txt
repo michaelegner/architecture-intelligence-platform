@@ -1,0 +1,4 @@
+logto svhd/logto:latest
+mongo mongo:7.0
+logto-db postgres:17-alpine
+redpanda redpandadata/redpanda:v24.3.1

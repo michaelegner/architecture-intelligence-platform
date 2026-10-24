@@ -1,0 +1,55 @@
+# v0.7.2 I3 fixture for the patched context-engine-simulator (README.md). Run with --repo pointing at
+# the synthetic repository; the arm configs and settings resolve relative to this file.
+branch: main
+agent: claude
+model: claude-opus-5-5
+contextModel: claude-opus-5-5
+evalModel: claude-opus-5-5
+keepWorktrees: true
+verbose: true
+
+arms:
+  baseline:
+    name: Unblocked only
+    mcpConfig: arm-unblocked.mcp.json
+    requiredServers: [unblocked]
+  contextEnhanced:
+    name: Unblocked + AIP
+    mcpConfig: arm-unblocked-aip.mcp.json
+    requiredServers: [unblocked, aip]
+  settings: settings.json
+  effort: high
+  baselineForbidden: aip
+  # The public AIP repository holds the I2 answer key, so web and GitHub access is closed in both arms.
+  disallowedTools: [WebFetch, WebSearch, "Bash(gh:*)", "Bash(curl:*)", "Bash(wget:*)"]
+
+task: |
+  You are working in the Sokol111 e-commerce workspace: the workspace root and the service and library
+  repositories it uses are checked out here (see go.work and AGENTS.md).
+
+  Products need a stock keeping unit. Add an optional `sku` (string) to catalog products, carry it on
+  `ProductUpdatedEvent` (ecommerce-catalog-service-api), populate it in ecommerce-catalog-service, and
+  make the changes that the services consuming this event need.
+
+  Before you change anything, establish which services consume `ProductUpdatedEvent` and how sure you
+  can be about each one. In your final answer, list each consuming service with the evidence for it,
+  say what you could not establish, and give the rollout order and the checks you would require before
+  deploying.
+
+# For the simulator's evaluator only (a secondary score). The primary assessment is scoring.md.
+criteria: |
+  1. `sku` is added to `ProductUpdatedEvent` as a new optional field with an unused field number;
+     existing field numbers are unchanged, and the generated code is regenerated or the regeneration
+     step is stated.
+  2. ecommerce-catalog-service carries `sku` through its product model and populates it in the
+     `ProductUpdatedEvent` it publishes.
+  3. The consumers of `catalog.product.events` are identified as ecommerce-product-query-service and
+     ecommerce-image-service, each with evidence; ecommerce-category-query-service and the catalog
+     service itself are not claimed as consumers.
+  4. Consumer changes match what each consumer reads: product-query stores or exposes the field if
+     needed; image-service needs no functional change.
+  5. The answer separates configured relationships (source and deployment config) from observed ones
+     (broker state), keeps the observation time of any observed evidence, and asserts no consumer
+     without evidence.
+  6. The rollout order is safe for an additive field (contract, then tolerant consumers, then the
+     producer), with concrete pre-deploy checks.

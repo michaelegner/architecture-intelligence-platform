@@ -1,0 +1,2755 @@
+diff --git a/package-lock.json b/package-lock.json
+index 9588f9b..a1d1b90 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -7,13 +7,20 @@
+     "": {
+       "name": "context-engine-simulator",
+       "version": "0.1.0",
++      "license": "MIT",
+       "dependencies": {
+-        "commander": "^13.0.0"
++        "commander": "^13.0.0",
++        "yaml": "^2.9.0"
+       },
+       "devDependencies": {
+         "@types/node": "^22.0.0",
++        "eslint": "^9.0.0",
+         "tsx": "^4.22.0",
+-        "typescript": "^5.7.0"
++        "typescript": "^5.7.0",
++        "typescript-eslint": "^8.0.0"
++      },
++      "engines": {
++        "node": ">=18"
+       }
+     },
+     "node_modules/@esbuild/aix-ppc64": {
+@@ -458,6 +465,230 @@
+         "node": ">=18"
+       }
+     },
++    "node_modules/@eslint-community/eslint-utils": {
++      "version": "4.10.1",
++      "resolved": "https://registry.npmjs.org/@eslint-community/eslint-utils/-/eslint-utils-4.10.1.tgz",
++      "integrity": "sha512-cuadcxVFE8sDK6iWJbs8Sn0av2Nrh2QSGQhVlBW9AaAHqHwjWsZHT8LJ4hFGPh7ASBV2deFdM7H/DPjulmh8rg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "eslint-visitor-keys": "^3.4.3"
++      },
++      "engines": {
++        "node": "^12.22.0 || ^14.17.0 || >=16.0.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/eslint"
++      },
++      "peerDependencies": {
++        "eslint": "^6.0.0 || ^7.0.0 || >=8.0.0"
++      }
++    },
++    "node_modules/@eslint-community/eslint-utils/node_modules/eslint-visitor-keys": {
++      "version": "3.4.3",
++      "resolved": "https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-3.4.3.tgz",
++      "integrity": "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": "^12.22.0 || ^14.17.0 || >=16.0.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/eslint"
++      }
++    },
++    "node_modules/@eslint-community/regexpp": {
++      "version": "4.12.2",
++      "resolved": "https://registry.npmjs.org/@eslint-community/regexpp/-/regexpp-4.12.2.tgz",
++      "integrity": "sha512-EriSTlt5OC9/7SXkRSCAhfSxxoSUgBm33OH+IkwbdpgoqsSsUg7y3uh+IICI/Qg4BBWr3U2i39RpmycbxMq4ew==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": "^12.0.0 || ^14.0.0 || >=16.0.0"
++      }
++    },
++    "node_modules/@eslint/config-array": {
++      "version": "0.21.2",
++      "resolved": "https://registry.npmjs.org/@eslint/config-array/-/config-array-0.21.2.tgz",
++      "integrity": "sha512-nJl2KGTlrf9GjLimgIru+V/mzgSK0ABCDQRvxw5BjURL7WfH5uoWmizbH7QB6MmnMBd8cIC9uceWnezL1VZWWw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@eslint/object-schema": "^2.1.7",
++        "debug": "^4.3.1",
++        "minimatch": "^3.1.5"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      }
++    },
++    "node_modules/@eslint/config-helpers": {
++      "version": "0.4.2",
++      "resolved": "https://registry.npmjs.org/@eslint/config-helpers/-/config-helpers-0.4.2.tgz",
++      "integrity": "sha512-gBrxN88gOIf3R7ja5K9slwNayVcZgK6SOUORm2uBzTeIEfeVaIhOpCtTox3P6R7o2jLFwLFTLnC7kU/RGcYEgw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@eslint/core": "^0.17.0"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      }
++    },
++    "node_modules/@eslint/core": {
++      "version": "0.17.0",
++      "resolved": "https://registry.npmjs.org/@eslint/core/-/core-0.17.0.tgz",
++      "integrity": "sha512-yL/sLrpmtDaFEiUj1osRP4TI2MDz1AddJL+jZ7KSqvBuliN4xqYY54IfdN8qD8Toa6g1iloph1fxQNkjOxrrpQ==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@types/json-schema": "^7.0.15"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      }
++    },
++    "node_modules/@eslint/eslintrc": {
++      "version": "3.3.7",
++      "resolved": "https://registry.npmjs.org/@eslint/eslintrc/-/eslintrc-3.3.7.tgz",
++      "integrity": "sha512-F42g89Qd5oAWtp0k0nnSrjziAKza7w8SVT4mStc18LZMaRb4J1HQAHLCalEtDCxrTuksx7NU9qsmeLwpOfPqWw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "ajv": "^6.14.0",
++        "debug": "^4.3.2",
++        "espree": "^10.0.1",
++        "globals": "^14.0.0",
++        "ignore": "^5.2.0",
++        "import-fresh": "^3.2.1",
++        "js-yaml": "^4.3.2",
++        "minimatch": "^3.1.5",
++        "strip-json-comments": "^3.1.1"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/eslint"
++      }
++    },
++    "node_modules/@eslint/js": {
++      "version": "9.39.5",
++      "resolved": "https://registry.npmjs.org/@eslint/js/-/js-9.39.5.tgz",
++      "integrity": "sha512-QywQuszQh77pIXCsq998c8hbhSTI/azTty1Z6N53dmAudKHhy573j3yvRLsX2BSp8YpLtoCEG8E9DJe+8zUh4A==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "url": "https://eslint.org/donate"
++      }
++    },
++    "node_modules/@eslint/object-schema": {
++      "version": "2.1.7",
++      "resolved": "https://registry.npmjs.org/@eslint/object-schema/-/object-schema-2.1.7.tgz",
++      "integrity": "sha512-VtAOaymWVfZcmZbp6E2mympDIHvyjXs/12LqWYjVw6qjrfF+VK+fyG33kChz3nnK+SU5/NeHOqrTEHS8sXO3OA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      }
++    },
++    "node_modules/@eslint/plugin-kit": {
++      "version": "0.4.1",
++      "resolved": "https://registry.npmjs.org/@eslint/plugin-kit/-/plugin-kit-0.4.1.tgz",
++      "integrity": "sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@eslint/core": "^0.17.0",
++        "levn": "^0.4.1"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      }
++    },
++    "node_modules/@humanfs/core": {
++      "version": "0.19.2",
++      "resolved": "https://registry.npmjs.org/@humanfs/core/-/core-0.19.2.tgz",
++      "integrity": "sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@humanfs/types": "^0.15.0"
++      },
++      "engines": {
++        "node": ">=18.18.0"
++      }
++    },
++    "node_modules/@humanfs/node": {
++      "version": "0.16.8",
++      "resolved": "https://registry.npmjs.org/@humanfs/node/-/node-0.16.8.tgz",
++      "integrity": "sha512-gE1eQNZ3R++kTzFUpdGlpmy8kDZD/MLyHqDwqjkVQI0JMdI1D51sy1H958PNXYkM2rAac7e5/CnIKZrHtPh3BQ==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@humanfs/core": "^0.19.2",
++        "@humanfs/types": "^0.15.0",
++        "@humanwhocodes/retry": "^0.4.0"
++      },
++      "engines": {
++        "node": ">=18.18.0"
++      }
++    },
++    "node_modules/@humanfs/types": {
++      "version": "0.15.0",
++      "resolved": "https://registry.npmjs.org/@humanfs/types/-/types-0.15.0.tgz",
++      "integrity": "sha512-ZZ1w0aoQkwuUuC7Yf+7sdeaNfqQiiLcSRbfI08oAxqLtpXQr9AIVX7Ay7HLDuiLYAaFPu8oBYNq/QIi9URHJ3Q==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=18.18.0"
++      }
++    },
++    "node_modules/@humanwhocodes/module-importer": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/@humanwhocodes/module-importer/-/module-importer-1.0.1.tgz",
++      "integrity": "sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=12.22"
++      },
++      "funding": {
++        "type": "github",
++        "url": "https://github.com/sponsors/nzakas"
++      }
++    },
++    "node_modules/@humanwhocodes/retry": {
++      "version": "0.4.3",
++      "resolved": "https://registry.npmjs.org/@humanwhocodes/retry/-/retry-0.4.3.tgz",
++      "integrity": "sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=18.18"
++      },
++      "funding": {
++        "type": "github",
++        "url": "https://github.com/sponsors/nzakas"
++      }
++    },
++    "node_modules/@types/estree": {
++      "version": "1.0.9",
++      "resolved": "https://registry.npmjs.org/@types/estree/-/estree-1.0.9.tgz",
++      "integrity": "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/@types/json-schema": {
++      "version": "7.0.15",
++      "resolved": "https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.15.tgz",
++      "integrity": "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/@types/node": {
+       "version": "22.19.19",
+       "resolved": "https://registry.npmjs.org/@types/node/-/node-22.19.19.tgz",
+@@ -468,111 +699,1366 @@
+         "undici-types": "~6.21.0"
+       }
+     },
+-    "node_modules/commander": {
+-      "version": "13.1.0",
+-      "resolved": "https://registry.npmjs.org/commander/-/commander-13.1.0.tgz",
+-      "integrity": "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==",
++    "node_modules/@typescript-eslint/eslint-plugin": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/@typescript-eslint/eslint-plugin/-/eslint-plugin-8.72.0.tgz",
++      "integrity": "sha512-aysKgysPX9XOv/dk95UkvUDe++Q3n3dJPG9CEWT3RUccxfkPJ+Qn6nhKPDhZXU6Ofo9kgwGWwKyQCnZIXTgngg==",
++      "dev": true,
+       "license": "MIT",
++      "dependencies": {
++        "@eslint-community/regexpp": "^4.12.2",
++        "@typescript-eslint/scope-manager": "8.72.0",
++        "@typescript-eslint/type-utils": "8.72.0",
++        "@typescript-eslint/utils": "8.72.0",
++        "@typescript-eslint/visitor-keys": "8.72.0",
++        "ignore": "^7.0.5",
++        "natural-compare": "^1.4.0",
++        "ts-api-utils": "^2.5.0"
++      },
+       "engines": {
+-        "node": ">=18"
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      },
++      "peerDependencies": {
++        "@typescript-eslint/parser": "^8.72.0",
++        "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
++        "typescript": ">=4.8.4 <6.1.0"
+       }
+     },
+-    "node_modules/esbuild": {
+-      "version": "0.28.0",
+-      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.0.tgz",
+-      "integrity": "sha512-sNR9MHpXSUV/XB4zmsFKN+QgVG82Cc7+/aaxJ8Adi8hyOac+EXptIp45QBPaVyX3N70664wRbTcLTOemCAnyqw==",
++    "node_modules/@typescript-eslint/eslint-plugin/node_modules/ignore": {
++      "version": "7.0.13",
++      "resolved": "https://registry.npmjs.org/ignore/-/ignore-7.0.13.tgz",
++      "integrity": "sha512-2E8Q6rh+1RRSq/YdaGsNfXsEZy9FVqv6BSSrkmZJP7BnaoPnRfKL+YaofPvP+5rzdk144qSm6i4+hvPgUcbV4Q==",
+       "dev": true,
+-      "hasInstallScript": true,
+       "license": "MIT",
+-      "bin": {
+-        "esbuild": "bin/esbuild"
++      "engines": {
++        "node": ">= 4"
++      }
++    },
++    "node_modules/@typescript-eslint/parser": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/@typescript-eslint/parser/-/parser-8.72.0.tgz",
++      "integrity": "sha512-0O+x3ynciD6zuXb1CKSu165haQV6ey53DKhHHUnujP7U+XlltJG+/keT0Xhd1HXCze+IHf7Tvt39ovyepX/LNw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@typescript-eslint/scope-manager": "8.72.0",
++        "@typescript-eslint/types": "8.72.0",
++        "@typescript-eslint/typescript-estree": "8.72.0",
++        "@typescript-eslint/visitor-keys": "8.72.0",
++        "debug": "^4.4.3"
+       },
+       "engines": {
+-        "node": ">=18"
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+       },
+-      "optionalDependencies": {
+-        "@esbuild/aix-ppc64": "0.28.0",
+-        "@esbuild/android-arm": "0.28.0",
+-        "@esbuild/android-arm64": "0.28.0",
+-        "@esbuild/android-x64": "0.28.0",
+-        "@esbuild/darwin-arm64": "0.28.0",
+-        "@esbuild/darwin-x64": "0.28.0",
+-        "@esbuild/freebsd-arm64": "0.28.0",
+-        "@esbuild/freebsd-x64": "0.28.0",
+-        "@esbuild/linux-arm": "0.28.0",
+-        "@esbuild/linux-arm64": "0.28.0",
+-        "@esbuild/linux-ia32": "0.28.0",
+-        "@esbuild/linux-loong64": "0.28.0",
+-        "@esbuild/linux-mips64el": "0.28.0",
+-        "@esbuild/linux-ppc64": "0.28.0",
+-        "@esbuild/linux-riscv64": "0.28.0",
+-        "@esbuild/linux-s390x": "0.28.0",
+-        "@esbuild/linux-x64": "0.28.0",
+-        "@esbuild/netbsd-arm64": "0.28.0",
+-        "@esbuild/netbsd-x64": "0.28.0",
+-        "@esbuild/openbsd-arm64": "0.28.0",
+-        "@esbuild/openbsd-x64": "0.28.0",
+-        "@esbuild/openharmony-arm64": "0.28.0",
+-        "@esbuild/sunos-x64": "0.28.0",
+-        "@esbuild/win32-arm64": "0.28.0",
+-        "@esbuild/win32-ia32": "0.28.0",
+-        "@esbuild/win32-x64": "0.28.0"
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      },
++      "peerDependencies": {
++        "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
++        "typescript": ">=4.8.4 <6.1.0"
+       }
+     },
+-    "node_modules/fsevents": {
+-      "version": "2.3.3",
+-      "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
+-      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
++    "node_modules/@typescript-eslint/project-service": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/@typescript-eslint/project-service/-/project-service-8.72.0.tgz",
++      "integrity": "sha512-bzHngBbmIgzj6TsTjVUCntGx6FFLgE7mPjpO0PzHycOaZHXqS43XnrkFIHRS16LLr/xO6FHSXG3GJFo/F4bSBQ==",
+       "dev": true,
+-      "hasInstallScript": true,
+       "license": "MIT",
+-      "optional": true,
+-      "os": [
+-        "darwin"
+-      ],
++      "dependencies": {
++        "@typescript-eslint/tsconfig-utils": "^8.72.0",
++        "@typescript-eslint/types": "^8.72.0",
++        "debug": "^4.4.3"
++      },
+       "engines": {
+-        "node": "^8.16.0 || ^10.6.0 || >=11.0.0"
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      },
++      "peerDependencies": {
++        "typescript": ">=4.8.4 <6.1.0"
+       }
+     },
+-    "node_modules/tsx": {
+-      "version": "4.22.3",
+-      "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.22.3.tgz",
+-      "integrity": "sha512-mdoNxBC/cSQObGGVQ5Bpn5i+yv7j68gk3Nfm3wFjcJg3Z0Mix9jzAFfP12prmm5eVGmDKtp0yyArrs0Q+8gZHg==",
++    "node_modules/@typescript-eslint/scope-manager": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/@typescript-eslint/scope-manager/-/scope-manager-8.72.0.tgz",
++      "integrity": "sha512-JewPyJOYcXBSAS7PIgufscHOwZqhTGyBRiQJhhuDln66tMchxvvt7nJ90JKKIoOelmdHA3kAQbm9cEUHc4JSEA==",
+       "dev": true,
+       "license": "MIT",
+       "dependencies": {
+-        "esbuild": "~0.28.0"
++        "@typescript-eslint/types": "8.72.0",
++        "@typescript-eslint/visitor-keys": "8.72.0"
+       },
+-      "bin": {
+-        "tsx": "dist/cli.mjs"
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+       },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      }
++    },
++    "node_modules/@typescript-eslint/tsconfig-utils": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/@typescript-eslint/tsconfig-utils/-/tsconfig-utils-8.72.0.tgz",
++      "integrity": "sha512-0vbxCf7xLVPSjcOdm6eQbgViH8EDJ8xnl1laLT9yoqSz2YmcSfSg5Vdl0JUvZf6rcuJ0ZivJIuMD4edTg8obaA==",
++      "dev": true,
++      "license": "MIT",
+       "engines": {
+-        "node": ">=18.0.0"
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+       },
+-      "optionalDependencies": {
+-        "fsevents": "~2.3.3"
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      },
++      "peerDependencies": {
++        "typescript": ">=4.8.4 <6.1.0"
+       }
+     },
+-    "node_modules/typescript": {
+-      "version": "5.9.3",
+-      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+-      "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
++    "node_modules/@typescript-eslint/type-utils": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/@typescript-eslint/type-utils/-/type-utils-8.72.0.tgz",
++      "integrity": "sha512-gEXxmmbSTSOVTC37IYYvremOM31v+UN2W772bJxmVYPhAOPSUxtacyb7wkm1EhkYKU6KzFJsdU44DCV4to0LWw==",
+       "dev": true,
+-      "license": "Apache-2.0",
+-      "bin": {
+-        "tsc": "bin/tsc",
+-        "tsserver": "bin/tsserver"
++      "license": "MIT",
++      "dependencies": {
++        "@typescript-eslint/types": "8.72.0",
++        "@typescript-eslint/typescript-estree": "8.72.0",
++        "@typescript-eslint/utils": "8.72.0",
++        "debug": "^4.4.3",
++        "ts-api-utils": "^2.5.0"
+       },
+       "engines": {
+-        "node": ">=14.17"
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      },
++      "peerDependencies": {
++        "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
++        "typescript": ">=4.8.4 <6.1.0"
+       }
+     },
+-    "node_modules/undici-types": {
+-      "version": "6.21.0",
+-      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz",
+-      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
++    "node_modules/@typescript-eslint/types": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/@typescript-eslint/types/-/types-8.72.0.tgz",
++      "integrity": "sha512-Adfoy59kxNEjT5E5fnyrp7GpHYuWs8ONbdohu4ez6IU46qDq8LltG90tLmkucZB2uhYL8mqBjtXqGd8yhfjXqQ==",
+       "dev": true,
+-      "license": "MIT"
++      "license": "MIT",
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      }
++    },
++    "node_modules/@typescript-eslint/typescript-estree": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/@typescript-eslint/typescript-estree/-/typescript-estree-8.72.0.tgz",
++      "integrity": "sha512-gwLfFgWcw15tN2KXDCJvxEOQjPn+P3j/n3eSqkZ5sX4VpW9Cosodr+tWwBZRvJT3TcKx6HnPRGZMCNAiP1Xhug==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@typescript-eslint/project-service": "8.72.0",
++        "@typescript-eslint/tsconfig-utils": "8.72.0",
++        "@typescript-eslint/types": "8.72.0",
++        "@typescript-eslint/visitor-keys": "8.72.0",
++        "debug": "^4.4.3",
++        "minimatch": "^10.2.2",
++        "semver": "^7.7.3",
++        "tinyglobby": "^0.2.15",
++        "ts-api-utils": "^2.5.0"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      },
++      "peerDependencies": {
++        "typescript": ">=4.8.4 <6.1.0"
++      }
++    },
++    "node_modules/@typescript-eslint/typescript-estree/node_modules/balanced-match": {
++      "version": "4.0.4",
++      "resolved": "https://registry.npmjs.org/balanced-match/-/balanced-match-4.0.4.tgz",
++      "integrity": "sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": "18 || 20 || >=22"
++      }
++    },
++    "node_modules/@typescript-eslint/typescript-estree/node_modules/brace-expansion": {
++      "version": "5.0.12",
++      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz",
++      "integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "balanced-match": "^4.0.2"
++      },
++      "engines": {
++        "node": "20 || >=22"
++      }
++    },
++    "node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch": {
++      "version": "10.2.6",
++      "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-10.2.6.tgz",
++      "integrity": "sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==",
++      "dev": true,
++      "license": "BlueOak-1.0.0",
++      "dependencies": {
++        "brace-expansion": "^5.0.8"
++      },
++      "engines": {
++        "node": "18 || 20 || >=22"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/isaacs"
++      }
++    },
++    "node_modules/@typescript-eslint/utils": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/@typescript-eslint/utils/-/utils-8.72.0.tgz",
++      "integrity": "sha512-0up3oArJZBYnzOaEXKo8DmI43QvMZyPoFEt9LWzRJcyl/RcJjfKKPebknN1VbTgXBf3M/KggUh5uUMdURLnseg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@eslint-community/eslint-utils": "^4.9.1",
++        "@typescript-eslint/scope-manager": "8.72.0",
++        "@typescript-eslint/types": "8.72.0",
++        "@typescript-eslint/typescript-estree": "8.72.0"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      },
++      "peerDependencies": {
++        "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
++        "typescript": ">=4.8.4 <6.1.0"
++      }
++    },
++    "node_modules/@typescript-eslint/visitor-keys": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/@typescript-eslint/visitor-keys/-/visitor-keys-8.72.0.tgz",
++      "integrity": "sha512-E2mroviasaWecDzTGiGMtuEguuLVOeRggnrIn93CJuxYJzQBHbyymlT08aVQydbBal5538o+JkBKXh2sRuCyIA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@typescript-eslint/types": "8.72.0",
++        "eslint-visitor-keys": "^5.0.0"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      }
++    },
++    "node_modules/@typescript-eslint/visitor-keys/node_modules/eslint-visitor-keys": {
++      "version": "5.0.1",
++      "resolved": "https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-5.0.1.tgz",
++      "integrity": "sha512-tD40eHxA35h0PEIZNeIjkHoDR4YjjJp34biM0mDvplBe//mB+IHCqHDGV7pxF+7MklTvighcCPPZC7ynWyjdTA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": "^20.19.0 || ^22.13.0 || >=24"
++      },
++      "funding": {
++        "url": "https://opencollective.com/eslint"
++      }
++    },
++    "node_modules/acorn": {
++      "version": "8.19.0",
++      "resolved": "https://registry.npmjs.org/acorn/-/acorn-8.19.0.tgz",
++      "integrity": "sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw==",
++      "dev": true,
++      "license": "MIT",
++      "bin": {
++        "acorn": "bin/acorn"
++      },
++      "engines": {
++        "node": ">=0.4.0"
++      }
++    },
++    "node_modules/acorn-jsx": {
++      "version": "5.3.2",
++      "resolved": "https://registry.npmjs.org/acorn-jsx/-/acorn-jsx-5.3.2.tgz",
++      "integrity": "sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==",
++      "dev": true,
++      "license": "MIT",
++      "peerDependencies": {
++        "acorn": "^6.0.0 || ^7.0.0 || ^8.0.0"
++      }
++    },
++    "node_modules/ajv": {
++      "version": "6.15.0",
++      "resolved": "https://registry.npmjs.org/ajv/-/ajv-6.15.0.tgz",
++      "integrity": "sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "fast-deep-equal": "^3.1.1",
++        "fast-json-stable-stringify": "^2.0.0",
++        "json-schema-traverse": "^0.4.1",
++        "uri-js": "^4.2.2"
++      },
++      "funding": {
++        "type": "github",
++        "url": "https://github.com/sponsors/epoberezkin"
++      }
++    },
++    "node_modules/ansi-styles": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz",
++      "integrity": "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "color-convert": "^2.0.1"
++      },
++      "engines": {
++        "node": ">=8"
++      },
++      "funding": {
++        "url": "https://github.com/chalk/ansi-styles?sponsor=1"
++      }
++    },
++    "node_modules/argparse": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/argparse/-/argparse-2.0.1.tgz",
++      "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==",
++      "dev": true,
++      "license": "Python-2.0"
++    },
++    "node_modules/balanced-match": {
++      "version": "1.0.2",
++      "resolved": "https://registry.npmjs.org/balanced-match/-/balanced-match-1.0.2.tgz",
++      "integrity": "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/brace-expansion": {
++      "version": "1.1.21",
++      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.21.tgz",
++      "integrity": "sha512-9zeA+KLZNNzglF2TPKRQEDyx6Yby7daAkuy8MiPzpXPsYDWi/DRM8jmwUDxokQjYqBpv5DgPiwD4h4ZZSy1Ujw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "balanced-match": "^1.0.0",
++        "concat-map": "0.0.1"
++      }
++    },
++    "node_modules/callsites": {
++      "version": "3.1.0",
++      "resolved": "https://registry.npmjs.org/callsites/-/callsites-3.1.0.tgz",
++      "integrity": "sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=6"
++      }
++    },
++    "node_modules/chalk": {
++      "version": "4.1.2",
++      "resolved": "https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz",
++      "integrity": "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "ansi-styles": "^4.1.0",
++        "supports-color": "^7.1.0"
++      },
++      "engines": {
++        "node": ">=10"
++      },
++      "funding": {
++        "url": "https://github.com/chalk/chalk?sponsor=1"
++      }
++    },
++    "node_modules/color-convert": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz",
++      "integrity": "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "color-name": "~1.1.4"
++      },
++      "engines": {
++        "node": ">=7.0.0"
++      }
++    },
++    "node_modules/color-name": {
++      "version": "1.1.4",
++      "resolved": "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz",
++      "integrity": "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/commander": {
++      "version": "13.1.0",
++      "resolved": "https://registry.npmjs.org/commander/-/commander-13.1.0.tgz",
++      "integrity": "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==",
++      "license": "MIT",
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/concat-map": {
++      "version": "0.0.1",
++      "resolved": "https://registry.npmjs.org/concat-map/-/concat-map-0.0.1.tgz",
++      "integrity": "sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/cross-spawn": {
++      "version": "7.0.6",
++      "resolved": "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz",
++      "integrity": "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "path-key": "^3.1.0",
++        "shebang-command": "^2.0.0",
++        "which": "^2.0.1"
++      },
++      "engines": {
++        "node": ">= 8"
++      }
++    },
++    "node_modules/debug": {
++      "version": "4.4.3",
++      "resolved": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
++      "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "ms": "^2.1.3"
++      },
++      "engines": {
++        "node": ">=6.0"
++      },
++      "peerDependenciesMeta": {
++        "supports-color": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/deep-is": {
++      "version": "0.1.4",
++      "resolved": "https://registry.npmjs.org/deep-is/-/deep-is-0.1.4.tgz",
++      "integrity": "sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/esbuild": {
++      "version": "0.28.0",
++      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.0.tgz",
++      "integrity": "sha512-sNR9MHpXSUV/XB4zmsFKN+QgVG82Cc7+/aaxJ8Adi8hyOac+EXptIp45QBPaVyX3N70664wRbTcLTOemCAnyqw==",
++      "dev": true,
++      "hasInstallScript": true,
++      "license": "MIT",
++      "bin": {
++        "esbuild": "bin/esbuild"
++      },
++      "engines": {
++        "node": ">=18"
++      },
++      "optionalDependencies": {
++        "@esbuild/aix-ppc64": "0.28.0",
++        "@esbuild/android-arm": "0.28.0",
++        "@esbuild/android-arm64": "0.28.0",
++        "@esbuild/android-x64": "0.28.0",
++        "@esbuild/darwin-arm64": "0.28.0",
++        "@esbuild/darwin-x64": "0.28.0",
++        "@esbuild/freebsd-arm64": "0.28.0",
++        "@esbuild/freebsd-x64": "0.28.0",
++        "@esbuild/linux-arm": "0.28.0",
++        "@esbuild/linux-arm64": "0.28.0",
++        "@esbuild/linux-ia32": "0.28.0",
++        "@esbuild/linux-loong64": "0.28.0",
++        "@esbuild/linux-mips64el": "0.28.0",
++        "@esbuild/linux-ppc64": "0.28.0",
++        "@esbuild/linux-riscv64": "0.28.0",
++        "@esbuild/linux-s390x": "0.28.0",
++        "@esbuild/linux-x64": "0.28.0",
++        "@esbuild/netbsd-arm64": "0.28.0",
++        "@esbuild/netbsd-x64": "0.28.0",
++        "@esbuild/openbsd-arm64": "0.28.0",
++        "@esbuild/openbsd-x64": "0.28.0",
++        "@esbuild/openharmony-arm64": "0.28.0",
++        "@esbuild/sunos-x64": "0.28.0",
++        "@esbuild/win32-arm64": "0.28.0",
++        "@esbuild/win32-ia32": "0.28.0",
++        "@esbuild/win32-x64": "0.28.0"
++      }
++    },
++    "node_modules/escape-string-regexp": {
++      "version": "4.0.0",
++      "resolved": "https://registry.npmjs.org/escape-string-regexp/-/escape-string-regexp-4.0.0.tgz",
++      "integrity": "sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=10"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/eslint": {
++      "version": "9.39.5",
++      "resolved": "https://registry.npmjs.org/eslint/-/eslint-9.39.5.tgz",
++      "integrity": "sha512-DgZS62aPLXKlnxILS/AYCoRvHaZeXceIzlXPkkGGzJWSow1aEk0lbTlxUSlyjC8jcaKxAdOnTDz+o1JFSBsyjw==",
++      "deprecated": "This version is no longer supported. Please see https://eslint.org/version-support for other options.",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@eslint-community/eslint-utils": "^4.8.0",
++        "@eslint-community/regexpp": "^4.12.1",
++        "@eslint/config-array": "^0.21.2",
++        "@eslint/config-helpers": "^0.4.2",
++        "@eslint/core": "^0.17.0",
++        "@eslint/eslintrc": "^3.3.6",
++        "@eslint/js": "9.39.5",
++        "@eslint/plugin-kit": "^0.4.1",
++        "@humanfs/node": "^0.16.6",
++        "@humanwhocodes/module-importer": "^1.0.1",
++        "@humanwhocodes/retry": "^0.4.2",
++        "@types/estree": "^1.0.6",
++        "ajv": "^6.14.0",
++        "chalk": "^4.0.0",
++        "cross-spawn": "^7.0.6",
++        "debug": "^4.3.2",
++        "escape-string-regexp": "^4.0.0",
++        "eslint-scope": "^8.4.0",
++        "eslint-visitor-keys": "^4.2.1",
++        "espree": "^10.4.0",
++        "esquery": "^1.5.0",
++        "esutils": "^2.0.2",
++        "fast-deep-equal": "^3.1.3",
++        "file-entry-cache": "^8.0.0",
++        "find-up": "^5.0.0",
++        "glob-parent": "^6.0.2",
++        "ignore": "^5.2.0",
++        "imurmurhash": "^0.1.4",
++        "is-glob": "^4.0.0",
++        "json-stable-stringify-without-jsonify": "^1.0.1",
++        "lodash.merge": "^4.6.2",
++        "minimatch": "^3.1.5",
++        "natural-compare": "^1.4.0",
++        "optionator": "^0.9.3"
++      },
++      "bin": {
++        "eslint": "bin/eslint.js"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "url": "https://eslint.org/donate"
++      },
++      "peerDependencies": {
++        "jiti": "*"
++      },
++      "peerDependenciesMeta": {
++        "jiti": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/eslint-scope": {
++      "version": "8.4.0",
++      "resolved": "https://registry.npmjs.org/eslint-scope/-/eslint-scope-8.4.0.tgz",
++      "integrity": "sha512-sNXOfKCn74rt8RICKMvJS7XKV/Xk9kA7DyJr8mJik3S7Cwgy3qlkkmyS2uQB3jiJg6VNdZd/pDBJu0nvG2NlTg==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "dependencies": {
++        "esrecurse": "^4.3.0",
++        "estraverse": "^5.2.0"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/eslint"
++      }
++    },
++    "node_modules/eslint-visitor-keys": {
++      "version": "4.2.1",
++      "resolved": "https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-4.2.1.tgz",
++      "integrity": "sha512-Uhdk5sfqcee/9H/rCOJikYz67o0a2Tw2hGRPOG2Y1R2dg7brRe1uG0yaNQDHu+TO/uQPF/5eCapvYSmHUjt7JQ==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/eslint"
++      }
++    },
++    "node_modules/espree": {
++      "version": "10.4.0",
++      "resolved": "https://registry.npmjs.org/espree/-/espree-10.4.0.tgz",
++      "integrity": "sha512-j6PAQ2uUr79PZhBjP5C5fhl8e39FmRnOjsD5lGnWrFU8i2G776tBK7+nP8KuQUTTyAZUwfQqXAgrVH5MbH9CYQ==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "dependencies": {
++        "acorn": "^8.15.0",
++        "acorn-jsx": "^5.3.2",
++        "eslint-visitor-keys": "^4.2.1"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/eslint"
++      }
++    },
++    "node_modules/esquery": {
++      "version": "1.7.0",
++      "resolved": "https://registry.npmjs.org/esquery/-/esquery-1.7.0.tgz",
++      "integrity": "sha512-Ap6G0WQwcU/LHsvLwON1fAQX9Zp0A2Y6Y/cJBl9r/JbW90Zyg4/zbG6zzKa2OTALELarYHmKu0GhpM5EO+7T0g==",
++      "dev": true,
++      "license": "BSD-3-Clause",
++      "dependencies": {
++        "estraverse": "^5.1.0"
++      },
++      "engines": {
++        "node": ">=0.10"
++      }
++    },
++    "node_modules/esrecurse": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/esrecurse/-/esrecurse-4.3.0.tgz",
++      "integrity": "sha512-KmfKL3b6G+RXvP8N1vr3Tq1kL/oCFgn2NYXEtqP8/L3pKapUA4G8cFVaoF3SU323CD4XypR/ffioHmkti6/Tag==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "dependencies": {
++        "estraverse": "^5.2.0"
++      },
++      "engines": {
++        "node": ">=4.0"
++      }
++    },
++    "node_modules/estraverse": {
++      "version": "5.3.0",
++      "resolved": "https://registry.npmjs.org/estraverse/-/estraverse-5.3.0.tgz",
++      "integrity": "sha512-MMdARuVEQziNTeJD8DgMqmhwR11BRQ/cBP+pLtYdSTnf3MIO8fFeiINEbX36ZdNlfU/7A9f3gUw49B3oQsvwBA==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "engines": {
++        "node": ">=4.0"
++      }
++    },
++    "node_modules/esutils": {
++      "version": "2.0.3",
++      "resolved": "https://registry.npmjs.org/esutils/-/esutils-2.0.3.tgz",
++      "integrity": "sha512-kVscqXk4OCp68SZ0dkgEKVi6/8ij300KBWTJq32P/dYeWTSwK41WyTxalN1eRmA5Z9UU/LX9D7FWSmV9SAYx6g==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/fast-deep-equal": {
++      "version": "3.1.3",
++      "resolved": "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz",
++      "integrity": "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/fast-json-stable-stringify": {
++      "version": "2.1.0",
++      "resolved": "https://registry.npmjs.org/fast-json-stable-stringify/-/fast-json-stable-stringify-2.1.0.tgz",
++      "integrity": "sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/fast-levenshtein": {
++      "version": "2.0.6",
++      "resolved": "https://registry.npmjs.org/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz",
++      "integrity": "sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/fdir": {
++      "version": "6.5.0",
++      "resolved": "https://registry.npmjs.org/fdir/-/fdir-6.5.0.tgz",
++      "integrity": "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=12.0.0"
++      },
++      "peerDependencies": {
++        "picomatch": "^3 || ^4"
++      },
++      "peerDependenciesMeta": {
++        "picomatch": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/file-entry-cache": {
++      "version": "8.0.0",
++      "resolved": "https://registry.npmjs.org/file-entry-cache/-/file-entry-cache-8.0.0.tgz",
++      "integrity": "sha512-XXTUwCvisa5oacNGRP9SfNtYBNAMi+RPwBFmblZEF7N7swHYQS6/Zfk7SRwx4D5j3CH211YNRco1DEMNVfZCnQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "flat-cache": "^4.0.0"
++      },
++      "engines": {
++        "node": ">=16.0.0"
++      }
++    },
++    "node_modules/find-up": {
++      "version": "5.0.0",
++      "resolved": "https://registry.npmjs.org/find-up/-/find-up-5.0.0.tgz",
++      "integrity": "sha512-78/PXT1wlLLDgTzDs7sjq9hzz0vXD+zn+7wypEe4fXQxCmdmqfGsEPQxmiCSQI3ajFV91bVSsvNtrJRiW6nGng==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "locate-path": "^6.0.0",
++        "path-exists": "^4.0.0"
++      },
++      "engines": {
++        "node": ">=10"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/flat-cache": {
++      "version": "4.0.1",
++      "resolved": "https://registry.npmjs.org/flat-cache/-/flat-cache-4.0.1.tgz",
++      "integrity": "sha512-f7ccFPK3SXFHpx15UIGyRJ/FJQctuKZ0zVuN3frBo4HnK3cay9VEW0R6yPYFHC0AgqhukPzKjq22t5DmAyqGyw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "flatted": "^3.2.9",
++        "keyv": "^4.5.4"
++      },
++      "engines": {
++        "node": ">=16"
++      }
++    },
++    "node_modules/flatted": {
++      "version": "3.4.4",
++      "resolved": "https://registry.npmjs.org/flatted/-/flatted-3.4.4.tgz",
++      "integrity": "sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q==",
++      "dev": true,
++      "license": "ISC"
++    },
++    "node_modules/fsevents": {
++      "version": "2.3.3",
++      "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
++      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
++      "dev": true,
++      "hasInstallScript": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": "^8.16.0 || ^10.6.0 || >=11.0.0"
++      }
++    },
++    "node_modules/glob-parent": {
++      "version": "6.0.2",
++      "resolved": "https://registry.npmjs.org/glob-parent/-/glob-parent-6.0.2.tgz",
++      "integrity": "sha512-XxwI8EOhVQgWp6iDL+3b0r86f4d6AX6zSU55HfB4ydCEuXLXc5FcYeOu+nnGftS4TEju/11rt4KJPTMgbfmv4A==",
++      "dev": true,
++      "license": "ISC",
++      "dependencies": {
++        "is-glob": "^4.0.3"
++      },
++      "engines": {
++        "node": ">=10.13.0"
++      }
++    },
++    "node_modules/globals": {
++      "version": "14.0.0",
++      "resolved": "https://registry.npmjs.org/globals/-/globals-14.0.0.tgz",
++      "integrity": "sha512-oahGvuMGQlPw/ivIYBjVSrWAfWLBeku5tpPE2fOPLi+WHffIWbuh2tCjhyQhTBPMf5E9jDEH4FOmTYgYwbKwtQ==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=18"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/has-flag": {
++      "version": "4.0.0",
++      "resolved": "https://registry.npmjs.org/has-flag/-/has-flag-4.0.0.tgz",
++      "integrity": "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/ignore": {
++      "version": "5.3.2",
++      "resolved": "https://registry.npmjs.org/ignore/-/ignore-5.3.2.tgz",
++      "integrity": "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">= 4"
++      }
++    },
++    "node_modules/import-fresh": {
++      "version": "3.3.1",
++      "resolved": "https://registry.npmjs.org/import-fresh/-/import-fresh-3.3.1.tgz",
++      "integrity": "sha512-TR3KfrTZTYLPB6jUjfx6MF9WcWrHL9su5TObK4ZkYgBdWKPOFoSoQIdEuTuR82pmtxH2spWG9h6etwfr1pLBqQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "parent-module": "^1.0.0",
++        "resolve-from": "^4.0.0"
++      },
++      "engines": {
++        "node": ">=6"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/imurmurhash": {
++      "version": "0.1.4",
++      "resolved": "https://registry.npmjs.org/imurmurhash/-/imurmurhash-0.1.4.tgz",
++      "integrity": "sha512-JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=0.8.19"
++      }
++    },
++    "node_modules/is-extglob": {
++      "version": "2.1.1",
++      "resolved": "https://registry.npmjs.org/is-extglob/-/is-extglob-2.1.1.tgz",
++      "integrity": "sha512-SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/is-glob": {
++      "version": "4.0.3",
++      "resolved": "https://registry.npmjs.org/is-glob/-/is-glob-4.0.3.tgz",
++      "integrity": "sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "is-extglob": "^2.1.1"
++      },
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/isexe": {
++      "version": "2.0.0",
++      "resolved": "https://registry.npmjs.org/isexe/-/isexe-2.0.0.tgz",
++      "integrity": "sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==",
++      "dev": true,
++      "license": "ISC"
++    },
++    "node_modules/js-yaml": {
++      "version": "4.3.2",
++      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.2.tgz",
++      "integrity": "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/puzrin"
++        },
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/nodeca"
++        }
++      ],
++      "license": "MIT",
++      "dependencies": {
++        "argparse": "^2.0.1"
++      },
++      "bin": {
++        "js-yaml": "bin/js-yaml.js"
++      }
++    },
++    "node_modules/json-buffer": {
++      "version": "3.0.1",
++      "resolved": "https://registry.npmjs.org/json-buffer/-/json-buffer-3.0.1.tgz",
++      "integrity": "sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/json-schema-traverse": {
++      "version": "0.4.1",
++      "resolved": "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-0.4.1.tgz",
++      "integrity": "sha512-xbbCH5dCYU5T8LcEhhuh7HJ88HXuW3qsI3Y0zOZFKfZEHcpWiHU/Jxzk629Brsab/mMiHQti9wMP+845RPe3Vg==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/json-stable-stringify-without-jsonify": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/json-stable-stringify-without-jsonify/-/json-stable-stringify-without-jsonify-1.0.1.tgz",
++      "integrity": "sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/keyv": {
++      "version": "4.5.4",
++      "resolved": "https://registry.npmjs.org/keyv/-/keyv-4.5.4.tgz",
++      "integrity": "sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "json-buffer": "3.0.1"
++      }
++    },
++    "node_modules/levn": {
++      "version": "0.4.1",
++      "resolved": "https://registry.npmjs.org/levn/-/levn-0.4.1.tgz",
++      "integrity": "sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "prelude-ls": "^1.2.1",
++        "type-check": "~0.4.0"
++      },
++      "engines": {
++        "node": ">= 0.8.0"
++      }
++    },
++    "node_modules/locate-path": {
++      "version": "6.0.0",
++      "resolved": "https://registry.npmjs.org/locate-path/-/locate-path-6.0.0.tgz",
++      "integrity": "sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "p-locate": "^5.0.0"
++      },
++      "engines": {
++        "node": ">=10"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/lodash.merge": {
++      "version": "4.6.2",
++      "resolved": "https://registry.npmjs.org/lodash.merge/-/lodash.merge-4.6.2.tgz",
++      "integrity": "sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/minimatch": {
++      "version": "3.1.5",
++      "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-3.1.5.tgz",
++      "integrity": "sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==",
++      "dev": true,
++      "license": "ISC",
++      "dependencies": {
++        "brace-expansion": "^1.1.7"
++      },
++      "engines": {
++        "node": "*"
++      }
++    },
++    "node_modules/ms": {
++      "version": "2.1.3",
++      "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
++      "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/natural-compare": {
++      "version": "1.4.0",
++      "resolved": "https://registry.npmjs.org/natural-compare/-/natural-compare-1.4.0.tgz",
++      "integrity": "sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/optionator": {
++      "version": "0.9.4",
++      "resolved": "https://registry.npmjs.org/optionator/-/optionator-0.9.4.tgz",
++      "integrity": "sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "deep-is": "^0.1.3",
++        "fast-levenshtein": "^2.0.6",
++        "levn": "^0.4.1",
++        "prelude-ls": "^1.2.1",
++        "type-check": "^0.4.0",
++        "word-wrap": "^1.2.5"
++      },
++      "engines": {
++        "node": ">= 0.8.0"
++      }
++    },
++    "node_modules/p-limit": {
++      "version": "3.1.0",
++      "resolved": "https://registry.npmjs.org/p-limit/-/p-limit-3.1.0.tgz",
++      "integrity": "sha512-TYOanM3wGwNGsZN2cVTYPArw454xnXj5qmWF1bEoAc4+cU/ol7GVh7odevjp1FNHduHc3KZMcFduxU5Xc6uJRQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "yocto-queue": "^0.1.0"
++      },
++      "engines": {
++        "node": ">=10"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/p-locate": {
++      "version": "5.0.0",
++      "resolved": "https://registry.npmjs.org/p-locate/-/p-locate-5.0.0.tgz",
++      "integrity": "sha512-LaNjtRWUBY++zB5nE/NwcaoMylSPk+S+ZHNB1TzdbMJMny6dynpAGt7X/tl/QYq3TIeE6nxHppbo2LGymrG5Pw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "p-limit": "^3.0.2"
++      },
++      "engines": {
++        "node": ">=10"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/parent-module": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/parent-module/-/parent-module-1.0.1.tgz",
++      "integrity": "sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "callsites": "^3.0.0"
++      },
++      "engines": {
++        "node": ">=6"
++      }
++    },
++    "node_modules/path-exists": {
++      "version": "4.0.0",
++      "resolved": "https://registry.npmjs.org/path-exists/-/path-exists-4.0.0.tgz",
++      "integrity": "sha512-ak9Qy5Q7jYb2Wwcey5Fpvg2KoAc/ZIhLSLOSBmRmygPsGwkVVt0fZa0qrtMz+m6tJTAHfZQ8FnmB4MG4LWy7/w==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/path-key": {
++      "version": "3.1.1",
++      "resolved": "https://registry.npmjs.org/path-key/-/path-key-3.1.1.tgz",
++      "integrity": "sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/picomatch": {
++      "version": "4.0.7",
++      "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz",
++      "integrity": "sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=12"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/jonschlinkert"
++      }
++    },
++    "node_modules/prelude-ls": {
++      "version": "1.2.1",
++      "resolved": "https://registry.npmjs.org/prelude-ls/-/prelude-ls-1.2.1.tgz",
++      "integrity": "sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">= 0.8.0"
++      }
++    },
++    "node_modules/punycode": {
++      "version": "2.3.1",
++      "resolved": "https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz",
++      "integrity": "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=6"
++      }
++    },
++    "node_modules/resolve-from": {
++      "version": "4.0.0",
++      "resolved": "https://registry.npmjs.org/resolve-from/-/resolve-from-4.0.0.tgz",
++      "integrity": "sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=4"
++      }
++    },
++    "node_modules/semver": {
++      "version": "7.8.5",
++      "resolved": "https://registry.npmjs.org/semver/-/semver-7.8.5.tgz",
++      "integrity": "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==",
++      "dev": true,
++      "license": "ISC",
++      "bin": {
++        "semver": "bin/semver.js"
++      },
++      "engines": {
++        "node": ">=10"
++      }
++    },
++    "node_modules/shebang-command": {
++      "version": "2.0.0",
++      "resolved": "https://registry.npmjs.org/shebang-command/-/shebang-command-2.0.0.tgz",
++      "integrity": "sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "shebang-regex": "^3.0.0"
++      },
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/shebang-regex": {
++      "version": "3.0.0",
++      "resolved": "https://registry.npmjs.org/shebang-regex/-/shebang-regex-3.0.0.tgz",
++      "integrity": "sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/strip-json-comments": {
++      "version": "3.1.1",
++      "resolved": "https://registry.npmjs.org/strip-json-comments/-/strip-json-comments-3.1.1.tgz",
++      "integrity": "sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=8"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/supports-color": {
++      "version": "7.2.0",
++      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-7.2.0.tgz",
++      "integrity": "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "has-flag": "^4.0.0"
++      },
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/tinyglobby": {
++      "version": "0.2.17",
++      "resolved": "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz",
++      "integrity": "sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "fdir": "^6.5.0",
++        "picomatch": "^4.0.4"
++      },
++      "engines": {
++        "node": ">=12.0.0"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/SuperchupuDev"
++      }
++    },
++    "node_modules/ts-api-utils": {
++      "version": "2.5.0",
++      "resolved": "https://registry.npmjs.org/ts-api-utils/-/ts-api-utils-2.5.0.tgz",
++      "integrity": "sha512-OJ/ibxhPlqrMM0UiNHJ/0CKQkoKF243/AEmplt3qpRgkW8VG7IfOS41h7V8TjITqdByHzrjcS/2si+y4lIh8NA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=18.12"
++      },
++      "peerDependencies": {
++        "typescript": ">=4.8.4"
++      }
++    },
++    "node_modules/tsx": {
++      "version": "4.22.3",
++      "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.22.3.tgz",
++      "integrity": "sha512-mdoNxBC/cSQObGGVQ5Bpn5i+yv7j68gk3Nfm3wFjcJg3Z0Mix9jzAFfP12prmm5eVGmDKtp0yyArrs0Q+8gZHg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "esbuild": "~0.28.0"
++      },
++      "bin": {
++        "tsx": "dist/cli.mjs"
++      },
++      "engines": {
++        "node": ">=18.0.0"
++      },
++      "optionalDependencies": {
++        "fsevents": "~2.3.3"
++      }
++    },
++    "node_modules/type-check": {
++      "version": "0.4.0",
++      "resolved": "https://registry.npmjs.org/type-check/-/type-check-0.4.0.tgz",
++      "integrity": "sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "prelude-ls": "^1.2.1"
++      },
++      "engines": {
++        "node": ">= 0.8.0"
++      }
++    },
++    "node_modules/typescript": {
++      "version": "5.9.3",
++      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
++      "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "bin": {
++        "tsc": "bin/tsc",
++        "tsserver": "bin/tsserver"
++      },
++      "engines": {
++        "node": ">=14.17"
++      }
++    },
++    "node_modules/typescript-eslint": {
++      "version": "8.72.0",
++      "resolved": "https://registry.npmjs.org/typescript-eslint/-/typescript-eslint-8.72.0.tgz",
++      "integrity": "sha512-r26Fkc8As+mZvqp7SLsMmNFyYUup/6CjK7/eHBHmhOw6GH6n6YFxHVFrG0jN1c5CMpDzelLPxvgeCOzx7BjN+A==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@typescript-eslint/eslint-plugin": "8.72.0",
++        "@typescript-eslint/parser": "8.72.0",
++        "@typescript-eslint/typescript-estree": "8.72.0",
++        "@typescript-eslint/utils": "8.72.0"
++      },
++      "engines": {
++        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/typescript-eslint"
++      },
++      "peerDependencies": {
++        "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
++        "typescript": ">=4.8.4 <6.1.0"
++      }
++    },
++    "node_modules/undici-types": {
++      "version": "6.21.0",
++      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz",
++      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/uri-js": {
++      "version": "4.4.1",
++      "resolved": "https://registry.npmjs.org/uri-js/-/uri-js-4.4.1.tgz",
++      "integrity": "sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "dependencies": {
++        "punycode": "^2.1.0"
++      }
++    },
++    "node_modules/which": {
++      "version": "2.0.2",
++      "resolved": "https://registry.npmjs.org/which/-/which-2.0.2.tgz",
++      "integrity": "sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==",
++      "dev": true,
++      "license": "ISC",
++      "dependencies": {
++        "isexe": "^2.0.0"
++      },
++      "bin": {
++        "node-which": "bin/node-which"
++      },
++      "engines": {
++        "node": ">= 8"
++      }
++    },
++    "node_modules/word-wrap": {
++      "version": "1.2.5",
++      "resolved": "https://registry.npmjs.org/word-wrap/-/word-wrap-1.2.5.tgz",
++      "integrity": "sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/yaml": {
++      "version": "2.9.1",
++      "resolved": "https://registry.npmjs.org/yaml/-/yaml-2.9.1.tgz",
++      "integrity": "sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==",
++      "license": "ISC",
++      "bin": {
++        "yaml": "bin.mjs"
++      },
++      "engines": {
++        "node": ">= 14.6"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/eemeli"
++      }
++    },
++    "node_modules/yocto-queue": {
++      "version": "0.1.0",
++      "resolved": "https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz",
++      "integrity": "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=10"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
+     }
+   }
+ }
+diff --git a/src/claude.ts b/src/claude.ts
+index adfa1c6..75fb05f 100644
+--- a/src/claude.ts
++++ b/src/claude.ts
+@@ -38,7 +38,7 @@ function failedResult(error: string): AgentResult {
+ export function invokeClaude(opts: AgentInvokeOptions): Promise<AgentResult> {
+   const streaming = opts.verbose ?? false;
+   const hasBannedServers = (opts.bannedMcpServers?.length ?? 0) > 0;
+-  const useStreaming = streaming || hasBannedServers;
++  const useStreaming = streaming || hasBannedServers || !!opts.checkInit;
+   const args: string[] = ["-p", "--output-format", useStreaming ? "stream-json" : "json", "--model", opts.model];
+ 
+   if (useStreaming) {
+@@ -77,6 +77,19 @@ export function invokeClaude(opts: AgentInvokeOptions): Promise<AgentResult> {
+     args.push("--json-schema", opts.jsonSchema);
+   }
+ 
++  if (opts.settings) {
++    args.push("--settings", opts.settings);
++  }
++
++  if (opts.effort) {
++    args.push("--effort", opts.effort);
++  }
++
++  // Last: --mcp-config is variadic. The prompt goes over stdin, so nothing follows it.
++  if (opts.mcpConfig) {
++    args.push("--strict-mcp-config", "--mcp-config", opts.mcpConfig);
++  }
++
+   return new Promise((resolve, reject) => {
+     const child = spawn("claude", args, {
+       cwd: opts.cwd,
+@@ -103,18 +116,25 @@ export function invokeClaude(opts: AgentInvokeOptions): Promise<AgentResult> {
+       const state = createStreamState();
+       let finalResult: ClaudeRawOutput | null = null;
+       let contaminated = false;
++      let init: Record<string, unknown> | undefined;
++      const abort = (error: ContaminationError) => {
++        if (contaminated) return;
++        contaminated = true;
++        child.kill("SIGTERM");
++        clearTimeout(timer);
++        reject(error);
++      };
+ 
+       child.stdout.on("data", (chunk: Buffer) => {
+         if (contaminated) return;
+         processStreamChunk(chunk.toString(), tag, state, {
+           onResult: (e) => { finalResult = e as unknown as ClaudeRawOutput; },
+           bannedMcpServers: opts.bannedMcpServers,
+-          onContamination: (server, detail) => {
+-            if (contaminated) return;
+-            contaminated = true;
+-            child.kill("SIGTERM");
+-            clearTimeout(timer);
+-            reject(new ContaminationError(server, detail));
++          onContamination: (server, detail) => abort(new ContaminationError(server, detail)),
++          onInit: (e) => {
++            init = e;
++            const problem = opts.checkInit?.(e);
++            if (problem) abort(new ContaminationError("init", `${tag}: ${problem}`));
+           },
+         });
+       });
+@@ -131,8 +151,10 @@ export function invokeClaude(opts: AgentInvokeOptions): Promise<AgentResult> {
+             onResult: (e) => { finalResult = e as unknown as ClaudeRawOutput; },
+           });
+         }
+-        if (finalResult) {
+-          resolve(parseClaudeOutput(finalResult));
++        if (opts.checkInit && !init) {
++          reject(new ContaminationError("init", `${tag}: no system/init event, so the arm's tools are unverified`));
++        } else if (finalResult) {
++          resolve({ ...parseClaudeOutput(finalResult), init });
+         } else {
+           resolve(failedResult(
+             timedOut
+diff --git a/src/html-report.ts b/src/html-report.ts
+index e1b10fd..0e5f379 100644
+--- a/src/html-report.ts
++++ b/src/html-report.ts
+@@ -1,6 +1,7 @@
+ import fs from "node:fs";
+ import path from "node:path";
+-import type { AgentResult, ContextAttribution, ExperimentResult } from "./types.js";
++import { isContextArm } from "./types.js";
++import type { AgentResult, ContextAttribution, ContextEnhancedArm, ExperimentResult } from "./types.js";
+ import { estimateTokens, formatCost, formatDuration, formatTokens } from "./util.js";
+ 
+ function pctChange(baseline: number, enhanced: number): string {
+@@ -31,7 +32,18 @@ function phaseRows(phases: { label: string; run: AgentResult; isContext?: boolea
+   `).join("");
+ }
+ 
+-function buildAttributionSection(attributions?: ContextAttribution[]): string {
++function contextPhases(c: ContextEnhancedArm) {
++  return [
++    { label: "Initial Context", run: c.initialContextRun, isContext: true },
++    { label: "Pattern Extraction", run: c.patternExtractionRun, isContext: true },
++    { label: "Plan", run: c.planRun },
++    { label: "Plan Context", run: c.planContextRun, isContext: true },
++    { label: "Review", run: c.reviewRun },
++    { label: "Implement", run: c.implementRun },
++  ];
++}
++
++function buildAttributionSection(attributions?: ContextAttribution[], title = "Where Context Came From"): string {
+   if (!attributions?.length) return "";
+ 
+   const sorted = [...attributions].sort((a, b) => {
+@@ -61,7 +73,7 @@ function buildAttributionSection(attributions?: ContextAttribution[]): string {
+ 
+   return `
+   <div class="section">
+-    <div class="section-title">Where Context Came From</div>
++    <div class="section-title">${escapeHtml(title)}</div>
+     ${cards}
+   </div>`;
+ }
+@@ -78,6 +90,11 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+   const cCtxMs = c.initialContextRun.durationMs + c.patternExtractionRun.durationMs + c.planContextRun.durationMs;
+   const cCtxCost = c.initialContextRun.costUsd + c.patternExtractionRun.costUsd + c.planContextRun.costUsd;
+ 
++  // Same-chain mode: both arms ran the context chain, so there is no context-overhead contrast.
++  const sameChain = isContextArm(b);
++  const bName = sameChain ? b.name : "Baseline";
++  const cName = sameChain ? c.name : "Context-Enhanced";
++
+   const hasEval = !!b.evaluation && !!c.evaluation;
+   const scoreDiff = hasEval ? c.evaluation!.score - b.evaluation!.score : 0;
+   const taskTimePct = pctChange(bTaskMs, cTaskMs);
+@@ -662,14 +679,14 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+     <div class="section-title">Quality Score</div>
+     <div class="score-comparison">
+       <div class="score-box">
+-        <div class="score-arm">Baseline</div>
++        <div class="score-arm">${escapeHtml(bName)}</div>
+         <div class="score-num" style="color: ${scoreColor(b.evaluation!.score)}">
+           ${b.evaluation!.score}<span class="score-max">/100</span>
+         </div>
+       </div>
+       <div class="score-arrow">&rarr;</div>
+       <div class="score-box winner">
+-        <div class="score-arm">With Context</div>
++        <div class="score-arm">${escapeHtml(sameChain ? cName : "With Context")}</div>
+         <div class="score-num" style="color: ${scoreColor(c.evaluation!.score)}">
+           ${c.evaluation!.score}<span class="score-max">/100</span>
+         </div>
+@@ -704,13 +721,13 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+       <div class="comp-label">Task Time</div>
+       <div class="bar-group">
+         <div class="bar-row">
+-          <span class="bar-tag baseline">Baseline</span>
++          <span class="bar-tag baseline">${escapeHtml(bName)}</span>
+           <div class="bar-track">
+             <div class="bar-fill baseline" style="width: ${barWidth(bTaskMs, maxTime)}%">${formatDuration(bTaskMs)}</div>
+           </div>
+         </div>
+         <div class="bar-row">
+-          <span class="bar-tag context">Context+</span>
++          <span class="bar-tag context">${escapeHtml(sameChain ? cName : "Context+")}</span>
+           <div class="bar-track">
+             <div class="bar-fill context" style="width: ${barWidth(cTaskMs, maxTime)}%">${formatDuration(cTaskMs)}</div>
+           </div>
+@@ -722,13 +739,13 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+       <div class="comp-label">Task Cost</div>
+       <div class="bar-group">
+         <div class="bar-row">
+-          <span class="bar-tag baseline">Baseline</span>
++          <span class="bar-tag baseline">${escapeHtml(bName)}</span>
+           <div class="bar-track">
+             <div class="bar-fill baseline" style="width: ${barWidth(bTaskCost, maxCost)}%">${formatCost(bTaskCost)}</div>
+           </div>
+         </div>
+         <div class="bar-row">
+-          <span class="bar-tag context">Context+</span>
++          <span class="bar-tag context">${escapeHtml(sameChain ? cName : "Context+")}</span>
+           <div class="bar-track">
+             <div class="bar-fill context" style="width: ${barWidth(cTaskCost, maxCost)}%">${formatCost(cTaskCost)}</div>
+           </div>
+@@ -738,6 +755,7 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+ 
+   </div>
+ 
++  ${sameChain ? "" : `
+   <!-- Context Overhead Callout -->
+   <div class="overhead-callout">
+     <div class="overhead-title">Context Gathering Overhead</div>
+@@ -751,9 +769,11 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+       (plan-targeted), which the agent used to ${cTaskCost < bTaskCost ? "reduce task execution cost by " + pctChange(bTaskCost, cTaskCost).replace("+", "").replace("-", "") : "execute the task"}${scoreDiff > 0 ? " and improve quality by +" + scoreDiff + " points" : ""}.
+     </div>
+   </div>
++  `}
+ 
+   <!-- Context Attribution -->
+-  ${buildAttributionSection(c.contextAnalysis?.attributions)}
++  ${sameChain ? buildAttributionSection(b.contextAnalysis?.attributions, `Where Context Came From — ${bName}`) : ""}
++  ${buildAttributionSection(c.contextAnalysis?.attributions, sameChain ? `Where Context Came From — ${cName}` : undefined)}
+ 
+   <!-- Phase Breakdown: Baseline -->
+   <div class="section">
+@@ -761,7 +781,7 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+ 
+     <div class="arm-section">
+       <div class="arm-header">
+-        <span class="arm-name">Baseline</span>
++        <span class="arm-name">${escapeHtml(bName)}</span>
+         ${b.evaluation ? `<span class="arm-score" style="background: ${scoreColor(b.evaluation.score)}22; color: ${scoreColor(b.evaluation.score)}">${b.evaluation.score}/100</span>` : ""}
+       </div>
+       <table class="phase-table">
+@@ -769,7 +789,7 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+           <tr><th>Phase</th><th>Time</th><th>Cost</th><th>Tokens</th><th>Turns</th></tr>
+         </thead>
+         <tbody>
+-          ${phaseRows([
++          ${phaseRows(isContextArm(b) ? contextPhases(b) : [
+             { label: "Plan", run: b.planRun },
+             { label: "Review", run: b.reviewRun },
+             { label: "Implement", run: b.implementRun },
+@@ -787,7 +807,7 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+ 
+     <div class="arm-section" style="border-color: rgba(124, 58, 237, 0.3);">
+       <div class="arm-header" style="border-bottom-color: rgba(124, 58, 237, 0.2);">
+-        <span class="arm-name">Context-Enhanced</span>
++        <span class="arm-name">${escapeHtml(cName)}</span>
+         ${c.evaluation ? `<span class="arm-score" style="background: ${scoreColor(c.evaluation.score)}22; color: ${scoreColor(c.evaluation.score)}">${c.evaluation.score}/100</span>` : ""}
+       </div>
+       <table class="phase-table">
+@@ -795,14 +815,7 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+           <tr><th>Phase</th><th>Time</th><th>Cost</th><th>Tokens</th><th>Turns</th></tr>
+         </thead>
+         <tbody>
+-          ${phaseRows([
+-            { label: "Initial Context", run: c.initialContextRun, isContext: true },
+-            { label: "Pattern Extraction", run: c.patternExtractionRun, isContext: true },
+-            { label: "Plan", run: c.planRun },
+-            { label: "Plan Context", run: c.planContextRun, isContext: true },
+-            { label: "Review", run: c.reviewRun },
+-            { label: "Implement", run: c.implementRun },
+-          ])}
++          ${phaseRows(contextPhases(c))}
+           ${c.evaluation ? `
+           <tr style="color: var(--text-muted)">
+             <td>Eval</td>
+@@ -820,11 +833,11 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+   <div class="section">
+     <div class="section-title">Evaluator Reasoning</div>
+     <div class="reasoning-box">
+-      <div class="reasoning-label">Baseline (${b.evaluation!.score}/100)</div>
++      <div class="reasoning-label">${escapeHtml(bName)} (${b.evaluation!.score}/100)</div>
+       <div class="reasoning-text">${escapeHtml(b.evaluation!.reasoning ?? "")}</div>
+     </div>
+     <div class="reasoning-box">
+-      <div class="reasoning-label">Context-Enhanced (${c.evaluation!.score}/100)</div>
++      <div class="reasoning-label">${escapeHtml(cName)} (${c.evaluation!.score}/100)</div>
+       <div class="reasoning-text">${escapeHtml(c.evaluation!.reasoning ?? "")}</div>
+     </div>
+   </div>
+@@ -832,7 +845,7 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+ 
+   <!-- Code Changes: Baseline -->
+   <div class="section">
+-    <div class="section-title">Code Changes &mdash; Baseline</div>
++    <div class="section-title">Code Changes &mdash; ${escapeHtml(bName)}</div>
+     <div class="diff-summary">
+       <span>${b.diffStats.filesChanged} files</span>
+       <span class="diff-added">+${b.diffStats.linesAdded}</span>
+@@ -843,7 +856,7 @@ export function writeHtmlReport(result: ExperimentResult, experimentDir: string)
+ 
+   <!-- Code Changes: Context-Enhanced -->
+   <div class="section">
+-    <div class="section-title">Code Changes &mdash; Context-Enhanced</div>
++    <div class="section-title">Code Changes &mdash; ${escapeHtml(cName)}</div>
+     <div class="diff-summary">
+       <span>${c.diffStats.filesChanged} files</span>
+       <span class="diff-added">+${c.diffStats.linesAdded}</span>
+diff --git a/src/index.ts b/src/index.ts
+index f41a26c..0e022dc 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -3,8 +3,8 @@ import { program } from "commander";
+ import fs from "node:fs";
+ import path from "node:path";
+ import { parse as parseYaml } from "yaml";
+-import type { AgentName, CliConfig } from "./types.js";
+-import { runExperiment } from "./runner.js";
++import type { AgentName, CliConfig, SameChainArms } from "./types.js";
++import { checkArms, runExperiment } from "./runner.js";
+ import { getDefaultBranch } from "./worktree.js";
+ 
+ program
+@@ -28,7 +28,9 @@ program
+   .option("--api-url <url>", "Custom API base URL for Claude (passed as ANTHROPIC_BASE_URL)")
+   .option("--verbose", "Print claude stderr in real-time", false)
+   .option("--keep-worktrees", "Don't clean up worktrees after run", false)
+-  .option("--disable-mcp <servers...>", "MCP servers to disable in agent worktrees (e.g. unblocked)");
++  .option("--disable-mcp <servers...>", "MCP servers to disable in agent worktrees (e.g. unblocked)")
++  .option("--check-arms", "Same-chain mode: only run the per-arm isolation check", false)
++  .option("--swap-arms", "With --check-arms: give each arm the other's MCP config (must fail)", false);
+ 
+ program.parse();
+ const opts = program.opts();
+@@ -49,9 +51,11 @@ interface FixtureData {
+   verbose?: boolean;
+   keepWorktrees?: boolean;
+   disableMcp?: string[];
++  arms?: SameChainArms;
+ }
+ 
+ let fixture: FixtureData = {};
++let fixtureDir = process.cwd();
+ if (opts.fixture) {
+   const fixturePath = path.resolve(opts.fixture);
+   if (!fs.existsSync(fixturePath)) {
+@@ -59,8 +63,21 @@ if (opts.fixture) {
+     process.exit(1);
+   }
+   fixture = parseYaml(fs.readFileSync(fixturePath, "utf-8")) as FixtureData;
++  fixtureDir = path.dirname(fixturePath);
+ }
+ 
++// Same-chain arms: config files are paths relative to the fixture, or inline JSON.
++function fixturePathOrJson(value: string): string {
++  return value.trim().startsWith("{") ? value : path.resolve(fixtureDir, value);
++}
++const arms: SameChainArms | undefined = fixture.arms && {
++  ...fixture.arms,
++  disallowedTools: fixture.arms.disallowedTools ?? [],
++  settings: fixture.arms.settings && fixturePathOrJson(fixture.arms.settings),
++  baseline: { ...fixture.arms.baseline, mcpConfig: fixturePathOrJson(fixture.arms.baseline.mcpConfig) },
++  contextEnhanced: { ...fixture.arms.contextEnhanced, mcpConfig: fixturePathOrJson(fixture.arms.contextEnhanced.mcpConfig) },
++};
++
+ function resolveText(direct: string | undefined, filePath: string | undefined, fixtureVal: string | undefined, label: string): string {
+   if (direct) return direct;
+   if (filePath) {
+@@ -138,9 +155,22 @@ const config: CliConfig = {
+   verbose: opts.verbose || (fixture.verbose ?? false),
+   keepWorktrees: opts.keepWorktrees || (fixture.keepWorktrees ?? false),
+   disabledMcpServers: opts.disableMcp ?? fixture.disableMcp ?? [],
++  arms,
+ };
+ 
+-runExperiment(config).catch((err) => {
+-  console.error("Experiment failed:", err instanceof Error ? err.message : err);
++if (arms && agent !== "claude") {
++  console.error("Error: `arms` (same-chain mode) is implemented for --agent claude only");
+   process.exit(1);
+-});
++}
++
++if (opts.checkArms) {
++  checkArms(config, opts.swapArms).then((ok) => process.exit(ok ? 0 : 1), (err) => {
++    console.error("Arm check failed:", err instanceof Error ? err.message : err);
++    process.exit(1);
++  });
++} else {
++  runExperiment(config).catch((err) => {
++    console.error("Experiment failed:", err instanceof Error ? err.message : err);
++    process.exit(1);
++  });
++}
+diff --git a/src/report.ts b/src/report.ts
+index 7898168..c978790 100644
+--- a/src/report.ts
++++ b/src/report.ts
+@@ -1,7 +1,8 @@
+ import fs from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
+-import type { AgentResult, ExperimentResult } from "./types.js";
++import { isContextArm } from "./types.js";
++import type { AgentResult, ContextEnhancedArm, ExperimentResult } from "./types.js";
+ import { estimateTokens, formatCost, formatDuration, formatTokens, log, padLeft, padRight } from "./util.js";
+ 
+ const W = 80;
+@@ -30,21 +31,42 @@ function sumRow(label: string, durationMs: number, costUsd: number): string {
+   return `  ${padRight(label, 22)}${padLeft(formatDuration(durationMs), 10)}  ${padLeft(formatCost(costUsd), 10)}`;
+ }
+ 
++function contextOverhead(c: ContextEnhancedArm): { ms: number; cost: number } {
++  return {
++    ms: c.initialContextRun.durationMs + c.patternExtractionRun.durationMs + c.planContextRun.durationMs,
++    cost: c.initialContextRun.costUsd + c.patternExtractionRun.costUsd + c.planContextRun.costUsd,
++  };
++}
++
++function contextPhaseLines(c: ContextEnhancedArm): string[] {
++  return [
++    r(bundleRow("1. Initial Context", c.initialContextRun)),
++    r(phaseRow("2. Pattern Extract", c.patternExtractionRun)),
++    r(phaseRow("3. Plan", c.planRun)),
++    r(bundleRow("4. Plan Context", c.planContextRun)),
++    r(phaseRow("5. Review", c.reviewRun)),
++    r(phaseRow("6. Implement", c.implementRun)),
++  ];
++}
++
+ export function printReport(result: ExperimentResult): void {
+   const b = result.baseline;
+   const c = result.contextEnhanced;
++  // Same-chain mode: the baseline slot ran the context chain too.
++  const bCtx = isContextArm(b) ? contextOverhead(b) : undefined;
+ 
+   const hasEval = !!b.evaluation && !!c.evaluation;
+ 
+   const bTaskMs = b.planRun.durationMs + b.reviewRun.durationMs + b.implementRun.durationMs;
+   const bTaskCost = b.planRun.costUsd + b.reviewRun.costUsd + b.implementRun.costUsd;
+-  const bTotalCost = bTaskCost + (b.evaluation?.claudeResult.costUsd ?? 0);
++  const bTotalCost = bTaskCost + (bCtx?.cost ?? 0) + (b.evaluation?.claudeResult.costUsd ?? 0) +
++    (isContextArm(b) ? b.contextAnalysis?.claudeResult.costUsd ?? 0 : 0);
+ 
+   const cTaskMs = c.planRun.durationMs + c.reviewRun.durationMs + c.implementRun.durationMs;
+   const cTaskCost = c.planRun.costUsd + c.reviewRun.costUsd + c.implementRun.costUsd;
+-  const cCtxMs = c.initialContextRun.durationMs + c.patternExtractionRun.durationMs + c.planContextRun.durationMs;
+-  const cCtxCost = c.initialContextRun.costUsd + c.patternExtractionRun.costUsd + c.planContextRun.costUsd;
+-  const cTotalCost = cTaskCost + cCtxCost + (c.evaluation?.claudeResult.costUsd ?? 0);
++  const { ms: cCtxMs, cost: cCtxCost } = contextOverhead(c);
++  const cTotalCost = cTaskCost + cCtxCost + (c.evaluation?.claudeResult.costUsd ?? 0) +
++    (bCtx ? c.contextAnalysis?.claudeResult.costUsd ?? 0 : 0);
+ 
+   const lines: string[] = [
+     "",
+@@ -60,11 +82,13 @@ export function printReport(result: ExperimentResult): void {
+     // ── Baseline arm ──
+     "╠" + sep("═") + "╣",
+     blank(),
+-    r(`  BASELINE ARM                   Time        Cost     Tokens   Turns`),
++    r(`  ${padRight(bCtx ? b.name.toUpperCase() : "BASELINE ARM", 31)}Time        Cost     Tokens   Turns`),
+     r("  " + sep().slice(0, W - 4)),
+-    r(phaseRow("1. Plan", b.planRun)),
+-    r(phaseRow("2. Review", b.reviewRun)),
+-    r(phaseRow("3. Implement", b.implementRun)),
++    ...(isContextArm(b) ? contextPhaseLines(b) : [
++      r(phaseRow("1. Plan", b.planRun)),
++      r(phaseRow("2. Review", b.reviewRun)),
++      r(phaseRow("3. Implement", b.implementRun)),
++    ]),
+   ];
+ 
+   if (b.evaluation) {
+@@ -74,6 +98,7 @@ export function printReport(result: ExperimentResult): void {
+   lines.push(
+     r("  " + sep().slice(0, W - 4)),
+     r(sumRow("Task (plan+rev+impl)", bTaskMs, bTaskCost)),
++    ...(bCtx ? [r(sumRow("Context overhead", bCtx.ms, bCtx.cost))] : []),
+     r(sumRow("Arm total", b.wallClockMs, bTotalCost)),
+     r(`  ${padRight("Diff", 22)}${padLeft(`${b.diffStats.filesChanged} files +${b.diffStats.linesAdded}/-${b.diffStats.linesRemoved}`, 20)}`),
+   );
+@@ -86,14 +111,9 @@ export function printReport(result: ExperimentResult): void {
+   lines.push(
+     "╠" + sep("═") + "╣",
+     blank(),
+-    r(`  CONTEXT+ ARM                   Time        Cost     Tokens   Turns`),
++    r(`  ${padRight(bCtx ? c.name.toUpperCase() : "CONTEXT+ ARM", 31)}Time        Cost     Tokens   Turns`),
+     r("  " + sep().slice(0, W - 4)),
+-    r(bundleRow("1. Initial Context", c.initialContextRun)),
+-    r(phaseRow("2. Pattern Extract", c.patternExtractionRun)),
+-    r(phaseRow("3. Plan", c.planRun)),
+-    r(bundleRow("4. Plan Context", c.planContextRun)),
+-    r(phaseRow("5. Review", c.reviewRun)),
+-    r(phaseRow("6. Implement", c.implementRun)),
++    ...contextPhaseLines(c),
+   );
+ 
+   if (c.evaluation) {
+@@ -129,7 +149,7 @@ export function printReport(result: ExperimentResult): void {
+   lines.push(
+     r(`  ${padRight("Task execution time", 28)}${padLeft(formatDuration(bTaskMs), 10)}  →  ${padLeft(formatDuration(cTaskMs), 10)}`),
+     r(`  ${padRight("Task execution cost", 28)}${padLeft(formatCost(bTaskCost), 10)}  →  ${padLeft(formatCost(cTaskCost), 10)}`),
+-    r(`  ${padRight("Context overhead", 28)}${padLeft("—", 10)}       ${padLeft(formatCost(cCtxCost), 10)}  (${formatDuration(cCtxMs)})`),
++    r(`  ${padRight("Context overhead", 28)}${padLeft(bCtx ? formatCost(bCtx.cost) : "—", 10)}  ${bCtx ? "→" : " "}  ${padLeft(formatCost(cCtxCost), 10)}  (${formatDuration(cCtxMs)})`),
+     r(`  ${padRight("Arm total cost", 28)}${padLeft(formatCost(bTotalCost), 10)}  →  ${padLeft(formatCost(cTotalCost), 10)}`),
+     r(`  ${padRight("Experiment total", 28)}${padLeft(formatCost(result.totalCostUsd), 10)}`),
+     blank(),
+@@ -208,6 +228,11 @@ export function writeJsonReport(result: ExperimentResult, outputDir: string, wor
+   fs.writeFileSync(path.join(experimentDir, "result.json"), JSON.stringify(result, null, 2));
+ 
+   const b = result.baseline;
++  if (isContextArm(b)) {
++    copyTranscript(worktreePaths.baseline, b.initialContextRun.sessionId, path.join(baselineDir, "initial-context.jsonl"));
++    copyTranscript(worktreePaths.baseline, b.patternExtractionRun.sessionId, path.join(baselineDir, "pattern-extraction.jsonl"));
++    copyTranscript(worktreePaths.baseline, b.planContextRun.sessionId, path.join(baselineDir, "plan-context.jsonl"));
++  }
+   copyTranscript(worktreePaths.baseline, b.planRun.sessionId, path.join(baselineDir, "plan.jsonl"));
+   copyTranscript(worktreePaths.baseline, b.reviewRun.sessionId, path.join(baselineDir, "review.jsonl"));
+   copyTranscript(worktreePaths.baseline, b.implementRun.sessionId, path.join(baselineDir, "implement.jsonl"));
+diff --git a/src/runner.ts b/src/runner.ts
+index 5c4062c..3e5b9ac 100644
+--- a/src/runner.ts
++++ b/src/runner.ts
+@@ -3,7 +3,8 @@ import fs from "node:fs";
+ import path from "node:path";
+ import os from "node:os";
+ import { randomBytes } from "node:crypto";
+-import type { AgentInvokeOptions, AgentName, AgentResult, BaselineArm, CliConfig, ContextAnalysis, ContextAttribution, ContextEnhancedArm, DiffStats, EvalResult, ExperimentResult } from "./types.js";
++import { isContextArm } from "./types.js";
++import type { AgentInvokeOptions, AgentName, AgentResult, BaselineArm, CliConfig, ContextAnalysis, ContextAttribution, ContextEnhancedArm, DiffStats, EvalResult, ExperimentResult, SameChainArms } from "./types.js";
+ import { invokeClaude } from "./claude.js";
+ import { invokeCodex } from "./codex.js";
+ import { invokeCursor } from "./cursor.js";
+@@ -49,6 +50,62 @@ function getInvoker(agent: AgentName): Invoker {
+ 
+ const READ_ONLY_BLOCKED = ["Edit", "Write", "NotebookEdit", "Agent"];
+ 
++type ArmKey = "baseline" | "contextEnhanced";
++type StepKind = "task" | "toolless";
++const NO_MCP = JSON.stringify({ mcpServers: {} });
++
++/** The `system`/`init` check for one step of one arm; undefined means it passes. */
++export function checkArmInit(arms: SameChainArms, arm: ArmKey, kind: StepKind, init: Record<string, unknown>): string | undefined {
++  const servers = (init.mcp_servers as Array<{ name: string; status: string }> | undefined) ?? [];
++  const tools = ((init.tools as string[] | undefined) ?? []).filter((t) => t.startsWith("mcp__"));
++  // Claude Code's own `@builtin` plugins are the same in every invocation; any other plugin must be off.
++  const plugins = ((init.plugins as Array<{ name: string; source?: string }> | undefined) ?? [])
++    .filter((p) => !String(p.source ?? "").endsWith("@builtin"));
++  const skills = (init.skills as string[] | undefined) ?? [];
++  const required = kind === "task" ? arms[arm].requiredServers : [];
++  const names = servers.map((s) => s.name).sort();
++  if (plugins.length) return `plugins loaded: ${plugins.map((p) => p.name).join(", ")}`;
++  if (names.join(",") !== [...required].sort().join(",")) return `MCP servers [${names.join(", ")}], expected [${[...required].sort().join(", ")}]`;
++  const down = servers.filter((s) => s.status !== "connected");
++  if (down.length) return `not connected: ${down.map((s) => `${s.name} (${s.status})`).join(", ")}`;
++  for (const name of required) {
++    if (!tools.some((t) => t.startsWith(`mcp__${name}__`))) return `server ${name} exposes no tools`;
++  }
++  const forbidden = arms.baselineForbidden.toLowerCase();
++  if (arm === "baseline") {
++    const hit = [...names, ...tools, ...skills].find((n) => n.toLowerCase().includes(forbidden));
++    if (hit) return `baseline exposes ${hit}`;
++  }
++  return undefined;
++}
++
++/** Per-invocation options of same-chain mode; empty (upstream behaviour) without `config.arms`. */
++function armOptions(config: CliConfig, arm: ArmKey, kind: StepKind, disallowed: string[] = []): Partial<AgentInvokeOptions> {
++  const arms = config.arms;
++  if (!arms) {
++    return {
++      ...(disallowed.length ? { disallowedTools: disallowed } : {}),
++      ...(kind === "task" ? { bannedMcpServers: config.disabledMcpServers } : {}),
++    };
++  }
++  return {
++    mcpConfig: kind === "task" ? arms[arm].mcpConfig : NO_MCP,
++    settings: arms.settings,
++    effort: arms.effort,
++    disallowedTools: [...disallowed, ...arms.disallowedTools],
++    bannedMcpServers: arm === "baseline" ? [arms.baselineForbidden] : config.disabledMcpServers,
++    checkInit: (init) => checkArmInit(arms, arm, kind, init),
++  };
++}
++
++function contextArmCost(c: ContextEnhancedArm): number {
++  return c.initialContextRun.costUsd + c.patternExtractionRun.costUsd +
++    c.planRun.costUsd + c.planContextRun.costUsd +
++    c.reviewRun.costUsd + c.implementRun.costUsd +
++    (c.evaluation?.claudeResult.costUsd ?? 0) +
++    (c.contextAnalysis?.claudeResult.costUsd ?? 0);
++}
++
+ function buildAgentEnv(config: CliConfig): Record<string, string> | undefined {
+   if (!config.apiUrl) return undefined;
+   if (config.agent === "claude") return { ANTHROPIC_BASE_URL: config.apiUrl };
+@@ -171,7 +228,7 @@ function parseDiffStats(diff: string): DiffStats {
+   return { filesChanged, linesAdded, linesRemoved };
+ }
+ 
+-async function runEvaluation(invoke: Invoker, config: CliConfig, agentOutput: string, codeDiff: string, tag: string): Promise<EvalResult> {
++async function runEvaluation(invoke: Invoker, config: CliConfig, agentOutput: string, codeDiff: string, tag: string, arm: ArmKey): Promise<EvalResult> {
+   const result = await invoke({
+     prompt: buildEvalPrompt(config.task, config.criteria!, agentOutput, codeDiff),
+     systemPrompt: buildEvalSystemPrompt(),
+@@ -180,6 +237,7 @@ async function runEvaluation(invoke: Invoker, config: CliConfig, agentOutput: st
+     dangerouslySkipPermissions: false,
+     tools: "",
+     jsonSchema: EVAL_JSON_SCHEMA,
++    ...armOptions(config, arm, "toolless"),
+     timeoutMs: 120_000,
+     env: buildAgentEnv(config),
+     verbose: config.verbose,
+@@ -216,6 +274,8 @@ async function runContextAttribution(
+   initialContext: string,
+   planContext: string,
+   codeDiff: string,
++  arm: ArmKey,
++  tag: string,
+ ): Promise<ContextAnalysis> {
+   const result = await invoke({
+     prompt: buildContextAttributionPrompt(initialContext, planContext, codeDiff),
+@@ -225,10 +285,11 @@ async function runContextAttribution(
+     dangerouslySkipPermissions: false,
+     tools: "",
+     jsonSchema: CONTEXT_ATTRIBUTION_JSON_SCHEMA,
++    ...armOptions(config, arm, "toolless"),
+     timeoutMs: 120_000,
+     env: buildAgentEnv(config),
+     verbose: config.verbose,
+-    tag: "ctx:attr",
++    tag,
+   });
+ 
+   let attributions: ContextAttribution[] = [];
+@@ -321,41 +382,43 @@ async function runBaselineChain(invoke: Invoker, config: CliConfig, wt: Worktree
+   let evaluation: EvalResult | undefined;
+   if (config.criteria) {
+     log("[baseline] Eval...");
+-    evaluation = await runEvaluation(invoke, config, implement.result, diff, "base:eval");
++    evaluation = await runEvaluation(invoke, config, implement.result, diff, "base:eval", "baseline");
+     log(`[baseline] Score: ${evaluation.score}/100`);
+   }
+ 
+   return { name: "Baseline", planRun: plan, reviewRun: review, implementRun: implement, evaluation, diff, diffStats, wallClockMs: Date.now() - chainStart };
+ }
+ 
+-async function runContextChain(invoke: Invoker, config: CliConfig, wt: WorktreeSetup): Promise<ContextEnhancedArm> {
++async function runContextChain(invoke: Invoker, config: CliConfig, wt: WorktreeSetup, arm: ArmKey = "contextEnhanced"): Promise<ContextEnhancedArm> {
+   const chainStart = Date.now();
++  // Same-chain mode runs this chain for both arms; the tag prefix keeps their logs apart.
++  const p = arm === "baseline" ? "base" : "ctx";
++  const name = config.arms?.[arm].name ?? "Context-Enhanced";
+ 
+   // 1. Initial context collection — first invocation gets worktree flag
+-  log("[context] 1/6 Initial context...");
++  log(`[${p}] 1/6 Initial context...`);
+   const initialCtx = await invoke({
+     prompt: buildContextCollectionPrompt(config.task, config.contextInstructions),
+     appendSystemPrompt: buildContextCollectionSystemSuffix(),
+     cwd: wt.cwd,
+     model: config.contextModel,
+     dangerouslySkipPermissions: true,
+-    disallowedTools: READ_ONLY_BLOCKED,
+     timeoutMs: config.contextTimeoutSeconds * 1000,
+     env: buildAgentEnv(config),
+     verbose: config.verbose,
+-    tag: "ctx:gather",
++    tag: `${p}:gather`,
+     worktree: wt.worktree,
+     worktreeBase: wt.worktreeBase,
+-    bannedMcpServers: config.disabledMcpServers,
++    ...armOptions(config, arm, "task", READ_ONLY_BLOCKED),
+   });
+-  log(`[context] Initial context: ${formatDuration(initialCtx.durationMs)}, ${formatCost(initialCtx.costUsd)}`);
++  log(`[${p}] Initial context: ${formatDuration(initialCtx.durationMs)}, ${formatCost(initialCtx.costUsd)}`);
+ 
+   const wtPath = wt.worktree
+     ? resolveAgentWorktreePath(config.agent, config.repo, wt.worktree)
+     : wt.cwd;
+ 
+   // 2. Pattern extraction (no tools — reads context bundle, extracts concise pattern checklist)
+-  log("[context] 2/6 Pattern extraction...");
++  log(`[${p}] 2/6 Pattern extraction...`);
+   const patterns = await invoke({
+     prompt: buildPatternExtractionPrompt(initialCtx.result),
+     systemPrompt: buildPatternExtractionSystemPrompt(),
+@@ -363,66 +426,64 @@ async function runContextChain(invoke: Invoker, config: CliConfig, wt: WorktreeS
+     model: config.contextModel,
+     dangerouslySkipPermissions: false,
+     tools: "",
++    ...armOptions(config, arm, "toolless"),
+     timeoutMs: 120_000,
+     env: buildAgentEnv(config),
+     verbose: config.verbose,
+-    tag: "ctx:patterns",
++    tag: `${p}:patterns`,
+   });
+-  log(`[context] Pattern extraction: ${formatDuration(patterns.durationMs)}, ${formatCost(patterns.costUsd)}`);
++  log(`[${p}] Pattern extraction: ${formatDuration(patterns.durationMs)}, ${formatCost(patterns.costUsd)}`);
+ 
+   // 3. Plan (input: mandatory patterns + context bundle)
+-  log("[context] 3/6 Plan...");
++  log(`[${p}] 3/6 Plan...`);
+   const plan = await invoke({
+     prompt: buildContextPlanPrompt(config.task, initialCtx.result, patterns.result),
+     appendSystemPrompt: buildPlanSystemSuffix(true),
+     cwd: wtPath,
+     model: config.model,
+     dangerouslySkipPermissions: true,
+-    disallowedTools: READ_ONLY_BLOCKED,
+     timeoutMs: config.timeoutSeconds * 1000,
+     env: buildAgentEnv(config),
+     verbose: config.verbose,
+-    tag: "ctx:plan",
+-    bannedMcpServers: config.disabledMcpServers,
++    tag: `${p}:plan`,
++    ...armOptions(config, arm, "task", READ_ONLY_BLOCKED),
+   });
+-  log(`[context] Plan: ${formatDuration(plan.durationMs)}, ${formatCost(plan.costUsd)}`);
++  log(`[${p}] Plan: ${formatDuration(plan.durationMs)}, ${formatCost(plan.costUsd)}`);
+ 
+   // 4. Plan-targeted context collection
+-  log("[context] 4/6 Plan context...");
++  log(`[${p}] 4/6 Plan context...`);
+   const planCtx = await invoke({
+     prompt: buildPlanContextPrompt(config.task, plan.result, initialCtx.result, config.contextInstructions),
+     appendSystemPrompt: buildPlanContextSystemSuffix(),
+     cwd: wtPath,
+     model: config.contextModel,
+     dangerouslySkipPermissions: true,
+-    disallowedTools: READ_ONLY_BLOCKED,
+     timeoutMs: config.contextTimeoutSeconds * 1000,
+     env: buildAgentEnv(config),
+     verbose: config.verbose,
+-    tag: "ctx:planctx",
+-    bannedMcpServers: config.disabledMcpServers,
++    tag: `${p}:planctx`,
++    ...armOptions(config, arm, "task", READ_ONLY_BLOCKED),
+   });
+-  log(`[context] Plan context: ${formatDuration(planCtx.durationMs)}, ${formatCost(planCtx.costUsd)}`);
++  log(`[${p}] Plan context: ${formatDuration(planCtx.durationMs)}, ${formatCost(planCtx.costUsd)}`);
+ 
+   // 5. Review (input: plan + plan context + mandatory patterns → output: adjusted plan)
+-  log("[context] 5/6 Review...");
++  log(`[${p}] 5/6 Review...`);
+   const review = await invoke({
+     prompt: buildContextReviewPrompt(config.task, plan.result, planCtx.result, patterns.result),
+     appendSystemPrompt: buildContextReviewSystemSuffix(),
+     cwd: wtPath,
+     model: config.model,
+     dangerouslySkipPermissions: true,
+-    disallowedTools: READ_ONLY_BLOCKED,
+     timeoutMs: config.timeoutSeconds * 1000,
+     env: buildAgentEnv(config),
+     verbose: config.verbose,
+-    tag: "ctx:review",
+-    bannedMcpServers: config.disabledMcpServers,
++    tag: `${p}:review`,
++    ...armOptions(config, arm, "task", READ_ONLY_BLOCKED),
+   });
+-  log(`[context] Review: ${formatDuration(review.durationMs)}, ${formatCost(review.costUsd)}`);
++  log(`[${p}] Review: ${formatDuration(review.durationMs)}, ${formatCost(review.costUsd)}`);
+ 
+   // 6. Implement (input: reviewed/adjusted plan)
+-  log("[context] 6/6 Implement...");
++  log(`[${p}] 6/6 Implement...`);
+   const implement = await invoke({
+     prompt: buildImplementPrompt(review.result),
+     appendSystemPrompt: buildImplementSystemSuffix(),
+@@ -432,30 +493,30 @@ async function runContextChain(invoke: Invoker, config: CliConfig, wt: WorktreeS
+     timeoutMs: config.timeoutSeconds * 1000,
+     env: buildAgentEnv(config),
+     verbose: config.verbose,
+-    tag: "ctx:impl",
+-    bannedMcpServers: config.disabledMcpServers,
++    tag: `${p}:impl`,
++    ...armOptions(config, arm, "task"),
+   });
+-  log(`[context] Implement: ${formatDuration(implement.durationMs)}, ${formatCost(implement.costUsd)}`);
++  log(`[${p}] Implement: ${formatDuration(implement.durationMs)}, ${formatCost(implement.costUsd)}`);
+ 
+   const diff = captureWorktreeDiff(wtPath);
+   const diffStats = parseDiffStats(diff);
+-  log(`[context] Diff: ${diffStats.filesChanged} files, +${diffStats.linesAdded}/-${diffStats.linesRemoved}`);
++  log(`[${p}] Diff: ${diffStats.filesChanged} files, +${diffStats.linesAdded}/-${diffStats.linesRemoved}`);
+ 
+   let evaluation: EvalResult | undefined;
+   let contextAnalysis: ContextAnalysis | undefined;
+   if (config.criteria) {
+-    log("[context] Eval...");
+-    evaluation = await runEvaluation(invoke, config, implement.result, diff, "ctx:eval");
+-    log(`[context] Score: ${evaluation.score}/100`);
++    log(`[${p}] Eval...`);
++    evaluation = await runEvaluation(invoke, config, implement.result, diff, `${p}:eval`, arm);
++    log(`[${p}] Score: ${evaluation.score}/100`);
+ 
+-    log("[context] Analyzing context attribution...");
+-    contextAnalysis = await runContextAttribution(invoke, config, initialCtx.result, planCtx.result, diff);
++    log(`[${p}] Analyzing context attribution...`);
++    contextAnalysis = await runContextAttribution(invoke, config, initialCtx.result, planCtx.result, diff, arm, `${p}:attr`);
+     const highImpact = contextAnalysis.attributions.filter(a => a.impact === "high").length;
+-    log(`[context] Attribution: ${contextAnalysis.attributions.length} sources, ${highImpact} high-impact`);
++    log(`[${p}] Attribution: ${contextAnalysis.attributions.length} sources, ${highImpact} high-impact`);
+   }
+ 
+   return {
+-    name: "Context-Enhanced",
++    name,
+     initialContextRun: initialCtx,
+     patternExtractionRun: patterns,
+     planRun: plan,
+@@ -476,7 +537,8 @@ export async function runExperiment(config: CliConfig): Promise<ExperimentResult
+   validateGitRepo(config.repo);
+ 
+   const invoke = getInvoker(config.agent);
+-  const nativeWt = agentManagesWorktrees(config.agent);
++  // Same-chain mode uses self-managed worktrees, each under its own fresh parent directory.
++  const nativeWt = agentManagesWorktrees(config.agent) && !config.arms;
+ 
+   let baselineWtSetup: WorktreeSetup;
+   let contextWtSetup: WorktreeSetup;
+@@ -497,8 +559,8 @@ export async function runExperiment(config: CliConfig): Promise<ExperimentResult
+     }
+   } else {
+     log("Creating worktrees...");
+-    const baselineWt = createWorktree(config.repo, "baseline", config.branch);
+-    const contextWt = createWorktree(config.repo, "context", config.branch);
++    const baselineWt = createWorktree(config.repo, "baseline", config.branch, !!config.arms);
++    const contextWt = createWorktree(config.repo, "context", config.branch, !!config.arms);
+     selfManagedWts = [baselineWt, contextWt];
+     unregister = registerCleanupHandler(config.repo, selfManagedWts);
+     baselineWtSetup = { cwd: baselineWt.path };
+@@ -511,7 +573,9 @@ export async function runExperiment(config: CliConfig): Promise<ExperimentResult
+     // for the other to finish before the `finally` cleanup tears down its worktree,
+     // so we never orphan a live agent process or delete files out from under it.
+     const [baselineResult, contextResult] = await Promise.allSettled([
+-      runBaselineChain(invoke, config, baselineWtSetup),
++      config.arms
++        ? runContextChain(invoke, config, baselineWtSetup, "baseline")
++        : runBaselineChain(invoke, config, baselineWtSetup),
+       runContextChain(invoke, config, contextWtSetup),
+     ]);
+     if (baselineResult.status === "rejected") throw baselineResult.reason;
+@@ -521,18 +585,12 @@ export async function runExperiment(config: CliConfig): Promise<ExperimentResult
+ 
+     log("Generating report...");
+ 
+-    const baselineCost =
+-      baseline.planRun.costUsd + baseline.reviewRun.costUsd +
+-      baseline.implementRun.costUsd +
+-      (baseline.evaluation?.claudeResult.costUsd ?? 0);
+-
+-    const c = contextEnhanced;
+-    const contextCost =
+-      c.initialContextRun.costUsd + c.patternExtractionRun.costUsd +
+-      c.planRun.costUsd + c.planContextRun.costUsd +
+-      c.reviewRun.costUsd + c.implementRun.costUsd +
+-      (c.evaluation?.claudeResult.costUsd ?? 0) +
+-      (c.contextAnalysis?.claudeResult.costUsd ?? 0);
++    const baselineCost = isContextArm(baseline)
++      ? contextArmCost(baseline)
++      : baseline.planRun.costUsd + baseline.reviewRun.costUsd +
++        baseline.implementRun.costUsd +
++        (baseline.evaluation?.claudeResult.costUsd ?? 0);
++    const contextCost = contextArmCost(contextEnhanced);
+ 
+     const result: ExperimentResult = {
+       repoPath: config.repo,
+@@ -543,6 +601,7 @@ export async function runExperiment(config: CliConfig): Promise<ExperimentResult
+       model: config.model,
+       baseline,
+       contextEnhanced,
++      arms: config.arms,
+       totalCostUsd: baselineCost + contextCost,
+       totalDurationMs: Date.now() - startTime,
+     };
+@@ -587,3 +646,37 @@ export async function runExperiment(config: CliConfig): Promise<ExperimentResult
+     }
+   }
+ }
++
++/**
++ * Same-chain isolation gate: one minimal task-step invocation per arm, checked against that arm.
++ * With `swap`, each arm gets the other arm's MCP config; both checks must then fail.
++ */
++export async function checkArms(config: CliConfig, swap: boolean): Promise<boolean> {
++  const arms = config.arms;
++  if (!arms) throw new Error("--check-arms needs `arms` in the fixture");
++  const invoke = getInvoker(config.agent);
++  let allPassed = true;
++  for (const arm of ["baseline", "contextEnhanced"] as const) {
++    const other = arm === "baseline" ? "contextEnhanced" : "baseline";
++    const options = armOptions(config, arm, "task", READ_ONLY_BLOCKED);
++    let init: Record<string, unknown> | undefined;
++    const outcome = await invoke({
++      ...options,
++      mcpConfig: swap ? arms[other].mcpConfig : arms[arm].mcpConfig,
++      checkInit: (e) => { init = e; return undefined; },
++      prompt: "Reply with the single word OK.",
++      cwd: config.repo,
++      model: config.model,
++      dangerouslySkipPermissions: false,
++      timeoutMs: 120_000,
++      verbose: config.verbose,
++      tag: `check:${arm}`,
++    }).then(() => undefined, (e: unknown) => String(e));
++    const problem = outcome ?? (init ? checkArmInit(arms, arm, "task", init) : "no system/init event");
++    const servers = ((init?.mcp_servers as Array<{ name: string; status: string }>) ?? []).map((x) => `${x.name}:${x.status}`);
++    const tools = ((init?.tools as string[]) ?? []).filter((t) => t.startsWith("mcp__"));
++    console.log(`${problem ? "FAIL" : "PASS"}  ${arms[arm].name}${swap ? " (swapped config)" : ""}: servers [${servers.join(", ")}], ${tools.length} MCP tools [${tools.join(", ")}]${problem ? ` - ${problem}` : ""}`);
++    allPassed &&= !problem;
++  }
++  return allPassed;
++}
+diff --git a/src/stream.ts b/src/stream.ts
+index dc105e9..213bd3b 100644
+--- a/src/stream.ts
++++ b/src/stream.ts
+@@ -126,9 +126,20 @@ export interface StreamOptions {
+   onResult?: (e: Record<string, unknown>) => void;
+   onContamination?: (server: string, detail: string) => void;
+   bannedMcpServers?: string[];
++  onInit?: (e: Record<string, unknown>) => void;
+ }
+ 
+ function detectContamination(e: Record<string, unknown>, bannedServers: string[]): { server: string; detail: string } | null {
++  // Claude Code: MCP calls are assistant `tool_use` blocks named `mcp__<server>__<tool>`.
++  if (e.type === "assistant") {
++    const content = (e.message as Record<string, unknown> | undefined)?.content;
++    for (const b of Array.isArray(content) ? (content as Array<Record<string, unknown>>) : []) {
++      const name = b?.type === "tool_use" ? String(b.name ?? "").toLowerCase() : "";
++      const banned = name.startsWith("mcp__") ? bannedServers.find((s) => name.includes(s.toLowerCase())) : undefined;
++      if (banned) return { server: banned, detail: name };
++    }
++    return null;
++  }
+   if (e.type !== "tool_call" || e.subtype !== "started") return null;
+   const tc = (e.tool_call ?? {}) as Record<string, unknown>;
+ 
+@@ -158,6 +169,7 @@ export function processStreamChunk(chunk: string, tag: string, state: StreamStat
+       if (e.type === "result" && opts?.onResult) {
+         opts.onResult(e);
+       } else {
++        if (e.type === "system" && e.subtype === "init") opts?.onInit?.(e);
+         if (opts?.bannedMcpServers?.length) {
+           const hit = detectContamination(e, opts.bannedMcpServers);
+           if (hit) {
+diff --git a/src/types.ts b/src/types.ts
+index 47997ba..6197189 100644
+--- a/src/types.ts
++++ b/src/types.ts
+@@ -31,6 +31,8 @@ export interface AgentResult {
+   sessionId: string;
+   structuredOutput?: unknown;
+   error?: string;
++  /** Claude stream-json `system`/`init` event of this invocation (MCP servers, tools, plugins). */
++  init?: Record<string, unknown>;
+ }
+ 
+ export interface AgentInvokeOptions {
+@@ -51,6 +53,14 @@ export interface AgentInvokeOptions {
+   worktree?: string;
+   worktreeBase?: string;
+   bannedMcpServers?: string[];
++  /** Claude only: run with exactly these MCP servers (`--strict-mcp-config --mcp-config`). */
++  mcpConfig?: string;
++  /** Claude only: `--settings` (file or JSON), e.g. to disable plugins. */
++  settings?: string;
++  /** Claude only: `--effort`. */
++  effort?: string;
++  /** Called with the `system`/`init` event; a returned string aborts the run as contamination. */
++  checkInit?: (init: Record<string, unknown>) => string | undefined;
+ }
+ 
+ export interface EvalResult {
+@@ -103,6 +113,11 @@ export interface ContextEnhancedArm {
+   wallClockMs: number;
+ }
+ 
++/** Same-chain mode puts a context-chain arm into the baseline slot. */
++export function isContextArm(arm: BaselineArm | ContextEnhancedArm): arm is ContextEnhancedArm {
++  return "initialContextRun" in arm;
++}
++
+ export interface ExperimentResult {
+   repoPath: string;
+   task: string;
+@@ -110,8 +125,10 @@ export interface ExperimentResult {
+   branch: string;
+   agent: AgentName;
+   model: string;
+-  baseline: BaselineArm;
++  baseline: BaselineArm | ContextEnhancedArm;
+   contextEnhanced: ContextEnhancedArm;
++  /** Same-chain mode: both arms ran the context chain and differ only in their MCP servers. */
++  arms?: SameChainArms;
+   totalCostUsd: number;
+   totalDurationMs: number;
+ }
+@@ -119,6 +136,8 @@ export interface ExperimentResult {
+ export interface WorktreeInfo {
+   path: string;
+   branch: string;
++  /** Same-chain mode: a standalone local clone, so no arm can see another arm's refs. */
++  clone?: boolean;
+ }
+ 
+ export class ContaminationError extends Error {
+@@ -128,6 +147,31 @@ export class ContaminationError extends Error {
+   }
+ }
+ 
++export interface ArmSetup {
++  name: string;
++  /** MCP config (path or JSON) holding exactly this arm's servers. */
++  mcpConfig: string;
++  /** Server names that must be connected in every task step of this arm. */
++  requiredServers: string[];
++}
++
++/**
++ * Same-chain mode (Claude only): both arms run the same context chain, with the same prompts and
++ * budgets, and differ only in the MCP servers they get. Every invocation, tool-less steps included,
++ * runs with `--strict-mcp-config` and the shared `settings`, and its `system`/`init` event is checked
++ * against the arm before the agent acts.
++ */
++export interface SameChainArms {
++  baseline: ArmSetup;
++  contextEnhanced: ArmSetup;
++  settings?: string;
++  effort?: string;
++  /** Tools disallowed in every step of both arms (e.g. web access). */
++  disallowedTools: string[];
++  /** Case-insensitive substring; a server, MCP tool or skill containing it fails the baseline arm. */
++  baselineForbidden: string;
++}
++
+ export type AgentName = "claude" | "codex" | "grok" | "cursor";
+ 
+ export interface CliConfig {
+@@ -146,4 +190,5 @@ export interface CliConfig {
+   keepWorktrees: boolean;
+   apiUrl?: string;
+   disabledMcpServers: string[];
++  arms?: SameChainArms;
+ }
+diff --git a/src/worktree.ts b/src/worktree.ts
+index 79ba2fc..762125a 100644
+--- a/src/worktree.ts
++++ b/src/worktree.ts
+@@ -1,14 +1,23 @@
+ import { execSync } from "node:child_process";
+ import { randomBytes } from "node:crypto";
++import fs from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
+ import type { WorktreeInfo } from "./types.js";
+ 
+ const WORKTREE_PREFIX = "ces";
+ 
+-export function createWorktree(repoPath: string, name: string, baseBranch: string): WorktreeInfo {
++export function createWorktree(repoPath: string, name: string, baseBranch: string, isolated = false): WorktreeInfo {
+   const suffix = randomBytes(4).toString("hex");
+   const worktreeName = `${WORKTREE_PREFIX}-${name}-${suffix}`;
++  // isolated: a standalone clone under a fresh parent. A worktree would share the repository's refs,
++  // so `git branch` in one arm would list the other arm's branch.
++  if (isolated) {
++    const worktreeDir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), `${WORKTREE_PREFIX}-`)), worktreeName);
++    execSync(`git clone --quiet --no-hardlinks --single-branch --branch "${baseBranch}" "${repoPath}" "${worktreeDir}"`, { stdio: "pipe" });
++    execSync(`git checkout --quiet -b "${worktreeName}"`, { cwd: worktreeDir, stdio: "pipe" });
++    return { path: worktreeDir, branch: worktreeName, clone: true };
++  }
+   const worktreeDir = path.join(os.tmpdir(), "context-engine-sim", worktreeName);
+ 
+   execSync(`git worktree add -b "${worktreeName}" "${worktreeDir}" "${baseBranch}"`, {
+@@ -20,6 +29,10 @@ export function createWorktree(repoPath: string, name: string, baseBranch: strin
+ }
+ 
+ export function removeWorktree(repoPath: string, info: WorktreeInfo): void {
++  if (info.clone) {
++    fs.rmSync(path.dirname(info.path), { recursive: true, force: true });
++    return;
++  }
+   try {
+     execSync(`git worktree remove --force "${info.path}"`, {
+       cwd: repoPath,

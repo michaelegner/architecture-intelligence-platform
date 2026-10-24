@@ -2535,6 +2535,123 @@
         "title": "DeploymentResolutionStatus",
         "type": "string"
       },
+      "DestinationConsumersEvidenceBody": {
+        "additionalProperties": false,
+        "properties": {
+          "broker_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Broker Id",
+            "type": "string"
+          },
+          "destination_id": {
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Destination Id",
+            "type": "string"
+          },
+          "environment": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+            "title": "Environment",
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "pattern": "^destination-evidence:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Evidence Refs",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "snapshot_id": {
+            "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "destination_id",
+          "broker_id",
+          "environment",
+          "evidence_refs"
+        ],
+        "title": "DestinationConsumersEvidenceBody",
+        "type": "object"
+      },
+      "DestinationConsumersQueryBody": {
+        "additionalProperties": false,
+        "properties": {
+          "broker_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Broker Id",
+            "type": "string"
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cursor"
+          },
+          "destination_id": {
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+            "title": "Destination Id",
+            "type": "string"
+          },
+          "environment": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+            "title": "Environment",
+            "type": "string"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          }
+        },
+        "required": [
+          "destination_id",
+          "broker_id",
+          "environment"
+        ],
+        "title": "DestinationConsumersQueryBody",
+        "type": "object"
+      },
       "DestinationResolution": {
         "enum": [
           "RESOLVED_SERVICE",
@@ -7327,6 +7444,86 @@
           }
         },
         "summary": "Get Api Consumer Usage Evidence",
+        "tags": [
+          "architecture-intelligence"
+        ]
+      }
+    },
+    "/api/destination-consumers": {
+      "post": {
+        "description": "`POST /api/destination-consumers` (`mode: \"query\"`).",
+        "operationId": "get_destination_consumers_api_destination_consumers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DestinationConsumersQueryBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "The `DestinationConsumersAnswer` envelope, schema version 0.7.1: `schemas/architecture_intelligence/v0.7.1/destination-consumers-answer.schema.json`. Every evaluated or refused answer is a 200; only a malformed request is a 422."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Destination Consumers",
+        "tags": [
+          "architecture-intelligence"
+        ]
+      }
+    },
+    "/api/destination-consumers/evidence": {
+      "post": {
+        "description": "`POST /api/destination-consumers/evidence` (`mode: \"evidence\"`).",
+        "operationId": "get_destination_consumer_evidence_api_destination_consumers_evidence_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DestinationConsumersEvidenceBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "The `DestinationConsumersAnswer` envelope, schema version 0.7.1: `schemas/architecture_intelligence/v0.7.1/destination-consumers-answer.schema.json`. Every evaluated or refused answer is a 200; only a malformed request is a 422."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Destination Consumer Evidence",
         "tags": [
           "architecture-intelligence"
         ]

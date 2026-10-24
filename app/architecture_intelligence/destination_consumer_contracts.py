@@ -2,9 +2,9 @@
 `get_destination_consumers` (docs/specifications/0.7.1/i3-destination-consumer-public-answer.md).
 
 This module defines only the data contract: the query request, the `DestinationConsumersAnswer`
-envelope and its payload, the cursor codec and the two frozen pure derivations (the query-context
-digest and the evidence ref). It contains no service logic, no Neo4j access and no projection; the
-evidence mode, REST and MCP arrive in I3.2. It follows the v0.7.0 `api_usage_contracts` shape and
+envelope and its payloads, the cursor codec and the two frozen pure derivations (the query-context
+digest and the evidence ref). It contains no service logic, no Neo4j access and no projection. I3.2
+adds the `mode: "evidence"` request and payloads (spec §4). It follows the v0.7.0 `api_usage_contracts` shape and
 reuses `Producer`, `SnapshotRef` and `Outcome`. Like that module, the public outcome and reason enums
 mirror the internal I2 values by value, not by import, so internal churn cannot silently change the
 published schema (`tests/unit/test_v071_i3_destination_consumer_contracts.py` pins the parity).
@@ -24,6 +24,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    RootModel,
     SerializerFunctionWrapHandler,
     field_validator,
     model_serializer,
@@ -46,6 +47,7 @@ _TIMESTAMP_PATTERN = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.
 _SERVICE_ID_PATTERN = r"^service:[^\s\x00-\x1f\x7f]*$"
 _CONSUMER_ID_PATTERN = rf"^consumer:{_SHA256_HEX}$"
 _CAPTURE_SOURCE_PATTERN = rf"^urn:aip:source:kafka-consumer-state:{_SHA256_HEX}$"
+_MAPPING_SOURCE_PATTERN = rf"^urn:aip:source:kafka-service-mapping:{_SHA256_HEX}$"
 _EVIDENCE_REF_PATTERN = rf"^destination-evidence:{_SHA256_HEX}$"
 _DIGEST_PATTERN = rf"^{_SHA256_HEX}$"
 _CURSOR_PATTERN = r"^[A-Za-z0-9_-]+$"
@@ -83,16 +85,17 @@ class LimitationCode(StrEnum):
 
 
 _CODE = LimitationCode
-REFUSAL_CODES = frozenset(
+REFUSAL_CODES_EVIDENCE = frozenset(
     {
         _CODE.SNAPSHOT_NOT_AVAILABLE,
         _CODE.UNKNOWN_DESTINATION,
         _CODE.DESTINATION_NOT_KAFKA_TOPIC,
         _CODE.BROKER_MISMATCH,
         _CODE.NO_ACCEPTED_CAPTURE,
-        _CODE.CURSOR_QUERY_MISMATCH,
     }
 )
+# The evidence mode has no cursor, so `CURSOR_QUERY_MISMATCH` refuses a query only.
+REFUSAL_CODES = REFUSAL_CODES_EVIDENCE | {_CODE.CURSOR_QUERY_MISMATCH}
 
 
 class AttributionOutcome(StrEnum):
@@ -120,6 +123,11 @@ class EvidenceKind(StrEnum):
 
     KAFKA_ATTACHMENT = "KAFKA_ATTACHMENT"
     KAFKA_SERVICE_MAPPING = "KAFKA_SERVICE_MAPPING"
+
+
+class EvidenceStatus(StrEnum):
+    RESOLVED = "RESOLVED"
+    NOT_RESOLVED = "NOT_RESOLVED"
 
 
 # --- Shared helpers -----------------------------------------------------------------------------
@@ -276,6 +284,48 @@ class DestinationConsumersQueryRequest(_Model):
         )
 
 
+class DestinationConsumersEvidenceRequest(_Model):
+    """`mode: "evidence"` (spec §4): the exact snapshot, the same query context and 1-20 refs. The
+    service rebuilds the ref map of that context at that snapshot; there is no ref history."""
+
+    model_config = _closed(title="DestinationConsumersEvidenceRequest")
+
+    mode: Literal["evidence"]
+    snapshot_id: str = Field(pattern=SNAPSHOT_ID_PATTERN)
+    destination_id: _DestinationId
+    broker_id: _BrokerId
+    environment: _Environment
+    evidence_refs: list[_EvidenceRef] = Field(
+        min_length=1, max_length=MAX_EVIDENCE_REFS, json_schema_extra=_UNIQUE
+    )
+
+    @field_validator("evidence_refs")
+    @classmethod
+    def _check_refs(cls, value: list[str]) -> list[str]:
+        _check_sorted_unique(value, str, "evidence_refs")
+        return value
+
+    def context(self) -> RequestContext:
+        return RequestContext(
+            destination_id=self.destination_id,
+            broker_id=self.broker_id,
+            environment=self.environment,
+        )
+
+
+class DestinationConsumersRequest(
+    RootModel[
+        Annotated[
+            DestinationConsumersQueryRequest | DestinationConsumersEvidenceRequest,
+            Field(discriminator="mode"),
+        ]
+    ]
+):
+    """The single MCP `request` argument: one of the two modes, discriminated on `mode`."""
+
+    model_config = ConfigDict(frozen=True, title="DestinationConsumersRequest")
+
+
 # --- Answer payload -----------------------------------------------------------------------------
 
 
@@ -416,6 +466,125 @@ class DestinationConsumersData(_Model):
         return codes
 
 
+# --- Evidence payload (spec §4) -----------------------------------------------------------------
+
+
+class AttachmentEvidence(_Model):
+    """The broker path: group G attached to the queried Topic at T, from one accepted capture. No
+    member, client or host text exists in AIP state, so none can appear here."""
+
+    model_config = _closed()
+
+    kind: Literal["KAFKA_ATTACHMENT"]
+    consumer_id: _ConsumerId
+    group_id: str = Field(min_length=1)
+    topic_id: _DestinationId
+    captured_at: _Timestamp
+    capture_source_instance_id: str = Field(pattern=_CAPTURE_SOURCE_PATTERN)
+    capture_source_revision: str = Field(min_length=1)
+    capture_content_sha256: str = Field(pattern=_DIGEST_PATTERN)
+
+
+def _mapping_evidence_schema_extra(schema: dict[str, Any], _model: type[BaseModel]) -> None:
+    """Mirrors `MappingEvidence._check_reading`: exactly one of `service_id` and `reason`."""
+    schema["oneOf"] = [{"required": ["service_id"]}, {"required": ["reason"]}]
+
+
+class MappingEvidence(_Model):
+    """The mapping path: one accepted mapping entry for group G, as written by the operator, and the
+    entry's own reading in this snapshot (a declared Service id, or the reason it has none)."""
+
+    model_config = _closed(json_schema_extra=_mapping_evidence_schema_extra)
+
+    kind: Literal["KAFKA_SERVICE_MAPPING"]
+    consumer_id: _ConsumerId
+    group_id: str = Field(min_length=1)
+    service_name: str = Field(min_length=1)
+    service_namespace: str | None = Field(default=None, min_length=1)
+    service_id: str | None = Field(default=None, pattern=_SERVICE_ID_PATTERN)
+    reason: AttributionReason | None = None
+    mapping_source_instance_id: str = Field(pattern=_MAPPING_SOURCE_PATTERN)
+    mapping_source_revision: str = Field(min_length=1)
+    artifact_sha256: str = Field(pattern=_DIGEST_PATTERN)
+
+    @model_validator(mode="after")
+    def _check_reading(self) -> MappingEvidence:
+        if (self.service_id is None) == (self.reason is None):
+            raise ValueError("a mapping reading is either a service_id or a reason")
+        return self
+
+
+EvidencePayload = Annotated[AttachmentEvidence | MappingEvidence, Field(discriminator="kind")]
+
+
+def _evidence_entry_schema_extra(schema: dict[str, Any], _model: type[BaseModel]) -> None:
+    """Mirrors `EvidenceEntry._check_entry`: only a RESOLVED entry carries kind and evidence, and
+    the payload is of the entry's kind."""
+    schema["allOf"] = [
+        {
+            "if": {"properties": {"status": {"const": "RESOLVED"}}, "required": ["status"]},
+            "then": {"required": ["kind", "evidence"]},
+            "else": {"not": {"anyOf": [{"required": ["kind"]}, {"required": ["evidence"]}]}},
+        },
+        *(
+            {
+                "if": {"properties": {"kind": {"const": kind.value}}, "required": ["kind"]},
+                "then": {
+                    "properties": {"evidence": {"properties": {"kind": {"const": kind.value}}}}
+                },
+            }
+            for kind in EvidenceKind
+        ),
+    ]
+
+
+class EvidenceEntry(_Model):
+    """One requested ref. A forged, cross-snapshot and cross-context ref are all simply
+    `NOT_RESOLVED` and indistinguishable (no ref history is kept)."""
+
+    model_config = _closed(json_schema_extra=_evidence_entry_schema_extra)
+
+    ref: _EvidenceRef
+    status: EvidenceStatus
+    kind: EvidenceKind | None = None
+    evidence: EvidencePayload | None = None
+
+    @model_validator(mode="after")
+    def _check_entry(self) -> EvidenceEntry:
+        if self.status is EvidenceStatus.RESOLVED:
+            if self.kind is None or self.evidence is None:
+                raise ValueError("a RESOLVED entry carries kind and evidence")
+            if self.evidence.kind != self.kind.value:
+                raise ValueError("the evidence payload must be of the entry's kind")
+        elif self.kind is not None or self.evidence is not None:
+            raise ValueError("a NOT_RESOLVED entry carries no kind and no evidence")
+        return self
+
+
+class DestinationConsumersEvidenceData(_Model):
+    """The `mode: "evidence"` payload, one entry per requested ref, sorted by ref."""
+
+    model_config = _closed()
+
+    request_context: RequestContext
+    entries: list[EvidenceEntry] = Field(
+        min_length=1, max_length=MAX_EVIDENCE_REFS, json_schema_extra=_UNIQUE
+    )
+
+    @model_validator(mode="after")
+    def _check_data(self) -> DestinationConsumersEvidenceData:
+        _check_sorted_unique(self.entries, lambda entry: entry.ref, "entries")
+        return self
+
+    def expected_limitation_codes(self) -> set[LimitationCode]:
+        if all(entry.status is EvidenceStatus.RESOLVED for entry in self.entries):
+            return set()
+        return {_CODE.EVIDENCE_REF_NOT_RESOLVED}
+
+    def any_resolved(self) -> bool:
+        return any(entry.status is EvidenceStatus.RESOLVED for entry in self.entries)
+
+
 # --- Envelope -----------------------------------------------------------------------------------
 
 
@@ -427,6 +596,7 @@ class Limitation(_Model):
 
 
 _REFUSAL_ENUM = sorted(code.value for code in REFUSAL_CODES)
+_REFUSAL_EVIDENCE_ENUM = sorted(code.value for code in REFUSAL_CODES_EVIDENCE)
 
 
 def _has_code(code: LimitationCode) -> dict[str, Any]:
@@ -456,9 +626,28 @@ def _data_has(properties: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _entries_contain(status: str) -> dict[str, Any]:
+    return {
+        "properties": {
+            "data": {
+                "properties": {
+                    "entries": {"contains": {"properties": {"status": {"const": status}}}}
+                },
+                "required": ["entries"],
+            }
+        },
+        "required": ["data"],
+    }
+
+
+def _mode(mode: str) -> dict[str, Any]:
+    return {"properties": {"mode": {"const": mode}}, "required": ["mode"]}
+
+
 def _answer_schema_extra(schema: dict[str, Any], _model: type[BaseModel]) -> None:
     """Mirrors `DestinationConsumersAnswer._check_envelope` as far as JSON Schema can express it."""
     data_null = {"properties": {"data": {"type": "null"}}, "required": ["data"]}
+    data_object = {"properties": {"data": {"type": "object"}}, "required": ["data"]}
     schema["allOf"] = [
         {
             "if": data_null,
@@ -474,12 +663,20 @@ def _answer_schema_extra(schema: dict[str, Any], _model: type[BaseModel]) -> Non
             },
             "else": {
                 "properties": {
-                    "outcome": {"const": "PARTIAL"},
                     "snapshot": {"not": {"type": "null"}},
                     "limitations": {
-                        "items": {"properties": {"code": {"not": {"enum": _REFUSAL_ENUM}}}},
-                        "contains": {"properties": {"code": {"const": "CAPTURE_SCOPE_LIMITED"}}},
+                        "items": {"properties": {"code": {"not": {"enum": _REFUSAL_ENUM}}}}
                     },
+                }
+            },
+        },
+        {
+            "if": {"allOf": [data_null, _mode("evidence")]},
+            "then": {
+                "properties": {
+                    "limitations": {
+                        "items": {"properties": {"code": {"enum": _REFUSAL_EVIDENCE_ENUM}}}
+                    }
                 }
             },
         },
@@ -487,8 +684,23 @@ def _answer_schema_extra(schema: dict[str, Any], _model: type[BaseModel]) -> Non
             "if": {"properties": {"snapshot": {"type": "null"}}, "required": ["snapshot"]},
             "then": _has_code(_CODE.SNAPSHOT_NOT_AVAILABLE),
         },
-        # `expected_limitation_codes`: NO_MAPPING_SOURCE exactly when no mapping source is present,
-        # MORE_ROWS_AVAILABLE exactly when a next_cursor is issued.
+        # An evaluated query: PARTIAL with CAPTURE_SCOPE_LIMITED, its own payload, and no evidence
+        # code; NO_MAPPING_SOURCE and MORE_ROWS_AVAILABLE exactly as `expected_limitation_codes`.
+        {
+            "if": {"allOf": [data_object, _mode("query")]},
+            "then": {
+                "allOf": [
+                    {
+                        "properties": {
+                            "outcome": {"const": "PARTIAL"},
+                            "data": {"required": ["request_context", "rows"]},
+                        }
+                    },
+                    _has_code(_CODE.CAPTURE_SCOPE_LIMITED),
+                    _lacks_code(_CODE.EVIDENCE_REF_NOT_RESOLVED),
+                ]
+            },
+        },
         {
             "if": _data_has({"mapping_source_present": {"const": False}}),
             "then": _has_code(_CODE.NO_MAPPING_SOURCE),
@@ -502,15 +714,61 @@ def _answer_schema_extra(schema: dict[str, Any], _model: type[BaseModel]) -> Non
             "then": _has_code(_CODE.MORE_ROWS_AVAILABLE),
             "else": _lacks_code(_CODE.MORE_ROWS_AVAILABLE),
         },
-        # The query mode resolves no evidence refs.
-        _lacks_code(_CODE.EVIDENCE_REF_NOT_RESOLVED),
+        # An evaluated evidence answer: its own payload, only EVIDENCE_REF_NOT_RESOLVED, and
+        # ANSWERED exactly when every ref resolved.
+        {
+            "if": {"allOf": [data_object, _mode("evidence")]},
+            "then": {
+                "allOf": [
+                    {
+                        "properties": {
+                            "data": {"required": ["request_context", "entries"]},
+                            "limitations": {
+                                "items": {
+                                    "properties": {
+                                        "code": {"const": _CODE.EVIDENCE_REF_NOT_RESOLVED.value}
+                                    }
+                                }
+                            },
+                        }
+                    },
+                    # EVIDENCE_REF_NOT_RESOLVED exactly when an entry is NOT_RESOLVED; the outcome
+                    # follows from the entries.
+                    {
+                        "if": _entries_contain("NOT_RESOLVED"),
+                        "then": _has_code(_CODE.EVIDENCE_REF_NOT_RESOLVED),
+                        "else": {
+                            "allOf": [
+                                _lacks_code(_CODE.EVIDENCE_REF_NOT_RESOLVED),
+                                {"properties": {"outcome": {"const": "ANSWERED"}}},
+                            ]
+                        },
+                    },
+                    {
+                        "if": {"not": _entries_contain("RESOLVED")},
+                        "then": {"properties": {"outcome": {"const": "NOT_ANSWERED"}}},
+                    },
+                    {
+                        "if": {
+                            "allOf": [
+                                _entries_contain("RESOLVED"),
+                                _entries_contain("NOT_RESOLVED"),
+                            ]
+                        },
+                        "then": {"properties": {"outcome": {"const": "PARTIAL"}}},
+                    },
+                ]
+            },
+        },
     ]
 
 
 class DestinationConsumersAnswer(_Model):
     """The 0.7.1 envelope. `data` is null if and only if the answer is a refusal. An evaluated
-    answer is always `PARTIAL`: an accepted capture covers only its configured group allow-list at
-    its own T, so `CAPTURE_SCOPE_LIMITED` is always present and no answer claims completeness."""
+    query is always `PARTIAL`: an accepted capture covers only its configured group allow-list at
+    its own T, so `CAPTURE_SCOPE_LIMITED` is always present and no answer claims completeness. An
+    evaluated evidence answer is `ANSWERED` when every ref resolved, `PARTIAL` when some did and
+    `NOT_ANSWERED` when none did."""
 
     model_config = _closed(
         title="DestinationConsumersAnswer", json_schema_extra=_answer_schema_extra
@@ -519,10 +777,10 @@ class DestinationConsumersAnswer(_Model):
     schema_version: DestinationConsumersSchemaVersion
     producer: Producer
     tool: DestinationConsumersToolName
-    mode: Literal["query"]
+    mode: Literal["query", "evidence"]
     outcome: Outcome
     snapshot: SnapshotRef | None
-    data: DestinationConsumersData | None
+    data: DestinationConsumersData | DestinationConsumersEvidenceData | None
     limitations: list[Limitation] = Field(json_schema_extra=_UNIQUE)
 
     @model_validator(mode="after")
@@ -535,14 +793,31 @@ class DestinationConsumersAnswer(_Model):
         if self.data is None:
             if self.outcome is not Outcome.NOT_ANSWERED or len(codes) != 1:
                 raise ValueError("a null data is a NOT_ANSWERED refusal with one limitation")
-            if codes[0] not in REFUSAL_CODES:
-                raise ValueError(f"a refusal carries one of {_REFUSAL_ENUM}")
+            allowed = REFUSAL_CODES if self.mode == "query" else REFUSAL_CODES_EVIDENCE
+            if codes[0] not in allowed:
+                raise ValueError(f"a refusal carries one of {sorted(c.value for c in allowed)}")
             return self
         if self.snapshot is None:
             raise ValueError("an evaluated answer is bound to a snapshot")
+        expected_type = (
+            DestinationConsumersData if self.mode == "query" else DestinationConsumersEvidenceData
+        )
+        if type(self.data) is not expected_type:
+            raise ValueError(f"mode {self.mode!r} requires {expected_type.__name__} data")
         expected = self.data.expected_limitation_codes()
         if set(codes) != expected:
             raise ValueError(f"limitations must be exactly {sorted(expected)}")
+        if isinstance(self.data, DestinationConsumersEvidenceData):
+            outcome = (
+                Outcome.ANSWERED
+                if not codes
+                else Outcome.PARTIAL
+                if self.data.any_resolved()
+                else Outcome.NOT_ANSWERED
+            )
+            if self.outcome is not outcome:
+                raise ValueError(f"an evidence answer with these refs is {outcome.value}")
+            return self
         if self.outcome is not Outcome.PARTIAL:
             raise ValueError("an evaluated answer is PARTIAL (CAPTURE_SCOPE_LIMITED)")
         cursor = self.data.page.next_cursor

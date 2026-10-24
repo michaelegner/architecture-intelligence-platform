@@ -1,0 +1,6 @@
+# Golden-path phase `destination-consumers`: the AIP container's only mount is its configuration.
+# The frozen I4.1 Kafka package is copied in by destination_consumers_replay.py (C1, then C2).
+services:
+  architecture-intelligence:
+    volumes:
+      - ./examples/release-golden-path/profile/destination-consumers/config.yaml:/app/golden-path/config.yaml:ro

@@ -3,7 +3,7 @@
 **Status:** Working product strategy  
 **Project:** Architecture Intelligence Platform (AIP)  
 **Distributed focus:** architecture across autonomous service/component boundaries  
-**Revision:** 2026-10-13 — complete strategy rewrite around distributed boundaries, local views, and bounded projections  
+**Revision:** 2026-10-18 — sharpened around coding-agent source/execution boundaries and independently justified distributed knowledge  
 **Scope:** release-independent product doctrine and strategic direction  
 **Roadmap authority:** release sequencing and shipped/planned status remain in [ROADMAP.md](../ROADMAP.md)
 
@@ -31,14 +31,20 @@ The customer value proposition is:
 
 The durable product distinction is:
 
-> **AIP specializes in architectural relationships across autonomous service/component boundaries
-> that cannot be reduced reliably to source-code dependencies.**
+> **AIP specializes in distributed architecture knowledge across autonomous service/component
+> boundaries that coding agents cannot reliably establish from repository/source analysis or direct
+> execution alone.**
 
 The central doctrine is:
 
 > **Current State is locally observed. Intent is locally attributable. Assessment is locally made.
 > AIP answers distributed-architecture questions by projecting the relevant local views into a
 > bounded, evidence-qualified result.**
+
+Current State is the foundation: AIP first establishes what the available evidence supports before
+Intent or Assessment can enter the reasoning. It is not the whole durable product definition;
+externally attributable Intent and local Assessment remain distinct downstream views where product
+validation justifies AIP ownership.
 
 AIP composes local knowledge **only as far as needed to answer a concrete
 distributed-architecture question**. It does not aim to construct or own a complete enterprise
@@ -49,8 +55,10 @@ decision before code is edited.
 
 A concise working theorem is:
 
-> **Distributed architecture evidence tells the agent where investigation must cross autonomous
-> boundaries; repository/source analysis tells the agent what each implementation does.**
+> **Repository/source analysis tells the agent what implementations say; direct execution tells it
+> what it can verify inside its own loop; AIP establishes what independent distributed-system
+> evidence justifies beyond those reliable boundaries and where investigation must cross autonomous
+> components.**
 
 ---
 
@@ -69,8 +77,10 @@ The first customer job is not "show me the architecture." It is:
 > **Before I change this component, which external components and distributed relationships must I
 > inspect, why are they relevant, what evidence supports that relevance, and what remains unknown?**
 
-A repository-aware coding agent is already good at reading code that it can see. AIP should add value
-where the investigation boundary is larger than that repository.
+A coding agent is already strong at source it can inspect and behavior it can execute directly in
+its own loop. AIP should add value where relevant distributed facts lie beyond those reliable
+boundaries but independent evidence exists. If no such evidence exists, AIP should leave the claim
+unresolved rather than replace missing verification with plausible narration.
 
 Typical examples include:
 
@@ -294,13 +304,18 @@ choice, not a requirement to construct a global architecture truth model.
 
 ## 6. Evidence Qualification Is the Core Domain
 
-AIP's Core Domain is now stated more narrowly as:
+AIP's Core Domain is:
 
-> **Establishing and projecting evidence-qualified distributed relationships across autonomous
-> boundaries.**
+> **Establishing and projecting justified distributed architecture knowledge across autonomous
+> boundaries while preserving evidence, authority, provenance, and uncertainty.**
+
+Current State is the first and most mature path through this domain, but the durable product is not
+limited to Current State. Intent and Assessment remain distinct knowledge paths with their own
+attribution and qualification rules.
 
 The durable differentiation is not the graph, database, MCP transport, or number of source adapters.
-It is the ability to say what a particular body of evidence actually supports.
+It is the ability to say what a particular body of evidence and attributable claims actually
+support.
 
 Core capabilities include:
 
@@ -359,8 +374,18 @@ For every public conclusion AIP should preserve enough information to inspect:
 - snapshot/version identity; and
 - limitations.
 
-Deterministic replay is valuable because agents and humans should be able to reason from the same
-architectural premises.
+Reproducibility is a product property of AIP's reasoning, not a claim that distributed reality itself
+is repeatable:
+
+> **Reality may change; AIP's reasoning over the same frozen evidence, context, mappings and rules
+> must be reproducible.**
+
+New evidence may establish a different Current State. Replaying an old evidence snapshot does not
+prove that its conclusion is still true now; it proves that the recorded conclusion can be inspected
+and reproduced from the premises that justified it.
+
+This distinction lets agents and humans reason from the same architectural premises without turning
+a transient production observation or a previous agent's narration into timeless truth.
 
 ---
 
@@ -389,8 +414,23 @@ example:
 
 The product split is:
 
-> **AIP establishes where distributed investigation must cross autonomous boundaries. Source
-> analysis establishes what each implementation does.**
+> **Source analysis establishes what implementations say. Direct execution establishes what the
+> coding agent can verify inside its own loop. AIP establishes justified distributed-system
+> knowledge beyond those reliable boundaries.**
+
+### Coding-agent execution boundary
+
+Direct execution is strongest when the coding agent can run the relevant function, API, test, or
+controlled system itself. AIP should not duplicate that verification.
+
+AIP earns a distinct role where an important distributed fact cannot be established safely inside
+the agent loop but independent external evidence exists — for example runtime telemetry, deployment
+state, broker state, gateway configuration/usage, or another qualified source. Configuration or
+plans may be useful partial evidence, but they must not be promoted into deployed or observed reality
+without independent support.
+
+If neither direct execution nor qualified external evidence can establish the fact, AIP should keep
+it unresolved rather than fill the gap with agent-generated narration.
 
 ### Observability systems
 
@@ -411,8 +451,10 @@ source-code dependencies, and conformance rules.
 
 AIP should integrate rather than duplicate those capabilities.
 
-AIP's strategic question is whether evidence-qualified distributed Current State changes the
-investigation boundary beyond what strong source/repository analysis already provides.
+AIP's strategic question is whether justified distributed architecture knowledge changes the coding
+agent's decision beyond what strong source/repository analysis and direct execution can safely
+establish. Current State is the foundation for the near-term product proof; external Intent and
+Assessment remain checkpoint-dependent.
 
 The product risk is explicit:
 
@@ -420,8 +462,8 @@ The product risk is explicit:
 > investigation boundary at lower maintenance cost, AIP adds too little and should narrow or stop.**
 
 Conversely, AIP earns a distinct product role where runtime, deployment, gateway, broker, contract, or
-other independent evidence establishes distributed relationships that source analysis cannot safely
-recover.
+other independent evidence establishes distributed knowledge that source analysis or direct
+execution cannot safely establish.
 
 ### Intent and assessment ownership
 
@@ -445,8 +487,8 @@ justify separate product capabilities.
 The primary validation question is:
 
 > **When a coding agent is about to make a bounded change in an existing distributed system, does
-> AIP materially improve the agent's next decision beyond repository/source analysis and a strong
-> architecture-analysis tool?**
+> AIP materially improve the agent's next decision beyond repository/source analysis, realistic
+> direct execution available to the agent, and a strong architecture-analysis tool?**
 
 This is more important than adding another source adapter or semantic abstraction.
 
@@ -454,7 +496,8 @@ This is more important than adding another source adapter or semantic abstractio
 
 A useful evaluation compares four conditions:
 
-- baseline repository/source analysis;
+- baseline repository/source analysis plus realistic directly executable checks available to the
+  coding agent;
 - a strong architecture-analysis tool;
 - AIP distributed evidence; and
 - the combined workflow.
@@ -462,8 +505,8 @@ A useful evaluation compares four conditions:
 For enterprise-scale source-analysis comparisons, do not artificially hide repositories from the
 baseline. If a tool can analyze multiple repositories in one project, let it do so.
 
-AIP must still demonstrate additional value from evidence that is genuinely outside or orthogonal to
-source dependencies.
+AIP must still demonstrate additional value from evidence that is genuinely outside or orthogonal
+to what source analysis and direct execution can safely establish.
 
 ### What to measure
 
@@ -490,10 +533,10 @@ The current product thesis is strongest when:
 
 > **Architecture context changes the next action before code is edited.**
 
-A realistic distributed evaluation should include at least one relevant component outside the
-repository being changed and should establish that component through independent distributed-system
-evidence such as telemetry, broker topology, gateway/routing configuration, deployment identity, or
-another qualified source.
+A realistic distributed evaluation should include at least one material architecture fact that the
+coding agent cannot safely establish from source analysis or direct execution alone, and should
+establish that fact through independent distributed-system evidence such as telemetry, broker
+topology, gateway/routing configuration, deployment identity, or another qualified source.
 
 The evaluation must permit a negative result. Valid checkpoint outcomes are **continue**, **narrow**,
 **integrate**, **defer**, or **stop**.
@@ -506,6 +549,7 @@ AIP should demonstrate all of the following before broadening the product:
 - no systematic increase in unsupported architectural claims;
 - clear separation between AIP evidence and source-code findings;
 - evidence and limitations inspectable by humans and agents;
+- public conclusions reproducible from the same frozen evidence, context, mappings and rules;
 - bounded question cost as unrelated systems/evidence grow;
 - maintenance cost justified by reuse and decision improvement.
 
@@ -515,8 +559,8 @@ AIP should demonstrate all of the following before broadening the product:
 
 Prefer work in this order:
 
-1. **Prove the distributed product boundary.** Show that cross-repository/runtime/deployment evidence
-   changes useful engineering decisions beyond source analysis.
+1. **Prove the distributed product boundary.** Show that independently qualified distributed
+   evidence changes useful engineering decisions beyond source analysis and direct execution.
 2. **Strengthen distributed Current State.** Improve evidence applicability, identity,
    reconciliation, qualification, provenance, and bounded uncertainty for relations across autonomous
    components.
@@ -549,11 +593,15 @@ For a proposed capability, ask:
 5. **What exact evidence can establish it?**
 6. **What locality, time, identity, and authority apply?**
 7. **What remains unresolved when the evidence is partial?**
-8. **Could repository/source analysis already answer this adequately?**
-9. **Could an adjacent architecture product own this better?**
-10. **Can the semantics and qualification be evaluated deterministically?**
-11. **Does this create a stronger claim than its inputs justify?**
-12. **What maintenance cost does it introduce?**
+8. **Could repository/source analysis or direct execution inside the coding-agent loop already
+   answer this adequately?**
+9. **If not, is there independent external evidence from which AIP can safely establish the
+   relevant claim?**
+10. **Could an adjacent architecture product own this better?**
+11. **Can the conclusion be replayed deterministically from frozen evidence, context, mappings and
+    rules?**
+12. **Does this create a stronger claim than its inputs justify?**
+13. **What maintenance cost does it introduce?**
 
 If the autonomous-boundary question or changed customer decision cannot be stated clearly, the work
 is probably not a new AIP product capability.
@@ -648,8 +696,8 @@ the product center.
 
 ### Short positioning
 
-> **AIP gives coding agents evidence-qualified context about distributed dependencies they cannot
-> safely reconstruct from the repository alone.**
+> **AIP gives coding agents justified distributed architecture knowledge they cannot safely
+> establish from source analysis or direct execution alone.**
 
 ### Product positioning
 
@@ -659,8 +707,9 @@ the product center.
 
 ### Customer problem
 
-> **A coding agent can understand the repository and still miss a relevant service, event consumer,
-> gateway route, broker relationship, or environment-specific dependency outside it.**
+> **A coding agent can understand the repository and execute local behavior correctly and still miss
+> a relevant service, event consumer, gateway route, broker relationship, deployment reality, or
+> environment-specific dependency outside its reliable execution boundary.**
 
 ### Product boundary
 
@@ -680,9 +729,10 @@ the product center.
 
 ### Integration principle
 
-> **Use AIP for evidence-qualified distributed relationships; use repository/source tools for
-> implementation internals; integrate with specialized Intent/conformance products when they already
-> own the adjacent concern well.**
+> **Use repository/source tools for implementation internals and direct execution for behavior the
+> agent can verify itself; use AIP for justified distributed architecture knowledge beyond those
+> boundaries; integrate with specialized Intent/conformance products when they already own the
+> adjacent concern well.**
 
 ---
 
@@ -712,9 +762,9 @@ ability as justification for constructing a universal enterprise architecture mo
 
 The strongest strategic test remains simple:
 
-> **Does this architecture intelligence change what a developer or coding agent needs to inspect
-> before making a distributed-system change, beyond what repository/source analysis already tells
-> them?**
+> **Does this architecture intelligence materially improve what a developer or coding agent can
+> establish and needs to inspect before a distributed-system change, beyond what repository/source
+> analysis and direct execution can safely provide?**
 
 If yes, AIP has a distinct product role.
 

@@ -1,75 +1,154 @@
 {
-  "additionalProperties": false,
-  "description": "`mode: \"query\"` (spec \u00a72).",
-  "properties": {
-    "broker_id": {
-      "maxLength": 256,
-      "minLength": 1,
-      "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
-      "title": "Broker Id",
-      "type": "string"
-    },
-    "cursor": {
-      "anyOf": [
-        {
-          "maxLength": 2048,
+  "$defs": {
+    "DestinationConsumersEvidenceRequest": {
+      "additionalProperties": false,
+      "description": "`mode: \"evidence\"` (spec \u00a74): the exact snapshot, the same query context and 1-20 refs. The\nservice rebuilds the ref map of that context at that snapshot; there is no ref history.",
+      "properties": {
+        "broker_id": {
+          "maxLength": 256,
           "minLength": 1,
-          "pattern": "^[A-Za-z0-9_-]+$",
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Broker Id",
           "type": "string"
         },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Cursor"
-    },
-    "destination_id": {
-      "maxLength": 512,
-      "minLength": 1,
-      "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
-      "title": "Destination Id",
-      "type": "string"
-    },
-    "environment": {
-      "maxLength": 128,
-      "minLength": 1,
-      "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
-      "title": "Environment",
-      "type": "string"
-    },
-    "limit": {
-      "default": 100,
-      "maximum": 200,
-      "minimum": 1,
-      "title": "Limit",
-      "type": "integer"
-    },
-    "mode": {
-      "const": "query",
-      "title": "Mode",
-      "type": "string"
-    },
-    "snapshot_id": {
-      "anyOf": [
-        {
+        "destination_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Destination Id",
+          "type": "string"
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^destination-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "mode": {
+          "const": "evidence",
+          "title": "Mode",
+          "type": "string"
+        },
+        "snapshot_id": {
           "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "snapshot_id",
+        "destination_id",
+        "broker_id",
+        "environment",
+        "evidence_refs"
+      ],
+      "title": "DestinationConsumersEvidenceRequest",
+      "type": "object"
+    },
+    "DestinationConsumersQueryRequest": {
+      "additionalProperties": false,
+      "description": "`mode: \"query\"` (spec \u00a72).",
+      "properties": {
+        "broker_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Broker Id",
           "type": "string"
         },
-        {
-          "type": "null"
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cursor"
+        },
+        "destination_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Destination Id",
+          "type": "string"
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "limit": {
+          "default": 100,
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "mode": {
+          "const": "query",
+          "title": "Mode",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "anyOf": [
+            {
+              "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Snapshot Id"
         }
+      },
+      "required": [
+        "mode",
+        "destination_id",
+        "broker_id",
+        "environment"
       ],
-      "default": null,
-      "title": "Snapshot Id"
+      "title": "DestinationConsumersQueryRequest",
+      "type": "object"
     }
   },
-  "required": [
-    "mode",
-    "destination_id",
-    "broker_id",
-    "environment"
+  "description": "The single MCP `request` argument: one of the two modes, discriminated on `mode`.",
+  "discriminator": {
+    "mapping": {
+      "evidence": "#/$defs/DestinationConsumersEvidenceRequest",
+      "query": "#/$defs/DestinationConsumersQueryRequest"
+    },
+    "propertyName": "mode"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/DestinationConsumersQueryRequest"
+    },
+    {
+      "$ref": "#/$defs/DestinationConsumersEvidenceRequest"
+    }
   ],
-  "title": "DestinationConsumersQueryRequest",
-  "type": "object"
+  "title": "DestinationConsumersRequest"
 }

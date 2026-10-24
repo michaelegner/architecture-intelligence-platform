@@ -1,0 +1,1 @@
+redpandadata/redpanda:v24.3.1 sha256:f2f8bb89f1a0747cc6f86440cb3a0916e981e136e1d72392bab179f73492fb0f

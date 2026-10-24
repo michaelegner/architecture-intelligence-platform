@@ -1,6 +1,6 @@
 # AIP v0.7.1 Release Specification — Broker-Mediated Consumer Attribution
 
-**Status:** Draft  
+**Status:** Released in [`v0.7.1`](../../release-validation/v0.7.1-release-record.md) (2026-10-21)  
 **Baseline:** published v0.7.0
 
 ## 1. Product Question

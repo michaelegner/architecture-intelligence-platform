@@ -1,0 +1,3 @@
+utc: 2026-10-19T09:15:45Z
+command: curl -s -u spike:SPIKE-FAKE-rabbit localhost:15673/api/connections
+exit_code: 0

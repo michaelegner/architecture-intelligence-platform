@@ -60,11 +60,12 @@ from app.mcp.tools import TOOL_NAMES, register_tools
 
 _ALLOWED_ORIGIN = "http://localhost"
 _ALLOWED_HOST = "localhost"
-# v0.6.0 I3.3b (I3 decision record D1) added the fourth read-only tool and v0.7.0 I3.3 (I3 decision
-# record D1) the fifth, in lexicographic order.
-FIVE_TOOLS = [
+# v0.6.0 I3.3b (I3 decision record D1) added the fourth read-only tool, v0.7.0 I3.3 (I3 decision
+# record D1) the fifth and v0.7.1 I3.2 (I3 spec §5) the sixth, in lexicographic order.
+SIX_TOOLS = [
     "get_api_consumer_usage",
     "get_architecture_drift",
+    "get_destination_consumers",
     "get_evidence",
     "get_service_dependencies",
     "get_service_dependencies_by_locality",
@@ -163,7 +164,7 @@ async def _check_tools_list_returns_exactly_five_tools_in_lexicographic_order(
     # is spec-equivalent to "complete" (`mcp_types._types`'s own docstring), not a missing field.
     assert result.get("resultType", "complete") == "complete"
     names = [tool["name"] for tool in result["tools"]]
-    assert names == FIVE_TOOLS
+    assert names == SIX_TOOLS
 
 
 async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> None:
@@ -190,6 +191,8 @@ async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> Non
                 "LocalityEvidenceRequest",
                 "ApiConsumerUsageQueryRequest",
                 "ApiConsumerUsageEvidenceRequest",
+                "DestinationConsumersQueryRequest",
+                "DestinationConsumersEvidenceRequest",
             }:
                 assert definition["additionalProperties"] is False
             if definition.get("title") == "EvidenceRequest":
@@ -197,6 +200,10 @@ async def _check_tools_list_schemas_are_closed(client: httpx.AsyncClient) -> Non
         if tool["name"] == "get_api_consumer_usage":
             # D2: the 0.7 envelope, not a widened 0.5 ArchitectureAnswer or 0.6 LocalityAnswer.
             assert tool["outputSchema"]["title"] == "ApiConsumerUsageAnswer"
+            assert tool["annotations"]["readOnlyHint"] is True
+        elif tool["name"] == "get_destination_consumers":
+            # v0.7.1 I3.2 (I3 spec §5): the 0.7.1 envelope, not a widened earlier answer.
+            assert tool["outputSchema"]["title"] == "DestinationConsumersAnswer"
             assert tool["annotations"]["readOnlyHint"] is True
         elif tool["name"] == "get_service_dependencies_by_locality":
             # D2: the 0.6 locality envelope, not a widened 0.5 ArchitectureAnswer.
@@ -450,7 +457,7 @@ async def _check_negotiated_mode_issues_no_session_id(client: httpx.AsyncClient)
         json=_negotiated_tools_list_body(),
     )
     assert list_response.status_code == 200
-    assert len(list_response.json()["result"]["tools"]) == len(FIVE_TOOLS)
+    assert len(list_response.json()["result"]["tools"]) == len(SIX_TOOLS)
 
     call_body = _negotiated_tools_call_body(
         "get_evidence",
@@ -484,7 +491,7 @@ async def _check_protocol_version_header_alone_reaches_negotiated_dispatch(
     response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
     assert response.status_code == 200
     names = [tool["name"] for tool in response.json()["result"]["tools"]]
-    assert names == FIVE_TOOLS
+    assert names == SIX_TOOLS
 
 
 async def _check_markerless_tools_list_without_header_falls_back_to_sdk(
@@ -499,7 +506,7 @@ async def _check_markerless_tools_list_without_header_falls_back_to_sdk(
     )
     assert response.status_code == 200
     names = [tool["name"] for tool in response.json()["result"]["tools"]]
-    assert names == FIVE_TOOLS
+    assert names == SIX_TOOLS
 
 
 async def _check_markerless_tools_call_without_header_falls_back_to_sdk(
@@ -537,7 +544,7 @@ async def _check_session_id_header_alone_does_not_change_routing(
     response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
     assert response.status_code == 200
     names = [tool["name"] for tool in response.json()["result"]["tools"]]
-    assert names == FIVE_TOOLS
+    assert names == SIX_TOOLS
 
 
 async def _check_unrecognized_protocol_version_is_handled_by_sdk_without_dispatch(
@@ -612,7 +619,7 @@ async def _check_vscode_full_sequence_without_protocol_header_is_accepted(
     )
     assert tools_response.status_code == 200
     names = [tool["name"] for tool in tools_response.json()["result"]["tools"]]
-    assert names == FIVE_TOOLS
+    assert names == SIX_TOOLS
 
 
 async def _check_get_is_rejected_with_405_before_sdk_invocation(

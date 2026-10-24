@@ -1,0 +1,25 @@
+# Authored for v0.7.1 I4 (§4 public boundary): the I0 spike's RabbitMQ shape S1, a Queue `q.s1` on
+# vhost `/` with competing consumers (i0-spike/rabbitmq/raw/02-queues.json). Not an upstream document.
+asyncapi: '2.6.0'
+info:
+  title: s1-worker
+  version: "1.0.0"
+x-aip-service-id: service:s1-worker
+servers:
+  rabbitmq:
+    url: rabbitmq:5672
+    protocol: amqp
+    x-aip-broker-id: rabbitmq:i0-spike
+channels:
+  q.s1:
+    x-aip-destination-kind: queue
+    subscribe:
+      operationId: consumeS1
+      message:
+        $ref: '#/components/messages/S1Message'
+components:
+  messages:
+    S1Message:
+      name: S1Message
+      payload:
+        type: string

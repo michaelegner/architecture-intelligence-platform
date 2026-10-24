@@ -1,0 +1,54 @@
+{
+  "system": "hungCS22hcmiu/ecommerce-system@cd65365838ea880185a02e6536fa347439bfa274",
+  "broker_id": "kafka:ecommerce-local",
+  "environment": "local",
+  "kafka_image": "confluentinc/cp-kafka:7.5.0@sha256:fbbb6fa11b258a88b83f54d4f0bddfcffbf2279f99d66a843486e3da7bdfbf41",
+  "kafka_version": "7.5.0-ccs (Confluent Platform 7.5.0, raw/09-kafka-version.txt)",
+  "captures": {
+    "c1": {
+      "path": "c1/kafka-consumer-state.json",
+      "sha256": "cc2f84870b0e732d8476b8e06dc207cd5ca562dfb1d66ff48c39c469908f2e92",
+      "captured_at": "2026-10-19T06:21:23Z",
+      "complete": true,
+      "group_scope": [
+        "ops-tail",
+        "order-service",
+        "payment-service"
+      ],
+      "tool_version": "aip-kafka-capture/1+confluent-kafka-2.16.0",
+      "origin": "real",
+      "command_record": "raw/12-c1-capture.meta"
+    },
+    "c2": {
+      "path": "c2/kafka-consumer-state.json",
+      "sha256": "cd2e95d206becf35b41f3ed93198365d0e75de4e12e89f9c05ccc41f2c1ea18a",
+      "captured_at": "2026-10-19T06:23:28Z",
+      "complete": true,
+      "group_scope": [
+        "ops-tail",
+        "order-service",
+        "payment-service"
+      ],
+      "tool_version": "aip-kafka-capture/1+confluent-kafka-2.16.0",
+      "origin": "real",
+      "command_record": "raw/28-c2-capture.meta"
+    }
+  },
+  "derived": {
+    "C1-incomplete": "C1 with complete=false, built in a temporary copy by the replay test; never written here"
+  },
+  "mapping": {
+    "path": "mapping/kafka-service-mapping.json",
+    "sha256": "72873c02cdf89d85aa5683e196e2c530af20085faef5f5d788670e6f3e2909d9",
+    "observation_time": null,
+    "review": "mapping-review.md"
+  },
+  "declarations": {
+    "declarations/order-service/asyncapi.yaml": "cce15f842dee92bcaba9632cffd62e641b0354a06f88b86ee63b59a7459f5616",
+    "declarations/payment-service/asyncapi.yaml": "4cf1b7ca801d1ce95f2e2bf95b070755538706ec73452c4b49e563dfc75852fc"
+  },
+  "expected": {
+    "path": "expected.json",
+    "sha256": "4c50165f1398b7690229fe44f25dc2d88215961ca7d47fa2c04ed966386a104c"
+  }
+}

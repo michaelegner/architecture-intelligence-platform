@@ -34,7 +34,7 @@ from app.architecture_intelligence.contracts import (
 )
 from app.architecture_intelligence.destination_consumer_contracts import (
     DestinationConsumersAnswer,
-    DestinationConsumersQueryRequest,
+    DestinationConsumersRequest,
 )
 from app.architecture_intelligence.locality_contracts import (
     LocalityAnswer,
@@ -109,7 +109,7 @@ def generate_api_usage_answer_schema() -> dict[str, Any]:
 
 
 def generate_destination_request_schema() -> dict[str, Any]:
-    return DestinationConsumersQueryRequest.model_json_schema()
+    return DestinationConsumersRequest.model_json_schema()
 
 
 def generate_destination_answer_schema() -> dict[str, Any]:
