@@ -97,7 +97,7 @@ def test_sarif_upload_is_kept_and_non_blocking():
 
 def test_report_and_sbom_are_retained_as_digest_named_artifacts():
     retain = _step("Retain release security evidence")
-    assert retain["uses"] == "actions/upload-artifact@v7.0.1"
+    assert retain["uses"] == "actions/upload-artifact@v7.0.2"
     assert retain["with"]["name"] == "release-security-${{ steps.pushed.outputs.slug }}"
     assert retain["with"]["path"].split() == ["trivy-full-report.json", "sbom.cdx.json"]
     assert retain["with"]["if-no-files-found"] == "error"
