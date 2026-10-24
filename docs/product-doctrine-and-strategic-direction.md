@@ -3,7 +3,7 @@
 **Status:** Working product strategy  
 **Project:** Architecture Intelligence Platform (AIP)  
 **Distributed focus:** architecture across autonomous service/component boundaries  
-**Revision:** 2026-10-18 — sharpened around coding-agent source/execution boundaries and independently justified distributed knowledge  
+**Revision:** 2026-10-24 — pivot to the binding picture: promises and qualified Current State across autonomous boundaries, and their assessment (see [Pivot status](#pivot-status))  
 **Scope:** release-independent product doctrine and strategic direction  
 **Roadmap authority:** release sequencing and shipped/planned status remain in [ROADMAP.md](../ROADMAP.md)
 
@@ -17,23 +17,32 @@ AIP's mission remains:
 
 **dAIP — distributed Architecture Intelligence Platform** names AIP's distributed-system focus:
 evidence-qualified architecture across autonomous service/component boundaries. It covers the
-distributed relationships that currently exist, externally attributable promises where relevant,
-and local assessments of those promises against observed cooperation.
+distributed relationships that currently exist, the promises that autonomous participants make about
+them, and local assessments of the two.
 
 The product and project name remains **AIP** throughout this document. **dAIP** is used only when the
 distributed-system boundary itself is the point being emphasized.
 
 The customer value proposition is:
 
-> **Help coding agents make bounded changes in distributed systems without reconstructing the
-> relevant architecture from repositories, configuration, runtime evidence, contracts, and people
-> for every task.**
+> **Show who relies on what across autonomous boundaries, whether it is promised, and what the
+> evidence shows, so that teams, architects and the agents that act for them can use, change or
+> move a capability without reconstructing its bindings from repositories, configuration, runtime
+> evidence, catalogs and people.**
+
+The product core is the **binding picture**. For each binding across an autonomous boundary, it
+holds the promises of both sides (Intent) and what the evidence establishes (Current State), with
+locality and time. Their Assessment gives each binding one status:
+
+- promised and observed;
+- promised, not observed;
+- observed, not promised;
+- unresolved.
 
 The durable product distinction is:
 
-> **AIP specializes in distributed architecture knowledge across autonomous service/component
-> boundaries that coding agents cannot reliably establish from repository/source analysis or direct
-> execution alone.**
+> **AIP keeps promises and evidence as separate, attributable views and assesses each
+> cross-boundary binding against both, with locality, time, provenance and uncertainty preserved.**
 
 The central doctrine is:
 
@@ -41,46 +50,80 @@ The central doctrine is:
 > AIP answers distributed-architecture questions by projecting the relevant local views into a
 > bounded, evidence-qualified result.**
 
-Current State is the foundation: AIP first establishes what the available evidence supports before
-Intent or Assessment can enter the reasoning. It is not the whole durable product definition;
-externally attributable Intent and local Assessment remain distinct downstream views where product
-validation justifies AIP ownership.
+Current State is the evidence side of the binding picture and remains core. Intent is the promise
+side. Assessment relates the two. None of the three views manufactures another.
 
 AIP composes local knowledge **only as far as needed to answer a concrete
 distributed-architecture question**. It does not aim to construct or own a complete enterprise
 architecture model.
 
-The product should be judged by whether this architecture context changes a useful engineering
-decision before code is edited.
+The product should be judged by whether the binding picture changes a useful decision before a team
+or an agent uses, changes or moves a capability across a boundary.
 
 A concise working theorem is:
 
-> **Repository/source analysis tells the agent what implementations say; direct execution tells it
-> what it can verify inside its own loop; AIP establishes what independent distributed-system
-> evidence justifies beyond those reliable boundaries and where investigation must cross autonomous
-> components.**
+> **Source analysis tells what implementations say. Contracts and catalogs tell what participants
+> declare. Runtime and platform evidence tell what happens. AIP keeps these apart, attributes them,
+> and assesses each cross-boundary binding against them.**
+
+### Pivot status
+
+This revision moves AIP from "distributed context for coding agents beyond source analysis" to the
+binding picture.
+
+The reason is two negative results. The
+[v0.7.2 checkpoint](specifications/0.7.2/i3-comparison-record.md#owner-checkpoint-i4-defer) recorded
+DEFER: on Sokol111, AIP's correct answer changed no consumer set, change list or rollout gate beyond
+a mature context engine. The
+[v0.8 Round 7 screen](real-world-validation/v0.8.0/round7-result.md) found no real change-impact
+question where boundary membership plus AIP evidence beats a fair source investigation. Both tests
+measured whether AIP's evidence establishes relationships that source analysis cannot establish.
+Neither tested whether a binding is promised by its participants, and whether the promises and the
+evidence agree.
+
+The binding picture is the working position. A pivot is no proof that the new position works. It
+must be validated with a target customer (see [§8](#8-product-validation)). Until then, this
+doctrine treats it as a hypothesis with explicit validation gates, not as an established fact.
 
 ---
 
 ## 2. Primary Customer Job
 
-The initial product wedge is **AI-assisted bounded change in existing distributed systems**.
+The driver is **AI enterprise transformation**:
 
-The primary user is:
+- **AI-assisted modernisation:** agents do migration work, for example legacy modernisation,
+  framework or runtime upgrades, and re-platforming;
+- **AI enablement of capabilities:** systems are made usable by agents, which forces integration
+  and re-platforming work.
 
-> **A developer, architect, or platform team using coding agents to change an existing distributed
-> system whose relevant dependencies may cross repositories, teams, deployment boundaries, or
-> independently operated components.**
+Both change many components quickly and across team boundaries. Both depend on knowing which
+bindings cross a boundary and what is agreed for them. Human developers covered that gap with
+informal knowledge. Agents cannot.
 
-The first customer job is not "show me the architecture." It is:
+The users are:
 
-> **Before I change this component, which external components and distributed relationships must I
-> inspect, why are they relevant, what evidence supports that relevance, and what remains unknown?**
+- **provider teams**, which offer capabilities to other participants;
+- **consumer teams**, which rely on capabilities of other participants;
+- **architects**, who need the declared and the actual bindings between Bounded Contexts; and
+- **coding agents** that act for these teams.
+
+The customer jobs are:
+
+> **Consumer:** Before I rely on this capability, what does its provider promise, under which
+> conditions, and does the evidence show that the promise holds?
+
+> **Provider:** Who relies on what I promised, and who relies on something I never promised?
+
+> **Change:** Before I change or move this component, which bindings cross its boundary, what is
+> promised for each, and what does the evidence show?
+
+None of these jobs is "show me the architecture." Each one asks about the bindings across one
+boundary.
 
 A coding agent is already strong at source it can inspect and behavior it can execute directly in
-its own loop. AIP should add value where relevant distributed facts lie beyond those reliable
-boundaries but independent evidence exists. If no such evidence exists, AIP should leave the claim
-unresolved rather than replace missing verification with plausible narration.
+its own loop. AIP adds what lies outside that loop: the attributable promises of other participants
+and independent evidence of the bindings. If neither exists, AIP leaves the claim unresolved rather
+than replace missing verification with plausible narration.
 
 Typical examples include:
 
@@ -89,15 +132,15 @@ Typical examples include:
 - gateway or routing configuration that changes which service is actually reached;
 - broker topology that creates publisher/consumer relationships without a source dependency;
 - environment-specific relationships that do not exist in every deployment;
-- deployment/runtime relationships that source analysis cannot establish safely.
+- a declared consumer that is not live in this environment;
+- a consumer that relies on another team's data or events with no promise from the owner.
 
-For a bounded change, the agent should first ask the relevant distributed-impact question. AIP
-returns a bounded projection that identifies which autonomous boundaries require inspection. The
-agent then uses repository/source analysis inside each relevant component and continues with the
-normal engineering verification workflow.
+In an organisation, two roles carry adoption. The lead of a modernisation or transformation
+programme sponsors it. Enterprise architects drive it and connect it to the teams. The teams still
+confirm their own promises: a promoter makes confirmation legitimate but does not author promises.
 
-AIP does not own coding-agent planning, implementation, testing, deployment, or review. It supplies
-qualified distributed-architecture premises to those workflows.
+AIP does not own planning, implementation, testing, deployment, or review, whether a team or an agent
+does the work. It supplies qualified distributed-architecture premises to those workflows.
 
 ---
 
@@ -156,19 +199,27 @@ Service identity, System/Component membership, deployment locality, team ownersh
 Context are distinct concepts. They may align in a real system, but that alignment itself requires
 evidence or attributable intent appropriate to the claim.
 
+In this doctrine a **Bounded Context** is a group of services owned by one team that share a common
+language. Which services belong to which Bounded Context comes from an independent, attributable
+source, for example a catalog domain or an owner's declaration. It is never inferred from who talks
+to whom.
+
 ---
 
 ## 4. Three Local Semantic Views
 
-AIP's long-term semantic frame has three distinct local views: **Current State**, **Intent**, and
-**Assessment**. They may be projected together for a question, but none is allowed to manufacture
-the others.
+AIP's semantic frame has three distinct local views: **Current State**, **Intent**, and
+**Assessment**. Together they form the binding picture. They may be projected together for a
+question, but none is allowed to manufacture the others.
 
 ### 4.1 Current State is locally observed
 
 Current State answers:
 
 > **What distributed relationships can the available evidence establish in this explicit context?**
+
+Current State is the evidence side of the binding picture. Evidence qualification remains AIP's core
+domain (see §6).
 
 "Locally observed" is a product-level statement about the locality and scope of knowledge. It does
 **not** collapse AIP's evidence modes. A declared API contract remains declared evidence; runtime
@@ -193,6 +244,10 @@ The current-state rule is:
 
 An observed dependency is not a provider promise. A client dependency is not a provider obligation.
 The existence of an API is not evidence of an approved integration contract.
+
+A declared contract can serve two views. As declared evidence, it is part of Current State. When it
+is attributable to its owner, it is also a candidate promise in Intent (see §4.2). The two readings
+stay separate, and neither strengthens the other.
 
 AIP should prefer unresolved or partial answers over stronger claims that the evidence does not
 support.
@@ -231,6 +286,25 @@ The governing rules are:
 Intent must remain explicit and attributable. Runtime frequency, naming, co-location, code structure,
 or an agent's interpretation cannot become authoritative Intent.
 
+**Promisers are typed.** A promise is made at one of two levels:
+
+- **Bounded Context (contract level):** meaning, the published contract, and change and
+  compatibility policy. The owning team makes these promises for its services, in its language.
+- **Service or intermediary (runtime level):** availability, routing and delivery. Brokers,
+  gateways and the platform are promisers in their own right.
+
+**Promises are captured, then confirmed.** Carriers such as code, configuration, contracts, catalogs,
+ADRs, platform documentation and access approvals yield **candidate promises**. The owning team
+confirms or declines each candidate. The rules are:
+
+- code is evidence and a source of candidates, never a promise by itself;
+- an organisation's guideline is an imposition, not a promise, until a team adopts it;
+- a decline is itself an attributable fact;
+- unconfirmed candidates stay visible as candidates. AIP states the gap rather than hide it.
+
+Meaning across Bounded Contexts is published by the provider or translated by the consumer, both
+through attributable promises. AIP never unifies terms across contexts.
+
 Whether AIP should persist and own this Intent domain, or consume it from an adjacent architecture
 product, is a product-ownership question. The semantic separation is mandatory either way.
 
@@ -244,10 +318,25 @@ Assessment answers:
 Assessment is not a universal compliance judgment. It is made for an explicit locality, time,
 evidence set, promise set, and assessment rule.
 
-For example, Current State may establish that `WorkshopManagementAPI` publishes on distributed
-path P. An independently attributable Intent may state that `WorkshopManagementAPI` promises
-external contract X. A local Assessment can then state whether the evidence in context C supports,
-contradicts, or cannot establish the relevant relationship between X and the observed cooperation.
+For example, Current State may establish that the Product Query service consumes the topic
+`catalog.product.events` in environment E. The Catalog service may promise to publish
+`ProductUpdatedEvent` on that topic, and Product Query may promise to receive it. A local Assessment
+can then state whether the evidence in context C supports, contradicts, or cannot establish the
+relationship between those promises and the observed cooperation.
+
+For each binding, Assessment gives one status:
+
+- **promised and observed:** the promises and the evidence agree;
+- **promised, not observed:** a promise exists, but the evidence in this context does not show the
+  binding. Non-observation is not absence;
+- **observed, not promised:** the evidence shows a binding that no attributable promise covers;
+- **unresolved:** the evidence or the promises are insufficient to decide.
+
+DDD **Context Map patterns** (Partnership, Shared Kernel, Customer/Supplier, Conformist,
+Anti-Corruption Layer, Open Host Service with Published Language, Separate Ways) are projections
+over the promises and the qualified Current State between two Bounded Contexts. They are never stored
+as facts. A declared pattern and the de-facto pattern that the promises and evidence support can
+differ, and that difference is itself a useful answer.
 
 A local assessment remains attributable to its inputs and scope. Projecting several local assessments
 into one answer does not turn them into universal truth.
@@ -272,12 +361,13 @@ question.
 
 Examples:
 
-> **Which external dependencies of WorkshopManagementAPI matter for this change?**
+> **If Catalog Management moves to another broker, which bindings cross its boundary, and what is
+> their status?**
 
-> **Which observed relationships cross the Pitstop → Reporting component boundary?**
+> **Who relies on `ProductUpdatedEvent`, and is each of them covered by a promise?**
 
-> **Which external promises relevant to MaintenanceJobFinished are supported, conflicting, or
-> unresolved in this context?**
+> **Which Context Map pattern do the promises and the evidence support between Catalog Management
+> and Storefront?**
 
 A projection may combine several local Current-State views, external promises, and local assessments.
 The underlying claims remain local and attributable.
@@ -297,8 +387,8 @@ local knowledge may support different bounded projections when different questio
 Consumers may mold the question, selection, projection, composition, and representation. They may not
 mold the underlying evidence, qualification, provenance, or claim meaning.
 
-A shared knowledge store may contain evidence from many systems. That is an implementation and scale
-choice, not a requirement to construct a global architecture truth model.
+A shared knowledge store may contain evidence and promises from many systems. That is an
+implementation and scale choice, not a requirement to construct a global architecture truth model.
 
 ---
 
@@ -309,9 +399,10 @@ AIP's Core Domain is:
 > **Establishing and projecting justified distributed architecture knowledge across autonomous
 > boundaries while preserving evidence, authority, provenance, and uncertainty.**
 
-Current State is the first and most mature path through this domain, but the durable product is not
-limited to Current State. Intent and Assessment remain distinct knowledge paths with their own
-attribution and qualification rules.
+The binding picture is the product core, and evidence qualification stays core within it. Current
+State is the first and most mature path through this domain. Intent (promises) and Assessment are
+distinct knowledge paths with their own attribution and qualification rules. An assessment of a
+promise is only as good as the qualified evidence it is assessed against.
 
 The durable differentiation is not the graph, database, MCP transport, or number of source adapters.
 It is the ability to say what a particular body of evidence and attributable claims actually
@@ -415,8 +506,8 @@ example:
 The product split is:
 
 > **Source analysis establishes what implementations say. Direct execution establishes what the
-> coding agent can verify inside its own loop. AIP establishes justified distributed-system
-> knowledge beyond those reliable boundaries.**
+> coding agent can verify inside its own loop. AIP establishes the binding picture across
+> autonomous boundaries: attributable promises, qualified evidence, and their assessment.**
 
 ### Coding-agent execution boundary
 
@@ -444,6 +535,12 @@ evidence. They do not become global truth merely because they are curated.
 
 AIP should preserve the semantic mode and provenance of what they contribute.
 
+Event and service catalogs (for example EventCatalog or Backstage), enterprise-architecture
+management tools, migration-discovery tools and API platforms are the main **carriers** of the
+declared side. They hold domains, owners, contracts, and declared producers and consumers. AIP reads
+them as sources of candidate promises and Bounded Context membership, and it can write its
+assessment back to them. AIP integrates with these tools; it does not replace them.
+
 ### Architecture-conformance tools
 
 Mature tools such as Teamscale can be stronger at repository-internal architecture modeling,
@@ -451,19 +548,17 @@ source-code dependencies, and conformance rules.
 
 AIP should integrate rather than duplicate those capabilities.
 
-AIP's strategic question is whether justified distributed architecture knowledge changes the coding
-agent's decision beyond what strong source/repository analysis and direct execution can safely
-establish. Current State is the foundation for the near-term product proof; external Intent and
-Assessment remain checkpoint-dependent.
+AIP's strategic question is whether the binding picture changes a useful decision beyond what source
+analysis, direct execution, catalogs and discovery tools provide on their own.
 
 The product risk is explicit:
 
-> **If a mature source/architecture tool at realistic multi-repository scope produces the same useful
-> investigation boundary at lower maintenance cost, AIP adds too little and should narrow or stop.**
+> **If catalogs, platforms or discovery tools give the same binding picture at lower maintenance
+> cost, AIP adds too little and should integrate, narrow or stop.**
 
-Conversely, AIP earns a distinct product role where runtime, deployment, gateway, broker, contract, or
-other independent evidence establishes distributed knowledge that source analysis or direct
-execution cannot safely establish.
+Conversely, AIP earns a distinct product role where it keeps promises from both sides apart from
+qualified evidence, assesses each binding against both, and preserves locality, time and
+provenance across several carriers and evidence sources.
 
 ### Intent and assessment ownership
 
@@ -477,50 +572,59 @@ The preferred rule is:
 > **Own evidence-qualified distributed semantics where AIP adds distinctive value; integrate where a
 > mature adjacent product already owns authoring, policy, approval, or conformance.**
 
-The roadmap checkpoint decides whether AIP-owned external Intent and Assessment add enough value to
-justify separate product capabilities.
+Product validation with a target customer decides whether AIP owns the promise domain and
+Assessment, or consumes promises from an adjacent product and assesses them.
 
 ---
 
 ## 8. Product Validation
 
-The primary validation question is:
+The primary validation question has two parts:
 
-> **When a coding agent is about to make a bounded change in an existing distributed system, does
-> AIP materially improve the agent's next decision beyond repository/source analysis, realistic
-> direct execution available to the agent, and a strong architecture-analysis tool?**
+> **H1 (value):** With the binding picture, do provider teams, consumer teams and the agents that act
+> for them have fewer surprises and less avoidable coordination before a safe use or change than with
+> their current means, without more unsupported claims?
+
+> **H2 (sustainability):** Can promises and Bounded Context membership be confirmed and kept current
+> at an owner effort lower than the coordination they remove?
+
+If H1 holds and H2 fails, AIP produces value it cannot sustain. If H2 holds and H1 fails, AIP is a
+cheap map that nobody needs. Either result falsifies the position.
+
+The terms are:
+
+- **surprise:** a dependent, condition, owner or binding that is discovered late or after the change;
+- **avoidable coordination:** a contact whose answer existed but could not be reached from the
+  available sources.
+
+Coordination is not always waste. Deliberate coordination, for example a DDD Partnership, does not
+count as avoidable.
 
 This is more important than adding another source adapter or semantic abstraction.
 
 ### What to compare
 
-A useful evaluation compares four conditions:
+Validation needs a **target customer**: a real organisation with several teams that use each other's
+capabilities. Public repositories cannot show the gap, because a binding that can be found in public
+source is source-sufficient by construction.
 
-- baseline repository/source analysis plus realistic directly executable checks available to the
-  coding agent;
-- a strong architecture-analysis tool;
-- AIP distributed evidence; and
-- the combined workflow.
+On real tasks, compare:
 
-For enterprise-scale source-analysis comparisons, do not artificially hide repositories from the
-baseline. If a tool can analyze multiple repositories in one project, let it do so.
+- the organisation's current means: source, catalogs, discovery tools and people;
+- the same, plus curated promises in the organisation's own catalog, without evidence or Assessment;
+- the full binding picture.
 
-AIP must still demonstrate additional value from evidence that is genuinely outside or orthogonal
-to what source analysis and direct execution can safely establish.
+The second condition separates AIP's contribution from the effort of curating promises. Expected
+outcomes are authored independently, before the cases run.
 
 ### What to measure
 
-Measure the resulting change plan and investigation boundary in terms of:
-
-- relevant external investigation targets found;
-- unsupported targets introduced;
-- whether established facts remain separate from inference;
-- missing source/code requests identified;
-- distributed risks discovered before editing;
-- questions left explicitly unresolved;
-- setup and maintenance effort;
-- identity/mapping maintenance cost;
-- evidence collection/instrumentation cost; and
+- surprises and avoidable coordination;
+- unsupported claims and justified unresolved answers;
+- owner effort to confirm promises and keep them current;
+- the share of candidates that owners confirm, decline or leave unanswered;
+- the effort to produce candidates;
+- setup, mapping and evidence-collection cost; and
 - reuse across later questions.
 
 A lower false-claim rate achieved only by returning almost everything unresolved is not product
@@ -529,14 +633,12 @@ decision.
 
 ### Product proof
 
-The current product thesis is strongest when:
+The thesis is strongest when:
 
-> **Architecture context changes the next action before code is edited.**
+> **The binding picture changes a decision before a capability is used, changed or moved.**
 
-A realistic distributed evaluation should include at least one material architecture fact that the
-coding agent cannot safely establish from source analysis or direct execution alone, and should
-establish that fact through independent distributed-system evidence such as telemetry, broker
-topology, gateway/routing configuration, deployment identity, or another qualified source.
+A demonstration on a public system shows that AIP can produce the binding picture. It is not proof of
+product value.
 
 The evaluation must permit a negative result. Valid checkpoint outcomes are **continue**, **narrow**,
 **integrate**, **defer**, or **stop**.
@@ -545,11 +647,13 @@ The evaluation must permit a negative result. Valid checkpoint outcomes are **co
 
 AIP should demonstrate all of the following before broadening the product:
 
-- materially better discovery of relevant cross-boundary investigation targets;
+- fewer surprises at the same or lower avoidable coordination;
 - no systematic increase in unsupported architectural claims;
-- clear separation between AIP evidence and source-code findings;
-- evidence and limitations inspectable by humans and agents;
-- public conclusions reproducible from the same frozen evidence, context, mappings and rules;
+- owner effort for promises below the coordination it removes;
+- clear separation between promises, AIP evidence and source-code findings;
+- evidence, promises and limitations inspectable by humans and agents;
+- public conclusions reproducible from the same frozen evidence, promises, context, mappings and
+  rules;
 - bounded question cost as unrelated systems/evidence grow;
 - maintenance cost justified by reuse and decision improvement.
 
@@ -559,23 +663,23 @@ AIP should demonstrate all of the following before broadening the product:
 
 Prefer work in this order:
 
-1. **Prove the distributed product boundary.** Show that independently qualified distributed
-   evidence changes useful engineering decisions beyond source analysis and direct execution.
-2. **Strengthen distributed Current State.** Improve evidence applicability, identity,
+1. **Demonstrate the binding picture.** Show on a realistic system that AIP can assess attributable
+   promises against qualified evidence across a Bounded Context boundary, and re-establish the
+   result after a change.
+2. **Validate with a target customer.** Test H1 and H2 (§8) in a real organisation.
+3. **Strengthen distributed Current State.** Improve evidence applicability, identity,
    reconciliation, qualification, provenance, and bounded uncertainty for relations across autonomous
    components.
-3. **Support bounded cross-boundary projections.** Add only the System/Component membership semantics
-   required to answer concrete distributed questions.
-4. **Validate external Intent as promises, not generic policy.** If owned by AIP, focus on explicit,
-   attributable promises to the outside.
-5. **Validate local Assessment.** Compare externally relevant promises with distributed interactions
-   without turning AIP into a centralized compliance engine.
-6. **Freeze only what survives product validation.** Stable contracts must follow evidence, not
+4. **Strengthen promises and Assessment.** Add only the promise, membership and assessment semantics
+   that concrete questions need. Integrate with carriers rather than build capture machinery that
+   catalogs already own.
+5. **Freeze only what survives product validation.** Stable contracts must follow evidence, not
    strategy prose.
-7. **Keep historical trajectories and transformation reasoning downstream.**
+6. **Keep historical trajectories and transformation reasoning downstream.**
 
 A new adapter is strategically important only when it enables a materially new class of qualified
-distributed relationship or a recurring question that AIP could not safely answer before.
+distributed relationship, a new carrier of promises, or a recurring question that AIP could not
+safely answer before.
 
 Transport, storage, graph layout, protocol libraries, and source APIs should be standardized or
 consumed where practical.
@@ -590,18 +694,18 @@ For a proposed capability, ask:
 2. **What concrete distributed-architecture question becomes safely answerable?**
 3. **What customer decision changes because of the answer?**
 4. **Is the output Current State, external Intent, local Assessment, or a bounded projection?**
-5. **What exact evidence can establish it?**
-6. **What locality, time, identity, and authority apply?**
-7. **What remains unresolved when the evidence is partial?**
-8. **Could repository/source analysis or direct execution inside the coding-agent loop already
-   answer this adequately?**
-9. **If not, is there independent external evidence from which AIP can safely establish the
-   relevant claim?**
-10. **Could an adjacent architecture product own this better?**
-11. **Can the conclusion be replayed deterministically from frozen evidence, context, mappings and
-    rules?**
-12. **Does this create a stronger claim than its inputs justify?**
-13. **What maintenance cost does it introduce?**
+5. **Which promise and which typed promiser does it concern, and who confirms it?**
+6. **What exact evidence can establish it?**
+7. **What locality, time, identity, and authority apply?**
+8. **What remains unresolved when the evidence or the promises are partial?**
+9. **Does it reduce surprises or avoidable coordination for a real user?**
+10. **Could repository/source analysis or direct execution inside the coding-agent loop already
+    answer this adequately?**
+11. **Could a catalog, an EAM tool, an API platform or another adjacent product own this better?**
+12. **Can the conclusion be replayed deterministically from frozen evidence, promises, context,
+    mappings and rules?**
+13. **Does this create a stronger claim than its inputs justify?**
+14. **What maintenance cost does it introduce, and who carries it?**
 
 If the autonomous-boundary question or changed customer decision cannot be stated clearly, the work
 is probably not a new AIP product capability.
@@ -640,6 +744,21 @@ promise.
 Runtime instrumentation, mapping, reconciliation, or architecture-source maintenance costs more than
 the product value of the resulting distributed context.
 
+### One more catalog to maintain
+
+Confirming promises and keeping them current costs owners more than the coordination it removes.
+AIP then becomes one more catalog that nobody keeps up to date.
+
+### No incentive to confirm
+
+Consumers want promises; providers often avoid them, because a confirmed promise creates an
+obligation. If most providers stay silent, the binding picture holds mostly candidates.
+
+### Absorption by adjacent products
+
+Catalogs, API platforms, EAM tools or discovery tools add evidence and assessment to their own model,
+and AIP's distinct role shrinks to an integration.
+
 ### Semantic overreach
 
 AIP claims field-level impact, causal flow, ownership, intent, or compliance that the available
@@ -649,31 +768,50 @@ These risks should be tested by product experiments, not only mitigated in desig
 
 ---
 
-## 12. Strategic Design Lenses
+## 12. Semantic Model and Design Lenses
 
-External theories are useful only where they sharpen the product boundary.
+External theories are useful only where they sharpen the product boundary. Promise Theory and
+Semantic Spacetime are the internal semantic model behind AIP's three views. Bigraphs and Strategic
+DDD remain design lenses.
 
 ### Promise Theory
 
-Promise Theory is useful because autonomous components can make local promises without requiring a
-central authority to manufacture those promises.
+Autonomous participants make local promises about their own behavior. No central authority
+manufactures those promises.
 
-AIP uses Promise Theory to preserve three distinctions:
+AIP uses Promise Theory as the model of Intent and Assessment:
 
-- a provider promise is not a consumer desire;
+- every promise has a promiser, a promisee or scope, a body, a validity, and a carrier;
+- a provider promise is not a consumer desire, and a consumer's promise to use is a separate promise;
+- intermediaries such as brokers, gateways and the platform make their own promises;
+- an imposition, such as a central policy or guideline, is not a promise until a participant adopts
+  it;
 - an external promise is not observed cooperation; and
 - a local promise assessment is not central compliance truth.
 
-Promise Theory is a semantic/evaluation lens, not a required implementation model or user-facing
-vocabulary.
+Promise Theory treats an observation as an assessment made by an observer. AIP's Current State is
+that kind of assessment: qualified, local, and attributable to evidence. The doctrine keeps the names
+Current State, Intent and Assessment for the three views; it does not introduce a second set of
+terms.
 
 ### Semantic Spacetime
 
-The useful principle is that architecture meaning depends on **context, locality, time, and evidence
-perspective**.
+Architecture meaning depends on **context, locality, time, and evidence perspective**. This supports
+local Current State, local Assessment, and bounded projection without claiming global truth.
 
-This supports local Current State, local Assessment, and bounded projection without claiming global
-truth.
+AIP uses Semantic Spacetime as the organising basis of its relations:
+
+- four relation families organise the model: **LEADSTO** (flow and order, for example an event that
+  leads to a consumer's reaction), **CONTAINS** (membership and composition, for example a service in
+  a Bounded Context), **EXPRESSES** (properties and expression, for example a capability expressed by
+  an API, an event or a data product), and **NEAR** (similarity; SSTorytime calls this family
+  `SIMILARTO`);
+- every canonical relation is a typed, qualified relation inside one family. The Canonical Model
+  stays; the families organise it;
+- a relation is never stored as a bare edge. It keeps its source, time, scope, observer and
+  qualification; and
+- NEAR is a typed, non-authoritative hint. It never means identity, and it is never established
+  automatically.
 
 ### Bigraphs
 
@@ -686,9 +824,16 @@ This reinforces the rule that boundaries and relationships are established indep
 Strategic DDD is useful as a boundary lens because AI makes implementation cheaper without making
 domain meaning or autonomous boundaries cheaper.
 
-However, a **Bounded Context**, **Service**, **Repository**, and **Team** are distinct concepts. AIP
-should not infer one from another. Tactical DDD and internal domain-model structure are outside
-the product center.
+AIP uses it in three ways:
+
+- the **Bounded Context** (§3) is the boundary of the binding picture;
+- **Context Map patterns** are projections over promises and qualified Current State (§4.3); and
+- DDD and contract vocabulary (contract, owner, consumer, upstream/downstream, the pattern names) is
+  the language AIP uses towards users. Promise Theory and Semantic Spacetime terms stay internal.
+
+A **Bounded Context**, **Service**, **Repository**, and **Team** are distinct concepts. AIP should not
+infer one from another. Tactical DDD and internal domain-model structure are outside the product
+center.
 
 ---
 
@@ -696,20 +841,20 @@ the product center.
 
 ### Short positioning
 
-> **AIP gives coding agents justified distributed architecture knowledge they cannot safely
-> establish from source analysis or direct execution alone.**
+> **AIP shows who relies on what across autonomous boundaries, whether it is promised, and what the
+> evidence shows.**
 
 ### Product positioning
 
-> **AIP establishes evidence-qualified architecture across distributed-system boundaries: what
-> relationships currently exist, what autonomous components promise externally, and what the
-> evidence supports about the difference.**
+> **AIP establishes the binding picture across distributed-system boundaries: what autonomous
+> participants promise to each other, what the evidence establishes, and what the evidence supports
+> about the difference.**
 
 ### Customer problem
 
-> **A coding agent can understand the repository and execute local behavior correctly and still miss
-> a relevant service, event consumer, gateway route, broker relationship, deployment reality, or
-> environment-specific dependency outside its reliable execution boundary.**
+> **Teams and agents change, move or start to use capabilities across team boundaries without knowing
+> who relies on them, what was promised, or whether the bindings actually hold. Human developers
+> covered this gap with informal knowledge; agents cannot.**
 
 ### Product boundary
 
@@ -730,26 +875,28 @@ the product center.
 ### Integration principle
 
 > **Use repository/source tools for implementation internals and direct execution for behavior the
-> agent can verify itself; use AIP for justified distributed architecture knowledge beyond those
-> boundaries; integrate with specialized Intent/conformance products when they already own the
-> adjacent concern well.**
+> agent can verify itself; read catalogs, contracts and platforms as carriers of promises; use AIP to
+> keep promises and evidence apart and to assess each cross-boundary binding; integrate with
+> specialized Intent/conformance products when they already own the adjacent concern well.**
 
 ---
 
 ## 14. Strategic Conclusion
 
-AIP should become narrower, not broader.
+The pivot repositions AIP. It does not broaden it.
 
 The product is not:
 
 - a complete enterprise architecture model;
+- a catalog or an enterprise-architecture management tool;
 - a source-code architecture analyzer;
 - a generic knowledge graph;
 - a policy engine; or
 - an agent platform.
 
-The product combines **local evidence-qualified distributed views**, **bounded question-specific
-projections**, and **explicit uncertainty and provenance**.
+The product is the **binding picture**: local evidence-qualified Current State, attributable
+promises, their local Assessment, and bounded question-specific projections, with explicit
+uncertainty and provenance.
 
 The durable center is **distributed architecture across autonomous boundaries**.
 
@@ -760,12 +907,11 @@ is a locally made evaluation of the relationship between those promises and the 
 AIP may project several such local views to answer one bounded question, but it should not use that
 ability as justification for constructing a universal enterprise architecture model.
 
-The strongest strategic test remains simple:
+The strongest strategic test is:
 
-> **Does this architecture intelligence materially improve what a developer or coding agent can
-> establish and needs to inspect before a distributed-system change, beyond what repository/source
-> analysis and direct execution can safely provide?**
+> **Does the binding picture reduce surprises and avoidable coordination for teams and agents that
+> use, change or move capabilities across autonomous boundaries, at an owner effort they accept?**
 
 If yes, AIP has a distinct product role.
 
-If no, the strategy should narrow rather than add more machinery.
+If no, AIP should integrate, narrow or stop rather than add more machinery.
