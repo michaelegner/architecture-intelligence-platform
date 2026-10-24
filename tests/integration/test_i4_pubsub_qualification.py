@@ -392,6 +392,7 @@ async def test_service_rest_and_mcp_agree_with_zero_graph_writes(driver, fixture
     assert sorted(tool["name"] for tool in tools) == [
         "get_api_consumer_usage",
         "get_architecture_drift",
+        "get_destination_consumers",
         "get_evidence",
         "get_service_dependencies",
         "get_service_dependencies_by_locality",

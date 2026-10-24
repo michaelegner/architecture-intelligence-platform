@@ -581,7 +581,10 @@ Exit capability:
 > insufficiently supported in the selected context without silently inventing product, business,
 > authorization, or Intent claims.**
 
-## v0.7.1 — Broker-Mediated Consumer Attribution (planned)
+## v0.7.1 — Broker-Mediated Consumer Attribution (shipped)
+
+Published **v0.7.1 on 2026-10-21**; terminal outcome **SHIPPED_VERIFIED**. See the
+[release record](docs/release-validation/v0.7.1-release-record.md).
 
 **Goal:** complete the existing messaging Current-State question so AIP can qualify which Services
 consume a broker-mediated destination without collapsing broker-native identities.
@@ -613,10 +616,78 @@ DLQ/retry topology, or broad broker administration.
 > **AIP can evidence-qualify Service-level consumer attribution for broker-mediated destinations
 > without inventing equivalence between distinct broker-native concepts.**
 
-## v0.8 — Cross-Boundary Architecture Knowledge + Real-World Product Demonstration (planned)
+## v0.7.2 — Context-Engine Interoperability + Product-Boundary Qualification (shipped)
 
-**Goal:** deliver the first complete real-world product demonstration of AIP on Sokol111 while adding
-only the Current-State composition/membership semantics needed for bounded cross-boundary projections.
+Published **v0.7.2 on 2026-10-23**; terminal outcome **SHIPPED_VERIFIED**; owner product disposition **DEFER**.
+See the [release record](docs/release-validation/v0.7.2-release-record.md).
+
+**Goal:** make the complete v0.7.x Architecture Intelligence MCP surface consumable through the
+hosted read-only endpoint and use a mature context engine to challenge AIP's product boundary before
+v0.8 scope is finalized.
+
+**Product-boundary question:**
+
+> **Given comparable access to source and distributed-system evidence, does adding AIP materially
+> improve what a coding agent can establish, needs to inspect, or changes beyond a mature context
+> engine alone?**
+
+**Unblocked** is the initial representative mature context engine and its open-source
+`context-engine-simulator` is the initial evaluation harness; neither is a normative dependency or
+exclusive comparator.
+
+The hosted product-validation system moves from Pitstop to **Sokol111** so v0.7.2 and v0.8 can use
+the same realistic distributed system. Pitstop remains historical/local demo and regression material;
+it is not removed.
+
+Scope:
+
+- update the hosted read-only MCP deployment to expose the complete six-tool v0.7.1 surface,
+  including `get_api_consumer_usage` and `get_destination_consumers`, with external-client,
+  evidence-drill-down and public-edge verification;
+- provide a Sokol111 hosted dataset/configuration that preserves what the existing v0.7.x semantics
+  actually establish. Positive, partial, unresolved and insufficient-evidence outcomes are all valid;
+  do not manufacture evidence merely to exercise a tool;
+- run a controlled comparison of **Unblocked alone** versus **Unblocked + AIP** on one realistic
+  bounded Sokol111 change, using the same coding agent/task and comparable repository,
+  direct-execution and raw distributed-evidence access;
+- evaluate architecture correctness and useful investigation impact first: relevant external
+  components found or missed, unsupported claims, preserved unresolved cases, provenance/context,
+  and material changes to the plan/implementation. Time, tokens and cost are secondary product
+  measures. Evaluate whether the agent discovers and uses AIP during planning, distinguishes
+  historical context from established Current State, and avoids unsupported architectural
+  conclusions. Time, tokens and cost remain secondary product measures;
+- record whether task vocabulary can reach the existing canonical AIP query contexts naturally.
+  A new discovery/search capability is **not pre-authorized**; if navigation is a material blocker,
+  record the finding and make an explicit scope decision before adding public semantics or tools.
+
+v0.7.2 does **not** add a new architecture-question class or compose the existing v0.7.x answers
+into a new architecture conclusion. API-consumer usage, broker-mediated consumer attribution,
+dependency, deployment and locality answers remain independent qualified views. The experiment may
+observe how Unblocked composes them, but AIP-owned cross-capability composition remains a v0.8
+decision.
+
+**Exit capability / checkpoint:**
+
+> **A mature context engine can consume AIP's complete hosted v0.7.x Architecture Intelligence
+> surface in a realistic coding workflow, and a controlled comparison records whether AIP adds
+> material distributed-architecture value beyond that context engine alone.**
+
+Record **continue, narrow, integrate, defer, or stop**. The result is an input to the v0.8 scope:
+v0.8 must not duplicate context-engine composition that v0.7.2 shows can be done safely outside AIP.
+
+**Checkpoint result (owner, 2026-10-23): DEFER.** On the controlled Sokol111 comparison AIP's data was
+correct and hosted, but it changed no consumer set, change list or rollout gate, and no change-impact
+question on the packaged dataset was answerable only by AIP. Sokol111 as found does not emit the runtime
+caller-attribution evidence where AIP could add value. v0.8 therefore keeps cross-view synthesis in the
+context-engine/agent layer, introduces no AIP-owned composition or discovery tool on this evidence, and
+sets its scope when it starts. The record is
+[`i3-comparison-record.md`](docs/specifications/0.7.2/i3-comparison-record.md#owner-checkpoint-i4-defer).
+
+## v0.8 — Cross-Boundary Architecture Knowledge + Real-World Product Demonstration (planned; scope shaped by v0.7.2)
+
+**Goal:** deliver the first complete real-world product demonstration of AIP on Sokol111, with
+AIP-owned Current-State composition/membership semantics limited to the gap that survives the
+v0.7.2 context-engine checkpoint.
 
 **Product question:**
 
@@ -625,41 +696,61 @@ only the Current-State composition/membership semantics needed for bounded cross
 
 **Product-boundary question:**
 
-> **Does that cross-boundary evidence materially change what a coding agent needs to inspect before a
-> bounded change, beyond what repository/source analysis already provides?**
+> **Does that cross-boundary evidence materially change what a coding agent can establish and needs
+> to inspect before a bounded change, beyond repository/source analysis and direct execution
+> alone?**
 
 The core rule remains:
 
 > **A relationship does not establish a boundary. A boundary does not establish a relationship.**
 
-v0.8 may classify already-qualified relationships as within-boundary, cross-boundary, or unresolved.
-System/Component membership must be established independently; it must not be inferred from
-connectivity, repository structure, naming, deployment placement, or graph proximity. Only the
-composition/membership semantics needed for the bounded cross-boundary question are in scope; a
-generic enterprise architecture metamodel remains out of scope.
+The detailed v0.8 composition boundary is intentionally **not frozen before v0.7.2**. If a mature
+context engine can safely compose AIP's existing qualified views for the bounded-change workflow,
+v0.8 should narrow to the AIP-owned semantic gap and integration proof rather than duplicate that
+context-engine capability. If v0.7.2 shows that semantic distinctions, uncertainty or provenance are
+lost outside AIP, v0.8 may own the smallest composition semantics needed to preserve them.
+
+Where AIP owns the composition, it may classify already-qualified relationships as within-boundary,
+cross-boundary, or unresolved. System/Component membership must be established independently; it
+must not be inferred from connectivity, repository structure, naming, deployment placement, or
+graph proximity. Only the composition/membership semantics needed for the bounded cross-boundary
+question are in scope; a generic enterprise architecture metamodel remains out of scope.
 
 ### Real-world product demonstration
 
-v0.8 uses **Sokol111** for one realistic bounded-change workflow and compares AIP with strong
-repository/source analysis. **Teamscale 2026.7.x is the initial representative tool, not a normative
-dependency or exclusive comparator; equivalent mature tooling may be substituted or added.**
+v0.8 uses **Sokol111** for one bounded-change workflow, informed by the v0.7.2
+checkpoint. **Teamscale 2026.7.x** provides complementary repository/source analysis and
+conformance checks (or equivalent mature tooling). **Unblocked + AIP** becomes the preferred coding-agent workflow
+only if v0.7.2 demonstrates material value; otherwise its role remains subject to that result.
+v0.7.2 recorded DEFER, so that role is not established.
 
-The demonstration should combine the applicable AIP Current-State capabilities available at v0.8
+The demonstration should use the applicable AIP Current-State capabilities available at v0.8
 entry — including dependency/evidence drill-down, deployment, locality, messaging, **v0.7.0
-API-aware Current State**, and broker-mediated consumer attribution — and then apply the new
-cross-boundary projection. Partial, unresolved and unsupported results remain valid; the demo must
-not manufacture positive evidence merely to exercise a feature.
+API-aware Current State**, and broker-mediated consumer attribution. How those qualified views are
+composed into the workflow is determined by the v0.7.2 result: AIP should own only composition
+semantics that cannot safely remain in the context/agent layer. Partial, unresolved and unsupported
+results remain valid; the demo must not manufacture positive evidence merely to exercise a feature.
+
+Where the demonstration depends on transient runtime or environment evidence, freeze the relevant
+evidence, context, mappings and rules so the same architectural conclusion can be replayed
+deterministically. Replay of a captured snapshot is not evidence that the same Current State still
+holds later; freshness requires new evidence.
 
 The comparison should give source-analysis tooling realistic access to the repositories,
-configuration and contracts it can analyze, while AIP contributes independently qualified
-distributed-system evidence. The product test is whether the combined workflow materially improves the coding agent's
-investigation boundary beyond strong source analysis without introducing unsupported architectural
-claims.
+configuration and contracts it can analyze, while retaining realistic direct-execution checks
+available to the coding agent. AIP contributes independently qualified distributed-system evidence.
+The product test is whether the combined workflow materially improves what the coding agent can
+establish and must inspect beyond strong source analysis and direct execution without introducing
+unsupported architectural claims. The demonstration should show whether AIP enables systematic
+investigation of a concrete change-impact hypothesis, leading to a better-supported implementation
+plan rather than merely providing additional context.
 
 **Exit capability:**
 
-> **AIP can compose independently established System/Component membership with evidence-qualified
-> distributed Current State into a bounded cross-boundary view on a real system.**
+> **The v0.8 workflow can combine independently established System/Component membership with
+> evidence-qualified distributed Current State into a bounded cross-boundary view on a real system;
+> AIP owns composition semantics only where v0.7.2 shows that the context/agent layer cannot safely
+> preserve them.**
 
 The product checkpoint records **continue, narrow, integrate, defer, or stop** based on whether that
 view materially improves the coding-agent workflow and justifies AIP's evidence and maintenance
@@ -863,13 +954,17 @@ The planned release sequence is:
 2. **v0.4** — trusted architecture context for agents.
 3. **v0.5** — broader architecture discovery.
 4. **v0.6** — locality-aware Current State.
-5. **v0.7** — API-aware distributed Current State.
-6. **v0.8** — cross-boundary projection and product-boundary validation.
-7. **Checkpoint** — decide whether AIP adds material value beyond strong source/repository analysis.
-8. **v0.9** — provisional external promises, only if AIP ownership is justified.
-9. **v0.10** — provisional local distributed assessment, only if justified.
-10. **v1.0-rc** — freeze and qualify only the contracts that survived validation.
-11. **v1.0** — stable platform.
+5. **v0.7** — API-aware distributed Current State, followed by broker-mediated consumer attribution.
+6. **v0.7.2** — hosted v0.7.x MCP interoperability and pre-v0.8 product-boundary qualification
+   against a mature context engine.
+7. **v0.8** — full Sokol111 product demonstration and only the cross-boundary composition semantics
+   justified by the v0.7.2 result.
+8. **Checkpoint** — decide whether the surviving AIP product boundary adds material value beyond
+   strong source/repository analysis, direct execution and adjacent context-engine capabilities.
+9. **v0.9** — provisional external promises, only if AIP ownership is justified.
+10. **v0.10** — provisional local distributed assessment, only if justified.
+11. **v1.0-rc** — freeze and qualify only the contracts that survived validation.
+12. **v1.0** — stable platform.
 
 The durable semantic frame is:
 
@@ -880,17 +975,22 @@ The durable semantic frame is:
 
 The version order is chronological planning, while the semantic dependencies are narrower.
 Qualified distributed Current State is the basis for both API-aware Current State and cross-boundary
-projection. Cross-boundary projection leads to the product-boundary checkpoint. If an adjacent tool
-already owns the needed capability well, AIP should integrate with it. If the checkpoint demonstrates
-an AIP-owned gap, external Intent may proceed provisionally, followed by local Assessment. Only
-capabilities that survive those product and semantic checks should enter the stable contract.
+projection. Before v0.8 freezes its composition boundary, v0.7.2 tests whether a mature context
+engine can safely consume and compose the existing qualified AIP views and whether AIP materially
+improves that workflow. v0.8 then proves the product boundary that survives that checkpoint against
+strong source/repository analysis and direct execution. If an adjacent tool already owns the needed
+capability well, AIP should integrate with it rather than duplicate it. If the resulting checkpoint
+demonstrates an AIP-owned gap, external Intent may proceed provisionally, followed by local
+Assessment. Only capabilities that survive those product and semantic checks should enter the stable
+contract.
 
 The product-question sequence is:
 
 - **v0.6:** Where does this distributed relationship hold?
 - **v0.7:** How are APIs exposed or consumed, and what does the evidence establish?
 - **v0.8:** Which established distributed relationships cross independently established boundaries,
-  and does that change what the coding agent must inspect beyond source analysis?
+  and does that change what the coding agent can establish and must inspect beyond source analysis
+  and direct execution?
 - **v0.9, provisional:** What does this autonomous component explicitly promise to the outside?
 - **v0.10, provisional:** What does the evidence support about promise versus cooperation here?
 - **v1.0-rc:** Freeze only what survived product and semantic qualification.
@@ -925,8 +1025,8 @@ None of the above are committed dates. Detailed scope still belongs in release s
 Planned scope, authorization to execute a release, and qualification for the stable v1.0 contract are
 separate decisions. Planned status does not waive product-value or technical qualification gates.
 
-Validate representative architecture tasks with and without AIP using comparable source access and
-independently authored expected results. Define baselines and success/stop thresholds before the
+Validate representative architecture tasks with and without AIP using comparable source access,
+realistic direct-execution access, and independently authored expected results. Define baselines and success/stop thresholds before the
 pilot. Assess correctness together with useful answer coverage, justified abstention, false alarms,
 and total engineering effort including setup, source maintenance, identity mapping, and clarification.
 Reducing false claims only by returning more unresolved answers does not establish product value.
@@ -934,8 +1034,9 @@ Reducing false claims only by returning more unresolved answers does not establi
 For **every capability release**, product qualification must include at least one recurring
 architecture question that the capability turns into a **reusable, deterministic, evidence-qualified
 answer or bounded context**. Validate that answer end to end: the consumer can resolve its evidence,
-qualification, context and limitations, and the workflow is compared with reconstruction from the
-same available source access. Internal semantic correctness alone is necessary but not sufficient
+qualification, context and limitations, the conclusion can be reproduced from the same frozen
+premises, and the workflow is compared with reconstruction from the same available source and
+direct-execution access. Internal semantic correctness alone is necessary but not sufficient
 evidence of product value.
 
 Record a continue, narrow, defer, or stop decision when evaluating these gates. Failed gates require

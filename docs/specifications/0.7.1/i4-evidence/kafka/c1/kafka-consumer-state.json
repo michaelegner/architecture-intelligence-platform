@@ -1,0 +1,94 @@
+{
+  "schema": "aip-kafka-consumer-state/1",
+  "broker_id": "kafka:ecommerce-local",
+  "environment": "local",
+  "captured_at": "2026-10-19T06:21:23Z",
+  "tool_version": "aip-kafka-capture/1+confluent-kafka-2.16.0",
+  "kafka_version": "not-established",
+  "complete": true,
+  "group_scope": [
+    "ops-tail",
+    "order-service",
+    "payment-service"
+  ],
+  "groups": [
+    {
+      "group_id": "ops-tail",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "console-consumer-cb2efe36-cdf8-4cc7-a210-81a5020e402f",
+          "client_id": "console-consumer",
+          "host": "/172.19.0.5",
+          "assignments": [
+            {
+              "topic": "orders.created",
+              "partitions": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group_id": "order-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "consumer-order-service-1-b5e1bf84-ff36-4627-8e87-ad382efadef9",
+          "client_id": "consumer-order-service-1",
+          "host": "/172.19.0.7",
+          "assignments": [
+            {
+              "topic": "payments.completed",
+              "partitions": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "consumer-order-service-2-885777b8-54a6-4239-9520-a874118d764c",
+          "client_id": "consumer-order-service-2",
+          "host": "/172.19.0.7",
+          "assignments": [
+            {
+              "topic": "payments.failed",
+              "partitions": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group_id": "payment-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "server@1d737e4e8597 (github.com/segmentio/kafka-go)-170d8893-efc2-44d0-8731-efaf94028e5e",
+          "client_id": "server@1d737e4e8597 (github.com/segmentio/kafka-go)",
+          "host": "/172.19.0.6",
+          "assignments": [
+            {
+              "topic": "orders.created",
+              "partitions": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

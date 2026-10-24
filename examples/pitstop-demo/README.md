@@ -5,12 +5,13 @@ A demo over
 ([v0.6.2 spec](../../docs/specifications/0.6.2/specification.md) §4). It answers *"I am about to change
 `MaintenanceJobFinished`: which services receive from the messaging destination this service publishes
 to, how far can the evidence resolve that topology, and what must I still inspect?"* with real AIP
-answers over MCP and REST. It can be tried as a reproducible local replay or against the hosted live demo.
+answers over MCP and REST. It runs as a reproducible local replay. The public hosted instance served it until
+v0.7.2 I2 and now serves a Sokol111 dataset.
 
 ## Try it
 
 - **[Try locally](TRY_IT_LOCALLY.md)** — reproducible replay, no credentials required.
-- **[Try hosted](TRY_IT_HOSTED.md)** — live demo through the public read-only MCP endpoint `https://mcp.daip.io/mcp`; no credentials required.
+- **[Try hosted](TRY_IT_HOSTED.md)** — the public read-only MCP endpoint `https://mcp.daip.io/mcp`, now serving the frozen Sokol111 dataset (not Pitstop); no credentials required.
 
 ## Ask the questions
 

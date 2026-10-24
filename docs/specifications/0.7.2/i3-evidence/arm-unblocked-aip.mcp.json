@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "unblocked": {
+      "type": "http",
+      "url": "https://getunblocked.com/api/mcpsse",
+      "headers": {"Authorization": "Bearer ${UNBLOCKED_API_TOKEN}"}
+    },
+    "aip": {"type": "http", "url": "https://mcp.daip.io/mcp"}
+  }
+}

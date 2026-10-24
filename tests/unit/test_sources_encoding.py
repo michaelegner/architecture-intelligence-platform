@@ -1,5 +1,6 @@
 import hashlib
 
+from app.common.encoding import utf8
 from app.sources.encoding import length_delimited, length_delimited_group, sha256_hex, unicode_nfc
 
 
@@ -43,3 +44,24 @@ def test_unicode_nfc_normalizes_without_trimming_or_case_folding():
     decomposed = "é"
     assert unicode_nfc(decomposed) == "é"
     assert unicode_nfc(" Foo ") == " Foo "
+
+
+def test_utf8_encodes_ascii_input():
+    assert utf8("hello") == b"hello"
+
+
+def test_utf8_encodes_non_ascii_input():
+    assert utf8("ü") == b"\xc3\xbc"
+
+
+def test_utf8_encodes_empty_string():
+    assert utf8("") == b""
+
+
+def test_utf8_does_not_apply_nfc_normalization():
+    composed = utf8("\u00e9")
+    decomposed = utf8("e\u0301")
+
+    assert composed == b"\xc3\xa9"
+    assert decomposed == b"e\xcc\x81"
+    assert composed != decomposed

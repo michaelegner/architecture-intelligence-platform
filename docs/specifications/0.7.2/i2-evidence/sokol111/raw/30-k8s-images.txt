@@ -1,0 +1,5 @@
+ecommerce-catalog-service dev-registry:5000/ecommerce-catalog-service:tilt-95b569e4a9a8a59a replicas=1
+ecommerce-category-query-service dev-registry:5000/ecommerce-category-query-service:tilt-79e7fa7a0a9a046e replicas=1
+ecommerce-image-service dev-registry:5000/ecommerce-image-service:tilt-fd8001ce0df55b77 replicas=0
+ecommerce-product-query-service dev-registry:5000/ecommerce-product-query-service:tilt-515a1176f9a52e1b replicas=1
+ecommerce-tenant-service dev-registry:5000/ecommerce-tenant-service:tilt-cc71182d5c5909d0 replicas=1

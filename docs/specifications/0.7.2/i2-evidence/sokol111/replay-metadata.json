@@ -1,0 +1,18 @@
+{
+  "package": "v0.7.2 I2.1 Sokol111 replay",
+  "broker_id": "kafka:sokol111-local",
+  "environment": "local",
+  "topic": "catalog.product.events",
+  "captures": {
+    "c1": {
+      "captured_at": "2026-10-21T17:53:57Z",
+      "sha256": "b46d4ae2c535da88ab77bde5d7f63f4a089bea4faaf16b1fcb478ca90f5b30d8"
+    },
+    "c2": {
+      "captured_at": "2026-10-21T17:56:03Z",
+      "sha256": "46bc2995830151a1ec1dfe6cb2e2563ccf256ebfaebb936e1d01247c538ebdac"
+    }
+  },
+  "mapping_sha256": "59a60573967d5d0ae6436f93e1c1f7aebfa923c869b3dafea464ceb3abb9417d",
+  "expected_sha256": "e21518b8878cad75c1125807b9452ec35e4b81e01371a1444bfc5a39eaf43629"
+}

@@ -1,0 +1,12 @@
+
+GROUP                     COORDINATOR (ID)          ASSIGNMENT-STRATEGY  STATE           #MEMBERS
+analytics-tap             kafka:29092 (1)           range                Stable          1
+
+GROUP                     COORDINATOR (ID)          ASSIGNMENT-STRATEGY  STATE           #MEMBERS
+ops-tail                  kafka:29092 (1)                                Empty           0
+
+GROUP                     COORDINATOR (ID)          ASSIGNMENT-STRATEGY  STATE           #MEMBERS
+order-service             kafka:29092 (1)           range                Stable          2
+
+GROUP                     COORDINATOR (ID)          ASSIGNMENT-STRATEGY  STATE           #MEMBERS
+payment-service           kafka:29092 (1)                                Empty           0

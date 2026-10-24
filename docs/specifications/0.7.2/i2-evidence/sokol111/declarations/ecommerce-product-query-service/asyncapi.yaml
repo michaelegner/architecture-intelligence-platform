@@ -1,0 +1,29 @@
+asyncapi: '2.6.0'
+info:
+  title: ecommerce-product-query-service
+  version: "1.0.0"
+  description: >-
+    Authored for AIP v0.7.2 I2 from Sokol111/ecommerce-infrastructure@07c059908b99e08448cf1c2c7dad6a865fe5ccf0
+    (environments/local/values/ecommerce-product-query-service.yaml: kafka.consumers-config, consumer "catalog-events" on
+    catalog.product.events, default-group-id "ecommerce-product-query-service"). The upstream contract is protobuf; this
+    AsyncAPI is a declaration overlay.
+x-aip-service-id: service:ecommerce-product-query-service
+servers:
+  kafka:
+    url: redpanda:29092
+    protocol: kafka
+    x-aip-broker-id: kafka:sokol111-local
+channels:
+  catalog.product.events:
+    x-aip-destination-kind: topic
+    subscribe:
+      operationId: onProductEvents
+      x-aip-consumer-group: ecommerce-product-query-service
+      message:
+        $ref: '#/components/messages/ProductUpdatedEvent'
+components:
+  messages:
+    ProductUpdatedEvent:
+      name: ProductUpdatedEvent
+      payload:
+        type: object

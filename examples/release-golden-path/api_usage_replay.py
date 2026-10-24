@@ -175,7 +175,7 @@ def _drive(stack: gp.Stack, password: str, surfaces: Surfaces, checks: dict[str,
     def record(check: str, problems: list[str]) -> None:
         checks[check] = {"passed": not problems, "detail": problems}
 
-    record("tools-five", [] if surfaces.tools() == gp.TOOLS else [f"tools/list {surfaces.tools()}"])
+    record("tools-six", [] if surfaces.tools() == gp.TOOLS else [f"tools/list {surfaces.tools()}"])
 
     _stage(stack, "r1")
     _import(stack)
@@ -282,7 +282,7 @@ def run_api_usage_phase(*, image_ref: str, sha: str, out_dir: Path) -> dict[str,
         stack.compose("down", "-v", "--remove-orphans", check=False)
     expected = [
         "run-identity",
-        "tools-five",
+        "tools-six",
         "replay-r1-readings",
         "evidence-same-snapshot",
         "replay-r2-readings",

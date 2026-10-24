@@ -1,0 +1,3 @@
+utc: 2026-10-21T17:53:40Z
+command: docker exec redpanda rpk group list
+exit: 0

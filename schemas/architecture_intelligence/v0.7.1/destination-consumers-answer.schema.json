@@ -1,5 +1,65 @@
 {
   "$defs": {
+    "AttachmentEvidence": {
+      "additionalProperties": false,
+      "description": "The broker path: group G attached to the queried Topic at T, from one accepted capture. No\nmember, client or host text exists in AIP state, so none can appear here.",
+      "properties": {
+        "capture_content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Capture Content Sha256",
+          "type": "string"
+        },
+        "capture_source_instance_id": {
+          "pattern": "^urn:aip:source:kafka-consumer-state:[0-9a-f]{64}$",
+          "title": "Capture Source Instance Id",
+          "type": "string"
+        },
+        "capture_source_revision": {
+          "minLength": 1,
+          "title": "Capture Source Revision",
+          "type": "string"
+        },
+        "captured_at": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "consumer_id": {
+          "pattern": "^consumer:[0-9a-f]{64}$",
+          "title": "Consumer Id",
+          "type": "string"
+        },
+        "group_id": {
+          "minLength": 1,
+          "title": "Group Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "KAFKA_ATTACHMENT",
+          "title": "Kind",
+          "type": "string"
+        },
+        "topic_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Topic Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "consumer_id",
+        "group_id",
+        "topic_id",
+        "captured_at",
+        "capture_source_instance_id",
+        "capture_source_revision",
+        "capture_content_sha256"
+      ],
+      "title": "AttachmentEvidence",
+      "type": "object"
+    },
     "AttributionOutcome": {
       "description": "The I2 outcome (`kafka-consumer-attribution` / `1`), unrenamed.",
       "enum": [
@@ -226,6 +286,187 @@
       "title": "DestinationConsumersData",
       "type": "object"
     },
+    "DestinationConsumersEvidenceData": {
+      "additionalProperties": false,
+      "description": "The `mode: \"evidence\"` payload, one entry per requested ref, sorted by ref.",
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/EvidenceEntry"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Entries",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "request_context": {
+          "$ref": "#/$defs/RequestContext"
+        }
+      },
+      "required": [
+        "request_context",
+        "entries"
+      ],
+      "title": "DestinationConsumersEvidenceData",
+      "type": "object"
+    },
+    "EvidenceEntry": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              ]
+            }
+          },
+          "if": {
+            "properties": {
+              "status": {
+                "const": "RESOLVED"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "kind",
+              "evidence"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "KAFKA_ATTACHMENT"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "properties": {
+                  "kind": {
+                    "const": "KAFKA_ATTACHMENT"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "KAFKA_SERVICE_MAPPING"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "properties": {
+                  "kind": {
+                    "const": "KAFKA_SERVICE_MAPPING"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "One requested ref. A forged, cross-snapshot and cross-context ref are all simply\n`NOT_RESOLVED` and indistinguishable (no ref history is kept).",
+      "properties": {
+        "evidence": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "KAFKA_ATTACHMENT": "#/$defs/AttachmentEvidence",
+                  "KAFKA_SERVICE_MAPPING": "#/$defs/MappingEvidence"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/AttachmentEvidence"
+                },
+                {
+                  "$ref": "#/$defs/MappingEvidence"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ref": {
+          "pattern": "^destination-evidence:[0-9a-f]{64}$",
+          "title": "Ref",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/EvidenceStatus"
+        }
+      },
+      "required": [
+        "ref",
+        "status"
+      ],
+      "title": "EvidenceEntry",
+      "type": "object"
+    },
+    "EvidenceKind": {
+      "description": "Spec \u00a74: the broker path and the mapping path.",
+      "enum": [
+        "KAFKA_ATTACHMENT",
+        "KAFKA_SERVICE_MAPPING"
+      ],
+      "title": "EvidenceKind",
+      "type": "string"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "RESOLVED",
+        "NOT_RESOLVED"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
     "Limitation": {
       "additionalProperties": false,
       "properties": {
@@ -261,6 +502,107 @@
       ],
       "title": "LimitationCode",
       "type": "string"
+    },
+    "MappingEvidence": {
+      "additionalProperties": false,
+      "description": "The mapping path: one accepted mapping entry for group G, as written by the operator, and the\nentry's own reading in this snapshot (a declared Service id, or the reason it has none).",
+      "oneOf": [
+        {
+          "required": [
+            "service_id"
+          ]
+        },
+        {
+          "required": [
+            "reason"
+          ]
+        }
+      ],
+      "properties": {
+        "artifact_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Artifact Sha256",
+          "type": "string"
+        },
+        "consumer_id": {
+          "pattern": "^consumer:[0-9a-f]{64}$",
+          "title": "Consumer Id",
+          "type": "string"
+        },
+        "group_id": {
+          "minLength": 1,
+          "title": "Group Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "KAFKA_SERVICE_MAPPING",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mapping_source_instance_id": {
+          "pattern": "^urn:aip:source:kafka-service-mapping:[0-9a-f]{64}$",
+          "title": "Mapping Source Instance Id",
+          "type": "string"
+        },
+        "mapping_source_revision": {
+          "minLength": 1,
+          "title": "Mapping Source Revision",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttributionReason"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "service_id": {
+          "anyOf": [
+            {
+              "pattern": "^service:[^\\s\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Id"
+        },
+        "service_name": {
+          "minLength": 1,
+          "title": "Service Name",
+          "type": "string"
+        },
+        "service_namespace": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Namespace"
+        }
+      },
+      "required": [
+        "kind",
+        "consumer_id",
+        "group_id",
+        "service_name",
+        "mapping_source_instance_id",
+        "mapping_source_revision",
+        "artifact_sha256"
+      ],
+      "title": "MappingEvidence",
+      "type": "object"
     },
     "Outcome": {
       "enum": [
@@ -432,13 +774,6 @@
       "else": {
         "properties": {
           "limitations": {
-            "contains": {
-              "properties": {
-                "code": {
-                  "const": "CAPTURE_SCOPE_LIMITED"
-                }
-              }
-            },
             "items": {
               "properties": {
                 "code": {
@@ -455,9 +790,6 @@
                 }
               }
             }
-          },
-          "outcome": {
-            "const": "PARTIAL"
           },
           "snapshot": {
             "not": {
@@ -504,6 +836,51 @@
     },
     {
       "if": {
+        "allOf": [
+          {
+            "properties": {
+              "data": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "data"
+            ]
+          },
+          {
+            "properties": {
+              "mode": {
+                "const": "evidence"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "items": {
+              "properties": {
+                "code": {
+                  "enum": [
+                    "BROKER_MISMATCH",
+                    "DESTINATION_NOT_KAFKA_TOPIC",
+                    "NO_ACCEPTED_CAPTURE",
+                    "SNAPSHOT_NOT_AVAILABLE",
+                    "UNKNOWN_DESTINATION"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
         "properties": {
           "snapshot": {
             "type": "null"
@@ -527,6 +904,80 @@
         },
         "required": [
           "limitations"
+        ]
+      }
+    },
+    {
+      "if": {
+        "allOf": [
+          {
+            "properties": {
+              "data": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "data"
+            ]
+          },
+          {
+            "properties": {
+              "mode": {
+                "const": "query"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          }
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "properties": {
+              "data": {
+                "required": [
+                  "request_context",
+                  "rows"
+                ]
+              },
+              "outcome": {
+                "const": "PARTIAL"
+              }
+            }
+          },
+          {
+            "properties": {
+              "limitations": {
+                "contains": {
+                  "properties": {
+                    "code": {
+                      "const": "CAPTURE_SCOPE_LIMITED"
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "limitations"
+            ]
+          },
+          {
+            "properties": {
+              "limitations": {
+                "items": {
+                  "properties": {
+                    "code": {
+                      "not": {
+                        "const": "EVIDENCE_REF_NOT_RESOLVED"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         ]
       }
     },
@@ -655,22 +1106,216 @@
       }
     },
     {
-      "properties": {
-        "limitations": {
-          "items": {
+      "if": {
+        "allOf": [
+          {
             "properties": {
-              "code": {
-                "not": {
-                  "const": "EVIDENCE_REF_NOT_RESOLVED"
+              "data": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "data"
+            ]
+          },
+          {
+            "properties": {
+              "mode": {
+                "const": "evidence"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          }
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "properties": {
+              "data": {
+                "required": [
+                  "request_context",
+                  "entries"
+                ]
+              },
+              "limitations": {
+                "items": {
+                  "properties": {
+                    "code": {
+                      "const": "EVIDENCE_REF_NOT_RESOLVED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "allOf": [
+                {
+                  "properties": {
+                    "limitations": {
+                      "items": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "EVIDENCE_REF_NOT_RESOLVED"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "outcome": {
+                      "const": "ANSWERED"
+                    }
+                  }
+                }
+              ]
+            },
+            "if": {
+              "properties": {
+                "data": {
+                  "properties": {
+                    "entries": {
+                      "contains": {
+                        "properties": {
+                          "status": {
+                            "const": "NOT_RESOLVED"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "entries"
+                  ]
+                }
+              },
+              "required": [
+                "data"
+              ]
+            },
+            "then": {
+              "properties": {
+                "limitations": {
+                  "contains": {
+                    "properties": {
+                      "code": {
+                        "const": "EVIDENCE_REF_NOT_RESOLVED"
+                      }
+                    }
+                  }
+                }
+              },
+              "required": [
+                "limitations"
+              ]
+            }
+          },
+          {
+            "if": {
+              "not": {
+                "properties": {
+                  "data": {
+                    "properties": {
+                      "entries": {
+                        "contains": {
+                          "properties": {
+                            "status": {
+                              "const": "RESOLVED"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "entries"
+                    ]
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "outcome": {
+                  "const": "NOT_ANSWERED"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "allOf": [
+                {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "entries": {
+                          "contains": {
+                            "properties": {
+                              "status": {
+                                "const": "RESOLVED"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "required": [
+                        "entries"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "entries": {
+                          "contains": {
+                            "properties": {
+                              "status": {
+                                "const": "NOT_RESOLVED"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "required": [
+                        "entries"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "properties": {
+                "outcome": {
+                  "const": "PARTIAL"
                 }
               }
             }
           }
-        }
+        ]
       }
     }
   ],
-  "description": "The 0.7.1 envelope. `data` is null if and only if the answer is a refusal. An evaluated\nanswer is always `PARTIAL`: an accepted capture covers only its configured group allow-list at\nits own T, so `CAPTURE_SCOPE_LIMITED` is always present and no answer claims completeness.",
+  "description": "The 0.7.1 envelope. `data` is null if and only if the answer is a refusal. An evaluated\nquery is always `PARTIAL`: an accepted capture covers only its configured group allow-list at\nits own T, so `CAPTURE_SCOPE_LIMITED` is always present and no answer claims completeness. An\nevaluated evidence answer is `ANSWERED` when every ref resolved, `PARTIAL` when some did and\n`NOT_ANSWERED` when none did.",
   "properties": {
     "data": {
       "anyOf": [
@@ -678,9 +1323,13 @@
           "$ref": "#/$defs/DestinationConsumersData"
         },
         {
+          "$ref": "#/$defs/DestinationConsumersEvidenceData"
+        },
+        {
           "type": "null"
         }
-      ]
+      ],
+      "title": "Data"
     },
     "limitations": {
       "items": {
@@ -691,7 +1340,10 @@
       "uniqueItems": true
     },
     "mode": {
-      "const": "query",
+      "enum": [
+        "query",
+        "evidence"
+      ],
       "title": "Mode",
       "type": "string"
     },

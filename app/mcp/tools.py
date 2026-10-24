@@ -54,6 +54,14 @@ from app.architecture_intelligence.contracts import (
     ArchitectureAnswer,
     ArchitectureDriftData,
 )
+from app.architecture_intelligence.destination_consumer_contracts import (
+    TOOL_NAME as DESTINATION_CONSUMERS_TOOL_NAME,
+)
+from app.architecture_intelligence.destination_consumer_contracts import (
+    DestinationConsumersAnswer,
+    DestinationConsumersQueryRequest,
+    DestinationConsumersRequest,
+)
 from app.architecture_intelligence.locality_contracts import (
     LOCALITY_TOOL_NAME,
     LocalityAnswer,
@@ -86,9 +94,10 @@ def register_tools(
     """Registration order IS `tools/list` order - confirmed live that the SDK reports tools in
     registration order, not sorted. I3 spec §24 requires lexicographic order: since v0.7.0 I3.3
     the fifth tool `get_api_consumer_usage` (I3 decision record D1) sorts first, then
-    `get_architecture_drift`, `get_evidence`, `get_service_dependencies`, and since v0.6.0 I3.3b
-    the fourth tool `get_service_dependencies_by_locality` - registered in that order below. Do not reorder without re-checking tests/unit/test_mcp_discovery.py's
-    exact-order assertion."""
+    `get_architecture_drift`, since v0.7.1 I3.2 the sixth tool `get_destination_consumers`, then
+    `get_evidence`, `get_service_dependencies`, and since v0.6.0 I3.3b the fourth tool
+    `get_service_dependencies_by_locality` - registered in that order below. Do not reorder
+    without re-checking tests/unit/test_mcp_discovery.py's exact-order assertion."""
 
     @server.tool(
         name=API_USAGE_TOOL_NAME,
@@ -137,6 +146,34 @@ def register_tools(
         """
         _reject_malformed_observation_context(request.observation_context)
         return get_service().get_architecture_drift(request)
+
+    @server.tool(
+        name=DESTINATION_CONSUMERS_TOOL_NAME,
+        description=(
+            "Which Services AIP can evidence-qualify as consumers of one Kafka Topic, for one "
+            "broker and environment: each Kafka consumer group attached to the Topic at capture "
+            "time T, with its Service attribution (RESOLVED, UNRESOLVED, AMBIGUOUS or CONFLICT) "
+            "from explicit mapping evidence. Attachment is not message processing and the list is "
+            "never complete: each capture covers only its configured groups. With request.mode "
+            '"evidence", the same tool resolves exact evidence refs from such an answer at the '
+            "supplied snapshot; evidence_refs must be duplicate-free and sorted in ascending "
+            "order as plain strings. In query mode, destination_id is the canonical Topic id "
+            "(topic:owned:..., as returned in get_service_dependencies), never a topic name; "
+            "broker_id is the stable broker id (the name of the BrokerRef, such as kafka:...), "
+            "not the canonical Broker id broker:owned:..."
+        ),
+        annotations=_READ_ONLY_ANNOTATIONS,
+    )
+    def get_destination_consumers(
+        request: DestinationConsumersRequest,
+    ) -> DestinationConsumersAnswer:
+        """v0.7.1 I3.2 (I3 spec §5): constructs no new semantics. It dispatches on `request.mode` to
+        exactly one service method and returns that answer unchanged as `structuredContent`. Every
+        refusal is a normal returned `DestinationConsumersAnswer`."""
+        parsed = request.root
+        if isinstance(parsed, DestinationConsumersQueryRequest):
+            return get_service().get_destination_consumers(parsed)
+        return get_service().get_destination_consumer_evidence(parsed)
 
     @server.tool(
         name="get_evidence",
@@ -243,10 +280,16 @@ def register_tools(
 
     _advertise_version_union(server, "get_evidence", EvidenceAnswer)
     _advertise_version_union(server, "get_service_dependencies", ServiceDependenciesAnswer)
-    for tool_name in (*TOOL_NAMES, LOCALITY_TOOL_NAME, API_USAGE_TOOL_NAME):
+    for tool_name in (
+        *TOOL_NAMES,
+        LOCALITY_TOOL_NAME,
+        API_USAGE_TOOL_NAME,
+        DESTINATION_CONSUMERS_TOOL_NAME,
+    ):
         _close_input_schema(server, tool_name)
     _reject_unexpected_arguments(server, LOCALITY_TOOL_NAME)
     _reject_unexpected_arguments(server, API_USAGE_TOOL_NAME)
+    _reject_unexpected_arguments(server, DESTINATION_CONSUMERS_TOOL_NAME)
 
 
 def _reject_malformed_observation_context(context: ObservationContextInput | None) -> None:

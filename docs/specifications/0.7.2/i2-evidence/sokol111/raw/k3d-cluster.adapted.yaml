@@ -1,0 +1,59 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: dev-cluster
+servers: 1
+agents: 1
+network: "shared-network"
+
+registries:
+  create:
+    name: dev-registry
+    host: "0.0.0.0"
+    hostPort: "5000"
+  config: |
+    configs:
+      "registry-1.docker.io":
+        tls:
+          caFile: "/etc/ssl/certs/corp-ca-bundle.crt"
+      "production.cloudfront.docker.com":
+        tls:
+          caFile: "/etc/ssl/certs/corp-ca-bundle.crt"
+      "quay.io":
+        tls:
+          caFile: "/etc/ssl/certs/corp-ca-bundle.crt"
+      "ghcr.io":
+        tls:
+          caFile: "/etc/ssl/certs/corp-ca-bundle.crt"
+
+volumes:
+  - volume: /usr/local/share/ca-certificates:/usr/local/share/ca-certificates
+    nodeFilters:
+      - all
+  - volume: <infrastructure checkout>/environments/local/certs/ca-certificates.crt:/etc/ssl/certs/corp-ca-bundle.crt
+    nodeFilters:
+      - all
+
+ports:
+  - port: "80:80"
+    nodeFilters:
+      - loadbalancer
+  - port: "443:443"
+    nodeFilters:
+      - loadbalancer
+
+options:
+  k3s:
+    extraArgs:
+      - arg: "--disable=traefik"
+        nodeFilters:
+          - server:*
+      # Host compatibility for AIP v0.7.2 I2 capture (WSL2 host on cgroup v1; k3s v1.35's kubelet
+      # refuses cgroup v1 by default). Disclosed in the evidence README.
+      - arg: "--kubelet-arg=fail-cgroupv1=false"
+        nodeFilters:
+          - server:*
+          - agent:*
+  kubeconfig:
+    updateDefaultKubeconfig: true
+    switchCurrentContext: true

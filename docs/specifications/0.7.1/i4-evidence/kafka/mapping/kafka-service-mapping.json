@@ -1,0 +1,9 @@
+{
+  "schema": "aip-kafka-consumer-service-mapping/1",
+  "broker_id": "kafka:ecommerce-local",
+  "environment": "local",
+  "mappings": [
+    {"group_id": "order-service", "service_name": "order-service"},
+    {"group_id": "payment-service", "service_name": "payment-service"}
+  ]
+}

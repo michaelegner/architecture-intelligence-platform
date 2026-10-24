@@ -1,0 +1,24 @@
+# Agent-session configuration (v0.7.1 I4.3; kit: ../../i4-session-kit.md). Replace @REPO@ with the
+# absolute path of the AIP checkout and @WORK@ with the session working directory. The frozen
+# package is read, never written: only @WORK@/kafka receives C1, later C2.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: ecommerce-declarations
+        root: "@REPO@/docs/specifications/0.7.1/i4-evidence/kafka/declarations"
+    kafka_consumer_state:
+      - id: ecommerce-kafka
+        root: "@WORK@/kafka"
+        broker_id: kafka:ecommerce-local
+        environment: local
+        consumer_groups: [order-service, ops-tail, payment-service]
+    kafka_service_mappings:
+      - id: ecommerce-mapping
+        root: "@REPO@/docs/specifications/0.7.1/i4-evidence/kafka/mapping"
+        broker_id: kafka:ecommerce-local
+        environment: local
+  graph:
+    uri: bolt://localhost:17687
+    database: neo4j
+  llm:
+    enabled: false

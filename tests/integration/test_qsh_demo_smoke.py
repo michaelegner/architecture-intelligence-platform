@@ -209,6 +209,7 @@ def test_one_command_demo_answers_and_drills_down_at_one_snapshot():
         assert tools == [
             "get_api_consumer_usage",
             "get_architecture_drift",
+            "get_destination_consumers",
             "get_evidence",
             "get_service_dependencies",
             "get_service_dependencies_by_locality",
