@@ -36,6 +36,7 @@ the fourth tool, v0.6.0 I3.3b (I3 decision record D12) closes the runtime too:
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 import pydantic
 from mcp.server import MCPServer
@@ -306,7 +307,7 @@ def _reject_malformed_observation_context(context: ObservationContextInput | Non
         raise ToolError(str(exc)) from exc
 
 
-def _advertise_version_union(server: MCPServer, tool_name: str, answer_union: object) -> None:
+def _advertise_version_union(server: MCPServer, tool_name: str, answer_union: Any) -> None:
     """v0.6.1 I2b (spec §5.2): publish a `oneOf` output schema discriminated by `schema_version`
     (the released v0.5 answer plus the Broker-aware v0.6 answer) while keeping `structuredContent`
     the bare answer envelope.
