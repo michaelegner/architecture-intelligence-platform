@@ -30,20 +30,9 @@ The customer value proposition is:
 > move a capability without reconstructing its bindings from repositories, configuration, runtime
 > evidence, catalogs and people.**
 
-The product core is the **binding picture**. For each binding across an autonomous boundary, it
-holds the promises of both sides (Intent) and what the evidence establishes (Current State), with
-locality and time. Their Assessment gives each binding one status (§4.3):
-
-- promised and observed;
-- promised, not observed;
-- contradicted;
-- observed, not promised;
-- unresolved.
-
-The durable product distinction is:
-
-> **AIP keeps promises and evidence as separate, attributable views and assesses each
-> cross-boundary binding against both, with locality, time, provenance and uncertainty preserved.**
+The product core is the **binding picture**: for each binding across an autonomous boundary, the
+promises of both sides (Intent), what the evidence establishes (Current State), and the Assessment of
+the two (§4.3), with locality and time.
 
 The central doctrine is:
 
@@ -51,64 +40,36 @@ The central doctrine is:
 > AIP answers distributed-architecture questions by projecting the relevant local views into a
 > bounded, evidence-qualified result.**
 
-Current State is the evidence side of the binding picture and remains core. Intent is the promise
-side. Assessment relates the two. None of the three views manufactures another.
-
-AIP composes local knowledge **only as far as needed to answer a concrete
-distributed-architecture question**. It does not aim to construct or own a complete enterprise
-architecture model.
+None of the three views manufactures another. AIP composes local knowledge **only as far as needed to
+answer a concrete distributed-architecture question**. It does not aim to construct or own a complete
+enterprise architecture model.
 
 The product should be judged by whether the binding picture changes a useful decision before a team
 or an agent uses, changes or moves a capability across a boundary.
 
-A concise working theorem is:
-
-> **Source analysis tells what implementations say. Contracts and catalogs tell what participants
-> declare. Runtime and platform evidence tell what happens. AIP keeps these apart, attributes them,
-> and assesses each cross-boundary binding against them.**
-
 ### Pivot status
 
 This revision moves AIP from "distributed context for coding agents beyond source analysis" to the
-binding picture.
+binding picture. The reason is two negative results: the
+[v0.7.2 checkpoint](specifications/0.7.2/i3-comparison-record.md#owner-checkpoint-i4-defer) (DEFER)
+and the [v0.8 Round 7 screen](real-world-validation/v0.8.0/round7-result.md) (NOT FOUND). Both
+measured whether AIP's evidence establishes relationships that source analysis cannot. Neither tested
+whether a binding is promised and whether the promises and the evidence agree.
 
-The reason is two negative results. The
-[v0.7.2 checkpoint](specifications/0.7.2/i3-comparison-record.md#owner-checkpoint-i4-defer) recorded
-DEFER: on Sokol111, AIP's correct answer changed no consumer set, change list or rollout gate beyond
-a mature context engine. The
-[v0.8 Round 7 screen](real-world-validation/v0.8.0/round7-result.md) found no real change-impact
-question where boundary membership plus AIP evidence beats a fair source investigation. Both tests
-measured whether AIP's evidence establishes relationships that source analysis cannot establish.
-Neither tested whether a binding is promised by its participants, and whether the promises and the
-evidence agree.
-
-The binding picture is the working position. A pivot is no proof that the new position works. It
-must be validated with a target customer (see [§8](#8-product-validation)). Until then, this
-doctrine treats it as a hypothesis with explicit validation gates, not as an established fact.
+The binding picture is a working position, not proof. It must be validated with a target customer
+(§8).
 
 ---
 
 ## 2. Primary Customer Job
 
-The driver is **AI enterprise transformation**:
+The driver is **AI enterprise transformation**: AI-assisted modernisation (agents do migration work)
+and the AI enablement of capabilities (systems are made usable by agents). Both change many
+components quickly and across team boundaries. Human developers covered missing binding knowledge
+with informal knowledge; agents cannot.
 
-- **AI-assisted modernisation:** agents do migration work, for example legacy modernisation,
-  framework or runtime upgrades, and re-platforming;
-- **AI enablement of capabilities:** systems are made usable by agents, which forces integration
-  and re-platforming work.
-
-Both change many components quickly and across team boundaries. Both depend on knowing which
-bindings cross a boundary and what is agreed for them. Human developers covered that gap with
-informal knowledge. Agents cannot.
-
-The users are:
-
-- **provider teams**, which offer capabilities to other participants;
-- **consumer teams**, which rely on capabilities of other participants;
-- **architects**, who need the declared and the actual bindings between Bounded Contexts; and
-- **coding agents** that act for these teams.
-
-The customer jobs are:
+The users are provider teams, consumer teams, architects, and the coding agents that act for them.
+Their jobs are:
 
 > **Consumer:** Before I rely on this capability, what does its provider promise, under which
 > conditions, and does the evidence show that the promise holds?
@@ -118,30 +79,20 @@ The customer jobs are:
 > **Change:** Before I change or move this component, which bindings cross its boundary, what is
 > promised for each, and what does the evidence show?
 
-None of these jobs is "show me the architecture." Each one asks about the bindings across one
-boundary.
-
-A coding agent is already strong at source it can inspect and behavior it can execute directly in
-its own loop. AIP adds what lies outside that loop: the attributable promises of other participants
-and independent evidence of the bindings. If neither exists, AIP leaves the claim unresolved rather
-than replace missing verification with plausible narration.
+A coding agent is already strong at source it can inspect and behavior it can execute in its own
+loop. AIP adds the attributable promises of other participants and independent evidence of the
+bindings. If neither exists, AIP leaves the claim unresolved rather than replace missing
+verification with plausible narration.
 
 Typical examples include:
 
-- a service publishing an event consumed by a component in another repository;
-- a raw HTTP client whose runtime target is selected by configuration or service discovery;
-- gateway or routing configuration that changes which service is actually reached;
-- broker topology that creates publisher/consumer relationships without a source dependency;
-- environment-specific relationships that do not exist in every deployment;
-- a declared consumer that is not live in this environment;
+- an event consumed by a component in another repository or team;
+- a runtime target selected by configuration, service discovery, a gateway or routing;
+- an environment-specific relationship, or a declared consumer that is not live here;
 - a consumer that relies on another team's data or events with no promise from the owner.
 
-In an organisation, two roles carry adoption. The lead of a modernisation or transformation
-programme sponsors it. Enterprise architects drive it and connect it to the teams. The teams still
-confirm their own promises: a promoter makes confirmation legitimate but does not author promises.
-
-AIP does not own planning, implementation, testing, deployment, or review, whether a team or an agent
-does the work. It supplies qualified distributed-architecture premises to those workflows.
+AIP does not own planning, implementation, testing, deployment, or review. It supplies qualified
+distributed-architecture premises to those workflows.
 
 ---
 
@@ -200,10 +151,8 @@ Service identity, System/Component membership, deployment locality, team ownersh
 Context are distinct concepts. They may align in a real system, but that alignment itself requires
 evidence or attributable intent appropriate to the claim.
 
-In this doctrine a **Bounded Context** is a group of services owned by one team that share a common
-language. Which services belong to which Bounded Context comes from an independent, attributable
-source, for example a catalog domain or an owner's declaration. It is never inferred from who talks
-to whom.
+A **Bounded Context** is a group of services owned by one team that share a common language. Its
+membership comes from an independent, attributable source, never from who talks to whom.
 
 ---
 
@@ -218,9 +167,6 @@ question, but none is allowed to manufacture the others.
 Current State answers:
 
 > **What distributed relationships can the available evidence establish in this explicit context?**
-
-Current State is the evidence side of the binding picture. Evidence qualification remains AIP's core
-domain (see §6).
 
 "Locally observed" is a product-level statement about the locality and scope of knowledge. It does
 **not** collapse AIP's evidence modes. A declared API contract remains declared evidence; runtime
@@ -246,9 +192,8 @@ The current-state rule is:
 An observed dependency is not a provider promise. A client dependency is not a provider obligation.
 The existence of an API is not evidence of an approved integration contract.
 
-A declared contract can serve two views. As declared evidence, it is part of Current State. When it
-is attributable to its owner, it is also a candidate promise in Intent (see §4.2). The two readings
-stay separate, and neither strengthens the other.
+A declared contract can be declared evidence (Current State) and, when attributable to its owner, a
+candidate promise (Intent). The two readings stay separate.
 
 AIP should prefer unresolved or partial answers over stronger claims that the evidence does not
 support.
@@ -287,24 +232,15 @@ The governing rules are:
 Intent must remain explicit and attributable. Runtime frequency, naming, co-location, code structure,
 or an agent's interpretation cannot become authoritative Intent.
 
-**Promisers are typed.** A promise is made at one of two levels:
-
-- **Bounded Context (contract level):** meaning, the published contract, and change and
-  compatibility policy. The owning team makes these promises for its services, in its language.
-- **Service or intermediary (runtime level):** availability, routing and delivery. Brokers,
-  gateways and the platform are promisers in their own right.
+**Promisers are typed.** A Bounded Context promises at contract level: meaning, the published
+contract, change and compatibility policy. A service or an intermediary (broker, gateway, platform)
+promises at runtime level: availability, routing, delivery.
 
 **Promises are captured, then confirmed.** Carriers such as code, configuration, contracts, catalogs,
-ADRs, platform documentation and access approvals yield **candidate promises**. The owning team
-confirms or declines each candidate. The rules are:
-
-- code is evidence and a source of candidates, never a promise by itself;
-- an organisation's guideline is an imposition, not a promise, until a team adopts it;
-- a decline is itself an attributable fact;
-- unconfirmed candidates stay visible as candidates. AIP states the gap rather than hide it.
-
-Meaning across Bounded Contexts is published by the provider or translated by the consumer, both
-through attributable promises. AIP never unifies terms across contexts.
+ADRs and access approvals yield **candidate promises**; the owning team confirms or declines them.
+Code is evidence, never a promise by itself. A guideline is an imposition until a team adopts it. A
+decline is an attributable fact. Unconfirmed candidates stay visible as candidates. Meaning across
+Bounded Contexts is published or translated through attributable promises, never unified.
 
 Whether AIP should persist and own this Intent domain, or consume it from an adjacent architecture
 product, is a product-ownership question. The semantic separation is mandatory either way.
@@ -319,40 +255,26 @@ Assessment answers:
 Assessment is not a universal compliance judgment. It is made for an explicit locality, time,
 evidence set, promise set, and assessment rule.
 
-For example, Current State may establish that the Product Query service consumes the topic
-`catalog.product.events` in environment E. The Catalog service may promise to publish
-`ProductUpdatedEvent` on that topic, and Product Query may promise to receive it. A local Assessment
-can then state whether the evidence in context C supports, contradicts, or cannot establish the
-relationship between those promises and the observed cooperation.
-
 For each binding, Assessment gives one status:
 
 - **promised and observed:** a confirmed promise exists, and qualified evidence that covers the
-  binding in this context agrees with it;
-- **promised, not observed:** a confirmed promise exists, but the evidence in this context does not
-  show the binding. This is not a failed promise: non-observation is not absence;
-- **contradicted:** qualified evidence contradicts an applicable promise. This status needs an
-  explicit closed-world qualification rule; "not observed" never becomes "contradicted" without one;
-- **observed, not promised:** the evidence shows a binding, and the promise side of that participant
-  is covered (its declarations are in scope) but holds no confirmed promise for it, or a decline;
-- **unresolved:** the evidence or the promises are insufficient to decide. A binding whose
-  participant has no promise coverage, or only unconfirmed candidates, is unresolved on the promise
-  side. It is not "observed, not promised".
+  binding agrees with it;
+- **promised, not observed:** a confirmed promise exists, but the evidence does not show the binding.
+  Non-observation is not absence and not a failed promise;
+- **contradicted:** qualified evidence contradicts an applicable promise, under an explicit
+  closed-world rule only;
+- **observed, not promised:** the evidence shows a binding, and the participant's promise side is
+  covered but holds no confirmed promise for it, or a decline;
+- **unresolved:** the evidence or the promises are insufficient. No promise coverage, or only
+  candidates, is unresolved on the promise side.
 
-Each status claims only what its evidence establishes. Evidence of one kind does not prove a claim of
-another kind: for example, a consumer group's subscription to a topic establishes subscription and
-consumption position at capture time, not which event types the consumer handles or how it processes
-them. Partial or insufficient coverage stays unresolved. Declared promises never fill a gap in
-Current State.
+Each status claims only what its evidence establishes. A consumer group's subscription to a topic,
+for example, does not show which event types the consumer handles. Declared promises never fill a
+gap in Current State.
 
-DDD **Context Map patterns** (Partnership, Shared Kernel, Customer/Supplier, Conformist,
-Anti-Corruption Layer, Open Host Service with Published Language, Separate Ways) describe
-organisational and design relationships between two Bounded Contexts. Event bindings and topology
-alone do not establish them. A pattern needs separate, attributable promises about the relationship
-itself, for example a supplier's promise to take a customer's needs into account. With those
-promises, a pattern is a projection over them and the qualified Current State, never a stored fact.
-A declared pattern and the pattern that the promises and evidence support can differ, and that
-difference is itself a useful answer.
+DDD **Context Map patterns** describe organisational and design relationships between Bounded
+Contexts. Bindings alone do not establish them; a pattern needs attributable promises about the
+relationship itself, and it is then a projection, never a stored fact.
 
 A local assessment remains attributable to its inputs and scope. Projecting several local assessments
 into one answer does not turn them into universal truth.
@@ -551,12 +473,10 @@ evidence. They do not become global truth merely because they are curated.
 
 AIP should preserve the semantic mode and provenance of what they contribute.
 
-Event and service catalogs (for example EventCatalog or Backstage), enterprise-architecture
-management tools, migration-discovery tools and API platforms are the main **carriers** of the
-declared side. They hold domains, owners, contracts, and declared producers and consumers. AIP reads
-them as sources of candidate promises and Bounded Context membership. An external integration may
-carry AIP's assessment back into such a tool; AIP itself stays advisory and read-only. AIP
-integrates with these tools; it does not replace them.
+Catalogs (for example EventCatalog or Backstage), EAM tools, discovery tools and API platforms are
+the main **carriers** of candidate promises and Bounded Context membership. AIP integrates with them
+and does not replace them. An external integration may carry AIP's assessment back; AIP itself stays
+read-only.
 
 ### Architecture-conformance tools
 
@@ -573,9 +493,8 @@ The product risk is explicit:
 > **If catalogs, platforms or discovery tools give the same binding picture at lower maintenance
 > cost, AIP adds too little and should integrate, narrow or stop.**
 
-Conversely, AIP earns a distinct product role where it keeps promises from both sides apart from
-qualified evidence, assesses each binding against both, and preserves locality, time and
-provenance across several carriers and evidence sources.
+Conversely, AIP earns a distinct role where it keeps both sides' promises apart from qualified
+evidence and assesses each binding against both, across carriers and evidence sources.
 
 ### Intent and assessment ownership
 
@@ -704,20 +623,12 @@ promise.
 Runtime instrumentation, mapping, reconciliation, or architecture-source maintenance costs more than
 the product value of the resulting distributed context.
 
-### One more catalog to maintain
+### Promise upkeep and absorption
 
-Confirming promises and keeping them current costs owners more than the coordination it removes.
-AIP then becomes one more catalog that nobody keeps up to date.
-
-### No incentive to confirm
-
-Consumers want promises; providers often avoid them, because a confirmed promise creates an
-obligation. If most providers stay silent, the binding picture holds mostly candidates.
-
-### Absorption by adjacent products
-
-Catalogs, API platforms, EAM tools or discovery tools add evidence and assessment to their own model,
-and AIP's distinct role shrinks to an integration.
+Confirming promises costs owners more than the coordination it removes, or providers avoid confirming
+because a promise creates an obligation. AIP then becomes one more catalog of stale candidates. Or
+catalogs, platforms and discovery tools add evidence and assessment themselves, and AIP's role
+shrinks to an integration.
 
 ### Semantic overreach
 
@@ -730,48 +641,27 @@ These risks should be tested by product experiments, not only mitigated in desig
 
 ## 12. Semantic Model and Design Lenses
 
-External theories are useful only where they sharpen the product boundary. Promise Theory and
-Semantic Spacetime are the internal semantic model behind AIP's three views. Bigraphs and Strategic
-DDD remain design lenses.
+Promise Theory and Semantic Spacetime are the internal semantic model behind the three views.
+Bigraphs and Strategic DDD remain design lenses.
 
 ### Promise Theory
 
-Autonomous participants make local promises about their own behavior. No central authority
-manufactures those promises.
-
-AIP uses Promise Theory as the model of Intent and Assessment:
-
-- every promise has a promiser, a promisee or scope, a body, a validity, and a carrier;
-- a provider promise is not a consumer desire, and a consumer's promise to use is a separate promise;
-- intermediaries such as brokers, gateways and the platform make their own promises;
-- an imposition, such as a central policy or guideline, is not a promise until a participant adopts
-  it;
-- an external promise is not observed cooperation; and
-- a local promise assessment is not central compliance truth.
-
-Promise Theory treats an observation as an assessment made by an observer. AIP's Current State is
-that kind of assessment: qualified, local, and attributable to evidence. The doctrine keeps the names
-Current State, Intent and Assessment for the three views; it does not introduce a second set of
-terms.
+Autonomous participants make local promises about their own behavior; no central authority
+manufactures them. Every promise has a promiser, a promisee or scope, a body, a validity and a
+carrier. A provider promise, a consumer's promise to use, an intermediary's promise and an imposition
+are distinct. An external promise is not observed cooperation, and a local assessment is not central
+compliance truth. Promise Theory treats an observation as an observer's assessment; AIP calls that
+qualified assessment Current State and keeps the three view names.
 
 ### Semantic Spacetime
 
-Architecture meaning depends on **context, locality, time, and evidence perspective**. This supports
-local Current State, local Assessment, and bounded projection without claiming global truth.
-
-AIP uses Semantic Spacetime as the organising basis of its relations:
-
-- four relation families organise the model: **LEADSTO** (flow and order, for example an event that
-  leads to a consumer's reaction), **CONTAINS** (membership and composition, for example a service in
-  a Bounded Context), **EXPRESSES** (properties and expression, for example a capability expressed by
-  an API, an event or a data product), and **NEAR** (similarity; SSTorytime calls this family
-  `SIMILARTO`);
-- every canonical relation is a typed, qualified relation inside one family. The Canonical Model
-  stays; the families organise it;
-- a relation is never stored as a bare edge. It keeps its source, time, scope, observer and
-  qualification; and
-- NEAR is a typed, non-authoritative hint. It never means identity, and it is never established
-  automatically.
+Architecture meaning depends on **context, locality, time, and evidence perspective**. Four relation
+families organise AIP's model: **LEADSTO** (flow and order), **CONTAINS** (membership and
+composition), **EXPRESSES** (properties, for example a capability expressed by an API or event) and
+**NEAR** (similarity; SSTorytime's `SIMILARTO`). Every canonical relation is typed and qualified
+inside one family; the Canonical Model stays, and the families organise it. A relation is never a
+bare edge: it keeps source, time, scope, observer and qualification. NEAR is a typed,
+non-authoritative hint, never identity, never established automatically.
 
 ### Bigraphs
 
@@ -784,13 +674,9 @@ This reinforces the rule that boundaries and relationships are established indep
 Strategic DDD is useful as a boundary lens because AI makes implementation cheaper without making
 domain meaning or autonomous boundaries cheaper.
 
-AIP uses it in three ways:
-
-- the **Bounded Context** (§3) is the boundary of the binding picture;
-- **Context Map patterns** are projections over attributable relationship promises and qualified
-  Current State, never inferred from topology alone (§4.3); and
-- DDD and contract vocabulary (contract, owner, consumer, upstream/downstream, the pattern names) is
-  the language AIP uses towards users. Promise Theory and Semantic Spacetime terms stay internal.
+The **Bounded Context** (§3) is the boundary of the binding picture, and Context Map patterns are
+projections (§4.3). DDD and contract vocabulary is the language AIP uses towards users; Promise
+Theory and Semantic Spacetime terms stay internal.
 
 A **Bounded Context**, **Service**, **Repository**, and **Team** are distinct concepts. AIP should not
 infer one from another. Tactical DDD and internal domain-model structure are outside the product
