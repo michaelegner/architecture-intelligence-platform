@@ -32,10 +32,11 @@ The customer value proposition is:
 
 The product core is the **binding picture**. For each binding across an autonomous boundary, it
 holds the promises of both sides (Intent) and what the evidence establishes (Current State), with
-locality and time. Their Assessment gives each binding one status:
+locality and time. Their Assessment gives each binding one status (§4.3):
 
 - promised and observed;
 - promised, not observed;
+- contradicted;
 - observed, not promised;
 - unresolved.
 
@@ -326,17 +327,32 @@ relationship between those promises and the observed cooperation.
 
 For each binding, Assessment gives one status:
 
-- **promised and observed:** the promises and the evidence agree;
-- **promised, not observed:** a promise exists, but the evidence in this context does not show the
-  binding. Non-observation is not absence;
-- **observed, not promised:** the evidence shows a binding that no attributable promise covers;
-- **unresolved:** the evidence or the promises are insufficient to decide.
+- **promised and observed:** a confirmed promise exists, and qualified evidence that covers the
+  binding in this context agrees with it;
+- **promised, not observed:** a confirmed promise exists, but the evidence in this context does not
+  show the binding. This is not a failed promise: non-observation is not absence;
+- **contradicted:** qualified evidence contradicts an applicable promise. This status needs an
+  explicit closed-world qualification rule; "not observed" never becomes "contradicted" without one;
+- **observed, not promised:** the evidence shows a binding, and the promise side of that participant
+  is covered (its declarations are in scope) but holds no confirmed promise for it, or a decline;
+- **unresolved:** the evidence or the promises are insufficient to decide. A binding whose
+  participant has no promise coverage, or only unconfirmed candidates, is unresolved on the promise
+  side. It is not "observed, not promised".
+
+Each status claims only what its evidence establishes. Evidence of one kind does not prove a claim of
+another kind: for example, a consumer group's subscription to a topic establishes subscription and
+consumption position at capture time, not which event types the consumer handles or how it processes
+them. Partial or insufficient coverage stays unresolved. Declared promises never fill a gap in
+Current State.
 
 DDD **Context Map patterns** (Partnership, Shared Kernel, Customer/Supplier, Conformist,
-Anti-Corruption Layer, Open Host Service with Published Language, Separate Ways) are projections
-over the promises and the qualified Current State between two Bounded Contexts. They are never stored
-as facts. A declared pattern and the de-facto pattern that the promises and evidence support can
-differ, and that difference is itself a useful answer.
+Anti-Corruption Layer, Open Host Service with Published Language, Separate Ways) describe
+organisational and design relationships between two Bounded Contexts. Event bindings and topology
+alone do not establish them. A pattern needs separate, attributable promises about the relationship
+itself, for example a supplier's promise to take a customer's needs into account. With those
+promises, a pattern is a projection over them and the qualified Current State, never a stored fact.
+A declared pattern and the pattern that the promises and evidence support can differ, and that
+difference is itself a useful answer.
 
 A local assessment remains attributable to its inputs and scope. Projecting several local assessments
 into one answer does not turn them into universal truth.
@@ -366,8 +382,8 @@ Examples:
 
 > **Who relies on `ProductUpdatedEvent`, and is each of them covered by a promise?**
 
-> **Which Context Map pattern do the promises and the evidence support between Catalog Management
-> and Storefront?**
+> **Which bindings between Catalog Management and Storefront are promised, and which are only
+> observed?**
 
 A projection may combine several local Current-State views, external promises, and local assessments.
 The underlying claims remain local and attributable.
@@ -538,8 +554,9 @@ AIP should preserve the semantic mode and provenance of what they contribute.
 Event and service catalogs (for example EventCatalog or Backstage), enterprise-architecture
 management tools, migration-discovery tools and API platforms are the main **carriers** of the
 declared side. They hold domains, owners, contracts, and declared producers and consumers. AIP reads
-them as sources of candidate promises and Bounded Context membership, and it can write its
-assessment back to them. AIP integrates with these tools; it does not replace them.
+them as sources of candidate promises and Bounded Context membership. An external integration may
+carry AIP's assessment back into such a tool; AIP itself stays advisory and read-only. AIP
+integrates with these tools; it does not replace them.
 
 ### Architecture-conformance tools
 
@@ -588,74 +605,17 @@ The primary validation question has two parts:
 > **H2 (sustainability):** Can promises and Bounded Context membership be confirmed and kept current
 > at an owner effort lower than the coordination they remove?
 
-If H1 holds and H2 fails, AIP produces value it cannot sustain. If H2 holds and H1 fails, AIP is a
-cheap map that nobody needs. Either result falsifies the position.
-
-The terms are:
-
-- **surprise:** a dependent, condition, owner or binding that is discovered late or after the change;
-- **avoidable coordination:** a contact whose answer existed but could not be reached from the
-  available sources.
-
-Coordination is not always waste. Deliberate coordination, for example a DDD Partnership, does not
-count as avoidable.
-
-This is more important than adding another source adapter or semantic abstraction.
-
-### What to compare
+A **surprise** is a dependent, condition, owner or binding that is discovered late or after the
+change. **Avoidable coordination** is a contact whose answer existed but could not be reached from
+the available sources. Either hypothesis can fail, and either failure falsifies the position.
 
 Validation needs a **target customer**: a real organisation with several teams that use each other's
 capabilities. Public repositories cannot show the gap, because a binding that can be found in public
-source is source-sufficient by construction.
+source is source-sufficient by construction. A demonstration on a public system shows that AIP can
+produce the binding picture; it is not proof of product value.
 
-On real tasks, compare:
-
-- the organisation's current means: source, catalogs, discovery tools and people;
-- the same, plus curated promises in the organisation's own catalog, without evidence or Assessment;
-- the full binding picture.
-
-The second condition separates AIP's contribution from the effort of curating promises. Expected
-outcomes are authored independently, before the cases run.
-
-### What to measure
-
-- surprises and avoidable coordination;
-- unsupported claims and justified unresolved answers;
-- owner effort to confirm promises and keep them current;
-- the share of candidates that owners confirm, decline or leave unanswered;
-- the effort to produce candidates;
-- setup, mapping and evidence-collection cost; and
-- reuse across later questions.
-
-A lower false-claim rate achieved only by returning almost everything unresolved is not product
-success. More context is not automatically better; the answer must materially improve the next
-decision.
-
-### Product proof
-
-The thesis is strongest when:
-
-> **The binding picture changes a decision before a capability is used, changed or moved.**
-
-A demonstration on a public system shows that AIP can produce the binding picture. It is not proof of
-product value.
-
-The evaluation must permit a negative result. Valid checkpoint outcomes are **continue**, **narrow**,
+The evaluation must permit a negative result. Valid outcomes are **continue**, **narrow**,
 **integrate**, **defer**, or **stop**.
-
-### Success criteria
-
-AIP should demonstrate all of the following before broadening the product:
-
-- fewer surprises at the same or lower avoidable coordination;
-- no systematic increase in unsupported architectural claims;
-- owner effort for promises below the coordination it removes;
-- clear separation between promises, AIP evidence and source-code findings;
-- evidence, promises and limitations inspectable by humans and agents;
-- public conclusions reproducible from the same frozen evidence, promises, context, mappings and
-  rules;
-- bounded question cost as unrelated systems/evidence grow;
-- maintenance cost justified by reuse and decision improvement.
 
 ---
 
@@ -827,7 +787,8 @@ domain meaning or autonomous boundaries cheaper.
 AIP uses it in three ways:
 
 - the **Bounded Context** (§3) is the boundary of the binding picture;
-- **Context Map patterns** are projections over promises and qualified Current State (§4.3); and
+- **Context Map patterns** are projections over attributable relationship promises and qualified
+  Current State, never inferred from topology alone (§4.3); and
 - DDD and contract vocabulary (contract, owner, consumer, upstream/downstream, the pattern names) is
   the language AIP uses towards users. Promise Theory and Semantic Spacetime terms stay internal.
 

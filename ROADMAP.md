@@ -707,9 +707,8 @@ modernisation and enterprise architects) and to find a target customer for furth
 
 **Scenario:** Sokol111, the hosted product-validation system since v0.7.2. An EventCatalog authored
 for the showcase declares the Bounded Contexts, their owners, and the events each service sends and
-receives. AIP reads these entries as the promises of each side. It assesses each binding against
-qualified broker evidence, and it projects the bindings that cross a selected boundary and the
-de-facto Context Map pattern between Bounded Contexts. The change is a broker migration in waves: a
+receives. AIP assesses each binding against qualified broker evidence and projects the bindings that
+cross a selected boundary. The change is a broker migration in waves: a
 coding agent plans and carries out the move of one Bounded Context with AIP's view, and AIP then
 captures again and shows the resulting state with evidence. The detailed scope, the proofs and the run
 stages belong in the v0.8 specification.
@@ -736,6 +735,23 @@ v0.8 also adds schema field descriptions for `destination_id` and `broker_id` on
   target customer ([doctrine §8](docs/product-doctrine-and-strategic-direction.md#8-product-validation)).
 - **No manufactured evidence:** partial and unresolved results remain valid. Content authored for
   the demonstration, such as the EventCatalog, is disclosed as authored for the showcase.
+
+**Showcase assumptions and limits** (the general rules are in doctrine §4.2 and §4.3):
+
+- **Promises:** each EventCatalog entry is treated as a confirmed promise of the team that the catalog
+  names as owner, for the environment of the frozen evidence. This confirmation is a disclosed
+  demonstration assumption, not an owner's act. The candidate and declined states are part of the
+  model, but the showcase does not exercise them.
+- **Promise coverage:** a binding whose participant has no catalog entry is unresolved on the promise
+  side, never "observed, not promised".
+- **Evidence:** broker consumer-group state establishes, per cluster and at capture time, which
+  consumer groups subscribe to which topics, their consumption position and lag, and whether consumers
+  are attached. It does not establish which event types a consumer handles or how it processes them.
+  The new capture after the migration establishes the same, and nothing more. The catalog never
+  closes a gap in Current State. The v0.8 specification defines the evidence and coverage that each
+  status requires.
+- **No Context Map patterns:** the showcase shows qualified cross-boundary bindings only. It does not
+  classify Context Map patterns, because event bindings do not establish them.
 
 ## After v0.8 (scope not set)
 
@@ -829,9 +845,10 @@ capability and not a claim that AIP itself verifies implementation correctness.
 The v1.0 production-qualification phase should also test the **shape of scale** for the bounded
 question model. Adding unrelated services, systems, and retained evidence must not force every
 question to reconstruct or fingerprint the entire enterprise landscape at request time. This is a
-performance/operability qualification requirement, not a new architecture-question class. Only the
-promise and membership semantics that survive the target-customer validation enter v1.0-rc, and
-v1.0-rc must not broaden them into a generic enterprise model.
+performance/operability qualification requirement, not a new architecture-question class. For this
+scale qualification, the promise and membership semantics are those that survived the
+target-customer validation, and v1.0-rc must not broaden them into a generic enterprise model. This
+does not narrow the other contracts in the v1.0-rc qualification scope.
 
 ## Sequencing principle
 
@@ -905,9 +922,8 @@ Planned scope, authorization to execute a release, and qualification for the sta
 separate decisions. Planned status does not waive product-value or technical qualification gates.
 
 Validate product value with a target customer on real tasks, as
-[Product Doctrine §8](docs/product-doctrine-and-strategic-direction.md#8-product-validation) describes:
-compare the customer's current means, the same means plus curated promises, and AIP, with
-independently authored expected results. Define baselines and success/stop thresholds before the
+[Product Doctrine §8](docs/product-doctrine-and-strategic-direction.md#8-product-validation) describes,
+against the customer's current means and with independently authored expected results. Define baselines and success/stop thresholds before the
 pilot. Assess correctness together with useful answer coverage, justified abstention, false alarms,
 and total engineering effort including setup, source maintenance, identity mapping, and clarification.
 Reducing false claims only by returning more unresolved answers does not establish product value.
