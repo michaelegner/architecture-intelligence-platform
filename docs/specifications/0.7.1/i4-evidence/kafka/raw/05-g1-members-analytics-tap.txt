@@ -1,0 +1,3 @@
+
+GROUP           CONSUMER-ID                                           HOST            CLIENT-ID        #PARTITIONS     ASSIGNMENT
+analytics-tap   console-consumer-2ce7e555-76b3-4cd6-ba66-49f6f2c1d17b /172.19.0.5     console-consumer 3               payments.completed(0,1,2)

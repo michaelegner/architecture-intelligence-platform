@@ -1,0 +1,37 @@
+asyncapi: '2.6.0'
+info:
+  title: ecommerce-catalog-service
+  version: "1.0.0"
+  description: >-
+    Authored for AIP v0.7.2 I2 from Sokol111/ecommerce-catalog-service-api@7cecb3e1131dbd5199ce25e9cf101d75d3365171
+    (pkg/events/topics.go: catalog.product.events; proto/catalog/events/v1/product_events.proto:
+    ProductUpdatedEvent). The upstream contract is protobuf; this AsyncAPI is a declaration overlay.
+x-aip-service-id: service:ecommerce-catalog-service
+servers:
+  kafka:
+    url: redpanda:29092
+    protocol: kafka
+    x-aip-broker-id: kafka:sokol111-local
+channels:
+  catalog.product.events:
+    x-aip-destination-kind: topic
+    publish:
+      operationId: publishProductEvents
+      message:
+        $ref: '#/components/messages/ProductUpdatedEvent'
+components:
+  messages:
+    ProductUpdatedEvent:
+      name: ProductUpdatedEvent
+      payload:
+        type: object
+        properties:
+          product_id: {type: string}
+          name: {type: string}
+          description: {type: string}
+          price: {type: number}
+          quantity: {type: integer}
+          image_id: {type: string}
+          category_id: {type: string}
+          enabled: {type: boolean}
+          version: {type: integer}

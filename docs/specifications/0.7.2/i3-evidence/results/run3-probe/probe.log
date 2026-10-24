@@ -1,0 +1,8 @@
+[7:25:43 PM] [probe:gather] 🗣️  Turn 18: Now the consumers.
+[7:26:07 PM] [probe:gather] 🗣️  Turn 30: Confirmed the Kafka wire format is plain protobuf (unknown fields tolerated). Now checking infrastructure configs (local + production) for any other consumers of `catalog.product.events`.
+[7:26:35 PM] [probe:gather] 🗣️  Turn 43: Codebase pass is done. Next I'm querying the AIP architecture service and Unblocked for production consumer evidence and history. The `gh` check was denied, so I'll skip it.
+[7:29:01 PM] [probe:gather] 🗣️  Turn 68: Last checks: the Go toolchain location, the shared deploy workflow, and one Unblocked query on prior SKU decisions.
+[7:30:08 PM] [probe:gather] 🗣️  Turn 72: # Context Bundle: add optional `sku` to catalog products and `ProductUpdatedEvent`
+
+## Project Overview
+- **Workspace:** multi-repo Sokol111 e-commerce workspace. The root is a coordination dir with `...

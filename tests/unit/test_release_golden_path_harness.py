@@ -11,6 +11,7 @@ pin:
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import re
@@ -388,9 +389,10 @@ def _load_api_usage_replay():
         sys.path.remove(str(GP_DIR))
 
 
-def test_the_release_profile_advertises_the_five_tools_in_lexicographic_order():
-    assert len(gp.TOOLS) == 5 and gp.TOOLS == sorted(gp.TOOLS)
+def test_the_release_profile_advertises_the_six_tools_in_lexicographic_order():
+    assert len(gp.TOOLS) == 6 and gp.TOOLS == sorted(gp.TOOLS)
     assert gp.TOOLS[0] == "get_api_consumer_usage"
+    assert gp.TOOLS[2] == "get_destination_consumers"
 
 
 def test_the_api_usage_phase_mounts_only_its_frozen_configuration():
@@ -441,3 +443,98 @@ def test_the_api_usage_pure_checks_pass_and_fail():
     )
     wrong = [("P1", "rest", {"schema_version": "0.6", "producer": {"version": "0.6.3"}})]
     assert len(api._identity_problems(wrong, "0.7.0", "a" * 40)) >= 3
+
+
+# --- v0.7.1 I5: six tools and the `destination-consumers` phase -----------------------------------
+
+
+def _load_destination_consumers_replay():
+    import sys
+
+    sys.path.insert(0, str(GP_DIR))
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "destination_consumers_replay", GP_DIR / "destination_consumers_replay.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.path.remove(str(GP_DIR))
+
+
+def test_the_destination_consumers_phase_mounts_only_its_frozen_configuration():
+    override = _yaml(GP_DIR / "compose" / "destination-consumers.yml")
+    [service] = override["services"].values()
+    assert set(service) == {"volumes"}
+    mount = "./examples/release-golden-path/profile/destination-consumers/config.yaml"
+    assert service["volumes"] == [f"{mount}:/app/golden-path/config.yaml:ro"]
+    assert gp.compose_argv("destination-consumers", "up")[3] == "gp-destination-consumers"
+
+
+def test_the_destination_consumers_configuration_registers_the_roots_the_harness_fills():
+    dc = _load_destination_consumers_replay()
+    sources = _yaml(GP_DIR / "profile" / "destination-consumers" / "config.yaml")[
+        "architecture_intelligence"
+    ]["sources"]
+    [declarations] = sources["directories"]
+    [capture] = sources["kafka_consumer_state"]
+    [mapping] = sources["kafka_service_mappings"]
+    assert declarations["root"] == f"{dc.CONTAINER_ROOT}/declarations"
+    assert capture["root"] == f"{dc.CONTAINER_ROOT}/kafka"
+    assert mapping["root"] == f"{dc.CONTAINER_ROOT}/mapping"
+    for source in (capture, mapping):
+        assert source["broker_id"] == dc.EXPECTED["broker_id"]
+        assert source["environment"] == dc.EXPECTED["environment"]
+    assert capture["consumer_groups"] == dc.EXPECTED["capture_allow_list"]
+
+
+def test_the_destination_consumers_expectations_are_the_frozen_i4_ones():
+    dc = _load_destination_consumers_replay()
+    digest = hashlib.sha256((dc.KAFKA / "expected.json").read_bytes()).hexdigest()
+    assert (dc.KAFKA / "EXPECTED.sha256").read_text().split()[0] == digest
+    for capture in ("c1", "c2"):
+        assert set(dc.EXPECTED[capture]["with_mapping"]) == set(dc.TOPICS)
+    block = json.loads((GP_DIR / "expected.json").read_text())["destination_consumers_phase"]
+    assert block["id"] == "destination-consumers"
+    assert all((REPO / path).exists() for path in block["source"])
+
+
+def test_the_destination_consumers_reading_check_passes_and_fails():
+    dc = _load_destination_consumers_replay()
+    want = dc.EXPECTED["c1"]["with_mapping"]["orders.created"]
+    t = "2026-10-19T06:21:23Z"
+    rows = [
+        {
+            "group_id": "ops-tail",
+            "outcome": "UNRESOLVED",
+            "reason": "NO_MAPPING",
+            "captured_at": t,
+            "attachment_evidence_refs": ["r1"],
+            "mapping_evidence_refs": [],
+        },
+        {
+            "group_id": "payment-service",
+            "outcome": "RESOLVED",
+            "service_id": "service:payment-service",
+            "captured_at": t,
+            "attachment_evidence_refs": ["r2"],
+            "mapping_evidence_refs": ["r3"],
+        },
+    ]
+    good = {
+        "outcome": "PARTIAL",
+        "limitations": [{"code": "CAPTURE_SCOPE_LIMITED"}],
+        "data": {"rows": rows},
+    }
+    assert dc.reading_problems(good, want, t) == []
+    assert dc.reading_problems(good, want, "2026-10-19T06:23:28Z")
+    assert dc.reading_problems({**good, "data": {"rows": rows + rows[:1]}}, want, t)
+    assert dc.reading_problems({**good, "data": {"rows": rows[1:]}}, want, t)
+    assert dc.reading_problems({**good, "note": "analytics-tap"}, want, t)
+    assert dc.reading_problems({**good, "note": "console-consumer-1"}, want, t)
+    resolved = {"outcome": "ANSWERED", "data": {"entries": [{"ref": "r1", "status": "RESOLVED"}]}}
+    assert dc._resolved(resolved, ["r1"])
+    assert not dc._resolved(resolved, ["r1", "r2"])
+    wrong = [("c1", "rest", {"schema_version": "0.7", "producer": {"version": "0.7.0"}})]
+    assert len(dc._identity_problems(wrong, "0.7.1", "a" * 40)) >= 3

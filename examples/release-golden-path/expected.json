@@ -655,7 +655,7 @@
       "52 recorded requests accepted once",
       "default-on configuration",
       "supplied image and build identity",
-      "five tools",
+      "six tools",
       "v0.6 schemas and product version"
     ]
   },
@@ -667,12 +667,27 @@
     ],
     "checks": [
       "supplied image and build identity",
-      "five tools",
+      "six tools",
       "R1 readings P1, P2, N1, N3, OBS over REST and negotiated MCP",
       "same-snapshot evidence resolution",
       "R2 readings REVa, REVb, REVc over REST and negotiated MCP",
       "stale cursor and stale evidence refusal after the revision",
       "v0.7 schema, product version and build revision"
+    ]
+  },
+  "destination_consumers_phase": {
+    "id": "destination-consumers",
+    "source": [
+      "docs/specifications/0.7.1/i4-evidence/kafka/expected.json",
+      "docs/specifications/0.7.1/i5-release-qualification-and-publication.md"
+    ],
+    "checks": [
+      "supplied image and build identity",
+      "six tools",
+      "C1 readings of the four Topics over REST and negotiated MCP",
+      "same-snapshot evidence resolution",
+      "C2 readings of the four Topics over REST and negotiated MCP",
+      "v0.7.1 schema, product version and build revision"
     ]
   }
 }

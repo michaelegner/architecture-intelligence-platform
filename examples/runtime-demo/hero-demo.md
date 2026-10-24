@@ -74,10 +74,12 @@ curl -s http://localhost:8000/mcp \
   | jq '.result.tools[].name'
 ```
 
-Expect exactly five tools, in this order: `get_api_consumer_usage`, `get_architecture_drift`,
-`get_evidence`, `get_service_dependencies`, `get_service_dependencies_by_locality` (lexicographic
-order). This demo has no scoped caller identity and must abstain on locality, and it configures no
-gateway source, so there is no measurement window for `get_api_consumer_usage` to answer for.
+Expect exactly six tools, in this order: `get_api_consumer_usage`, `get_architecture_drift`,
+`get_destination_consumers`, `get_evidence`, `get_service_dependencies`,
+`get_service_dependencies_by_locality` (lexicographic order). This demo has no scoped caller identity
+and must abstain on locality. It configures no gateway source, so there is no measurement window for
+`get_api_consumer_usage` to answer for, and no Kafka consumer-state capture, so
+`get_destination_consumers` has no accepted capture to answer from.
 
 ## 6. Ask `GET /api/services/{id}/drift` (REST)
 

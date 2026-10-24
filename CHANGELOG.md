@@ -9,13 +9,73 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-10-23
+
+### v0.7.2 — Context-Engine Interoperability + Product-Boundary Qualification
+
+See the [release notes](docs/release-validation/v0.7.2-release-notes.md).
+
+### Changed
+
+- The hosted demo's acceptance check (`examples/pitstop-demo/hosted/verify_public_edge.py`) expects the six-tool
+  v0.7.1 surface and requires `get_api_consumer_usage` and `get_destination_consumers` to answer with a typed refusal
+  on the Pitstop demo, which has no gateway or Kafka source (v0.7.2 I1).
+- The public hosted instance serves the frozen Sokol111 Kafka dataset instead of Pitstop (v0.7.2 I2). The acceptance
+  check gains `--profile sokol111`: a `get_destination_consumers` answer for `catalog.product.events` with its capture
+  time and same-snapshot evidence drill-down. `TRY_IT_HOSTED.md` describes the hosted dataset; the Pitstop demo and its
+  Claude Code plugin are the local path.
+- The `get_destination_consumers` tool description and the `UNKNOWN_DESTINATION` / `BROKER_MISMATCH` refusal
+  messages state the identifier forms: `destination_id` is the canonical Topic id (never a name) and `broker_id` is the
+  stable broker id (the `BrokerRef` name, not the canonical `broker:owned:` id). Refusal codes, schemas and the tool
+  inventory are unchanged (v0.7.2 I3).
+- The locked `opentelemetry-api` moves to 1.45.1 (CVE-2026-114603).
+
+### Security
+
+- The runtime image no longer contains the base image's system pip, which AIP never uses (uv installs into
+  `/app/.venv`, which has no pip). This removes pip's bundled `certifi`, `urllib3`, `setuptools` and `msgpack` from
+  the image, including GHSA-6q48-6c7w-9gw2. The `python:3.14.8-slim` base is re-pinned to its current digest, which
+  carries the fixed `ca-certificates` (DSA-6572-1) and `liblzma5` (DSA-6549-1). No AIP behaviour, schema or MCP tool
+  changed.
+
+## [0.7.1] - 2026-10-21
+
+### v0.7.1 — Broker-Mediated Consumer Attribution
+
+See the [release notes](docs/release-validation/v0.7.1-release-notes.md) and the
+[`get_destination_consumers` reference](docs/mcp.md#get_destination_consumers-v071-i3).
+
 ### Added
 
+- A sixth read-only MCP tool, `get_destination_consumers`, and REST `POST /api/destination-consumers` and
+  `/evidence`: which Services the evidence can attribute as consumers of one Kafka Topic in one broker and
+  environment. Each row is a consumer group attached at capture time T, with its Service attribution
+  (`RESOLVED`, `UNRESOLVED`, `AMBIGUOUS` or `CONFLICT`) from explicit mapping evidence and same-snapshot evidence
+  refs. Published `0.7.1` request and answer schemas.
+- A Kafka consumer-state source (`sources.kafka_consumer_state`) with the capture harness `harness/kafka-capture`,
+  and a Service-mapping source (`sources.kafka_service_mappings`, `aip-kafka-consumer-service-mapping/1`).
+- A release golden-path `destination-consumers` phase and `destination_consumers_replay.py`, replaying the frozen
+  real-Kafka qualification package against the supplied image.
 - **Public read-only hosted Pitstop demo**: an external acceptance script
   (`examples/pitstop-demo/hosted/verify_public_edge.py`) and the edge requirements for anonymous `POST /mcp`. The
   script fails unless `tools/list` is exactly the frozen public tool allowlist and every other route, an invalid
   Host and an oversized body are refused. No AIP behaviour, schema or MCP tool changed; the plugin's `aip_token`
   stays optional.
+
+### Changed
+
+- Product, Producer and MCP server version `0.7.1`. MCP advertises six tools; the earlier five and their schemas are
+  unchanged. The release golden path, client guides and demo walkthrough list six. The `get_destination_consumers`
+  description and `docs/mcp.md` state that `evidence_refs` must be duplicate-free and sorted as plain strings.
+- With Kafka consumer state configured, snapshot ids differ from v0.7.0 (the declared Topic brokers are part of the
+  snapshot). Without it, every earlier snapshot is unchanged.
+- Attachment at T is not message processing, and the consumer list is never complete (`CAPTURE_SCOPE_LIMITED`).
+  RabbitMQ stays a semantic contrast case; no RabbitMQ adapter ships.
+
+### Security
+
+- The dev-only `certifi` dependency moves to 2026.10.19 (PYSEC-2026-4320, #611). The runtime image does not
+  install it.
 
 ## [0.7.0] - 2026-10-16
 

@@ -1,0 +1,3 @@
+utc: 2026-10-21T17:56:03Z
+command: uv run --with confluent-kafka==2.16.0 python harness/kafka-capture/capture.py --broker-id kafka:sokol111-local --environment local --group ecommerce-catalog-service --group ecommerce-category-query-service --group ecommerce-image-service --group ecommerce-product-query-service --out <AIP checkout>/docs/specifications/0.7.2/i2-evidence/sokol111/c2/kafka-consumer-state.json
+exit: 0

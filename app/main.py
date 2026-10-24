@@ -11,6 +11,7 @@ from app.api import (
     analysis,
     api_consumer_usage,
     architecture_intelligence,
+    destination_consumers,
     evidence,
     import_api,
     messages,
@@ -101,6 +102,7 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     app.include_router(evidence.router)
     app.include_router(architecture_intelligence.router)
     app.include_router(api_consumer_usage.router)
+    app.include_router(destination_consumers.router)
     app.include_router(telemetry.router)
     app.include_router(runtime.runtime_router)
     app.include_router(runtime.runtime_analysis_router)

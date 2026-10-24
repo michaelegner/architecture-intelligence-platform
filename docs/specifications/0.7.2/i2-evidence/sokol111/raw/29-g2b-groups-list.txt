@@ -1,0 +1,5 @@
+BROKER  GROUP                             STATE
+0       ecommerce-catalog-service         Stable
+0       ecommerce-category-query-service  Stable
+0       ecommerce-image-service           Empty
+0       ecommerce-product-query-service   Stable

@@ -1,0 +1,3 @@
+utc: 2026-10-21T17:55:47Z
+command: docker exec redpanda rpk group describe ecommerce-category-query-service
+exit: 0

@@ -1,0 +1,1 @@
+wrote /home/michael/code/aip-i41/docs/specifications/0.7.1/i4-evidence/kafka/c1/kafka-consumer-state.json complete=True

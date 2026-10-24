@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Architecture Intelligence Platform on mcprush](https://mcprush.com/badge/architecture-intelligence-platform-mcp/score.svg)](https://mcprush.com/to/architecture-intelligence-platform-mcp?ref=badge)
 
 ## Agents should reason about architecture — not reconstruct it.
 
@@ -153,7 +154,7 @@ answer yet is labelled as outside the answer, not hidden.
 
 ## Pitstop: which services receive the event you are about to change?
 
-**[Try locally →](examples/pitstop-demo/TRY_IT_LOCALLY.md) · [Try hosted →](examples/pitstop-demo/TRY_IT_HOSTED.md)**
+**[Try locally →](examples/pitstop-demo/TRY_IT_LOCALLY.md)** · the public hosted instance now serves a Sokol111 dataset: [Try hosted →](examples/pitstop-demo/TRY_IT_HOSTED.md)
 
 A second real system, [Pitstop](https://github.com/EdwinVW/pitstop) (a .NET garage-management sample on
 RabbitMQ), on a different broker and stack. The task: *before replacing `StartTime` and `EndTime` in
@@ -168,10 +169,9 @@ examples/pitstop-demo/run.sh
 Ask the publisher: AIP resolves five receivers of the fanout exchange through their named queues, one of
 which (`ReportingService`) no Pitstop document lists, with their evidence and the publisher's qualification.
 It states, rather than hides, that it holds no payload or field-level knowledge, so which receiver reads
-`StartTime` is what you must still inspect. The local replay is the reproducible mode. The canonical demo is a
-continuously running, instrumented Pitstop feeding a hosted AIP instance, queried for a completed UTC day (the
-local `--live` mode needs the private instrumented fork; the hosted demo exposes only its public read-only MCP
-endpoint and requires no credentials). An optional Claude Code plugin (and an optional mod that shows AIP's
+`StartTime` is what you must still inspect. The local replay is the reproducible mode. Until v0.7.2 I2 a
+continuously running, instrumented Pitstop also fed the public hosted AIP instance; that instance now serves a
+frozen Sokol111 Kafka dataset (the local `--live` mode needs the private instrumented fork). An optional Claude Code plugin (and an optional mod that shows AIP's
 answer next to the agent's plan) is described in the demo README; both install from this repository's Claude Code
 marketplace (`claude plugin marketplace add michaelegner/architecture-intelligence-platform`).
 
@@ -189,8 +189,8 @@ or diagram. AIP surfaces them as `OBSERVED_ONLY`, with the observation window th
 dependency and in both directions — declared but not observed, observed but never declared — each
 qualified rather than asserted.
 
-**Give a coding agent context it can cite.** Five read-only MCP tools hand an agent direct
-dependencies, drift, provenance, caller locality and API consumer usage, each bound to one graph
+**Give a coding agent context it can cite.** Six read-only MCP tools hand an agent direct
+dependencies, drift, provenance, caller locality, API consumer usage and Kafka Topic consumers, each bound to one graph
 snapshot, so it can tell a fact from a guess — and so it can never write to the model it is reading
 from.
 
@@ -281,7 +281,7 @@ evidence references at the same snapshot without creating new architecture claim
 ## MCP Tools
 
 AIP exposes the validated architecture model at `/mcp` through standard negotiated MCP client
-initialization (see [Boundaries](#boundaries)) as exactly five **read-only** tools:
+initialization (see [Boundaries](#boundaries)) as exactly six **read-only** tools:
 
 | Tool | Answers |
 |---|---|
@@ -290,8 +290,9 @@ initialization (see [Boundaries](#boundaries)) as exactly five **read-only** too
 | `get_evidence` | What is the actual provenance behind those claims — which spec file, manifest, or observation window? |
 | `get_service_dependencies_by_locality` | Where are direct HTTP dependencies established for evidenced caller Workloads, how do supported results compare, and which scoped evidence supports them? |
 | `get_api_consumer_usage` | Which consumers have configured access to, and which have independently observed usage of, an API Operation, an application Service or a gateway Route in one environment and measurement window, and what remains unresolved? Qualified for the APISIX source. See [`docs/api-aware-current-state.md`](docs/api-aware-current-state.md). |
+| `get_destination_consumers` | Which Services can the evidence attribute as consumers of one Kafka Topic, for one broker and environment: each consumer group attached at capture time T, with its Service from explicit mapping evidence, and what stays unresolved? Attachment is not message processing, and a capture covers only its configured groups. See [`docs/mcp.md`](docs/mcp.md#get_destination_consumers-v071-i3). |
 
-All five perform zero graph writes and need no LLM API key — the whole surface is deterministic —
+All six perform zero graph writes and need no LLM API key — the whole surface is deterministic —
 and none of them will invent, guess, or upgrade an unresolved fact: insufficient evidence comes back
 as a `limitations` entry, never as silence.
 
@@ -365,7 +366,7 @@ per-service telemetry coverage). None of these involve the LLM — see
 
 ## Core Capabilities
 
-- Evidence-qualified service dependencies and architecture drift, via five read-only MCP tools
+- Evidence-qualified service dependencies and architecture drift, via six read-only MCP tools
 - OpenAPI, AsyncAPI and OpenTelemetry evidence, reconciled into one graph
 - Queue *and* source-independent Pub/Sub semantics. Topic fan-out is expressed only through
   explicitly declared Subscriptions, and a Kafka consumer group is never treated as a Subscription.
@@ -467,8 +468,9 @@ the platform works with no LLM provider configured, and no MCP tool depends on i
 
 What the MCP tools return, and what they deliberately don't. The original three tools share the
 `ArchitectureAnswer` envelope below; the fourth adds the separately versioned
-[locality contract](docs/mcp.md#get_service_dependencies_by_locality-v060-i3) and the fifth the
-separately versioned [API consumer usage contract](docs/mcp.md#get_api_consumer_usage-v070-i3).
+[locality contract](docs/mcp.md#get_service_dependencies_by_locality-v060-i3), the fifth the
+separately versioned [API consumer usage contract](docs/mcp.md#get_api_consumer_usage-v070-i3) and the
+sixth the [destination consumers contract](docs/mcp.md#get_destination_consumers-v071-i3).
 
 **One envelope.** The original three tools return the same `ArchitectureAnswer` (`schema_version`, `producer`,
 `tool`, `outcome`, `snapshot`, `observation_context`, `data`, `claims`, `evidence_refs`,
@@ -504,7 +506,7 @@ trusted-network posture; it is not hardened for direct public-internet exposure 
 
 ## Documentation
 
-- [`docs/mcp.md`](docs/mcp.md) — the five read-only MCP tools for AI agents, and a runnable
+- [`docs/mcp.md`](docs/mcp.md) — the six read-only MCP tools for AI agents, and a runnable
   hero-demo walkthrough
 - [`docs/architecture.md`](docs/architecture.md) — pipeline, API surface
 - [`docs/canonical-model.md`](docs/canonical-model.md) — entities and deterministic ids
@@ -549,12 +551,12 @@ public issues — see [`SECURITY.md`](SECURITY.md). This project follows the
 ## Project Status
 
 Latest release:
-[`v0.7.0`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.7.0)
-— **API-Aware Current State**.
+[`v0.7.2`](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.7.2)
+— **Context-Engine Interoperability + Product-Boundary Qualification**.
 
 Pre-1.0: the REST/MCP surface, Graph Schema, Canonical Model, Adapter SPI and configuration format
 may still change on a minor version bump. Every release ships a published-artifact verification —
-[`docs/release-validation/v0.7.0-post-release-verification.md`](docs/release-validation/v0.7.0-post-release-verification.md)
+[`docs/release-validation/v0.7.2-release-record.md`](docs/release-validation/v0.7.2-release-record.md)
 is the most recent. See [`CHANGELOG.md`](CHANGELOG.md) for what shipped in each release and
 [`ROADMAP.md`](ROADMAP.md) for what's next.
 

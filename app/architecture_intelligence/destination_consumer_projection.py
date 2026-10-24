@@ -8,8 +8,9 @@ no reconciliation rule is reimplemented here. The projection only selects, filte
 evidence refs and pages.
 """
 
-from collections.abc import Callable, Mapping
-from typing import Any
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
+from typing import Any, Literal
 
 from app.architecture_intelligence.contracts import Outcome, Producer, SnapshotRef
 from app.architecture_intelligence.destination_consumer_contracts import (
@@ -27,6 +28,7 @@ from app.architecture_intelligence.destination_consumer_contracts import (
     Limitation,
     LimitationCode,
     Page,
+    RequestContext,
     RowLimitation,
     decode_cursor,
     encode_cursor,
@@ -45,9 +47,16 @@ _TOPIC_BROKERS = "kafka_topic_brokers_v1"
 
 _MESSAGES = {
     _CODE.SNAPSHOT_NOT_AVAILABLE: "the requested snapshot is not the current snapshot",
-    _CODE.UNKNOWN_DESTINATION: "no declared Topic has this destination id",
+    _CODE.UNKNOWN_DESTINATION: (
+        "no declared Topic has this destination id "
+        "(destination_id must be the canonical Topic id, not a topic name)"
+    ),
     _CODE.DESTINATION_NOT_KAFKA_TOPIC: "the destination is not a Kafka Topic",
-    _CODE.BROKER_MISMATCH: "the destination is not declared on the requested broker",
+    _CODE.BROKER_MISMATCH: (
+        "the destination is not declared on the requested broker "
+        "(broker_id must be the stable broker id, the BrokerRef name, "
+        "not the canonical broker:owned: id)"
+    ),
     _CODE.NO_ACCEPTED_CAPTURE: (
         "no accepted Kafka consumer-state capture exists for this broker and environment"
     ),
@@ -69,14 +78,18 @@ def limitation(code: LimitationCode) -> Limitation:
 
 
 def refusal_answer(
-    producer: Producer, snapshot: SnapshotRef | None, code: LimitationCode
+    producer: Producer,
+    snapshot: SnapshotRef | None,
+    code: LimitationCode,
+    *,
+    mode: Literal["query", "evidence"] = "query",
 ) -> DestinationConsumersAnswer:
     """Nothing was evaluated: `data` is null and exactly one refusal code is set."""
     return DestinationConsumersAnswer(
         schema_version=SCHEMA_VERSION,
         producer=producer,
         tool=TOOL_NAME,
-        mode="query",
+        mode=mode,
         outcome=Outcome.NOT_ANSWERED,
         snapshot=snapshot,
         data=None,
@@ -133,16 +146,97 @@ def _attributions(state: Mapping[str, Any]) -> list[Row]:
     return list(block["attributions"])
 
 
-def _row(
-    attribution: Row, group_id: str, ref: Callable[[EvidenceKind, list[str]], str]
-) -> ConsumerRow:
+@dataclass(frozen=True)
+class DestinationScope:
+    """One answerable query context at one snapshot: the accepted captures of the broker and
+    environment, its consumer groups, and the I2 attribution rows of the destination's attachments
+    in that scope. Shared by the query and the evidence mode, so both see the same rows and refs."""
+
+    state: Mapping[str, Any]
+    context: RequestContext
+    snapshot_id: str
+    digest: str
+    captures: tuple[Row, ...]
+    groups: Mapping[str, str]
+    attributions: tuple[Row, ...]
+
+    def ref(self, kind: EvidenceKind, internal_ids: Iterable[str]) -> str:
+        return evidence_ref(
+            snapshot_id=self.snapshot_id,
+            query_digest=self.digest,
+            kind=kind,
+            internal_ids=internal_ids,
+        )
+
+    @staticmethod
+    def attachment_ids(attribution: Row) -> list[str]:
+        return [attribution["id"], *attribution["attachment_evidence_ids"]]
+
+    @staticmethod
+    def mapping_ids(entry: Row) -> list[str]:
+        return [entry["id"], *entry["evidence_ids"]]
+
+
+def open_scope(
+    state: Mapping[str, Any],
+    context: RequestContext,
+    *,
+    snapshot: SnapshotRef,
+    asserted_snapshot_ids: Iterable[str | None],
+) -> DestinationScope | LimitationCode:
+    """The refusal preamble shared by both modes, in order: snapshot, destination (unknown, not a
+    Kafka Topic, broker mismatch), accepted capture. Without any Kafka consumer state,
+    `NO_ACCEPTED_CAPTURE` comes before the broker check: the declared Topic brokers are only in the
+    snapshot beside that state."""
+    if set(asserted_snapshot_ids) - {None, snapshot.snapshot_id}:
+        return _CODE.SNAPSHOT_NOT_AVAILABLE
+    refused = destination_refusal(state, context.destination_id, context.broker_id)
+    if refused is not None:
+        return refused
+    broker_id, environment = context.broker_id, context.environment
+    captures = tuple(
+        row
+        for row in _rows(state, _KAFKA_STATE, "evidence")
+        if _in_scope(row, broker_id, environment)
+    )
+    if not captures:
+        return _CODE.NO_ACCEPTED_CAPTURE
+    # Broker and environment live on the I1 group and capture rows, never on the Topic: a Topic id
+    # carries no environment, so one Topic can be attached in several environments.
+    groups = {
+        row["id"]: row["group_id"]
+        for row in _rows(state, _KAFKA_STATE, "groups")
+        if _in_scope(row, broker_id, environment)
+    }
+    return DestinationScope(
+        state=state,
+        context=context,
+        snapshot_id=snapshot.snapshot_id,
+        digest=query_context_digest(context),
+        captures=captures,
+        groups=groups,
+        attributions=tuple(
+            sorted(
+                (
+                    attribution
+                    for attribution in _attributions(state)
+                    if attribution["topic_id"] == context.destination_id
+                    and attribution["consumer_id"] in groups
+                ),
+                key=lambda attribution: attribution["consumer_id"],
+            )
+        ),
+    )
+
+
+def _row(scope: DestinationScope, attribution: Row) -> ConsumerRow:
     mapping_refs = {
-        entry["id"]: ref(EvidenceKind.KAFKA_SERVICE_MAPPING, [entry["id"], *entry["evidence_ids"]])
+        entry["id"]: scope.ref(EvidenceKind.KAFKA_SERVICE_MAPPING, scope.mapping_ids(entry))
         for entry in attribution["mapping_entries"]
     }
     return ConsumerRow(
         consumer_id=attribution["consumer_id"],
-        group_id=group_id,
+        group_id=scope.groups[attribution["consumer_id"]],
         outcome=AttributionOutcome(attribution["outcome"]),
         service_id=attribution.get("service_id"),
         reason=AttributionReason(attribution["reason"]) if "reason" in attribution else None,
@@ -158,10 +252,7 @@ def _row(
         ),
         captured_at=attribution["captured_at"],
         attachment_evidence_refs=[
-            ref(
-                EvidenceKind.KAFKA_ATTACHMENT,
-                [attribution["id"], *attribution["attachment_evidence_ids"]],
-            )
+            scope.ref(EvidenceKind.KAFKA_ATTACHMENT, scope.attachment_ids(attribution))
         ],
         mapping_evidence_refs=sorted(mapping_refs.values()),
     )
@@ -175,54 +266,21 @@ def project_destination_consumers(
     producer: Producer,
 ) -> DestinationConsumersAnswer:
     """The query answer for the current snapshot whose canonical state is `state`. Refusals are
-    decided in order: snapshot, destination (unknown, not a Kafka Topic, broker mismatch), accepted
-    capture, cursor. Without any Kafka consumer state, `NO_ACCEPTED_CAPTURE` comes before the
-    broker check: the declared Topic brokers are only in the snapshot beside that state."""
+    decided in `open_scope` order, then the cursor."""
     cursor = decode_cursor(request.cursor) if request.cursor is not None else None
-    asserted = {request.snapshot_id, cursor.snapshot_id if cursor else None} - {None}
-    if asserted - {snapshot.snapshot_id}:
-        return refusal_answer(producer, snapshot, _CODE.SNAPSHOT_NOT_AVAILABLE)
-    context = request.context()
-    refused = destination_refusal(state, context.destination_id, context.broker_id)
-    if refused is not None:
-        return refusal_answer(producer, snapshot, refused)
-    broker_id, environment = context.broker_id, context.environment
-    captures = [
-        row
-        for row in _rows(state, _KAFKA_STATE, "evidence")
-        if _in_scope(row, broker_id, environment)
-    ]
-    if not captures:
-        return refusal_answer(producer, snapshot, _CODE.NO_ACCEPTED_CAPTURE)
-    digest = query_context_digest(context)
-    if cursor is not None and cursor.query_digest != digest:
+    opened = open_scope(
+        state,
+        request.context(),
+        snapshot=snapshot,
+        asserted_snapshot_ids=[request.snapshot_id, cursor.snapshot_id if cursor else None],
+    )
+    if isinstance(opened, LimitationCode):
+        return refusal_answer(producer, snapshot, opened)
+    scope = opened
+    if cursor is not None and cursor.query_digest != scope.digest:
         return refusal_answer(producer, snapshot, _CODE.CURSOR_QUERY_MISMATCH)
 
-    # Broker and environment live on the I1 group and capture rows, never on the Topic: a Topic id
-    # carries no environment, so one Topic can be attached in several environments.
-    groups = {
-        row["id"]: row["group_id"]
-        for row in _rows(state, _KAFKA_STATE, "groups")
-        if _in_scope(row, broker_id, environment)
-    }
-
-    def ref(kind: EvidenceKind, internal_ids: list[str]) -> str:
-        return evidence_ref(
-            snapshot_id=snapshot.snapshot_id,
-            query_digest=digest,
-            kind=kind,
-            internal_ids=internal_ids,
-        )
-
-    rows = sorted(
-        (
-            _row(attribution, groups[attribution["consumer_id"]], ref)
-            for attribution in _attributions(state)
-            if attribution["topic_id"] == context.destination_id
-            and attribution["consumer_id"] in groups
-        ),
-        key=lambda row: row.consumer_id,
-    )
+    rows = [_row(scope, attribution) for attribution in scope.attributions]
     remaining = [row for row in rows if cursor is None or row.consumer_id > cursor.after]
     page_rows = remaining[: request.limit]
     next_cursor = (
@@ -230,7 +288,7 @@ def project_destination_consumers(
             Cursor(
                 v=1,
                 after=page_rows[-1].consumer_id,
-                query_digest=digest,
+                query_digest=scope.digest,
                 schema_version=SCHEMA_VERSION,
                 snapshot_id=snapshot.snapshot_id,
             )
@@ -238,8 +296,9 @@ def project_destination_consumers(
         if len(remaining) > request.limit
         else None
     )
+    broker_id, environment = scope.context.broker_id, scope.context.environment
     data = DestinationConsumersData(
-        request_context=context,
+        request_context=scope.context,
         capture_sources=sorted(
             (
                 CaptureSource(
@@ -248,7 +307,7 @@ def project_destination_consumers(
                     source_revision=row["source_revision"],
                     scope_digest=row["scope_digest"],
                 )
-                for row in captures
+                for row in scope.captures
             ),
             key=lambda source: source.source_instance_id,
         ),

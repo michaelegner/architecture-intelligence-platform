@@ -15,6 +15,10 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
+| [`v0.7.2-release-record.md`](v0.7.2-release-record.md) | v0.7.2's one-page record for the lightweight release path: identities, readiness on the exact candidate, post-release verification by digest, the hosted deployment check, the owner's DEFER disposition, owner steps; SHIPPED_VERIFIED. |
+| [`v0.7.2-release-notes.md`](v0.7.2-release-notes.md) | v0.7.2 release notes (published): hosted six-tool endpoint, hosted Sokol111 dataset, clearer `get_destination_consumers` wording, image hardening, the DEFER product disposition, known limitations. |
+| [`v0.7.1-release-record.md`](v0.7.1-release-record.md) | v0.7.1's one-page record for the lightweight release path: identities, readiness on the exact candidate, post-release verification by digest, security dispositions, owner steps; SHIPPED_VERIFIED. |
+| [`v0.7.1-release-notes.md`](v0.7.1-release-notes.md) | v0.7.1 release notes (published): broker-mediated consumer attribution, the sixth tool, the Kafka-only scope, attachment at T versus processing, known limitations. |
 | [`v0.7.0-post-release-verification.md`](v0.7.0-post-release-verification.md) | v0.7.0 published-artifact verification by digest; SHIPPED_VERIFIED. Artifacts in [`v0.7.0-post-release-artifacts/`](v0.7.0-post-release-artifacts/). |
 | [`v0.7.0-publication-decision.md`](v0.7.0-publication-decision.md) | The owner's publication decisions (release artifact and, separately, the MCP Registry) for the exact candidate. |
 | [`v0.7.0-release-readiness.md`](v0.7.0-release-readiness.md) | v0.7.0 technical readiness on the exact rc.3 candidate: all gates, security and SBOM, scope statements; decision `GO`. Does not authorize publication. Artifacts in [`v0.7.0-rc.3-qualification-artifacts/`](v0.7.0-rc.3-qualification-artifacts/). |

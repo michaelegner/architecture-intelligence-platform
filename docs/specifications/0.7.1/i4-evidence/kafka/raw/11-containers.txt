@@ -1,0 +1,4 @@
+/ecommerce-kafka confluentinc/cp-kafka:7.5.0@sha256:fbbb6fa11b258a88b83f54d4f0bddfcffbf2279f99d66a843486e3da7bdfbf41 sha256:fbbb6fa11b258a88b83f54d4f0bddfcffbf2279f99d66a843486e3da7bdfbf41
+/ecommerce-zookeeper confluentinc/cp-zookeeper:7.5.0 sha256:02f6c042bb9a7844382fc4cedc513a44585d8a5acae873fb9e510e3ca9dcabc6
+/ecommerce-payment-service aip-i41-payment-service sha256:b4718668d509b7cb01bc81d5221405e9a704e3b398aba60396f9600cccbc9a19
+/ecommerce-order-service aip-i41-order-service sha256:cd12e25fba398a98bdc0737e42008678ad803a1f4a8b01d11293a14860e7a685

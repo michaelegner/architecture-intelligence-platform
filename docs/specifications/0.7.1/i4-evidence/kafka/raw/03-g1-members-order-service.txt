@@ -1,0 +1,4 @@
+
+GROUP           CONSUMER-ID                                                   HOST            CLIENT-ID                #PARTITIONS     ASSIGNMENT
+order-service   consumer-order-service-1-b5e1bf84-ff36-4627-8e87-ad382efadef9 /172.19.0.7     consumer-order-service-1 3               payments.completed(0,1,2)
+order-service   consumer-order-service-2-885777b8-54a6-4239-9520-a874118d764c /172.19.0.7     consumer-order-service-2 3               payments.failed(0,1,2)

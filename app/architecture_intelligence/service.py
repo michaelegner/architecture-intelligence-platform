@@ -79,10 +79,14 @@ from app.architecture_intelligence.deployment_reconciliation import (
 )
 from app.architecture_intelligence.destination_consumer_contracts import (
     DestinationConsumersAnswer,
+    DestinationConsumersEvidenceRequest,
     DestinationConsumersQueryRequest,
 )
 from app.architecture_intelligence.destination_consumer_contracts import (
     LimitationCode as DestinationLimitationCode,
+)
+from app.architecture_intelligence.destination_consumer_evidence import (
+    resolve_destination_consumer_evidence,
 )
 from app.architecture_intelligence.destination_consumer_projection import (
     project_destination_consumers,
@@ -1081,6 +1085,26 @@ class ArchitectureIntelligenceService:
             )
         snapshot, state = read
         return project_destination_consumers(
+            request, state, snapshot=snapshot, producer=self._producer
+        )
+
+    def get_destination_consumer_evidence(
+        self, request: DestinationConsumersEvidenceRequest
+    ) -> DestinationConsumersAnswer:
+        """v0.7.1 I3.2 - the `mode: "evidence"` same-snapshot resolver (I3 spec §4). It reacquires
+        the current snapshot, rebuilds the ref map of the resubmitted query context from that state
+        and resolves only refs in it; there is no ref history. Answered only for the supplied
+        `snapshot_id`, never from latest data. Read-only."""
+        read = self._read_state_snapshot()
+        if read is None:
+            return destination_refusal_answer(
+                self._producer,
+                None,
+                DestinationLimitationCode.SNAPSHOT_NOT_AVAILABLE,
+                mode="evidence",
+            )
+        snapshot, state = read
+        return resolve_destination_consumer_evidence(
             request, state, snapshot=snapshot, producer=self._producer
         )
 

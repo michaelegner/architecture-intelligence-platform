@@ -1,0 +1,3 @@
+utc: 2026-10-21T17:56:24Z
+command: kubectl -n dev get deploy -o jsonpath={range .items[*]}{.metadata.name}{" "}{.spec.template.spec.containers[0].image}{" replicas="}{.spec.replicas}{"\n"}{end}
+exit: 0

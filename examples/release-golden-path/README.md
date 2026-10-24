@@ -182,3 +182,31 @@ v0.7.0 (API-aware Current State) re-freezes this profile; the frozen earlier dos
 - `SHA256SUMS` re-pins `expected.json`, `examples/mcp-clients/cursor.md`, `vscode.md` and
   `examples/runtime-demo/hero-demo.md`, and adds the new profile, compose file, harness and the
   frozen `expected-replay.json`.
+
+## v0.7.1 re-freeze
+
+v0.7.1 (Broker-Mediated Consumer Attribution) re-freezes this profile; the frozen earlier dossiers
+are untouched.
+- **Six tools.** `get_destination_consumers` joins `TOOLS` third, in lexicographic order. The legacy
+  phases, the `locality` worker and the `api-usage` phase check exactly that list. Their pins,
+  answers and snapshot ids are otherwise unchanged: with no Kafka source the canonical snapshot has
+  none of the conditional v0.7.1 keys.
+- **The `destination-consumers` phase** runs last, through `destination_consumers_replay.py`, in
+  its own Compose project and with its own fresh graph. It never rebuilds the supplied image. It
+  copies the frozen I4.1 package (`docs/specifications/0.7.1/i4-evidence/kafka/`: the declarations,
+  the Service mapping and capture C1) into the container at one fixed root and imports it with
+  `POST /api/import`. It then asks all four Topics through REST and through an independent
+  negotiated MCP client, and resolves the `orders.created` evidence refs at the same snapshot. Next
+  it copies capture C2 over C1, imports again and asks the four Topics once more. The expected
+  readings are the frozen, independently authored I4.1 ones (`expected.json`, pinned by
+  `EXPECTED.sha256`); the phase authors none. It also checks that every answer validates against the
+  published `0.7.1` schema and carries the package version and `build_revision`. Results are under
+  `<OUT_DIR>/destination-consumers/`.
+- **Standalone use.** `RELEASE_CANDIDATE_SHA=<40-hex> python examples/release-golden-path/destination_consumers_replay.py <IMAGE_REF> <OUT_DIR>`
+  runs only this phase, which is how the published image is checked after publication.
+- Service-level equality and the A/B identity are not re-claimed from outside the image; the
+  exact-candidate I4 qualification covers them. Snapshot ids depend on the container's absolute
+  paths, so they are not comparable with the I4 A/B digests.
+- `SHA256SUMS` re-pins `expected.json`, `examples/mcp-clients/cursor.md`, `vscode.md` and
+  `examples/runtime-demo/hero-demo.md`, and adds the new profile, compose file, harness and the
+  frozen I4.1 `expected.json`.

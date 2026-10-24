@@ -1,111 +1,60 @@
-# Try the Pitstop demo hosted
+# Try the hosted demo (Sokol111)
 
-This is the shortest path to try the live Pitstop demo with Claude Code. Nothing from AIP needs to run
-on your machine, and the public demo requires no credentials.
+Since v0.7.2 I2 (2026-10-21), the public read-only AIP instance serves a **frozen Sokol111 dataset**.
+Before that it served Pitstop, which you can still [run locally](TRY_IT_LOCALLY.md).
+[Sokol111](https://github.com/Sokol111/ecommerce-workspace) is a multi-repository Go e-commerce
+system that communicates over Kafka. The dataset is one real capture of its local environment
+([package](../../docs/specifications/0.7.2/i2-evidence/sokol111/README.md)). It answers which Services
+were attached as consumers of the Kafka topic `catalog.product.events` at capture time T. It is not
+a view of live Sokol111 traffic.
 
 You need:
 
-- Git
-- Claude Code 2.1.292 or later
-- the public Pitstop demo MCP URL: `https://mcp.daip.io/mcp`
+- an MCP client that speaks streamable HTTP. Claude Code 2.1.292 or later works.
+- the public MCP URL: `https://mcp.daip.io/mcp`. No credentials are required.
 
-## 1. Clone Pitstop
-
-The agent reads the upstream source while it plans the change:
+## 1. Connect
 
 ```bash
-git clone https://github.com/EdwinVW/pitstop.git
-cd pitstop
-git checkout 306b5fbd0febceb6b0d0706f152a0520ca1a993a
+claude mcp add --transport http aip-hosted https://mcp.daip.io/mcp
 ```
 
-`ReportingService` is not in this upstream repository. AIP still resolves it as a receiver from
-architecture and runtime evidence; that contrast is part of the demo.
+Run `/mcp`. `aip-hosted` should be connected with six read-only tools. Ingestion, imports and
+other AIP routes are not public.
 
-## 2. Install the Claude Code integration
+## 2. Ask about the Kafka topic
 
-The `aip` plugin includes the `architecture-aware-development` skill. The optional `aip-mod` shows
-AIP's evidence beside the agent's plan.
-
-```bash
-claude plugin marketplace add michaelegner/architecture-intelligence-platform
-claude plugin install aip@aip-plugins
-claude plugin install aip-mod@aip-plugins   # optional
-```
-
-## 3. Configure the public endpoint
-
-Start Claude Code and run:
+`get_destination_consumers` needs the exact Topic id; no tool looks it up by name:
 
 ```text
-/plugin configure aip@aip-plugins
+broker_id:   kafka:sokol111-local
+environment: local
+Topic id of catalog.product.events: topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539
 ```
 
-Set:
+Ask, for example: *"Which Services consume `catalog.product.events`, and how sure can we be?"*
 
-```text
-aip_mcp_url = https://mcp.daip.io/mcp
-aip_token   = empty
-```
+The answer is `PARTIAL` with `CAPTURE_SCOPE_LIMITED`. Two consumer groups are attached at
+T `2026-10-21T17:53:57Z`, each `RESOLVED` to a declared Service through explicit mapping evidence:
+`ecommerce-product-query-service` and `ecommerce-image-service`. The evidence mode of the same tool
+resolves the answer's refs at its snapshot.
 
-Then restart Claude Code.
+What the answer does not say:
+- that these Services consume now;
+- that they process every message;
+- that no other consumer exists.
 
-If a standalone `aip` MCP server points at the same URL, remove it first:
+A capture covers only its configured groups at its own T. To plan a change against the source, clone the
+revisions in the package's [`freeze.md`](../../docs/specifications/0.7.2/i2-evidence/sokol111/freeze.md).
 
-```bash
-claude mcp remove aip
-```
-
-Otherwise Claude Code can hide the plugin's MCP server as a duplicate.
-
-The public demo exposes only the read-only MCP surface; ingestion, imports and other AIP application
-routes are intentionally not public.
-
-## 4. Check the connection
-
-Start Claude Code in the Pitstop folder:
-
-```bash
-claude
-```
-
-Run `/mcp`. `plugin:aip:aip` should be connected with four tools.
-
-## 5. Ask the main question
-
-Use a **completed UTC day**: yesterday, from `T00:00:00Z` through `T23:59:59Z`.
-
-```text
-In the Pitstop service WorkshopManagementAPI, replace the StartTime and EndTime fields of the MaintenanceJobFinished event with a single Duration field: the workshop only needs to report how long a job took. Plan the change. Use environment pitstop-demo and the window <YYYY-MM-DD>T00:00:00Z to <YYYY-MM-DD>T23:59:59Z
-```
-
-Replace `<YYYY-MM-DD>` with yesterday's UTC date.
-
-The agent should use the AIP skill, include an **Evidence** section in its plan, identify the five receivers
-AIP resolves, and keep AIP evidence separate from what it learns by reading source code.
-
-## Continue the conversation
-
-Useful follow-up questions:
-
-- Why is `ReportingService` relevant?
-- Does AIP establish that `ReportingService` consumes `MaintenanceJobFinished` specifically?
-- Which receivers use `StartTime` or `EndTime`?
-- What evidence supports the distributed relationships in the plan?
-- What is established by AIP, what comes from code inspection, and what remains unresolved?
-
-With `aip-mod` installed, the status line shows the current AIP result and the **Evidence** button
-(or `/aip-evidence`) opens the evidence pane.
+The Pitstop `aip` plugin and its skill target the Pitstop demo; use them with the
+[local Pitstop demo](TRY_IT_LOCALLY.md).
 
 ## Troubleshooting
 
 | Symptom | Likely cause |
 |---|---|
-| `/mcp` cannot connect | check that `aip_mcp_url` is `https://mcp.daip.io/mcp`, then restart Claude Code |
+| `/mcp` cannot connect | check the URL is `https://mcp.daip.io/mcp` exactly |
 | `421 Invalid Host header` | use `https://mcp.daip.io/mcp` exactly |
-| no `plugin:aip:aip` in `/mcp` | restart after configuration, and remove any standalone `aip` server for the same URL |
-| `429 Too Many Requests` | the public demo rate limit was reached; wait briefly and retry |
-| the agent says the window is not over | use yesterday in UTC, not today |
-
-For expected answers and provenance, see the [Pitstop demo README](README.md) and
-[walkthrough](walkthrough.md).
+| `429 Too Many Requests` | the public rate limit was reached; wait briefly and retry |
+| `UNKNOWN_DESTINATION` | use the Topic id above, not the topic name |

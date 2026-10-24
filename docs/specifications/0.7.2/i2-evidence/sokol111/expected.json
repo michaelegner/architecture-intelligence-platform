@@ -1,0 +1,46 @@
+{
+  "authored": "2026-10-21, by hand, from source and configuration only, before any capture of the Sokol111 local environment",
+  "sources": {
+    "groups": "ecommerce-infrastructure@07c059908b99e08448cf1c2c7dad6a865fe5ccf0 environments/local/values/*.yaml: kafka.consumers-config.default-group-id per service; no consumer sets its own group-id (ecommerce-commons@d54bf55eba79566286b57b630f5d5b0d68b64302 pkg/kafka/config/types.go: a consumer without group-id uses default-group-id)",
+    "topic": "ecommerce-catalog-service-api@7cecb3e1131dbd5199ce25e9cf101d75d3365171 pkg/events/topics.go (catalog.product.events); consumers of it in values/ecommerce-image-service.yaml and values/ecommerce-product-query-service.yaml",
+    "services": "one declared Service per deployed Go service; the mapping is the default-group-id of that service's values file"
+  },
+  "broker_id": "kafka:sokol111-local",
+  "environment": "local",
+  "topic": "catalog.product.events",
+  "capture_allow_list": [
+    "ecommerce-catalog-service",
+    "ecommerce-category-query-service",
+    "ecommerce-image-service",
+    "ecommerce-product-query-service"
+  ],
+  "c1": {
+    "note": "all deployed consumers attached",
+    "with_mapping": {
+      "catalog.product.events": {
+        "rows": [
+          {"group_id": "ecommerce-image-service", "outcome": "RESOLVED", "service": "ecommerce-image-service"},
+          {"group_id": "ecommerce-product-query-service", "outcome": "RESOLVED", "service": "ecommerce-product-query-service"}
+        ],
+        "limitations": ["CAPTURE_SCOPE_LIMITED"],
+        "never_named": ["ecommerce-catalog-service", "ecommerce-category-query-service"]
+      }
+    }
+  },
+  "c2": {
+    "note": "after the Image service is stopped: its group is broker-reported Empty with committed offsets and no member",
+    "group_states": {
+      "ecommerce-image-service": "Empty",
+      "ecommerce-product-query-service": "Stable"
+    },
+    "with_mapping": {
+      "catalog.product.events": {
+        "rows": [
+          {"group_id": "ecommerce-product-query-service", "outcome": "RESOLVED", "service": "ecommerce-product-query-service"}
+        ],
+        "limitations": ["CAPTURE_SCOPE_LIMITED"],
+        "never_named": ["ecommerce-catalog-service", "ecommerce-category-query-service", "ecommerce-image-service"]
+      }
+    }
+  }
+}

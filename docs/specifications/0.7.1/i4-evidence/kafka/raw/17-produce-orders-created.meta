@@ -1,0 +1,3 @@
+utc: 2026-10-19T06:21:47Z
+command: bash -c python3 <ecommerce-system checkout>/script/test/gen_kafka_payloads.py 6 | docker exec -i ecommerce-kafka kafka-console-producer --bootstrap-server kafka:29092 --topic orders.created
+exit_code: 0
