@@ -257,8 +257,9 @@ evidence set, promise set, and assessment rule.
 
 For each binding, Assessment gives one status:
 
-- **promised and observed:** a confirmed promise exists, and qualified evidence that covers the
-  binding agrees with it;
+- **promised and observed:** a confirmed promise exists, and Current State evidence of a kind that
+  establishes the binding in this context agrees with it. Declaration-only evidence never
+  satisfies "observed";
 - **promised, not observed:** a confirmed promise exists, but the evidence does not show the binding.
   Non-observation is not absence and not a failed promise;
 - **contradicted:** qualified evidence contradicts an applicable promise, under an explicit
@@ -529,9 +530,9 @@ change. **Avoidable coordination** is a contact whose answer existed but could n
 the available sources. Either hypothesis can fail, and either failure falsifies the position.
 
 Validation needs a **target customer**: a real organisation with several teams that use each other's
-capabilities. Public repositories cannot show the gap, because a binding that can be found in public
-source is source-sufficient by construction. A demonstration on a public system shows that AIP can
-produce the binding picture; it is not proof of product value.
+capabilities. A public system cannot validate owner effort or coordination cost, and source
+visibility alone does not establish the binding picture. A demonstration on a public system shows
+that AIP can produce the binding picture; it is not proof of product value.
 
 The evaluation must permit a negative result. Valid outcomes are **continue**, **narrow**,
 **integrate**, **defer**, or **stop**.

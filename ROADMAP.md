@@ -744,9 +744,11 @@ v0.8 also adds schema field descriptions for `destination_id` and `broker_id` on
   model, but the showcase does not exercise them.
 - **Promise coverage:** a binding whose participant has no catalog entry is unresolved on the promise
   side, never "observed, not promised".
-- **Evidence:** broker consumer-group state establishes, per cluster and at capture time, which
-  consumer groups subscribe to which topics, their consumption position and lag, and whether consumers
-  are attached. It does not establish which event types a consumer handles or how it processes them.
+- **Evidence:** AIP's broker consumer-group capture establishes, per cluster and at capture time,
+  each group's state and its attached members with their topic assignments. It does not establish
+  consumption position or lag, which event types a consumer handles, or how it processes them. A
+  Service-level binding also needs the attributable consumer-group → Service mapping (as in
+  v0.7.1); without that mapping the binding stays unresolved.
   The new capture after the migration establishes the same, and nothing more. The catalog never
   closes a gap in Current State. The v0.8 specification defines the evidence and coverage that each
   status requires.
