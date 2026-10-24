@@ -6,17 +6,15 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-10-11_
+_Last reviewed: 2026-10-24_
 
 ## AIP anchor
 
-AIP's strategic hierarchy is:
+AIP's customer value proposition and product position are defined in the
+[product doctrine](product-doctrine-and-strategic-direction.md); this landscape does not restate
+them. The strategic hierarchy below the value proposition is:
 
 ```text
-Customer value proposition
-Help coding agents work across multi-service systems
-without reconstructing architecture
-        ↓
 Product concept
 Moldable Architecture Knowledge
         ↓
@@ -288,7 +286,7 @@ one component promised something to another.
 
 **AIP stance**
 
-Semantic and design foundation, not a product competitor or implementation model. AIP should preserve
+Semantic and design foundation, not a product competitor. AIP should preserve
 the useful Promise-Theory distinctions around autonomy, relationships, feedback, and explicit
 promises while adding its own evidence applicability, identity reconciliation, qualification,
 provenance, bounded uncertainty, locality, and deterministic projection semantics.
@@ -325,7 +323,7 @@ evidence / change
 Architecture(t2)
 ```
 
-This is a natural theoretical reference for future **Architecture Trajectories**, but not a reason to expand v0.4 scope.
+This is a natural theoretical reference for future **Architecture Trajectories**.
 
 ### Mark Burgess — SSTorytime and Context Investment
 
@@ -364,8 +362,10 @@ AIP cannot defer all relation semantics until later. Public architecture answers
 qualified meanings. Kubernetes selection, an observed OpenTelemetry call, an OpenAPI operation, and
 an ADR constraint must not collapse into an undifferentiated `A -> B`.
 
-SSTorytime is therefore most useful as an interoperability and contextual-projection reference, not
-as a replacement for AIP's Canonical Model or as additional v0.5 scope.
+SSTorytime's four relation families can inform the organising relation basis of AIP's model. AIP
+keeps typed, qualified meanings inside each family, and its Canonical Model stays; the families
+organise it rather than replace it. SSTorytime is also an interoperability and contextual-projection
+reference.
 
 ### Mark Burgess — The Failure of Knowledge Management
 
@@ -714,7 +714,7 @@ For AIP, the base document, transformation, and effective result need distinct i
 provenance, validation disposition, and applicability. An environment-specific result can inform
 **v0.6 locality/context** only where its environment binding is evidenced. It can supply
 **declared/configured API evidence** relevant to v0.7, but cannot establish deployed exposure,
-consumer-attributed usage, or runtime observation. An Overlay may be a **v0.8 Intent carrier**
+consumer-attributed usage, or runtime observation. An Overlay may be a **carrier of Intent (promises)**
 only where explicit assertions and their authority, scope, and effective interval are independently
 established. Greis describes an APIOps validation workflow, not proof of those AIP semantics or
 a reason to add an Overlay feature to the current roadmap.
@@ -757,8 +757,8 @@ connected graph != evidence-qualified architectural answer
 
 This strengthens the rationale and validation criteria for the existing v0.7 slice; it does not
 warrant a new release, a comprehensive API inventory, automatic ownership/capability inference, or
-gateway-specific canonical terminology. Explicit architectural Intent remains independently
-established in v0.8 and Current↔Intent assessment in v0.9. The research source is not semantic
+gateway-specific canonical terminology. Explicit architectural Intent and Current↔Intent
+assessment remain independently established, separate semantic paths. The research source is not semantic
 authority for AIP; qualification against real, independently authored evidence is still required.
 
 ### Daniel Kocot — API Product as a Distinct Semantic Layer
@@ -842,7 +842,7 @@ declared connectivity != operation-level CALLS != observed interaction
 ```
 
 Preserve original model identity and native meaning before proposing a canonical extension.
-CALM patterns/controls may also inform v0.8 structural Intent, but authoring a constraint
+CALM patterns/controls may also inform future structural Intent, but authoring a constraint
 does not independently establish its authority, applicability, or satisfaction. The experiment
 is a **research finding**, not a commitment to a general CALM adapter.
 
@@ -942,7 +942,7 @@ AIP must earn its place where evidence crosses autonomous boundaries and source 
 sufficient on their own: runtime communication, broker-mediated relationships, gateway exposure,
 deployment/configuration evidence, and cross-source reconciliation.
 
-This directly supports the existing v0.8 product-boundary validation. The test must remain fair:
+This is relevant to AIP's product-boundary validation. The test must remain fair:
 if Teamscale at realistic scope produces the same useful investigation boundary at lower maintenance
 cost, AIP adds too little and should narrow or stop. No Teamscale-specific semantic model belongs in
 AIP.
@@ -1512,9 +1512,9 @@ automatically make the decision or its inputs authoritative Architecture Knowled
 **AIP stance**
 
 External systems own agent evaluation, decision routing, organizational policy, approval,
-execution, and decision records. AIP remains read-only and advisory. The paper supports existing
-v0.8 Intent and v0.9 Assessment boundaries and the unscheduled Decision History linkage candidate,
-without adding a pre-v1.0 capability or release gate.
+execution, and decision records. AIP remains read-only and advisory. The paper supports the separate
+Intent and Assessment boundaries and the unscheduled Decision History linkage candidate, without
+adding a pre-v1.0 capability or release gate.
 
 ### Michael Smith — Line of Sight: AI and Architecture
 
@@ -2832,7 +2832,7 @@ lossless import of each metamodel.
 This is a bundled post-v0.5 research direction, not four immediate adapters and not a roadmap
 commitment.
 
-A future v0.8 mapping must additionally distinguish **an authored decision**, its **rationale**
+A future Intent mapping must additionally distinguish **an authored decision**, its **rationale**
 and any **normative assertion** it contains. An ADR does not make every descriptive sentence a
 requirement; the source carrier itself does not establish organizational authority. Current
 State remains independent of amendments to Intent.
@@ -2853,7 +2853,7 @@ behavior; these are suggestions, **not a validated AIP metric or debt score**.
 
 **Why this matters to AIP**
 
-AIP's evidence-qualified Current State and planned v0.8 explicit Intent/v0.9 Assessment
+AIP's evidence-qualified Current State, explicit Intent and Assessment
 address distinct architectural information needs. A source-bound decision rationale is not
 automatically a binding Intent assertion, and a document's existence does not mean a team
 understands it. AIP could inform a bounded *intent-versus-evidence* audit and supply context
@@ -2876,7 +2876,7 @@ obsolete.
 
 **Why this matters to AIP**
 
-This strongly supports the future v0.8 Intent boundary and the unscheduled Decision History
+This strongly supports the Intent boundary and the unscheduled Decision History
 candidate. AIP may eventually consume explicit, attributable decisions and their rationale as
 source-bound evidence, then relate applicable Intent to qualified Current State.
 
@@ -2965,7 +2965,7 @@ AIP can supply independently qualified interface, dependency, identity, and depl
 evidence as *inputs* to an autonomy inquiry. A dependency arrow, however, neither proves
 coordinated releases nor independently deployable services; team boundaries, testing
 arrangements, change history, and coordination requirements require other evidence.
-Potentially useful v0.9 research and downstream product-value validation, not an automatic
+Potentially useful Intent research and downstream product-value validation, not an automatic
 `LOOSELY_COUPLED` claim or a roadmap change.
 
 ### Mneme HQ
@@ -3308,7 +3308,7 @@ it does not guarantee that the review agent's judgment is correct.
 AIP supplies architectural knowledge, not a PR reviewer, policy-enforcement engine, or merge gate.
 Deterministic checks, review findings, acceptance decisions, and reviewer confidence remain
 external and do not automatically become canonical architectural facts. The paper supports a
-workflow-value pilot, not another capability release or expansion of v0.6–v0.9.
+workflow-value pilot, not another capability release or a scope expansion.
 
 ### Rush Shahani — Building Reliable AI Systems
 
@@ -3626,9 +3626,9 @@ knowledge dependencies and coordination as delivery bottlenecks. Cockcroft et al
 persistent, attributable context as part of the substrate beneath agent decisions.
 
 These are complementary external perspectives, not proof that one product must provide
-all engineering context. AIP's deliberately bounded contribution is:
-
-> **Help coding agents work across multi-service systems without reconstructing architecture.**
+all engineering context. AIP's own value proposition and position are defined in the
+[product doctrine](product-doctrine-and-strategic-direction.md); this landscape does not restate
+them.
 
 Code and search results are source material; they are not themselves qualified architectural
 answers. AIP establishes evidence-qualified Architecture Knowledge once and makes recurring,
@@ -3643,7 +3643,7 @@ not repeated inference from code and fragmented sources
                           │
                           ▼
 CUSTOMER VALUE
-Work across multi-service systems without reconstructing architecture
+defined in the product doctrine
                           │
                           ▼
 PRODUCT CONCEPT
@@ -3720,8 +3720,7 @@ Four durable principles follow:
 4. **An agent may reason over architecture, but must not become its source or approval authority.**
 
 **Roadmap impact:** This strengthens the existing product proposition and validation wedge;
-it does not add scope or reorder v0.6 Locality, v0.7 API-Aware Current State, v0.8 Intent, or
-v0.9 Assessment. AIP is not a general context repository, PR reviewer, CDI platform, or
+it does not add scope or reorder the roadmap. AIP is not a general context repository, PR reviewer, CDI platform, or
 organizational governance engine.
 
 ---
