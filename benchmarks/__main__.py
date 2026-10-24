@@ -65,7 +65,7 @@ def _run(*, profile: str, candidate_sha: str | None, dirty_worktree: bool | None
         resolved_dirty = True  # fail safe: unknown worktree state is treated as dirty
 
     with Neo4jContainer(
-        "neo4j:5.26.31@sha256:5eb12ad77fa46ab73e23df9ea1f43f5c0f2a79523435577648e046be042b9b93"
+        "neo4j:5.26.32@sha256:f1e52d4dc6da122468c4a3c1050a4f5e117f6d3268625237c34d49166f0d6082"
     ) as container:
         driver = container.get_driver()
         try:
