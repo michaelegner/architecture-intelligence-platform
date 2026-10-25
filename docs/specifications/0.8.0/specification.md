@@ -67,10 +67,12 @@ this specification before any assessment runs:
 1. **Domains** are the documented lifecycle groups: Store Provisioning ("Launch a store": Tenant),
    Catalog Management ("Manage products": Catalog, Image), Storefront ("Shop": Product Query,
    Category Query). Owners are illustrative team names.
-2. An arrow yields an entry **only if it names both a service endpoint and an event** (a type or a
-   family). Arrows that name no event (for example `broker -->|build projections| readModels`) yield
-   no entry.
-3. An arrow from a service to the broker yields a `sends` entry; an arrow from the broker to a
+2. A diagram node that names several services (for example "Product and Category Query Services")
+   yields one **service entry** for each named service.
+3. An arrow yields a `sends` or `receives` entry **only if it names both a service endpoint and an
+   event** (a type or a family). Arrows that name no event (for example
+   `broker -->|build projections| readModels`) yield no entry, for any service of the node.
+4. An arrow from a service to the broker yields a `sends` entry; an arrow from the broker to a
    service yields a `receives` entry.
 
 Document labels resolve through this fixed lookup; the script interprets nothing else:
@@ -152,7 +154,7 @@ here" by the report-level comparison (§5); that is not a detachment claim beyon
 
 | Consumer × Topic | Redpanda (`kafka:sokol111-local`) | Kafka (`kafka:sokol111-kafka`) |
 |---|---|---|
-| Image × `catalog.product.events` | promised, not observed (group Empty) | promised and observed |
+| Image × `catalog.product.events` | promised, not observed (zero live attachment: `Empty` or `Dead`) | promised and observed |
 | Product Query × `catalog.product.events` | promised and observed (fed by flow B) | outside scope |
 | Catalog × `tenant.tenant.events` | no live attachment here | observed, undeclared (fed by flow A) |
 | Image × `tenant.tenant.events` | no live attachment here | observed, undeclared (fed by flow A) |
@@ -185,27 +187,36 @@ The report reads them as an authored, disclosed declaration; AIP does not ingest
 
 Three kinds of check are never conflated:
 
-- *replication caught up:* the broker tool shows equal end offsets for a topic on both clusters;
+- *replication caught up:* for every source partition of the topic, the mirror's committed source
+  position (MM2 source offsets for that partition) equals the source end offset. This is source-side
+  replication progress. It never compares end offsets across clusters: flow B writes into Redpanda
+  topics that already hold history, and offsets on the two clusters do not share one coordinate
+  system;
 - *consumer caught up:* the broker tool shows lag 0 for a named group on a named topic;
 - *application behaviour verified:* the functional test (§4.4) passes.
 
 | Step | Action | Precondition to continue |
 |---|---|---|
 | 1 | Kafka up; `catalog.*` topics created empty on Kafka; flows A and B configured, both stopped | allow-lists disjoint |
-| 2 | Start flow A (tenant, Redpanda → Kafka) with checkpoints and group-offset sync for `ecommerce-catalog-service` and `ecommerce-image-service` | *replication caught up* on `tenant.tenant.events` |
+| 2 | Start flow A (tenant, Redpanda → Kafka) with `emit.checkpoints.enabled` and `sync.group.offsets.enabled` set explicitly (the latter is off by default) for `ecommerce-catalog-service` and `ecommerce-image-service` | *replication caught up* on `tenant.tenant.events` |
 | 3 | Stop Catalog | *consumer caught up* for Image on `catalog.product.events` |
-| 4 | Stop Image | Catalog and Image groups on Redpanda are Empty |
+| 4 | Stop Image | Catalog and Image groups on Redpanda report zero live attachment (`Empty` or `Dead`) |
 | 5 | Drain | *consumer caught up* for the **remaining** Redpanda consumers only: Product Query (`catalog.product.events`, `catalog.attribute.events`), Category Query (`catalog.category.events`, `catalog.attribute.events`) |
-| 6 | Offset hand-off: wait until MM2 has synced translated tenant-topic offsets for the two moved groups to Kafka; compare each with the source committed offset and the Kafka end offset | a translated offset exists for both groups; otherwise stop |
+| 6 | Offset hand-off, per group and partition of `tenant.tenant.events`: read (a) the final committed offset on Redpanda; (b) the latest MM2 checkpoint for that group and partition; (c) the committed offset installed on Kafka | the checkpoint's upstream offset equals (a), and (c) equals the checkpoint's downstream offset. Otherwise wait for the next sync; stop if (c) is missing or differs from the checkpoint |
 | 7 | Start flow B (`catalog.*`, Kafka → Redpanda) | — |
 | 8 | Start Catalog and Image on Kafka (Helm values point to the Kafka bootstrap) | both groups Stable on Kafka |
 | 9 | Restart checks | *replication caught up* on flow B after new traffic; *consumer caught up* for Product Query and Category Query on Redpanda and for Catalog and Image on Kafka; AIP captures both brokers; *application behaviour verified* |
 
-- **Offsets:** MM2 offset translation can lag or be lossy, so a translated offset can be lower than
-  the true position. Tenant events may then be **reprocessed**. Sokol111's reset policy is
-  `earliest`, so without a translated offset all tenant events would replay; step 6 stops in that
-  case. The spec states the duplicate-processing assumption; it does not prove idempotence. The
-  functional test checks that reprocessing causes no error.
+- **Offsets:** step 6 compares positions only inside one coordinate system: Redpanda offsets with
+  the checkpoint's upstream offset, Kafka offsets with the checkpoint's downstream offset. MM2
+  translation rounds down to the last offset-sync point, so the installed offset can be lower than
+  the exact position. **Accepted replay bound:** the records between the installed Kafka offset and
+  the next offset-sync point (at most the configured `offset.lag.max` records per partition); these
+  tenant events may be **reprocessed**. An installed offset that differs from the checkpoint could
+  skip records; step 6 stops on it. Sokol111's reset policy is `earliest`, so a missing installed
+  offset would replay all tenant events; step 6 stops on that too. The spec states the
+  duplicate-processing assumption; it does not prove idempotence. The functional test checks that
+  reprocessing causes no error.
 - **No duplicate `catalog.*` records:** the Kafka topics start empty, the producers are stopped
   before flow B starts, and the Redpanda history is drained first.
 - **No lossless or exactly-once claim.** Rollback is an environment reset and a new run, not a
@@ -214,10 +225,11 @@ Three kinds of check are never conflated:
 ### 4.3 Two-broker capture rules
 
 - The **Redpanda** registration keeps the same allow-list before and after the wave (Catalog, Image,
-  Product Query, Category Query). The wave is therefore not a scope change. After the wave, Catalog
-  and Image are expected to be `Empty` (committed offsets retained). If a group cannot be described,
-  the capture is incomplete (`KAFKA_CAPTURE_INCOMPLETE`): stop, and never record a detachment that
-  was not read. A deliberate scope change would be a configuration change, never evidence of
+  Product Query, Category Query). The wave is therefore not a scope change. After the wave, the
+  expectation for Catalog and Image follows the qualified broker reading: `Empty` or a
+  broker-reported `Dead` both mean zero live attachment ([v0.7.1 I1 contract §4](../0.7.1/i1-kafka-source-contract.md)).
+  If a group cannot be described, the capture is incomplete (`KAFKA_CAPTURE_INCOMPLETE`): stop, and
+  never turn an acquisition failure into a detachment claim. A deliberate scope change would be a configuration change, never evidence of
   detachment ([v0.7.1 I1 contract §5](../0.7.1/i1-kafka-source-contract.md)).
 - The **Kafka** registration has its own broker id, the allow-list {Catalog, Image} and its own
   group → Service mapping. MirrorMaker 2's internal groups are outside both scopes.
@@ -288,7 +300,7 @@ The report is not a visualisation product.
 - **Outcome:** promise record, per-binding assessment, crossing-binding projection across two
   brokers, the experimental tool, the field descriptions.
 - **Acceptance:** on C1 the projection reproduces §3.5 exactly; on a two-broker fixture it applies
-  §4.3 (separate Topic ids, Empty groups as zero live attachment, an incomplete capture rejected,
+  §4.3 (separate Topic ids, `Empty` or `Dead` groups as zero live attachment, an incomplete capture rejected,
   no merged Topics); the existing six tools are byte-identical except the two descriptions.
 
 ### I3 — Two-broker environment and live captures
@@ -296,10 +308,11 @@ The report is not a visualisation product.
 - **Outcome:** Sokol111 local environment with Redpanda and Apache Kafka (KRaft), MM2 flows A and B,
   AIP captures and broker-tool ground truth before and after a scripted cut-over, the functional
   test.
-- **Acceptance:** the §4.2 protocol runs end to end; the captures meet §4.3 and reproduce §3.6;
-  every check of §4.4 is recorded. Runs are staged with checkpoints.
+- **Acceptance:** the §4.2 protocol runs end to end; replication progress is recorded as source-side
+  positions per partition, and the offset hand-off as (a), checkpoint and (c) per group and partition;
+  the captures meet §4.3 and reproduce §3.6; every check of §4.4 is recorded. Runs are staged with checkpoints.
 - **Risks to resolve:** MM2 group-offset sync with Redpanda as source; whether Redpanda keeps the
-  Empty groups describable after the wave; the k3d host adaptations from v0.7.2 I2.
+  moved groups describable (`Empty` or reported `Dead`) after the wave; the k3d host adaptations from v0.7.2 I2.
 
 ### I4 — Agent run, report and release
 
@@ -327,6 +340,6 @@ and ask. Never fake a result.
 | D1 | Undocumented but observed bindings are unresolved on the promise side ("observed, undeclared") | owner, 2026-10-25 |
 | D2 | Migration target is Apache Kafka (KRaft); source stays Redpanda; MirrorMaker 2 bridges | owner, 2026-10-25 |
 | D3 | Topic identity comes from a topic-only AsyncAPI inventory; EventCatalog carries promises only | owner, 2026-10-25 |
-| D4 | Strict generation rule: an arrow yields an entry only if it names a service and an event (§3.1); the "Product and Category Query" node is not expanded | owner, 2026-10-25 |
+| D4 | Strict generation rule (§3.1): a combined node yields one service entry per named service, but an arrow yields `sends`/`receives` entries only if it names a service and an event; the unlabelled arrow to "Product and Category Query Services" yields none | owner, 2026-10-25 |
 | D5 | No Context Map pattern classification | [#635](https://github.com/michaelegner/architecture-intelligence-platform/pull/635) review |
 | D6 | Before/after comparison is report-level only | owner plan review, 2026-10-25 |
