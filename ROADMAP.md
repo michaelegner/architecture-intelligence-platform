@@ -700,27 +700,30 @@ modernisation and enterprise architects) and to find a target customer for furth
 
 **Demonstration question:**
 
-> **Can AIP show, on a realistic system, which promised and observed event bindings cross an
-> independently established Bounded Context boundary, and what the evidence shows about each one, so
-> that a coding agent can plan and carry out a cross-boundary change whose result AIP independently
-> re-establishes?**
+> **Can AIP make the consequences of a cross-boundary migration visible and actionable: which
+> bindings cross the boundary of the context that moves, which of them are declared, what the
+> evidence establishes, and how a coding agent uses that picture to plan and carry out the move?**
 
-**Scenario:** Sokol111, the hosted product-validation system since v0.7.2. An EventCatalog authored
-for the showcase declares the Bounded Contexts, their owners, and the events each service sends and
-receives. AIP assesses each binding against qualified broker evidence and projects the bindings that
-cross a selected boundary. The change is a broker migration in waves: a
-coding agent plans and carries out the move of one Bounded Context with AIP's view, and AIP then
-captures again and shows the resulting state with evidence. The detailed scope, the proofs and the run
-stages belong in the v0.8 specification.
+**Scenario:** Sokol111, the hosted product-validation system since v0.7.2. The showcase is built
+around **one concrete challenge** from real artifacts: Sokol111's documented architecture says that
+Catalog Management only publishes to Storefront, but the frozen broker evidence shows that Catalog
+and Image also consume tenant events from Store Provisioning, and that the storefront also consumes
+attribute events. None of these bindings is documented. The change is **one precisely bounded
+migration wave**: Catalog Management (Catalog and Image) moves from Redpanda to Apache Kafka, bridged
+by MirrorMaker 2. A coding agent plans and carries out the wave with AIP's view; AIP then captures
+both brokers again. The EventCatalog is **generated from Sokol111's documented architecture by a
+fixed, disclosed rule**, so declared and established bindings are allowed to differ. The detailed
+scope, the cut-over protocol, the proofs and the run stages are in the
+[v0.8 specification](docs/specifications/0.8.0/specification.md).
 
 v0.8 also adds schema field descriptions for `destination_id` and `broker_id` on
 `get_destination_consumers`. New tool fields get descriptions of the same kind from the start.
 
 **Exit capability:**
 
-> **On Sokol111, a coding agent plans the migration of one Bounded Context from AIP's view of the
-> crossing bindings and carries it out, and AIP's new capture shows the resulting state with
-> evidence.**
+> **On Sokol111, a CTO or an enterprise architect can follow one coherent demonstration of the
+> binding picture: before the wave, the insight (declared compared with established), the coding
+> agent's plan built on it, and the binding picture after the wave on both brokers.**
 
 **Release rules for this demonstration release:**
 
@@ -742,8 +745,9 @@ v0.8 also adds schema field descriptions for `destination_id` and `broker_id` on
   names as owner, for the environment of the frozen evidence. This confirmation is a disclosed
   demonstration assumption, not an owner's act. The candidate and declined states are part of the
   model, but the showcase does not exercise them.
-- **Promise coverage:** a binding whose participant has no catalog entry is unresolved on the promise
-  side, never "observed, not promised".
+- **Promise coverage:** the documented architecture is not complete promise coverage. A binding with
+  no catalog entry is unresolved on the promise side ("observed, undeclared"), never "observed, not
+  promised".
 - **Evidence:** AIP's broker consumer-group capture establishes, per cluster and at capture time,
   each group's state and its attached members with their topic assignments. It does not establish
   consumption position or lag, which event types a consumer handles, or how it processes them. A
