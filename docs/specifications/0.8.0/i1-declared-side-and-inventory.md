@@ -274,9 +274,10 @@ byte-identical files.
   - the lookup.
 
   Each item carries its file path and the catalog digest as provenance. The source revision is
-  `catalog-sha256:<catalog digest>+lookup-sha256:<lookup digest>`. The lookup digest is SHA-256
-  over the exact bytes of the lookup file ([I2](i2-assessment-projection-and-tool.md) D12; Draft 0.1
-  had the catalog digest only).
+  `catalog-sha256:<catalog digest>`. This is the I1 loader contract as shipped. I2a changes it to
+  `catalog-sha256:<catalog digest>+lookup-sha256:<lookup digest>`, where the lookup digest is SHA-256
+  over the exact bytes of the lookup file ([I2](i2-assessment-projection-and-tool.md) D12). From I2a
+  on, that form is the replay identity and the provenance of the catalog source.
 - **Persistence.** I1 persists nothing to the graph. The promise record, and how promises and
   Bounded Context membership are stored, belong to I2.
 - **Pipeline.** I2 wires the registration into the import ([I2 §2](i2-assessment-projection-and-tool.md#2-promise-record)). In I1 the loader is a function, tested on its own. I1 does not wire the

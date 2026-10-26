@@ -1,6 +1,6 @@
 # AIP v0.8 I2: Assessment, Projection and Tool
 
-**Status:** Draft 0.1 (2026-10-26)  
+**Status:** Draft 0.2 (2026-10-26; review on #641: candidate enumeration, R3 before R7, optional `topic_id`, delivery limitation from the evidence chain)  
 **Governs:** [v0.8 specification](specification.md) §3.2–§3.6, §4.3, §5 and §7 I2, as amended by D9–D12 (§11).  
 **Baseline:** `main` at `08da0b7` (I1 complete: [completion record](i1-completion-record.md), [handoff](i1-i2-handoff.md)).  
 **Hands off to:** I3 (two-broker environment and live captures).
@@ -93,31 +93,41 @@ declared evidence only.
 
 **Unit:** one row per consumer Service × Topic × broker, in the environment of the request.
 
-**Resolution chain** (parent §3.4), for each `RECEIVES` promise of Service S for event E:
-1. Look up E's topic in the lookup.
-2. For each broker B in the request: find the inventory Topic id of that topic on B (I1 §6). If
-   none exists, the row is `UNRESOLVED` / `TOPIC_NOT_DECLARED`.
-3. Resolve S to a declared Service with `decide_service_identity`, using the same candidate rule as
+**Candidates.** The rows come from the union of two inputs, for each broker B in the request that
+has an accepted complete capture:
+- **promise candidates:** each `RECEIVES` promise of Service S for event E, resolved along the
+  chain below;
+- **attachment candidates:** each live attachment on B (the v0.7.1 attribution rows of that
+  capture), whether or not a promise exists. R4 and R6 rows come from these.
+
+A promise candidate and an attachment candidate for the same S × Topic × B are one row.
+
+**Resolution chain** (parent §3.4), for a promise candidate:
+1. **Scope first.** If B has no accepted complete capture, or S is not in scope on B (below), the
+   candidate gives no row (R3). The remaining steps do not run, so a missing Topic never creates an
+   assessed row on an unobserved broker.
+2. Look up E's topic in the lookup.
+3. Find the inventory Topic id of that topic on B (I1 §6). If none exists, the row is R7.
+4. Resolve S to a declared Service with `decide_service_identity`, using the same candidate rule as
    the v0.7.1 mapping guard. If that fails, the row is `UNRESOLVED` / the guard's reason.
-4. Match the attachment on B: the v0.7.1 attribution row for that Topic whose `service_id` is S.
+5. Match the attachment on B: the v0.7.1 attribution row for that Topic whose `service_id` is S.
 
 **Capture scope.** S is in scope on B when an accepted complete capture of B allow-lists a group
 whose accepted mapping entry for B resolves to S (v0.7.1 I2 §6, per entry). Scope uses the mapping
 entries, not the attribution rows, because a group with no live attachment (`Empty`, `Dead`) has no
-attribution row. A row for a broker where S is not in scope is not assessed,
-and the answer has no row for it.
+attribution row.
 
-**Status rule.** The closed status enum is D10.
+**Status rule.** The closed status enum is D10. The rules apply in this order; R3 comes before R7.
 
-| # | Promise (`RECEIVES`, resolved to this Topic) | Evidence on B | Row |
+| # | Promise (`RECEIVES`, resolved to this topic) | Evidence on B | Row |
 |---|---|---|---|
+| R3 | yes | no accepted complete capture of B, or S not in scope on B | no row |
+| R7 | yes | S in scope; the inventory has no Topic for that topic on B | `UNRESOLVED` / `TOPIC_NOT_DECLARED`, with no `topic_id` (§6) |
 | R1 | yes | live attachment, attribution `RESOLVED` to S | `PROMISED_AND_OBSERVED` |
 | R2 | yes | S in scope; its group has no live attachment to this Topic (`Empty`, broker-reported `Dead`, or `Stable` without this Topic) | `PROMISED_NOT_OBSERVED` |
-| R3 | yes | S not in scope on B, or no accepted capture of B | no row |
 | R4 | no | live attachment, attribution `RESOLVED` to S | `UNRESOLVED` / `PROMISE_COVERAGE_MISSING` ("observed, undeclared") |
 | R5 | no | no live attachment | no row |
 | R6 | any | live attachment whose attribution is not `RESOLVED` | `UNRESOLVED` / the attribution reason (`NO_MAPPING`, `SERVICE_NOT_DECLARED`, …). The row names the group, not a Service, and its crossing is `UNRESOLVED` |
-| R7 | yes | the inventory has no Topic for that topic on B | `UNRESOLVED` / `TOPIC_NOT_DECLARED` |
 
 **Notes:**
 - `PROMISED_NOT_OBSERVED` needs an accepted complete capture of B. An absent, rejected or
@@ -178,13 +188,15 @@ Several captures are never collapsed into one T.
 **Row:**
 
 ```text
-broker_id, topic_id, topic_name          # broker-scoped Topic id; never merged
+broker_id, topic_name                     # the topic name; for R7 the only topic field
+topic_id?                                 # broker-scoped Topic id; never merged; absent only for R7
 consumer_service_id?                      # absent for R6
 group_id?                                 # the attributed group (R1, R4, R6)
 crossing                                  # INBOUND | INSIDE | OUTBOUND | NONE | UNRESOLVED
 status, reason?                           # D10 enum + reason
 declared_event_types[]                    # declared only
-producers[]                               # {service_id, bounded_context_id, declared_event_types[]}
+producers[]                               # {service_id, bounded_context_id, broker_ids[], declared_event_types[]}
+cross_broker_producers                    # true when a producer used for `crossing` publishes on no Topic of this row's broker
 captured_at?                              # T of the capture of this broker (R1, R2, R4, R6)
 promise_evidence_refs[], attachment_evidence_refs[], mapping_evidence_refs[]
 ```
@@ -201,7 +213,7 @@ Rows are sorted by `broker_id`, `topic_name`, `consumer_service_id` (or `group_i
 | `CAPTURE_SCOPE_LIMITED` | limitation, always present | captures cover their allow-lists at their T only |
 | `PROMISES_ASSUMED_CONFIRMED` | limitation, always present | parent §2 disclosure |
 | `PRODUCER_SIDE_DECLARED_ONLY`, `EVENT_HANDLING_NOT_ESTABLISHED` | limitation, always present | §3 |
-| `CROSS_BROKER_DELIVERY_NOT_ESTABLISHED` | limitation, present when more than one broker is in scope | §3 |
+| `CROSS_BROKER_DELIVERY_NOT_ESTABLISHED` | limitation, present when any row has `cross_broker_producers: true`, whatever brokers were requested | §3 |
 | `MORE_ROWS_AVAILABLE`, `EVIDENCE_REF_NOT_RESOLVED` | limitation | as v0.7.1 |
 
 **Evidence mode.** As v0.7.1 I3 §4: opaque refs bound to the snapshot and the query context, 1–20
@@ -292,12 +304,16 @@ The fixture is hand-authored in `i2-vectors/` before any implementation (I2b):
 
 - The Redpanda Product Query row stays `OUTBOUND` after the wave because the producers of
   `catalog.product.events` (now on Kafka) are in `catalog-management` (D9). The row says nothing
-  about delivery; `CROSS_BROKER_DELIVERY_NOT_ESTABLISHED` is present.
+  about delivery: it has `cross_broker_producers: true`, and `CROSS_BROKER_DELIVERY_NOT_ESTABLISHED` is
+  present. A request for Redpanda alone gives the same row and the same limitation.
 - The same topic name on the two brokers gives two Topic ids, and the rows never merge them.
 
 **Fixture variants:**
 - A Redpanda capture with `complete: false` is rejected at import. The prior state stays, and no
   `PROMISED_NOT_OBSERVED` comes from it.
+- **R7:** the Kafka inventory without `catalog.product.events`, with the same Kafka capture, gives
+  the Image row on Kafka as `UNRESOLVED` / `TOPIC_NOT_DECLARED` with no `topic_id`. The same change
+  with no accepted Kafka capture gives no Kafka row (R3 before R7).
 - A request for both brokers when only Redpanda has an accepted capture gives the Redpanda rows and
   the limitation `NO_ACCEPTED_CAPTURE` for Kafka.
 
@@ -314,7 +330,7 @@ The fixture is hand-authored in `i2-vectors/` before any implementation (I2b):
 | B7 | Flag `false`: `tools/list` and all six tools' answers are byte-identical, apart from the B8 strings. Flag `true`: seven tools, over the real negotiated MCP transport, with the advertised schema validating every answer | integration |
 | B8 | `get_destination_consumers` differs only by the two descriptions | unit (schema) |
 | B9 | Evidence mode: minted refs resolve, forged and cross-context refs do not, and no member text is returned | integration |
-| B10 | No field states delivery. `CROSS_BROKER_DELIVERY_NOT_ESTABLISHED` is present whenever more than one broker is in scope | unit |
+| B10 | No field states delivery. `CROSS_BROKER_DELIVERY_NOT_ESTABLISHED` is present exactly when a row has `cross_broker_producers: true`, including a single-broker request | unit |
 
 **Stop rule** (parent §7): if a check cannot pass as specified, record the attempt and ask.
 
