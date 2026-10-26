@@ -94,23 +94,39 @@ def declared_candidates(rows: Iterable[Mapping[str, Any]]) -> list[DeclaredServi
     ]
 
 
+def resolve_declared_service(
+    service_name: str,
+    service_namespace: str | None,
+    *,
+    candidates: Sequence[DeclaredServiceCandidate],
+    aliases: Mapping[str, str],
+) -> tuple[str | None, AttributionReason | None]:
+    """Contract §6: `(service_id, None)` only for an accepted decision on a *declared* Service, else
+    `(None, reason)`. An accepted observed-only decision is `SERVICE_NOT_DECLARED`: nothing a mapping
+    or a catalog names may introduce a Service that Current State did not declare (v0.8 I2b)."""
+    decision = decide_service_identity(
+        list(candidates),
+        service_name=service_name,
+        service_namespace=service_namespace,
+        aliases=dict(aliases),
+    )
+    if decision.accepted and decision.discovery_status == DiscoveryStatus.DECLARED:
+        return decision.service_id, None
+    if decision.accepted:
+        return None, AttributionReason.SERVICE_NOT_DECLARED
+    return None, _REASON_BY_REFUSAL[decision.refusal_reason]
+
+
 def resolve_entry(
     entry: KafkaServiceMappingEntry,
     *,
     candidates: Sequence[DeclaredServiceCandidate],
     aliases: Mapping[str, str],
 ) -> EntryReading:
-    decision = decide_service_identity(
-        list(candidates),
-        service_name=entry.service_name,
-        service_namespace=entry.service_namespace,
-        aliases=dict(aliases),
+    service_id, reason = resolve_declared_service(
+        entry.service_name, entry.service_namespace, candidates=candidates, aliases=aliases
     )
-    if decision.accepted and decision.discovery_status == DiscoveryStatus.DECLARED:
-        return EntryReading(entry.id, decision.service_id, None)
-    if decision.accepted:
-        return EntryReading(entry.id, None, AttributionReason.SERVICE_NOT_DECLARED)
-    return EntryReading(entry.id, None, _REASON_BY_REFUSAL[decision.refusal_reason])
+    return EntryReading(entry.id, service_id, reason)
 
 
 def _reconcile(

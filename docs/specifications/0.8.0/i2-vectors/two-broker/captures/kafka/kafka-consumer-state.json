@@ -1,0 +1,59 @@
+{
+  "broker_id": "kafka:sokol111-kafka",
+  "captured_at": "2026-10-27T10:00:00Z",
+  "complete": true,
+  "environment": "local",
+  "group_scope": [
+    "ecommerce-catalog-service",
+    "ecommerce-image-service"
+  ],
+  "groups": [
+    {
+      "group_id": "ecommerce-catalog-service",
+      "members": [
+        {
+          "assignments": [
+            {
+              "partitions": [
+                0
+              ],
+              "topic": "tenant.tenant.events"
+            }
+          ],
+          "client_id": "fixture",
+          "host": "fixture-host",
+          "member_id": "fixture-catalog-1"
+        }
+      ],
+      "state": "Stable"
+    },
+    {
+      "group_id": "ecommerce-image-service",
+      "members": [
+        {
+          "assignments": [
+            {
+              "partitions": [
+                0
+              ],
+              "topic": "catalog.product.events"
+            },
+            {
+              "partitions": [
+                0
+              ],
+              "topic": "tenant.tenant.events"
+            }
+          ],
+          "client_id": "fixture",
+          "host": "fixture-host",
+          "member_id": "fixture-image-1"
+        }
+      ],
+      "state": "Stable"
+    }
+  ],
+  "kafka_version": "not-established",
+  "schema": "aip-kafka-consumer-state/1",
+  "tool_version": "authored-fixture/1"
+}

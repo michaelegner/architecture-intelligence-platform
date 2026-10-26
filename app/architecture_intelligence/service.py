@@ -31,6 +31,19 @@ from app.architecture_intelligence.api_usage_projection import (
 from app.architecture_intelligence.api_usage_projection import (
     refusal_answer as api_usage_refusal_answer,
 )
+from app.architecture_intelligence.binding_picture_contracts import (
+    BindingPictureAnswer,
+    BindingPictureQueryRequest,
+)
+from app.architecture_intelligence.binding_picture_contracts import (
+    LimitationCode as BindingLimitationCode,
+)
+from app.architecture_intelligence.binding_picture_projection import (
+    project_binding_picture,
+)
+from app.architecture_intelligence.binding_picture_projection import (
+    refusal_answer as binding_refusal_answer,
+)
 from app.architecture_intelligence.broker_contracts import (
     BROKER_SCHEMA_VERSION,
     ArchitectureAnswerV06,
@@ -1087,6 +1100,18 @@ class ArchitectureIntelligenceService:
         return project_destination_consumers(
             request, state, snapshot=snapshot, producer=self._producer
         )
+
+    def get_binding_picture(self, request: BindingPictureQueryRequest) -> BindingPictureAnswer:
+        """v0.8 I2b - the experimental binding picture (I2 spec §4-§6): for one Bounded Context,
+        environment and broker set, each binding's crossing, status and evidence refs, projected
+        from one stable read of the canonical state. Read-only. Not yet on REST or MCP (I2c)."""
+        read = self._read_state_snapshot()
+        if read is None:
+            return binding_refusal_answer(
+                self._producer, None, BindingLimitationCode.SNAPSHOT_NOT_AVAILABLE
+            )
+        snapshot, state = read
+        return project_binding_picture(request, state, snapshot=snapshot, producer=self._producer)
 
     def get_destination_consumer_evidence(
         self, request: DestinationConsumersEvidenceRequest

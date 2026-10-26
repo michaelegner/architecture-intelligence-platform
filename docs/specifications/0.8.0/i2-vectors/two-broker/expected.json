@@ -1,0 +1,107 @@
+{
+  "authored": "2026-10-26, by hand from I2 spec \u00a78.2 (the parent \u00a73.6 table), before the I2b projection code",
+  "request": {
+    "bounded_context_id": "catalog-management",
+    "environment": "local",
+    "broker_ids": [
+      "kafka:sokol111-kafka",
+      "kafka:sokol111-local"
+    ]
+  },
+  "limitations": [
+    "CAPTURE_SCOPE_LIMITED",
+    "CROSS_BROKER_DELIVERY_NOT_ESTABLISHED",
+    "EVENT_HANDLING_NOT_ESTABLISHED",
+    "PRODUCER_SIDE_DECLARED_ONLY",
+    "PROMISES_ASSUMED_CONFIRMED"
+  ],
+  "rows": [
+    {
+      "broker_id": "kafka:sokol111-local",
+      "topic_name": "catalog.product.events",
+      "consumer_service_id": "service:ecommerce-image-service",
+      "crossing": "INSIDE",
+      "status": "PROMISED_NOT_OBSERVED",
+      "cross_broker_producers": true
+    },
+    {
+      "broker_id": "kafka:sokol111-kafka",
+      "topic_name": "catalog.product.events",
+      "consumer_service_id": "service:ecommerce-image-service",
+      "crossing": "INSIDE",
+      "status": "PROMISED_AND_OBSERVED",
+      "cross_broker_producers": false
+    },
+    {
+      "broker_id": "kafka:sokol111-local",
+      "topic_name": "catalog.product.events",
+      "consumer_service_id": "service:ecommerce-product-query-service",
+      "crossing": "OUTBOUND",
+      "status": "PROMISED_AND_OBSERVED",
+      "cross_broker_producers": true
+    },
+    {
+      "broker_id": "kafka:sokol111-kafka",
+      "topic_name": "tenant.tenant.events",
+      "consumer_service_id": "service:ecommerce-catalog-service",
+      "crossing": "INBOUND",
+      "status": "UNRESOLVED",
+      "cross_broker_producers": true,
+      "reason": "PROMISE_COVERAGE_MISSING"
+    },
+    {
+      "broker_id": "kafka:sokol111-kafka",
+      "topic_name": "tenant.tenant.events",
+      "consumer_service_id": "service:ecommerce-image-service",
+      "crossing": "INBOUND",
+      "status": "UNRESOLVED",
+      "cross_broker_producers": true,
+      "reason": "PROMISE_COVERAGE_MISSING"
+    },
+    {
+      "broker_id": "kafka:sokol111-local",
+      "topic_name": "catalog.category.events",
+      "consumer_service_id": "service:ecommerce-category-query-service",
+      "crossing": "OUTBOUND",
+      "status": "UNRESOLVED",
+      "cross_broker_producers": true,
+      "reason": "PROMISE_COVERAGE_MISSING"
+    },
+    {
+      "broker_id": "kafka:sokol111-local",
+      "topic_name": "catalog.attribute.events",
+      "consumer_service_id": "service:ecommerce-product-query-service",
+      "crossing": "OUTBOUND",
+      "status": "UNRESOLVED",
+      "cross_broker_producers": true,
+      "reason": "PROMISE_COVERAGE_MISSING"
+    },
+    {
+      "broker_id": "kafka:sokol111-local",
+      "topic_name": "catalog.attribute.events",
+      "consumer_service_id": "service:ecommerce-category-query-service",
+      "crossing": "OUTBOUND",
+      "status": "UNRESOLVED",
+      "cross_broker_producers": true,
+      "reason": "PROMISE_COVERAGE_MISSING"
+    },
+    {
+      "broker_id": "kafka:sokol111-local",
+      "topic_name": "tenant.tenant.events",
+      "consumer_service_id": "service:ecommerce-product-query-service",
+      "crossing": "NONE",
+      "status": "UNRESOLVED",
+      "cross_broker_producers": false,
+      "reason": "PROMISE_COVERAGE_MISSING"
+    },
+    {
+      "broker_id": "kafka:sokol111-local",
+      "topic_name": "tenant.tenant.events",
+      "consumer_service_id": "service:ecommerce-category-query-service",
+      "crossing": "NONE",
+      "status": "UNRESOLVED",
+      "cross_broker_producers": false,
+      "reason": "PROMISE_COVERAGE_MISSING"
+    }
+  ]
+}

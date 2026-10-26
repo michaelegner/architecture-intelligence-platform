@@ -1,0 +1,23 @@
+{
+  "schema": "aip-kafka-consumer-service-mapping/1",
+  "broker_id": "kafka:sokol111-local",
+  "environment": "local",
+  "mappings": [
+    {
+      "group_id": "ecommerce-catalog-service",
+      "service_name": "ecommerce-catalog-service"
+    },
+    {
+      "group_id": "ecommerce-category-query-service",
+      "service_name": "ecommerce-category-query-service"
+    },
+    {
+      "group_id": "ecommerce-image-service",
+      "service_name": "ecommerce-image-service"
+    },
+    {
+      "group_id": "ecommerce-product-query-service",
+      "service_name": "ecommerce-product-query-service"
+    }
+  ]
+}

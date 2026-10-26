@@ -9,7 +9,7 @@ This is the `ArchitectureReadRepository` the I1 spec's architecture diagram plac
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import LiteralString
@@ -23,7 +23,11 @@ from app.architecture_intelligence.contracts import (
     DEPLOYMENT_RECONCILIATION_RULE_VERSION,
     SNAPSHOT_ID_PREFIX,
 )
-from app.architecture_intelligence.kafka_consumer_attribution import attribution_block
+from app.architecture_intelligence.kafka_consumer_attribution import (
+    attribution_block,
+    declared_candidates,
+    resolve_declared_service,
+)
 from app.canonical.infrastructure import KUBERNETES_SOURCE_TYPE
 from app.graph.revision_fence import read_revision
 from app.sources.apisix_qualification import qualify
@@ -453,7 +457,39 @@ _EVENT_CATALOG_QUERIES = {
 }
 
 
-def _project_event_catalog(session: neo4j.Session) -> dict | None:
+def _catalog_service_resolutions(
+    session: neo4j.Session, promises_and_memberships: Iterable[dict], aliases: Mapping[str, str]
+) -> tuple[list[dict], list[dict]]:
+    """v0.8 I2b (I2 §4 step 4): each catalog service id resolved to a *declared* Service with the
+    mapping guard's rule, derived here like `kafka_consumer_attribution_v1` because the snapshot
+    state carries no Service ownership. Returns the resolution rows and the aliases they used, so
+    the block can be re-derived from the snapshot alone."""
+    names = sorted({row["service_name"] for row in promises_and_memberships})
+    candidates = declared_candidates(
+        dict(record) for record in session.run(_SERVICE_CANDIDATE_ROWS_QUERY)
+    )
+    rows = []
+    for name in names:
+        service_id, reason = resolve_declared_service(
+            name, None, candidates=candidates, aliases=aliases
+        )
+        row: dict = {"service_name": name, "outcome": "RESOLVED" if service_id else "UNRESOLVED"}
+        if service_id is not None:
+            row["service_id"] = service_id
+        if reason is not None:
+            row["reason"] = reason.value
+        rows.append(row)
+    applied = [
+        {"alias": alias, "service_id": aliases[alias]}
+        for alias in sorted(aliases)
+        if alias in names
+    ]
+    return rows, applied
+
+
+def _project_event_catalog(
+    session: neo4j.Session, service_aliases: Mapping[str, str]
+) -> dict | None:
     """The v0.8 I2a `event_catalog_v1` block, or `None` when the graph has no catalog carriers.
     Every list-valued property is sorted so insertion order never reaches the fingerprint."""
     block: dict[str, list[dict]] = {}
@@ -464,7 +500,12 @@ def _project_event_catalog(session: neo4j.Session) -> dict | None:
                 if isinstance(value, list):
                     row[key] = sorted(value)
         block[name] = rows
-    return block if any(block.values()) else None
+    if not any(block.values()):
+        return None
+    block["service_resolutions"], block["aliases_applied"] = _catalog_service_resolutions(
+        session, [*block["promises"], *block["memberships"]], service_aliases
+    )
+    return block
 
 
 # v0.7.1 I3.1 (review of #592): the declared broker of each Topic, read from the Topic declarations.
@@ -772,7 +813,7 @@ def canonical_snapshot_state(
     attribution = _project_kafka_consumer_attribution(session, kafka, service_aliases or {})
     if attribution:
         state["kafka_consumer_attribution_v1"] = attribution
-    catalog = _project_event_catalog(session)
+    catalog = _project_event_catalog(session, service_aliases or {})
     if catalog:
         state["event_catalog_v1"] = catalog
     return state

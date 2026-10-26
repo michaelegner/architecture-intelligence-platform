@@ -108,7 +108,11 @@ def test_an_accepted_catalog_persists_only_internal_carriers(driver, tmp_path) -
         "memberships": 5,
         "event_topics": 5,
         "evidence": 1,
+        # v0.8 I2b: derived resolutions. Nothing is declared here, so none resolves.
+        "service_resolutions": 5,
+        "aliases_applied": 0,
     }
+    assert {r["outcome"] for r in block["service_resolutions"]} == {"UNRESOLVED"}
 
 
 def test_no_registration_leaves_no_snapshot_block(driver) -> None:
