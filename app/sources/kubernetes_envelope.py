@@ -19,6 +19,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
+from app.common import bounded_yaml
 from app.sources.encoding import sha256_hex
 from app.sources.model import (
     DiagnosticCode,
@@ -54,12 +55,11 @@ EXPECTED_RESOURCE_TYPES = frozenset(
 # --------------------------------------------------------------------------------------------
 # Hardened YAML/JSON loading
 #
-# No other YAML consumer in this codebase (`app.ingestion.filesystem_discoverer`,
-# `app.sources.migration_mappings`, `app.sources.tombstones`) has ever needed to reject an
-# anchor/alias, bound nesting depth, or reject a duplicate mapping key - all three are new here.
-# `yaml.SafeLoader` already rejects unknown/custom tags on its own (any tag not in its own
-# constructor table falls through to `SafeConstructor.construct_undefined`, which raises) - no
-# extra code is needed for that specific rule.
+# Alias/anchor rejection, the nesting bound and duplicate-key rejection live in
+# `app.common.bounded_yaml` (shared with the v0.8 EventCatalog loader); this module maps its two
+# errors onto the §4.3 buckets below. `yaml.SafeLoader` already rejects unknown/custom tags on its
+# own (any tag not in its own constructor table falls through to
+# `SafeConstructor.construct_undefined`, which raises) - no extra code is needed for that rule.
 # --------------------------------------------------------------------------------------------
 
 
@@ -123,53 +123,6 @@ def _sanitize_parse_error(exc: Exception) -> str:
     return str(exc)
 
 
-class _BoundedSafeLoader(yaml.SafeLoader):
-    def __init__(self, stream: Any) -> None:
-        super().__init__(stream)
-        self._compose_depth = 0
-
-    def compose_node(self, parent: Any, index: Any) -> Any:
-        # I2 Draft 0.2 §4.3: "YAML alias expansion is unsupported." `compose_node` is the single
-        # recursive entry point the Composer uses for every node (scalar, sequence, or mapping),
-        # including alias resolution - checking here, before delegating, catches an alias
-        # regardless of where it appears.
-        if self.check_event(yaml.events.AliasEvent):
-            raise KubernetesEnvelopeLimitExceeded("YAML aliases/anchors are not supported")
-        self._compose_depth += 1
-        try:
-            if self._compose_depth > MAX_YAML_NESTING_DEPTH:
-                raise KubernetesEnvelopeLimitExceeded(
-                    f"YAML/JSON nesting exceeds the {MAX_YAML_NESTING_DEPTH}-level bound"
-                )
-            return super().compose_node(parent, index)
-        finally:
-            self._compose_depth -= 1
-
-    def construct_mapping(self, node: Any, deep: bool = False) -> dict:
-        # Duplicate-key rejection: by the time `construct_mapping` returns a plain dict, a
-        # repeated key has already silently overwritten its earlier value - no downstream Pydantic
-        # model could ever detect that a duplicate existed. `node.value` is the raw ordered
-        # (key_node, value_node) pair list *before* that collapse happens.
-        seen_keys: set[Any] = set()
-        for key_node, _value_node in node.value:
-            key = self.construct_object(key_node, deep=True)
-            # YAML permits complex mapping keys (e.g. a sequence), which are unhashable - `key in
-            # seen_keys` would otherwise raise a raw TypeError instead of a clean rejection.
-            # PyYAML's own base `construct_mapping` (which `super()` below would eventually reach)
-            # already guards this the same way, but only *after* this loop's own membership check
-            # would already have crashed first.
-            # Never echoes the key's own value in the raised message - a mapping key can carry
-            # attacker-controlled document content just as readily as a value can.
-            try:
-                is_duplicate = key in seen_keys
-            except TypeError as exc:
-                raise KubernetesEnvelopeMalformedError("unhashable YAML mapping key") from exc
-            if is_duplicate:
-                raise KubernetesEnvelopeMalformedError("duplicate mapping key")
-            seen_keys.add(key)
-        return super().construct_mapping(node, deep=deep)
-
-
 def load_bounded_yaml_documents(raw_bytes: bytes) -> list[Any]:
     """Loads every document in a YAML document stream (or the single object in a JSON file - JSON
     is a YAML subset, the same convention `app.ingestion.filesystem_discoverer` already relies on),
@@ -185,7 +138,11 @@ def load_bounded_yaml_documents(raw_bytes: bytes) -> list[Any]:
     naming all three together.
     """
     try:
-        return list(yaml.load_all(raw_bytes, Loader=_BoundedSafeLoader))
+        return bounded_yaml.load_bounded_yaml_documents(raw_bytes, max_depth=MAX_YAML_NESTING_DEPTH)
+    except bounded_yaml.BoundedYamlLimitExceeded as exc:
+        raise KubernetesEnvelopeLimitExceeded(str(exc)) from exc
+    except bounded_yaml.BoundedYamlMalformed as exc:
+        raise KubernetesEnvelopeMalformedError(str(exc)) from exc
     except yaml.constructor.ConstructorError as exc:
         raise KubernetesEnvelopeLimitExceeded(
             f"unsupported YAML tag: {_sanitize_yaml_error(exc)}"

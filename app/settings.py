@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, SecretStr
 from app.sources.model import (
     ApisixMeasurementSourceConfig,
     ApisixSourceConfig,
+    EventCatalogSourceConfig,
     FilesystemSourceConfig,
     KafkaConsumerStateSourceConfig,
     KafkaServiceMappingSourceConfig,
@@ -40,6 +41,9 @@ class SourcesConfig(BaseModel):
     # v0.7.1 I2.2 (I2.1 contract §1): Kafka consumer-group -> Service mapping artifacts. Empty by
     # default; several registrations may share a broker and environment.
     kafka_service_mappings: list[KafkaServiceMappingSourceConfig] = Field(default_factory=list)
+    # v0.8 I1 spec §5.5: EventCatalog registrations. Empty by default; I1 loads them, the import
+    # wiring arrives in I2.
+    event_catalogs: list[EventCatalogSourceConfig] = Field(default_factory=list)
     # I1 spec §5.1.1/§8.1/§9/§9.1's explicit shared-identity/migration mapping mechanism (PR4) - a
     # list, not a single fixed path, since the mechanism is general (any configured source may
     # supply one); the bundled examples/ migration artifact is simply its first real instance.

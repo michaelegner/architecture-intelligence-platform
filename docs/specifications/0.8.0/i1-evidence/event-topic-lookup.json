@@ -1,0 +1,50 @@
+{
+  "entries": [
+    {
+      "event_id": "CategoryEvents",
+      "source": {
+        "commit": "7cecb3e1131dbd5199ce25e9cf101d75d3365171",
+        "path": "pkg/events/topics.go",
+        "repository": "Sokol111/ecommerce-catalog-service-api"
+      },
+      "topic": "catalog.category.events"
+    },
+    {
+      "event_id": "ProductEvents",
+      "source": {
+        "commit": "7cecb3e1131dbd5199ce25e9cf101d75d3365171",
+        "path": "pkg/events/topics.go",
+        "repository": "Sokol111/ecommerce-catalog-service-api"
+      },
+      "topic": "catalog.product.events"
+    },
+    {
+      "event_id": "ProductImagePromoted",
+      "source": {
+        "commit": "2167948573ced4b2854d8aed93fb83b242cf2e7f",
+        "path": "pkg/events/topics.go",
+        "repository": "Sokol111/ecommerce-image-service-api"
+      },
+      "topic": "catalog.product.events"
+    },
+    {
+      "event_id": "ProductUpdated",
+      "source": {
+        "commit": "7cecb3e1131dbd5199ce25e9cf101d75d3365171",
+        "path": "pkg/events/topics.go",
+        "repository": "Sokol111/ecommerce-catalog-service-api"
+      },
+      "topic": "catalog.product.events"
+    },
+    {
+      "event_id": "TenantUpdated",
+      "source": {
+        "commit": "d9b90972f77b6a2df7ebee0f52e0cd8124937fe7",
+        "path": "pkg/events/topics.go",
+        "repository": "Sokol111/ecommerce-tenant-service-api"
+      },
+      "topic": "tenant.tenant.events"
+    }
+  ],
+  "schema": "aip-event-topic-lookup/1"
+}
