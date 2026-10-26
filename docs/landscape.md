@@ -6,7 +6,7 @@
 >
 > Inclusion does not imply endorsement, dependency, or roadmap commitment. External ideas should influence AIP only where they survive AIP's own evidence, semantics, and validation requirements.
 
-_Last reviewed: 2026-10-24_
+_Last reviewed: 2026-10-26_
 
 ## AIP anchor
 
@@ -69,6 +69,7 @@ promises, temporal context, and explicit system intent without collapsing them i
 
 [OpenTelemetry](#opentelemetry-semantic-conventions) ·
 [OpenAPI as deterministic evidence](#kin-lane--openapi-as-a-deterministic-artifact-in-an-ai-generated-world) ·
+[Contract-derived harnesses](#kin-lane--contract-derived-harnesses) ·
 [API knowledge beyond API management](#adorsys--understanding-api-landscapes-not-just-managing-them) ·
 [Structurizr/C4](#structurizrc4--declared-architecture-models-and-views) ·
 [FINOS CALM](#finos-calm--architecture-as-code-and-semantic-gap-experiments) ·
@@ -109,6 +110,7 @@ visualization, provenance, or retrieval?
 [Symbolic Separation](#davletiyarov-khan-and-bartolini--symbolic-separation) ·
 [Typed probabilistic judgment](#typesafe-ai--jev-and-typed-probabilistic-judgment) ·
 [Enola](#enola--deterministic-architecture-context-and-regression-testing) ·
+[Embabel Worlds](#embabel-worlds--governed-enterprise-worlds) ·
 [Agent API Profile](#christian-posta--agent-api-profile) ·
 [MCP](#model-context-protocol-mcp) ·
 [Deterministic contextual tools](#tudor-girba--deterministic-contextual-tools-for-system-understanding) ·
@@ -118,6 +120,7 @@ visualization, provenance, or retrieval?
 [Agent-ready traceability and API boundaries](#daniel-kocot--agent-ready-apis-traceability-and-preserved-intent) ·
 [BootUI](#bootui--runtime-context-for-coding-agents) ·
 [Deterministic integration](#kin-lane--agents-should-write-code-to-integrate-not-infer-it-at-runtime) ·
+[Competitive landscape harness](#kin-lane--competitive-landscape-harness) ·
 [UI Atlas](#ui-atlas--ai-successors) ·
 [Thoughtworks AI/works](#thoughtworks-aiworks) ·
 [AI Agents — The Definitive Guide](#nicole-königstein--ai-agents-the-definitive-guide) ·
@@ -152,6 +155,8 @@ organizational responsibility constrain agent action without being inferred from
 
 [Reliable AI systems](#rush-shahani--building-reliable-ai-systems) ·
 [Agentic code review context](#davis-et-al--agentic-ai-and-code-reviews) ·
+[Independent product verification](#paul-stack--independent-product-verification) ·
+[Agent input integrity](#schneier-and-raghavan--agent-input-integrity) ·
 [Agent trajectory evaluation](#google--agent-evaluation-and-trajectory-metrics) ·
 [Failure as a process](#zhao-et-al--failure-as-a-process) ·
 [Long-running context drift](#agentic-software-how-ai-agents-are-restructuring-the-software-paradigm) ·
@@ -399,6 +404,7 @@ reference for context, time, process, trust, and non-flattening of evidence, wit
 - [Volodymyr Pavlyshyn — Tiramemsu: memory that remembers being wrong](https://volodymyrpavlyshyn.substack.com/p/tiramemsu-memory-that-remembers-being)
 - [Pavlyshyn — *Layered Bitemporal Graphs: Statement Identity, Two Clocks, and Metagraphs as Tags*, revision 4 (2026-10-03)](https://github.com/Volland/tiramemsu/blob/main/paper/arxiv/revision-4/layered-bitemporal-graphs-arxiv-preview-v4.pdf)
 - [Revision 4 retained verification artifact](https://github.com/Volland/tiramemsu/blob/main/paper/artifact/README.md)
+- [Forgetting & Supersession — write-time memory mutations](https://menuagentic.com/deep-dives/memory-and-context/forgetting-and-supersession)
 
 **Core idea**
 
@@ -480,6 +486,8 @@ distinction. Tiramemsu's append-only posture also cannot replace explicit source
 privacy, retention, and compaction policy. The project describes itself as new, with incomplete
 query-language conformance and no MCP server at the time of this review. This is **not** a
 storage replacement, implementation dependency, or pre-v1.0 roadmap proposal.
+
+The related supersession problem is not just retrieval ranking: correcting or withdrawing a statement must retain which assertion was previously held, when it was applicable, and who was authorized to replace it. For AIP, changes to an owner-confirmed promise must never silently rewrite an earlier observation or its provenance. Historical statement lifecycle support remains outside v0.8.
 
 ### Volodymyr Pavlyshyn — RDF, OWL and SHACL for Agentic Systems
 
@@ -718,6 +726,24 @@ consumer-attributed usage, or runtime observation. An Overlay may be a **carrier
 only where explicit assertions and their authority, scope, and effective interval are independently
 established. Greis describes an APIOps validation workflow, not proof of those AIP semantics or
 a reason to add an Overlay feature to the current roadmap.
+
+### Kin Lane — Contract-Derived Harnesses
+
+**Source**
+
+- [The Harness That Works Is A Contract (2026-10-19)](https://apievangelist.com/2026/10/19/the-harness-that-works-is-a-contract/)
+
+**Core idea**
+
+An agent-integration experiment demonstrates the value of OpenAPI/AsyncAPI contracts, executable examples and independent acceptance checks at system boundaries. Lane also distinguishes provider-published contracts from artifacts derived from documentation: a derived contract is useful but has different authority. A deterministic harness built on wrong expectations can be consistently wrong.
+
+**Why this matters to AIP**
+
+A generated EventCatalog, OpenAPI specification or inferred dependency must not silently become an independently confirmed external promise. AIP preserves the origin and authority of declared architecture separately from qualified runtime observations. This directly informs the v0.8 Sokol111 showcase's explicitly disclosed, document-derived catalog.
+
+**AIP distinction**
+
+Contract harnesses verify implementations against chosen expectations. AIP qualifies architecture premises. This is not a reason to build a test harness into AIP.
 
 ### adorsys — Understanding API Landscapes, Not Just Managing Them
 
@@ -2203,6 +2229,24 @@ epistemic authority:
 > unqualified graph becomes the source of that knowledge.**
 
 
+### Embabel Worlds — Governed Enterprise Worlds
+
+**Source**
+
+- [Embabel Worlds — concepts guide](https://worlds.embabel.com/guide/concepts/)
+
+**Core idea**
+
+Embabel Worlds describes a governed, living enterprise graph with declarative system integrations (`realms`), reusable saved queries (`views`), virtual queries over live and persisted data, and sponsored agents with signed routines. Its product scope includes integration and agent execution, not merely architecture analysis.
+
+**Why this matters to AIP**
+
+Worlds is a concrete adjacent **composition and agent platform**. AIP's qualified binding picture could be one typed input to a broader enterprise world; AIP need not duplicate a universal graph, connector marketplace, or agent runtime. Such composition must preserve observation context, provenance, promise authority and unresolved statuses. Convenient shared identifiers alone must not merge two independently broker-scoped Topics or convert declarations into observations.
+
+**AIP distinction**
+
+Worlds assembles and operationalizes enterprise context; AIP establishes what a bounded cross-boundary architectural claim may safely mean. Potential integration, not v0.8 scope.
+
 ### Enola — Deterministic Architecture Context and Regression Testing
 
 **Sources**
@@ -2587,6 +2631,24 @@ AIP does not expose raw OpenAPI, telemetry, or arbitrary graph access and ask an
 
 > **Do not spend probabilistic reasoning on facts and relationships that can be established deterministically.**
 
+### Kin Lane — Competitive Landscape Harness
+
+**Source**
+
+- [A Competitive Landscape Harness (2026-10-19)](https://apievangelist.com/2026/10/19/a-competitive-landscape-harness/)
+
+**Core idea**
+
+Profile competitors' actual API and agent-facing artifacts using one comparable method, then turn the differences into explicit design decisions. Lane highlights generic versus task-shaped MCP tools, discoverability, scoped credentials, self-service sandboxes, and machine-readable operating constraints. Measured inventories matter more than agent-readiness marketing scores.
+
+**Why this matters to AIP**
+
+The v0.8 agent should discover and invoke the binding-picture tool through its published MCP description and input schema without hard-coded identifiers or a call recipe. AIP's contribution is qualified, cross-boundary knowledge, not the existence of an MCP endpoint.
+
+**AIP distinction**
+
+The showcase need not introduce generic graph tools, OAuth, sandboxes, or a competitor benchmark. Actual customer value is tested only in the later pilot.
+
 ### UI Atlas — AI Successors
 
 **Sources**
@@ -2866,6 +2928,7 @@ separate studies. Agents are one consumer of this knowledge, not its justificati
 
 - [Decision Debt: The Cost of Delayed Governance](https://www.linkedin.com/posts/justin-miller-793a019a_the-most-expensive-technology-decision-is-activity-7487055441966006272--SQf)
 - [Technical Debt: The Gap Between Projects and Operations](https://www.linkedin.com/posts/justin-miller-793a019a_projects-end-systems-dont-that-gap-is-activity-7511053281557712896-S62P)
+- [Enterprise Architecture Prevents Future Friction](https://www.linkedin.com/posts/justin-miller-793a019a_enterprisearchitecture-cio-activity-7458115980116881408-FqJy)
 
 **Core idea**
 
@@ -2883,6 +2946,8 @@ source-bound evidence, then relate applicable Intent to qualified Current State.
 AIP should **not** become the organizational decision workflow, approval system, or authority that
 decides what the architecture ought to be. Decision records can inform Intent; they do not make every
 sentence authoritative, and an agent cannot manufacture organizational intent.
+
+For the v0.8 audience, Miller's modernization framing reinforces the risk of locally fast changes creating future enterprise coordination costs. AIP's binding picture exposes a **bounded** set of cross-boundary dependencies; it does not inventory complete business-service recovery chains, govern portfolio funding, or prove organizational savings.
 
 ### Daniel Kocot — From Governance Findings to Governance Signals
 
@@ -3310,6 +3375,44 @@ Deterministic checks, review findings, acceptance decisions, and reviewer confid
 external and do not automatically become canonical architectural facts. The paper supports a
 workflow-value pilot, not another capability release or a scope expansion.
 
+### Paul Stack — Independent Product Verification
+
+**Sources**
+
+- [Why Agent-Written Code Needs Product Verification (2026-10-06)](https://stack72.dev/why-agent-written-code-needs-product-verification/)
+- [Andrea Laforgia — Expectation-Driven Development](https://a4al6a.substack.com/p/expectation-driven-development-a)
+
+**Core idea**
+
+When an agent both implements a change and defines its checks, implementation and verification can share the same misunderstanding. Independence depends on who originated and may alter the expected behavior, not on the test level. Laforgia's proposed expectation-driven method emphasizes observable outcomes and inspectable evidence while acknowledging self-verification risks; it is not a proven assurance standard.
+
+**Why this matters to AIP**
+
+The Sokol111 v0.8 demonstration separates a pre-existing answer key and frozen inputs, AIP's qualified broker observations, and external broker/functional checks after the agent's migration. A cited AIP claim helps ground a plan; it does not establish that the migration works.
+
+**AIP distinction**
+
+AIP supplies inspectable architectural premises, not product acceptance criteria or the independent verifier. This strengthens demonstration credibility without turning v0.8 into product-value validation.
+
+
+### Schneier and Raghavan — Agent Input Integrity
+
+**Source**
+
+- [Agentic AI's OODA Loop Problem (IEEE Security & Privacy, 2025)](https://www.schneier.com/academic/archives/2025/10/agentic-ais-ooda-loop-problem.html)
+
+**Core idea**
+
+Agent reasoning can be internally consistent yet wrong or unsafe when retrieved information, sensor readings or tool descriptions have been maliciously manipulated. Observation integrity, contextual orientation, decisions and actions are distinct security boundaries.
+
+**Why this matters to AIP**
+
+Provenance and evidence qualification do not in themselves prove that an upstream source is uncompromised. A syntactically valid MCP result does not establish the integrity of the tool or the broker observations it conveys.
+
+**AIP distinction**
+
+This is an important threat-model boundary; AIP does not claim to deliver end-to-end adversarial input integrity or an agent security platform, and v0.8 does not add one.
+
 ### Rush Shahani — Building Reliable AI Systems
 
 **Source**
@@ -3616,112 +3719,54 @@ and what evidence supports that conclusion?
 
 ## 6. AIP's emerging position
 
-### The customer problem: agent-ready architectural context
+### The customer problem: binding knowledge during AI-assisted change
 
-The Fall 2026 IT Revolution papers converge on a practical need that makes AIP's customer
-proposition concrete. Davis et al.'s **Context Engineering** pattern calls for engineering
-environments to move beyond repositories of code toward accessible operational knowledge,
-architectural intent, and historical decision context. Cochran et al. identify repeated
-knowledge dependencies and coordination as delivery bottlenecks. Cockcroft et al. describe
-persistent, attributable context as part of the substrate beneath agent decisions.
+The [product doctrine](product-doctrine-and-strategic-direction.md) defines AIP's core as the **binding picture**: who relies on what across autonomous boundaries, which commitments are attributable to their owners, and what qualified evidence establishes. Faster AI-generated implementation does not make the consequences of cross-team migrations disappear.
 
-These are complementary external perspectives, not proof that one product must provide
-all engineering context. AIP's own value proposition and position are defined in the
-[product doctrine](product-doctrine-and-strategic-direction.md); this landscape does not restate
-them.
-
-Code and search results are source material; they are not themselves qualified architectural
-answers. AIP establishes evidence-qualified Architecture Knowledge once and makes recurring,
-question-specific context available to authoring agents, reviewers, humans, and contextual tools.
+The [Chief Architect Network panel on reliable AI architecture decisions](https://lnkd.in/gxAPUPHn) emphasizes knowledge usable by people and agents, enterprise decision history, and context relative to a question. Those are concerns of AIP's target audience, not proof of AIP's product value.
 
 ### Product hierarchy and integration boundary
 
 ```text
-CUSTOMER PROBLEM
-Agent-ready engineering needs reusable architectural context,
-not repeated inference from code and fragmented sources
-                          │
-                          ▼
-CUSTOMER VALUE
-defined in the product doctrine
-                          │
-                          ▼
-PRODUCT CONCEPT
-Moldable Architecture Knowledge
-                          │
-                          ▼
-CORE DOMAIN
-Establish Evidence-Qualified Architecture Knowledge
-applicability · identity/reconciliation · qualification
-provenance/lineage · conflict handling · bounded uncertainty
-                          ▲
-                          │
-HETEROGENEOUS EVIDENCE
-contracts · manifests · configuration · deployment · telemetry
-                          │
-                 qualified knowledge
-                          ▼
-PRODUCT-LEVEL CAPABILITY
-Bounded, deterministic, question-specific projections
-                          │
-            ┌─────────────┴──────────────┐
-            ▼                            ▼
-     Authoring agent              Independent reviewer
-     Human / GT lens              Other contextual consumer
-            └─────────────┬──────────────┘
-                          ▼
-EXTERNAL WORKFLOW / DECISION AUTHORITY
-implementation · testing · review · approval · policy · action
+CUSTOMER JOB
+Before changing or moving a component, understand its cross-boundary
+dependencies, attributable promises, and evidence
+                            |
+                            v
+                    AIP BINDING PICTURE
+        qualified Current State       attributable Intent
+                       \               /
+                        local Assessment
+                               |
+                     qualified, bounded projection
+                      claims · provenance · limits
+                               |
+                 +-------------+-------------+
+                 v                           v
+          Architect / team             Coding agent (MCP)
+                 +-------------+-------------+
+                               v
+                   EXTERNAL DECISION / ACTION
+                  plan · migrate · test · review
 ```
 
-The diagram separates where knowledge is established from where it is consumed. Graph
-storage, visualization, and MCP/REST transport remain implementation/integration mechanisms;
-public claim meaning, evidence, qualification, applicability, and context are product contracts.
-Consumers may mold the question and representation, not the underlying architectural meaning.
+AIP ingests source-specific evidence or attributable Intent from carriers such as broker captures, API specifications, configuration and architecture catalogs. Source tools, EventCatalog, Backstage, enterprise-world layers, developer agents and testing harnesses have independent responsibilities; AIP should integrate with rather than duplicate them. Graph storage, MCP/REST transport, and report visualization are mechanisms, not the differentiating semantics.
 
-### Separate epistemic and authority paths
+### Separate evidence, authority, and assessment
 
-Current State is qualified from source-specific evidence. Explicit, attributable Intent has its
-own independent path. An assessment compares the two separately established projections; an
-external review or decision record does not retroactively change either. Decision History linkage
-remains an unscheduled future candidate, not the authority to approve or execute changes.
-Technical architecture topology must not be confused with organizational decision topology.
+- **Current State:** locally observed or declared with explicit source-specific qualification, identity, locality and time. A Kafka group-topic assignment does not establish event-type processing or end-to-end delivery.
+- **Intent:** attributable external promises with independently established authority, applicability and scope. A document-derived catalog confirmed solely by a showcase assumption is disclosed as such; the absence of a catalog entry does not automatically mean a declined promise.
+- **Assessment:** a bounded, traceable comparison of independently established Current State and Intent. Unsupported conclusions remain unresolved. One path never manufactures the other.
 
-```text
-Current-State evidence ──> Qualified Current State ──┐
-                                                       ├──> Qualified Assessment (planned)
-Explicit attributable Intent ─> Applicable Intent ───┘
-                                                       │
-                                              downstream consumers
-                                                       │
-                                         review / decision / action
-                                         (externally authoritative)
-```
+The v0.8 Sokol111 showcase illustrates these boundaries through undocumented tenant-topic attachments encountered during a Redpanda-to-Kafka migration wave. The coding agent consumes AIP's projection; fresh broker captures and external functional checks have different proof responsibilities. The showcase establishes potential capability, **not** customer adoption or measured value.
 
-The papers suggest a useful **workflow-value hypothesis**: a bounded, supported AIP answer
-should reduce repeat cross-source investigation and expert clarification for a coding or
-reviewing agent. Validate that alongside answer correctness, explicit unresolved outcomes,
-setup and maintenance cost; do not claim proven business outcomes from conceptual convergence.
+### Strategic implication
 
-AIP's differentiating epistemic question remains:
+AIP is not a generic context store, agent orchestrator, universal enterprise graph, architecture approval system, historical-memory service, or PR reviewer. Its core question is:
 
-> **What architecture can we support from available evidence, and what are the limits of that knowledge?**
+> **For a concrete change across autonomous boundaries, which bindings are promised, which are established, and what remains unresolved?**
 
-Its customer-facing product-design question is:
-
-> **Which recurring architecture question can AIP answer reproducibly so that an agent does
-> not have to reconstruct those premises, and can inspect their evidence and limits?**
-
-Four durable principles follow:
-
-1. **Evidence before inference.**
-2. **Correct but incomplete is better than complete-looking but wrong.**
-3. **Non-observation is not absence; missing context is not permission to invent facts.**
-4. **An agent may reason over architecture, but must not become its source or approval authority.**
-
-**Roadmap impact:** This strengthens the existing product proposition and validation wedge;
-it does not add scope or reorder the roadmap. AIP is not a general context repository, PR reviewer, CDI platform, or
-organizational governance engine.
+v0.8 demonstrates that capability to CTOs and enterprise architects. The subsequent **target-customer pilot** tests whether it reduces surprises and avoidable coordination at sustainable owner effort (doctrine H1/H2). Landscape relevance does not promote research topics into v0.8 requirements or future roadmap commitments.
 
 ---
 
