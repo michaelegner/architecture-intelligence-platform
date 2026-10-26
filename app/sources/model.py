@@ -53,6 +53,8 @@ class SourceKind(StrEnum):
     KAFKA_CONSUMER_STATE = "kafka_consumer_state"
     # v0.7.1 I2.1 contract §1: the operator-supplied Kafka consumer-group -> Service mapping.
     KAFKA_SERVICE_MAPPING = "kafka_service_mapping"
+    # v0.8 I1 spec §5.5: the generated EventCatalog (promises; loaded, not yet imported).
+    EVENT_CATALOG = "event_catalog"
 
 
 class FilesystemSourceConfig(BaseModel):
@@ -225,6 +227,17 @@ class KafkaServiceMappingSourceConfig(BaseModel):
     @property
     def stable_target_identity(self) -> str:
         return f"urn:aip:kafka-service-mapping:{self.broker_id}:{self.environment}"
+
+
+class EventCatalogSourceConfig(BaseModel):
+    """v0.8 I1 spec §5.5: one EventCatalog registration. Both paths must stay inside `root`. I1 only
+    loads it; the import wiring and the promise record arrive in I2."""
+
+    id: str = Field(min_length=1)
+    root: Path
+    catalog_relative_path: str = "catalog"
+    lookup_relative_path: str = "event-topic-lookup.json"
+    environment: str = Field(min_length=1)
 
 
 class IngestionResult(StrEnum):
