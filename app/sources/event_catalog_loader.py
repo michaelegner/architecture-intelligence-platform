@@ -148,6 +148,7 @@ def _load(config: EventCatalogSourceConfig) -> EventCatalogDeclarations:
         lookup_document,
         lookup_pointer=lookup_pointer,
         catalog_digest=hashlib.sha256(catalog_sha256sums(files)).hexdigest(),
+        lookup_digest=hashlib.sha256(lookup_bytes).hexdigest(),
     )
 
 

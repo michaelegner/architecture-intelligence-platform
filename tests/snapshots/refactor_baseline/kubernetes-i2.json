@@ -8,6 +8,7 @@
       "apisix-adapter@1",
       "apisix-measurement-adapter@1",
       "asyncapi-adapter@1",
+      "event-catalog-adapter@1",
       "kafka-consumer-state-adapter@1",
       "kafka-service-mapping-adapter@1",
       "kubernetes-adapter@1",
@@ -30,6 +31,7 @@
       "1",
       "1",
       "1",
+      "1",
       "v1",
       "v2",
       "v2"
@@ -45,6 +47,10 @@
     "api_contract_versions": [],
     "api_contracts": [],
     "brokers": [],
+    "catalog_event_topics": [],
+    "catalog_evidence": [],
+    "catalog_memberships": [],
+    "catalog_promises": [],
     "gateway_configured_accesses": [],
     "gateway_consumers": [],
     "gateway_limitations": [],
@@ -296,6 +302,10 @@
           "api_contract_versions": [],
           "api_contracts": [],
           "brokers": [],
+          "catalog_event_topics": [],
+          "catalog_evidence": [],
+          "catalog_memberships": [],
+          "catalog_promises": [],
           "gateway_configured_accesses": [],
           "gateway_consumers": [],
           "gateway_limitations": [],
@@ -519,7 +529,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "1a47ec5bc1fab33f7674034e7ad711667f4225d1e1ce400d5421dd4312335f53"
+        "semantic_input_digest": "9fdbda79f02dbe14c7c3201b58d88a0359c3bb6c0244ae255e1ddcdf713879c7"
       }
     }
   }

@@ -59,13 +59,14 @@ RunKind = Literal[
     "apisix-measurement",
     "kafka-consumer-state",
     "kafka-service-mapping",
+    "event-catalog",
 ]
 
 # Formats of the identities AIP itself computes (I1 §5.1, §6). Character classes only: the patterns
 # must also compile under pydantic-core's regex engine, so no lookaround. Operator-supplied values
 # (a tombstone's target and revision) are deliberately not constrained, so a malformed tombstone
 # can never turn the report itself into an error.
-_SOURCE_ID = r"^urn:aip:source:(filesystem|kubernetes|apisix|apisix-measurement|kafka-consumer-state|kafka-service-mapping):[0-9a-f]{64}$"
+_SOURCE_ID = r"^urn:aip:source:(filesystem|kubernetes|apisix|apisix-measurement|kafka-consumer-state|kafka-service-mapping|event-catalog):[0-9a-f]{64}$"
 _SCOPE_ID = r"^urn:aip:discovery-scope:[0-9a-f]{64}$"
 _INVENTORY_REVISION = r"^urn:aip:inventory-revision:[0-9a-f]{64}$"
 _DIGEST = r"^[0-9a-f]{64}$"

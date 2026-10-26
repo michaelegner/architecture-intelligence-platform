@@ -149,6 +149,12 @@ READ_KAFKA_SOURCE_REGISTRATIONS_QUERY = (
     "e.configured_source_id AS configured_source_id"
 )
 # v0.7.1 I2.2: the registration behind each persisted Kafka Service-mapping source, for retirement.
+READ_EVENT_CATALOG_SOURCE_REGISTRATIONS_QUERY = (
+    "MATCH (e:CatalogEvidence) "
+    "RETURN e.source_instance_id AS source_instance_id, "
+    "e.configured_source_id AS configured_source_id"
+)
+
 READ_KAFKA_MAPPING_SOURCE_REGISTRATIONS_QUERY = (
     "MATCH (e:KafkaServiceMappingEvidence) "
     "RETURN e.source_instance_id AS source_instance_id, "

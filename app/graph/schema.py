@@ -131,6 +131,17 @@ CONSTRAINTS: list[LiteralString] = [
         "CREATE CONSTRAINT kafka_service_mapping_evidence_id IF NOT EXISTS "
         "FOR (e:KafkaServiceMappingEvidence) REQUIRE e.id IS UNIQUE"
     ),
+    # v0.8 I2 §2: internal EventCatalog promise-record carriers - owned, id-unique, no relationships.
+    "CREATE CONSTRAINT catalog_promise_id IF NOT EXISTS FOR (p:CatalogPromise) REQUIRE p.id IS UNIQUE",
+    (
+        "CREATE CONSTRAINT catalog_membership_id IF NOT EXISTS "
+        "FOR (m:CatalogMembership) REQUIRE m.id IS UNIQUE"
+    ),
+    (
+        "CREATE CONSTRAINT catalog_event_topic_id IF NOT EXISTS "
+        "FOR (t:CatalogEventTopic) REQUIRE t.id IS UNIQUE"
+    ),
+    "CREATE CONSTRAINT catalog_evidence_id IF NOT EXISTS FOR (e:CatalogEvidence) REQUIRE e.id IS UNIQUE",
     # The per-source-instance commit lock of the R14/R15 guard (review of #582). The constraint is
     # what makes the guard's MERGE a lock even when two first-ever imports race.
     (

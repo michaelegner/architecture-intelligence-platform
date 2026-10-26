@@ -288,6 +288,24 @@ and `qualification_rows` over the bounded union of configured pairs and attribut
 (`OBSERVED_USAGE`, `MEASURED_ZERO`, `USAGE_UNESTABLISHED`). Only a positive valid upstream delta
 establishes usage; rejected and unattributed traffic never does; zero needs a configured pair and
 `SUFFICIENT_FOR_ZERO`. `NO_MATCHING_CONFIGURED_ACCESS_FACT` is not a denial or a policy finding.
+## EventCatalog promise record (`app/ingestion/event_catalog_adapter.py`, v0.8 I2a)
+
+An `event_catalogs` registration (`id`, `root`, `catalog_relative_path`, `lookup_relative_path`,
+`environment`) imports one generated EventCatalog and its event → Topic lookup:
+- The loader reads the closed subset of the v0.8 I1 spec §5. Its reason codes are
+  `EVENTCATALOG_INVALID`, `EVENTCATALOG_UNSUPPORTED`, `EVENTCATALOG_REFERENCE_UNRESOLVED` and
+  `EVENTCATALOG_MEMBERSHIP_INVALID`.
+- The adapter writes internal carriers only: `CatalogPromise`, `CatalogMembership`,
+  `CatalogEventTopic` and `CatalogEvidence`. They have no relationship to a public entity.
+- A promise never creates a Service, Topic or relation.
+- The revision is `catalog-sha256:<catalog digest>+lookup-sha256:<lookup digest>`. A lookup-only
+  change is therefore a content change.
+- The snapshot carries the record as `event_catalog_v1`, and only when catalog carriers exist.
+- v0.8 accepts one catalog per environment. A shared `id` or `environment` gives
+  `EVENTCATALOG_DUPLICATE_SOURCE`.
+
+See spec `docs/specifications/0.8.0/i2-assessment-projection-and-tool.md` §2.
+
 ## Import report (v1)
 
 `POST /api/import` and `POST /api/import/service/{serviceId}` return the versioned I1 §10 import

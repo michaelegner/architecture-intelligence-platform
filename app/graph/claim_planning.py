@@ -66,6 +66,11 @@ def model_node_ids(model: ArchitectureModel, *, source_instance_id: str) -> set[
         # v0.7.1 I2.2: internal Kafka Service-mapping carriers ride the same ownership path.
         *(m.id for m in model.kafka_service_mapping_entries),
         *(e.id for e in model.kafka_service_mapping_evidence),
+        # v0.8 I2a: internal EventCatalog promise-record carriers ride the same ownership path.
+        *(p.id for p in model.catalog_promises),
+        *(m.id for m in model.catalog_memberships),
+        *(t.id for t in model.catalog_event_topics),
+        *(e.id for e in model.catalog_evidence),
         # v0.7.0 I1.2: internal API-contract carriers ride the same ownership path.
         *(c.id for c in model.api_contracts),
         *(v.id for v in model.api_contract_versions),

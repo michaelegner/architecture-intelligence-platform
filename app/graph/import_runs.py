@@ -15,9 +15,11 @@ from app.graph.importer import (
     import_all_sources,
     import_apisix_measurement_source,
     import_apisix_source,
+    import_event_catalog_source,
     import_kafka_consumer_state_source,
     import_kafka_service_mapping_source,
     import_kubernetes_source,
+    retire_unconfigured_event_catalogs,
     retire_unconfigured_gateways,
     retire_unconfigured_kafka_consumer_state,
     retire_unconfigured_kafka_service_mappings,
@@ -25,9 +27,13 @@ from app.graph.importer import (
 )
 from app.ingestion.import_report import ConfiguredRun
 from app.settings import SourcesConfig
+from app.sources.event_catalog_contract import (
+    duplicate_registrations as duplicate_catalog_registrations,
+)
 from app.sources.identity import (
     apisix_measurement_source_instance_id,
     apisix_source_instance_id,
+    event_catalog_source_instance_id,
     kafka_consumer_state_source_instance_id,
     kafka_service_mapping_source_instance_id,
 )
@@ -341,6 +347,52 @@ def run_all_configured_sources(
         protected_configured_source_ids=uncommitted_mappings,
     )
     for removal in retired_mappings:
+        logger.info(
+            "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
+            import_id,
+            removal.source_instance_id,
+            removal.nodes_expired,
+            removal.relations_expired,
+        )
+    # v0.8 I2a (I2 §2): EventCatalog registrations, the promise record. Like the mapping artifacts
+    # they read no graph state. A shared id or environment rejects every registration involved
+    # (EVENTCATALOG_DUPLICATE_SOURCE); none commits, and the previous source stays protected.
+    duplicate_catalogs = duplicate_catalog_registrations(sources.event_catalogs)
+    uncommitted_catalogs: set[str] = set()
+    for catalog_config in sources.event_catalogs:
+        start = time.perf_counter()
+        run_stats = import_event_catalog_source(
+            driver,
+            database=database,
+            source_config=catalog_config,
+            migration_mappings=migration_index,
+            tombstones=tombstones,
+            duplicate_registration=catalog_config.id in duplicate_catalogs,
+        )
+        if not run_stats.committed:
+            uncommitted_catalogs.add(catalog_config.id)
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        _log_run(import_id, run_stats, duration_ms)
+        run_results.append(
+            ConfiguredRun(
+                kind="event-catalog",
+                configured_source_id=catalog_config.id,
+                root=catalog_config.root,
+                stats=run_stats,
+            )
+        )
+    retired_catalogs = retire_unconfigured_event_catalogs(
+        driver,
+        database=database,
+        configured_source_instance_ids={
+            event_catalog_source_instance_id(
+                configured_source_id=catalog.id, environment=catalog.environment
+            )
+            for catalog in sources.event_catalogs
+        },
+        protected_configured_source_ids=uncommitted_catalogs,
+    )
+    for removal in retired_catalogs:
         logger.info(
             "Removed import_id=%s sources=%s nodes_expired=%d relations_expired=%d",
             import_id,

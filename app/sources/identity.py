@@ -306,6 +306,55 @@ def kafka_service_mapping_evidence_id(source_instance_id: str) -> str:
     )
 
 
+EVENT_CATALOG_SOURCE_ID_PREFIX = "urn:aip:source:event-catalog:"
+
+
+def event_catalog_source_instance_id(
+    *, configured_source_id: str, environment: str
+) -> SourceInstanceId:
+    """v0.8 I2 §2 (vectors `0.8.0/i2-vectors/ids.json`):
+
+    SourceInstanceId = urn:aip:source:event-catalog:<sha256(ld(configured source id, environment))>
+    """
+    key = length_delimited(utf8(configured_source_id), utf8(environment))
+    return SourceInstanceId(f"{EVENT_CATALOG_SOURCE_ID_PREFIX}{sha256_hex(key)}")
+
+
+def _catalog_owned_id(prefix: str, source_instance_id: str, *natural_key: str) -> str:
+    key = length_delimited(utf8(source_instance_id), *(utf8(part) for part in natural_key))
+    return f"{prefix}:owned:{sha256_hex(key)}"
+
+
+def catalog_promise_id(
+    *, source_instance_id: str, service_name: str, direction: str, event_id: str
+) -> str:
+    return _catalog_owned_id(
+        "catalog-promise", source_instance_id, service_name, direction, event_id
+    )
+
+
+def catalog_membership_id(
+    *, source_instance_id: str, bounded_context_id: str, service_name: str
+) -> str:
+    return _catalog_owned_id(
+        "catalog-membership", source_instance_id, bounded_context_id, service_name
+    )
+
+
+def catalog_event_topic_id(*, source_instance_id: str, event_id: str) -> str:
+    return _catalog_owned_id("catalog-event-topic", source_instance_id, event_id)
+
+
+def catalog_evidence_id(source_instance_id: str) -> str:
+    """One evidence carrier per catalog source instance (the Kafka mapping precedent, M06)."""
+    return _catalog_owned_id("catalog-evidence", source_instance_id)
+
+
+def event_catalog_source_revision(*, catalog_digest: str, lookup_digest: str) -> str:
+    """v0.8 I2 D12: the revision covers the catalog files and the exact lookup bytes."""
+    return f"catalog-sha256:{catalog_digest}+lookup-sha256:{lookup_digest}"
+
+
 def kafka_service_mapping_source_revision(artifact_sha256: str) -> str:
     """v0.7.1 I2.1 contract §2 (vector M09): the artifact has no observation time."""
     return f"artifact-sha256:{artifact_sha256}"

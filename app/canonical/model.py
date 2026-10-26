@@ -7,6 +7,12 @@ from app.canonical.api_contracts import (
     ApiContractAssociation,
     ApiContractVersion,
 )
+from app.canonical.event_catalog import (
+    CatalogEventTopic,
+    CatalogEvidence,
+    CatalogMembership,
+    CatalogPromise,
+)
 from app.canonical.gateway import (
     GatewayConfiguredAccess,
     GatewayConsumer,
@@ -183,3 +189,8 @@ class ArchitectureModel(BaseModel):
     # v0.7.1 I2.2 (I2.1 contract §5): internal Kafka Service-mapping carriers (no public exposure).
     kafka_service_mapping_entries: list[KafkaServiceMappingEntry] = Field(default_factory=list)
     kafka_service_mapping_evidence: list[KafkaServiceMappingEvidence] = Field(default_factory=list)
+    # v0.8 I2 §2: internal EventCatalog promise-record carriers.
+    catalog_promises: list[CatalogPromise] = Field(default_factory=list)
+    catalog_memberships: list[CatalogMembership] = Field(default_factory=list)
+    catalog_event_topics: list[CatalogEventTopic] = Field(default_factory=list)
+    catalog_evidence: list[CatalogEvidence] = Field(default_factory=list)

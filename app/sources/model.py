@@ -239,6 +239,10 @@ class EventCatalogSourceConfig(BaseModel):
     lookup_relative_path: str = "event-topic-lookup.json"
     environment: str = Field(min_length=1)
 
+    @property
+    def stable_target_identity(self) -> str:
+        return f"urn:aip:event-catalog:{self.environment}"
+
 
 class IngestionResult(StrEnum):
     """I1 spec §10: "Each source receives exactly one result." """
@@ -396,6 +400,12 @@ class DiagnosticCode(StrEnum):
     KAFKA_TOPIC_NOT_DECLARED = "KAFKA_TOPIC_NOT_DECLARED"
     # v0.7.1 I2.1 contract §4 / I2.2: the Kafka Service-mapping source's rejections. Fixed text, never
     # a source value or key name.
+    # v0.8 I1 §5.5 / I2 §2: EventCatalog loader and registration rejections.
+    EVENTCATALOG_INVALID = "EVENTCATALOG_INVALID"
+    EVENTCATALOG_UNSUPPORTED = "EVENTCATALOG_UNSUPPORTED"
+    EVENTCATALOG_REFERENCE_UNRESOLVED = "EVENTCATALOG_REFERENCE_UNRESOLVED"
+    EVENTCATALOG_MEMBERSHIP_INVALID = "EVENTCATALOG_MEMBERSHIP_INVALID"
+    EVENTCATALOG_DUPLICATE_SOURCE = "EVENTCATALOG_DUPLICATE_SOURCE"
     KSM_UNSUPPORTED_SCHEMA = "KSM_UNSUPPORTED_SCHEMA"
     KSM_BROKER_MISMATCH = "KSM_BROKER_MISMATCH"
     KSM_ENVIRONMENT_MISMATCH = "KSM_ENVIRONMENT_MISMATCH"

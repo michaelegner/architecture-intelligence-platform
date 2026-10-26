@@ -1,6 +1,6 @@
 # AIP v0.8 I2: Assessment, Projection and Tool
 
-**Status:** Draft 0.2 (2026-10-26; review on #641: candidate enumeration, R3 before R7, optional `topic_id`, delivery limitation from the evidence chain)  
+**Status:** Draft 0.3 (2026-10-26; I2a: source instance id, evidence id and one catalog per environment in §2)  
 **Governs:** [v0.8 specification](specification.md) §3.2–§3.6, §4.3, §5 and §7 I2, as amended by D9–D12 (§11).  
 **Baseline:** `main` at `08da0b7` (I1 complete: [completion record](i1-completion-record.md), [handoff](i1-i2-handoff.md)).  
 **Hands off to:** I3 (two-broker environment and live captures).
@@ -50,9 +50,16 @@ as a new source kind, following the Kafka mapping pattern:
 the I1 length-delimited encoding. The natural keys are:
 - promise: service, direction, event id;
 - membership: bounded context id, service;
-- event topic: event id.
+- event topic: event id;
+- evidence: none. Its id hashes the source instance id alone, as the Kafka mapping evidence does.
 
-The implementation writes known-answer vectors before the code (`i2-vectors/`).
+The source instance id is `urn:aip:source:event-catalog:<sha256(ld(configured source id,
+environment))>`. The known-answer vectors are in [`i2-vectors/ids.json`](i2-vectors/ids.json),
+written by the hashlib-only [`vector-hashes.py`](i2-vectors/vector-hashes.py).
+
+**One catalog per environment** (Q1, owner, 2026-10-26). Two registrations that share an `id` or
+an `environment` are all rejected as `EVENTCATALOG_DUPLICATE_SOURCE` (`REJECTED_CONFLICT`), and none
+commits. A previously accepted catalog of a still-configured registration keeps its carriers.
 
 **Rules:**
 - Promises are environment-scoped, never broker-scoped (parent §3.2). The loader output is the only

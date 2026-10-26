@@ -30,6 +30,8 @@ from app.ingestion.apisix_discoverer import ApisixSourceDiscoverer
 from app.ingestion.apisix_measurement_adapter import ApisixMeasurementSourceAdapter
 from app.ingestion.apisix_measurement_discoverer import ApisixMeasurementSourceDiscoverer
 from app.ingestion.asyncapi_adapter import AsyncApiSourceAdapter
+from app.ingestion.event_catalog_adapter import EventCatalogSourceAdapter
+from app.ingestion.event_catalog_discoverer import EventCatalogSourceDiscoverer
 from app.ingestion.filesystem_discoverer import FilesystemSourceDiscoverer
 from app.ingestion.kafka_consumer_state_adapter import KafkaConsumerStateSourceAdapter
 from app.ingestion.kafka_consumer_state_discoverer import (
@@ -74,6 +76,7 @@ from app.sources.model import (
     ApisixSourceConfig,
     DiagnosticCode,
     DiscoveryScopeId,
+    EventCatalogSourceConfig,
     FilesystemSourceConfig,
     IngestionDiagnostic,
     IngestionResult,
@@ -112,6 +115,7 @@ _DEFAULT_ADAPTERS = (
     ApisixMeasurementSourceAdapter(),
     KafkaConsumerStateSourceAdapter(),
     KafkaServiceMappingSourceAdapter(),
+    EventCatalogSourceAdapter(),
 )
 
 
@@ -419,6 +423,10 @@ _MODEL_ENTITY_FIELDS = (
     "kafka_capture_evidence",
     "kafka_service_mapping_entries",
     "kafka_service_mapping_evidence",
+    "catalog_promises",
+    "catalog_memberships",
+    "catalog_event_topics",
+    "catalog_evidence",
 )
 
 
@@ -1029,6 +1037,24 @@ def run_kafka_service_mapping_discovery(
     graph."""
     return run_discovery(
         KafkaServiceMappingSourceDiscoverer(config, duplicate_registration=duplicate_registration),
+        registry=registry,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+    )
+
+
+def run_event_catalog_discovery(
+    config: EventCatalogSourceConfig,
+    *,
+    registry: SourceAdapterRegistry | None = None,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_registration: bool = False,
+) -> DiscoveryRunResult:
+    """Thin wrapper over `run_discovery` for the EventCatalog source kind (v0.8 I2a). The import
+    request supplies only the duplicate flag (I2 §2); the run never touches the graph."""
+    return run_discovery(
+        EventCatalogSourceDiscoverer(config, duplicate_registration=duplicate_registration),
         registry=registry,
         migration_mappings=migration_mappings,
         tombstones=tombstones,

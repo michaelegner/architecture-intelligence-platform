@@ -23,6 +23,7 @@ from app.graph.queries import (
     OWNED_RELATION_KEYS_QUERY,
     READ_CURRENT_INVENTORY_QUERY,
     READ_DECLARED_TOPIC_IDS_QUERY,
+    READ_EVENT_CATALOG_SOURCE_REGISTRATIONS_QUERY,
     READ_GATEWAY_SOURCE_STATES_QUERY,
     READ_KAFKA_CAPTURE_EVIDENCE_QUERY,
     READ_KAFKA_MAPPING_SOURCE_REGISTRATIONS_QUERY,
@@ -45,6 +46,7 @@ from app.ingestion.orchestrator import (
     SourceRunOutcome,
     run_apisix_discovery,
     run_apisix_measurement_discovery,
+    run_event_catalog_discovery,
     run_filesystem_discovery,
     run_kafka_consumer_state_discovery,
     run_kafka_service_mapping_discovery,
@@ -54,6 +56,7 @@ from app.sources.claim_reconciliation import (
     plan_source_claim_reconciliation,
 )
 from app.sources.identity import (
+    EVENT_CATALOG_SOURCE_ID_PREFIX,
     GATEWAY_SOURCE_ID_PREFIX,
     KAFKA_CONSUMER_STATE_SOURCE_ID_PREFIX,
     KAFKA_SERVICE_MAPPING_SOURCE_ID_PREFIX,
@@ -76,6 +79,7 @@ from app.sources.model import (
     ApisixMeasurementSourceConfig,
     ApisixSourceConfig,
     DiagnosticCode,
+    EventCatalogSourceConfig,
     FilesystemSourceConfig,
     IngestionDiagnostic,
     IngestionResult,
@@ -1181,6 +1185,67 @@ def import_kafka_service_mapping_source(
     generic same-source claim reconciliation; a byte-identical one is a no-op; a rejected one commits
     nothing."""
     run_result = run_kafka_service_mapping_discovery(
+        source_config,
+        migration_mappings=migration_mappings,
+        tombstones=tombstones,
+        duplicate_registration=duplicate_registration,
+    )
+    return import_discovery_run(driver, database=database, run_result=run_result)
+
+
+def _retire_unconfigured_event_catalogs_tx(
+    tx: neo4j.ManagedTransaction,
+    *,
+    configured_source_instance_ids: AbstractSet[str],
+    protected_configured_source_ids: AbstractSet[str],
+) -> tuple[SourceImportStats, ...]:
+    retired = _unconfigured_source_ids(
+        tx,
+        prefix=EVENT_CATALOG_SOURCE_ID_PREFIX,
+        registrations_query=READ_EVENT_CATALOG_SOURCE_REGISTRATIONS_QUERY,
+        configured_source_instance_ids=configured_source_instance_ids,
+        protected_configured_source_ids=protected_configured_source_ids,
+    )
+    return tuple(
+        _remove_source_tx(tx, source_instance_id=sid, removed_source_ids=frozenset(retired))
+        for sid in retired
+    )
+
+
+def retire_unconfigured_event_catalogs(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    configured_source_instance_ids: AbstractSet[str],
+    protected_configured_source_ids: AbstractSet[str] = frozenset(),
+) -> tuple[SourceImportStats, ...]:
+    """v0.8 I2 §2: removing a catalog registration, or changing its environment (a new source
+    instance id), retires that source's carriers. A still-configured registration whose run did not
+    commit keeps its previous source, so a rejected or duplicate catalog never erases the last
+    accepted promise record."""
+    with open_session(driver, database=database) as session:
+        ensure_schema(session)
+        return session.execute_write(
+            _retire_unconfigured_event_catalogs_tx,
+            configured_source_instance_ids=configured_source_instance_ids,
+            protected_configured_source_ids=protected_configured_source_ids,
+        )
+
+
+def import_event_catalog_source(
+    driver: neo4j.Driver,
+    *,
+    database: str,
+    source_config: EventCatalogSourceConfig,
+    migration_mappings: SharedIdentityMappingIndex | None = None,
+    tombstones: Sequence[Tombstone] = (),
+    duplicate_registration: bool = False,
+) -> ImportRunStats:
+    """Thin wrapper over `run_event_catalog_discovery` + `import_discovery_run` for the EventCatalog
+    source kind (v0.8 I2a), the Kafka Service-mapping pattern: no commit guard, a later accepted
+    catalog replaces this source's carriers through the generic same-source reconciliation, an
+    identical one is a no-op and a rejected one commits nothing."""
+    run_result = run_event_catalog_discovery(
         source_config,
         migration_mappings=migration_mappings,
         tombstones=tombstones,

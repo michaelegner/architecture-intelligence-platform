@@ -2733,6 +2733,11 @@
           "KAFKA_STALE_CAPTURE",
           "KAFKA_CAPTURE_CONFLICT",
           "KAFKA_TOPIC_NOT_DECLARED",
+          "EVENTCATALOG_INVALID",
+          "EVENTCATALOG_UNSUPPORTED",
+          "EVENTCATALOG_REFERENCE_UNRESOLVED",
+          "EVENTCATALOG_MEMBERSHIP_INVALID",
+          "EVENTCATALOG_DUPLICATE_SOURCE",
           "KSM_UNSUPPORTED_SCHEMA",
           "KSM_BROKER_MISMATCH",
           "KSM_ENVIRONMENT_MISMATCH",
@@ -5058,7 +5063,7 @@
           "source_instance_id": {
             "anyOf": [
               {
-                "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix|apisix-measurement|kafka-consumer-state|kafka-service-mapping):[0-9a-f]{64}$",
+                "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix|apisix-measurement|kafka-consumer-state|kafka-service-mapping|event-catalog):[0-9a-f]{64}$",
                 "type": "string"
               },
               {
@@ -5230,7 +5235,7 @@
             "$ref": "#/components/schemas/ReportEffects"
           },
           "source_instance_id": {
-            "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix|apisix-measurement|kafka-consumer-state|kafka-service-mapping):[0-9a-f]{64}$",
+            "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix|apisix-measurement|kafka-consumer-state|kafka-service-mapping|event-catalog):[0-9a-f]{64}$",
             "title": "Source Instance Id",
             "type": "string"
           }
@@ -5294,7 +5299,8 @@
               "apisix",
               "apisix-measurement",
               "kafka-consumer-state",
-              "kafka-service-mapping"
+              "kafka-service-mapping",
+              "event-catalog"
             ],
             "title": "Kind",
             "type": "string"
@@ -5442,7 +5448,7 @@
             "uniqueItems": true
           },
           "source_instance_id": {
-            "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix|apisix-measurement|kafka-consumer-state|kafka-service-mapping):[0-9a-f]{64}$",
+            "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix|apisix-measurement|kafka-consumer-state|kafka-service-mapping|event-catalog):[0-9a-f]{64}$",
             "title": "Source Instance Id",
             "type": "string"
           },
@@ -5453,7 +5459,8 @@
               "apisix",
               "apisix-measurement",
               "kafka-consumer-state",
-              "kafka-service-mapping"
+              "kafka-service-mapping",
+              "event-catalog"
             ],
             "title": "Source Kind",
             "type": "string"
@@ -5508,7 +5515,7 @@
             "$ref": "#/components/schemas/IngestionResult"
           },
           "source_instance_id": {
-            "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix|apisix-measurement|kafka-consumer-state|kafka-service-mapping):[0-9a-f]{64}$",
+            "pattern": "^urn:aip:source:(filesystem|kubernetes|apisix|apisix-measurement|kafka-consumer-state|kafka-service-mapping|event-catalog):[0-9a-f]{64}$",
             "title": "Source Instance Id",
             "type": "string"
           }

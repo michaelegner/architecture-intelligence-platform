@@ -425,6 +425,48 @@ def _project_kafka_consumer_state(session: neo4j.Session) -> dict | None:
     return block if any(block.values()) else None
 
 
+# v0.8 I2a (I2 §2): the EventCatalog promise record. Present only when catalog carriers exist, so a
+# graph without an `event_catalogs` registration keeps its exact snapshot bytes.
+_EVENT_CATALOG_QUERIES = {
+    "promises": (
+        "MATCH (n:CatalogPromise) RETURN n.id AS id, n.service_name AS service_name, "
+        "n.direction AS direction, n.event_id AS event_id, n.event_version AS event_version, "
+        "n.file AS file, n.environment AS environment, n.evidence_ids AS evidence_ids"
+    ),
+    "memberships": (
+        "MATCH (n:CatalogMembership) RETURN n.id AS id, n.bounded_context_id AS bounded_context_id, "
+        "n.bounded_context_name AS bounded_context_name, n.owners AS owners, "
+        "n.service_name AS service_name, n.file AS file, n.environment AS environment, "
+        "n.evidence_ids AS evidence_ids"
+    ),
+    "event_topics": (
+        "MATCH (n:CatalogEventTopic) RETURN n.id AS id, n.event_id AS event_id, n.topic AS topic, "
+        "n.repository AS repository, n.commit AS commit, n.path AS path, "
+        "n.environment AS environment, n.evidence_ids AS evidence_ids"
+    ),
+    "evidence": (
+        "MATCH (n:CatalogEvidence) RETURN n.id AS id, n.source_instance_id AS source_instance_id, "
+        "n.configured_source_id AS configured_source_id, n.environment AS environment, "
+        "n.catalog_digest AS catalog_digest, n.lookup_digest AS lookup_digest, "
+        "n.source_revision AS source_revision"
+    ),
+}
+
+
+def _project_event_catalog(session: neo4j.Session) -> dict | None:
+    """The v0.8 I2a `event_catalog_v1` block, or `None` when the graph has no catalog carriers.
+    Every list-valued property is sorted so insertion order never reaches the fingerprint."""
+    block: dict[str, list[dict]] = {}
+    for name, query in _EVENT_CATALOG_QUERIES.items():
+        rows = _project_nodes(session, query)  # pyright: ignore[reportArgumentType]
+        for row in rows:
+            for key, value in row.items():
+                if isinstance(value, list):
+                    row[key] = sorted(value)
+        block[name] = rows
+    return block if any(block.values()) else None
+
+
 # v0.7.1 I3.1 (review of #592): the declared broker of each Topic, read from the Topic declarations.
 # The Topic node records no broker, so a public answer that checks "declared on this broker" must
 # find it in the fingerprinted state, or the same snapshot id could carry two answers. Only the two
@@ -730,6 +772,9 @@ def canonical_snapshot_state(
     attribution = _project_kafka_consumer_attribution(session, kafka, service_aliases or {})
     if attribution:
         state["kafka_consumer_attribution_v1"] = attribution
+    catalog = _project_event_catalog(session)
+    if catalog:
+        state["event_catalog_v1"] = catalog
     return state
 
 

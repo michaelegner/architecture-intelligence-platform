@@ -7,8 +7,11 @@ pointer made of a catalog-relative path and field names or list indexes only.
 """
 
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+
+from app.sources.identity import event_catalog_source_revision
+from app.sources.model import EventCatalogSourceConfig
 
 LOOKUP_SCHEMA_ID = "aip-event-topic-lookup/1"
 VERSION = "1.0.0"
@@ -18,12 +21,15 @@ INVALID = "EVENTCATALOG_INVALID"
 UNSUPPORTED = "EVENTCATALOG_UNSUPPORTED"
 REFERENCE_UNRESOLVED = "EVENTCATALOG_REFERENCE_UNRESOLVED"
 MEMBERSHIP_INVALID = "EVENTCATALOG_MEMBERSHIP_INVALID"
+# v0.8 I2 §2 (Q1): two registrations with one id or one environment; raised by the import request.
+DUPLICATE_SOURCE = "EVENTCATALOG_DUPLICATE_SOURCE"
 
 _MESSAGES = {
     INVALID: "the EventCatalog is malformed or misses a required field",
     UNSUPPORTED: "the EventCatalog uses a file, field or YAML feature outside the supported subset",
     REFERENCE_UNRESOLVED: "an EventCatalog reference or lookup entry does not resolve",
     MEMBERSHIP_INVALID: "a service is in no domain or in several domains",
+    DUPLICATE_SOURCE: "another EventCatalog registration uses the same id or environment",
 }
 
 # Spec §5.1: the fields read per entry kind; any other field is unsupported.
@@ -120,6 +126,8 @@ class EventCatalogDeclarations:
     teams: tuple[CatalogTeam, ...]
     lookup: tuple[LookupEntry, ...]
     catalog_digest: str
+    # v0.8 I2 D12: SHA-256 of the exact lookup bytes; the revision covers both digests.
+    lookup_digest: str
     source_revision: str
 
 
@@ -193,6 +201,7 @@ def build_declarations(
     *,
     lookup_pointer: str,
     catalog_digest: str,
+    lookup_digest: str,
 ) -> EventCatalogDeclarations:
     """`entries` maps each catalog-relative path to its (kind, frontmatter). Raises
     `EventCatalogRejected`."""
@@ -265,7 +274,10 @@ def build_declarations(
         teams=tuple(teams),
         lookup=lookup,
         catalog_digest=catalog_digest,
-        source_revision=f"catalog-sha256:{catalog_digest}",
+        lookup_digest=lookup_digest,
+        source_revision=event_catalog_source_revision(
+            catalog_digest=catalog_digest, lookup_digest=lookup_digest
+        ),
     )
 
 
@@ -303,4 +315,17 @@ def _lookup_entries(document: object, pointer: str) -> tuple[LookupEntry, ...]:
 def _extra(item: Mapping, source: Mapping) -> bool:
     return bool(set(item) - {"event_id", "topic", "source"}) or bool(
         set(source) - {"repository", "commit", "path"}
+    )
+
+
+def duplicate_registrations(configs: Sequence[EventCatalogSourceConfig]) -> frozenset[str]:
+    """I2 §2 (Q1): every configured id used by more than one registration, or by a registration
+    whose environment another registration also uses. All of them are rejected
+    (`EVENTCATALOG_DUPLICATE_SOURCE`); none commits. v0.8 accepts one catalog per environment."""
+    ids = Counter(config.id for config in configs)
+    environments = Counter(config.environment for config in configs)
+    return frozenset(
+        config.id
+        for config in configs
+        if ids[config.id] > 1 or environments[config.environment] > 1
     )

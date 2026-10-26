@@ -67,6 +67,7 @@ def merge_models(models: Sequence[ArchitectureModel]) -> ArchitectureModel:
             "measurement_limitations", "measurement_mapping_entries",
             "kafka_consumer_groups", "kafka_consumer_attachments", "kafka_capture_evidence",
             "kafka_service_mapping_entries", "kafka_service_mapping_evidence",
+            "catalog_promises", "catalog_memberships", "catalog_event_topics", "catalog_evidence",
         )
     }  # fmt: skip
     api_contracts: dict[str, ApiContract] = {}

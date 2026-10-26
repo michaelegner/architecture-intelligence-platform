@@ -14,6 +14,12 @@ from app.canonical.api_contracts import (
     API_CONTRACT_LABEL,
     API_CONTRACT_VERSION_LABEL,
 )
+from app.canonical.event_catalog import (
+    CATALOG_EVENT_TOPIC_LABEL,
+    CATALOG_EVIDENCE_LABEL,
+    CATALOG_MEMBERSHIP_LABEL,
+    CATALOG_PROMISE_LABEL,
+)
 from app.canonical.gateway import (
     GATEWAY_CONFIGURED_ACCESS_LABEL,
     GATEWAY_CONSUMER_LABEL,
@@ -248,6 +254,10 @@ def _write_kafka_carrier_nodes(
         (KAFKA_CAPTURE_EVIDENCE_LABEL, model.kafka_capture_evidence),
         (KAFKA_SERVICE_MAPPING_ENTRY_LABEL, model.kafka_service_mapping_entries),
         (KAFKA_SERVICE_MAPPING_EVIDENCE_LABEL, model.kafka_service_mapping_evidence),
+        (CATALOG_PROMISE_LABEL, model.catalog_promises),
+        (CATALOG_MEMBERSHIP_LABEL, model.catalog_memberships),
+        (CATALOG_EVENT_TOPIC_LABEL, model.catalog_event_topics),
+        (CATALOG_EVIDENCE_LABEL, model.catalog_evidence),
     ):
         query = MERGE_NODE_TEMPLATE.format(label=label)
         for carrier in carriers:

@@ -1,0 +1,37 @@
+# AIP configuration for the v0.8 I2 C1 profile (I2 spec §8.1). It is the I1 C1 profile
+# (../i1-evidence/config.yaml) plus the EventCatalog registration. The I1 package stays unchanged.
+# The deployment copies the I1 package to /app/sokol111-v08/. The graph connection comes from the
+# deployment's NEO4J_* environment.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: sokol111-declarations-sokol111-local
+        root: /app/sokol111-v08/declarations/sokol111-local
+    kafka_consumer_state:
+      - id: sokol111-kafka
+        root: /app/sokol111-v08/c1
+        broker_id: kafka:sokol111-local
+        environment: local
+        consumer_groups:
+          - ecommerce-catalog-service
+          - ecommerce-category-query-service
+          - ecommerce-image-service
+          - ecommerce-product-query-service
+    kafka_service_mappings:
+      - id: sokol111-mapping
+        root: /app/sokol111-v08/mapping/sokol111-local
+        broker_id: kafka:sokol111-local
+        environment: local
+    event_catalogs:
+      - id: sokol111-catalog
+        root: /app/sokol111-v08
+        environment: local
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false

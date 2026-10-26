@@ -1,0 +1,31 @@
+{
+  "configured_source_id": "sokol111-catalog",
+  "environment": "local",
+  "event_topics": {
+    "CategoryEvents": "catalog-event-topic:owned:6d0cb3abaf82612c81923eacd20e788c9845c9df43bcae7d88563252ba2008c4",
+    "ProductEvents": "catalog-event-topic:owned:a6d0636a42f8c856031583390c9322e002cddcd576ec7bf98cd8047f08a245e4",
+    "ProductImagePromoted": "catalog-event-topic:owned:d3ec14dfbca8da16b99894dc05e683bd5b85f27660aa049b96c75ec000d4ccb4",
+    "ProductUpdated": "catalog-event-topic:owned:cec8b274a204c6c09de8403cf147c3412a1fe6128ed754db68e3cfd3cafb3560",
+    "TenantUpdated": "catalog-event-topic:owned:64f13257e6f022b26feeda22dab1e2a51425f54e97f8a80cff273d1717aa3780"
+  },
+  "evidence_id": "catalog-evidence:owned:a42cdf3317db9f67ef4cf687aa2ff6c687e186e0de960ce5aade467c11cad175",
+  "memberships": {
+    "catalog-management|ecommerce-catalog-service": "catalog-membership:owned:72a5559169096367a5f00a21a44b2f0072917db9845c90496118d89d40c74bcd",
+    "catalog-management|ecommerce-image-service": "catalog-membership:owned:2680e236a7ecb9f3eb2d1fcb67da8ecda7f8774489bedcd9c3fd14846b4cd8c9",
+    "store-provisioning|ecommerce-tenant-service": "catalog-membership:owned:d6c7a2f2eab0915f24661a7c57aaff220f61408216d415590e808107818de37a",
+    "storefront|ecommerce-category-query-service": "catalog-membership:owned:9878bea1722816a0203f9e73da1a95d1ab14e2202658eea48e8766ccb099b16e",
+    "storefront|ecommerce-product-query-service": "catalog-membership:owned:095b2cd750ba4d73c45f6865fd46915c9c9c4d135d2a0da2bb3c2ef670aae763"
+  },
+  "promises": {
+    "ecommerce-catalog-service|SENDS|CategoryEvents": "catalog-promise:owned:8afae9e91353583fbb60e4fac4afbbf89198b1a5adc89c17399be31701521bf8",
+    "ecommerce-catalog-service|SENDS|ProductEvents": "catalog-promise:owned:4ee86b842e0e1194e7388a0197b42df7414e32b4cfeafef4b9a0b0ec9a38376b",
+    "ecommerce-catalog-service|SENDS|ProductUpdated": "catalog-promise:owned:7e28560f6bd43ddeaa7ff6da37e64e7694f6ab8e737d1b3a0d860a1db9ec13b6",
+    "ecommerce-image-service|RECEIVES|ProductUpdated": "catalog-promise:owned:b30fc2b606dfa4ae6387f9cf6f130a557e406985eb95a13587e94e457d0593a1",
+    "ecommerce-image-service|SENDS|ProductImagePromoted": "catalog-promise:owned:4b991cd5ae9106590f72fe71e0fec672feef82136a00b64fb9d89b9829d856d0",
+    "ecommerce-product-query-service|RECEIVES|ProductImagePromoted": "catalog-promise:owned:8b736980290f7c231f9afdbcfacd5923c41654a06c8f749924c87debe20afe71",
+    "ecommerce-product-query-service|RECEIVES|ProductUpdated": "catalog-promise:owned:16267d5156fbed3467a7be50305e8a98146542439edfc27923240ac24b08c4fa",
+    "ecommerce-tenant-service|SENDS|TenantUpdated": "catalog-promise:owned:fbc1290ece5fc5011cafecb73743cb39002c849f1f4afcf871553dbb0e7e474d"
+  },
+  "source_instance_id": "urn:aip:source:event-catalog:9f0dee1c1c3902c957f0f6d7fb126d4da85cb8cc63c9a1fa940242811f94d1d9",
+  "source_revision": "catalog-sha256:ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e+lookup-sha256:63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1"
+}

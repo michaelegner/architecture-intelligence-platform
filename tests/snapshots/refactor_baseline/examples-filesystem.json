@@ -8,6 +8,7 @@
       "apisix-adapter@1",
       "apisix-measurement-adapter@1",
       "asyncapi-adapter@1",
+      "event-catalog-adapter@1",
       "kafka-consumer-state-adapter@1",
       "kafka-service-mapping-adapter@1",
       "kubernetes-adapter@1",
@@ -35,6 +36,7 @@
       "1",
       "1",
       "1",
+      "1",
       "v1",
       "v2",
       "v2"
@@ -55,6 +57,10 @@
         "stable_broker_id": "asb"
       }
     ],
+    "catalog_event_topics": [],
+    "catalog_evidence": [],
+    "catalog_memberships": [],
+    "catalog_promises": [],
     "gateway_configured_accesses": [],
     "gateway_consumers": [],
     "gateway_limitations": [],
@@ -610,6 +616,10 @@
               "stable_broker_id": "asb"
             }
           ],
+          "catalog_event_topics": [],
+          "catalog_evidence": [],
+          "catalog_memberships": [],
+          "catalog_promises": [],
           "gateway_configured_accesses": [],
           "gateway_consumers": [],
           "gateway_limitations": [],
@@ -821,7 +831,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "7682a0574a58411bd27d3cfd047d46ec50c703c4c743a283c44ac27df1fa8a74"
+        "semantic_input_digest": "1c792a993edf4b9cd18c0b45aca765fc400c2e0e4d6fe3649409fbf5ac2ef816"
       }
     },
     "urn:aip:source:filesystem:5ce532518b49a66ac861423e9349cf12fd70d3ce513fdd1c787af9e7d8920a54": {
@@ -851,6 +861,10 @@
           "api_contract_versions": [],
           "api_contracts": [],
           "brokers": [],
+          "catalog_event_topics": [],
+          "catalog_evidence": [],
+          "catalog_memberships": [],
+          "catalog_promises": [],
           "gateway_configured_accesses": [],
           "gateway_consumers": [],
           "gateway_limitations": [],
@@ -900,7 +914,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "5c3a83cd8a512b7493c0af93c22230d1cb874a45aa1aa88eea37f1905de5b43d"
+        "semantic_input_digest": "ef7a625a67ec8ab1b64324cb9cefe5c6d6d448220e00b0cdf4e134c1cb63c7e7"
       }
     },
     "urn:aip:source:filesystem:7f055a6aea1cdd580b66c8e0000308daa6fc513f8d9b62c9842470d88fcbcb56": {
@@ -930,6 +944,10 @@
           "api_contract_versions": [],
           "api_contracts": [],
           "brokers": [],
+          "catalog_event_topics": [],
+          "catalog_evidence": [],
+          "catalog_memberships": [],
+          "catalog_promises": [],
           "gateway_configured_accesses": [],
           "gateway_consumers": [],
           "gateway_limitations": [],
@@ -1057,7 +1075,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "72802609abb11b5e646267655d7bdc26cc51407e11827d6347fcf98f84a804c2"
+        "semantic_input_digest": "136751d8945571021c6f26058cd87f3e0565c7aad8fd79a53af6ebe982251766"
       }
     },
     "urn:aip:source:filesystem:833e2828fe1aab512d1943c48acb72d7b94bee00925e01a60e8c26e04a6ec189": {
@@ -1092,6 +1110,10 @@
               "stable_broker_id": "asb"
             }
           ],
+          "catalog_event_topics": [],
+          "catalog_evidence": [],
+          "catalog_memberships": [],
+          "catalog_promises": [],
           "gateway_configured_accesses": [],
           "gateway_consumers": [],
           "gateway_limitations": [],
@@ -1196,7 +1218,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "92732ae92ea6e3e07a976414e87f12cd5102c167dba19f5e03f31c49bc3d0e92"
+        "semantic_input_digest": "22a8a7d3f0e992fa00698b5ec3c11339b8c06001728d213555ad72908dd221a1"
       }
     },
     "urn:aip:source:filesystem:bc68d5827d7bed2c4ec37eb12c23fa0319e78cccdfd6e9efd163d4b1329159e5": {
@@ -1226,6 +1248,10 @@
           "api_contract_versions": [],
           "api_contracts": [],
           "brokers": [],
+          "catalog_event_topics": [],
+          "catalog_evidence": [],
+          "catalog_memberships": [],
+          "catalog_promises": [],
           "gateway_configured_accesses": [],
           "gateway_consumers": [],
           "gateway_limitations": [],
@@ -1309,7 +1335,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "d8a16af1b05cacf13e3c677db35f8c40b7465f35f9c8ff3fb5e26ad0ebf3e7bb"
+        "semantic_input_digest": "8754563ad4fe04fd4c3a83339079b1c2b432e356909a4121bff2bd7d0e361eec"
       }
     },
     "urn:aip:source:filesystem:bde49ebe4fc19f12fea1549011bb94c1e526e8a514e898a95b71429bdbbc0732": {
@@ -1344,6 +1370,10 @@
               "stable_broker_id": "asb"
             }
           ],
+          "catalog_event_topics": [],
+          "catalog_evidence": [],
+          "catalog_memberships": [],
+          "catalog_promises": [],
           "gateway_configured_accesses": [],
           "gateway_consumers": [],
           "gateway_limitations": [],
@@ -1494,7 +1524,7 @@
           "topics": []
         },
         "result": "ACCEPTED",
-        "semantic_input_digest": "1241b567cef2aece3f5a6d2e09eb061659de1ed404f3790e95aef4bf178e9be7"
+        "semantic_input_digest": "2bf5df05dfb862402c33d4f39c6ce21620d09cf2bffb09d338d422094bf74458"
       }
     }
   }

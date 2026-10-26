@@ -140,7 +140,10 @@ def test_the_loaded_catalog_equals_the_specification() -> None:
     assert {e.event_id: (e.topic, e.repository) for e in declarations.lookup} == EXPECTED_LOOKUP
     digest = hashlib.sha256((PACKAGE / "catalog.SHA256SUMS").read_bytes()).hexdigest()
     assert declarations.catalog_digest == digest
-    assert declarations.source_revision == f"catalog-sha256:{digest}"
+    lookup_digest = hashlib.sha256((PACKAGE / "event-topic-lookup.json").read_bytes()).hexdigest()
+    assert declarations.lookup_digest == lookup_digest
+    # v0.8 I2 D12: the revision covers the exact lookup bytes too.
+    assert declarations.source_revision == f"catalog-sha256:{digest}+lookup-sha256:{lookup_digest}"
     assert all(s.path == f"services/{s.id}/index.mdx" for s in declarations.services)
 
 
