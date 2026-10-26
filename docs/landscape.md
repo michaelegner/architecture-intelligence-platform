@@ -3755,7 +3755,7 @@ AIP ingests source-specific evidence or attributable Intent from carriers such a
 ### Separate evidence, authority, and assessment
 
 - **Current State:** locally observed or declared with explicit source-specific qualification, identity, locality and time. A Kafka group-topic assignment does not establish event-type processing or end-to-end delivery.
-- **Intent:** attributable external promises with independently established authority, applicability and scope. A document-derived catalog confirmed solely by a showcase assumption is disclosed as such; no catalog entry is not automatically a declined promise.
+- **Intent:** attributable external promises with independently established authority, applicability and scope. A document-derived catalog confirmed solely by a showcase assumption is disclosed as such; the absence of a catalog entry does not automatically mean a declined promise.
 - **Assessment:** a bounded, traceable comparison of independently established Current State and Intent. Unsupported conclusions remain unresolved. One path never manufactures the other.
 
 The v0.8 Sokol111 showcase illustrates these boundaries through undocumented tenant-topic attachments encountered during a Redpanda-to-Kafka migration wave. The coding agent consumes AIP's projection; fresh broker captures and external functional checks have different proof responsibilities. The showcase establishes potential capability, **not** customer adoption or measured value.
