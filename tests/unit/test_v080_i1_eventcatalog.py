@@ -233,6 +233,27 @@ def test_an_unknown_file_is_unsupported(tmp_path) -> None:
     assert result.problem.code == UNSUPPORTED and CANARY not in repr(result)
 
 
+def test_a_symlinked_directory_under_the_catalog_is_unsupported(tmp_path) -> None:
+    root = tmp_path / "package"
+    shutil.copytree(PACKAGE, root)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (root / "catalog/flows").symlink_to(elsewhere, target_is_directory=True)
+    result = load_event_catalog(_config(root))
+    assert isinstance(result, RejectedEventCatalog)
+    assert (result.problem.code, result.problem.pointer) == (UNSUPPORTED, "flows")
+
+
+def test_a_duplicate_key_in_the_lookup_is_invalid(tmp_path) -> None:
+    result = _mutated(
+        tmp_path,
+        "event-topic-lookup.json",
+        '"topic": "tenant.tenant.events"',
+        f'"topic": "tenant.tenant.events", "topic": "{CANARY}"',
+    )
+    assert result.problem.code == INVALID
+
+
 def test_a_path_outside_the_root_is_invalid(tmp_path) -> None:
     config = EventCatalogSourceConfig(
         id="c", root=PACKAGE, environment="local", lookup_relative_path="../../i1-vectors/ids.json"

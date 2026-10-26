@@ -100,6 +100,15 @@ def _frontmatter(content: bytes, pointer: str) -> dict:
     return documents[0]
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
+    """`json.loads` keeps the last of repeated keys; the lookup rejects them (as the YAML
+    frontmatter does). The `ValueError` maps to `EVENTCATALOG_INVALID`."""
+    keys = [key for key, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise ValueError("duplicate JSON key")
+    return dict(pairs)
+
+
 def _load(config: EventCatalogSourceConfig) -> EventCatalogDeclarations:
     catalog_root = confined_path(config.root, config.catalog_relative_path)
     lookup_path = confined_path(config.root, config.lookup_relative_path)
@@ -108,7 +117,8 @@ def _load(config: EventCatalogSourceConfig) -> EventCatalogDeclarations:
     if lookup_path is None:
         raise EventCatalogRejected(EventCatalogProblem(INVALID, "/lookup_relative_path"))
 
-    paths = sorted(p for p in catalog_root.rglob("*") if not p.is_dir())
+    # `is_dir()` follows a symlink, so a symlinked directory is kept here and rejected below.
+    paths = sorted(p for p in catalog_root.rglob("*") if p.is_symlink() or not p.is_dir())
     if len(paths) > MAX_FILES:
         raise EventCatalogRejected(EventCatalogProblem(UNSUPPORTED))
     files: dict[str, bytes] = {}
@@ -125,7 +135,7 @@ def _load(config: EventCatalogSourceConfig) -> EventCatalogDeclarations:
     lookup_pointer = config.lookup_relative_path
     lookup_bytes = _read(lookup_path, lookup_pointer)
     try:
-        lookup_document = json.loads(lookup_bytes)
+        lookup_document = json.loads(lookup_bytes, object_pairs_hook=_reject_duplicate_keys)
     except RecursionError as exc:
         raise EventCatalogRejected(EventCatalogProblem(UNSUPPORTED, lookup_pointer)) from exc
     except ValueError as exc:

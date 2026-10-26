@@ -248,9 +248,9 @@ def generate(upstream: Path, package: Path) -> str:
     for path, text in files.items():
         target = package / "catalog" / path
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(text)
-    (package / "event-topic-lookup.json").write_text(lookup)
-    (package / "catalog.SHA256SUMS").write_text(sums)
+        target.write_text(text, encoding="utf-8", newline="\n")
+    (package / "event-topic-lookup.json").write_text(lookup, encoding="utf-8", newline="\n")
+    (package / "catalog.SHA256SUMS").write_text(sums, encoding="utf-8", newline="\n")
     return hashlib.sha256(sums.encode()).hexdigest()
 
 
