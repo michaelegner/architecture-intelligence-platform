@@ -70,9 +70,15 @@ including this file.** If anything below conflicts with a specification, the spe
   on main, tags, nightly and on PRs touching its inputs, see `docs/development.md`). Run both
   suites, not the one that seems relevant: contract changes that stay unit-green have broken
   integration tests here before. Also run `-m qualification` when the change touches its inputs
-  or the PR will carry the `run-qualification` label. This applies to small changes too. The only exception is the documentation-only
-  exemption in the specification-driven-implementation skill, which never covers specifications,
-  completion records, release notes, schemas or fixtures.
+  or the PR will carry the `run-qualification` label. This applies to small changes too. There are
+  two exceptions:
+  - The documentation-only exemption in the specification-driven-implementation skill. It never
+    covers specifications, completion records, release notes, schemas or fixtures.
+  - **Spec-only PRs.** The diff changes only Markdown specifications under `docs/specifications/`,
+    and no test or script reads the changed files (check with a grep of `tests/` and the scripts).
+    For these PRs, run the gate without `tests/integration`, and state the skip and its reason in
+    the PR body. The exception does not apply when the diff also adds or changes vectors, fixtures,
+    schemas, evidence packages, completion records or release docs.
 - Never merge a pull request, force-push, or push directly to `main`; the owner merges. This rule is
   procedural. For Claude Code, `.claude/settings.json` adds best-effort deny rules for the common
   command forms (they override any local allow rule), but they match command text only and are not
