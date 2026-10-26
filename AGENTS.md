@@ -74,8 +74,9 @@ including this file.** If anything below conflicts with a specification, the spe
   two exceptions:
   - The documentation-only exemption in the specification-driven-implementation skill. It never
     covers specifications, completion records, release notes, schemas or fixtures.
-  - **Spec-only PRs.** The diff changes only Markdown specifications under `docs/specifications/`,
-    and no test or script reads the changed files (check with a grep of `tests/` and the scripts).
+  - **Spec-only PRs.** The diff changes only Markdown specifications under `docs/specifications/`
+    and, optionally, the process documents `AGENTS.md` and `CLAUDE.md`. No test or script reads
+    the changed files (check with a grep of `tests/` and the scripts).
     For these PRs, run the gate without `tests/integration`, and state the skip and its reason in
     the PR body. The exception does not apply when the diff also adds or changes vectors, fixtures,
     schemas, evidence packages, completion records or release docs.
