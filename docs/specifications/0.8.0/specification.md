@@ -1,6 +1,6 @@
 # AIP v0.8 — Binding Picture Showcase
 
-**Status:** Draft 0.1 (2026-10-25)  
+**Status:** Draft 0.2 (2026-10-26; D7 and D8 from the I1 risk resolution)  
 **Target:** `v0.8.0` (demonstration release)  
 **Baseline:** published and verified `v0.7.2`, plus the doctrine pivot [#635](https://github.com/michaelegner/architecture-intelligence-platform/pull/635).  
 **Scope authority:** [ROADMAP.md — v0.8](../../../ROADMAP.md#v08--binding-picture-showcase-planned-demonstration-release) and the [product doctrine](../../product-doctrine-and-strategic-direction.md)
@@ -54,7 +54,8 @@ comparison with provenance, not exclusive knowledge.
 
 **Disclosures** (shown in the report and the release notes): the EventCatalog and its owners are
 generated for the showcase; catalog entries count as confirmed promises by assumption; the topic
-inventory and the extended group → Service mapping are authored from source and configuration; the
+inventory, the producer and Service declarations, and the extended group → Service mapping are
+authored from source and configuration; the
 target cluster is a local Apache Kafka standing in for a managed platform.
 
 ## 3. Inputs and declaration semantics
@@ -108,10 +109,15 @@ The generated catalog is committed together with its SHA-256 digest and the scri
 
 ### 3.3 Current-State inputs
 
-- **Topic inventory:** topic-only AsyncAPI declarations for the four topics on both brokers, derived
-  from `TopicFor()` in each `*-service-api/pkg/events/topics.go`. They are declared Current-State
-  evidence of Topic identity, not promises. Without them, AIP does not persist an attachment
-  (`KAFKA_TOPIC_NOT_DECLARED`, [v0.7.1 I1 contract §6](../0.7.1/i1-kafka-source-contract.md)).
+- **Topic inventory, producers and Services:** service-level AsyncAPI declarations, one per Service
+  and broker, derived from `TopicFor()` in each `*-service-api/pkg/events/topics.go` (D7, D8). A
+  Service declares `publish` on a topic that its own API maps, on the broker that it writes to. A topic
+  whose writer on a broker is not a Service is declared there without operations. Services that
+  publish nothing have a service-only declaration. No declaration names a consumer. They are declared
+  Current-State evidence of Topic identity, producers and Services, not promises. Without the Topics,
+  AIP does not persist an attachment (`KAFKA_TOPIC_NOT_DECLARED`,
+  [v0.7.1 I1 contract §6](../0.7.1/i1-kafka-source-contract.md)). Details:
+  [I1 §4](i1-declared-side-and-inventory.md#4-declared-current-state-d7-d8).
 - **Group → Service mapping:** the existing mapping (Image, Product Query) is extended with Catalog
   and Category Query, from `default-group-id` in `ecommerce-infrastructure` (`07c0599`)
   `environments/*/values/*.yaml`. One mapping artifact per broker.
@@ -292,8 +298,9 @@ The report is not a visualisation product.
   brokers, extended mappings, EventCatalog adapter.
 - **Acceptance:** the generated catalog matches §3.1 exactly; AIP imports C1 with the inventory and
   persists all nine attachments of §3.5 with no `KAFKA_TOPIC_NOT_DECLARED` diagnostic.
-- **Risk to resolve first:** does the AsyncAPI adapter accept a topic-only declaration (a channel
-  without service operations)? If not, stop and ask before changing adapter semantics.
+- **Risk resolved** ([I1 §2](i1-declared-side-and-inventory.md#2-risk-resolution-parent-7-i1)): the
+  adapter rejected a topic-only declaration. The owner decided D7 and D8.
+- **Increment specification:** [`i1-declared-side-and-inventory.md`](i1-declared-side-and-inventory.md).
 
 ### I2 — Assessment, projection and tool
 
@@ -343,3 +350,5 @@ and ask. Never fake a result.
 | D4 | Strict generation rule (§3.1): a combined node yields one service entry per named service, but an arrow yields `sends`/`receives` entries only if it names a service and an event; the unlabelled arrow to "Product and Category Query Services" yields none | owner, 2026-10-25 |
 | D5 | No Context Map pattern classification | [#635](https://github.com/michaelegner/architecture-intelligence-platform/pull/635) review |
 | D6 | Before/after comparison is report-level only | owner plan review, 2026-10-25 |
+| D7 | AsyncAPI accepts a qualified Topic channel without operations; producers are declared as `publish` from each Service's own `topics.go` on the broker it writes to; topics with a non-Service writer are topic-only. Amends D3's "topic-only" inventory | owner, 2026-10-26 ([I1 §3–§4](i1-declared-side-and-inventory.md)) |
+| D8 | Services are declared by service-level AsyncAPI documents; the EventCatalog declares no Service | owner, 2026-10-26 |
