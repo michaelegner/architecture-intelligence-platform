@@ -200,7 +200,8 @@ def test_r3_no_row_outside_scope_or_without_capture():
     assert rows(run(build(groups=(), attached=()))) == []
     unscoped = run(build(capture_brokers=(B2,)), broker_ids=[B, B2])
     assert all(r["broker_id"] == B2 for r in rows(unscoped))
-    assert "NO_ACCEPTED_CAPTURE" in [item["code"] for item in unscoped["limitations"]]
+    [missing] = [i for i in unscoped["limitations"] if i["code"] == "NO_ACCEPTED_CAPTURE"]
+    assert missing["message"].endswith(f": {B}")  # names the requested broker without a capture
 
 
 def test_r4_observed_undeclared():
@@ -216,7 +217,7 @@ def test_r5_no_promise_and_no_attachment_gives_no_row():
 def test_r6_names_the_group_invents_no_service_and_no_crossing():
     [row] = rows(run(build(groups=(("g-consumer", B, "UNRESOLVED", None),), receives=())))
     assert status(row) == ("UNRESOLVED", "NO_MAPPING")
-    assert row["group_id"] == "g-consumer" and "consumer_service_id" not in row
+    assert row["group_ids"] == ["g-consumer"] and "consumer_service_id" not in row
     assert row["crossing"] == "UNRESOLVED"
 
 
@@ -393,3 +394,20 @@ def test_two_captures_on_one_broker_are_never_collapsed():
         "service:consumer": ("PROMISED_NOT_OBSERVED", "2026-10-27T10:00:00Z"),
         "service:other": ("PROMISED_NOT_OBSERVED", "2026-10-27T11:00:00Z"),
     }
+
+
+def test_two_groups_of_one_service_on_one_topic_keep_all_their_evidence():
+    """Review of #644: two groups mapped to one Service and attached to one Topic make one row
+    that carries both attachments and both mappings; differing T is not collapsed into one."""
+    state = build(
+        groups=(("g-a", B, "RESOLVED", "consumer"), ("g-b", B, "RESOLVED", "consumer")),
+        attached=(("g-a", B, "t1"), ("g-b", B, "t1")),
+    )
+    [row] = rows(run(state))
+    assert status(row) == ("PROMISED_AND_OBSERVED", None)
+    assert row["group_ids"] == ["g-a", "g-b"]
+    assert len(row["attachment_evidence_refs"]) == 2 and len(row["mapping_evidence_refs"]) == 2
+    times = state["kafka_consumer_attribution_v1"]["attributions"]
+    times[1]["captured_at"] = "2026-10-27T12:00:00Z"
+    [row] = rows(run(state))
+    assert "captured_at" not in row  # two T values: none is invented

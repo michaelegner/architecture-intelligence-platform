@@ -108,7 +108,8 @@ def test_a_redpanda_only_request_keeps_the_crossing_and_the_delivery_limitation(
 def test_a_missing_kafka_capture_gives_the_redpanda_rows_and_a_limitation(driver) -> None:
     _import(driver, kafka_capture=False)
     result = answer(driver, broker_ids=[LOCAL, KAFKA])
-    assert "NO_ACCEPTED_CAPTURE" in codes(result)
+    [missing] = [i for i in result["limitations"] if i["code"] == "NO_ACCEPTED_CAPTURE"]
+    assert KAFKA in missing["message"] and LOCAL not in missing["message"]
     assert sorted(essentials(result), key=_key) == _expected_rows(LOCAL)
 
 
@@ -227,7 +228,7 @@ def test_an_undeclared_catalog_service_stays_unresolved(driver, tmp_path) -> Non
     _import(driver, declarations={LOCAL: local, KAFKA: FIXTURE / "declarations/sokol111-kafka"})
     result = answer(driver, broker_ids=[LOCAL])
     rows = [
-        r for r in result["data"]["rows"] if r.get("group_id") == "ecommerce-category-query-service"
+        r for r in result["data"]["rows"] if r["group_ids"] == ["ecommerce-category-query-service"]
     ]
     assert rows and all(
         (r["status"], r["reason"], r["crossing"])

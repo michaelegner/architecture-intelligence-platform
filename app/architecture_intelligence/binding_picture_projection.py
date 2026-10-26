@@ -10,7 +10,7 @@ answer never states. Promises never fill a gap in Current State (doctrine §4.3)
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -80,7 +80,15 @@ _MESSAGES = {
 }
 
 
-def _limitation(code: LimitationCode) -> Limitation:
+def _limitation(code: LimitationCode, *, missing_brokers: Sequence[str] = ()) -> Limitation:
+    """In a partial answer, `NO_ACCEPTED_CAPTURE` names every requested broker without an accepted
+    capture (I2 §6); the broker ids are the caller's own request values."""
+    if code is _CODE.NO_ACCEPTED_CAPTURE and missing_brokers:
+        return Limitation(
+            code=code,
+            message="no accepted Kafka consumer-state capture exists in this environment for "
+            f"the requested broker(s): {', '.join(missing_brokers)}",
+        )
     return Limitation(code=code, message=_MESSAGES[code])
 
 
@@ -123,9 +131,10 @@ class _Candidate:
     topic_name: str
     topic_id: str | None
     service_id: str | None
-    group_id: str | None = None
     promises: list[Row] = field(default_factory=list)
-    attribution: Row | None = None
+    # Every supporting attribution: several groups of one Service may attach to one Topic.
+    attributions: list[Row] = field(default_factory=list)
+    group_ids: set[str] = field(default_factory=set)
     scope_t: str | None = None
 
 
@@ -170,6 +179,13 @@ class _Catalog:
             },
             contexts=frozenset(m["bounded_context_id"] for m in memberships),
         )
+
+
+def _single_time(attributions: list[Row]) -> str | None:
+    """The capture time when every supporting attachment shares one T; otherwise none is invented
+    (the capture sources still list each T)."""
+    times = {row["captured_at"] for row in attributions}
+    return times.pop() if len(times) == 1 else None
 
 
 def _crossing(selected: str, consumer: str | None, producers: list[str | None]) -> Crossing:
@@ -291,18 +307,15 @@ def project_binding_picture(
             if row["consumer_id"] not in broker_groups or row["topic_id"] not in topics:
                 continue
             topic = topics[row["topic_id"]]
+            group_id = groups[row["consumer_id"]]["group_id"]
             if row["outcome"] == _RESOLVED:
                 key = (topic, row["service_id"])
-                candidate = candidates.setdefault(
-                    key, _Candidate(topic, row["topic_id"], row["service_id"])
-                )
+                service_id = row["service_id"]
             else:
-                group_id = groups[row["consumer_id"]]["group_id"]
-                key = (topic, f"group:{group_id}")
-                candidate = candidates.setdefault(
-                    key, _Candidate(topic, row["topic_id"], None, group_id=group_id)
-                )
-            candidate.attribution = row
+                key, service_id = (topic, f"group:{group_id}"), None
+            candidate = candidates.setdefault(key, _Candidate(topic, row["topic_id"], service_id))
+            candidate.attributions.append(row)
+            candidate.group_ids.add(group_id)
 
         for candidate in candidates.values():
             rows.append(_row(candidate, broker, catalog, selected, producers_of, ref))
@@ -326,7 +339,8 @@ def project_binding_picture(
     codes: set[LimitationCode] = set(ALWAYS_PRESENT)
     if any(row.cross_broker_producers for row in rows):
         codes.add(_CODE.CROSS_BROKER_DELIVERY_NOT_ESTABLISHED)
-    if any(not captures.get(broker) for broker in requested):
+    missing = [broker for broker in requested if not captures.get(broker)]
+    if missing:
         codes.add(_CODE.NO_ACCEPTED_CAPTURE)
     if more:
         codes.add(_CODE.MORE_ROWS_AVAILABLE)
@@ -358,7 +372,10 @@ def project_binding_picture(
             rows=page_rows,
             page=Page(limit=request.limit, returned=len(page_rows), next_cursor=next_cursor),
         ),
-        limitations=[_limitation(code) for code in sorted(codes, key=lambda code: code.value)],
+        limitations=[
+            _limitation(code, missing_brokers=missing)
+            for code in sorted(codes, key=lambda code: code.value)
+        ],
     )
 
 
@@ -370,13 +387,13 @@ def _row(
     producers_of: Mapping[str, Mapping[str, set[str]]],
     ref: Callable[[BindingEvidenceKind, list[str]], str],
 ) -> BindingRow:
-    attribution = candidate.attribution
+    attributions = sorted(candidate.attributions, key=lambda row: row["id"])
     if candidate.service_id is None:  # R6: an attachment whose attribution is not RESOLVED.
-        assert attribution is not None
-        status, reason = AssessmentStatus.UNRESOLVED, AssessmentReason(attribution["reason"])
+        # One R6 row per group, so every attribution of it carries the same reason.
+        status, reason = AssessmentStatus.UNRESOLVED, AssessmentReason(attributions[0]["reason"])
     elif candidate.promises and candidate.topic_id is None:  # R7
         status, reason = AssessmentStatus.UNRESOLVED, AssessmentReason.TOPIC_NOT_DECLARED
-    elif candidate.promises and attribution is not None:  # R1
+    elif candidate.promises and attributions:  # R1
         status, reason = AssessmentStatus.PROMISED_AND_OBSERVED, None
     elif candidate.promises:  # R2: in scope, no live attachment to this Topic.
         status, reason = AssessmentStatus.PROMISED_NOT_OBSERVED, None
@@ -410,30 +427,31 @@ def _row(
         topic_name=topic,
         topic_id=candidate.topic_id,
         consumer_service_id=candidate.service_id,
-        group_id=candidate.group_id,
+        group_ids=sorted(candidate.group_ids),
         crossing=crossing,
         status=status,
         reason=reason,
         declared_event_types=sorted(p["event_id"] for p in candidate.promises),
         producers=producers,
         cross_broker_producers=any(broker not in p.broker_ids for p in producers),
-        captured_at=attribution["captured_at"]
-        if attribution is not None
+        captured_at=_single_time(attributions)
+        if attributions
         else (None if reason is AssessmentReason.TOPIC_NOT_DECLARED else candidate.scope_t),
         promise_evidence_refs=sorted(
             ref(BindingEvidenceKind.CATALOG_PROMISE, [p["id"], *p["evidence_ids"]])
             for p in candidate.promises
         ),
-        attachment_evidence_refs=[
-            ref(
-                BindingEvidenceKind.KAFKA_ATTACHMENT,
-                [attribution["id"], *attribution["attachment_evidence_ids"]],
-            )
-        ]
-        if attribution is not None
-        else [],
+        attachment_evidence_refs=sorted(
+            ref(BindingEvidenceKind.KAFKA_ATTACHMENT, [row["id"], *row["attachment_evidence_ids"]])
+            for row in attributions
+        ),
         mapping_evidence_refs=sorted(
-            ref(BindingEvidenceKind.KAFKA_SERVICE_MAPPING, [entry["id"], *entry["evidence_ids"]])
-            for entry in (attribution or {}).get("mapping_entries", [])
+            {
+                ref(
+                    BindingEvidenceKind.KAFKA_SERVICE_MAPPING, [entry["id"], *entry["evidence_ids"]]
+                )
+                for row in attributions
+                for entry in row["mapping_entries"]
+            }
         ),
     )

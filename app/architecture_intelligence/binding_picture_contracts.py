@@ -214,7 +214,8 @@ class BindingRow(_Model):
     topic_name: str
     topic_id: str | None = None
     consumer_service_id: str | None = None
-    group_id: str | None = None
+    # Every attributed group of this row (R1, R4, R6), sorted; empty for R2 and R7.
+    group_ids: list[str]
     crossing: Crossing
     status: AssessmentStatus
     reason: AssessmentReason | None = None
@@ -227,7 +228,8 @@ class BindingRow(_Model):
     mapping_evidence_refs: list[str]
 
     def position(self) -> list[str]:
-        return [self.broker_id, self.topic_name, self.consumer_service_id or self.group_id or ""]
+        consumer = self.consumer_service_id or (self.group_ids[0] if self.group_ids else "")
+        return [self.broker_id, self.topic_name, consumer]
 
 
 class CatalogSource(_Model):
