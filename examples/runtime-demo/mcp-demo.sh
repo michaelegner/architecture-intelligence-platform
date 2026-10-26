@@ -93,10 +93,6 @@ validate_prerequisites() {
   for tool in docker curl jq; do
     command -v "$tool" >/dev/null || { echo "error: '$tool' is required but not installed" >&2; exit 1; }
   done
-  docker compose version >/dev/null 2>&1 || {
-    echo "error: 'docker compose' (the Compose plugin) is required but not available" >&2
-    exit 1
-  }
   [[ -f "${REPO_ROOT}/.env" ]] || { echo "error: no .env at ${REPO_ROOT} - run: cp .env.example .env" >&2; exit 1; }
   if [[ "${AIP_DEMO_REUSE_IMAGES:-0}" == "1" && -n "${BUILD_REVISION}" ]]; then
     echo "error: AIP_DEMO_REUSE_IMAGES=1 cannot be combined with BUILD_REVISION; image reuse would skip the pinned build" >&2
@@ -119,6 +115,12 @@ validate_prerequisites() {
       exit 1
     fi
   fi
+  # Last: the first `docker` call can take seconds (CI saw > 15 s), and every check above needs no
+  # Docker, so missing inputs fail fast and the tests that check them never wait on Docker.
+  docker compose version >/dev/null 2>&1 || {
+    echo "error: 'docker compose' (the Compose plugin) is required but not available" >&2
+    exit 1
+  }
 }
 
 start_stack() {
