@@ -12,7 +12,7 @@ I1 delivers declared inputs only. It makes no assessment.
 | Declared producers | the same set, `PUBLISHES_TO` | Tenant → `tenant.tenant.events`; Catalog → the three `catalog.*` topics; Image → `catalog.product.events`. They decide "crosses Catalog Management?" in parent §3.5 |
 | Topics | both sets; ids in [`i1-vectors/ids.json`](i1-vectors/ids.json) | broker-scoped. The Kafka set has no operations and emits no `USES_BROKER` |
 | Attachments on C1 | `test_v080_i1_c1_replay.py` | the nine rows of parent §3.5, all `RESOLVED` through the Redpanda mapping |
-| Catalog declarations | `load_event_catalog` (`app/sources/event_catalog_loader.py`) | typed domains (owners, member services), services (`sends`/`receives` with versions), events, teams; each with its file path; catalog digest and source revision `catalog-sha256:<digest>` |
+| Catalog declarations | `load_event_catalog` (`app/sources/event_catalog_loader.py`) | typed domains (owners, member services), services (`sends`/`receives` with versions), events, teams; each with its file path; catalog digest and source revision. I2 D12 extends the revision to `catalog-sha256:<catalog digest>+lookup-sha256:<lookup digest>` (exact lookup bytes); the I1 loader still returns the catalog-only form until I2a |
 | Event → Topic lookup | the same declaration set (`lookup`) | names a topic, not a Topic id. I2 resolves it to the inventory Topic id of each broker in capture scope (parent §3.4) |
 | Registration | `SourcesConfig.event_catalogs` (`EventCatalogSourceConfig`) | exists, but is not wired into `run_all_configured_sources` |
 

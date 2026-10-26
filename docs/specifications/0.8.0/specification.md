@@ -1,6 +1,6 @@
 # AIP v0.8 — Binding Picture Showcase
 
-**Status:** Draft 0.2 (2026-10-26; D7 and D8 from the I1 risk resolution)  
+**Status:** Draft 0.3 (2026-10-26; D9–D12 from the I2 specification)  
 **Target:** `v0.8.0` (demonstration release)  
 **Baseline:** published and verified `v0.7.2`, plus the doctrine pivot [#635](https://github.com/michaelegner/architecture-intelligence-platform/pull/635).  
 **Scope authority:** [ROADMAP.md — v0.8](../../../ROADMAP.md#v08--binding-picture-showcase-planned-demonstration-release) and the [product doctrine](../../product-doctrine-and-strategic-direction.md)
@@ -265,7 +265,9 @@ Three kinds of check are never conflated:
 - **Crossing-binding projection:** for a selected Bounded Context, across both brokers, with one row
   per consumer Service × Topic × broker (§3.6).
 - **One experimental MCP tool and its REST twin** for the binding picture. Every field has a
-  description that says which identifier it expects.
+  description that says which identifier it expects. The tool exists only when the setting
+  `experimental.binding_picture` is on; the default tool list stays six, and the hosted and showcase
+  profiles turn it on (D11).
 - **Field descriptions** for `destination_id` and `broker_id` on `get_destination_consumers`.
 
 **Before/after comparison is report-level only.** The report compares two independently qualified
@@ -309,6 +311,7 @@ The report is not a visualisation product.
 - **Acceptance:** on C1 the projection reproduces §3.5 exactly; on a two-broker fixture it applies
   §4.3 (separate Topic ids, `Empty` or `Dead` groups as zero live attachment, an incomplete capture rejected,
   no merged Topics); the existing six tools are byte-identical except the two descriptions.
+- **Increment specification:** [`i2-assessment-projection-and-tool.md`](i2-assessment-projection-and-tool.md).
 
 ### I3 — Two-broker environment and live captures
 
@@ -352,3 +355,7 @@ and ask. Never fake a result.
 | D6 | Before/after comparison is report-level only | owner plan review, 2026-10-25 |
 | D7 | AsyncAPI accepts a qualified Topic channel without operations; producers are declared as `publish` from each Service's own `topics.go` on the broker it writes to; topics with a non-Service writer are topic-only. Amends D3's "topic-only" inventory | owner, 2026-10-26 ([I1 §3–§4](i1-declared-side-and-inventory.md)) |
 | D8 | Services are declared by service-level AsyncAPI documents; the EventCatalog declares no Service | owner, 2026-10-26 |
+| D9 | Crossing classification uses declared producers by topic name across the environment's brokers and catalog membership; it is separate from observed attachment and from cross-broker delivery, which AIP does not establish | owner, 2026-10-26 ([I2 §3, §5](i2-assessment-projection-and-tool.md)) |
+| D10 | Assessment statuses are the closed doctrine §4.3 enum plus a reason; "observed, undeclared" is `UNRESOLVED` / `PROMISE_COVERAGE_MISSING` | owner, 2026-10-26 |
+| D11 | The experimental tool exists only with `experimental.binding_picture: true`; hosted and showcase profiles enable it | owner, 2026-10-26 |
+| D12 | The EventCatalog revision covers the exact lookup bytes as well as the catalog | owner review on #640, 2026-10-26 |

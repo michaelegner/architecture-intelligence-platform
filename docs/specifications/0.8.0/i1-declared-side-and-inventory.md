@@ -1,6 +1,6 @@
 # AIP v0.8 I1 — Declared Side and Inventory
 
-**Status:** Draft 0.1 (2026-10-26)  
+**Status:** Draft 0.2 (2026-10-26; §5.5 revision and pipeline amended by I2 D12)  
 **Governs:** [v0.8 specification](specification.md) §3.1–§3.3 and §7 I1, as amended by D7 and D8 (§10).  
 **Baseline:** `main` at `00bd120`.  
 **Hands off to:** I2 (promise record, assessment, projection, tool).
@@ -274,10 +274,12 @@ byte-identical files.
   - the lookup.
 
   Each item carries its file path and the catalog digest as provenance. The source revision is
-  `catalog-sha256:<catalog digest>`.
+  `catalog-sha256:<catalog digest>+lookup-sha256:<lookup digest>`. The lookup digest is SHA-256
+  over the exact bytes of the lookup file ([I2](i2-assessment-projection-and-tool.md) D12; Draft 0.1
+  had the catalog digest only).
 - **Persistence.** I1 persists nothing to the graph. The promise record, and how promises and
   Bounded Context membership are stored, belong to I2.
-- **Pipeline.** In I1 the loader is a function, tested on its own. I1 does not wire the
+- **Pipeline.** I2 wires the registration into the import ([I2 §2](i2-assessment-projection-and-tool.md#2-promise-record)). In I1 the loader is a function, tested on its own. I1 does not wire the
   `event_catalogs` registration into `run_all_configured_sources`, and the C1 `config.yaml` does not
   register the catalog. I2 wires it together with the promise record.
 
