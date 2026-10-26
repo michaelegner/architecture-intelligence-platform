@@ -1,0 +1,14 @@
+{
+  "kafka:sokol111-kafka": {
+    "catalog.attribute.events": "topic:owned:709cf2cb7051c1368f5f033bf2a57d397d1b5e68a3fdb7d127eaf2ce3deb6efd",
+    "catalog.category.events": "topic:owned:975673b170c21ec30dd818af70fecef49f460bd532cee4512a52388402c7443e",
+    "catalog.product.events": "topic:owned:bfd791ccdd2d47889e5f66e325638655ebd52d6938ee74011f253726d58052de",
+    "tenant.tenant.events": "topic:owned:811dcd9c6959730becbc357c2fa002e5a285298a632e465fe11481a6023bb7be"
+  },
+  "kafka:sokol111-local": {
+    "catalog.attribute.events": "topic:owned:ef00b8a20df7bed4e26c809d03727b11fd83d1169cc8e425f88922d3b5973bd6",
+    "catalog.category.events": "topic:owned:53418bb503b87bfe0ea8cb1fbc2677d69d1d70dc81b86cb8520dcc03bcc1bfa0",
+    "catalog.product.events": "topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539",
+    "tenant.tenant.events": "topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592"
+  }
+}

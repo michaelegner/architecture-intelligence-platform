@@ -46,6 +46,12 @@ still qualifies. A Channel with no destination evidence, ambiguous or partially 
 destination resolved only by a mapping, or a bare `servers` entry emits no Broker. The AMQP
 `virtualHost` is not Broker identity: two namespaces under one stable broker id are one Broker.
 
+**Topic without operations (v0.8).** A Channel that resolves to a qualified Topic is supported
+even with no `publish` or `subscribe` operation. It emits the `Topic` and its declaration only:
+no relation, no `Broker` and no `USES_BROKER`, because a Topic declaration is not evidence that the
+document's Service uses the broker. A Queue Channel without operations stays unsupported. See spec
+`docs/specifications/0.8.0/i1-declared-side-and-inventory.md` §3.
+
 **Publish and subscribe.** For a qualified Topic:
 - A `publish` operation maps to `Service -[PUBLISHES_TO]-> Topic` and `Topic -[CARRIES]-> Message`.
 - A `subscribe` operation needs an explicit Subscription identity. That is `x-aip-subscription-name`,

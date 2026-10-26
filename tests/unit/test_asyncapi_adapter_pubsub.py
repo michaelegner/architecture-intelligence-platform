@@ -173,6 +173,31 @@ def test_topic_with_stable_broker_identity_maps_to_topic():
     assert outcome.model.queues == []
 
 
+def test_qualified_topic_without_operations_is_accepted_with_no_relation_or_broker():
+    """v0.8 I1 spec §3 (D7): a topic-only declaration is Topic identity, not broker use."""
+    outcome = _map(_topic_document(operations={}))
+    assert outcome.result is IngestionResult.ACCEPTED
+    assert outcome.diagnostics == ()
+    assert [t.id for t in outcome.model.topics] == [TOPIC_ID]
+    assert [d.entity_kind for d in outcome.model.pubsub_declarations] == ["TOPIC"]
+    assert outcome.model.relations == []
+    assert outcome.model.brokers == []
+    assert outcome.model.messages == []
+
+
+def test_queue_without_operations_stays_unsupported():
+    outcome = _map(_topic_document(operations={}, **{"x-aip-destination-kind": "queue"}))
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert outcome.model.queues == []
+
+
+def test_topic_without_operations_and_without_identity_is_still_omitted():
+    outcome = _map(_topic_document(operations={}, broker=False))
+    assert outcome.result is IngestionResult.REJECTED_UNSUPPORTED
+    assert DiagnosticCode.AMBIGUOUS in _codes(outcome)
+    assert outcome.model.topics == []
+
+
 def test_topic_publish_maps_to_publishes_to_and_topic_carries_message():
     outcome = _map(_topic_document())
     [message] = outcome.model.messages

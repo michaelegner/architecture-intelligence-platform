@@ -532,6 +532,10 @@ class _AsyncApiMapping:
         )
         self.channel_topic_id[channel_name] = topic_id_value
         self.channel_topic_context[channel_name] = (stable_broker_id, namespace, topic_address)
+        # v0.8 I1 spec §3 (D7): a qualified Topic is a supported channel without any operation. It
+        # emits the Topic and its declaration only - no relation, Broker or USES_BROKER, which
+        # still need an admitted operation (`_map_operation`).
+        self.any_channel_supported = True
         self.pending_declarations.append(
             {
                 "entity_id": topic_id_value,

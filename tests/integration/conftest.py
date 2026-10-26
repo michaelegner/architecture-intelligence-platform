@@ -42,6 +42,7 @@ QUALIFICATION_MODULES = frozenset(
         "test_v070_i2_apisix_metrics_capture_real.py",
         "test_v071_i4_kafka_replay.py",
         "test_v072_i2_sokol111_replay.py",
+        "test_v080_i1_c1_replay.py",
     }
 )
 

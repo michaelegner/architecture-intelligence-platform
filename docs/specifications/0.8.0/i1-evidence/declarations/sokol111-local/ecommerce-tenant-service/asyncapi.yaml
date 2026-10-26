@@ -1,0 +1,31 @@
+asyncapi: '2.6.0'
+info:
+  title: ecommerce-tenant-service
+  version: "1.0.0"
+  description: >-
+    Authored for AIP v0.8 I1 (spec §4) from
+    Sokol111/ecommerce-tenant-service-api@d9b90972f77b6a2df7ebee0f52e0cd8124937fe7
+    (pkg/events/topics.go: TopicFor). Broker kafka:sokol111-local: publish operations. The upstream
+    contract is protobuf; this AsyncAPI declares Topic identity and producers only, never a
+    consumer.
+x-aip-service-id: service:ecommerce-tenant-service
+servers:
+  kafka:
+    url: redpanda:29092
+    protocol: kafka
+    x-aip-broker-id: kafka:sokol111-local
+channels:
+  tenant.tenant.events:
+    x-aip-destination-kind: topic
+    publish:
+      operationId: publishTenantEvents
+      message:
+        oneOf:
+          - $ref: '#/components/messages/TenantUpdatedEvent'
+          - $ref: '#/components/messages/TenantDeletedEvent'
+components:
+  messages:
+    TenantDeletedEvent:
+      name: TenantDeletedEvent
+    TenantUpdatedEvent:
+      name: TenantUpdatedEvent
