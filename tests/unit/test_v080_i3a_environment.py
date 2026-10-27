@@ -177,21 +177,107 @@ def test_p5_proves_absence_of_every_name_it_may_delete_before_arming_the_teardow
     trap = text.index("trap teardown EXIT")
     before, teardown = text[:trap], text[text.index("teardown() {") : trap]
     for guard in (
-        'for topic in "${REDPANDA_TOPICS[@]}"; do\n  require "Redpanda has no topic $topic yet" -- absent_redpanda_topic "$topic"',
-        'for topic in "${KAFKA_TOPICS[@]}"; do\n  require "Kafka has no topic $topic yet" -- absent_kafka_topic "$topic"',
-        'absent_redpanda_group "$GROUP"\n',
-        'absent_kafka_group "$GROUP"\n',
+        'for topic in "${REDPANDA_TOPICS[@]}"; do\n  require "Redpanda has no topic $topic yet" -- absent redpanda-topic "$topic"',
+        'for topic in "${KAFKA_TOPICS[@]}"; do\n  require "Kafka has no topic $topic yet" -- absent kafka-topic "$topic"',
+        'absent redpanda-group "$GROUP"\n',
+        'absent kafka-group "$GROUP"\n',
     ):
         assert guard in before[: before.index("teardown() {")], guard
     # The teardown deletes only the guarded names: no literal topic or group name of its own.
-    deletes = "\n".join(line for line in teardown.splitlines() if "probe-stop" not in line)
+    deletes = "\n".join(
+        line
+        for line in teardown.splitlines()
+        if "probe-stop" not in line and "container" not in line
+    )
     assert "aip-probe" not in deletes and "mm2-" not in deletes
     assert text.index("record P5 create-topic") > trap
     # The teardown removes the probe container, so none may exist before, not even a stopped one.
     assert (
-        'require "no probe container exists, running or stopped" -- no_container mm2-probe'
+        'require "no probe container exists, running or stopped" -- absent container mm2-probe'
         in before
     )
+
+
+# A fake `docker` on PATH answers the listings P5 makes (empty unless told otherwise), logs every
+# call, and fails the one named by FAKE_FAIL. "after-create": `rpk topic create` fails, and every
+# listing after it fails too (the broker went away). "create-then-listed": `rpk topic create` fails,
+# but Redpanda then lists the probe topic (it was created after all).
+FAKE_DOCKER = r"""#!/usr/bin/env bash
+echo "$*" >> "$FAKE_LOG"
+a="$*"
+created="$FAKE_LOG.created"
+fail() { [[ "${FAKE_FAIL:-}" == "$1" ]] && exit 1; return 0; }
+listing() {
+  fail "$1"
+  [[ -e "$created" && "${FAKE_FAIL:-}" == after-create ]] && exit 1
+  return 0
+}
+case "$a" in
+  *"rpk topic create"*) touch "$created"; exit 1 ;;
+  *" ps "*) listing compose-ps; exit 0 ;;
+  *"rpk topic list"*)
+    listing rp-topic-list; echo "NAME  PARTITIONS  REPLICAS"
+    [[ -e "$created" && "${FAKE_FAIL:-}" == create-then-listed ]] && echo "aip-probe.events  1  1"
+    exit 0 ;;
+  *"rpk group list"*) listing rp-group-list; echo "BROKER  GROUP  STATE"; exit 0 ;;
+  *"kafka-topics.sh"*"--list"*) listing kafka-topic-list; echo "${FAKE_KAFKA_TOPIC:-}"; exit 0 ;;
+  *"kafka-consumer-groups.sh"*"--list"*) listing kafka-group-list; exit 0 ;;
+  *) exit 0 ;;
+esac
+"""
+
+
+def _run_p5(tmp_path: Path, **env: str) -> tuple[int, list[str], Path]:
+    bin_dir, raw = tmp_path / "bin", tmp_path / "raw"
+    bin_dir.mkdir()
+    fake = bin_dir / "docker"
+    fake.write_text(FAKE_DOCKER)
+    fake.chmod(0o755)
+    log = tmp_path / "docker.log"
+    run_env = {
+        "PATH": f"{bin_dir}:/usr/bin:/bin",
+        "I3_RAW_DIR": str(raw),
+        "FAKE_LOG": str(log),
+        **env,
+    }
+    done = subprocess.run(
+        ["bash", str(HARNESS / "preflight/p5.sh")], env=run_env, capture_output=True, check=False
+    )
+    return done.returncode, (log.read_text().splitlines() if log.exists() else []), raw
+
+
+DELETES = ("delete", " rm ")
+
+
+@pytest.mark.parametrize(
+    "failure",
+    ["compose-ps", "rp-topic-list", "kafka-topic-list", "rp-group-list", "kafka-group-list"],
+)
+def test_p5_stops_before_arming_the_teardown_when_a_listing_fails(tmp_path, failure: str) -> None:
+    rc, calls, raw = _run_p5(tmp_path, FAKE_FAIL=failure)
+    assert rc == 2
+    assert not any(word in call for call in calls for word in DELETES), calls
+    assert not any("topic create" in call for call in calls)
+    assert not (raw / "P5-probe-stop.meta").exists()
+
+
+def test_p5_stops_when_a_probe_name_already_exists(tmp_path) -> None:
+    rc, calls, _ = _run_p5(tmp_path, FAKE_KAFKA_TOPIC="mm2-probe-configs")
+    assert rc == 2
+    assert not any(word in call for call in calls for word in DELETES), calls
+
+
+def test_the_teardown_deletes_nothing_when_its_presence_checks_fail(tmp_path) -> None:
+    rc, calls, _ = _run_p5(tmp_path, FAKE_FAIL="after-create")
+    assert rc != 0 and any("rpk topic create" in call for call in calls)
+    assert not any(word in call for call in calls for word in DELETES), calls
+
+
+def test_the_teardown_deletes_exactly_what_it_confirms_present(tmp_path) -> None:
+    rc, calls, _ = _run_p5(tmp_path, FAKE_FAIL="create-then-listed")
+    assert rc != 0
+    deleted = [call for call in calls if any(word in call for word in DELETES)]
+    assert deleted == ["exec redpanda rpk topic delete aip-probe.events"]
 
 
 def test_the_tilt_guard_never_matches_itself_and_sees_a_running_tilt(tmp_path) -> None:

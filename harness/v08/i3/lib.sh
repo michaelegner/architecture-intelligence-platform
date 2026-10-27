@@ -132,12 +132,35 @@ passed() {  # passed NN-NAME: an earlier verdict file exists and PASSED
 recorded_ok() {  # recorded_ok NN-NAME: an earlier recorded command exited 0
   grep -qx 'exit: 0' "$RAW/$1.meta"
 }
-not_running() {  # not_running SERVICE: the Compose service has no running container
-  [[ -z "$(frozen_compose ps -q --status running "$1")" ]]
+# listed KIND NAME: 0 = NAME is listed, 1 = it is not, 2 = the listing itself failed. A failed
+# listing is never read as absence: `absent` and `present` succeed only on a confirmed answer, so a
+# broker or Compose error stops a precondition and never permits a deletion.
+# KIND: redpanda-topic, kafka-topic, redpanda-group, kafka-group; container (any state) or running
+# for a Compose service of this project.
+listed() {
+  local kind="$1" name="$2" out
+  case "$kind" in
+    redpanda-topic) out="$(rpk topic list)" || return 2; out="$(awk 'NR > 1 {print $1}' <<<"$out")" ;;
+    kafka-topic) out="$(ktool "$KAFKA" kafka-topics.sh --list)" || return 2 ;;
+    redpanda-group) out="$(rpk group list)" || return 2; out="$(awk 'NR > 1 {print $2}' <<<"$out")" ;;
+    kafka-group) out="$(ktool "$KAFKA" kafka-consumer-groups.sh --list)" || return 2 ;;
+    container) out="$(frozen_compose ps -a -q "$name")" || return 2; [[ -n "$out" ]]; return ;;
+    running) out="$(frozen_compose ps -q --status running "$name")" || return 2; [[ -n "$out" ]]; return ;;
+    *) stop "listed: unknown kind $kind" ;;
+  esac
+  grep -qxF -- "$name" <<<"$out"
 }
-no_container() {  # no_container SERVICE: the Compose service has no container at all, stopped included
-  [[ -z "$(frozen_compose ps -a -q "$1")" ]]
+absent() {  # absent KIND NAME: confirmed not listed
+  local rc=0
+  listed "$@" || rc=$?
+  [[ $rc -eq 1 ]]
 }
+present() {  # present KIND NAME: confirmed listed
+  local rc=0
+  listed "$@" || rc=$?
+  [[ $rc -eq 0 ]]
+}
+not_running() { absent running "$1"; }  # not_running SERVICE: confirmed no running container
 # P1b: after a flow's first start, every internal topic of the flow exists with RF 1.
 p1b() {  # p1b NN FLOW TARGET-KIND
   local nn="$1" flow="$2" target_kind="$3"
@@ -150,11 +173,6 @@ p1b() {  # p1b NN FLOW TARGET-KIND
   check "$nn" "$flow-p1b" --collect _p1b_listings -- p1b --flow "$flow" --target-listing "$target" \
     --source-listing "$source" --target-kind "$target_kind"
 }
-# Absence checks: P5 creates only names that none of these finds before it starts.
-absent_redpanda_topic() { ! rpk topic describe "$1" >/dev/null 2>&1; }
-absent_kafka_topic() { ! ktool "$KAFKA" kafka-topics.sh --describe --topic "$1" >/dev/null 2>&1; }
-absent_redpanda_group() { ! rpk group list | awk 'NR > 1 {print $2}' | grep -qx -- "$1"; }
-absent_kafka_group() { ! ktool "$KAFKA" kafka-consumer-groups.sh --list | grep -qx -- "$1"; }
 # Tilt is stopped: no process is named `tilt`. Matching the process name, not the command line,
 # keeps a shell that only carries the text "tilt up" (this check's own, for one) from matching.
 tilt_stopped() { ! pgrep -x tilt >/dev/null; }
