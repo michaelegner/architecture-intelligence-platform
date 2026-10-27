@@ -1518,6 +1518,8 @@ This mirrors AIP's own `PROVIDES` / `CALLS` / `SENDS` / `RECEIVES_FROM` model an
 ---
 
 
+## 3. Agent context and machine consumption
+
 ### Jörg Ziemann — Federated Architectural Content Management
 
 **Sources**
@@ -1578,7 +1580,6 @@ and local Assessment. It is not that Unblocked lacks provenance or source author
 If a context engine and existing sources can produce the same decision-worthy binding picture
 at lower owner cost, AIP should integrate, narrow, or stop rather than duplicate the engine.
 
-## 3. Agent context and machine consumption
 
 ### Cochran et al. — When Coding Is Free, Where Is the Bottleneck?
 
