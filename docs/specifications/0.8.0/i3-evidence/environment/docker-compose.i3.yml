@@ -1,0 +1,65 @@
+# v0.8 I3 (D13): the authored two-broker addition to the Sokol111 local environment. Its own
+# Compose project on the infrastructure's external `shared-network`, which k3d also joins, so the
+# pods reach `kafka:29092` as they reach `redpanda:29092`. Run only through `frozen_compose`
+# (harness/v08/i3/lib.sh). The three MirrorMaker 2 services sit behind profiles: none starts unless a
+# step starts it by name.
+name: aip-v08-i3
+
+services:
+  kafka:
+    image: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+    environment:
+      CLUSTER_ID: aipv08i3kafkaclusterA1
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:29092,HOST://:19092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,HOST://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      # Topics are created explicitly (step 1) or by MirrorMaker 2; nothing appears by accident.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    ports:
+      - "19092:19092"
+    networks:
+      - shared-network
+
+  mm2-flow-a:
+    image: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+    profiles: ["mm2-flow-a"]
+    entrypoint: ["/opt/kafka/bin/connect-mirror-maker.sh", "/etc/mm2/mm2.properties"]
+    volumes:
+      - ./mm2-flow-a.properties:/etc/mm2/mm2.properties:ro
+    depends_on: [kafka]
+    networks:
+      - shared-network
+
+  mm2-flow-b:
+    image: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+    profiles: ["mm2-flow-b"]
+    entrypoint: ["/opt/kafka/bin/connect-mirror-maker.sh", "/etc/mm2/mm2.properties"]
+    volumes:
+      - ./mm2-flow-b.properties:/etc/mm2/mm2.properties:ro
+    depends_on: [kafka]
+    networks:
+      - shared-network
+
+  mm2-probe:
+    image: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+    profiles: ["mm2-probe"]
+    entrypoint: ["/opt/kafka/bin/connect-mirror-maker.sh", "/etc/mm2/mm2.properties"]
+    volumes:
+      - ./mm2-probe.properties:/etc/mm2/mm2.properties:ro
+    depends_on: [kafka]
+    networks:
+      - shared-network
+
+networks:
+  shared-network:
+    name: shared-network
+    external: true

@@ -1,0 +1,49 @@
+# v0.8 I3 (D13): Helm values overlay for ecommerce-catalog-service. It replaces the `config`
+# string of the upstream values (upstream-values/ecommerce-catalog-service.yaml,
+# ecommerce-infrastructure@07c059908b99e08448cf1c2c7dad6a865fe5ccf0) with one line changed:
+# kafka.brokers redpanda:29092 -> kafka:29092. Authored for the showcase; applied by step 8.
+config: |
+  logger:
+    level: "debug"
+    development: true
+  multi-tenancy:
+    enabled: true
+  mongo:
+    host: "mongo"
+    database: "catalog"
+    replica-set: rs0
+  security:
+    jwks:
+      jwks-url: "http://logto:3001/oidc/jwks"
+      issuer: "http://localhost:3001/oidc"
+      audience: "https://api.sokolshop.com"
+    client-credentials:
+      token-url: "http://logto:3001/oidc/token"
+      resource: "https://api.sokolshop.com"
+      scopes:
+        - "openid"
+        - "tenants:read"
+  kafka:
+    brokers: "kafka:29092"
+    consumers-config:
+      default-group-id: "ecommerce-catalog-service"
+      default-auto-offset-reset: "earliest"
+      consumers:
+        - name: "tenant-events"
+          topic: "tenant.tenant.events"
+          max-retries: 5
+          initial-backoff: 2s
+          max-backoff: 30s
+          enable-dlq: true
+  observability:
+    otel-collector-endpoint: "alloy.observability.svc:4317"
+    tracing:
+      enabled: true
+    metrics:
+      enabled: false
+    profiling:
+      enabled: true
+      endpoint: "http://alloy.observability.svc:4040"
+  tenant:
+    grpc:
+      address: "ecommerce-tenant-service:8080"

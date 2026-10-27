@@ -1,0 +1,27 @@
+asyncapi: '2.6.0'
+info:
+  title: ecommerce-image-service
+  version: "1.0.0"
+  description: >-
+    Authored for the AIP v0.8 I2 two-broker fixture (I2 spec §8.2; I1 spec §4.1 rules) from
+    Sokol111/ecommerce-image-service-api@2167948573ced4b2854d8aed93fb83b242cf2e7f
+    (pkg/events/topics.go: TopicFor). Broker kafka:sokol111-kafka: publish operations (after wave
+    1). The upstream contract is protobuf; this AsyncAPI declares Topic identity and producers only,
+    never a consumer.
+x-aip-service-id: service:ecommerce-image-service
+servers:
+  kafka:
+    url: kafka:9092
+    protocol: kafka
+    x-aip-broker-id: kafka:sokol111-kafka
+channels:
+  catalog.product.events:
+    x-aip-destination-kind: topic
+    publish:
+      operationId: publishProductEvents
+      message:
+        $ref: '#/components/messages/ProductImagePromotedEvent'
+components:
+  messages:
+    ProductImagePromotedEvent:
+      name: ProductImagePromotedEvent

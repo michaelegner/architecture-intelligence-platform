@@ -1,0 +1,11 @@
+asyncapi: '2.6.0'
+info:
+  title: ecommerce-category-query-service
+  version: "1.0.0"
+  description: >-
+    Authored for the AIP v0.8 I2 two-broker fixture (I1 spec §4.1 rule 1): service-only declaration
+    of the deployed Go service ecommerce-category-query-service
+    (Sokol111/ecommerce-infrastructure@07c059908b99e08448cf1c2c7dad6a865fe5ccf0
+    environments/local/values). It declares no channel.
+x-aip-service-id: service:ecommerce-category-query-service
+channels: {}

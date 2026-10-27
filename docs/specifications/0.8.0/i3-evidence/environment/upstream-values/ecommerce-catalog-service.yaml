@@ -1,0 +1,78 @@
+# Local development values for ecommerce-catalog-service
+image:
+  repository: ecommerce-catalog-service
+  tag: "latest"
+
+ingress:
+  enabled: true
+  host: ecommerce-catalog-service.127.0.0.1.nip.io
+
+config: |
+  logger:
+    level: "debug"
+    development: true
+  multi-tenancy:
+    enabled: true
+  mongo:
+    host: "mongo"
+    database: "catalog"
+    replica-set: rs0
+  security:
+    jwks:
+      jwks-url: "http://logto:3001/oidc/jwks"
+      issuer: "http://localhost:3001/oidc"
+      audience: "https://api.sokolshop.com"
+    client-credentials:
+      token-url: "http://logto:3001/oidc/token"
+      resource: "https://api.sokolshop.com"
+      scopes:
+        - "openid"
+        - "tenants:read"
+  kafka:
+    brokers: "redpanda:29092"
+    consumers-config:
+      default-group-id: "ecommerce-catalog-service"
+      default-auto-offset-reset: "earliest"
+      consumers:
+        - name: "tenant-events"
+          topic: "tenant.tenant.events"
+          max-retries: 5
+          initial-backoff: 2s
+          max-backoff: 30s
+          enable-dlq: true
+  observability:
+    otel-collector-endpoint: "alloy.observability.svc:4317"
+    tracing:
+      enabled: true
+    metrics:
+      enabled: false
+    profiling:
+      enabled: true
+      endpoint: "http://alloy.observability.svc:4040"
+  tenant:
+    grpc:
+      address: "ecommerce-tenant-service:8080"
+
+env:
+  - name: APP_ENV
+    value: "local"
+  - name: CONFIG_FILE
+    value: "/configs/config.yaml"
+  - name: APP_SERVICE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.labels['app.kubernetes.io/name']
+  - name: APP_SERVICE_VERSION
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.labels['app.kubernetes.io/version']
+  - name: SECURITY__CLIENT_CREDENTIALS__CLIENT_ID
+    valueFrom:
+      secretKeyRef:
+        name: logto-credentials
+        key: ecommerce-m2m-client-id
+  - name: SECURITY__CLIENT_CREDENTIALS__CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: logto-credentials
+        key: ecommerce-m2m-client-secret
