@@ -1965,6 +1965,7 @@ This strengthens the existing Moldable Architecture Knowledge direction and adds
 
 - [On Evolution, Maps and Bad Choices (2015)](https://blog.gardeviance.org/2015/05/on-evolution-maps-and-numpties.html)
 - [What is a map, what isn't? (2015)](https://blog.gardeviance.org/2015/05/what-is-map-what-isnt.html)
+- [A moment of reflection: On vibe coding, context and open source (2026-02-19)](https://swardley.medium.com/a-moment-of-reflection-f401c5d848dc)
 - [Reading code to understand a system is already beyond repair](https://www.linkedin.com/posts/simonwardley_for-those-wondering-about-my-warning-from-activity-7473097333409300481-7H4j)
 - [Software engineering needs contextual tools, not one generic toolset](https://www.linkedin.com/posts/simonwardley_x-whats-the-worse-thing-about-software-activity-7470403677426585600-RyeL)
 
@@ -1976,10 +1977,12 @@ components may evolve before deciding what to do. A Wardley Map represents **pos
 a static systems dependency diagram does not thereby become a Wardley Map. Maps support orientation,
 communication and judgment rather than mechanically prescribing decisions.
 
-His more recent argument for contextual software-development tools addresses an adjacent problem:
-reading code or consulting generic tooling is not enough to maintain a useful understanding of
-large, rapidly changing systems. Question-specific views can expose relevant structure and
-consequences without requiring a person to reconstruct everything manually.
+In *A moment of reflection*, Wardley revisits his earlier "Maps as Code" thesis: the
+text-centric medium of coding and conversation poorly exposes the problem space, its
+relationships and context. He calls for examples, visualizations and tools contextual to
+the problem at hand, cautioning that adding knowledge graphs to generic tools is not
+the same as improving situational awareness. Question-specific views can expose relevant
+structure without requiring someone to reconstruct everything through code reading.
 
 **Why this matters to AIP**
 
@@ -2831,7 +2834,7 @@ UI Atlas models UI states, controls, and transitions; AIP models architectural r
 
 - [The Middle Loop (2026-03-13)](https://annievella.com/posts/the-middle-loop/)
 - [Verification Without Inspection (2026-07-31)](https://annievella.com/posts/verification-without-inspection/)
-- *Supervisory Engineering Work* (2026-10-23; direct article URL not yet verified; see [Annie Vella's blog](https://annievella.com/posts/))
+- [Supervisory Engineering Work (2026-10-23)](https://annievella.com/posts/supervisory-engineering-work/)
 
 **Core idea**
 
