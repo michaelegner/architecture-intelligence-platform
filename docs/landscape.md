@@ -113,7 +113,7 @@ visualization, provenance, or retrieval?
 [Enola](#enola--deterministic-architecture-context-and-regression-testing) ·
 [Embabel Worlds](#embabel-worlds--governed-enterprise-worlds) ·
 [Federated architecture content](#jörg-ziemann--federated-architectural-content-management) ·
-[Unblocked context engine](#unblocked--cross-source-context-and-the-binding-picture-boundary) ·
+[Unblocked context engine](#unblocked--cross-source-engineering-context) ·
 [Agent API Profile](#christian-posta--agent-api-profile) ·
 [MCP](#model-context-protocol-mcp) ·
 [Deterministic contextual tools](#tudor-girba--deterministic-contextual-tools-for-system-understanding) ·
@@ -667,16 +667,16 @@ a single scalar measure of coupling.
 
 **Why this matters to AIP**
 
-The v0.8 migration story concerns the consequences of moving a capability across broker
-and Bounded Context boundaries. AIP can establish qualified topic attachments and compare
-them with attributable promises, but must not equate an attachment with event-type processing,
-semantic compatibility, resilience, or a coupling score. Directionality and promise authority
-belong in the binding question; architectural trade-offs remain a human decision.
+Understanding cross-boundary relationships requires preserving the direction of reliance
+and the specific dimension of coupling. An observed broker attachment alone cannot
+establish event-type processing, semantic compatibility, resilience, or the strength
+of coupling. Architectural trade-offs still require judgment about the participants'
+ability to change independently.
 
 **AIP boundary**
 
-This strengthens the existing binding-picture rationale. It does not justify a general coupling
-metric, dependency-strength ranking, or new v0.8 semantics.
+The binding perspective does not imply a universal coupling score or a dependency-strength
+ranking. The meaning of the relationship must remain narrower than the available evidence.
 
 ## 2. Evidence and Current State
 
@@ -855,8 +855,8 @@ but cannot decide which operations a product owns, what those data mean, or who 
 the relationship. An implementation artifact must not silently become the architectural
 authority for product membership or commitment.
 
-This is a useful semantic-boundary input for the binding picture, not a reason to add
-data-product or overlay features to the v0.8 showcase.
+This is a semantic-boundary observation rather than a reason to own data-product
+cataloging, OpenAPI Overlay transformations, or product-governance workflows.
 
 ### API Gateways — Configured Access and Observed Usage
 
@@ -1549,12 +1549,11 @@ system. It projects only the local evidence and attributable promises necessary 
 specific cross-boundary binding question, preserving each source's authority and context.
 
 
-### Unblocked — Cross-Source Context and the Binding-Picture Boundary
+### Unblocked — Cross-Source Engineering Context
 
 **Sources**
 
 - [Inside the Unblocked Context Engine: How Relevance Is Decided](https://getunblocked.com/blog/inside-the-unblocked-context-engine/)
-- [AIP v0.7.2 controlled comparison: Unblocked only versus Unblocked + AIP](specifications/0.7.2/i3-comparison-record.md)
 
 **Core idea**
 
@@ -1564,21 +1563,19 @@ graph relationships, recency, inferred expertise, access controls, ranking, comp
 and citations help agents reconcile organizational context. It is a concrete implementation
 of federated engineering knowledge access, not a straw-man source-code search engine.
 
-**Evidence from AIP**
+**Why this matters to AIP**
 
-In v0.7.2, the Unblocked-only arm plus source, configuration and packaged broker output found
-the same Sokol111 consumers and uncertainty as the AIP-enhanced arm. After the MCP wording
-fix, AIP's typed qualification did not change that task's consumer set, migration plan,
-or rollout gates. This is a bounded negative comparison on one older question and dataset;
-it did not test v0.8's assessment of declared commitments versus observed bindings.
+A mature context engine can retrieve, relate, rank, and cite engineering knowledge across
+sources, including recency and expertise signals. It should not be characterized as simple
+source-code search or as lacking provenance. This makes it a substantive adjacent product
+when examining which architectural questions benefit from dedicated, deterministic semantics.
 
-**AIP distinction**
+**AIP boundary**
 
-The candidate differentiation is an explicit, deterministic claim about a particular
-cross-boundary binding: evidence-qualified Current State, independently attributable Intent,
-and local Assessment. It is not that Unblocked lacks provenance or source authority signals.
-If a context engine and existing sources can produce the same decision-worthy binding picture
-at lower owner cost, AIP should integrate, narrow, or stop rather than duplicate the engine.
+The distinction worth investigating is between context synthesis and a specific, reproducible
+architectural assessment built from independently qualified observations and owner-attributable
+commitments. Neither discovery nor semantic rigor alone proves unique decision value. Avoid
+duplicating general retrieval, indexing, and conversational context features.
 
 
 ### Cochran et al. — When Coding Is Free, Where Is the Bottleneck?
@@ -2759,8 +2756,8 @@ This reinforces the existing provider/consumer jobs and bounded projection princ
 
 **AIP boundary**
 
-No need to build an API gateway, orchestrator, generic enterprise workflow model,
-or another v0.8 transport integration.
+The flow-first argument is not a reason to own API gateways, orchestrators, enterprise
+workflow modeling, or additional transport-specific integrations.
 
 ### Kin Lane — Competitive Landscape Harness
 
@@ -2840,8 +2837,8 @@ not itself direct, supervise, review, approve, or verify generated code.
 
 **AIP boundary**
 
-The middle loop identifies a downstream consumer and a reason for evidence-qualified
-architecture answers, not a new harness, review product, or v0.8 feature.
+The middle loop identifies a downstream consumer for evidence-qualified architecture
+answers, not a mandate to build a harness, code-review product, or approval system.
 
 
 ### Thoughtworks — Future of Software Engineering Retreat
@@ -2862,10 +2859,10 @@ that a particular architecture product works.
 
 **Why this matters to AIP**
 
-AIP's target change is across autonomous service boundaries: locally successful code
-generation does not by itself establish commitments or consequences for other components.
-The v0.8 Sokol111 story already connects documented architecture, qualified broker
-attachments, migration decisions and separately verified post-change behavior.
+In cross-boundary modernization, locally successful code generation does not establish
+external commitments or consequences for other components. Architectural declarations,
+operational observations, migration decisions, and independently verified behavior each
+support different claims and should not be collapsed into one account of correctness.
 
 **AIP boundary**
 
@@ -3314,8 +3311,8 @@ and a broker attachment cannot verify internal codebase quality.
 
 **AIP boundary**
 
-Whole-codebase review scheduling, quality scoring, internal modularity, automatic rule
-distillation and human approval are not AIP capabilities or v0.8 scope.
+Whole-codebase review scheduling, internal modularity analysis, automatic rule
+distillation, and approval workflows belong to adjacent tools and human owners.
 
 ### Ankur Agnihotri — Architecture Drift Reduction with LLMs
 
