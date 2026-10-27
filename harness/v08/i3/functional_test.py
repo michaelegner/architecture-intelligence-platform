@@ -17,11 +17,12 @@ recorded failure. Each call records the method, the SHA-256 of the response, the
 pass or fail - never a token, a password or a request header. `--dry-run` prints the planned calls
 and sends nothing; it needs no endpoint and no token.
 
-Tokens come from operator commands whose stdout is the bearer token: `--s2s-token-command` for
-RegisterTenant, and `--token-command` for the catalog, image and query services. The second runs
-after the registration is COMPLETED, with AIP_I3_TENANT_SLUG, AIP_I3_EMAIL and AIP_I3_PASSWORD of
-the new shop in its environment, so it can log in as the shop's merchant. Which token each call
-needs is settled in I3b (I3a README).
+Tokens come from operator commands whose stdout is the bearer token, as the environment's own
+seeder gets them (Logto client credentials; `harness/v08/i3/tokens/`): `--s2s-token-command` (the
+`platform-service` app, `tenants:write`) for RegisterTenant, and `--token-command` (the
+`ecommerce-service` app, `cross-tenant`) for the catalog, image and query services. The second
+runs once the registration is COMPLETED; from then on every non-tenant call carries
+`X-Tenant-Slug: <the new shop>`, which selects the shop for a cross-tenant token.
 
 Exit code: 0 PASSED, 2 FAILED. The verdict file uses the checker.py shape, so `checker.py collect`
 merges it into checks.json.
@@ -30,7 +31,6 @@ merges it into checks.json.
 import argparse
 import hashlib
 import json
-import os
 import re
 import secrets
 import subprocess
@@ -92,17 +92,16 @@ class Driver:
         self.endpoints = endpoints
         self.token_commands = token_commands
         self.tokens: dict[str, str] = {}
+        self.tenant_slug: str | None = None
         self.dry_run = dry_run
         self.calls: list[dict] = []
 
-    def login(self, slug: str, email: str, password: str) -> None:
-        """Resolve the user token once the shop exists: the token command gets the new shop's
-        slug, email and password in its environment (never on its command line, never recorded)."""
+    def enter_shop(self, slug: str) -> None:
+        """Once the shop exists: resolve the service token and send `X-Tenant-Slug: <slug>` on every
+        later non-tenant call."""
+        self.tenant_slug = slug
         if not self.dry_run:
-            self.tokens["user"] = token_from(
-                self.token_commands["user"],
-                {"AIP_I3_TENANT_SLUG": slug, "AIP_I3_EMAIL": email, "AIP_I3_PASSWORD": password},
-            )
+            self.tokens["user"] = token_from(self.token_commands["user"])
 
     def need(self, value, what: str):
         """A value an earlier response must carry: a placeholder in a dry run, else a failure."""
@@ -128,16 +127,21 @@ class Driver:
         role = "s2s" if service == "tenant" else "user"
         if role not in self.tokens:
             if role == "user":
-                raise StepFailed(f"{full}: no user token (the shop is not registered yet)")
-            self.tokens[role] = token_from(self.token_commands[role], {})
-        token = self.tokens[role]
+                raise StepFailed(f"{full}: no service token (the shop is not registered yet)")
+            self.tokens[role] = token_from(self.token_commands[role])
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.tokens[role]}",
+        }
+        if role == "user":
+            headers["X-Tenant-Slug"] = self.tenant_slug or ""
         start = time.monotonic()
         record: dict = {"method": full}
         try:
             req = urllib.request.Request(
                 url,
                 data=json.dumps(request).encode(),
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+                headers=headers,
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=30) as resp:
@@ -247,7 +251,7 @@ def run(driver: Driver, timeout: int) -> list[dict]:
             lambda r: field(r, "status") == "REGISTRATION_STATUS_COMPLETED",
             timeout,
         )
-        driver.login(slug, email, password)
+        driver.enter_shop(slug)
         attribute = field(
             driver.call(
                 "attribute",
@@ -408,7 +412,7 @@ def run(driver: Driver, timeout: int) -> list[dict]:
     return steps
 
 
-def token_from(command: str, extra_env: dict[str, str]) -> str:
+def token_from(command: str) -> str:
     """Run an operator token command; its stdout is the bearer token. Failures are recorded by
     kind only: neither the token nor the command's output ever reaches the record."""
     try:
@@ -418,7 +422,6 @@ def token_from(command: str, extra_env: dict[str, str]) -> str:
             check=True,
             capture_output=True,
             text=True,
-            env={**os.environ, **extra_env},
         ).stdout
     except (OSError, subprocess.CalledProcessError) as exc:
         raise StepFailed(f"a token command failed ({type(exc).__name__})") from None

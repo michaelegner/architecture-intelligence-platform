@@ -103,6 +103,7 @@ and in I4 the agent, runs them one by one. Every script needs `I3_RAW_DIR` (the 
 | `steps/01.sh` … `09.sh` | Parent §4.2, one step each (step 8 needs `SOKOL111_INFRA`) |
 | `capture.sh c1-prime \| a-r \| a-k` | One capture through `harness/kafka-capture/capture.py`, with G before and G′ after (on Kafka both `--describe` and `--describe --state`); A-R also checks that the moved groups read `Empty` or `Dead`; each capture rewrites `checks.json` |
 | `functional_test.py` | The §6 functional test through Connect-RPC; `--dry-run` prints the planned calls |
+| `tokens/token.py platform \| ecommerce` | One Logto client-credentials access token for the functional test (see Functional test) |
 | `checker.py` | The rules; exit 0 `PASSED`, 3 `PENDING`, 2 `FAILED`; `collect` writes `checks.json` |
 
 Order in I3b (I3 §12): S1 bring-up, traffic, `capture.sh c1-prime`; preflight P1a, P3, P4, P5;
@@ -130,13 +131,22 @@ The driver calls these methods, as named in the pinned protos:
 Every object name carries the run id. The record has the method, the response SHA-256, the elapsed
 time and pass or fail; never a token, a password, a request body or the presigned URL.
 
-**Open for I3b: the token.** `RegisterTenant` takes the environment's S2S client-credentials token,
-as in v0.7.2 (`--s2s-token-command`). The catalog and image write RPCs probably need a user token
-of the new shop's merchant, not the S2S token (`--token-command`). The driver therefore runs the
-user token command only after the registration is `COMPLETED`, with `AIP_I3_TENANT_SLUG`,
-`AIP_I3_EMAIL` and `AIP_I3_PASSWORD` of the new shop in its environment. I3b settles which token
-each call needs, and the endpoint URLs (`--endpoint NAME=URL`); it records both in the run README,
-but never a token or the password. A missing id in a response fails the step with its name; a
+**Tokens (settled in I3b from the pinned source).** The services authorize each RPC by the
+permissions in a Logto token (`ecommerce-commons` `pkg/security/validation`). No user login is
+needed: the driver gets its tokens exactly as the environment's own seeder does
+(`ecommerce-infrastructure` `cmd/seeder/internal/auth/auth.go`), through
+`harness/v08/i3/tokens/token.py`.
+
+| Calls | Token | Tenant |
+|---|---|---|
+| `RegisterTenant`, `GetRegistrationStatus` | `python3 harness/v08/i3/tokens/token.py platform` (the `platform-service` app, `tenants:write`) | none |
+| catalog, image and query calls | `python3 harness/v08/i3/tokens/token.py ecommerce` (the `ecommerce-service` app, `cross-tenant` and the read/write scopes) | `X-Tenant-Slug: <the new shop>` on every call |
+
+`token.py` reads the client id and secret from the Kubernetes secret `logto-credentials`, which
+`logto-seed` writes, and prints only the access token. The secret never reaches a command line or
+an output, and a failure prints its kind only. The driver records neither a token, a password nor a
+request header. The endpoint URLs (`--endpoint NAME=URL`) are read from the cluster's ingress at run
+time and recorded in the run record. A missing id in a response fails the step with its name; a
 missing `version` is 0 (protojson omits zero values).
 
 ## Deviation from the I3a plan
