@@ -1,6 +1,6 @@
 # AIP v0.8 — Binding Picture Showcase
 
-**Status:** Draft 0.3 (2026-10-26; D9–D12 from the I2 specification)  
+**Status:** Draft 0.4 (2026-10-27; D13–D15 and the replay-amount wording from the I3 specification)  
 **Target:** `v0.8.0` (demonstration release)  
 **Baseline:** published and verified `v0.7.2`, plus the doctrine pivot [#635](https://github.com/michaelegner/architecture-intelligence-platform/pull/635).  
 **Scope authority:** [ROADMAP.md — v0.8](../../../ROADMAP.md#v08--binding-picture-showcase-planned-demonstration-release) and the [product doctrine](../../product-doctrine-and-strategic-direction.md)
@@ -216,9 +216,11 @@ Three kinds of check are never conflated:
 - **Offsets:** step 6 compares positions only inside one coordinate system: Redpanda offsets with
   the checkpoint's upstream offset, Kafka offsets with the checkpoint's downstream offset. MM2
   translation rounds down to the last offset-sync point, so the installed offset can be lower than
-  the exact position. **Accepted replay bound:** the records between the installed Kafka offset and
-  the next offset-sync point (at most the configured `offset.lag.max` records per partition); these
-  tenant events may be **reprocessed**. An installed offset that differs from the checkpoint could
+  the exact position. **Replay amount:** the records between the installed Kafka offset and the
+  position that corresponds to the final Redpanda offset may be **reprocessed**. I3 measures this
+  amount, or estimates it conservatively, from the recorded checkpoint, offset-sync and installed
+  positions; if no bound can be established, it says so. `offset.lag.max` is MM2's resync threshold,
+  not a guaranteed bound ([I3 §5](i3-two-broker-environment-and-live-captures.md#5-runbook-parent-42-steps-19)). An installed offset that differs from the checkpoint could
   skip records; step 6 stops on it. Sokol111's reset policy is `earliest`, so a missing installed
   offset would replay all tenant events; step 6 stops on that too. The spec states the
   duplicate-processing assumption; it does not prove idempotence. The functional test checks that
@@ -323,6 +325,7 @@ The report is not a visualisation product.
   the captures meet §4.3 and reproduce §3.6; every check of §4.4 is recorded. Runs are staged with checkpoints.
 - **Risks to resolve:** MM2 group-offset sync with Redpanda as source; whether Redpanda keeps the
   moved groups describable (`Empty` or reported `Dead`) after the wave; the k3d host adaptations from v0.7.2 I2.
+- **Increment specification:** [`i3-two-broker-environment-and-live-captures.md`](i3-two-broker-environment-and-live-captures.md).
 
 ### I4 — Agent run, report and release
 
@@ -359,3 +362,6 @@ and ask. Never fake a result.
 | D10 | Assessment statuses are the closed doctrine §4.3 enum plus a reason; "observed, undeclared" is `UNRESOLVED` / `PROMISE_COVERAGE_MISSING` | owner, 2026-10-26 |
 | D11 | The experimental tool exists only with `experimental.binding_picture: true`; hosted and showcase profiles enable it | owner, 2026-10-26 |
 | D12 | The EventCatalog revision covers the exact lookup bytes as well as the catalog | owner review on #640, 2026-10-26 |
+| D13 | Kafka (KRaft) and one MM2 container per flow run in the local Compose stack on Redpanda's network; only the bootstrap address changes for Catalog and Image | owner, 2026-10-27 ([I3](i3-two-broker-environment-and-live-captures.md)) |
+| D14 | I3's scripted run freezes the expected after-wave reference; the I4 agent run carries out the wave and its captures feed the report | owner, 2026-10-27 |
+| D15 | The functional test runs through the services' Connect-RPC endpoints, with MinIO and imgproxy; no UIs | owner, 2026-10-27 |
