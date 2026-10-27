@@ -251,3 +251,57 @@ async def test_two_apps_with_overlapping_lifespans_dispatch_to_their_own_service
                 )
             answers.append(result["structuredContent"]["producer"]["version"])
     assert answers == ["0.8.0", "0.8.1", "0.8.0"]
+
+
+@pytest.mark.asyncio
+async def test_a_flag_on_lifespan_never_redirects_a_running_flag_off_app(
+    c1, neo4j_container, tmp_path, monkeypatch
+) -> None:
+    """Review of #645: the real FastAPI lifespans of a flag-off and a flag-on app, overlapping.
+    The flag-off app's six tools keep dispatching to its own service through the global wiring,
+    and the flag-on app answers from its own service. The flag-off app gets a fresh singleton-
+    equivalent server, because the shared singleton's session manager can run only once per
+    process."""
+    import app.main as main_module
+    from app.mcp import wiring
+    from app.mcp.server import build_mcp_server
+
+    monkeypatch.setattr(main_module, "default_mcp_server", build_mcp_server())
+    monkeypatch.setenv("NEO4J_USER", neo4j_container.username)
+    monkeypatch.setenv("NEO4J_PASSWORD", neo4j_container.password)
+
+    def config(name: str, flag: bool):
+        path = tmp_path / f"{name}.yaml"
+        path.write_text(
+            "architecture_intelligence:\n"
+            "  sources:\n    directories: []\n"
+            f"  graph:\n    uri: {neo4j_container.get_connection_url()}\n    database: {DATABASE}\n"
+            "  llm:\n    enabled: false\n"
+            f"  experimental:\n    binding-picture: {str(flag).lower()}\n"
+            f"  mcp:\n    allowed-origins: ['{ORIGIN}']\n    allowed-hosts: ['localhost']\n"
+        )
+        return create_app(path)
+
+    off, on = config("off", False), config("on", True)
+    assert off.state.mcp_uses_global_wiring and not on.state.mcp_uses_global_wiring
+    async with off.router.lifespan_context(off):
+        off_service = off.state.architecture_intelligence_service
+        assert wiring.get_service() is off_service
+        async with on.router.lifespan_context(on):
+            # Starting the flag-on app leaves the flag-off app's dispatch untouched.
+            assert wiring.get_service() is off_service
+            assert on.state.architecture_intelligence_service is not off_service
+            for app, tool, arguments in (
+                (on, "get_binding_picture", {"request": {"mode": "query", **CONTEXT}}),
+                (
+                    off,
+                    "get_service_dependencies",
+                    {"request": {"service_id": "service:ecommerce-catalog-service"}},
+                ),
+            ):
+                transport = httpx.ASGITransport(app=app)
+                async with httpx.AsyncClient(transport=transport, base_url=ORIGIN) as client:
+                    result = await call_negotiated(
+                        client, origin=ORIGIN, name=tool, arguments=arguments
+                    )
+                assert result["isError"] is False, (tool, result)

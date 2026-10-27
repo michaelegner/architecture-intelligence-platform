@@ -205,3 +205,17 @@ def test_the_schema_and_model_both_reject_an_inconsistent_evidence_outcome() -> 
         BindingPictureAnswer.model_validate(forged)
     no_snapshot = {**run(build()), "snapshot": None}
     assert list(jsonschema.Draft202012Validator(ANSWER_SCHEMA).iter_errors(no_snapshot))
+
+
+def test_duplicate_broker_ids_are_rejected_in_evidence_mode() -> None:
+    with pytest.raises(ValueError, match="broker_ids must be unique"):
+        BindingPictureEvidenceRequest.model_validate(
+            {
+                "mode": "evidence",
+                "snapshot_id": SNAPSHOT.snapshot_id,
+                "bounded_context_id": "ctx-c",
+                "environment": "local",
+                "broker_ids": ["kafka:a", "kafka:a"],
+                "evidence_refs": ["binding-evidence:" + "0" * 64],
+            }
+        )

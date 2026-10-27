@@ -377,6 +377,14 @@ class BindingPictureEvidenceRequest(_Model):
             raise ValueError("evidence_refs must be sorted and unique")
         return value
 
+    @field_validator("broker_ids")
+    @classmethod
+    def _check_brokers(cls, value: list[str] | None) -> list[str] | None:
+        # As in the query request: one broker id once (review of #645).
+        if value is not None and len(set(value)) != len(value):
+            raise ValueError("broker_ids must be unique")
+        return value
+
     def as_query(self) -> BindingPictureQueryRequest:
         """The query whose refs this request resolves: same context, unpaged."""
         return BindingPictureQueryRequest(

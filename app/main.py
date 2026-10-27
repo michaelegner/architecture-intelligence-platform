@@ -63,7 +63,11 @@ async def lifespan(app: FastAPI):
     architecture_intelligence_service = build_production_service(
         app.state.driver, **production_service_kwargs(settings.config)
     )
-    mcp_wiring.configure(architecture_intelligence_service)
+    # v0.8 I2 D11: only the app that serves the module singleton configures the process-global
+    # wiring. A flag-on app's own MCP server dispatches through its own `app.state` service, so
+    # starting it must never redirect a running flag-off app's six tools (review of #645).
+    if app.state.mcp_uses_global_wiring:
+        mcp_wiring.configure(architecture_intelligence_service)
     app.state.architecture_intelligence_service = architecture_intelligence_service
     openai_api_key = settings.secrets.openai_api_key
     if settings.config.llm.enabled and openai_api_key and openai_api_key.get_secret_value():
@@ -153,6 +157,7 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     else:
         mcp_server = default_mcp_server
     app.state.mcp_server = mcp_server
+    app.state.mcp_uses_global_wiring = mcp_server is default_mcp_server
     mcp_config = config.mcp
     app.mount(
         "/",
