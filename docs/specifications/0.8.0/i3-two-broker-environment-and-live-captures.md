@@ -1,6 +1,6 @@
 # AIP v0.8 I3: Two-Broker Environment and Live Captures
 
-**Status:** Draft 0.1 (2026-10-27)  
+**Status:** Draft 0.2 (2026-10-27; review on #646: executable P5 probe flow, P1 split, Connect worker state)  
 **Governs:** [v0.8 specification](specification.md) §3.6, §4 and §7 I3, as amended by D13–D15 (§13).  
 **Baseline:** `main` at `d07eedf` (I2 complete: [completion record](i2-completion-record.md), [handoff](i2-i3-handoff.md)).  
 **Hands off to:** I4 (agent run, report and release).
@@ -51,12 +51,28 @@ infrastructure's local Compose stack, on Redpanda's Docker network:
 - `mm2-flow-b`: Kafka → Redpanda, allow-list `catalog.product.events`, `catalog.category.events`
   and `catalog.attribute.events`.
 
-**MirrorMaker 2 properties** (both flows, committed):
+**MirrorMaker 2 properties** (every flow, committed):
 - one source → target pair per flow;
 - `replication.policy.class=org.apache.kafka.connect.mirror.IdentityReplicationPolicy`;
 - `emit.checkpoints.enabled=true` and `emit.offset-syncs.enabled=true`;
-- replication factor 1 for every internal topic: checkpoints, offset-syncs, heartbeats, and the
-  Connect config, offset and status topics.
+- `emit.heartbeats.enabled=false`, so that no flow writes a `heartbeats` topic that another flow's
+  cluster also uses;
+- replication factor 1 for every internal topic the flow creates: the checkpoints and offset-syncs
+  topics, and the Connect config, offset and status topics.
+
+**Connect worker state** (review of #646). Each flow is its own dedicated MirrorMaker 2 process with
+its own Connect worker state; no state is shared. The cluster aliases differ per flow, so every
+alias-derived internal topic name differs too:
+
+| Flow | Aliases (source → target) | Worker group | Config / offset / status topics (on the target) | Checkpoints topic (on the target) | Offset-syncs topic (on the source) |
+|---|---|---|---|---|---|
+| A | `redpanda` → `kafka` | `mm2-flow-a` | `mm2-flow-a-configs`, `mm2-flow-a-offsets`, `mm2-flow-a-status` | `redpanda.checkpoints.internal` | `mm2-offset-syncs.kafka.internal` |
+| B | `kafka` → `redpanda` | `mm2-flow-b` | `mm2-flow-b-configs`, `mm2-flow-b-offsets`, `mm2-flow-b-status` | `kafka.checkpoints.internal` | `mm2-offset-syncs.redpanda.internal` |
+| Probe (P5) | `rpprobe` → `kprobe` | `mm2-probe` | `mm2-probe-configs`, `mm2-probe-offsets`, `mm2-probe-status` | `rpprobe.checkpoints.internal` | `mm2-offset-syncs.kprobe.internal` |
+
+These names are set through the dedicated-mode, per-cluster worker properties of the pinned Kafka
+version. I3a confirms the exact property keys against that version and records them in the
+committed property files. A name that the pinned version cannot set is a stop condition.
 
 Flow A also sets:
 - `sync.group.offsets.enabled=true`, set explicitly because it is off by default;
@@ -74,11 +90,12 @@ The preflight must pass before §4.2 step 1. Each check is recorded, and any fai
 
 | # | Check |
 |---|---|
-| P1 | Every MM2 and Connect internal topic exists with replication factor 1 |
-| P2 | Both flow configurations set offset-syncs, checkpoints and the identity policy. Flow A has the Catalog/Image group allow-list and `sync.group.offsets.enabled` |
+| P1a | **Before any flow starts:** each flow's property file sets replication factor 1 for every internal topic it creates, and names those topics as in the worker-state table |
+| P1b | **After each flow's first start** (the probe in P5, flow A in step 2, flow B in step 7): every internal topic of that flow exists on the named cluster with replication factor 1. It is recorded at that step and stops the run if it fails |
+| P2 | Every flow configuration (A, B, probe) sets offset-syncs, checkpoints, the identity policy and disabled heartbeats. Flow A has the Catalog/Image group allow-list and `sync.group.offsets.enabled` |
 | P3 | The flow A and flow B allow-lists are disjoint |
 | P4 | Kafka's advertised listener is reachable from a Compose container and from a k3d probe pod (a metadata request succeeds) |
-| P5 | **Group-offset-sync probe:** a throw-away group consumes from a throw-away topic on Redpanda and stops. With no active consumer on Kafka, MM2 installs its translated committed offset on Kafka. This proves the D2 mechanism with Redpanda as the source. The probe topic and group are removed afterwards and are outside both capture scopes |
+| P5 | **Group-offset-sync probe** (review of #646), on the probe flow, never on flow A or B: (1) create the probe topic `aip-probe.events` on Redpanda and produce a few records; (2) the probe group `aip-probe-group` consumes them, commits and stops; (3) start the probe flow, whose topic allow-list is exactly `aip-probe.events` and whose group allow-list is exactly `aip-probe-group`, with `sync.group.offsets.enabled=true`; (4) with no active consumer on Kafka, MM2 installs the translated committed offset of `aip-probe-group` on Kafka, and the checkpoint decodes; (5) P1b runs for the probe flow; (6) stop the probe flow and delete its topic, group and internal topics on both clusters. Flows A and B stay stopped and unchanged throughout. The probe topic and group are outside both capture scopes. Stop condition: no installed offset within a bounded wait, or a checkpoint that does not decode. This proves the D2 mechanism with Redpanda as the source |
 
 ## 5. Runbook (parent §4.2, steps 1–9)
 
@@ -179,7 +196,7 @@ offset is reset.
 - **The reference is committed before the live run:** `i3-evidence/expected-after.json` holds the
   semantic rows of I2 §8.2 (crossing, status, reason, `cross_broker_producers`, per broker × Topic
   × consumer). It is committed in I3a together with `expected-after.sha256` and never edited
-  afterwards.
+  afterward.
 - **Observed metadata is kept apart:** the capture T values, source revisions and digests go into
   `observed-metadata.json` after the run. The package keeps the two files separate.
 - **Replay test (I3b, qualification tier):** the production import of the frozen package (the
@@ -197,7 +214,7 @@ passed, and where the next stage starts.
 | Stage | Content |
 |---|---|
 | S1 | Bring-up (Compose stack, k3d, Tilt, MinIO, imgproxy), traffic, C1′ with G/G′ |
-| S2 | Kafka and both MM2 flows configured, preflight P1–P5, §4.2 steps 1–2 |
+| S2 | Kafka and the MM2 property files configured, preflight P1a–P5 (with the probe flow run and torn down), §4.2 steps 1–2 |
 | S3 | Steps 3–9, the after-wave declarations, A-R and A-K with G/G′, the functional test |
 | S4 | Freeze the package, `observed-metadata.json`, the replay test |
 
@@ -217,7 +234,7 @@ what the run created (memory rule: check before deleting by name).
 
 | # | Check |
 |---|---|
-| C1 | Preflight P1–P5 passes and is recorded |
+| C1 | Preflight P1a–P5 passes and is recorded, and P1b passes at each flow's first start |
 | C2 | The §4.2 protocol runs end to end. `checks.json` covers every step with its precondition and result |
 | C3 | Replication progress per source partition is recorded; the hand-off (a), checkpoint and (c) is recorded per group and partition; the replay amount is measured or estimated (or "no bound" is stated) |
 | C4 | C1′, A-R and A-K meet parent §4.3, with G/G′ ground truth |
