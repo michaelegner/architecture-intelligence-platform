@@ -32,6 +32,8 @@ APPS = {
     ),
 }
 RESOURCE = "https://api.sokolshop.com"
+# kubectl waits forever by default (--request-timeout=0); bound it, and the process around it.
+KUBECTL_TIMEOUT_SECONDS = 20
 
 
 class TokenError(Exception):
@@ -41,16 +43,27 @@ class TokenError(Exception):
 def credentials(prefix: str) -> tuple[str, str]:
     try:
         out = subprocess.run(
-            ["kubectl", "-n", "dev", "get", "secret", "logto-credentials", "-o", "json"],
+            [
+                "kubectl",
+                "-n",
+                "dev",
+                "get",
+                "secret",
+                "logto-credentials",
+                "-o",
+                "json",
+                f"--request-timeout={KUBECTL_TIMEOUT_SECONDS}s",
+            ],
             check=True,
             capture_output=True,
             text=True,
+            timeout=KUBECTL_TIMEOUT_SECONDS + 10,
         ).stdout
         data = json.loads(out)["data"]
         client_id = base64.b64decode(data[f"{prefix}-client-id"]).decode()
         client_secret = base64.b64decode(data[f"{prefix}-client-secret"]).decode()
         return client_id, client_secret
-    except (OSError, subprocess.CalledProcessError) as exc:
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         raise TokenError(f"reading logto-credentials failed ({type(exc).__name__})") from None
     except (ValueError, KeyError, TypeError) as exc:
         raise TokenError(

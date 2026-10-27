@@ -30,11 +30,12 @@ precondition and stops on a failed check. Its captures must reproduce `expected-
 The I3 environment was torn down after the freeze, so I4 starts with a fresh bring-up.
 
 1. **Sources and tools.** Clone the 16 Sokol111 repositories at the [v0.7.2 freeze](../0.7.2/i2-evidence/sokol111/freeze.md) commits. Install k3d v5.9.0, Tilt v0.37.8 and Helm v3.22.0 and check their published SHA-256 sums. Point `KUBECONFIG`, `MCP_KUBECONFIG` and the Helm homes to a scratch directory.
-2. **Adaptations, in the local clone only.** Apply the six listed in the package README:
+2. **Adaptations, in the local clone only.** Apply the ones listed in the package README, plus the Logto pin:
    - the k3d CA path and `fail-cgroupv1=false`;
    - `logto-seed` without `network: host`;
    - the pinned Bitnami MinIO images with their `storage.yml` changes ([`raw/S1-07`](i3-evidence/raw/S1-07-adaptation-minio.txt));
-   - a host that cannot resolve `*.127.0.0.1.nip.io` uses `127.0.0.1` plus `Host`.
+   - a host that cannot resolve `*.127.0.0.1.nip.io` uses `127.0.0.1` plus `Host`;
+   - **new for I4:** `compose/logto.yml` pins Logto to the image the I3 run used, `svhd/logto@sha256:097cd47689546461edb4637fb6eee60b9ab6d3d4c08ebb20bc44a1b1809b82c0` (Logto 1.45.0). Upstream uses `latest`, which a fresh pull can resolve to a different image; I3 ran the cached one. Disclose it like the others.
 3. **Bring-up.**
    - Run `make cluster-inject-ca`, then `make init`. The CA bundle must exist before the cluster is created.
    - Run `tilt up` for the five Go services, the seeder, `minio`, `minio-init` and `imgproxy`.
@@ -62,5 +63,6 @@ Whether the agent sees §3 and §4 is decided by the I4 spec (§1.1).
 - The functional test's `RegisterTenant` starts a seeder Job for the test shop. So after the cut-over, Kafka holds that shop's whole demo catalog. These records are new, not duplicates.
 - `GetRegistrationStatus` needs `tenants:read`. `token.py ecommerce` requests it.
 - MM2's internal topics appear after the worker starts. P1b polls until its deadline.
+- **Redpanda group absence check, unverified:** P5's probe group `aip-probe-group` was `Empty` on Redpanda at 19:00:15 (`raw/P5-source-group`). At teardown, `absent`/`present redpanda-group` (built on `rpk group list`) did not find it, so no Redpanda deletion is recorded; only the Kafka group deletion is. A likely cause is that `rpk group list` does not list every `Empty` group. If so, P5's precondition `absent redpanda-group` can fail open for an `Empty` group. Before I4 relies on it, verify at bring-up how `rpk group list` and `rpk group describe` report an `Empty` group, and base the check on what they show.
 - `apache/kafka` declares `VOLUME`s: removing an MM2 container needs `-v` (P5 now uses `rm -sfv`), or its anonymous volumes remain.
 - One check attempt collects for about 20 s (two topic dumps with a 10 s consumer timeout each). A verdict can therefore be evaluated after the 40 s deadline when the attempt began before it.

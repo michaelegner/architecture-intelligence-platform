@@ -99,8 +99,10 @@ measured or estimated (`checker.py handoff`).
 state has the deadline
 `3 × sync.group.offsets.interval.seconds + refresh.groups.interval.seconds` = 40 s
 (`MM2_DEADLINE_SECONDS` in `harness/v08/i3/lib.sh`, unit-tested against the property files). Before
-the deadline a check is `PENDING` and is polled again; after it, the check is `FAILED`. Every
-verdict records its elapsed time and deadline.
+the deadline a check is `PENDING` and is polled again. An attempt that starts after the deadline
+is not made: a check not yet passed then is `FAILED`. The last attempt can start before the
+deadline and finish after it, because collecting its input takes up to about 20 s (P5 in the
+run record). Every verdict records its elapsed time and deadline.
 
 Waits that do not depend on MirrorMaker 2 have their own deadlines (`lib.sh`):
 
@@ -170,7 +172,8 @@ needed: the driver gets its tokens exactly as the environment's own seeder does
 
 | Calls | Token | Tenant |
 |---|---|---|
-| `RegisterTenant`, `GetRegistrationStatus` | `python3 harness/v08/i3/tokens/token.py platform` (the `platform-service` app, `tenants:write`) | none |
+| `RegisterTenant` | `python3 harness/v08/i3/tokens/token.py platform` (the `platform-service` app, `tenants:write`) | none |
+| `GetRegistrationStatus` | `python3 harness/v08/i3/tokens/token.py ecommerce` (the `ecommerce-service` app; it needs `tenants:read`, which the platform app lacks) | none |
 | catalog, image and query calls | `python3 harness/v08/i3/tokens/token.py ecommerce` (the `ecommerce-service` app, `cross-tenant` and the read/write scopes) | `X-Tenant-Slug: <the new shop>` on every call |
 
 `token.py` reads the client id and secret from the Kubernetes secret `logto-credentials`, which

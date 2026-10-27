@@ -42,6 +42,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 PASSED, FAILED = "PASSED", "FAILED"
+# A token command that does not return is a recorded failure, never a hang (token.py bounds its own
+# kubectl and HTTP calls well inside this).
+TOKEN_COMMAND_TIMEOUT_SECONDS = 90
 SERVICES = {
     "tenant": "tenant.v1.TenantRegistrationService",
     "attribute": "catalog.v1.AttributeService",
@@ -430,8 +433,9 @@ def token_from(command: str) -> str:
             check=True,
             capture_output=True,
             text=True,
+            timeout=TOKEN_COMMAND_TIMEOUT_SECONDS,
         ).stdout
-    except (OSError, subprocess.CalledProcessError) as exc:
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         raise StepFailed(f"a token command failed ({type(exc).__name__})") from None
     token = out.strip()
     if not token:

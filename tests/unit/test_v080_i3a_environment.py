@@ -539,10 +539,15 @@ _SECRET_JSON = json.dumps(
 )
 
 
-def _token_run(monkeypatch, capsys, *, kubectl_ok=True, response=b'{"access_token": "TKN"}'):
+def _token_run(
+    monkeypatch, capsys, *, kubectl_ok=True, response=b'{"access_token": "TKN"}', hang=False
+):
     posted = []
 
     def fake_run(cmd, **kwargs):
+        assert kwargs.get("timeout") and any(a.startswith("--request-timeout=") for a in cmd)
+        if hang:
+            raise subprocess.TimeoutExpired(cmd, kwargs["timeout"])
         if not kubectl_ok:
             raise subprocess.CalledProcessError(1, cmd)
         return subprocess.CompletedProcess(cmd, 0, stdout=_SECRET_JSON, stderr="")
@@ -573,7 +578,13 @@ def test_the_token_command_prints_only_the_token(monkeypatch, capsys) -> None:
 
 @pytest.mark.parametrize(
     "kwargs",
-    [{"kubectl_ok": False}, {"response": None}, {"response": b"{}"}, {"response": b"not json"}],
+    [
+        {"kubectl_ok": False},
+        {"hang": True},
+        {"response": None},
+        {"response": b"{}"},
+        {"response": b"not json"},
+    ],
 )
 def test_the_token_command_fails_closed_and_never_prints_the_secret(
     monkeypatch, capsys, kwargs
@@ -581,3 +592,16 @@ def test_the_token_command_fails_closed_and_never_prints_the_secret(
     rc, out, err, _ = _token_run(monkeypatch, capsys, **kwargs)
     assert rc == 1 and out == ""
     assert "TOP-SECRET" not in err and "client_secret" not in err
+
+
+def test_a_token_command_that_hangs_is_a_recorded_failure(monkeypatch) -> None:
+    seen = {}
+
+    def fake_run(command, **kwargs):
+        seen.update(kwargs)
+        raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+
+    monkeypatch.setattr(functional.subprocess, "run", fake_run)
+    with pytest.raises(functional.StepFailed, match="TimeoutExpired"):
+        functional.token_from("sleep 1000")
+    assert seen["timeout"] == functional.TOKEN_COMMAND_TIMEOUT_SECONDS
